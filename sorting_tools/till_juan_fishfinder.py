@@ -1364,6 +1364,7 @@ def main():
 
         # ft.latex_pdf()
         print len(sys.argv)
+        print 'hello world'
 
 if __name__ == '__main__':
     main()
