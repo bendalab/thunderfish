@@ -839,7 +839,6 @@ def extract_fundamentals( good_freqs, all_freqs, deltaf, cfg ):
             nd = np.abs(all_freqs[inx, 0] - n*mainsfreq)
             if nd <= pfreqtol :
                 mains_list.append( all_freqs[inx] )
-
     return group_list, fzero_harmonics_list, np.array( mains_list )
 
 
