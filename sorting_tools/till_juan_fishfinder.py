@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 # same as fishsorter
+
 __author__ = 'raab'
 def description_of_the_whole_code():
     """
@@ -1182,9 +1183,9 @@ class FishTracker :
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
 
-        if len(sys.argv) is 3:
-            f = open('%s' %sys.argv[2], 'wb')
-            pickle.dump(self.fishes, f)
+        # if len(sys.argv) is 3:
+        #     f = open('%s' %sys.argv[2], 'wb')
+        #     pickle.dump(self.fishes, f)
 
         plt.xticks(fontsize='15')
         plt.yticks(fontsize='15')
@@ -1282,6 +1283,39 @@ class FishTracker :
     def get_data( self ):
         data = np.zeros( np.ceil( self.rate*self.datasize ), dtype="<i2" )
         return data
+
+    def mean_multi_data(self):
+        """
+        if three arguments are given:
+        takes/build and npy file witch contains the main frequencies of he fishes of one recording.
+        saves the file as .npy
+
+        3. arg is a str
+
+        """
+        # mean_path = 'mean_multi_data.npy'
+        mean_path = ('%s.npy' %sys.argv[2])
+        if not os.path.exists(mean_path):
+            np.save(mean_path, np.array([]))
+        means_frequencies = np.load(mean_path)
+
+        means_frequencies = means_frequencies.tolist()
+
+        # mean_fishes = []
+        keys = self.fishes.keys()
+        build_mean = []
+
+        for i in keys:
+            for j in np.arange(len(self.fishes[i])):
+                if self.fishes[i][j] is not np.nan:
+                    build_mean.append(self.fishes[i][j])
+            means_frequencies.append(np.mean(build_mean))
+            build_mean = []
+
+        means_frequencies = np.asarray(means_frequencies)
+        np.save(mean_path, means_frequencies)
+
+        print means_frequencies
 def main():
     datasize = 50.0
     # config file name:
@@ -1293,7 +1327,7 @@ def main():
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument('-v', action='count', dest='verbose' )
     parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
-    parser.add_argument('pickle_test', nargs='?', default='', type=str)
+    parser.add_argument('npy_savefile', nargs='?', default='', type=str)
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
     args = parser.parse_args()
 
@@ -1328,7 +1362,7 @@ def main():
         print 'python module "audioread" is not installed.'
         quit()
 
-    with audioread.audio_open( filename ) as af :
+    with audioread.audio_open( filepath ) as af :
         tracen = af.channels
         if channel >= tracen :
             print 'number of traces in file is', tracen
@@ -1360,11 +1394,14 @@ def main():
 
         ft.specto_with_sorted_fish()
 
-        ft.main_frequency_hist()
+        if len(sys.argv) == 3:
+            ft.mean_multi_data()
+        else:
+            ft.main_frequency_hist()
 
         # ft.latex_pdf()
-        print len(sys.argv)
-        print 'hello world'
+        # print len(sys.argv)
+        # print 'hello world'
 
 if __name__ == '__main__':
     main()
