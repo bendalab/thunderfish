@@ -1051,6 +1051,32 @@ class FishTracker :
             #####################################################
             power, freqs = ml.psd( data[t0:t0+tw], NFFT=nfft, noverlap=nfft/2, Fs=self.rate, detrend=ml.detrend_mean )
             fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
+
+            ###########################################################
+            for i in np.arange(len(fishlist)):
+                test_f = []
+                test_p = []
+                for j in np.arange(len(fishlist[i])):
+                    test_f.append(fishlist[i][j][0])
+                    test_p.append(fishlist[i][j][1])
+
+                wave_or_puls = 0
+                for k in np.arange(len(test_p)-1):
+                    if test_p[k] < test_p[k+1]:
+                        wave_or_puls += 1
+                    if test_p[k] > test_p[k+1]:
+                        wave_or_puls+= -1
+                if wave_or_puls >= 0:
+                    print "maybe we got a pulsfish", test_f[0]
+                else:
+                    print "wavefish", test_f[0]
+
+                fig, ax = plt.subplots()
+                ax.plot(test_f, test_p, 'o')
+                plt.show()
+
+            ###########################################################
+
             cfg['lowThreshold'][0] = lowth
             cfg['highThreshold'][0] = highth
             # fundamental frequencies:
