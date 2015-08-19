@@ -1056,44 +1056,31 @@ class FishTracker :
             fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
 
             ###########################################################
-            for i in np.arange(len(fishlist)):
-                test_f = []
-                test_p = []
-                for j in np.arange(len(fishlist[i])):
-                    test_f.append(fishlist[i][j][0])
-                    test_p.append(fishlist[i][j][1])
+            for fish_idx in np.arange(len(fishlist)):
+                test_freq = []
+                test_power = []
+                for harmo_idx in np.arange(len(fishlist[fish_idx])):
+                    test_freq.append(fishlist[fish_idx][harmo_idx][0])
+                    test_power.append(fishlist[fish_idx][harmo_idx][1])
 
                 # wave_or_puls = []
-                slopes = []
-                for k in np.arange(len(test_p)):
-                    for l in np.arange(len(test_p)):
-                        if k > l:
-                            slopes.append((test_p[k]-test_p[l])/(test_f[k]-test_f[l]))
-                        if k < l:
-                            slopes.append((test_p[l]-test_p[k])/(test_f[l]-test_f[k]))
-                wave_or_puls = np.mean(slopes)
-                if wave_or_puls > 0:
-                    print 'we got a pulsfish;', 'mean slope is: ', wave_or_puls, '; frequency of the fish: ', test_f[0]
-                if wave_or_puls < -0:
-                    print 'we got a wavefish;', 'mean slope is: ', wave_or_puls, '; frequency of the fish: ', test_f[0]
-                # else:
-                #     print 'not able to categorize', 'mean slope is: ', wave_or_puls
+                slopes = [] #each slope is calculated twice
+                for first_idx in np.arange(len(test_power)):
+                    for second_idx in np.arange(len(test_power)):
+                        if first_idx > second_idx:
+                            slopes.append((test_power[first_idx]-test_power[second_idx])/(test_freq[first_idx]-test_freq[second_idx]))
+                        if first_idx < second_idx:
+                            slopes.append((test_power[second_idx]-test_power[first_idx])/(test_freq[second_idx]-test_freq[first_idx]))
+                mean_slopes = np.mean(slopes)
+                if mean_slopes > 0:
+                    print('we got a pulse-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
+                          %(mean_slopes, test_freq[0]))
+                if mean_slopes < -0:
+                    print('we got a wave-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
+                          %(mean_slopes, test_freq[0]))
 
-
-                ###########################
-                #old way
-                # for k in np.arange(len(test_p)-1):
-                #     if test_p[k] < test_p[k+1]:
-                #         wave_or_puls += 1
-                #     if test_p[k] > test_p[k+1]:
-                #         wave_or_puls+= -1
-                # if wave_or_puls >= 0:
-                #     print "maybe we got a pulsfish", test_f[0]
-                # else:
-                #     print "wavefish", test_f[0]
-                ###########################
                 fig, ax = plt.subplots()
-                ax.plot(test_f, test_p, 'o')
+                ax.plot(test_freq, test_power, 'o')
                 plt.show()
 
             ###########################################################

@@ -10,7 +10,7 @@ def load_npy_to_list():
     :return: data (list of frequencies)
     """
     print 'loading data ...'
-    data = np.load('%s.npy' %sys.argv[1])
+    data = np.load('%s' %sys.argv[1])
     data = data.tolist()
     print 'data loaded successfully'
     return data
