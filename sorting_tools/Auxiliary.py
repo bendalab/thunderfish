@@ -1,0 +1,38 @@
+__author__ = 'juan'
+# Imports
+import numpy as np
+import matplotlib.pyplot as plt
+from IPython import embed
+
+
+def df_histogram(freqs_ls):
+    """ This Function takes a list of wave-fish fundamental frequencies and calculates all possible
+    difference-frequencies between all combinations of EODFs.
+
+    :param freqs_ls: array of fish fundamental frequencies.
+    """
+    all_diffs = np.hstack([freqs_ls - e for e in freqs_ls])
+    ret = all_diffs[all_diffs != 0.]
+    return ret
+
+
+def plot_histogram(dfs_ls, binsize='FD'):
+    """ Plots a histogram of the difference frequencies
+
+    :param dfs_ls:
+    """
+    q75, q25 = np.percentile(abs(dfs_ls), [75, 25])
+    fig, ax = plt.subplots()
+    if binsize == 'FD':
+        ax.hist(dfs, bins=int(2*(q75-q25) * len(dfs)**(-1./3.)))  # Freedman-Diaconis rule for binwidth
+    else:
+        ax.hist(dfs, bins=binsize)
+
+    plt.show()
+
+
+if __name__ == '__main__':
+    # Test the df_histogram function
+    a = np.load('test.npy')
+    dfs = df_histogram(a)
+    plot_histogram(dfs)
