@@ -1019,7 +1019,7 @@ class FishTracker :
         self.fresolution = 0.5
         self.twindow = 8.0
         self.fishes = {}
-    def processdata( self, data ): #, rate, fish_freqs_dict, tstart, datasize, step ) :
+    def processdata( self, data, test_longfile=False ): #, rate, fish_freqs_dict, tstart, datasize, step ) :
         """
         for a given data sorts the main frequencies by time.
         the resulting dict got:
@@ -1045,9 +1045,12 @@ class FishTracker :
         self.datasize = len( data ) / self.rate
 
         for t0 in np.arange( 0, len( data ) - tw, stepw ) :
+        # running Power spectrum in windows of 8 seconds (tw) in steps of 0,5 seconds (stepw)
+
             #####################################################
-            # if self.tstart+(t0*1.0/self.rate) > 800:
-            #     break
+            if test_longfile:  # Only processes 800 seconds of a long file
+                if self.tstart+(t0*1.0/self.rate) > 800:
+                    break
             #####################################################
             power, freqs = ml.psd( data[t0:t0+tw], NFFT=nfft, noverlap=nfft/2, Fs=self.rate, detrend=ml.detrend_mean )
             fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
@@ -1060,17 +1063,35 @@ class FishTracker :
                     test_f.append(fishlist[i][j][0])
                     test_p.append(fishlist[i][j][1])
 
-                wave_or_puls = 0
-                for k in np.arange(len(test_p)-1):
-                    if test_p[k] < test_p[k+1]:
-                        wave_or_puls += 1
-                    if test_p[k] > test_p[k+1]:
-                        wave_or_puls+= -1
-                if wave_or_puls >= 0:
-                    print "maybe we got a pulsfish", test_f[0]
-                else:
-                    print "wavefish", test_f[0]
+                # wave_or_puls = []
+                slopes = []
+                for k in np.arange(len(test_p)):
+                    for l in np.arange(len(test_p)):
+                        if k > l:
+                            slopes.append((test_p[k]-test_p[l])/(test_f[k]-test_f[l]))
+                        if k < l:
+                            slopes.append((test_p[l]-test_p[k])/(test_f[l]-test_f[k]))
+                wave_or_puls = np.mean(slopes)
+                if wave_or_puls > 0:
+                    print 'we got a pulsfish;', 'mean slope is: ', wave_or_puls, '; frequency of the fish: ', test_f[0]
+                if wave_or_puls < -0:
+                    print 'we got a wavefish;', 'mean slope is: ', wave_or_puls, '; frequency of the fish: ', test_f[0]
+                # else:
+                #     print 'not able to categorize', 'mean slope is: ', wave_or_puls
 
+
+                ###########################
+                #old way
+                # for k in np.arange(len(test_p)-1):
+                #     if test_p[k] < test_p[k+1]:
+                #         wave_or_puls += 1
+                #     if test_p[k] > test_p[k+1]:
+                #         wave_or_puls+= -1
+                # if wave_or_puls >= 0:
+                #     print "maybe we got a pulsfish", test_f[0]
+                # else:
+                #     print "wavefish", test_f[0]
+                ###########################
                 fig, ax = plt.subplots()
                 ax.plot(test_f, test_p, 'o')
                 plt.show()
