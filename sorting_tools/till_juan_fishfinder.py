@@ -1009,6 +1009,42 @@ def harmonic_groups( psd_freqs, psd, cfg ) :
 
     return groups, fzero_harmonics, mains, all_freqs, freqs[:,0], low_threshold, high_threshold, center
 
+# def update_fish_freqs_dict():
+
+def puls_or_wave(fishlist):
+    wave_ls = []
+    pulse_lf = []
+
+    for fish_idx in np.arange(len(fishlist)):
+        test_freq = []
+        test_power = []
+        for harmo_idx in np.arange(len(fishlist[fish_idx])):
+            test_freq.append(fishlist[fish_idx][harmo_idx][0])
+            test_power.append(fishlist[fish_idx][harmo_idx][1])
+
+            # wave_or_puls = []
+        slopes = [] #each slope is calculated twice
+        for first_idx in np.arange(len(test_power)):
+            for second_idx in np.arange(len(test_power)):
+                if first_idx > second_idx:
+                    slopes.append((test_power[first_idx]-test_power[second_idx])/(test_freq[first_idx]-test_freq[second_idx]))
+                if first_idx < second_idx:
+                    slopes.append((test_power[second_idx]-test_power[first_idx])/(test_freq[second_idx]-test_freq[first_idx]))
+        mean_slopes = np.mean(slopes)
+        if mean_slopes > 0:
+            print('we got a pulse-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
+                  %(mean_slopes, test_freq[0]))
+            pulse_lf.append(test_freq[0])
+        if mean_slopes < -0:
+            print('we got a wave-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
+                  %(mean_slopes, test_freq[0]))
+            wave_ls.append(test_freq[0])
+        # fig, ax = plt.subplots()
+        # ax.plot(test_freq, test_power, 'o')
+        # plt.show()
+    return pulse_lf, wave_ls
+
+
 class FishTracker :
     def __init__( self, samplingrate ) :
         self.rate = samplingrate
@@ -1019,6 +1055,7 @@ class FishTracker :
         self.fresolution = 0.5
         self.twindow = 8.0
         self.fishes = {}
+        # self.fishlist = []
     def processdata( self, data, test_longfile=False ): #, rate, fish_freqs_dict, tstart, datasize, step ) :
         """
         for a given data sorts the main frequencies by time.
@@ -1055,45 +1092,17 @@ class FishTracker :
             power, freqs = ml.psd( data[t0:t0+tw], NFFT=nfft, noverlap=nfft/2, Fs=self.rate, detrend=ml.detrend_mean )
             fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
 
-            ###########################################################
-            for fish_idx in np.arange(len(fishlist)):
-                test_freq = []
-                test_power = []
-                for harmo_idx in np.arange(len(fishlist[fish_idx])):
-                    test_freq.append(fishlist[fish_idx][harmo_idx][0])
-                    test_power.append(fishlist[fish_idx][harmo_idx][1])
-
-                # wave_or_puls = []
-                slopes = [] #each slope is calculated twice
-                for first_idx in np.arange(len(test_power)):
-                    for second_idx in np.arange(len(test_power)):
-                        if first_idx > second_idx:
-                            slopes.append((test_power[first_idx]-test_power[second_idx])/(test_freq[first_idx]-test_freq[second_idx]))
-                        if first_idx < second_idx:
-                            slopes.append((test_power[second_idx]-test_power[first_idx])/(test_freq[second_idx]-test_freq[first_idx]))
-                mean_slopes = np.mean(slopes)
-                if mean_slopes > 0:
-                    print('we got a pulse-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
-                          %(mean_slopes, test_freq[0]))
-                if mean_slopes < -0:
-                    print('we got a wave-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
-                          %(mean_slopes, test_freq[0]))
-
-                fig, ax = plt.subplots()
-                ax.plot(test_freq, test_power, 'o')
-                plt.show()
-
-            ###########################################################
+            pulse_ls, wave_ls = puls_or_wave(fishlist)
 
             cfg['lowThreshold'][0] = lowth
             cfg['highThreshold'][0] = highth
             # fundamental frequencies:
-            for fish in fishlist :
-                if fish[0, 0] not in fish_freqs:
-                    fish_freqs.append(fish[0, 0])
+            for fish in wave_ls :
+                if fish not in fish_freqs:
+                    fish_freqs.append(fish)
                     fish_time.append(window/2)
                 else:
-                    fish_time[fish_freqs.index(fish[0, 0])] += window/2
+                    fish_time[fish_freqs.index(fish)] += window/2
             temp_dict = {(self.tstart+(t0*1.0/self.rate)): fish_freqs}
             print (self.tstart+(t0*1.0/self.rate))
             self.fish_freqs_dict.update(temp_dict)
@@ -1279,6 +1288,19 @@ class FishTracker :
         os.remove( 'sorted_fish.pdf' )
         os.remove( 'spec_w_fish.pdf' )
 
+    def wave_main_frequencies(self):
+        mean_fishes = []
+        keys = self.fishes.keys()
+        build_mean = []
+
+        for i in keys:
+            for j in np.arange(len(self.fishes[i])):
+                if self.fishes[i][j] is not np.nan:
+                    build_mean.append(self.fishes[i][j])
+            mean_fishes.append(np.mean(build_mean))
+            build_mean = []
+        return mean_fishes
+
     def main_frequency_hist(self):
         mean_fishes = []
         keys = self.fishes.keys()
@@ -1307,7 +1329,7 @@ class FishTracker :
         plt.xticks(np.arange(0, max(mean_fishes)+100, 250))
         plt.title('Histogram')
         plt.show()
-
+        return mean_fishes
         # fig, ax = plt.subplots()
         # ax.hist(mean_fishes, bins= len(self.fishes)//4)
         # # ax.set_xlim([0, 2000])
@@ -1430,8 +1452,9 @@ def main():
         if len(sys.argv) == 3:
             ft.mean_multi_data()
         else:
-            ft.main_frequency_hist()
-
+            # ft.main_frequency_hist()
+            wave_main_frequencies = ft.wave_main_frequencies()
+            print wave_main_frequencies
         # ft.latex_pdf()
         # print len(sys.argv)
         # print 'hello world'
