@@ -2,6 +2,7 @@ __author__ = 'juan'
 # Imports
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 from IPython import embed
 
 
@@ -33,6 +34,6 @@ def plot_histogram(dfs_ls, binsize='FD'):
 
 if __name__ == '__main__':
     # Test the df_histogram function
-    a = np.load('test.npy')
+    a = np.load('%s' % sys.argv[1])
     dfs = df_histogram(a)
     plot_histogram(dfs)
