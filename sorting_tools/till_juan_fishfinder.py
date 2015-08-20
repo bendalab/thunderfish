@@ -1063,8 +1063,8 @@ class FishTracker :
         self.tstart = 0
         self.fish_freqs_dict = {}
         self.pulsfish_freqs_dict = {}
-        self.datasize = 200.0  # seconds                                                                     ## DATASIZE ##
-        self.step = 0.5                                                                                     ## STEP ##
+        self.datasize = 200.0  # seconds                               ## DATASIZE ##
+        self.step = 0.5                                                ## STEP ##
         self.fresolution = 0.5
         self.twindow = 8.0
         self.fishes = {}
