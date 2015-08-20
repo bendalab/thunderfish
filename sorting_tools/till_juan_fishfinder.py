@@ -107,6 +107,7 @@ def load_pickle( filename, trace=0 ) :
         quit()
     return freq, data['raw_data'][:,trace], 'mV'
 
+
 def load_wavfile( filename, trace=0 ) :
     """
     load wav file using scipy io.wavfile
@@ -124,6 +125,7 @@ def load_wavfile( filename, trace=0 ) :
             print 'number of traces in file is', tracen
             quit()
         return freq, data[:,trace]/2.0**15, 'a.u.'
+
 
 def load_wave( filename, trace=0 ) :
     """
@@ -1009,11 +1011,20 @@ def harmonic_groups( psd_freqs, psd, cfg ) :
 
     return groups, fzero_harmonics, mains, all_freqs, freqs[:,0], low_threshold, high_threshold, center
 
-# def update_fish_freqs_dict():
 
-def puls_or_wave(fishlist):
+def puls_or_wave(fishlist, make_plots=False):
+    """
+    This function gets the array fishlist. (see below)
+                    Analysis the data and discriminates between puls and wavefish.
+                    returns lists containing the fundamental frequencies for either wave- or pulsfish.
+
+    :param fishlist: dict
+    :param make_plots:
+    :return:lists: puls_ls, wave_ls
+    """
+
     wave_ls = []
-    pulse_lf = []
+    pulse_ls = []
 
     for fish_idx in np.arange(len(fishlist)):
         test_freq = []
@@ -1034,15 +1045,16 @@ def puls_or_wave(fishlist):
         if mean_slopes > 0:
             print('we got a pulse-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
                   %(mean_slopes, test_freq[0]))
-            pulse_lf.append(test_freq[0])
+            pulse_ls.append(test_freq[0])
         if mean_slopes < -0:
             print('we got a wave-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
                   %(mean_slopes, test_freq[0]))
             wave_ls.append(test_freq[0])
-        # fig, ax = plt.subplots()
-        # ax.plot(test_freq, test_power, 'o')
-        # plt.show()
-    return pulse_lf, wave_ls
+        if make_plots:
+            fig, ax = plt.subplots()
+            ax.plot(test_freq, test_power, 'o')
+            plt.show()
+    return pulse_ls, wave_ls
 
 
 class FishTracker :
@@ -1050,19 +1062,32 @@ class FishTracker :
         self.rate = samplingrate
         self.tstart = 0
         self.fish_freqs_dict = {}
+        self.pulsfish_freqs_dict = {}
         self.datasize = 200.0  # seconds                                                                     ## DATASIZE ##
         self.step = 0.5                                                                                     ## STEP ##
         self.fresolution = 0.5
         self.twindow = 8.0
         self.fishes = {}
-        # self.fishlist = []
+
+
     def processdata( self, data, test_longfile=False ): #, rate, fish_freqs_dict, tstart, datasize, step ) :
         """
-        for a given data sorts the main frequencies by time.
-        the resulting dict got:
-                the time from where the data was taken AS KEY
-                the main frequencies at this special time AS VALUES
+        gets sound data.
+        builds a powerspectrum over 8 sec. these 8 seconds shift through the sound data in steps of 0.5 sec.
 
+        calls function: harmonic_groups witch returns an array (fishlist) containing information for each fish.
+                    Example: np.array([fund_freq_fish1, power], [harmonic1_fish1, power], ...),
+                             np.array([fund_freq_fish2, power], [harmonic1_fish2, power], ...), ...
+
+        calls function: puls_or_wave. This function gets the array fishlist. (see above)
+                    Analysis the data and discriminates between puls and wavefish.
+                    returns lists containing the fundamental frequencies for either wave- or pulsfish.
+
+        finally: updates a global dictionary (self.fish_freqs_dict) witch gets the time variable (as key)
+                 and the list of WAVE-fishes.
+
+                 updates a global dictionary (self.pulsfish_freqs_dict) witch gets the time variable (as key)
+                 and the list of PULS-fishes.
         """
 
         nfft = int( np.round( 2**(np.floor(np.log(self.rate/self.fresolution) / np.log(2.0)) + 1.0) ) )
@@ -1074,7 +1099,8 @@ class FishTracker :
             tw = minw
         window = tw/self.rate
 
-        fish_freqs = []
+        wave_fish_freqs = []
+        puls_fish_freqs = []
         fish_time = []
 
         stepw = int(np.round(self.step*self.rate))
@@ -1096,21 +1122,32 @@ class FishTracker :
 
             cfg['lowThreshold'][0] = lowth
             cfg['highThreshold'][0] = highth
-            # fundamental frequencies:
+
+            # wavefish fundamental frequencies:
             for fish in wave_ls :
-                if fish not in fish_freqs:
-                    fish_freqs.append(fish)
+                if fish not in wave_fish_freqs:
+                    wave_fish_freqs.append(fish)
                     fish_time.append(window/2)
                 else:
-                    fish_time[fish_freqs.index(fish)] += window/2
-            temp_dict = {(self.tstart+(t0*1.0/self.rate)): fish_freqs}
+                    fish_time[wave_fish_freqs.index(fish)] += window/2
+            temp_dict = {(self.tstart+(t0*1.0/self.rate)): wave_fish_freqs}
             print (self.tstart+(t0*1.0/self.rate))
             self.fish_freqs_dict.update(temp_dict)
-            fish_freqs = []
+            wave_fish_freqs = []
+
+            # pulsfish fundamental frequencies:
+            for pulsfish in pulse_ls:
+                if pulsfish not in puls_fish_freqs:
+                    puls_fish_freqs.append(pulsfish)
+            temp_dict = {(self.tstart+(t0*1.0/self.rate)): puls_fish_freqs}
+            self.pulsfish_freqs_dict.update(temp_dict)
+            puls_fish_freqs = []
+
+
         self.tstart += self.datasize
 
+
     def specto_with_sorted_fish( self ):
-        #t = self.fish_freqs_dict.keys()
         plot_fishes = []
         plot_time = []
 
@@ -1157,6 +1194,14 @@ class FishTracker :
 
 
     def printspecto( self ):
+        """
+        gets access to the dictionary self.fish_freqs_dict with contains the time as key and the fundamental frequencies
+        of the fishes available at this time.
+
+        finaly: builds a scatterplot x-axis: time in sec; y-axis: frequency
+        """
+
+
         fig, ax = plt.subplots(facecolor= 'white')
 
         for t in self.fish_freqs_dict.keys():
@@ -1175,7 +1220,21 @@ class FishTracker :
         plt.yticks(fontsize='15')
         plt.show()
 
+
     def sort_my_fish_2( self ):
+        """
+        this function works with the global dictionary self.fish_freq_dict and assigns the frequencies to fishes.
+
+
+        finally: updates a global dict (self.fishes) witch contains the fishes and the frequencies belonging to it.
+                    Example: {[1: np.NaN     np.NaN      174.3       175.0       np.NaN ...],
+                              [2: np.NaN     180.7       np.NaN      181.9       np.NaN ...], ...
+                np.NaN --> fish was not available at this mesuing point.
+                this dict therefore carries the time variable.
+
+                polt: x-axis: fishno.; y-axis: frequencies
+        """
+
         dict_times = self.fish_freqs_dict.keys()
 
         for k, t in enumerate(sorted(self.fish_freqs_dict)):
@@ -1224,18 +1283,10 @@ class FishTracker :
         ax.tick_params(axis='both', direction='out')
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
-
-        # if len(sys.argv) is 3:
-        #     f = open('%s' %sys.argv[2], 'wb')
-        #     pickle.dump(self.fishes, f)
-
         plt.xticks(fontsize='15')
         plt.yticks(fontsize='15')
         plt.show()
 
-        # pp = PdfPages('sorted_fish.pdf')
-        # fig.savefig(pp, format='pdf')
-        # pp.close()
 
     def latex_pdf( self ):
         tf = open( 'Brasil.tex', 'w')
@@ -1288,18 +1339,27 @@ class FishTracker :
         os.remove( 'sorted_fish.pdf' )
         os.remove( 'spec_w_fish.pdf' )
 
+
     def wave_main_frequencies(self):
+        """
+        take the global variable self.fishes.
+        builds the mean frequency for each fish.
+
+        :return: list of mean frequenies for each fish.
+        """
+
         mean_fishes = []
         keys = self.fishes.keys()
         build_mean = []
 
-        for i in keys:
-            for j in np.arange(len(self.fishes[i])):
-                if self.fishes[i][j] is not np.nan:
-                    build_mean.append(self.fishes[i][j])
+        for fish in keys:
+            for time in np.arange(len(self.fishes[fish])):
+                if self.fishes[fish][time] is not np.nan:
+                    build_mean.append(self.fishes[fish][time])
             mean_fishes.append(np.mean(build_mean))
             build_mean = []
         return mean_fishes
+
 
     def main_frequency_hist(self):
         mean_fishes = []
@@ -1330,25 +1390,22 @@ class FishTracker :
         plt.title('Histogram')
         plt.show()
         return mean_fishes
-        # fig, ax = plt.subplots()
-        # ax.hist(mean_fishes, bins= len(self.fishes)//4)
-        # # ax.set_xlim([0, 2000])
-        # plt.show()
+
 
     def get_data( self ):
         data = np.zeros( np.ceil( self.rate*self.datasize ), dtype="<i2" )
         return data
 
+
     def mean_multi_data(self):
         """
         if three arguments are given:
-        takes/build and npy file witch contains the main frequencies of he fishes of one recording.
+        loads/build and npy file witch contains the main frequencies of the wave fishes of one recording.
         saves the file as .npy
 
         3. arg is a str
 
         """
-        # mean_path = 'mean_multi_data.npy'
         mean_path = ('%s.npy' %sys.argv[2])
         if not os.path.exists(mean_path):
             np.save(mean_path, np.array([]))
@@ -1356,7 +1413,6 @@ class FishTracker :
 
         means_frequencies = means_frequencies.tolist()
 
-        # mean_fishes = []
         keys = self.fishes.keys()
         build_mean = []
 
@@ -1371,6 +1427,8 @@ class FishTracker :
         np.save(mean_path, means_frequencies)
 
         print means_frequencies
+
+
 def main():
     datasize = 50.0
     # config file name:
@@ -1443,6 +1501,7 @@ def main():
         if index > 0 :
             ft.processdata( data[:index]/2.0**15 )
 
+        # processes data fom wavefishes (dict: self.fish_freqs_dict)
         ft.printspecto()
 
         ft.sort_my_fish_2()
@@ -1455,9 +1514,8 @@ def main():
             # ft.main_frequency_hist()
             wave_main_frequencies = ft.wave_main_frequencies()
             print wave_main_frequencies
-        # ft.latex_pdf()
-        # print len(sys.argv)
-        # print 'hello world'
+
+        # processes data from pulsfishes (dict: self.pulsfish_freqs_dict)
 
 if __name__ == '__main__':
     main()
