@@ -1737,7 +1737,8 @@ def main():
         if index > 0 :
             ft.processdata( data[:index]/2.0**15 )
 
-        # processes data fom wavefishes (dict: self.fish_freqs_dict)
+        # processes data from wavefishes (dict: self.fish_freqs_dict; dict: self.fishes)
+        # processes data from pulsfishes (dict: self.pulsfish_freqs_dict; dict: self.pulsfishes)
         ft.printspecto_wavefish()
 
         ft.printspecto_pulsfish()
