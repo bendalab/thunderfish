@@ -1034,9 +1034,12 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls):
 
     fig, ax = plt.subplots()
     ax.plot(test_freq, test_power, 'o')
-    plt.show()
+    # plt.show()
+    plt.draw()
+    plt.pause(1)
 
     response = raw_input('Do we have a Wavefish [w] or a Pulsfish [p]? Or exclude the fish [ex]?')
+    plt.close()
     print ''
     if response == "w":
         wave_ls.append(test_freq[0])
@@ -1049,7 +1052,6 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls):
         print '!!! input not valid !!!'
         print 'try again...'
         manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls)
-
     return wave_ls, pulse_ls
 
 
@@ -1496,6 +1498,7 @@ class FishTracker :
         tf.write( '\\begin{tabular}[t]{rr}\n' )
         tf.write( '\\hline\n' )
         tf.write( 'fish no. & freq [Hz] \\\\ \\hline \n' )
+
         # tf.write( '%s & %d \\\\\n' % (sorted_fish_freqs_2[5], s) )
         for i in self.fishes.keys():
             ffish = []
@@ -1772,8 +1775,8 @@ def main():
         else:
             wave_main_frequencies = ft.wave_main_frequencies()
             puls_main_frequencies = ft.puls_main_frequencies()
-            print ('Mean frequencies of wavefish: ', wave_main_frequencies)
-            print ('Mean frequencies of pulsfish: ', puls_main_frequencies)
+            print 'Mean frequencies of wavefish: ', wave_main_frequencies
+            print 'Mean frequencies of pulsfish: ', puls_main_frequencies
 
         # processes data from pulsfishes (dict: self.pulsfish_freqs_dict)
 
