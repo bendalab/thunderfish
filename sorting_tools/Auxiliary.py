@@ -19,7 +19,7 @@ def df_histogram(freqs_array):
     return ret
 
 
-def plot_histogram(dfs_array, binwidth='FD'):
+def plot_dfs_histogram(dfs_array, binwidth='FD'):
     """ Plots a histogram of the difference frequencies
 
     :param binwidth: select the size of the binwidth. use 'FD' for Freedman-Diaconis rule
@@ -42,19 +42,17 @@ def plot_histogram(dfs_array, binwidth='FD'):
     # Plot Cosmetics
 
     ax.set_ylabel('Counts', fontsize=16)
-    ax.set_xlabel('Possible Beat-Frequencies [Hz]', fontsize=16)
-    ax.tick_params(axis='both', which='major', labelsize=14)
-    ax.set_title('Distribution of Beat-Frequencies')
+    ax.set_xlabel('Possible Beat-Frequencies [Hz]', fontsize=14)
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.set_title('Distribution of Beat-Frequencies', fontsize=16)
     sns.despine(fig=fig, ax=ax, offset=10)
     fig.tight_layout()
-    fig.savefig('histo_of_dfs.pdf')
+    fig.savefig('figures/histo_of_dfs.pdf')
     plt.close()
-
-    plt.show()
 
 
 if __name__ == '__main__':
     # Test the df_histogram function
     a = np.load('%s' % sys.argv[1])
     dfs = df_histogram(a)
-    plot_histogram(dfs)
+    plot_dfs_histogram(dfs)

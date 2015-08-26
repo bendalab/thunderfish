@@ -41,27 +41,67 @@ def create_histo(data):
         center = (bins[:-1] + bins[1:]) / 2
         ax.bar(center, hist, align='center', width=width, alpha=0.8, facecolor=colors[enu], label=curr_fishtype)
 
-    ax.set_ylabel('Counts', fontsize=16)
-    ax.set_xlabel('Frequency [Hz]', fontsize=16)
+    ax.set_ylabel('Counts', fontsize=14)
+    ax.set_xlabel('Frequency [Hz]', fontsize=14)
     ax.set_xticks(np.arange(0, max(np.hstack(data.values()))+100, 250))
-    ax.tick_params(axis='both', which='major', labelsize=14)
-    ax.set_title('Distribution of EOD-Frequencies')
-    ax.legend(frameon=False, loc='best', fontsize=14)
+    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.set_title('Distribution of EOD-Frequencies', fontsize=16)
+    ax.legend(frameon=False, loc='best', fontsize=12)
     sns.despine(fig=fig, ax=ax, offset=10)
     fig.tight_layout()
-    fig.savefig('histo_of_eod_freqs.pdf')
+    fig.savefig('figures/histo_of_eod_freqs.pdf')
     plt.close()
 
+
+def fishtype_barplot(data):
+    """ This function creates a bar plot showing the distribution of wave-fishes vs. pulse-fishes.
+
+    :param data: dictionary with fish-type as keys and array of EODfs as values.
+    """
+
+    # Read the keys of the dictionary and use them to get the count of pulse- and wave-type fishes.
+    keys = np.array(data.keys())
+    bool_wave = np.array(['wave' in e for e in keys], dtype=bool)
+    bool_pulse = np.array(['puls' in e for e in keys], dtype=bool)
+
+    count_wave = len(data[keys[bool_wave][0]])
+    count_pulse = len(data[keys[bool_pulse][0]])
+
+    inch_factor = 2.54
+    sns.set_context("poster")
+    sns.axes_style('white')
+    sns.set_style("ticks")
+    fig, ax = plt.subplots(figsize=(15./inch_factor, 15./inch_factor))
+    width = 0.5
+    ax.bar(1-width/2., count_wave, width=width, facecolor='cornflowerblue', alpha=0.8)
+    ax.bar(2-width/2., count_pulse, width=width, facecolor='salmon', alpha=0.8)
+    ax.set_xticks([1, 2])
+    ax.set_xticklabels(['Wave-type', 'Pulse-type'])
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    ax.set_ylabel('Number of Fishes', fontsize=14)
+    ax.set_title('Distribution of Fish-types', fontsize=16)
+    sns.despine(fig=fig, ax=ax, offset=10)
+    fig.tight_layout()
+    fig.savefig('figures/fishtype_barplot.pdf')
+    plt.close()
+
+
 def main():
+    # Load data
     npy_files = glob.glob('*.npy')
     data = load_data(npy_files)
 
+    # create histogram of EOD-frequencies
     create_histo(data)
+
+    # create histogram of all possible beat-frequencies
     wave_file = glob.glob('*wave*.npy')
     wave_freqs = np.load(wave_file[0])
     dfs = df_histogram(wave_freqs)
-    plot_histogram(dfs)
+    plot_dfs_histogram(dfs)
 
+    # Plot barplot with fish-type distribution
+    fishtype_barplot(data)
 
     print 'code finished'
 
