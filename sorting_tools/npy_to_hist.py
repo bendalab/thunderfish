@@ -71,7 +71,7 @@ def fishtype_barplot(data):
     sns.set_context("poster")
     sns.axes_style('white')
     sns.set_style("ticks")
-    fig, ax = plt.subplots(figsize=(15./inch_factor, 15./inch_factor))
+    fig, ax = plt.subplots(figsize=(10./inch_factor, 10./inch_factor))
     width = 0.5
     ax.bar(1-width/2., count_wave, width=width, facecolor='cornflowerblue', alpha=0.8)
     ax.bar(2-width/2., count_pulse, width=width, facecolor='salmon', alpha=0.8)
