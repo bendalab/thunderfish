@@ -1,4 +1,5 @@
 __author__ = 'raab'
+from Auxiliary import *
 import sys
 import glob
 import numpy as np
@@ -31,7 +32,7 @@ def create_histo(data):
     sns.set_context("poster")
     sns.axes_style('white')
     sns.set_style("ticks")
-    fig, ax = plt.subplots(figsize=(20./inch_factor, 15./inch_factor))
+    fig, ax = plt.subplots(figsize=(15./inch_factor, 10./inch_factor))
     colors = ['salmon', 'cornflowerblue']
 
     for enu, curr_fishtype in enumerate(data.keys()):
@@ -43,7 +44,7 @@ def create_histo(data):
     ax.set_ylabel('Counts', fontsize=16)
     ax.set_xlabel('Frequency [Hz]', fontsize=16)
     ax.set_xticks(np.arange(0, max(np.hstack(data.values()))+100, 250))
-    ax.tick_params(axis='both', which='major')
+    ax.tick_params(axis='both', which='major', labelsize=14)
     ax.set_title('Distribution of EOD-Frequencies')
     ax.legend(frameon=False, loc='best', fontsize=14)
     sns.despine(fig=fig, ax=ax, offset=10)
@@ -56,6 +57,11 @@ def main():
     data = load_data(npy_files)
 
     create_histo(data)
+    wave_file = glob.glob('*wave*.npy')
+    wave_freqs = np.load(wave_file[0])
+    dfs = df_histogram(wave_freqs)
+    plot_histogram(dfs)
+
 
     print 'code finished'
 
