@@ -16,17 +16,18 @@ def df_histogram(freqs_ls):
     return ret
 
 
-def plot_histogram(dfs_ls, binsize='FD'):
+def plot_histogram(dfs_ls, binwidth='FD'):
     """ Plots a histogram of the difference frequencies
 
-    :param dfs_ls:
+    :param binwidth: select the size of the binwidth. use 'FD' for Freedman-Diaconis rule
+    :param dfs_ls: array-like. list of difference frequencies.
     """
     q75, q25 = np.percentile(abs(dfs_ls), [75, 25])
     fig, ax = plt.subplots()
-    if binsize == 'FD':
+    if binwidth == 'FD':
         ax.hist(dfs, bins=int(2*(q75-q25) * len(dfs)**(-1./3.)))  # Freedman-Diaconis rule for binwidth
     else:
-        ax.hist(dfs, bins=binsize)
+        ax.hist(dfs, bins=binwidth)
 
     plt.show()
 
