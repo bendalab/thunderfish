@@ -1012,6 +1012,47 @@ def harmonic_groups( psd_freqs, psd, cfg ) :
     return groups, fzero_harmonics, mains, all_freqs, freqs[:,0], low_threshold, high_threshold, center
 
 
+def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls):
+    """
+    This function helps to assign the fish type (pulse or wave) when the meanslopes of the powerspectrum is
+    positiv (indicator for pulsefish) but the fundamental frequency is > 100 Hz. You will again have a lock
+    on the powerspectrum of this fish and be foreced to assign it as a pulse- or a wavefish. You also have
+    the choise to exclude the fish.
+
+    :param test_freq: list
+    :param test_power: list
+    :param wave_ls: list
+    :param pulse_ls: list
+
+    :return: wave_ls, pulse_ls
+    """
+
+    print ''
+    print '### Programm needs input ###'
+    print ('The fundamental frequency of this fish is: %.2f Hz.' % test_freq[0])
+    print 'Here is the powerspectrum for this fish. Decide!!!'
+
+    fig, ax = plt.subplots()
+    ax.plot(test_freq, test_power, 'o')
+    plt.show()
+
+    response = raw_input('Do we have a Wavefish [w] or a Pulsfish [p]? Or exclude the fish [ex]?')
+    print ''
+    if response == "w":
+        wave_ls.append(test_freq[0])
+    elif response == "p":
+        pulse_ls.append(test_freq[0])
+    elif response == "ex":
+        print 'fish excluded.'
+        print ''
+    else:
+        print '!!! input not valid !!!'
+        print 'try again...'
+        manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls)
+
+    return wave_ls, pulse_ls
+
+
 def puls_or_wave(fishlist, make_plots=False):
     """
     This function gets the array fishlist. (see below)
@@ -1042,39 +1083,13 @@ def puls_or_wave(fishlist, make_plots=False):
                 if first_idx < second_idx:
                     slopes.append((test_power[second_idx]-test_power[first_idx])/(test_freq[second_idx]-test_freq[first_idx]))
         mean_slopes = np.mean(slopes)
+
         if mean_slopes > 0:
-            # print('we got a pulse-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
-            #       %(mean_slopes, test_freq[0]))
             if test_freq[0] >= 100:
-                # fig, ax = plt.subplots()
-                # ax.plot(test_freq, test_power, 'o')
-                # plt.show()
-
-                print ''
-                print '### Programm needs input ###'
-                print ('The fundamental frequency of this fish is: %.2f Hz.' % test_freq[0])
-                print 'Here is the powerspectrum for this fish. Decide!!!'
-
-                fig, ax = plt.subplots()
-                ax.plot(test_freq, test_power, 'o')
-                plt.show()
-
-                response = raw_input('Do we have a Wavefish [w] or a Pulsfish [p]? Or exclude the fish [ex]?')
-                print ''
-                if response == "w":
-                    wave_ls.append(test_freq[0])
-                elif response == "p":
-                    pulse_ls.append(test_freq[0])
-                elif response == "ex":
-                    print 'fish excluded.'
-                    print ''
-                else:
-                    print '!!! input not valid !!!'
+                wave_ls, pulse_ls = manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls)
             else:
                 pulse_ls.append(test_freq[0])
         if mean_slopes < -0:
-            # print('we got a wave-fish; mean slope is: %.2g; fundamental frequency of the fish: %.2f Hz'
-            #       %(mean_slopes, test_freq[0]))
             wave_ls.append(test_freq[0])
 
         if make_plots:
@@ -1082,10 +1097,6 @@ def puls_or_wave(fishlist, make_plots=False):
             ax.plot(test_freq, test_power, 'o')
             plt.show()
 
-        # if mean_slopes > 0 and test_freq >= 100:
-        #     fig, ax = plt.subplots()
-        #     ax.plot(test_freq, test_power, 'o')
-        #     plt.show()
     return pulse_ls, wave_ls
 
 
