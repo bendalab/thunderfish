@@ -1031,7 +1031,9 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_an
     :return: wave_ls, pulse_ls
     """
     if test_freq[0] in known_answer['freqs']:
+        print ''
         print '### using known answers ###'
+        print ''
         for i, j in enumerate(known_answer['freqs']):
             if j == test_freq[0]:
                 response = known_answer['decision'][i]
@@ -1049,8 +1051,9 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_an
 
         response = raw_input('Do we have a Wavefish [w] or a Pulsfish [p]? Or exclude the fish [ex]?')
         plt.close()
-        known_answer['freqs'].append(test_freq[0])
-        known_answer['decision'].append(response)
+        if response in ['w', 'p', 'ex']:
+            known_answer['freqs'].append(test_freq[0])
+            known_answer['decision'].append(response)
 
         print ''
     if response == "w":
@@ -1063,7 +1066,7 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_an
     else:
         print '!!! input not valid !!!'
         print 'try again...'
-        manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_answer)
+        wave_ls, pulse_ls, known_answer = manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_answer)
     return wave_ls, pulse_ls, known_answer
 
 
