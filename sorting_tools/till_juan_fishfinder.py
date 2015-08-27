@@ -1016,7 +1016,7 @@ def harmonic_groups( psd_freqs, psd, cfg ) :
     return groups, fzero_harmonics, mains, all_freqs, freqs[:,0], low_threshold, high_threshold, center
 
 
-def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls):
+def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_answer):
     """
     This function helps to assign the fish type (pulse or wave) when the meanslopes of the powerspectrum is
     positiv (indicator for pulsefish) but the fundamental frequency is > 100 Hz. You will again have a lock
@@ -1030,21 +1030,29 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls):
 
     :return: wave_ls, pulse_ls
     """
+    if test_freq[0] in known_answer['freqs']:
+        print '### using known answers ###'
+        for i, j in enumerate(known_answer['freqs']):
+            if j == test_freq[0]:
+                response = known_answer['decision'][i]
+    else:
+        print ''
+        print '### Programm needs input ###'
+        print ('The fundamental frequency of this fish is: %.2f Hz.' % test_freq[0])
+        print 'Here is the powerspectrum for this fish. Decide!!!'
 
-    print ''
-    print '### Programm needs input ###'
-    print ('The fundamental frequency of this fish is: %.2f Hz.' % test_freq[0])
-    print 'Here is the powerspectrum for this fish. Decide!!!'
+        fig, ax = plt.subplots()
+        ax.plot(test_freq, test_power, 'o')
+        # plt.show()
+        plt.draw()
+        plt.pause(1)
 
-    fig, ax = plt.subplots()
-    ax.plot(test_freq, test_power, 'o')
-    # plt.show()
-    plt.draw()
-    plt.pause(1)
+        response = raw_input('Do we have a Wavefish [w] or a Pulsfish [p]? Or exclude the fish [ex]?')
+        plt.close()
+        known_answer['freqs'].append(test_freq[0])
+        known_answer['decision'].append(response)
 
-    response = raw_input('Do we have a Wavefish [w] or a Pulsfish [p]? Or exclude the fish [ex]?')
-    plt.close()
-    print ''
+        print ''
     if response == "w":
         wave_ls.append(test_freq[0])
     elif response == "p":
@@ -1055,11 +1063,11 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls):
     else:
         print '!!! input not valid !!!'
         print 'try again...'
-        manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls)
-    return wave_ls, pulse_ls
+        manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_answer)
+    return wave_ls, pulse_ls, known_answer
 
 
-def puls_or_wave(fishlist, make_plots=False):
+def puls_or_wave(fishlist, known_answer, make_plots=False):
     """
     This function gets the array fishlist. (see below)
                     Analysis the data and discriminates between puls and wavefish.
@@ -1092,13 +1100,13 @@ def puls_or_wave(fishlist, make_plots=False):
 
         if mean_slopes > 0:
             if test_freq[0] >= 100:
-                wave_ls, pulse_ls = manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls)
+                wave_ls, pulse_ls, known_answer = manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_answer)
             else:
                 pulse_ls.append(test_freq[0])
 
         if mean_slopes < -0:
             if test_freq[0] < 100:
-                wave_ls, pulse_ls = manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls)
+                wave_ls, pulse_ls, known_answer = manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_answer)
             else:
                 wave_ls.append(test_freq[0])
 
@@ -1107,7 +1115,7 @@ def puls_or_wave(fishlist, make_plots=False):
             ax.plot(test_freq, test_power, 'o')
             plt.show()
 
-    return pulse_ls, wave_ls
+    return pulse_ls, wave_ls, known_answer
 
 
 class FishTracker :
@@ -1122,7 +1130,7 @@ class FishTracker :
         self.twindow = 8.0
         self.fishes = {}
         self.pulsfishes = {}
-
+        self.known_answer = {'freqs':[], 'decision':[]}
 
     def processdata( self, data, test_longfile=False ): #, rate, fish_freqs_dict, tstart, datasize, step ) :
         """
@@ -1143,7 +1151,7 @@ class FishTracker :
                  updates a global dictionary (self.pulsfish_freqs_dict) witch gets the time variable (as key)
                  and the list of PULS-fishes.
         """
-
+        known_answer = self.known_answer
         nfft = int( np.round( 2**(np.floor(np.log(self.rate/self.fresolution) / np.log(2.0)) + 1.0) ) )
         if nfft < 16 :
             nfft = 16
@@ -1172,7 +1180,8 @@ class FishTracker :
             power, freqs = ml.psd( data[t0:t0+tw], NFFT=nfft, noverlap=nfft/2, Fs=self.rate, detrend=ml.detrend_mean )
             fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
 
-            pulse_ls, wave_ls = puls_or_wave(fishlist)
+            pulse_ls, wave_ls, known_answer = puls_or_wave(fishlist, self.known_answer)
+            self.known_answer = known_answer
 
             cfg['lowThreshold'][0] = lowth
             cfg['highThreshold'][0] = highth
@@ -1199,6 +1208,7 @@ class FishTracker :
 
 
         self.tstart += self.datasize
+        self.known_answer = {'freqs':[], 'decision':[]}
 
 
     def specto_with_sorted_pulsfish( self ):
