@@ -5,22 +5,26 @@
 __author__ = 'raab'
 def description_of_the_whole_code():
     """
-    This skript takes several arguments:
+    This code works different depending on how many arguments are give.
 
-    First argument is THE SKRIPT IT SELF                            (not optional)
+    If there are only 2 arguments:
+        You can have a look on your data. You will get for each wave- and pulsefishes a spectogram, a plot that shows
+        the fishes and their frequencies and a plot that shows the spectogram where the dots witch belong to one fish
+        are connected.
 
-    Second argument is THE SOUND FILE that will be processed        (not optional)
+        1st arg: code itself.
+        2nd arg: Sound data that should be progressed.
 
-    Third argument is STRING AND THE NAME OF A PICKLE FILE (dict) witch contains the frequencies of single fishes recorded in the soundfile
-                    (key = fish no.; [0:end]= frequency at this specific time)
-                                                                    (optional)
+    If there are 4 arguments
+        Very useful when you want to combine the data of multiple sound files. The are .npy array witch contains the
+        mean frequencies of each wave- and pulsefish.
 
-    Output:
-    1) Spectogram (frequency / time)
-    2) Sorted frequencies (frequency / fishno.)
-    3) Spectogram and display of the sorted frequencies in it (frequency / time)
-    4) Histogram of mean frequencies of all fish participating in the sound file.
+        1st arg: code itself.
+        2nd arg: Sound data(s) that should be progressed.
+        3rd arg: str to name the .npy array for the wavefishes ([sys.argv[2]].npy) ( DO NOT give '.npy' as argument ).
+        4th arg: str to name the .npy array for the pulsefishes ([sys.argv[3]].npy) ( DO NOT give '.npy' as argument ).
     """
+
 import sys
 import os
 import argparse
@@ -1091,8 +1095,12 @@ def puls_or_wave(fishlist, make_plots=False):
                 wave_ls, pulse_ls = manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls)
             else:
                 pulse_ls.append(test_freq[0])
+
         if mean_slopes < -0:
-            wave_ls.append(test_freq[0])
+            if test_freq[0] < 100:
+                wave_ls, pulse_ls = manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls)
+            else:
+                wave_ls.append(test_freq[0])
 
         if make_plots:
             fig, ax = plt.subplots()

@@ -6,10 +6,9 @@ def description_of_code():
     Arg 1: this script it self
     Arg 2: .npy data from wavefish
     Arg 3: .npy data from pulsefish
-    Arg 4: str Titel of the PDF
-    Arg 5: .pdf figure with distribution of wave and pulsefish
-    Arg 6: .pdf figure with distribution of eod frequenies
-    Arg 7: .pdf figure with distribution of beat frequencies
+    Arg 4: .pdf figure with distribution of wave and pulsefish
+    Arg 5: .pdf figure with distribution of eod frequenies
+    Arg 6: .pdf figure with distribution of beat frequencies
     :return:
     """
 
@@ -19,12 +18,16 @@ import os
 from IPython import embed
 
 def build_tex_pdf(wavefish, pulsefish):
-    tf = open( '%s.tex' % sys.argv[3], 'w')
+    response = raw_input('What shall the Title of the .pdf be ?')
+    filename = response
+
+
+    tf = open( '%s.tex' % filename, 'w')
     tf.write( '\\documentclass[a4paper,12pt,pdflatex]{article}\n' )
     tf.write( '\\usepackage{graphics}\n' )
     tf.write( '\n' )
     tf.write( '\\begin{document}\n' )
-    tf.write( '\\section*{%s}\n' %sys.argv[3])
+    tf.write( '\\section*{%s}\n' %filename)
 
     response = raw_input('Do you want to enter extra Data (loation, temp, cond. etc ? yes[y] or no[n]')
     if response == "y":
@@ -59,17 +62,23 @@ def build_tex_pdf(wavefish, pulsefish):
 
         tf.write( '\\hline\n' )
         tf.write( '\\end{tabular}\n' )
+        tf.write( '\\\\\n' )
+    tf.write( '\\\\\n' )
+    annotations = raw_input('Any further annotations ?')
+    tf.write( 'Annotations:\\\\\n' )
+    tf.write( '%s\\\\\n' % annotations)
+
     tf.write( '\n' )
     tf.write( '\n' )
     tf.write( '\n' )
-    tf.write( '\\includegraphics{%s}\n' %sys.argv[4])
+    tf.write( '\\includegraphics{%s}\n' %sys.argv[3])
     tf.write( '\n' )
     tf.write( '\n' )
     tf.write( '\n' )
     tf.write( '\n' )
     tf.write( '\\pagebreak\n' )
+    tf.write( '\\includegraphics{%s}\n' %sys.argv[4])
     tf.write( '\\includegraphics{%s}\n' %sys.argv[5])
-    tf.write( '\\includegraphics{%s}\n' %sys.argv[6])
     tf.write( '\\pagebreak\n' )
     tf.write( '\\section*{Wavefishes list}\n')
     tf.write( '\n' )
@@ -78,7 +87,7 @@ def build_tex_pdf(wavefish, pulsefish):
     tf.write( '\n' )
     tf.write( '\\begin{tabular}[t]{rr}\n' )
     tf.write( '\\hline\n' )
-    tf.write( 'Wavefish no. & freq [Hz] \\\\ \\hline \n' )
+    tf.write( 'No. & freq [Hz] \\\\ \\hline \n' )
 
     for i in np.arange(len(wavefish)):
         help_var = i+1
@@ -88,7 +97,7 @@ def build_tex_pdf(wavefish, pulsefish):
             tf.write( '\\end{tabular}\n' )
             tf.write( '\\begin{tabular}[t]{rr}\n' )
             tf.write( '\\hline\n' )
-            tf.write( 'Wavefish no. & freq [Hz] \\\\ \\hline \n' )
+            tf.write( 'No. & freq [Hz] \\\\ \\hline \n' )
 
         else:
             tf.write( '%s & %s \\\\\n' % (i+1, wavefish[i]) )
@@ -104,7 +113,7 @@ def build_tex_pdf(wavefish, pulsefish):
     tf.write( '\n' )
     tf.write( '\\begin{tabular}[t]{rr}\n' )
     tf.write( '\\hline\n' )
-    tf.write( 'Pulsefish no. & freq [Hz] \\\\ \\hline \n' )
+    tf.write( 'No. & freq [Hz] \\\\ \\hline \n' )
 
     for j in np.arange(len(pulsefish)):
         help_var2 = j+1
@@ -114,7 +123,7 @@ def build_tex_pdf(wavefish, pulsefish):
             tf.write( '\\end{tabular}\n' )
             tf.write( '\\begin{tabular}[t]{rr}\n' )
             tf.write( '\\hline\n' )
-            tf.write( 'Pulsefish no. & freq [Hz] \\\\ \\hline \n' )
+            tf.write( 'No. & freq [Hz] \\\\ \\hline \n' )
 
         else:
             tf.write( '%s & %s \\\\\n' % (j+1, pulsefish[j]) )
@@ -125,10 +134,10 @@ def build_tex_pdf(wavefish, pulsefish):
     tf.write( '\n' )
     tf.write( '\\end{document}\n' )
     tf.close()
-    os.system( 'pdflatex %s' %sys.argv[3])
-    os.remove( '%s.aux' %sys.argv[3] )
-    os.remove( '%s.log' %sys.argv[3])
-    os.remove( '%s.tex' %sys.argv[3])
+    os.system( 'pdflatex %s' %filename)
+    os.remove( '%s.aux' %filename )
+    os.remove( '%s.log' %filename)
+    os.remove( '%s.tex' %filename)
 
 def load_npy_convert_list():
     wavefish = np.load('%s' % sys.argv[1])
