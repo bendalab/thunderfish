@@ -105,9 +105,10 @@ def main():
     fishtype_barplot(data)
 
     print 'code finished'
-    response = raw_input('Do you want to create a .pdf file with the data and the figures processed ? [y/n]')
-    if response == 'y':
-        os.system('python create_tex.py %s.npy %s.npy' % (sys.argv[1], sys.argv[2]))
+    if len(sys.argv) == 3:
+        response = raw_input('Do you want to create a .pdf file with the data and the figures processed ? [y/n]')
+        if response == 'y':
+            os.system('python create_tex.py %s.npy %s.npy' % (sys.argv[1], sys.argv[2]))
 
 
 if __name__ == '__main__':
