@@ -38,6 +38,7 @@ import pyaudio
 import pandas as pd
 from IPython import embed
 from matplotlib.backends.backend_pdf import PdfPages
+import subprocess
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
@@ -1054,7 +1055,6 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_an
         if response in ['w', 'p', 'ex']:
             known_answer['freqs'].append(test_freq[0])
             known_answer['decision'].append(response)
-
         print ''
     if response == "w":
         wave_ls.append(test_freq[0])
@@ -1119,6 +1119,38 @@ def puls_or_wave(fishlist, known_answer, make_plots=False):
             plt.show()
 
     return pulse_ls, wave_ls, known_answer
+
+
+def when_to_ask_to_start_next_script(filepath):
+    if not os.path.exists('num_of_files_processed.npy'):
+        help_v = filepath.split('/')
+        directory = ''
+        filetype = filepath.split('.')[-1]
+
+        for i in np.arange(len(help_v)-1):
+            directory = directory + help_v[i] + '/'
+        directory = directory + '*.' + filetype
+
+        proc = subprocess.Popen(['ls %s -1 | wc -l' %directory], stdout=subprocess.PIPE, shell=True)
+        (out, err) = proc.communicate()
+
+        num_of_files_processed = [int(float(out))]
+        np.save('num_of_files_processed.npy', num_of_files_processed)
+    else:
+        num_of_files_processed = np.load('num_of_files_processed.npy')
+
+    return num_of_files_processed[0]
+
+
+def num_current_file():
+    if not os.path.exists('num_of_current_file.npy'):
+        num_of_current_file = [1]
+        np.save('num_of_current_file.npy', num_of_current_file)
+    else:
+        num_of_current_file = np.load('num_of_current_file.npy')
+        num_of_current_file[0] += 1
+        np.save('num_of_current_file.npy', num_of_current_file)
+    return num_of_current_file[0]
 
 
 class FishTracker :
@@ -1699,6 +1731,7 @@ class FishTracker :
         print means_frequencies
         print ''
 
+
 def main():
     datasize = 50.0
     # config file name:
@@ -1745,6 +1778,10 @@ def main():
     except ImportError:
         print 'python module "audioread" is not installed.'
         quit()
+
+    num_of_files_processed = when_to_ask_to_start_next_script(filepath)
+    num_of_current_file = num_current_file()
+
 
     with audioread.audio_open( filepath ) as af :
         tracen = af.channels
@@ -1799,7 +1836,11 @@ def main():
             print 'Mean frequencies of wavefish: ', wave_main_frequencies
             print 'Mean frequencies of pulsfish: ', puls_main_frequencies
 
-        # processes data from pulsfishes (dict: self.pulsfish_freqs_dict)
-
+        if num_of_current_file == num_of_files_processed:
+            os.remove( 'num_of_files_processed.npy' )
+            os.remove( 'num_of_current_file.npy' )
+            response = raw_input('Do you want to get some figures (df-histo; eod-histo; distribution on fishtype)? [y/n]')
+            if response == 'y':
+                os.system('python create_plots.py %s %s' % (sys.argv[2], sys.argv[3]))
 if __name__ == '__main__':
     main()

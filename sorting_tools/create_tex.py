@@ -71,14 +71,17 @@ def build_tex_pdf(wavefish, pulsefish):
     tf.write( '\n' )
     tf.write( '\n' )
     tf.write( '\n' )
-    tf.write( '\\includegraphics{%s}\n' %sys.argv[3])
+    # tf.write( '\\includegraphics{%s}\n' %sys.argv[3])
+    tf.write( '\\includegraphics{figures/fishtype_barplot.pdf}\n' )
     tf.write( '\n' )
     tf.write( '\n' )
     tf.write( '\n' )
     tf.write( '\n' )
     tf.write( '\\pagebreak\n' )
-    tf.write( '\\includegraphics{%s}\n' %sys.argv[4])
-    tf.write( '\\includegraphics{%s}\n' %sys.argv[5])
+    # tf.write( '\\includegraphics{%s}\n' %sys.argv[4])
+    tf.write( '\\includegraphics{figures/histo_of_eod_freqs.pdf}\n' )
+    # tf.write( '\\includegraphics{%s}\n' %sys.argv[5])
+    tf.write( '\\includegraphics{figures/histo_of_dfs.pdf}\n' )
     tf.write( '\\pagebreak\n' )
     tf.write( '\\section*{Wavefishes list}\n')
     tf.write( '\n' )
@@ -153,12 +156,29 @@ def load_npy_convert_list():
 
     return wavefish, pulsefish
 
+def clean_up():
+    response = raw_input('Shall I deleate some of the figures and .npy files used ? [y/n]')
+    if response is 'y':
+        respose = raw_input('Shall I deleate the .npy files? [y/n]')
+        if response is 'y':
+            os.remove( '%s' % sys.argv[1])
+            os.remove( '%s' % sys.argv[2])
+
+        response = raw_input('Shall I deleate the figures? [y/n]')
+        if response is 'y':
+            os.remove( 'figures/fishtype_barplot.pdf' )
+            os.remove( 'figures/histo_of_eod_freqs.pdf' )
+            os.remove( 'figures/histo_of_dfs.pdf' )
+    elif response is 'n':
+        print 'Builded .pdf file successfully'
+    else:
+        clean_up()
 
 def main():
     print '### Lets make a .tex file ###'
     wavefish, pulsefish = load_npy_convert_list()
     build_tex_pdf(wavefish, pulsefish)
-
+    clean_up()
 
 if __name__ == '__main__':
     main()
