@@ -1153,6 +1153,46 @@ def num_current_file():
     return num_of_current_file[0]
 
 
+def filter_fishes(fishlists):
+    ###################################################################
+    # extract fishes witch are consistent for different resolutions
+    fundamentals = [[] for i in fishlists]
+    for i in np.arange(len(fishlists)):
+        for j in np.arange(len(fishlists[i])):
+            fundamentals[i].append(fishlists[i][j][0][0])
+    consistent_fish_help = [1 for k in fundamentals[0]]
+
+    for i in np.arange(len(fundamentals[0])):
+        for j in np.arange(len(fundamentals)-1):
+            for k in np.arange(len(fundamentals[j+1])):
+                if fundamentals[0][i] < fundamentals[j+1][k]+2 and fundamentals[0][i] > fundamentals[j+1][k]-2:
+                    consistent_fish_help[i] += 1
+    index_of_valid_fish = []
+    for i in np.arange(len(consistent_fish_help)):
+        if consistent_fish_help[i] == len(fishlists):
+            index_of_valid_fish.append(i)
+
+    fishlist = []
+    for i in index_of_valid_fish:
+        fishlist.append(fishlists[0][i])
+    index_of_valid_fish = []
+    ###################################################################
+    # exclude fishes with to low power
+    # for i in np.arange(len(fishlist)):
+    #     power = []
+    #     if len(fishlist[i]) >= 2:
+    #         for j in np.arange(2):
+    #             power.append(fishlist[i][j][1])
+    #         mean_power = np.mean(power)
+    #         if mean_power >= 0.1:
+    #             index_of_valid_fish.append(i)
+    # fishlist2 = []
+    # for i in index_of_valid_fish:
+    #     fishlist2.append(fishlist[i])
+    ###################################################################
+    return fishlist
+
+
 class FishTracker :
     def __init__( self, samplingrate ) :
         self.rate = samplingrate
@@ -1187,11 +1227,20 @@ class FishTracker :
                  and the list of PULS-fishes.
         """
         known_answer = self.known_answer
-        nfft = int( np.round( 2**(np.floor(np.log(self.rate/self.fresolution) / np.log(2.0)) + 1.0) ) )
-        if nfft < 16 :
-            nfft = 16
+
+        # nfft = int( np.round( 2**(np.floor(np.log(self.rate/self.fresolution) / np.log(2.0)) + 1.0) ) )
+        # if nfft < 16 :
+        #     nfft = 16
+        test_resolutions = [self.fresolution, self.fresolution*2.0, self.fresolution*4.0]
+        all_nfft = []
+        for i in np.arange(len(test_resolutions)):
+            nfft = int( np.round( 2**(np.floor(np.log(self.rate/test_resolutions[i]) / np.log(2.0)) + 1.0) ) )
+            if nfft < 16 :
+                nfft = 16
+            all_nfft.append(nfft)
+
         tw = int(np.round(self.twindow*self.rate))
-        minw = nfft*(cfg['minPSDAverages'][0]+1)/2
+        minw = all_nfft[0]*(cfg['minPSDAverages'][0]+1)/2
         if tw < minw :
             tw = minw
         window = tw/self.rate
@@ -1212,8 +1261,20 @@ class FishTracker :
                 if self.tstart+(t0*1.0/self.rate) > 800:
                     break
             #####################################################
-            power, freqs = ml.psd( data[t0:t0+tw], NFFT=nfft, noverlap=nfft/2, Fs=self.rate, detrend=ml.detrend_mean )
-            fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
+            # power, freqs = ml.psd( data[t0:t0+tw], NFFT=nfft, noverlap=nfft/2, Fs=self.rate, detrend=ml.detrend_mean )
+            # fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
+            fishlists_dif_fresolution = []
+            for i in np.arange(len(all_nfft)):
+                power, freqs = ml.psd( data[t0:t0+tw], NFFT=all_nfft[i], noverlap=all_nfft[i]/2, Fs=self.rate, detrend=ml.detrend_mean )
+                fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
+
+                for fish in np.arange(len(fishlist)):
+                    for harmonic in np.arange(len(fishlist[fish])):
+                        fishlist[fish][harmonic][-1] = 10.0*np.log10( fishlist[fish][harmonic][-1] )
+                fishlists_dif_fresolution.append(fishlist)
+
+            fishlist = filter_fishes(fishlists_dif_fresolution)
+
 
             pulse_ls, wave_ls, known_answer = puls_or_wave(fishlist, self.known_answer)
             self.known_answer = known_answer
