@@ -1193,6 +1193,87 @@ def filter_fishes(fishlists):
     return fishlist
 
 
+def wave_or_pulse_psd(power, freqs, create_dataset=False):
+    if create_dataset is True:
+        fig, ax = plt.subplots()
+        plt.axis([0, 3000, -110, -30])
+        ax.plot(freqs, 10.0*np.log10(power))
+    #
+    # print np.mean(power[:250])
+    freq_steps = 250
+
+    proportions = []
+    mean_powers = []
+    # for i in np.arange(len(freqs)//freq_steps):
+    for i in np.arange(24):
+        power_db = 10.0*np.log10(power[i*freq_steps:i*freq_steps+freq_steps])
+        power_db_p99 = np.percentile(power_db, 99)
+        power_db_p1 = np.percentile(power_db, 1)
+        power_db_p25 = np.percentile(power_db, 25)
+        power_db_p75 = np.percentile(power_db, 75)
+        power_db_p25_75 = []
+        proportions.append((power_db_p75-power_db_p25)/(power_db_p99-power_db_p1))
+        for j in np.arange(len(power_db)):
+            if power_db[j] > power_db_p25 and power_db[j] < power_db_p75:
+                power_db_p25_75.append(power_db[j])
+        if create_dataset is True:
+            ax.plot(freqs[i*freq_steps+freq_steps/2], np.mean(power_db_p25_75), 'o', color= 'r')
+        mean_powers.append(np.mean(power_db_p25_75))
+    # plt.show()
+    mean_powers_p10 = np.percentile(mean_powers, 10)
+    mean_powers_p90 = np.percentile(mean_powers, 90)
+    diff = abs(mean_powers_p90-mean_powers_p10)
+    print ('max diff is %.2f' % diff)
+    print ('the proportions is %.2f' % np.mean(proportions))
+
+    if diff < 15 and np.mean(proportions) < 0.25:
+        psd_type = 'wave'
+    elif diff > 15 and np.mean(proportions) > 0.25:
+        psd_type = 'pulse'
+    else:
+        psd_type = 'unknown'
+
+    #####################################################################################
+    # Creating dataset #
+    # fig, ax = plt.subplots()
+    # plt.axis([0, 3000, -110, -30])
+    # ax.plot(freqs, 10.0*np.log10(power))
+    if create_dataset is True:
+        plt.draw()
+        plt.pause(1)
+
+        response = raw_input('wave- or pulse psd ? [w/p]')
+        plt.close()
+        if response == "w":
+            file = "wave_diffs.npy"
+            file2 = "wave_proportions.npy"
+        elif response == "p":
+            file = "pulse_diffs.npy"
+            file2 = "pulse_proportions.npy"
+        else:
+            quit()
+
+        if not os.path.exists(file):
+            np.save(file, np.array([]))
+        all_diffs = np.load(file)
+        all_diffs = all_diffs.tolist()
+        all_diffs.append(diff)
+        all_diffs = np.asarray(all_diffs)
+        np.save(file, all_diffs)
+
+        if not os.path.exists(file2):
+            np.save(file2, np.array([]))
+        all_propertions = np.load(file2)
+        all_propertions = all_propertions.tolist()
+        all_propertions.append(np.mean(proportions))
+        all_propertions = np.asarray(all_propertions)
+        np.save(file2, all_propertions)
+
+    return psd_type
+
+    #######################################################################################
+
+
 class FishTracker :
     def __init__( self, samplingrate ) :
         self.rate = samplingrate
@@ -1266,13 +1347,23 @@ class FishTracker :
             fishlists_dif_fresolution = []
             for i in np.arange(len(all_nfft)):
                 power, freqs = ml.psd( data[t0:t0+tw], NFFT=all_nfft[i], noverlap=all_nfft[i]/2, Fs=self.rate, detrend=ml.detrend_mean )
+
+                ### hier psd anschauen und entscheiden ob pulse or wave processing ###
+                if i == 0:
+                    psd_type = wave_or_pulse_psd(power, freqs)
+                    print ('!!!!!!!!     %s     !!!!!!!!' % psd_type)
+                    embed()
+                # if psd_type is 'wave':
                 fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
 
+                # power to dB
                 for fish in np.arange(len(fishlist)):
                     for harmonic in np.arange(len(fishlist[fish])):
                         fishlist[fish][harmonic][-1] = 10.0*np.log10( fishlist[fish][harmonic][-1] )
+
                 fishlists_dif_fresolution.append(fishlist)
 
+            # gut fuer wave
             fishlist = filter_fishes(fishlists_dif_fresolution)
 
 
