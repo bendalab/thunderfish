@@ -1223,8 +1223,8 @@ def wave_or_pulse_psd(power, freqs, create_dataset=False):
     mean_powers_p10 = np.percentile(mean_powers, 10)
     mean_powers_p90 = np.percentile(mean_powers, 90)
     diff = abs(mean_powers_p90-mean_powers_p10)
-    print ('max diff is %.2f' % diff)
-    print ('the proportions is %.2f' % np.mean(proportions))
+    # print ('max diff is %.2f' % diff)
+    # print ('the proportions is %.2f' % np.mean(proportions))
 
     if diff < 15 and np.mean(proportions) < 0.25:
         psd_type = 'wave'
@@ -1235,9 +1235,7 @@ def wave_or_pulse_psd(power, freqs, create_dataset=False):
 
     #####################################################################################
     # Creating dataset #
-    # fig, ax = plt.subplots()
-    # plt.axis([0, 3000, -110, -30])
-    # ax.plot(freqs, 10.0*np.log10(power))
+
     if create_dataset is True:
         plt.draw()
         plt.pause(1)
@@ -1351,48 +1349,53 @@ class FishTracker :
                 ### hier psd anschauen und entscheiden ob pulse or wave processing ###
                 if i == 0:
                     psd_type = wave_or_pulse_psd(power, freqs)
-                    print ('!!!!!!!!     %s     !!!!!!!!' % psd_type)
-                    embed()
-                # if psd_type is 'wave':
-                fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
+                    # print ('!!!!!!!!     %s     !!!!!!!!' % psd_type)
+                    # embed()
+                if psd_type is 'wave':
+                    fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
 
-                # power to dB
-                for fish in np.arange(len(fishlist)):
-                    for harmonic in np.arange(len(fishlist[fish])):
-                        fishlist[fish][harmonic][-1] = 10.0*np.log10( fishlist[fish][harmonic][-1] )
+                    # power to dB
+                    for fish in np.arange(len(fishlist)):
+                        for harmonic in np.arange(len(fishlist[fish])):
+                            fishlist[fish][harmonic][-1] = 10.0*np.log10( fishlist[fish][harmonic][-1] )
 
-                fishlists_dif_fresolution.append(fishlist)
+                    fishlists_dif_fresolution.append(fishlist)
+                elif psd_type is 'pulse':
+                    break
 
-            # gut fuer wave
-            fishlist = filter_fishes(fishlists_dif_fresolution)
+
+            if psd_type is 'wave':
+                # gut fuer wave
+                fishlist = filter_fishes(fishlists_dif_fresolution)
 
 
-            pulse_ls, wave_ls, known_answer = puls_or_wave(fishlist, self.known_answer)
-            self.known_answer = known_answer
+                pulse_ls, wave_ls, known_answer = puls_or_wave(fishlist, self.known_answer)
+                self.known_answer = known_answer
 
-            cfg['lowThreshold'][0] = lowth
-            cfg['highThreshold'][0] = highth
+                cfg['lowThreshold'][0] = lowth
+                cfg['highThreshold'][0] = highth
 
-            # wavefish fundamental frequencies:
-            for fish in wave_ls :
-                if fish not in wave_fish_freqs:
-                    wave_fish_freqs.append(fish)
-                    fish_time.append(window/2)
-                else:
-                    fish_time[wave_fish_freqs.index(fish)] += window/2
-            temp_dict = {(self.tstart+(t0*1.0/self.rate)): wave_fish_freqs}
-            print 'point in time:', self.tstart+(t0*1.0/self.rate), 'seconds.'
-            self.fish_freqs_dict.update(temp_dict)
-            wave_fish_freqs = []
+                # wavefish fundamental frequencies:
+                for fish in wave_ls :
+                    if fish not in wave_fish_freqs:
+                        wave_fish_freqs.append(fish)
+                        fish_time.append(window/2)
+                    else:
+                        fish_time[wave_fish_freqs.index(fish)] += window/2
+                temp_dict = {(self.tstart+(t0*1.0/self.rate)): wave_fish_freqs}
+                print 'point in time:', self.tstart+(t0*1.0/self.rate), 'seconds.'
+                self.fish_freqs_dict.update(temp_dict)
+                wave_fish_freqs = []
 
-            # pulsfish fundamental frequencies:
-            for pulsfish in pulse_ls:
-                if pulsfish not in puls_fish_freqs:
-                    puls_fish_freqs.append(pulsfish)
-            temp_dict = {(self.tstart+(t0*1.0/self.rate)): puls_fish_freqs}
-            self.pulsfish_freqs_dict.update(temp_dict)
-            puls_fish_freqs = []
-
+                # pulsfish fundamental frequencies:
+                # for pulsfish in pulse_ls:
+                #     if pulsfish not in puls_fish_freqs:
+                #         puls_fish_freqs.append(pulsfish)
+                # temp_dict = {(self.tstart+(t0*1.0/self.rate)): puls_fish_freqs}
+                # self.pulsfish_freqs_dict.update(temp_dict)
+                # puls_fish_freqs = []
+            elif psd_type is 'pulse':
+                print 'HERE WE HAVE TO BUILD IN THE PULSEFISH ANALYSIS'
 
         self.tstart += self.datasize
         self.known_answer = {'freqs':[], 'decision':[]}
