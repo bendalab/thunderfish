@@ -1193,7 +1193,7 @@ def filter_fishes(fishlists):
     return fishlist
 
 
-def wave_or_pulse_psd(power, freqs, data, rate, create_dataset=False):
+def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=False):
     if create_dataset is True:
         fig, ax = plt.subplots()
         plt.axis([0, 3000, -110, -30])
@@ -1202,6 +1202,7 @@ def wave_or_pulse_psd(power, freqs, data, rate, create_dataset=False):
 
     proportions = []
     mean_powers = []
+    embed()
     # for i in np.arange(len(freqs)//freq_steps): # soft code (doesnt work for now)
     for i in np.arange(24):   # hard code (analysis psd to 3k Hz)
         power_db = 10.0*np.log10(power[i*freq_steps:i*freq_steps+freq_steps])
@@ -1229,9 +1230,16 @@ def wave_or_pulse_psd(power, freqs, data, rate, create_dataset=False):
     ###
 
     ### proportion sound trace
-    # rate = float(rate)
-    # time = np.arange(len(data))/rate
-    #
+    rate = float(rate)
+    time = np.arange(len(data))/rate
+    trace_proportions = []
+    for i in np.arange(len(data)//(4.0*rate)):
+        temp_trace_data = data[i*rate/4.0:i*rate/4.0 + rate/4.0]
+        temp_trace_data_p1 = np.percentile(temp_trace_data, 1)
+        temp_trace_data_p25 = np.percentile(temp_trace_data, 25)
+        temp_trace_data_p75 = np.percentile(temp_trace_data, 75)
+        temp_trace_data_p99 = np.percentile(temp_trace_data, 9)
+        trace_proportions.append((temp_trace_data_p75-temp_trace_data_p25)/(temp_trace_data_p99-temp_trace_data_p1))
     # fig, ax = plt.subplots()
     # ax.plot(time, data)
     # plt.show()
@@ -1255,9 +1263,11 @@ def wave_or_pulse_psd(power, freqs, data, rate, create_dataset=False):
         if response == "w":
             file = "wave_diffs.npy"
             file2 = "wave_proportions.npy"
+            file3 = "wave_trace_proportions.npy"
         elif response == "p":
             file = "pulse_diffs.npy"
             file2 = "pulse_proportions.npy"
+            file3 = "pulse_trace_proportions.npy"
         else:
             quit()
 
@@ -1277,6 +1287,13 @@ def wave_or_pulse_psd(power, freqs, data, rate, create_dataset=False):
         all_propertions = np.asarray(all_propertions)
         np.save(file2, all_propertions)
 
+        if not os.path.exists(file3):
+            np.save(file3, np.array([]))
+        all_trace_proportions = np.load(file3)
+        all_trace_proportions = all_trace_proportions.tolist()
+        all_trace_proportions.append(np.mean(trace_proportions))
+        all_trace_proportions = np.asarray(all_trace_proportions)
+        np.save(file3, all_trace_proportions)
     return psd_type
 
     #######################################################################################
@@ -1356,7 +1373,7 @@ class FishTracker :
 
                 ### hier psd anschauen und entscheiden ob pulse or wave processing ###
                 if i == 0:
-                    psd_type = wave_or_pulse_psd(power, freqs, data[t0:t0+tw], self.rate)
+                    psd_type = wave_or_pulse_psd(power, freqs, data[t0:t0+tw], self.rate, self.fresolution)
 
                 if psd_type is 'wave':
                     fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
