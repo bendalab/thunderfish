@@ -1204,15 +1204,15 @@ def wave_or_pulse_psd(power, freqs, create_dataset=False):
 
     proportions = []
     mean_powers = []
-    # for i in np.arange(len(freqs)//freq_steps):
-    for i in np.arange(24):
+    # for i in np.arange(len(freqs)//freq_steps): # soft code (doesnt work for now)
+    for i in np.arange(24):   # hard code (analysis psd to 3k Hz)
         power_db = 10.0*np.log10(power[i*freq_steps:i*freq_steps+freq_steps])
         power_db_p99 = np.percentile(power_db, 99)
         power_db_p1 = np.percentile(power_db, 1)
         power_db_p25 = np.percentile(power_db, 25)
         power_db_p75 = np.percentile(power_db, 75)
         power_db_p25_75 = []
-        proportions.append((power_db_p75-power_db_p25)/(power_db_p99-power_db_p1))
+        proportions.append((power_db_p75-power_db_p25)/(power_db_p99-power_db_p1)) # value between 0 and 1; pulse psds have much bigger values than wave psds
         for j in np.arange(len(power_db)):
             if power_db[j] > power_db_p25 and power_db[j] < power_db_p75:
                 power_db_p25_75.append(power_db[j])
@@ -1340,17 +1340,14 @@ class FishTracker :
                 if self.tstart+(t0*1.0/self.rate) > 800:
                     break
             #####################################################
-            # power, freqs = ml.psd( data[t0:t0+tw], NFFT=nfft, noverlap=nfft/2, Fs=self.rate, detrend=ml.detrend_mean )
-            # fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
-            fishlists_dif_fresolution = []
+            fishlists_dif_fresolution = []  # gets fishlists from 3 different psd(powerspectrum)
             for i in np.arange(len(all_nfft)):
                 power, freqs = ml.psd( data[t0:t0+tw], NFFT=all_nfft[i], noverlap=all_nfft[i]/2, Fs=self.rate, detrend=ml.detrend_mean )
 
                 ### hier psd anschauen und entscheiden ob pulse or wave processing ###
                 if i == 0:
                     psd_type = wave_or_pulse_psd(power, freqs)
-                    # print ('!!!!!!!!     %s     !!!!!!!!' % psd_type)
-                    # embed()
+
                 if psd_type is 'wave':
                     fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
 
@@ -1387,13 +1384,6 @@ class FishTracker :
                 self.fish_freqs_dict.update(temp_dict)
                 wave_fish_freqs = []
 
-                # pulsfish fundamental frequencies:
-                # for pulsfish in pulse_ls:
-                #     if pulsfish not in puls_fish_freqs:
-                #         puls_fish_freqs.append(pulsfish)
-                # temp_dict = {(self.tstart+(t0*1.0/self.rate)): puls_fish_freqs}
-                # self.pulsfish_freqs_dict.update(temp_dict)
-                # puls_fish_freqs = []
             elif psd_type is 'pulse':
                 print 'HERE WE HAVE TO BUILD IN THE PULSEFISH ANALYSIS'
 
@@ -1933,10 +1923,6 @@ def main():
     except ImportError:
         print 'python module "audioread" is not installed.'
         quit()
-
-    # num_of_files_processed = when_to_ask_to_start_next_script(filepath)
-    # num_of_current_file = num_current_file()
-
 
     with audioread.audio_open( filepath ) as af :
         tracen = af.channels
