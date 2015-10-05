@@ -1193,13 +1193,11 @@ def filter_fishes(fishlists):
     return fishlist
 
 
-def wave_or_pulse_psd(power, freqs, create_dataset=False):
+def wave_or_pulse_psd(power, freqs, data, rate, create_dataset=False):
     if create_dataset is True:
         fig, ax = plt.subplots()
         plt.axis([0, 3000, -110, -30])
         ax.plot(freqs, 10.0*np.log10(power))
-    #
-    # print np.mean(power[:250])
     freq_steps = 250
 
     proportions = []
@@ -1207,24 +1205,36 @@ def wave_or_pulse_psd(power, freqs, create_dataset=False):
     # for i in np.arange(len(freqs)//freq_steps): # soft code (doesnt work for now)
     for i in np.arange(24):   # hard code (analysis psd to 3k Hz)
         power_db = 10.0*np.log10(power[i*freq_steps:i*freq_steps+freq_steps])
+        power_db_p25_75 = []
         power_db_p99 = np.percentile(power_db, 99)
         power_db_p1 = np.percentile(power_db, 1)
         power_db_p25 = np.percentile(power_db, 25)
         power_db_p75 = np.percentile(power_db, 75)
-        power_db_p25_75 = []
+
+        ### proportion psd (idea by Jan)
         proportions.append((power_db_p75-power_db_p25)/(power_db_p99-power_db_p1)) # value between 0 and 1; pulse psds have much bigger values than wave psds
+        ###
+
+        ### difference psd (idea by Till)
         for j in np.arange(len(power_db)):
             if power_db[j] > power_db_p25 and power_db[j] < power_db_p75:
                 power_db_p25_75.append(power_db[j])
+        mean_powers.append(np.mean(power_db_p25_75))
+
         if create_dataset is True:
             ax.plot(freqs[i*freq_steps+freq_steps/2], np.mean(power_db_p25_75), 'o', color= 'r')
-        mean_powers.append(np.mean(power_db_p25_75))
-    # plt.show()
     mean_powers_p10 = np.percentile(mean_powers, 10)
     mean_powers_p90 = np.percentile(mean_powers, 90)
     diff = abs(mean_powers_p90-mean_powers_p10)
-    # print ('max diff is %.2f' % diff)
-    # print ('the proportions is %.2f' % np.mean(proportions))
+    ###
+
+    ### proportion sound trace
+    # rate = float(rate)
+    # time = np.arange(len(data))/rate
+    #
+    # fig, ax = plt.subplots()
+    # ax.plot(time, data)
+    # plt.show()
 
     if diff < 15 and np.mean(proportions) < 0.25:
         psd_type = 'wave'
@@ -1346,7 +1356,7 @@ class FishTracker :
 
                 ### hier psd anschauen und entscheiden ob pulse or wave processing ###
                 if i == 0:
-                    psd_type = wave_or_pulse_psd(power, freqs)
+                    psd_type = wave_or_pulse_psd(power, freqs, data[t0:t0+tw], self.rate)
 
                 if psd_type is 'wave':
                     fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups( freqs, power, cfg )
@@ -1947,6 +1957,8 @@ def main():
                 index += n
             else :
                 break
+        #### HERE BEST WINDOW ###
+
         if index > 0 :
             ft.processdata( data[:index]/2.0**15 )
 
