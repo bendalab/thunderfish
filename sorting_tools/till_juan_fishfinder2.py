@@ -1193,18 +1193,18 @@ def filter_fishes(fishlists):
     return fishlist
 
 
-def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=False):
+def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=True):
     if create_dataset is True:
         fig, ax = plt.subplots()
         plt.axis([0, 3000, -110, -30])
         ax.plot(freqs, 10.0*np.log10(power))
-    freq_steps = 250
+    freq_steps = int(250/fresolution)
 
     proportions = []
     mean_powers = []
     # embed()
-    # for i in np.arange(len(freqs)//freq_steps): # soft code (doesnt work for now)
-    for i in np.arange(24):   # hard code (analysis psd to 3k Hz)
+    for i in np.arange(len(freqs)//freq_steps): # soft code (doesnt work for now)
+
         power_db = 10.0*np.log10(power[i*freq_steps:i*freq_steps+freq_steps])
         power_db_p25_75 = []
         power_db_p99 = np.percentile(power_db, 99)
