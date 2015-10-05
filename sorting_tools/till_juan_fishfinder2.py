@@ -1202,7 +1202,7 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
 
     proportions = []
     mean_powers = []
-    embed()
+    # embed()
     # for i in np.arange(len(freqs)//freq_steps): # soft code (doesnt work for now)
     for i in np.arange(24):   # hard code (analysis psd to 3k Hz)
         power_db = 10.0*np.log10(power[i*freq_steps:i*freq_steps+freq_steps])
