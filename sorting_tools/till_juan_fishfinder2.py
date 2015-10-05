@@ -5,7 +5,7 @@
 __author__ = 'raab'
 def description_of_the_whole_code():
     """
-    This code works different depending on how many arguments are give.
+    This code works different depending on how many arguments are given.
 
     If there are only 2 arguments:
         You can have a look on your data. You will get for each wave- and pulsefishes a spectogram, a plot that shows
@@ -1073,8 +1073,8 @@ def manual_input_wave_or_puls(test_freq, test_power, wave_ls, pulse_ls, known_an
 def puls_or_wave(fishlist, known_answer, make_plots=False):
     """
     This function gets the array fishlist. (see below)
-                    Analysis the data and discriminates between puls and wavefish.
-                    returns lists containing the fundamental frequencies for either wave- or pulsfish.
+                    Analyses the data and discriminates between pulse and wavefish.
+                    returns lists containing the fundamental frequencies for either wave- or pulse-fish.
 
     :param fishlist: dict
     :param make_plots:
@@ -1092,7 +1092,7 @@ def puls_or_wave(fishlist, known_answer, make_plots=False):
             test_power.append(fishlist[fish_idx][harmo_idx][1])
 
             # wave_or_puls = []
-        slopes = [] #each slope is calculated twice
+        slopes = []  # each slope is calculated twice
         for first_idx in np.arange(len(test_power)):
             for second_idx in np.arange(len(test_power)):
                 if first_idx > second_idx:
