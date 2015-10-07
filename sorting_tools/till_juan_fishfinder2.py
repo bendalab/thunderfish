@@ -2014,6 +2014,7 @@ def main():
         bwin, win_width = Fish.detect_best_window()
 
         fish_type = Fish.type_detector()
+        print('current fish is a ' + fish_type + '-fish')
 
         if index > 0:
             ft.processdata(data[:index] / 2.0 ** 15)
@@ -2051,7 +2052,7 @@ def main():
         #     response = raw_input('Do you want to get some figures (df-histo; eod-histo; distribution on fishtype)? [y/n]')
         #     if response == 'y':
         #         os.system('python create_plots.py %s %s' % (sys.argv[2], sys.argv[3]))
-
+        os.remove(mod_file)
 
 if __name__ == '__main__':
     main()
