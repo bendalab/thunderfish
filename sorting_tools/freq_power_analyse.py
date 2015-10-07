@@ -40,3 +40,10 @@ ax[2].plot(wt, wave_trace_prop, '.')
 ax[2].plot(pt, pulse_trace_prop, '.', color='r')
 
 plt.show()
+
+fig, ax = plt.subplots(facecolor = 'white')
+plt.xlabel('difference (p90-p10)')
+plt.ylabel('proportion ((p75-p25)/(p99-p1))')
+ax.plot(wave_diffs, wave_prop, '.')
+ax.plot(pulse_diffs, pulse_prop, '.', color='r')
+plt.show()

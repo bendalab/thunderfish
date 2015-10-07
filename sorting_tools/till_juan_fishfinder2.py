@@ -1193,18 +1193,17 @@ def filter_fishes(fishlists):
     return fishlist
 
 
-def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=True):
+def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=False):
     if create_dataset is True:
         fig, ax = plt.subplots()
         plt.axis([0, 3000, -110, -30])
         ax.plot(freqs, 10.0*np.log10(power))
-    freq_steps = int(250/fresolution)
+    freq_steps = int(125/fresolution)
 
     proportions = []
     mean_powers = []
     # embed()
-    for i in np.arange(len(freqs)//freq_steps): # soft code (doesnt work for now)
-
+    for i in np.arange((3000/fresolution)//freq_steps): # does all of this till the frequency of 3k Hz
         power_db = 10.0*np.log10(power[i*freq_steps:i*freq_steps+freq_steps])
         power_db_p25_75 = []
         power_db_p99 = np.percentile(power_db, 99)
@@ -1238,7 +1237,7 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=True
         temp_trace_data_p1 = np.percentile(temp_trace_data, 1)
         temp_trace_data_p25 = np.percentile(temp_trace_data, 25)
         temp_trace_data_p75 = np.percentile(temp_trace_data, 75)
-        temp_trace_data_p99 = np.percentile(temp_trace_data, 9)
+        temp_trace_data_p99 = np.percentile(temp_trace_data, 99)
         trace_proportions.append((temp_trace_data_p75-temp_trace_data_p25)/(temp_trace_data_p99-temp_trace_data_p1))
     # fig, ax = plt.subplots()
     # ax.plot(time, data)
