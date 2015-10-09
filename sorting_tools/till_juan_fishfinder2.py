@@ -1025,12 +1025,6 @@ def harmonic_groups(psd_freqs, psd, cfg):
             print 'high_threshold=', high_threshold, center + high_threshold
             print 'center=', center
 
-    ## plt.figure()
-    ## plt.bar( bins[:-1], hist, width=bins[1]-bins[0] )
-    ## plt.axvline( center+low_threshold, color='r' )
-    ## plt.axvline( center+high_threshold, color='m' )
-    ## plt.show()
-
     # detect peaks in decibel power spectrum:
     all_freqs = detect_peaks(psd_freqs, log_psd, low_threshold, accept_psd_peaks)
 
@@ -1075,21 +1069,7 @@ def filter_fishes(fishlists):
     fishlist = []
     for i in index_of_valid_fish:
         fishlist.append(fishlists[0][i])
-    index_of_valid_fish = []
-    ###################################################################
-    # exclude fishes with to low power
-    # for i in np.arange(len(fishlist)):
-    #     power = []
-    #     if len(fishlist[i]) >= 2:
-    #         for j in np.arange(2):
-    #             power.append(fishlist[i][j][1])
-    #         mean_power = np.mean(power)
-    #         if mean_power >= 0.1:
-    #             index_of_valid_fish.append(i)
-    # fishlist2 = []
-    # for i in index_of_valid_fish:
-    #     fishlist2.append(fishlist[i])
-    ###################################################################
+
     return fishlist
 
 
@@ -1141,9 +1121,6 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
         temp_trace_data_p99 = np.percentile(temp_trace_data, 99)
         trace_proportions.append(
             (temp_trace_data_p75 - temp_trace_data_p25) / (temp_trace_data_p99 - temp_trace_data_p1))
-    # fig, ax = plt.subplots()
-    # ax.plot(time, data)
-    # plt.show()
 
     if diff < 15 and np.mean(proportions) < 0.25:
         psd_type = 'wave'
@@ -1358,23 +1335,6 @@ class FishTracker:
                 for m in self.fishes.keys():
                     if len(self.fishes[m]) < k + 1:
                         self.fishes[m].append(np.nan)
-
-                        # if len(sys.argv) == 2:
-                        #     fig, ax = plt.subplots(facecolor= 'white')
-                        #     for n in self.fishes.keys():
-                        #         ax.plot([n]*len(self.fishes[n]), self.fishes[n], 'o')
-                        #     ax.set_xlim([0, len(self.fishes)+1])
-                        #     ax.set_ylim([0, 2000])
-                        #     ax.set_xlabel('fish Nr.', fontsize='15')
-                        #     ax.set_ylabel('frequency [hz]', fontsize='15')
-                        #     ax.spines["right"].set_visible(False)
-                        #     ax.spines["top"].set_visible(False)
-                        #     ax.tick_params(axis='both', direction='out')
-                        #     ax.get_xaxis().tick_bottom()
-                        #     ax.get_yaxis().tick_left()
-                        #     plt.xticks(fontsize='15')
-                        #     plt.yticks(fontsize='15')
-                        #     plt.show()
 
     def get_data(self):
         data = np.zeros(np.ceil(self.rate * self.datasize), dtype="<i2")
