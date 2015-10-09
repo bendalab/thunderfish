@@ -138,12 +138,13 @@ def butter_lowpass_filter(data, highcut, fs, order=5):
     y = filtfilt(b, a, data)
     return y
 
-def load_trace(modfile):
+def load_trace(modfile, analysis_length=30):
     """ Loads modified .wav and returns a two dimensional np array with the Time trace and corresponding Amplitude.
+    In order to accelerate the code, the default analysis-length are the first 30 seconds of the sound file.
     """
     recording = wave.open(modfile)
     sample_rate = recording.getframerate()
-    frames_to_read = 30 * sample_rate  # read not more than the first 30 seconds
+    frames_to_read = analysis_length * sample_rate  # read not more than the first 30 seconds
     data = np.fromstring(recording.readframes(frames_to_read), np.int16).astype(float)  # read data
     data -= np.mean(data)
     time_length = float(data.size) / sample_rate
