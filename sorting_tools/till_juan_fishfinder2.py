@@ -1121,13 +1121,17 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
         temp_trace_data_p99 = np.percentile(temp_trace_data, 99)
         trace_proportions.append(
             (temp_trace_data_p75 - temp_trace_data_p25) / (temp_trace_data_p99 - temp_trace_data_p1))
-
-    if diff < 15 and np.mean(proportions) < 0.25:
+    if np.mean(proportions) < 0.25:
         psd_type = 'wave'
-    elif diff > 15 and np.mean(proportions) > 0.25:
-        psd_type = 'pulse'
     else:
-        psd_type = 'unknown'
+        psd_type = 'pulse'
+
+    # if diff < 15 and np.mean(proportions) < 0.25:
+    #     psd_type = 'wave'
+    # elif diff > 15 and np.mean(proportions) > 0.25:
+    #     psd_type = 'pulse'
+    # else:
+    #     psd_type = 'unknown'
 
     #####################################################################################
     # Creating dataset #
@@ -1188,7 +1192,7 @@ class FishTracker:
         self.twindow = 8.0
         self.fishes = {}
 
-    def processdata(self, data, test_longfile=False):  # , rate, fish_freqs_dict, tstart, datasize, step ) :
+    def processdata(self, data, fish_type, test_longfile=False):  # , rate, fish_freqs_dict, tstart, datasize, step ) :
         """
         gets sound data.
         builds a powerspectrum over 8 sec. these 8 seconds shift through the sound data in steps of 0.5 sec.
@@ -1279,7 +1283,7 @@ class FishTracker:
             wave_fish_freqs = []
 
             # Pulsefish processing
-            if psd_type is 'pulse':
+            if psd_type is 'pulse' and fish_type is 'pulse':
                 print 'HERE WE HAVE TO BUILD IN THE PULSEFISH ANALYSIS'
 
         self.tstart += self.datasize
@@ -1446,7 +1450,7 @@ def main():
             if index + n > len(data):
                 if index == 0:
                     print "panic!!!! I need a larger buffer!"
-                ft.processdata(data[:index] / 2.0 ** 15)
+                # ft.processdata(data[:index] / 2.0 ** 15)
                 index = 0
             if n > 0:
                 data[index:index + n] = fulldata[:n, channel]
@@ -1470,7 +1474,7 @@ def main():
         print('current fish is a ' + fish_type + '-fish')
 
         if index > 0:
-            ft.processdata(data[:index] / 2.0 ** 15)
+            ft.processdata(data[:index] / 2.0 ** 15, fish_type)
 
         ft.sort_my_wavefish()
 
