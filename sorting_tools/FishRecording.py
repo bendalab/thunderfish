@@ -36,9 +36,13 @@ class FishRecording:
         filtered_data = butter_lowpass_filter(self._eod, fund_freq * filter_fac, self._sample_rate)
         return filtered_data
 
-    def detect_peak_indices(self, peak_threshold=None, norm_window=.1):
+    def detect_peak_and_trough_indices(self, peak_threshold=None, norm_window=.1):
+        """This function finds the indices of peaks and troughs of each EOD-cycle in the recording
 
-        # time = self._time if window == false
+        :param peak_threshold: This is the threshold to be used for the peakdet function (Translated Matlab-Code...).
+        :param norm_window:
+        :return: two arrays. The first contains the peak indices and the second contains the trough indices.
+        """
         if self._eod_peak_idx is None or self._eod_trough_idx is None:
 
             w = np.ones(self._sample_rate*norm_window)
@@ -62,7 +66,7 @@ class FishRecording:
         pass
 
     def peak_trough_iterator(self):
-        pidx, tidx = self.detect_peak_indices()
+        pidx, tidx = self.detect_peak_and_trough_indices()
 
         t = np.hstack((self._time[pidx], self._time[tidx]))
         y = np.hstack((self._time[pidx]*0+1, self._time[tidx]*0-1))
@@ -115,20 +119,22 @@ class FishRecording:
 
             yield t_peak, a_peak, all_idx[i], t_trough, a_trough, all_idx[trough_idx]
 
-    def detect_best_window(self, win_width=8., plot_debug=False, ax=False):
-    # for plot debug, call this function in "main" with plot_debug=True
+    def detect_best_window(self, win_size=8., plot_debug=False, ax=False):
+        # for plot debug, call this function in "main" with plot_debug=True
         filename = self._wavfile
-        p_idx, t_idx = self.detect_peak_indices()
-        #everything = list(self.peak_trough_iterator())
-        #peak_time, peak_ampl, _, trough_time, trough_ampl, _ = map(lambda x: np.asarray(x), zip(*everything))
+        p_idx, t_idx = self.detect_peak_and_trough_indices()
         peak_time, peak_ampl, trough_time, trough_ampl = self._time[p_idx], self._eod[p_idx], self._time[t_idx], self._eod[t_idx]
-        my_times = peak_time[peak_time <= peak_time[-1] - win_width]
+        # peaks and troughs here refer to those found in each eod-cycle. For each cycle there should be one peak and
+        # one trough if the detect_peak_indices function worked fine.
+        my_times = peak_time[peak_time <= peak_time[-1] - win_size]  # Upper window-boundaries solution
         cvs = np.empty(len(my_times))
         no_of_peaks = np.empty(len(my_times))
         mean_ampl = np.empty(len(my_times))
 
         for i, curr_t in enumerate(my_times):
-            window_idx = (peak_time >= curr_t) & (peak_time <= curr_t + win_width)
+            # This for-loop goes through each eod-cycle. Isn't this too much? It considerably makes the code slow.
+            window_idx = (peak_time >= curr_t) & (peak_time <= curr_t + win_size)
+            # the last line makes a window from curr_t and adds 8. seconds to it. Lower window-boundaries solution.
             p2t_ampl = peak_ampl[window_idx] - trough_ampl[window_idx]
             cvs[i] = np.std(p2t_ampl, ddof=1) / np.mean(p2t_ampl)
             mean_ampl[i] = np.mean(p2t_ampl)
@@ -142,12 +148,12 @@ class FishRecording:
 
             a = np.arange(len(no_of_peaks))
             ax1.scatter(a, no_of_peaks, s=50, c='blue', label='Fish # ' + filename[-10:-8])
-            ax1.set_ylabel('# of peaks')
+            ax1.set_ylabel('# of peaks (# of detected EOD-cycles)')
             ax1.legend(frameon=False, loc='best')
             ax2.scatter(a, mean_ampl, s=50, c='green')
             ax2.set_ylabel('mean amplitude')
-            ax3.scatter(a, cvs, s=50, c='red', label=filename[-10:-8])
-            ax3.set_ylabel('cvs')
+            ax3.scatter(a, cvs, s=50, c='red', label='File Nr. ' + filename[-10:-8])
+            ax3.set_ylabel('cvs (std of p2t_amplitude / mean p2t_amplitude)')
             ax3.set_xlabel('# of Peak Time Window')
             ax3.legend(frameon=False, loc='best')
             ax = np.array([ax1, ax2, ax3])
@@ -158,7 +164,7 @@ class FishRecording:
         bwin = my_times[bwin_bool_inx]
 
         self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate/2.))
-        return bwin, win_width
+        return bwin, win_size
 
     def best_window_algorithm(self, peak_no, mean_amplitudes, cov_coeffs, pks_th=0.15, ampls_th=(0.85, 0.3),
                               plot_debug=False, axs=None):

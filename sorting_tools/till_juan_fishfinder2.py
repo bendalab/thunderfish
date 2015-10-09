@@ -2011,7 +2011,9 @@ def main():
         t_trace, track_ampl, sampl_rate = load_trace(mod_file)
 
         Fish = FishRecording(mod_file)
-        bwin, win_width = Fish.detect_best_window()
+        best_window, win_size = Fish.detect_best_window(plot_debug=True)
+        embed()
+        quit()
 
         fish_type = Fish.type_detector()
         print('current fish is a ' + fish_type + '-fish')
