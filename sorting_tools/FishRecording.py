@@ -120,10 +120,18 @@ class FishRecording:
             yield t_peak, a_peak, all_idx[i], t_trough, a_trough, all_idx[trough_idx]
 
     def detect_best_window(self, win_size=8., plot_debug=False, ax=False):
-        # for plot debug, call this function in "main" with plot_debug=True
+        """ This function detects the best window of the file to be analyzed. The core mechanism is in the
+        best_window_algorithm function. For plot debug, call this function in "main" with argument plot_debug=True
+
+        :param win_size: float. size of the best window
+        :param plot_debug: boolean. use True to plot filter parameters (and thresholds) for detecting best window
+        :param ax: axes of the debugging plots.
+        :return: two floats. The first float marks the start of the best window and the second the defined window-size.
+        """
         filename = self._wavfile
         p_idx, t_idx = self.detect_peak_and_trough_indices()
-        peak_time, peak_ampl, trough_time, trough_ampl = self._time[p_idx], self._eod[p_idx], self._time[t_idx], self._eod[t_idx]
+        peak_time, peak_ampl, trough_time, trough_ampl = self._time[p_idx], self._eod[p_idx],\
+                                                         self._time[t_idx], self._eod[t_idx]
         # peaks and troughs here refer to those found in each eod-cycle. For each cycle there should be one peak and
         # one trough if the detect_peak_indices function worked fine.
         my_times = peak_time[peak_time <= peak_time[-1] - win_size]  # Upper window-boundaries solution
@@ -150,41 +158,75 @@ class FishRecording:
             ax1.scatter(a, no_of_peaks, s=50, c='blue', label='Fish # ' + filename[-10:-8])
             ax1.set_ylabel('# of peaks (# of detected EOD-cycles)')
             ax1.legend(frameon=False, loc='best')
-            ax2.scatter(a, mean_ampl, s=50, c='green')
-            ax2.set_ylabel('mean amplitude')
-            ax3.scatter(a, cvs, s=50, c='red', label='File Nr. ' + filename[-10:-8])
-            ax3.set_ylabel('cvs (std of p2t_amplitude / mean p2t_amplitude)')
+
+            ax2.scatter(a, cvs, s=50, c='red')
+            ax2.set_ylabel('cvs (std of p2t_amplitude / mean p2t_amplitude)')
+
+            ax3.scatter(a, mean_ampl, s=50, c='green')
+            ax3.set_ylabel('mean amplitude')
             ax3.set_xlabel('# of Peak Time Window')
-            ax3.legend(frameon=False, loc='best')
+
             ax = np.array([ax1, ax2, ax3])
 
-        bwin_bool_inx = self.best_window_algorithm(no_of_peaks, mean_ampl, cvs, plot_debug=plot_debug, axs=ax)
-        bwin_bool_inx = np.where(bwin_bool_inx)[0][0]
+        bwin_bool_array = self.best_window_algorithm(no_of_peaks, mean_ampl, cvs, plot_debug=plot_debug, axs=ax)
+        bwin_bool_inx = np.where(bwin_bool_array)[0][0]  # Gets the index of the best window out of all windows.
         entire_time_idx = self._eod_peak_idx[bwin_bool_inx]
         bwin = my_times[bwin_bool_inx]
 
         self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate/2.))
         return bwin, win_size
 
-    def best_window_algorithm(self, peak_no, mean_amplitudes, cov_coeffs, pks_th=0.15, ampls_th=(0.85, 0.3),
-                              plot_debug=False, axs=None):
+    def best_window_algorithm(self, peak_no, mean_amplitudes, cov_coeffs, pks_th=0.15, ampls_percentile_th=85.,
+                              cov_percentile_th=15., plot_debug=False, axs=None):
 
+        """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
+        different amount of peaks compared to the stats.mode peak number of all windows. Secondly, it filters out
+        windows that have a higher covariance coefficients than a certain percentile of the distribution of cov-coeffs.
+        From those windows that get through both filters, the one with the highest peak-to-trough-amplitude
+        (that is not clipped!) is chosen as the best window. We assume clipping as amplitudes above 85% percentile of
+        the distribution of peak to peak amplitude.
+
+        :param cov_percentile_th: threshold of how much amplitude-variance (covariance coefficient) of the signal
+        is allowed. Default is 10%.
+        :param peak_no: array with number of peaks
+        :param mean_amplitudes: array with mean peak-to-trough-amplitudes
+        :param cov_coeffs: array with covariance coefficients
+        :param pks_th: threshold for number-of-peaks-filter
+        :param ampls_percentile_th: choose a percentile threshold to avoid clipping. Default is 85
+        :param plot_debug: boolean for showing plot-debugging.
+        :param axs: axis of plot debugging.
+        :return: boolean array with a single True element. This is the Index of the best window out of all windows.
+        """
+        # First filter: Stable # of detected peaks
         pk_mode = stats.mode(peak_no)
         tot_pks = max(peak_no)-min(peak_no)
         lower = peak_no >= pk_mode[0][0] - tot_pks*pks_th
         upper = peak_no <= pk_mode[0][0] + tot_pks*pks_th
         valid_pks = lower * upper
 
-        ampl_means = valid_pks * mean_amplitudes
-        ampl_means = np.where(ampl_means == 0., np.median(ampl_means), ampl_means)  # replace the median ampl where 0's
-        tot_ampls = max(ampl_means)-min(ampl_means)
-        amplitude_th_up = ampl_means <= min(ampl_means) + tot_ampls * ampls_th[0]
-        amplitude_th_dn = ampl_means >= min(ampl_means) + tot_ampls * ampls_th[1]
-        valid_ampls = valid_pks * amplitude_th_up * amplitude_th_dn
+        # Second filter: Low variance in the amplitude
+        cov_coeffs[np.isnan(cov_coeffs)] = np.median(cov_coeffs)  # Set a huge number where NaN to avoid NaN!!
+        cov_th = np.percentile(cov_coeffs, cov_percentile_th)
+        valid_cv = cov_coeffs < cov_th
 
-        cov_coeffs[np.isnan(cov_coeffs)] = 1000.0  # Set a huge number where NaN to avoid NaN!!
-        valid_cv = min(cov_coeffs[valid_ampls])
-        best_window = valid_cv == cov_coeffs
+        # Third filter: From the remaining windows, choose the one with the highest p2t_amplitude that's not clipped.
+
+        # replace the median ampl where 0's
+        ampl_means = np.where(mean_amplitudes == 0., np.median(mean_amplitudes), mean_amplitudes)
+        tot_ampls = max(ampl_means)-min(ampl_means)
+        ampls_th = np.percentile(ampl_means, ampls_percentile_th)
+        valid_ampls = ampl_means <= ampls_th
+
+        valid_windows = valid_pks * valid_cv * valid_pks
+        max_ampl_window = ampl_means == np.max(ampl_means[valid_windows])  # Boolean array with a single True element
+
+        best_window = valid_windows * max_ampl_window
+
+        # If there is no best window, run the algorithm again with more flexible threshodlds.
+        if not True in best_window:
+            print('\nNo best window found. Rerunning best_window_algorithm with more flexible arguments.\n')
+            self.best_window_algorithm(peak_no, mean_amplitudes, cov_coeffs, ampls_percentile_th=ampls_percentile_th-5.,
+                                       cov_percentile_th=cov_percentile_th+5.)
 
         if plot_debug:
 
@@ -192,21 +234,18 @@ class FishRecording:
             ax2 = axs[1]
             ax3 = axs[2]
 
-            a = np.arange(len(peak_no))
-            ax1.plot([a[0], a[-1]], [pk_mode[0][0] - tot_pks*pks_th, pk_mode[0][0] - tot_pks*pks_th], '--k')
-            ax1.plot([a[0], a[-1]], [pk_mode[0][0] + tot_pks*pks_th, pk_mode[0][0] + tot_pks*pks_th], '--k')
+            windows = np.arange(len(peak_no))
+            ax1.plot([windows[0], windows[-1]], [pk_mode[0][0] - tot_pks*pks_th, pk_mode[0][0] - tot_pks*pks_th], '--k')
+            ax1.plot([windows[0], windows[-1]], [pk_mode[0][0] + tot_pks*pks_th, pk_mode[0][0] + tot_pks*pks_th], '--k')
 
-            ax2.plot([a[0], a[-1]], [min(ampl_means) + tot_ampls * ampls_th[0], min(ampl_means) + tot_ampls * ampls_th[0]], '--k')
-            ax2.plot([a[0], a[-1]], [min(ampl_means) + tot_ampls * ampls_th[1], min(ampl_means) + tot_ampls * ampls_th[1]], '--k')
+            ax2.plot([windows[0], windows[-1]], [cov_th, cov_th], '--k')
 
-            ax3.plot([a[best_window][0], a[best_window][0]], [min(cov_coeffs), max(cov_coeffs)], '--k')
+            ax3.plot([windows[0], windows[-1]], [ampls_th, ampls_th], '--k')
+            ax3.plot(windows[best_window], ampl_means[best_window], 'o', ms=20,
+                     color='purple', alpha=0.8, label='Best Window')
+            ax3.legend(frameon=False, loc='best')
+
             plt.show()
-
-        # cond3 = cond1 & cond2 (initially cond3 is false)
-        # while not np.any(cond3): increase threshold do stuff compute new cond3
-
-        # check if cond1 & cond2 has only false np.any(cond1 & cond2)
-        # if any is False return self.best_window_algorithm(.... mit mehr threshold)
 
         return best_window
 
