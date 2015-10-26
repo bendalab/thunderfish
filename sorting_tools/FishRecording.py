@@ -218,36 +218,42 @@ class FishRecording:
         valid_ampls = ampl_means <= ampls_th
 
         valid_windows = valid_pks * valid_cv * valid_pks
-        max_ampl_window = ampl_means == np.max(ampl_means[valid_windows])  # Boolean array with a single True element
-
-        best_window = valid_windows * max_ampl_window
 
         # If there is no best window, run the algorithm again with more flexible threshodlds.
-        if not True in best_window:
+        if not True in valid_windows:
             print('\nNo best window found. Rerunning best_window_algorithm with more flexible arguments.\n')
-            self.best_window_algorithm(peak_no, mean_amplitudes, cov_coeffs, ampls_percentile_th=ampls_percentile_th-5.,
-                                       cov_percentile_th=cov_percentile_th+5.)
+            return self.best_window_algorithm(peak_no, mean_amplitudes, cov_coeffs,
+                                              ampls_percentile_th=ampls_percentile_th-5.,
+                                              cov_percentile_th=cov_percentile_th+5., plot_debug=plot_debug)
+            # This return is a Recursion! Need to return the value in the embeded function, otherwise the root_function
+            # will not return anything!
 
-        if plot_debug:
+        else:
+            max_ampl_window = ampl_means == np.max(ampl_means[valid_windows])  # Boolean array with a single True element
 
-            ax1 = axs[0]
-            ax2 = axs[1]
-            ax3 = axs[2]
+            best_window = valid_windows * max_ampl_window
+            bwin_found = True
 
-            windows = np.arange(len(peak_no))
-            ax1.plot([windows[0], windows[-1]], [pk_mode[0][0] - tot_pks*pks_th, pk_mode[0][0] - tot_pks*pks_th], '--k')
-            ax1.plot([windows[0], windows[-1]], [pk_mode[0][0] + tot_pks*pks_th, pk_mode[0][0] + tot_pks*pks_th], '--k')
+            if plot_debug:
 
-            ax2.plot([windows[0], windows[-1]], [cov_th, cov_th], '--k')
+                ax1 = axs[0]
+                ax2 = axs[1]
+                ax3 = axs[2]
 
-            ax3.plot([windows[0], windows[-1]], [ampls_th, ampls_th], '--k')
-            ax3.plot(windows[best_window], ampl_means[best_window], 'o', ms=20,
-                     color='purple', alpha=0.8, label='Best Window')
-            ax3.legend(frameon=False, loc='best')
+                windows = np.arange(len(peak_no))
+                ax1.plot([windows[0], windows[-1]], [pk_mode[0][0] - tot_pks*pks_th, pk_mode[0][0] - tot_pks*pks_th], '--k')
+                ax1.plot([windows[0], windows[-1]], [pk_mode[0][0] + tot_pks*pks_th, pk_mode[0][0] + tot_pks*pks_th], '--k')
 
-            plt.show()
+                ax2.plot([windows[0], windows[-1]], [cov_th, cov_th], '--k')
 
-        return best_window
+                ax3.plot([windows[0], windows[-1]], [ampls_th, ampls_th], '--k')
+                ax3.plot(windows[best_window], ampl_means[best_window], 'o', ms=20,
+                         color='purple', alpha=0.8, label='Best Window')
+                ax3.legend(frameon=False, loc='best')
+
+                plt.show()
+
+            return best_window
 
     @property
     @needs_roi
