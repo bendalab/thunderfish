@@ -362,21 +362,29 @@ class FishRecording:
 
         pass
 
-    def plot_wavenvelope(self, ax, win_edges):
+    def plot_wavenvelope(self, ax, w_start, w_end):
 
+        """ This function plots the envelope of the recording.
+
+        :param ax: The axis in which you wish to plot.
+        :param w_start: Start of the best window.
+        :param w_end: End of the best window.
+        """
         window_size = int(0.05 * self._sample_rate)  # 0.050 are 50 milliseconds for the envelope window!
         w = 1.0 * np.ones(window_size) / window_size
         envelope = (np.sqrt((np.correlate(self._eod ** 2, w, mode='same') -
                     np.correlate(self._eod, w, mode='same') ** 2)).ravel()) * np.sqrt(2.)
+        upper_bound = np.max(envelope) + np.percentile(envelope, 1)
         ax.fill_between(self._time[::500], y1=-envelope[::500], y2=envelope[::500], color='purple', alpha=0.5)
-        ax.plot((win_edges[0], win_edges[0]), (-22000, 16000), 'k--', linewidth=2)
-        ax.plot((win_edges[1], win_edges[1]), (-22000, 16000), 'k--', linewidth=2)
-        ax.text(win_edges[0]+(win_edges[1] - win_edges[0]), 19000, 'Analysis Window', rotation='horizontal',
-                horizontalalignment='center', verticalalignment='center', fontsize=10)
+        ax.plot((w_start, w_start), (-upper_bound, upper_bound), 'k--', linewidth=2)
+        ax.plot((w_end, w_end), (-upper_bound, upper_bound), 'k--', linewidth=2)
+        ax.text((w_start + w_end) / 2., upper_bound - np.percentile(envelope, 10), 'Analysis Window',
+                rotation='horizontal', horizontalalignment='center', verticalalignment='center', fontsize=14)
 
-        ax.set_ylim(-22000, 22000)
-        ax.set_xlabel('Time [s]')
-        ax.set_ylabel('Signal Amplitude [au]')
+        ax.set_ylim(-upper_bound, upper_bound)
+        ax.set_xlabel('Time [s]', fontsize=16)
+        ax.set_ylabel('Signal Amplitude [au]', fontsize=16)
+        ax.tick_params(axis='both', which='major', labelsize=14)
 
         pass
 
