@@ -11,7 +11,6 @@ import seaborn as sns
 
 if __name__ == '__main__':
 
-    print len(sys.argv)
     if not 3 >= len(sys.argv) >= 2:  # only if len(sys.argv) == 2 or 3, the codes continues running.
         print("\nI need an audiofile as first argument. Please give me the path + filename as argument! "
               "Then you can tell me the folder name you wish me to save the figures in, as a second argument "

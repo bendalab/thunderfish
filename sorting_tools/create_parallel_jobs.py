@@ -17,3 +17,9 @@ if __name__ == '__main__':
     task_list = ['python test_best_window.py ' + e + ' panama_2014' for e in files]
     task_list = sorted(task_list)
     np.savetxt('parallel_test_best_window_panama_2014.txt', task_list, fmt="%s")  # Works fine so far...
+
+    ## Parallel jobs for plotting best window in brasil_data_2015
+    files = glob.glob('../../joint_fishfinder_data/brasil_data_2015/*/*.WAV')
+    task_list = ['python test_best_window.py ' + e + ' brasil_2015' for e in files]
+    task_list = sorted(task_list)
+    np.savetxt('parallel_test_best_window_brasil_2015.txt', task_list, fmt="%s")  # Works fine so far...
