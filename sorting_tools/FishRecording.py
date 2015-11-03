@@ -123,7 +123,7 @@ class FishRecording:
         """ This function detects the best window of the file to be analyzed. The core mechanism is in the
         best_window_algorithm function. For plot debug, call this function in "main" with argument plot_debug=True
 
-        :param win_size: float. size of the best window
+        :param win_size: float. size of the best window in seconds
         :param plot_debug: boolean. use True to plot filter parameters (and thresholds) for detecting best window
         :param ax: axes of the debugging plots.
         :return: two floats. The first float marks the start of the best window and the second the defined window-size.
@@ -176,21 +176,21 @@ class FishRecording:
         self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate/2.))
         return bwin, win_size
 
-    def best_window_algorithm(self, peak_no, mean_amplitudes, cov_coeffs, pks_th=0.15, ampls_percentile_th=85.,
-                              cov_percentile_th=15., plot_debug=False, axs=None):
+    def best_window_algorithm(self, peak_no, mean_amplitudes, cvs, pks_th=0.15, ampls_percentile_th=85.,
+                              cvs_percentile_th=15., plot_debug=False, axs=None):
 
         """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
         different amount of peaks compared to the stats.mode peak number of all windows. Secondly, it filters out
-        windows that have a higher covariance coefficients than a certain percentile of the distribution of cov-coeffs.
+        windows that have a higher coefficient of variation than a certain percentile of the distribution of cvs.
         From those windows that get through both filters, the one with the highest peak-to-trough-amplitude
         (that is not clipped!) is chosen as the best window. We assume clipping as amplitudes above 85% percentile of
-        the distribution of peak to peak amplitude.
+        the distribution of peak to trough amplitude.
 
-        :param cov_percentile_th: threshold of how much amplitude-variance (covariance coefficient) of the signal
+        :param cvs_percentile_th: threshold of how much amplitude-variance (covariance coefficient) of the signal
         is allowed. Default is 10%.
         :param peak_no: array with number of peaks
         :param mean_amplitudes: array with mean peak-to-trough-amplitudes
-        :param cov_coeffs: array with covariance coefficients
+        :param cvs: array with covariance coefficients
         :param pks_th: threshold for number-of-peaks-filter
         :param ampls_percentile_th: choose a percentile threshold to avoid clipping. Default is 85
         :param plot_debug: boolean for showing plot-debugging.
@@ -205,9 +205,9 @@ class FishRecording:
         valid_pks = lower * upper
 
         # Second filter: Low variance in the amplitude
-        cov_coeffs[np.isnan(cov_coeffs)] = np.median(cov_coeffs)  # Set a huge number where NaN to avoid NaN!!
-        cov_th = np.percentile(cov_coeffs, cov_percentile_th)
-        valid_cv = cov_coeffs < cov_th
+        cvs[np.isnan(cvs)] = np.median(cvs)  # Set a huge number where NaN to avoid NaN!!
+        cov_th = np.percentile(cvs, cvs_percentile_th)
+        valid_cv = cvs < cov_th
 
         # Third filter: From the remaining windows, choose the one with the highest p2t_amplitude that's not clipped.
 
@@ -217,14 +217,14 @@ class FishRecording:
         ampls_th = np.percentile(ampl_means, ampls_percentile_th)
         valid_ampls = ampl_means <= ampls_th
 
-        valid_windows = valid_pks * valid_cv * valid_pks
+        valid_windows = valid_pks * valid_cv * valid_ampls
 
         # If there is no best window, run the algorithm again with more flexible threshodlds.
         if not True in valid_windows:
             print('\nNo best window found. Rerunning best_window_algorithm with more flexible arguments.\n')
-            return self.best_window_algorithm(peak_no, mean_amplitudes, cov_coeffs,
+            return self.best_window_algorithm(peak_no, mean_amplitudes, cvs,
                                               ampls_percentile_th=ampls_percentile_th-5.,
-                                              cov_percentile_th=cov_percentile_th+5., plot_debug=plot_debug)
+                                              cvs_percentile_th=cvs_percentile_th+5., plot_debug=plot_debug)
             # This return is a Recursion! Need to return the value in the embeded function, otherwise the root_function
             # will not return anything!
 

@@ -1380,7 +1380,7 @@ class FishTracker:
 
     def exclude_short_files(self, data, index):
 
-        if len(data[:index])/self.rate <= 10:
+        if len(data[:index])/self.rate <= 10.:
             good_file = False
         else:
             good_file = True
@@ -1432,7 +1432,7 @@ def main():
         import audioread
     except ImportError:
         print 'python module "audioread" is not installed.'
-        quit()
+        exit(2)
 
     with audioread.audio_open(filepath) as af:
         tracen = af.channels
@@ -1467,7 +1467,7 @@ def main():
         t_trace, track_ampl, sampl_rate = load_trace(mod_file)
 
         Fish = FishRecording(mod_file)
-        # bwin, win_width = Fish.detect_best_window()
+        bwin, win_width = Fish.detect_best_window()
         os.remove(mod_file)
 
         fish_type = Fish.type_detector()

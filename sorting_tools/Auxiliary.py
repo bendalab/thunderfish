@@ -139,8 +139,10 @@ def butter_lowpass_filter(data, highcut, fs, order=5):
     return y
 
 def load_trace(modfile, analysis_length=30):
-    """ Loads modified .wav and returns a two dimensional np array with the Time trace and corresponding Amplitude.
-    In order to accelerate the code, the default analysis-length are the first 30 seconds of the sound file.
+    """ Loads modified .wav file from avconv with the library wave. This function returns an array with the time trace,
+    an array with the amplitude values with the same length as the time-trace-array and finally it returns the sample-
+    rate as a float. In order to accelerate the code, the default analysis-length are
+    the first 30 seconds of the sound file.
     """
     recording = wave.open(modfile)
     sample_rate = recording.getframerate()
