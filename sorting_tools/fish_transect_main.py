@@ -3,6 +3,7 @@ __author__ = 'raab'
 import sys
 import os
 import glob
+import numpy as np
 from IPython import embed
 
 def main():
@@ -15,9 +16,13 @@ def main():
     txt_file =glob.glob('files.txt')
     f = open('%s' %txt_file[0], 'r')
 
+    # temporary file untill we got a file with pulse fundamentals
+    if not os.path.exists('fish_pulse.npy'):
+        np.save('fish_pulse.npy', np.array([]))
+
     # for loop with doing till_juan_fishfinder.py with each file
     for file in f:
-        os.system('python till_juan_fishfinder2.py %s%s' %(filepath, file))
+        os.system('python till_juan_fishfinder2.2.py %s%s' %(filepath, file))
     os.remove('files.txt')
 
     # create_plots.py
