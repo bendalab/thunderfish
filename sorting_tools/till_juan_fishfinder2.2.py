@@ -1178,45 +1178,6 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
         np.save(file3, all_trace_proportions)
     return psd_type
 
-def bw_psd_and_eod_plot(power, freqs, bwin, win_width, rate, data, psd_type, fish_type, fishlist):
-    '''
-    create figures showing the best window, its PSD and the the EOD of the fish
-    '''
-
-    fig, ax = plt.subplots()
-    plt.axis([0, 3000, -110, -30])
-    ax.plot(freqs, 10.0 * np.log10(power))
-    plt.xlabel('frequency in Hz')
-    plt.ylabel('db SPL')
-    plt.title('PSD of best window')
-    plt.show()
-
-    fig, ax = plt.subplots()
-    ax.plot(np.arange(len(data[(bwin * rate):(bwin * rate + win_width * rate)])) * 1.0 / rate + bwin
-            , data[(bwin*rate):(bwin * rate + win_width * rate)])
-    plt.xlabel('time [s]')
-    plt.ylabel('amplitude [a.u.]')
-    plt.title('best window soundtrace')
-    plt.show()
-
-    if psd_type is 'wave' or fish_type is 'wave':
-        fig, ax = plt.subplots()
-        ax.plot(np.arange(len(data[(bwin * rate):(bwin * rate + round(rate * 1.0 / max([fishlist[i][0][0] for i in np.arange(len(fishlist))]) *4 ))])) * 1.0 / rate + bwin,
-                data[(bwin * rate):(bwin * rate + round(rate * 1.0 / max([fishlist[i][0][0] for i in np.arange(len(fishlist))]) *4))])
-        plt.xlabel('time [s]')
-        plt.ylabel('amplitude [a.u.]')
-        plt.title('EOD')
-        plt.show()
-
-    elif psd_type is 'pulse' or fish_type is 'pulse':
-        fig, ax = plt.subplots()
-        ax.plot(np.arange(len(data[(bwin*rate):(bwin * rate + win_width * rate * 1.0/256)])) * 1.0 / rate + bwin,
-                data[(bwin * rate):(bwin * rate + win_width * rate * 1.0/256)])
-        plt.xlabel('time [s]')
-        plt.ylabel('amplitude [a.u.]')
-        plt.title('EOD')
-        plt.show()
-
 
 class FishTracker:
     def __init__(self, samplingrate):
@@ -1264,15 +1225,14 @@ class FishTracker:
 
         self.datasize = len(data) / self.rate
 
-        # running Power spectrum in windows of 8 seconds (tw) in for best window
-
+        # running Power spectrum in best window (8s)
         fishlists_dif_fresolution = []  # gets fishlists from 3 different psd(powerspectrum)
         for i in np.arange(len(all_nfft)):
             power, freqs = ml.psd(data[(bwin*self.rate):(bwin * 1.0 * self.rate + win_width * 1.0 * self.rate)], NFFT=all_nfft[i], noverlap=all_nfft[i] / 2, Fs=self.rate,
                                   detrend=ml.detrend_mean)
             if i == 0:
-                power_1 = power
-                freqs_1 = freqs
+                power_fres1 = power
+                freqs_fres1 = freqs
 
             fishlist, _, mains, allpeaks, peaks, lowth, highth, center = harmonic_groups(freqs, power, cfg)
 
@@ -1285,28 +1245,22 @@ class FishTracker:
 
         fishlist = filter_fishes(fishlists_dif_fresolution)
 
-        psd_type = wave_or_pulse_psd(power_1, freqs_1, data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate)], self.rate, self.fresolution)
+        psd_type = wave_or_pulse_psd(power_fres1, freqs_fres1, data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate)], self.rate, self.fresolution)
 
-        bw_psd_and_eod_plot(power_1, freqs_1, bwin, win_width, self.rate, data, psd_type, fish_type, fishlist)
-
-        wave_ls = []
-
-        for fish in np.arange(len(fishlist)):
-            wave_ls.append(fishlist[fish][0][0])
+        wave_ls = [fishlist[fish][0][0] for fish in np.arange(len(fishlist))]
 
         cfg['lowThreshold'][0] = lowth
         cfg['highThreshold'][0] = highth
 
         temp_dict = {bwin: wave_ls}
-        print ''
-        print 'best window is between:', bwin, bwin + win_width, 'seconds.'
-        print ''
+
         self.fish_freqs_dict.update(temp_dict)
 
         # Pulsefish processing
         if psd_type is 'pulse' and fish_type is 'pulse':
             print 'HERE WE HAVE TO BUILD IN THE PULSEFISH ANALYSIS'
         # embed()
+        return power_fres1, freqs_fres1, psd_type, fish_type, fishlist
 
     def sort_my_wavefish(self):
         """
@@ -1406,6 +1360,61 @@ class FishTracker:
             good_file = True
         return good_file
 
+    def bw_psd_and_eod_plot(self, power, freqs, bwin, win_width, data, psd_type, fish_type, fishlist):
+        '''
+        create figures showing the best window, its PSD and the the EOD of the fish
+        '''
+        # PSD of the best window up to 3kHz
+        fig, ax = plt.subplots()
+        plt.axis([0, 3000, -110, -10])
+        ax.plot(freqs, 10.0 * np.log10(power))
+
+        color = ['red', 'blue', 'green', 'cornflowerblue']
+        for color_no, fish in enumerate(np.arange(len(fishlist))):
+            for harmonic in np.arange(len(fishlist[fish])):
+                if harmonic == 0:
+                    ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no], label=('%.2f Hz' %fishlist[fish][0][0]))
+                else:
+                    ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no])
+        ax.tick_params(axis='both', which='major', labelsize=12)
+        plt.legend(loc='best', fontsize=14)
+        plt.xlabel('frequency in Hz', fontsize=14)
+        plt.ylabel('db SPL', fontsize=14)
+        plt.title('PSD of best window', fontsize=16)
+        plt.show()
+
+        # Soundtrace of the best window
+        fig, ax = plt.subplots()
+        ax.plot(np.arange(len(data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)])) * 1.0 / self.rate + bwin
+                , data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate)])
+        ax.tick_params(axis='both', which='major', labelsize=12)
+        plt.xlabel('time [s]', fontsize=14)
+        plt.ylabel('amplitude [a.u.]', fontsize=14)
+        plt.title('best window soundtrace', fontsize=16)
+        plt.show()
+
+        # Soundtrace of 4 wavefish-EODs
+        if psd_type is 'wave' or fish_type is 'wave':
+            fig, ax = plt.subplots()
+            ax.plot(np.arange(len(data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / max([fishlist[i][0][0] for i in np.arange(len(fishlist))]) *4 ))])) * 1.0 / self.rate + bwin,
+                    data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / max([fishlist[i][0][0] for i in np.arange(len(fishlist))]) *4))])
+            ax.tick_params(axis='both', which='major', labelsize=12)
+            plt.xlabel('time [s]', fontsize=14)
+            plt.ylabel('amplitude [a.u.]', fontsize=14)
+            plt.title('EOD', fontsize=14)
+            plt.show()
+
+        # soundtrace for a pulsefish-EOD
+        elif psd_type is 'pulse' or fish_type is 'pulse':
+            fig, ax = plt.subplots()
+            ax.plot(np.arange(len(data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])) * 1.0 / self.rate + bwin,
+                    data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])
+            ax.tick_params(axis='both', which='major', labelsize=12)
+            plt.xlabel('time [s]', fontsize=14)
+            plt.ylabel('amplitude [a.u.]', fontsize=14)
+            plt.title('EOD', fontsize=16)
+            plt.show()
+
 def main():
     # config file name:
     progs = sys.argv[0].split('/')
@@ -1477,31 +1486,53 @@ def main():
                 index += n
             else:
                 break
-        ### ANALYSE FOR LEN OF DATA ###
+
+        # long file analysis
         good_file = ft.exclude_short_files(data, index)
         if good_file == False:
             print "file too short !!!"
             exit()
 
-        #### HERE BEST WINDOW ###
+        # best window algorithm
         mod_file = conv_to_single_ch_audio(filepath)
         t_trace, track_ampl, sampl_rate = load_trace(mod_file)
 
         Fish = FishRecording(mod_file)
         bwin, win_width = Fish.detect_best_window()
-        # embed()
+
+        print ''
+        print 'best window is between: %.2f' %bwin, '& %.2f' %(bwin + win_width), 'seconds.'
+        print ''
+
         os.remove(mod_file)
 
+        # fish_type algorithm
         fish_type = Fish.type_detector()
         print('current fish is a ' + fish_type + '-fish')
 
+        # process of data: creation of fishlists containing frequencies and power of fundamentals and harmonics of all fish
         if index > 0:
-            ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width)
-        # embed()
+            power_fres1, freqs_fres1, psd_type, fish_type, fishlist = ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width)
+
+        # create EOD plots
+
+        # highlight stongest frequency ?!
+
+        ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type, fishlist)
+
+        ##############################################################
+        # CREAT ONE BIG LIST AND UPDATES IT WITH EVERY FILE IN FOLDER
+        # contains the fundamentals of each fish
+        # unnecessary because of missing time dimension (best window --> one PSD per file)
+        #
+        # save as np.array from here on !!!
+
+
         # alter code der ueber zeit die fische sortiert
         ft.sort_my_wavefish()
+
         # s.o.
         ft.mean_multi_wavefish()
-
+        ##############################################################
 if __name__ == '__main__':
     main()
