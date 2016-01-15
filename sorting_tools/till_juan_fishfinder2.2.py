@@ -1374,9 +1374,19 @@ class FishTracker:
             ind = np.argsort([fishlist[fish][0][1] for fish in np.arange(len(fishlist))])
             print ind
 
-        fig, ax = plt.subplots()
-        plt.axis([0, 3000, -110, -10])
-        ax.plot(freqs, 10.0 * np.log10(power))
+        # start plot cosmetic with seaborn
+        sns.set_context("poster")
+        sns.axes_style('white')
+        sns.set_style("ticks")
+
+        plot_w = 26.
+        plot_h = 18.
+        fs = 16  # fontsize of the axis labels
+        inch_factor = 2.54
+
+        fig, ax = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
+        ax.axis([0, 3000, -110, -10])
+        ax.plot(freqs, 10.0 * np.log10(power), lw=2, color='dodgerblue', alpha=0.7)
 
         color = ['red', 'blue', 'green', 'cornflowerblue']
         for color_no, fish in enumerate(ind):
@@ -1385,44 +1395,56 @@ class FishTracker:
                     ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no], label=('%.2f Hz' %fishlist[fish][0][0]))
                 else:
                     ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no])
-        ax.tick_params(axis='both', which='major', labelsize=12)
-        plt.legend(loc='best', fontsize=14)
-        plt.xlabel('frequency in Hz', fontsize=14)
-        plt.ylabel('db SPL', fontsize=14)
-        plt.title('PSD of best window', fontsize=16)
-        plt.show()
+        ax.tick_params(axis='both', which='major', labelsize=fs-2)
+
+        ax.set_xlabel('Frequency [Hz]', fontsize=fs)
+        ax.set_ylabel('Power [dB SPL]', fontsize=fs)
+        ax.set_title('PSD of best window', fontsize=fs+2)
+        sns.despine(fig=fig, ax=ax, offset=10)
+        fig.tight_layout()
 
         # Soundtrace of the best window
-        fig, ax = plt.subplots()
-        ax.plot(np.arange(len(data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)])) * 1.0 / self.rate + bwin
-                , data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate)])
-        ax.tick_params(axis='both', which='major', labelsize=12)
-        plt.xlabel('time [s]', fontsize=14)
-        plt.ylabel('amplitude [a.u.]', fontsize=14)
-        plt.title('best window soundtrace', fontsize=16)
-        plt.show()
+        fig2, ax2 = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
+        time_bw = np.arange(len(data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)])
+                            ) * 1.0 / self.rate + bwin
+        ampl_bw = data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate)]
+        ax2.plot(time_bw, ampl_bw, lw=2, color='dodgerblue', alpha=0.7)
+        ax2.tick_params(axis='both', which='major', labelsize=fs-2)
+        ax2.set_xlabel('Time [sec]', fontsize=fs)
+        ax2.set_ylabel('Amplitude [a.u.]', fontsize=fs)
+        ax2.set_title('Best Window Soundtrace', fontsize=fs+2)
+        sns.despine(fig=fig2, ax=ax2, offset=10)
+        fig2.tight_layout()
 
         # Soundtrace of 4 wavefish-EODs
+        fig3, ax3 = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
         if psd_type is 'wave' or fish_type is 'wave':
-            fig, ax = plt.subplots()
-            ax.plot(np.arange(len(data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4 ))])) * 1.0 / self.rate + bwin,
-                    data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4))])
-            ax.tick_params(axis='both', which='major', labelsize=12)
-            plt.xlabel('time [s]', fontsize=14)
-            plt.ylabel('amplitude [a.u.]', fontsize=14)
-            plt.title('EOD', fontsize=14)
-            plt.show()
+            eod_wtimes = np.arange(len(data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4 ))])
+                                   ) * 1.0 / self.rate + bwin
+            eod_wampls = data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4))]
+            ax3.plot(eod_wtimes, eod_wampls, lw=2, color='dodgerblue', alpha=0.7)
+            ax3.tick_params(axis='both', which='major', labelsize=fs-2)
+            plt.xlabel('Time [sec]', fontsize=fs)
+            plt.ylabel('Amplitude [a.u.]', fontsize=fs)
+            plt.title('EOD-Waveform', fontsize=fs+2)
+            sns.despine(fig=fig3, ax=ax3, offset=10)
+            fig3.tight_layout()
 
         # soundtrace for a pulsefish-EOD
-        if psd_type is 'pulse' and fish_type is 'pulse':
-            fig, ax = plt.subplots()
-            ax.plot(np.arange(len(data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])) * 1.0 / self.rate + bwin,
-                    data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])
-            ax.tick_params(axis='both', which='major', labelsize=12)
-            plt.xlabel('time [s]', fontsize=14)
-            plt.ylabel('amplitude [a.u.]', fontsize=14)
-            plt.title('EOD', fontsize=16)
-            plt.show()
+        # ToDo: Fix numbers like 256 need to be explained (maybe with comments)
+        elif psd_type is 'pulse' and fish_type is 'pulse':
+            eod_wtimes = np.arange(len(data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])
+                                   ) * 1.0 / self.rate + bwin
+            eod_wampls = data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)]
+            ax3.plot(eod_wtimes, eod_wampls, lw=2, color='dodgerblue', alpha=0.7)
+            ax3.tick_params(axis='both', which='major', labelsize=fs-2)
+            plt.xlabel('Time [sec]', fontsize=fs)
+            plt.ylabel('Amplitude [a.u.]', fontsize=fs)
+            plt.title('EOD-Waveform', fontsize=fs+2)
+            sns.despine(fig=fig3, ax=ax3, offset=10)
+            fig3.tight_layout()
+
+        plt.show()
 
 def main():
     # config file name:
