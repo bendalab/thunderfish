@@ -1405,8 +1405,8 @@ class FishTracker:
         # Soundtrace of 4 wavefish-EODs
         if psd_type is 'wave' or fish_type is 'wave':
             fig, ax = plt.subplots()
-            ax.plot(np.arange(len(data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / max([fishlist[i][0][0] for i in np.arange(len(fishlist))]) *4 ))])) * 1.0 / self.rate + bwin,
-                    data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / max([fishlist[i][0][0] for i in np.arange(len(fishlist))]) *4))])
+            ax.plot(np.arange(len(data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4 ))])) * 1.0 / self.rate + bwin,
+                    data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4))])
             ax.tick_params(axis='both', which='major', labelsize=12)
             plt.xlabel('time [s]', fontsize=14)
             plt.ylabel('amplitude [a.u.]', fontsize=14)
