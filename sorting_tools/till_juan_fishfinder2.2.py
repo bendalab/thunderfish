@@ -1244,6 +1244,8 @@ class FishTracker:
             fishlists_dif_fresolution.append(fishlist)
 
         fishlist = filter_fishes(fishlists_dif_fresolution)
+        # embed()
+        # filter fishlist so only 3 fishes with max strength are involved
 
         psd_type = wave_or_pulse_psd(power_fres1, freqs_fres1, data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate)], self.rate, self.fresolution)
 
@@ -1365,12 +1367,19 @@ class FishTracker:
         create figures showing the best window, its PSD and the the EOD of the fish
         '''
         # PSD of the best window up to 3kHz
+        if len(fishlist) > 4:
+            ind = np.argsort([fishlist[fish][0][1] for fish in np.arange(len(fishlist))])[-4:]
+            print ind
+        else:
+            ind = np.argsort([fishlist[fish][0][1] for fish in np.arange(len(fishlist))])
+            print ind
+
         fig, ax = plt.subplots()
         plt.axis([0, 3000, -110, -10])
         ax.plot(freqs, 10.0 * np.log10(power))
 
         color = ['red', 'blue', 'green', 'cornflowerblue']
-        for color_no, fish in enumerate(np.arange(len(fishlist))):
+        for color_no, fish in enumerate(ind):
             for harmonic in np.arange(len(fishlist[fish])):
                 if harmonic == 0:
                     ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no], label=('%.2f Hz' %fishlist[fish][0][0]))
@@ -1405,7 +1414,7 @@ class FishTracker:
             plt.show()
 
         # soundtrace for a pulsefish-EOD
-        elif psd_type is 'pulse' or fish_type is 'pulse':
+        if psd_type is 'pulse' and fish_type is 'pulse':
             fig, ax = plt.subplots()
             ax.plot(np.arange(len(data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])) * 1.0 / self.rate + bwin,
                     data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])
@@ -1515,8 +1524,7 @@ def main():
             power_fres1, freqs_fres1, psd_type, fish_type, fishlist = ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width)
 
         # create EOD plots
-
-        # highlight stongest frequency ?!
+        # highlight stongest frequency ?! and savefiles --> add to .pdf
 
         ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type, fishlist)
 
