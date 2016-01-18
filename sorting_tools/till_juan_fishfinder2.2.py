@@ -1178,6 +1178,21 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
         np.save(file3, all_trace_proportions)
     return psd_type
 
+def save_fundamentals(fishlist):
+    mean_path = 'fish_wave.npy'
+    if not os.path.exists(mean_path):
+        np.save(mean_path, np.array([]))
+    fundamentals = np.load(mean_path)
+    fundamentals = fundamentals.tolist()
+
+    for fish in np.arange(len(fishlist)):
+        fundamentals.append(fishlist[fish][0][0])
+
+    fundamentals = np.asarray(fundamentals)
+    np.save(mean_path, fundamentals)
+
+    print 'current fundamental frequencies are: ', fundamentals
+
 
 class FishTracker:
     def __init__(self, samplingrate):
@@ -1396,12 +1411,15 @@ class FishTracker:
                 else:
                     ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no])
         ax.tick_params(axis='both', which='major', labelsize=fs-2)
+        plt.legend(loc= 'best')
 
         ax.set_xlabel('Frequency [Hz]', fontsize=fs)
         ax.set_ylabel('Power [dB SPL]', fontsize=fs)
         ax.set_title('PSD of best window', fontsize=fs+2)
         sns.despine(fig=fig, ax=ax, offset=10)
         fig.tight_layout()
+        fig.savefig('figures/PSD_best_window%.0f.pdf' %(len(glob.glob('figures/PSD_best_window*.pdf'))+1))     # variable name for "looping with several sound datas"-case
+        plt.close()
 
         # Soundtrace of the best window
         fig2, ax2 = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
@@ -1415,6 +1433,8 @@ class FishTracker:
         ax2.set_title('Best Window Soundtrace', fontsize=fs+2)
         sns.despine(fig=fig2, ax=ax2, offset=10)
         fig2.tight_layout()
+        fig2.savefig('figures/soundtrace_bw%.0f.pdf' %(len(glob.glob('figures/soundtrace_bw*.pdf'))+1))
+        plt.close()
 
         # Soundtrace of 4 wavefish-EODs
         fig3, ax3 = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
@@ -1422,16 +1442,21 @@ class FishTracker:
             eod_wtimes = np.arange(len(data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4 ))])
                                    ) * 1.0 / self.rate + bwin
             eod_wampls = data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4))]
-            ax3.plot(eod_wtimes, eod_wampls, lw=2, color='dodgerblue', alpha=0.7)
+            ax3.plot(eod_wtimes, eod_wampls, lw=2, color='dodgerblue', alpha=0.7, label= 'Dominant frequency: %.2f Hz' %fishlist[ind[-1]][0][0])
             ax3.tick_params(axis='both', which='major', labelsize=fs-2)
+            plt.legend(loc= 'best')
             plt.xlabel('Time [sec]', fontsize=fs)
             plt.ylabel('Amplitude [a.u.]', fontsize=fs)
             plt.title('EOD-Waveform', fontsize=fs+2)
             sns.despine(fig=fig3, ax=ax3, offset=10)
             fig3.tight_layout()
+            fig3.savefig('figures/EOD%.0f.pdf' %(len(glob.glob('figures/EOD*.pdf'))+1))
+            plt.close()
 
+            # embed()
         # soundtrace for a pulsefish-EOD
         # ToDo: Fix numbers like 256 need to be explained (maybe with comments)
+        # ToDo: We have to find a proper way to find a replacement for 256 !!!
         elif psd_type is 'pulse' and fish_type is 'pulse':
             eod_wtimes = np.arange(len(data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])
                                    ) * 1.0 / self.rate + bwin
@@ -1546,23 +1571,16 @@ def main():
             power_fres1, freqs_fres1, psd_type, fish_type, fishlist = ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width)
 
         # create EOD plots
-        # highlight stongest frequency ?! and savefiles --> add to .pdf
-
         ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type, fishlist)
 
+        # saves fundamentals of all fish !!!
+        save_fundamentals(fishlist)
+
         ##############################################################
-        # CREAT ONE BIG LIST AND UPDATES IT WITH EVERY FILE IN FOLDER
-        # contains the fundamentals of each fish
-        # unnecessary because of missing time dimension (best window --> one PSD per file)
-        #
-        # save as np.array from here on !!!
+        # old functions; replaced by save_fundamentals()
 
-
-        # alter code der ueber zeit die fische sortiert
-        ft.sort_my_wavefish()
-
-        # s.o.
-        ft.mean_multi_wavefish()
+        # ft.sort_my_wavefish()
+        # ft.mean_multi_wavefish()
         ##############################################################
 if __name__ == '__main__':
     main()
