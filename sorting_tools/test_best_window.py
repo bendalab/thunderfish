@@ -2,12 +2,13 @@ __author__ = 'juan'
 
 # imports
 
+import sys
+import os
+
+import matplotlib.pyplot as plt
+
 from FishRecording import *
 from Auxiliary import *
-import sys, os
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 if __name__ == '__main__':
 
