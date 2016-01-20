@@ -1178,6 +1178,7 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
         np.save(file3, all_trace_proportions)
     return psd_type
 
+
 def save_fundamentals(fishlist):
     mean_path = 'fish_wave.npy'
     if not os.path.exists(mean_path):
@@ -1192,6 +1193,17 @@ def save_fundamentals(fishlist):
     np.save(mean_path, fundamentals)
 
     print 'current fundamental frequencies are: ', fundamentals
+
+
+def threshold_exceed_detection(bw_data, time):
+    threshold = max(bw_data) - ((max(bw_data) - np.mean(bw_data)) / 2)
+    th_time = []
+
+    for i in np.arange(len(bw_data)-1):
+        if bw_data[i+1] > threshold and bw_data[i] <= threshold:
+            th_time.append(time[i+1])
+
+    return th_time
 
 
 class FishTracker:
@@ -1274,9 +1286,9 @@ class FishTracker:
         self.fish_freqs_dict.update(temp_dict)
 
         # Pulsefish processing
-        if psd_type is 'pulse' and fish_type is 'pulse':
-            print 'HERE WE HAVE TO BUILD IN THE PULSEFISH ANALYSIS'
-        # embed()
+        # if psd_type is 'pulse' and fish_type is 'pulse':
+        #     print 'HERE WE HAVE TO BUILD IN THE PULSEFISH ANALYSIS'
+        # # embed()
         return power_fres1, freqs_fres1, psd_type, fish_type, fishlist
 
     def sort_my_wavefish(self):
@@ -1384,10 +1396,10 @@ class FishTracker:
         # PSD of the best window up to 3kHz
         if len(fishlist) > 4:
             ind = np.argsort([fishlist[fish][0][1] for fish in np.arange(len(fishlist))])[-4:]
-            print ind
+            # print ind
         else:
             ind = np.argsort([fishlist[fish][0][1] for fish in np.arange(len(fishlist))])
-            print ind
+            # print ind
 
         # start plot cosmetic with seaborn
         sns.set_context("poster")
@@ -1468,8 +1480,69 @@ class FishTracker:
             plt.title('EOD-Waveform', fontsize=fs+2)
             sns.despine(fig=fig3, ax=ax3, offset=10)
             fig3.tight_layout()
+            plt.close()
+
+        # plt.show()
+
+    def pulse_sorting(self, bwin, win_width, data):
+        # load data and time (0-8s) of bestwindow
+        bw_data = data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate)]
+        time = np.arange(len(bw_data)) * 1.0 / self.rate
+
+        # get time of data exceeding the threshold
+        th_time = threshold_exceed_detection(bw_data, time)
+
+        # for each detected exceeding time (count in pulse_data.keys()) save a window of the data arround this time
+        pulse_data = {}
+        eod_plot_tw = 0.006 # seconds shown in plot
+        for i in np.arange(len(th_time)):
+            plot_data = bw_data[(th_time[i]-eod_plot_tw/2) * self.rate: (th_time[i]-eod_plot_tw/2) * self.rate + eod_plot_tw * self.rate]
+            temp_dict = {len(pulse_data)+1: plot_data}
+            pulse_data.update(temp_dict)
+
+        # build mean and std over this data !
+        mean_pulse_data = []
+        max_pulse_data = []
+        min_pulse_data = []
+        std_pulse_data = []
+
+        for k in np.arange(len(plot_data)):
+            mean_pulse_data.append(np.mean([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())]))
+            max_pulse_data.append(max([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())]))
+            min_pulse_data.append(min([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())]))
+            std_pulse_data.append(np.std([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())] , ddof=1))
+
+        up_std = [mean_pulse_data[i] + std_pulse_data[i] for i in range(len(mean_pulse_data))]
+        bottom_std = [mean_pulse_data[i] - std_pulse_data[i] for i in range(len(mean_pulse_data))]
+
+        # get time for plot
+        plot_time = ( np.arange(len(mean_pulse_data)) * 1.0 / self.rate ) - eod_plot_tw/2
+
+        # start plot cosmetic with seaborn
+        sns.set_context("poster")
+        sns.axes_style('white')
+        sns.set_style("ticks")
+
+        plot_w = 26.
+        plot_h = 18.
+        fs = 16  # fontsize of the axis labels
+        inch_factor = 2.54
+
+        fig, ax = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
+        ax.plot(plot_time, mean_pulse_data, lw=2, color='dodgerblue', alpha=0.7, label='mean Pulse-EOD')
+        ax.plot(plot_time, up_std, lw=1, color='red', alpha=0.7, label= 'std')
+        ax.plot(plot_time, bottom_std, lw=1, color='red', alpha=0.7)
+
+        ax.tick_params(axis='both', which='major', labelsize=fs-2)
+        plt.xlabel('Time [sec]', fontsize=fs)
+        plt.ylabel('Amplitude [a.u.]', fontsize=fs)
+        plt.title('Mean pulse-EOD', fontsize=fs+2)
+        plt.legend(loc='best')
+        sns.despine(fig=fig, ax=ax, offset=10)
+        fig.tight_layout()
 
         plt.show()
+
 
 def main():
     # config file name:
@@ -1575,6 +1648,13 @@ def main():
 
         # saves fundamentals of all fish !!!
         save_fundamentals(fishlist)
+
+        if psd_type == 'pulse' or fish_type == 'pulse':
+            print ''
+            print 'try to create MEAN PULSE-EOD'
+            print ''
+            if len(fishlist) <= 3:
+                ft.pulse_sorting(bwin, win_width, data[:index] / 2.0 ** 15)
 
         ##############################################################
         # old functions; replaced by save_fundamentals()
