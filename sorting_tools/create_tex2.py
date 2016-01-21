@@ -15,6 +15,7 @@ def description_of_code():
 import numpy as np
 import sys
 import os
+import glob
 from IPython import embed
 
 def build_tex_pdf(wavefish, pulsefish):
@@ -72,17 +73,33 @@ def build_tex_pdf(wavefish, pulsefish):
     tf.write( '\n' )
     tf.write( '\n' )
     # tf.write( '\\includegraphics{%s}\n' %sys.argv[3])
-    tf.write( '\\includegraphics{figures/fishtype_barplot.pdf}\n' )
-    tf.write( '\n' )
-    tf.write( '\n' )
-    tf.write( '\n' )
-    tf.write( '\n' )
-    tf.write( '\\pagebreak\n' )
+    if len(wavefish) > 0 and len(pulsefish) > 0:
+
+        tf.write( '\\includegraphics{figures/fishtype_barplot.pdf}\n' )
+        tf.write( '\n' )
+        tf.write( '\\pagebreak\n' )
     # tf.write( '\\includegraphics{%s}\n' %sys.argv[4])
+
     tf.write( '\\includegraphics{figures/histo_of_eod_freqs.pdf}\n' )
     # tf.write( '\\includegraphics{%s}\n' %sys.argv[5])
-    tf.write( '\\includegraphics{figures/histo_of_dfs.pdf}\n' )
+    # tf.write( '\\includegraphics{figures/histo_of_dfs.pdf}\n' )                        ### verschieben
     tf.write( '\\pagebreak\n' )
+
+    # for loop looking throught figures/;  for every file add best window and EOD plot
+    for file in np.arange(len(glob.glob('figures/PSD_best_window*.pdf')))+1:
+        # best window
+        tf.write( '\\includegraphics{figures/PSD_best_window%.0f.pdf}\n' %file)
+        # tf.write( '\\pagebreak\n')
+
+        # eod
+        if os.path.exists('figures/EOD%.0f.pdf' %file):
+            tf.write( '\\includegraphics{figures/EOD%.0f.pdf}\n' %file)
+            tf.write( '\\pagebreak\n')
+        if os.path.exists('figures/pulse-EOD%.0f.pdf' %file):
+            tf.write( '\\includegraphics{figures/pulse-EOD%.0f.pdf}\n' %file)
+            tf.write( '\\pagebreak\n')
+        # tf.write( '\\pagebreak\n')
+
     tf.write( '\\section*{Wavefishes list}\n')
     tf.write( '\n' )
     tf.write( '\n' )
@@ -143,16 +160,23 @@ def build_tex_pdf(wavefish, pulsefish):
     os.remove( '%s.tex' %filename)
 
 def load_npy_convert_list():
-    wavefish = np.load('fish_wave.npy')
+    wave_frequencies = 'fish_wave.npy'
+    pulse_frequencies = 'fish_pulse.npy'
+
+    if not os.path.exists(wave_frequencies):
+        np.save(wave_frequencies, np.array([]))
+
+    wavefish = np.load(wave_frequencies)
     wavefish = wavefish.tolist()
     for i in np.arange(len(wavefish)):
         wavefish[i] = "%.2f" % wavefish[i]
 
-    pulsefish = np.load('fish_pulse.npy')
+    if not os.path.exists(pulse_frequencies):
+        np.save(pulse_frequencies, np.array([]))
+    pulsefish = np.load(pulse_frequencies)
     pulsefish = pulsefish.tolist()
     for j in np.arange(len(pulsefish)):
         pulsefish[j] = "%.2f" % pulsefish[j]
-    # embed()
 
     return wavefish, pulsefish
 

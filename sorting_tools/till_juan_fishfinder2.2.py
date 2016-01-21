@@ -1195,17 +1195,6 @@ def save_fundamentals(fishlist):
     print 'current fundamental frequencies are: ', fundamentals
 
 
-def threshold_exceed_detection(bw_data, time):
-    threshold = max(bw_data) - ((max(bw_data) - np.mean(bw_data)) / 2)
-    th_time = []
-
-    for i in np.arange(len(bw_data)-1):
-        if bw_data[i+1] > threshold and bw_data[i] <= threshold:
-            th_time.append(time[i+1])
-
-    return th_time
-
-
 class FishTracker:
     def __init__(self, samplingrate):
         self.rate = samplingrate
@@ -1407,7 +1396,7 @@ class FishTracker:
         sns.set_style("ticks")
 
         plot_w = 26.
-        plot_h = 18.
+        plot_h = 15.
         fs = 16  # fontsize of the axis labels
         inch_factor = 2.54
 
@@ -1423,7 +1412,7 @@ class FishTracker:
                 else:
                     ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no])
         ax.tick_params(axis='both', which='major', labelsize=fs-2)
-        plt.legend(loc= 'best')
+        plt.legend(loc= 'upper right')
 
         ax.set_xlabel('Frequency [Hz]', fontsize=fs)
         ax.set_ylabel('Power [dB SPL]', fontsize=fs)
@@ -1456,7 +1445,7 @@ class FishTracker:
             eod_wampls = data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4))]
             ax3.plot(eod_wtimes, eod_wampls, lw=2, color='dodgerblue', alpha=0.7, label= 'Dominant frequency: %.2f Hz' %fishlist[ind[-1]][0][0])
             ax3.tick_params(axis='both', which='major', labelsize=fs-2)
-            plt.legend(loc= 'best')
+            plt.legend(loc= 'upper right')
             plt.xlabel('Time [sec]', fontsize=fs)
             plt.ylabel('Amplitude [a.u.]', fontsize=fs)
             plt.title('EOD-Waveform', fontsize=fs+2)
@@ -1490,9 +1479,32 @@ class FishTracker:
         time = np.arange(len(bw_data)) * 1.0 / self.rate
 
         # get time of data exceeding the threshold
-        th_time = threshold_exceed_detection(bw_data, time)
+        threshold = max(bw_data) - ((max(bw_data) - np.mean(bw_data)) / 2)
 
-        # for each detected exceeding time (count in pulse_data.keys()) save a window of the data arround this time
+        th_time = []
+        for i in np.arange(len(bw_data)-1):
+            if bw_data[i+1] > threshold and bw_data[i] <= threshold:
+                th_time.append(time[i+1])
+
+        # pulse frequency   PROBLEMATISCH BEI MEHREREN PULSEFISHEN !!!
+        pulse_freq = len(th_time) / win_width
+        print ''
+        print 'Pulse-frequency:', pulse_freq
+        print ''
+
+        pulse_frequencies = 'fish_pulse.npy'
+        if not os.path.exists(pulse_frequencies):
+            np.save(pulse_frequencies, np.array([]))
+        pulse_ls = np.load(pulse_frequencies)
+        pulse_ls = pulse_ls.tolist()
+
+        pulse_ls.append(pulse_freq)
+
+        pulse_ls = np.asarray(pulse_ls)
+        np.save(pulse_frequencies, pulse_ls)
+
+
+        # for each detected pulse/exceeding-time (count in pulse_data.keys()) save a window of the data arround this time
         pulse_data = {}
         eod_plot_tw = 0.006 # seconds shown in plot
         for i in np.arange(len(th_time)):
@@ -1524,24 +1536,26 @@ class FishTracker:
         sns.set_style("ticks")
 
         plot_w = 26.
-        plot_h = 18.
+        plot_h = 15.
         fs = 16  # fontsize of the axis labels
         inch_factor = 2.54
 
         fig, ax = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
-        ax.plot(plot_time, mean_pulse_data, lw=2, color='dodgerblue', alpha=0.7, label='mean Pulse-EOD')
-        ax.plot(plot_time, up_std, lw=1, color='red', alpha=0.7, label= 'std')
+        ax.plot(plot_time, mean_pulse_data, lw=2, color='dodgerblue', alpha=0.7, label='mean EOD')
+        ax.plot(plot_time, up_std, lw=1, color='red', alpha=0.7, label= 'std EOD')
         ax.plot(plot_time, bottom_std, lw=1, color='red', alpha=0.7)
 
         ax.tick_params(axis='both', which='major', labelsize=fs-2)
         plt.xlabel('Time [sec]', fontsize=fs)
         plt.ylabel('Amplitude [a.u.]', fontsize=fs)
         plt.title('Mean pulse-EOD', fontsize=fs+2)
-        plt.legend(loc='best')
+        plt.legend(loc='upper right', fontsize=fs-4)
         sns.despine(fig=fig, ax=ax, offset=10)
         fig.tight_layout()
+        fig.savefig('figures/pulse-EOD%.0f.pdf' %(len(glob.glob('figures/EOD*.pdf'))+1))
+        plt.close()
 
-        plt.show()
+        # plt.show()
 
 
 def main():

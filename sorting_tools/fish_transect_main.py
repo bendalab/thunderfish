@@ -10,10 +10,6 @@ def main():
     input = sys.argv[1]
     file_type = input.split('/')[-1].split('.')[-1]
 
-    # temporary file untill we got a file with pulse fundamentals
-    if not os.path.exists('fish_pulse.npy'):
-        np.save('fish_pulse.npy', np.array([]))
-
     if file_type == '':
         print ''
         print 'Input is a directory !!!'
