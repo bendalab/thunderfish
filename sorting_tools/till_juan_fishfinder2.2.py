@@ -1382,7 +1382,7 @@ class FishTracker:
         '''
         create figures showing the best window, its PSD and the the EOD of the fish
         '''
-        # PSD of the best window up to 3kHz
+        ### PSD of the best window up to 3kHz
         if len(fishlist) > 4:
             ind = np.argsort([fishlist[fish][0][1] for fish in np.arange(len(fishlist))])[-4:]
             # print ind
@@ -1422,7 +1422,7 @@ class FishTracker:
         fig.savefig('figures/PSD_best_window%.0f.pdf' %(len(glob.glob('figures/PSD_best_window*.pdf'))+1))     # variable name for "looping with several sound datas"-case
         plt.close()
 
-        # Soundtrace of the best window
+        #### Soundtrace of the best window    can be removed ?!
         fig2, ax2 = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
         time_bw = np.arange(len(data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)])
                             ) * 1.0 / self.rate + bwin
@@ -1437,7 +1437,7 @@ class FishTracker:
         fig2.savefig('figures/soundtrace_bw%.0f.pdf' %(len(glob.glob('figures/soundtrace_bw*.pdf'))+1))
         plt.close()
 
-        # Soundtrace of 4 wavefish-EODs
+        ### Soundtrace of 4 wavefish-EODs
         fig3, ax3 = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
         if psd_type is 'wave' or fish_type is 'wave':
             eod_wtimes = np.arange(len(data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] *4 ))])
@@ -1458,18 +1458,18 @@ class FishTracker:
         # soundtrace for a pulsefish-EOD
         # ToDo: Fix numbers like 256 need to be explained (maybe with comments)
         # ToDo: We have to find a proper way to find a replacement for 256 !!!
-        elif psd_type is 'pulse' and fish_type is 'pulse':
-            eod_wtimes = np.arange(len(data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])
-                                   ) * 1.0 / self.rate + bwin
-            eod_wampls = data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)]
-            ax3.plot(eod_wtimes, eod_wampls, lw=2, color='dodgerblue', alpha=0.7)
-            ax3.tick_params(axis='both', which='major', labelsize=fs-2)
-            plt.xlabel('Time [sec]', fontsize=fs)
-            plt.ylabel('Amplitude [a.u.]', fontsize=fs)
-            plt.title('EOD-Waveform', fontsize=fs+2)
-            sns.despine(fig=fig3, ax=ax3, offset=10)
-            fig3.tight_layout()
-            plt.close()
+        # elif psd_type is 'pulse' and fish_type is 'pulse':
+        #     eod_wtimes = np.arange(len(data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)])
+        #                            ) * 1.0 / self.rate + bwin
+        #     eod_wampls = data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate * 1.0/256)]
+        #     ax3.plot(eod_wtimes, eod_wampls, lw=2, color='dodgerblue', alpha=0.7)
+        #     ax3.tick_params(axis='both', which='major', labelsize=fs-2)
+        #     plt.xlabel('Time [sec]', fontsize=fs)
+        #     plt.ylabel('Amplitude [a.u.]', fontsize=fs)
+        #     plt.title('EOD-Waveform', fontsize=fs+2)
+        #     sns.despine(fig=fig3, ax=ax3, offset=10)
+        #     fig3.tight_layout()
+        #     plt.close()
 
         # plt.show()
 
