@@ -37,7 +37,10 @@ def main():
     os.system('python create_plots2.py')
 
     # create_tex.py
-    os.system('python create_tex2.py')
+
+    # create script with allgemeininfos xD
+
+    # os.system('python create_tex2.py')
 
 if __name__ == '__main__':
     main()
