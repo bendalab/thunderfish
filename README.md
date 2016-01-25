@@ -1,2 +1,4 @@
 # thunderfish
-python scripts for analyzing recordings of efish electric fields.
+
+this project is meant to analyze transects, segregate fishes in wave or pulse type fishes
+and generate a Histogram of EOD-Frequencies.
