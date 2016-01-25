@@ -1442,26 +1442,6 @@ class FishTracker:
         fig.savefig('figures/PSD_best_window%.0f.pdf' %(len(glob.glob('figures/PSD_best_window*.pdf'))+1))     # variable name for "looping with several sound datas"-case
         plt.close(fig)
 
-        ###############################################################################################################
-        #### Soundtrace of the best window    can be removed ?!
-        # fig2, ax2 = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
-        #
-        # time_bw = np.arange(len(data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)])
-        #                     ) * 1.0 / self.rate + bwin
-        # ampl_bw = data[(bwin*self.rate):(bwin * self.rate + win_width * self.rate)]
-        #
-        # ax2.plot(time_bw, ampl_bw, lw=2, color='dodgerblue', alpha=0.7)
-        # ax2.tick_params(axis='both', which='major', labelsize=fs-2)
-        # ax2.set_xlabel('Time [sec]', fontsize=fs)
-        # ax2.set_ylabel('Amplitude [a.u.]', fontsize=fs)
-        # ax2.set_title('Best Window Soundtrace', fontsize=fs+2)
-        # sns.despine(fig=fig2, ax=ax2, offset=10)
-        # fig2.tight_layout()
-        # fig2.savefig('figures/soundtrace_bw%.0f.pdf' %(len(glob.glob('figures/soundtrace_bw*.pdf'))+1))
-        # plt.close(fig2)
-
-        ### Soundtrace of 4 wavefish-EODs #############################################################################
-        # fig3, ax3 = plt.subplots(figsize=(plot_w/inch_factor, plot_h/inch_factor))
         ax2_all = fig_all.add_subplot(2, 2, 2)
 
         if psd_type is 'wave' or fish_type is 'wave':
@@ -1479,7 +1459,6 @@ class FishTracker:
             sns.despine(fig=fig3, ax=ax3, offset=10)
             fig3.tight_layout()
             fig3.savefig('figures/wave-EOD%.0f.pdf' %(len(glob.glob('figures/wave-EOD*.pdf')) +1 ))
-            # fig3.savefig('figures/EOD%.0f.pdf' %(len(glob.glob('figures/EOD*.pdf')) + len(glob.glob('figures/pulse-EOD*.pdf))')) +1))
             plt.close(fig3)
 
             if fish_type is not 'pulse' or psd_type is not 'pulse':
