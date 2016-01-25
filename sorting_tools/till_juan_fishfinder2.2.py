@@ -1570,7 +1570,7 @@ class FishTracker:
         plt.axis('off')
 
         fig_all.tight_layout()
-        fig_all.savefig('figures/file%.0f.pdf' %(len(glob.glob('figures/file*.pdf'))+1))
+        fig_all.savefig('figures/file%02d.pdf' %(len(glob.glob('figures/file*.pdf'))+1))
         plt.close(fig_all)
 
     def pulse_sorting(self, bwin, win_width, data):
