@@ -1494,7 +1494,7 @@ class FishTracker:
             std_pulse = np.std(pulse_data, axis=0, ddof=1)
 
             # get time for plot
-            plot_time = ((np.arange(len(mu_pulse)) * 1.0 / self.rate) - eod_plot_tw / 2) * 1000  # s to ms
+            plot_time = ((np.arange(len(mu_pulse)) / self.rate) - eod_plot_tw / 2) * 1000  # s to ms
 
             ax4.plot(plot_time, mu_pulse, lw=3, color='dodgerblue', alpha=0.7, label='mean EOD')
             ax4.fill_between(plot_time, y1=mu_pulse+std_pulse, y2=mu_pulse-std_pulse, color='salmon', alpha=0.5,
@@ -1558,7 +1558,7 @@ class FishTracker:
     def pulse_sorting(self, bwin, win_width, data):
         # load data and time (0-8s) of bestwindow
         bw_data = data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)]
-        time = np.arange(len(bw_data)) * 1.0 / self.rate
+        time = np.arange(len(bw_data)) / self.rate
 
         # get time of data exceeding the threshold
         threshold = max(bw_data) - ((max(bw_data) - np.mean(bw_data)) / 2)
