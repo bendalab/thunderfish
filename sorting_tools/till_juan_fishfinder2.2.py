@@ -1446,6 +1446,10 @@ class FishTracker:
         sns.despine(fig=fig_all, ax=ax1_all, offset=10)
 
         fig.tight_layout()
+
+        if not os.path.exists('./figures'):
+            os.makedirs('./figures')
+
         fig.savefig('figures/PSD_best_window%.0f.pdf' % (len(glob.glob('figures/PSD_best_window*.pdf')) + 1))
         # variable name for "looping with several sound datas"-case
         plt.close(fig)
@@ -1492,8 +1496,17 @@ class FishTracker:
             std_pulse_data = []
 
             for k in np.arange(len(pulse_data[1])):
-                mean_pulse_data.append(np.mean([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())]))
-                std_pulse_data.append(np.std([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())], ddof=1))
+
+                try:
+                    tmp_mu = np.mean([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())])
+                    tmp_std = np.std([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())], ddof=1)
+                except IndexError:
+                    print('Warning! Something seems odd when calculating sound-trace average. '
+                          'Proceeding with fingers crossed...\n')
+                    continue
+
+                mean_pulse_data.append(tmp_mu)
+                std_pulse_data.append(tmp_std)
 
             up_std = [mean_pulse_data[i] + std_pulse_data[i] for i in range(len(mean_pulse_data))]
             bottom_std = [mean_pulse_data[i] - std_pulse_data[i] for i in range(len(mean_pulse_data))]
