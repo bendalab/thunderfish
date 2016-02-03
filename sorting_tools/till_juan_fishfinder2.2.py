@@ -35,7 +35,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
-from Auxiliary import *
+import Auxiliary as aux
 from FishRecording import *
 import matplotlib.colors as mc
 from collections import OrderedDict
@@ -1049,7 +1049,7 @@ def harmonic_groups(psd_freqs, psd, cfg):
 
 def filter_fishes(fishlists):
     ###################################################################
-    # extract fishes witch are consistent for different resolutions
+    # extract fishes which are consistent for different resolutions
     fundamentals = [[] for i in fishlists]
     for i in np.arange(len(fishlists)):
         for j in np.arange(len(fishlists[i])):
@@ -1637,7 +1637,7 @@ def main():
 
     # load configuration from the current directory:
     if os.path.isfile(cfgfile):
-        print 'load configuration', cfgfile
+        print('load configuration ' + cfgfile)
         load_config(cfgfile, cfg)
 
     # load configuration files from higher directories:
@@ -1659,7 +1659,7 @@ def main():
         cfg['verboseLevel'][0] = args.verbose
 
     channel = args.channel
-    filename = os.path.basename(filepath)
+
     try:
         import audioread
     except ImportError:
@@ -1698,14 +1698,11 @@ def main():
 
         # best window algorithm
         mod_file = conv_to_single_ch_audio(filepath)
-        t_trace, track_ampl, sampl_rate = load_trace(mod_file)
 
         Fish = FishRecording(mod_file)
         bwin, win_width = Fish.detect_best_window()
 
-        print ''
-        print 'best window is between: %.2f' % bwin, '& %.2f' % (bwin + win_width), 'seconds.'
-        print ''
+        print '\nbest window is between: %.2f' % bwin, '& %.2f' % (bwin + win_width), 'seconds.\n'
 
         os.remove(mod_file)
 
@@ -1713,7 +1710,8 @@ def main():
         fish_type = Fish.type_detector()
         print('current fish is a ' + fish_type + '-fish')
 
-        # process of data: creation of fishlists containing frequencies and power of fundamentals and harmonics of all fish
+        # data process: creation of fish-lists containing frequencies, power of fundamentals and harmonics of all fish
+
         if index > 0:
             power_fres1, freqs_fres1, psd_type, fish_type, fishlist = ft.processdata(data[:index] / 2.0 ** 15,
                                                                                      fish_type, bwin, win_width)
