@@ -9,54 +9,17 @@ import Auxiliary as aux
 import sorting_tools as st
 import config_tools as ct
 import audioread
+from IPython import embed
 
-
-def main():
-    # config file name:
-    progs = sys.argv[0].split('/')
-    cfgfile = progs[-1].split('.')[0] + '.cfg'
-
-    # command line arguments:
-    parser = argparse.ArgumentParser(
-        description='Display waveform, spectrogram, and power spectrum of time series data.',
-        epilog='by Jan Benda (2015)')
-    parser.add_argument('--version', action='version', version='1.0')
-    parser.add_argument('-v', action='count', dest='verbose')
-    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
-    parser.add_argument('npy_savefile_wave', nargs='?', default='', type=str)
-    parser.add_argument('npy_savefile_puls', nargs='?', default='', type=str)
-    parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
-    args = parser.parse_args()
-
+def main(audio_file, channel=0, verbose=None):
     # get config dictionary
     cfg = ct.get_config_dict()
 
-    # load configuration from the current directory:
-    if os.path.isfile(cfgfile):
-        print('load configuration ' + cfgfile)
-        lt.load_config(cfgfile, cfg)
-
-    # load configuration files from higher directories:
-    filepath = args.file
-    absfilepath = os.path.abspath(filepath)
-    dirs = os.path.dirname(absfilepath).split('/')
-    dirs.append('')
-    maxlevel = len(dirs) - 1
-    if maxlevel > 3:
-        maxlevel = 3
-    for k in xrange(maxlevel, 0, -1):
-        path = '/'.join(dirs[:-k]) + '/' + cfgfile
-        if os.path.isfile(path):
-            print 'load configuration', path
-            lt.load_config(path, cfg)
-
-    # set configuration from command line:
-    if args.verbose != None:
+    if verbose is not None:
         cfg['verboseLevel'][0] = args.verbose
+    channel = channel
 
-    channel = args.channel
-
-    with audioread.audio_open(filepath) as af:
+    with audioread.audio_open(audio_file) as af:
         tracen = af.channels
         if channel >= tracen:
             print 'number of traces in file is', tracen
@@ -87,8 +50,7 @@ def main():
             exit()
 
         # best window algorithm
-        mod_file = aux.conv_to_single_ch_audio(filepath)
-
+        mod_file = aux.conv_to_single_ch_audio(audio_file)
         Fish = FR.FishRecording(mod_file)
         bwin, win_width = Fish.detect_best_window()
 
@@ -125,4 +87,18 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    # config file name:
+    progs = sys.argv[0].split('/')
+    cfgfile = progs[-1].split('.')[0] + '.cfg'
+
+    # command line arguments:
+    parser = argparse.ArgumentParser(
+        description='Display waveform, spectrogram, and power spectrum of time series data.',
+        epilog='by bendalab (2015/2016)')
+    parser.add_argument('--version', action='version', version='1.0')
+    parser.add_argument('-v', action='count', dest='verbose')
+    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
+    parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
+    args = parser.parse_args()
+
+    main(args.file, args.channel, args.verbose)
