@@ -9,7 +9,7 @@ import sorting_tools as st
 
 
 class FishTracker:
-    def __init__(self, samplingrate):
+    def __init__(self, filename, samplingrate):
         self.rate = samplingrate
         self.tstart = 0
         self.fish_freqs_dict = {}
@@ -18,6 +18,7 @@ class FishTracker:
         self.fresolution = 0.5
         self.twindow = 8.0
         self.fishes = {}
+        self.filename = filename
 
     def processdata(self, data, fish_type, bwin, win_width, config_dict,
                     test_longfile=False):  # , rate, fish_freqs_dict, tstart, datasize, step ) :
@@ -283,7 +284,7 @@ class FishTracker:
             plt.legend(loc='upper right')
             ax3.set_xlabel('Time [sec]', fontsize=fs)
             ax3.set_ylabel('Amplitude [a.u.]', fontsize=fs)
-            ax3.set_title('EOD-Waveform; %s' % sys.argv[1].split('/')[-1], fontsize=fs + 2)
+            ax3.set_title('EOD-Waveform; %s' % self.filename, fontsize=fs + 2)
             sns.despine(fig=fig3, ax=ax3, offset=10)
             fig3.tight_layout()
             fig3.savefig('figures/wave-EOD%.0f.pdf' % (len(glob.glob('figures/wave-EOD*.pdf')) + 1))
@@ -333,7 +334,7 @@ class FishTracker:
             ax4.tick_params(axis='both', which='major', labelsize=fs - 2)
             ax4.set_xlabel('Time [ms]', fontsize=fs)
             ax4.set_ylabel('Amplitude [a.u.]', fontsize=fs)
-            ax4.set_title('Mean pulse-EOD; %s' % sys.argv[1].split('/')[-1], fontsize=fs + 2)
+            ax4.set_title('Mean pulse-EOD; %s' % self.filename, fontsize=fs + 2)
             plt.legend(loc='upper right', fontsize=fs - 4)
             sns.despine(fig=fig4, ax=ax4, offset=10)
 
@@ -355,7 +356,7 @@ class FishTracker:
 
         text_ax = fig_all.add_subplot(2, 2, 1)
         text_ax.text(-0.1, 0.9, 'Filename:', fontsize=fs)
-        text_ax.text(0.5, 0.9, '%s' % sys.argv[1].split('/')[-1], fontsize=fs)
+        text_ax.text(0.5, 0.9, '%s' % self.filename, fontsize=fs)
 
         text_ax.text(-0.1, 0.8, 'File duration:', fontsize=fs)
         text_ax.text(0.5, 0.8, '%.2f s' % (len(data) / self.rate), fontsize=fs)
@@ -385,7 +386,7 @@ class FishTracker:
         plt.axis('off')
 
         fig_all.tight_layout()
-        fig_all.savefig('figures/%s.pdf' % sys.argv[1].split('/')[-1][:-4])
+        fig_all.savefig('figures/%s.pdf' % self.filename[:-4])
         plt.close(fig_all)
 
     def pulse_sorting(self, bwin, win_width, data):
