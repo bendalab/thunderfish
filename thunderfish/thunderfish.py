@@ -9,7 +9,7 @@ import config_tools as ct
 import audioread
 
 
-def main(audio_file, channel=0, verbose=None):
+def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None):
     # get config dictionary
     cfg = ct.get_config_dict()
 
@@ -22,7 +22,7 @@ def main(audio_file, channel=0, verbose=None):
         if channel >= tracen:
             print 'number of traces in file is', tracen
             quit()
-        ft = FT.FishTracker(audio_file.split('/')[-1], af.samplerate)  # FIXME this assumes linux style separator
+        ft = FT.FishTracker(audio_file.split(os.path.sep)[-1], af.samplerate)
         index = 0
 
         data = ft.get_data()
@@ -76,7 +76,7 @@ def main(audio_file, channel=0, verbose=None):
             pulse_data, pulse_freq = ft.pulse_sorting(bwin, win_width, data[:index] / 2.0 ** 15)
 
         # create EOD plots
-        out_folder = aux.create_outp_folder(audio_file)
+        out_folder = aux.create_outp_folder(audio_file, output_folder)
         ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type,
                                fishlist, pulse_data, pulse_freq, out_folder)
 
@@ -95,6 +95,7 @@ if __name__ == '__main__':
     parser.add_argument('-v', action='count', dest='verbose')
     parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
+    parser.add_argument('output_folder', nargs='?', default=".", type=str, help="location to store results, figures")
     args = parser.parse_args()
 
-    main(args.file, args.channel, args.verbose)
+    main(args.file, args.channel, args.output_folder, args.verbose)
