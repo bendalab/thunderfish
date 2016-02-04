@@ -170,7 +170,7 @@ def conv_to_single_ch_audio(audiofile):
     return new_mod_filename
 
 
-def create_outp_folder(filepath, out_path='../analysis_output/'):
+def create_outp_folder(filepath, out_path='.'):
 
     field_folder = '/'.join(filepath.split('.')[-2].split('/')[-3:-1])
 
