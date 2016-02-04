@@ -1,6 +1,5 @@
 import os
 import glob
-import sys
 import matplotlib.pyplot as plt
 import seaborn as sns
 import matplotlib.mlab as ml
@@ -13,8 +12,8 @@ class FishTracker:
         self.rate = samplingrate
         self.tstart = 0
         self.fish_freqs_dict = {}
-        self.datasize = 200.0  # seconds                               ## DATASIZE ##
-        self.step = 0.5  ## STEP ##
+        self.datasize = 200.0  # seconds
+        self.step = 0.5
         self.fresolution = 0.5
         self.twindow = 8.0
         self.fishes = {}
@@ -80,8 +79,8 @@ class FishTracker:
         # filter fishlist so only 3 fishes with max strength are involved
 
         psd_type = st.wave_or_pulse_psd(power_fres1, freqs_fres1,
-                                     data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)], self.rate,
-                                     self.fresolution)
+                                        data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)], self.rate,
+                                        self.fresolution)
         
         wave_ls = [fishlist[fish][0][0] for fish in np.arange(len(fishlist))]
 
@@ -132,8 +131,8 @@ class FishTracker:
                             if self.fishes[j][-p] is not np.nan:
                                 index_last_nan = -p
                                 break
-                        if new_freq > self.fishes[j][index_last_nan] - 0.5 and new_freq <= self.fishes[j][
-                            index_last_nan] + 0.5 and help_v == 0:
+                        if self.fishes[j][index_last_nan] - 0.5 < new_freq <= self.fishes[j][index_last_nan] + 0.5 and \
+                                        help_v == 0:
                             self.fishes[j].append(new_freq)
                             help_v += 1
 
@@ -198,11 +197,11 @@ class FishTracker:
 
     def bw_psd_and_eod_plot(self, power, freqs, bwin, win_width, data, psd_type, fish_type, fishlist, pulse_data,
                             pulse_freq):
-        '''
+        """
         create figures showing the best window, its PSD and the the EOD of the fish
-        '''
+        """
 
-        ### PSD of the best window up to 3kHz #########################################################################
+        # PSD of the best window up to 3kHz #
         if len(fishlist) > 4:
             ind = np.argsort([fishlist[fish][0][1] for fish in np.arange(len(fishlist))])[-4:]
             # print ind
@@ -300,7 +299,7 @@ class FishTracker:
                 ax2_all.set_title('EOD-Waveform', fontsize=fs + 2)
                 sns.despine(fig=fig_all, ax=ax2_all, offset=10)
 
-        # Soundtrace for a pulsefish-EOD ############################################################################
+        # Soundtrace for a pulsefish-EOD #
         # build mean and std over this data !
         if psd_type is 'pulse' or fish_type is 'pulse':
             fig4, ax4 = plt.subplots(figsize=(plot_w / inch_factor, plot_h / inch_factor))
