@@ -12,6 +12,7 @@ addons:
     - python-scipy
     - python-matplotlib
     - python-pandas
+    - python-tk
 
 virtualenv:
     system_site_packages: true
