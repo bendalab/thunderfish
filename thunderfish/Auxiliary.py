@@ -170,6 +170,19 @@ def conv_to_single_ch_audio(audiofile):
     return new_mod_filename
 
 
+def create_outp_folder(filepath, out_path='.'):
+
+    field_folder = '/'.join(filepath.split('.')[-2].split('/')[-3:-1])
+
+    paths = {1: out_path, 2: field_folder}
+
+    for k in paths.keys():
+        if paths[k][-1] != '/':
+            paths[k] += '/'
+    new_folder = ''.join(paths.values())
+
+    return new_folder
+
 
 if __name__ == '__main__':
     # Test the df_histogram function

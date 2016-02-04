@@ -8,6 +8,7 @@ import seaborn as sns
 from IPython import embed
 import os
 
+
 def load_data(glob_ls):
     """
     loads all .npy data (numpy.array) and converts it to a dictionary using part from filenames as keys.
@@ -15,11 +16,12 @@ def load_data(glob_ls):
     :param glob_ls: list of .npy files
     :return: data (list of frequencies)
     """
-    print 'loading data ...'
+    print '\nloading data ...'
     # load data as a dictionary using either pulsefish or wavefish as key and the np.array as value.
     data = {curr_file.split('_')[-1].split('.npy')[0]: np.load(curr_file) for curr_file in glob_ls}
-    print 'data loaded successfully'
+    print 'data loaded successfully\n'
     return data
+
 
 def create_histo(data):
     """
@@ -37,10 +39,11 @@ def create_histo(data):
     colors = ['salmon', 'cornflowerblue']
 
     for enu, curr_fishtype in enumerate(data.keys()):
-        hist, bins = np.histogram(data[curr_fishtype], bins=len(data[curr_fishtype])//4)
-        width = 0.7 * (bins[1] - bins[0])
-        center = (bins[:-1] + bins[1:]) / 2
-        ax.bar(center, hist, align='center', width=width, alpha=0.8, facecolor=colors[enu], label=curr_fishtype)
+        if len(data[curr_fishtype]) >= 4:
+            hist, bins = np.histogram(data[curr_fishtype], bins=len(data[curr_fishtype])//4)
+            width = 0.7 * (bins[1] - bins[0])
+            center = (bins[:-1] + bins[1:]) / 2
+            ax.bar(center, hist, align='center', width=width, alpha=0.8, facecolor=colors[enu], label=curr_fishtype)
 
     ax.set_ylabel('Counts', fontsize=14)
     ax.set_xlabel('Frequency [Hz]', fontsize=14)
@@ -105,10 +108,10 @@ def main():
     fishtype_barplot(data)
 
     print 'code finished'
-    if len(sys.argv) == 3:
-        response = raw_input('Do you want to create a .pdf file with the data and the figures processed ? [y/n]')
-        if response == 'y':
-            os.system('python create_tex.py %s.npy %s.npy' % (sys.argv[1], sys.argv[2]))
+    # if len(sys.argv) == 3:
+    #     response = raw_input('Do you want to create a .pdf file with the data and the figures processed ? [y/n]')
+    #     if response == 'y':
+    #         os.system('python create_tex.py %s.npy %s.npy' % (sys.argv[1], sys.argv[2]))
 
 
 if __name__ == '__main__':
