@@ -12,7 +12,9 @@ addons:
     - python-scipy
     - python-matplotlib
     - python-pandas
-    - libblas-dev
+
+virtualenv:
+    system_site_packages: true
 
 install:
   - pip install git+https://github.com/G-Node/python-odml.git
