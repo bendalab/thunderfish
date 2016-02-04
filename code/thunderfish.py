@@ -122,11 +122,11 @@ def main():
             pulse_data, pulse_freq = ft.pulse_sorting(bwin, win_width, data[:index] / 2.0 ** 15)
 
         # create EOD plots
+        out_folder = aux.create_outp_folder(filepath)
         ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type,
-                               fishlist, pulse_data, pulse_freq)
+                               fishlist, pulse_data, pulse_freq, out_folder)
 
         # saves fundamentals of all wave fish !!!
-        out_folder = aux.create_outp_folder(filepath)
         st.save_fundamentals(fishlist, out_folder)
 
         print('\nAnalysis completed! .npy arrays located in %s\n' %out_folder)

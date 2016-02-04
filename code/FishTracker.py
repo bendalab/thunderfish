@@ -196,7 +196,7 @@ class FishTracker:
         return good_file
 
     def bw_psd_and_eod_plot(self, power, freqs, bwin, win_width, data, psd_type, fish_type, fishlist, pulse_data,
-                            pulse_freq):
+                            pulse_freq, output_path):
         '''
         create figures showing the best window, its PSD and the the EOD of the fish
         '''
@@ -209,6 +209,9 @@ class FishTracker:
             ind = np.argsort([fishlist[fish][0][1] for fish in np.arange(len(fishlist))])
             # print ind
 
+        plot_path = output_path + 'figures/'
+        if not os.path.exists(plot_path):
+            os.makedirs(plot_path)
         # start plot cosmetic with seaborn
         sns.set_context("poster")
         sns.axes_style('white')
@@ -223,49 +226,24 @@ class FishTracker:
         fig_all = plt.figure(figsize=(plot_w * 2 / inch_factor, plot_h * 2 / inch_factor))
         ax1_all = fig_all.add_subplot(2, 2, (3, 4))
 
-        ax.axis([0, 3000, -110, 0])
         ax1_all.axis([0, 3000, -110, 0])
-
-        ax.plot(freqs, 10.0 * np.log10(power), lw=2, color='dodgerblue', alpha=0.7)
         ax1_all.plot(freqs, 10.0 * np.log10(power), lw=2, color='dodgerblue', alpha=0.7)
 
         color = ['red', 'blue', 'green', 'cornflowerblue']
         for color_no, fish in enumerate(ind):
             for harmonic in np.arange(len(fishlist[fish])):
                 if harmonic == 0:
-                    ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no],
-                            label=('%.2f Hz' % fishlist[fish][0][0]))
                     ax1_all.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no],
                                  label=('%.2f Hz' % fishlist[fish][0][0]))
                 else:
-                    ax.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no])
                     ax1_all.plot(fishlist[fish][harmonic][0], fishlist[fish][harmonic][1], 'o', color=color[color_no])
 
-        ax.tick_params(axis='both', which='major', labelsize=fs - 2)
         ax1_all.tick_params(axis='both', which='major', labelsize=fs - 2)
-
-        plt.legend(loc='upper right')
-
-        ax.set_xlabel('Frequency [Hz]', fontsize=fs)
+        ax1_all.legend(loc='upper right')
         ax1_all.set_xlabel('Frequency [Hz]', fontsize=fs)
-
-        ax.set_ylabel('Power [dB SPL]', fontsize=fs)
         ax1_all.set_ylabel('Power [dB SPL]', fontsize=fs)
-
-        ax.set_title('PSD of best window', fontsize=fs + 2)
         ax1_all.set_title('PSD of best window', fontsize=fs + 2)
-
-        sns.despine(fig=fig, ax=ax, offset=10)
         sns.despine(fig=fig_all, ax=ax1_all, offset=10)
-
-        fig.tight_layout()
-
-        if not os.path.exists('../figures'):
-            os.makedirs('../figures')
-
-        fig.savefig('../figures/PSD_best_window%.0f.pdf' % (len(glob.glob('../figures/PSD_best_window*.pdf')) + 1))
-        # variable name for "looping with several sound datas"-case
-        plt.close(fig)
 
         ax2_all = fig_all.add_subplot(2, 2, 2)
 
@@ -286,14 +264,12 @@ class FishTracker:
             ax3.set_title('EOD-Waveform; %s' % sys.argv[1].split('/')[-1], fontsize=fs + 2)
             sns.despine(fig=fig3, ax=ax3, offset=10)
             fig3.tight_layout()
-            fig3.savefig('../figures/wave-EOD%.0f.pdf' % (len(glob.glob('../figures/wave-EOD*.pdf')) + 1))
+            fig3.savefig(plot_path + 'wave-EOD%.0f.pdf' % (len(glob.glob(plot_path + 'wave-EOD*.pdf')) + 1))
             plt.close(fig3)
 
             if fish_type is not 'pulse' or psd_type is not 'pulse':
-                # if pulse_data == []:
                 ax2_all.plot(eod_wtimes, eod_wampls, lw=2, color='dodgerblue', alpha=0.7)
                 ax2_all.tick_params(axis='both', which='major', labelsize=fs - 2)
-                # plt.legend(loc= 'upper right')
                 ax2_all.set_xlabel('Time [sec]', fontsize=fs)
                 ax2_all.set_ylabel('Amplitude [a.u.]', fontsize=fs)
                 ax2_all.set_title('EOD-Waveform', fontsize=fs + 2)
@@ -302,7 +278,6 @@ class FishTracker:
         # Soundtrace for a pulsefish-EOD ############################################################################
         # build mean and std over this data !
         if psd_type is 'pulse' or fish_type is 'pulse':
-            fig4, ax4 = plt.subplots(figsize=(plot_w / inch_factor, plot_h / inch_factor))
 
             eod_plot_tw = 0.006
             mean_pulse_data = []
@@ -326,22 +301,6 @@ class FishTracker:
 
             # get time for plot
             plot_time = ((np.arange(len(mean_pulse_data)) * 1.0 / self.rate) - eod_plot_tw / 2) * 1000  # s to ms
-
-            ax4.plot(plot_time, mean_pulse_data, lw=2, color='dodgerblue', alpha=0.7, label='mean EOD')
-            ax4.plot(plot_time, up_std, lw=1, color='red', alpha=0.7, label='std EOD')
-            ax4.plot(plot_time, bottom_std, lw=1, color='red', alpha=0.7)
-            ax4.tick_params(axis='both', which='major', labelsize=fs - 2)
-            ax4.set_xlabel('Time [ms]', fontsize=fs)
-            ax4.set_ylabel('Amplitude [a.u.]', fontsize=fs)
-            ax4.set_title('Mean pulse-EOD; %s' % sys.argv[1].split('/')[-1], fontsize=fs + 2)
-            plt.legend(loc='upper right', fontsize=fs - 4)
-            sns.despine(fig=fig4, ax=ax4, offset=10)
-
-            fig4.tight_layout()
-            fig4.savefig('../figures/pulse-EOD%.0f.pdf' % (len(glob.glob('../figures/pulse-EOD*.pdf')) + 1))
-            # fig4.savefig('figures/pulse-EOD%.0f.pdf' % (len(glob.glob('figures/pulse-EOD*.pdf'))
-            #                                             + len(glob.glob('figures/EOD*.pdf'))+1))
-            plt.close(fig4)
 
             if fish_type is 'pulse' and psd_type is 'pulse':
                 ax2_all.plot(plot_time, mean_pulse_data, lw=2, color='dodgerblue', alpha=0.7, label='mean EOD')
@@ -367,12 +326,9 @@ class FishTracker:
         text_ax.text(-0.1, 0.5, 'Fish-Type:', fontsize=fs)
 
         if fish_type is not 'pulse' or psd_type is not 'pulse':
-            # if pulse_data != []:
             text_ax.text(0.5, 0.6, '%.2f Hz' % fishlist[ind[-1]][0][0], fontsize=fs)
-            # text.text(0.5, 0.5, 'wave-type', fontsize= fs)
         else:
             text_ax.text(0.5, 0.6, '%.2f Hz' % pulse_freq, fontsize=fs)
-            # text.text(0.5, 0.5, 'pulse-type', fontsize= fs)
         text_ax.text(0.5, 0.5, '%s' % fish_type, fontsize=fs)
 
         text_ax.text(-0.1, 0.4, 'PSD-Type:', fontsize=fs)
@@ -385,7 +341,7 @@ class FishTracker:
         plt.axis('off')
 
         fig_all.tight_layout()
-        fig_all.savefig('../figures/%s.pdf' % sys.argv[1].split('/')[-1][:-4])
+        fig_all.savefig(plot_path + '%s.pdf' % sys.argv[1].split('/')[-1][:-4])
         plt.close(fig_all)
 
     def pulse_sorting(self, bwin, win_width, data):
