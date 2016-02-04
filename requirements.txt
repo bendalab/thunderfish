@@ -1,6 +1,2 @@
-matplotlib
-numpy
-scipy
 seaborn
-IPython
 audioread
