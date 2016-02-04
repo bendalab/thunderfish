@@ -8,6 +8,7 @@ import load_tools as lt
 import Auxiliary as aux
 import sorting_tools as st
 import config_tools as ct
+import audioread
 
 
 def main():
@@ -54,12 +55,6 @@ def main():
         cfg['verboseLevel'][0] = args.verbose
 
     channel = args.channel
-
-    try:
-        import audioread
-    except ImportError:
-        print 'python module "audioread" is not installed.'
-        exit(2)
 
     with audioread.audio_open(filepath) as af:
         tracen = af.channels
