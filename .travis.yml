@@ -1,0 +1,15 @@
+language: python
+
+python:
+  - "2.7"
+
+install:
+  - pip install git+https://github.com/G-Node/python-odml.git
+  - pip install -r requirements.txt
+  - pip install nose nose-cov python-coveralls
+
+# command to run tests
+script:
+  - nosetests -vv --with-coverage --cover-package=thunderfish
+after_success:
+  - coveralls
