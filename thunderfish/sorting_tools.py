@@ -135,17 +135,21 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
     return psd_type
 
 
-def save_fundamentals(fishlist):
-    mean_path = 'fish_wave.npy'
-    if not os.path.exists(mean_path):
-        np.save(mean_path, np.array([]))
-    fundamentals = np.load(mean_path)
+def save_fundamentals(fishlist, output_folder):
+
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+
+    file_name = output_folder + 'fish_wave.npy'
+    if not os.path.exists(file_name):
+        np.save(file_name, np.array([]))
+    fundamentals = np.load(file_name)
     fundamentals = fundamentals.tolist()
 
     for fish in np.arange(len(fishlist)):
         fundamentals.append(fishlist[fish][0][0])
 
     fundamentals = np.asarray(fundamentals)
-    np.save(mean_path, fundamentals)
+    np.save(file_name, fundamentals)
 
     print 'current fundamental frequencies are: ', fundamentals

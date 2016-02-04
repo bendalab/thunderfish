@@ -15,10 +15,10 @@ def load_data(glob_ls):
     :param glob_ls: list of .npy files
     :return: data (list of frequencies)
     """
-    print 'loading data ...'
+    print '\nloading data ...'
     # load data as a dictionary using either pulsefish or wavefish as key and the np.array as value.
     data = {curr_file.split('_')[-1].split('.npy')[0]: np.load(curr_file) for curr_file in glob_ls}
-    print 'data loaded successfully'
+    print 'data loaded successfully\n'
     return data
 
 def create_histo(data):
