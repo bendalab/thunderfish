@@ -1,15 +1,13 @@
 import numpy as np
-import sys
 import os
 import argparse
 import FishTracker as FT
 import FishRecording as FR
-import load_tools as lt
 import Auxiliary as aux
 import sorting_tools as st
 import config_tools as ct
 import audioread
-from IPython import embed
+
 
 def main(audio_file, channel=0, verbose=None):
     # get config dictionary
