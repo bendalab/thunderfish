@@ -14,7 +14,7 @@ def main(audio_file, channel=0, verbose=None):
     cfg = ct.get_config_dict()
 
     if verbose is not None:
-        cfg['verboseLevel'][0] = args.verbose
+        cfg['verboseLevel'][0] = verbose
     channel = channel
 
     with audioread.audio_open(audio_file) as af:
@@ -22,7 +22,7 @@ def main(audio_file, channel=0, verbose=None):
         if channel >= tracen:
             print 'number of traces in file is', tracen
             quit()
-        ft = FT.FishTracker(af.samplerate)
+        ft = FT.FishTracker(audio_file.split('/')[-1], af.samplerate)  # FIXME this assumes linux style separator
         index = 0
 
         data = ft.get_data()
@@ -85,10 +85,6 @@ def main(audio_file, channel=0, verbose=None):
 
 
 if __name__ == '__main__':
-    # config file name:
-    progs = sys.argv[0].split('/')
-    cfgfile = progs[-1].split('.')[0] + '.cfg'
-
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Display waveform, spectrogram, and power spectrum of time series data.',
