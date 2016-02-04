@@ -8,6 +8,7 @@ import load_tools as lt
 import Auxiliary as aux
 import sorting_tools as st
 import config_tools as ct
+from IPython import embed
 
 
 def main():
@@ -121,12 +122,14 @@ def main():
             pulse_data, pulse_freq = ft.pulse_sorting(bwin, win_width, data[:index] / 2.0 ** 15)
 
         # create EOD plots
-        # embed()
         ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type,
                                fishlist, pulse_data, pulse_freq)
 
         # saves fundamentals of all wave fish !!!
-        st.save_fundamentals(fishlist)
+        out_folder = aux.create_outp_folder(filepath)
+        st.save_fundamentals(fishlist, out_folder)
+
+        print('\nAnalysis completed! .npy arrays located in %s\n' %out_folder)
 
 
 if __name__ == '__main__':

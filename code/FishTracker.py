@@ -260,10 +260,10 @@ class FishTracker:
 
         fig.tight_layout()
 
-        if not os.path.exists('./figures'):
-            os.makedirs('./figures')
+        if not os.path.exists('../figures'):
+            os.makedirs('../figures')
 
-        fig.savefig('figures/PSD_best_window%.0f.pdf' % (len(glob.glob('figures/PSD_best_window*.pdf')) + 1))
+        fig.savefig('../figures/PSD_best_window%.0f.pdf' % (len(glob.glob('../figures/PSD_best_window*.pdf')) + 1))
         # variable name for "looping with several sound datas"-case
         plt.close(fig)
 
@@ -286,7 +286,7 @@ class FishTracker:
             ax3.set_title('EOD-Waveform; %s' % sys.argv[1].split('/')[-1], fontsize=fs + 2)
             sns.despine(fig=fig3, ax=ax3, offset=10)
             fig3.tight_layout()
-            fig3.savefig('figures/wave-EOD%.0f.pdf' % (len(glob.glob('figures/wave-EOD*.pdf')) + 1))
+            fig3.savefig('../figures/wave-EOD%.0f.pdf' % (len(glob.glob('../figures/wave-EOD*.pdf')) + 1))
             plt.close(fig3)
 
             if fish_type is not 'pulse' or psd_type is not 'pulse':
@@ -338,7 +338,7 @@ class FishTracker:
             sns.despine(fig=fig4, ax=ax4, offset=10)
 
             fig4.tight_layout()
-            fig4.savefig('figures/pulse-EOD%.0f.pdf' % (len(glob.glob('figures/pulse-EOD*.pdf')) + 1))
+            fig4.savefig('../figures/pulse-EOD%.0f.pdf' % (len(glob.glob('../figures/pulse-EOD*.pdf')) + 1))
             # fig4.savefig('figures/pulse-EOD%.0f.pdf' % (len(glob.glob('figures/pulse-EOD*.pdf'))
             #                                             + len(glob.glob('figures/EOD*.pdf'))+1))
             plt.close(fig4)
@@ -385,7 +385,7 @@ class FishTracker:
         plt.axis('off')
 
         fig_all.tight_layout()
-        fig_all.savefig('figures/%s.pdf' % sys.argv[1].split('/')[-1][:-4])
+        fig_all.savefig('../figures/%s.pdf' % sys.argv[1].split('/')[-1][:-4])
         plt.close(fig_all)
 
     def pulse_sorting(self, bwin, win_width, data):
