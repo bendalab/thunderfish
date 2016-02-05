@@ -1,0 +1,29 @@
+sudo: false
+
+language: python
+
+python:
+  - 2.7
+
+addons:
+  apt:
+    packages:
+    - python-numpy
+    - python-scipy
+    - python-matplotlib
+    - python-pandas
+    - python-tk
+
+virtualenv:
+    system_site_packages: true
+
+install:
+  - pip install git+https://github.com/G-Node/python-odml.git
+  - pip install -r requirements.txt
+  - pip install nose nose-cov python-coveralls
+# command to run tests
+script:
+  - nosetests -vv --with-coverage --cover-package=thunderfish
+
+after_success:
+  - coveralls
