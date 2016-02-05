@@ -21,9 +21,10 @@ install:
   - pip install git+https://github.com/G-Node/python-odml.git
   - pip install -r requirements.txt
   - pip install nose nose-cov python-coveralls
-  - coverage run --source=thunderfish setup.py test
 # command to run tests
 script:
   - nosetests -vv --with-coverage --cover-package=thunderfish
+  - coverage run --source=thunderfish setup.py test
+
 after_success:
   - coveralls
