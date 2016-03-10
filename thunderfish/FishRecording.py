@@ -220,11 +220,21 @@ class FishRecording:
         valid_windows = valid_pks * valid_cv * valid_ampls
 
         # If there is no best window, run the algorithm again with more flexible threshodlds.
-        if not True in valid_windows:
+        if not True in valid_windows and cvs_percentile_th == 100. and ampls_percentile_th == 0.:
+            print('\nWARNING. The recording %s seems to be of very bad quality for analysis. '
+                  'Skipping recording...\n' % self._wavfile)
+            os.remove(self._wavfile)
+            quit()
+
+        elif not True in valid_windows:
             print('\nNo best window found. Rerunning best_window_algorithm with more flexible arguments.\n')
+            if cvs_percentile_th <= 95.:
+                cvs_percentile_th += 5.
+            if ampls_percentile_th >= 5.:
+                ampls_percentile_th -= 5.
             return self.best_window_algorithm(peak_no, mean_amplitudes, cvs,
-                                              ampls_percentile_th=ampls_percentile_th-5.,
-                                              cvs_percentile_th=cvs_percentile_th+5., plot_debug=plot_debug)
+                                              ampls_percentile_th=ampls_percentile_th,
+                                              cvs_percentile_th=cvs_percentile_th, plot_debug=plot_debug)
             # This return is a Recursion! Need to return the value in the embeded function, otherwise the root_function
             # will not return anything!
 
