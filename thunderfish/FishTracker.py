@@ -5,6 +5,7 @@ import seaborn as sns
 import matplotlib.mlab as ml
 from harmonic_tools import *
 import sorting_tools as st
+from IPython import embed
 
 
 class FishTracker:
@@ -222,12 +223,12 @@ class FishTracker:
         fs = 16  # fontsize of the axis labels
         inch_factor = 2.54
 
-        fig, ax = plt.subplots(figsize=(plot_w / inch_factor, plot_h / inch_factor))
         fig_all = plt.figure(figsize=(plot_w * 2 / inch_factor, plot_h * 2 / inch_factor))
         ax1_all = fig_all.add_subplot(2, 2, (3, 4))
 
-        ax1_all.axis([0, 3000, -110, 0])
-        ax1_all.plot(freqs, 10.0 * np.log10(power), lw=2, color='dodgerblue', alpha=0.7)
+        power_dB = 10.0 * np.log10(power)
+        ax1_all.axis([0, 3000, min(power_dB[:len(freqs[freqs<3000])]), max(power_dB)+10])
+        ax1_all.plot(freqs, power_dB, lw=2, color='dodgerblue', alpha=0.7)
 
         color = ['red', 'blue', 'green', 'cornflowerblue']
         for color_no, fish in enumerate(ind):
@@ -277,13 +278,22 @@ class FishTracker:
 
         # Soundtrace for a pulsefish-EOD #
         # build mean and std over this data !
+
+
         if psd_type is 'pulse' or fish_type is 'pulse':
 
             eod_plot_tw = 0.006
             mean_pulse_data = []
             std_pulse_data = []
 
-            for k in np.arange(len(pulse_data[1])):
+            datapoints_p_pulse = np.median([len(pulse_data[i]) for i in pulse_data.keys()])
+
+            for i in pulse_data.keys():
+                if len(pulse_data[i]) != int(datapoints_p_pulse):
+                    # print i
+                    del pulse_data[i]
+
+            for k in np.arange(int(datapoints_p_pulse)):
 
                 try:
                     tmp_mu = np.mean([pulse_data[pulse][k] for pulse in sorted(pulse_data.keys())])
@@ -301,6 +311,7 @@ class FishTracker:
 
             # get time for plot
             plot_time = ((np.arange(len(mean_pulse_data)) * 1.0 / self.rate) - eod_plot_tw / 2) * 1000  # s to ms
+
 
             if fish_type is 'pulse' and psd_type is 'pulse':
                 ax2_all.plot(plot_time, mean_pulse_data, lw=2, color='dodgerblue', alpha=0.7, label='mean EOD')
