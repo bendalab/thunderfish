@@ -197,7 +197,7 @@ class FishTracker:
         return good_file
 
     def bw_psd_and_eod_plot(self, power, freqs, bwin, win_width, data, psd_type, fish_type, fishlist, pulse_data,
-                            pulse_freq, output_path):
+                            pulse_freq, output_path, save_data_for_plot=False):
         """
         Create figures showing the best window, its PSD and the the EOD of the fish
         """
@@ -229,6 +229,9 @@ class FishTracker:
         power_dB = 10.0 * np.log10(power)
         ax1_all.axis([0, 3000, min(power_dB[:len(freqs[freqs<3000])]), max(power_dB)+10])
         ax1_all.plot(freqs, power_dB, lw=2, color='dodgerblue', alpha=0.7)
+
+        if save_data_for_plot is True:
+            np.save('pulse_psd_data.npy', np.array([freqs, power_dB]))
 
         color = ['red', 'blue', 'green', 'cornflowerblue']
         for color_no, fish in enumerate(ind):
