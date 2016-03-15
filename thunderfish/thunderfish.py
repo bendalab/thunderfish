@@ -7,6 +7,7 @@ import Auxiliary as aux
 import sorting_tools as st
 import config_tools as ct
 import audioread
+from IPython import embed
 
 
 def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None):
@@ -65,6 +66,13 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         if index > 0:
             power_fres1, freqs_fres1, psd_type, fish_type,\
             fishlist = ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width, config_dict=cfg)
+
+        #####################################################
+        # collect data for mat meth figure:
+        # bw_data = data[(bwin * af.samplerate):(bwin * af.samplerate + win_width * af.samplerate)]
+        # np.save('pulse_trace_data.npy', bw_data)
+
+        #####################################################
 
         # Pulse analysis
         pulse_data = []
