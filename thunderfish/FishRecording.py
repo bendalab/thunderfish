@@ -323,7 +323,7 @@ class FishRecording:
 
         pass
 
-    def type_detector(self, thres=.5):
+    def type_detector(self, thres=.5, create_dataset=False, kategory='pulse'):
 
         pk_t, tr_t, _, _ = self.w_pt
         pk_2_pk = pk_t[1:] - pk_t[:-1]
@@ -333,6 +333,27 @@ class FishRecording:
         prop_in_2med = sum((pk_2_pk < 2*med) & (pk_2_pk > med))/float(len(pk_2_pk))
         # in order to detect the type, we check the proportion of pk2pk time differences within 2* the median of pk2tr
         # There should be a large proportion (~1.) for a wave type and a small proportion (~0.) for a pulse type.
+
+        if create_dataset is True:
+            if kategory is 'wave':
+                if not os.path.exists('wave_p2v_prop.npy'):
+                    np.save('wave_p2v_prop.npy', np.array([]))
+                wave_p2v_prop = np.load('wave_p2v_prop.npy')
+                wave_p2v_prop = wave_p2v_prop.tolist()
+                wave_p2v_prop.append(prop_in_2med)
+                wave_p2v_prop = np.asarray(wave_p2v_prop)
+                np.save('wave_p2v_prop.npy', wave_p2v_prop)
+            elif kategory is 'pulse':
+                if not os.path.exists('pulse_p2v_prop.npy'):
+                    np.save('pulse_p2v_prop.npy', np.array([]))
+                pulse_p2v_prop = np.load('pulse_p2v_prop.npy')
+                pulse_p2v_prop= pulse_p2v_prop.tolist()
+                pulse_p2v_prop.append(prop_in_2med)
+                pulse_p2v_prop = np.asarray(pulse_p2v_prop)
+                np.save('pulse_p2v_prop.npy', pulse_p2v_prop)
+            else:
+                print 'something in the kategory is wrong!!! check !!!'
+                quit()
 
         return 'pulse' if prop_in_2med < thres else 'wave'
 
