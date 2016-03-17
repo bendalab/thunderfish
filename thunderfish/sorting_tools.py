@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as sps
 import os
+from IPython import embed
 
 
 def filter_fishes(fishlists):
@@ -30,7 +31,7 @@ def filter_fishes(fishlists):
     return fishlist
 
 
-def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=False, kategory='pulse'):
+def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=False, kategory='wave'):
     # if create_dataset is True:
     #    fig, ax = plt.subplots()
     #    plt.axis([0, 3000, -110, -30])
@@ -41,7 +42,7 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
     mean_powers = []
     # embed()
     # power_db = 10.0 * np.log10(power)
-    for i in np.arange((3000 / fresolution) // freq_steps):  # does all of this till the frequency of 3k Hz
+    for i in np.arange((1500 / fresolution) // freq_steps):  # does all of this till the frequency of 3k Hz
         power_db = 10.0 * np.log10(power[i * freq_steps:i * freq_steps + freq_steps])
         power_db_p25_75 = []
         power_db_p99 = np.percentile(power_db, 99)
@@ -53,45 +54,49 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
         proportions.append((power_db_p75 - power_db_p25) / (
             power_db_p99 - power_db_p1))  # value between 0 and 1; pulse psds have much bigger values than wave psds
         ###
-
-        ### difference psd (idea by Till)
-        for j in np.arange(len(power_db)):
-            if power_db[j] > power_db_p25 and power_db[j] < power_db_p75:
-                power_db_p25_75.append(power_db[j])
-        mean_powers.append(np.mean(power_db_p25_75))
-
-    #    if create_dataset is True:
-    #        ax.plot(freqs[i * freq_steps + freq_steps / 2], np.mean(power_db_p25_75), 'o', color='r')
-
-    # mean_powers_p10 = np.percentile(mean_powers, 10)
-    # mean_powers_p90 = np.percentile(mean_powers, 90)
-    # diff = abs(mean_powers_p90 - mean_powers_p10)
-    ###
-
-    ### proportion sound trace
-    # rate = float(rate)
-    # time = np.arange(len(data)) / rate
-    # trace_proportions = []
-    # for i in np.arange(len(data) // (4.0 * rate)):
-    #     temp_trace_data = data[i * rate / 4.0:i * rate / 4.0 + rate / 4.0]
-    #     temp_trace_data_p1 = np.percentile(temp_trace_data, 1)
-    #     temp_trace_data_p25 = np.percentile(temp_trace_data, 25)
-    #     temp_trace_data_p75 = np.percentile(temp_trace_data, 75)
-    #     temp_trace_data_p99 = np.percentile(temp_trace_data, 99)
-    #     trace_proportions.append(
-    #         (temp_trace_data_p75 - temp_trace_data_p25) / (temp_trace_data_p99 - temp_trace_data_p1))
-
-    if np.mean(proportions) < 0.25:
+    mean_proportions = np.mean(proportions)
+    if np.mean(proportions) < 0.27:
         psd_type = 'wave'
     else:
         psd_type = 'pulse'
 
     ################################################################################################
-    # new idea: skewness
-    power_db = 10.0 * np.log10(power[:int(1500/fresolution)])
-    skewness = sps.kurtosis(power_db) ####
+    power_db = 10.0 * np.log(power)
+    power_db = power_db[freqs<1500]
 
-    ################################################################################################
+    fig, ax = plt.subplots()
+    n, bin, patches = ax.hist(power_db, 100)
+    max_hist_count = max(n)
+    plt.close()
+
+    if max_hist_count < 130:
+        hist_type = 'pulse'
+    else:
+        hist_type = 'wave'
+
+    if create_dataset is True:
+        if kategory is 'wave':
+            if not os.path.exists('wave_hist_algor.npy'):
+                np.save('wave_hist_algor.npy', np.array([]))
+            wave_hist_algor = np.load('wave_hist_algor.npy')
+            wave_hist_algor = wave_hist_algor.tolist()
+            wave_hist_algor.append(max_hist_count)
+            wave_hist_algor = np.asarray(wave_hist_algor)
+            np.save('wave_hist_algor.npy', wave_hist_algor)
+
+        elif kategory is 'pulse':
+            if not os.path.exists('pulse_hist_algor.npy'):
+                np.save('pulse_hist_algor.npy', np.array([]))
+            pulse_hist_algor = np.load('pulse_hist_algor.npy')
+            pulse_hist_algor = pulse_hist_algor.tolist()
+            pulse_hist_algor.append(max_hist_count)
+            pulse_hist_algor = np.asarray(pulse_hist_algor)
+            np.save('pulse_hist_algor.npy', pulse_hist_algor)
+
+        else:
+            print 'something in the kategory is wrong!!! check !!!'
+            quit()
+
     if create_dataset is True:
         if kategory is 'wave':
             if not os.path.exists('wave_PSD_algor.npy'):
@@ -102,13 +107,6 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
             wave_prop = np.asarray(wave_prop)
             np.save('wave_PSD_algor.npy', wave_prop)
 
-            if not os.path.exists('wave_skewness.npy'):
-                np.save('wave_skewness.npy', np.array([]))
-            wave_skewness = np.load('wave_skewness.npy')
-            wave_skewness = wave_skewness.tolist()
-            wave_skewness.append(skewness)
-            wave_skewness = np.asarray(wave_skewness)
-            np.save('wave_skewness.npy', wave_skewness)
         elif kategory is 'pulse':
             if not os.path.exists('pulse_PSD_algor.npy'):
                 np.save('pulse_PSD_algor.npy', np.array([]))
@@ -118,63 +116,11 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
             pulse_prop = np.asarray(pulse_prop)
             np.save('pulse_PSD_algor.npy', pulse_prop)
 
-            if not os.path.exists('pulse_skewness.npy'):
-                np.save('pulse_skewness.npy', np.array([]))
-            pulse_skewness = np.load('pulse_skewness.npy')
-            pulse_skewness = pulse_skewness.tolist()
-            pulse_skewness.append(skewness)
-            wave_skewness = np.asarray(pulse_skewness)
-            np.save('pulse_skewness.npy', pulse_skewness)
         else:
             print 'something in the kategory is wrong!!! check !!!'
             quit()
 
-
-
-    #####################################################################################
-    # Creating dataset #
-
-    #if create_dataset is True:
-    #    plt.draw()
-    #    plt.pause(1)
-    #
-    #    response = raw_input('wave- or pulse psd ? [w/p]')
-    #    plt.close()
-    #    if response == "w":
-    #        file = "wave_diffs.npy"
-    #        file2 = "wave_proportions.npy"
-    #        file3 = "wave_trace_proportions.npy"
-    #    elif response == "p":
-    #        file = "pulse_diffs.npy"
-    #        file2 = "pulse_proportions.npy"
-    #        file3 = "pulse_trace_proportions.npy"
-    #    else:
-    #        quit()
-    #
-    #    if not os.path.exists(file):
-    #        np.save(file, np.array([]))
-    #    all_diffs = np.load(file)
-    #    all_diffs = all_diffs.tolist()
-    #    all_diffs.append(diff)
-    #    all_diffs = np.asarray(all_diffs)
-    #    np.save(file, all_diffs)
-
-    #    if not os.path.exists(file2):
-    #        np.save(file2, np.array([]))
-    #    all_propertions = np.load(file2)
-    #    all_propertions = all_propertions.tolist()
-    #    all_propertions.append(np.mean(proportions))
-    #    all_propertions = np.asarray(all_propertions)
-    #    np.save(file2, all_propertions)
-
-    #    if not os.path.exists(file3):
-    #        np.save(file3, np.array([]))
-    #    all_trace_proportions = np.load(file3)
-    #    all_trace_proportions = all_trace_proportions.tolist()
-    #    all_trace_proportions.append(np.mean(trace_proportions))
-    #    all_trace_proportions = np.asarray(all_trace_proportions)
-    #    np.save(file3, all_trace_proportions)
-    return psd_type
+    return psd_type, hist_type, max_hist_count, mean_proportions
 
 
 def save_fundamentals(fishlist, output_folder):
