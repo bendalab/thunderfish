@@ -323,40 +323,50 @@ class FishRecording:
 
         pass
 
-    def type_detector(self, thres=.5, create_dataset=False, kategory='pulse'):
+    def type_detector(self, thres=0.1, create_dataset=False, kategory = 'wave'):
 
         pk_t, tr_t, _, _ = self.w_pt
-        pk_2_pk = pk_t[1:] - pk_t[:-1]
+        pk_2_pk = np.diff(pk_t)
         pk_2_tr = np.abs(pk_t - tr_t)
-        med = np.median(2*pk_2_tr)
 
-        prop_in_2med = sum((pk_2_pk < 2*med) & (pk_2_pk > med))/float(len(pk_2_pk))
-        # in order to detect the type, we check the proportion of pk2pk time differences within 2* the median of pk2tr
-        # There should be a large proportion (~1.) for a wave type and a small proportion (~0.) for a pulse type.
+        min_n = np.min([len(pk_2_pk), len(pk_2_tr)])
+
+        r_tr = pk_2_tr[:min_n] / pk_2_pk[:min_n]
+        print np.min(r_tr), np.max(r_tr)
+        r_tr[r_tr>0.5] = 1 - r_tr[r_tr>0.5]
+        r_value = np.median(r_tr)
+        # r_value = np.median(pk_2_tr[:min_n] / pk_2_pk[:min_n])
 
         if create_dataset is True:
             if kategory is 'wave':
-                if not os.path.exists('wave_p2v_prop.npy'):
-                    np.save('wave_p2v_prop.npy', np.array([]))
-                wave_p2v_prop = np.load('wave_p2v_prop.npy')
-                wave_p2v_prop = wave_p2v_prop.tolist()
-                wave_p2v_prop.append(prop_in_2med)
-                wave_p2v_prop = np.asarray(wave_p2v_prop)
-                np.save('wave_p2v_prop.npy', wave_p2v_prop)
+                if not os.path.exists('wave_p2v_algor.npy'):
+                    np.save('wave_p2v_algor.npy', np.array([]))
+                wave_p2v_algor = np.load('wave_p2v_algor.npy')
+                wave_p2v_algor = wave_p2v_algor.tolist()
+                wave_p2v_algor.append(r_value)
+                wave_p2v_algor = np.asarray(wave_p2v_algor)
+                np.save('wave_p2v_algor.npy', wave_p2v_algor)
+
             elif kategory is 'pulse':
-                if not os.path.exists('pulse_p2v_prop.npy'):
-                    np.save('pulse_p2v_prop.npy', np.array([]))
-                pulse_p2v_prop = np.load('pulse_p2v_prop.npy')
-                pulse_p2v_prop= pulse_p2v_prop.tolist()
-                pulse_p2v_prop.append(prop_in_2med)
-                pulse_p2v_prop = np.asarray(pulse_p2v_prop)
-                np.save('pulse_p2v_prop.npy', pulse_p2v_prop)
+                if not os.path.exists('pulse_p2v_algor.npy'):
+                    np.save('pulse_p2v_algor.npy', np.array([]))
+                pulse_p2v_algor = np.load('pulse_p2v_algor.npy')
+                pulse_p2v_algor = pulse_p2v_algor.tolist()
+                pulse_p2v_algor.append(r_value)
+                pulse_p2v_algor = np.asarray(pulse_p2v_algor)
+                np.save('pulse_p2v_algor.npy', pulse_p2v_algor)
+
             else:
                 print 'something in the kategory is wrong!!! check !!!'
                 quit()
 
-        return 'pulse' if prop_in_2med < thres else 'wave'
+        # Todo: Following line and return just for not breaking code!! NEED TO BE REMOVED!
+        prop_in_2med = sum((pk_2_pk < 2*r_value) & (pk_2_pk > r_value))/float(len(pk_2_pk))
+        # in order to detect the type, we check the proportion of pk2pk time differences within 2* the median of pk2tr
+        # There should be a large proportion (~1.) for a wave type and a small proportion (~0.) for a pulse type.
 
+        # return 'pulse' if prop_in_2med < thres else 'wave'
+        return 'pulse' if r_value < thres else 'wave', r_value
     def plot_spectogram(self, ax):
 
         fu_freq = self.fund_freq
