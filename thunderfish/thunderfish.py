@@ -58,14 +58,14 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         os.remove(mod_file)
 
         # fish_type algorithm
-        fish_type = Fish.type_detector()
+        fish_type, r_value = Fish.type_detector()
         print('current fish is a ' + fish_type + '-fish')
 
         # data process: creation of fish-lists containing frequencies, power of fundamentals and harmonics of all fish
 
         if index > 0:
             power_fres1, freqs_fres1, psd_type, fish_type,\
-            fishlist = ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width, config_dict=cfg)
+            fishlist, hist_type, max_hist_count, mean_proportions = ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width, config_dict=cfg)
 
         #####################################################
         # collect data for mat meth figure:
@@ -86,7 +86,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         # create EOD plots
         out_folder = aux.create_outp_folder(audio_file, output_folder)
         ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type,
-                               fishlist, pulse_data, pulse_freq, out_folder)
+                               fishlist, pulse_data, pulse_freq, out_folder, hist_type, max_hist_count, mean_proportions, r_value)
 
         # saves fundamentals of all wave fish !!!
         st.save_fundamentals(fishlist, out_folder)
