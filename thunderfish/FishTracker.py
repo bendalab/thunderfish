@@ -79,7 +79,7 @@ class FishTracker:
         # embed()
         # filter fishlist so only 3 fishes with max strength are involved
 
-        psd_type = st.wave_or_pulse_psd(power_fres1, freqs_fres1,
+        psd_type, hist_type, max_hist_count, mean_proportions = st.wave_or_pulse_psd(power_fres1, freqs_fres1,
                                         data[(bwin * self.rate):(bwin * self.rate + win_width * self.rate)], self.rate,
                                         self.fresolution)
         
@@ -96,7 +96,7 @@ class FishTracker:
         # if psd_type is 'pulse' and fish_type is 'pulse':
         #     print 'HERE WE HAVE TO BUILD IN THE PULSEFISH ANALYSIS'
         # # embed()
-        return power_fres1, freqs_fres1, psd_type, fish_type, fishlist
+        return power_fres1, freqs_fres1, psd_type, fish_type, fishlist, hist_type, max_hist_count, mean_proportions
 
     def sort_my_wavefish(self):
         """
@@ -197,7 +197,7 @@ class FishTracker:
         return good_file
 
     def bw_psd_and_eod_plot(self, power, freqs, bwin, win_width, data, psd_type, fish_type, fishlist, pulse_data,
-                            pulse_freq, output_path, save_data_for_plot=False):
+                            pulse_freq, output_path, hist_type, max_hist_count, mean_proportions, r_value,  save_data_for_plot=False):
         """
         Create figures showing the best window, its PSD and the the EOD of the fish
         """
@@ -254,6 +254,7 @@ class FishTracker:
         if psd_type is 'wave' or fish_type is 'wave':
             fig3, ax3 = plt.subplots(figsize=(plot_w / inch_factor, plot_h / inch_factor))
 
+            # ToDo: Brasil data doesnt work properly: Line 260 Index out of bounds
             eod_wtimes = np.arange(
                 len(data[(bwin * self.rate):(bwin * self.rate + round(self.rate * 1.0 / fishlist[ind[-1]][0][0] * 4))])
                 ) * 1.0 / self.rate + bwin
@@ -343,13 +344,16 @@ class FishTracker:
             text_ax.text(0.5, 0.6, '%.2f Hz' % fishlist[ind[-1]][0][0], fontsize=fs)
         else:
             text_ax.text(0.5, 0.6, '%.2f Hz' % pulse_freq, fontsize=fs)
-        text_ax.text(0.5, 0.5, '%s' % fish_type, fontsize=fs)
+        text_ax.text(0.5, 0.5, '%s' % fish_type + ' (%.2f ; th = 0.1)' % r_value, fontsize=fs)
 
         text_ax.text(-0.1, 0.4, 'PSD-Type:', fontsize=fs)
-        text_ax.text(0.5, 0.4, '%s' % psd_type, fontsize=fs)
+        text_ax.text(0.5, 0.4, '%s' % psd_type + ' (%.2f ; th = 0.27)' % mean_proportions, fontsize=fs)
 
-        text_ax.text(-0.1, 0.3, 'No. of wave-fishes:', fontsize=fs)
-        text_ax.text(0.5, 0.3, '%.0f' % len(fishlist), fontsize=fs)
+        text_ax.text(-0.1, 0.3, 'Hist-Type:', fontsize=fs)
+        text_ax.text(0.5, 0.3, '%s' % hist_type + ' (%.0f ; th = 130)' % max_hist_count, fontsize=fs)
+
+        text_ax.text(-0.1, 0.2, 'No. of wave-fishes:', fontsize=fs)
+        text_ax.text(0.5, 0.2, '%.0f' % len(fishlist), fontsize=fs)
 
         sns.despine(fig=fig_all, ax=text_ax, offset=10)
         plt.axis('off')
