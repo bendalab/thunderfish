@@ -171,19 +171,30 @@ class FishRecording:
 
             # ax2 plots the Number of detected EOD-cycles
             window_nr = np.arange(len(no_of_peaks))
-            ax2.scatter(window_nr, no_of_peaks, s=50, c='blue', label='Fish # ' + filename[-10:-8])
+            ax2.scatter(window_nr, no_of_peaks, s=50, c='blue')
             ax2.set_ylabel('# of detected EOD-cycles', fontsize=fs)
-            ax2.legend(frameon=False, loc='best')
 
-            #
+            # ax3 plots the Amplitude Coefficient of Variation
             ax3.scatter(window_nr, cvs, s=50, c='red')
-            ax3.set_ylabel('cvs (std of p2t_amplitude / mean p2t_amplitude)', fontsize=fs)
+            ax3.set_ylabel('Soundtrace Amplitude\nVariation Coefficient', fontsize=fs)
 
+            # ax4 plots the Mean Amplitude of each Window
             ax4.scatter(window_nr, mean_ampl, s=50, c='green')
-            ax4.set_ylabel('mean amplitude', fontsize=fs)
-            ax4.set_xlabel('# of Peak Time Window', fontsize=fs)
+            ax4.set_ylabel('Mean Amplitude [a.u]', fontsize=fs)
+
+            # ax5 plots the best window only
 
             ax = np.array([ax1, ax2, ax3, ax4, ax5])
+
+            for enu, axis in enumerate(ax):
+                ax_ylims = axis.get_ylim()
+                aux.fix_plot_ticks(axis, ax_ylims)
+                axis.tick_params(which='both', labelsize=fs-2)
+                if 0 < enu <= 3:
+                    axis.set_xlabel('Time Window', fontsize=fs)
+
+        # ToDo: Need to find a way to plot ax5!! It's not as easy as it seems...
+        # ToDo: WOULD BE GREAT TO DO ALL THE PLOTTING IN EXTRA FUNCTION IN AUXILIARY!!!
 
         bwin_bool_array = self.best_window_algorithm(no_of_peaks, mean_ampl, cvs, plot_debug=plot_debug, axs=ax)
         bwin_bool_inx = np.where(bwin_bool_array)[0][0]  # Gets the index of the best window out of all windows.
@@ -191,6 +202,7 @@ class FishRecording:
         bwin = my_times[bwin_bool_inx]
 
         self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate/2.))
+
         return bwin, win_size
 
     def best_window_algorithm(self, peak_no, mean_amplitudes, cvs, pks_th=0.15, ampls_percentile_th=85.,

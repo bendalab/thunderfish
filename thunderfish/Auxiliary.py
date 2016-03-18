@@ -126,6 +126,13 @@ def plot_dfs_histogram(dfs_array, binwidth='FD'):
     fig.savefig('figures/histo_of_dfs.pdf')
     plt.close()
 
+
+def fix_plot_ticks(ax, axlims, tick_no=5):
+    ticks = np.linspace(axlims[0], axlims[1], tick_no)
+    ax.set_yticks(ticks)
+    pass
+
+
 def butter_lowpass(highcut, fs, order=5):
     nyq = 0.5 * fs
     high = highcut / nyq
