@@ -13,7 +13,7 @@ if __name__ == '__main__':
 
     # Create parallel jobs for user specific folder!
     rec_dir = sys.argv[1]
-    job_name = 'parallel_jobs_for_' + sys.argv[-1].split('/')[-2] + '.txt'
+    job_name = 'parallel_jobs_for_' + sys.argv[-1].split('/')[-2] + '_' + sys.argv[-1].split('/')[-1] + '.txt'
     if rec_dir[-1] != '/':
         rec_dir += '/'
 

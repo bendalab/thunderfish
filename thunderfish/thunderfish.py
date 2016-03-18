@@ -7,6 +7,7 @@ import Auxiliary as aux
 import sorting_tools as st
 import config_tools as ct
 import audioread
+from IPython import embed
 
 
 def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None):
@@ -20,7 +21,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
     with audioread.audio_open(audio_file) as af:
         tracen = af.channels
         if channel >= tracen:
-            print 'number of traces in file is', tracen
+            print('number of traces in file is', tracen)
             quit()
         ft = FT.FishTracker(audio_file.split(os.path.sep)[-1], af.samplerate)
         index = 0
@@ -32,7 +33,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
             n = fulldata.shape[0]
             if index + n > len(data):
                 if index == 0:
-                    print "panic!!!! I need a larger buffer!"
+                    print("panic!!!! I need a larger buffer!")
                 # ft.processdata(data[:index] / 2.0 ** 15)
                 index = 0
             if n > 0:
@@ -44,7 +45,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         # long file analysis
         good_file = ft.exclude_short_files(data, index)
         if good_file == False:
-            print "file too short !!!"
+            print("file too short !!!")
             exit()
 
         # best window algorithm
@@ -52,33 +53,40 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         Fish = FR.FishRecording(mod_file)
         bwin, win_width = Fish.detect_best_window()
 
-        print '\nbest window is between: %.2f' % bwin, '& %.2f' % (bwin + win_width), 'seconds.\n'
+        print ('\nbest window is between: %.2f' % bwin, '& %.2f' % (bwin + win_width), 'seconds.\n')
 
         os.remove(mod_file)
 
         # fish_type algorithm
-        fish_type = Fish.type_detector()
+        fish_type, r_value = Fish.type_detector()
         print('current fish is a ' + fish_type + '-fish')
 
         # data process: creation of fish-lists containing frequencies, power of fundamentals and harmonics of all fish
 
         if index > 0:
             power_fres1, freqs_fres1, psd_type, fish_type,\
-            fishlist = ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width, config_dict=cfg)
+            fishlist, mean_proportions = ft.processdata(data[:index] / 2.0 ** 15, fish_type, bwin, win_width, config_dict=cfg)
+
+        #####################################################
+        # collect data for mat meth figure:
+        # bw_data = data[(bwin * af.samplerate):(bwin * af.samplerate + win_width * af.samplerate)]
+        # np.save('pulse_trace_data.npy', bw_data)
+
+        #####################################################
 
         # Pulse analysis
         pulse_data = []
         pulse_freq = []
         if psd_type == 'pulse' or fish_type == 'pulse':
-            print ''
-            print 'try to create MEAN PULSE-EOD'
-            print ''
+            print('')
+            print('try to create MEAN PULSE-EOD')
+            print('')
             pulse_data, pulse_freq = ft.pulse_sorting(bwin, win_width, data[:index] / 2.0 ** 15)
 
         # create EOD plots
         out_folder = aux.create_outp_folder(audio_file, output_folder)
         ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type,
-                               fishlist, pulse_data, pulse_freq, out_folder)
+                               fishlist, pulse_data, pulse_freq, out_folder, mean_proportions, r_value)
 
         # saves fundamentals of all wave fish !!!
         st.save_fundamentals(fishlist, out_folder)
