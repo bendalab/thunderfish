@@ -3,11 +3,11 @@ Created on Fri March 21 14:40:04 2014
 
 @author: Juan Felipe Sehuanes
 """
+import os
 
-from Auxiliary import *
-import glob
-import sys
+import Auxiliary as aux
 import numpy as np
+import seaborn as sns
 from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib import mlab
@@ -26,14 +26,14 @@ class FishRecording:
 
     def __init__(self, wavfile):
         self._wavfile = wavfile
-        self._time, self._eod, self._sample_rate = load_trace(wavfile)
+        self._time, self._eod, self._sample_rate = aux.load_trace(wavfile)
         self._eod_peak_idx = None
         self._eod_trough_idx = None
         self.roi = None
 
     def filtr_data(self, filter_fac=5.5):
         fund_freq = self.fund_freq()
-        filtered_data = butter_lowpass_filter(self._eod, fund_freq * filter_fac, self._sample_rate)
+        filtered_data = aux.butter_lowpass_filter(self._eod, fund_freq * filter_fac, self._sample_rate)
         return filtered_data
 
     def detect_peak_and_trough_indices(self, peak_threshold=None, norm_window=.1):
@@ -53,7 +53,7 @@ class FishRecording:
                 peak_threshold = np.percentile(np.abs(eod2), 99.9)-np.percentile(np.abs(eod2), 70)
               # The Threshold is 1.5 times the standard deviation of the eod
 
-            _, self._eod_peak_idx, _, self._eod_trough_idx = peakdet(eod2, peak_threshold)
+            _, self._eod_peak_idx, _, self._eod_trough_idx = aux.peakdet(eod2, peak_threshold)
             # refine by matching troughs and peaks
             everything = list(self.peak_trough_iterator())
             _, _, self._eod_peak_idx, _, _, self._eod_trough_idx = map(lambda x: np.asarray(x), zip(*everything))
@@ -149,24 +149,41 @@ class FishRecording:
             no_of_peaks[i] = len(p2t_ampl)
 
         if plot_debug:
+
+            fs = 16
+            inch_factor = 2.54
+            sns.set_context("poster")
+            sns.axes_style('white')
+            sns.set_style("ticks")
+
             fig = plt.figure(figsize=(14, 15), num='Fish No. '+filename[-10:-8])
-            ax1 = fig.add_subplot(3, 1, 1)
-            ax2 = fig.add_subplot(3, 1, 2)
-            ax3 = fig.add_subplot(3, 1, 3)
 
-            a = np.arange(len(no_of_peaks))
-            ax1.scatter(a, no_of_peaks, s=50, c='blue', label='Fish # ' + filename[-10:-8])
-            ax1.set_ylabel('# of peaks (# of detected EOD-cycles)')
-            ax1.legend(frameon=False, loc='best')
+            ax1 = fig.add_subplot(5, 1, 1)
+            ax2 = fig.add_subplot(5, 1, 2)
+            ax3 = fig.add_subplot(5, 1, 3)
+            ax4 = fig.add_subplot(5, 1, 4)
+            ax5 = fig.add_subplot(5, 1, 5)
 
-            ax2.scatter(a, cvs, s=50, c='red')
-            ax2.set_ylabel('cvs (std of p2t_amplitude / mean p2t_amplitude)')
+            # ax1 plots the raw soundtrace
+            t = self._time
+            eod = self._eod
+            ax1.plot(t, eod, color='royalblue', lw=2)
 
-            ax3.scatter(a, mean_ampl, s=50, c='green')
-            ax3.set_ylabel('mean amplitude')
-            ax3.set_xlabel('# of Peak Time Window')
+            # ax2 plots the Number of detected EOD-cycles
+            window_nr = np.arange(len(no_of_peaks))
+            ax2.scatter(window_nr, no_of_peaks, s=50, c='blue', label='Fish # ' + filename[-10:-8])
+            ax2.set_ylabel('# of detected EOD-cycles', fontsize=fs)
+            ax2.legend(frameon=False, loc='best')
 
-            ax = np.array([ax1, ax2, ax3])
+            #
+            ax3.scatter(window_nr, cvs, s=50, c='red')
+            ax3.set_ylabel('cvs (std of p2t_amplitude / mean p2t_amplitude)', fontsize=fs)
+
+            ax4.scatter(window_nr, mean_ampl, s=50, c='green')
+            ax4.set_ylabel('mean amplitude', fontsize=fs)
+            ax4.set_xlabel('# of Peak Time Window', fontsize=fs)
+
+            ax = np.array([ax1, ax2, ax3, ax4, ax5])
 
         bwin_bool_array = self.best_window_algorithm(no_of_peaks, mean_ampl, cvs, plot_debug=plot_debug, axs=ax)
         bwin_bool_inx = np.where(bwin_bool_array)[0][0]  # Gets the index of the best window out of all windows.
@@ -246,21 +263,23 @@ class FishRecording:
 
             if plot_debug:
 
-                ax1 = axs[0]
-                ax2 = axs[1]
-                ax3 = axs[2]
-
+                fs = 16
                 windows = np.arange(len(peak_no))
-                ax1.plot([windows[0], windows[-1]], [pk_mode[0][0] - tot_pks*pks_th, pk_mode[0][0] - tot_pks*pks_th], '--k')
-                ax1.plot([windows[0], windows[-1]], [pk_mode[0][0] + tot_pks*pks_th, pk_mode[0][0] + tot_pks*pks_th], '--k')
+                axs[1].plot([windows[0], windows[-1]], [pk_mode[0][0] - tot_pks*pks_th,
+                                                     pk_mode[0][0] - tot_pks*pks_th], '--k')
+                axs[1].plot([windows[0], windows[-1]], [pk_mode[0][0] + tot_pks*pks_th,
+                                                     pk_mode[0][0] + tot_pks*pks_th], '--k')
 
-                ax2.plot([windows[0], windows[-1]], [cov_th, cov_th], '--k')
+                axs[2].plot([windows[0], windows[-1]], [cov_th, cov_th], '--k')
 
-                ax3.plot([windows[0], windows[-1]], [ampls_th, ampls_th], '--k')
-                ax3.plot(windows[best_window], ampl_means[best_window], 'o', ms=20,
-                         color='purple', alpha=0.8, label='Best Window')
-                ax3.legend(frameon=False, loc='best')
+                axs[3].plot([windows[0], windows[-1]], [ampls_th, ampls_th], '--k')
+                axs[3].plot(windows[best_window], ampl_means[best_window], 'o', ms=15, mec='black', mew=3,
+                            color='purple', alpha=0.8, label='Best Window')
+                axs[3].legend(frameon=False, loc='best', fontsize=fs-2)
 
+                for axis in axs:
+                    sns.despine(ax=axis, offset=10)
+                plt.tight_layout()
                 plt.show()
 
             return best_window
@@ -387,7 +406,7 @@ class FishRecording:
         if self.type_detector() == 'pulse':
             low_pass = 3000.
 
-        f_eod = butter_lowpass_filter(self.w_eod, low_pass, self._sample_rate)
+        f_eod = aux.butter_lowpass_filter(self.w_eod, low_pass, self._sample_rate)
         pt, tt, pe, te = self.w_pt
         plot_inxs = (self.w_time >= tt[1]) & (self.w_time <= tt[3])
 
