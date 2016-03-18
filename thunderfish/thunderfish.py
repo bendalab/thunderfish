@@ -21,7 +21,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
     with audioread.audio_open(audio_file) as af:
         tracen = af.channels
         if channel >= tracen:
-            print 'number of traces in file is', tracen
+            print('number of traces in file is', tracen)
             quit()
         ft = FT.FishTracker(audio_file.split(os.path.sep)[-1], af.samplerate)
         index = 0
@@ -33,7 +33,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
             n = fulldata.shape[0]
             if index + n > len(data):
                 if index == 0:
-                    print "panic!!!! I need a larger buffer!"
+                    print("panic!!!! I need a larger buffer!")
                 # ft.processdata(data[:index] / 2.0 ** 15)
                 index = 0
             if n > 0:
@@ -45,7 +45,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         # long file analysis
         good_file = ft.exclude_short_files(data, index)
         if good_file == False:
-            print "file too short !!!"
+            print("file too short !!!")
             exit()
 
         # best window algorithm
@@ -53,7 +53,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         Fish = FR.FishRecording(mod_file)
         bwin, win_width = Fish.detect_best_window()
 
-        print '\nbest window is between: %.2f' % bwin, '& %.2f' % (bwin + win_width), 'seconds.\n'
+        print ('\nbest window is between: %.2f' % bwin, '& %.2f' % (bwin + win_width), 'seconds.\n')
 
         os.remove(mod_file)
 
@@ -78,9 +78,9 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         pulse_data = []
         pulse_freq = []
         if psd_type == 'pulse' or fish_type == 'pulse':
-            print ''
-            print 'try to create MEAN PULSE-EOD'
-            print ''
+            print('')
+            print('try to create MEAN PULSE-EOD')
+            print('')
             pulse_data, pulse_freq = ft.pulse_sorting(bwin, win_width, data[:index] / 2.0 ** 15)
 
         # create EOD plots

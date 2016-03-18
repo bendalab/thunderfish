@@ -31,11 +31,7 @@ def filter_fishes(fishlists):
     return fishlist
 
 
-def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=False, kategory='wave'):
-    # if create_dataset is True:
-    #    fig, ax = plt.subplots()
-    #    plt.axis([0, 3000, -110, -30])
-    #    ax.plot(freqs, 10.0 * np.log10(power))
+def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=False, category='wave'):
     freq_steps = int(125 / fresolution)
 
     proportions = []
@@ -60,45 +56,8 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
     else:
         psd_type = 'pulse'
 
-    ################################################################################################
-    # power_db = 10.0 * np.log(power)
-    # power_db = power_db[freqs<1500]
-    #
-    # fig, ax = plt.subplots()
-    # n, bin, patches = ax.hist(power_db, 100, normed=True)
-    # max_hist_count = max(n)
-    # plt.close()
-    #
-    # if max_hist_count < 0.055:
-    #     hist_type = 'pulse'
-    # else:
-    #     hist_type = 'wave'
-
-    # if create_dataset is True:
-    #     if kategory is 'wave':
-    #         if not os.path.exists('wave_hist_algor.npy'):
-    #             np.save('wave_hist_algor.npy', np.array([]))
-    #         wave_hist_algor = np.load('wave_hist_algor.npy')
-    #         wave_hist_algor = wave_hist_algor.tolist()
-    #         wave_hist_algor.append(max_hist_count)
-    #         wave_hist_algor = np.asarray(wave_hist_algor)
-    #         np.save('wave_hist_algor.npy', wave_hist_algor)
-    #
-    #     elif kategory is 'pulse':
-    #         if not os.path.exists('pulse_hist_algor.npy'):
-    #             np.save('pulse_hist_algor.npy', np.array([]))
-    #         pulse_hist_algor = np.load('pulse_hist_algor.npy')
-    #         pulse_hist_algor = pulse_hist_algor.tolist()
-    #         pulse_hist_algor.append(max_hist_count)
-    #         pulse_hist_algor = np.asarray(pulse_hist_algor)
-    #         np.save('pulse_hist_algor.npy', pulse_hist_algor)
-    #
-    #     else:
-    #         print 'something in the kategory is wrong!!! check !!!'
-    #         quit()
-
-    if create_dataset is True:
-        if kategory is 'wave':
+    if create_dataset:
+        if category is 'wave':
             if not os.path.exists('wave_PSD_algor.npy'):
                 np.save('wave_PSD_algor.npy', np.array([]))
             wave_prop = np.load('wave_PSD_algor.npy')
@@ -107,7 +66,7 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
             wave_prop = np.asarray(wave_prop)
             np.save('wave_PSD_algor.npy', wave_prop)
 
-        elif kategory is 'pulse':
+        elif category is 'pulse':
             if not os.path.exists('pulse_PSD_algor.npy'):
                 np.save('pulse_PSD_algor.npy', np.array([]))
             pulse_prop = np.load('pulse_PSD_algor.npy')
@@ -117,7 +76,7 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
             np.save('pulse_PSD_algor.npy', pulse_prop)
 
         else:
-            print 'something in the kategory is wrong!!! check !!!'
+            print("unknown fish category: %s" % category)
             quit()
 
     return psd_type, mean_proportions
@@ -140,4 +99,4 @@ def save_fundamentals(fishlist, output_folder):
     fundamentals = np.asarray(fundamentals)
     np.save(file_name, fundamentals)
 
-    print 'current fundamental frequencies are: ', fundamentals
+    print('current fundamental frequencies are: ', fundamentals)
