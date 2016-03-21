@@ -126,6 +126,91 @@ def plot_dfs_histogram(dfs_array, binwidth='FD'):
     fig.savefig('figures/histo_of_dfs.pdf')
     plt.close()
 
+
+def draw_bwin_analysis_plot(filename, t_trace, eod_trace, no_of_peaks, cvs, mean_ampl):
+    fs = 20
+    inch_factor = 2.54
+    sns.set_context("poster")
+    sns.axes_style('white')
+    sns.set_style("ticks")
+
+    fig = plt.figure(figsize=(40. / inch_factor, 35. / inch_factor), num='Fish No. '+filename[-10:-8])
+
+    ax1 = fig.add_subplot(5, 1, 1)
+    ax2 = fig.add_subplot(5, 1, 2)
+    ax3 = fig.add_subplot(5, 1, 3)
+    ax4 = fig.add_subplot(5, 1, 4)
+    ax5 = fig.add_subplot(5, 1, 5)
+
+    # ax2 plots the Number of detected EOD-cycles
+    window_nr = np.arange(len(no_of_peaks)) * 0.2
+    ax2.plot(window_nr, no_of_peaks, 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
+    ax2.set_ylabel('No. of detected\nEOD-cycles', fontsize=fs)
+
+    # ax3 plots the Amplitude Coefficient of Variation
+    ax3.plot(window_nr, cvs, 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
+    ax3.set_ylabel('Soundtrace Amplitude\nVariation Coefficient', fontsize=fs)
+
+    # ax4 plots the Mean Amplitude of each Window
+    ax4.plot(window_nr, mean_ampl, 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
+    ax4.set_ylabel('Mean Window\nAmplitude [a.u]', fontsize=fs)
+
+    ax = np.array([ax1, ax2, ax3, ax4, ax5])
+    return ax
+
+
+def draw_bwin_in_plot(ax, sampl_rate, t_trace, eod_trace, start_bwin, len_bwin, pk_idx, tr_idx):
+
+    fs = 20
+    w_end = start_bwin + len_bwin
+    w_bool = (t_trace >= start_bwin) & (t_trace <= w_end)
+    time_bwin = t_trace[w_bool]
+    eod_bwin = eod_trace[w_bool]
+
+    # ax1 plots the raw soundtrace with peak and trough detection
+    ax1 = ax[0]
+    ax1.plot(t_trace, eod_trace, color='royalblue', lw=3)
+    ax1.plot(t_trace[pk_idx], eod_trace[pk_idx], 'o', mfc='crimson', mec='k', mew=2., ms=12)
+    ax1.plot(t_trace[tr_idx], eod_trace[tr_idx], 'o', mfc='lime', mec='k', mew=2., ms=12)
+
+    ax1.set_xlim([start_bwin/2., start_bwin/2. + 0.1])
+    ax1.set_xlabel('Time [sec]', fontsize=fs)
+    ax1.set_ylabel('Amplitude [a.u]', fontsize=fs)
+
+
+    # Plot raw trace
+    ax5 = ax[-1]
+    ax5.plot(t_trace[t_trace < start_bwin], eod_trace[[t_trace < start_bwin]], color='royalblue', lw=3, rasterized=True)
+    ax5.plot(t_trace[t_trace > start_bwin+len_bwin], eod_trace[[t_trace > start_bwin+len_bwin]],
+             color='royalblue', lw=3, rasterized=True)
+    # Plot best window
+    ax5.plot(time_bwin, eod_bwin, color='purple', alpha=0.8, lw=3, rasterized=True)
+    plt.text(start_bwin+len_bwin/2., np.max(eod_bwin) + 0.2*np.max(eod_bwin),
+             'Best Window', ha='center', va='center')
+
+    ax5.set_xlabel('Time [sec]', fontsize=fs)
+    ax5.set_ylabel('Amplitude [a.u]', fontsize=fs)
+
+    for enu, axis in enumerate(ax):
+        ax_ylims = axis.get_ylim()
+        fix_plot_ticks(axis, ax_ylims)
+        axis.tick_params(which='both', labelsize=fs-2)
+        if 0 < enu <= 3:
+            axis.set_xlabel('Time [sec]', fontsize=fs)
+        if enu > 0:
+            axis.set_xlim((0, 25))
+
+        sns.despine(ax=axis, offset=10)
+    plt.tight_layout()
+    plt.show()
+
+
+def fix_plot_ticks(ax, axlims, tick_no=5):
+    ticks = np.linspace(axlims[0], axlims[1], tick_no)
+    ax.set_yticks(ticks)
+    pass
+
+
 def butter_lowpass(highcut, fs, order=5):
     nyq = 0.5 * fs
     high = highcut / nyq
