@@ -150,48 +150,7 @@ class FishRecording:
 
         if plot_debug:
 
-            fs = 16
-            inch_factor = 2.54
-            sns.set_context("poster")
-            sns.axes_style('white')
-            sns.set_style("ticks")
-
-            fig = plt.figure(figsize=(14, 15), num='Fish No. '+filename[-10:-8])
-
-            ax1 = fig.add_subplot(5, 1, 1)
-            ax2 = fig.add_subplot(5, 1, 2)
-            ax3 = fig.add_subplot(5, 1, 3)
-            ax4 = fig.add_subplot(5, 1, 4)
-            ax5 = fig.add_subplot(5, 1, 5)
-
-            # ax1 plots the raw soundtrace
-            t = self._time
-            eod = self._eod
-            ax1.plot(t, eod, color='royalblue', lw=2)
-
-            # ax2 plots the Number of detected EOD-cycles
-            window_nr = np.arange(len(no_of_peaks))
-            ax2.scatter(window_nr, no_of_peaks, s=50, c='blue')
-            ax2.set_ylabel('# of detected EOD-cycles', fontsize=fs)
-
-            # ax3 plots the Amplitude Coefficient of Variation
-            ax3.scatter(window_nr, cvs, s=50, c='red')
-            ax3.set_ylabel('Soundtrace Amplitude\nVariation Coefficient', fontsize=fs)
-
-            # ax4 plots the Mean Amplitude of each Window
-            ax4.scatter(window_nr, mean_ampl, s=50, c='green')
-            ax4.set_ylabel('Mean Amplitude [a.u]', fontsize=fs)
-
-            # ax5 plots the best window only
-
-            ax = np.array([ax1, ax2, ax3, ax4, ax5])
-
-            for enu, axis in enumerate(ax):
-                ax_ylims = axis.get_ylim()
-                aux.fix_plot_ticks(axis, ax_ylims)
-                axis.tick_params(which='both', labelsize=fs-2)
-                if 0 < enu <= 3:
-                    axis.set_xlabel('Time Window', fontsize=fs)
+            ax = aux.draw_bwin_analysis_plot(filename, self._time, self._eod, no_of_peaks, cvs, mean_ampl)
 
         # ToDo: Need to find a way to plot ax5!! It's not as easy as it seems...
         # ToDo: WOULD BE GREAT TO DO ALL THE PLOTTING IN EXTRA FUNCTION IN AUXILIARY!!!
@@ -202,6 +161,11 @@ class FishRecording:
         bwin = my_times[bwin_bool_inx]
 
         self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate/2.))
+
+        # plotting the best window in ax[5]
+
+        if plot_debug and len(ax) > 0:
+            aux.draw_bwin_in_plot(ax, self._time, self._eod, bwin, win_size)
 
         return bwin, win_size
 
@@ -271,11 +235,10 @@ class FishRecording:
             max_ampl_window = ampl_means == np.max(ampl_means[valid_windows])  # Boolean array with a single True element
 
             best_window = valid_windows * max_ampl_window
-            bwin_found = True
 
             if plot_debug:
 
-                fs = 16
+                fs = 20
                 windows = np.arange(len(peak_no))
                 axs[1].plot([windows[0], windows[-1]], [pk_mode[0][0] - tot_pks*pks_th,
                                                      pk_mode[0][0] - tot_pks*pks_th], '--k')
@@ -285,14 +248,9 @@ class FishRecording:
                 axs[2].plot([windows[0], windows[-1]], [cov_th, cov_th], '--k')
 
                 axs[3].plot([windows[0], windows[-1]], [ampls_th, ampls_th], '--k')
-                axs[3].plot(windows[best_window], ampl_means[best_window], 'o', ms=15, mec='black', mew=3,
+                axs[3].plot(windows[best_window], ampl_means[best_window], 'o', ms=20, mec='black', mew=3,
                             color='purple', alpha=0.8, label='Best Window')
                 axs[3].legend(frameon=False, loc='best', fontsize=fs-2)
-
-                for axis in axs:
-                    sns.despine(ax=axis, offset=10)
-                plt.tight_layout()
-                plt.show()
 
             return best_window
 
