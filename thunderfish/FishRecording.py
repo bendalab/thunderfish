@@ -119,11 +119,12 @@ class FishRecording:
 
             yield t_peak, a_peak, all_idx[i], t_trough, a_trough, all_idx[trough_idx]
 
-    def detect_best_window(self, win_size=8., plot_debug=False, ax=False):
+    def detect_best_window(self, win_size=8., win_shift=0.2, plot_debug=False, ax=False):
         """ This function detects the best window of the file to be analyzed. The core mechanism is in the
         best_window_algorithm function. For plot debug, call this function in "main" with argument plot_debug=True
 
-        :param win_size: float. size of the best window in seconds
+        :param win_size: float. Size in seconds of the best window in seconds.
+        :param win_shift: float. Size in seconds between windows. Default is 0.2 seconds.
         :param plot_debug: boolean. use True to plot filter parameters (and thresholds) for detecting best window
         :param ax: axes of the debugging plots.
         :return: two floats. The first float marks the start of the best window and the second the defined window-size.
@@ -135,6 +136,7 @@ class FishRecording:
         # peaks and troughs here refer to those found in each eod-cycle. For each cycle there should be one peak and
         # one trough if the detect_peak_indices function worked fine.
         my_times = peak_time[peak_time <= peak_time[-1] - win_size]  # Upper window-boundaries solution
+        my_times = np.arange(0.0, peak_time[-1] - win_size, win_shift)
         cvs = np.empty(len(my_times))
         no_of_peaks = np.empty(len(my_times))
         mean_ampl = np.empty(len(my_times))
@@ -155,7 +157,8 @@ class FishRecording:
         # ToDo: Need to find a way to plot ax5!! It's not as easy as it seems...
         # ToDo: WOULD BE GREAT TO DO ALL THE PLOTTING IN EXTRA FUNCTION IN AUXILIARY!!!
 
-        bwin_bool_array = self.best_window_algorithm(no_of_peaks, mean_ampl, cvs, plot_debug=plot_debug, axs=ax)
+        bwin_bool_array = self.best_window_algorithm(no_of_peaks, mean_ampl, cvs, plot_debug=plot_debug, axs=ax,
+                                                     win_shift=win_shift)
         bwin_bool_inx = np.where(bwin_bool_array)[0][0]  # Gets the index of the best window out of all windows.
         entire_time_idx = self._eod_peak_idx[bwin_bool_inx]
         bwin = my_times[bwin_bool_inx]
@@ -165,12 +168,12 @@ class FishRecording:
         # plotting the best window in ax[5]
 
         if plot_debug and len(ax) > 0:
-            aux.draw_bwin_in_plot(ax, self._time, self._eod, bwin, win_size)
+            aux.draw_bwin_in_plot(ax, self._sample_rate, self._time, self._eod, bwin, win_size, p_idx, t_idx)
 
         return bwin, win_size
 
     def best_window_algorithm(self, peak_no, mean_amplitudes, cvs, pks_th=0.15, ampls_percentile_th=85.,
-                              cvs_percentile_th=15., plot_debug=False, axs=None):
+                              cvs_percentile_th=15., plot_debug=False, axs=None, win_shift = 0.2):
 
         """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
         different amount of peaks compared to the stats.mode peak number of all windows. Secondly, it filters out
@@ -188,6 +191,7 @@ class FishRecording:
         :param ampls_percentile_th: choose a percentile threshold to avoid clipping. Default is 85
         :param plot_debug: boolean for showing plot-debugging.
         :param axs: axis of plot debugging.
+        :param win_shift: float. Size in seconds between windows. Default is 0.2 seconds.
         :return: boolean array with a single True element. This is the Index of the best window out of all windows.
         """
         # First filter: Stable # of detected peaks
@@ -227,7 +231,8 @@ class FishRecording:
                 ampls_percentile_th -= 5.
             return self.best_window_algorithm(peak_no, mean_amplitudes, cvs,
                                               ampls_percentile_th=ampls_percentile_th,
-                                              cvs_percentile_th=cvs_percentile_th, plot_debug=plot_debug)
+                                              cvs_percentile_th=cvs_percentile_th, plot_debug=plot_debug,
+                                              win_shift=win_shift)
             # This return is a Recursion! Need to return the value in the embeded function, otherwise the root_function
             # will not return anything!
 
@@ -238,19 +243,21 @@ class FishRecording:
 
             if plot_debug:
 
-                fs = 20
-                windows = np.arange(len(peak_no))
-                axs[1].plot([windows[0], windows[-1]], [pk_mode[0][0] - tot_pks*pks_th,
-                                                     pk_mode[0][0] - tot_pks*pks_th], '--k')
-                axs[1].plot([windows[0], windows[-1]], [pk_mode[0][0] + tot_pks*pks_th,
-                                                     pk_mode[0][0] + tot_pks*pks_th], '--k')
+                windows = np.arange(len(peak_no)) * win_shift
+                up_th = np.ones(len(windows)) * pk_mode[0][0] + tot_pks*pks_th
+                down_th = np.ones(len(windows)) * pk_mode[0][0] - tot_pks*pks_th
+                axs[1].fill_between(windows, y1=down_th, y2=up_th, color='forestgreen', alpha=0.4, edgecolor='k', lw=1)
 
-                axs[2].plot([windows[0], windows[-1]], [cov_th, cov_th], '--k')
+                cvs_th_array = np.ones(len(windows)) * cov_th
+                axs[2].fill_between(windows, y1=np.zeros(len(windows)), y2=cvs_th_array, color='forestgreen',
+                                    alpha=0.4, edgecolor='k', lw=1)
 
-                axs[3].plot([windows[0], windows[-1]], [ampls_th, ampls_th], '--k')
-                axs[3].plot(windows[best_window], ampl_means[best_window], 'o', ms=20, mec='black', mew=3,
-                            color='purple', alpha=0.8, label='Best Window')
-                axs[3].legend(frameon=False, loc='best', fontsize=fs-2)
+                clipping_lim = np.ones(len(windows)) * axs[3].get_ylim()[-1]
+                clipping_th = np.ones(len(windows))*ampls_th
+                axs[3].fill_between(windows, y1=clipping_th, y2=clipping_lim,
+                                    color='tomato', alpha=0.6, edgecolor='k', lw=1)
+                axs[3].plot(windows[best_window], ampl_means[best_window], 'o', ms=25, mec='black', mew=3,
+                            color='purple', alpha=0.8)
 
             return best_window
 
