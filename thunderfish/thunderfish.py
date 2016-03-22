@@ -8,9 +8,12 @@ import sorting_tools as st
 import config_tools as ct
 import audioread
 from IPython import embed
+import matplotlib.pyplot as plt
+import seaborn as sns
+import Auxiliary as aux
 
 
-def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None):
+def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None, beat_plot= False):
     # get config dictionary
     cfg = ct.get_config_dict()
 
@@ -72,6 +75,14 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         # bw_data = data[(bwin * af.samplerate):(bwin * af.samplerate + win_width * af.samplerate)]
         # np.save('pulse_trace_data.npy', bw_data)
 
+        if beat_plot:
+            # designed for parama_data/20140519_Rioanita/EN099.wav
+            beat_data = data[(1.2 * af.samplerate): (1.9 * af.samplerate)] / 2.0 ** 15
+            beat_time = np.arange(len(beat_data)) * 1.0 / af.samplerate
+            aux.beat_plot(beat_data, beat_time)
+            embed()
+            quit()
+
         #####################################################
 
         # Pulse analysis
@@ -81,12 +92,19 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
             print('')
             print('try to create MEAN PULSE-EOD')
             print('')
-            pulse_data, pulse_freq = ft.pulse_sorting(bwin, win_width, data[:index] / 2.0 ** 15)
+            pulse_data, pulse_freq = ft.pulse_sorting(bwin, win_width, data[:index] / 2.0 ** 15, fish_type, psd_type)
+
+        wave_data = []
+        if fish_type == 'wave' and len(fishlist) == 1:
+            print('')
+            print('try to create MEAN WAVE-EOD')
+            print('')
+            wave_data = ft.wave_sorting(bwin, win_width, data[:index] / 2.0 ** 15)
 
         # create EOD plots
         out_folder = aux.create_outp_folder(audio_file, output_folder)
         ft.bw_psd_and_eod_plot(power_fres1, freqs_fres1, bwin, win_width, data[:index] / 2.0 ** 15, psd_type, fish_type,
-                               fishlist, pulse_data, pulse_freq, out_folder, mean_proportions, r_value)
+                               fishlist, pulse_data, pulse_freq, out_folder, mean_proportions, r_value, wave_data)
 
         # saves fundamentals of all wave fish !!!
         st.save_fundamentals(fishlist, out_folder)
