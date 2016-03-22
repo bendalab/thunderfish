@@ -159,7 +159,7 @@ def draw_bwin_analysis_plot(filename, t_trace, eod_trace, no_of_peaks, cvs, mean
     return ax
 
 
-def draw_bwin_in_plot(ax, sampl_rate, t_trace, eod_trace, start_bwin, len_bwin, pk_idx, tr_idx):
+def draw_bwin_in_plot(ax, filename, t_trace, eod_trace, start_bwin, len_bwin, pk_idx, tr_idx, savefig=False):
 
     fs = 20
     w_end = start_bwin + len_bwin
@@ -174,6 +174,10 @@ def draw_bwin_in_plot(ax, sampl_rate, t_trace, eod_trace, start_bwin, len_bwin, 
     ax1.plot(t_trace[tr_idx], eod_trace[tr_idx], 'o', mfc='lime', mec='k', mew=2., ms=12)
 
     ax1.set_xlim([start_bwin/2., start_bwin/2. + 0.1])
+
+    up_lim_ax1 = np.max(eod_bwin) * 1.05
+    down_lim_ax1 = np.min(eod_bwin) * .95
+    ax1.set_ylim((down_lim_ax1, up_lim_ax1))
     ax1.set_xlabel('Time [sec]', fontsize=fs)
     ax1.set_ylabel('Amplitude [a.u]', fontsize=fs)
 
@@ -195,14 +199,20 @@ def draw_bwin_in_plot(ax, sampl_rate, t_trace, eod_trace, start_bwin, len_bwin, 
         ax_ylims = axis.get_ylim()
         fix_plot_ticks(axis, ax_ylims)
         axis.tick_params(which='both', labelsize=fs-2)
-        if 0 < enu <= 3:
-            axis.set_xlabel('Time [sec]', fontsize=fs)
         if enu > 0:
             axis.set_xlim((0, 25))
 
         sns.despine(ax=axis, offset=10)
     plt.tight_layout()
-    plt.show()
+
+    if not savefig:
+        plt.show()
+    else:
+        out_folder = './poster_figures'
+        if not os.path.exists(out_folder):
+            os.makedirs(out_folder)
+        plt.savefig(out_folder + '/best_window_fig_' + filename.split('_')[1] + '.pdf')
+        plt.close()
 
 
 def fix_plot_ticks(ax, axlims, tick_no=5):

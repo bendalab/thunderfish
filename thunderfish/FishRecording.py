@@ -119,7 +119,7 @@ class FishRecording:
 
             yield t_peak, a_peak, all_idx[i], t_trough, a_trough, all_idx[trough_idx]
 
-    def detect_best_window(self, win_size=8., win_shift=0.2, plot_debug=False, ax=False):
+    def detect_best_window(self, win_size=8., win_shift=0.2, plot_debug=False, ax=False, savefig=False):
         """ This function detects the best window of the file to be analyzed. The core mechanism is in the
         best_window_algorithm function. For plot debug, call this function in "main" with argument plot_debug=True
 
@@ -166,9 +166,9 @@ class FishRecording:
         self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate/2.))
 
         # plotting the best window in ax[5]
-
         if plot_debug and len(ax) > 0:
-            aux.draw_bwin_in_plot(ax, self._sample_rate, self._time, self._eod, bwin, win_size, p_idx, t_idx)
+            aux.draw_bwin_in_plot(ax, filename, self._time, self._eod, bwin, win_size, p_idx, t_idx,
+                                  savefig=savefig)
 
         return bwin, win_size
 
