@@ -183,6 +183,24 @@ def create_outp_folder(filepath, out_path='.'):
 
     return new_folder
 
+def beat_plot(beat_data, beat_time):
+    inch_factor = 2.54
+    sns.set_context("poster")
+    sns.axes_style('white')
+    sns.set_style("ticks")
+    fs=16
+
+    fig, ax = plt.subplots(figsize=(45./ inch_factor, 20./ inch_factor))
+    ax.plot(beat_time, beat_data, lw = 1, color='firebrick')
+    ax.set_ylabel('Amplitude [a.u.]', fontsize= fs)
+    ax.set_xlabel('Time [sec]', fontsize= fs)
+    ax.set_title('2Hz Beat', fontsize= fs + 2)
+    ax.tick_params(axis='both', which='major', labelsize=fs - 2)
+
+    sns.despine(fig=fig, ax=ax, offset=10)
+    fig.tight_layout()
+    plt.show()
+
 
 if __name__ == '__main__':
     # Test the df_histogram function
