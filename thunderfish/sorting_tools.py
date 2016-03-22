@@ -33,7 +33,6 @@ def filter_fishes(fishlists):
 
 def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=False, category='wave'):
     freq_steps = int(125 / fresolution)
-
     proportions = []
     mean_powers = []
     # embed()
