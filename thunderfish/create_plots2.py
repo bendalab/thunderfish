@@ -92,14 +92,16 @@ def fishtype_barplot(data):
 
 def main():
     # Load data
-    npy_files = glob.glob('*.npy')
-    data = load_data(npy_files)
+    wave_file = sys.argv[1]
+
+    # npy_files = glob.glob('*.npy')
+    # data = load_data(npy_files)
 
     # create histogram of EOD-frequencies
     create_histo(data)
 
     # create histogram of all possible beat-frequencies
-    wave_file = glob.glob('*wave*.npy')
+    wave_file = ('fish_wave.npy')
     wave_freqs = np.load(wave_file[0])
     dfs = df_histogram(wave_freqs)
     plot_dfs_histogram(dfs)

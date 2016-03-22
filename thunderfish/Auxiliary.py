@@ -178,7 +178,6 @@ def draw_bwin_in_plot(ax, filename, t_trace, eod_trace, start_bwin, len_bwin, pk
     up_lim_ax1 = np.max(eod_bwin) * 1.05
     down_lim_ax1 = np.min(eod_bwin) * .95
     ax1.set_ylim((down_lim_ax1, up_lim_ax1))
-
     ax1.set_xlabel('Time [sec]', fontsize=fs)
     ax1.set_ylabel('Amplitude [a.u]', fontsize=fs)
 
@@ -200,8 +199,6 @@ def draw_bwin_in_plot(ax, filename, t_trace, eod_trace, start_bwin, len_bwin, pk
         ax_ylims = axis.get_ylim()
         fix_plot_ticks(axis, ax_ylims)
         axis.tick_params(which='both', labelsize=fs-2)
-        # if 0 < enu <= 3:
-        #     axis.set_xlabel('Time [sec]', fontsize=fs)
         if enu > 0:
             axis.set_xlim((0, 25))
 
@@ -280,6 +277,24 @@ def create_outp_folder(filepath, out_path='.'):
     new_folder = ''.join(paths.values())
 
     return new_folder
+
+def beat_plot(beat_data, beat_time):
+    inch_factor = 2.54
+    sns.set_context("poster")
+    sns.axes_style('white')
+    sns.set_style("ticks")
+    fs=16
+
+    fig, ax = plt.subplots(figsize=(45./ inch_factor, 20./ inch_factor))
+    ax.plot(beat_time, beat_data, lw = 1, color='firebrick')
+    ax.set_ylabel('Amplitude [a.u.]', fontsize= fs)
+    ax.set_xlabel('Time [sec]', fontsize= fs)
+    ax.set_title('2Hz Beat', fontsize= fs + 2)
+    ax.tick_params(axis='both', which='major', labelsize=fs - 2)
+
+    sns.despine(fig=fig, ax=ax, offset=10)
+    fig.tight_layout()
+    plt.show()
 
 
 if __name__ == '__main__':
