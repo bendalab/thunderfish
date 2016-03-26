@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 import matplotlib.colors as mc
 from collections import OrderedDict
+import dataloader as dl
+import peakdetection as pt
 import pyaudio
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
@@ -63,105 +65,6 @@ cfg['labelDoubleUse'] = [ True, '', 'Display double-use count of the peak' ]
 
 cfgsec['verboseLevel'] = 'Debugging:'
 cfg['verboseLevel'] = [ 0, '', '0=off upto 4 very detailed' ]
-
-
-###############################################################################
-## load data:
-
-def load_pickle( filename, trace=0 ) :
-    """
-    load Joerg's pickle files
-    """
-    import pickle
-    with open(filename, 'rb') as f:
-        data = pickle.load(f)
-    time = data['time_trace']
-    freq = 1000.0/(time[1]-time[0])
-    tracen = data['raw_data'].shape[1]
-    if trace >= tracen :
-        print 'number of traces in file is', tracen
-        quit()
-    return freq, data['raw_data'][:,trace], 'mV'
-    
-def load_wavfile( filename, trace=0 ) :
-    """
-    load wav file using scipy io.wavfile
-    """
-    from scipy.io import wavfile
-    freq, data = wavfile.read( filename )
-    if len( data.shape ) == 1 :
-        if trace >= 1 :
-            print 'number of traces in file is', 1
-            quit()
-        return freq, data/2.0**15, ''
-    else :
-        tracen = data.shape[1]
-        if trace >= tracen :
-            print 'number of traces in file is', tracen
-            quit()
-        return freq, data[:,trace]/2.0**15, 'a.u.'
-
-def load_wave( filename, trace=0 ) :
-    """
-    load wav file using wave module
-    """
-    try:
-        import wave
-    except ImportError:
-        print 'python module "wave" is not installed.'
-        return load_wavfile( filename, trace )
-
-    wf = wave.open( filename, 'r' )
-    (nchannels, sampwidth, freq, nframes, comptype, compname) = wf.getparams()
-    print nchannels, sampwidth, freq, nframes, comptype, compname
-    buffer = wf.readframes( nframes )
-    format = 'i%d' % sampwidth
-    data = np.fromstring( buffer, dtype=format ).reshape( -1, nchannels )  # read data
-    wf.close()
-    print data.shape
-    if len( data.shape ) == 1 :
-        if trace >= 1 :
-            print 'number of traces in file is', 1
-            quit()
-        return freq, data/2.0**(sampwidth*8-1), ''
-    else :
-        tracen = data.shape[1]
-        if trace >= tracen :
-            print 'number of traces in file is', tracen
-            quit()
-        return freq, data[:,trace]/2.0**(sampwidth*8-1), 'a.u.'
-
-    
-def load_audio( filename, trace=0 ) :
-    """
-    load wav file using audioread.
-    This is not available in python x,y.
-    """
-    try:
-        import audioread
-    except ImportError:
-        print 'python module "audioread" is not installed.'
-        return load_wave( filename, trace )
-    
-    data = np.array( [] )
-    with audioread.audio_open( filename ) as af :
-        tracen = af.channels
-        if trace >= tracen :
-            print 'number of traces in file is', tracen
-            quit()
-        data = np.zeros( np.ceil( af.samplerate*af.duration ), dtype="<i2" )
-        index = 0
-        for buffer in af:
-            fulldata = np.fromstring( buffer, dtype='<i2' ).reshape( -1, af.channels )
-            n = fulldata.shape[0]
-            if index+n > len( data ) :
-                n = len( data ) - index
-            if n > 0 :
-                data[index:index+n] = fulldata[:n,trace]
-                index += n
-            else :
-                break
-    return af.samplerate, data/2.0**15, 'a.u.'
 
 
 ###############################################################################
@@ -284,88 +187,6 @@ def load_config( filename, cfg ) :
                 else :
                     cfg[key] = type(cv)(vals[0])
             
-
-###############################################################################
-## peak detection:
-
-def detect_peaks( time, data, threshold, check_func=None, check_conditions=None ):
-
-    if not check_conditions:
-        check_conditions = dict()
-        
-    event_list = list()
-
-    # initialize:
-    dir = 0
-    min_inx = 0
-    max_inx = 0
-    min_value = data[0]
-    max_value = min_value
-    trough_inx = 0
-
-    # loop through the new read data
-    for index, value in enumerate(data):
-
-        # rising?
-        if dir > 0:
-            # if the new value is bigger than the old maximum: set it as new maximum
-            if max_value < value:
-                max_inx = index  # maximum element
-                max_value = value
-
-            # otherwise, if the maximum value is bigger than the new value plus the threshold:
-            # this is a local maximum!
-            elif max_value >= value + threshold:
-                # there was a peak:
-                event_inx = max_inx
-
-                # check and update event with this magic function
-                if check_func:
-                    r = check_func( time, data, event_inx, index, trough_inx, min_inx, threshold, check_conditions )
-                    if len( r ) > 0 :
-                        # this really is an event:
-                        event_list.append( r )
-                else:
-                    # this really is an event:
-                    event_list.append( time[event_inx] )
-
-                # change direction:
-                min_inx = index  # minimum element
-                min_value = value
-                dir = -1
-
-        # falling?
-        elif dir < 0:
-            if value < min_value:
-                min_inx = index  # minimum element
-                min_value = value
-                trough_inx = index
-
-            elif value >= min_value + threshold:
-                # there was a trough:
-                # change direction:
-                max_inx = index  # maximum element
-                max_value = value
-                dir = 1
-
-        # don't know!
-        else:
-            if max_value >= value + threshold:
-                dir = -1  # falling
-            elif value >= min_value + threshold:
-                dir = 1  # rising
-
-            if max_value < value:
-                max_inx = index  # maximum element
-                max_value = value
-
-            elif value < min_value:
-                min_inx = index  # minimum element
-                min_value = value
-                trough_inx = index
-
-    return np.array( event_list )
-
 
 ###############################################################################
 ## harmonic group extraction:
@@ -872,41 +693,6 @@ def threshold_estimate( data, noise_factor, peak_factor ) :
     return lowthreshold, highthreshold, center
 
 
-def accept_psd_peaks( freqs, data, peak_inx, index, trough_inx, min_inx, threshold, check_conditions ) :
-    """
-    Accept each detected peak and compute its size and width.
-
-    Args:
-        freqs (array): frequencies of the power spectrum
-        data (array): the power spectrum
-        peak_inx: index of the current peak
-        index: current index (first minimum after peak at threshold below)
-        trough_inx: index of the previous trough
-        min_inx: index of previous minimum
-        threshold: threshold value
-        check_conditions: not used
-    
-    Returns: 
-        freq (float): frequency of the peak
-        power (float): power of the peak (value of data at the peak)
-        size (float): size of the peak (peak minus previous trough)
-        width (float): width of the peak at 0.75*size
-        count (float): zero
-    """
-    size = data[peak_inx] - data[trough_inx]
-    wthresh = data[trough_inx] + 0.75*size
-    width = 0.0
-    for k in xrange( peak_inx, trough_inx, -1 ) :
-        if data[k] < wthresh :
-            width = freqs[peak_inx] - freqs[k]
-            break
-    for k in xrange( peak_inx, index ) :
-        if data[k] < wthresh :
-            width += freqs[k] - freqs[peak_inx]
-            break
-    return [ freqs[peak_inx], data[peak_inx], size, width, 0.0 ]
-
-
 def harmonic_groups( psd_freqs, psd, cfg ) :
     """
     Detect peaks in power spectrum and extract fundamentals of harmonic groups.
@@ -966,7 +752,7 @@ def harmonic_groups( psd_freqs, psd, cfg ) :
     ## plt.show()
     
     # detect peaks in decibel power spectrum:
-    all_freqs = detect_peaks( psd_freqs, log_psd, low_threshold, accept_psd_peaks )
+    all_freqs = pt.detect_peaks(log_psd, low_threshold, psd_freqs, pt.accept_psd_peaks)
 
     # select good peaks:
     wthresh = cfg['maxPeakWidthFac'][0]*(psd_freqs[1] - psd_freqs[0])
@@ -1770,14 +1556,8 @@ def main():
 
     # load data:
     channel = args.channel
-    filename = os.path.basename( filepath )
-    ext = filename.split( '.' )[-1]
-    if ext == 'pkl' :
-        freq, data, unit = load_pickle( filepath, channel )
-    else :
-        #freq, data, unit = load_wavfile( filepath, channel )
-        #freq, data, unit = load_wave( filepath, channel )
-        freq, data, unit = load_audio( filepath, channel )
+    filename = os.path.basename(filepath)
+    freq, data, unit = dl.load_data(filepath, channel)
 
     # plot:
     sp = SignalPlot( freq, data, unit, filename, channel )

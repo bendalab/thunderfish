@@ -1,5 +1,7 @@
 # the best window detector as functions...
 
+import peakdetection as pd
+
 def long_enough(rate, data, minduration=10.0):
     """
     Returns:
@@ -8,107 +10,82 @@ def long_enough(rate, data, minduration=10.0):
     return = len(data) / rate <= minduration
 
 
-def peakdet(v, delta, x=None):
-    """
-    Converted from MATLAB script at http://billauer.co.il/peakdet.html
-    Returns two arrays
-    function [maxtab, mintab]=peakdet(v, delta, x)
-    %PEAKDET Detect peaks in a vector
-    % [MAXTAB, MINTAB] = PEAKDET(V, DELTA) finds the local
-    % maxima and minima ("peaks") in the vector V.
-    % MAXTAB and MINTAB consists of two columns. Column 1
-    % contains indices in V, and column 2 the found values.
-    %
-    % With [MAXTAB, MINTAB] = PEAKDET(V, DELTA, X) the indices
-    % in MAXTAB and MINTAB are replaced with the corresponding
-    % X-values.
-    %
-    % A point is considered a maximum peak if it has the maximal
-    % value, and was preceded (to the left) by a value lower by
-    % DELTA.
-    % Eli Billauer, 3.4.05 (Explicitly not copyrighted).
-    % This function is released to the public domain; Any use is allowed.
-    """
-    maxtab = []
-    maxidx = []
+def peak_trough_iterator(data, rate, pidx, tidx):
+    t = np.hstack((int(pidx*rate), int(tidx*rate)))
+    y = np.hstack((int(pidx*rate)*0+1, int(tidx*rate)*0-1))
+    all_idx = np.hstack((pidx, tidx))
+    a = np.hstack((data[pidx], data[tidx]))
+    idx = np.argsort(t)
+    pt = y[idx]
+    t = t[idx]
+    a = a[idx]
+    all_idx = all_idx[idx]
 
-    mintab = []
-    minidx = []
+    total_length = len(t)
+    hit_upper_limit = False
+    hit_lower_limit = False
+    for i in np.where(pt == 1)[0]:
+        t_peak = t[i]
+        a_peak = a[i]
 
-    if x is None:
-        x = np.arange(len(v), dtype=int)
+        k_next = i
+        k_prev = i
+        while pt[k_next] > 0:
+            k_next += 1
+            if k_next == total_length:
+                hit_upper_limit = True
+                break
+        if hit_upper_limit:
+            break
 
-    v = np.asarray(v)
+        t_next_trough = t[k_next]
 
-    if len(v) != len(x):
-        sys.exit('Input vectors v and x must have same length')
+        while pt[k_prev] > 0:
+            k_prev -= 1
+            if k_prev < 0:
+                hit_lower_limit = True
+                break
+        if hit_lower_limit:
+            hit_lower_limit = False
+            continue
 
-    if not np.isscalar(delta):
-        sys.exit('Input argument delta must be a scalar')
-
-    if delta <= 0:
-        sys.exit('Input argument delta must be positive')
-
-    mn, mx = np.Inf, -np.Inf
-    mnpos, mxpos = np.NaN, np.NaN
-
-    lookformax = True
-
-    for i in np.arange(len(v)):
-        this = v[i]
-        if this > mx:
-            mx = this
-            mxpos = x[i]
-
-        if this < mn:
-            mn = this
-            mnpos = x[i]
-
-
-        if lookformax:
-            if this < mx-delta:
-                maxtab.append(mx)
-                maxidx.append(mxpos)
-                mn = this
-                mnpos = x[i]
-                lookformax = False
+        t_prev_trough = t[k_prev]
+        trough_idx = None
+        if np.abs(t_next_trough-t_peak) < np.abs(t_prev_trough-t_peak):
+            t_trough = t_next_trough
+            a_trough = a[k_next]
+            trough_idx = k_next
         else:
-            if this > mn+delta:
-                mintab.append(mn)
-                minidx.append(mnpos)
-                mx = this
-                mxpos = x[i]
-                lookformax = True
+            t_trough = t_prev_trough
+            a_trough = a[k_prev]
+            trough_idx = k_prev
 
-    return np.array(maxtab), np.array(maxidx), np.array(mintab), np.array(minidx)
+        yield t_peak, a_peak, all_idx[i], t_trough, a_trough, all_idx[trough_idx]
 
-
-def detect_peak_and_trough_indices(self, peak_threshold=None, norm_window=.1):
+        
+def detect_peak_and_trough_indices(data, rate, norm_window=.1):
     """This function finds the indices of peaks and troughs of each EOD-cycle in the recording
 
-    :param peak_threshold: This is the threshold to be used for the peakdet function (Translated Matlab-Code...).
+    :param peak_threshold: This is the threshold to be used for the detect_peaks function.
     :param norm_window:
     :return: two arrays. The first contains the peak indices and the second contains the trough indices.
     """
-    if self._eod_peak_idx is None or self._eod_trough_idx is None:
+    w = np.ones(rate*norm_window)
+    w[:] /= len(w)
+    eod2 = np.sqrt(np.correlate(data**2., w, mode='same') - np.correlate(data, w, mode='same')**2.)
+    eod2 = data / eod2
+    peak_threshold = np.percentile(np.abs(eod2), 99.9)-np.percentile(np.abs(eod2), 70)
+    # The Threshold is 1.5 times the standard deviation of the eod
+    eod_peak_idx, eod_trough_idx = pd.detect_peak_troughs(eod2, peak_threshold)
 
-        w = np.ones(self._sample_rate*norm_window)
-        w[:] /= len(w)
-        eod2 = np.sqrt(np.correlate(self._eod**2., w, mode='same') - np.correlate(self._eod, w, mode='same')**2.)
-        eod2 = self._eod / eod2
-        if peak_threshold is None:
-            peak_threshold = np.percentile(np.abs(eod2), 99.9)-np.percentile(np.abs(eod2), 70)
-          # The Threshold is 1.5 times the standard deviation of the eod
+    # refine by matching troughs and peaks:
+    everything = list(peak_trough_iterator(data, rate, eod_peak_idx, eod_trough_idx))
+    _, _, peak_idx, _, _, trough_idx = map(lambda x: np.asarray(x), zip(*everything))
 
-        _, self._eod_peak_idx, _, self._eod_trough_idx = aux.peakdet(eod2, peak_threshold)
-        # refine by matching troughs and peaks
-        everything = list(self.peak_trough_iterator())
-        _, _, self._eod_peak_idx, _, _, self._eod_trough_idx = map(lambda x: np.asarray(x), zip(*everything))
-
-    return self._eod_peak_idx, self._eod_trough_idx
+    return peak_idx, trough_idx
 
 
-def best_window_algorithm(self, peak_no, mean_amplitudes, cvs, pks_th=0.15, ampls_percentile_th=85.,
+def best_window_algorithm(peak_no, mean_amplitudes, cvs, pks_th=0.15, ampls_percentile_th=85.,
                           cvs_percentile_th=15., plot_debug=False, axs=None, win_shift = 0.2):
 
     """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
@@ -154,9 +131,8 @@ def best_window_algorithm(self, peak_no, mean_amplitudes, cvs, pks_th=0.15, ampl
 
     # If there is no best window, run the algorithm again with more flexible threshodlds.
     if not True in valid_windows and cvs_percentile_th == 100. and ampls_percentile_th == 0.:
-        print('\nWARNING. The recording %s seems to be of very bad quality for analysis. '
-              'Skipping recording...\n' % self._wavfile)
-        os.remove(self._wavfile)
+        print('\nWARNING. The recording %s seems to be of very bad quality for analysis. ' )
+        #      'Skipping recording...\n' % title)
         quit()
 
     elif not True in valid_windows:
@@ -165,10 +141,10 @@ def best_window_algorithm(self, peak_no, mean_amplitudes, cvs, pks_th=0.15, ampl
             cvs_percentile_th += 5.
         if ampls_percentile_th >= 5.:
             ampls_percentile_th -= 5.
-        return self.best_window_algorithm(peak_no, mean_amplitudes, cvs,
-                                          ampls_percentile_th=ampls_percentile_th,
-                                          cvs_percentile_th=cvs_percentile_th, plot_debug=plot_debug,
-                                          win_shift=win_shift)
+        return best_window_algorithm(peak_no, mean_amplitudes, cvs,
+                                     ampls_percentile_th=ampls_percentile_th,
+                                     cvs_percentile_th=cvs_percentile_th, plot_debug=plot_debug,
+                                     win_shift=win_shift)
         # This return is a Recursion! Need to return the value in the embeded function, otherwise the root_function
         # will not return anything!
 
@@ -197,7 +173,9 @@ def best_window_algorithm(self, peak_no, mean_amplitudes, cvs, pks_th=0.15, ampl
 
         return best_window
 
-def detect_best_window(self, win_size=8., win_shift=0.2, plot_debug=False, ax=False, savefig=False):
+    
+def detect_best_window(data, rate, win_size=8., win_shift=0.2,
+                       plot_debug=False, ax=False, savefig=False, title=""):
     """ This function detects the best window of the file to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function in "main" with argument plot_debug=True
 
@@ -207,10 +185,9 @@ def detect_best_window(self, win_size=8., win_shift=0.2, plot_debug=False, ax=Fa
     :param ax: axes of the debugging plots.
     :return: two floats. The first float marks the start of the best window and the second the defined window-size.
     """
-    filename = self._wavfile
-    p_idx, t_idx = self.detect_peak_and_trough_indices()
-    peak_time, peak_ampl, trough_time, trough_ampl = self._time[p_idx], self._eod[p_idx],\
-                                                     self._time[t_idx], self._eod[t_idx]
+    p_idx, t_idx = detect_peak_and_trough_indices(data, rate)
+    peak_time, peak_ampl, trough_time, trough_ampl = int(p_idx*rate), data[p_idx],\
+                                                     int(t_idx*rate), data[t_idx]
     # peaks and troughs here refer to those found in each eod-cycle. For each cycle there should be one peak and
     # one trough if the detect_peak_indices function worked fine.
     my_times = peak_time[peak_time <= peak_time[-1] - win_size]  # Upper window-boundaries solution
@@ -228,24 +205,20 @@ def detect_best_window(self, win_size=8., win_shift=0.2, plot_debug=False, ax=Fa
         mean_ampl[i] = np.mean(p2t_ampl)
         no_of_peaks[i] = len(p2t_ampl)
 
-    if plot_debug:
-
-        ax = aux.draw_bwin_analysis_plot(filename, self._time, self._eod, no_of_peaks, cvs, mean_ampl)
+    #if plot_debug:
+    #    ax = aux.draw_bwin_analysis_plot(title, self._time, self._eod, no_of_peaks, cvs, mean_ampl)
 
     # ToDo: Need to find a way to plot ax5!! It's not as easy as it seems...
     # ToDo: WOULD BE GREAT TO DO ALL THE PLOTTING IN EXTRA FUNCTION IN AUXILIARY!!!
 
-    bwin_bool_array = self.best_window_algorithm(no_of_peaks, mean_ampl, cvs, plot_debug=plot_debug, axs=ax,
-                                                 win_shift=win_shift)
+    bwin_bool_array = best_window_algorithm(no_of_peaks, mean_ampl, cvs, plot_debug=plot_debug, axs=ax, win_shift=win_shift)
     bwin_bool_inx = np.where(bwin_bool_array)[0][0]  # Gets the index of the best window out of all windows.
-    entire_time_idx = self._eod_peak_idx[bwin_bool_inx]
+    entire_time_idx = p_idx[bwin_bool_inx]
     bwin = my_times[bwin_bool_inx]
 
-    self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate/2.))
-
     # plotting the best window in ax[5]
-    if plot_debug and len(ax) > 0:
-        aux.draw_bwin_in_plot(ax, filename, self._time, self._eod, bwin, win_size, p_idx, t_idx,
-                              savefig=savefig)
+    #if plot_debug and len(ax) > 0:
+    #    aux.draw_bwin_in_plot(ax, title, self._time, self._eod, bwin, win_size, p_idx, t_idx,
+    #                          savefig=savefig)
 
     return bwin, win_size

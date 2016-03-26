@@ -99,12 +99,12 @@ def load_audio( filename, trace=0 ) :
     return af.samplerate, data/2.0**15, 'a.u.'
 
 
-def load_data(filename, trace=0) :
+def load_data(filepath, channel=0) :
     """
     Call this function to load a single trace of data.
 
     Args:
-        filename (string): the full path and name of the file to load
+        filepath (string): the full path and name of the file to load
         trace (int): the trace/channel to be returned
 
     Returns:
@@ -112,11 +112,11 @@ def load_data(filename, trace=0) :
         data (array): the data trace
         unit (string): the unit of the data
     """
-    ext = filename.split( '.' )[-1]
+    ext = filepath.split( '.' )[-1]
     if ext == 'pkl' :
-        freq, data, unit = dl.load_pickle( filepath, channel )
+        freq, data, unit = load_pickle( filepath, channel )
     else :
-        #freq, data, unit = dl.load_wavfile( filepath, channel )
-        #freq, data, unit = dl.load_wave( filepath, channel )
-        freq, data, unit = dl.load_audio( filepath, channel )
+        #freq, data, unit = load_wavfile( filepath, channel )
+        #freq, data, unit = load_wave( filepath, channel )
+        freq, data, unit = load_audio( filepath, channel )
     return freq, data, unit
