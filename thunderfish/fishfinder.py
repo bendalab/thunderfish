@@ -9,7 +9,7 @@ import matplotlib.mlab as ml
 import matplotlib.colors as mc
 from collections import OrderedDict
 import dataloader as dl
-import peakdetection as pt
+import peakdetection as pd
 import pyaudio
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
@@ -752,7 +752,7 @@ def harmonic_groups( psd_freqs, psd, cfg ) :
     ## plt.show()
     
     # detect peaks in decibel power spectrum:
-    all_freqs = pt.detect_peaks(log_psd, low_threshold, psd_freqs, pt.accept_psd_peaks)
+    all_freqs = pd.detect_peaks(log_psd, low_threshold, psd_freqs, pd.accept_psd_peaks)
 
     # select good peaks:
     wthresh = cfg['maxPeakWidthFac'][0]*(psd_freqs[1] - psd_freqs[0])
@@ -1019,18 +1019,18 @@ class SignalPlot :
         self.peak_specmarker.append( m )
         # annotation:
         fwidth = self.fmax - self.fmin
-        pt = []
+        pl = []
         if cfg['labelFrequency'][0] :
-            pt.append( r'$f=${:.1f} Hz'.format(peak[0]) )
+            pl.append( r'$f=${:.1f} Hz'.format(peak[0]) )
         if cfg['labelHarmonic'][0] and harmonics >= 0 :
-            pt.append( r'$h=${:d}'.format(harmonics) )
+            pl.append( r'$h=${:d}'.format(harmonics) )
         if cfg['labelPower'][0] :
-            pt.append( r'$p=${:g}'.format(peak[1]) )
+            pl.append( r'$p=${:g}'.format(peak[1]) )
         if cfg['labelWidth'][0] :
-            pt.append( r'$\Delta f=${:.2f} Hz'.format(peak[3]) )
+            pl.append( r'$\Delta f=${:.2f} Hz'.format(peak[3]) )
         if cfg['labelDoubleUse'][0] :
-            pt.append( r'dc={:.0f}'.format(peak[4]) )
-        self.peak_annotation.append( self.axp.annotate( '\n'.join(pt), xy=( peak[0], peak[1] ),
+            pl.append( r'dc={:.0f}'.format(peak[4]) )
+        self.peak_annotation.append( self.axp.annotate( '\n'.join(pl), xy=( peak[0], peak[1] ),
                        xytext=( peak[0]+0.03*fwidth, peak[1] ),
                        bbox=dict(boxstyle='round',facecolor='white'),
                        arrowprops=dict(arrowstyle='-') ) )
@@ -1560,7 +1560,7 @@ def main():
     freq, data, unit = dl.load_data(filepath, channel)
 
     # plot:
-    sp = SignalPlot( freq, data, unit, filename, channel )
+    sp = SignalPlot(freq, data, unit, filename, channel)
 
 if __name__ == '__main__':
     main()

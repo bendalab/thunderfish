@@ -76,7 +76,7 @@ def detect_peak_and_trough_indices(data, rate, norm_window=.1):
     eod2 = data / eod2
     peak_threshold = np.percentile(np.abs(eod2), 99.9)-np.percentile(np.abs(eod2), 70)
     # The Threshold is 1.5 times the standard deviation of the eod
-    eod_peak_idx, eod_trough_idx = pd.detect_peak_troughs(eod2, peak_threshold)
+    eod_peak_idx, eod_trough_idx = pd.detect_peaks_troughs(eod2, peak_threshold)
 
     # refine by matching troughs and peaks:
     everything = list(peak_trough_iterator(data, rate, eod_peak_idx, eod_trough_idx))
