@@ -1557,7 +1557,7 @@ def main():
     # load data:
     channel = args.channel
     filename = os.path.basename(filepath)
-    freq, data, unit = dl.load_data(filepath, channel)
+    freq, data, unit = dl.load_data(filepath, channel, cfg['verboseLevel'][0])
 
     # plot:
     sp = SignalPlot(freq, data, unit, filename, channel)
