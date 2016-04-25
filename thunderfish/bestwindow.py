@@ -35,10 +35,11 @@ def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
     return (data - mean) / std
 
 
-def accept_peak_std_threshold(time, data, event_inx, index, min_inx, threshold,
-                              win_indices=1000, min_std=0.5, th_fac=1.5) :
+def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
+                               thresh_fac=0.75, min_thresh=0.1) :
     """
-    Accept each detected peak/trough and return its index (or time) and its data value.
+    Accept each detected peak/trough and return its index (or time).
+    Adjust the threshold to the size of the detected peak.
 
     Args:
         freqs (array): frequencies of the power spectrum
@@ -47,25 +48,25 @@ def accept_peak_std_threshold(time, data, event_inx, index, min_inx, threshold,
         index: current index
         min_inx: index of the previous trough/peak
         threshold: threshold value
-        win_indices (int): the length of the data window on which to compute the standard deviation
-        min_std (float): minimum standard deviation to be used for setting the new threshold
-        th_fac (float): the new threshold is th_fac times the standard deviation of the signal
-    
+        thresh_fac (float): the new threshold is thresh_fac times the size of the current peak
+        min_thresh (float): minimum allowed value for the threshold
+
     Returns: 
         index (int): index of the peak/trough if time is None
         time (float): time of the peak/trough if time is not None
         threshold (float): the new threshold to be used
     """
-
-    std = np.std(data[event_inx:event_inx+win_indices])
-    if min_std > 0.0 and std < min_std :
-        std = min_std
-    threshold = th_fac*std
     
+    size = data[event_inx] - data[min_inx]
+    threshold = thresh_fac*size
+    if min_thresh > 0.0 and threshold < min_thresh :
+        threshold = min_thresh
+
     if time is None :
         return event_inx, threshold
     else :
         return time[event_inx], threshold
+
 
 
 def best_window_algorithm(peak_rate, mean_ampl, cv_ampl, rate_th=0.15, ampls_percentile_th=85.,
@@ -166,33 +167,24 @@ def best_window_algorithm(peak_rate, mean_ampl, cv_ampl, rate_th=0.15, ampls_per
 
     
 def best_window(data, rate, win_size=8., win_shift=0.1,
-                min_std=0.1, th_fac = 1.5,
+                thresh_fac = 0.75, min_thresh=0.1, 
                 plot_debug=False, ax=False, savefig=False, title=""):
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
 
     :param win_size: float. Size in seconds of the best window in seconds.
     :param win_shift: float. Size in seconds between windows.
-    :param min_std: float. Minimum standard deviation to be used for scaling
-    :param th_fac: float. Threshold for peak detection as multiples of local standard deviation
+    :param thresh_fac: float. New threshold is thresh_fac times the size of the current peak
+    :param min_thresh: float. Minimum allowed value for the threshold
     :param plot_debug: boolean. use True to plot filter parameters (and thresholds) for detecting best window
     :param ax: axes of the debugging plots.
     :return: two floats. The first float marks the start of the best window and the second the defined window-size.
     """
 
-    # scale the data to their local standard deviation:
-    #scaled_data = normalized_signal(data, rate, win_shift, min_std)
-    # this is computational expensive! We put this into the peak detection via an adaptive threshold
-
-    # detect peaks and troughs in the normalized data:
-    #peak_idx, trough_idx = pd.detect_peaks_troughs(scaled_data, threshold)
-    std = np.std(data[0:win_shift*rate])
-    peak_idx, trough_idx = pd.detect_peaks_troughs(data, std, None, accept_peak_std_threshold, None,
-                                                   win_indices=win_shift*rate, min_std=min_std,
-                                                   th_fac=th_fac)
-
-    # we might want to make sure that peaks and troughs of the same index
-    # are temporally close to each other.
+    # detect large peaks and troughs:
+    thresh = 1.5*np.std(data[0:win_shift*rate])    
+    peak_idx, trough_idx = pd.detect_peaks_troughs(data, thresh, None, accept_peak_size_threshold, None,
+                                                   thresh_fac=thresh_fac, min_thresh=min_thresh)
     peak_time = peak_idx/rate
     peak_ampl = data[peak_idx]
     trough_time = trough_idx/rate
@@ -237,26 +229,24 @@ if __name__ == "__main__":
     # generate data:
     rate = 40000.0
     time = np.arange(0.0, 2.0, 1./rate)
-    f = 600.0
-    data = (0.5*np.sin(2.0*np.pi*f*time)+0.5)**4.0
-    data -= 0.5
-    amf = 1.
-    data *= 1.0-np.cos(2.0*np.pi*amf*time)
-    data += 0.2
+    f1 = 100.0
+    data1 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
+    data1 -= 0.5
+    amf1 = 1.
+    data1 *= 1.0-np.cos(2.0*np.pi*amf1*time)
+    data1 += 0.2
+    f2 = f1*2.0*np.pi
+    data2 = 0.1*np.sin(2.0*np.pi*f2*time)
+    amf2 = 0.5
+    data2 *= 1.0-np.cos(2.0*np.pi*amf2*time)
+    data = data1+data2
     data += 0.01*np.random.randn(len(data))
     print("generated waveform")
     plt.plot(time, data)
 
-    # normalize data:
-    #scaled_data = normalized_signal(data, rate)
-    # this is computational expensive! We put this into the peak detection via an adaptive threshold
-    #plt.hist(scaled_data, 100)
-    #plt.plot(time, scaled_data)
-
     # detect peaks:
-    #peak_idx, trough_idx = pd.detect_peaks_troughs(scaled_data, 1.5)
-    peak_idx, trough_idx = pd.detect_peaks_troughs(data, 0.1, None, accept_peak_std_threshold, None,
-                                                   win_indices=0.1*rate, min_std=0.1, th_fac=1.5)
+    peak_idx, trough_idx = pd.detect_peaks_troughs(data, 0.1, None, accept_peak_size_threshold, None,
+                                                   thresh_fac=0.75, min_thresh=0.1)
 
     plt.plot(time[peak_idx], data[peak_idx], '.r', ms=10)
     plt.plot(time[trough_idx], data[trough_idx], '.g', ms=10)
