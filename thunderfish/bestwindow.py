@@ -35,6 +35,39 @@ def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
     return (data - mean) / std
 
 
+def accept_peak_std_threshold(time, data, event_inx, index, min_inx, threshold,
+                              win_indices=1000, min_std=0.5, th_fac=1.5) :
+    """
+    Accept each detected peak/trough and return its index (or time) and its data value.
+
+    Args:
+        freqs (array): frequencies of the power spectrum
+        data (array): the power spectrum
+        event_inx: index of the current peak/trough
+        index: current index
+        min_inx: index of the previous trough/peak
+        threshold: threshold value
+        win_indices (int): the length of the data window on which to compute the standard deviation
+        min_std (float): minimum standard deviation to be used for setting the new threshold
+        th_fac (float): the new threshold is th_fac times the standard deviation of the signal
+    
+    Returns: 
+        index (int): index of the peak/trough if time is None
+        time (float): time of the peak/trough if time is not None
+        threshold (float): the new threshold to be used
+    """
+
+    std = np.std(data[event_inx:event_inx+win_indices])
+    if min_std > 0.0 and std < min_std :
+        std = min_std
+    threshold = th_fac*std
+    
+    if time is None :
+        return event_inx, threshold
+    else :
+        return time[event_inx], threshold
+
+
 def best_window_algorithm(peak_rate, mean_ampl, cv_ampl, rate_th=0.15, ampls_percentile_th=85.,
                           cv_percentile_th=15., plot_debug=False, axs=None, win_shift = 0.2,
                           verbose=1):
@@ -133,7 +166,7 @@ def best_window_algorithm(peak_rate, mean_ampl, cv_ampl, rate_th=0.15, ampls_per
 
     
 def best_window(data, rate, win_size=8., win_shift=0.1,
-                min_std=0.1, threshold = 1.5,
+                min_std=0.1, th_fac = 1.5,
                 plot_debug=False, ax=False, savefig=False, title=""):
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
@@ -141,17 +174,23 @@ def best_window(data, rate, win_size=8., win_shift=0.1,
     :param win_size: float. Size in seconds of the best window in seconds.
     :param win_shift: float. Size in seconds between windows.
     :param min_std: float. Minimum standard deviation to be used for scaling
-    :param threshold: float. Threshold for peak detection as multiples of local standard deviation
+    :param th_fac: float. Threshold for peak detection as multiples of local standard deviation
     :param plot_debug: boolean. use True to plot filter parameters (and thresholds) for detecting best window
     :param ax: axes of the debugging plots.
     :return: two floats. The first float marks the start of the best window and the second the defined window-size.
     """
 
     # scale the data to their local standard deviation:
-    scaled_data = normalized_signal(data, rate, win_shift, min_std)
+    #scaled_data = normalized_signal(data, rate, win_shift, min_std)
+    # this is computational expensive! We put this into the peak detection via an adaptive threshold
 
     # detect peaks and troughs in the normalized data:
-    peak_idx, trough_idx = pd.detect_peaks_troughs(scaled_data, threshold)
+    #peak_idx, trough_idx = pd.detect_peaks_troughs(scaled_data, threshold)
+    std = np.std(data[0:win_shift*rate])
+    peak_idx, trough_idx = pd.detect_peaks_troughs(data, std, None, accept_peak_std_threshold, None,
+                                                   win_indices=win_shift*rate, min_std=min_std,
+                                                   th_fac=th_fac)
+
     # we might want to make sure that peaks and troughs of the same index
     # are temporally close to each other.
     peak_time = peak_idx/rate
@@ -190,37 +229,6 @@ def best_window(data, rate, win_size=8., win_shift=0.1,
     return bwin, win_size
 
 
-def accept_peak_std_threshold(time, data, event_inx, index, min_inx, threshold, check_conditions) :
-    """
-    Accept each detected peak/trough and return its index (or time) and its data value.
-
-    Args:
-        freqs (array): frequencies of the power spectrum
-        data (array): the power spectrum
-        event_inx: index of the current peak/trough
-        index: current index
-        min_inx: index of the previous trough/peak
-        threshold: threshold value
-        check_conditions: not used
-    
-    Returns: 
-        index (int): index of the peak/trough if time is None
-        time (float): time of the peak/trough if time is not None
-    """
-
-    std = np.std(data[event_inx:event_inx+4000])
-    min_std = 0.1
-    if min_std > 0.0 and std < min_std :
-        std = min_std
-
-    threshold = 1.5*std
-    
-    if time is None :
-        return event_inx, threshold
-    else :
-        return time[event_inx], threshold
-
-
 if __name__ == "__main__":
     print("Checking bestwindow module ...")
     import matplotlib.pyplot as plt
@@ -247,7 +255,8 @@ if __name__ == "__main__":
 
     # detect peaks:
     #peak_idx, trough_idx = pd.detect_peaks_troughs(scaled_data, 1.5)
-    peak_idx, trough_idx = pd.detect_peaks_troughs(data, 0.1, None, accept_peak_std_threshold)
+    peak_idx, trough_idx = pd.detect_peaks_troughs(data, 0.1, None, accept_peak_std_threshold, None,
+                                                   win_indices=0.1*rate, min_std=0.1, th_fac=1.5)
 
     plt.plot(time[peak_idx], data[peak_idx], '.r', ms=10)
     plt.plot(time[trough_idx], data[trough_idx], '.g', ms=10)
