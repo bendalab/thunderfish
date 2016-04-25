@@ -10,6 +10,7 @@ import matplotlib.colors as mc
 from collections import OrderedDict
 import dataloader as dl
 import peakdetection as pd
+import bestwindow as bw
 import pyaudio
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
@@ -1212,6 +1213,14 @@ class SignalPlot :
                 self.toffset -= 0.5*self.twindow
                 if self.toffset < 0.0 :
                     self.toffset = 0.0
+                self.update_plots()
+        elif event.key == 'a' :
+            idx0, idx1 = bw.best_window(self.data, self.rate, mode='first',
+                                min_thresh=0.01, thresh_fac=0.75, thresh_tau=0.5,
+                                win_size=8.0, win_shift=0.1, verbose=1)
+            if idx1 > 0 :
+                self.toffset = idx0/self.rate
+                self.twindow = (idx1 - idx0)/self.rate
                 self.update_plots()
         elif event.key == 'ctrl+pagedown' :
             if self.toffset + 5.0*self.twindow < len( self.data )/self.rate :
