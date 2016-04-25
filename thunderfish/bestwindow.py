@@ -36,9 +36,9 @@ def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
 
 
 def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
-                               thresh_fac=0.75, min_thresh=0.1) :
+                               thresh_fac=0.75) :
     """
-    Accept each detected peak/trough and return its index (or time).
+    Accept each detected peak/trough and return its index.
     Adjust the threshold to the size of the detected peak.
 
     Args:
@@ -49,24 +49,14 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
         min_inx: index of the previous trough/peak
         threshold: threshold value
         thresh_fac (float): the new threshold is thresh_fac times the size of the current peak
-        min_thresh (float): minimum allowed value for the threshold
 
     Returns: 
-        index (int): index of the peak/trough if time is None
-        time (float): time of the peak/trough if time is not None
+        index (int): index of the peak/trough
         threshold (float): the new threshold to be used
     """
-    
     size = data[event_inx] - data[min_inx]
     threshold = thresh_fac*size
-    if min_thresh > 0.0 and threshold < min_thresh :
-        threshold = min_thresh
-
-    if time is None :
-        return event_inx, threshold
-    else :
-        return time[event_inx], threshold
-
+    return event_inx, threshold
 
 
 def best_window_algorithm(peak_rate, mean_ampl, cv_ampl, rate_th=0.15, ampls_percentile_th=85.,
@@ -166,25 +156,31 @@ def best_window_algorithm(peak_rate, mean_ampl, cv_ampl, rate_th=0.15, ampls_per
         return best_window
 
     
-def best_window(data, rate, win_size=8., win_shift=0.1,
-                thresh_fac = 0.75, min_thresh=0.1, 
+def best_window(data, rate,
+                min_thresh=0.1, thresh_fac = 0.75, thesh_tau=1.0, win_size=8., win_shift=0.1,
                 plot_debug=False, ax=False, savefig=False, title=""):
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
 
-    :param win_size: float. Size in seconds of the best window in seconds.
-    :param win_shift: float. Size in seconds between windows.
-    :param thresh_fac: float. New threshold is thresh_fac times the size of the current peak
+    :param data: 1-D array. The data to be analyzed
+    :param rate: float. Sampling rate of the data in Hz
     :param min_thresh: float. Minimum allowed value for the threshold
+    :param thresh_fac: float. New threshold is thresh_fac times the size of the current peak
+    :param thresh_tau: float. Time constant of the decay of the threshold towards min_thresh in seconds
+    :param win_size: float. Size of the best window in seconds.
+    :param win_shift: float. Size in seconds between windows.
+    
     :param plot_debug: boolean. use True to plot filter parameters (and thresholds) for detecting best window
     :param ax: axes of the debugging plots.
     :return: two floats. The first float marks the start of the best window and the second the defined window-size.
     """
 
     # detect large peaks and troughs:
-    thresh = 1.5*np.std(data[0:win_shift*rate])    
-    peak_idx, trough_idx = pd.detect_peaks_troughs(data, thresh, None, accept_peak_size_threshold, None,
-                                                   thresh_fac=thresh_fac, min_thresh=min_thresh)
+    thresh = 1.5*np.std(data[0:win_shift*rate])
+    tauidx = thresh_tau*rate
+    peak_idx, trough_idx = pd.detect_peaks_troughs(data, thresh, min_thresh, tauidx, None,
+                                                   accept_peak_size_threshold, None,
+                                                   thresh_fac=thresh_fac)
     peak_time = peak_idx/rate
     peak_ampl = data[peak_idx]
     trough_time = trough_idx/rate
@@ -231,7 +227,7 @@ if __name__ == "__main__":
     time = np.arange(0.0, 2.0, 1./rate)
     f1 = 100.0
     data1 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
-    data1 -= 0.5
+    #data1 -= 0.5
     amf1 = 1.
     data1 *= 1.0-np.cos(2.0*np.pi*amf1*time)
     data1 += 0.2
@@ -245,8 +241,9 @@ if __name__ == "__main__":
     plt.plot(time, data)
 
     # detect peaks:
-    peak_idx, trough_idx = pd.detect_peaks_troughs(data, 0.1, None, accept_peak_size_threshold, None,
-                                                   thresh_fac=0.75, min_thresh=0.1)
+    peak_idx, trough_idx = pd.detect_dynamic_peaks_troughs(data, 0.1, 0.1, 0.1*rate, None,
+                                                            accept_peak_size_threshold, None,
+                                                            thresh_fac=0.95)
 
     plt.plot(time[peak_idx], data[peak_idx], '.r', ms=10)
     plt.plot(time[trough_idx], data[trough_idx], '.g', ms=10)
