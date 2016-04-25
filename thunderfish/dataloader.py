@@ -70,7 +70,14 @@ def load_data(filepath, channel=0, verbose=0) :
     if ext == 'pkl' :
         data, freq, unit = load_pickle(filepath, channel)
     else :
-        data, freq = audioloader.load_audio(filepath, channel, verbose)
+        data, freq = audioloader.load_audio(filepath, verbose)
+        channels = data.shape[1]
+        if channel >= channels :
+            print('number of channels in file %s is %d, but requested channel %d' %
+                  (filename, channels, channel))
+            channel = channels-1
+        if channel >= 0 :
+            data = data[:,channel]
         unit = 'a.u.'
     return data, freq, unit
 

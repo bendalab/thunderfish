@@ -4,28 +4,26 @@ import numpy as np
 """
 Numerous functions for loading data from audio files.
 
-data, samplingrate = load_audio(filepath, channel)
+data, samplingrate = load_audio(filepath)
 tries different functions until it succeeds to load the data.
 
 For an overview on available python modules see
 http://nbviewer.jupyter.org/github/mgeier/python-audio/blob/master/audio-files/index.ipynb
 """
  
-def load_wave(filename, channel=0, verbose=0) :
+def load_wave(filename, verbose=0) :
     """
     Load wav file using wave module (from pythons standard libray).
     Documentation: https://docs.python.org/2/library/wave.html
 
     Args:
         filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned (0, 1, 2, ...)
-                       if negative, then all channels are returned
         verbose (int): if >0 show detailed error/warning messages
                        if 2 print information about soundfile
 
     Returns:
-        data (array): channel>=0: the single data trace as an 1-D numpy array
-                      channel<0: all data traces as an 2-D numpy array
+        data (array): all data traces as an 2-D numpy array,
+                      first dimension is time, second is channel
         freq (float): the sampling rate of the data in Hz
 
     Exceptions:
@@ -52,22 +50,12 @@ def load_wave(filename, channel=0, verbose=0) :
     data = np.fromstring(buffer, dtype=format).reshape(-1, nchannels)  # read data
     wf.close()
     data /= 2.0**(sampwidth*8-1)
-    channels = 1
-    if len(data.shape) > 1 :
-        channels = data.shape[1]
-    if channel >= channels :
-        print('number of channels in file %s is %d, but requested channel %d' %
-              (filename, channels, channel))
-        channel = channels-1
-    if channels == 1 :
+    if len(data.shape) == 1 :
         data = np.reshape(data,(-1, 1))
-    if channel < 0 :
-        return data, freq
-    else :
-        return data[:,channel], freq
+    return data, freq
 
     
-def load_ewave(filename, channel=0, verbose=0) :
+def load_ewave(filename, verbose=0) :
     """
     Load wav file using ewave module.
     https://github.com/melizalab/py-ewave
@@ -78,13 +66,11 @@ def load_ewave(filename, channel=0, verbose=0) :
 
     Args:
         filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned (0, 1, 2, ...)
-                       if negative, then all channels are returned
         verbose (int): if >0 show detailed error/warning messages (not used)
 
     Returns:
-        data (array): channel>=0: the single data trace as an 1-D numpy array
-                      channel<0: all data traces as an 2-D numpy array
+        data (array): all data traces as an 2-D numpy array,
+                      first dimension is time, second is channel
         freq (float): the sampling rate of the data in Hz
 
     Exceptions:
@@ -103,35 +89,23 @@ def load_ewave(filename, channel=0, verbose=0) :
         freq = wf.sampling_rate
         buffer = wf.read()
         data = ewave.rescale(buffer, 'float')
-    channels = 1
-    if len(data.shape) > 1 :
-        channels = data.shape[1]
-    if channel >= channels :
-        print('number of channels in file %s is %d, but requested channel %d' %
-              (filename, channels, channel))
-        channel = channels-1
-    if channels == 1 :
+    if len(data.shape) == 1 :
         data = np.reshape(data,(-1, 1))
-    if channel < 0 :
-        return data, freq
-    else :
-        return data[:,channel], freq
+    return data, freq
 
     
-def load_wavfile(filename, channel=0, verbose=0) :
+def load_wavfile(filename, verbose=0) :
     """
     Load wav file using scipy.io.wavfile.
     Documentation: http://docs.scipy.org/doc/scipy/reference/io.html
     
     Args:
         filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned (0, 1, 2, ...)
-                       if negative, then all channels are returned
         verbose (int): if >0 show detailed error/warning messages
 
     Returns:
-        data (array): channel>=0: the single data trace as an 1-D numpy array
-                      channel<0: all data traces as an 2-D numpy array
+        data (array): all data traces as an 2-D numpy array,
+                      first dimension is time, second is channel
         freq (float): the sampling rate of the data in Hz
 
     Exceptions:
@@ -150,22 +124,12 @@ def load_wavfile(filename, channel=0, verbose=0) :
     if verbose < 2 :
         warnings.filterwarnings("always")
     data /= 2.0**15
-    channels = 1
-    if len(data.shape) > 1 :
-        channels = data.shape[1]
-    if channel >= channels :
-        print('number of channels in file %s is %d, but requested channel %d' %
-              (filename, channels, channel))
-        channel = channels-1
-    if channels == 1 :
+    if len(data.shape) == 1 :
         data = np.reshape(data,(-1, 1))
-    if channel < 0 :
-        return data, freq
-    else :
-        return data[:,channel], freq
+    return data, freq
         
 
-def load_soundfile(filename, channel=0, verbose=0) :
+def load_soundfile(filename, verbose=0) :
     """
     Load audio file using pysoundfile (based on libsndfile).
 
@@ -177,13 +141,11 @@ def load_soundfile(filename, channel=0, verbose=0) :
 
     Args:
         filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned (0, 1, 2, ...)
-                       if negative, then all channels are returned
         verbose (int): if >0 show detailed error/warning messages (not used)
 
     Returns:
-        data (array): channel>=0: the single data trace as an 1-D numpy array
-                      channel<0: all data traces as an 2-D numpy array
+        data (array): all data traces as an 2-D numpy array,
+                      first dimension is time, second is channel
         freq (float): the sampling rate of the data in Hz
 
     Exceptions:
@@ -199,20 +161,12 @@ def load_soundfile(filename, channel=0, verbose=0) :
     data = np.array([])
     freq = 0.0
     with soundfile.SoundFile(filename, 'r') as sf :
-        channels = sf.channels
-        if channel >= channels :
-            print('number of channels in file %s is %d, but requested channel %d' %
-                  (filename, channels, channel))
-            channel = channels-1
         freq = sf.samplerate
         data = sf.read(always_2d=True)
-    if channel < 0 :
-        return data, freq
-    else :
-        return data[:,channel], freq
+    return data, freq
 
 
-def load_wavefile(filename, channel=0, verbose=0) :
+def load_wavefile(filename, verbose=0) :
     """
     Load audio file using wavefile (based on libsndfile).
 
@@ -222,13 +176,11 @@ def load_wavefile(filename, channel=0, verbose=0) :
 
     Args:
         filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned (0, 1, 2, ...)
-                       if negative, then all channels are returned
         verbose (int): if >0 show detailed error/warning messages (not used)
 
     Returns:
-        data (array): channel>=0: the single data trace as an 1-D numpy array
-                      channel<0: all data traces as an 2-D numpy array
+        data (array): all data traces as an 2-D numpy array,
+                      first dimension is time, second is channel
         freq (float): the sampling rate of the data in Hz
 
     Exceptions:
@@ -242,18 +194,10 @@ def load_wavefile(filename, channel=0, verbose=0) :
         raise ImportError
 
     freq, data = wavefile.load(filename)
-    channels = data.shape[0]
-    if channel >= channels :
-        print('number of channels in file %s is %d, but requested channel %d' %
-              (filename, channels, channel))
-        channel = channels-1
-    if channels < 0 :
-        return data.T, freq
-    else :
-        return data[channel], freq
+    return data.T, freq
 
 
-def load_audiolab(filename, channel=0, verbose=0) :
+def load_audiolab(filename, verbose=0) :
     """
     Load audio file using scikits.audiolab (based on libsndfile).
 
@@ -263,13 +207,11 @@ def load_audiolab(filename, channel=0, verbose=0) :
 
     Args:
         filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned (0, 1, 2, ...)
-                       if negative, then all channels are returned
         verbose (int): if >0 show detailed error/warning messages (not used)
 
     Returns:
-        data (array): channel>=0: the single data trace as an 1-D numpy array
-                      channel<0: all data traces as an 2-D numpy array
+        data (array): all data traces as an 2-D numpy array,
+                      first dimension is time, second is channel
         freq (float): the sampling rate of the data in Hz
 
     Exceptions:
@@ -284,21 +226,13 @@ def load_audiolab(filename, channel=0, verbose=0) :
 
     af = audiolab.Sndfile(filename)
     freq = af.samplerate
-    channels = af.channels
-    if channel >= channels :
-        print('number of channels in file %s is %d, but requested channel %d' %
-              (filename, channels, channel))
-        channel = channels-1
     data = af.read_frames(af.nframes)
     if len(data.shape) == 1 :
         data = np.reshape(data,(-1, 1))
-    if channel < 0 :
-        return data, freq
-    else :
-        return data[:,channel], freq
+    return data, freq
 
 
-def load_audioread(filename, channel=0, verbose=0) :
+def load_audioread(filename, verbose=0) :
     """
     Load audio file using audioread.
     https://github.com/sampsyo/audioread
@@ -306,13 +240,11 @@ def load_audioread(filename, channel=0, verbose=0) :
 
     Args:
         filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned (0, 1, 2, ...)
-                       if negative, then all channels are returned
         verbose (int): if >0 show detailed error/warning messages (not used)
 
     Returns:
-        data (array): channel>=0: the single data trace as an 1-D numpy array
-                      channel<0: all data traces as an 2-D numpy array
+        data (array): all data traces as an 2-D numpy array,
+                      first dimension is time, second is channel
         freq (float): the sampling rate of the data in Hz
 
     Exceptions:
@@ -328,17 +260,12 @@ def load_audioread(filename, channel=0, verbose=0) :
     data = np.array([])
     freq = 0.0
     with audioread.audio_open(filename) as af :
-        channels = af.channels
-        if channel >= channels :
-            print('number of channels in file %s is %d, but requested channel %d' %
-                  (filename, channels, channel))
-            channel = channels-1
         freq = af.samplerate
-        data = np.zeros((np.ceil(af.samplerate*af.duration), channels),
+        data = np.zeros((np.ceil(af.samplerate*af.duration), af.channels),
                         dtype="<i2")
         index = 0
         for buffer in af:
-            fulldata = np.fromstring(buffer, dtype='<i2').reshape(-1, channels)
+            fulldata = np.fromstring(buffer, dtype='<i2').reshape(-1, af.channels)
             n = fulldata.shape[0]
             if index+n > len( data ) :
                 n = len( data ) - index
@@ -347,10 +274,7 @@ def load_audioread(filename, channel=0, verbose=0) :
                 index += n
             else :
                 break
-    if channel < 0 :
-        return data/2.0**15, freq
-    else :
-        return data[:,channel]/2.0**15, freq
+    return data/2.0**15, freq
 
 
 audio_loader = [
@@ -363,27 +287,23 @@ audio_loader = [
     ['wavefile', load_wavefile]
     ]
 
-def load_audio(filepath, channel=0, verbose=0) :
+def load_audio(filepath, verbose=0) :
     """
-    Call this function to load a single channel of audio data from a file.
+    Call this function to load all channels of audio data from a file.
     This function tries different python modules to load the audio file.
 
     Args:
         filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned (0, 1, 2, ...)
-                       if negative, then all channels are returned
         verbose (int): if >0 show detailed error/warning messages
 
     Returns:
-        data (array): channel>=0: the single data trace as an 1-D numpy array
-                      channel<0: all data traces as an 2-D numpy array
+        data (array): all data traces as an 2-D numpy array,
+                      first dimension is time, second is channel
         freq (float): the sampling rate of the data in Hz
     """
     # check types:
     if not isinstance(filepath, basestring) :
         raise NameError('load_audio(): input argument filepath must be a string!')
-    if not isinstance(channel, int) :
-        raise NameError('load_audio(): input argument channel must be an int!')
 
     # check values:
     freq = 0.0
@@ -402,7 +322,7 @@ def load_audio(filepath, channel=0, verbose=0) :
     # load an audio file by trying various modules:
     for lib, load_file in audio_loader :
         try:
-            data, freq = load_file(filepath, channel, verbose)
+            data, freq = load_file(filepath, verbose)
             if len(data) > 0 :
                 if verbose > 0 :
                     print('loaded data from file "%s" using %s:' %
@@ -421,14 +341,13 @@ if __name__ == "__main__":
     import sys
     print("Checking audioloader module ...")
     filepath = sys.argv[-1]
-    channel = 0
     print
     print("try load_audio:")
-    data, freq = load_audio(filepath, channel, 2)
+    data, freq = load_audio(filepath, 2)
     print
     for lib, load_file in audio_loader :
         try:
-            data, freq = load_file(filepath, channel, 1)
+            data, freq = load_file(filepath, 1)
             print('loaded data from file "%s" with %s' %
                     (filepath, lib))
         except:
