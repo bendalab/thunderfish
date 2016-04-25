@@ -15,7 +15,7 @@ def detect_peaks_troughs(data, threshold, time=None,
         time (array): the (optional) 1-D array with the time corresponding to the data values
         check_peak_func (function): an optional function to be used for further evaluating and analysing a peak
           The signature of the function is
-          r = check_peak_func(time, data, peak_inx, index, min_inx, threshold, check_conditions)
+          r, th = check_peak_func(time, data, peak_inx, index, min_inx, threshold, check_conditions)
           with
             time (array): the full time array that might be None
             data (array): the full data array
@@ -24,10 +24,11 @@ def detect_peaks_troughs(data, threshold, time=None,
             min_inx (int): the index of the trough preceeding the peak (might be 0)
             threshold (float): the threshold value
             check_conditions (dict): dictionary with further user supplied parameter
-            r (scalar or np.array): a single number or an array with properties of the peak
+            r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
+            th (float): a new value for the threshold or None (to keep the original value)
         check_trough_func (function): an optional function to be used for further evaluating and analysing a trough
           The signature of the function is
-          r = check_trough_func(time, data, trough_inx, index, max_inx, threshold, check_conditions)
+          r, th = check_trough_func(time, data, trough_inx, index, max_inx, threshold, check_conditions)
           with
             time (array): the full time array that might be None
             data (array): the full data array
@@ -36,7 +37,8 @@ def detect_peaks_troughs(data, threshold, time=None,
             max_inx (int): the index of the peak preceeding the trough (might be 0)
             threshold (float): the threshold value
             check_conditions (dict): dictionary with further user supplied parameter
-            r (scalar or np.array): a single number or an array with properties of the trough
+            r (scalar or np.array): a single number or an array with properties of the trough or None to skip the trough
+            th (float): a new value for the threshold or None (to keep the original value)            
         check_conditions (dict): an optional dictionary for supplying further parameter to check_peak_func and check_trough_func
     
     Returns: 
@@ -84,11 +86,13 @@ def detect_peaks_troughs(data, threshold, time=None,
             elif max_value >= value + threshold:
                 # check and update peak with the check_peak_func function:
                 if check_peak_func :
-                    r = check_peak_func(time, data, max_inx, index,
-                                        min_inx, threshold, check_conditions)
-                    if len( r ) > 0 :
+                    r, th = check_peak_func(time, data, max_inx, index,
+                                            min_inx, threshold, check_conditions)
+                    if r is not None :
                         # this really is a peak:
                         peaks_list.append(r)
+                    if th is not None :
+                        threshold = th
                 else:
                     # this is a peak:
                     if time is None :
@@ -112,11 +116,13 @@ def detect_peaks_troughs(data, threshold, time=None,
 
                 # check and update trough with the check_trough function:
                 if check_trough_func :
-                    r = check_trough_func(time, data, min_inx, index,
-                                          max_inx, threshold, check_conditions)
-                    if len( r ) > 0 :
+                    r, th = check_trough_func(time, data, min_inx, index,
+                                              max_inx, threshold, check_conditions)
+                    if r is not None :
                         # this really is a trough:
                         troughs_list.append(r)
+                    if th is not None :
+                        threshold = th
                 else:
                     # this is a trough:
                     if time is None :
@@ -168,7 +174,8 @@ def detect_peaks(data, threshold, time=None, check_peak_func=None, check_conditi
             min_inx (int): the index of the trough preceeding the peak (might be 0)
             threshold (float): the threshold value
             check_conditions (dict): dictionary with further user supplied parameter
-            r (scalar or np.array): a single number or an array with properties of the peak
+            r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
+            th (float): a new value for the threshold or None (to keep the original value)
         check_conditions (dict): an optional dictionary for supplying further parameter to check_peak_func
     
     Returns: 
@@ -214,11 +221,13 @@ def detect_peaks(data, threshold, time=None, check_peak_func=None, check_conditi
             elif max_value >= value + threshold:
                 # check and update peak with check_peak_func function:
                 if check_peak_func :
-                    r = check_peak_func(time, data, max_inx, index,
-                                        min_inx, threshold, check_conditions)
-                    if len( r ) > 0 :
+                    r, th = check_peak_func(time, data, max_inx, index,
+                                            min_inx, threshold, check_conditions)
+                    if r is not None :
                         # this really is a peak:
                         peak_list.append( r )
+                    if th is not None :
+                        threshold = th
                 else:
                     # this is a peak:
                     if time is None :
@@ -282,9 +291,9 @@ def accept_peak(time, data, event_inx, index, min_inx, threshold, check_conditio
     """
     size = data[event_inx]
     if time is None :
-        return [event_inx, size]
+        return [event_inx, size], None
     else :
-        return [event_inx, time[event_inx], size]
+        return [event_inx, time[event_inx], size], None
 
 
 def accept_psd_peaks(freqs, data, peak_inx, index, min_inx, threshold, check_conditions) :
@@ -323,7 +332,7 @@ def accept_psd_peaks(freqs, data, peak_inx, index, min_inx, threshold, check_con
         if data[k] < wthresh :
             width += freqs[k] - freqs[peak_inx]
             break
-    return [ freqs[peak_inx], data[peak_inx], size, width, 0.0 ]
+    return [ freqs[peak_inx], data[peak_inx], size, width, 0.0 ], None
 
 
 if __name__ == "__main__":

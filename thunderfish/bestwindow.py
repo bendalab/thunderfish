@@ -190,6 +190,37 @@ def best_window(data, rate, win_size=8., win_shift=0.1,
     return bwin, win_size
 
 
+def accept_peak_std_threshold(time, data, event_inx, index, min_inx, threshold, check_conditions) :
+    """
+    Accept each detected peak/trough and return its index (or time) and its data value.
+
+    Args:
+        freqs (array): frequencies of the power spectrum
+        data (array): the power spectrum
+        event_inx: index of the current peak/trough
+        index: current index
+        min_inx: index of the previous trough/peak
+        threshold: threshold value
+        check_conditions: not used
+    
+    Returns: 
+        index (int): index of the peak/trough if time is None
+        time (float): time of the peak/trough if time is not None
+    """
+
+    std = np.std(data[event_inx:event_inx+4000])
+    min_std = 0.1
+    if min_std > 0.0 and std < min_std :
+        std = min_std
+
+    threshold = 1.5*std
+    
+    if time is None :
+        return event_inx, threshold
+    else :
+        return time[event_inx], threshold
+
+
 if __name__ == "__main__":
     print("Checking bestwindow module ...")
     import matplotlib.pyplot as plt
@@ -209,12 +240,15 @@ if __name__ == "__main__":
     plt.plot(time, data)
 
     # normalize data:
-    scaled_data = normalized_signal(data, rate)
+    #scaled_data = normalized_signal(data, rate)
+    # this is computational expensive! We put this into the peak detection via an adaptive threshold
     #plt.hist(scaled_data, 100)
     #plt.plot(time, scaled_data)
 
     # detect peaks:
-    peak_idx, trough_idx = pd.detect_peaks_troughs(scaled_data, 1.5)
+    #peak_idx, trough_idx = pd.detect_peaks_troughs(scaled_data, 1.5)
+    peak_idx, trough_idx = pd.detect_peaks_troughs(data, 0.1, None, accept_peak_std_threshold)
+
     plt.plot(time[peak_idx], data[peak_idx], '.r', ms=10)
     plt.plot(time[trough_idx], data[trough_idx], '.g', ms=10)
     #plt.plot(time[peak_idx], scaled_data[peak_idx], '.r', ms=10)
