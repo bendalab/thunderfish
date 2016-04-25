@@ -182,9 +182,7 @@ def best_window(data, rate,
                                                    accept_peak_size_threshold, None,
                                                    thresh_fac=thresh_fac)
     peak_time = peak_idx/rate
-    peak_ampl = data[peak_idx]
     trough_time = trough_idx/rate
-    trough_ampl = data[trough_idx]
 
     # compute peak rate, mean peak amplitude and its cv:
     win_times = np.arange(0.0, peak_time[-1] - win_size, win_shift)
@@ -192,9 +190,12 @@ def best_window(data, rate,
     mean_ampl = np.zeros(len(win_times))
     cv_ampl = np.zeros(len(win_times))
     for i, t in enumerate(win_times):
-        window_idx = (peak_time >= t) & (peak_time <= t + win_size)
-        # TODO: align peak and troughs (same len and peaks first)
-        p2t_ampl = peak_ampl[window_idx] - trough_ampl[window_idx]
+        # indices of peaks and troughs inside analysis window:
+        pinx = (peak_time >= t) & (peak_time <= t + win_size)
+        tinx = (trough_time >= t) & (trough_time <= t + win_size)
+        p_idx, t_idx = trim_to_peak(peak_idx[pinx], trough_idx[tinx])
+        # statistics of peak-to-trough amplitude:
+        p2t_ampl = data[p_idx] - data[t_idx]
         peak_rate[i] = len(p2t_ampl)/win_size
         mean_ampl[i] = np.mean(p2t_ampl)
         cv_ampl[i] = np.std(p2t_ampl, ddof=1) / mean_ampl[i]
@@ -243,7 +244,7 @@ if __name__ == "__main__":
     # detect peaks:
     peak_idx, trough_idx = pd.detect_dynamic_peaks_troughs(data, 0.1, 0.1, 0.1*rate, None,
                                                             accept_peak_size_threshold, None,
-                                                            thresh_fac=0.95)
+                                                            thresh_fac=0.8)
 
     plt.plot(time[peak_idx], data[peak_idx], '.r', ms=10)
     plt.plot(time[trough_idx], data[trough_idx], '.g', ms=10)

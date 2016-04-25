@@ -621,6 +621,83 @@ def accept_psd_peaks(freqs, data, peak_inx, index, min_inx, threshold, pfac=0.75
     return [ freqs[peak_inx], data[peak_inx], size, width, 0.0 ], None
 
 
+def trim(peaks, troughs) :
+    """
+    Trims the peaks and troughs arrays such that they have the same length.
+    
+    Args:
+        peaks (array): list of peak indices or times
+        troughs (array): list of trough indices or times
+
+    Returns:
+        peaks (array): list of peak indices or times
+        troughs (array): list of trough indices or times
+    """
+    # common len:
+    n = min(len(peaks), len(troughs))
+    # align arrays:
+    return peaks[:n], troughs[:n]
+
+
+def trim_to_peak(peaks, troughs) :
+    """
+    Trims the peaks and troughs arrays such that they have the same length
+    and the first peak comes first.
+    
+    Args:
+        peaks (array): list of peak indices or times
+        troughs (array): list of trough indices or times
+
+    Returns:
+        peaks (array): list of peak indices or times
+        troughs (array): list of trough indices or times
+    """
+    # start index for troughs:
+    tidx = 0
+    if len(troughs) > 0 and troughs[0] < peaks[0] :
+        tidx = 1
+    # common len:
+    n = min(len(peaks), len(troughs[tidx:]))
+    # align arrays:
+    return peaks[:n], troughs[idx:idx+n]
+
+
+def trim_closest(peaks, troughs) :
+    """
+    Trims the peaks and troughs arrays such that they have the same length
+    and that peaks-troughs is on average as small as possible.
+    
+    Args:
+        peaks (array): list of peak indices or times
+        troughs (array): list of trough indices or times
+
+    Returns:
+        peaks (array): list of peak indices or times
+        troughs (array): list of trough indices or times
+    """
+    pidx = 0
+    tidx = 0
+    n = min(len(peaks), len(troughs))
+    dist = np.abs(np.mean(peaks[:n]-troughs[:n]))
+    if len(peaks) == 0 or len(troughs) == 0 :
+        n = 0
+    else :
+        if peaks[0] < troughs[0] :
+            np = min(len(peaks[1:]), len(troughs))
+            distp = np.abs(np.mean(peaks[1:np]-troughs[:np]))
+            if distp < dist :
+                pidx = 1
+                n = np
+        else :
+            nt = min(len(peaks), len(troughs[1:]))
+            distt = np.abs(np.mean(peaks[:nt]-troughs[1:nt]))
+            if distt < dist :
+                tidx = 1
+                n = nt
+    # align arrays:
+    return peaks[pidx:pidx+n], troughs[tidx:tidx+n]
+
+
 if __name__ == "__main__":
     print("Checking peakdetection module ...")
     import matplotlib.pyplot as plt
