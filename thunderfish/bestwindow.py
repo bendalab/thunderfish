@@ -56,9 +56,9 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
     return event_inx, threshold
 
 
-def best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls, cv_ampl, cvs,
-                          rate_th=0.1, ampl_percentile_th=0.85,
-                          cv_percentile_th=0.15,
+def best_window_algorithm(cv_interv, cv_interval_sorted, mean_ampl, ampl_sorted,
+                          cv_ampl, cv_ampl_sorted,
+                          cvi_percentile=0.15, ampl_percentile=0.85, cva_percentile=0.15,
                           verbose=1, plot_window_func=None, **kwargs):
 
     """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
@@ -68,86 +68,83 @@ def best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls, c
     (that is not clipped!) is chosen as the best window. We assume clipping as amplitudes above 85% percentile of
     the distribution of peak to trough amplitude.
 
-    :param cv_percentile_th: threshold of how much amplitude-variance (coefficient of variation) of the signal is allowed. Between 0 and 1.
-    :param peak_rate: array with number of peaks
+    :param cva_percentile: threshold of how much amplitude-variance (coefficient of variation) of the signal is allowed. Between 0 and 1.
+    :param cv_interv: array with coefficients of variation of peak intervals
+    :param cv_interv_sorted: array with sorted coefficients of variation of peak intervals
     :param mean_ampl: array with mean peak-to-trough-amplitudes
+    :param mean_ampl_sorted: array with sorted mean peak-to-trough-amplitudes
     :param cv_ampl: array with cv of amplitudes
-    :param rate_th: threshold for peak-rate filter
-    :param ampl_percentile_th: choose a percentile threshold to avoid clipping. Between 0 and 1.
-    :param cv_percentile_th: Threshold for cv.
-    :param plot_debug: boolean for showing plot-debugging.
-    :param axs: axis of plot debugging.
-    :param win_shift: float. Size in seconds between windows. Default is 0.2 seconds.
-    :return: boolean array with a single True element. This is the Index of the best window out of all windows.
+    :param cv_ampl_sorted: array with sorted cv of amplitudes
+    :param cvi_percentile: threshold for peak interval filter between 0 and 1
+    :param ampl_percentile: choose a percentile threshold to avoid clipping. Between 0 and 1.
+    :param cva_percentile: threshold for cv of amplitudes between 0 and 1.
+    :return: boolean array of valid windows.
     """
 
-    # First filter: stable peak rate
-    # TODO: It would be better to take from the good amplitudes that section with the most stable rate! Check 40517L28.WAV
-    # TODO: Or skip this filter entirely?
-    # TODO: Better make sure for most regular peak intervals WITHIN a window! 40517L12.WAV 40517L17.WAV
-    lower_rate_th = rate_mode - rate_th*rate_spread
-    upper_rate_th = rate_mode + rate_th*rate_spread
-    lower = peak_rate >= lower_rate_th
-    upper = peak_rate <= upper_rate_th
-    finite = peak_rate > 0.0
-    valid_rate = lower * upper * finite
+    # First filter: least variable interpeak intervals
+    # TODO: less detected peaks make smaller cv!! Check 40517L18.WAV
+    cv_interval_sorted_inx = int(np.floor(cvi_percentile*len(cv_interval_sorted)))
+    if cv_interval_sorted_inx >= len(cv_interval_sorted) :
+        cv_interval_sorted_inx = -1
+    cvi_th = cv_interval_sorted[cv_interval_sorted_inx]
+    valid_times = cv_interv <= cvi_th
 
     # Second filter: low variance in the amplitude
-    cvs_inx = int(np.floor(cv_percentile_th*len(cvs)))
-    if cvs_inx >= len(cvs) :
-        cvs_inx = -1
-    cv_th = cvs[cvs_inx]
-    valid_cv = cv_ampl <= cv_th
+    cv_ampl_sorted_inx = int(np.floor(cva_percentile*len(cv_ampl_sorted)))
+    if cv_ampl_sorted_inx >= len(cv_ampl_sorted) :
+        cv_ampl_sorted_inx = -1
+    cva_th = cv_ampl_sorted[cv_ampl_sorted_inx]
+    valid_cv = cv_ampl <= cva_th
 
     # Third filter: choose the one with the highest amplitude that is not clipped
     # TODO: Clipping not yet implemented!!!! See 40517L1[456].WAV L26
-    ampl_th = np.percentile(mean_ampl[mean_ampl>0.0], ampl_percentile_th)
-    ampl_th = ampls[np.floor(ampl_percentile_th*len(ampls))]
+    ampl_th = np.percentile(mean_ampl[mean_ampl>0.0], ampl_percentile)
+    ampl_th = ampl_sorted[np.floor(ampl_percentile*len(ampl_sorted))]
     valid_ampls = mean_ampl >= ampl_th
 
     # All three conditions must be fulfilled:
-    #valid_windows = valid_rate * valid_cv * valid_ampls
-    valid_windows = valid_cv * valid_ampls
+    valid_windows = valid_times * valid_cv * valid_ampls
 
     # If there is no best window, run the algorithm again with more flexible thresholds:
     if not True in valid_windows :
-        if cv_percentile_th >= 1. and ampl_percentile_th <= 0.:
+        if cvi_percentile >= 1. and cva_percentile >= 1. and ampl_percentile <= 0.:
             print('did not find best window')
             if plot_window_func :
-                plot_window_func(lower_rate_th, upper_rate_th, ampl_th, cv_th, **kwargs)
+                plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
             if verbose > 0 :
                 print('WARNING. Did not find an appropriate window for analysis.')
             return []
 
         else :
             # TODO: increase only threshold of the criterion with the smallest/zero True range?
-            rate_th += 0.05
-            if rate_th > 1.0 :
-                rate_th = 1.0
-            cv_percentile_th += 0.05
-            if cv_percentile_th > 1. :
-                cv_percentile_th = 1.
-            ampl_percentile_th -= 0.05
-            if ampl_percentile_th < 0. :
-                ampl_percentile_th = 0.
+            cvi_percentile += 0.05
+            if cvi_percentile > 1.0 :
+                cvi_percentile = 1.0
+            cva_percentile += 0.05
+            if cva_percentile > 1. :
+                cva_percentile = 1.
+            ampl_percentile -= 0.05
+            if ampl_percentile < 0. :
+                ampl_percentile = 0.
 
             if verbose > 1 :
-                print('  rerunning best_window_algorithm() with rate_th=%.2f, cv_percentile_th=%.2f, ampl_percentile_th=%.2f' % (rate_th, cv_percentile_th, ampl_percentile_th))
-            return best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls,
-                                         cv_ampl, cvs, rate_th=rate_th,
-                                         ampl_percentile_th=ampl_percentile_th,
-                                         cv_percentile_th=cv_percentile_th, verbose=verbose,
+                print('  rerunning best_window_algorithm() with cvi_th=%.2f, cva_percentile=%.2f, ampl_percentile=%.2f' % (cvi_percentile, cva_percentile, ampl_percentile))
+            return best_window_algorithm(cv_interv, cv_interval_sorted, mean_ampl, ampl_sorted,
+                                         cv_ampl, cv_ampl_sorted, cvi_percentile=cvi_percentile,
+                                         ampl_percentile=ampl_percentile,
+                                         cva_percentile=cva_percentile, verbose=verbose,
                                          plot_window_func=plot_window_func, **kwargs)
     else:
         if plot_window_func :
-            plot_window_func(lower_rate_th, upper_rate_th, ampl_th, cv_th, **kwargs)
+            plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
         if verbose > 1 :
             print('found best window')
         return valid_windows
 
     
 def best_window(data, rate, mode='first',
-                min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0, win_size=8., win_shift=0.1, cv_th=0.05,
+                min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
+                win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
@@ -184,10 +181,10 @@ def best_window(data, rate, mode='first',
                                                            thresh_fac=thresh_fac,
                                                            thresh_frac=thresh_frac)
 
-    # compute peak rate, mean peak amplitude and its cv:
+    # compute cv of intervals, mean peak amplitude and its cv:
     win_sinx = win_size*rate
     win_tinxs = np.arange(0.0, len(data) - win_sinx, win_shift*rate)
-    peak_rate = np.zeros(len(win_tinxs))
+    cv_interv = np.zeros(len(win_tinxs))
     mean_ampl = np.zeros(len(win_tinxs))
     cv_ampl = np.zeros(len(win_tinxs))
     for i, tinx in enumerate(win_tinxs):
@@ -195,38 +192,39 @@ def best_window(data, rate, mode='first',
         pinx = (peak_idx >= tinx) & (peak_idx <= tinx + win_sinx)
         tinx = (trough_idx >= tinx) & (trough_idx <= tinx + win_sinx)
         p_idx, t_idx = pd.trim_to_peak(peak_idx[pinx], trough_idx[tinx])
+        # interval statistics:
+        ipis = np.diff(p_idx)
+        itis = np.diff(t_idx)
+        if len(ipis) > 10 :
+            cv_interv[i] = 0.5*(np.std(ipis)/np.mean(ipis) + np.std(itis)/np.mean(itis))
+        else :
+            cv_interv[i] = 1000.0
         # statistics of peak-to-trough amplitude:
         p2t_ampl = data[p_idx] - data[t_idx]
-        peak_rate[i] = len(p2t_ampl)/win_size
         if len(p2t_ampl) > 0 :
             mean_ampl[i] = np.mean(p2t_ampl)
             cv_ampl[i] = np.std(p2t_ampl) / mean_ampl[i]
         else :
             mean_ampl[i] = 0.0
             cv_ampl[i] = 1000.0
-    # mode of rate:
-    p_rate = peak_rate[peak_rate>0.0]
-    if len(p_rate) < 50 :
-        rate_mode = stats.mode(p_rate)[0][0]
-    else :
-        n = np.ceil(len(p_rate)/10.)
-        h, b = np.histogram(p_rate, n)
-        inx = np.argmax(h)
-        rate_mode = 0.5*(b[inx]+b[inx+1])
-    rate_spread = np.max(p_rate)-np.min(p_rate)
+    # TOOD: check for empty data here and exit!
     # cumulative functions:
-    ampls = np.sort(mean_ampl)
-    ampls = ampls[ampls>0.0]
-    cvs = np.sort(cv_ampl)
-    cvs = cvs[cvs<1000.0]
-    cv_percentile_th = float(len(cvs[cvs<cv_th])/float(len(cvs)))
-    print cv_percentile_th
+    ampl_sorted = np.sort(mean_ampl)
+    ampl_sorted = ampl_sorted[ampl_sorted>0.0]
+    cv_interval_sorted = np.sort(cv_interv)
+    cv_interval_sorted = cv_interval_sorted[cv_interval_sorted<1000.0]
+    cvi_percentile = float(len(cv_interval_sorted[cv_interval_sorted<cvi_th])/float(len(cv_interval_sorted)))
+    cv_ampl_sorted = np.sort(cv_ampl)
+    cv_ampl_sorted = cv_ampl_sorted[cv_ampl_sorted<1000.0]
+    cva_percentile = float(len(cv_ampl_sorted[cv_ampl_sorted<cva_th])/float(len(cv_ampl_sorted)))
 
     # find best window:
-    valid_wins = best_window_algorithm(peak_rate, rate_mode, rate_spread,
-                                        mean_ampl, ampls, cv_ampl, cvs,
-                                        cv_percentile_th=cv_percentile_th, verbose=verbose,
-                                        plot_window_func=plot_window_func, **kwargs)
+    valid_wins = best_window_algorithm(cv_interv, cv_interval_sorted,
+                                       mean_ampl, ampl_sorted,
+                                       cv_ampl, cv_ampl_sorted,
+                                       cvi_percentile=cvi_percentile,
+                                       cva_percentile=cva_percentile, verbose=verbose,
+                                       plot_window_func=plot_window_func, **kwargs)
 
     # extract best window:
     idx0 = 0
@@ -257,7 +255,7 @@ def best_window(data, rate, mode='first',
         
     if plot_data_func :
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_tinxs/rate, peak_rate, mean_ampl, cv_ampl, valid_wins, **kwargs)
+                       win_tinxs/rate, cv_interv, mean_ampl, cv_ampl, valid_wins, **kwargs)
 
     return idx0, idx1
 
