@@ -93,8 +93,10 @@ def best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls, c
     valid_rate = lower * upper * finite
 
     # Second filter: low variance in the amplitude
-    # TODO: this should have an absolute component! cv < 0.1 is good anyways.
-    cv_th = cvs[np.floor(cv_percentile_th*len(cvs))]
+    cvs_inx = int(np.floor(cv_percentile_th*len(cvs)))
+    if cvs_inx >= len(cvs) :
+        cvs_inx = -1
+    cv_th = cvs[cvs_inx]
     valid_cv = cv_ampl <= cv_th
 
     # Third filter: choose the one with the highest amplitude that is not clipped
@@ -145,7 +147,7 @@ def best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls, c
 
     
 def best_window(data, rate, mode='first',
-                min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0, win_size=8., win_shift=0.1,
+                min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0, win_size=8., win_shift=0.1, cv_th=0.05,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
@@ -217,10 +219,13 @@ def best_window(data, rate, mode='first',
     ampls = ampls[ampls>0.0]
     cvs = np.sort(cv_ampl)
     cvs = cvs[cvs<1000.0]
+    cv_percentile_th = float(len(cvs[cvs<cv_th])/float(len(cvs)))
+    print cv_percentile_th
 
     # find best window:
     valid_wins = best_window_algorithm(peak_rate, rate_mode, rate_spread,
-                                        mean_ampl, ampls, cv_ampl, cvs, verbose=verbose,
+                                        mean_ampl, ampls, cv_ampl, cvs,
+                                        cv_percentile_th=cv_percentile_th, verbose=verbose,
                                         plot_window_func=plot_window_func, **kwargs)
 
     # extract best window:
