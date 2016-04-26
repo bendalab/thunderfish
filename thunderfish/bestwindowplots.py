@@ -58,6 +58,7 @@ if __name__ == "__main__":
     import numpy as np
     import matplotlib.pyplot as plt
 
+    title = "bestwindow"
     if len(sys.argv) < 2 :
         # generate data:
         print("generate waveform...")
@@ -74,14 +75,18 @@ if __name__ == "__main__":
         data2 *= 1.0-np.cos(2.0*np.pi*amf2*time)
         data = data1+data2
         #data = data0
+        # title += " pulses"
         data += 0.01*np.random.randn(len(data))
+        title += " pulses plus sine"
     else :
         import dataloader as dl
         print("load %s ..." % sys.argv[1])
         data, rate, unit = dl.load_data(sys.argv[1], 0)
+        title += " " + sys.argv[1]
 
     # setup plots:
-    fig, ax = plt.subplots(4, sharex=True)
+    fig, ax = plt.subplots(4, sharex=True, figsize=(20,12))
+    fig.canvas.set_window_title(title)
 
     # compute best window:
     print("call bestwindow() function...")

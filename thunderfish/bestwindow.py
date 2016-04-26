@@ -81,12 +81,14 @@ def best_window_algorithm(cv_interv, cv_interval_sorted, mean_ampl, ampl_sorted,
     :return: boolean array of valid windows.
     """
 
+    tolerance = 1.1
+
     # First filter: least variable interpeak intervals
-    # TODO: less detected peaks make smaller cv!! Check 40517L18.WAV
     cv_interval_sorted_inx = int(np.floor(cvi_percentile*len(cv_interval_sorted)))
     if cv_interval_sorted_inx >= len(cv_interval_sorted) :
         cv_interval_sorted_inx = -1
     cvi_th = cv_interval_sorted[cv_interval_sorted_inx]
+    cvi_th *= tolerance
     valid_times = cv_interv <= cvi_th
 
     # Second filter: low variance in the amplitude
@@ -94,12 +96,13 @@ def best_window_algorithm(cv_interv, cv_interval_sorted, mean_ampl, ampl_sorted,
     if cv_ampl_sorted_inx >= len(cv_ampl_sorted) :
         cv_ampl_sorted_inx = -1
     cva_th = cv_ampl_sorted[cv_ampl_sorted_inx]
+    cva_th *= tolerance
     valid_cv = cv_ampl <= cva_th
 
     # Third filter: choose the one with the highest amplitude that is not clipped
     # TODO: Clipping not yet implemented!!!! See 40517L1[456].WAV L26
-    ampl_th = np.percentile(mean_ampl[mean_ampl>0.0], ampl_percentile)
     ampl_th = ampl_sorted[np.floor(ampl_percentile*len(ampl_sorted))]
+    ampl_th /= tolerance
     valid_ampls = mean_ampl >= ampl_th
 
     # All three conditions must be fulfilled:
@@ -181,22 +184,50 @@ def best_window(data, rate, mode='first',
                                                            thresh_fac=thresh_fac,
                                                            thresh_frac=thresh_frac)
 
+    # clipping amplitudes:
+    min_ampl = np.min(data)
+    max_ampl = np.max(data)
+    # TODO: do this per window, see 0517L16.WAV
+    h, b = np.histogram(data, np.linspace(min_ampl, max_ampl, 20, endpoint=True))
+    if h[0] > 2.0*h[2] and b[0] < -0.4 :
+        if h[1] > 2.0*h[2] :
+            min_ampl = b[2]
+        else :
+            min_ampl = b[1]
+    if h[-1] > 2.0*h[-3] and b[-1] > 0.4 :
+        if h[-2] > 2.0*h[-3] :
+            max_ampl = b[-3]
+        else :
+            max_ampl = b[-2]
+    #import matplotlib.pyplot as plt
+    #plt.plot(data)
+    #plt.bar(b[:-1], h, width=np.mean(np.diff(b)))
+    #plt.axvline(min_ampl, color='r')
+    #plt.axvline(max_ampl, color='r')
+    #plt.show()
+
     # compute cv of intervals, mean peak amplitude and its cv:
     win_sinx = win_size*rate
     win_tinxs = np.arange(0.0, len(data) - win_sinx, win_shift*rate)
     cv_interv = np.zeros(len(win_tinxs))
     mean_ampl = np.zeros(len(win_tinxs))
     cv_ampl = np.zeros(len(win_tinxs))
-    for i, tinx in enumerate(win_tinxs):
+    for i, wtinx in enumerate(win_tinxs):
         # indices of peaks and troughs inside analysis window:
-        pinx = (peak_idx >= tinx) & (peak_idx <= tinx + win_sinx)
-        tinx = (trough_idx >= tinx) & (trough_idx <= tinx + win_sinx)
+        pinx = (peak_idx >= wtinx) & (peak_idx <= wtinx + win_sinx)
+        tinx = (trough_idx >= wtinx) & (trough_idx <= wtinx + win_sinx)
         p_idx, t_idx = pd.trim_to_peak(peak_idx[pinx], trough_idx[tinx])
         # interval statistics:
         ipis = np.diff(p_idx)
         itis = np.diff(t_idx)
         if len(ipis) > 10 :
             cv_interv[i] = 0.5*(np.std(ipis)/np.mean(ipis) + np.std(itis)/np.mean(itis))
+            # penalize regions without detected peaks:
+            mean_interv = np.mean(ipis)
+            if p_idx[0] - wtinx > mean_interv :
+                cv_interv[i] *= (p_idx[0] - wtinx)/mean_interv
+            if wtinx + win_sinx - p_idx[-1] > mean_interv :
+                cv_interv[i] *= (wtinx + win_sinx - p_idx[-1])/mean_interv
         else :
             cv_interv[i] = 1000.0
         # statistics of peak-to-trough amplitude:
@@ -204,10 +235,14 @@ def best_window(data, rate, mode='first',
         if len(p2t_ampl) > 0 :
             mean_ampl[i] = np.mean(p2t_ampl)
             cv_ampl[i] = np.std(p2t_ampl) / mean_ampl[i]
+            # penalize for clipped peaks:
+            clipped_frac = float(np.sum(data[p_idx]>max_ampl)+np.sum(data[t_idx]<min_ampl))/2.0/len(p2t_ampl)
+            #if clipped_frac > 0.01 :
+            cv_ampl[i] += 10.0*clipped_frac
         else :
             mean_ampl[i] = 0.0
             cv_ampl[i] = 1000.0
-    # TOOD: check for empty data here and exit!
+    # TODO: check for empty data here and exit!
     # cumulative functions:
     ampl_sorted = np.sort(mean_ampl)
     ampl_sorted = ampl_sorted[ampl_sorted>0.0]
@@ -262,23 +297,29 @@ def best_window(data, rate, mode='first',
 
 if __name__ == "__main__":
     print("Checking bestwindow module ...")
+    import sys
 
-    print
-    # generate data:
-    rate = 40000.0
-    time = np.arange(0.0, 2.0, 1./rate)
-    f1 = 100.0
-    data1 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
-    amf1 = 1.
-    data1 *= 1.0-np.cos(2.0*np.pi*amf1*time)
-    data1 += 0.2
-    f2 = f1*2.0*np.pi
-    data2 = 0.1*np.sin(2.0*np.pi*f2*time)
-    amf2 = 0.5
-    data2 *= 1.0-np.cos(2.0*np.pi*amf2*time)
-    data = data1+data2
-    data += 0.01*np.random.randn(len(data))
-    print("generated waveform")
+    if len(sys.argv) < 2 :
+        # generate data:
+        print("generate waveform...")
+        rate = 40000.0
+        time = np.arange(0.0, 10.0, 1./rate)
+        f1 = 100.0
+        data0 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
+        amf1 = 0.3
+        data1 = data0*(1.0-np.cos(2.0*np.pi*amf1*time))
+        data1 += 0.2
+        f2 = f1*2.0*np.pi
+        data2 = 0.1*np.sin(2.0*np.pi*f2*time)
+        amf3 = 0.15
+        data3 = data2*(1.0-np.cos(2.0*np.pi*amf3*time))
+        #data = data1+data3
+        data = data2
+        data += 0.01*np.random.randn(len(data))
+    else :
+        import dataloader as dl
+        print("load %s ..." % sys.argv[1])
+        data, rate, unit = dl.load_data(sys.argv[1], 0)
 
     best_window(data, rate, mode='first',
                 min_thresh=0.1, thresh_fac=0.8, thresh_frac=0.02, thresh_tau=0.25,
