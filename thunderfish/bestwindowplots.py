@@ -65,15 +65,16 @@ if __name__ == "__main__":
         rate = 40000.0
         time = np.arange(0.0, 10.0, 1./rate)
         f1 = 100.0
-        data1 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
+        data0 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
         amf1 = 0.3
-        data1 *= 1.0-np.cos(2.0*np.pi*amf1*time)
+        data1 = data0*(1.0-np.cos(2.0*np.pi*amf1*time))
         data1 += 0.2
         f2 = f1*2.0*np.pi
         data2 = 0.1*np.sin(2.0*np.pi*f2*time)
         amf2 = 0.15
         data2 *= 1.0-np.cos(2.0*np.pi*amf2*time)
-        data = data1+data2
+        #data = data1+data2
+        data = data0
         data += 0.01*np.random.randn(len(data))
     else :
         import dataloader as dl
@@ -86,7 +87,8 @@ if __name__ == "__main__":
     # compute best window:
     print("call bestwindow() function...")
     bw.best_window(data, rate, mode='first',
-                    min_thresh=0.01, thresh_fac = 0.75, thresh_tau=1.0, win_size=8.0, win_shift=0.1,
+                    min_thresh=0.01, thresh_fac=0.8, thresh_frac=0.1, thresh_tau=0.25,
+                    win_size=1.0, win_shift=0.1,
                     verbose=2, plot_data_func=plot_data, plot_window_func=plot_window,
                     ax=ax, fs=12)
 

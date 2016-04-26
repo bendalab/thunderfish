@@ -291,7 +291,10 @@ def detect_dynamic_peaks_troughs(data, threshold, min_thresh, tau, time=None,
             index (int): the current index
             min_inx (int): the index of the trough preceeding the peak (might be 0)
             threshold (float): the threshold value
-            **kwargs: further arguments
+            min_thresh (float): the minimum value the threshold is allowed to assume.
+            tau (float): the time constant of the the decay of the threshold value
+                         given in indices (time is None) or time units (time is not None)
+            **kwargs: further keyword arguments provided by the user
             r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
             th (float): a new value for the threshold or None (to keep the original value)
         check_trough_func (function): an optional function to be used for further evaluating and analysing a trough
@@ -304,7 +307,10 @@ def detect_dynamic_peaks_troughs(data, threshold, min_thresh, tau, time=None,
             index (int): the current index
             max_inx (int): the index of the peak preceeding the trough (might be 0)
             threshold (float): the threshold value
-            **kwargs: further arguments
+            min_thresh (float): the minimum value the threshold is allowed to assume.
+            tau (float): the time constant of the the decay of the threshold value
+                         given in indices (time is None) or time units (time is not None)
+            **kwargs: further keyword arguments provided by the user
             r (scalar or np.array): a single number or an array with properties of the trough or None to skip the trough
             th (float): a new value for the threshold or None (to keep the original value)            
         kwargs: arguments passed on to check_peak_func and check_trough_func
@@ -361,7 +367,8 @@ def detect_dynamic_peaks_troughs(data, threshold, min_thresh, tau, time=None,
                 # check and update peak with the check_peak_func function:
                 if check_peak_func :
                     r, th = check_peak_func(time, data, max_inx, index,
-                                            min_inx, threshold, **kwargs)
+                                            min_inx, threshold,
+                                            min_thresh=min_thresh, tau=tau, **kwargs)
                     if r is not None :
                         # this really is a peak:
                         peaks_list.append(r)
@@ -393,7 +400,8 @@ def detect_dynamic_peaks_troughs(data, threshold, min_thresh, tau, time=None,
                 # check and update trough with the check_trough function:
                 if check_trough_func :
                     r, th = check_trough_func(time, data, min_inx, index,
-                                              max_inx, threshold, **kwargs)
+                                              max_inx, threshold,
+                                              min_thresh=min_thresh, tau=tau, **kwargs)
                     if r is not None :
                         # this really is a trough:
                         troughs_list.append(r)
@@ -456,7 +464,10 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None, check_peak
             index (int): the current index
             min_inx (int): the index of the trough preceeding the peak (might be 0)
             threshold (float): the threshold value
-            **kwargs: further arguments
+            min_thresh (float): the minimum value the threshold is allowed to assume.
+            tau (float): the time constant of the the decay of the threshold value
+                         given in indices (time is None) or time units (time is not None)
+            **kwargs: further keyword arguments provided by the user
             r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
             th (float): a new value for the threshold or None (to keep the original value)
         kwargs: arguments passed on to check_peak_func
@@ -511,7 +522,8 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None, check_peak
                 # check and update peak with check_peak_func function:
                 if check_peak_func :
                     r, th = check_peak_func(time, data, max_inx, index,
-                                            min_inx, threshold, **kwargs)
+                                            min_inx, threshold,
+                                            min_thresh=min_thresh, tau=tau, **kwargs)
                     if r is not None :
                         # this really is a peak:
                         peak_list.append( r )

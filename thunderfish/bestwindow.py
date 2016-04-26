@@ -29,26 +29,30 @@ def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
 
 
 def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
-                               thresh_fac=0.75) :
+                               min_thresh, tau, thresh_fac=0.75, thresh_frac=0.02) :
     """
     Accept each detected peak/trough and return its index.
     Adjust the threshold to the size of the detected peak.
 
     Args:
-        freqs (array): frequencies of the power spectrum
-        data (array): the power spectrum
+        time (array): time values, can be None
+        data (array): the data in wich peaks and troughs are detected
         event_inx: index of the current peak/trough
         index: current index
         min_inx: index of the previous trough/peak
         threshold: threshold value
+        min_thresh (float): the minimum value the threshold is allowed to assume.
+        tau (float): the time constant of the the decay of the threshold value
+                     given in indices (time is None) or time units (time is not None)
         thresh_fac (float): the new threshold is thresh_fac times the size of the current peak
+        thresh_frac (float): new threshold is weighed against current threshold with thresh_frac
 
     Returns: 
         index (int): index of the peak/trough
         threshold (float): the new threshold to be used
     """
     size = data[event_inx] - data[min_inx]
-    threshold = thresh_fac*size
+    threshold += thresh_frac*(thresh_fac*size - threshold)
     return event_inx, threshold
 
 
@@ -80,6 +84,7 @@ def best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls, c
     # First filter: stable peak rate
     # TODO: It would be better to take from the good amplitudes that section with the most stable rate! Check 40517L28.WAV
     # TODO: Or skip this filter entirely?
+    # TODO: Better make sure for most regular peak intervals WITHIN a window! 40517L12.WAV 40517L17.WAV
     lower_rate_th = rate_mode - rate_th*rate_spread
     upper_rate_th = rate_mode + rate_th*rate_spread
     lower = peak_rate >= lower_rate_th
@@ -88,6 +93,7 @@ def best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls, c
     valid_rate = lower * upper * finite
 
     # Second filter: low variance in the amplitude
+    # TODO: this should have an absolute component! cv < 0.1 is good anyways.
     cv_th = cvs[np.floor(cv_percentile_th*len(cvs))]
     valid_cv = cv_ampl <= cv_th
 
@@ -98,7 +104,8 @@ def best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls, c
     valid_ampls = mean_ampl >= ampl_th
 
     # All three conditions must be fulfilled:
-    valid_windows = valid_rate * valid_cv * valid_ampls
+    #valid_windows = valid_rate * valid_cv * valid_ampls
+    valid_windows = valid_cv * valid_ampls
 
     # If there is no best window, run the algorithm again with more flexible thresholds:
     if not True in valid_windows :
@@ -138,7 +145,7 @@ def best_window_algorithm(peak_rate, rate_mode, rate_spread, mean_ampl, ampls, c
 
     
 def best_window(data, rate, mode='first',
-                min_thresh=0.1, thresh_fac = 0.75, thresh_tau=1.0, win_size=8., win_shift=0.1,
+                min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0, win_size=8., win_shift=0.1,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
@@ -148,6 +155,7 @@ def best_window(data, rate, mode='first',
     :param mode: string. 'first' returns first matching window, 'expand' expands the first matching window as far as possible, 'largest' returns the largest matching range.
     :param min_thresh: float. Minimum allowed value for the threshold
     :param thresh_fac: float. New threshold is thresh_fac times the size of the current peak
+    :param thresh_frac: float. New threshold is weighed against current threshold with thresh_frac
     :param thresh_tau: float. Time constant of the decay of the threshold towards min_thresh in seconds
     :param win_size: float. Size of the best window in seconds.
     :param win_shift: float. Size in seconds between windows.
@@ -171,7 +179,8 @@ def best_window(data, rate, mode='first',
     peak_idx, trough_idx = pd.detect_dynamic_peaks_troughs(data, thresh, min_thresh,
                                                            tauidx, None,
                                                            accept_peak_size_threshold, None,
-                                                           thresh_fac=thresh_fac)
+                                                           thresh_fac=thresh_fac,
+                                                           thresh_frac=thresh_frac)
 
     # compute peak rate, mean peak amplitude and its cv:
     win_sinx = win_size*rate
@@ -269,4 +278,5 @@ if __name__ == "__main__":
     print("generated waveform")
 
     best_window(data, rate, mode='first',
-                min_thresh=0.1, thresh_fac = 0.75, thresh_tau=1.0, win_size=0.2, win_shift=0.1)
+                min_thresh=0.1, thresh_fac=0.8, thresh_frac=0.02, thresh_tau=0.25,
+                win_size=0.2, win_shift=0.1)
