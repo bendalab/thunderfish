@@ -1215,8 +1215,8 @@ class SignalPlot :
                     self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'a' :
-            idx0, idx1 = bw.best_window(self.data, self.rate, mode='first',
-                                min_thresh=0.01, thresh_fac=0.75, thresh_tau=0.5,
+            idx0, idx1 = bw.best_window_indices(self.data, self.rate, mode='first',
+                                min_thresh=0.01, thresh_fac=0.8, thresh_frac=0.1, thresh_tau=0.25,
                                 win_size=8.0, win_shift=0.1, verbose=1)
             if idx1 > 0 :
                 self.toffset = idx0/self.rate

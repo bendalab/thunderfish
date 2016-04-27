@@ -58,7 +58,8 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
     
 def best_window_indices(data, rate, mode='first',
                         min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
-                        win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
+                        win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
+                        cvi_th=0.05, cva_th=0.05,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
@@ -72,6 +73,8 @@ def best_window_indices(data, rate, mode='first',
     :param thresh_tau: float. Time constant of the decay of the threshold towards min_thresh in seconds
     :param win_size: float. Size of the best window in seconds.
     :param win_shift: float. Size in seconds between windows.
+    :param min_clip: float. Minimum amplitude where to clip data. If -np.inf then determine clipping amplitude from data.
+    :param max_clip: float. Maximum amplitude where to clip data. If +np.inf then determine clipping amplitude from data.
     :param verbose: int. Verbosity level >= 0.
     :param plot_data_func: Function for plotting the raw data and detected peaks and troughs. 
     :param plot_window_func: Function for plotting the window selection criteria.
@@ -116,7 +119,6 @@ def best_window_indices(data, rate, mode='first',
         valid_cv = cv_ampl <= cva_th
 
         # Third filter: choose the one with the highest amplitude that is not clipped
-        # TODO: Clipping not yet implemented!!!! See 40517L1[456].WAV L26
         ampl_th = ampl_sorted[np.floor(ampl_percentile*len(ampl_sorted))]
         ampl_th /= tolerance
         valid_ampls = mean_ampl >= ampl_th
@@ -178,32 +180,37 @@ def best_window_indices(data, rate, mode='first',
     
     # clipping amplitudes:
     # TODO: if given as arguments do not check for clipping amplitudes
-    #import matplotlib.pyplot as plt
-    min_ampl = np.min(data)
-    max_ampl = np.max(data)
-    min_clip = min_ampl
-    max_clip = max_ampl
-    for wtinx in win_tinxs:
-        # check for clipping:
-        h, b = np.histogram(data[wtinx:wtinx+win_sinx], np.linspace(min_ampl, max_ampl, 20, endpoint=True))
-        if h[0] > 2.0*h[2] and b[0] < -0.4 :
-            if h[1] > 2.0*h[2] and b[2] > min_clip:
-                min_clip = b[2]
-            elif b[1] > min_clip :
-                min_clip = b[1]
-        if h[-1] > 2.0*h[-3] and b[-1] > 0.4 :
-            if h[-2] > 2.0*h[-3] and b[-3] < max_clip:
-                max_clip = b[-3]
-            elif b[-2] < max_clip :
-                max_clip = b[-2]
-        #plt.bar(b[:-1], h, width=np.mean(np.diff(b)))
-        #plt.axvline(min_clip, color='r')
-        #plt.axvline(max_clip, color='r')
+    if np.isinf(min_clip) or np.isinf(max_clip) :
+        #import matplotlib.pyplot as plt
+        min_ampl = np.min(data)
+        max_ampl = np.max(data)
+        min_clipa = min_ampl
+        max_clipa = max_ampl
+        for wtinx in win_tinxs:
+            # check for clipping:
+            h, b = np.histogram(data[wtinx:wtinx+win_sinx], np.linspace(min_ampl, max_ampl, 20, endpoint=True))
+            if h[0] > 2.0*h[2] and b[0] < -0.4 :
+                if h[1] > 2.0*h[2] and b[2] > min_clipa:
+                    min_clipa = b[2]
+                elif b[1] > min_clipa :
+                    min_clipa = b[1]
+            if h[-1] > 2.0*h[-3] and b[-1] > 0.4 :
+                if h[-2] > 2.0*h[-3] and b[-3] < max_clipa:
+                    max_clipa = b[-3]
+                elif b[-2] < max_clipa :
+                    max_clipa = b[-2]
+            #plt.bar(b[:-1], h, width=np.mean(np.diff(b)))
+            #plt.axvline(min_clipa, color='r')
+            #plt.axvline(max_clipa, color='r')
+            #plt.show()
+        #plt.hist(data, 20)
+        #plt.axvline(min_clipa, color='r')
+        #plt.axvline(max_clipa, color='r')
         #plt.show()
-    #plt.hist(data, 20)
-    #plt.axvline(min_clip, color='r')
-    #plt.axvline(max_clip, color='r')
-    #plt.show()
+        if np.isinf(min_clip) :
+            min_clip = min_clipa
+        if np.isinf(max_clip) :
+            max_clip = max_clipa
     
     # compute cv of intervals, mean peak amplitude and its cv:
     cv_interv = np.zeros(len(win_tinxs))

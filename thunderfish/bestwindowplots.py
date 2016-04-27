@@ -96,7 +96,7 @@ if __name__ == "__main__":
     print("call bestwindow() function...")
     bw.best_window_indices(data, rate, mode='expand',
                             min_thresh=0.01, thresh_fac=0.8, thresh_frac=0.1, thresh_tau=0.25,
-                            win_size=1.0, win_shift=0.1,
+                            win_size=1.0, win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
                             verbose=2, plot_data_func=plot_data, plot_window_func=plot_window,
                             ax=ax, fs=12)
 
