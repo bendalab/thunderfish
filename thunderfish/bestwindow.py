@@ -56,10 +56,10 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
     return event_inx, threshold
 
     
-def best_window(data, rate, mode='first',
-                min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
-                win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
-                verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
+def best_window_indices(data, rate, mode='first',
+                        min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
+                        win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
+                        verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
 
@@ -77,7 +77,8 @@ def best_window(data, rate, mode='first',
     :param plot_window_func: Function for plotting the window selection criteria.
     :param kwargs: Keyword arguments passed to plot_data_func and plot_window_func. 
     
-    :return: two floats. The first float marks the start of the best window and the second the defined window-size.
+    :return start_index: int. Index of the start of the best window.
+    :return end_index: int. Index of the end of the best window.
     """
 
     def best_window_algorithm(cvi_percentile=0.15, cva_percentile=0.15, ampl_percentile=0.85):
@@ -279,6 +280,43 @@ def best_window(data, rate, mode='first',
     return idx0, idx1
 
 
+# TODO: make sure the arguments are still right!
+def best_window_times(data, rate, mode='first',
+                        min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
+                        win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
+                        verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
+    """
+    Finds the window within data with the best data. See best_window_indices() for details.
+
+    Returns:
+      start_time (float): Time of the start of the best window.
+      end_time (float): Time of the end of the best window.
+    """
+    start_inx, end_inx = best_window_indices(data, rate, mode,
+                        min_thresh, thresh_fac, thresh_frac, thresh_tau,
+                        win_size, win_shift, cvi_th, cva_th,
+                        verbose, plot_data_func, plot_window_func, **kwargs)
+    return start_inx/rate, end_inx/rate
+
+
+# TODO: make sure the arguments are still right!
+def best_window(data, rate, mode='first',
+                min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
+                win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
+                verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
+    """
+    Finds the window within data with the best data. See best_window_indices() for details.
+
+    Returns:
+      data (array): the data of the best window.
+    """
+    start_inx, end_inx = best_window_indices(data, rate, mode,
+                        min_thresh, thresh_fac, thresh_frac, thresh_tau,
+                        win_size, win_shift, cvi_th, cva_th,
+                        verbose, plot_data_func, plot_window_func, **kwargs)
+    return data[start_inx:end_inx]
+
+
 if __name__ == "__main__":
     print("Checking bestwindow module ...")
     import sys
@@ -305,6 +343,6 @@ if __name__ == "__main__":
         print("load %s ..." % sys.argv[1])
         data, rate, unit = dl.load_data(sys.argv[1], 0)
 
-    best_window(data, rate, mode='first',
-                min_thresh=0.1, thresh_fac=0.8, thresh_frac=0.02, thresh_tau=0.25,
-                win_size=0.2, win_shift=0.1)
+    best_window_indices(data, rate, mode='first',
+                        min_thresh=0.1, thresh_fac=0.8, thresh_frac=0.02, thresh_tau=0.25,
+                        win_size=0.2, win_shift=0.1)
