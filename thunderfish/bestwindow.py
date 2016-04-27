@@ -60,8 +60,9 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
 def best_window_indices(data, rate, mode='first',
                         min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
                         clip_win_size=0.5, min_clip=-np.inf, max_clip=np.inf,
-                        win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
+                        win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
+    # TODO: fix documentation of this function.
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
     best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
 
@@ -77,6 +78,7 @@ def best_window_indices(data, rate, mode='first',
     :param max_clip: float. Maximum amplitude where to clip data. If +np.inf then determine clipping amplitude from data.
     :param win_size: float. Size of the best window in seconds.
     :param win_shift: float. Size in seconds between windows.
+    :param tolerance: float. Multiply threshold obtained from percentiles by this factor.
     :param verbose: int. Verbosity level >= 0.
     :param plot_data_func: Function for plotting the raw data and detected peaks and troughs. 
     :param plot_window_func: Function for plotting the window selection criteria.
@@ -103,9 +105,6 @@ def best_window_indices(data, rate, mode='first',
 
         if verbose > 1 :
             print('  run best_window_algorithm() with cvi_percentile=%.2f, cva_percentile=%.2f, ampl_percentile=%.2f' % (cvi_percentile, cva_percentile, ampl_percentile))
-        
-        # TODO: this needs to be an argument and needs to be explained
-        tolerance = 1.1
 
         # First filter: least variable interpeak intervals
         cv_interval_sorted_inx = int(np.floor(cvi_percentile*len(cv_interval_sorted)))
@@ -301,7 +300,7 @@ def best_window_indices(data, rate, mode='first',
 def best_window_times(data, rate, mode='first',
                         min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
                         clip_win_size=0.5, min_clip=-np.inf, max_clip=np.inf,
-                        win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
+                        win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """
     Finds the window within data with the best data. See best_window_indices() for details.
@@ -312,7 +311,8 @@ def best_window_times(data, rate, mode='first',
     """
     start_inx, end_inx = best_window_indices(data, rate, mode,
                         min_thresh, thresh_fac, thresh_frac, thresh_tau,
-                        win_size, win_shift, cvi_th, cva_th,
+                        clip_win_size, min_clip, max_clip,
+                        win_size, win_shift, cvi_th, cva_th, tolerance,
                         verbose, plot_data_func, plot_window_func, **kwargs)
     return start_inx/rate, end_inx/rate
 
@@ -321,7 +321,7 @@ def best_window_times(data, rate, mode='first',
 def best_window(data, rate, mode='first',
                 min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
                 clip_win_size=0.5, min_clip=-np.inf, max_clip=np.inf,
-                win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05,
+                win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """
     Finds the window within data with the best data. See best_window_indices() for details.
@@ -331,7 +331,8 @@ def best_window(data, rate, mode='first',
     """
     start_inx, end_inx = best_window_indices(data, rate, mode,
                         min_thresh, thresh_fac, thresh_frac, thresh_tau,
-                        win_size, win_shift, cvi_th, cva_th,
+                        clip_win_size, min_clip, max_clip,
+                        win_size, win_shift, cvi_th, cva_th, tolerance,
                         verbose, plot_data_func, plot_window_func, **kwargs)
     return data[start_inx:end_inx]
 
