@@ -55,95 +55,6 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
     threshold += thresh_frac*(thresh_fac*size - threshold)
     return event_inx, threshold
 
-
-def best_window_algorithm(cv_interv, cv_interval_sorted, mean_ampl, ampl_sorted,
-                          cv_ampl, cv_ampl_sorted,
-                          cvi_percentile=0.15, ampl_percentile=0.85, cva_percentile=0.15,
-                          verbose=1, plot_window_func=None, **kwargs):
-
-    """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
-    different amount of peaks compared to the stats.mode peak number of all windows. Secondly, it filters out
-    windows that have a higher coefficient of variation than a certain percentile of the distribution of cv_ampl.
-    From those windows that get through both filters, the one with the highest peak-to-trough-amplitude
-    (that is not clipped!) is chosen as the best window. We assume clipping as amplitudes above 85% percentile of
-    the distribution of peak to trough amplitude.
-
-    :param cva_percentile: threshold of how much amplitude-variance (coefficient of variation) of the signal is allowed. Between 0 and 1.
-    :param cv_interv: array with coefficients of variation of peak intervals
-    :param cv_interv_sorted: array with sorted coefficients of variation of peak intervals
-    :param mean_ampl: array with mean peak-to-trough-amplitudes
-    :param mean_ampl_sorted: array with sorted mean peak-to-trough-amplitudes
-    :param cv_ampl: array with cv of amplitudes
-    :param cv_ampl_sorted: array with sorted cv of amplitudes
-    :param cvi_percentile: threshold for peak interval filter between 0 and 1
-    :param ampl_percentile: choose a percentile threshold to avoid clipping. Between 0 and 1.
-    :param cva_percentile: threshold for cv of amplitudes between 0 and 1.
-    :return: boolean array of valid windows.
-    """
-
-    tolerance = 1.1
-
-    # First filter: least variable interpeak intervals
-    cv_interval_sorted_inx = int(np.floor(cvi_percentile*len(cv_interval_sorted)))
-    if cv_interval_sorted_inx >= len(cv_interval_sorted) :
-        cv_interval_sorted_inx = -1
-    cvi_th = cv_interval_sorted[cv_interval_sorted_inx]
-    cvi_th *= tolerance
-    valid_times = cv_interv <= cvi_th
-
-    # Second filter: low variance in the amplitude
-    cv_ampl_sorted_inx = int(np.floor(cva_percentile*len(cv_ampl_sorted)))
-    if cv_ampl_sorted_inx >= len(cv_ampl_sorted) :
-        cv_ampl_sorted_inx = -1
-    cva_th = cv_ampl_sorted[cv_ampl_sorted_inx]
-    cva_th *= tolerance
-    valid_cv = cv_ampl <= cva_th
-
-    # Third filter: choose the one with the highest amplitude that is not clipped
-    # TODO: Clipping not yet implemented!!!! See 40517L1[456].WAV L26
-    ampl_th = ampl_sorted[np.floor(ampl_percentile*len(ampl_sorted))]
-    ampl_th /= tolerance
-    valid_ampls = mean_ampl >= ampl_th
-
-    # All three conditions must be fulfilled:
-    valid_windows = valid_times * valid_cv * valid_ampls
-
-    # If there is no best window, run the algorithm again with more flexible thresholds:
-    if not True in valid_windows :
-        if cvi_percentile >= 1. and cva_percentile >= 1. and ampl_percentile <= 0.:
-            print('did not find best window')
-            if plot_window_func :
-                plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
-            if verbose > 0 :
-                print('WARNING. Did not find an appropriate window for analysis.')
-            return []
-
-        else :
-            # TODO: increase only threshold of the criterion with the smallest/zero True range?
-            cvi_percentile += 0.05
-            if cvi_percentile > 1.0 :
-                cvi_percentile = 1.0
-            cva_percentile += 0.05
-            if cva_percentile > 1. :
-                cva_percentile = 1.
-            ampl_percentile -= 0.05
-            if ampl_percentile < 0. :
-                ampl_percentile = 0.
-
-            if verbose > 1 :
-                print('  rerunning best_window_algorithm() with cvi_th=%.2f, cva_percentile=%.2f, ampl_percentile=%.2f' % (cvi_percentile, cva_percentile, ampl_percentile))
-            return best_window_algorithm(cv_interv, cv_interval_sorted, mean_ampl, ampl_sorted,
-                                         cv_ampl, cv_ampl_sorted, cvi_percentile=cvi_percentile,
-                                         ampl_percentile=ampl_percentile,
-                                         cva_percentile=cva_percentile, verbose=verbose,
-                                         plot_window_func=plot_window_func, **kwargs)
-    else:
-        if plot_window_func :
-            plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
-        if verbose > 1 :
-            print('found best window')
-        return valid_windows
-
     
 def best_window(data, rate, mode='first',
                 min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
@@ -168,6 +79,82 @@ def best_window(data, rate, mode='first',
     
     :return: two floats. The first float marks the start of the best window and the second the defined window-size.
     """
+
+    def best_window_algorithm(cvi_percentile=0.15, cva_percentile=0.15, ampl_percentile=0.85):
+
+        """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
+        different amount of peaks compared to the stats.mode peak number of all windows. Secondly, it filters out
+        windows that have a higher coefficient of variation than a certain percentile of the distribution of cv_ampl.
+        From those windows that get through both filters, the one with the highest peak-to-trough-amplitude
+        (that is not clipped!) is chosen as the best window. We assume clipping as amplitudes above 85% percentile of
+        the distribution of peak to trough amplitude.
+
+        :param cvi_percentile: threshold for peak interval filter between 0 and 1
+        :param cva_percentile: threshold for cv of amplitudes between 0 and 1.
+        :param ampl_percentile: choose a percentile threshold to avoid clipping. Between 0 and 1.
+        :return: boolean array of valid windows.
+        """
+
+        # TODO: this needs to be an argument and needs to be explained
+        tolerance = 1.1
+
+        # First filter: least variable interpeak intervals
+        cv_interval_sorted_inx = int(np.floor(cvi_percentile*len(cv_interval_sorted)))
+        if cv_interval_sorted_inx >= len(cv_interval_sorted) :
+            cv_interval_sorted_inx = -1
+        cvi_th = cv_interval_sorted[cv_interval_sorted_inx]
+        cvi_th *= tolerance
+        valid_times = cv_interv <= cvi_th
+
+        # Second filter: low variance in the amplitude
+        cv_ampl_sorted_inx = int(np.floor(cva_percentile*len(cv_ampl_sorted)))
+        if cv_ampl_sorted_inx >= len(cv_ampl_sorted) :
+            cv_ampl_sorted_inx = -1
+        cva_th = cv_ampl_sorted[cv_ampl_sorted_inx]
+        cva_th *= tolerance
+        valid_cv = cv_ampl <= cva_th
+
+        # Third filter: choose the one with the highest amplitude that is not clipped
+        # TODO: Clipping not yet implemented!!!! See 40517L1[456].WAV L26
+        ampl_th = ampl_sorted[np.floor(ampl_percentile*len(ampl_sorted))]
+        ampl_th /= tolerance
+        valid_ampls = mean_ampl >= ampl_th
+
+        # All three conditions must be fulfilled:
+        valid_windows = valid_times * valid_cv * valid_ampls
+
+        # If there is no best window, run the algorithm again with more flexible thresholds:
+        if not True in valid_windows :
+            if cvi_percentile >= 1. and cva_percentile >= 1. and ampl_percentile <= 0.:
+                print('did not find best window')
+                if plot_window_func :
+                    plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
+                if verbose > 0 :
+                    print('WARNING. Did not find an appropriate window for analysis.')
+                return []
+
+            else :
+                # TODO: increase only threshold of the criterion with the smallest/zero True range?
+                cvi_percentile += 0.05
+                if cvi_percentile > 1.0 :
+                    cvi_percentile = 1.0
+                cva_percentile += 0.05
+                if cva_percentile > 1. :
+                    cva_percentile = 1.
+                ampl_percentile -= 0.05
+                if ampl_percentile < 0. :
+                    ampl_percentile = 0.
+
+                if verbose > 1 :
+                    print('  rerunning best_window_algorithm() with cvi_th=%.2f, cva_percentile=%.2f, ampl_percentile=%.2f' % (cvi_percentile, cva_percentile, ampl_percentile))
+                return best_window_algorithm(cvi_percentile, cva_percentile, ampl_percentile)
+        else:
+            if plot_window_func :
+                plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
+            if verbose > 1 :
+                print('found best window')
+            return valid_windows
+
 
     # too little data:
     if len(data) / rate <= win_size :
@@ -252,14 +239,11 @@ def best_window(data, rate, mode='first',
     cv_ampl_sorted = np.sort(cv_ampl)
     cv_ampl_sorted = cv_ampl_sorted[cv_ampl_sorted<1000.0]
     cva_percentile = float(len(cv_ampl_sorted[cv_ampl_sorted<cva_th])/float(len(cv_ampl_sorted)))
-
+    # TODO: this needs to be an argument???
+    ampl_percentile = 0.85
+    
     # find best window:
-    valid_wins = best_window_algorithm(cv_interv, cv_interval_sorted,
-                                       mean_ampl, ampl_sorted,
-                                       cv_ampl, cv_ampl_sorted,
-                                       cvi_percentile=cvi_percentile,
-                                       cva_percentile=cva_percentile, verbose=verbose,
-                                       plot_window_func=plot_window_func, **kwargs)
+    valid_wins = best_window_algorithm(cvi_percentile, cva_percentile, ampl_percentile)
 
     # extract best window:
     idx0 = 0
