@@ -60,7 +60,8 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
 def best_window_indices(data, rate, mode='first',
                         min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
                         clip_win_size=0.5, min_clip=-np.inf, max_clip=np.inf,
-                        win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
+                        win_size=8., win_shift=0.1,
+                        cvi_th=0.05, cva_th=0.05, percentile=0.15, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     # TODO: fix documentation of this function.
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
@@ -78,6 +79,7 @@ def best_window_indices(data, rate, mode='first',
     :param max_clip: float. Maximum amplitude where to clip data. If +np.inf then determine clipping amplitude from data.
     :param win_size: float. Size of the best window in seconds.
     :param win_shift: float. Size in seconds between windows.
+    :param percentile: float. Initial percentile for setting thresholds.
     :param tolerance: float. Multiply threshold obtained from percentiles by this factor.
     :param verbose: int. Verbosity level >= 0.
     :param plot_data_func: Function for plotting the raw data and detected peaks and troughs. 
@@ -112,7 +114,7 @@ def best_window_indices(data, rate, mode='first',
             cv_interval_sorted_inx = -1
         cvi_th = cv_interval_sorted[cv_interval_sorted_inx]
         cvi_th *= tolerance
-        valid_times = cv_interv <= cvi_th
+        valid_intervals = cv_interv <= cvi_th
 
         # Second filter: low variance in the amplitude
         cv_ampl_sorted_inx = int(np.floor(cva_percentile*len(cv_ampl_sorted)))
@@ -122,13 +124,13 @@ def best_window_indices(data, rate, mode='first',
         cva_th *= tolerance
         valid_cv = cv_ampl <= cva_th
 
-        # Third filter: choose the one with the highest amplitude that is not clipped
+        # Third filter: choose the one with the highest amplitude
         ampl_th = ampl_sorted[np.floor(ampl_percentile*len(ampl_sorted))]
         ampl_th /= tolerance
         valid_ampls = mean_ampl >= ampl_th
 
         # All three conditions must be fulfilled:
-        valid_windows = valid_times * valid_cv * valid_ampls
+        valid_windows = valid_intervals * valid_cv * valid_ampls
 
         # If there is no best window, run the algorithm again with more flexible thresholds:
         if not True in valid_windows :
@@ -141,14 +143,14 @@ def best_window_indices(data, rate, mode='first',
                 return []
 
             else :
-                # TODO: increase only threshold of the criterion with the smallest/zero True range?
+                # TODO: increase only threshold of the criterion with the smallest True range?
                 cvi_percentile += 0.05
+                cva_percentile += 0.05
+                ampl_percentile -= 0.05
                 if cvi_percentile > 1.0 :
                     cvi_percentile = 1.0
-                cva_percentile += 0.05
                 if cva_percentile > 1. :
                     cva_percentile = 1.
-                ampl_percentile -= 0.05
                 if ampl_percentile < 0. :
                     ampl_percentile = 0.
                 return best_window_algorithm(cvi_percentile, cva_percentile, ampl_percentile)
@@ -253,11 +255,14 @@ def best_window_indices(data, rate, mode='first',
     cv_interval_sorted = np.sort(cv_interv)
     cv_interval_sorted = cv_interval_sorted[cv_interval_sorted<1000.0]
     cvi_percentile = float(len(cv_interval_sorted[cv_interval_sorted<cvi_th])/float(len(cv_interval_sorted)))
+    if cvi_percentile < percentile :
+        cvi_percentile = percentile
     cv_ampl_sorted = np.sort(cv_ampl)
     cv_ampl_sorted = cv_ampl_sorted[cv_ampl_sorted<1000.0]
     cva_percentile = float(len(cv_ampl_sorted[cv_ampl_sorted<cva_th])/float(len(cv_ampl_sorted)))
-    # TODO: this needs to be an argument???
-    ampl_percentile = 0.85
+    if cva_percentile < percentile :
+        cva_percentile = percentile
+    ampl_percentile = 1.0 - percentile
     
     # find best window:
     valid_wins = best_window_algorithm(cvi_percentile, cva_percentile, ampl_percentile)
