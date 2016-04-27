@@ -71,13 +71,17 @@ if __name__ == "__main__":
         data1 += 0.2
         f2 = f1*2.0*np.pi
         data2 = 0.1*np.sin(2.0*np.pi*f2*time)
-        amf2 = 0.15
-        data2 *= 1.0-np.cos(2.0*np.pi*amf2*time)
-        data = data1+data2
+        amf3 = 0.15
+        data3 = data2*(1.0-np.cos(2.0*np.pi*amf3*time))
+        #data = data1+data3
+        #title += " pulses plus sine"
         #data = data0
-        # title += " pulses"
+        #title += " pulses"
+        #data = data2
+        #title += " sine"
+        data = data3
+        title += " modulated sine"
         data += 0.01*np.random.randn(len(data))
-        title += " pulses plus sine"
     else :
         import dataloader as dl
         print("load %s ..." % sys.argv[1])

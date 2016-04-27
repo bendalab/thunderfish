@@ -172,31 +172,40 @@ def best_window_indices(data, rate, mode='first',
                                                            thresh_fac=thresh_fac,
                                                            thresh_frac=thresh_frac)
 
-    # clipping amplitudes:
-    min_ampl = np.min(data)
-    max_ampl = np.max(data)
-    # TODO: do this per window, see 0517L16.WAV
-    h, b = np.histogram(data, np.linspace(min_ampl, max_ampl, 20, endpoint=True))
-    if h[0] > 2.0*h[2] and b[0] < -0.4 :
-        if h[1] > 2.0*h[2] :
-            min_ampl = b[2]
-        else :
-            min_ampl = b[1]
-    if h[-1] > 2.0*h[-3] and b[-1] > 0.4 :
-        if h[-2] > 2.0*h[-3] :
-            max_ampl = b[-3]
-        else :
-            max_ampl = b[-2]
-    #import matplotlib.pyplot as plt
-    #plt.plot(data)
-    #plt.bar(b[:-1], h, width=np.mean(np.diff(b)))
-    #plt.axvline(min_ampl, color='r')
-    #plt.axvline(max_ampl, color='r')
-    #plt.show()
-
-    # compute cv of intervals, mean peak amplitude and its cv:
+    # indices of analysis window:
     win_sinx = win_size*rate
     win_tinxs = np.arange(0.0, len(data) - win_sinx, win_shift*rate)
+    
+    # clipping amplitudes:
+    # TODO: if given as arguments do not check for clipping amplitudes
+    #import matplotlib.pyplot as plt
+    min_ampl = np.min(data)
+    max_ampl = np.max(data)
+    min_clip = min_ampl
+    max_clip = max_ampl
+    for wtinx in win_tinxs:
+        # check for clipping:
+        h, b = np.histogram(data[wtinx:wtinx+win_sinx], np.linspace(min_ampl, max_ampl, 20, endpoint=True))
+        if h[0] > 2.0*h[2] and b[0] < -0.4 :
+            if h[1] > 2.0*h[2] and b[2] > min_clip:
+                min_clip = b[2]
+            elif b[1] > min_clip :
+                min_clip = b[1]
+        if h[-1] > 2.0*h[-3] and b[-1] > 0.4 :
+            if h[-2] > 2.0*h[-3] and b[-3] < max_clip:
+                max_clip = b[-3]
+            elif b[-2] < max_clip :
+                max_clip = b[-2]
+        #plt.bar(b[:-1], h, width=np.mean(np.diff(b)))
+        #plt.axvline(min_clip, color='r')
+        #plt.axvline(max_clip, color='r')
+        #plt.show()
+    #plt.hist(data, 20)
+    #plt.axvline(min_clip, color='r')
+    #plt.axvline(max_clip, color='r')
+    #plt.show()
+    
+    # compute cv of intervals, mean peak amplitude and its cv:
     cv_interv = np.zeros(len(win_tinxs))
     mean_ampl = np.zeros(len(win_tinxs))
     cv_ampl = np.zeros(len(win_tinxs))
@@ -224,8 +233,8 @@ def best_window_indices(data, rate, mode='first',
             mean_ampl[i] = np.mean(p2t_ampl)
             cv_ampl[i] = np.std(p2t_ampl) / mean_ampl[i]
             # penalize for clipped peaks:
-            clipped_frac = float(np.sum(data[p_idx]>max_ampl)+np.sum(data[t_idx]<min_ampl))/2.0/len(p2t_ampl)
-            #if clipped_frac > 0.01 :
+            clipped_frac = float(np.sum(data[p_idx]>max_clip) +
+                                 np.sum(data[t_idx]<min_clip))/2.0/len(p2t_ampl)
             cv_ampl[i] += 10.0*clipped_frac
         else :
             mean_ampl[i] = 0.0
@@ -345,4 +354,4 @@ if __name__ == "__main__":
 
     best_window_indices(data, rate, mode='first',
                         min_thresh=0.1, thresh_fac=0.8, thresh_frac=0.02, thresh_tau=0.25,
-                        win_size=0.2, win_shift=0.1)
+                        win_size=1.0, win_shift=0.5)
