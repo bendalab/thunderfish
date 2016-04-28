@@ -240,7 +240,7 @@ def best_window_indices(data, rate, mode='first',
     if len(data) / rate <= win_size :
         if verbose > 0 :
             print 'no best window found: not enough data'
-        return
+        return 0, 0
 
     # detect large peaks and troughs:
     thresh = 1.5*np.std(data[0:win_shift*rate])
@@ -250,6 +250,10 @@ def best_window_indices(data, rate, mode='first',
                                                            accept_peak_size_threshold, None,
                                                            thresh_fac=thresh_fac,
                                                            thresh_frac=thresh_frac)
+    if len(peak_idx) == 0 or len(trough_idx) == 0 :
+        if verbose > 0 :
+            print 'best_window(): no peaks and troughs detected'
+        return 0, 0
     
     # determine clipping amplitudes:
     if np.isinf(min_clip) or np.isinf(max_clip) :
@@ -296,21 +300,34 @@ def best_window_indices(data, rate, mode='first',
         else :
             mean_ampl[i] = 0.0
             cv_ampl[i] = 1000.0
-    # TODO: check for empty data here and exit!
-    # cumulative functions:
+    # cumulative function for mean amplitudes and percentile:
     ampl_sorted = np.sort(mean_ampl)
     ampl_sorted = ampl_sorted[ampl_sorted>0.0]
+    if len(ampl_sorted) <= 0 :
+        if verbose > 0 :
+            print 'best_window(): no finite amplitudes detected'
+        return 0, 0
+    ampl_percentile = 1.0 - percentile
+    # cumulative function for interval cvs and percentile of threshold:
     cv_interval_sorted = np.sort(cv_interv)
     cv_interval_sorted = cv_interval_sorted[cv_interval_sorted<1000.0]
+    if len(cv_interval_sorted) <= 0 :
+        if verbose > 0 :
+            print 'best_window(): no valid interval cvs detected'
+        return 0, 0
     cvi_percentile = float(len(cv_interval_sorted[cv_interval_sorted<cvi_th])/float(len(cv_interval_sorted)))
     if cvi_percentile < percentile :
         cvi_percentile = percentile
+    # cumulative function for amplitude cvs and percentile of threshold:
     cv_ampl_sorted = np.sort(cv_ampl)
     cv_ampl_sorted = cv_ampl_sorted[cv_ampl_sorted<1000.0]
+    if len(cv_ampl_sorted) <= 0 :
+        if verbose > 0 :
+            print 'best_window(): no valid amplitude cvs detected'
+        return 0, 0
     cva_percentile = float(len(cv_ampl_sorted[cv_ampl_sorted<cva_th])/float(len(cv_ampl_sorted)))
     if cva_percentile < percentile :
         cva_percentile = percentile
-    ampl_percentile = 1.0 - percentile
     
     # find best window:
     valid_wins = find_best_window(cvi_percentile, cva_percentile, ampl_percentile)
