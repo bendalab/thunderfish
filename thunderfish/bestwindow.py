@@ -188,7 +188,9 @@ def best_window_indices(data, rate, mode='first',
         win_tinxs = np.arange(0, len(data) - win_sinx, win_sinx)
         for wtinx in win_tinxs:
             # check for clipping:
-            h, b = np.histogram(data[wtinx:wtinx+win_sinx], np.linspace(min_ampl, max_ampl, 20, endpoint=True))
+            nbins = 20
+            bins = np.linspace(min_ampl, max_ampl, nbins, endpoint=True)
+            h, b = np.histogram(data[wtinx:wtinx+win_sinx], bins)
             if h[0] > 2.0*h[2] and b[0] < -0.4 :
                 if h[1] > 2.0*h[2] and b[2] > min_clipa:
                     min_clipa = b[2]
