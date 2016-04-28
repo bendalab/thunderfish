@@ -28,6 +28,56 @@ def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
     return (data - mean) / std
 
 
+def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
+    """
+    Find the amplitudes where the signals clips by looking at
+    the histograms in data segements of win_indices length.
+    If the bins at the edges are more than min_fac times as large as
+    the neighboring bins, clipping at the bin's amplitude is assumed.
+
+    Args:
+      data (array): 1-D array with the data.
+      win_indices: size of the analysis window in indices.
+      min_fac: if the first or the second bin is at least min_fac times
+        as large as the third bin, their upper bin edge is set as min_clip.
+        Likewise for the last and next-to last bin.
+      nbins: number of bins used for computing a histogram
+
+    Returns:
+      min_clip : minimum amplitude that is not clipped.
+      max_clip : maximum amplitude that is not clipped.
+    """
+    
+    #import matplotlib.pyplot as plt
+    min_ampl = np.min(data)
+    max_ampl = np.max(data)
+    min_clipa = min_ampl
+    max_clipa = max_ampl
+    bins = np.linspace(min_ampl, max_ampl, nbins, endpoint=True)
+    win_tinxs = np.arange(0, len(data) - win_indices, win_indices)
+    for wtinx in win_tinxs:
+        h, b = np.histogram(data[wtinx:wtinx+win_indices], bins)
+        if h[0] > min_fac*h[2] and b[0] < -0.4 :
+            if h[1] > min_fac*h[2] and b[2] > min_clipa:
+                min_clipa = b[2]
+            elif b[1] > min_clipa :
+                min_clipa = b[1]
+        if h[-1] > min_fac*h[-3] and b[-1] > 0.4 :
+            if h[-2] > min_fac*h[-3] and b[-3] < max_clipa:
+                max_clipa = b[-3]
+            elif b[-2] < max_clipa :
+                max_clipa = b[-2]
+        #plt.bar(b[:-1], h, width=np.mean(np.diff(b)))
+        #plt.axvline(min_clipa, color='r')
+        #plt.axvline(max_clipa, color='r')
+        #plt.show()
+    #plt.hist(data, 20)
+    #plt.axvline(min_clipa, color='r')
+    #plt.axvline(max_clipa, color='r')
+    #plt.show()
+    return min_clipa, max_clipa
+
+
 def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
                                min_thresh, tau, thresh_fac=0.75, thresh_frac=0.02) :
     """
@@ -59,7 +109,7 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
     
 def best_window_indices(data, rate, mode='first',
                         min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
-                        clip_win_size=0.5, min_clip=-np.inf, max_clip=np.inf,
+                        clip_win_size=0.5, min_clip_fac=2.0, min_clip=-np.inf, max_clip=np.inf,
                         win_size=8., win_shift=0.1,
                         cvi_th=0.05, cva_th=0.05, percentile=0.15, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
@@ -75,6 +125,7 @@ def best_window_indices(data, rate, mode='first',
     :param thresh_frac: float. New threshold is weighed against current threshold with thresh_frac
     :param thresh_tau: float. Time constant of the decay of the threshold towards min_thresh in seconds
     :param clip_win_size: float. Size of the window for computing clipped amplitudes in seconds.
+    :param min_clip_fac: float. Minimum factor for detecting clipping.
     :param min_clip: float. Minimum amplitude where to clip data. If -np.inf then determine clipping amplitude from data.
     :param max_clip: float. Maximum amplitude where to clip data. If +np.inf then determine clipping amplitude from data.
     :param win_size: float. Size of the best window in seconds.
@@ -177,38 +228,10 @@ def best_window_indices(data, rate, mode='first',
                                                            thresh_fac=thresh_fac,
                                                            thresh_frac=thresh_frac)
     
-    # clipping amplitudes:
+    # determine clipping amplitudes:
     if np.isinf(min_clip) or np.isinf(max_clip) :
-        #import matplotlib.pyplot as plt
-        min_ampl = np.min(data)
-        max_ampl = np.max(data)
-        min_clipa = min_ampl
-        max_clipa = max_ampl
-        win_sinx = int(clip_win_size*rate)
-        win_tinxs = np.arange(0, len(data) - win_sinx, win_sinx)
-        for wtinx in win_tinxs:
-            # check for clipping:
-            nbins = 20
-            bins = np.linspace(min_ampl, max_ampl, nbins, endpoint=True)
-            h, b = np.histogram(data[wtinx:wtinx+win_sinx], bins)
-            if h[0] > 2.0*h[2] and b[0] < -0.4 :
-                if h[1] > 2.0*h[2] and b[2] > min_clipa:
-                    min_clipa = b[2]
-                elif b[1] > min_clipa :
-                    min_clipa = b[1]
-            if h[-1] > 2.0*h[-3] and b[-1] > 0.4 :
-                if h[-2] > 2.0*h[-3] and b[-3] < max_clipa:
-                    max_clipa = b[-3]
-                elif b[-2] < max_clipa :
-                    max_clipa = b[-2]
-            #plt.bar(b[:-1], h, width=np.mean(np.diff(b)))
-            #plt.axvline(min_clipa, color='r')
-            #plt.axvline(max_clipa, color='r')
-            #plt.show()
-        #plt.hist(data, 20)
-        #plt.axvline(min_clipa, color='r')
-        #plt.axvline(max_clipa, color='r')
-        #plt.show()
+        win_indices = int(clip_win_size*rate)
+        min_clipa, max_clipa = clip_amplitudes(data, win_indices, min_fac=min_clip_fac)
         if np.isinf(min_clip) :
             min_clip = min_clipa
         if np.isinf(max_clip) :
@@ -306,7 +329,7 @@ def best_window_indices(data, rate, mode='first',
 # TODO: make sure the arguments are still right!
 def best_window_times(data, rate, mode='first',
                         min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
-                        clip_win_size=0.5, min_clip=-np.inf, max_clip=np.inf,
+                        clip_win_size=0.5, min_clip_fac=2.0, min_clip=-np.inf, max_clip=np.inf,
                         win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """
@@ -318,7 +341,7 @@ def best_window_times(data, rate, mode='first',
     """
     start_inx, end_inx = best_window_indices(data, rate, mode,
                         min_thresh, thresh_fac, thresh_frac, thresh_tau,
-                        clip_win_size, min_clip, max_clip,
+                        clip_win_size, min_clip_fac, min_clip, max_clip,
                         win_size, win_shift, cvi_th, cva_th, tolerance,
                         verbose, plot_data_func, plot_window_func, **kwargs)
     return start_inx/rate, end_inx/rate
@@ -327,7 +350,7 @@ def best_window_times(data, rate, mode='first',
 # TODO: make sure the arguments are still right!
 def best_window(data, rate, mode='first',
                 min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
-                clip_win_size=0.5, min_clip=-np.inf, max_clip=np.inf,
+                clip_win_size=0.5, min_clip_fac=2.0, min_clip=-np.inf, max_clip=np.inf,
                 win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """
@@ -338,7 +361,7 @@ def best_window(data, rate, mode='first',
     """
     start_inx, end_inx = best_window_indices(data, rate, mode,
                         min_thresh, thresh_fac, thresh_frac, thresh_tau,
-                        clip_win_size, min_clip, max_clip,
+                        clip_win_size, min_clip_fac, min_clip, max_clip,
                         win_size, win_shift, cvi_th, cva_th, tolerance,
                         verbose, plot_data_func, plot_window_func, **kwargs)
     return data[start_inx:end_inx]

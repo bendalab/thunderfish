@@ -12,7 +12,6 @@ def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
     up_lim = np.max(data) * 1.05
     down_lim = np.min(data) * .95
     ax[0].set_ylim((down_lim, up_lim))
-    ax[0].set_xlabel('Time [sec]', fontsize=fs)
     ax[0].set_ylabel('Amplitude [a.u]', fontsize=fs)
 
     # cv of inter-peak intervals:
@@ -29,6 +28,7 @@ def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
     ax[3].plot(win_times[cv_ampl<1000.0], cv_ampl[cv_ampl<1000.0], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
     ax[3].plot(win_times[valid_wins], cv_ampl[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[3].set_ylabel('CV amplitude', fontsize=fs)
+    ax[3].set_xlabel('Time [sec]', fontsize=fs)
 
     
 def plot_window(cvi_th, ampl_th, cva_th, ax, fs=10) :
@@ -101,4 +101,5 @@ if __name__ == "__main__":
                             verbose=2, plot_data_func=plot_data, plot_window_func=plot_window,
                             ax=ax, fs=12)
 
+    plt.tight_layout()
     plt.show()
