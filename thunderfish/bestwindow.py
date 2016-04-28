@@ -79,7 +79,7 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
 
 
 def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
-                               min_thresh, tau, thresh_fac=0.75, thresh_frac=0.02) :
+                               min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02) :
     """
     To be passed to the detect_dynamic_peak_trough() function.
     Accept each detected peak/trough and return its index.
@@ -95,41 +95,61 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
         min_thresh (float): the minimum value the threshold is allowed to assume.
         tau (float): the time constant of the the decay of the threshold value
                      given in indices (time is None) or time units (time is not None)
-        thresh_fac (float): the new threshold is thresh_fac times the size of the current peak
-        thresh_frac (float): new threshold is weighed against current threshold with thresh_frac
+        thresh_ampl_fac (float): the new threshold is thresh_ampl_fac times the size of the current peak
+        thresh_weight (float): new threshold is weighted against current threshold with thresh_weight
 
     Returns: 
         index (int): index of the peak/trough
         threshold (float): the new threshold to be used
     """
     size = data[event_inx] - data[min_inx]
-    threshold += thresh_frac*(thresh_fac*size - threshold)
+    threshold += thresh_weight*(thresh_ampl_fac*size - threshold)
     return event_inx, threshold
 
     
 def best_window_indices(data, rate, mode='first',
-                        min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
+                        min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=1.0,
                         clip_win_size=0.5, min_clip_fac=2.0, min_clip=-np.inf, max_clip=np.inf,
                         win_size=8., win_shift=0.1,
                         cvi_th=0.05, cva_th=0.05, percentile=0.15, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     # TODO: fix documentation of this function.
-    """ Detect the best window of the data to be analyzed. The core mechanism is in the
-    find_best_window function. For plot debug, call this function with argument plot_debug=True
+    """
+    Detect the best window of the data to be analyzed. The data have been sampled with rate Hz.
+    
+    First, large peaks and troughs of the data are detected.
+    Peaks and troughs have to be separated in amplitude by at least the value of a dynamic threshold.
+    The threshold is never smaller than min_thresh. Upon detection of a peak a new threshold value is set to
+    thresh_ampl_fac times the amplitude of the peak minus the th eone of the previous trough.
+    The current threshold is updated towards the new threshold value weighted by thresh_weight.
+    Between peaks, the current threshold decays towards min_thresh with a time constant thresh_tau.
+
+    Second, signal amplitudes min_clip and max_clip where clipping occurs are estimated from the data.
+    Clipping occurs when the first or the last bin of histograms of the data estimated in clip_win_size long windows
+    are by at least a factor of min_clip_fac larger than the inner bins.
+
+    Third, criterions for selecting the best window are computed for each window of width win_size
+    shifted by win_shift trough the data.
+    
+    The core mechanism is in the find_best_window() function.
 
     :param data: 1-D array. The data to be analyzed
     :param rate: float. Sampling rate of the data in Hz
+    :param mode: string. TODO
     :param mode: string. 'first' returns first matching window, 'expand' expands the first matching window as far as possible, 'largest' returns the largest matching range.
-    :param min_thresh: float. Minimum allowed value for the threshold
-    :param thresh_fac: float. New threshold is thresh_fac times the size of the current peak
-    :param thresh_frac: float. New threshold is weighed against current threshold with thresh_frac
-    :param thresh_tau: float. Time constant of the decay of the threshold towards min_thresh in seconds
+    :param min_thresh: float. Minimum allowed value for the threshold. Set this above the noise level of the data.
+    :param thresh_ampl_fac: float. New threshold is thresh_ampl_fac times the size of the current peak, between 0 and 1. Set this close to 1. The smaller the more small amplitude peaks are detected.
+    :param thresh_weight: float. New threshold is weighed against current threshold with thresh_weight. The inverse of thresh_weight is approximately the number of peaks need for the threshold to approach the new threshold value.
+    :param thresh_tau: float. Time constant of the decay of the threshold towards min_thresh in seconds.
+    This should approximately match the fastest changes in signal amplitude.
     :param clip_win_size: float. Size of the window for computing clipped amplitudes in seconds.
     :param min_clip_fac: float. Minimum factor for detecting clipping.
     :param min_clip: float. Minimum amplitude where to clip data. If -np.inf then determine clipping amplitude from data.
     :param max_clip: float. Maximum amplitude where to clip data. If +np.inf then determine clipping amplitude from data.
-    :param win_size: float. Size of the best window in seconds.
-    :param win_shift: float. Size in seconds between windows.
+    :param win_size: float. Size of the best window in seconds. Choose it large enough for a minimum analysis.
+    :param win_shift: float. Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one thenth of win_shift.
+
+    # TODO more documentation here:
     :param percentile: float. Initial percentile for setting thresholds.
     :param tolerance: float. Multiply threshold obtained from percentiles by this factor.
     :param verbose: int. Verbosity level >= 0.
@@ -248,8 +268,8 @@ def best_window_indices(data, rate, mode='first',
     peak_idx, trough_idx = pd.detect_dynamic_peaks_troughs(data, thresh, min_thresh,
                                                            tauidx, None,
                                                            accept_peak_size_threshold, None,
-                                                           thresh_fac=thresh_fac,
-                                                           thresh_frac=thresh_frac)
+                                                           thresh_ampl_fac=thresh_ampl_fac,
+                                                           thresh_weight=thresh_weight)
     if len(peak_idx) == 0 or len(trough_idx) == 0 :
         if verbose > 0 :
             print 'best_window(): no peaks and troughs detected'
@@ -368,7 +388,7 @@ def best_window_indices(data, rate, mode='first',
 
 # TODO: make sure the arguments are still right!
 def best_window_times(data, rate, mode='first',
-                        min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
+                        min_thresh=0.1, thresh_ampl_fac=0.75, thresh_weight=0.02, thresh_tau=1.0,
                         clip_win_size=0.5, min_clip_fac=2.0, min_clip=-np.inf, max_clip=np.inf,
                         win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
@@ -380,7 +400,7 @@ def best_window_times(data, rate, mode='first',
       end_time (float): Time of the end of the best window.
     """
     start_inx, end_inx = best_window_indices(data, rate, mode,
-                        min_thresh, thresh_fac, thresh_frac, thresh_tau,
+                        min_thresh, thresh_ampl_fac, thresh_weight, thresh_tau,
                         clip_win_size, min_clip_fac, min_clip, max_clip,
                         win_size, win_shift, cvi_th, cva_th, tolerance,
                         verbose, plot_data_func, plot_window_func, **kwargs)
@@ -389,7 +409,7 @@ def best_window_times(data, rate, mode='first',
 
 # TODO: make sure the arguments are still right!
 def best_window(data, rate, mode='first',
-                min_thresh=0.1, thresh_fac=0.75, thresh_frac=0.02, thresh_tau=1.0,
+                min_thresh=0.1, thresh_ampl_fac=0.75, thresh_weight=0.02, thresh_tau=1.0,
                 clip_win_size=0.5, min_clip_fac=2.0, min_clip=-np.inf, max_clip=np.inf,
                 win_size=8., win_shift=0.1, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
@@ -400,7 +420,7 @@ def best_window(data, rate, mode='first',
       data (array): the data of the best window.
     """
     start_inx, end_inx = best_window_indices(data, rate, mode,
-                        min_thresh, thresh_fac, thresh_frac, thresh_tau,
+                        min_thresh, thresh_ampl_fac, thresh_weight, thresh_tau,
                         clip_win_size, min_clip_fac, min_clip, max_clip,
                         win_size, win_shift, cvi_th, cva_th, tolerance,
                         verbose, plot_data_func, plot_window_func, **kwargs)
@@ -434,5 +454,5 @@ if __name__ == "__main__":
         data, rate, unit = dl.load_data(sys.argv[1], 0)
 
     best_window_indices(data, rate, mode='first',
-                        min_thresh=0.1, thresh_fac=0.8, thresh_frac=0.02, thresh_tau=0.25,
+                        min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=0.25,
                         win_size=1.0, win_shift=0.5)
