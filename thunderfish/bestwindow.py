@@ -115,7 +115,7 @@ def best_window_indices(data, rate, mode='first',
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     # TODO: fix documentation of this function.
     """ Detect the best window of the data to be analyzed. The core mechanism is in the
-    best_window_algorithm function. For plot debug, call this function with argument plot_debug=True
+    find_best_window function. For plot debug, call this function with argument plot_debug=True
 
     :param data: 1-D array. The data to be analyzed
     :param rate: float. Sampling rate of the data in Hz
@@ -141,7 +141,7 @@ def best_window_indices(data, rate, mode='first',
     :return end_index: int. Index of the end of the best window.
     """
 
-    def best_window_algorithm(cvi_percentile=0.15, cva_percentile=0.15, ampl_percentile=0.85):
+    def find_best_window(cvi_percentile, cva_percentile, ampl_percentile):
 
         """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
         different amount of peaks compared to the stats.mode peak number of all windows. Secondly, it filters out
@@ -157,7 +157,7 @@ def best_window_indices(data, rate, mode='first',
         """
 
         if verbose > 1 :
-            print('  run best_window_algorithm() with cvi_percentile=%.2f, cva_percentile=%.2f, ampl_percentile=%.2f' % (cvi_percentile, cva_percentile, ampl_percentile))
+            print('  run find_best_window() with cvi_percentile=%.2f, cva_percentile=%.2f, ampl_percentile=%.2f' % (cvi_percentile, cva_percentile, ampl_percentile))
 
         # First filter: least variable interpeak intervals
         cv_interval_sorted_inx = int(np.floor(cvi_percentile*len(cv_interval_sorted)))
@@ -191,25 +191,48 @@ def best_window_indices(data, rate, mode='first',
                     plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
                 if verbose > 0 :
                     print('WARNING. Did not find an appropriate window for analysis.')
+                # we failed:
                 return []
-
             else :
-                # TODO: increase only threshold of the criterion with the smallest True range?
-                cvi_percentile += 0.05
-                cva_percentile += 0.05
-                ampl_percentile -= 0.05
+                # round to 0.05 precision :
+                cvi_percentile = np.round(cvi_percentile/0.05)*0.05
+                cva_percentile = np.round(cva_percentile/0.05)*0.05
+                ampl_percentile = np.round(ampl_percentile/0.05)*0.05
+                # increase the single smallest percentiles first:
+                if cvi_percentile < cva_percentile-0.01 and cvi_percentile < 1.0-ampl_percentile-0.01 :
+                    cvi_percentile += 0.05
+                elif cva_percentile < cvi_percentile-0.01 and cva_percentile < 1.0-ampl_percentile-0.01 :
+                    cva_percentile += 0.05
+                elif 1.0-ampl_percentile < cvi_percentile-0.01 and 1.0-ampl_percentile < cva_percentile-0.01 :
+                    ampl_percentile -= 0.05
+                else :
+                    # increase the two smalles ones:
+                    if cvi_percentile < cva_percentile-0.01 or cvi_percentile < 1.0-ampl_percentile-0.01 :
+                        cvi_percentile += 0.05
+                    elif cva_percentile < cvi_percentile-0.01 or cva_percentile < 1.0-ampl_percentile-0.01 :
+                        cva_percentile += 0.05
+                    elif 1.0-ampl_percentile < cvi_percentile-0.01 or 1.0-ampl_percentile < cva_percentile-0.01 :
+                        ampl_percentile -= 0.05
+                    else :
+                        # if all percentiles are the same, increase all of them:
+                        cvi_percentile += 0.05
+                        cva_percentile += 0.05
+                        ampl_percentile -= 0.05
+                # check for overflow:
                 if cvi_percentile > 1.0 :
                     cvi_percentile = 1.0
-                if cva_percentile > 1. :
-                    cva_percentile = 1.
-                if ampl_percentile < 0. :
-                    ampl_percentile = 0.
-                return best_window_algorithm(cvi_percentile, cva_percentile, ampl_percentile)
+                if cva_percentile > 1.0 :
+                    cva_percentile = 1.0
+                if ampl_percentile < 0.0 :
+                    ampl_percentile = 0.0
+                # run again with relaxed threshold values:
+                return find_best_window(cvi_percentile, cva_percentile, ampl_percentile)
         else:
             if plot_window_func :
                 plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
             if verbose > 1 :
                 print('found best window')
+            # we are done:
             return valid_windows
 
 
@@ -269,7 +292,7 @@ def best_window_indices(data, rate, mode='first',
             # penalize for clipped peaks:
             clipped_frac = float(np.sum(data[p_idx]>max_clip) +
                                  np.sum(data[t_idx]<min_clip))/2.0/len(p2t_ampl)
-            cv_ampl[i] += 10.0*clipped_frac
+            mean_ampl[i] *= (1.0-clipped_frac)**2.0
         else :
             mean_ampl[i] = 0.0
             cv_ampl[i] = 1000.0
@@ -290,7 +313,7 @@ def best_window_indices(data, rate, mode='first',
     ampl_percentile = 1.0 - percentile
     
     # find best window:
-    valid_wins = best_window_algorithm(cvi_percentile, cva_percentile, ampl_percentile)
+    valid_wins = find_best_window(cvi_percentile, cva_percentile, ampl_percentile)
 
     # extract best window:
     idx0 = 0

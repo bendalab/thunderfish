@@ -8,7 +8,6 @@ def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
     ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='red', lw=3)
     ax[0].plot(time[peak_idx], data[peak_idx], 'o', mfc='crimson', mec='crimson', mew=2., ms=6)
     ax[0].plot(time[trough_idx], data[trough_idx], 'o', mfc='lime', mec='lime', mew=2., ms=6)
-    #ax[0].set_xlim([start_bwin/2., start_bwin/2. + 0.1])
     up_lim = np.max(data) * 1.05
     down_lim = np.min(data) * .95
     ax[0].set_ylim((down_lim, up_lim))
@@ -18,16 +17,19 @@ def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
     ax[1].plot(win_times[cv_interv<1000.0], cv_interv[cv_interv<1000.0], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
     ax[1].plot(win_times[valid_wins], cv_interv[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[1].set_ylabel('CV intervals', fontsize=fs)
+    ax[1].set_ylim(bottom=0.0)
 
     # mean amplitude:
     ax[2].plot(win_times[mean_ampl>0.0], mean_ampl[mean_ampl>0.0], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
     ax[2].plot(win_times[valid_wins], mean_ampl[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[2].set_ylabel('Mean amplitude [a.u]', fontsize=fs)
+    ax[2].set_ylim(bottom=0.0)
 
     # cv:
     ax[3].plot(win_times[cv_ampl<1000.0], cv_ampl[cv_ampl<1000.0], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
     ax[3].plot(win_times[valid_wins], cv_ampl[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[3].set_ylabel('CV amplitude', fontsize=fs)
+    ax[3].set_ylim(bottom=0.0)
     ax[3].set_xlabel('Time [sec]', fontsize=fs)
 
     
@@ -96,8 +98,8 @@ if __name__ == "__main__":
     print("call bestwindow() function...")
     bw.best_window_indices(data, rate, mode='expand',
                             min_thresh=0.01, thresh_fac=0.8, thresh_frac=0.1, thresh_tau=0.25,
-                            clip_win_size=0.5, min_clip=-np.inf, max_clip=np.inf,
-                            win_size=1.0, win_shift=0.1, 
+                            clip_win_size=0.5, min_clip_fac=2.0, min_clip=-np.inf, max_clip=np.inf,
+                            win_size=1.0, win_shift=0.1, tolerance=1.1,
                             verbose=2, plot_data_func=plot_data, plot_window_func=plot_window,
                             ax=ax, fs=12)
 
