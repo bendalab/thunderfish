@@ -418,9 +418,8 @@ def best_window_indices(data, rate, mode='first',
     return idx0, idx1
 
 
-# TODO: make sure the arguments are still right!
 def best_window_times(data, rate, mode='first',
-                        min_thresh=0.1, thresh_ampl_fac=0.75, thresh_weight=0.02, thresh_tau=1.0,
+                        min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=1.0,
                         win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
                         percentile=0.15, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
@@ -439,9 +438,8 @@ def best_window_times(data, rate, mode='first',
     return start_inx/rate, end_inx/rate
 
 
-# TODO: make sure the arguments are still right!
 def best_window(data, rate, mode='first',
-                min_thresh=0.1, thresh_ampl_fac=0.75, thresh_weight=0.02, thresh_tau=1.0,
+                min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=1.0,
                 win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
                 percentile=0.15, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
