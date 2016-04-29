@@ -93,13 +93,17 @@ if __name__ == "__main__":
     # setup plots:
     fig, ax = plt.subplots(4, sharex=True, figsize=(20,12))
     fig.canvas.set_window_title(title)
+    
+    # determine clipping amplitudes:
+    clip_win_size = 0.5
+    min_clip_fac = 2.0
+    min_clip, max_clip = bw.clip_amplitudes(data, int(clip_win_size*rate), min_fac=min_clip_fac)
 
     # compute best window:
     print("call bestwindow() function...")
     bw.best_window_indices(data, rate, mode='expand',
                             min_thresh=0.01, thresh_ampl_fac=0.8, thresh_weight=0.1, thresh_tau=0.25,
-                            clip_win_size=0.5, min_clip_fac=2.0, min_clip=-np.inf, max_clip=np.inf,
-                            win_size=1.0, win_shift=0.1, tolerance=1.1,
+                            win_size=1.0, win_shift=0.1, min_clip=min_clip, max_clip=max_clip, tolerance=1.1,
                             verbose=2, plot_data_func=plot_data, plot_window_func=plot_window,
                             ax=ax, fs=12)
 
