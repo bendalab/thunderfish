@@ -341,10 +341,10 @@ if __name__ == "__main__":
     import sys
     print("Checking audioloader module ...")
     filepath = sys.argv[-1]
-    print
+    print()
     print("try load_audio:")
     data, rate = load_audio(filepath, 2)
-    print
+    print()
     for lib, load_file in audio_loader :
         try:
             data, rate = load_file(filepath, 1)
