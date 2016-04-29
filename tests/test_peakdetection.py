@@ -10,7 +10,7 @@ def test_peakdetection():
     # generate data:
     time = np.arange(0.0, 10.0, 0.01)
     data = np.zeros(time.shape)
-    pt_indices = np.random.randint(0,len(data), size=40)
+    pt_indices = np.random.randint(5,len(data)-10, size=40)
     pt_indices.sort()
     while np.any(np.diff(pt_indices).min() < 5):
         pt_indices = np.random.randint(0,len(data), size=40)

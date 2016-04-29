@@ -717,35 +717,10 @@ if __name__ == "__main__":
     print()
     # generate data:
     time = np.arange(0.0, 10.0, 0.01)
-    #f = 2.0
-    #data = (0.5*np.sin(2.0*np.pi*f*time)+0.5)**4.0
-    #data += -0.1*time*(time-10.0)
-    data = np.zeros(time.shape)
-    pt_indices = np.random.randint(0,len(data), size=40)
-    pt_indices.sort()
-    while np.any(np.diff(pt_indices).min() < 5):
-        pt_indices = np.random.randint(0,len(data), size=40)
-        pt_indices.sort()
-    peak_indices = pt_indices[0::2]
-    trough_indices = pt_indices[1::2]
-    n = pt_indices[0]
-    data[0:n] = 0.1+0.9*np.arange(0.0, n)/n
-    up = False
-    for i in xrange(0,len(pt_indices)-1) :
-        n = pt_indices[i+1]-pt_indices[i]
-        if up :
-            data[pt_indices[i]:pt_indices[i+1]] = np.arange(0.0, n)/n
-        else :
-            data[pt_indices[i]:pt_indices[i+1]] = 1.0 - np.arange(0.0, n)/n
-        up = not up
-    n = len(data)-pt_indices[-1]
-    if up :
-        data[pt_indices[-1]:] = 0.8*np.arange(0.0, n)/n
-    else :
-        data[pt_indices[-1]:] = 1.0 - 0.8*np.arange(0.0, n)/n
-    up = not up
-    data += -0.025*time*(time-10.0)
-    #data += 0.1*np.random.randn(len(data))
+    f = 2.0
+    data = (0.5*np.sin(2.0*np.pi*f*time)+0.5)**4.0
+    data += -0.1*time*(time-10.0)
+    data += 0.1*np.random.randn(len(data))
 
     print("generated waveform with %d peaks" % int(np.round(time[-1]*f)))
     plt.plot(time, data)
