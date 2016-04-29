@@ -1,15 +1,25 @@
-# the best window detector as functions...
+"""Functions needed for selecting the region within a recording with the
+most stable signal of largest amplitude that is not clipped.
+
+Main functions:
+clip_amplitudes(): estimated clipping amplitudes from the data.
+best_window_indices(): select start- and end-indices of the best window
+best_window_times(): select start end end-time of the best window
+best_window(): return data of the best window
+
+See bestwindowplots module for visualizing the best_window algorithm
+and for usage.
+"""
+
+# TODO: use warnings.warn
 
 import numpy as np
 import scipy.stats as stats
 import peakdetection as pd
 
-# TODO: use warnings.warn
-
         
 def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
-    """
-    Removes mean and normalizes data by dividing by the standard deviation.
+    """Removes mean and normalizes data by dividing by the standard deviation.
     Mean and standard deviation are computed in win_duration long windows.
 
     Args:
@@ -31,8 +41,7 @@ def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
-    """
-    Find the amplitudes where the signals clips by looking at
+    """Find the amplitudes where the signals clips by looking at
     the histograms in data segements of win_indices length.
     If the bins at the edges are more than min_fac times as large as
     the neighboring bins, clipping at the bin's amplitude is assumed.
@@ -82,8 +91,7 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
 
 def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
                                min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02) :
-    """
-    To be passed to the detect_dynamic_peak_trough() function.
+    """To be passed to the detect_dynamic_peak_trough() function.
     Accept each detected peak/trough and return its index.
     Adjust the threshold to the size of the detected peak.
 
@@ -114,8 +122,7 @@ def best_window_indices(data, rate, mode='first',
                         win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
                         percentile=0.15, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
-    """
-    Detect the best window of the data to be analyzed. The data have been sampled with rate Hz.
+    """Detect the best window of the data to be analyzed. The data have been sampled with rate Hz.
     
     First, large peaks and troughs of the data are detected.
     Peaks and troughs have to be separated in amplitude by at least the value of a dynamic threshold.
@@ -203,8 +210,7 @@ def best_window_indices(data, rate, mode='first',
     """
 
     def find_best_window(cvi_percentile, cva_percentile, ampl_percentile):
-        """
-        Based on the percentiles, thresholds are determined. The windows are selected where the data
+        """Based on the percentiles, thresholds are determined. The windows are selected where the data
         fall below the thresholds. If not a single window exists, where all three criteria are fulfilled
         the percentiles are increased by 5% and the the function is called again.
 
@@ -423,8 +429,7 @@ def best_window_times(data, rate, mode='first',
                         win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
                         percentile=0.15, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
-    """
-    Finds the window within data with the best data. See best_window_indices() for details.
+    """Finds the window within data with the best data. See best_window_indices() for details.
 
     Returns:
       start_time (float): Time of the start of the best window.
@@ -443,8 +448,7 @@ def best_window(data, rate, mode='first',
                 win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
                 percentile=0.15, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
-    """
-    Finds the window within data with the best data. See best_window_indices() for details.
+    """Finds the window within data with the best data. See best_window_indices() for details.
 
     Returns:
       data (array): the data of the best window.
