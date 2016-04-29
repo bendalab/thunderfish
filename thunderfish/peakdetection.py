@@ -717,32 +717,58 @@ if __name__ == "__main__":
     print()
     # generate data:
     time = np.arange(0.0, 10.0, 0.01)
-    f = 2.0
-    ampl = (0.5*np.sin(2.0*np.pi*f*time)+0.5)**4.0
-    ampl += -0.1*time*(time-10.0)
-    ampl += 0.1*np.random.randn(len(ampl))
+    #f = 2.0
+    #data = (0.5*np.sin(2.0*np.pi*f*time)+0.5)**4.0
+    #data += -0.1*time*(time-10.0)
+    data = np.zeros(time.shape)
+    pt_indices = np.random.randint(0,len(data), size=40)
+    pt_indices.sort()
+    while np.any(np.diff(pt_indices).min() < 5):
+        pt_indices = np.random.randint(0,len(data), size=40)
+        pt_indices.sort()
+    peak_indices = pt_indices[0::2]
+    trough_indices = pt_indices[1::2]
+    n = pt_indices[0]
+    data[0:n] = 0.1+0.9*np.arange(0.0, n)/n
+    up = False
+    for i in xrange(0,len(pt_indices)-1) :
+        n = pt_indices[i+1]-pt_indices[i]
+        if up :
+            data[pt_indices[i]:pt_indices[i+1]] = np.arange(0.0, n)/n
+        else :
+            data[pt_indices[i]:pt_indices[i+1]] = 1.0 - np.arange(0.0, n)/n
+        up = not up
+    n = len(data)-pt_indices[-1]
+    if up :
+        data[pt_indices[-1]:] = 0.8*np.arange(0.0, n)/n
+    else :
+        data[pt_indices[-1]:] = 1.0 - 0.8*np.arange(0.0, n)/n
+    up = not up
+    data += -0.025*time*(time-10.0)
+    #data += 0.1*np.random.randn(len(data))
+
     print("generated waveform with %d peaks" % int(np.round(time[-1]*f)))
-    plt.plot(time, ampl)
+    plt.plot(time, data)
     
     print()
-    print('check detect_peaks_troughs(ampl, 0.5, time)...')
-    peaks, troughs = detect_peaks_troughs(ampl, 0.5, time)
+    print('check detect_peaks_troughs(data, 0.5, time)...')
+    peaks, troughs = detect_peaks_troughs(data, 0.5, time)
     #print peaks
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))))
     #print troughs
     print('detected %d troughs with period %g that differs from the real frequency by %g' % (len(troughs), np.mean(np.diff(troughs)), f-1.0/np.mean(np.diff(troughs))))
     
     print()
-    print('check detect_peaks_troughs(ampl, 0.5)...')
-    peaks, troughs = detect_peaks_troughs(ampl, 0.5)
+    print('check detect_peaks_troughs(data, 0.5)...')
+    peaks, troughs = detect_peaks_troughs(data, 0.5)
     #print peaks
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))/np.mean(np.diff(time))))
     #print troughs
     print('detected %d troughs with period %g that differs from the real frequency by %g' % (len(troughs), np.mean(np.diff(troughs)), f-1.0/np.mean(np.diff(troughs))/np.mean(np.diff(time))))
         
     print()
-    print('check detect_peaks_troughs(ampl, 0.5, time, accept_peak, accept_peak)...')
-    peaks, troughs = detect_peaks_troughs(ampl, 0.5, time, accept_peak, accept_peak)
+    print('check detect_peaks_troughs(data, 0.5, time, accept_peak, accept_peak)...')
+    peaks, troughs = detect_peaks_troughs(data, 0.5, time, accept_peak, accept_peak)
     #print peaks
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks[:,1])), f-1.0/np.mean(np.diff(peaks[:,1]))))
     #print troughs
@@ -751,20 +777,20 @@ if __name__ == "__main__":
     plt.plot(troughs[:,1], troughs[:,2], '.g', ms=20)
     
     print()
-    print('check detect_peaks(ampl, 0.5, time)...')
-    peaks = detect_peaks(ampl, 0.5, time)
+    print('check detect_peaks(data, 0.5, time)...')
+    peaks = detect_peaks(data, 0.5, time)
     #print peaks
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))))
     
     print()
-    print('check detect_peaks(ampl, 0.5)...')
-    peaks = detect_peaks(ampl, 0.5)
+    print('check detect_peaks(data, 0.5)...')
+    peaks = detect_peaks(data, 0.5)
     #print peaks
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))/np.mean(np.diff(time))))
         
     print()
-    print('check detect_peaks(ampl, 0.5, time, accept_peak)...')
-    peaks = detect_peaks(ampl, 0.5, time, accept_peak)
+    print('check detect_peaks(data, 0.5, time, accept_peak)...')
+    peaks = detect_peaks(data, 0.5, time, accept_peak)
     #print peaks
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks[:,1])), f-1.0/np.mean(np.diff(peaks[:,1]))))
     #plt.plot(peaks[:,0], peaks[:,1], '.r', ms=20)
