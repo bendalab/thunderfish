@@ -4,6 +4,8 @@ import numpy as np
 import scipy.stats as stats
 import peakdetection as pd
 
+# TODO: use warnings.warn
+
         
 def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
     """
@@ -110,9 +112,8 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
 def best_window_indices(data, rate, mode='first',
                         min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=1.0,
                         win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
-                        cvi_th=0.05, cva_th=0.05, percentile=0.15, tolerance=1.1,
+                        percentile=0.15, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
-    # TODO: fix documentation of this function.
     """
     Detect the best window of the data to be analyzed. The data have been sampled with rate Hz.
     
@@ -123,14 +124,42 @@ def best_window_indices(data, rate, mode='first',
     The current threshold is updated towards the new threshold value weighted by thresh_weight.
     Between peaks, the current threshold decays towards min_thresh with a time constant thresh_tau.
 
-    Second, criterions for selecting the best window are computed for each window of width win_size
-    shifted by win_shift trough the data.
-    
-    The core mechanism is in the find_best_window() function.
+    Second, criteria for selecting the best window are computed for each window of width win_size
+    shifted by win_shift trough the data. The three criteria are:
+    - the coefficient of variation of the inter-peak and inter-trough intervals.
+    - the mean peak-to-trough amplitude multiplied with the fraction of non clipped peak and trough amplitudes.
+    - the coefficient of variation of the peak-to-trough amplitude.
+
+    Third, the best window is defined as the window where the cv of the intervals and the amplitudes are below
+    a threshold and the mean amplitude is above a threshold.
+    Threshold values are set based on percentiles of the criteria.
+    Initial thresholds are set such that the fraction of data given by percentile
+    is selected by the threshold. The threshold percentile for the cv of intervals and amplitudes is increased
+    such that the corresponding threshold is at least cvi_th and cva_th.
+    All threshold values are then multiplied by tolerance.
+
+    Fourth, if there is no window where all three criteria fall below their thresholds, the percentiles
+    from which the thresholds are determined are increased in steps of 5%, until a window is found.
+
+    Finally, the indices to the start and the end of the best window are
+    returned. If mode='first' then the first window with all criteria
+    below their threshold is returned.  If mode='expand', then the first
+    best window is expanded as far as all three criteria are still below
+    threshold. If mode='largest', then the largest contiguous region
+    with all criteria below their threshold is returned.
+    If no best window was found, then 0, 0 is returned.
+
+    Output of warning and info messages to console can be controlled by setting verbose. No output is produced
+    if verbose = 1. higher values produce more output.
+
+    The algorithm can be visualized by supplying the functions plot_data_func and plot_window_func.
+    Additional arguments for these function are supplied vie kwargs.
 
     :param data: 1-D array. The data to be analyzed
     :param rate: float. Sampling rate of the data in Hz
-    :param mode: string. TODO
+    :param mode: string. 'first': return the first best window.
+    'expand': return the first best window enlarged as far as possible.
+    'largest' return the largest region with all three criteria below their threshold.
     :param mode: string. 'first' returns first matching window, 'expand' expands the first matching window as far as possible, 'largest' returns the largest matching range.
     :param min_thresh: float. Minimum allowed value for the threshold. Set this above the noise level of the data.
     :param thresh_ampl_fac: float. New threshold is thresh_ampl_fac times the size of the current peak, between 0 and 1. Set this close to 1. The smaller the more small amplitude peaks are detected.
@@ -141,13 +170,32 @@ def best_window_indices(data, rate, mode='first',
     :param win_shift: float. Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one thenth of win_shift.
     :param min_clip: float. Minimum amplitude below which data are clipped.
     :param max_clip: float. Maximum amplitude above which data are clipped.
-
-    # TODO more documentation here:
-    :param percentile: float. Initial percentile for setting thresholds.
-    :param tolerance: float. Multiply threshold obtained from percentiles by this factor.
+    :param percentile: float. Fraction of the windows that is required to be below the initial correspoding thresholds.
+    :param cvi_th: float. Coefficients of variation of the intervals smaller than this are selected initially.
+    :param cva_th: float. Coefficients of variation of the amplitudes smaller than this are selected initially.
+    :param tolerance: float. Multiply thresholds obtained from percentiles by this factor.
     :param verbose: int. Verbosity level >= 0.
-    :param plot_data_func: Function for plotting the raw data and detected peaks and troughs. 
+    :param plot_data_func: Function for plotting the raw data, detected peaks and troughs and the criteria.
+        plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
+                       win_start_times, cv_interv, mean_ampl, cv_ampl, valid_wins, **kwargs)
+        :param data (array): the raw data.
+        :param rate (float): the sampling rate of the data.
+        :param peak_idx (array): indices into raw data indicating detected peaks.
+        :param trough_idx (array): indices into raw data indicating detected troughs.
+        :param idx0 (int): index of the start of the best window.
+        :param idx1 (int): index of the end of the best window.
+        :param win_start_times (array): the times of the analysis windows.
+        :param cv_interv (array): the coefficient of variation of the inter-peak and -trough intervals.
+        :param mean_ampl (array): the mean peak-to-trough amplitude.
+        :param cv_ampl (array): the coefficient of variation of the peak-to-trough amplitudes.
+        :param valid_wins (array): boolean array indicating the windows which fulfill all three criteria.
+        :param **kwargs: further user supplied arguments.
     :param plot_window_func: Function for plotting the window selection criteria.
+        plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
+        :param cvi_th (float): the final threshold value of the cv of the intervals.
+        :param ampl_th (float): the final threshold value of the amplitudes.
+        :param cva_th (float): the final threshold value for the cv of the amplitudes.
+        :param **kwargs: further user supplied arguments.
     :param kwargs: Keyword arguments passed to plot_data_func and plot_window_func. 
     
     :return start_index: int. Index of the start of the best window.
@@ -155,17 +203,17 @@ def best_window_indices(data, rate, mode='first',
     """
 
     def find_best_window(cvi_percentile, cva_percentile, ampl_percentile):
-        # TODO: update the documentation
-        """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
-        different amount of peaks compared to the stats.mode peak number of all windows. Secondly, it filters out
-        windows that have a higher coefficient of variation than a certain percentile of the distribution of cv_ampl.
-        From those windows that get through both filters, the one with the highest peak-to-trough-amplitude
-        (that is not clipped!) is chosen as the best window. We assume clipping as amplitudes above 85% percentile of
-        the distribution of peak to trough amplitude.
+        """
+        Based on the percentiles, thresholds are determined. The windows are selected where the data
+        fall below the thresholds. If not a single window exists, where all three criteria are fulfilled
+        the percentiles are increased by 5% and the the function is called again.
 
-        :param cvi_percentile: threshold for peak interval filter between 0 and 1
-        :param cva_percentile: threshold for cv of amplitudes between 0 and 1.
-        :param ampl_percentile: choose a percentile threshold to avoid clipping. Between 0 and 1.
+        :param cvi_percentile: The percentile from which the threshold for the cv of peak intervals is determined.
+                Between 0 and 1.
+        :param cva_percentile: The percentile from which the threshold for amplitude intervals is determined.
+                Between 0 and 1.
+        :param ampl_percentile: The percentile from which the threshold for mean amplitudes is determined.
+                Between 0 and 1.
         :return: boolean array of valid windows.
         """
 
@@ -269,15 +317,15 @@ def best_window_indices(data, rate, mode='first',
         return 0, 0
     
     # compute cv of intervals, mean peak amplitude and its cv:
-    win_sinx = int(win_size*rate)
-    win_tinxs = np.arange(0, len(data) - win_sinx, int(win_shift*rate))
-    cv_interv = np.zeros(len(win_tinxs))
-    mean_ampl = np.zeros(len(win_tinxs))
-    cv_ampl = np.zeros(len(win_tinxs))
-    for i, wtinx in enumerate(win_tinxs):
+    win_size_indices = int(win_size*rate)
+    win_start_inxs = np.arange(0, len(data) - win_size_indices, int(win_shift*rate))
+    cv_interv = np.zeros(len(win_start_inxs))
+    mean_ampl = np.zeros(len(win_start_inxs))
+    cv_ampl = np.zeros(len(win_start_inxs))
+    for i, wtinx in enumerate(win_start_inxs):
         # indices of peaks and troughs inside analysis window:
-        pinx = (peak_idx >= wtinx) & (peak_idx <= wtinx + win_sinx)
-        tinx = (trough_idx >= wtinx) & (trough_idx <= wtinx + win_sinx)
+        pinx = (peak_idx >= wtinx) & (peak_idx <= wtinx + win_size_indices)
+        tinx = (trough_idx >= wtinx) & (trough_idx <= wtinx + win_size_indices)
         p_idx, t_idx = pd.trim_to_peak(peak_idx[pinx], trough_idx[tinx])
         # interval statistics:
         ipis = np.diff(p_idx)
@@ -288,8 +336,8 @@ def best_window_indices(data, rate, mode='first',
             mean_interv = np.mean(ipis)
             if p_idx[0] - wtinx > mean_interv :
                 cv_interv[i] *= (p_idx[0] - wtinx)/mean_interv
-            if wtinx + win_sinx - p_idx[-1] > mean_interv :
-                cv_interv[i] *= (wtinx + win_sinx - p_idx[-1])/mean_interv
+            if wtinx + win_size_indices - p_idx[-1] > mean_interv :
+                cv_interv[i] *= (wtinx + win_size_indices - p_idx[-1])/mean_interv
         else :
             cv_interv[i] = 1000.0
         # statistics of peak-to-trough amplitude:
@@ -360,12 +408,12 @@ def best_window_indices(data, rate, mode='first',
         else : # first only:
             valid_wins[valid_idx[0]+1:] = False
         valid_idx = np.nonzero(valid_wins)[0]
-        idx0 = win_tinxs[valid_idx[0]]
-        idx1 = win_tinxs[valid_idx[-1]]+win_sinx
+        idx0 = win_start_inxs[valid_idx[0]]
+        idx1 = win_start_inxs[valid_idx[-1]]+win_size_indices
         
     if plot_data_func :
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_tinxs/rate, cv_interv, mean_ampl, cv_ampl, valid_wins, **kwargs)
+                       win_start_inxs/rate, cv_interv, mean_ampl, cv_ampl, valid_wins, **kwargs)
 
     return idx0, idx1
 
@@ -374,7 +422,7 @@ def best_window_indices(data, rate, mode='first',
 def best_window_times(data, rate, mode='first',
                         min_thresh=0.1, thresh_ampl_fac=0.75, thresh_weight=0.02, thresh_tau=1.0,
                         win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
-                        cvi_th=0.05, cva_th=0.05, tolerance=1.1,
+                        percentile=0.15, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                         verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """
     Finds the window within data with the best data. See best_window_indices() for details.
@@ -385,7 +433,8 @@ def best_window_times(data, rate, mode='first',
     """
     start_inx, end_inx = best_window_indices(data, rate, mode,
                         min_thresh, thresh_ampl_fac, thresh_weight, thresh_tau,
-                        win_size, win_shift, min_clip, max_clip, cvi_th, cva_th, tolerance,
+                        win_size, win_shift, min_clip, max_clip,
+                        percentile, cvi_th, cva_th, tolerance,
                         verbose, plot_data_func, plot_window_func, **kwargs)
     return start_inx/rate, end_inx/rate
 
@@ -394,7 +443,7 @@ def best_window_times(data, rate, mode='first',
 def best_window(data, rate, mode='first',
                 min_thresh=0.1, thresh_ampl_fac=0.75, thresh_weight=0.02, thresh_tau=1.0,
                 win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
-                cvi_th=0.05, cva_th=0.05, tolerance=1.1,
+                percentile=0.15, cvi_th=0.05, cva_th=0.05, tolerance=1.1,
                 verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
     """
     Finds the window within data with the best data. See best_window_indices() for details.
@@ -405,7 +454,7 @@ def best_window(data, rate, mode='first',
     start_inx, end_inx = best_window_indices(data, rate, mode,
                         min_thresh, thresh_ampl_fac, thresh_weight, thresh_tau,
                         win_size, win_shift, min_clip, max_clip,
-                        cvi_th, cva_th, tolerance,
+                        percentile, cvi_th, cva_th, tolerance,
                         verbose, plot_data_func, plot_window_func, **kwargs)
     return data[start_inx:end_inx]
 
