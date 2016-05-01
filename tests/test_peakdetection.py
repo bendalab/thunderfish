@@ -5,7 +5,7 @@ import thunderfish.peakdetection as pd
 
 
 def test_peakdetection():
-    """Tests whether peakdetection works corretly"""
+    """Tests whether peakdetection works correctly"""
 
     # generate data:
     time = np.arange(0.0, 10.0, 0.01)
@@ -13,7 +13,7 @@ def test_peakdetection():
     pt_indices = np.random.randint(5,len(data)-10, size=40)
     pt_indices.sort()
     while np.any(np.diff(pt_indices).min() < 5):
-        pt_indices = np.random.randint(0,len(data), size=40)
+        pt_indices = np.random.randint(5,len(data)-10, size=40)
         pt_indices.sort()
     peak_indices = pt_indices[0::2]
     trough_indices = pt_indices[1::2]
@@ -37,7 +37,22 @@ def test_peakdetection():
     peak_times = time[peak_indices]
     trough_times = time[trough_indices]
     threshold = 0.5
+    min_thresh = 0.3
+
     
+    peaks, troughs = pd.detect_peaks(data, 0.0)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_peaks(data, threshold) did not handle zero threshold")
+    
+    peaks, troughs = pd.detect_peaks(data, -1.0)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_peaks(data, threshold) did not handle negative threshold")
+    
+    peaks, troughs = pd.detect_peaks(data, threshold, time[:len(time)/2])
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_peaks(data, threshold) did not handle wrong time array")
+    
+        
     peaks, troughs = pd.detect_peaks(data, threshold)
     assert_true(np.all(peaks == peak_indices),
                 "detect_peaks(data, threshold) did not correctly detect peaks")
@@ -51,7 +66,7 @@ def test_peakdetection():
                 "detect_peaks(data, threshold, time) did not correctly detect troughs")
         
     peaks, troughs = pd.detect_peaks(data, threshold, time,
-                                             pd.accept_peak, pd.accept_peak)
+                                     pd.accept_peak, pd.accept_peak)
     assert_true(np.all(peaks[:,0] == peak_indices),
                 "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect peaks")
     assert_true(np.all(troughs[:,0] == trough_indices),
@@ -60,3 +75,64 @@ def test_peakdetection():
                 "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect peaks")
     assert_true(np.all(troughs[:,1] == trough_times),
                 "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect troughs")
+        
+    peaks, troughs = pd.detect_peaks(data, threshold, None,
+                                     pd.accept_peak, pd.accept_peak)
+    assert_true(np.all(peaks[:,0] == peak_indices),
+                "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect peaks")
+    assert_true(np.all(troughs[:,0] == trough_indices),
+                "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect troughs")
+
+
+    
+    peaks, troughs = pd.detect_dynamic_peaks(data, 0.0, min_thresh, 0.5, time,
+                                             pd.accept_peak_size_threshold)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_dynamic_peaks(data, threshold) did not handle zero threshold")
+    
+    peaks, troughs = pd.detect_dynamic_peaks(data, -1.0, min_thresh, 0.5, time,
+                                             pd.accept_peak_size_threshold)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_dynamic_peaks(data, threshold) did not handle negative threshold")
+
+    peaks, troughs = pd.detect_dynamic_peaks(data, threshold, 0.0, 0.5, time,
+                                             pd.accept_peak_size_threshold)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_dynamic_peaks(data, threshold) did not handle zero min_thresh")
+    
+    peaks, troughs = pd.detect_dynamic_peaks(data, threshold, -1.0, 0.5, time,
+                                             pd.accept_peak_size_threshold)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_dynamic_peaks(data, threshold) did not handle negative min_thresh")
+
+    peaks, troughs = pd.detect_dynamic_peaks(data, threshold, min_thresh, 0.0, time,
+                                             pd.accept_peak_size_threshold)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_dynamic_peaks(data, threshold) did not handle zero tau")
+    
+    peaks, troughs = pd.detect_dynamic_peaks(data, threshold, min_thresh, -1.0, time,
+                                             pd.accept_peak_size_threshold)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_dynamic_peaks(data, threshold) did not handle negative tau")
+    
+    peaks, troughs = pd.detect_dynamic_peaks(data, threshold, min_thresh, 0.5, time[:len(time)/2],
+                                             pd.accept_peak_size_threshold)
+    assert_true(np.all(peaks == np.array([])) and np.all(troughs == np.array([])),
+                "detect_dynamic_peaks(data, threshold) did not handle wrong time array")
+
+            
+    peaks, troughs = pd.detect_dynamic_peaks(data, threshold, min_thresh, 0.5, time,
+                                             pd.accept_peak_size_threshold)
+    assert_true(np.all(peaks == peak_times),
+                "detect_dynamic_peaks(data, threshold, time, accept_peak_size_threshold) did not correctly detect peaks")
+    assert_true(np.all(troughs == trough_times),
+                "detect_dynamic_peaks(data, threshold, time, accept_peak_size_threshold) did not correctly detect troughs")
+        
+    peaks, troughs = pd.detect_dynamic_peaks(data, threshold, min_thresh, 0.5, None,
+                                             pd.accept_peak_size_threshold,
+                                             thresh_ampl_fac=0.9, thresh_weight=0.1)
+    assert_true(np.all(peaks == peak_indices),
+                "detect_dynamic_peaks(data, threshold, time, accept_peak_size_threshold) did not correctly detect peaks")
+    assert_true(np.all(troughs == trough_indices),
+                "detect_dynamic_peaks(data, threshold, time, accept_peak_size_threshold) did not correctly detect troughs")
+    

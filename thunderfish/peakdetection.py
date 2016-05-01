@@ -54,7 +54,7 @@ def detect_peaks(data, threshold, time=None,
         return np.array([]), np.array([])
 
     if time is not None and len(data) != len(time):
-        warning.warn('input arrays time and data must have same length!')
+        warnings.warn('input arrays time and data must have same length!')
         return np.array([]), np.array([])
         
     peaks_list = list()
@@ -215,12 +215,12 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
         warnings.warn('input argument min_thresh must be positive!')
         return np.array([]), np.array([])
 
-    if tau_time <= 0:
-        warnings.warn('input argument tau_time must be positive!')
+    if tau <= 0:
+        warnings.warn('input argument tau must be positive!')
         return np.array([]), np.array([])
 
     if time is not None and len(data) != len(time):
-        warning.warn('input arrays time and data must have same length!')
+        warnings.warn('input arrays time and data must have same length!')
         return np.array([]), np.array([])
         
     peaks_list = list()
