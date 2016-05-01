@@ -348,6 +348,38 @@ def accept_peak(time, data, event_inx, index, min_inx, threshold) :
         return [event_inx, time[event_inx], size], None
 
 
+def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
+                               min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02) :
+    """Accept each detected peak/trough and return its index or time.
+    Adjust the threshold to the size of the detected peak.
+    To be passed to the detect_dynamic_peaks() function.
+
+    Args:
+        time (array): time values, can be None
+        data (array): the data in wich peaks and troughs are detected
+        event_inx: index of the current peak/trough
+        index: current index
+        min_inx: index of the previous trough/peak
+        threshold: threshold value
+        min_thresh (float): the minimum value the threshold is allowed to assume.
+        tau (float): the time constant of the the decay of the threshold value
+                     given in indices (time is None) or time units (time is not None)
+        thresh_ampl_fac (float): the new threshold is thresh_ampl_fac times the size of the current peak
+        thresh_weight (float): new threshold is weighted against current threshold with thresh_weight
+
+    Returns: 
+        index (int): index of the peak/trough if time is None
+        time (int): time of the peak/trough if time is not None
+        threshold (float): the new threshold to be used
+    """
+    size = data[event_inx] - data[min_inx]
+    threshold += thresh_weight*(thresh_ampl_fac*size - threshold)
+    if time is None :
+        return event_inx, threshold
+    else :
+        return time[event_inx], threshold
+
+
 def accept_psd_peaks(freqs, data, peak_inx, index, min_inx, threshold, pfac=0.75) :
     """
     Accept each detected peak and compute its size and width.

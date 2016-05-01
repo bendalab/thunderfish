@@ -17,28 +17,6 @@ import numpy as np
 import scipy.stats as stats
 import peakdetection as pd
 
-        
-def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
-    """Removes mean and normalizes data by dividing by the standard deviation.
-    Mean and standard deviation are computed in win_duration long windows.
-
-    Args:
-      data (array): the data as a 1-D array
-      rate (float): the sampling rate of the data
-      win_duration (float): the length of the analysis window given in inverse unit of rate
-      min_std (float): minimum standard deviation to be used for scaling
-
-    Returns:
-      scaled_data (array): the de-meaned and normalized data as an 1-D numpy array
-    """
-    w = np.ones(rate*win_duration)
-    w /= len(w)
-    mean = np.convolve(data, w, mode='same')
-    std = np.sqrt(np.convolve(data**2., w, mode='same') - mean**2.)
-    if min_std > 0.0 :
-        std[std<min_std] = min_std
-    return (data - mean) / std
-
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
     """Find the amplitudes where the signals clips by looking at
@@ -87,34 +65,6 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
     #plt.axvline(max_clipa, color='r')
     #plt.show()
     return min_clipa, max_clipa
-
-
-def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
-                               min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02) :
-    """To be passed to the detect_dynamic_peaks() function.
-    Accept each detected peak/trough and return its index.
-    Adjust the threshold to the size of the detected peak.
-
-    Args:
-        time (array): time values, can be None
-        data (array): the data in wich peaks and troughs are detected
-        event_inx: index of the current peak/trough
-        index: current index
-        min_inx: index of the previous trough/peak
-        threshold: threshold value
-        min_thresh (float): the minimum value the threshold is allowed to assume.
-        tau (float): the time constant of the the decay of the threshold value
-                     given in indices (time is None) or time units (time is not None)
-        thresh_ampl_fac (float): the new threshold is thresh_ampl_fac times the size of the current peak
-        thresh_weight (float): new threshold is weighted against current threshold with thresh_weight
-
-    Returns: 
-        index (int): index of the peak/trough
-        threshold (float): the new threshold to be used
-    """
-    size = data[event_inx] - data[min_inx]
-    threshold += thresh_weight*(thresh_ampl_fac*size - threshold)
-    return event_inx, threshold
 
     
 def best_window_indices(data, rate, mode='first',
@@ -313,7 +263,7 @@ def best_window_indices(data, rate, mode='first',
     thresh = 1.5*np.std(data[0:win_shift*rate])
     tauidx = thresh_tau*rate
     peak_idx, trough_idx = pd.detect_dynamic_peaks(data, thresh, min_thresh, tauidx, None,
-                                                   accept_peak_size_threshold, None,
+                                                   pd.accept_peak_size_threshold, None,
                                                    thresh_ampl_fac=thresh_ampl_fac,
                                                    thresh_weight=thresh_weight)
     if len(peak_idx) == 0 or len(trough_idx) == 0 :
