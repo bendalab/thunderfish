@@ -1,3 +1,4 @@
+import warnings
 import os.path
 import numpy as np
 
@@ -33,7 +34,7 @@ def load_wave(filename, verbose=0) :
     try:
         import wave
     except ImportError:
-        print 'python module "wave" is not installed.'
+        warnings.warn('python module "wave" is not installed.')
         raise ImportError
 
     wf = wave.open(filename, 'r')   # 'with' is not supported by wave
@@ -80,7 +81,7 @@ def load_ewave(filename, verbose=0) :
     try:
         import ewave
     except ImportError:
-        print 'python module "ewave" is not installed.'
+        warnings.warn('python module "ewave" is not installed.')
         raise ImportError
 
     data = np.array([])
@@ -115,7 +116,7 @@ def load_wavfile(filename, verbose=0) :
     try:
         from scipy.io import wavfile
     except ImportError:
-        print 'python module "scipy.io" is not installed.'
+        warnings.warn('python module "scipy.io" is not installed.')
         raise ImportError
 
     if verbose < 2 :
@@ -155,7 +156,7 @@ def load_soundfile(filename, verbose=0) :
     try:
         import soundfile
     except ImportError:
-        print 'python module "soundfile" is not installed.'
+        warnings.warn('python module "soundfile" is not installed.')
         raise ImportError
 
     data = np.array([])
@@ -190,7 +191,7 @@ def load_wavefile(filename, verbose=0) :
     try:
         import wavefile
     except ImportError:
-        print 'python module "wavefile" is not installed.'
+        warnings.warn('python module "wavefile" is not installed.')
         raise ImportError
 
     rate, data = wavefile.load(filename)
@@ -221,7 +222,7 @@ def load_audiolab(filename, verbose=0) :
     try:
         import scikits.audiolab as audiolab
     except ImportError:
-        print 'python module "scikits.audiolab" is not installed.'
+        warnings.warn('python module "scikits.audiolab" is not installed.')
         raise ImportError
 
     af = audiolab.Sndfile(filename)
@@ -254,7 +255,7 @@ def load_audioread(filename, verbose=0) :
     try:
         import audioread
     except ImportError:
-        print 'python module "audioread" is not installed.'
+        warnings.warn('python module "audioread" is not installed.')
         raise ImportError
     
     data = np.array([])
@@ -309,13 +310,13 @@ def load_audio(filepath, verbose=0) :
     rate = 0.0
     data = np.array([])
     if len(filepath) == 0 :
-        print('load_audio(): input argument filepath is empty string!')
+        warnings.warn('input argument filepath is empty string!')
         return data, rate
     if not os.path.isfile(filepath) :
-        print('load_audio(): input argument filepath=%s does not indicate an existing file!' % filepath)
+        warnings.warn('input argument filepath=%s does not indicate an existing file!' % filepath)
         return data, rate
     if os.path.getsize(filepath) <= 0:
-        print('load_audio(): input argument filepath=%s indicates file of size 0!' % filepath)
+        warnings.warn('load_audio(): input argument filepath=%s indicates file of size 0!' % filepath)
         return data, rate
 
     # load data:
@@ -331,9 +332,7 @@ def load_audio(filepath, verbose=0) :
                     print('  data values  : %d' % len(data))
                 break
         except:
-            if verbose > 0 :
-                print('failed to load data from file "%s" with %s' %
-                      (filepath, lib))
+            warnings.warn('failed to load data from file "%s" with %s' % (filepath, lib))
     return data, rate
 
 
@@ -341,10 +340,10 @@ if __name__ == "__main__":
     import sys
     print("Checking audioloader module ...")
     filepath = sys.argv[-1]
-    print()
+    print('')
     print("try load_audio:")
     data, rate = load_audio(filepath, 2)
-    print()
+    print('')
     for lib, load_file in audio_loader :
         try:
             data, rate = load_file(filepath, 1)

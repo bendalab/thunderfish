@@ -87,6 +87,6 @@ if __name__ == "__main__":
     print("Checking dataloader module ...")
     filepath = sys.argv[-1]
     channel = 0
-    print()
+    print('')
     print("try load_data:")
     freq, data, unit = load_data(filepath, channel, 2)

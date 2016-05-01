@@ -1,4 +1,4 @@
-import sys
+import warnings
 import numpy as np
 
 
@@ -49,14 +49,13 @@ def detect_peaks(data, threshold, time=None,
           if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
     """
 
-    if not np.isscalar(threshold):
-        sys.exit('detect_peaks(): input argument threshold must be a scalar!')
-
     if threshold <= 0:
-        sys.exit('detect_peaks(): input argument threshold must be positive!')
+        warnings.warn('input argument threshold must be positive!')
+        return np.array([]), np.array([])
 
     if time is not None and len(data) != len(time):
-        sys.exit('detect_peaks(): input arrays time and data must have same length!')
+        warning.warn('input arrays time and data must have same length!')
+        return np.array([]), np.array([])
         
     peaks_list = list()
     troughs_list = list()
@@ -208,14 +207,21 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
           if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
     """
 
-    if not np.isscalar(threshold):
-        sys.exit('detect_dynamic_peaks(): input argument threshold must be a scalar!')
-
     if threshold <= 0:
-        sys.exit('detect_dynamic_peaks(): input argument threshold must be positive!')
+        warnings.warn('input argument threshold must be positive!')
+        return np.array([]), np.array([])
+
+    if min_thresh <= 0:
+        warnings.warn('input argument min_thresh must be positive!')
+        return np.array([]), np.array([])
+
+    if tau_time <= 0:
+        warnings.warn('input argument tau_time must be positive!')
+        return np.array([]), np.array([])
 
     if time is not None and len(data) != len(time):
-        sys.exit('detect_dynamic_peaks(): input arrays time and data must have same length!')
+        warning.warn('input arrays time and data must have same length!')
+        return np.array([]), np.array([])
         
     peaks_list = list()
     troughs_list = list()
@@ -496,7 +502,7 @@ if __name__ == "__main__":
     print("Checking peakdetection module ...")
     import matplotlib.pyplot as plt
 
-    print()
+    print('')
     # generate data:
     time = np.arange(0.0, 10.0, 0.01)
     f = 2.0
@@ -507,7 +513,7 @@ if __name__ == "__main__":
     print("generated waveform with %d peaks" % int(np.round(time[-1]*f)))
     plt.plot(time, data)
     
-    print()
+    print('')
     print('check detect_peaks(data, 0.5, time)...')
     peaks, troughs = detect_peaks(data, 0.5, time)
     #print peaks
@@ -515,7 +521,7 @@ if __name__ == "__main__":
     #print troughs
     print('detected %d troughs with period %g that differs from the real frequency by %g' % (len(troughs), np.mean(np.diff(troughs)), f-1.0/np.mean(np.diff(troughs))))
     
-    print()
+    print('')
     print('check detect_peaks(data, 0.5)...')
     peaks, troughs = detect_peaks(data, 0.5)
     #print peaks
@@ -523,7 +529,7 @@ if __name__ == "__main__":
     #print troughs
     print('detected %d troughs with period %g that differs from the real frequency by %g' % (len(troughs), np.mean(np.diff(troughs)), f-1.0/np.mean(np.diff(troughs))/np.mean(np.diff(time))))
         
-    print()
+    print('')
     print('check detect_peaks(data, 0.5, time, accept_peak, accept_peak)...')
     peaks, troughs = detect_peaks(data, 0.5, time, accept_peak, accept_peak)
     #print peaks
@@ -533,19 +539,19 @@ if __name__ == "__main__":
     plt.plot(peaks[:,1], peaks[:,2], '.r', ms=20)
     plt.plot(troughs[:,1], troughs[:,2], '.g', ms=20)
     
-    print()
+    print('')
     print('check detect_peaks(data, 0.5, time)...')
     peaks = detect_peaks(data, 0.5, time)
     #print peaks
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))))
     
-    print()
+    print('')
     print('check detect_peaks(data, 0.5)...')
     peaks = detect_peaks(data, 0.5)
     #print peaks
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))/np.mean(np.diff(time))))
         
-    print()
+    print('')
     print('check detect_peaks(data, 0.5, time, accept_peak)...')
     peaks = detect_peaks(data, 0.5, time, accept_peak)
     #print peaks

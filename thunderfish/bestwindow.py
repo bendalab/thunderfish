@@ -11,8 +11,7 @@ See bestwindowplots module for visualizing the best_window algorithm
 and for usage.
 """
 
-# TODO: use warnings.warn
-
+import warnings
 import numpy as np
 import scipy.stats as stats
 import peakdetection as pd
@@ -203,11 +202,9 @@ def best_window_indices(data, rate, mode='first',
         # If there is no best window, run the algorithm again with more flexible thresholds:
         if not True in valid_windows :
             if cvi_percentile >= 1. and cva_percentile >= 1. and ampl_percentile <= 0.:
-                print('did not find best window')
+                warnings.warn('did not find a best window')
                 if plot_window_func :
                     plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
-                if verbose > 0 :
-                    print('WARNING. Did not find an appropriate window for analysis.')
                 # we failed:
                 return []
             else :
@@ -255,8 +252,7 @@ def best_window_indices(data, rate, mode='first',
 
     # too little data:
     if len(data) / rate <= win_size :
-        if verbose > 0 :
-            print 'no best window found: not enough data'
+        warnings.warn('no best window found: not enough data')
         return 0, 0
 
     # detect large peaks and troughs:
@@ -268,7 +264,7 @@ def best_window_indices(data, rate, mode='first',
                                                    thresh_weight=thresh_weight)
     if len(peak_idx) == 0 or len(trough_idx) == 0 :
         if verbose > 0 :
-            print 'best_window(): no peaks and troughs detected'
+            print('best_window(): no peaks and troughs detected')
         return 0, 0
     
     # compute cv of intervals, mean peak amplitude and its cv:
@@ -311,16 +307,14 @@ def best_window_indices(data, rate, mode='first',
     ampl_sorted = np.sort(mean_ampl)
     ampl_sorted = ampl_sorted[ampl_sorted>0.0]
     if len(ampl_sorted) <= 0 :
-        if verbose > 0 :
-            print 'best_window(): no finite amplitudes detected'
+        warnings.warn('no finite amplitudes detected')
         return 0, 0
     ampl_percentile = 1.0 - percentile
     # cumulative function for interval cvs and percentile of threshold:
     cv_interval_sorted = np.sort(cv_interv)
     cv_interval_sorted = cv_interval_sorted[cv_interval_sorted<1000.0]
     if len(cv_interval_sorted) <= 0 :
-        if verbose > 0 :
-            print 'best_window(): no valid interval cvs detected'
+        warnings.warn('no valid interval cvs detected')
         return 0, 0
     cvi_percentile = float(len(cv_interval_sorted[cv_interval_sorted<cvi_th])/float(len(cv_interval_sorted)))
     if cvi_percentile < percentile :
@@ -329,8 +323,7 @@ def best_window_indices(data, rate, mode='first',
     cv_ampl_sorted = np.sort(cv_ampl)
     cv_ampl_sorted = cv_ampl_sorted[cv_ampl_sorted<1000.0]
     if len(cv_ampl_sorted) <= 0 :
-        if verbose > 0 :
-            print 'best_window(): no valid amplitude cvs detected'
+         warnings.warn('no valid amplitude cvs detected')
         return 0, 0
     cva_percentile = float(len(cv_ampl_sorted[cv_ampl_sorted<cva_th])/float(len(cv_ampl_sorted)))
     if cva_percentile < percentile :
