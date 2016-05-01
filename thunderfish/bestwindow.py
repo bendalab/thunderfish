@@ -323,7 +323,7 @@ def best_window_indices(data, rate, mode='first',
     cv_ampl_sorted = np.sort(cv_ampl)
     cv_ampl_sorted = cv_ampl_sorted[cv_ampl_sorted<1000.0]
     if len(cv_ampl_sorted) <= 0 :
-         warnings.warn('no valid amplitude cvs detected')
+        warnings.warn('no valid amplitude cvs detected')
         return 0, 0
     cva_percentile = float(len(cv_ampl_sorted[cv_ampl_sorted<cva_th])/float(len(cv_ampl_sorted)))
     if cva_percentile < percentile :

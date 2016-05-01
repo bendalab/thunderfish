@@ -753,7 +753,8 @@ def harmonic_groups( psd_freqs, psd, cfg ) :
     ## plt.show()
     
     # detect peaks in decibel power spectrum:
-    all_freqs = pd.detect_peaks(log_psd, low_threshold, psd_freqs, pd.accept_psd_peaks)
+    all_freqs, _ = pd.detect_peaks(log_psd, low_threshold, psd_freqs,
+                                   pd.accept_peaks_size_width)
 
     # select good peaks:
     wthresh = cfg['maxPeakWidthFac'][0]*(psd_freqs[1] - psd_freqs[0])

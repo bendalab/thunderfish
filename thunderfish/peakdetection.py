@@ -386,13 +386,13 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
         return time[event_inx], threshold
 
 
-def accept_psd_peaks(freqs, data, peak_inx, index, min_inx, threshold, pfac=0.75) :
+def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfac=0.75) :
     """
     Accept each detected peak and compute its size and width.
 
     Args:
-        freqs (array): frequencies of the power spectrum
-        data (array): the power spectrum
+        time (array): time, must not be None
+        data (array): the data with teh peaks
         peak_inx: index of the current peak
         index: current index
         min_inx: index of the previous trough
@@ -400,8 +400,8 @@ def accept_psd_peaks(freqs, data, peak_inx, index, min_inx, threshold, pfac=0.75
         pfac: fraction of peak height where its width is measured
     
     Returns: 
-        freq (float): frequency of the peak
-        power (float): power of the peak (value of data at the peak)
+        time (float): time of the peak
+        height (float): height of the peak (value of data at the peak)
         size (float): size of the peak (peak minus previous trough)
         width (float): width of the peak at 0.75*size
         count (float): zero
@@ -412,13 +412,13 @@ def accept_psd_peaks(freqs, data, peak_inx, index, min_inx, threshold, pfac=0.75
     width = 0.0
     for k in xrange( peak_inx, min_inx, -1 ) :
         if data[k] < wthresh :
-            width = freqs[peak_inx] - freqs[k]
+            width = time[peak_inx] - time[k]
             break
     for k in xrange( peak_inx, index ) :
         if data[k] < wthresh :
-            width += freqs[k] - freqs[peak_inx]
+            width += time[k] - time[peak_inx]
             break
-    return [ freqs[peak_inx], data[peak_inx], size, width, 0.0 ], None
+    return [ time[peak_inx], data[peak_inx], size, width, 0.0 ], None
 
 
 def trim(peaks, troughs) :
@@ -426,12 +426,12 @@ def trim(peaks, troughs) :
     Trims the peaks and troughs arrays such that they have the same length.
     
     Args:
-        peaks (array): list of peak indices or times
-        troughs (array): list of trough indices or times
+        peaks (numpy array): list of peak indices or times
+        troughs (numpy array): list of trough indices or times
 
     Returns:
-        peaks (array): list of peak indices or times
-        troughs (array): list of trough indices or times
+        peaks (numpy array): list of peak indices or times
+        troughs (numpy array): list of trough indices or times
     """
     # common len:
     n = min(len(peaks), len(troughs))
@@ -445,12 +445,12 @@ def trim_to_peak(peaks, troughs) :
     and the first peak comes first.
     
     Args:
-        peaks (array): list of peak indices or times
-        troughs (array): list of trough indices or times
+        peaks (numpy array): list of peak indices or times
+        troughs (numpy array): list of trough indices or times
 
     Returns:
-        peaks (array): list of peak indices or times
-        troughs (array): list of trough indices or times
+        peaks (numpy array): list of peak indices or times
+        troughs (numpy array): list of trough indices or times
     """
     # start index for troughs:
     tidx = 0
@@ -468,12 +468,12 @@ def trim_closest(peaks, troughs) :
     and that peaks-troughs is on average as small as possible.
     
     Args:
-        peaks (array): list of peak indices or times
-        troughs (array): list of trough indices or times
+        peaks (numpy array): list of peak indices or times
+        troughs (numpy array): list of trough indices or times
 
     Returns:
-        peaks (array): list of peak indices or times
-        troughs (array): list of trough indices or times
+        peaks (numpy array): list of peak indices or times
+        troughs (numpy array): list of trough indices or times
     """
     pidx = 0
     tidx = 0

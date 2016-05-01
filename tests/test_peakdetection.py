@@ -74,6 +74,13 @@ def test_detect_peaks():
     assert_true(np.all(troughs[:,1] == trough_times),
                 "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect troughs")
         
+    peaks, troughs = pd.detect_peaks(data, threshold, time,
+                                     pd.accept_peaks_size_width)
+    assert_true(np.all(peaks[:,0] == peak_times),
+                "detect_peaks(data, threshold, time, accept_peaks_size_width) did not correctly detect peaks")
+    assert_true(np.all(troughs == trough_times),
+                "detect_peaks(data, threshold, time, accept_peak, accept_peaks_size_width) did not correctly detect troughs")
+                
     peaks, troughs = pd.detect_peaks(data, threshold, None,
                                      pd.accept_peak, pd.accept_peak)
     assert_true(np.all(peaks[:,0] == peak_indices),
@@ -266,3 +273,9 @@ def test_trim_closest():
                 "trim_closest(peak_indices, peak_indices+5) failed on peaks")
     assert_true(len(t_inx) == len(trough_indices) and np.any(t_inx == trough_indices),
                 "trim_closest(peak_indices, peak_indices+5) failed on troughs")
+
+    p_inx, t_inx = pd.trim_closest(np.array([]), np.array([]))
+    assert_true(len(p_inx) == 0,
+                "trim_closest([], []) failed on peaks")
+    assert_true(len(t_inx) == 0,
+                "trim_closest([], []) failed on troughs")
