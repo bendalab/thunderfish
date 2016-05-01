@@ -91,7 +91,7 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
 
 def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
                                min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02) :
-    """To be passed to the detect_dynamic_peak_trough() function.
+    """To be passed to the detect_dynamic_peaks() function.
     Accept each detected peak/trough and return its index.
     Adjust the threshold to the size of the detected peak.
 
@@ -312,11 +312,10 @@ def best_window_indices(data, rate, mode='first',
     # detect large peaks and troughs:
     thresh = 1.5*np.std(data[0:win_shift*rate])
     tauidx = thresh_tau*rate
-    peak_idx, trough_idx = pd.detect_dynamic_peaks_troughs(data, thresh, min_thresh,
-                                                           tauidx, None,
-                                                           accept_peak_size_threshold, None,
-                                                           thresh_ampl_fac=thresh_ampl_fac,
-                                                           thresh_weight=thresh_weight)
+    peak_idx, trough_idx = pd.detect_dynamic_peaks(data, thresh, min_thresh, tauidx, None,
+                                                   accept_peak_size_threshold, None,
+                                                   thresh_ampl_fac=thresh_ampl_fac,
+                                                   thresh_weight=thresh_weight)
     if len(peak_idx) == 0 or len(trough_idx) == 0 :
         if verbose > 0 :
             print 'best_window(): no peaks and troughs detected'

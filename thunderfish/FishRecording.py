@@ -55,7 +55,7 @@ class FishRecording:
               # The Threshold is 1.5 times the standard deviation of the eod
 
             #_, self._eod_peak_idx, _, self._eod_trough_idx = aux.peakdet(eod2, peak_threshold)
-            self._eod_peak_idx, self._eod_trough_idx = pd.detect_peaks_troughs(eod2, peak_threshold)
+            self._eod_peak_idx, self._eod_trough_idx = pd.detect_peaks(eod2, peak_threshold)
             # refine by matching troughs and peaks
             everything = list(self.peak_trough_iterator())
             _, _, self._eod_peak_idx, _, _, self._eod_trough_idx = map(lambda x: np.asarray(x), zip(*everything))

@@ -38,40 +38,25 @@ def test_peakdetection():
     trough_times = time[trough_indices]
     threshold = 0.5
     
-    peaks, troughs = pd.detect_peaks_troughs(data, threshold)
-    assert_true(np.all(peaks == peak_indices),
-                "detect_peaks_troughs(data, threshold) did not correctly detect peaks")
-    assert_true(np.all(troughs == trough_indices),
-                "detect_peaks_troughs(data, threshold) did not correctly detect troughs")
-    
-    peaks, troughs = pd.detect_peaks_troughs(data, threshold, time)
-    assert_true(np.all(peaks == peak_times),
-                "detect_peaks_troughs(data, threshold, time) did not correctly detect peaks")
-    assert_true(np.all(troughs == trough_times),
-                "detect_peaks_troughs(data, threshold, time) did not correctly detect troughs")
-        
-    peaks, troughs = pd.detect_peaks_troughs(data, threshold, time,
-                                             pd.accept_peak, pd.accept_peak)
-    assert_true(np.all(peaks[:,0] == peak_indices),
-                "detect_peaks_troughs(data, threshold, time, accept_peak, accept_peak) did not correctly detect peaks")
-    assert_true(np.all(troughs[:,0] == trough_indices),
-                "detect_peaks_troughs(data, threshold, time, accept_peak, accept_peak) did not correctly detect troughs")
-    assert_true(np.all(peaks[:,1] == peak_times),
-                "detect_peaks_troughs(data, threshold, time, accept_peak, accept_peak) did not correctly detect peaks")
-    assert_true(np.all(troughs[:,1] == trough_times),
-                "detect_peaks_troughs(data, threshold, time, accept_peak, accept_peak) did not correctly detect troughs")
-    
-    peaks = pd.detect_peaks(data, threshold)
+    peaks, troughs = pd.detect_peaks(data, threshold)
     assert_true(np.all(peaks == peak_indices),
                 "detect_peaks(data, threshold) did not correctly detect peaks")
+    assert_true(np.all(troughs == trough_indices),
+                "detect_peaks(data, threshold) did not correctly detect troughs")
     
-    peaks = pd.detect_peaks(data, threshold, time)
+    peaks, troughs = pd.detect_peaks(data, threshold, time)
     assert_true(np.all(peaks == peak_times),
                 "detect_peaks(data, threshold, time) did not correctly detect peaks")
+    assert_true(np.all(troughs == trough_times),
+                "detect_peaks(data, threshold, time) did not correctly detect troughs")
         
-    peaks = pd.detect_peaks(data, threshold, time, pd.accept_peak)
+    peaks, troughs = pd.detect_peaks(data, threshold, time,
+                                             pd.accept_peak, pd.accept_peak)
     assert_true(np.all(peaks[:,0] == peak_indices),
-                "detect_peaks(data, threshold, time, accept_peak) did not correctly detect peaks")
+                "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect peaks")
+    assert_true(np.all(troughs[:,0] == trough_indices),
+                "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect troughs")
     assert_true(np.all(peaks[:,1] == peak_times),
-                "detect_peaks(data, threshold, time, accept_peak) did not correctly detect peaks")
-    
+                "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect peaks")
+    assert_true(np.all(troughs[:,1] == trough_times),
+                "detect_peaks(data, threshold, time, accept_peak, accept_peak) did not correctly detect troughs")
