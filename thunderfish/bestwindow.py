@@ -65,19 +65,16 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
     return min_clipa, max_clipa
 
     
-def best_window_indices(data, rate, expand=False,
-                        min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=1.0,
-                        win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
+def best_window_indices(data, rate, expand=False, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
+                        min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         verbose=0, plot_data_func=None, **kwargs):
     """Detect the best window of the data to be analyzed. The data have been sampled with rate Hz.
     
     First, large peaks and troughs of the data are detected.
     Peaks and troughs have to be separated in amplitude by at least the value of a dynamic threshold.
-    The threshold is never smaller than min_thresh. Upon detection of a peak a new threshold value is set to
-    thresh_ampl_fac times the amplitude of the peak minus the th eone of the previous trough.
-    The current threshold is updated towards the new threshold value weighted by thresh_weight.
-    Between peaks, the current threshold decays towards min_thresh with a time constant thresh_tau.
+    The threshold is computed in win_shift wide windows as thresh_ampl_fac times
+    the standard deviation of the data.
 
     Second, criteria for selecting the best window are computed for each window of width win_size
     shifted by win_shift trough the data. The three criteria are:
@@ -102,13 +99,9 @@ def best_window_indices(data, rate, expand=False,
     :param data: 1-D array. The data to be analyzed
     :param rate: float. Sampling rate of the data in Hz
     :param expand: boolean. If true return the largest region with small costs.
-    :param min_thresh: float. Minimum allowed value for the threshold. Set this above the noise level of the data.
-    :param thresh_ampl_fac: float. New threshold is thresh_ampl_fac times the size of the current peak, between 0 and 1. Set this close to 1. The smaller the more small amplitude peaks are detected.
-    :param thresh_weight: float. New threshold is weighed against current threshold with thresh_weight. The inverse of thresh_weight is approximately the number of peaks need for the threshold to approach the new threshold value.
-    :param thresh_tau: float. Time constant of the decay of the threshold towards min_thresh in seconds.
-    This should approximately match the fastest changes in signal amplitude.
     :param win_size: float. Size of the best window in seconds. Choose it large enough for a minimum analysis.
     :param win_shift: float. Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one thenth of win_shift.
+    :param thresh_ampl_fac: float. Threshold for peak detection is thresh_ampl_fac times the standard deviation of the data in win_shift wide windows.
     :param min_clip: float. Minimum amplitude below which data are clipped.
     :param max_clip: float. Maximum amplitude above which data are clipped.
     :param w_cv_interv: float. Weight for the coefficient of variation of the intervals.
@@ -144,13 +137,14 @@ def best_window_indices(data, rate, expand=False,
         warnings.warn('no best window found: not enough data')
         return 0, 0
 
+    # threshold for peak detection:
+    threshold = np.zeros(len(data))
+    win_shift_indices = int(win_shift*rate)
+    for inx in xrange(0, len(data)-win_shift_indices/2, win_shift_indices):
+        threshold[inx:inx+win_shift_indices] = np.std(data[inx:inx+win_shift_indices])*thresh_ampl_fac
+
     # detect large peaks and troughs:
-    thresh = 2.0*np.std(data[0:win_shift*rate])
-    tauidx = thresh_tau*rate
-    peak_idx, trough_idx = pd.detect_dynamic_peaks(data, thresh, min_thresh, tauidx, None,
-                                                   pd.accept_peak_size_threshold, None,
-                                                   thresh_ampl_fac=thresh_ampl_fac,
-                                                   thresh_weight=thresh_weight)
+    peak_idx, trough_idx = pd.detect_peaks(data, threshold)
     if len(peak_idx) == 0 or len(trough_idx) == 0 :
         if verbose > 0 :
             print('best_window(): no peaks or troughs detected')
@@ -241,40 +235,34 @@ def best_window_indices(data, rate, expand=False,
     return idx0, idx1
 
 
-def best_window_times(data, rate, expand=False,
-                        min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=1.0,
-                        win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
+def best_window_times(data, rate, expand=False, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
+                        min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
-                        verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
+                        verbose=0, plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
 
     Returns:
       start_time (float): Time of the start of the best window.
       end_time (float): Time of the end of the best window.
     """
-    start_inx, end_inx = best_window_indices(data, rate, expand,
-                                             min_thresh, thresh_ampl_fac, thresh_weight, thresh_tau,
-                                             win_size, win_shift, min_clip, max_clip,
-                                             w_cv_interv, w_ampl, w_cv_ampl, tolerance,
-                                             verbose, plot_data_func, plot_window_func, **kwargs)
+    start_inx, end_inx = best_window_times(data, rate, expand, win_size, win_shift, thresh_ampl_fac,
+                            min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
+                            verbose, plot_data_func, **kwargs)
     return start_inx/rate, end_inx/rate
 
 
-def best_window(data, rate, expand=False,
-                min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=1.0,
-                win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
+def best_window(data, rate, expand=False, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
+                min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
-                verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
+                verbose=0, plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
 
     Returns:
       data (array): the data of the best window.
     """
-    start_inx, end_inx = best_window_indices(data, rate, expand,
-                                             min_thresh, thresh_ampl_fac, thresh_weight, thresh_tau,
-                                             win_size, win_shift, min_clip, max_clip,
-                                             w_cv_interv, w_ampl, w_cv_ampl, tolerance,
-                                             verbose, plot_data_func, plot_window_func, **kwargs)
+    start_inx, end_inx = best_window_times(data, rate, expand, win_size, win_shift, thresh_ampl_fac,
+                            min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
+                            verbose, plot_data_func, **kwargs)
     return data[start_inx:end_inx]
 
 
@@ -311,7 +299,6 @@ if __name__ == "__main__":
     min_clip, max_clip = clip_amplitudes(data, int(clip_win_size*rate), min_fac=min_clip_fac)
     
     # find best window:
-    best_window_indices(data, rate, mode='first',
-                        min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=0.25,
-                        win_size=1.0, win_shift=0.5, min_clip=min_clip, max_clip=max_clip,
+    best_window_indices(data, rate, expand=False,
+                        win_size=1.0, win_shift=0.5, thresh_ampl_fac=3.0, min_clip=min_clip, max_clip=max_clip,
                         w_cv_ampl=10.0)

@@ -11,7 +11,7 @@ def detect_peaks(data, threshold, time=None,
 
     Args:
         data (array): an 1-D array of input data where peaks are detected
-        threshold (float): a positive number setting the minimum distance between peaks and troughs
+        threshold (float or array): a positive number setting the minimum distance between peaks and troughs
         time (array): the (optional) 1-D array with the time corresponding to the data values
         check_peak_func (function): an optional function to be used for further evaluating and analysing a peak
           The signature of the function is
@@ -37,8 +37,10 @@ def detect_peaks(data, threshold, time=None,
             max_inx (int): the index of the peak preceeding the trough (might be 0)
             threshold (float): the threshold value
             **kwargs: further arguments
-            r (scalar or np.array): a single number or an array with properties of the trough or None to skip the trough
-            th (float): a new value for the threshold or None (to keep the original value)            
+            r (scalar or np.array): a single number or an array with properties of the trough
+                                    or None to skip the trough
+            th (float): a new value for the threshold (is overwritten by an threshold array)
+                        or None (to keep the original value)            
         kwargs: arguments passed on to check_peak_func and check_trough_func
     
     Returns: 
@@ -49,8 +51,16 @@ def detect_peaks(data, threshold, time=None,
           if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
     """
 
-    if threshold <= 0:
-        warnings.warn('input argument threshold must be positive!')
+    thresh_array = True
+    thresh = 0.0
+    if np.isscalar(threshold) :
+        thresh_array = False
+        thresh = threshold
+        if threshold <= 0:
+            warnings.warn('input argument threshold must be positive!')
+            return np.array([]), np.array([])
+    elif len(data) != len(threshold):
+        warnings.warn('input arrays data and threshold must have same length!')
         return np.array([]), np.array([])
 
     if time is not None and len(data) != len(time):
@@ -70,6 +80,9 @@ def detect_peaks(data, threshold, time=None,
     # loop through the data:
     for index, value in enumerate(data):
 
+        if thresh_array :
+            thresh = threshold[index]
+
         # rising?
         if dir > 0:
             # if the new value is bigger than the old maximum: set it as new maximum:
@@ -79,16 +92,16 @@ def detect_peaks(data, threshold, time=None,
 
             # otherwise, if the new value is falling below the maximum value minus the threshold:
             # the maximum is a peak!
-            elif max_value >= value + threshold:
+            elif max_value >= value + thresh:
                 # check and update peak with the check_peak_func function:
                 if check_peak_func :
                     r, th = check_peak_func(time, data, max_inx, index,
-                                            min_inx, threshold, **kwargs)
+                                            min_inx, thresh, **kwargs)
                     if r is not None :
                         # this really is a peak:
                         peaks_list.append(r)
                     if th is not None :
-                        threshold = th
+                        thresh = th
                 else:
                     # this is a peak:
                     if time is None :
@@ -107,18 +120,18 @@ def detect_peaks(data, threshold, time=None,
                 min_inx = index  # minimum element
                 min_value = value
 
-            elif value >= min_value + threshold:
+            elif value >= min_value + thresh:
                 # there was a trough:
 
                 # check and update trough with the check_trough function:
                 if check_trough_func :
                     r, th = check_trough_func(time, data, min_inx, index,
-                                              max_inx, threshold, **kwargs)
+                                              max_inx, thresh, **kwargs)
                     if r is not None :
                         # this really is a trough:
                         troughs_list.append(r)
                     if th is not None :
-                        threshold = th
+                        thresh = th
                 else:
                     # this is a trough:
                     if time is None :
@@ -133,9 +146,9 @@ def detect_peaks(data, threshold, time=None,
 
         # don't know direction yet:
         else:
-            if max_value >= value + threshold:
+            if max_value >= value + thresh:
                 dir = -1  # falling
-            elif value >= min_value + threshold:
+            elif value >= min_value + thresh:
                 dir = 1  # rising
 
             if max_value < value:

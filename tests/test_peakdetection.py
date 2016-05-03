@@ -1,6 +1,5 @@
-import numpy as np
 from nose.tools import assert_true
-
+import numpy as np
 import thunderfish.peakdetection as pd
 
 
