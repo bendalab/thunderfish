@@ -69,7 +69,7 @@ def best_window_indices(data, rate, expand=False,
                         min_thresh=0.1, thresh_ampl_fac=0.8, thresh_weight=0.02, thresh_tau=1.0,
                         win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
-                        verbose=0, plot_data_func=None, plot_window_func=None, **kwargs):
+                        verbose=0, plot_data_func=None, **kwargs):
     """Detect the best window of the data to be analyzed. The data have been sampled with rate Hz.
     
     First, large peaks and troughs of the data are detected.
@@ -118,7 +118,7 @@ def best_window_indices(data, rate, expand=False,
     :param verbose: int. Verbosity level >= 0.
     :param plot_data_func: Function for plotting the raw data, detected peaks and troughs and the criteria.
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_start_times, cv_interv, mean_ampl, cv_ampl, valid_wins, **kwargs)
+                       win_start_times, cv_interv, mean_ampl, cv_ampl, cost, thresh, valid_wins, **kwargs)
         :param data (array): the raw data.
         :param rate (float): the sampling rate of the data.
         :param peak_idx (array): indices into raw data indicating detected peaks.
@@ -129,13 +129,9 @@ def best_window_indices(data, rate, expand=False,
         :param cv_interv (array): the coefficient of variation of the inter-peak and -trough intervals.
         :param mean_ampl (array): the mean peak-to-trough amplitude.
         :param cv_ampl (array): the coefficient of variation of the peak-to-trough amplitudes.
+        :param cost (array): the cost function.
+        :param thresh (float): the threshold for the cost function.
         :param valid_wins (array): boolean array indicating the windows which fulfill all three criteria.
-        :param **kwargs: further user supplied arguments.
-    :param plot_window_func: Function for plotting the window selection criteria.
-        plot_window_func(cvi_th, ampl_th, cva_th, **kwargs)
-        :param cvi_th (float): the final threshold value of the cv of the intervals.
-        :param ampl_th (float): the final threshold value of the amplitudes.
-        :param cva_th (float): the final threshold value for the cv of the amplitudes.
         :param **kwargs: further user supplied arguments.
     :param kwargs: Keyword arguments passed to plot_data_func and plot_window_func. 
     
@@ -202,7 +198,7 @@ def best_window_indices(data, rate, expand=False,
     if len(mean_ampl[mean_ampl>0.0]) <= 0 :
         warnings.warn('no finite amplitudes detected')
         return 0, 0
-    if len(cv_interval[cv_interva<invalid_cv]) <= 0 :
+    if len(cv_interv[cv_interv<invalid_cv]) <= 0 :
         warnings.warn('no valid interval cv detected')
         return 0, 0
     if len(cv_ampl[cv_ampl<invalid_cv]) <= 0 :
@@ -239,7 +235,8 @@ def best_window_indices(data, rate, expand=False,
         valid_wins[:win_idx0] = False
         valid_wins[win_idx1:] = False
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_start_inxs/rate, cv_interv, mean_ampl, cv_ampl, valid_wins, **kwargs)
+                       win_start_inxs/rate, cv_interv, mean_ampl, cv_ampl,
+                       cost, thresh, valid_wins, **kwargs)
 
     return idx0, idx1
 

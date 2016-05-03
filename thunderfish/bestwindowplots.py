@@ -1,7 +1,7 @@
 import bestwindow as bw
 
 def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
-              win_times, cv_interv, mean_ampl, cv_ampl, valid_wins, ax, fs=10) :
+              win_times, cv_interv, mean_ampl, cv_ampl, cost, thresh, valid_wins, ax, fs=10) :
     # raw data:
     time = np.arange(0.0, len(data))/rate
     ax[0].plot(time, data, color='royalblue', lw=3)
@@ -33,17 +33,12 @@ def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
     #ax[3].set_xlabel('Time [sec]', fontsize=fs)
 
     # cost:
-    cost = cv_interv+cv_ampl-mean_ampl
     ax[4].plot(win_times[cost<10], cost[cost<10], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
     ax[4].plot(win_times[valid_wins], cost[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
+    ax[4].axhline(thresh, color='k')
     ax[4].set_ylabel('Cost', fontsize=fs)
     ax[4].set_xlabel('Time [sec]', fontsize=fs)
 
-    
-def plot_window(cvi_th, ampl_th, cva_th, ax, fs=10) :
-    ax[1].axhline(cvi_th, color='k')
-    ax[2].axhline(ampl_th, color='k')
-    ax[3].axhline(cva_th, color='k')
     ##     windows = np.arange(len(peak_rate)) * win_shift
     ##     up_th = np.ones(len(windows)) * pk_mode[0][0] + tot_pks*rate_th
     ##     down_th = np.ones(len(windows)) * pk_mode[0][0] - tot_pks*rate_th
@@ -111,9 +106,8 @@ if __name__ == "__main__":
     bw.best_window_indices(data, rate, expand=True,
                             min_thresh=0.01, thresh_ampl_fac=0.8, thresh_weight=0.2, thresh_tau=0.5,
                             win_size=8.0, win_shift=0.2, min_clip=min_clip, max_clip=max_clip,
-                            w_cv_ampl=10.0, tolerance=0.5,
-                            verbose=2, plot_data_func=plot_data, plot_window_func=plot_window,
-                            ax=ax, fs=12)
+                            w_cv_ampl=10.0, tolerance=0.5, verbose=2,
+                            plot_data_func=plot_data, ax=ax, fs=12)
 
     plt.tight_layout()
     plt.show()
