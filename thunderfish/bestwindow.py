@@ -13,7 +13,6 @@ and for usage.
 
 import warnings
 import numpy as np
-import scipy.stats as stats
 import peakdetection as pd
 
 
@@ -158,10 +157,11 @@ def best_window_indices(data, rate, expand=False,
                                                    thresh_weight=thresh_weight)
     if len(peak_idx) == 0 or len(trough_idx) == 0 :
         if verbose > 0 :
-            print('best_window(): no peaks and troughs detected')
+            print('best_window(): no peaks or troughs detected')
         return 0, 0
     
     # compute cv of intervals, mean peak amplitude and its cv:
+    invalid_cv = 1000.0
     win_size_indices = int(win_size*rate)
     win_start_inxs = np.arange(0, len(data) - win_size_indices, int(win_shift*rate))
     cv_interv = np.zeros(len(win_start_inxs))
@@ -184,7 +184,7 @@ def best_window_indices(data, rate, expand=False,
             if wtinx + win_size_indices - p_idx[-1] > mean_interv :
                 cv_interv[i] *= (wtinx + win_size_indices - p_idx[-1])/mean_interv
         else :
-            cv_interv[i] = 1000.0
+            cv_interv[i] = invalid_cv
         # statistics of peak-to-trough amplitude:
         p2t_ampl = data[p_idx] - data[t_idx]
         if len(p2t_ampl) > 2 :
@@ -196,8 +196,19 @@ def best_window_indices(data, rate, expand=False,
             mean_ampl[i] *= (1.0-clipped_frac)**2.0
         else :
             mean_ampl[i] = 0.0
-            cv_ampl[i] = 1000.0
+            cv_ampl[i] = invalid_cv
 
+    # check:
+    if len(mean_ampl[mean_ampl>0.0]) <= 0 :
+        warnings.warn('no finite amplitudes detected')
+        return 0, 0
+    if len(cv_interval[cv_interva<invalid_cv]) <= 0 :
+        warnings.warn('no valid interval cv detected')
+        return 0, 0
+    if len(cv_ampl[cv_ampl<invalid_cv]) <= 0 :
+        warnings.warn('no valid amplitude cv detected')
+        return 0, 0
+        
     # cost function:
     cost = w_cv_interv*cv_interv + w_cv_ampl*cv_ampl - w_ampl*mean_ampl
     thresh = np.min(cost) + tolerance
