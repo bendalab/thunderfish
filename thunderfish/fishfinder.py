@@ -1225,10 +1225,10 @@ class SignalPlot :
                 self.min_clip, self.max_clip = bw.clip_amplitudes(self.data, int(clip_win_size*self.rate),
                                                                   min_fac=min_clip_fac)
             # TODO: add config parameter:
-            idx0, idx1 = bw.best_window_indices(self.data, self.rate, mode='first',
+            idx0, idx1 = bw.best_window_indices(self.data, self.rate, expand=False,
                                 min_thresh=0.01, thresh_fac=0.8, thresh_frac=0.1, thresh_tau=0.25,
                                 win_size=8.0, win_shift=0.1, min_clip=self.min_clip, max_clip=self.max_clip,
-                                verbose=1)
+                                w_cv_ampl=10.0, tolerance=0.5, verbose=1)
             if idx1 > 0 :
                 self.toffset = idx0/self.rate
                 self.twindow = (idx1 - idx0)/self.rate

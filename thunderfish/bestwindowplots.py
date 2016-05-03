@@ -30,7 +30,14 @@ def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
     ax[3].plot(win_times[valid_wins], cv_ampl[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[3].set_ylabel('CV amplitude', fontsize=fs)
     ax[3].set_ylim(bottom=0.0)
-    ax[3].set_xlabel('Time [sec]', fontsize=fs)
+    #ax[3].set_xlabel('Time [sec]', fontsize=fs)
+
+    # cost:
+    cost = cv_interv+cv_ampl-mean_ampl
+    ax[4].plot(win_times[cost<10], cost[cost<10], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
+    ax[4].plot(win_times[valid_wins], cost[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
+    ax[4].set_ylabel('Cost', fontsize=fs)
+    ax[4].set_xlabel('Time [sec]', fontsize=fs)
 
     
 def plot_window(cvi_th, ampl_th, cva_th, ax, fs=10) :
@@ -91,7 +98,7 @@ if __name__ == "__main__":
         title += " " + sys.argv[1]
 
     # setup plots:
-    fig, ax = plt.subplots(4, sharex=True, figsize=(20,12))
+    fig, ax = plt.subplots(5, sharex=True, figsize=(20,12))
     fig.canvas.set_window_title(title)
     
     # determine clipping amplitudes:
@@ -101,9 +108,10 @@ if __name__ == "__main__":
 
     # compute best window:
     print("call bestwindow() function...")
-    bw.best_window_indices(data, rate, mode='expand',
-                            min_thresh=0.01, thresh_ampl_fac=0.8, thresh_weight=0.1, thresh_tau=0.25,
-                            win_size=1.0, win_shift=0.1, min_clip=min_clip, max_clip=max_clip, tolerance=1.1,
+    bw.best_window_indices(data, rate, expand=True,
+                            min_thresh=0.01, thresh_ampl_fac=0.8, thresh_weight=0.2, thresh_tau=0.5,
+                            win_size=8.0, win_shift=0.2, min_clip=min_clip, max_clip=max_clip,
+                            w_cv_ampl=10.0, tolerance=0.5,
                             verbose=2, plot_data_func=plot_data, plot_window_func=plot_window,
                             ax=ax, fs=12)
 
