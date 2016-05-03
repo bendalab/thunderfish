@@ -111,7 +111,7 @@ def best_window_indices(data, rate, expand=False, win_size=8., win_shift=0.1, th
     :param verbose: int. Verbosity level >= 0.
     :param plot_data_func: Function for plotting the raw data, detected peaks and troughs and the criteria.
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_start_times, cv_interv, mean_ampl, cv_ampl, cost, thresh, valid_wins, **kwargs)
+                       win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost, thresh, valid_wins, **kwargs)
         :param data (array): the raw data.
         :param rate (float): the sampling rate of the data.
         :param peak_idx (array): indices into raw data indicating detected peaks.
@@ -122,6 +122,7 @@ def best_window_indices(data, rate, expand=False, win_size=8., win_shift=0.1, th
         :param cv_interv (array): the coefficient of variation of the inter-peak and -trough intervals.
         :param mean_ampl (array): the mean peak-to-trough amplitude.
         :param cv_ampl (array): the coefficient of variation of the peak-to-trough amplitudes.
+        :param clipped_frac (array): the fraction of clipped peaks or troughs.
         :param cost (array): the cost function.
         :param thresh (float): the threshold for the cost function.
         :param valid_wins (array): boolean array indicating the windows which fulfill all three criteria.
@@ -130,6 +131,7 @@ def best_window_indices(data, rate, expand=False, win_size=8., win_shift=0.1, th
     
     :return start_index: int. Index of the start of the best window.
     :return end_index: int. Index of the end of the best window.
+    :return clipped: float. The fraction of clipped peaks or troughs.
     """
 
     # too little data:
@@ -157,6 +159,7 @@ def best_window_indices(data, rate, expand=False, win_size=8., win_shift=0.1, th
     cv_interv = np.zeros(len(win_start_inxs))
     mean_ampl = np.zeros(len(win_start_inxs))
     cv_ampl = np.zeros(len(win_start_inxs))
+    clipped_frac = np.zeros(len(win_start_inxs))
     for i, wtinx in enumerate(win_start_inxs):
         # indices of peaks and troughs inside analysis window:
         pinx = (peak_idx >= wtinx) & (peak_idx <= wtinx + win_size_indices)
@@ -181,9 +184,9 @@ def best_window_indices(data, rate, expand=False, win_size=8., win_shift=0.1, th
             mean_ampl[i] = np.mean(p2t_ampl)
             cv_ampl[i] = np.std(p2t_ampl) / mean_ampl[i]
             # penalize for clipped peaks:
-            clipped_frac = float(np.sum(data[p_idx]>max_clip) +
-                                 np.sum(data[t_idx]<min_clip))/2.0/len(p2t_ampl)
-            mean_ampl[i] *= (1.0-clipped_frac)**2.0
+            clipped_frac[i] = float(np.sum(data[p_idx]>max_clip) +
+                                    np.sum(data[t_idx]<min_clip))/2.0/len(p2t_ampl)
+            mean_ampl[i] *= (1.0-clipped_frac[i])**2.0
         else :
             mean_ampl[i] = 0.0
             cv_ampl[i] = invalid_cv
@@ -221,6 +224,9 @@ def best_window_indices(data, rate, expand=False, win_size=8., win_shift=0.1, th
         win_idx0 += np.argmin(cost[win_idx0:win_idx1])
         win_idx1 = win_idx0 + 1
 
+    # clipped data?
+    clipped = np.mean(clipped_frac[win_idx0:win_idx1])
+
     # retrive indices of best window for data:
     idx0 = win_start_inxs[win_idx0]
     idx1 = win_start_inxs[win_idx1-1]+win_size_indices
@@ -229,10 +235,10 @@ def best_window_indices(data, rate, expand=False, win_size=8., win_shift=0.1, th
         valid_wins[:win_idx0] = False
         valid_wins[win_idx1:] = False
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_start_inxs/rate, cv_interv, mean_ampl, cv_ampl,
+                       win_start_inxs/rate, cv_interv, mean_ampl, cv_ampl, clipped_frac,
                        cost, thresh, valid_wins, **kwargs)
 
-    return idx0, idx1
+    return idx0, idx1, clipped
 
 
 def best_window_times(data, rate, expand=False, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
@@ -245,10 +251,10 @@ def best_window_times(data, rate, expand=False, win_size=8., win_shift=0.1, thre
       start_time (float): Time of the start of the best window.
       end_time (float): Time of the end of the best window.
     """
-    start_inx, end_inx = best_window_times(data, rate, expand, win_size, win_shift, thresh_ampl_fac,
-                            min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
-                            verbose, plot_data_func, **kwargs)
-    return start_inx/rate, end_inx/rate
+    start_inx, end_inx, clipped = best_window_times(data, rate, expand, win_size, win_shift, thresh_ampl_fac,
+                                min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
+                                verbose, plot_data_func, **kwargs)
+    return start_inx/rate, end_inx/rate, clipped
 
 
 def best_window(data, rate, expand=False, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
@@ -260,10 +266,10 @@ def best_window(data, rate, expand=False, win_size=8., win_shift=0.1, thresh_amp
     Returns:
       data (array): the data of the best window.
     """
-    start_inx, end_inx = best_window_times(data, rate, expand, win_size, win_shift, thresh_ampl_fac,
-                            min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
-                            verbose, plot_data_func, **kwargs)
-    return data[start_inx:end_inx]
+    start_inx, end_inx, clipped = best_window_times(data, rate, expand, win_size, win_shift, thresh_ampl_fac,
+                                    min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
+                                    verbose, plot_data_func, **kwargs)
+    return data[start_inx:end_inx], clipped
 
 
 if __name__ == "__main__":

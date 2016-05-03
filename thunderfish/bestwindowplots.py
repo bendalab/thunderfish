@@ -1,11 +1,15 @@
 import bestwindow as bw
 
 def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
-              win_times, cv_interv, mean_ampl, cv_ampl, cost, thresh, valid_wins, ax, fs=10) :
+              win_times, cv_interv, mean_ampl, cv_ampl, clipped_frac,
+              cost, thresh, valid_wins, ax, fs=10) :
     # raw data:
     time = np.arange(0.0, len(data))/rate
     ax[0].plot(time, data, color='royalblue', lw=3)
-    ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='red', lw=3)
+    if np.mean(clipped_frac[valid_wins]) > 0.01 :
+        ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='magenta', lw=3)
+    else :
+        ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='red', lw=3)
     ax[0].plot(time[peak_idx], data[peak_idx], 'o', mfc='crimson', mec='crimson', mew=2., ms=6)
     ax[0].plot(time[trough_idx], data[trough_idx], 'o', mfc='lime', mec='lime', mew=2., ms=6)
     up_lim = np.max(data) * 1.05
