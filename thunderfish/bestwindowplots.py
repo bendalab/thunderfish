@@ -18,11 +18,11 @@ def plot_clipping(data, winx0, winx1, bins,
 
 def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
                     win_times, cv_interv, mean_ampl, cv_ampl, clipped_frac,
-                    cost, thresh, valid_wins, ax, fs=10) :
+                    cost, thresh, win_idx0, win_idx1, ax, fs=10) :
     # raw data:
     time = np.arange(0.0, len(data))/rate
     ax[0].plot(time, data, color='royalblue', lw=3)
-    if np.mean(clipped_frac[valid_wins]) > 0.01 :
+    if np.mean(clipped_frac[win_idx0:win_idx1]) > 0.01 :
         ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='magenta', lw=3)
     else :
         ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='red', lw=3)
@@ -35,26 +35,25 @@ def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
 
     # cv of inter-peak intervals:
     ax[1].plot(win_times[cv_interv<1000.0], cv_interv[cv_interv<1000.0], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
-    ax[1].plot(win_times[valid_wins], cv_interv[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
+    ax[1].plot(win_times[win_idx0:win_idx1], cv_interv[win_idx0:win_idx1], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[1].set_ylabel('CV intervals', fontsize=fs)
     ax[1].set_ylim(bottom=0.0)
 
     # mean amplitude:
     ax[2].plot(win_times[mean_ampl>0.0], mean_ampl[mean_ampl>0.0], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
-    ax[2].plot(win_times[valid_wins], mean_ampl[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
+    ax[2].plot(win_times[win_idx0:win_idx1], mean_ampl[win_idx0:win_idx1], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[2].set_ylabel('Mean amplitude [a.u]', fontsize=fs)
     ax[2].set_ylim(bottom=0.0)
 
     # cv:
     ax[3].plot(win_times[cv_ampl<1000.0], cv_ampl[cv_ampl<1000.0], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
-    ax[3].plot(win_times[valid_wins], cv_ampl[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
+    ax[3].plot(win_times[win_idx0:win_idx1], cv_ampl[win_idx0:win_idx1], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[3].set_ylabel('CV amplitude', fontsize=fs)
     ax[3].set_ylim(bottom=0.0)
-    #ax[3].set_xlabel('Time [sec]', fontsize=fs)
 
     # cost:
-    ax[4].plot(win_times[cost<10], cost[cost<10], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
-    ax[4].plot(win_times[valid_wins], cost[valid_wins], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
+    ax[4].plot(win_times[cost<thresh+10], cost[cost<thresh+10], 'o', ms=10, color='grey', mew=2., mec='black', alpha=0.6)
+    ax[4].plot(win_times[win_idx0:win_idx1], cost[win_idx0:win_idx1], 'o', ms=10, color='red', mew=2., mec='black', alpha=0.6)
     ax[4].axhline(thresh, color='k')
     ax[4].set_ylabel('Cost', fontsize=fs)
     ax[4].set_xlabel('Time [sec]', fontsize=fs)

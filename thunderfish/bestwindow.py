@@ -220,38 +220,40 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
     # cost function:
     cost = w_cv_interv*cv_interv + w_cv_ampl*cv_ampl - w_ampl*mean_ampl
     thresh = np.min(cost) + tolerance
-    valid_wins = cost <= thresh
 
     # find largest region with low costs:
-    valid_win_idx = np.nonzero(valid_wins)[0]
-    win_idx0 = 0
-    win_idx1 = 0
-    for lidx0 in valid_win_idx :
-        lidx1 = lidx0
-        while lidx1<len(valid_wins) and valid_wins[lidx1] :
-            lidx1 += 1
-        if lidx1 - lidx0 > win_idx1 - win_idx0 :
-            win_idx0 = lidx0
-            win_idx1 = lidx1
+    valid_win_idx = np.nonzero(cost <= thresh)[0]
+    win_idx0 = 0              # start of largest window
+    win_idx1 = 0              # end of largest window
+    cidx0 = valid_win_idx[0]  # start of current window
+    cidx1 = cidx0+1           # end of current window
+    i = 1
+    while i<len(valid_win_idx) :  # loop through all valid window positions
+        if valid_win_idx[i] == valid_win_idx[i-1]+1 :
+            cidx1 = valid_win_idx[i] + 1
+        else :
+            cidx0 = valid_win_idx[i]
+        if cidx1 - cidx0 > win_idx1 - win_idx0 : # current window is largest
+            win_idx0 = cidx0
+            win_idx1 = cidx1
+        i += 1
 
     # find single best window within the largest region:
     if single :
         win_idx0 += np.argmin(cost[win_idx0:win_idx1])
         win_idx1 = win_idx0 + 1
 
-    # clipped data?
-    clipped = np.mean(clipped_frac[win_idx0:win_idx1])
-
     # retrive indices of best window for data:
     idx0 = win_start_inxs[win_idx0]
     idx1 = win_start_inxs[win_idx1-1]+win_size_indices
+
+    # clipped data?
+    clipped = np.mean(clipped_frac[win_idx0:win_idx1])
         
     if plot_data_func :
-        valid_wins[:win_idx0] = False
-        valid_wins[win_idx1:] = False
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
                        win_start_inxs/rate, cv_interv, mean_ampl, cv_ampl, clipped_frac,
-                       cost, thresh, valid_wins, **kwargs)
+                       cost, thresh, win_idx0, win_idx1, **kwargs)
 
     return idx0, idx1, clipped
 
