@@ -16,7 +16,8 @@ import numpy as np
 import peakdetection as pd
 
 
-def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
+def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
+                    plot_hist_func=None, **kwargs) :
     """Find the amplitudes where the signals clips by looking at
     the histograms in data segements of win_indices length.
     If the bins at the edges are more than min_fac times as large as
@@ -29,13 +30,25 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
         as large as the third bin, their upper bin edge is set as min_clip.
         Likewise for the last and next-to last bin.
       nbins: number of bins used for computing a histogram
+      plot_hist_func(data, winx0, winx1, bins, h,
+                     min_clip, max_clip, min_ampl, max_ampl, kwargs):
+        function for visualizing the histograms, is called for every window.
+        data: the full data array
+        winx0: the start index of the current window
+        winx1: the end index of the current window
+        bins: the bin edges of the histogram
+        h: the histogram, plot it with plt.bar(bins[:-1], h, width=np.mean(np.diff(bins)))
+        min_clip: the current value of the minimum clip amplitude
+        max_clip: the current value of the minimum clip amplitude
+        min_ampl: the minimum amplitude of the data
+        max_ampl: the maximum amplitude of the data
+        kwargs: further user supplied key-word arguments.
 
     Returns:
       min_clip : minimum amplitude that is not clipped.
       max_clip : maximum amplitude that is not clipped.
     """
     
-    #import matplotlib.pyplot as plt
     min_ampl = np.min(data)
     max_ampl = np.max(data)
     min_clipa = min_ampl
@@ -54,14 +67,10 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20) :
                 max_clipa = b[-3]
             elif b[-2] < max_clipa :
                 max_clipa = b[-2]
-        #plt.bar(b[:-1], h, width=np.mean(np.diff(b)))
-        #plt.axvline(min_clipa, color='r')
-        #plt.axvline(max_clipa, color='r')
-        #plt.show()
-    #plt.hist(data, 20)
-    #plt.axvline(min_clipa, color='r')
-    #plt.axvline(max_clipa, color='r')
-    #plt.show()
+        if plot_hist_func :
+            plot_hist_func(data, wtinx, wtinx+win_indices,
+                           b, h, min_clipa, max_clipa,
+                           min_ampl, max_ampl, **kwargs)
     return min_clipa, max_clipa
 
     
@@ -69,32 +78,41 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         verbose=0, plot_data_func=None, **kwargs):
-    """Detect the best window of the data to be analyzed. The data have been sampled with rate Hz.
+    """ Detect the best window of the data to be analyzed. The data have
+    been sampled with rate Hz.
     
-    First, large peaks and troughs of the data are detected.
-    Peaks and troughs have to be separated in amplitude by at least the value of a dynamic threshold.
-    The threshold is computed in win_shift wide windows as thresh_ampl_fac times
-    the standard deviation of the data.
+    First, large peaks and troughs of the data are detected.  Peaks and
+    troughs have to be separated in amplitude by at least the value of a
+    dynamic threshold.  The threshold is computed in win_shift wide
+    windows as thresh_ampl_fac times the standard deviation of the data.
 
-    Second, criteria for selecting the best window are computed for each window of width win_size
-    shifted by win_shift trough the data. The three criteria are:
-    - the coefficient of variation of the inter-peak and inter-trough intervals.
-    - the mean peak-to-trough amplitude multiplied with the fraction of non clipped peak and trough amplitudes.
+    Second, criteria for selecting the best window are computed for each
+    window of width win_size shifted by win_shift trough the data. The
+    three criteria are:
+
+    - the coefficient of variation of the inter-peak and inter-trough
+    intervals.
+    - the mean peak-to-trough amplitude multiplied with the fraction of
+    non clipped peak and trough amplitudes.
     - the coefficient of variation of the peak-to-trough amplitude.
 
-    Third, a cost function is computed as a weighted sum of the three criteria
-    (mean-amplitude is taken negatively). The weights are given by w_cv_interv, w_ampl, and w_cv_ampl.
+    Third, a cost function is computed as a weighted sum of the three
+    criteria (mean-amplitude is taken negatively). The weights are given
+    by w_cv_interv, w_ampl, and w_cv_ampl.
 
-    Finally, a threshold is set to the minimum value of the cost function plus tolerance.
-    Then the largest region with the cost function below this threshold is selected as the best window.
-    If single is True, then only the single window with smallest cost
+    Finally, a threshold is set to the minimum value of the cost
+    function plus tolerance.  Then the largest region with the cost
+    function below this threshold is selected as the best window.  If
+    single is True, then only the single window with smallest cost
     within the selected largest region is returned.
 
-    Output of warning and info messages to console can be controlled by setting verbose. No output is produced
-    if verbose = 1. higher values produce more output.
+    Output of warning and info messages to console can be controlled by
+    setting verbose. No output is produced if verbose = 1. higher values
+    produce more output.
 
-    The algorithm can be visualized by supplying the functions plot_data_func and plot_window_func.
-    Additional arguments for these function are supplied vie kwargs.
+    Data of the best window algorithm can be visualized by supplying the
+    function plot_data_func.  Additional arguments for this function can
+    be supplied via key-word arguments kwargs.
 
     :param data: 1-D array. The data to be analyzed
     :param rate: float. Sampling rate of the data in Hz
@@ -109,9 +127,11 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
     :param w_cv_ampl: float. Weight for the coefficient of variation of the amplitudes.
     :param tolerance: float. Added to the minimum cost for selecting the region of best windows.
     :param verbose: int. Verbosity level >= 0.
-    :param plot_data_func: Function for plotting the raw data, detected peaks and troughs and the criteria.
+    :param plot_data_func: Function for plotting the raw data, detected peaks and troughs, the criteria,
+    the cost function and the selected best window.
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost, thresh, valid_wins, **kwargs)
+                       win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost,
+                       thresh, valid_wins, **kwargs)
         :param data (array): the raw data.
         :param rate (float): the sampling rate of the data.
         :param peak_idx (array): indices into raw data indicating detected peaks.
@@ -126,7 +146,7 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
         :param cost (array): the cost function.
         :param thresh (float): the threshold for the cost function.
         :param valid_wins (array): boolean array indicating the windows which fulfill all three criteria.
-        :param **kwargs: further user supplied arguments.
+        :param **kwargs: further user supplied key-word arguments.
     :param kwargs: Keyword arguments passed to plot_data_func and plot_window_func. 
     
     :return start_index: int. Index of the start of the best window.

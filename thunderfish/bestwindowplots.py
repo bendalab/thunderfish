@@ -1,8 +1,24 @@
 import bestwindow as bw
 
-def plot_data(data, rate, peak_idx, trough_idx, idx0, idx1,
-              win_times, cv_interv, mean_ampl, cv_ampl, clipped_frac,
-              cost, thresh, valid_wins, ax, fs=10) :
+
+def plot_clipping(data, winx0, winx1, bins,
+                  h, min_clip, max_clip, min_ampl, max_ampl) :
+    plt.subplot(2, 1, 1)
+    plt.plot(data[winx0:winx1], 'b')
+    plt.axhline(min_clip, color='r')
+    plt.axhline(max_clip, color='r')
+    plt.ylim(-1.0, 1.0)
+    plt.subplot(2, 1, 2)
+    plt.bar(bins[:-1], h, width=np.mean(np.diff(bins)))
+    plt.axvline(min_clip, color='r')
+    plt.axvline(max_clip, color='r')
+    plt.xlim(-1.0, 1.0)
+    plt.show()
+
+
+def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
+                    win_times, cv_interv, mean_ampl, cv_ampl, clipped_frac,
+                    cost, thresh, valid_wins, ax, fs=10) :
     # raw data:
     time = np.arange(0.0, len(data))/rate
     ax[0].plot(time, data, color='royalblue', lw=3)
@@ -95,15 +111,19 @@ if __name__ == "__main__":
         print("load %s ..." % sys.argv[1])
         data, rate, unit = dl.load_data(sys.argv[1], 0)
         title += " " + sys.argv[1]
-
-    # setup plots:
-    fig, ax = plt.subplots(5, sharex=True, figsize=(20,12))
-    fig.canvas.set_window_title(title)
     
     # determine clipping amplitudes:
     clip_win_size = 0.5
     min_clip_fac = 2.0
-    min_clip, max_clip = bw.clip_amplitudes(data, int(clip_win_size*rate), min_fac=min_clip_fac)
+    min_clip, max_clip = bw.clip_amplitudes(data, int(clip_win_size*rate),
+                                            min_fac=min_clip_fac)
+    #min_clip, max_clip = bw.clip_amplitudes(data, int(clip_win_size*rate),
+    #                                        min_fac=min_clip_fac,
+    #                                        plot_hist_func=plot_clipping)
+    
+    # setup plots:
+    fig, ax = plt.subplots(5, sharex=True, figsize=(20,12))
+    fig.canvas.set_window_title(title)
 
     # compute best window:
     print("call bestwindow() function...")
@@ -111,7 +131,7 @@ if __name__ == "__main__":
                             win_size=8.0, win_shift=0.2, thresh_ampl_fac=3.0,
                             min_clip=min_clip, max_clip=max_clip,
                             w_cv_ampl=10.0, tolerance=0.5, verbose=2,
-                            plot_data_func=plot_data, ax=ax, fs=12)
+                            plot_data_func=plot_best_window, ax=ax, fs=12)
 
     plt.tight_layout()
     plt.show()
