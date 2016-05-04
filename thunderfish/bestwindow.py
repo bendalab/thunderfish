@@ -77,7 +77,7 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
 def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
-                        verbose=0, plot_data_func=None, **kwargs):
+                        plot_data_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The data have
     been sampled with rate Hz.
     
@@ -106,10 +106,6 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
     single is True, then only the single window with smallest cost
     within the selected largest region is returned.
 
-    Output of warning and info messages to console can be controlled by
-    setting verbose. No output is produced if verbose = 1. higher values
-    produce more output.
-
     Data of the best window algorithm can be visualized by supplying the
     function plot_data_func.  Additional arguments for this function can
     be supplied via key-word arguments kwargs.
@@ -126,7 +122,6 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
     :param w_ampl: float. Weight for the mean peak-to-trough amplitude.
     :param w_cv_ampl: float. Weight for the coefficient of variation of the amplitudes.
     :param tolerance: float. Added to the minimum cost for selecting the region of best windows.
-    :param verbose: int. Verbosity level >= 0.
     :param plot_data_func: Function for plotting the raw data, detected peaks and troughs, the criteria,
     the cost function and the selected best window.
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
@@ -162,14 +157,14 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
     # threshold for peak detection:
     threshold = np.zeros(len(data))
     win_shift_indices = int(win_shift*rate)
-    for inx in xrange(0, len(data)-win_shift_indices/2, win_shift_indices):
-        threshold[inx:inx+win_shift_indices] = np.std(data[inx:inx+win_shift_indices])*thresh_ampl_fac
+    for inx0 in xrange(0, len(data)-win_shift_indices/2, win_shift_indices):
+        inx1 = inx0 + win_shift_indices
+        threshold[inx0:inx1] = np.std(data[inx0:inx1])*thresh_ampl_fac
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pd.detect_peaks(data, threshold)
     if len(peak_idx) == 0 or len(trough_idx) == 0 :
-        if verbose > 0 :
-            print('best_window(): no peaks or troughs detected')
+        warnings.warn('best_window(): no peaks or troughs detected')
         return 0, 0
     
     # compute cv of intervals, mean peak amplitude and its cv:
@@ -264,7 +259,7 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
 def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
-                        verbose=0, plot_data_func=None, **kwargs):
+                        plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
 
     Returns:
@@ -273,14 +268,14 @@ def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, thres
     """
     start_inx, end_inx, clipped = best_window_times(data, rate, single, win_size, win_shift, thresh_ampl_fac,
                                 min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
-                                verbose, plot_data_func, **kwargs)
+                                plot_data_func, **kwargs)
     return start_inx/rate, end_inx/rate, clipped
 
 
 def best_window(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
                 min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
-                verbose=0, plot_data_func=None, **kwargs):
+                plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
 
     Returns:
@@ -288,7 +283,7 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl
     """
     start_inx, end_inx, clipped = best_window_times(data, rate, single, win_size, win_shift, thresh_ampl_fac,
                                     min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
-                                    verbose, plot_data_func, **kwargs)
+                                    plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
 
 
@@ -326,5 +321,5 @@ if __name__ == "__main__":
     
     # find best window:
     best_window_indices(data, rate, single=True,
-                        win_size=1.0, win_shift=0.5, thresh_ampl_fac=3.0, min_clip=min_clip, max_clip=max_clip,
-                        w_cv_ampl=10.0)
+                        win_size=1.0, win_shift=0.5, thresh_ampl_fac=3.0,
+                        min_clip=min_clip, max_clip=max_clip, w_cv_ampl=10.0)

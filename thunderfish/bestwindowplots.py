@@ -130,7 +130,7 @@ if __name__ == "__main__":
     bw.best_window_indices(data, rate, single=False,
                             win_size=8.0, win_shift=0.2, thresh_ampl_fac=3.0,
                             min_clip=min_clip, max_clip=max_clip,
-                            w_cv_ampl=10.0, tolerance=0.5, verbose=2,
+                            w_cv_ampl=10.0, tolerance=0.5,
                             plot_data_func=plot_best_window, ax=ax, fs=12)
 
     plt.tight_layout()

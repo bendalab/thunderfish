@@ -1228,7 +1228,7 @@ class SignalPlot :
             idx0, idx1, clipped = bw.best_window_indices(self.data, self.rate, single=True,
                                     win_size=4.0, win_shift=0.1, thresh_ampl_fac=3.0,
                                     min_clip=self.min_clip, max_clip=self.max_clip,
-                                    w_cv_ampl=10.0, tolerance=0.5, verbose=1)
+                                    w_cv_ampl=10.0, tolerance=0.5)
             if idx1 > 0 :
                 self.toffset = idx0/self.rate
                 self.twindow = (idx1 - idx0)/self.rate
