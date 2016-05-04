@@ -7,7 +7,7 @@ import os
 
 import Auxiliary as aux
 import numpy as np
-import seaborn as sns
+#import seaborn as sns
 from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib import mlab

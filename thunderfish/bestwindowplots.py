@@ -85,31 +85,30 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 :
         # generate data:
         print("generate waveform...")
-        rate = 40000.0
-        time = np.arange(0.0, 10.0, 1./rate)
-        f1 = 100.0
-        data0 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
-        amf1 = 0.3
-        data1 = data0*(1.0-np.cos(2.0*np.pi*amf1*time))
-        data1 += 0.2
-        f2 = f1*2.0*np.pi
-        data2 = 0.1*np.sin(2.0*np.pi*f2*time)
-        amf3 = 0.15
-        data3 = data2*(1.0-np.cos(2.0*np.pi*amf3*time))
-        #data = data1+data3
-        #title += " pulses plus sine"
-        #data = data0
-        #title += " pulses"
-        #data = data2
-        #title += " sine"
-        data = data3
-        title += " modulated sine"
+        rate = 100000.0
+        if True :
+            time = np.arange(0.0, 1.0, 1.0/rate)
+            snippets = []
+            f=600.0
+            amf=20.0
+            for ampl in [0.2, 0.5, 0.8] :
+                for am_ampl in [0.0, 0.3, 0.9] :
+                    data = ampl*np.sin(2.0*np.pi*f*time)*(1.0+am_ampl*np.sin(2.0*np.pi*amf*time))
+                    data[data>1.3] = 1.3
+                    data[data<-1.3] = -1.3
+                    snippets.extend(data)
+            data = np.asarray(snippets)
+            title += " test sines"
+        else :
+            data = 0.1*np.sin(2.0*np.pi*f*time)
+            title += " sine"
         data += 0.01*np.random.randn(len(data))
     else :
         import dataloader as dl
         print("load %s ..." % sys.argv[1])
         data, rate, unit = dl.load_data(sys.argv[1], 0)
         title += " " + sys.argv[1]
+
     
     # determine clipping amplitudes:
     clip_win_size = 0.5
@@ -127,7 +126,7 @@ if __name__ == "__main__":
     # compute best window:
     print("call bestwindow() function...")
     bw.best_window_indices(data, rate, single=False,
-                            win_size=8.0, win_shift=0.2, thresh_ampl_fac=3.0,
+                            win_size=1.0, win_shift=0.1, thresh_ampl_fac=2.0,
                             min_clip=min_clip, max_clip=max_clip,
                             w_cv_ampl=10.0, tolerance=0.5,
                             plot_data_func=plot_best_window, ax=ax, fs=12)

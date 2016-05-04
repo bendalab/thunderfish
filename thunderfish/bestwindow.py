@@ -223,10 +223,10 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
 
     # find largest region with low costs:
     valid_win_idx = np.nonzero(cost <= thresh)[0]
-    win_idx0 = 0              # start of largest window
-    win_idx1 = 0              # end of largest window
     cidx0 = valid_win_idx[0]  # start of current window
     cidx1 = cidx0+1           # end of current window
+    win_idx0 = cidx0          # start of largest window
+    win_idx1 = cidx1          # end of largest window
     i = 1
     while i<len(valid_win_idx) :  # loop through all valid window positions
         if valid_win_idx[i] == valid_win_idx[i-1]+1 :
@@ -322,6 +322,6 @@ if __name__ == "__main__":
     min_clip, max_clip = clip_amplitudes(data, int(clip_win_size*rate), min_fac=min_clip_fac)
     
     # find best window:
-    best_window_indices(data, rate, single=True,
+    best_window_indices(data, rate, single=False,
                         win_size=1.0, win_shift=0.5, thresh_ampl_fac=3.0,
                         min_clip=min_clip, max_clip=max_clip, w_cv_ampl=10.0)

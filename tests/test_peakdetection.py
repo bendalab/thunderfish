@@ -184,30 +184,30 @@ def test_trim():
 
     # peak first, same length:
     p_inx, t_inx = pd.trim(peak_indices, trough_indices)
-    assert_true(len(p_inx) == len(peak_indices) and np.any(p_inx == peak_indices),
+    assert_true(len(p_inx) == len(peak_indices) and np.all(p_inx == peak_indices),
                 "trim(peak_indices, trough_indices) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices) and np.any(t_inx == trough_indices),
+    assert_true(len(t_inx) == len(trough_indices) and np.all(t_inx == trough_indices),
                 "trim(peak_indices, trough_indices) failed on troughs")
 
     # trough first, same length:
     p_inx, t_inx = pd.trim(peak_indices[1:], trough_indices[:-1])
-    assert_true(len(p_inx) == len(peak_indices[1:]) and np.any(p_inx == peak_indices[1:]),
+    assert_true(len(p_inx) == len(peak_indices[1:]) and np.all(p_inx == peak_indices[1:]),
                 "trim(peak_indices[1:], trough_indices[:-1]) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices[:-1]) and np.any(t_inx == trough_indices[:-1]),
+    assert_true(len(t_inx) == len(trough_indices[:-1]) and np.all(t_inx == trough_indices[:-1]),
                 "trim(peak_indices[1:], trough_indices[:-1]) failed on troughs")
 
     # peak first, more peaks:
     p_inx, t_inx = pd.trim(peak_indices, trough_indices[:-2])
-    assert_true(len(p_inx) == len(peak_indices[:-2]) and np.any(p_inx == peak_indices[:-2]),
+    assert_true(len(p_inx) == len(peak_indices[:-2]) and np.all(p_inx == peak_indices[:-2]),
                 "trim(peak_indices, trough_indices[:-2]) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices[:-2]) and np.any(t_inx == trough_indices[:-2]),
+    assert_true(len(t_inx) == len(trough_indices[:-2]) and np.all(t_inx == trough_indices[:-2]),
                 "trim(peak_indices, trough_indices[:-2]) failed on troughs")
 
     # trough first, more troughs:
     p_inx, t_inx = pd.trim(peak_indices[1:-2], trough_indices)
-    assert_true(len(p_inx) == len(peak_indices[1:-2]) and np.any(p_inx == peak_indices[1:-2]),
+    assert_true(len(p_inx) == len(peak_indices[1:-2]) and np.all(p_inx == peak_indices[1:-2]),
                 "trim(peak_indices[1:-2], trough_indices) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices[:-3]) and np.any(t_inx == trough_indices[:-3]),
+    assert_true(len(t_inx) == len(trough_indices[:-3]) and np.all(t_inx == trough_indices[:-3]),
                 "trim(peak_indices[1:-2], trough_indices) failed on troughs")
     
 
@@ -220,30 +220,30 @@ def test_trim_to_peak():
 
     # peak first, same length:
     p_inx, t_inx = pd.trim_to_peak(peak_indices, trough_indices)
-    assert_true(len(p_inx) == len(peak_indices) and np.any(p_inx == peak_indices),
+    assert_true(len(p_inx) == len(peak_indices) and np.all(p_inx == peak_indices),
                 "trim_to_peak(peak_indices, trough_indices) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices) and np.any(t_inx == trough_indices),
+    assert_true(len(t_inx) == len(trough_indices) and np.all(t_inx == trough_indices),
                 "trim_to_peak(peak_indices, trough_indices) failed on troughs")
 
     # trough first, same length:
     p_inx, t_inx = pd.trim_to_peak(peak_indices[1:], trough_indices[:-1])
-    assert_true(len(p_inx) == len(peak_indices[1:-1]) and np.any(p_inx == peak_indices[1:-1]),
+    assert_true(len(p_inx) == len(peak_indices[1:-1]) and np.all(p_inx == peak_indices[1:-1]),
                 "trim_to_peak(peak_indices[1:], trough_indices[:-1]) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices[1:-1]) and np.any(t_inx == trough_indices[1:-1]),
+    assert_true(len(t_inx) == len(trough_indices[1:-1]) and np.all(t_inx == trough_indices[1:-1]),
                 "trim_to_peak(peak_indices[1:], trough_indices[:-1]) failed on troughs")
 
     # peak first, more peaks:
     p_inx, t_inx = pd.trim_to_peak(peak_indices, trough_indices[:-2])
-    assert_true(len(p_inx) == len(peak_indices[:-2]) and np.any(p_inx == peak_indices[:-2]),
+    assert_true(len(p_inx) == len(peak_indices[:-2]) and np.all(p_inx == peak_indices[:-2]),
                 "trim_to_peak(peak_indices, trough_indices[:-2]) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices[:-2]) and np.any(t_inx == trough_indices[:-2]),
+    assert_true(len(t_inx) == len(trough_indices[:-2]) and np.all(t_inx == trough_indices[:-2]),
                 "trim_to_peak(peak_indices, trough_indices[:-2]) failed on troughs")
 
     # trough first, more troughs:
     p_inx, t_inx = pd.trim_to_peak(peak_indices[1:-2], trough_indices)
-    assert_true(len(p_inx) == len(peak_indices[1:-2]) and np.any(p_inx == peak_indices[1:-2]),
+    assert_true(len(p_inx) == len(peak_indices[1:-2]) and np.all(p_inx == peak_indices[1:-2]),
                 "trim_to_peak(peak_indices[1:-2], trough_indices) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices[1:-2]) and np.any(t_inx == trough_indices[1:-2]),
+    assert_true(len(t_inx) == len(trough_indices[1:-2]) and np.all(t_inx == trough_indices[1:-2]),
                 "trim_to_peak(peak_indices[1:-2], trough_indices) failed on troughs")
     
 
@@ -255,22 +255,22 @@ def test_trim_closest():
 
     trough_indices = peak_indices - np.random.randint(1, 5, size=len(peak_indices))
     p_inx, t_inx = pd.trim_closest(peak_indices, trough_indices)
-    assert_true(len(p_inx) == len(peak_indices) and np.any(p_inx == peak_indices),
+    assert_true(len(p_inx) == len(peak_indices) and np.all(p_inx == peak_indices),
                 "trim_closest(peak_indices, peak_indices-5) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices) and np.any(t_inx == trough_indices),
+    assert_true(len(t_inx) == len(trough_indices) and np.all(t_inx == trough_indices),
                 "trim_closest(peak_indices, peak_indices-5) failed on troughs")
 
     p_inx, t_inx = pd.trim_closest(peak_indices[1:], trough_indices[:-1])
-    assert_true(len(p_inx) == len(peak_indices[1:-1]) and np.any(p_inx == peak_indices[1:-1]),
+    assert_true(len(p_inx) == len(peak_indices[1:-1]) and np.all(p_inx == peak_indices[1:-1]),
                 "trim_closest(peak_indices[1:], peak_indices-5) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices[1:-1]) and np.any(t_inx == trough_indices[1:-1]),
+    assert_true(len(t_inx) == len(trough_indices[1:-1]) and np.all(t_inx == trough_indices[1:-1]),
                 "trim_closest(peak_indices[1:], peak_indices-5) failed on troughs")
 
     trough_indices = peak_indices + np.random.randint(1, 5, size=len(peak_indices))
     p_inx, t_inx = pd.trim_closest(peak_indices, trough_indices)
-    assert_true(len(p_inx) == len(peak_indices) and np.any(p_inx == peak_indices),
+    assert_true(len(p_inx) == len(peak_indices) and np.all(p_inx == peak_indices),
                 "trim_closest(peak_indices, peak_indices+5) failed on peaks")
-    assert_true(len(t_inx) == len(trough_indices) and np.any(t_inx == trough_indices),
+    assert_true(len(t_inx) == len(trough_indices) and np.all(t_inx == trough_indices),
                 "trim_closest(peak_indices, peak_indices+5) failed on troughs")
 
     p_inx, t_inx = pd.trim_closest(np.array([]), np.array([]))
