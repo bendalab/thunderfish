@@ -3,7 +3,7 @@ import glob
 import matplotlib.pyplot as plt
 #import seaborn as sns
 import matplotlib.mlab as ml
-from harmonic_tools import *
+from harmonicgroups import *
 import sorting_tools as st
 from IPython import embed
 
