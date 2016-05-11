@@ -8,6 +8,7 @@ best_window_times(): select start end end-time of the best window
 best_window(): return data of the best window
 
 add_clip_config(): add parameters for clip_amplitudes() to configuration.
+clip_args(): retrieve parameters for clip_amplitudes() from configuration.
 add_best_window_config(): add parameters for best_window() to configuration.
 
 See bestwindowplots module for visualizing the best_window algorithm
@@ -78,6 +79,14 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
 
 
 def add_clip_config(cfg, cfgsec):
+    """ Add parameter needed for clip_amplitudes() as
+    a new section to a configuration dictionary.
+
+    Args:
+      cfg (dict): the configuration dictionary
+      cfgsec (dict): section description for the configuration
+    """
+    
     cfgsec['minClipAmplitude'] = 'Clipping amplitudes:'
     cfg['minClipAmplitude'] = [0.0, '', 'Minimum amplitude that is not clipped. If zero estimate from data.']
     cfg['maxClipAmplitude'] = [0.0, '', 'Maximum amplitude that is not clipped. If zero estimate from data.']
@@ -85,7 +94,26 @@ def add_clip_config(cfg, cfgsec):
     cfg['clipBins'] = [20, '', 'Number of bins used for constructing histograms of signal amplitudes.']
     cfg['minClipFactor'] = [2.0, '', 'Edge bins of the histogram of clipped signals have to be larger then their neighbors by this factor.']
 
-    
+
+def clip_args(cfg, rate):
+    """ Translates the configuration parameter given in cfg to the
+    respective parameter names of the function clip_amplitudes().
+    The return value can then passed as key-word arguments to this function.
+
+    Args:
+      cfg (dict): the configuration dictionary
+      rate (float): the sampling rate of the data
+
+    Returns:
+      a (dict): dictionary with names of arguments of the clip_amplitudes() function and their values as supplied by cfg.
+    """
+    a = {}
+    a['win_indices'] = int(cfg['clipWindow'][0]*rate)
+    a['min_fac'] = cfg['minClipFactor'][0]
+    a['nbins'] = cfg['clipBins'][0]
+    return a
+
+
 def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
@@ -302,6 +330,14 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl
 
 
 def add_best_window_config(cfg, cfgsec):
+    """ Add parameter needed for the best_window() functions as
+    a new section to a configuration dictionary.
+
+    Args:
+      cfg (dict): the configuration dictionary
+      cfgsec (dict): section description for the configuration
+    """
+    
     cfgsec['bestWindowSize'] = 'Best window detection:'
     cfg['bestWindowSize'] = [1.0, 's', 'Size of the best window.']
     cfg['bestWindowShift'] = [0.1, 's', 'Increment for shifting the analysis windows trough the data.']

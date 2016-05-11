@@ -514,12 +514,8 @@ class SignalPlot :
                 self.update_plots()
         elif event.key == 'a' :
             if self.min_clip == 0.0 or self.max_clip == 0.0 :
-                clip_win_inx = int(cfg['clipWindow'][0]*self.rate)
-                min_clip_fac = cfg['minClipFactor'][0]
-                clip_bins = cfg['clipBins'][0]
                 self.min_clip, self.max_clip = bw.clip_amplitudes(
-                    self.data, clip_win_inx,
-                    min_fac=min_clip_fac, nbins=clip_bins)
+                    self.data, **bw.clip_args(cfg, self.rate))
             idx0, idx1, clipped = bw.best_window_indices(
                 self.data, self.rate, single=cfg['singleBestWindow'][0],
                 win_size=cfg['bestWindowSize'][0],
