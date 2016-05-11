@@ -7,6 +7,9 @@ best_window_indices(): select start- and end-indices of the best window
 best_window_times(): select start end end-time of the best window
 best_window(): return data of the best window
 
+add_clip_config(): add parameters for clip_amplitudes() to configuration.
+add_best_window_config(): add parameters for best_window() to configuration.
+
 See bestwindowplots module for visualizing the best_window algorithm
 and for usage.
 """
@@ -18,7 +21,7 @@ import peakdetection as pd
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
                     plot_hist_func=None, **kwargs) :
-    """Find the amplitudes where the signals clips by looking at
+    """Find the amplitudes where the signal clips by looking at
     the histograms in data segements of win_indices length.
     If the bins at the edges are more than min_fac times as large as
     the neighboring bins, clipping at the bin's amplitude is assumed.
@@ -72,6 +75,15 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
                            b, h, min_clipa, max_clipa,
                            min_ampl, max_ampl, **kwargs)
     return min_clipa, max_clipa
+
+
+def add_clip_config(cfg, cfgsec):
+    cfgsec['minClipAmplitude'] = 'Clipping amplitudes:'
+    cfg['minClipAmplitude'] = [0.0, '', 'Minimum amplitude that is not clipped. If zero estimate from data.']
+    cfg['maxClipAmplitude'] = [0.0, '', 'Maximum amplitude that is not clipped. If zero estimate from data.']
+    cfg['clipWindow'] = [1.0, 's', 'Window size for estimating clip amplitudes.']
+    cfg['clipBins'] = [20, '', 'Number of bins used for constructing histograms of signal amplitudes.']
+    cfg['minClipFactor'] = [2.0, '', 'Edge bins of the histogram of clipped signals have to be larger then their neighbors by this factor.']
 
     
 def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
@@ -287,6 +299,18 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl
                                     min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                     plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
+
+
+def add_best_window_config(cfg, cfgsec):
+    cfgsec['bestWindowSize'] = 'Best window detection:'
+    cfg['bestWindowSize'] = [1.0, 's', 'Size of the best window.']
+    cfg['bestWindowShift'] = [0.1, 's', 'Increment for shifting the analysis windows trough the data.']
+    cfg['bestWindowThresholdFactor'] = [3.0, '', 'Threshold for detecting peaks is the standard deviation of the data time this factor.']
+    cfg['weightCVInterval'] = [1.0, '', 'Weight factor for the coefficient of variation of the inter-peak and inter-trough intervals.']
+    cfg['weightAmplitude'] = [1.0, '', 'Weight factor for the mean peak-to-trough amplitudes.']
+    cfg['weightCVAmplitude'] = [10.0, '', 'Weight factor for the coefficient of variation of the peak-to-trough amplitude.']
+    cfg['bestWindowTolerance'] = [0.5, '', 'Add this to the minimum value of the cost function to get a threshold for selecting the largest best window.']
+    cfg['singleBestWindow'] = [True, '', 'Return only a single best window. If False return the largest valid best window.']
 
 
 if __name__ == "__main__":

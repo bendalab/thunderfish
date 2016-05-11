@@ -190,8 +190,8 @@ class SignalPlot :
         self.mains = []
         self.peak_specmarker = []
         self.peak_annotation = []
-        self.min_clip = -np.inf
-        self.max_clip = np.inf
+        self.min_clip = cfg['minClipAmplitude'][0]
+        self.max_clip = cfg['maxClipAmplitude'][0]
         self.generate_color_range()
 
         # audio output:
@@ -513,17 +513,23 @@ class SignalPlot :
                     self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'a' :
-            if np.isinf(self.min_clip) or np.isinf(self.max_clip) :
-                # TODO: add these to config parameter:
-                clip_win_size = 0.5
-                min_clip_fac = 2.0
-                self.min_clip, self.max_clip = bw.clip_amplitudes(self.data, int(clip_win_size*self.rate),
-                                                                  min_fac=min_clip_fac)
-            # TODO: add config parameter:
-            idx0, idx1, clipped = bw.best_window_indices(self.data, self.rate, single=True,
-                                    win_size=4.0, win_shift=0.1, thresh_ampl_fac=3.0,
-                                    min_clip=self.min_clip, max_clip=self.max_clip,
-                                    w_cv_ampl=10.0, tolerance=0.5)
+            if self.min_clip == 0.0 or self.max_clip == 0.0 :
+                clip_win_inx = int(cfg['clipWindow'][0]*self.rate)
+                min_clip_fac = cfg['minClipFactor'][0]
+                clip_bins = cfg['clipBins'][0]
+                self.min_clip, self.max_clip = bw.clip_amplitudes(
+                    self.data, clip_win_inx,
+                    min_fac=min_clip_fac, nbins=clip_bins)
+            idx0, idx1, clipped = bw.best_window_indices(
+                self.data, self.rate, single=cfg['singleBestWindow'][0],
+                win_size=cfg['bestWindowSize'][0],
+                win_shift=cfg['bestWindowShift'][0],
+                thresh_ampl_fac=cfg['bestWindowThresholdFactor'][0],
+                min_clip=self.min_clip, max_clip=self.max_clip,
+                w_cv_interv=cfg['weightCVInterval'][0],
+                w_ampl=cfg['weightAmplitude'][0],
+                w_cv_ampl=cfg['weightCVAmplitude'][0],
+                tolerance=cfg['bestWindowTolerance'][0])
             if idx1 > 0 :
                 self.toffset = idx0/self.rate
                 self.twindow = (idx1 - idx0)/self.rate
@@ -833,6 +839,10 @@ def short_user_warning(message, category, filename, lineno, file=sys.stderr, lin
 if __name__ == '__main__':
     warnings.showwarning = short_user_warning
 
+    bw.add_clip_config(cfg, cfgsec)
+    bw.add_best_window_config(cfg, cfgsec)
+    cfg['bestWindowSize'][0] = 4.0
+    
     # config file name:
     progs = sys.argv[0].split( '/' )
     cfgfile = progs[-1].split('.')[0] + '.cfg'
@@ -866,7 +876,7 @@ if __name__ == '__main__':
         if ext != 'cfg' :
             print('configuration file name must have .cfg as extension!')
         else :
-            print('write configuration to', args.save_config, '...')
+            print('write configuration to %s ...' % args.save_config)
             cf.dump_config(args.save_config, cfg, cfgsec)
         quit()
 
