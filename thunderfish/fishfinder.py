@@ -2,6 +2,7 @@
 
 import sys
 import os
+import warnings
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -819,9 +820,19 @@ class SignalPlot :
         
     def play_tone( self, frequency ) :
         play_tone( self.audio, frequency, 1.0, self.rate )
-                    
 
-def main():
+                            
+def short_user_warning(message, category, filename, lineno, file=sys.stderr, line=''):
+    if category == UserWarning :
+        file.write('%s line %d: %s\n' % ('/'.join(filename.split('/')[-2:]), lineno, message))
+    else :
+        s = warnings.formatwarning(message, category, filename, lineno, line)
+        file.write(s)
+
+
+if __name__ == '__main__':
+    warnings.showwarning = short_user_warning
+
     # config file name:
     progs = sys.argv[0].split( '/' )
     cfgfile = progs[-1].split('.')[0] + '.cfg'
@@ -846,6 +857,8 @@ def main():
     # set verbosity level from command line (it migh have been overwritten):
     if args.verbose != None :
         cfg['verboseLevel'][0] = args.verbose
+    if cfg['verboseLevel'][0] == 0 :
+        warnings.filterwarnings("ignore")
     
     # save configuration:
     if len( args.save_config ) > 0 :
@@ -864,9 +877,6 @@ def main():
 
     # plot:
     sp = SignalPlot(freq, data, unit, filename, channel)
-
-if __name__ == '__main__':
-    main()
 
 
 ## data = data/2.0**15
