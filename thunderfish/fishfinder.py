@@ -517,15 +517,8 @@ class SignalPlot :
                 self.min_clip, self.max_clip = bw.clip_amplitudes(
                     self.data, **bw.clip_args(cfg, self.rate))
             idx0, idx1, clipped = bw.best_window_indices(
-                self.data, self.rate, single=cfg['singleBestWindow'][0],
-                win_size=cfg['bestWindowSize'][0],
-                win_shift=cfg['bestWindowShift'][0],
-                thresh_ampl_fac=cfg['bestWindowThresholdFactor'][0],
-                min_clip=self.min_clip, max_clip=self.max_clip,
-                w_cv_interv=cfg['weightCVInterval'][0],
-                w_ampl=cfg['weightAmplitude'][0],
-                w_cv_ampl=cfg['weightCVAmplitude'][0],
-                tolerance=cfg['bestWindowTolerance'][0])
+                self.data, self.rate, min_clip=self.min_clip,
+                max_clip=self.max_clip, **bw.best_window_args(cfg))
             if idx1 > 0 :
                 self.toffset = idx0/self.rate
                 self.twindow = (idx1 - idx0)/self.rate
@@ -836,8 +829,7 @@ if __name__ == '__main__':
     warnings.showwarning = short_user_warning
 
     bw.add_clip_config(cfg, cfgsec)
-    bw.add_best_window_config(cfg, cfgsec)
-    cfg['bestWindowSize'][0] = 4.0
+    bw.add_best_window_config(cfg, cfgsec, win_size=4.0, w_cv_ampl=10.0)
     
     # config file name:
     progs = sys.argv[0].split( '/' )
