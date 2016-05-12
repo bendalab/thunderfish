@@ -10,6 +10,7 @@ best_window(): return data of the best window
 add_clip_config(): add parameters for clip_amplitudes() to configuration.
 clip_args(): retrieve parameters for clip_amplitudes() from configuration.
 add_best_window_config(): add parameters for best_window() to configuration.
+best_window_args(): retrieve parameters for best_window*() from configuration.
 
 See bestwindowplots module for visualizing the best_window algorithm
 and for usage.
@@ -18,6 +19,7 @@ and for usage.
 import warnings
 import numpy as np
 import peakdetection as pd
+import configfile as cf
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
@@ -78,43 +80,40 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
     return min_clipa, max_clipa
 
 
-def add_clip_config(cfg, cfgsec, min_clip=0.0, max_clip=0.0,
+def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
                     window=1.0, min_fac=2.0, nbins=20):
     """ Add parameter needed for clip_amplitudes() as
-    a new section to a configuration dictionary.
+    a new section to a configuration.
 
     Args:
-      cfg (dict): the configuration dictionary
-      cfgsec (dict): section description for the configuration
+      cfg (ConfigFile): the configuration
       min_clip (float): default minimum clip amplitude.
       max_clip (float): default maximum clip amplitude.
       See best_window_indices() for details on the remaining arguments.
     """
     
-    cfgsec['minClipAmplitude'] = 'Clipping amplitudes:'
-    cfg['minClipAmplitude'] = [min_clip, '', 'Minimum amplitude that is not clipped. If zero estimate from data.']
-    cfg['maxClipAmplitude'] = [max_clip, '', 'Maximum amplitude that is not clipped. If zero estimate from data.']
-    cfg['clipWindow'] = [window, 's', 'Window size for estimating clip amplitudes.']
-    cfg['clipBins'] = [nbins, '', 'Number of bins used for constructing histograms of signal amplitudes.']
-    cfg['minClipFactor'] = [min_fac, '', 'Edge bins of the histogram of clipped signals have to be larger then their neighbors by this factor.']
+    cfg.add_section('Clipping amplitudes:')
+    cfg.add('minClipAmplitude', min_clip, '', 'Minimum amplitude that is not clipped. If zero estimate from data.')
+    cfg.add('maxClipAmplitude', max_clip, '', 'Maximum amplitude that is not clipped. If zero estimate from data.')
+    cfg.add('clipWindow', window, 's', 'Window size for estimating clip amplitudes.')
+    cfg.add('clipBins', nbins, '', 'Number of bins used for constructing histograms of signal amplitudes.')
+    cfg.add('minClipFactor', min_fac, '', 'Edge bins of the histogram of clipped signals have to be larger then their neighbors by this factor.')
 
 
 def clip_args(cfg, rate):
-    """ Translates the configuration parameter given in cfg to the
+    """ Translates a configuration to the
     respective parameter names of the function clip_amplitudes().
     The return value can then be passed as key-word arguments to this function.
 
     Args:
-      cfg (dict): the configuration dictionary
+      cfg (ConfigFile): the configuration
       rate (float): the sampling rate of the data
 
     Returns:
       a (dict): dictionary with names of arguments of the clip_amplitudes() function and their values as supplied by cfg.
     """
-    a = {}
-    a['win_indices'] = int(cfg['clipWindow'][0]*rate)
-    a['min_fac'] = cfg['minClipFactor'][0]
-    a['nbins'] = cfg['clipBins'][0]
+    a = cfg.map({'min_fac': 'minClipFactor', 'nbins': 'clipBins'})
+    a['win_indices'] = int(cfg.value('clipWindow')*rate)
     return a
 
 
@@ -333,7 +332,7 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl
     return data[start_inx:end_inx], clipped
 
 
-def add_best_window_config(cfg, cfgsec, single=True,
+def add_best_window_config(cfg, single=True,
                            win_size=1., win_shift=0.1, thresh_ampl_fac=3.0,
                            min_clip=-np.inf, max_clip=np.inf,
                            w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
@@ -342,43 +341,47 @@ def add_best_window_config(cfg, cfgsec, single=True,
     a new section to a configuration dictionary.
 
     Args:
-      cfg (dict): the configuration dictionary
-      cfgsec (dict): section description for the configuration
+      cfg (ConfigFile): the configuration
       See best_window_indices() for details on the remaining arguments.
     """
     
-    cfgsec['bestWindowSize'] = 'Best window detection:'
-    cfg['bestWindowSize'] = [win_size, 's', 'Size of the best window.']
-    cfg['bestWindowShift'] = [win_shift, 's', 'Increment for shifting the analysis windows trough the data.']
-    cfg['bestWindowThresholdFactor'] = [thresh_ampl_fac, '', 'Threshold for detecting peaks is the standard deviation of the data time this factor.']
-    cfg['weightCVInterval'] = [w_cv_interv, '', 'Weight factor for the coefficient of variation of the inter-peak and inter-trough intervals.']
-    cfg['weightAmplitude'] = [w_ampl, '', 'Weight factor for the mean peak-to-trough amplitudes.']
-    cfg['weightCVAmplitude'] = [w_cv_ampl, '', 'Weight factor for the coefficient of variation of the peak-to-trough amplitude.']
-    cfg['bestWindowTolerance'] = [tolerance, '', 'Add this to the minimum value of the cost function to get a threshold for selecting the largest best window.']
-    cfg['singleBestWindow'] = [single, '', 'Return only a single best window. If False return the largest valid best window.']
+    cfg.add_section('Best window detection:')
+    cfg.add('bestWindowSize', win_size, 's', 'Size of the best window.')
+    cfg.add('bestWindowShift', win_shift, 's',
+            'Increment for shifting the analysis windows trough the data.')
+    cfg.add('bestWindowThresholdFactor', thresh_ampl_fac, '',
+            'Threshold for detecting peaks is the standard deviation of the data time this factor.')
+    cfg.add('weightCVInterval', w_cv_interv, '',
+            'Weight factor for the coefficient of variation of the inter-peak and inter-trough intervals.')
+    cfg.add('weightAmplitude', w_ampl, '',
+            'Weight factor for the mean peak-to-trough amplitudes.')
+    cfg.add('weightCVAmplitude', w_cv_ampl, '',
+            'Weight factor for the coefficient of variation of the peak-to-trough amplitude.')
+    cfg.add('bestWindowTolerance', tolerance, '',
+            'Add this to the minimum value of the cost function to get a threshold for selecting the largest best window.')
+    cfg.add('singleBestWindow', single, '',
+            'Return only a single best window. If False return the largest valid best window.')
 
 
 def best_window_args(cfg):
-    """ Translates the configuration parameter given in cfg to the
+    """ Translates a configuration to the
     respective parameter names of the functions best_window*().
-    The return value can then be passed as key-word arguments to this function.
+    The return value can then be passed as key-word arguments to these functions.
 
     Args:
-      cfg (dict): the configuration dictionary
+      cfg (ConfigFile): the configuration
 
     Returns:
       a (dict): dictionary with names of arguments of the best_window*() functions and their values as supplied by cfg.
     """
-    a = {}
-    a['win_size'] = cfg['bestWindowSize'][0]
-    a['win_shift'] = cfg['bestWindowShift'][0]
-    a['thresh_ampl_fac'] = cfg['bestWindowThresholdFactor'][0]
-    a['w_cv_interv'] = cfg['weightCVInterval'][0]
-    a['w_ampl'] = cfg['weightAmplitude'][0]
-    a['w_cv_ampl'] = cfg['weightCVAmplitude'][0]
-    a['tolerance'] = cfg['bestWindowTolerance'][0]
-    a['single'] = cfg['singleBestWindow'][0]
-    return a
+    return cfg.map({'win_size': 'bestWindowSize',
+                    'win_shift': 'bestWindowShift',
+                    'thresh_ampl_fac': 'bestWindowThresholdFactor',
+                    'w_cv_interv': 'weightCVInterval',
+                    'w_ampl': 'weightAmplitude',
+                    'w_cv_ampl': 'weightCVAmplitude',
+                    'tolerance': 'bestWindowTolerance',
+                    'single': 'singleBestWindow'})
 
 
 if __name__ == "__main__":
