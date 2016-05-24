@@ -551,25 +551,6 @@ if __name__ == "__main__":
     print('detected %d troughs with period %g that differs from the real frequency by %g' % (len(troughs), np.mean(np.diff(troughs[:,1])), f-1.0/np.mean(np.diff(troughs[:,1]))))
     plt.plot(peaks[:,1], peaks[:,2], '.r', ms=20)
     plt.plot(troughs[:,1], troughs[:,2], '.g', ms=20)
-    
-    print('')
-    print('check detect_peaks(data, 0.5, time)...')
-    peaks = detect_peaks(data, 0.5, time)
-    #print peaks
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))))
-    
-    print('')
-    print('check detect_peaks(data, 0.5)...')
-    peaks = detect_peaks(data, 0.5)
-    #print peaks
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))/np.mean(np.diff(time))))
-        
-    print('')
-    print('check detect_peaks(data, 0.5, time, accept_peak)...')
-    peaks = detect_peaks(data, 0.5, time, accept_peak)
-    #print peaks
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks[:,1])), f-1.0/np.mean(np.diff(peaks[:,1]))))
-    #plt.plot(peaks[:,0], peaks[:,1], '.r', ms=20)
 
     plt.ylim(-0.5,4.0)
     plt.show()
