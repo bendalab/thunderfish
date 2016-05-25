@@ -336,12 +336,123 @@ def load_audio(filepath, verbose=0) :
     return data, rate
 
 
+try:
+    import soundfile
+except ImportError:
+    warnings.warn('python module "soundfile" is not installed.')
+    raise ImportError
+
+class AudioLoader:
+    """Buffered reading of audio data.
+
+    WARNING: Still experimental!!!!
+    """
+    
+    def __init__(self, filename=None, verbose=0):
+        #print 'init(filename)', filename
+        self.sf = None
+        self.samplerate = 0.0
+        self.channels = 0
+        self.frames = 0
+        self.shape = (0, 0)
+        self.offset = 0
+        self.buffersize = 1024
+        self.buffer = np.zeros((0,0))
+        if filename is not None:
+            self.open(filename, verbose)
+        
+    def open(self, filename, verbose=0):
+        #print 'open(filename)'
+        if self.sf is not None:
+            self.sf.close()
+        self.sf = soundfile.SoundFile(filename, 'r')
+        self.samplerate = self.sf.samplerate
+        self.channels = self.sf.channels
+        self.frames = 0
+        self.offset = 0
+        if self.sf.seekable():
+            self.frames = self.sf.seek(0, soundfile.SEEK_END)
+            self.sf.seek(0, soundfile.SEEK_SET)
+        self.shape = (self.frames, self.channels)
+        self.buffersize = 10
+        self.buffer = self.sf.read(self.buffersize, always_2d=True)
+
+    def __del__(self):
+        #print 'del'
+        self.sf.close()
+
+    def __enter__(self):
+        #print 'enter'
+        return self
+        
+    def __exit__(self, type, value, tb):
+        #print 'exit'
+        self.sf.close()
+        
+    def __len__(self):
+        return self.frames
+
+    def __getitem__(self, key):
+        if hasattr(key, '__len__'):
+            index = key[0]
+        else :
+            index = key
+        if isinstance(index, slice):
+            start = index.start
+            stop = index.stop
+            step = index.step
+            if start is None:
+                start=0
+            if start < 0:
+                start += len(self)
+            if stop is None:
+                stop=len(self)
+            if stop < 0:
+                stop += len(self)
+            if step is None:
+                step=1
+        else:
+            start = index
+            stop = index+1
+        if start < self.offset or stop > self.offset + self.buffersize:
+            self.sf.seek(start, soundfile.SEEK_SET)
+            bs = stop-start
+            if bs < self.buffersize:
+                bs = self.buffersize
+            self.buffer = self.sf.read(bs, always_2d=True)
+            self.offset = start
+            print('loaded %d frames at %d' % (bs, self.offset))
+        if isinstance(index, slice):
+            newindex = slice(start-self.offset, stop-self.offset, step)
+        else:
+            newindex = start-self.offset
+        if hasattr(key, '__len__'):
+            newkey = (newindex,) + key[1:]
+            return self.buffer[newkey]
+        else :
+            return self.buffer[newindex]
+        ## if invalid key type:
+        ##     raise TypeError
+        ## if invalid key value:
+        ##     raise IndexError
+        return 0
+
+
 if __name__ == "__main__":
     import sys
     print("Checking audioloader module ...")
     filepath = sys.argv[-1]
     print('')
     print("try load_audio:")
+    import matplotlib.pylab as plt
+    #data = AudioLoader(filepath, 2)
+    with AudioLoader(filepath) as data :
+        print data.shape
+        for i in xrange(0,len(data),100000):
+            plt.plot(data[i:i+100000,0])
+            plt.show()
+    exit()
+    
     data, rate = load_audio(filepath, 2)
     print('')
     for lib, load_file in audio_loader :
