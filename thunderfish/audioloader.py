@@ -1,18 +1,92 @@
-import warnings
-import os.path
-import numpy as np
-
 """
-Numerous functions for loading data from audio files.
+Functions for loading data from audio files.
 
 data, samplingrate = load_audio(filepath)
-tries different functions until it succeeds to load the data.
+tries different modules until it succeeds to load the data.
+
+list_modules() and available_modules() let you query which audio modules
+are installed and available.
+For installing missing modules, see the documentation of the respective
+load_*() functions.
 
 For an overview on available python modules see
 http://nbviewer.jupyter.org/github/mgeier/python-audio/blob/master/audio-files/index.ipynb
 """
  
-def load_wave(filename, verbose=0) :
+import warnings
+import os.path
+import numpy as np
+
+
+# probe for available audio modules:
+audio_modules = {}
+
+try:
+    import wave
+    audio_modules['wave'] = True
+except ImportError:
+    audio_modules['wave'] = False
+
+try:
+    import ewave
+    audio_modules['ewave'] = True
+except ImportError:
+    audio_modules['ewave'] = False
+
+try:
+    from scipy.io import wavfile
+    audio_modules['scipy.io.wavfile'] = True
+except ImportError:
+    audio_modules['scipy.io.wavfile'] = False
+
+try:
+    import soundfile
+    audio_modules['soundfile'] = True
+except ImportError:
+    audio_modules['soundfile'] = False
+
+try:
+    import wavefile
+    audio_modules['wavefile'] = True
+except ImportError:
+    audio_modules['wavefile'] = False
+
+try:
+    import scikits.audiolab as audiolab
+    audio_modules['scikits.audiolab'] = True
+except ImportError:
+    audio_modules['scikits.audiolab'] = False
+        
+try:
+    import audioread
+    audio_modules['audioread'] = True
+except ImportError:
+    audio_modules['audioread'] = False
+
+
+def available_modules():
+    """Returns:
+         mods (list): list of installed audio modules.
+    """
+    mods = []
+    for module, available in audio_modules.items():
+        if available:
+            mods.append(module)
+    return mods
+
+
+def list_modules():
+    """Print list of all modules the audioloader module is bale to use
+    and whether they are installed or not.
+    """
+    for module, available in audio_modules.items():
+        if available:
+            print('%-16s is     installed' % module)
+        else:
+            print('%-16s is not installed' % module)
+
+
+def load_wave(filename, verbose=0):
     """
     Load wav file using wave module (from pythons standard libray).
     Documentation: https://docs.python.org/2/library/wave.html
@@ -31,19 +105,16 @@ def load_wave(filename, verbose=0) :
         ImportError: if the wave module is not installed
         *: if loading of the data failed
     """
-    try:
-        import wave
-    except ImportError:
-        warnings.warn('python module "wave" is not installed.')
+    if not audio_modules['wave']:
         raise ImportError
 
     wf = wave.open(filename, 'r')   # 'with' is not supported by wave
     (nchannels, sampwidth, rate, nframes, comptype, compname) = wf.getparams()
-    if verbose > 1 :
-        print('channels        : %d' % nchannels)
-        print('bytes           : %d' % sampwidth)
-        print('sampling rate   : %g' % rate)
-        print('frames          : %d' % nframes)
+    if verbose > 1:
+        print('channels       : %d' % nchannels)
+        print('bytes          : %d' % sampwidth)
+        print('sampling rate  : %g' % rate)
+        print('frames         : %d' % nframes)
         print('compression type: %s' % comptype)
         print('compression name: %s' % compname)
     buffer = wf.readframes(nframes)
@@ -51,12 +122,12 @@ def load_wave(filename, verbose=0) :
     data = np.fromstring(buffer, dtype=format).reshape(-1, nchannels)  # read data
     wf.close()
     data /= 2.0**(sampwidth*8-1)
-    if len(data.shape) == 1 :
+    if len(data.shape) == 1:
         data = np.reshape(data,(-1, 1))
     return data, float(rate)
 
     
-def load_ewave(filename, verbose=0) :
+def load_ewave(filename, verbose=0):
     """
     Load wav file using ewave module.
     https://github.com/melizalab/py-ewave
@@ -78,24 +149,21 @@ def load_ewave(filename, verbose=0) :
         ImportError: if the ewave module is not installed
         *: if loading of the data failed
     """
-    try:
-        import ewave
-    except ImportError:
-        warnings.warn('python module "ewave" is not installed.')
+    if not audio_modules['ewave']:
         raise ImportError
 
     data = np.array([])
     rate = 0.0
-    with ewave.open(filename, 'r') as wf :
+    with ewave.open(filename, 'r') as wf:
         rate = wf.sampling_rate
         buffer = wf.read()
         data = ewave.rescale(buffer, 'float')
-    if len(data.shape) == 1 :
+    if len(data.shape) == 1:
         data = np.reshape(data,(-1, 1))
     return data, float(rate)
 
     
-def load_wavfile(filename, verbose=0) :
+def load_wavfile(filename, verbose=0):
     """
     Load wav file using scipy.io.wavfile.
     Documentation: http://docs.scipy.org/doc/scipy/reference/io.html
@@ -113,24 +181,21 @@ def load_wavfile(filename, verbose=0) :
         ImportError: if the scipy.io module is not installed
         *: if loading of the data failed
     """
-    try:
-        from scipy.io import wavfile
-    except ImportError:
-        warnings.warn('python module "scipy.io" is not installed.')
+    if not audio_modules['scipy.io.wavfile']:
         raise ImportError
 
-    if verbose < 2 :
+    if verbose < 2:
         warnings.filterwarnings("ignore")
     rate, data = wavfile.read(filename)
-    if verbose < 2 :
+    if verbose < 2:
         warnings.filterwarnings("always")
     data /= 2.0**15
-    if len(data.shape) == 1 :
+    if len(data.shape) == 1:
         data = np.reshape(data,(-1, 1))
     return data, float(rate)
         
 
-def load_soundfile(filename, verbose=0) :
+def load_soundfile(filename, verbose=0):
     """
     Load audio file using pysoundfile (based on libsndfile).
 
@@ -153,21 +218,18 @@ def load_soundfile(filename, verbose=0) :
         ImportError: if the soundfile module is not installed
         *: if loading of the data failed
     """
-    try:
-        import soundfile
-    except ImportError:
-        warnings.warn('python module "soundfile" is not installed.')
+    if not audio_modules['soundfile']:
         raise ImportError
 
     data = np.array([])
     rate = 0.0
-    with soundfile.SoundFile(filename, 'r') as sf :
+    with soundfile.SoundFile(filename, 'r') as sf:
         rate = sf.samplerate
         data = sf.read(always_2d=True)
     return data, float(rate)
 
 
-def load_wavefile(filename, verbose=0) :
+def load_wavefile(filename, verbose=0):
     """
     Load audio file using wavefile (based on libsndfile).
 
@@ -188,17 +250,14 @@ def load_wavefile(filename, verbose=0) :
         ImportError: if the wavefile module is not installed
         *: if loading of the data failed
     """
-    try:
-        import wavefile
-    except ImportError:
-        warnings.warn('python module "wavefile" is not installed.')
+    if not audio_modules['wavefile']:
         raise ImportError
 
     rate, data = wavefile.load(filename)
     return data.T, float(rate)
 
 
-def load_audiolab(filename, verbose=0) :
+def load_audiolab(filename, verbose=0):
     """
     Load audio file using scikits.audiolab (based on libsndfile).
 
@@ -219,21 +278,18 @@ def load_audiolab(filename, verbose=0) :
         ImportError: if the scikits.audiolab module is not installed
         *: if loading of the data failed
     """
-    try:
-        import scikits.audiolab as audiolab
-    except ImportError:
-        warnings.warn('python module "scikits.audiolab" is not installed.')
+    if not audio_modules['scikits.audiolab']:
         raise ImportError
 
     af = audiolab.Sndfile(filename)
     rate = af.samplerate
     data = af.read_frames(af.nframes)
-    if len(data.shape) == 1 :
+    if len(data.shape) == 1:
         data = np.reshape(data,(-1, 1))
     return data, float(rate)
 
 
-def load_audioread(filename, verbose=0) :
+def load_audioread(filename, verbose=0):
     """
     Load audio file using audioread.
     https://github.com/sampsyo/audioread
@@ -252,15 +308,12 @@ def load_audioread(filename, verbose=0) :
         ImportError: if the audioread module is not installed
         *: if loading of the data failed
     """
-    try:
-        import audioread
-    except ImportError:
-        warnings.warn('python module "audioread" is not installed.')
+    if not audio_modules['audioread']:
         raise ImportError
     
     data = np.array([])
     rate = 0.0
-    with audioread.audio_open(filename) as af :
+    with audioread.audio_open(filename) as af:
         rate = af.samplerate
         data = np.zeros((np.ceil(af.samplerate*af.duration), af.channels),
                         dtype="<i2")
@@ -268,16 +321,17 @@ def load_audioread(filename, verbose=0) :
         for buffer in af:
             fulldata = np.fromstring(buffer, dtype='<i2').reshape(-1, af.channels)
             n = fulldata.shape[0]
-            if index+n > len( data ) :
+            if index+n > len( data ):
                 n = len( data ) - index
-            if n > 0 :
+            if n > 0:
                 data[index:index+n,:] = fulldata[:n,:]
                 index += n
-            else :
+            else:
                 break
     return data/2.0**15, float(rate)
 
 
+# list of implemented load functions:
 audio_loader = [
     ['wave', load_wave],
     ['scipy.io.wavfile', load_wavfile],
@@ -288,7 +342,7 @@ audio_loader = [
     ['wavefile', load_wavefile]
     ]
 
-def load_audio(filepath, verbose=0) :
+def load_audio(filepath, verbose=0):
     """
     Call this function to load all channels of audio data from a file.
     This function tries different python modules to load the audio file.
@@ -302,17 +356,13 @@ def load_audio(filepath, verbose=0) :
                       first dimension is time, second is channel
         rate (float): the sampling rate of the data in Hz
     """
-    # check types:
-    if not isinstance(filepath, basestring) :
-        raise NameError('load_audio(): input argument filepath must be a string!')
-
     # check values:
     rate = 0.0
-    data = np.array([])
-    if len(filepath) == 0 :
+    data = np.zeros((0, 0))
+    if len(filepath) == 0:
         warnings.warn('input argument filepath is empty string!')
         return data, rate
-    if not os.path.isfile(filepath) :
+    if not os.path.isfile(filepath):
         warnings.warn('input argument filepath=%s does not indicate an existing file!' % filepath)
         return data, rate
     if os.path.getsize(filepath) <= 0:
@@ -321,26 +371,22 @@ def load_audio(filepath, verbose=0) :
 
     # load data:
     # load an audio file by trying various modules:
-    for lib, load_file in audio_loader :
+    for lib, load_file in audio_loader:
+        if not audio_modules[lib]:
+            continue
         try:
             data, rate = load_file(filepath, verbose)
-            if len(data) > 0 :
-                if verbose > 0 :
+            if len(data) > 0:
+                if verbose > 0:
                     print('loaded data from file "%s" using %s:' %
                           (filepath, lib))
                     print('  sampling rate: %g Hz' % rate)
-                    print('  data values  : %d' % len(data))
+                    print('  data values : %d' % len(data))
                 break
         except:
             warnings.warn('failed to load data from file "%s" with %s' % (filepath, lib))
     return data, rate
 
-
-try:
-    import soundfile
-except ImportError:
-    warnings.warn('python module "soundfile" is not installed.')
-    raise ImportError
 
 class AudioLoader:
     """Buffered reading of audio data.
@@ -395,7 +441,7 @@ class AudioLoader:
     def __getitem__(self, key):
         if hasattr(key, '__len__'):
             index = key[0]
-        else :
+        else:
             index = key
         if isinstance(index, slice):
             start = index.start
@@ -429,7 +475,7 @@ class AudioLoader:
         if hasattr(key, '__len__'):
             newkey = (newindex,) + key[1:]
             return self.buffer[newkey]
-        else :
+        else:
             return self.buffer[newindex]
         ## if invalid key type:
         ##     raise TypeError
@@ -441,21 +487,30 @@ class AudioLoader:
 if __name__ == "__main__":
     import sys
     print("Checking audioloader module ...")
+    print('')
+    list_modules()
+    print('')
+    print('available modules:')
+    print('  %s' % '\n  '.join(available_modules()))
+    
     filepath = sys.argv[-1]
     print('')
     print("try load_audio:")
-    import matplotlib.pylab as plt
-    #data = AudioLoader(filepath, 2)
-    with AudioLoader(filepath) as data :
-        print data.shape
-        for i in xrange(0,len(data),100000):
-            plt.plot(data[i:i+100000,0])
-            plt.show()
-    exit()
+    ## exit()
+    ## import matplotlib.pylab as plt
+    ## #data = AudioLoader(filepath, 2)
+    ## with AudioLoader(filepath) as data:
+    ##     print data.shape
+    ##     for i in xrange(0,len(data),100000):
+    ##         plt.plot(data[i:i+100000,0])
+    ##         plt.show()
+    ## exit()
     
     data, rate = load_audio(filepath, 2)
     print('')
-    for lib, load_file in audio_loader :
+    for lib, load_file in audio_loader:
+        if not audio_modules[lib]:
+            continue
         try:
             data, rate = load_file(filepath, 1)
             print('loaded data from file "%s" with %s' %
