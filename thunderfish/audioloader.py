@@ -368,7 +368,6 @@ def load_audio(filepath, verbose=0):
         warnings.warn('load_audio(): input argument filepath=%s indicates file of size 0!' % filepath)
         return data, rate
 
-    # load data:
     # load an audio file by trying various modules:
     for lib, load_file in audio_loader:
         if not audio_modules[lib]:
@@ -398,48 +397,17 @@ class AudioLoader:
         self.channels = 0
         self.frames = 0
         self.shape = (0, 0)
-        self.offset = 0
+        self.offset = None
         self.buffersize = 0
         self.backsize = 0
         self.buffer = np.zeros((0,0))
         self.verbose = verbose
         if filename is not None:
             self.open(filename, buffersize, backsize)
-        
-    def open(self, filename, buffersize=10.0, backsize=0.0):
-        """Open audio file for reading.
-
-        Args:
-          filename (string): name of the file
-          buffersize (float): size of internal buffer in seconds
-          backsize (float): part of the buffer to be loaded before the requested start index in seconds
-        """
-        #print 'open(filename)'
-        if not audio_modules['soundfile']:
-            self.samplerate = 0.0
-            self.channels = 0
-            self.frames = 0
-            self.shape = (0, 0)
-            self.offset = 0
-            raise ImportError
-        if self.sf is not None:
-            self.sf.close()
-        self.sf = soundfile.SoundFile(filename, 'r')
-        self.samplerate = self.sf.samplerate
-        self.channels = self.sf.channels
-        self.frames = 0
-        if self.sf.seekable():
-            self.frames = self.sf.seek(0, soundfile.SEEK_END)
-            self.sf.seek(0, soundfile.SEEK_SET)
-        self.shape = (self.frames, self.channels)
-        self.buffersize = int(buffersize*self.samplerate)
-        self.backsize = int(backsize*self.samplerate)
-        self.offset = -self.buffersize  # we have no data loaded yet
 
     def __del__(self):
         #print 'del'
-        if self.sf is not None:
-            self.sf.close()
+        self.close()
 
     ## def __enter__(self):
     ##     #print 'enter'
@@ -451,27 +419,6 @@ class AudioLoader:
         
     def __len__(self):
         return self.frames
-
-    def _update_buffer(self, start, stop):
-        """Make sure that the buffer contains the data between
-        start and stop.
-        """
-        if start < self.offset or stop > self.offset + self.buffersize:
-            bs = stop-start
-            if bs < self.buffersize:
-                back = self.backsize
-                if self.buffersize - bs < back:
-                    back = self.buffersize - bs
-                start -= back
-                bs = self.buffersize
-            if start < 0:
-                start = 0
-            self.sf.seek(start, soundfile.SEEK_SET)
-            self.buffer = self.sf.read(bs, always_2d=True)
-            self.offset = start
-            if self.verbose > 0:
-                print('loaded %d frames from %d up to %d'
-                      % (self.buffer.shape[0], self.offset, self.buffersize))
 
     def __getitem__(self, key):
         if hasattr(key, '__len__'):
@@ -490,12 +437,16 @@ class AudioLoader:
                 stop = len(self)
             if stop < 0:
                 stop += len(self)
+            if stop > self.frames:
+                stop = self.frames
             if step is None:
                 step = 1
-            self._update_buffer(start, stop)
+            self.update_buffer(start, stop)
             newindex = slice(start-self.offset, stop-self.offset, step)
         else:
-            self._update_buffer(index, index+1)
+            if index > self.frames:
+                raise IndexError
+            self.update_buffer(index, index+1)
             newindex = start-self.offset
         if hasattr(key, '__len__'):
             newkey = (newindex,) + key[1:]
@@ -504,6 +455,195 @@ class AudioLoader:
             return self.buffer[newindex]
         return 0
 
+
+    # wave interface:        
+    def open_wave(self, filename, buffersize=10.0, backsize=0.0):
+        """Open audio file for reading using the wave module.
+
+        Args:
+          filename (string): name of the file
+          buffersize (float): size of internal buffer in seconds
+          backsize (float): part of the buffer to be loaded before the requested start index in seconds
+        """
+        print 'open_wave(filename)'
+        if not audio_modules['wave']:
+            self.samplerate = 0.0
+            self.channels = 0
+            self.frames = 0
+            self.shape = (0, 0)
+            self.offset = None
+            raise ImportError
+        if self.sf is not None:
+            self.close()
+        self.sf = wave.open(filename, 'r')
+        self.samplerate = self.sf.getframerate()
+        self.format = 'i%d' % self.sf.getsampwidth()
+        self.factor = 1.0/2.0**(self.sf.getsampwidth()*8-1)
+        self.channels = self.sf.getnchannels()
+        self.frames = self.sf.getnframes()
+        self.shape = (self.frames, self.channels)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self.offset = None  # we have no data loaded yet
+        self.close = self.close_wave
+        self.update_buffer = self.update_buffer_wave
+
+    def close_wave(self):
+        """ Close the audio file using the wave module.
+        """
+        if self.sf is not None:
+            self.sf.close()
+
+    def update_buffer_wave(self, start, stop):
+        """Make sure that the buffer contains the data between
+        start and stop using the wave module.
+        """
+        if ( self.offset is None
+             or start < self.offset or stop > self.offset + self.buffersize ):
+            if self.offset is None:
+                self.offset = 0
+            bs = stop-start
+            if bs < self.buffersize:
+                back = self.backsize
+                if self.buffersize - bs < back:
+                    back = self.buffersize - bs
+                start -= back
+                bs = self.buffersize
+                if start < 0:
+                    start = 0
+                if start + bs > self.frames:
+                    start = self.frames - bs
+                    if start < 0:
+                        start = 0
+                        bs = self.frames - start
+            if start < self.offset :
+                self.sf.rewind()
+                self.offset = 0
+            while self.offset+self.buffersize < start:
+                #print('readframes')
+                self.sf.readframes(self.buffersize)
+                self.offset += self.buffersize
+            if self.offset < start:
+                #print('readframes')
+                self.sf.readframes(start - self.offset)
+                self.offset += start - self.offset
+            #print 'read', bs, 'frames at', self.offset
+            buffer = self.sf.readframes(bs)
+            buffer = np.fromstring(buffer, dtype=self.format).reshape((-1, self.channels))
+            print buffer.shape, self.factor
+            self.buffer = buffer * self.factor
+            
+            self.offset = start
+            if self.verbose > 0:
+                print('loaded %d frames from %d up to %d'
+                      % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
+        
+    
+    # pysound file interface:        
+    def open_soundfile(self, filename, buffersize=10.0, backsize=0.0):
+        """Open audio file for reading using the pysoundfile module.
+
+        Args:
+          filename (string): name of the file
+          buffersize (float): size of internal buffer in seconds
+          backsize (float): part of the buffer to be loaded before the requested start index in seconds
+        """
+        print 'open_soundfile(filename)'
+        if not audio_modules['soundfile']:
+            self.samplerate = 0.0
+            self.channels = 0
+            self.frames = 0
+            self.shape = (0, 0)
+            self.offset = None
+            raise ImportError
+        if self.sf is not None:
+            self.close()
+        self.sf = soundfile.SoundFile(filename, 'r')
+        self.samplerate = self.sf.samplerate
+        self.channels = self.sf.channels
+        self.frames = 0
+        if self.sf.seekable():
+            self.frames = self.sf.seek(0, soundfile.SEEK_END)
+            self.sf.seek(0, soundfile.SEEK_SET)
+        self.shape = (self.frames, self.channels)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self.offset = None  # we have no data loaded yet
+        self.close = self.close_soundfile
+        self.update_buffer = self.update_buffer_soundfile
+
+    def close_soundfile(self):
+        """ Close the audio file using the pysoundfile module.
+        """
+        if self.sf is not None:
+            self.sf.close()
+
+    def update_buffer_soundfile(self, start, stop):
+        """Make sure that the buffer contains the data between
+        start and stop using the pysoundfile module.
+        """
+        if ( self.offset is None
+             or start < self.offset or stop > self.offset + self.buffersize):
+            if self.offset is None:
+                self.offset = 0
+            bs = stop-start
+            if bs < self.buffersize:
+                back = self.backsize
+                if self.buffersize - bs < back:
+                    back = self.buffersize - bs
+                start -= back
+                bs = self.buffersize
+                if start < 0:
+                    start = 0
+                if start + bs > self.frames:
+                    start = self.frames - bs
+                    if start < 0:
+                        start = 0
+                        bs = self.frames - start
+            self.sf.seek(start, soundfile.SEEK_SET)
+            self.buffer = self.sf.read(bs, always_2d=True)
+            self.offset = start
+            if self.verbose > 0:
+                print('loaded %d frames from %d up to %d'
+                      % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
+
+
+    def open(self, filename, buffersize=10.0, backsize=0.0):
+        """Open audio file for reading.
+
+        Args:
+          filename (string): name of the file
+          buffersize (float): size of internal buffer in seconds
+          backsize (float): part of the buffer to be loaded before the requested start index in seconds
+        """
+        #print 'open(filename)'
+
+        # list of implemented open functions:
+        audio_open = [
+            ['wave', self.open_wave],
+            #['scipy.io.wavfile', open_wavfile],
+            ['soundfile', self.open_soundfile]
+            #['audioread', open_audioread],
+            #['scikits.audiolab', open_audiolab],
+            #['ewave', open_ewave],
+            #['wavefile', open_wavefile]
+            ]
+        # open an audio file by trying various modules:
+        for lib, open_file in audio_open:
+            if not audio_modules[lib]:
+                continue
+            try:
+                print 'try', lib
+                open_file(filename, buffersize, backsize)
+                if self.verbose > 0:
+                    print('opened audio file "%s" using %s:' %
+                          (filepath, lib))
+                    print('  sampling rate: %g Hz' % self.samplerate)
+                    print('  data values : %d' % self.frames)
+                break
+            except:
+                warnings.warn('failed to open audio file "%s" with %s' % (filepath, lib))
+                
 
 if __name__ == "__main__":
     import sys
@@ -532,8 +672,9 @@ if __name__ == "__main__":
     print('')
 
     print("try AudioLoader:")
-    import matplotlib.pylab as plt
+    #import matplotlib.pylab as plt
     data = AudioLoader(filepath, 8.0, 3.0, 1)
+    print('')
     #with AudioLoader(filepath) as data:
     print('samplerate: %g' % data.samplerate)
     print('channels: %d %d' % (data.channels, data.shape[1]))
@@ -542,10 +683,13 @@ if __name__ == "__main__":
     # forward:
     for i in xrange(0, len(data), nframes):
         print('\nforward %d-%d' % (i, i+nframes))
-        plt.plot(data[i:i+nframes,0])
-        plt.show()
+        x = data[i:i+nframes,0]
+        #plt.plot(data[i:i+nframes,0])
+        #plt.show()
     # and backwards:
     for i in reversed(xrange(0, len(data), nframes)):
         print('\nbackward %d-%d' % (i, i+nframes))
-        plt.plot(data[i:i+nframes,0])
-        plt.show()
+        x = data[i:i+nframes,0]
+        #plt.plot(data[i:i+nframes,0])
+        #plt.show()
+    data.close()
