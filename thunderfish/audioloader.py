@@ -92,8 +92,10 @@ def list_modules():
 
 def load_wave(filename, verbose=0):
     """
-    Load wav file using wave module (from pythons standard libray).
-    Documentation: https://docs.python.org/2/library/wave.html
+    Load wav file using the wave module from pythons standard libray.
+    
+    Documentation:
+        https://docs.python.org/2/library/wave.html
 
     Args:
         filepath (string): the full path and name of the file to load
@@ -134,11 +136,14 @@ def load_wave(filename, verbose=0):
 def load_ewave(filename, verbose=0):
     """
     Load wav file using ewave module.
-    https://github.com/melizalab/py-ewave
+
+    Documentation:
+        https://github.com/melizalab/py-ewave
+        
     Installation:
-    git clone https://github.com/melizalab/py-ewave
-    python setup.py build
-    sudo python setup.py install
+        git clone https://github.com/melizalab/py-ewave
+        python setup.py build
+        sudo python setup.py install
 
     Args:
         filepath (string): the full path and name of the file to load
@@ -193,7 +198,7 @@ def load_wavfile(filename, verbose=0):
     rate, data = wavfile.read(filename)
     if verbose < 2:
         warnings.filterwarnings("always")
-    data /= 2.0**15
+    data = data / 2.0**15
     if len(data.shape) == 1:
         data = np.reshape(data,(-1, 1))
     return data, float(rate)
@@ -203,10 +208,13 @@ def load_soundfile(filename, verbose=0):
     """
     Load audio file using pysoundfile (based on libsndfile).
 
-    Installation of pysoundfile:
-    sudo apt-get install libffi-dev
-    sudo pip install pysoundfile
-    For documentation see http://pysoundfile.readthedocs.org .
+    Documentation:
+        http://pysoundfile.readthedocs.org
+        http://www.mega-nerd.com/libsndfile
+        
+    Installation:
+        sudo apt-get install libsndfile1 libsndfile1-dev libffi-dev
+        sudo pip install pysoundfile
 
     Args:
         filepath (string): the full path and name of the file to load
@@ -236,9 +244,11 @@ def load_wavefile(filename, verbose=0):
     """
     Load audio file using wavefile (based on libsndfile).
 
-    Installation: sudo pip install wavefile
-    Website: https://github.com/vokimon/python-wavefile
-    Block processing is possible.
+    Documentation:
+        https://github.com/vokimon/python-wavefile
+
+    Installation:
+        sudo pip install wavefile
 
     Args:
         filepath (string): the full path and name of the file to load
@@ -264,9 +274,11 @@ def load_audiolab(filename, verbose=0):
     """
     Load audio file using scikits.audiolab (based on libsndfile).
 
-    Installation: sudo pip install scikits.audiolab
-    Website: http://cournape.github.io/audiolab/
-    Block processing is possible.
+    Documentation:
+        http://cournape.github.io/audiolab/
+        
+    Installation:
+        sudo pip install scikits.audiolab
 
     Args:
         filepath (string): the full path and name of the file to load
@@ -295,8 +307,14 @@ def load_audiolab(filename, verbose=0):
 def load_audioread(filename, verbose=0):
     """
     Load audio file using audioread.
-    https://github.com/sampsyo/audioread
-    This is not available in python x,y.
+
+    Documentation:
+        https://github.com/sampsyo/audioread
+
+    Installation:
+        sudo apt-get install libav-tools python-audioread
+        
+    audioread is not available in python x,y.
 
     Args:
         filepath (string): the full path and name of the file to load
@@ -318,7 +336,7 @@ def load_audioread(filename, verbose=0):
     rate = 0.0
     with audioread.audio_open(filename) as af:
         rate = af.samplerate
-        data = np.zeros((np.ceil(af.samplerate*af.duration), af.channels),
+        data = np.zeros((int(np.ceil(af.samplerate*af.duration)), af.channels),
                         dtype="<i2")
         index = 0
         for buffer in af:
@@ -400,7 +418,7 @@ class AudioLoader:
         self.channels = 0
         self.frames = 0
         self.shape = (0, 0)
-        self.offset = None
+        self.offset = 0
         self.buffersize = 0
         self.backsize = 0
         self.buffer = np.zeros((0,0))
@@ -442,12 +460,12 @@ class AudioLoader:
                 stop = self.frames
             if step is None:
                 step = 1
-            self.update_buffer(start, stop)
+            self._update_buffer(start, stop)
             newindex = slice(start-self.offset, stop-self.offset, step)
         else:
             if index > self.frames:
                 raise IndexError
-            self.update_buffer(index, index+1)
+            self._update_buffer(index, index+1)
             newindex = start-self.offset
         if hasattr(key, '__len__'):
             newkey = (newindex,) + key[1:]
@@ -456,9 +474,29 @@ class AudioLoader:
             return self.buffer[newindex]
         return 0
 
+    def _read_indices(self, start, stop):
+        """ Compute position and size for next read from file. """ 
+        if self.offset < 0:
+            self.offset = 0
+        offset = start
+        size = stop-start
+        if size < self.buffersize:
+            back = self.backsize
+            if self.buffersize - size < back:
+                back = self.buffersize - size
+            offset -= back
+            size = self.buffersize
+            if offset < 0:
+                offset = 0
+            if offset + size > self.frames:
+                offset = self.frames - size
+                if offset < 0:
+                    offset = 0
+                    size = self.frames - offset
+        return offset, size
 
     # wave interface:        
-    def open_wave(self, filename, buffersize=10.0, backsize=0.0):
+    def _open_wave(self, filename, buffersize=10.0, backsize=0.0):
         """Open audio file for reading using the wave module.
 
         Args:
@@ -466,16 +504,16 @@ class AudioLoader:
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
         """
-        print 'open_wave(filename)'
+        print('_open_wave(filename)')
         if not audio_modules['wave']:
             self.samplerate = 0.0
             self.channels = 0
             self.frames = 0
             self.shape = (0, 0)
-            self.offset = None
+            self.offset = 0
             raise ImportError
         if self.sf is not None:
-            self.close()
+            self._close_wave()
         self.sf = wave.open(filename, 'r')
         self.samplerate = self.sf.getframerate()
         self.format = 'i%d' % self.sf.getsampwidth()
@@ -485,63 +523,48 @@ class AudioLoader:
         self.shape = (self.frames, self.channels)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
-        self.offset = None  # we have no data loaded yet
-        self.close = self.close_wave
-        self.update_buffer = self.update_buffer_wave
+        self.offset = -self.buffersize  # we have no data loaded yet
+        self.close = self._close_wave
+        self._update_buffer = self._update_buffer_wave
 
-    def close_wave(self):
-        """ Close the audio file using the wave module.
-        """
+    def _close_wave(self):
+        """ Close the audio file using the wave module. """
         if self.sf is not None:
             self.sf.close()
+            self.sf = None
 
-    def update_buffer_wave(self, start, stop):
+    def _update_buffer_wave(self, start, stop):
         """Make sure that the buffer contains the data between
         start and stop using the wave module.
         """
-        if ( self.offset is None
-             or start < self.offset or stop > self.offset + self.buffersize ):
-            if self.offset is None:
-                self.offset = 0
-            bs = stop-start
-            if bs < self.buffersize:
-                back = self.backsize
-                if self.buffersize - bs < back:
-                    back = self.buffersize - bs
-                start -= back
-                bs = self.buffersize
-                if start < 0:
-                    start = 0
-                if start + bs > self.frames:
-                    start = self.frames - bs
-                    if start < 0:
-                        start = 0
-                        bs = self.frames - start
-            if start < self.offset :
+        if start < self.offset or stop > self.offset + self.buffersize:
+            offset, size = self._read_indices(start, stop)
+            # backwards:
+            if offset < self.offset :
                 self.sf.rewind()
                 self.offset = 0
-            while self.offset+self.buffersize < start:
+            # read forward to requested position:
+            while self.offset+self.buffersize < offset:
                 #print('readframes')
                 self.sf.readframes(self.buffersize)
                 self.offset += self.buffersize
-            if self.offset < start:
+            if self.offset < offset:
                 #print('readframes')
-                self.sf.readframes(start - self.offset)
-                self.offset += start - self.offset
-            #print 'read', bs, 'frames at', self.offset
-            buffer = self.sf.readframes(bs)
+                self.sf.readframes(offset - self.offset)
+                self.offset += offset - self.offset
+            # read buffer:
+            #print 'read', size, 'frames at', self.offset
+            buffer = self.sf.readframes(size)
             buffer = np.fromstring(buffer, dtype=self.format).reshape((-1, self.channels))
-            print buffer.shape, self.factor
             self.buffer = buffer * self.factor
-            
-            self.offset = start
+            self.offset = offset
             if self.verbose > 0:
                 print('loaded %d frames from %d up to %d'
                       % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
         
 
-    # wave interface:        
-    def open_wave(self, filename, buffersize=10.0, backsize=0.0):
+    # ewave interface:        
+    def _open_ewave(self, filename, buffersize=10.0, backsize=0.0):
         """Open audio file for reading using the ewave module.
 
         Args:
@@ -549,12 +572,52 @@ class AudioLoader:
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
         """
-        print 'open_ewave(filename)'
-        # read(self, frames=None, offset=0, memmap='c')
+        print('_open_ewave(filename)')
+        if not audio_modules['ewave']:
+            self.samplerate = 0.0
+            self.channels = 0
+            self.frames = 0
+            self.shape = (0, 0)
+            self.offset = 0
+            raise ImportError
+        if self.sf is not None:
+            self._close_ewave()
+        self.sf = ewave.open(filename, 'r')
+        self.samplerate = self.sf.sampling_rate
+        self.channels = self.sf.nchannels
+        self.frames = self.sf.nframes
+        self.shape = (self.frames, self.channels)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self.offset = -self.buffersize  # we have no data loaded yet
+        self.close = self._close_ewave
+        self._update_buffer = self._update_buffer_ewave
+
+    def _close_ewave(self):
+        """ Close the audio file using the ewave module. """
+        if self.sf is not None:
+            del self.sf
+            self.sf = None
+
+    def _update_buffer_ewave(self, start, stop):
+        """Make sure that the buffer contains the data between
+        start and stop using the ewave module.
+        """
+        if start < self.offset or stop > self.offset + self.buffersize:
+            offset, size = self._read_indices(start, stop)
+            # read buffer:
+            buffer = self.sf.read(frames=size, offset=offset, memmap='r')
+            self.buffer = ewave.rescale(buffer, 'float')
+            if len(self.buffer.shape) == 1:
+                self.buffer = np.reshape(self.buffer,(-1, 1))
+            self.offset = offset
+            if self.verbose > 0:
+                print('loaded %d frames from %d up to %d'
+                      % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
 
             
     # pysound file interface:        
-    def open_soundfile(self, filename, buffersize=10.0, backsize=0.0):
+    def _open_soundfile(self, filename, buffersize=10.0, backsize=0.0):
         """Open audio file for reading using the pysoundfile module.
 
         Args:
@@ -562,16 +625,16 @@ class AudioLoader:
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
         """
-        print 'open_soundfile(filename)'
+        print('_open_soundfile(filename)')
         if not audio_modules['soundfile']:
             self.samplerate = 0.0
             self.channels = 0
             self.frames = 0
             self.shape = (0, 0)
-            self.offset = None
+            self.offset = 0
             raise ImportError
         if self.sf is not None:
-            self.close()
+            self._close_soundfile()
         self.sf = soundfile.SoundFile(filename, 'r')
         self.samplerate = self.sf.samplerate
         self.channels = self.sf.channels
@@ -582,41 +645,25 @@ class AudioLoader:
         self.shape = (self.frames, self.channels)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
-        self.offset = None  # we have no data loaded yet
-        self.close = self.close_soundfile
-        self.update_buffer = self.update_buffer_soundfile
+        self.offset = -self.buffersize  # we have no data loaded yet
+        self.close = self._close_soundfile
+        self._update_buffer = self._update_buffer_soundfile
 
-    def close_soundfile(self):
-        """ Close the audio file using the pysoundfile module.
-        """
+    def _close_soundfile(self):
+        """ Close the audio file using the pysoundfile module. """
         if self.sf is not None:
             self.sf.close()
+            self.sf = None
 
-    def update_buffer_soundfile(self, start, stop):
+    def _update_buffer_soundfile(self, start, stop):
         """Make sure that the buffer contains the data between
         start and stop using the pysoundfile module.
         """
-        if ( self.offset is None
-             or start < self.offset or stop > self.offset + self.buffersize):
-            if self.offset is None:
-                self.offset = 0
-            bs = stop-start
-            if bs < self.buffersize:
-                back = self.backsize
-                if self.buffersize - bs < back:
-                    back = self.buffersize - bs
-                start -= back
-                bs = self.buffersize
-                if start < 0:
-                    start = 0
-                if start + bs > self.frames:
-                    start = self.frames - bs
-                    if start < 0:
-                        start = 0
-                        bs = self.frames - start
-            self.sf.seek(start, soundfile.SEEK_SET)
-            self.buffer = self.sf.read(bs, always_2d=True)
-            self.offset = start
+        if start < self.offset or stop > self.offset + self.buffersize:
+            offset, size = self._read_indices(start, stop)
+            self.sf.seek(offset, soundfile.SEEK_SET)
+            self.buffer = self.sf.read(size, always_2d=True)
+            self.offset = offset
             if self.verbose > 0:
                 print('loaded %d frames from %d up to %d'
                       % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
@@ -632,12 +679,12 @@ class AudioLoader:
         """
         # list of implemented open functions:
         audio_open = [
-            ['wave', self.open_wave],
-            ['soundfile', self.open_soundfile]
-            #['audioread', open_audioread],
-            #['scikits.audiolab', open_audiolab],
-            #['ewave', open_ewave],
-            #['wavefile', open_wavefile]
+            ['ewave', self._open_ewave],
+            ['wave', self._open_wave],
+            ['soundfile', self._open_soundfile]
+            #['audioread', self._open_audioread],
+            #['scikits.audiolab', self._open_audiolab],
+            #['wavefile', self._open_wavefile]
             ]
         # open an audio file by trying various modules:
         for lib, open_file in audio_open:
@@ -686,23 +733,16 @@ if __name__ == "__main__":
 
     print("try AudioLoader:")
     print('')
-    #import matplotlib.pylab as plt
-    #data = AudioLoader(filepath, 8.0, 3.0, 1)
-    with open(filepath) as data:
+    with open(filepath, 8.0, 3.0, 1) as data:
         print('samplerate: %g' % data.samplerate)
         print('channels: %d %d' % (data.channels, data.shape[1]))
         print('frames: %d %d' % (len(data), data.shape[0]))
         nframes = int(3.0*data.samplerate)
         # forward:
-        for i in xrange(0, len(data), nframes):
+        for i in range(0, len(data), nframes):
             print('\nforward %d-%d' % (i, i+nframes))
             x = data[i:i+nframes,0]
-            #plt.plot(data[i:i+nframes,0])
-            #plt.show()
         # and backwards:
-        for i in reversed(xrange(0, len(data), nframes)):
+        for i in reversed(range(0, len(data), nframes)):
             print('\nbackward %d-%d' % (i, i+nframes))
             x = data[i:i+nframes,0]
-            #plt.plot(data[i:i+nframes,0])
-            #plt.show()
-    #data.close()
