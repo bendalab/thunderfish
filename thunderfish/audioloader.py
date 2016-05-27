@@ -2,12 +2,16 @@
 Functions for loading data from audio files.
 
 data, samplingrate = load_audio(filepath)
-tries different modules until it succeeds to load the data.
+Loads the whole file by trying different modules until it succeeds to load the data.
+
+data = AudioLoader(filepath, 60.0)
+Create an AudioLoader object that loads chuncks of 60 seconds long data on demand.
+data can be used like a read-only numpy array.
 
 list_modules() and available_modules() let you query which audio modules
 are installed and available.
-For installing missing modules, see the documentation of the respective
-load_*() functions.
+For further information and installing instructions of missing modules,
+see the documentation of the respective load_*() functions.
 
 For an overview on available python modules see
 http://nbviewer.jupyter.org/github/mgeier/python-audio/blob/master/audio-files/index.ipynb
@@ -391,7 +395,6 @@ class AudioLoader:
     """
     
     def __init__(self, filename=None, buffersize=10.0, backsize=0.0, verbose=0):
-        #print 'init(filename)', filename
         self.sf = None
         self.samplerate = 0.0
         self.channels = 0
@@ -406,16 +409,14 @@ class AudioLoader:
             self.open(filename, buffersize, backsize)
 
     def __del__(self):
-        #print 'del'
         self.close()
 
-    ## def __enter__(self):
-    ##     #print 'enter'
-    ##     return self
+    def __enter__(self):
+        return self
         
-    ## def __exit__(self, type, value, tb):
-    ##     #print 'exit'
-    ##     self.__del__()
+    def __exit__(self, type, value, tb):
+        self.__del__()
+        return value
         
     def __len__(self):
         return self.frames
@@ -538,7 +539,20 @@ class AudioLoader:
                 print('loaded %d frames from %d up to %d'
                       % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
         
-    
+
+    # wave interface:        
+    def open_wave(self, filename, buffersize=10.0, backsize=0.0):
+        """Open audio file for reading using the ewave module.
+
+        Args:
+          filename (string): name of the file
+          buffersize (float): size of internal buffer in seconds
+          backsize (float): part of the buffer to be loaded before the requested start index in seconds
+        """
+        print 'open_ewave(filename)'
+        # read(self, frames=None, offset=0, memmap='c')
+
+            
     # pysound file interface:        
     def open_soundfile(self, filename, buffersize=10.0, backsize=0.0):
         """Open audio file for reading using the pysoundfile module.
@@ -616,12 +630,9 @@ class AudioLoader:
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
         """
-        #print 'open(filename)'
-
         # list of implemented open functions:
         audio_open = [
             ['wave', self.open_wave],
-            #['scipy.io.wavfile', open_wavfile],
             ['soundfile', self.open_soundfile]
             #['audioread', open_audioread],
             #['scikits.audiolab', open_audiolab],
@@ -633,7 +644,6 @@ class AudioLoader:
             if not audio_modules[lib]:
                 continue
             try:
-                print 'try', lib
                 open_file(filename, buffersize, backsize)
                 if self.verbose > 0:
                     print('opened audio file "%s" using %s:' %
@@ -643,6 +653,9 @@ class AudioLoader:
                 break
             except:
                 warnings.warn('failed to open audio file "%s" with %s' % (filepath, lib))
+
+
+open = AudioLoader
                 
 
 if __name__ == "__main__":
@@ -672,24 +685,24 @@ if __name__ == "__main__":
     print('')
 
     print("try AudioLoader:")
-    #import matplotlib.pylab as plt
-    data = AudioLoader(filepath, 8.0, 3.0, 1)
     print('')
-    #with AudioLoader(filepath) as data:
-    print('samplerate: %g' % data.samplerate)
-    print('channels: %d %d' % (data.channels, data.shape[1]))
-    print('frames: %d %d' % (len(data), data.shape[0]))
-    nframes = int(3.0*data.samplerate)
-    # forward:
-    for i in xrange(0, len(data), nframes):
-        print('\nforward %d-%d' % (i, i+nframes))
-        x = data[i:i+nframes,0]
-        #plt.plot(data[i:i+nframes,0])
-        #plt.show()
-    # and backwards:
-    for i in reversed(xrange(0, len(data), nframes)):
-        print('\nbackward %d-%d' % (i, i+nframes))
-        x = data[i:i+nframes,0]
-        #plt.plot(data[i:i+nframes,0])
-        #plt.show()
-    data.close()
+    #import matplotlib.pylab as plt
+    #data = AudioLoader(filepath, 8.0, 3.0, 1)
+    with open(filepath) as data:
+        print('samplerate: %g' % data.samplerate)
+        print('channels: %d %d' % (data.channels, data.shape[1]))
+        print('frames: %d %d' % (len(data), data.shape[0]))
+        nframes = int(3.0*data.samplerate)
+        # forward:
+        for i in xrange(0, len(data), nframes):
+            print('\nforward %d-%d' % (i, i+nframes))
+            x = data[i:i+nframes,0]
+            #plt.plot(data[i:i+nframes,0])
+            #plt.show()
+        # and backwards:
+        for i in reversed(xrange(0, len(data), nframes)):
+            print('\nbackward %d-%d' % (i, i+nframes))
+            x = data[i:i+nframes,0]
+            #plt.plot(data[i:i+nframes,0])
+            #plt.show()
+    #data.close()
