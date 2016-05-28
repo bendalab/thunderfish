@@ -6,7 +6,7 @@ Loads the whole file by trying different modules until it succeeds to load the d
 
 data = AudioLoader('audio/file.wav', 60.0)
 or
-with open('audio/file.wav', 60.0) as data:
+with open_audio('audio/file.wav', 60.0) as data:
 Create an AudioLoader object that loads chuncks of 60 seconds long data on demand.
 data can be used like a read-only numpy array.
 
@@ -503,7 +503,7 @@ class AudioLoader:
 
     
     # wave interface:        
-    def _open_wave(self, filename, buffersize=10.0, backsize=0.0):
+    def open_wave(self, filename, buffersize=10.0, backsize=0.0):
         """Open audio file for reading using the wave module.
 
         Args:
@@ -511,7 +511,7 @@ class AudioLoader:
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
         """
-        print('_open_wave(filename)')
+        print('open_wave(filename)')
         if not audio_modules['wave']:
             self.samplerate = 0.0
             self.channels = 0
@@ -576,7 +576,7 @@ class AudioLoader:
         
 
     # ewave interface:        
-    def _open_ewave(self, filename, buffersize=10.0, backsize=0.0):
+    def open_ewave(self, filename, buffersize=10.0, backsize=0.0):
         """Open audio file for reading using the ewave module.
 
         Args:
@@ -584,7 +584,7 @@ class AudioLoader:
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
         """
-        print('_open_ewave(filename)')
+        print('open_ewave(filename)')
         if not audio_modules['ewave']:
             self.samplerate = 0.0
             self.channels = 0
@@ -630,7 +630,7 @@ class AudioLoader:
 
             
     # pysound file interface:        
-    def _open_soundfile(self, filename, buffersize=10.0, backsize=0.0):
+    def open_soundfile(self, filename, buffersize=10.0, backsize=0.0):
         """Open audio file for reading using the pysoundfile module.
 
         Args:
@@ -638,7 +638,7 @@ class AudioLoader:
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
         """
-        print('_open_soundfile(filename)')
+        print('open_soundfile(filename)')
         if not audio_modules['soundfile']:
             self.samplerate = 0.0
             self.channels = 0
@@ -684,7 +684,7 @@ class AudioLoader:
 
             
     # audioread interface:        
-    def _open_audioread(self, filename, buffersize=10.0, backsize=0.0):
+    def open_audioread(self, filename, buffersize=10.0, backsize=0.0):
         """Open audio file for reading using the audioread module.
 
         Args:
@@ -692,7 +692,7 @@ class AudioLoader:
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
         """
-        print('_open_audioread(filename)')
+        print('open_audioread(filename)')
         if not audio_modules['audioread']:
             self.samplerate = 0.0
             self.channels = 0
@@ -810,12 +810,12 @@ class AudioLoader:
         """
         # list of implemented open functions:
         audio_open = [
-            ['soundfile', self._open_soundfile],
-            ['wave', self._open_wave],
-            ['audioread', self._open_audioread],
-            #['scikits.audiolab', self._open_audiolab],
-            ['ewave', self._open_ewave]
-            #['wavefile', self._open_wavefile]
+            ['soundfile', self.open_soundfile],
+            ['wave', self.open_wave],
+            ['audioread', self.open_audioread],
+            #['scikits.audiolab', self.open_audiolab],
+            ['ewave', self.open_ewave]
+            #['wavefile', self.open_wavefile]
             ]
         # open an audio file by trying various modules:
         for lib, open_file in audio_open:
@@ -833,7 +833,7 @@ class AudioLoader:
                 warnings.warn('failed to open audio file "%s" with %s' % (filepath, lib))
 
 
-open = AudioLoader
+open_audio = AudioLoader
                 
 
 if __name__ == "__main__":
@@ -864,7 +864,7 @@ if __name__ == "__main__":
 
     print("try AudioLoader:")
     print('')
-    with open(filepath, 8.0, 3.0, 1) as data:
+    with open_audio(filepath, 8.0, 3.0, 1) as data:
         print('samplerate: %g' % data.samplerate)
         print('channels: %d %d' % (data.channels, data.shape[1]))
         print('frames: %d %d' % (len(data), data.shape[0]))
