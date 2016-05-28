@@ -688,7 +688,7 @@ class AudioLoader:
             self.sf.setpos(r_offset*self.pfac + self.p0)
             buffer = self.sf.readframes(r_size)
             buffer = np.fromstring(buffer, dtype=self.format).reshape((-1, self.channels))
-            self.buffer[r_offset-offset:r_offset+r_size-offset] = buffer * self.factor
+            self.buffer[r_offset-offset:r_offset+r_size-offset,:] = buffer * self.factor
             self.offset = offset
             if self.verbose > 1:
                 print('  read %6d frames at %d' % (r_size, r_offset))
@@ -744,12 +744,14 @@ class AudioLoader:
         """
         if start < self.offset or stop > self.offset + self.buffer.shape[0]:
             offset, size = self._read_indices(start, stop)
+            r_offset, r_size = self._recycle_buffer(offset, size)
             # read buffer:
+            buffer = self.sf.read(frames=r_size, offset=r_offset, memmap='r')
+            buffer = ewave.rescale(buffer, 'float')
+            if len(buffer.shape) == 1:
+                buffer = np.reshape(buffer,(-1, 1))
+            self.buffer[r_offset-offset:r_offset+r_size-offset,:] = buffer
             self.offset = offset
-            buffer = self.sf.read(frames=size, offset=offset, memmap='r')
-            self.buffer = ewave.rescale(buffer, 'float')
-            if len(self.buffer.shape) == 1:
-                self.buffer = np.reshape(self.buffer,(-1, 1))
             if self.verbose > 0:
                 print('  loaded %d frames from %d up to %d'
                       % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
@@ -802,14 +804,13 @@ class AudioLoader:
     def _update_buffer_soundfile(self, start, stop):
         """Make sure that the buffer contains the data between
         start and stop using the pysoundfile module.
-
-        seek() is in frames - perfect!
         """
         if start < self.offset or stop > self.offset + self.buffer.shape[0]:
             offset, size = self._read_indices(start, stop)
+            r_offset, r_size = self._recycle_buffer(offset, size)
+            self.sf.seek(r_offset, soundfile.SEEK_SET)
+            self.buffer[r_offset-offset:r_offset+r_size-offset,:] = self.sf.read(r_size, always_2d=True)
             self.offset = offset
-            self.sf.seek(offset, soundfile.SEEK_SET)
-            self.buffer = self.sf.read(size, always_2d=True)
             if self.verbose > 0:
                 print('  loaded %d frames from %d up to %d'
                       % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
@@ -965,9 +966,9 @@ class AudioLoader:
             return data, rate
         # list of implemented open functions:
         audio_open = [
-            ['wave', self.open_wave],
             ['soundfile', self.open_soundfile],
             ['audioread', self.open_audioread],
+            ['wave', self.open_wave],
             #['scikits.audiolab', self.open_audiolab],
             ['ewave', self.open_ewave]
             #['wavefile', self.open_wavefile]
@@ -1032,11 +1033,11 @@ if __name__ == "__main__":
     #data.open_audioread(filepath, 4.0, 0.0, 2)
     #data = AudioLoader(filepath, 8.0, 3.0, 2)
     #with data.open_audioread(filepath, 8.0, 3.0, 2):
-    with open_audio(filepath, 8.0, 2.0, 2) as data:
+    with open_audio(filepath, 2.0, 1.0, 2) as data:
         print('samplerate: %g' % data.samplerate)
         print('channels: %d %d' % (data.channels, data.shape[1]))
         print('frames: %d %d' % (len(data), data.shape[0]))
-        nframes = int(3.0*data.samplerate)
+        nframes = int(1.0*data.samplerate)
         # forward:
         for i in range(0, len(data), nframes):
             print('forward %d-%d' % (i, i+nframes))
