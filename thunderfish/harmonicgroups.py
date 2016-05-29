@@ -585,6 +585,10 @@ def harmonic_groups(psd_freqs, psd, cfg):
     all_freqs, _ = pd.detect_peaks(log_psd, low_threshold, psd_freqs,
                                    pd.accept_peaks_size_width)
 
+    if len(all_freqs) == 0:
+        # TODO: Why has not been a peak detected?
+        return [], [], [], np.zeros((0,5)), [], low_threshold, high_threshold, center
+
     # select good peaks:
     wthresh = cfg['maxPeakWidthFac'][0] * (psd_freqs[1] - psd_freqs[0])
     if wthresh < cfg['minPeakWidth'][0]:

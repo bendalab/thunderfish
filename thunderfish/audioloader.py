@@ -555,7 +555,7 @@ class AudioLoader(object):
             if index > self.frames:
                 raise IndexError
             self._update_buffer(index, index+1)
-            newindex = start-self.offset
+            newindex = index-self.offset
         if hasattr(key, '__len__'):
             newkey = (newindex,) + key[1:]
             return self.buffer[newkey]

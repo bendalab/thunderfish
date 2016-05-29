@@ -343,7 +343,8 @@ class SignalPlot :
         if self.power_label == None :
             self.power_label = self.axp.set_ylabel( 'Power' )
         if self.decibel :
-            self.allpeaks[:,1] = 10.0*np.log10( self.allpeaks[:,1] )
+            if len(self.allpeaks) > 0:
+                self.allpeaks[:,1] = 10.0*np.log10( self.allpeaks[:,1] )
             power = 10.0*np.log10( power )
             pmin = np.min( power[freqs<self.fmax] )
             pmin = np.floor(pmin/10.0)*10.0
@@ -790,7 +791,9 @@ if __name__ == '__main__':
     # load data:
     channel = args.channel
     filename = os.path.basename(filepath)
-    data, freq, unit = dl.load_data(filepath, channel, cfg['verboseLevel'][0])
+    data = dl.DataLoader(filepath, channel, 60.0, 10.0, cfg['verboseLevel'][0])
+    freq = data.samplerate
+    unit = data.unit
 
     # plot:
     sp = SignalPlot(freq, data, unit, filename, channel)

@@ -102,11 +102,12 @@ class DataLoader(audioloader.AudioLoader):
         if channel > self.channels:
             channel = self.channels-1
         self.channel = channel
+        self.unit = 'a.u.'
 
     def __getitem__(self, key):
         if hasattr(key, '__len__'):
             raise InvalidIndex
-        return super(DataLoader, self).__getitem__((key, channel))
+        return super(DataLoader, self).__getitem__((key, self.channel))
                                 
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
         """Open data file for reading.
@@ -124,6 +125,7 @@ class DataLoader(audioloader.AudioLoader):
         if channel > self.channels:
             channel = self.channels-1
         self.channel = channel
+        self.unit = 'a.u.'
         return self
     
 
