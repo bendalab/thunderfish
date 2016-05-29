@@ -791,12 +791,13 @@ if __name__ == '__main__':
     # load data:
     channel = args.channel
     filename = os.path.basename(filepath)
-    data = dl.DataLoader(filepath, channel, 60.0, 10.0, cfg['verboseLevel'][0])
-    freq = data.samplerate
-    unit = data.unit
+    # TODO: add blocksize and backsize as configuration parameter!
+    with dl.open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
+        freq = data.samplerate
+        unit = data.unit
 
-    # plot:
-    sp = SignalPlot(freq, data, unit, filename, channel)
+        # plot:
+        sp = SignalPlot(freq, data, unit, filename, channel)
 
 
 ## data = data/2.0**15
