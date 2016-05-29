@@ -416,7 +416,7 @@ def load_audio(filepath, verbose=0):
     return data, rate
 
 
-class AudioLoader:
+class AudioLoader(object):
     """Buffered reading of audio data for random access of the data in the file.
     This allows for reading very large audio files that  do not fit into memory.
     An AudioLoader instance can be used like a huge read-only numpy array, i.e.
@@ -1117,6 +1117,7 @@ open_audio = AudioLoader
 if __name__ == "__main__":
     import sys
     import matplotlib.pyplot as plt
+
     print("Checking audioloader module ...")
     print('')
     print('Usage:')
