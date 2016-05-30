@@ -3,5 +3,7 @@
 
 # thunderfish
 
-this project is meant to analyze transects, segregate fishes in wave or pulse type fishes
-and generate a Histogram of EOD-Frequencies.
+This repository is a collection of algorithms and programs for
+analysing electric field recordings of weakly electric fish. In
+particular we focus on recordings made in natural habitats.
+

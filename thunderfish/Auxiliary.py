@@ -5,83 +5,32 @@ import numpy as np
 import wave
 import matplotlib.pyplot as plt
 import sys
-import seaborn as sns
+#import seaborn as sns
 from scipy.signal import butter, filtfilt
 from IPython import embed
 
-def peakdet(v, delta, x=None):
+        
+def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
+    """Removes mean and normalizes data by dividing by the standard deviation.
+    Mean and standard deviation are computed in win_duration long windows.
+
+    Args:
+      data (array): the data as a 1-D array
+      rate (float): the sampling rate of the data
+      win_duration (float): the length of the analysis window given in inverse unit of rate
+      min_std (float): minimum standard deviation to be used for scaling
+
+    Returns:
+      scaled_data (array): the de-meaned and normalized data as an 1-D numpy array
     """
-    Converted from MATLAB script at http://billauer.co.il/peakdet.html
-    Returns two arrays
-    function [maxtab, mintab]=peakdet(v, delta, x)
-    %PEAKDET Detect peaks in a vector
-    % [MAXTAB, MINTAB] = PEAKDET(V, DELTA) finds the local
-    % maxima and minima ("peaks") in the vector V.
-    % MAXTAB and MINTAB consists of two columns. Column 1
-    % contains indices in V, and column 2 the found values.
-    %
-    % With [MAXTAB, MINTAB] = PEAKDET(V, DELTA, X) the indices
-    % in MAXTAB and MINTAB are replaced with the corresponding
-    % X-values.
-    %
-    % A point is considered a maximum peak if it has the maximal
-    % value, and was preceded (to the left) by a value lower by
-    % DELTA.
-    % Eli Billauer, 3.4.05 (Explicitly not copyrighted).
-    % This function is released to the public domain; Any use is allowed.
-    """
-    maxtab = []
-    maxidx = []
+    w = np.ones(rate*win_duration)
+    w /= len(w)
+    mean = np.convolve(data, w, mode='same')
+    std = np.sqrt(np.convolve(data**2., w, mode='same') - mean**2.)
+    if min_std > 0.0 :
+        std[std<min_std] = min_std
+    return (data - mean) / std
 
-    mintab = []
-    minidx = []
-
-    if x is None:
-        x = np.arange(len(v), dtype=int)
-
-    v = np.asarray(v)
-
-    if len(v) != len(x):
-        sys.exit('Input vectors v and x must have same length')
-
-    if not np.isscalar(delta):
-        sys.exit('Input argument delta must be a scalar')
-
-    if delta <= 0:
-        sys.exit('Input argument delta must be positive')
-
-    mn, mx = np.Inf, -np.Inf
-    mnpos, mxpos = np.NaN, np.NaN
-
-    lookformax = True
-
-    for i in np.arange(len(v)):
-        this = v[i]
-        if this > mx:
-            mx = this
-            mxpos = x[i]
-
-        if this < mn:
-            mn = this
-            mnpos = x[i]
-
-
-        if lookformax:
-            if this < mx-delta:
-                maxtab.append(mx)
-                maxidx.append(mxpos)
-                mn = this
-                mnpos = x[i]
-                lookformax = False
-        else:
-            if this > mn+delta:
-                mintab.append(mn)
-                minidx.append(mnpos)
-                mx = this
-                mxpos = x[i]
-                lookformax = True
-
-    return np.array(maxtab), np.array(maxidx), np.array(mintab), np.array(minidx)
 
 def df_histogram(freqs_array):
     """ This Function takes an array of wave-fish fundamental frequencies and calculates all possible

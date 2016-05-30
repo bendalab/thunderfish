@@ -7,11 +7,12 @@ import os
 
 import Auxiliary as aux
 import numpy as np
-import seaborn as sns
+#import seaborn as sns
 from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib import mlab
 from IPython import embed
+import peakdetection as pd
 
 
 def needs_roi(func):
@@ -39,7 +40,7 @@ class FishRecording:
     def detect_peak_and_trough_indices(self, peak_threshold=None, norm_window=.1):
         """This function finds the indices of peaks and troughs of each EOD-cycle in the recording
 
-        :param peak_threshold: This is the threshold to be used for the peakdet function (Translated Matlab-Code...).
+        :param peak_threshold: This is the threshold to be used for the peak detection
         :param norm_window:
         :return: two arrays. The first contains the peak indices and the second contains the trough indices.
         """
@@ -53,7 +54,8 @@ class FishRecording:
                 peak_threshold = np.percentile(np.abs(eod2), 99.9)-np.percentile(np.abs(eod2), 70)
               # The Threshold is 1.5 times the standard deviation of the eod
 
-            _, self._eod_peak_idx, _, self._eod_trough_idx = aux.peakdet(eod2, peak_threshold)
+            #_, self._eod_peak_idx, _, self._eod_trough_idx = aux.peakdet(eod2, peak_threshold)
+            self._eod_peak_idx, self._eod_trough_idx = pd.detect_peaks(eod2, peak_threshold)
             # refine by matching troughs and peaks
             everything = list(self.peak_trough_iterator())
             _, _, self._eod_peak_idx, _, _, self._eod_trough_idx = map(lambda x: np.asarray(x), zip(*everything))

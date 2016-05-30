@@ -5,7 +5,7 @@ import pandas as pd
 import random
 from IPython import embed
 import scipy.stats as sps
-from harmonic_tools import *
+from harmonicgroups import *
 
 
 def load_data():
