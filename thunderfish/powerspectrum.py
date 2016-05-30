@@ -16,7 +16,7 @@ def calc_nfft(samplingrate, fresolution):
 
 def calc_psd(data, samplingrate, nfft):
     """
-    This function is calcualting a powerspectrum of a given data-array.
+    This function is calcualting a powerspectrum of a given data-array when nfft and samplingrate is given as argument.
 
     :param data: (1-D array)
     :param samplingrate: (int)
@@ -29,7 +29,9 @@ def calc_psd(data, samplingrate, nfft):
 
 def powerspectrum_main(data, samplingrate, fresolution=0.5):
     """
-
+    This function is performing the steps to calculate a powerspectrum on the basis of a given dataset, a given
+    samplingrate and a given frequencyresolution for the psd. Therefore two other functions are called to first
+    calculate the nfft value and second calculate the powerspectrum.
 
     :param data: (1-D array)
     :param samplingrate: (int)
