@@ -416,6 +416,22 @@ def load_audio(filepath, verbose=0):
     return data, rate
 
 
+def conv_to_single_ch_audio(audiofile):
+    """ This function uses the software avconv to convert the current file to a single channel audio wav-file
+    (or mp3-file), with which we can work afterwards using the package wave. Returns the name of the modified
+    file as a string.
+
+    :param audiofile: (string) sound-file that was recorded.
+    :rtype : (string) name of new modified sound-file.
+    """
+
+    base, ext = os.path.splitext(audiofile)
+    base = base.split('/')[-1]
+    new_mod_filename = 'recording_' + base + '_mod.wav'
+    os.system('avconv -i {0:s} -ac 1 -y -acodec pcm_s16le {1:s}'.format(audiofile, new_mod_filename))
+    return new_mod_filename
+
+
 class AudioLoader(object):
     """Buffered reading of audio data for random access of the data in the file.
     This allows for reading very large audio files that  do not fit into memory.
