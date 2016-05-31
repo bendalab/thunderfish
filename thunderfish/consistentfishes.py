@@ -45,10 +45,40 @@ def consistentfishes_main(fishlists):
     return filtered_fishlist
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    import sys
+
+    print('Creating one fishlist containing only the fishes that are consistant in several fishlists.')
+    print('The input structur locks like this fishlists[list][fish][harmonic][frequency, power]')
+    print('')
+    print('Usage:')
+    print('  python consistentfishes.py [-p]')
+    print('  -p: plot data')
+    print('')
 
     fishlists = [ [[[350, 0]], [[700.2, 0]], [[1000, 0]]],
                   [[[350.1, 0]], [[699.8, 0]], [[250.2, 0]]],
                   [[[349.7, 0]], [[700.4, 0]], [[1000.2, 0]]] ]
     filtered_fishlist = consistentfishes_main(fishlists)
 
-    print filtered_fishlist
+    if len(sys.argv) > 1 and sys.argv[1] == '-p':
+        fig, ax = plt.subplots()
+        for list in np.arange(len(fishlists)):
+            for fish in np.arange(len(fishlists[list])):
+                ax.plot(list+1, fishlists[list][fish][0][0], 'k.', markersize= 10)
+
+        for fish in np.arange(len(filtered_fishlist)):
+            if fish == 0:
+                ax.plot(np.arange(len(fishlists))+1, [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))],
+                        '-r', linewidth= 10, alpha=0.5, label='consistent in all lists')
+            else:
+                ax.plot(np.arange(len(fishlists))+1, [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))],
+                        '-r', linewidth= 10, alpha=0.5)
+        ax.set_xlim([0, 4])
+        ax.set_ylabel('value')
+        ax.set_xlabel('list no.')
+        plt.legend(loc='upper right', fontsize= 12)
+        plt.show()
+
+
+    # print filtered_fishlist
