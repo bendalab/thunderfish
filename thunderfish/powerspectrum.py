@@ -39,21 +39,27 @@ def powerspectrum_main(data, samplingrate, fresolution=0.5):
     :return power: (1-D array)
     :return freqs:(1-D array)
     """
-    print("calculating powerspecturm ...")
 
-    nfft = calc_nfft(samplingrate, fresolution)
-    power, freqs = calc_psd(data, samplingrate, nfft)
+    if len(sys.argv) > 1:
+        print("calculating powerspecturm ...")
+
+        nfft = calc_nfft(samplingrate, fresolution)
+        power, freqs = calc_psd(data, samplingrate, nfft)
+        print('Done !')
+        print('')
+
     return power, freqs
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     import sys
 
-    print('Calculating powerspectrum of a created signal of two wavefish (300 and 450 Hz)')
+    print('Computes powerspectrum of a created signal of two wavefish (300 and 450 Hz)')
     print('')
     print('Usage:')
     print('  python powerspectrum.py [-p]')
     print('  -p: plot data')
+    print('  -h: help')
     print('')
 
     plot = False
@@ -68,6 +74,7 @@ if __name__ == '__main__':
     power, freqs = powerspectrum_main(data, samplingrate)
 
     if plot:
+        print('plotting example psd ...')
         fig, ax = plt.subplots()
         ax.plot(freqs, power)
         ax.set_ylabel('power')
