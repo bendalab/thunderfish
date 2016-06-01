@@ -1,1 +1,2 @@
-import thunderfish
+__all__ = ['dataloader', 'configfile', 'peakdetection', 'bestwindow', 'harmonicgroups']
+from thunderfish import *

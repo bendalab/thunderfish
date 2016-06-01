@@ -1,6 +1,6 @@
 import os.path
 import numpy as np
-import audioloader
+from audioio import audioloader
 
 def load_pickle(filename, channel=0) :
     """
