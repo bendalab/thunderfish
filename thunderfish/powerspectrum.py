@@ -40,13 +40,10 @@ def powerspectrum_main(data, samplingrate, fresolution=0.5):
     :return freqs:(1-D array)
     """
 
-    if len(sys.argv) > 1:
-        print("calculating powerspecturm ...")
+    # print("calculating powerspecturm ...")
 
-        nfft = calc_nfft(samplingrate, fresolution)
-        power, freqs = calc_psd(data, samplingrate, nfft)
-        print('Done !')
-        print('')
+    nfft = calc_nfft(samplingrate, fresolution)
+    power, freqs = calc_psd(data, samplingrate, nfft)
 
     return power, freqs
 
@@ -59,7 +56,6 @@ if __name__ == '__main__':
     print('Usage:')
     print('  python powerspectrum.py [-p]')
     print('  -p: plot data')
-    print('  -h: help')
     print('')
 
     plot = False
