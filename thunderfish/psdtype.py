@@ -2,6 +2,15 @@ import numpy as np
 import sys
 
 def bin_it(power, freq_bins, max_freq, res):
+    """
+    Take a 1-D array of powers (from powerspectrums), transforms it into dB and devides it into several bins.
+
+    :param power: (1-D array)
+    :param freq_bins: (float)
+    :param max_freq: (float)
+    :param res: (float)
+    :return power_db: (2-D array)
+    """
     power_db = []
     for trial in np.arange(max_freq / freq_bins):
         tmp_power_db = 10.0 * np.log10(power[trial * int( freq_bins / (res) ) : (trial +1) * int( freq_bins / (res) ) - 1])
@@ -9,6 +18,12 @@ def bin_it(power, freq_bins, max_freq, res):
     return power_db
 
 def get_bin_percentiles(power_db):
+    """
+    Takes a 2-D array if lists. For every list the function calculates several percentails that are later returned.
+
+    :param power_db: (2-D array)
+    :return: (4-D array)
+    """
     power_db_top = np.ones(len(power_db))
     power_db_upper_middle = np.ones(len(power_db))
     power_db_lower_middle = np.ones(len(power_db))
@@ -24,6 +39,21 @@ def get_bin_percentiles(power_db):
 
 
 def psd_type_main(power, freqs, freq_bins=125, max_freq = 3000, return_percentiles= False):
+    """
+    Function that is called when you got a PSD and want to find out from what fishtype this psd is. It with the help of
+    several other function it analysis the structur of the EOD and can with this approach tell what type of fish the PSD
+    comes from.
+
+    :param power: (1-D array)
+    :param freqs: (1-D array)
+    :param freq_bins: (float)
+    :param max_freq: (float)
+    :param return_percentiles: (boolean)
+    :return psd_type: (string)
+    :return proportions: (1-D array)
+    :return percentiles: (2-D array)
+
+    """
     print('try to figure out psd type ...')
     res = freqs[-1]/len(freqs) # resolution
 
@@ -38,6 +68,7 @@ def psd_type_main(power, freqs, freq_bins=125, max_freq = 3000, return_percentil
         psd_type = 'wave'
     else:
         psd_type = 'pulse'
+    print ('The PSD belongs to a %s-fish (%.2f)' % (psd_type, float(np.mean(proportions))))
 
     if return_percentiles:
         return psd_type, proportions, percentiles
@@ -45,6 +76,14 @@ def psd_type_main(power, freqs, freq_bins=125, max_freq = 3000, return_percentil
         return psd_type, proportions
 
 def get_example_data(audio_file, channel=0, verbose=None):
+    """
+    This function shows in part the same components of the thunderfish.py poject. Here several moduls are used to load
+    some data to dispay the functionality of the psdtype.py modul.
+
+    :param audio_file:
+    :return power:
+    :return freqs:
+    """
     cfg = ct.get_config_dict()
 
     if verbose is not None:  # ToDo: Need to document the whole cfg-dict thing.
@@ -73,21 +112,30 @@ if __name__ == '__main__':
     except ImportError:
         print('')
         print('This modul is dependent on the moduls')
-        print('"powerspectrum.py", "config_tools.py", "dataloader.py" and "bestwindow.py"')
-        print('If you want do download this modul please visit:')
+        print('"powerspectrum.py", "config_tools.py", "dataloader.py" and "bestwindow.py"\n')
+        print('If you want to download them please visit:')
         print('https://github.com/bendalab/thunderfish')
         print('')
         quit()
 
+    print('Algorithm that analysis the structur of a powerspectrum to tell if it belongs to a wave of pulsetype fish.')
+    print('')
+    print('Usage:')
+    print('  python psdtype.py [-p] <audiofile>')
+    print('  -p: plot data')
+    print('')
+
+    if len(sys.argv) <=1:
+        quit()
+
     plot = False
-    if sys.argv > 2 and sys.argv[1] == '-p':
+    if len(sys.argv) > 2 and sys.argv[1] == '-p':
         plot = True
 
     file = sys.argv[-1]
     power, freqs = get_example_data(file)
 
     psd_type, proportions, percentiles = psd_type_main(power, freqs, return_percentiles=True)
-    print ('The PSD belongs to a %s-fish (%.2f)' %(psd_type, float(np.mean(proportions))))
 
     if plot:
         import matplotlib.pyplot as plt
