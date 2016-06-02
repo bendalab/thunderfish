@@ -19,8 +19,10 @@ virtualenv:
 
 install:
   - pip install git+https://github.com/G-Node/python-odml.git
-  - pip install -r requirements.txt
+  - pip install git+https://github.com/bendalab/audioio
   - pip install nose nose-cov python-coveralls
+#  - pip install -r requirements.txt
+
 # command to run tests
 script:
   - nosetests -vv --with-coverage --cover-package=thunderfish
