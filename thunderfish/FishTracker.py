@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 from harmonicgroups import *
 import sorting_tools as st
-from IPython import embed
 
 
 class FishTracker:
@@ -98,7 +97,6 @@ class FishTracker:
         # Pulsefish processing
         # if psd_type is 'pulse' and fish_type is 'pulse':
         #     print 'HERE WE HAVE TO BUILD IN THE PULSEFISH ANALYSIS'
-        # # embed()
         return power_fres1, freqs_fres1, psd_type, fish_type, fishlist, mean_proportions
 
     def sort_my_wavefish(self):

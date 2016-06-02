@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 import sys
 #import seaborn as sns
 from scipy.signal import butter, filtfilt
-from IPython import embed
 
         
 def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :

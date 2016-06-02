@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as sps
 import os
-from IPython import embed
 
 
 def filter_fishes(fishlists):
@@ -35,7 +34,6 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
     freq_steps = int(125 / fresolution)
     proportions = []
     mean_powers = []
-    # embed()
     # power_db = 10.0 * np.log10(power)
     for i in np.arange((1500 / fresolution) // freq_steps):  # does all of this till the frequency of 3k Hz
         power_db = 10.0 * np.log10(power[i * freq_steps:i * freq_steps + freq_steps])
