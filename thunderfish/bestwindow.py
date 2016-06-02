@@ -89,7 +89,7 @@ def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
       cfg (ConfigFile): the configuration
       min_clip (float): default minimum clip amplitude.
       max_clip (float): default maximum clip amplitude.
-      See best_window_indices() for details on the remaining arguments.
+      See clip_amplitudes() for details on the remaining arguments.
     """
     
     cfg.add_section('Clipping amplitudes:')
@@ -310,8 +310,9 @@ def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, thres
     Returns:
       start_time (float): Time of the start of the best window.
       end_time (float): Time of the end of the best window.
+      clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_times(data, rate, single, win_size, win_shift, thresh_ampl_fac,
+    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, thresh_ampl_fac,
                                 min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                 plot_data_func, **kwargs)
     return start_inx/rate, end_inx/rate, clipped
@@ -325,8 +326,9 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl
 
     Returns:
       data (array): the data of the best window.
+      clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_times(data, rate, single, win_size, win_shift, thresh_ampl_fac,
+    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, thresh_ampl_fac,
                                     min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                     plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
