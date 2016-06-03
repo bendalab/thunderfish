@@ -12,7 +12,7 @@ import configfile as cf
 import dataloader as dl
 import harmonicgroups as hg
 import bestwindow as bw
-from audioio.playaudio import PlayAudio
+from audioio import PlayAudio
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
