@@ -734,7 +734,7 @@ class SignalPlot :
         self.audio.play(self.data, self.rate)
         
     def play_tone( self, frequency ) :
-        self.audio.beep(1.0, frequency, self.rate)
+        self.audio.beep(1.0, frequency)
 
                             
 def short_user_warning(message, category, filename, lineno, file=sys.stderr, line=''):
