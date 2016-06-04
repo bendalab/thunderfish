@@ -728,10 +728,10 @@ class SignalPlot :
     def play_segment(self) :
         t0 = int(np.round(self.toffset*self.rate))
         t1 = int(np.round((self.toffset+self.twindow)*self.rate))
-        self.audio.play(self.data[t0:t1], self.rate)
+        self.audio.play(self.data[t0:t1], self.rate, blocking=False)
         
     def play_all(self) :
-        self.audio.play(self.data, self.rate)
+        self.audio.play(self.data[:], self.rate, blocking=False)
         
     def play_tone( self, frequency ) :
         self.audio.beep(1.0, frequency, self.rate)
