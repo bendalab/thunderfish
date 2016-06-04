@@ -117,7 +117,7 @@ def clip_args(cfg, rate):
     return a
 
 
-def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
+def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
@@ -158,7 +158,7 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
     :param single: boolean. If true return only the single window with the smallest cost. If False return the largest window with the cost below the minimum cost plus tolerance.
     :param win_size: float. Size of the best window in seconds. Choose it large enough for a minimum analysis.
     :param win_shift: float. Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one thenth of win_shift.
-    :param thresh_ampl_fac: float. Threshold for peak detection is thresh_ampl_fac times the standard deviation of the data in win_shift wide windows.
+    :param percentile_th: int. Threshold for peak detection is the given percentile of the amplitude for win_shift wide windows.
     :param min_clip: float. Minimum amplitude below which data are clipped.
     :param max_clip: float. Maximum amplitude above which data are clipped.
     :param w_cv_interv: float. Weight for the coefficient of variation of the intervals.
@@ -202,7 +202,7 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
     win_shift_indices = int(win_shift*rate)
     for inx0 in xrange(0, len(data)-win_shift_indices/2, win_shift_indices):
         inx1 = inx0 + win_shift_indices
-        threshold[inx0:inx1] = np.std(data[inx0:inx1])*thresh_ampl_fac
+        threshold[inx0:inx1] = np.percentile(data[inx0:inx1], percentile_th)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pd.detect_peaks(data, threshold)
@@ -301,7 +301,7 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, thr
     return idx0, idx1, clipped
 
 
-def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
+def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
@@ -312,13 +312,13 @@ def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, thres
       end_time (float): Time of the end of the best window.
       clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, thresh_ampl_fac,
+    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th,
                                 min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                 plot_data_func, **kwargs)
     return start_inx/rate, end_inx/rate, clipped
 
 
-def best_window(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl_fac=3.0,
+def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
                 min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                 plot_data_func=None, **kwargs):
@@ -328,7 +328,7 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, thresh_ampl
       data (array): the data of the best window.
       clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, thresh_ampl_fac,
+    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th,
                                     min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                     plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
@@ -420,5 +420,5 @@ if __name__ == "__main__":
     
     # find best window:
     best_window_indices(data, rate, single=False,
-                        win_size=1.0, win_shift=0.5, thresh_ampl_fac=3.0,
+                        win_size=1.0, win_shift=0.5, percentile_th=99,
                         min_clip=min_clip, max_clip=max_clip, w_cv_ampl=10.0)
