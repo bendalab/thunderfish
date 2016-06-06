@@ -157,7 +157,7 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, per
     :param rate: float. Sampling rate of the data in Hz
     :param single: boolean. If true return only the single window with the smallest cost. If False return the largest window with the cost below the minimum cost plus tolerance.
     :param win_size: float. Size of the best window in seconds. Choose it large enough for a minimum analysis.
-    :param win_shift: float. Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one thenth of win_shift.
+    :param win_shift: float. Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
     :param percentile_th: int. Threshold for peak detection is the given percentile of the amplitude for win_shift wide windows.
     :param min_clip: float. Minimum amplitude below which data are clipped.
     :param max_clip: float. Maximum amplitude above which data are clipped.
