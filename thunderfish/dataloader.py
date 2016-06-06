@@ -2,7 +2,8 @@ import os.path
 import numpy as np
 import audioloader
 
-def load_pickle(filename, channel=0) :
+
+def load_pickle(filename, channel=0):
     """
     Load Joerg's pickle files.
 
@@ -19,16 +20,16 @@ def load_pickle(filename, channel=0) :
     with open(filename, 'rb') as f:
         data = pickle.load(f)
     time = data['time_trace']
-    freq = 1000.0/(time[1]-time[0])
+    freq = 1000.0 / (time[1] - time[0])
     tracen = data['raw_data'].shape[1]
-    if channel >= tracen :
+    if channel >= tracen:
         print('number of channels in file %s is %d, but requested channel %d' %
               (filename, tracen, channel))
-        channel = tracen-1
-    return data['raw_data'][:,channel], freq, 'mV'
+        channel = tracen - 1
+    return data['raw_data'][:, channel], freq, 'mV'
 
 
-def load_data(filepath, channel=0, verbose=0) :
+def load_data(filepath, channel=0, verbose=0):
     """
     Call this function to load a single trace of data from a file.
 
@@ -43,41 +44,41 @@ def load_data(filepath, channel=0, verbose=0) :
         unit (string): the unit of the data
     """
     # check types:
-    if not isinstance(filepath, basestring) :
+    if not isinstance(filepath, basestring):
         raise NameError('load_data(): input argument filepath must be a string!')
-    if not isinstance(channel, int) :
+    if not isinstance(channel, int):
         raise NameError('load_data(): input argument channel must be an int!')
 
     # check values:
     data = np.array([])
     freq = 0.0
     unit = ''
-    if len(filepath) == 0 :
+    if len(filepath) == 0:
         print('load_data(): input argument filepath is empty string!')
         return data, freq, unit
-    if not os.path.isfile(filepath) :
+    if not os.path.isfile(filepath):
         print('load_data(): input argument filepath=%s does not indicate an existing file!' % filepath)
         return data, freq, unit
     if os.path.getsize(filepath) <= 0:
         print('load_data(): input argument filepath=%s indicates file of size 0!' % filepath)
         return data, freq, unit
-    if channel < 0 :
+    if channel < 0:
         print('load_data(): input argument channel=%d is negative!' % channel)
         channel = 0
 
     # load data:
     ext = filepath.split('.')[-1]
-    if ext == 'pkl' :
+    if ext == 'pkl':
         data, freq, unit = load_pickle(filepath, channel)
-    else :
+    else:
         data, freq = audioloader.load_audio(filepath, verbose)
         channels = data.shape[1]
-        if channel >= channels :
+        if channel >= channels:
             print('number of channels in file %s is %d, but requested channel %d' %
-                  (filename, channels, channel))
-            channel = channels-1
-        if channel >= 0 :
-            data = data[:,channel]
+                  (filepath, channels, channel))
+            channel = channels - 1
+        if channel >= 0:
+            data = data[:, channel]
         unit = 'a.u.'
     return data, freq, unit
 
@@ -85,7 +86,7 @@ def load_data(filepath, channel=0, verbose=0) :
 class DataLoader(audioloader.AudioLoader):
     """
     """
-    
+
     def __init__(self, filepath=None, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
         """Initialize the AudioLoader instance. If filepath is not None open the file.
 
@@ -100,15 +101,15 @@ class DataLoader(audioloader.AudioLoader):
         if channel < 0:
             channel = 0
         if channel > self.channels:
-            channel = self.channels-1
+            channel = self.channels - 1
         self.channel = channel
         self.unit = 'a.u.'
 
     def __getitem__(self, key):
         if hasattr(key, '__len__'):
-            raise InvalidIndex
+            raise IndexError
         return super(DataLoader, self).__getitem__((key, self.channel))
-                                
+
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
         """Open data file for reading.
 
@@ -123,19 +124,18 @@ class DataLoader(audioloader.AudioLoader):
         if channel < 0:
             channel = 0
         if channel > self.channels:
-            channel = self.channels-1
+            channel = self.channels - 1
         self.channel = channel
         self.unit = 'a.u.'
         return self
-    
+
 
 open_data = DataLoader
-            
 
 if __name__ == "__main__":
     import sys
     import matplotlib.pyplot as plt
-    
+
     print("Checking dataloader module ...")
     print('')
     print('Usage:')
@@ -148,11 +148,11 @@ if __name__ == "__main__":
     plot = False
     if len(sys.argv) > 1 and sys.argv[1] == '-p':
         plot = True
-    
+
     print("try load_data:")
     data, rate, unit = load_data(filepath, channel, 2)
     if plot:
-        plt.plot(np.arange(len(data))/rate, data)
+        plt.plot(np.arange(len(data)) / rate, data)
         plt.show()
 
     print('')
@@ -161,18 +161,18 @@ if __name__ == "__main__":
         print('samplerate: %g' % data.samplerate)
         print('channels: %d %d' % (data.channels, data.shape[1]))
         print('frames: %d %d' % (len(data), data.shape[0]))
-        nframes = int(1.0*data.samplerate)
+        nframes = int(1.0 * data.samplerate)
         # forward:
         for i in range(0, len(data), nframes):
-            print('forward %d-%d' % (i, i+nframes))
-            x = data[i:i+nframes]
+            print('forward %d-%d' % (i, i + nframes))
+            x = data[i:i + nframes]
             if plot:
-                plt.plot((i+np.arange(len(x)))/rate, x)
+                plt.plot((i + np.arange(len(x))) / rate, x)
                 plt.show()
         # and backwards:
         for i in reversed(range(0, len(data), nframes)):
-            print('backward %d-%d' % (i, i+nframes))
-            x = data[i:i+nframes]
+            print('backward %d-%d' % (i, i + nframes))
+            x = data[i:i + nframes]
             if plot:
-                plt.plot((i+np.arange(len(x)))/rate, x)
+                plt.plot((i + np.arange(len(x))) / rate, x)
                 plt.show()
