@@ -9,7 +9,6 @@ import config_tools as ct
 import dataloader as dl
 import bestwindow as bw
 import sortfishtype as sft
-from IPython import embed
 
 
 def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None, beat_plot= False):

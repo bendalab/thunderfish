@@ -1,18 +1,23 @@
 import numpy as np
-import peakdetection as pkd
 from IPython import embed
 
+import peakdetection as pkd
+import matplotlib.pyplot as plt
+from matplotlib.patches import Rectangle
 
-def type_detector(data, samplerate, thres=0.1, plot_data_func=None):
+
+def type_detector(data, samplerate, win_shift=0.5, pulse_thres=0.1, plot_data_func=None):
+    # ToDo: The peak-ratio docu is mistaken! The float should be between 0. and 1. but it doesn't and Idk why!!
 
     """ Detects if fish is pulse or wave by calculating the proportion of the time distance between a peak and its
      following trough, relative to the time between consecutive peaks.
 
     :param data: (1-D array) The data to be analyzed (Usually the best window already)
     :param samplerate: (float). Sampling rate of the data in Hz
-    :param thres: (float or array): a positive number setting the minimum distance between peaks and troughs
-    :param plot_data_func: Function for plotting the raw data, detected peaks and troughs, the criteria,
-    the cost function and the selected best window.
+    :param win_shift: (float). Time shift in seconds between windows.
+    :param pulse_thres: (float): a positive number setting the minimum distance between peaks and troughs
+    :param plot_data_func: Function for plotting the data with detected peaks and troughs, an inset and the distribution
+    of peak-ratios.
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
                        win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost,
                        thresh, valid_wins, **kwargs)
@@ -21,14 +26,11 @@ def type_detector(data, samplerate, thres=0.1, plot_data_func=None):
         :param peak_idx (array): indices into raw data indicating detected peaks.
         :param trough_idx (array): indices into raw data indicating detected troughs.
     :return: suggestion: (str). Returns the suggested fish-type ("pulse"/"wave").
-    :return: r_value: (float). Returns a float between 0. and 1. which gives the proportion of peak-2-trough,
+    :return: peak_ratio: (float). Returns a float between 0. and 1. which gives the proportion of peak-2-trough,
                             from peak-2-peak time distance. (Wave-fishes should have larger values than pulse-fishes)
     """
 
     print('\nAnalyzing Fish-Type...')
-
-    # define args for peak-trough detection
-    win_shift = 0.1
 
     # threshold for peak detection:
     threshold = np.zeros(len(data))
@@ -40,36 +42,28 @@ def type_detector(data, samplerate, thres=0.1, plot_data_func=None):
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pkd.detect_peaks(data, threshold)
-
-    # adjust array shape
-    min_len = np.min([len(peak_idx), len(trough_idx)])
-    peak_idx = peak_idx[:min_len]
-    trough_idx = trough_idx[:min_len]
+    peak_idx, trough_idx = pkd.trim_closest(peak_idx, trough_idx)
 
     # get times of peaks and troughs
-    time = np.arange(len(data)) / samplerate
-    pk_t = time[peak_idx]
-    tr_t = time[trough_idx]
+    pk_times = peak_idx/samplerate
+    tr_times = trough_idx/samplerate
 
-    pk_2_pk = np.diff(pk_t)
-    pk_2_tr = np.abs(pk_t - tr_t)
-
-    # adjust array shape
-    min_n = np.min([len(pk_2_pk), len(pk_2_tr)])
+    pk_2_pk = np.diff(pk_times)
+    pk_2_tr = np.abs(pk_times - tr_times)[:-1]
 
     # get the proportion of peak-2-trough, from peak-2-peak time distance
-    r_tr = pk_2_tr[:min_n] / pk_2_pk[:min_n]
+    r_tr = pk_2_tr / pk_2_pk
     r_tr[r_tr > 0.5] = 1 - r_tr[r_tr > 0.5]
+    # ToDo: Some values are not between 0. and 1. as they should! Need to find a solution!
 
-    r_value = np.median(r_tr)
-    # r_value = np.median(pk_2_tr[:min_n] / pk_2_pk[:min_n])
-    suggestion = 'pulse' if r_value < thres else 'wave'
+    peak_ratio = np.median(r_tr)
+    suggestion = 'pulse' if peak_ratio < pulse_thres else 'wave'
 
     if plot_data_func:
-        plot_data_func(data, samplerate, peak_idx, trough_idx, threshold, thres, suggestion, r_tr)
+        plot_data_func(data, samplerate, peak_idx, trough_idx, threshold, pulse_thres, suggestion, r_tr)
 
-    print('\nFish-type is %s. r-value = %.3f' % (suggestion, r_value))
-    return suggestion, r_value
+    print('\nFish-type is %s. r-value = %.3f' % (suggestion, peak_ratio))
+    return suggestion, peak_ratio
 
 
 def plot_type_detection(data, rate, peak_idx, trough_idx, peakdet_th, r_value_th, type_suggestion, r_vals):
@@ -84,8 +78,6 @@ def plot_type_detection(data, rate, peak_idx, trough_idx, peakdet_th, r_value_th
     :param type_suggestion: (str). Fish-type suggested by the algorithm
     :param r_vals: (array-like). Array with r-values (peak2trough / peak2peak)
     """
-    import matplotlib.pyplot as plt
-    from matplotlib.patches import Rectangle
 
     t = np.arange(len(data)) / rate
     fs = 14
@@ -93,7 +85,7 @@ def plot_type_detection(data, rate, peak_idx, trough_idx, peakdet_th, r_value_th
     # Draw Figure with subplots
     fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
 
-    # First and second subplots: best window with peak-trough-detection
+    # First and second subplots: raw-data with peak-trough-detection
     for enu, c_axis in enumerate(ax):
         if enu < 2:
             c_axis.plot(t, data, lw=2.5, color='purple', alpha=0.7)
@@ -119,7 +111,7 @@ def plot_type_detection(data, rate, peak_idx, trough_idx, peakdet_th, r_value_th
     ax[0].set_ylabel('Amplitude [a.u.]', fontsize=fs)
     ax[0].tick_params(axis='both', which='major', labelsize=fs - 2)
 
-    # Second Plot: Best-Window inset
+    # Second Plot: Window inset
     ax[1].set_xlim(t[start_in], t[end_in])  # just set proper xlim!
 
     # Cosmetics
@@ -129,7 +121,6 @@ def plot_type_detection(data, rate, peak_idx, trough_idx, peakdet_th, r_value_th
     ax[1].tick_params(axis='both', which='major', labelsize=fs - 2)
 
     # Third Plot: r-values and Fish-type threshold
-    r_vals = r_vals[r_vals > 0]
     hist, bins = np.histogram(r_vals, bins=50)
     width = 0.7 * (bins[1] - bins[0])
     center = (bins[:-1] + bins[1:]) / 2
@@ -174,7 +165,6 @@ if __name__ == "__main__":
         file_path = sys.argv[1]
         print("loading %s ...\n" % file_path)
         data, rate, unit = dl.load_data(sys.argv[1], 0)
-        time = np.arange(len(data)) / rate
 
     # run fish-type detector
     type_suggestion, r_val = type_detector(data, rate, plot_data_func=plot_type_detection)
