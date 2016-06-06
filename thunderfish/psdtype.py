@@ -5,11 +5,13 @@ def bin_it(power, freq_bins, max_freq, res):
     """
     Take a 1-D array of powers (from powerspectrums), transforms it into dB and devides it into several bins.
 
-    :param power: (1-D array)
-    :param freq_bins: (float)
-    :param max_freq: (float)
-    :param res: (float)
-    :return power_db: (2-D array)
+    :param power:           (1-D array) power array of a psd.
+    :param freq_bins:       (float) width of frequency bins in which the psd shall be divided (Hz).
+    :param max_freq:        (float) maximum frequency that shall be provided in the separated power array.
+    :param res:             (float) the frequency resolution of the power array comming from a psd.
+                            res = freqs[-1]/len(freqs)
+    :return power_db:       (2-D array) list of lists with the in bins divided powers of the powerspectrum transforemed
+                            into dB.
     """
     power_db = []
     for trial in np.arange(max_freq / freq_bins):
@@ -21,8 +23,10 @@ def get_bin_percentiles(power_db):
     """
     Takes a 2-D array if lists. For every list the function calculates several percentails that are later returned.
 
-    :param power_db: (2-D array)
-    :return: (4-D array)
+    :param power_db:        (2-D array) list of lists with the in bins divided powers of the powerspectrum transforemed
+                            into dB.
+    :return:                (2-D array) for every bin four values are calulated and stored in separate lists. These four
+                            values are percentiles of the respective bins.
     """
     power_db_top = np.ones(len(power_db))
     power_db_upper_middle = np.ones(len(power_db))
@@ -44,14 +48,16 @@ def psd_type_main(power, freqs, freq_bins=125, max_freq = 3000, return_percentil
     several other function it analysis the structur of the EOD and can with this approach tell what type of fish the PSD
     comes from.
 
-    :param power: (1-D array)
-    :param freqs: (1-D array)
-    :param freq_bins: (float)
-    :param max_freq: (float)
-    :param return_percentiles: (boolean)
-    :return psd_type: (string)
-    :return proportions: (1-D array)
-    :return percentiles: (2-D array)
+    :param power:           (1-D array) power array of a psd.
+    :param freqs:           (1-D array) frequency array of a psd.
+    :param freq_bins:       (float) width of frequency bins in which the psd shall be divided (Hz) [bin_it() function].
+    :param max_freq:        (float) maximum frequency that shall be provided in the separated power array [bin_it() function].
+    :param return_percentiles: (boolean) When "True" this function als returens the array provided by the
+                            get_bin_percentiles() function.
+    :return psd_type:       (string) "wave" or "pulse" depending on the proportion of the psd.
+    :return proportions:    (1-D array) proportions of the single psd bins.
+    :return percentiles:    (2-D array) for every bin four values are calulated and stored in separate lists. These four
+                            values are percentiles of the respective bins.
 
     """
     print('try to figure out psd type ...')
@@ -80,9 +86,9 @@ def get_example_data(audio_file, channel=0, verbose=None):
     This function shows in part the same components of the thunderfish.py poject. Here several moduls are used to load
     some data to dispay the functionality of the psdtype.py modul.
 
-    :param audio_file:
-    :return power:
-    :return freqs:
+    :param audio_file:      (string) filepath of a audiofile that shall be used for the analysis.
+    :return power:          (1-D array) power array of a psd.
+    :return freqs:          (1-D array) frequency array of a psd.
     """
     cfg = ct.get_config_dict()
 
@@ -133,6 +139,9 @@ if __name__ == '__main__':
         plot = True
 
     file = sys.argv[-1]
+    if len(file.split('.')) < 2:
+        print('invalid input !!!')
+        quit()
     power, freqs = get_example_data(file)
 
     psd_type, proportions, percentiles = psd_type_main(power, freqs, return_percentiles=True)
