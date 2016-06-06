@@ -41,46 +41,6 @@ def get_bin_percentiles(power_db):
 
     return [power_db_top, power_db_upper_middle, power_db_lower_middle, power_db_bottom]
 
-
-def psd_type_main(power, freqs, freq_bins=125, max_freq = 3000, return_percentiles= False):
-    """
-    Function that is called when you got a PSD and want to find out from what fishtype this psd is. It with the help of
-    several other function it analysis the structur of the EOD and can with this approach tell what type of fish the PSD
-    comes from.
-
-    :param power:           (1-D array) power array of a psd.
-    :param freqs:           (1-D array) frequency array of a psd.
-    :param freq_bins:       (float) width of frequency bins in which the psd shall be divided (Hz) [bin_it() function].
-    :param max_freq:        (float) maximum frequency that shall be provided in the separated power array [bin_it() function].
-    :param return_percentiles: (boolean) When "True" this function als returens the array provided by the
-                            get_bin_percentiles() function.
-    :return psd_type:       (string) "wave" or "pulse" depending on the proportion of the psd.
-    :return proportions:    (1-D array) proportions of the single psd bins.
-    :return percentiles:    (2-D array) for every bin four values are calulated and stored in separate lists. These four
-                            values are percentiles of the respective bins.
-
-    """
-    print('try to figure out psd type ...')
-    res = freqs[-1]/len(freqs) # resolution
-
-    power_db = bin_it(power, freq_bins, max_freq, res)
-
-    percentiles= get_bin_percentiles(power_db)
-
-    proportions = [(percentiles[1][i] - percentiles[2][i]) / (percentiles[0][i] - percentiles[3][i])
-                   for i in np.arange(len(power_db))]
-
-    if np.mean(proportions) < 0.27:
-        psd_type = 'wave'
-    else:
-        psd_type = 'pulse'
-    print ('The PSD belongs to a %s-fish (%.2f)' % (psd_type, float(np.mean(proportions))))
-
-    if return_percentiles:
-        return psd_type, proportions, percentiles
-    else:
-        return psd_type, proportions
-
 def get_example_data(audio_file, channel=0, verbose=None):
     """
     This function shows in part the same components of the thunderfish.py poject. Here several moduls are used to load
@@ -109,6 +69,77 @@ def get_example_data(audio_file, channel=0, verbose=None):
 
     return power, freqs
 
+def psdtypeplot(freqs, power, proportions, percentiles, ax):
+    """
+    Makes a plot of what the rest of the modul is doing.
+
+    This function takes the frequency and power array of a powerspectrum as well as the calculated percentiles array
+    of the frequency bins (see: get_bin_percentiles()) and the proportions array calculated from these percentiles. With
+    all these arrays this function is plotting what the rest of the modul doing.
+
+    :param freqs:           (1-D array) frequency array of a psd.
+    :param power:           (1-D array) power array of a psd.
+    :param proportions:     (1-D array) proportions of the single psd bins.
+    :param percentiles:     (2-D array) for every bin four values are calulated and stored in separate lists. These four
+                            values are percentiles of the respective bins.
+    :param ax:              (axis for plot) empty axis that is filled with content in the function.
+    :return ax:             (axis for plot) axis that is ready for plotting.
+    """
+    ax.plot(freqs[:int(3000 / (freqs[-1] / len(freqs)))],
+                10.0 * np.log10(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
+    for bin in np.arange(len(proportions)):
+        ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[0][bin], percentiles[1][bin], color='red',
+                        alpha=0.7)
+        ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[1][bin], percentiles[2][bin], color='green',
+                        alpha=0.7)
+        ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[2][bin], percentiles[3][bin], color='red',
+                        alpha=0.7)
+    ax.set_xlim([0, 3000])
+    ax.set_xlabel('Frequency')
+    ax.set_ylabel('Power [dB]')
+    return ax
+
+def psd_type_main(power, freqs, freq_bins=125, max_freq = 3000, plot_data_func=None, **kwargs):
+    """
+    Function that is called when you got a PSD and want to find out from what fishtype this psd is. It with the help of
+    several other function it analysis the structur of the EOD and can with this approach tell what type of fish the PSD
+    comes from.
+
+    :param power:           (1-D array) power array of a psd.
+    :param freqs:           (1-D array) frequency array of a psd.
+    :param freq_bins:       (float) width of frequency bins in which the psd shall be divided (Hz) [bin_it() function].
+    :param max_freq:        (float) maximum frequency that shall be provided in the separated power array [bin_it() function].
+    :param plot_data_func:  (function) function (psdtypeplot()) that is used to create a axis for later plotting about the process of psd
+                            type detection.
+    :param **kwargs:        additional arguments that are passed to the plot_data_func().
+    :return psd_type:       (string) "wave" or "pulse" depending on the proportion of the psd.
+    :return proportions:    (1-D array) proportions of the single psd bins.
+    :return ax:             (axis for plot) axis that is ready for plotting containing a figure that shows what the modul did.
+
+    """
+    print('try to figure out psd type ...')
+    res = freqs[-1]/len(freqs) # resolution
+
+    power_db = bin_it(power, freq_bins, max_freq, res)
+
+    percentiles= get_bin_percentiles(power_db)
+
+    proportions = [(percentiles[1][i] - percentiles[2][i]) / (percentiles[0][i] - percentiles[3][i])
+                   for i in np.arange(len(power_db))]
+
+    if np.mean(proportions) < 0.27:
+        psd_type = 'wave'
+    else:
+        psd_type = 'pulse'
+    print ('The PSD belongs to a %s-fish (%.2f)' % (psd_type, float(np.mean(proportions))))
+
+    if plot_data_func:
+        ax = plot_data_func(freqs, power, proportions, percentiles, **kwargs)
+        return psd_type, proportions, ax
+    else:
+        return psd_type, proportions
+
+
 if __name__ == '__main__':
     try:
         import powerspectrum as ps
@@ -127,39 +158,16 @@ if __name__ == '__main__':
     print('Algorithm that analysis the structur of a powerspectrum to tell if it belongs to a wave of pulsetype fish.')
     print('')
     print('Usage:')
-    print('  python psdtype.py [-p] <audiofile>')
-    print('  -p: plot data')
+    print('  python psdtype.py <audiofile>')
     print('')
 
     if len(sys.argv) <=1:
         quit()
 
-    plot = False
-    if len(sys.argv) > 2 and sys.argv[1] == '-p':
-        plot = True
-
     file = sys.argv[-1]
-    if len(file.split('.')) < 2:
-        print('invalid input !!!')
-        quit()
     power, freqs = get_example_data(file)
 
-    psd_type, proportions, percentiles = psd_type_main(power, freqs, return_percentiles=True)
-
-    if plot:
-        import matplotlib.pyplot as plt
-
-        fig, ax = plt.subplots()
-        ax.plot(freqs[:int(3000 / (freqs[-1] / len(freqs)))],
-                10.0 * np.log10(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
-        for bin in np.arange(len(proportions)):
-            ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[0][bin], percentiles[1][bin], color='red',
-                            alpha=0.7)
-            ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[1][bin], percentiles[2][bin], color='green',
-                            alpha=0.7)
-            ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[2][bin], percentiles[3][bin], color='red',
-                            alpha=0.7)
-        ax.set_xlim([0, 3000])
-        ax.set_xlabel('Frequency')
-        ax.set_ylabel('Power [dB]')
-        plt.show()
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots()
+    psd_type, proportions, ax = psd_type_main(power, freqs, plot_data_func=psdtypeplot, ax=ax)
+    plt.show()
