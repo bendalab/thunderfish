@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from IPython import embed
 
 
 def get_diff_freqs(freqs_array):

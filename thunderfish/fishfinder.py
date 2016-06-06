@@ -12,7 +12,7 @@ import configfile as cf
 import dataloader as dl
 import harmonicgroups as hg
 import bestwindow as bw
-import playaudio as pa
+from audioio import PlayAudio, fade
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
@@ -114,7 +114,7 @@ class SignalPlot :
         self.generate_color_range()
 
         # audio output:
-        self.audio = pa.open()
+        self.audio = PlayAudio()
 
         # set key bindings:
         plt.rcParams['keymap.fullscreen'] = 'ctrl+f'
@@ -183,7 +183,7 @@ class SignalPlot :
         plt.show()
 
     def __del( self ) :
-        pa.close(self.audio)
+        self.audio.close()
 
     def generate_color_range( self ) :
          # color and marker range:
@@ -728,13 +728,15 @@ class SignalPlot :
     def play_segment(self) :
         t0 = int(np.round(self.toffset*self.rate))
         t1 = int(np.round((self.toffset+self.twindow)*self.rate))
-        pa.play(self.audio, self.data[t0:t1], self.rate)
+        playdata = 1.0*self.data[t0:t1]
+        fade(playdata, self.rate, 0.1)
+        self.audio.play(playdata, self.rate, blocking=False)
         
     def play_all(self) :
-        pa.play(self.audio, self.data, self.rate)
+        self.audio.play(self.data[:], self.rate, blocking=False)
         
     def play_tone( self, frequency ) :
-        pa.play_tone(self.audio, frequency, 1.0, self.rate)
+        self.audio.beep(1.0, frequency, self.rate)
 
                             
 def short_user_warning(message, category, filename, lineno, file=sys.stderr, line=''):

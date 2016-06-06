@@ -16,7 +16,6 @@ import numpy as np
 import sys
 import os
 import glob
-from IPython import embed
 
 def build_tex_pdf(wavefish, pulsefish):
     response = raw_input('What shall the Title of the .pdf be ?')

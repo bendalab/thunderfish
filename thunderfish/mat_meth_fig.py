@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import random
-from IPython import embed
 import scipy.stats as sps
 from harmonicgroups import *
 
@@ -99,7 +98,6 @@ def plot_psd_algo(wave_prop, pulse_prop, multi_wave_prop, mixed_prop):
         p99.append(np.percentile(bdata, 99))
         p25.append(np.percentile(bdata, 25))
         p75.append(np.percentile(bdata, 75))
-        # embed()
     x_freqs = [freq_steps / 2 *fres + i * freq_steps * fres for i in np.arange(len(p1))]
 
     ax2.plot(x_freqs, p1, '-', color= 'green')
