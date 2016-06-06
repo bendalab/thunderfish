@@ -9,8 +9,10 @@ def extract_fundamentals(fishlists):
     this function collects all fundamental frequencies of every fishlist. In the end the output is a 2-D array
     containing the fundamentals of each list (fundamentals[list][fundamental_frequencies]).
 
-    :param fishlists: (4-D array)
-    :return fundamentals: (2-D array)
+    :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
+                            fishlists[fishlist][fish][harmonic][frequency, power]
+    :return fundamentals:   (2-D array) list of lists containing the fundamentals of a fishlist.
+                            fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
     """
     fundamentals = [[] for i in np.arange(len(fishlists))]
     for fishlist in np.arange(len(fishlists)):
@@ -32,9 +34,10 @@ def find_consistency(fundamentals):
     fishes in the first fishlist that are available in every fishlist.
 
 
-    :param fundamentals: (2-D array)
-    :return consistent_fundamentals: (1-D array)
-    :return index: (1-D array)
+    :param fundamentals:    (2-D array) list of lists containing the fundamentals of a fishlist.
+                            fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
+    :return consistent_fundamentals: (1-D array) List containing all values that are available in all given lists.
+    :return index:          (1-D array) Indices of the values that are in every list relating to the fist list in fishlists.
     """
     consistancy_help = [1 for i in np.arange(len(fundamentals[0]))]
     index = []
@@ -61,9 +64,12 @@ def consistent_fishlist(index, fishlists):
     available in all other fishlists. It gives back a 3-D array (filterd_fishlist) that only contains the information of
     the fishes that are in all lists (structur: filtered_fishlist[fish][harmonic][frequency, power])
 
-    :param index: (1-D array)
-    :param fishlists: (4-D array)
-    :return filtered_fishlist: (3-D array)
+    :param index:           (1-D array) Indices of the values that are in every list relating to the fist list in fishlists.
+    :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
+                            fishlists[fishlist][fish][harmonic][frequency, power]
+    :return filtered_fishlist: (3-D array) New fishlist with the same structure as a fishlist in fishlists only
+                            containing these fishes that are available in every fishlist in fishlists.
+                            fishlist[fish][harmonic][frequency, power]
     """
     filtered_fishlist = []
     for idx in index:
@@ -76,8 +82,11 @@ def consistentfishes_main(fishlists):
     This function gets several fishlists, compares them, and gives back one fishlist that only contains these fishes
     that are available in every given fishlist. This is the main function that calls the other functions in the code.
 
-    :param fishlists:
-    :return filtered_fishlist:
+    :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
+                            fishlists[fishlist][fish][harmonic][frequency, power]
+    :return filtered_fishlist:(3-D array) New fishlist with the same structure as a fishlist in fishlists only
+                            containing these fishes that are available in every fishlist in fishlists.
+                            fishlist[fish][harmonic][frequency, power]
     """
     print('comparing different lists ...')
 
