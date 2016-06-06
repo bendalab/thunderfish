@@ -77,13 +77,41 @@ def consistent_fishlist(index, fishlists):
 
     return filtered_fishlist
 
-def consistentfishes_main(fishlists):
+def consistentfishesplot(filtered_fishlist, ax):
+    """
+    Creates a axis for plotting to visualize what this modul did.
+
+    :param filtered_fishlist: (3-D array) Contains power and frequency of these fishes that hve been detected in
+                            several powerspectrums using different resolutions.
+    :param ax:              (axis for plot) empty axis that is filled with content in the function.
+    :return ax:             (axis for plot) axis that is ready for plotting explaining what the modul did.
+    """
+    for list in np.arange(len(fishlists)):
+        for fish in np.arange(len(fishlists[list])):
+            ax.plot(list+1, fishlists[list][fish][0][0], 'k.', markersize= 10)
+
+    for fish in np.arange(len(filtered_fishlist)):
+        if fish == 0:
+            ax.plot(np.arange(len(fishlists))+1, [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))],
+                    '-r', linewidth= 10, alpha=0.5, label='consistent in all lists')
+        else:
+            ax.plot(np.arange(len(fishlists))+1, [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))],
+                    '-r', linewidth= 10, alpha=0.5)
+    ax.set_xlim([0, len(fishlists)+1])
+    ax.set_ylabel('value')
+    ax.set_xlabel('list no.')
+    return ax
+
+def consistentfishes_main(fishlists, plot_data_func=None, **kwargs):
     """
     This function gets several fishlists, compares them, and gives back one fishlist that only contains these fishes
     that are available in every given fishlist. This is the main function that calls the other functions in the code.
 
     :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
                             fishlists[fishlist][fish][harmonic][frequency, power]
+    :param plot_data_func:  (function) function (consistentfishesplot()) that is used to create a axis for later plotting containing a figure to
+                            visualice what the modul did.
+    :param **kwargs:        additional arguments that are passed to the plot_data_func().
     :return filtered_fishlist:(3-D array) New fishlist with the same structure as a fishlist in fishlists only
                             containing these fishes that are available in every fishlist in fishlists.
                             fishlist[fish][harmonic][frequency, power]
@@ -97,47 +125,29 @@ def consistentfishes_main(fishlists):
     print('Done !')
     print('')
 
-    return filtered_fishlist
+    if plot_data_func:
+        ax = plot_data_func(filtered_fishlist, **kwargs)
+        return filtered_fishlist, ax
+    else:
+        return filtered_fishlist
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    import sys
 
     print('Creating one fishlist containing only the fishes that are consistant in several fishlists.')
     print('The input structur locks like this fishlists[list][fish][harmonic][frequency, power]')
     print('')
     print('Usage:')
-    print('  python consistentfishes.py [-p]')
-    print('  -p: plot data')
+    print('  python consistentfishes.py')
     print('')
-
-    plot = False
-    if len(sys.argv) > 1 and sys.argv[1] == '-p':
-        plot = True
 
     # example 4-D array containing of 4 fishlists all haveing 3 fishes with 1 harmonic with frequency and power
     fishlists = [ [[[350, 0]], [[700.2, 0]], [[1000, 0]]],
                   [[[350.1, 0]], [[699.8, 0]], [[250.2, 0]]],
                   [[[349.7, 0]], [[700.4, 0]], [[1000.2, 0]]],
                   [[[349.8, 0]], [[700.5, 0]], [[1000.3, 0]]]]
-    filtered_fishlist = consistentfishes_main(fishlists)
 
-    if plot:
-        print('plotting example data ...')
-        fig, ax = plt.subplots()
-        for list in np.arange(len(fishlists)):
-            for fish in np.arange(len(fishlists[list])):
-                ax.plot(list+1, fishlists[list][fish][0][0], 'k.', markersize= 10)
-
-        for fish in np.arange(len(filtered_fishlist)):
-            if fish == 0:
-                ax.plot(np.arange(len(fishlists))+1, [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))],
-                        '-r', linewidth= 10, alpha=0.5, label='consistent in all lists')
-            else:
-                ax.plot(np.arange(len(fishlists))+1, [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))],
-                        '-r', linewidth= 10, alpha=0.5)
-        ax.set_xlim([0, len(fishlists)+1])
-        ax.set_ylabel('value')
-        ax.set_xlabel('list no.')
-        plt.legend(loc='upper right', fontsize= 12)
-        plt.show()
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots()
+    filtered_fishlist, ax = consistentfishes_main(fishlists, plot_data_func=consistentfishesplot, ax=ax)
+    plt.show()
