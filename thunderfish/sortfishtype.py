@@ -1,6 +1,4 @@
 import numpy as np
-from IPython import embed
-
 import peakdetection as pkd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
