@@ -64,6 +64,8 @@ def eodanalysisplot(time, mean_eod, std_eod, ax):
     l_std = [mean_eod[i] - std_eod[i] for i in np.arange(len(mean_eod))]
     ax.plot(time, mean_eod, lw=2, color='firebrick', alpha=0.7, label='mean EOD')
     ax.fill_between(time, u_std, l_std, color='grey', alpha=0.3)
+    ax.set_xlabel('time [sec]')
+    ax.set_ylabel('Amplitude (mV)')
     return ax
 
 def load_example_data(audio_file= '../../../raab_data/colombia_2013/data/recordings_cano_rubiano_RAW/31129L11.WAV',
@@ -114,7 +116,7 @@ def eod_analysis_main(bwin_data, samplerate, fish_type, psd_type, plot_data_func
     pulse_data = eod_extracting(bwin_data, samplerate, window= 0.006)
     mean_eod, std_eod = eod_mean(pulse_data)
 
-    time = (np.arange(len(mean_eod)) * 1.0 / samplrate) - 0.5 * len(mean_eod) / samplerate
+    time = ((np.arange(len(mean_eod)) * 1.0 / samplrate) - 0.5 * len(mean_eod) / samplerate) * 1000.0
 
     if plot_data_func:
         ax = plot_data_func(time, mean_eod, std_eod, **kwargs)
