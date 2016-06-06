@@ -1,6 +1,6 @@
 import os.path
 import numpy as np
-import audioloader
+import audioio as aio
 
 def load_pickle(filename, channel=0) :
     """
@@ -70,7 +70,7 @@ def load_data(filepath, channel=0, verbose=0) :
     if ext == 'pkl' :
         data, freq, unit = load_pickle(filepath, channel)
     else :
-        data, freq = audioloader.load_audio(filepath, verbose)
+        data, freq = aio.load_audio(filepath, verbose)
         channels = data.shape[1]
         if channel >= channels :
             print('number of channels in file %s is %d, but requested channel %d' %
@@ -82,12 +82,12 @@ def load_data(filepath, channel=0, verbose=0) :
     return data, freq, unit
 
 
-class DataLoader(audioloader.AudioLoader):
+class DataLoader(aio.AudioLoader):
     """
     """
     
     def __init__(self, filepath=None, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
-        """Initialize the AudioLoader instance. If filepath is not None open the file.
+        """Initialize the DataLoader instance. If filepath is not None open the file.
 
         Args:
           filepath (string): name of the file
@@ -126,6 +126,7 @@ class DataLoader(audioloader.AudioLoader):
             channel = self.channels-1
         self.channel = channel
         self.unit = 'a.u.'
+        self.shape = (self.frames,)
         return self
     
 

@@ -11,7 +11,6 @@ import numpy as np
 from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib import mlab
-from IPython import embed
 import peakdetection as pd
 
 

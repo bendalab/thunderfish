@@ -7,7 +7,6 @@ import Auxiliary as aux
 import sorting_tools as st
 import config_tools as ct
 import audioread
-from IPython import embed
 import matplotlib.pyplot as plt
 #import seaborn as sns
 import Auxiliary as aux
@@ -80,7 +79,6 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
             beat_data = data[(1.2 * af.samplerate): (1.9 * af.samplerate)] / 2.0 ** 15
             beat_time = np.arange(len(beat_data)) * 1.0 / af.samplerate
             aux.beat_plot(beat_data, beat_time)
-            embed()
             quit()
 
         #####################################################

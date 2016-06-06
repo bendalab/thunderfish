@@ -1,7 +1,6 @@
 __author__ = 'raab'
 import numpy as np
 import matplotlib.pyplot as plt
-from IPython import embed
 import scipy.stats as sp
 
 pulse_diffs = np.load('pulse_diffs.npy')

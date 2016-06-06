@@ -3,7 +3,6 @@ __author__ = 'juan'
 import numpy as np
 import glob
 import sys
-from IPython import embed
 
 if __name__ == '__main__':
 

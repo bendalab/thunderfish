@@ -15,7 +15,6 @@ def description_of_code():
 import numpy as np
 import sys
 import os
-from IPython import embed
 
 def build_tex_pdf(wavefish, pulsefish):
     response = raw_input('What shall the Title of the .pdf be ?')
@@ -152,7 +151,6 @@ def load_npy_convert_list():
     pulsefish = pulsefish.tolist()
     for j in np.arange(len(pulsefish)):
         pulsefish[j] = "%.2f" % pulsefish[j]
-    # embed()
 
     return wavefish, pulsefish
 
