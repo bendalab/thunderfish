@@ -5,9 +5,9 @@ def calc_nfft(samplingrate, fresolution):
     """
     This function calcualtes a nfft value depending on samplingrate and frequencyresolution of the powerspectrum.
 
-    :param samplingrate: (float)
-    :param fresolution: (float)
-    :return nfft: (float)
+    :param samplingrate:        (float) sampling rate of the data that you want to calculate a psd of.
+    :param fresolution:         (float) frequency resolution of the psd
+    :return nfft:               (float) the value that defines the resolution if the psd.
     """
     nfft = int(np.round(2 ** (np.floor(np.log(samplingrate / fresolution) / np.log(2.0)) + 1.0)))
     if nfft < 16:
@@ -18,11 +18,11 @@ def calc_psd(data, samplingrate, nfft):
     """
     This function is calcualting a powerspectrum of a given data-array when nfft and samplingrate is given as argument.
 
-    :param data: (1-D array)
-    :param samplingrate: (int)
-    :param nfft: (float)
-    :return power: (1-D array)
-    :return freqs: (1-D array)
+    :param data:                (1-D array) data array you want to calculate a psd of.
+    :param samplingrate:        (float) sampling rate of the data that you want to calculate a psd of.
+    :param nfft:                (float) the value that defines the resolution if the psd.
+    :return power:              (1-D array) power array of the psd.
+    :return freqs:              (1-D array) psd array of the psd.
     """
     power, freqs = ml.psd(data, NFFT=nfft, noverlap=nfft / 2, Fs=samplingrate, detrend=ml.detrend_mean)
     return power, freqs
@@ -33,11 +33,11 @@ def powerspectrum_main(data, samplingrate, fresolution=0.5):
     samplingrate and a given frequencyresolution for the psd. Therefore two other functions are called to first
     calculate the nfft value and second calculate the powerspectrum.
 
-    :param data: (1-D array)
-    :param samplingrate: (int)
-    :param fresolution: (float)
-    :return power: (1-D array)
-    :return freqs:(1-D array)
+    :param data:                (1-D array) data array you want to calculate a psd of.
+    :param samplingrate:        (float) sampling rate of the data that you want to calculate a psd of.
+    :param fresolution:         (float) frequency resolution of the psd
+    :return power:              (1-D array) power array of the psd.
+    :return freqs:              (1-D array) psd array of the psd.
     """
 
     # print("calculating powerspecturm ...")
