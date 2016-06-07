@@ -126,6 +126,7 @@ class DataLoader(aio.AudioLoader):
             channel = self.channels-1
         self.channel = channel
         self.unit = 'a.u.'
+        self.shape = (self.frames,)
         return self
     
 
