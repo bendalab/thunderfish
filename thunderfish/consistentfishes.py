@@ -102,7 +102,7 @@ def consistentfishesplot(filtered_fishlist, ax):
     ax.set_xlabel('list no.')
     return ax
 
-def consistentfishes_main(fishlists, plot_data_func=None, **kwargs):
+def consistentfishes(fishlists, plot_data_func=None, **kwargs):
     """
     This function gets several fishlists, compares them, and gives back one fishlist that only contains these fishes
     that are available in every given fishlist. This is the main function that calls the other functions in the code.
@@ -132,8 +132,6 @@ def consistentfishes_main(fishlists, plot_data_func=None, **kwargs):
         return filtered_fishlist
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
     print('Creating one fishlist containing only the fishes that are consistant in several fishlists.')
     print('The input structur locks like this fishlists[list][fish][harmonic][frequency, power]')
     print('')
@@ -149,5 +147,5 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    filtered_fishlist, ax = consistentfishes_main(fishlists, plot_data_func=consistentfishesplot, ax=ax)
+    filtered_fishlist, ax = consistentfishes(fishlists, plot_data_func=consistentfishesplot, ax=ax)
     plt.show()
