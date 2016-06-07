@@ -58,14 +58,14 @@ def get_example_data(audio_file, channel=0, verbose=None):
 
     # load data using dataloader module
     print('loading example data ...\n')
-    data, samplrate, unit = dl.load_data(audio_file)
+    data, samplerate, unit = dl.load_data(audio_file)
 
     # calculate best_window
     print('calculating best window ...\n')
-    bwin_data, clip = bw.best_window(data, samplrate)
+    bwin_data, clip = bw.best_window(data, samplerate)
 
     print('calculation powerspecturm ...\n')
-    power, freqs = ps.powerspectrum_main(bwin_data, samplrate)
+    power, freqs = ps.powerspectrum(bwin_data, samplerate)
 
     return power, freqs
 
@@ -99,7 +99,7 @@ def psdtypeplot(freqs, power, proportions, percentiles, ax):
     ax.set_ylabel('Power [dB]')
     return ax
 
-def psd_type_main(power, freqs, freq_bins=125, max_freq = 3000, plot_data_func=None, **kwargs):
+def psd_assignment(power, freqs, freq_bins=125, max_freq = 3000, plot_data_func=None, **kwargs):
     """
     Function that is called when you got a PSD and want to find out from what fishtype this psd is. It with the help of
     several other function it analysis the structur of the EOD and can with this approach tell what type of fish the PSD
@@ -117,7 +117,7 @@ def psd_type_main(power, freqs, freq_bins=125, max_freq = 3000, plot_data_func=N
     :return ax:             (axis for plot) axis that is ready for plotting containing a figure that shows what the modul did.
 
     """
-    print('try to figure out psd type ...')
+    print('Assigning psd type ...')
     res = freqs[-1]/len(freqs) # resolution
 
     power_db = bin_it(power, freq_bins, max_freq, res)
@@ -169,5 +169,5 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    psd_type, proportions, ax = psd_type_main(power, freqs, plot_data_func=psdtypeplot, ax=ax)
+    psd_type, proportions, ax = psd_assignment(power, freqs, plot_data_func=psdtypeplot, ax=ax)
     plt.show()
