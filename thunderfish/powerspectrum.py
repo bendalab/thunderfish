@@ -54,6 +54,7 @@ def powerspectrum(data, samplingrate, fresolution=[0.5], plot_data_func=None, **
                                 (psd_data[frequency_resolution][power, freq])
     :return ax:                 (axis for plot) axis that is ready for plotting containing a figure that shows what the modul did.
     """
+    print('\nCoumputing powerspectrum for %0.f frequency resolutions ...' % len(fresolution))
 
     multi_psd_data = []
     for fres in fresolution:
