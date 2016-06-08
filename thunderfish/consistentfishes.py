@@ -116,6 +116,7 @@ def consistentfishes(fishlists, plot_data_func=None, **kwargs):
                             containing these fishes that are available in every fishlist in fishlists.
                             fishlist[fish][harmonic][frequency, power]
     """
+    print('\nFinding consistent fishes out of %0.f fishlists ...' % len(fishlists))
 
     fundamentals = extract_fundamentals(fishlists)
     consistant_fundamentals, index = find_consistency(fundamentals)
