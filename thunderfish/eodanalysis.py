@@ -33,7 +33,6 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type):
         for idx in th_idx:
             if int(idx - samplerate * window / 2) >= 0 and int(idx + samplerate * window / 2) <= len(bwin_data):
                 eod_data.append(bwin_data[int(idx - samplerate * window / 2): int(idx + samplerate * window / 2)])
-    # ToDo: add an additional output containing the mean_delta_index and give it to the plot function. (wavefish eod)
     else:
         for idx in th_idx:
             if int(idx - (mean_th_idx_diff / (3./2) )) >= 0 and int(idx + (mean_th_idx_diff / (3./2))) <= len(bwin_data):
