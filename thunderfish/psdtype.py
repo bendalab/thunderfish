@@ -117,7 +117,7 @@ def psd_assignment(power, freqs, freq_bins=125, max_freq = 3000, plot_data_func=
     :return ax:             (axis for plot) axis that is ready for plotting containing a figure that shows what the modul did.
 
     """
-    print('Assigning psd type ...')
+    print('\nAssigning PSD-Type ...')
     res = freqs[-1]/len(freqs) # resolution
 
     power_db = bin_it(power, freq_bins, max_freq, res)
@@ -131,7 +131,7 @@ def psd_assignment(power, freqs, freq_bins=125, max_freq = 3000, plot_data_func=
         psd_type = 'wave'
     else:
         psd_type = 'pulse'
-    print ('The PSD belongs to a %s-fish (%.2f)' % (psd_type, float(np.mean(proportions))))
+    print ('\nPSD-type is %s. proportion = %.3f' % (psd_type, float(np.mean(proportions))))
 
     if plot_data_func:
         ax = plot_data_func(freqs, power, proportions, percentiles, **kwargs)
