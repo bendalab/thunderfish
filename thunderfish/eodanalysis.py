@@ -133,7 +133,7 @@ def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None
     pulse_data = eod_extracting(bwin_data, samplerate, fish_type, psd_type)
     mean_eod, std_eod = eod_mean(pulse_data)
 
-    time = ((np.arange(len(mean_eod)) * 1.0 / samplrate) - 0.5 * len(mean_eod) / samplerate) * 1000.0
+    time = ((np.arange(len(mean_eod)) * 1.0 / samplerate) - 0.5 * len(mean_eod) / samplerate) * 1000.0
 
     if plot_data_func:
         ax = plot_data_func(time, mean_eod, std_eod, **kwargs)
