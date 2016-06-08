@@ -130,6 +130,8 @@ def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None
     :return time:               (1-D array) containing the time of the mean eod. (same length as mean_eod or std_eod)
     :return ax:                 (axis for plot) axis that is ready for plotting explaining what the modul does.
     """
+
+    print('\nAnalysing EOD structures ...')
     pulse_data = eod_extracting(bwin_data, samplerate, fish_type, psd_type)
     mean_eod, std_eod = eod_mean(pulse_data)
 
