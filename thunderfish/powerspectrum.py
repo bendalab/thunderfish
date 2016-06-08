@@ -8,18 +8,17 @@ def calc_psd(data, samplerate, fresolution):
     This function takes a data array, its samplerate and a frequencyresolution for the powerspectrum.
     With this input it first calculates a nfft value and later a powerspectrum.
 
-    :param data: (1-D array) data array you want to calculate a psd of.
-    :param samplerate: (float) sampling rate of the data that you want to calculate a psd of.
-    :param fresolution: (float) frequency resolution of the psd.
-    :return power:(1-D array) power array of the psd.
-    :return freqs: (1-D array) psd array of the psd.
+    :param data:                (1-D array) data array you want to calculate a psd of.
+    :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
+    :param fresolution:         (float) frequency resolution of the psd.
+    :return:                    (2-D array) contains the power and frequency calculated in the powerspectrum.
     """
 
     nfft = int(np.round(2 ** (np.floor(np.log(samplerate / fresolution) / np.log(2.0)) + 1.0)))
     if nfft < 16:
         nfft = 16
     power, freqs = ml.psd(data, NFFT=nfft, noverlap=nfft / 2, Fs=samplerate, detrend=ml.detrend_mean)
-    return power, freqs
+    return [power, freqs]
 
 def powerspectrumplot(power, freqs, ax):
     """
@@ -36,7 +35,7 @@ def powerspectrumplot(power, freqs, ax):
     ax.set_xlim([0, 3000])
     return ax
 
-def powerspectrum(data, samplingrate, fresolution=0.5, plot_data_func=None, **kwargs):
+def powerspectrum(data, samplingrate, fresolution=[0.5], plot_data_func=None, **kwargs):
     """
     This function is performing the steps to calculate a powerspectrum on the basis of a given dataset, a given
     samplingrate and a given frequencyresolution for the psd. Therefore two other functions are called to first
@@ -44,21 +43,31 @@ def powerspectrum(data, samplingrate, fresolution=0.5, plot_data_func=None, **kw
 
     :param data:                (1-D array) data array you want to calculate a psd of.
     :param samplingrate:        (float) sampling rate of the data that you want to calculate a psd of.
-    :param fresolution:         (float) frequency resolution of the psd
+    :param fresolution:         (1-D array) frequency resolutions for one or multiple psds.
     :param plot_data_func:      (function) function (powerspectrumplot()) that is used to create a axis for later plotting containing the calculated powerspectrum.
     :param **kwargs:            additional arguments that are passed to the plot_data_func().
     :return power:              (1-D array) power array of the psd.
     :return freqs:              (1-D array) psd array of the psd.
+    :return multi_psd_data:     (3-D or 2-D array) if the psd shall only be calculated for one frequency resolution
+                                this Outupt is a 2-D array ( psd_data[power, freq] )
+                                If the psd shall be calculated for multiple frequency resolutions its a 3-D array
+                                (psd_data[frequency_resolution][power, freq])
     :return ax:                 (axis for plot) axis that is ready for plotting containing a figure that shows what the modul did.
     """
 
-    power, freqs = calc_psd(data, samplingrate, fresolution)
+    multi_psd_data = []
+    for fres in fresolution:
+        psd_data = calc_psd(data, samplingrate, fres)
+        multi_psd_data.append(psd_data)
+
+    if len(multi_psd_data) == 1:
+        multi_psd_data = multi_psd_data[0]
 
     if plot_data_func:
-        ax = plot_data_func(power, freqs, **kwargs)
-        return power, freqs, ax
+        ax = plot_data_func(psd_data[0], psd_data[1], **kwargs)
+        return multi_psd_data, ax
     else:
-        return power, freqs
+        return multi_psd_data
 
 if __name__ == '__main__':
 
@@ -75,5 +84,5 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    power, freqs, ax = powerspectrum(data, samplingrate, plot_data_func=powerspectrumplot, ax=ax)
+    psd_data, ax = powerspectrum(data, samplingrate, plot_data_func=powerspectrumplot, ax=ax)
     plt.show()
