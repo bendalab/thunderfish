@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.mlab as ml
 
-def calc_psd(data, samplerate, fresolution):
+def psd(data, samplerate, fresolution):
     """
     Calculates a Powerspecturm.
 
@@ -20,7 +20,7 @@ def calc_psd(data, samplerate, fresolution):
     power, freqs = ml.psd(data, NFFT=nfft, noverlap=nfft / 2, Fs=samplerate, detrend=ml.detrend_mean)
     return [power, freqs]
 
-def powerspectrumplot(power, freqs, ax):
+def powerspectrum_plot(power, freqs, ax):
     """
     Plots a powerspectum.
 
@@ -33,18 +33,18 @@ def powerspectrumplot(power, freqs, ax):
     ax.set_ylabel('power [dB]')
     ax.set_xlabel('frequency [Hz]')
     ax.set_xlim([0, 3000])
-    return ax
 
-def powerspectrum(data, samplingrate, fresolution=[0.5], plot_data_func=None, **kwargs):
+def powerspectrum(data, samplerate, fresolution=[0.5], plot_data_func=None, **kwargs):
     """
     This function is performing the steps to calculate a powerspectrum on the basis of a given dataset, a given
     samplingrate and a given frequencyresolution for the psd. Therefore two other functions are called to first
     calculate the nfft value and second calculate the powerspectrum.
 
     :param data:                (1-D array) data array you want to calculate a psd of.
-    :param samplingrate:        (float) sampling rate of the data that you want to calculate a psd of.
+    :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
     :param fresolution:         (1-D array) frequency resolutions for one or multiple psds.
-    :param plot_data_func:      (function) function (powerspectrumplot()) that is used to create a axis for later plotting containing the calculated powerspectrum.
+    :param plot_data_func:      (function) function (powerspectrumplot()) that is used to create a axis for later
+                                plotting containing the calculated powerspectrum.
     :param **kwargs:            additional arguments that are passed to the plot_data_func().
     :return power:              (1-D array) power array of the psd.
     :return freqs:              (1-D array) psd array of the psd.
@@ -52,23 +52,26 @@ def powerspectrum(data, samplingrate, fresolution=[0.5], plot_data_func=None, **
                                 this Outupt is a 2-D array ( psd_data[power, freq] )
                                 If the psd shall be calculated for multiple frequency resolutions its a 3-D array
                                 (psd_data[frequency_resolution][power, freq])
-    :return ax:                 (axis for plot) axis that is ready for plotting containing a figure that shows what the modul did.
+    :return ax:                 (axis for plot) axis that is ready for plotting containing a figure that shows what the
+                                modul did.
     """
     print('\nCoumputing powerspectrum for %0.f frequency resolutions ...' % len(fresolution))
 
     multi_psd_data = []
     for fres in fresolution:
-        psd_data = calc_psd(data, samplingrate, fres)
+        psd_data = psd(data, samplerate, fres)
         multi_psd_data.append(psd_data)
+
+    if plot_data_func:
+        plot_data_func(multi_psd_data[0][0], multi_psd_data[0][1], **kwargs)
 
     if len(multi_psd_data) == 1:
         multi_psd_data = multi_psd_data[0]
 
     if plot_data_func:
-        ax = plot_data_func(psd_data[0], psd_data[1], **kwargs)
-        return multi_psd_data, ax
-    else:
-        return multi_psd_data
+        plot_data_func(psd_data[0], psd_data[1], **kwargs)
+
+    return multi_psd_data
 
 if __name__ == '__main__':
 
@@ -85,5 +88,5 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    psd_data, ax = powerspectrum(data, samplingrate, plot_data_func=powerspectrumplot, ax=ax)
+    psd_data = powerspectrum(data, samplingrate, plot_data_func=powerspectrum_plot, ax=ax)
     plt.show()
