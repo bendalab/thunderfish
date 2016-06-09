@@ -14,14 +14,14 @@ def extract_fundamentals(fishlists):
     :return fundamentals:   (2-D array) list of lists containing the fundamentals of a fishlist.
                             fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
     """
-    fundamentals = [[] for i in np.arange(len(fishlists))]
+    fundamentals = [[] for i in range(len(fishlists))]
     for fishlist in np.arange(len(fishlists)):
         for fish in np.arange(len(fishlists[fishlist])):
             fundamentals[fishlist].append(fishlists[fishlist][fish][0][0])
 
     return fundamentals
 
-def find_consistency(fundamentals):
+def find_consistency(fundamentals, df_th = 1.):
     """
     Compares several lists to find values that are, with a certain threshhold, available in every list.
 
@@ -36,10 +36,14 @@ def find_consistency(fundamentals):
 
     :param fundamentals:    (2-D array) list of lists containing the fundamentals of a fishlist.
                             fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
+    :param df_th:           (float) Frequency threshold for the comparison of different fishlists. If the fundamental
+                            frequencies of two fishes from different fishlists vary less than this threshold they are
+                            assigned as the same fish.
     :return consistent_fundamentals: (1-D array) List containing all values that are available in all given lists.
     :return index:          (1-D array) Indices of the values that are in every list relating to the fist list in fishlists.
     """
-    consistancy_help = [1 for i in np.arange(len(fundamentals[0]))]
+    consistency_help = np.ones_like(fundamentals[0])
+
     index = []
     consistent_fundamentals = []
 
@@ -47,60 +51,39 @@ def find_consistency(fundamentals):
         for list in np.arange(len(fundamentals)-1)+1:
             freq_diff = [fundamentals[list][i] - fundamental for i in np.arange(len(fundamentals[list]))]
             for i in np.arange(len(freq_diff)):
-                if freq_diff[i] >= -1.0 and freq_diff[i] <= 1:
-                    consistancy_help[enu] += 1
+                if freq_diff[i] >= -df_th and freq_diff[i] <= df_th:
+                    consistency_help[enu] += 1
                     break
 
-    for idx in np.arange(len(consistancy_help)):
-        if consistancy_help[idx] == len(fundamentals):
+    for idx in np.arange(len(consistency_help)):
+        if consistency_help[idx] == len(fundamentals):
             index.append(idx)
             consistent_fundamentals.append(fundamentals[0][idx])
 
     return consistent_fundamentals, index
 
-def consistent_fishlist(index, fishlists):
+def consistent_fishes_plot(filtered_fishlist, ax):
     """
-    This function gets the 4-D array of fishlists and the indices of the fishes from the first fishlist that are also
-    available in all other fishlists. It gives back a 3-D array (filterd_fishlist) that only contains the information of
-    the fishes that are in all lists (structur: filtered_fishlist[fish][harmonic][frequency, power])
-
-    :param index:           (1-D array) Indices of the values that are in every list relating to the fist list in fishlists.
-    :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
-                            fishlists[fishlist][fish][harmonic][frequency, power]
-    :return filtered_fishlist: (3-D array) New fishlist with the same structure as a fishlist in fishlists only
-                            containing these fishes that are available in every fishlist in fishlists.
-                            fishlist[fish][harmonic][frequency, power]
-    """
-    filtered_fishlist = []
-    for idx in index:
-        filtered_fishlist.append(fishlists[0][idx])
-
-    return filtered_fishlist
-
-def consistentfishesplot(filtered_fishlist, ax):
-    """
-    Creates a axis for plotting to visualize what this modul did.
+    Creates an axis for plotting to visualize what this modul did.
 
     :param filtered_fishlist: (3-D array) Contains power and frequency of these fishes that hve been detected in
-                            several powerspectrums using different resolutions.
+                            several powerspectra using different resolutions.
     :param ax:              (axis for plot) empty axis that is filled with content in the function.
-    :return ax:             (axis for plot) axis that is ready for plotting explaining what the modul did.
     """
     for list in np.arange(len(fishlists)):
         for fish in np.arange(len(fishlists[list])):
             ax.plot(list+1, fishlists[list][fish][0][0], 'k.', markersize= 10)
 
     for fish in np.arange(len(filtered_fishlist)):
+        x = np.arange(len(fishlists))+1
+        y = [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))]
         if fish == 0:
-            ax.plot(np.arange(len(fishlists))+1, [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))],
-                    '-r', linewidth= 10, alpha=0.5, label='consistent in all lists')
+            ax.plot(x, y, '-r', linewidth= 10, alpha=0.5, label='consistent in all lists')
         else:
-            ax.plot(np.arange(len(fishlists))+1, [filtered_fishlist[fish][0][0] for i in np.arange(len(fishlists))],
-                    '-r', linewidth= 10, alpha=0.5)
+            ax.plot(x, y, '-r', linewidth= 10, alpha=0.5)
     ax.set_xlim([0, len(fishlists)+1])
     ax.set_ylabel('value')
     ax.set_xlabel('list no.')
-    return ax
 
 def consistentfishes(fishlists, plot_data_func=None, **kwargs):
     """
@@ -120,13 +103,16 @@ def consistentfishes(fishlists, plot_data_func=None, **kwargs):
 
     fundamentals = extract_fundamentals(fishlists)
     consistant_fundamentals, index = find_consistency(fundamentals)
-    filtered_fishlist = consistent_fishlist(index, fishlists)
+
+    # creates a filtered fishlist only containing the data of the fishes consistent in several fishlists.
+    filtered_fishlist = []
+    for idx in index:
+        filtered_fishlist.append(fishlists[0][idx])
 
     if plot_data_func:
-        ax = plot_data_func(filtered_fishlist, **kwargs)
-        return filtered_fishlist, ax
-    else:
-        return filtered_fishlist
+        plot_data_func(filtered_fishlist, **kwargs)
+
+    return filtered_fishlist
 
 if __name__ == '__main__':
     print('Creating one fishlist containing only the fishes that are consistant in several fishlists.')
@@ -144,5 +130,5 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    filtered_fishlist, ax = consistentfishes(fishlists, plot_data_func=consistentfishesplot, ax=ax)
+    filtered_fishlist = consistentfishes(fishlists, plot_data_func=consistent_fishes_plot, ax=ax)
     plt.show()
