@@ -34,6 +34,11 @@ def powerspectrum_plot(power, freqs, ax):
     ax.set_xlabel('frequency [Hz]')
     ax.set_xlim([0, 3000])
 
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
 def powerspectrum(data, samplerate, fresolution=[0.5], plot_data_func=None, **kwargs):
     """
     This function is performing the steps to calculate a powerspectrum on the basis of a given dataset, a given
@@ -43,7 +48,7 @@ def powerspectrum(data, samplerate, fresolution=[0.5], plot_data_func=None, **kw
     :param data:                (1-D array) data array you want to calculate a psd of.
     :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
     :param fresolution:         (1-D array) frequency resolutions for one or multiple psds.
-    :param plot_data_func:      (function) function (powerspectrumplot()) that is used to create a axis for later
+    :param plot_data_func:      (function) function (powerspectrum_plot()) that is used to create a axis for later
                                 plotting containing the calculated powerspectrum.
     :param **kwargs:            additional arguments that are passed to the plot_data_func().
     :return power:              (1-D array) power array of the psd.
@@ -67,9 +72,6 @@ def powerspectrum(data, samplerate, fresolution=[0.5], plot_data_func=None, **kw
 
     if len(multi_psd_data) == 1:
         multi_psd_data = multi_psd_data[0]
-
-    if plot_data_func:
-        plot_data_func(psd_data[0], psd_data[1], **kwargs)
 
     return multi_psd_data
 
