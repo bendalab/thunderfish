@@ -12,7 +12,10 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type):
 
     :param bwin_data:           (1-D array) Data array that shall be analyzed.
     :param samplerate:          (float) samleate of the data that shall be analyzed.
-    :param window:              (float) time around the threshold that shall be saved for further EOD comparison. [in s]
+    :param fish_type:           (string) result of the sortfishtype algorithm that assigns the structure of the eods to
+                                wave or pulsetype.
+    :param psd_type:            (string) result of the psdtype algorithm that assigns the powerspectrum to wave or
+                                pulsetype.
     :return eod_data:           (2-D array) An array of lists. Each list contains the data around a EOD.
     """
     # ToDo: replace this with the peakdetection modul as soon as it is trustworthy.
@@ -42,11 +45,10 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type):
 
 def eod_mean(eod_data):
     """
-    Creates an array containing the mean eod data.
+    Creates an array containing the mean and std eod data.
 
-    This function gets a 2-D array as input. This input cantains of lists of data with the same length. Each list
-    represents the data around a EOD. To analyse the structure in this function the mean EOD and its standard deviation
-    is calculated.
+    This function takes a 2-D array containing lists of data with the same length as input. Each list represents the
+    data around a EOD. To analyse the structure in this function the mean EOD and its standard deviation is calculated.
 
     :param eod_data:            (2-D array) An array of lists. Each list contains the data around a EOD.
     :return mean_eod:           (1-D array) Array of the mean data calculated from the 2-D eod_data array.
@@ -61,15 +63,14 @@ def eod_mean(eod_data):
 
     return mean_eod, std_eod
 
-def eodanalysisplot(time, mean_eod, std_eod, ax):
+def eod_analysis_plot(time, mean_eod, std_eod, ax):
     """
-    Creates a axis for plotting  to visualize a mean eod and its standard deviation.
+    Creates an axis for plotting  to visualize a mean eod and its standard deviation.
 
     :param time:                (1-D array) containing the time of the mean eod.
     :param mean_eod:            (1-D array) containing the data of the mean eod.
     :param std_eod:             (1-D array) containing the data of the std eod.
     :param ax:                  (axis for plot) empty axis that is filled with content in the function.
-    :return:                    (axis for plot) axis that is ready for plotting explaining what the modul did.
     """
     u_std = [mean_eod[i] + std_eod[i] for i in np.arange(len(mean_eod))]
     l_std = [mean_eod[i] - std_eod[i] for i in np.arange(len(mean_eod))]
@@ -78,38 +79,6 @@ def eodanalysisplot(time, mean_eod, std_eod, ax):
     ax.set_xlabel('time [sec]')
     ax.set_ylabel('Amplitude (mV)')
     ax.set_xlim([min(time), max(time)])
-    return ax
-
-def load_example_data(audio_file, channel=0, verbose=None):
-    """
-    This function shows in part the same components of the thunderfish.py poject. Here several moduls are used to load
-    some data to dispay the functionality of the eodanalysis.py modul.
-
-    :param audio_file:      (string) filepath of a audiofile that shall be used for the analysis.
-    :return power:          (1-D array) power array of a psd.
-    :return freqs:          (1-D array) frequency array of a psd.
-    """
-    cfg = ct.get_config_dict()
-
-    if verbose is not None:
-        cfg['verboseLevel'][0] = verbose
-    channel = channel
-
-    # load data using dataloader module
-    print('loading example data ...\n')
-    data, samplrate, unit = dl.load_data(audio_file)
-
-    # calculate best_window
-    print('calculating best window ...\n')
-    bwin_data, clip = bw.best_window(data, samplrate)
-
-    print('calculating powerspectrum ...\n')
-    power, freqs = ps.powerspectrum(data, samplrate)
-
-
-    psd_type, proportion = pt.psd_assignment(power, freqs)
-
-    return bwin_data, samplrate, psd_type
 
 def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None, **kwargs):
     """
@@ -128,24 +97,21 @@ def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None
     :return mean_eod:           (1-D array) containing the data of the mean eod.
     :return std_eod:            (1-D array) containing the data of the std eod.
     :return time:               (1-D array) containing the time of the mean eod. (same length as mean_eod or std_eod)
-    :return ax:                 (axis for plot) axis that is ready for plotting explaining what the modul does.
     """
 
     print('\nAnalysing EOD structures ...')
-    pulse_data = eod_extracting(bwin_data, samplerate, fish_type, psd_type)
-    mean_eod, std_eod = eod_mean(pulse_data)
+    eod_data = eod_extracting(bwin_data, samplerate, fish_type, psd_type)
+    mean_eod, std_eod = eod_mean(eod_data)
 
     time = ((np.arange(len(mean_eod)) * 1.0 / samplerate) - 0.5 * len(mean_eod) / samplerate) * 1000.0
 
     if plot_data_func:
-        ax = plot_data_func(time, mean_eod, std_eod, **kwargs)
-        return mean_eod, std_eod, time, ax
-    else:
-        return mean_eod, std_eod, time
+        plot_data_func(time, mean_eod, std_eod, **kwargs)
+
+    return mean_eod, std_eod, time
 
 if __name__ == '__main__':
     try:
-        import config_tools as ct
         import dataloader as dl
         import bestwindow as bw
         import psdtype as pt
@@ -153,6 +119,32 @@ if __name__ == '__main__':
     except ImportError:
         'Import error !!!'
         quit()
+
+    def load_example_data(audio_file):
+        """
+        This function shows in part the same components of the thunderfish.py project. Here several modules are used to load
+        some data to display the functionality of the eodanalysis.py module.
+
+        :param audio_file:      (string) filepath of a audiofile that shall be used for the analysis.
+        :return power:          (1-D array) power array of a psd.
+        :return freqs:          (1-D array) frequency array of a psd.
+        """
+
+        # load data using dataloader module
+        print('loading example data ...\n')
+        data, samplrate, unit = dl.load_data(audio_file)
+
+        # calculate best_window
+        print('calculating best window ...\n')
+        bwin_data, clip = bw.best_window(data, samplrate)
+
+        print('calculating powerspectrum ...\n')
+        power, freqs = ps.powerspectrum(data, samplrate)
+
+
+        psd_type, proportion = pt.psd_assignment(power, freqs)
+
+        return bwin_data, samplrate, psd_type
 
     print('This modul detects single eods and tries to create a mean eod. Here this is shown as example for a defined file.')
     print('')
@@ -168,7 +160,7 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
 
-    mean_eod, std_eod, time, ax = eod_analysis(bwin_data, samplrate, fish_type='wave', psd_type=psd_type,
-                                               plot_data_func=eodanalysisplot, ax=ax)
+    mean_eod, std_eod, time = eod_analysis(bwin_data, samplrate, fish_type='wave', psd_type=psd_type,
+                                           plot_data_func=eod_analysis_plot, ax=ax)
     plt.legend()
     plt.show()
