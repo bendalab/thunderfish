@@ -80,6 +80,11 @@ def eod_analysis_plot(time, mean_eod, std_eod, ax):
     ax.set_ylabel('Amplitude (mV)')
     ax.set_xlim([min(time), max(time)])
 
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
 def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None, **kwargs):
     """
     Detects EODs in the given data and tries to build a mean eod.
@@ -91,7 +96,7 @@ def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None
     :param samplerate:          (float) samplerate of the data that shall be analysed.
     :param fish_type:           (string) result of the "sortfishtype.py" modul.
     :param psd_type:            (string) result of the "psdtype.py" mudule.
-    :param plot_data_func:      (function) function (eodanalysisplot()) that is used to create a axis for later plotting containing a figure to
+    :param plot_data_func:      (function) function (eod_analysis_plot()) that is used to create a axis for later plotting containing a figure to
                                 visualice what the modul did.
     :param kwargs:              additional arguments that are passed to the plot_data_func().
     :return mean_eod:           (1-D array) containing the data of the mean eod.
