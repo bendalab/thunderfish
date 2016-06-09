@@ -85,6 +85,23 @@ def consistent_fishes_plot(filtered_fishlist, ax):
     ax.set_ylabel('value')
     ax.set_xlabel('list no.')
 
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+def consistent_fishes_psd_plot(filtered_fishlist, ax):
+    # ToDo: This shall include dots for the fundamental frequencies in the powerspectrum plot. BUGGIE !!!
+    for fish in np.arange(len(filtered_fishlist)):
+        x = [filtered_fishlist[fish][harmonic][0] for harmonic in np.arange(len(filtered_fishlist[fish])) ]
+        y = 10.0 * np.log10([filtered_fishlist[fish][harmonic][1] for harmonic in np.arange(len(filtered_fishlist[fish])) ])
+        ax.plot(x, y, 'o', markersize=8)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
 def consistentfishes(fishlists, plot_data_func=None, **kwargs):
     """
     This function gets several fishlists, compares them, and gives back one fishlist that only contains these fishes
