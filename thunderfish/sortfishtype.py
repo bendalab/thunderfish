@@ -89,7 +89,7 @@ def width_period_ratio(data, samplerate, percentile_th=1., th_factor=0.8,
 
 def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, pulse_th, type_suggestion,
                             pvt_dist, tvp_dist):
-    """ Plots the best-window, a zoomed index of it and the r-values that determine whether fish is pulse or wave-type.
+    """ Plots the data, a zoomed index of it and the r-values that determine whether fish is pulse or wave-type.
 
     :param data: (array-like). amplitude data
     :param samplerate: (float). sample-rate in Hz
