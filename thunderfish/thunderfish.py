@@ -21,7 +21,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
     bwin_start, bwin_end, clip = bw.best_window_indices(data, samplrate)
 
     # sort fish-type
-    sugg_type, pta_value = sft.type_detector(data[bwin_start:bwin_end], samplrate)  # pta = peak-trough-analysis
+    sugg_type, pta_value = sft.width_period_ratio(data[bwin_start:bwin_end], samplrate)  # pta = peak-trough-analysis
 
 
     # with audioread.audio_open(audio_file) as af:
