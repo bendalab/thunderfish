@@ -304,7 +304,7 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
     return idx0, idx1, clipped
 
 
-def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
+def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99, th_factor=0.8,
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
@@ -315,13 +315,13 @@ def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, perce
       end_time (float): Time of the end of the best window.
       clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th,
+    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th, th_factor,
                                 min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                 plot_data_func, **kwargs)
     return start_inx/rate, end_inx/rate, clipped
 
 
-def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
+def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99, th_factor=0.8,
                 min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                 plot_data_func=None, **kwargs):
@@ -331,7 +331,7 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_
       data (array): the data of the best window.
       clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th,
+    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th, th_factor,
                                     min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                     plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
