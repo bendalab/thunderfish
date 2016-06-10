@@ -32,7 +32,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
     bwin_start, bwin_end, clip = bw.best_window_indices(data, samplrate)
 
     # sort fish-type
-    sugg_type, pta_value = sft.width_period_ratio(data[bwin_start:bwin_end], samplrate)  # pta = peak-trough-analysis
+    sugg_type, pta_value = sft.check_pulse_width(data[bwin_start:bwin_end], samplrate)  # pta = peak-trough-analysis
 
     # calculate powerspectrums with different frequency resolutions
     psd_data = ps.powerspectrum(data[bwin_start:bwin_end], samplrate, fresolution=[0.5, 2 * 0.5, 4 * 0.5],

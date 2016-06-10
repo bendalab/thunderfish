@@ -1,11 +1,20 @@
+
+"""
+This module checks if the recorded signal corresponds to a wave- or a pulse-fish using two different approaches:
+One checks for the width of an EOD compared to the distance to the next EOD. The second performs a power-spectrum-
+analysis.
+The key function for the pulse-width approach is check_pulse_width.
+The key function for the power-spectrum-analysis approach is XXXX.
+"""
+
 import numpy as np
 import peakdetection as pkd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
 
-def width_period_ratio(data, samplerate, percentile_th=1., th_factor=0.8,
-                       win_shift=0.5, pulse_thres=0.1, plot_data_func=None):
+def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
+                      win_shift=0.5, pulse_thres=0.1, verbose=0, plot_data_func=None, **kwargs):
 
     """ Detects if fish is pulse or wave by calculating the proportion of the time distance between a peak and its
      following trough, relative to the time between consecutive peaks.
@@ -18,6 +27,7 @@ def width_period_ratio(data, samplerate, percentile_th=1., th_factor=0.8,
     :param th_factor: (float). The threshold for peak detection is the inter-percentile-range multiplied by this factor.
     :param win_shift: (float). Time shift in seconds between windows.
     :param pulse_thres: (float). a positive number setting the minimum distance between peaks and troughs
+    :param verbose: (int). if > 1, print information in the command line.
     :param plot_data_func: Function for plotting the data with detected peaks and troughs, an inset and the distribution
     of peak-ratios.
         plot_data_func(data, samplerate, peak_idx, trough_idx, peakdet_th, pulse_th, type_suggestion, pvt_dist, tvp_dist)
@@ -27,10 +37,10 @@ def width_period_ratio(data, samplerate, percentile_th=1., th_factor=0.8,
         :param trough_idx: (array). indices into raw data indicating detected troughs.
         :param peakdet_th: (float). a positive number setting the minimum distance between peaks and troughs.
         :param pulse_th: (float). If the median r-value is smaller than this threshold, the fish is pulse-; else wave-type
-        :param type_suggestion: (str). Fish-type suggested by the algorithm ("pulse"/"wave")
+        :param type_suggestion: (bool). Fish-type suggested by the algorithm; True if pulse-fish, False if wave-fish
         :param pvt_dist: (array-like). distribution of r-values [pk2tr/pk2pk]
         :param tvp_dist: (array-like). distribution of r-values [tr2pk/tr2tr]
-    :return: suggestion: (str). Returns the suggested fish-type ("pulse"/"wave").
+    :return: suggestion: (bool). True if pulse-fish, False if wave-fish
     :return: peak_ratio: (float). Returns a float between 0. and 1. which gives the proportion of peak-2-trough,
                             from peak-2-peak time distance. (Wave-fishes should have larger values than pulse-fishes)
     """
@@ -43,12 +53,12 @@ def width_period_ratio(data, samplerate, percentile_th=1., th_factor=0.8,
         """
         peaks, troughs = pkd.trim_to_peak(peak_idx, trough_idx)
 
-        # get times of peaks and troughs
-        pk_times = peaks / samplerate  # Actually there is no need to divide by samplerate.
-        tr_times = troughs / samplerate  # Time differences can be calculated using indices only.
+        # get times of peaks and troughs, pk_times need to be floats!
+        pk_times = peaks / float(samplerate)  # Actually there is no need to divide by samplerate.
+        tr_times = troughs / float(samplerate)  # Time differences can be calculated using indices only.
 
         pk_2_pk = np.diff(pk_times)
-        pk_2_tr = np.abs(pk_times - tr_times)[:-1]
+        pk_2_tr = (tr_times - pk_times)[:-1]
 
         # get the proportion of peak-2-trough, from peak-2-peak time distance
         r_tr = pk_2_tr / pk_2_pk
@@ -58,7 +68,8 @@ def width_period_ratio(data, samplerate, percentile_th=1., th_factor=0.8,
 
         return peak_ratio, r_tr
 
-    print('\nAnalyzing Fish-Type...')
+    if verbose > 1:
+        print('Analyzing Fish-Type...')
 
     # threshold for peak detection:
     threshold = np.zeros(len(data))
@@ -76,19 +87,21 @@ def width_period_ratio(data, samplerate, percentile_th=1., th_factor=0.8,
     pr_tvp, tvp_dist = ratio(trough_idx, peak_idx)
 
     peak_ratio = np.mean([pr_pvt, pr_tvp])
-    print('\nPvT = %.3f\nTvP = %.3f\nThe resulting peak ratio is %.3f' % (pr_pvt, pr_tvp, peak_ratio))
 
-    suggestion = 'pulse' if peak_ratio < pulse_thres else 'wave'
+    suggestion = peak_ratio < pulse_thres
 
     if plot_data_func:
-        plot_data_func(data, samplerate, peak_idx, trough_idx, threshold, pulse_thres, suggestion, pr_pvt, pr_tvp)
+        plot_data_func(data, samplerate, peak_idx, trough_idx, threshold, pulse_thres, suggestion, pr_pvt, pr_tvp,
+                       **kwargs)
 
-    print('\nFish-type is %s. r-value = %.3f' % (suggestion, peak_ratio))
+    if verbose > 0:
+        f_type = 'pulse' if suggestion else 'wave'
+        print('Fish-type is %s. r-value = %.3f' % (f_type, peak_ratio))
     return suggestion, peak_ratio
 
 
 def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, pulse_th, type_suggestion,
-                            pvt_dist, tvp_dist):
+                            pvt_dist, tvp_dist, ax, fs=14):
     """ Plots the data, a zoomed index of it and the r-values that determine whether fish is pulse or wave-type.
 
     :param data: (array-like). amplitude data
@@ -97,7 +110,7 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     :param trough_idx: (array of int). Array with trough indices
     :param peakdet_th: (float). threshold for peak detection
     :param pulse_th: (float). If the median r-value is smaller than this threshold, the fish is pulse-; else wave-type
-    :param type_suggestion: (str). Fish-type suggested by the algorithm
+    :param type_suggestion: (bool). Fish-type suggested by the algorithm (True for pulse-type)
     :param pvt_dist: (array-like). Array with r-values (peak2trough / peak2peak)
     :param tvp_dist: (array-like). Array with r-values (trough2peak/ trough2trough)
     """
@@ -113,10 +126,6 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
         pass
 
     t = np.arange(len(data)) / samplerate
-    fs = 14
-
-    # Draw Figure with subplots
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
 
     # First and second subplots: raw-data with peak-trough-detection
     for enu, c_axis in enumerate(ax):
@@ -149,7 +158,8 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     ax[1].set_xlim(t[start_in], t[end_in])  # just set proper xlim!
 
     # Cosmetics
-    ax[1].set_title('Inset of plot above. Wave-type suggestion is %s' % type_suggestion, fontsize=fs + 2)
+    f_type = 'pulse' if type_suggestion else 'wave'
+    ax[1].set_title('Inset of plot above. Fish-type suggestion is %s' % f_type, fontsize=fs + 2)
     ax[1].set_xlabel('Time [sec]', fontsize=fs)
     ax[1].set_ylabel('Amplitude [a.u.]', fontsize=fs)
     ax[1].tick_params(axis='both', which='major', labelsize=fs - 2)
@@ -171,7 +181,6 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
 if __name__ == "__main__":
     print("\nChecking sortfishtype module ...\n")
     import sys
-    import matplotlib.pyplot as plt
 
     if len(sys.argv) < 2:
         # generate data:
@@ -199,14 +208,16 @@ if __name__ == "__main__":
         print("loading %s ...\n" % file_path)
         data, rate, unit = dl.load_data(sys.argv[1], 0)
 
+    # Draw Figure with subplots
+    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
+
     # run fish-type detector
-    type_suggestion, r_val = width_period_ratio(data, rate, plot_data_func=plot_width_period_ratio)
+    type_suggestion, r_val = check_pulse_width(data, rate, plot_data_func=plot_width_period_ratio, ax=ax)
     if len(sys.argv) >= 2:
         filename = file_path.split('/')[-1]
-        title = 'Fish # %s is %s' % (filename, type_suggestion)
+        f_type = 'pulse' if type_suggestion else 'wave'
+        title = 'Fish # %s is %s' % (filename, f_type)
         fig = plt.gcf()
         fig.canvas.set_window_title(title)
     plt.tight_layout()
     plt.show()
-    plt.close()
-    quit()
