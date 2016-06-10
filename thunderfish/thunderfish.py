@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import argparse
 import config_tools as ct
