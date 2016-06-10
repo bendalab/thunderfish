@@ -320,7 +320,7 @@ class FishRecording:
 
         pass
 
-    def type_detector(self, thres=0.1, create_dataset=False, category = 'wave'):
+    def type_detector(self, thres=0.1):
 
         pk_t, tr_t, _, _ = self.w_pt
         pk_2_pk = np.diff(pk_t)
@@ -333,29 +333,6 @@ class FishRecording:
         r_tr[r_tr>0.5] = 1 - r_tr[r_tr>0.5]
         r_value = np.median(r_tr)
         # r_value = np.median(pk_2_tr[:min_n] / pk_2_pk[:min_n])
-
-        if create_dataset:
-            if category is 'wave':
-                if not os.path.exists('wave_p2v_algor.npy'):
-                    np.save('wave_p2v_algor.npy', np.array([]))
-                wave_p2v_algor = np.load('wave_p2v_algor.npy')
-                wave_p2v_algor = wave_p2v_algor.tolist()
-                wave_p2v_algor.append(r_value)
-                wave_p2v_algor = np.asarray(wave_p2v_algor)
-                np.save('wave_p2v_algor.npy', wave_p2v_algor)
-
-            elif category is 'pulse':
-                if not os.path.exists('pulse_p2v_algor.npy'):
-                    np.save('pulse_p2v_algor.npy', np.array([]))
-                pulse_p2v_algor = np.load('pulse_p2v_algor.npy')
-                pulse_p2v_algor = pulse_p2v_algor.tolist()
-                pulse_p2v_algor.append(r_value)
-                pulse_p2v_algor = np.asarray(pulse_p2v_algor)
-                np.save('pulse_p2v_algor.npy', pulse_p2v_algor)
-
-            else:
-                print("unknown fish category: %s" % category)
-                quit()
 
         return 'pulse' if r_value < thres else 'wave', r_value
     def plot_spectogram(self, ax):
