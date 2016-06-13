@@ -1,5 +1,6 @@
 import numpy as np
 import sys
+import peakdetection as pkd
 
 def eod_extracting(bwin_data, samplerate, fish_type, psd_type):
     """
@@ -20,13 +21,10 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type):
     """
     # ToDo: replace this with the peakdetection modul as soon as it is trustworthy.
     th = np.mean(bwin_data) + ( (np.max(bwin_data)-np.mean(bwin_data)) / 2.0 )
-    th_idx = []
+    # th_idx = []
     eod_data = []
 
-    ### could be replaced be the peakdetection modul when working properly ###
-    for idx in np.arange(len(bwin_data)-1)+1:
-        if bwin_data[idx] > th and bwin_data[idx-1] <= th:
-            th_idx.append(idx)
+    th_idx = pkd.detect_peaks(bwin_data, th)[0]
 
     th_idx_diff = [(th_idx[i+1] - th_idx[i]) for i in np.arange(len(th_idx)-1)]
     mean_th_idx_diff = np.mean(th_idx_diff)
@@ -76,7 +74,7 @@ def eod_analysis_plot(time, mean_eod, std_eod, ax):
     l_std = [mean_eod[i] - std_eod[i] for i in np.arange(len(mean_eod))]
     ax.plot(time, mean_eod, lw=2, color='firebrick', alpha=0.7, label='mean EOD')
     ax.fill_between(time, u_std, l_std, color='grey', alpha=0.3)
-    ax.set_xlabel('time [sec]')
+    ax.set_xlabel('time [msec]')
     ax.set_ylabel('Amplitude (mV)')
     ax.set_xlim([min(time), max(time)])
 
