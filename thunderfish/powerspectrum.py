@@ -1,7 +1,13 @@
-import numpy as np
-import matplotlib.mlab as ml
+"""
 
-def psd(data, samplerate, fresolution):
+"""
+
+import numpy as np
+import matplotlib.mlab as mlab
+
+def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
+    window=mlab.window_hanning, noverlap=None, pad_to=None,
+    sides='default', scale_by_freq=None):
     """
     Calculates a Powerspecturm.
 
@@ -17,10 +23,15 @@ def psd(data, samplerate, fresolution):
     nfft = int(np.round(2 ** (np.floor(np.log(samplerate / fresolution) / np.log(2.0)) + 1.0)))
     if nfft < 16:
         nfft = 16
-    power, freqs = ml.psd(data, NFFT=nfft, noverlap=nfft / 2, Fs=samplerate, detrend=ml.detrend_mean)
+    if noverlap:
+        power, freqs = mlab.psd(data, NFFT=nfft, noverlap=noverlap, Fs=samplerate, detrend=detrend, window=window,
+                                pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
+    else:
+        power, freqs = mlab.psd(data, NFFT=nfft, noverlap=nfft / 2, Fs=samplerate, detrend=detrend, window=window,
+                                pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return [power, freqs]
 
-def powerspectrum_plot(power, freqs, ax):
+def plot_decibel_psd(power, freqs, ax, fs, max_freq=3000, color='blue', alpha=1., verbose=0):
     """
     Plots a powerspectum.
 
@@ -29,17 +40,19 @@ def powerspectrum_plot(power, freqs, ax):
     :param ax:                  (axis for plot) empty axis that is filled with content in the function.
     :return ax:                 (axis for plot) axis that is ready for plotting containing the powerspectrum.
     """
-    ax.plot(freqs, 10.0 * np.log10(power))
-    ax.set_ylabel('power [dB]')
-    ax.set_xlabel('frequency [Hz]')
-    ax.set_xlim([0, 3000])
+    if verbose >=1:
+        print('create PSD plot...')
+    power_cp = power.copy()
+    power_cp[power_cp < 1e-20] = np.nan
 
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.get_xaxis().tick_bottom()
-    ax.get_yaxis().tick_left()
+    decibel_psd = 10.0 * np.log10(power_cp)
+    ax.plot(freqs, decibel_psd, color=color, alpha=alpha)
+    ax.set_ylabel('power [dB]', fontsize=fs)
+    ax.set_xlabel('frequency [Hz]', fontsize=fs)
+    ax.set_xlim([0, max_freq])
 
-def powerspectrum(data, samplerate, fresolution=[0.5], plot_data_func=None, **kwargs):
+def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning,
+                         noverlap=None, pad_to=None, sides='default', scale_by_freq=None, verbose=0):
     """
     This function is performing the steps to calculate a powerspectrum on the basis of a given dataset, a given
     samplingrate and a given frequencyresolution for the psd. Therefore two other functions are called to first
@@ -60,22 +73,26 @@ def powerspectrum(data, samplerate, fresolution=[0.5], plot_data_func=None, **kw
     :return ax:                 (axis for plot) axis that is ready for plotting containing a figure that shows what the
                                 modul did.
     """
-    print('\nCoumputing powerspectrum for %0.f frequency resolutions ...' % len(fresolution))
+    if verbose >=1:
+        print('Coumputing powerspectrum ...')
+
+    return_list = True
+    if not isinstance(fresolution, list):
+        return_list = False
+        fresolution = [fresolution]
 
     multi_psd_data = []
     for fres in fresolution:
-        psd_data = psd(data, samplerate, fres)
+        psd_data = psd(data, samplerate, fres, detrend, window, noverlap, pad_to, sides, scale_by_freq)
         multi_psd_data.append(psd_data)
 
-    if plot_data_func:
-        plot_data_func(multi_psd_data[0][0], multi_psd_data[0][1], **kwargs)
-
-    if len(multi_psd_data) == 1:
+    if not return_list:
         multi_psd_data = multi_psd_data[0]
 
     return multi_psd_data
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
 
     print('Computes powerspectrum of a created signal of two wavefish (300 and 450 Hz)')
     print('')
@@ -83,12 +100,13 @@ if __name__ == '__main__':
     print('  python powerspectrum.py')
     print('')
 
-    fundamental = [300, 450] # Hz
-    samplingrate = 100000
-    time = np.linspace(0, 8-1/samplingrate, 8*samplingrate)
-    data = np.sin(time * 2 * np.pi* fundamental[0]) + np.sin(time * 2 * np.pi* fundamental[1])
+    fundamental = [300, 450]  # Hz
+    samplerate = 100000
+    time = np.linspace(0, 8 - 1 / samplerate, 8 * samplerate)
+    data = np.sin(time * 2 * np.pi * fundamental[0]) + np.sin(time * 2 * np.pi * fundamental[1])
 
-    import matplotlib.pyplot as plt
+    psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 1], verbose=1)
+
     fig, ax = plt.subplots()
-    psd_data = powerspectrum(data, samplingrate, plot_data_func=powerspectrum_plot, ax=ax)
+    plot_decibel_psd( psd_data[0][0], psd_data[0][1], ax=ax, fs = 12, color='firebrick', alpha=0.9, verbose= 1)
     plt.show()

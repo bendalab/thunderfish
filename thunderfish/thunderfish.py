@@ -35,8 +35,8 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
     sugg_type, pta_value = sft.type_detector(data[bwin_start:bwin_end], samplrate)  # pta = peak-trough-analysis
 
     # calculate powerspectrums with different frequency resolutions
-    psd_data = ps.powerspectrum(data[bwin_start:bwin_end], samplrate, fresolution=[0.5, 2 * 0.5, 4 * 0.5],
-                                plot_data_func=ps.powerspectrum_plot, ax=ax1)
+    psd_data = ps.multi_resolution_psd(data[bwin_start:bwin_end], samplrate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
+    ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax1, fs=12)
 
     # find the fishes in the different powerspectrums
     fishlists = []
@@ -48,7 +48,8 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
     psd_type, proportion = pt.psd_assignment(psd_data[0][0], psd_data[0][1])
 
     # filter the different fishlists to get a fishlist with consistent fishes
-    filtered_fishlist = cf.consistentfishes(fishlists)
+    filtered_fishlist = cf.consistent_fishes(fishlists)
+    cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1, fs=12)
 
     # analyse the eod
     ea.eod_analysis(data[bwin_start:bwin_end], samplrate, sugg_type, psd_type,

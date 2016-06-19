@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import peakdetection as pkd
 
-def eod_extracting(bwin_data, samplerate, fish_type, psd_type):
+def eod_extracting(bwin_data, samplerate, fish_type, psd_type, pulse_window = 0.006):
     """
     Detects peaks and collects data arround these detected peaks for later comparison.
 
@@ -19,7 +19,6 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type):
                                 pulsetype.
     :return eod_data:           (2-D array) An array of lists. Each list contains the data around a EOD.
     """
-    # ToDo: replace this with the peakdetection modul as soon as it is trustworthy.
     th = np.mean(bwin_data) + ( (np.max(bwin_data)-np.mean(bwin_data)) / 2.0 )
     # th_idx = []
     eod_data = []
@@ -29,16 +28,17 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type):
     th_idx_diff = [(th_idx[i+1] - th_idx[i]) for i in np.arange(len(th_idx)-1)]
     mean_th_idx_diff = np.mean(th_idx_diff)
 
-    if fish_type is 'pulse' and psd_type is 'pulse':
-        window = 0.006
+# TODO if fish_type and psd_type:
+    if fish_type and psd_type:
         for idx in th_idx:
-            if int(idx - samplerate * window / 2) >= 0 and int(idx + samplerate * window / 2) <= len(bwin_data):
-                eod_data.append(bwin_data[int(idx - samplerate * window / 2): int(idx + samplerate * window / 2)])
+            if int(idx - samplerate * pulse_window / 2) >= 0 and int(idx + samplerate * pulse_window / 2) <= len(bwin_data):
+                eod_data.append(bwin_data[int(idx - samplerate * pulse_window / 2): int(idx + samplerate * pulse_window / 2)])
     else:
         for idx in th_idx:
             if int(idx - (mean_th_idx_diff / (3./2) )) >= 0 and int(idx + (mean_th_idx_diff / (3./2))) <= len(bwin_data):
                 eod_data.append(bwin_data[int(idx - (mean_th_idx_diff / (3./2)) ): int(idx + (mean_th_idx_diff / (3./2)))])
 
+# TODO: 2d numpy array
     return eod_data
 
 def eod_mean(eod_data):
@@ -75,7 +75,7 @@ def eod_analysis_plot(time, mean_eod, std_eod, ax):
     ax.plot(time, mean_eod, lw=2, color='firebrick', alpha=0.7, label='mean EOD')
     ax.fill_between(time, u_std, l_std, color='grey', alpha=0.3)
     ax.set_xlabel('time [msec]')
-    ax.set_ylabel('Amplitude (mV)')
+    ax.set_ylabel('amplitude (mV)')
     ax.set_xlim([min(time), max(time)])
 
     ax.spines['top'].set_visible(False)
@@ -83,7 +83,7 @@ def eod_analysis_plot(time, mean_eod, std_eod, ax):
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
 
-def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None, **kwargs):
+def eod_analysis(bwin_data, samplerate, fish_type, psd_type, verbose = 0, plot_data_func=None, **kwargs):
     """
     Detects EODs in the given data and tries to build a mean eod.
 
@@ -101,8 +101,8 @@ def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None
     :return std_eod:            (1-D array) containing the data of the std eod.
     :return time:               (1-D array) containing the time of the mean eod. (same length as mean_eod or std_eod)
     """
-
-    print('\nAnalysing EOD structures ...')
+    if verbose >= 1:
+        print('Analysing EOD structures ...')
     eod_data = eod_extracting(bwin_data, samplerate, fish_type, psd_type)
     mean_eod, std_eod = eod_mean(eod_data)
 
@@ -110,8 +110,6 @@ def eod_analysis(bwin_data, samplerate, fish_type, psd_type, plot_data_func=None
 
     if plot_data_func:
         plot_data_func(time, mean_eod, std_eod, **kwargs)
-
-    return mean_eod, std_eod, time
 
 if __name__ == '__main__':
     try:
@@ -142,12 +140,12 @@ if __name__ == '__main__':
         bwin_data, clip = bw.best_window(data, samplrate)
 
         print('calculating powerspectrum ...\n')
-        power, freqs = ps.powerspectrum(data, samplrate)
+        power, freqs = ps.multi_resolution_psd(data, samplrate)
 
 
-        psd_type, proportion = pt.psd_assignment(power, freqs)
+        pulse_psd, proportion = pt.psd_assignment(power, freqs)
 
-        return bwin_data, samplrate, psd_type
+        return bwin_data, samplrate, pulse_psd
 
     print('This modul detects single eods and tries to create a mean eod. Here this is shown as example for a defined file.')
     print('')
@@ -158,12 +156,12 @@ if __name__ == '__main__':
     if len(sys.argv) <= 1:
         quit()
 
-    bwin_data, samplrate, psd_type = load_example_data(sys.argv[1])
+    bwin_data, samplrate, pulse_psd = load_example_data(sys.argv[1])
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
 
-    mean_eod, std_eod, time = eod_analysis(bwin_data, samplrate, fish_type='wave', psd_type=psd_type,
+    eod_analysis(bwin_data, samplrate, fish_type=True, psd_type=pulse_psd,
                                            plot_data_func=eod_analysis_plot, ax=ax)
     plt.legend()
     plt.show()

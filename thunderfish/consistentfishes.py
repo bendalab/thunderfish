@@ -14,10 +14,12 @@ def extract_fundamentals(fishlists):
     :return fundamentals:   (2-D array) list of lists containing the fundamentals of a fishlist.
                             fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
     """
-    fundamentals = [[] for i in range(len(fishlists))]
-    for fishlist in np.arange(len(fishlists)):
-        for fish in np.arange(len(fishlists[fishlist])):
-            fundamentals[fishlist].append(fishlists[fishlist][fish][0][0])
+    # TODO no np.aranges in loops:
+    # TODO Test it!
+    # TODO: single and lists of fishlist hasattr(list, 'len')
+    fundamentals = []
+    for fishlist in range(len(fishlists)):
+        fundamentals.append(np.array([fish[0][0] for fish in fishlists[fishlist]]))  # TODO: Docu np.array
 
     return fundamentals
 
@@ -42,27 +44,19 @@ def find_consistency(fundamentals, df_th = 1.):
     :return consistent_fundamentals: (1-D array) List containing all values that are available in all given lists.
     :return index:          (1-D array) Indices of the values that are in every list relating to the fist list in fishlists.
     """
-    consistency_help = np.ones_like(fundamentals[0])
-
-    index = []
-    consistent_fundamentals = []
+    consistency_help = np.ones(len(fundamentals[0]), dtype=int)
 
     for enu, fundamental in enumerate(fundamentals[0]):
-        for list in np.arange(len(fundamentals)-1)+1:
-            freq_diff = [fundamentals[list][i] - fundamental for i in np.arange(len(fundamentals[list]))]
-            for i in np.arange(len(freq_diff)):
-                if freq_diff[i] >= -df_th and freq_diff[i] <= df_th:
-                    consistency_help[enu] += 1
-                    break
+        for list in range(1, len(fundamentals)):
+            if np.sum(np.abs(fundamentals[list] - fundamental) < df_th) > 0:
+                consistency_help[enu] += 1
 
-    for idx in np.arange(len(consistency_help)):
-        if consistency_help[idx] == len(fundamentals):
-            index.append(idx)
-            consistent_fundamentals.append(fundamentals[0][idx])
+    index = np.arange(len(fundamentals[0]))[consistency_help == len(fundamentals)]
+    consistent_fundamentals = fundamentals[0][consistency_help == len(fundamentals)]
 
     return consistent_fundamentals, index
 
-def consistent_fishes_plot(filtered_fishlist, ax):
+def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     """
     Creates an axis for plotting to visualize what this modul did.
 
@@ -82,27 +76,37 @@ def consistent_fishes_plot(filtered_fishlist, ax):
         else:
             ax.plot(x, y, '-r', linewidth= 10, alpha=0.5)
     ax.set_xlim([0, len(fishlists)+1])
-    ax.set_ylabel('value')
-    ax.set_xlabel('list no.')
+    ax.set_ylabel('value', fontsize=12)
+    ax.set_xlabel('list no.', fontsize=12)
 
+def consistent_fishes_psd_plot(filtered_fishlist, ax, fs):
+    """
+    This function can be passed to the consistent fishes plot as plot_data_func. It's purpose is to plot the four most
+    powerfull fundamental frequencies into a powerspectrum plot.
+
+    :param filtered_fishlist: (3-D array) Contains power and frequency of these fishes that hve been detected in
+                            several powerspectra using different resolutions.
+    :param ax:              (axis for plot) empty axis that is filled with content in the function.
+    """
+    fundamental_power = [filtered_fishlist[fish][0][1] for fish in np.arange(len(filtered_fishlist))]
+    if len(filtered_fishlist) >=4:
+        idx_maxpower = np.argsort(fundamental_power)[-4:]
+    else:
+        idx_maxpower = np.argsort(fundamental_power)[:]
+
+    for fish in idx_maxpower:
+        x = np.array([filtered_fishlist[fish][harmonic][0] for harmonic in range(len(filtered_fishlist[fish]))])
+        y = np.array([filtered_fishlist[fish][harmonic][1] for harmonic in range(len(filtered_fishlist[fish]))])
+        y[y < 1e-20] = np.nan
+        ax.plot(x, 10.0 * np.log10(y), 'o', markersize=8, label='%.1f' % filtered_fishlist[fish][0][0])
+
+    ax.legend(loc= 1, numpoints=1, frameon=False, fontsize= 10)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.get_xaxis().tick_bottom()
     ax.get_yaxis().tick_left()
 
-def consistent_fishes_psd_plot(filtered_fishlist, ax):
-    # ToDo: This shall include dots for the fundamental frequencies in the powerspectrum plot. BUGGIE !!!
-    for fish in np.arange(len(filtered_fishlist)):
-        x = [filtered_fishlist[fish][harmonic][0] for harmonic in np.arange(len(filtered_fishlist[fish])) ]
-        y = 10.0 * np.log10([filtered_fishlist[fish][harmonic][1] for harmonic in np.arange(len(filtered_fishlist[fish])) ])
-        ax.plot(x, y, 'o', markersize=8)
-
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.get_xaxis().tick_bottom()
-    ax.get_yaxis().tick_left()
-
-def consistentfishes(fishlists, plot_data_func=None, **kwargs):
+def consistent_fishes(fishlists, verbose=0, plot_data_func = None, **kwargs):
     """
     This function gets several fishlists, compares them, and gives back one fishlist that only contains these fishes
     that are available in every given fishlist. This is the main function that calls the other functions in the code.
@@ -116,10 +120,12 @@ def consistentfishes(fishlists, plot_data_func=None, **kwargs):
                             containing these fishes that are available in every fishlist in fishlists.
                             fishlist[fish][harmonic][frequency, power]
     """
-    print('\nFinding consistent fishes out of %0.f fishlists ...' % len(fishlists))
+    if verbose >= 1:
+        print('Finding consistent fishes out of %0.f fishlists ...' % len(fishlists))
 
     fundamentals = extract_fundamentals(fishlists)
-    consistant_fundamentals, index = find_consistency(fundamentals)
+
+    consistent_fundamentals, index = find_consistency(fundamentals)
 
     # creates a filtered fishlist only containing the data of the fishes consistent in several fishlists.
     filtered_fishlist = []
@@ -127,7 +133,7 @@ def consistentfishes(fishlists, plot_data_func=None, **kwargs):
         filtered_fishlist.append(fishlists[0][idx])
 
     if plot_data_func:
-        plot_data_func(filtered_fishlist, **kwargs)
+        plot_data_func(fishlists, filtered_fishlist, **kwargs)
 
     return filtered_fishlist
 
@@ -140,6 +146,7 @@ if __name__ == '__main__':
     print('')
 
     # example 4-D array containing of 4 fishlists all haveing 3 fishes with 1 harmonic with frequency and power
+    # TODO numpy arrays
     fishlists = [ [[[350, 0]], [[700.2, 0]], [[1000, 0]]],
                   [[[350.1, 0]], [[699.8, 0]], [[250.2, 0]]],
                   [[[349.7, 0]], [[700.4, 0]], [[1000.2, 0]]],
@@ -147,5 +154,5 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    filtered_fishlist = consistentfishes(fishlists, plot_data_func=consistent_fishes_plot, ax=ax)
+    filtered_fishlist = consistent_fishes(fishlists, verbose= 1, plot_data_func=consistent_fishes_plot, ax =ax, fs=12)
     plt.show()

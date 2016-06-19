@@ -1,7 +1,7 @@
 import numpy as np
 import sys
 
-def psd_type_plot(freqs, power, proportions, percentiles, ax):
+def psd_type_plot(freqs, power, proportions, percentiles, ax, fs, max_freq = 3000):
     """
     Makes a plot of what the rest of the modul is doing.
 
@@ -17,7 +17,7 @@ def psd_type_plot(freqs, power, proportions, percentiles, ax):
     :param ax:              (axis for plot) empty axis that is filled with content in the function.
     :return ax:             (axis for plot) axis that is ready for plotting.
     """
-    ax.plot(freqs[:int(3000 / (freqs[-1] / len(freqs)))],
+    ax.plot(freqs[:int(max_freq / (freqs[-1] / len(freqs)))],
                 10.0 * np.log10(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
     for bin in np.arange(len(proportions)):
         ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[bin][0], percentiles[bin][1], color='red',
@@ -27,11 +27,11 @@ def psd_type_plot(freqs, power, proportions, percentiles, ax):
         ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[bin][2], percentiles[bin][3], color='red',
                         alpha=0.7)
     ax.set_xlim([0, 3000])
-    ax.set_xlabel('Frequency')
-    ax.set_ylabel('Power [dB]')
+    ax.set_xlabel('Frequency', fontsize=fs)
+    ax.set_ylabel('Power [dB]', fontsize=fs)
 
 def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq = 3000, outer_percentile= 1,
-                   inner_percentile = 25, plot_data_func=None, **kwargs):
+                   inner_percentile = 25, verbose=0, plot_data_func=None, **kwargs):
     """
     Function that is called when you got a PSD and want to find out from what fishtype this psd is. With the help of
     several other function it analysis the structur of the EOD and can with this approach tell what type of fish the PSD
@@ -52,33 +52,34 @@ def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq
     :return psd_type:       (string) "wave" or "pulse" depending on the proportion of the psd.
     :return proportions:    (1-D array) proportions of the single psd bins.
     """
-    print('\nAssigning PSD-Type ...')
-    # res = freqs[-1]/len(freqs) # resolution
+
+    if verbose >= 1:
+        print('Checking if pulse-PSD ...')
     res = np.mean(np.diff(freqs))
 
-    # Take a 1-D array of powers (from powerspectrums), transforms it into dB and devides it into several bins.
-    power_db = []
-    for trial in np.arange(max_freq / freq_bins):
-        tmp_power_db = 10.0 * np.log10(power[trial * int( freq_bins / (res) ) : (trial +1) * int( freq_bins / (res) ) - 1])
-        power_db.append(tmp_power_db)
+    # Take a 1-D array of powers (from powerspectrums), transforms it into dB and divides it into several bins.
+    proportions = []
+    all_percentiles = []
+    for trial in np.arange(int(max_freq / freq_bins)):
+        tmp_power_db = 10.0 * np.log10(power[trial * int(freq_bins / res) : (trial +1) * int(freq_bins / res)])
+        # calculates 4 percentiles for each powerbin
+        percentiles = np.percentile(tmp_power_db, [outer_percentile, inner_percentile, 100-inner_percentile,
+                                                  100-outer_percentile])
+        all_percentiles.append(percentiles)
+        proportions.append((percentiles[1] - percentiles[2]) / (percentiles[0] - percentiles[3]))
 
-    # calculates 4 percentiles for each powerbin
-    percentiles = [np.percentile(power_db[nbin], [outer_percentile, inner_percentile, 100-inner_percentile,
-                                                  100-outer_percentile]) for nbin in np.arange(len(power_db))]
 
-    proportions = [(percentiles[nbin][1] - percentiles[nbin][2]) / (percentiles[nbin][0] - percentiles[nbin][3])
-                   for nbin in np.arange(len(percentiles))]
+    ################### doesnt work ###########################
+    pulse_psd = np.mean(proportions) > proportion_th
 
-    if np.mean(proportions) < proportion_th:
-        psd_type = 'wave'
-    else:
-        psd_type = 'pulse'
-    print ('\nPSD-type is %s. proportion = %.3f' % (psd_type, float(np.mean(proportions))))
+    # TODO check Juan how to print pulse versus wave
+    if verbose >= 1:
+        print ('Pulse-PSD is %s. proportion = %.3f' % (pulse_psd, float(np.mean(proportions))))
 
     if plot_data_func:
-        plot_data_func(freqs, power, proportions, percentiles, **kwargs)
+        plot_data_func(freqs, power, proportions, all_percentiles, **kwargs)
 
-    return psd_type, proportions
+    return pulse_psd, float(np.mean(proportions))
 
 if __name__ == '__main__':
     def get_example_data(audio_file=None):
@@ -105,7 +106,7 @@ if __name__ == '__main__':
         bwin_data, clip = bw.best_window(data, samplerate)
 
         print('calculation powerspecturm ...\n')
-        power, freqs = ps.powerspectrum(bwin_data, samplerate)
+        power, freqs = ps.multi_resolution_psd(bwin_data, samplerate)
 
         return power, freqs
 
@@ -140,5 +141,5 @@ if __name__ == '__main__':
 
     import matplotlib.pyplot as plt
     fig, ax = plt.subplots()
-    psd_type, proportions = psd_assignment(power, freqs, plot_data_func=psd_type_plot, ax=ax)
+    psd_type, proportions = psd_assignment(power, freqs, verbose=1, plot_data_func=psd_type_plot, ax=ax, fs=12)
     plt.show()
