@@ -14,6 +14,7 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
     This function takes a data array, its samplerate and a frequencyresolution for the powerspectrum.
     With this input it first calculates a nfft value and later a powerspectrum.
 
+    (for further argument information see numpy.psd documentation)
     :param data:                (1-D array) data array you want to calculate a psd of.
     :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
     :param fresolution:         (float) frequency resolution of the psd.
@@ -29,7 +30,7 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
     else:
         power, freqs = mlab.psd(data, NFFT=nfft, noverlap=nfft / 2, Fs=samplerate, detrend=detrend, window=window,
                                 pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
-    return [power, freqs]
+    return np.asarray([power, freqs])
 
 def plot_decibel_psd(power, freqs, ax, fs, max_freq=3000, color='blue', alpha=1., verbose=0):
     """
@@ -38,6 +39,11 @@ def plot_decibel_psd(power, freqs, ax, fs, max_freq=3000, color='blue', alpha=1.
     :param power:               (1-D array) power array of a psd.
     :param freqs:               (1-D array) frequency array of a psd.
     :param ax:                  (axis for plot) empty axis that is filled with content in the function.
+    :param fs:                  (int) fontsize for the plot.
+    :param max_freq:            (float) maximum frequency that shall appear in the plot.
+    :param color:               (string) color that shall be used for the plot.
+    :param alpha:               (float) transparency of the plot.
+    :param verbose:             (int) when the value is 1 you get additional shell output.
     :return ax:                 (axis for plot) axis that is ready for plotting containing the powerspectrum.
     """
     if verbose >=1:
@@ -58,14 +64,13 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend
     samplingrate and a given frequencyresolution for the psd. Therefore two other functions are called to first
     calculate the nfft value and second calculate the powerspectrum.
 
+    (for further argument information see numpy.psd documentation)
     :param data:                (1-D array) data array you want to calculate a psd of.
     :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
     :param fresolution:         (1-D array) frequency resolutions for one or multiple psds.
     :param plot_data_func:      (function) function (powerspectrum_plot()) that is used to create a axis for later
                                 plotting containing the calculated powerspectrum.
     :param **kwargs:            additional arguments that are passed to the plot_data_func().
-    :return power:              (1-D array) power array of the psd.
-    :return freqs:              (1-D array) psd array of the psd.
     :return multi_psd_data:     (3-D or 2-D array) if the psd shall only be calculated for one frequency resolution
                                 this Outupt is a 2-D array ( psd_data[power, freq] )
                                 If the psd shall be calculated for multiple frequency resolutions its a 3-D array
@@ -77,7 +82,7 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend
         print('Coumputing powerspectrum ...')
 
     return_list = True
-    if not isinstance(fresolution, list):
+    if not hasattr(fresolution, '__len__'):
         return_list = False
         fresolution = [fresolution]
 
@@ -89,7 +94,7 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend
     if not return_list:
         multi_psd_data = multi_psd_data[0]
 
-    return multi_psd_data
+    return np.asarray(multi_psd_data)
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
