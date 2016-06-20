@@ -40,19 +40,20 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
 
     # find the fishes in the different powerspectrums
     fishlists = []
-    for i in np.arange(len(psd_data)):
+    for i in range(len(psd_data)):
         fishlist = hg.harmonic_groups(psd_data[i][1], psd_data[i][0], cfg)[0]
         fishlists.append(fishlist)
 
     # find the psd_type
-    psd_type, proportion = pt.psd_assignment(psd_data[0][0], psd_data[0][1])
+    pulse_psd, proportion = pt.psd_assignment(psd_data[0][0], psd_data[0][1])
 
     # filter the different fishlists to get a fishlist with consistent fishes
-    filtered_fishlist = cf.consistent_fishes(fishlists)
-    cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1, fs=12)
+    if not sugg_type and not pulse_psd:
+        filtered_fishlist = cf.consistent_fishes(fishlists)
+        cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1)
 
     # analyse the eod
-    ea.eod_analysis(data[bwin_start:bwin_end], samplrate, sugg_type, psd_type,
+    ea.eod_analysis(data[bwin_start:bwin_end], samplrate, sugg_type, pulse_psd,
                     plot_data_func=ea.eod_analysis_plot, ax= ax2)
 
     plt.tight_layout()
