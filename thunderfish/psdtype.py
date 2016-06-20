@@ -15,11 +15,12 @@ def psd_type_plot(freqs, power, proportions, percentiles, ax, fs, max_freq = 300
     :param percentiles:     (2-D array) for every bin four values are calulated and stored in separate lists. These four
                             values are percentiles of the respective bins.
     :param ax:              (axis for plot) empty axis that is filled with content in the function.
-    :return ax:             (axis for plot) axis that is ready for plotting.
+    :param fs:              (int) fontsize for the plot.
+    :param max_freq:        (float) maximum frequency that shall appear in the plot.
     """
     ax.plot(freqs[:int(max_freq / (freqs[-1] / len(freqs)))],
                 10.0 * np.log10(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
-    for bin in np.arange(len(proportions)):
+    for bin in range(len(proportions)):
         ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[bin][0], percentiles[bin][1], color='red',
                         alpha=0.7)
         ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[bin][1], percentiles[bin][2], color='green',
@@ -40,12 +41,13 @@ def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq
     :param power:           (1-D array) power array of a psd.
     :param freqs:           (1-D array) frequency array of a psd.
     :param proportion_th:   (float) Proportion of the data that defines if the psd belongs to a wave or a pulsefish.
-    :param freq_bins:       (float) width of frequency bins in which the psd shall be divided (Hz) [bin_it() function].
-    :param max_freq:        (float) maximum frequency that shall be provided in the separated power array [bin_it() function].
+    :param freq_bins:       (float) width of frequency bins in which the psd shall be divided (Hz).
+    :param max_freq:        (float) maximum frequency that shall be provided in the separated power array.
     :param outer_percentile:(float) ((100-outer_percentile) - outer_percentile) / ((100-inner_percentile) - inner_percentile)
                             is the proportion that leeds to the decision if the psd belongs to a wave or pulsetype fish.
     :param inner_percentile:(float) ((100-outer_percentile) - outer_percentile) / ((100-inner_percentile) - inner_percentile)
                             is the proportion that leeds to the decision if the psd belongs to a wave or pulsetype fish.
+    :param verbose:         (int) when the value is 1 you get additional shell output.
     :param plot_data_func:  (function) function (psdtypeplot()) that is used to create a axis for later plotting about the process of psd
                             type detection.
     :param **kwargs:        additional arguments that are passed to the plot_data_func().
@@ -60,7 +62,7 @@ def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq
     # Take a 1-D array of powers (from powerspectrums), transforms it into dB and divides it into several bins.
     proportions = []
     all_percentiles = []
-    for trial in np.arange(int(max_freq / freq_bins)):
+    for trial in range(int(max_freq / freq_bins)):
         tmp_power_db = 10.0 * np.log10(power[trial * int(freq_bins / res) : (trial +1) * int(freq_bins / res)])
         # calculates 4 percentiles for each powerbin
         percentiles = np.percentile(tmp_power_db, [outer_percentile, inner_percentile, 100-inner_percentile,
@@ -77,12 +79,12 @@ def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq
         print ('Pulse-PSD is %s. proportion = %.3f' % (pulse_psd, float(np.mean(proportions))))
 
     if plot_data_func:
-        plot_data_func(freqs, power, proportions, all_percentiles, **kwargs)
+        plot_data_func(freqs, power, np.asarray(proportions), np.asarray(all_percentiles), **kwargs)
 
     return pulse_psd, float(np.mean(proportions))
 
 if __name__ == '__main__':
-    def get_example_data(audio_file=None):
+    def get_example_data(audio_file):
         """
         This function shows in part the same components of the thunderfish.py poject. Here several moduls are used to load
         some data to dispay the functionality of the psdtype.py modul.
@@ -93,22 +95,18 @@ if __name__ == '__main__':
         """
 
         # load data using dataloader module
-        if audio_file is None:
-            print('creating artificial data ...\n')
-            data = np.sin(np.arange(400000)/20000)
-            samplerate= 20000
-        else:
-            print('loading example data ...\n')
-            data, samplerate, unit = dl.load_data(audio_file)
+
+        print('loading example data ...\n')
+        data, samplerate, unit = dl.load_data(audio_file)
 
         # calculate best_window
         print('calculating best window ...\n')
         bwin_data, clip = bw.best_window(data, samplerate)
 
         print('calculation powerspecturm ...\n')
-        power, freqs = ps.multi_resolution_psd(bwin_data, samplerate)
+        psd_data = ps.multi_resolution_psd(bwin_data, samplerate)
 
-        return power, freqs
+        return psd_data[0], psd_data[1]
 
     try:
         import powerspectrum as ps
@@ -126,17 +124,14 @@ if __name__ == '__main__':
     print('Algorithm that analysis the structure of a powerspectrum to tell if it belongs to a wave of pulsetype fish.')
     print('')
     print('Usage:')
-    print('  python psdtype.py [audiofile]')
-    print('       [audiofile] is optional')
+    print('  python psdtype.py <audiofile>')
     print('')
 
-    if len(sys.argv) <=1:
-        power, freqs = get_example_data()
-    elif len(sys.argv) == 2:
+    if len(sys.argv) == 2:
         file = sys.argv[-1]
         power, freqs = get_example_data(file)
     else:
-        print('to many arguments given !!!')
+        print('need <audiofile> !!!')
         quit()
 
     import matplotlib.pyplot as plt
