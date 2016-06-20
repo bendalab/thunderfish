@@ -117,8 +117,8 @@ def clip_args(cfg, rate):
     return a
 
 
-def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
-                        min_clip=-np.inf, max_clip=np.inf,
+def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
+                        th_factor=0.8, min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The data have
@@ -154,11 +154,12 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, per
     be supplied via key-word arguments kwargs.
 
     :param data: 1-D array. The data to be analyzed
-    :param rate: float. Sampling rate of the data in Hz
+    :param samplerate: float. Sampling rate of the data in Hz
     :param single: boolean. If true return only the single window with the smallest cost. If False return the largest window with the cost below the minimum cost plus tolerance.
     :param win_size: float. Size of the best window in seconds. Choose it large enough for a minimum analysis.
     :param win_shift: float. Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
     :param percentile_th: int. Threshold for peak detection is the given percentile of the amplitude for win_shift wide windows.
+    :param th_factor: (float). The threshold for peak detection is the inter-percentile-range multiplied by this factor.
     :param min_clip: float. Minimum amplitude below which data are clipped.
     :param max_clip: float. Maximum amplitude above which data are clipped.
     :param w_cv_interv: float. Weight for the coefficient of variation of the intervals.
@@ -193,16 +194,18 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, per
     """
 
     # too little data:
-    if len(data) / rate <= win_size :
+    if len(data) / samplerate <= win_size :
         warnings.warn('no best window found: not enough data')
         return 0, 0
 
     # threshold for peak detection:
     threshold = np.zeros(len(data))
-    win_shift_indices = int(win_shift*rate)
-    for inx0 in xrange(0, len(data)-win_shift_indices/2, win_shift_indices):
+    win_shift_indices = int(win_shift * samplerate)
+
+    for inx0 in xrange(0, len(data) - win_shift_indices / 2, win_shift_indices):
         inx1 = inx0 + win_shift_indices
-        threshold[inx0:inx1] = np.percentile(data[inx0:inx1], percentile_th)
+        threshold[inx0:inx1] = np.diff(np.percentile(data[inx0:inx1],
+                                                     [percentile_th, 100. - percentile_th])) * th_factor
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pd.detect_peaks(data, threshold)
@@ -212,8 +215,8 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, per
     
     # compute cv of intervals, mean peak amplitude and its cv:
     invalid_cv = 1000.0
-    win_size_indices = int(win_size*rate)
-    win_start_inxs = np.arange(0, len(data) - win_size_indices, int(win_shift*rate))
+    win_size_indices = int(win_size * samplerate)
+    win_start_inxs = np.arange(0, len(data) - win_size_indices, int(win_shift * samplerate))
     cv_interv = np.zeros(len(win_start_inxs))
     mean_ampl = np.zeros(len(win_start_inxs))
     cv_ampl = np.zeros(len(win_start_inxs))
@@ -294,14 +297,14 @@ def best_window_indices(data, rate, single=True, win_size=8., win_shift=0.1, per
     clipped = np.mean(clipped_frac[win_idx0:win_idx1])
         
     if plot_data_func :
-        plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_start_inxs/rate, cv_interv, mean_ampl, cv_ampl, clipped_frac,
+        plot_data_func(data, samplerate, peak_idx, trough_idx, idx0, idx1,
+                       win_start_inxs / samplerate, cv_interv, mean_ampl, cv_ampl, clipped_frac,
                        cost, thresh, win_idx0, win_idx1, **kwargs)
 
     return idx0, idx1, clipped
 
 
-def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
+def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99, th_factor=0.8,
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
@@ -312,13 +315,13 @@ def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, perce
       end_time (float): Time of the end of the best window.
       clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th,
+    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th, th_factor,
                                 min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                 plot_data_func, **kwargs)
     return start_inx/rate, end_inx/rate, clipped
 
 
-def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
+def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99, th_factor=0.8,
                 min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                 plot_data_func=None, **kwargs):
@@ -328,7 +331,7 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_
       data (array): the data of the best window.
       clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th,
+    start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th, th_factor,
                                     min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                     plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
