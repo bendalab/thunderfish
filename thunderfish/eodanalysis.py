@@ -17,6 +17,7 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type, pulse_window = 0.
                                 wave or pulsetype.
     :param psd_type:            (string) result of the psdtype algorithm that assigns the powerspectrum to wave or
                                 pulsetype.
+    :param pulse_window:        (float) data window around the detected EODs that shall be extracted in sec.
     :return eod_data:           (2-D array) An array of lists. Each list contains the data around a EOD.
     """
     th = np.mean(bwin_data) + ( (np.max(bwin_data)-np.mean(bwin_data)) / 2.0 )
@@ -28,7 +29,6 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type, pulse_window = 0.
     th_idx_diff = [(th_idx[i+1] - th_idx[i]) for i in np.arange(len(th_idx)-1)]
     mean_th_idx_diff = np.mean(th_idx_diff)
 
-# TODO if fish_type and psd_type:
     if fish_type and psd_type:
         for idx in th_idx:
             if int(idx - samplerate * pulse_window / 2) >= 0 and int(idx + samplerate * pulse_window / 2) <= len(bwin_data):
@@ -38,8 +38,7 @@ def eod_extracting(bwin_data, samplerate, fish_type, psd_type, pulse_window = 0.
             if int(idx - (mean_th_idx_diff / (3./2) )) >= 0 and int(idx + (mean_th_idx_diff / (3./2))) <= len(bwin_data):
                 eod_data.append(bwin_data[int(idx - (mean_th_idx_diff / (3./2)) ): int(idx + (mean_th_idx_diff / (3./2)))])
 
-# TODO: 2d numpy array
-    return eod_data
+    return np.asarray(eod_data)
 
 def eod_mean(eod_data):
     """
@@ -55,9 +54,9 @@ def eod_mean(eod_data):
     mean_eod = np.zeros(len(eod_data[0]))
     std_eod = np.zeros(len(eod_data[0]))
 
-    for i in np.arange(len(eod_data[0])):
-        mean_eod[i] = np.mean([eod_data[eod][i] for eod in np.arange(len(eod_data))])
-        std_eod[i] = np.std([eod_data[eod][i] for eod in np.arange(len(eod_data))], ddof=1)
+    for i in range(len(eod_data[0])):
+        mean_eod[i] = np.mean([eod_data[eod][i] for eod in range(len(eod_data))])
+        std_eod[i] = np.std([eod_data[eod][i] for eod in range(len(eod_data))], ddof=1)
 
     return mean_eod, std_eod
 
@@ -70,18 +69,14 @@ def eod_analysis_plot(time, mean_eod, std_eod, ax):
     :param std_eod:             (1-D array) containing the data of the std eod.
     :param ax:                  (axis for plot) empty axis that is filled with content in the function.
     """
-    u_std = [mean_eod[i] + std_eod[i] for i in np.arange(len(mean_eod))]
-    l_std = [mean_eod[i] - std_eod[i] for i in np.arange(len(mean_eod))]
+    u_std = [mean_eod[i] + std_eod[i] for i in range(len(mean_eod))]
+    l_std = [mean_eod[i] - std_eod[i] for i in range(len(mean_eod))]
     ax.plot(time, mean_eod, lw=2, color='firebrick', alpha=0.7, label='mean EOD')
     ax.fill_between(time, u_std, l_std, color='grey', alpha=0.3)
     ax.set_xlabel('time [msec]')
     ax.set_ylabel('amplitude (mV)')
     ax.set_xlim([min(time), max(time)])
 
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.get_xaxis().tick_bottom()
-    ax.get_yaxis().tick_left()
 
 def eod_analysis(bwin_data, samplerate, fish_type, psd_type, verbose = 0, plot_data_func=None, **kwargs):
     """
@@ -94,6 +89,7 @@ def eod_analysis(bwin_data, samplerate, fish_type, psd_type, verbose = 0, plot_d
     :param samplerate:          (float) samplerate of the data that shall be analysed.
     :param fish_type:           (string) result of the "sortfishtype.py" modul.
     :param psd_type:            (string) result of the "psdtype.py" mudule.
+    :param verbose:         (int) when the value is 1 you get additional shell output.
     :param plot_data_func:      (function) function (eod_analysis_plot()) that is used to create a axis for later plotting containing a figure to
                                 visualice what the modul did.
     :param kwargs:              additional arguments that are passed to the plot_data_func().
