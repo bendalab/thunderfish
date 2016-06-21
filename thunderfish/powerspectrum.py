@@ -18,6 +18,7 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
     :param data:                (1-D array) data array you want to calculate a psd of.
     :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
     :param fresolution:         (float) frequency resolution of the psd.
+    :param overlap:             (float) used to calculate the noverlap used by the numpy.psd function.
     :return:                    (2-D array) contains the power and frequency calculated in the powerspectrum.
     """
 
@@ -66,6 +67,7 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend
     :param data:                (1-D array) data array you want to calculate a psd of.
     :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
     :param fresolution:         (1-D array) frequency resolutions for one or multiple psds.
+    :param overlap:             (float) used to calculate the noverlap used by the numpy.psd function.
     :param plot_data_func:      (function) function (powerspectrum_plot()) that is used to create a axis for later
                                 plotting containing the calculated powerspectrum.
     :param **kwargs:            additional arguments that are passed to the plot_data_func().
