@@ -1,28 +1,5 @@
 import numpy as np
-
-def extract_fundamentals(fishlists):
-    """
-    Extracts the fundamental frequencies of multiple or single fishlists created by the harmonicgroups modul.
-
-    This function gets a 4-D array as input. This input consists of multiple fishlists from the harmonicgroups modul
-    lists up (fishlists[list][fish][harmonic][frequency, power]). The amount of lists doesn't matter. With a for-loop
-    this function collects all fundamental frequencies of every fishlist. In the end the output is a 2-D array
-    containing the fundamentals of each list (fundamentals[list][fundamental_frequencies]).
-
-    :param fishlists:       (4-D array or 3-D array) List of or single fishlists with harmonics and each frequency and power.
-                            fishlists[fishlist][fish][harmonic][frequency, power]
-                            fishlists[fish][harmonic][frequency, power]
-    :return fundamentals:   (1-D array or 2-D array) list of or single arrays containing the fundamentals of a fishlist.
-                            fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
-                            fundamentals = [f1, f1, ..., f1, f1]
-    """
-    if hasattr(fishlists[0][0][0], '__len__'):
-        fundamentals = []
-        for fishlist in range(len(fishlists)):
-            fundamentals.append(np.array([fish[0][0] for fish in fishlists[fishlist]]))
-    else:
-        fundamentals = np.array([fish[0][0] for fish in fishlists])
-    return fundamentals
+import harmonicgroups as hg
 
 def find_consistency(fundamentals, df_th = 1.):
     """
@@ -53,7 +30,7 @@ def find_consistency(fundamentals, df_th = 1.):
                 consistency_help[enu] += 1
 
     index = np.arange(len(fundamentals[0]))[consistency_help == len(fundamentals)]
-    consistent_fundamentals = fundamentals[0][consistency_help == len(fundamentals)]
+    consistent_fundamentals = fundamentals[0][index]
 
     return consistent_fundamentals, index
 
@@ -123,7 +100,7 @@ def consistent_fishes(fishlists, verbose=0, plot_data_func = None, **kwargs):
     if verbose >= 1:
         print('Finding consistent fishes out of %0.f fishlists ...' % len(fishlists))
 
-    fundamentals = extract_fundamentals(fishlists)
+    fundamentals = hg.extract_fundamental_freqs(fishlists)
 
     consistent_fundamentals, index = find_consistency(fundamentals)
 
