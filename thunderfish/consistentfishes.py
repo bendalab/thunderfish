@@ -81,6 +81,7 @@ def consistent_fishes_psd_plot(filtered_fishlist, ax):
         y = np.array([filtered_fishlist[fish][harmonic][1] for harmonic in range(len(filtered_fishlist[fish]))])
         y[y < 1e-20] = np.nan
         ax.plot(x, 10.0 * np.log10(y), 'o', markersize=8, label='%.1f' % filtered_fishlist[fish][0][0])
+        ax.legend(loc='upper right', frameon=False, numpoints=1)
 
 def consistent_fishes(fishlists, verbose=0, plot_data_func = None, **kwargs):
     """
