@@ -81,7 +81,7 @@ def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq
     if plot_data_func:
         plot_data_func(freqs, power, np.asarray(proportions), np.asarray(all_percentiles), **kwargs)
 
-    return pulse_psd, float(np.mean(proportions))
+    return pulse_psd, np.mean(proportions)
 
 if __name__ == '__main__':
     def get_example_data(audio_file):
