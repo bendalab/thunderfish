@@ -35,24 +35,25 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
     sugg_type, pta_value = chp.check_pulse_width(data[bwin_start:bwin_end], samplrate)  # pta = peak-trough-analysis
 
     # calculate powerspectrums with different frequency resolutions
-    psd_data = ps.powerspectrum(data[bwin_start:bwin_end], samplrate, fresolution=[0.5, 2 * 0.5, 4 * 0.5],
-                                plot_data_func=ps.powerspectrum_plot, ax=ax1)
+    psd_data = ps.multi_resolution_psd(data[bwin_start:bwin_end], samplrate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
+    ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax1, fs=12)
 
     # find the fishes in the different powerspectrums
     fishlists = []
-    for i in np.arange(len(psd_data)):
+    for i in range(len(psd_data)):
         fishlist = hg.harmonic_groups(psd_data[i][1], psd_data[i][0], cfg)[0]
         fishlists.append(fishlist)
 
     # find the psd_type
-    psd_type, proportion = pt.psd_assignment(psd_data[0][0], psd_data[0][1])
+    pulse_psd, proportion = pt.psd_assignment(psd_data[0][0], psd_data[0][1])
 
     # filter the different fishlists to get a fishlist with consistent fishes
-    filtered_fishlist = cf.consistentfishes(fishlists)
+    if sugg_type is 'wave' and not pulse_psd:
+        filtered_fishlist = cf.consistent_fishes(fishlists)
+        cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1)
 
     # analyse the eod
-    ea.eod_analysis(data[bwin_start:bwin_end], samplrate, sugg_type, psd_type,
-                    plot_data_func=ea.eod_analysis_plot, ax= ax2)
+    eod_idx_diff = ea.eod_analysis(data[bwin_start:bwin_end], samplrate, plot_data_func=ea.eod_analysis_plot, ax= ax2)
 
     plt.tight_layout()
     plt.show()
