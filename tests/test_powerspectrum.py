@@ -1,7 +1,8 @@
-from nose.tools import assert_true, assert_equal, assert_almost_equal
+from nose.tools import assert_equal
 import numpy as np
 import thunderfish.powerspectrum as ps
 
+# run this with "nosetests tests/test_powerspectrum.py" in the first thunderfish folder.
 def test_powerspectrum():
     # generate data
     fundamental = 300.  # Hz
