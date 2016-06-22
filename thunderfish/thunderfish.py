@@ -44,7 +44,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         fishlists.append(fishlist)
 
     # find the psd_type
-    pulse_psd, proportion = chp.psd_assignment(psd_data[0][0], psd_data[0][1])
+    pulse_psd, proportion = chp.check_pulse_psd(psd_data[0][0], psd_data[0][1])
 
     # filter the different fishlists to get a fishlist with consistent fishes
     if sugg_type is 'wave' and not pulse_psd:
