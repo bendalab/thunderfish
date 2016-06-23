@@ -70,13 +70,7 @@ def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
         print('Analyzing Fish-Type...')
 
     # threshold for peak detection:
-    threshold = np.zeros(len(data))
-    win_shift_indices = int(win_shift * samplerate)
-
-    for inx0 in range(0, len(data), win_shift_indices):
-        inx1 = inx0 + win_shift_indices
-        threshold[inx0:inx1] = np.diff(np.percentile(
-            data[inx0:inx1], [percentile_th, 100. - percentile_th])) * th_factor
+    threshold = pkd.percentile_threshold(data, samplerate, win_shift)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pkd.detect_peaks(data, threshold)

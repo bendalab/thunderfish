@@ -18,8 +18,7 @@ and for usage.
 
 import warnings
 import numpy as np
-import peakdetection as pd
-import configfile as cf
+import peakdetection as pkd
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
@@ -118,8 +117,7 @@ def clip_args(cfg, rate):
     return a
 
 
-def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.1, percentile_th=99.9,
-                        th_factor=0.8, min_clip=-np.inf, max_clip=np.inf,
+def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.1, min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The data have
@@ -159,8 +157,6 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
     :param single: boolean. If true return only the single window with the smallest cost. If False return the largest window with the cost below the minimum cost plus tolerance.
     :param win_size: float. Size of the best window in seconds. Choose it large enough for a minimum analysis.
     :param win_shift: float. Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
-    :param percentile_th: int. Threshold for peak detection is the given percentile of the amplitude for win_shift wide windows.
-    :param th_factor: (float). The threshold for peak detection is the inter-percentile-range multiplied by this factor.
     :param min_clip: float. Minimum amplitude below which data are clipped.
     :param max_clip: float. Maximum amplitude above which data are clipped.
     :param w_cv_interv: float. Weight for the coefficient of variation of the intervals.
@@ -199,12 +195,11 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
         warnings.warn('no best window found: not enough data')
         return 0, 0
 
-    # threshold for peak detection:
-
-    threshold = pd.percentile_threshold(samplerate, percentile_th, th_factor, win_shift)
+    # threshold for peak detection: (can choose between std, percentile and min-max... see peakdetection module)
+    threshold = pkd.percentile_threshold(data, samplerate, win_shift)
 
     # detect large peaks and troughs:
-    peak_idx, trough_idx = pd.detect_peaks(data, threshold)
+    peak_idx, trough_idx = pkd.detect_peaks(data, threshold)
     if len(peak_idx) == 0 or len(trough_idx) == 0:
         warnings.warn('best_window(): no peaks or troughs detected')
         return 0, 0
@@ -221,7 +216,7 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
         # indices of peaks and troughs inside analysis window:
         pinx = (peak_idx >= wtinx) & (peak_idx <= wtinx + win_size_indices)
         tinx = (trough_idx >= wtinx) & (trough_idx <= wtinx + win_size_indices)
-        p_idx, t_idx = pd.trim_to_peak(peak_idx[pinx], trough_idx[tinx])
+        p_idx, t_idx = pkd.trim_to_peak(peak_idx[pinx], trough_idx[tinx])
         # interval statistics:
         ipis = np.diff(p_idx)
         itis = np.diff(t_idx)

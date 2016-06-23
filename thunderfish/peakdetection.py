@@ -2,17 +2,81 @@ import warnings
 import numpy as np
 
 
-def percentile_threshold(samplerate, percentile_th, th_factor, win_shift):
+def std_threshold(data, samplerate, win_shift, std_factor=5.):
+    """
+    Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using the
+    standard deviation of the data for each window multiplied by std_factor.
+
+    :param data: (1-D array). The data to be analyzed
+    :param samplerate: (float). Sampling rate of the data in Hz
+    :param win_shift: (float). (Defined in bestwindow module). Time shift in seconds between windows.
+    Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
+    :param std_factor: (float). Factor by which the standard deviation is multiplied to set the threshold.
+    :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
+    """
     threshold = np.zeros(len(data))
     win_shift_indices = int(win_shift * samplerate)
 
+    for inx0 in xrange(0, len(data) - win_shift_indices / 2, win_shift_indices):
+        inx1 = inx0 + win_shift_indices
+
+        std = np.std(data[inx0:inx1], ddof=1)
+        threshold[inx0:inx1] = std * std_factor
+
+    return threshold
+
+
+def minmax_threshold(data, samplerate, win_shift, th_factor=0.8):
+    """
+    Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using the
+    diff(max, min) * th_factor of each window.
+
+    :param data: (1-D array). The data to be analyzed
+    :param samplerate: (float). Sampling rate of the data in Hz
+    :param win_shift: (float). (Defined in bestwindow module). Time shift in seconds between windows.
+    Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
+    :param th_factor: (float). The threshold for peak detection is the inter-min-max-range multiplied by this factor.
+    :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
+    """
+    threshold = np.zeros(len(data))
+    win_shift_indices = int(win_shift * samplerate)
+
+    for inx0 in xrange(0, len(data) - win_shift_indices / 2, win_shift_indices):
+        inx1 = inx0 + win_shift_indices
+
+        window_min = np.min(data[inx0:inx1])
+        window_max = np.max(data[inx0:inx1])
+
+        threshold[inx0:inx1] = np.squeeze(np.abs(np.diff([window_min, window_max]))) * th_factor
+
+    return threshold
+
+
+def percentile_threshold(data, samplerate, win_shift, percentile_th=99.99, th_factor=0.8):
+    """
+    Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using a high
+    percentile in order to include the peaks and troughs from individual pulses within the data.
+
+    :param data: (1-D array). The data to be analyzed
+    :param samplerate: (float). Sampling rate of the data in Hz
+    :param win_shift: (float). (Defined in bestwindow module). Time shift in seconds between windows.
+    Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
+    :param percentile_th: (int). Threshold for peak detection is the given percentile of the amplitude for win_shift wide windows.
+    :param th_factor: (float). The threshold for peak detection is the inter-percentile-range multiplied by this factor.
+
+    :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
+    """
+    threshold = np.zeros(len(data))
+    win_shift_indices = int(win_shift * samplerate)
+
+    # Make sure percentile_th is correct, regardless of what the user sets as percentile_th
     if percentile_th < 50.0:
         percentile_th = 100.0 - percentile_th
 
     for inx0 in xrange(0, len(data) - win_shift_indices / 2, win_shift_indices):
         inx1 = inx0 + win_shift_indices
-        threshold[inx0:inx1] = np.diff(
-            np.percentile(data[inx0:inx1], [100.0 - percentile_th, percentile_th])) * th_factor
+        threshold[inx0:inx1] = np.squeeze(np.abs(np.diff(
+            np.percentile(data[inx0:inx1], [100.0 - percentile_th, percentile_th])))) * th_factor
     return threshold
 
 
