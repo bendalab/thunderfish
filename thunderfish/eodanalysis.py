@@ -2,6 +2,7 @@ import numpy as np
 import sys
 import peakdetection as pkd
 
+
 def eod_snippets(bwin_data, samplerate, win_shift=0.5):
     """
     Detects peaks and collects data arround these detected peaks for later comparison.
@@ -33,10 +34,12 @@ def eod_snippets(bwin_data, samplerate, win_shift=0.5):
     mean_th_idx_diff = np.mean(eod_idx_diff)
 
     for idx in eod_idx:
-        if int(idx - (mean_th_idx_diff / (3./2) )) >= 0 and int(idx + (mean_th_idx_diff / (3./2))) <= len(bwin_data):
-            eod_data.append(bwin_data[int(idx - (mean_th_idx_diff / (3./2)) ): int(idx + (mean_th_idx_diff / (3./2)))])
+        if int(idx - (mean_th_idx_diff / (3. / 2))) >= 0 and int(idx + (mean_th_idx_diff / (3. / 2))) <= len(bwin_data):
+            eod_data.append(
+                bwin_data[int(idx - (mean_th_idx_diff / (3. / 2))): int(idx + (mean_th_idx_diff / (3. / 2)))])
 
     return np.asarray(eod_data), eod_idx_diff
+
 
 def eod_analysis_plot(time, mean_eod, std_eod, ax):
     """
@@ -48,13 +51,13 @@ def eod_analysis_plot(time, mean_eod, std_eod, ax):
     :param ax:                  (axis for plot) empty axis that is filled with content in the function.
     """
     ax.plot(time, mean_eod, lw=2, color='firebrick', alpha=0.7, label='mean EOD')
-    ax.fill_between(time, mean_eod+std_eod, mean_eod-std_eod, color='grey', alpha=0.3)
+    ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod, color='grey', alpha=0.3)
     ax.set_xlabel('time [msec]')
     ax.set_ylabel('amplitude (mV)')
     ax.set_xlim([min(time), max(time)])
 
 
-def eod_analysis(bwin_data, samplerate, verbose = 0, plot_data_func=None, **kwargs):
+def eod_analysis(bwin_data, samplerate, verbose=0, plot_data_func=None, **kwargs):
     """
     Detects EODs in the given data and tries to build a mean eod.
 
@@ -83,6 +86,7 @@ def eod_analysis(bwin_data, samplerate, verbose = 0, plot_data_func=None, **kwar
 
     return eod_idx_diff
 
+
 if __name__ == '__main__':
     try:
         import dataloader as dl
@@ -92,6 +96,7 @@ if __name__ == '__main__':
     except ImportError:
         'Import error !!!'
         quit()
+
 
     def load_example_data(audio_file):
         """
@@ -114,12 +119,13 @@ if __name__ == '__main__':
         print('calculating powerspectrum ...\n')
         power, freqs = ps.multi_resolution_psd(data, samplrate)
 
-
         pulse_psd, proportion = pt.psd_assignment(power, freqs)
 
         return bwin_data, samplrate, pulse_psd
 
-    print('This modul detects single eods and tries to create a mean eod. Here this is shown as example for a defined file.')
+
+    print(
+    'This modul detects single eods and tries to create a mean eod. Here this is shown as example for a defined file.')
     print('')
     print('Usage:')
     print('  python eodanalysis.py <audiofile>')
@@ -131,6 +137,7 @@ if __name__ == '__main__':
     bwin_data, samplrate, pulse_psd = load_example_data(sys.argv[1])
 
     import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots()
 
     eod_idx_diff = eod_analysis(bwin_data, samplrate, plot_data_func=eod_analysis_plot, ax=ax)

@@ -1,7 +1,8 @@
 import numpy as np
 import harmonicgroups as hg
 
-def find_consistency(fundamentals, df_th = 1.):
+
+def find_consistency(fundamentals, df_th=1.):
     """
     Compares several lists to find values that are, with a certain threshhold, available in every list.
 
@@ -34,6 +35,7 @@ def find_consistency(fundamentals, df_th = 1.):
 
     return consistent_fundamentals, index
 
+
 def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     """
     Creates an axis for plotting to visualize what this modul did.
@@ -48,18 +50,19 @@ def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     """
     for list in np.arange(len(fishlists)):
         for fish in np.arange(len(fishlists[list])):
-            ax.plot(list+1, fishlists[list][fish][0][0], 'k.', markersize= 10)
+            ax.plot(list + 1, fishlists[list][fish][0][0], 'k.', markersize=10)
 
     for fish in np.arange(len(filtered_fishlist)):
-        x = np.arange(len(fishlists))+1
+        x = np.arange(len(fishlists)) + 1
         y = [filtered_fishlist[fish][0][0] for i in range(len(fishlists))]
         if fish == 0:
-            ax.plot(x, y, '-r', linewidth= 10, alpha=0.5, label='consistent in all lists')
+            ax.plot(x, y, '-r', linewidth=10, alpha=0.5, label='consistent in all lists')
         else:
-            ax.plot(x, y, '-r', linewidth= 10, alpha=0.5)
-    ax.set_xlim([0, len(fishlists)+1])
+            ax.plot(x, y, '-r', linewidth=10, alpha=0.5)
+    ax.set_xlim([0, len(fishlists) + 1])
     ax.set_ylabel('value', fontsize=fs)
     ax.set_xlabel('list no.', fontsize=fs)
+
 
 def consistent_fishes_psd_plot(filtered_fishlist, ax):
     """
@@ -71,7 +74,7 @@ def consistent_fishes_psd_plot(filtered_fishlist, ax):
     :param ax:              (axis for plot) empty axis that is filled with content in the function.
     """
     fundamental_power = [filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))]
-    if len(filtered_fishlist) >=4:
+    if len(filtered_fishlist) >= 4:
         idx_maxpower = np.argsort(fundamental_power)[-4:]
     else:
         idx_maxpower = np.argsort(fundamental_power)[:]
@@ -83,7 +86,8 @@ def consistent_fishes_psd_plot(filtered_fishlist, ax):
         ax.plot(x, 10.0 * np.log10(y), 'o', markersize=8, label='%.1f' % filtered_fishlist[fish][0][0])
         ax.legend(loc='upper right', frameon=False, numpoints=1)
 
-def consistent_fishes(fishlists, verbose=0, plot_data_func = None, **kwargs):
+
+def consistent_fishes(fishlists, verbose=0, plot_data_func=None, **kwargs):
     """
     This function gets several fishlists, compares them, and gives back one fishlist that only contains these fishes
     that are available in every given fishlist. This is the main function that calls the other functions in the code.
@@ -115,6 +119,7 @@ def consistent_fishes(fishlists, verbose=0, plot_data_func = None, **kwargs):
 
     return filtered_fishlist
 
+
 if __name__ == '__main__':
     print('Creating one fishlist containing only the fishes that are consistant in several fishlists.')
     print('The input structur locks like this fishlists[list][fish][harmonic][frequency, power]')
@@ -124,12 +129,15 @@ if __name__ == '__main__':
     print('')
 
     # example 4-D array containing of 4 fishlists all haveing 3 fishes with 1 harmonic with frequency and power
-    fishlists = [ [np.array([np.array([350, 0])]), np.array([np.array([700.2, 0])]), np.array([np.array([1000, 0])])],
-                  [np.array([np.array([350.1, 0])]), np.array([np.array([699.8, 0])]), np.array([np.array([250.2, 0])])],
-                  [np.array([np.array([349.7, 0])]), np.array([np.array([700.4, 0])]), np.array([np.array([1000.2, 0])])],
-                  [np.array([np.array([349.8, 0])]), np.array([np.array([700.5, 0])]), np.array([np.array([1000.3, 0])])]]
+    fishlists = [[np.array([np.array([350, 0])]), np.array([np.array([700.2, 0])]), np.array([np.array([1000, 0])])],
+                 [np.array([np.array([350.1, 0])]), np.array([np.array([699.8, 0])]), np.array([np.array([250.2, 0])])],
+                 [np.array([np.array([349.7, 0])]), np.array([np.array([700.4, 0])]),
+                  np.array([np.array([1000.2, 0])])],
+                 [np.array([np.array([349.8, 0])]), np.array([np.array([700.5, 0])]),
+                  np.array([np.array([1000.3, 0])])]]
     #
     import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots()
-    filtered_fishlist = consistent_fishes(fishlists, verbose= 1, plot_data_func=consistent_fishes_plot, ax=ax, fs=12)
+    filtered_fishlist = consistent_fishes(fishlists, verbose=1, plot_data_func=consistent_fishes_plot, ax=ax, fs=12)
     plt.show()
