@@ -1,7 +1,8 @@
 import numpy as np
 import sys
 
-def psd_type_plot(freqs, power, proportions, percentiles, ax, fs, max_freq = 3000):
+
+def psd_type_plot(freqs, power, proportions, percentiles, ax, fs, max_freq=3000):
     """
     Makes a plot of what the rest of the modul is doing.
 
@@ -19,7 +20,7 @@ def psd_type_plot(freqs, power, proportions, percentiles, ax, fs, max_freq = 300
     :param max_freq:        (float) maximum frequency that shall appear in the plot.
     """
     ax.plot(freqs[:int(max_freq / (freqs[-1] / len(freqs)))],
-                10.0 * np.log10(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
+            10.0 * np.log10(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
     for bin in range(len(proportions)):
         ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[bin][0], percentiles[bin][1], color='red',
                         alpha=0.7)
@@ -31,8 +32,9 @@ def psd_type_plot(freqs, power, proportions, percentiles, ax, fs, max_freq = 300
     ax.set_xlabel('Frequency', fontsize=fs)
     ax.set_ylabel('Power [dB]', fontsize=fs)
 
-def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq = 3000, outer_percentile= 1,
-                   inner_percentile = 25, verbose=0, plot_data_func=None, **kwargs):
+
+def psd_assignment(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=3000, outer_percentile=1,
+                   inner_percentile=25, verbose=0, plot_data_func=None, **kwargs):
     """
     Function that is called when you got a PSD and want to find out from what fishtype this psd is. With the help of
     several other function it analysis the structur of the EOD and can with this approach tell what type of fish the PSD
@@ -63,13 +65,12 @@ def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq
     proportions = []
     all_percentiles = []
     for trial in range(int(max_freq / freq_bins)):
-        tmp_power_db = 10.0 * np.log10(power[trial * int(freq_bins / res) : (trial +1) * int(freq_bins / res)])
+        tmp_power_db = 10.0 * np.log10(power[trial * int(freq_bins / res): (trial + 1) * int(freq_bins / res)])
         # calculates 4 percentiles for each powerbin
-        percentiles = np.percentile(tmp_power_db, [outer_percentile, inner_percentile, 100-inner_percentile,
-                                                  100-outer_percentile])
+        percentiles = np.percentile(tmp_power_db, [outer_percentile, inner_percentile, 100 - inner_percentile,
+                                                   100 - outer_percentile])
         all_percentiles.append(percentiles)
         proportions.append((percentiles[1] - percentiles[2]) / (percentiles[0] - percentiles[3]))
-
 
     ################### doesnt work ###########################
     pulse_psd = np.mean(proportions) > proportion_th
@@ -82,6 +83,7 @@ def psd_assignment(power, freqs, proportion_th = 0.27, freq_bins = 125, max_freq
         plot_data_func(freqs, power, np.asarray(proportions), np.asarray(all_percentiles), **kwargs)
 
     return pulse_psd, np.mean(proportions)
+
 
 if __name__ == '__main__':
     def get_example_data(audio_file):
@@ -107,6 +109,7 @@ if __name__ == '__main__':
         psd_data = ps.multi_resolution_psd(bwin_data, samplerate)
 
         return psd_data[0], psd_data[1]
+
 
     try:
         import powerspectrum as ps
@@ -135,6 +138,7 @@ if __name__ == '__main__':
         quit()
 
     import matplotlib.pyplot as plt
+
     fig, ax = plt.subplots()
     psd_type, proportions = psd_assignment(power, freqs, verbose=1, plot_data_func=psd_type_plot, ax=ax, fs=12)
     plt.show()

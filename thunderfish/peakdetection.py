@@ -11,8 +11,10 @@ def percentile_threshold(samplerate, percentile_th, th_factor, win_shift):
 
     for inx0 in xrange(0, len(data) - win_shift_indices / 2, win_shift_indices):
         inx1 = inx0 + win_shift_indices
-        threshold[inx0:inx1] = np.diff(np.percentile(data[inx0:inx1], [100.0-percentile_th, percentile_th])) * th_factor
+        threshold[inx0:inx1] = np.diff(
+            np.percentile(data[inx0:inx1], [100.0 - percentile_th, percentile_th])) * th_factor
     return threshold
+
 
 def detect_peaks(data, threshold, time=None,
                  check_peak_func=None, check_trough_func=None, **kwargs):
@@ -65,7 +67,7 @@ def detect_peaks(data, threshold, time=None,
 
     thresh_array = True
     thresh = 0.0
-    if np.isscalar(threshold) :
+    if np.isscalar(threshold):
         thresh_array = False
         thresh = threshold
         if threshold <= 0:
@@ -78,7 +80,7 @@ def detect_peaks(data, threshold, time=None,
     if time is not None and len(data) != len(time):
         warnings.warn('input arrays time and data must have same length!')
         return np.array([]), np.array([])
-        
+
     peaks_list = list()
     troughs_list = list()
 
@@ -92,7 +94,7 @@ def detect_peaks(data, threshold, time=None,
     # loop through the data:
     for index, value in enumerate(data):
 
-        if thresh_array :
+        if thresh_array:
             thresh = threshold[index]
 
         # rising?
@@ -106,19 +108,19 @@ def detect_peaks(data, threshold, time=None,
             # the maximum is a peak!
             elif max_value >= value + thresh:
                 # check and update peak with the check_peak_func function:
-                if check_peak_func :
+                if check_peak_func:
                     r, th = check_peak_func(time, data, max_inx, index,
                                             min_inx, thresh, **kwargs)
-                    if r is not None :
+                    if r is not None:
                         # this really is a peak:
                         peaks_list.append(r)
-                    if th is not None :
+                    if th is not None:
                         thresh = th
                 else:
                     # this is a peak:
-                    if time is None :
+                    if time is None:
                         peaks_list.append(max_inx)
-                    else :
+                    else:
                         peaks_list.append(time[max_inx])
 
                 # change direction:
@@ -136,19 +138,19 @@ def detect_peaks(data, threshold, time=None,
                 # there was a trough:
 
                 # check and update trough with the check_trough function:
-                if check_trough_func :
+                if check_trough_func:
                     r, th = check_trough_func(time, data, min_inx, index,
                                               max_inx, thresh, **kwargs)
-                    if r is not None :
+                    if r is not None:
                         # this really is a trough:
                         troughs_list.append(r)
-                    if th is not None :
+                    if th is not None:
                         thresh = th
                 else:
                     # this is a trough:
-                    if time is None :
+                    if time is None:
                         troughs_list.append(min_inx)
-                    else :
+                    else:
                         troughs_list.append(time[min_inx])
 
                 # change direction:
@@ -247,7 +249,7 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
     if time is not None and len(data) != len(time):
         warnings.warn('input arrays time and data must have same length!')
         return np.array([]), np.array([])
-        
+
     peaks_list = list()
     troughs_list = list()
 
@@ -262,13 +264,13 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
     for index, value in enumerate(data):
 
         # decaying threshold (1. order low pass filter):
-        if time is None :
-            threshold += (min_thresh - threshold)/tau
-        else :
+        if time is None:
+            threshold += (min_thresh - threshold) / tau
+        else:
             idx = index
-            if idx+1 >= len(data) :
-                idx = len(data)-2
-            threshold += (min_thresh - threshold)*(time[idx+1]-time[idx])/tau
+            if idx + 1 >= len(data):
+                idx = len(data) - 2
+            threshold += (min_thresh - threshold) * (time[idx + 1] - time[idx]) / tau
 
         # rising?
         if dir > 0:
@@ -281,22 +283,22 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
             # the maximum is a peak!
             elif max_value >= value + threshold:
                 # check and update peak with the check_peak_func function:
-                if check_peak_func :
+                if check_peak_func:
                     r, th = check_peak_func(time, data, max_inx, index,
                                             min_inx, threshold,
                                             min_thresh=min_thresh, tau=tau, **kwargs)
-                    if r is not None :
+                    if r is not None:
                         # this really is a peak:
                         peaks_list.append(r)
-                    if th is not None :
+                    if th is not None:
                         threshold = th
-                        if threshold < min_thresh :
+                        if threshold < min_thresh:
                             threshold = min_thresh
                 else:
                     # this is a peak:
-                    if time is None :
+                    if time is None:
                         peaks_list.append(max_inx)
-                    else :
+                    else:
                         peaks_list.append(time[max_inx])
 
                 # change direction:
@@ -314,22 +316,22 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
                 # there was a trough:
 
                 # check and update trough with the check_trough function:
-                if check_trough_func :
+                if check_trough_func:
                     r, th = check_trough_func(time, data, min_inx, index,
                                               max_inx, threshold,
                                               min_thresh=min_thresh, tau=tau, **kwargs)
-                    if r is not None :
+                    if r is not None:
                         # this really is a trough:
                         troughs_list.append(r)
-                    if th is not None :
+                    if th is not None:
                         threshold = th
-                        if threshold < min_thresh :
+                        if threshold < min_thresh:
                             threshold = min_thresh
                 else:
                     # this is a trough:
-                    if time is None :
+                    if time is None:
                         troughs_list.append(min_inx)
-                    else :
+                    else:
                         troughs_list.append(time[min_inx])
 
                 # change direction:
@@ -355,7 +357,7 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
     return np.array(peaks_list), np.array(troughs_list)
 
 
-def accept_peak(time, data, event_inx, index, min_inx, threshold) :
+def accept_peak(time, data, event_inx, index, min_inx, threshold):
     """
     Accept each detected peak/trough and return its index (or time) and its data value.
 
@@ -373,14 +375,14 @@ def accept_peak(time, data, event_inx, index, min_inx, threshold) :
         value (float): value of data at the peak
     """
     size = data[event_inx]
-    if time is None :
+    if time is None:
         return [event_inx, size], None
-    else :
+    else:
         return [event_inx, time[event_inx], size], None
 
 
 def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
-                               min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02) :
+                               min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02):
     """Accept each detected peak/trough and return its index or time.
     Adjust the threshold to the size of the detected peak.
     To be passed to the detect_dynamic_peaks() function.
@@ -404,14 +406,14 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
         threshold (float): the new threshold to be used
     """
     size = data[event_inx] - data[min_inx]
-    threshold += thresh_weight*(thresh_ampl_fac*size - threshold)
-    if time is None :
+    threshold += thresh_weight * (thresh_ampl_fac * size - threshold)
+    if time is None:
         return event_inx, threshold
-    else :
+    else:
         return time[event_inx], threshold
 
 
-def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfac=0.75) :
+def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfac=0.75):
     """
     Accept each detected peak and compute its size and width.
 
@@ -433,20 +435,20 @@ def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfa
     """
 
     size = data[peak_inx] - data[min_inx]
-    wthresh = data[min_inx] + pfac*size
+    wthresh = data[min_inx] + pfac * size
     width = 0.0
-    for k in xrange( peak_inx, min_inx, -1 ) :
-        if data[k] < wthresh :
+    for k in xrange(peak_inx, min_inx, -1):
+        if data[k] < wthresh:
             width = time[peak_inx] - time[k]
             break
-    for k in xrange( peak_inx, index ) :
-        if data[k] < wthresh :
+    for k in xrange(peak_inx, index):
+        if data[k] < wthresh:
             width += time[k] - time[peak_inx]
             break
-    return [ time[peak_inx], data[peak_inx], size, width, 0.0 ], None
+    return [time[peak_inx], data[peak_inx], size, width, 0.0], None
 
 
-def trim(peaks, troughs) :
+def trim(peaks, troughs):
     """
     Trims the peaks and troughs arrays such that they have the same length.
     
@@ -464,7 +466,7 @@ def trim(peaks, troughs) :
     return peaks[:n], troughs[:n]
 
 
-def trim_to_peak(peaks, troughs) :
+def trim_to_peak(peaks, troughs):
     """
     Trims the peaks and troughs arrays such that they have the same length
     and the first peak comes first.
@@ -479,15 +481,15 @@ def trim_to_peak(peaks, troughs) :
     """
     # start index for troughs:
     tidx = 0
-    if len(peaks) > 0 and len(troughs) > 0 and troughs[0] < peaks[0] :
+    if len(peaks) > 0 and len(troughs) > 0 and troughs[0] < peaks[0]:
         tidx = 1
     # common len:
     n = min(len(peaks), len(troughs[tidx:]))
     # align arrays:
-    return peaks[:n], troughs[tidx:tidx+n]
+    return peaks[:n], troughs[tidx:tidx + n]
 
 
-def trim_closest(peaks, troughs) :
+def trim_closest(peaks, troughs):
     """
     Trims the peaks and troughs arrays such that they have the same length
     and that peaks-troughs is on average as small as possible.
@@ -503,24 +505,24 @@ def trim_closest(peaks, troughs) :
     pidx = 0
     tidx = 0
     nn = min(len(peaks), len(troughs))
-    dist = np.abs(np.mean(peaks[:nn]-troughs[:nn]))
-    if len(peaks) == 0 or len(troughs) == 0 :
+    dist = np.abs(np.mean(peaks[:nn] - troughs[:nn]))
+    if len(peaks) == 0 or len(troughs) == 0:
         nn = 0
-    else :
-        if peaks[0] < troughs[0] :
+    else:
+        if peaks[0] < troughs[0]:
             nnp = min(len(peaks[1:]), len(troughs))
-            distp = np.abs(np.mean(peaks[1:nnp]-troughs[:nnp-1]))
-            if distp < dist :
+            distp = np.abs(np.mean(peaks[1:nnp] - troughs[:nnp - 1]))
+            if distp < dist:
                 pidx = 1
                 nn = nnp
-        else :
+        else:
             nnt = min(len(peaks), len(troughs[1:]))
-            distt = np.abs(np.mean(peaks[:nnt-1]-troughs[1:nnt]))
-            if distt < dist :
+            distt = np.abs(np.mean(peaks[:nnt - 1] - troughs[1:nnt]))
+            if distt < dist:
                 tidx = 1
                 nn = nnt
     # align arrays:
-    return peaks[pidx:pidx+nn], troughs[tidx:tidx+nn]
+    return peaks[pidx:pidx + nn], troughs[tidx:tidx + nn]
 
 
 if __name__ == "__main__":
@@ -531,39 +533,44 @@ if __name__ == "__main__":
     # generate data:
     time = np.arange(0.0, 10.0, 0.01)
     f = 2.0
-    data = (0.5*np.sin(2.0*np.pi*f*time)+0.5)**4.0
-    data += -0.1*time*(time-10.0)
-    data += 0.1*np.random.randn(len(data))
+    data = (0.5 * np.sin(2.0 * np.pi * f * time) + 0.5) ** 4.0
+    data += -0.1 * time * (time - 10.0)
+    data += 0.1 * np.random.randn(len(data))
 
-    print("generated waveform with %d peaks" % int(np.round(time[-1]*f)))
+    print("generated waveform with %d peaks" % int(np.round(time[-1] * f)))
     plt.plot(time, data)
-    
+
     print('')
     print('check detect_peaks(data, 0.5, time)...')
     peaks, troughs = detect_peaks(data, 0.5, time)
-    #print peaks
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))))
-    #print troughs
-    print('detected %d troughs with period %g that differs from the real frequency by %g' % (len(troughs), np.mean(np.diff(troughs)), f-1.0/np.mean(np.diff(troughs))))
-    
+    # print peaks
+    print('detected %d peaks with period %g that differs from the real frequency by %g' % (
+        len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks))))
+    # print troughs
+    print('detected %d troughs with period %g that differs from the real frequency by %g' % (
+        len(troughs), np.mean(np.diff(troughs)), f - 1.0 / np.mean(np.diff(troughs))))
+
     print('')
     print('check detect_peaks(data, 0.5)...')
     peaks, troughs = detect_peaks(data, 0.5)
-    #print peaks
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks)), f-1.0/np.mean(np.diff(peaks))/np.mean(np.diff(time))))
-    #print troughs
-    print('detected %d troughs with period %g that differs from the real frequency by %g' % (len(troughs), np.mean(np.diff(troughs)), f-1.0/np.mean(np.diff(troughs))/np.mean(np.diff(time))))
-        
+    # print peaks
+    print('detected %d peaks with period %g that differs from the real frequency by %g' % (
+        len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks)) / np.mean(np.diff(time))))
+    # print troughs
+    print('detected %d troughs with period %g that differs from the real frequency by %g' % (
+        len(troughs), np.mean(np.diff(troughs)), f - 1.0 / np.mean(np.diff(troughs)) / np.mean(np.diff(time))))
+
     print('')
     print('check detect_peaks(data, 0.5, time, accept_peak, accept_peak)...')
     peaks, troughs = detect_peaks(data, 0.5, time, accept_peak, accept_peak)
-    #print peaks
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (len(peaks), np.mean(np.diff(peaks[:,1])), f-1.0/np.mean(np.diff(peaks[:,1]))))
-    #print troughs
-    print('detected %d troughs with period %g that differs from the real frequency by %g' % (len(troughs), np.mean(np.diff(troughs[:,1])), f-1.0/np.mean(np.diff(troughs[:,1]))))
-    plt.plot(peaks[:,1], peaks[:,2], '.r', ms=20)
-    plt.plot(troughs[:,1], troughs[:,2], '.g', ms=20)
+    # print peaks
+    print('detected %d peaks with period %g that differs from the real frequency by %g' % (
+        len(peaks), np.mean(np.diff(peaks[:, 1])), f - 1.0 / np.mean(np.diff(peaks[:, 1]))))
+    # print troughs
+    print('detected %d troughs with period %g that differs from the real frequency by %g' % (
+        len(troughs), np.mean(np.diff(troughs[:, 1])), f - 1.0 / np.mean(np.diff(troughs[:, 1]))))
+    plt.plot(peaks[:, 1], peaks[:, 2], '.r', ms=20)
+    plt.plot(troughs[:, 1], troughs[:, 2], '.g', ms=20)
 
-    plt.ylim(-0.5,4.0)
+    plt.ylim(-0.5, 4.0)
     plt.show()
-

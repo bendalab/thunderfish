@@ -12,11 +12,12 @@ import psdtype as pt
 import eodanalysis as ea
 import matplotlib.pyplot as plt
 
-def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None, beat_plot= False):
+
+def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None, beat_plot=False):
     # create figure and axis for the outputplot
     fig = plt.figure(facecolor='white', figsize=(12., 8.))
-    ax1 = fig.add_subplot(2, 2, (3, 4)) # axis for the psd
-    ax2 = fig.add_subplot(2, 2, 2) # axis for the mean eod
+    ax1 = fig.add_subplot(2, 2, (3, 4))  # axis for the psd
+    ax2 = fig.add_subplot(2, 2, 2)  # axis for the mean eod
 
     # get config dictionary
     cfg = ct.get_config_dict()
@@ -53,10 +54,11 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1)
 
     # analyse the eod
-    eod_idx_diff = ea.eod_analysis(data[bwin_start:bwin_end], samplrate, plot_data_func=ea.eod_analysis_plot, ax= ax2)
+    eod_idx_diff = ea.eod_analysis(data[bwin_start:bwin_end], samplrate, plot_data_func=ea.eod_analysis_plot, ax=ax2)
 
     plt.tight_layout()
     plt.show()
+
 
 if __name__ == '__main__':
     # command line arguments:

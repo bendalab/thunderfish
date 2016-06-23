@@ -5,9 +5,10 @@
 import numpy as np
 import matplotlib.mlab as mlab
 
+
 def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
-    window=mlab.window_hanning, overlap=0.5, pad_to=None,
-    sides='default', scale_by_freq=None):
+        window=mlab.window_hanning, overlap=0.5, pad_to=None,
+        sides='default', scale_by_freq=None):
     """
     Calculates a Powerspecturm.
 
@@ -25,11 +26,12 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
     nfft = int(np.round(2 ** (np.floor(np.log(samplerate / fresolution) / np.log(2.0)) + 1.0)))
     if nfft < 16:
         nfft = 16
-    noverlap = nfft*overlap
+    noverlap = nfft * overlap
     power, freqs = mlab.psd(data, NFFT=nfft, noverlap=noverlap, Fs=samplerate, detrend=detrend, window=window,
                             pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
 
     return np.asarray([power, freqs])
+
 
 def plot_decibel_psd(power, freqs, ax, fs, max_freq=3000, color='blue', alpha=1., verbose=0):
     """
@@ -45,7 +47,7 @@ def plot_decibel_psd(power, freqs, ax, fs, max_freq=3000, color='blue', alpha=1.
     :param verbose:             (int) when the value is 1 you get additional shell output.
     :return ax:                 (axis for plot) axis that is ready for plotting containing the powerspectrum.
     """
-    if verbose >=1:
+    if verbose >= 1:
         print('create PSD plot...')
     power_cp = power.copy()
     power_cp[power_cp < 1e-20] = np.nan
@@ -55,6 +57,7 @@ def plot_decibel_psd(power, freqs, ax, fs, max_freq=3000, color='blue', alpha=1.
     ax.set_ylabel('power [dB]', fontsize=fs)
     ax.set_xlabel('frequency [Hz]', fontsize=fs)
     ax.set_xlim([0, max_freq])
+
 
 def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning,
                          overlap=0.5, pad_to=None, sides='default', scale_by_freq=None, verbose=0):
@@ -78,7 +81,7 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend
     :return ax:                 (axis for plot) axis that is ready for plotting containing a figure that shows what the
                                 modul did.
     """
-    if verbose >=1:
+    if verbose >= 1:
         print('Coumputing powerspectrum ...')
 
     return_list = True
@@ -95,6 +98,7 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend
         multi_psd_data = multi_psd_data[0]
 
     return np.asarray(multi_psd_data)
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
@@ -113,5 +117,5 @@ if __name__ == '__main__':
     psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 1], verbose=1)
 
     fig, ax = plt.subplots()
-    plot_decibel_psd( psd_data[0][0], psd_data[0][1], ax=ax, fs = 12, color='firebrick', alpha=0.9, verbose= 1)
+    plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax=ax, fs=12, color='firebrick', alpha=0.9, verbose=1)
     plt.show()

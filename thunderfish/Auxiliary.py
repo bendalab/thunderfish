@@ -5,11 +5,11 @@ import numpy as np
 import wave
 import matplotlib.pyplot as plt
 import sys
-#import seaborn as sns
+# import seaborn as sns
 from scipy.signal import butter, filtfilt
 
-        
-def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
+
+def normalized_signal(data, rate, win_duration=.1, min_std=0.1):
     """Removes mean and normalizes data by dividing by the standard deviation.
     Mean and standard deviation are computed in win_duration long windows.
 
@@ -22,12 +22,12 @@ def normalized_signal(data, rate, win_duration=.1, min_std=0.1) :
     Returns:
       scaled_data (array): the de-meaned and normalized data as an 1-D numpy array
     """
-    w = np.ones(rate*win_duration)
+    w = np.ones(rate * win_duration)
     w /= len(w)
     mean = np.convolve(data, w, mode='same')
-    std = np.sqrt(np.convolve(data**2., w, mode='same') - mean**2.)
-    if min_std > 0.0 :
-        std[std<min_std] = min_std
+    std = np.sqrt(np.convolve(data ** 2., w, mode='same') - mean ** 2.)
+    if min_std > 0.0:
+        std[std < min_std] = min_std
     return (data - mean) / std
 
 
@@ -55,10 +55,10 @@ def plot_dfs_histogram(dfs_array, binwidth='FD'):
     sns.set_context("poster")
     sns.axes_style('white')
     sns.set_style("ticks")
-    fig, ax = plt.subplots(figsize=(15./inch_factor, 10./inch_factor))
+    fig, ax = plt.subplots(figsize=(15. / inch_factor, 10. / inch_factor))
 
     if binwidth == 'FD':
-        ax.hist(dfs_array, bins=int(2*(q75-q25) * len(dfs_array)**(-1./3.)),
+        ax.hist(dfs_array, bins=int(2 * (q75 - q25) * len(dfs_array) ** (-1. / 3.)),
                 facecolor='cornflowerblue', alpha=0.8)  # Freedman-Diaconis rule for binwidth
     else:
         ax.hist(dfs_array, bins=binwidth, color='cornflowerblue', alpha=0.8)
@@ -82,7 +82,7 @@ def draw_bwin_analysis_plot(filename, t_trace, eod_trace, no_of_peaks, cvs, mean
     sns.axes_style('white')
     sns.set_style("ticks")
 
-    fig = plt.figure(figsize=(40. / inch_factor, 35. / inch_factor), num='Fish No. '+filename[-10:-8])
+    fig = plt.figure(figsize=(40. / inch_factor, 35. / inch_factor), num='Fish No. ' + filename[-10:-8])
 
     ax1 = fig.add_subplot(5, 1, 1)
     ax2 = fig.add_subplot(5, 1, 2)
@@ -108,7 +108,6 @@ def draw_bwin_analysis_plot(filename, t_trace, eod_trace, no_of_peaks, cvs, mean
 
 
 def draw_bwin_in_plot(ax, filename, t_trace, eod_trace, start_bwin, len_bwin, pk_idx, tr_idx, savefig=False):
-
     fs = 20
     w_end = start_bwin + len_bwin
     w_bool = (t_trace >= start_bwin) & (t_trace <= w_end)
@@ -121,7 +120,7 @@ def draw_bwin_in_plot(ax, filename, t_trace, eod_trace, start_bwin, len_bwin, pk
     ax1.plot(t_trace[pk_idx], eod_trace[pk_idx], 'o', mfc='crimson', mec='k', mew=2., ms=12)
     ax1.plot(t_trace[tr_idx], eod_trace[tr_idx], 'o', mfc='lime', mec='k', mew=2., ms=12)
 
-    ax1.set_xlim([start_bwin/2., start_bwin/2. + 0.1])
+    ax1.set_xlim([start_bwin / 2., start_bwin / 2. + 0.1])
 
     up_lim_ax1 = np.max(eod_bwin) * 1.05
     down_lim_ax1 = np.min(eod_bwin) * .95
@@ -129,15 +128,14 @@ def draw_bwin_in_plot(ax, filename, t_trace, eod_trace, start_bwin, len_bwin, pk
     ax1.set_xlabel('Time [sec]', fontsize=fs)
     ax1.set_ylabel('Amplitude [a.u]', fontsize=fs)
 
-
     # Plot raw trace
     ax5 = ax[-1]
     ax5.plot(t_trace[t_trace < start_bwin], eod_trace[[t_trace < start_bwin]], color='royalblue', lw=3, rasterized=True)
-    ax5.plot(t_trace[t_trace > start_bwin+len_bwin], eod_trace[[t_trace > start_bwin+len_bwin]],
+    ax5.plot(t_trace[t_trace > start_bwin + len_bwin], eod_trace[[t_trace > start_bwin + len_bwin]],
              color='royalblue', lw=3, rasterized=True)
     # Plot best window
     ax5.plot(time_bwin, eod_bwin, color='purple', alpha=0.8, lw=3, rasterized=True)
-    plt.text(start_bwin+len_bwin/2., np.max(eod_bwin) + 0.2*np.max(eod_bwin),
+    plt.text(start_bwin + len_bwin / 2., np.max(eod_bwin) + 0.2 * np.max(eod_bwin),
              'Best Window', ha='center', va='center')
 
     ax5.set_xlabel('Time [sec]', fontsize=fs)
@@ -146,7 +144,7 @@ def draw_bwin_in_plot(ax, filename, t_trace, eod_trace, start_bwin, len_bwin, pk
     for enu, axis in enumerate(ax):
         ax_ylims = axis.get_ylim()
         fix_plot_ticks(axis, ax_ylims)
-        axis.tick_params(which='both', labelsize=fs-2)
+        axis.tick_params(which='both', labelsize=fs - 2)
         if enu > 0:
             axis.set_xlim((0, 25))
 
@@ -181,6 +179,7 @@ def butter_lowpass_filter(data, highcut, fs, order=5):
     y = filtfilt(b, a, data)
     return y
 
+
 def load_trace(modfile, analysis_length=30):
     """ Loads modified .wav file from avconv with the library wave. This function returns an array with the time trace,
     an array with the amplitude values with the same length as the time-trace-array and finally it returns the sample-
@@ -214,7 +213,6 @@ def conv_to_single_ch_audio(audiofile):
 
 
 def create_outp_folder(filepath, out_path='.'):
-
     field_folder = '/'.join(filepath.split('.')[-2].split('/')[-3:-1])
 
     paths = {1: out_path, 2: field_folder}
@@ -226,18 +224,19 @@ def create_outp_folder(filepath, out_path='.'):
 
     return new_folder
 
+
 def beat_plot(beat_data, beat_time):
     inch_factor = 2.54
     sns.set_context("poster")
     sns.axes_style('white')
     sns.set_style("ticks")
-    fs=16
+    fs = 16
 
-    fig, ax = plt.subplots(figsize=(45./ inch_factor, 20./ inch_factor))
-    ax.plot(beat_time, beat_data, lw = 1, color='firebrick')
-    ax.set_ylabel('Amplitude [a.u.]', fontsize= fs)
-    ax.set_xlabel('Time [sec]', fontsize= fs)
-    ax.set_title('2Hz Beat', fontsize= fs + 2)
+    fig, ax = plt.subplots(figsize=(45. / inch_factor, 20. / inch_factor))
+    ax.plot(beat_time, beat_data, lw=1, color='firebrick')
+    ax.set_ylabel('Amplitude [a.u.]', fontsize=fs)
+    ax.set_xlabel('Time [sec]', fontsize=fs)
+    ax.set_title('2Hz Beat', fontsize=fs + 2)
     ax.tick_params(axis='both', which='major', labelsize=fs - 2)
 
     sns.despine(fig=fig, ax=ax, offset=10)

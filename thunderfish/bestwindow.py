@@ -23,7 +23,7 @@ import configfile as cf
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
-                    plot_hist_func=None, **kwargs) :
+                    plot_hist_func=None, **kwargs):
     """Find the amplitudes where the signal clips by looking at
     the histograms in data segements of win_indices length.
     If the bins at the edges are more than min_fac times as large as
@@ -54,7 +54,7 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
       min_clip : minimum amplitude that is not clipped.
       max_clip : maximum amplitude that is not clipped.
     """
-    
+
     min_ampl = np.min(data)
     max_ampl = np.max(data)
     min_clipa = min_ampl
@@ -62,19 +62,19 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
     bins = np.linspace(min_ampl, max_ampl, nbins, endpoint=True)
     win_tinxs = np.arange(0, len(data) - win_indices, win_indices)
     for wtinx in win_tinxs:
-        h, b = np.histogram(data[wtinx:wtinx+win_indices], bins)
-        if h[0] > min_fac*h[2] and b[0] < -0.4 :
-            if h[1] > min_fac*h[2] and b[2] > min_clipa:
+        h, b = np.histogram(data[wtinx:wtinx + win_indices], bins)
+        if h[0] > min_fac * h[2] and b[0] < -0.4:
+            if h[1] > min_fac * h[2] and b[2] > min_clipa:
                 min_clipa = b[2]
-            elif b[1] > min_clipa :
+            elif b[1] > min_clipa:
                 min_clipa = b[1]
-        if h[-1] > min_fac*h[-3] and b[-1] > 0.4 :
-            if h[-2] > min_fac*h[-3] and b[-3] < max_clipa:
+        if h[-1] > min_fac * h[-3] and b[-1] > 0.4:
+            if h[-2] > min_fac * h[-3] and b[-3] < max_clipa:
                 max_clipa = b[-3]
-            elif b[-2] < max_clipa :
+            elif b[-2] < max_clipa:
                 max_clipa = b[-2]
-        if plot_hist_func :
-            plot_hist_func(data, wtinx, wtinx+win_indices,
+        if plot_hist_func:
+            plot_hist_func(data, wtinx, wtinx + win_indices,
                            b, h, min_clipa, max_clipa,
                            min_ampl, max_ampl, **kwargs)
     return min_clipa, max_clipa
@@ -91,13 +91,14 @@ def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
       max_clip (float): default maximum clip amplitude.
       See clip_amplitudes() for details on the remaining arguments.
     """
-    
+
     cfg.add_section('Clipping amplitudes:')
     cfg.add('minClipAmplitude', min_clip, '', 'Minimum amplitude that is not clipped. If zero estimate from data.')
     cfg.add('maxClipAmplitude', max_clip, '', 'Maximum amplitude that is not clipped. If zero estimate from data.')
     cfg.add('clipWindow', window, 's', 'Window size for estimating clip amplitudes.')
     cfg.add('clipBins', nbins, '', 'Number of bins used for constructing histograms of signal amplitudes.')
-    cfg.add('minClipFactor', min_fac, '', 'Edge bins of the histogram of clipped signals have to be larger then their neighbors by this factor.')
+    cfg.add('minClipFactor', min_fac, '',
+            'Edge bins of the histogram of clipped signals have to be larger then their neighbors by this factor.')
 
 
 def clip_args(cfg, rate):
@@ -113,7 +114,7 @@ def clip_args(cfg, rate):
       a (dict): dictionary with names of arguments of the clip_amplitudes() function and their values as supplied by cfg.
     """
     a = cfg.map({'min_fac': 'minClipFactor', 'nbins': 'clipBins'})
-    a['win_indices'] = int(cfg.value('clipWindow')*rate)
+    a['win_indices'] = int(cfg.value('clipWindow') * rate)
     return a
 
 
@@ -194,7 +195,7 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
     """
 
     # too little data:
-    if len(data) / samplerate <= win_size :
+    if len(data) / samplerate <= win_size:
         warnings.warn('no best window found: not enough data')
         return 0, 0
 
@@ -204,10 +205,10 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pd.detect_peaks(data, threshold)
-    if len(peak_idx) == 0 or len(trough_idx) == 0 :
+    if len(peak_idx) == 0 or len(trough_idx) == 0:
         warnings.warn('best_window(): no peaks or troughs detected')
         return 0, 0
-    
+
     # compute cv of intervals, mean peak amplitude and its cv:
     invalid_cv = 1000.0
     win_size_indices = int(win_size * samplerate)
@@ -224,74 +225,74 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
         # interval statistics:
         ipis = np.diff(p_idx)
         itis = np.diff(t_idx)
-        if len(ipis) > 2 :
-            cv_interv[i] = 0.5*(np.std(ipis)/np.mean(ipis) + np.std(itis)/np.mean(itis))
+        if len(ipis) > 2:
+            cv_interv[i] = 0.5 * (np.std(ipis) / np.mean(ipis) + np.std(itis) / np.mean(itis))
             # penalize regions without detected peaks:
             mean_interv = np.mean(ipis)
-            if p_idx[0] - wtinx > mean_interv :
-                cv_interv[i] *= (p_idx[0] - wtinx)/mean_interv
-            if wtinx + win_size_indices - p_idx[-1] > mean_interv :
-                cv_interv[i] *= (wtinx + win_size_indices - p_idx[-1])/mean_interv
-        else :
+            if p_idx[0] - wtinx > mean_interv:
+                cv_interv[i] *= (p_idx[0] - wtinx) / mean_interv
+            if wtinx + win_size_indices - p_idx[-1] > mean_interv:
+                cv_interv[i] *= (wtinx + win_size_indices - p_idx[-1]) / mean_interv
+        else:
             cv_interv[i] = invalid_cv
         # statistics of peak-to-trough amplitude:
         p2t_ampl = data[p_idx] - data[t_idx]
-        if len(p2t_ampl) > 2 :
+        if len(p2t_ampl) > 2:
             mean_ampl[i] = np.mean(p2t_ampl)
             cv_ampl[i] = np.std(p2t_ampl) / mean_ampl[i]
             # penalize for clipped peaks:
-            clipped_frac[i] = float(np.sum(data[p_idx]>max_clip) +
-                                    np.sum(data[t_idx]<min_clip))/2.0/len(p2t_ampl)
-            mean_ampl[i] *= (1.0-clipped_frac[i])**2.0
-        else :
+            clipped_frac[i] = float(np.sum(data[p_idx] > max_clip) +
+                                    np.sum(data[t_idx] < min_clip)) / 2.0 / len(p2t_ampl)
+            mean_ampl[i] *= (1.0 - clipped_frac[i]) ** 2.0
+        else:
             mean_ampl[i] = 0.0
             cv_ampl[i] = invalid_cv
 
     # check:
-    if len(mean_ampl[mean_ampl>0.0]) <= 0 :
+    if len(mean_ampl[mean_ampl > 0.0]) <= 0:
         warnings.warn('no finite amplitudes detected')
         return 0, 0
-    if len(cv_interv[cv_interv<invalid_cv]) <= 0 :
+    if len(cv_interv[cv_interv < invalid_cv]) <= 0:
         warnings.warn('no valid interval cv detected')
         return 0, 0
-    if len(cv_ampl[cv_ampl<invalid_cv]) <= 0 :
+    if len(cv_ampl[cv_ampl < invalid_cv]) <= 0:
         warnings.warn('no valid amplitude cv detected')
         return 0, 0
-        
+
     # cost function:
-    cost = w_cv_interv*cv_interv + w_cv_ampl*cv_ampl - w_ampl*mean_ampl
+    cost = w_cv_interv * cv_interv + w_cv_ampl * cv_ampl - w_ampl * mean_ampl
     thresh = np.min(cost) + tolerance
 
     # find largest region with low costs:
     valid_win_idx = np.nonzero(cost <= thresh)[0]
     cidx0 = valid_win_idx[0]  # start of current window
-    cidx1 = cidx0+1           # end of current window
-    win_idx0 = cidx0          # start of largest window
-    win_idx1 = cidx1          # end of largest window
+    cidx1 = cidx0 + 1  # end of current window
+    win_idx0 = cidx0  # start of largest window
+    win_idx1 = cidx1  # end of largest window
     i = 1
-    while i<len(valid_win_idx) :  # loop through all valid window positions
-        if valid_win_idx[i] == valid_win_idx[i-1]+1 :
+    while i < len(valid_win_idx):  # loop through all valid window positions
+        if valid_win_idx[i] == valid_win_idx[i - 1] + 1:
             cidx1 = valid_win_idx[i] + 1
-        else :
+        else:
             cidx0 = valid_win_idx[i]
-        if cidx1 - cidx0 > win_idx1 - win_idx0 : # current window is largest
+        if cidx1 - cidx0 > win_idx1 - win_idx0:  # current window is largest
             win_idx0 = cidx0
             win_idx1 = cidx1
         i += 1
 
     # find single best window within the largest region:
-    if single :
+    if single:
         win_idx0 += np.argmin(cost[win_idx0:win_idx1])
         win_idx1 = win_idx0 + 1
 
     # retrive indices of best window for data:
     idx0 = win_start_inxs[win_idx0]
-    idx1 = win_start_inxs[win_idx1-1]+win_size_indices
+    idx1 = win_start_inxs[win_idx1 - 1] + win_size_indices
 
     # clipped data?
     clipped = np.mean(clipped_frac[win_idx0:win_idx1])
-        
-    if plot_data_func :
+
+    if plot_data_func:
         plot_data_func(data, samplerate, peak_idx, trough_idx, idx0, idx1,
                        win_start_inxs / samplerate, cv_interv, mean_ampl, cv_ampl, clipped_frac,
                        cost, thresh, win_idx0, win_idx1, **kwargs)
@@ -300,9 +301,9 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
 
 
 def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99.9, th_factor=0.8,
-                        min_clip=-np.inf, max_clip=np.inf,
-                        w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
-                        plot_data_func=None, **kwargs):
+                      min_clip=-np.inf, max_clip=np.inf,
+                      w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
+                      plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
 
     Returns:
@@ -311,9 +312,9 @@ def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, perce
       clipped (float): The fraction of clipped peaks or troughs.
     """
     start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th, th_factor,
-                                min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
-                                plot_data_func, **kwargs)
-    return start_inx/rate, end_inx/rate, clipped
+                                                      min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
+                                                      plot_data_func, **kwargs)
+    return start_inx / rate, end_inx / rate, clipped
 
 
 def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99.9, th_factor=0.8,
@@ -327,8 +328,8 @@ def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_
       clipped (float): The fraction of clipped peaks or troughs.
     """
     start_inx, end_inx, clipped = best_window_indices(data, rate, single, win_size, win_shift, percentile_th, th_factor,
-                                    min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
-                                    plot_data_func, **kwargs)
+                                                      min_clip, max_clip, w_cv_interv, w_ampl, w_cv_ampl, tolerance,
+                                                      plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
 
 
@@ -344,7 +345,7 @@ def add_best_window_config(cfg, single=True,
       cfg (ConfigFile): the configuration
       See best_window_indices() for details on the remaining arguments.
     """
-    
+
     cfg.add_section('Best window detection:')
     cfg.add('bestWindowSize', win_size, 's', 'Size of the best window.')
     cfg.add('bestWindowShift', win_shift, 's',
@@ -388,34 +389,34 @@ if __name__ == "__main__":
     print("Checking bestwindow module ...")
     import sys
 
-    if len(sys.argv) < 2 :
+    if len(sys.argv) < 2:
         # generate data:
         print("generate waveform...")
         rate = 40000.0
-        time = np.arange(0.0, 10.0, 1./rate)
+        time = np.arange(0.0, 10.0, 1. / rate)
         f1 = 100.0
-        data0 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
+        data0 = (0.5 * np.sin(2.0 * np.pi * f1 * time) + 0.5) ** 20.0
         amf1 = 0.3
-        data1 = data0*(1.0-np.cos(2.0*np.pi*amf1*time))
+        data1 = data0 * (1.0 - np.cos(2.0 * np.pi * amf1 * time))
         data1 += 0.2
-        f2 = f1*2.0*np.pi
-        data2 = 0.1*np.sin(2.0*np.pi*f2*time)
+        f2 = f1 * 2.0 * np.pi
+        data2 = 0.1 * np.sin(2.0 * np.pi * f2 * time)
         amf3 = 0.15
-        data3 = data2*(1.0-np.cos(2.0*np.pi*amf3*time))
-        #data = data1+data3
+        data3 = data2 * (1.0 - np.cos(2.0 * np.pi * amf3 * time))
+        # data = data1+data3
         data = data2
-        data += 0.01*np.random.randn(len(data))
-    else :
+        data += 0.01 * np.random.randn(len(data))
+    else:
         import dataloader as dl
+
         print("load %s ..." % sys.argv[1])
         data, rate, unit = dl.load_data(sys.argv[1], 0)
 
-    
     # determine clipping amplitudes:
     clip_win_size = 0.5
     min_clip_fac = 2.0
-    min_clip, max_clip = clip_amplitudes(data, int(clip_win_size*rate), min_fac=min_clip_fac)
-    
+    min_clip, max_clip = clip_amplitudes(data, int(clip_win_size * rate), min_fac=min_clip_fac)
+
     # find best window:
     best_window_indices(data, rate, single=False,
                         win_size=1.0, win_shift=0.5, percentile_th=99.9,

@@ -7,7 +7,7 @@ import os
 
 import Auxiliary as aux
 import numpy as np
-#import seaborn as sns
+# import seaborn as sns
 from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib import mlab
@@ -19,11 +19,11 @@ def needs_roi(func):
         if args[0].roi is None:
             args[0].detect_best_window()
         return func(*args, **kwargs)
+
     return new_func
 
 
 class FishRecording:
-
     def __init__(self, wavfile):
         self._wavfile = wavfile
         self._time, self._eod, self._sample_rate = aux.load_trace(wavfile)
@@ -45,15 +45,16 @@ class FishRecording:
         """
         if self._eod_peak_idx is None or self._eod_trough_idx is None:
 
-            w = np.ones(self._sample_rate*norm_window)
+            w = np.ones(self._sample_rate * norm_window)
             w[:] /= len(w)
-            eod2 = np.sqrt(np.correlate(self._eod**2., w, mode='same') - np.correlate(self._eod, w, mode='same')**2.)
+            eod2 = np.sqrt(
+                np.correlate(self._eod ** 2., w, mode='same') - np.correlate(self._eod, w, mode='same') ** 2.)
             eod2 = self._eod / eod2
             if peak_threshold is None:
-                peak_threshold = np.percentile(np.abs(eod2), 99.9)-np.percentile(np.abs(eod2), 70)
-              # The Threshold is 1.5 times the standard deviation of the eod
+                peak_threshold = np.percentile(np.abs(eod2), 99.9) - np.percentile(np.abs(eod2), 70)
+                # The Threshold is 1.5 times the standard deviation of the eod
 
-            #_, self._eod_peak_idx, _, self._eod_trough_idx = aux.peakdet(eod2, peak_threshold)
+            # _, self._eod_peak_idx, _, self._eod_trough_idx = aux.peakdet(eod2, peak_threshold)
             self._eod_peak_idx, self._eod_trough_idx = pd.detect_peaks(eod2, peak_threshold)
             # refine by matching troughs and peaks
             everything = list(self.peak_trough_iterator())
@@ -70,7 +71,7 @@ class FishRecording:
         pidx, tidx = self.detect_peak_and_trough_indices()
 
         t = np.hstack((self._time[pidx], self._time[tidx]))
-        y = np.hstack((self._time[pidx]*0+1, self._time[tidx]*0-1))
+        y = np.hstack((self._time[pidx] * 0 + 1, self._time[tidx] * 0 - 1))
         all_idx = np.hstack((pidx, tidx))
         a = np.hstack((self._eod[pidx], self._eod[tidx]))
         idx = np.argsort(t)
@@ -109,7 +110,7 @@ class FishRecording:
 
             t_prev_trough = t[k_prev]
             trough_idx = None
-            if np.abs(t_next_trough-t_peak) < np.abs(t_prev_trough-t_peak):
+            if np.abs(t_next_trough - t_peak) < np.abs(t_prev_trough - t_peak):
                 t_trough = t_next_trough
                 a_trough = a[k_next]
                 trough_idx = k_next
@@ -132,7 +133,7 @@ class FishRecording:
         """
         filename = self._wavfile
         p_idx, t_idx = self.detect_peak_and_trough_indices()
-        peak_time, peak_ampl, trough_time, trough_ampl = self._time[p_idx], self._eod[p_idx],\
+        peak_time, peak_ampl, trough_time, trough_ampl = self._time[p_idx], self._eod[p_idx], \
                                                          self._time[t_idx], self._eod[t_idx]
         # peaks and troughs here refer to those found in each eod-cycle. For each cycle there should be one peak and
         # one trough if the detect_peak_indices function worked fine.
@@ -152,7 +153,6 @@ class FishRecording:
             no_of_peaks[i] = len(p2t_ampl)
 
         if plot_debug:
-
             ax = aux.draw_bwin_analysis_plot(filename, self._time, self._eod, no_of_peaks, cvs, mean_ampl)
 
         # ToDo: Need to find a way to plot ax5!! It's not as easy as it seems...
@@ -164,7 +164,7 @@ class FishRecording:
         entire_time_idx = self._eod_peak_idx[bwin_bool_inx]
         bwin = my_times[bwin_bool_inx]
 
-        self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate/2.))
+        self.roi = (entire_time_idx, entire_time_idx + int(self._sample_rate / 2.))
 
         # plotting the best window in ax[5]
         if plot_debug and len(ax) > 0:
@@ -174,7 +174,7 @@ class FishRecording:
         return bwin, win_size
 
     def best_window_algorithm(self, peak_no, mean_amplitudes, cvs, pks_th=0.15, ampls_percentile_th=85.,
-                              cvs_percentile_th=15., plot_debug=False, axs=None, win_shift = 0.2):
+                              cvs_percentile_th=15., plot_debug=False, axs=None, win_shift=0.2):
 
         """This is the algorithm that chooses the best window. It first filters out the windows that have a siginificant
         different amount of peaks compared to the stats.mode peak number of all windows. Secondly, it filters out
@@ -197,9 +197,9 @@ class FishRecording:
         """
         # First filter: Stable # of detected peaks
         pk_mode = stats.mode(peak_no)
-        tot_pks = max(peak_no)-min(peak_no)
-        lower = peak_no >= pk_mode[0][0] - tot_pks*pks_th
-        upper = peak_no <= pk_mode[0][0] + tot_pks*pks_th
+        tot_pks = max(peak_no) - min(peak_no)
+        lower = peak_no >= pk_mode[0][0] - tot_pks * pks_th
+        upper = peak_no <= pk_mode[0][0] + tot_pks * pks_th
         valid_pks = lower * upper
 
         # Second filter: Low variance in the amplitude
@@ -211,7 +211,7 @@ class FishRecording:
 
         # replace the median ampl where 0's
         ampl_means = np.where(mean_amplitudes == 0., np.median(mean_amplitudes), mean_amplitudes)
-        tot_ampls = max(ampl_means)-min(ampl_means)
+        tot_ampls = max(ampl_means) - min(ampl_means)
         ampls_th = np.percentile(ampl_means, ampls_percentile_th)
         valid_ampls = ampl_means <= ampls_th
 
@@ -238,15 +238,15 @@ class FishRecording:
             # will not return anything!
 
         else:
-            max_ampl_window = ampl_means == np.max(ampl_means[valid_windows])  # Boolean array with a single True element
+            max_ampl_window = ampl_means == np.max(
+                ampl_means[valid_windows])  # Boolean array with a single True element
 
             best_window = valid_windows * max_ampl_window
 
             if plot_debug:
-
                 windows = np.arange(len(peak_no)) * win_shift
-                up_th = np.ones(len(windows)) * pk_mode[0][0] + tot_pks*pks_th
-                down_th = np.ones(len(windows)) * pk_mode[0][0] - tot_pks*pks_th
+                up_th = np.ones(len(windows)) * pk_mode[0][0] + tot_pks * pks_th
+                down_th = np.ones(len(windows)) * pk_mode[0][0] - tot_pks * pks_th
                 axs[1].fill_between(windows, y1=down_th, y2=up_th, color='forestgreen', alpha=0.4, edgecolor='k', lw=1)
 
                 cvs_th_array = np.ones(len(windows)) * cov_th
@@ -254,7 +254,7 @@ class FishRecording:
                                     alpha=0.4, edgecolor='k', lw=1)
 
                 clipping_lim = np.ones(len(windows)) * axs[3].get_ylim()[-1]
-                clipping_th = np.ones(len(windows))*ampls_th
+                clipping_th = np.ones(len(windows)) * ampls_th
                 axs[3].fill_between(windows, y1=clipping_th, y2=clipping_lim,
                                     color='tomato', alpha=0.6, edgecolor='k', lw=1)
                 axs[3].plot(windows[best_window], ampl_means[best_window], 'o', ms=25, mec='black', mew=3,
@@ -298,8 +298,8 @@ class FishRecording:
 
         inter_peak_interv = np.diff(wpeak_t)
 
-        hp = np.histogram(inter_peak_interv, bins=max(int(len(inter_peak_interv)/10), 10))
-                          #bins=np.arange(min(inter_peak_interv), max(inter_peak_interv), 0.00001))
+        hp = np.histogram(inter_peak_interv, bins=max(int(len(inter_peak_interv) / 10), 10))
+        # bins=np.arange(min(inter_peak_interv), max(inter_peak_interv), 0.00001))
 
         fund_freq = 1. / hp[1][np.argmax(hp[0])]
         return fund_freq
@@ -330,11 +330,12 @@ class FishRecording:
 
         r_tr = pk_2_tr[:min_n] / pk_2_pk[:min_n]
         print np.min(r_tr), np.max(r_tr)
-        r_tr[r_tr>0.5] = 1 - r_tr[r_tr>0.5]
+        r_tr[r_tr > 0.5] = 1 - r_tr[r_tr > 0.5]
         r_value = np.median(r_tr)
         # r_value = np.median(pk_2_tr[:min_n] / pk_2_pk[:min_n])
 
         return 'pulse' if r_value < thres else 'wave', r_value
+
     def plot_spectogram(self, ax):
 
         fu_freq = self.fund_freq
@@ -357,7 +358,7 @@ class FishRecording:
     def plot_eodform(self, ax, filtr):
 
         fu_freq = self.fund_freq
-        low_pass = fu_freq*filtr
+        low_pass = fu_freq * filtr
         if self.type_detector() == 'pulse':
             low_pass = 3000.
 
@@ -382,7 +383,7 @@ class FishRecording:
         window_size = int(0.05 * self._sample_rate)  # 0.050 are 50 milliseconds for the envelope window!
         w = 1.0 * np.ones(window_size) / window_size
         envelope = (np.sqrt((np.correlate(self._eod ** 2, w, mode='same') -
-                    np.correlate(self._eod, w, mode='same') ** 2)).ravel()) * np.sqrt(2.)
+                             np.correlate(self._eod, w, mode='same') ** 2)).ravel()) * np.sqrt(2.)
         upper_bound = np.max(envelope) + np.percentile(envelope, 1)
         ax.fill_between(self._time[::500], y1=-envelope[::500], y2=envelope[::500], color='purple', alpha=0.5)
         ax.plot((w_start, w_start), (-upper_bound, upper_bound), 'k--', linewidth=2)
