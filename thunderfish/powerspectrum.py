@@ -97,7 +97,7 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend
     if not return_list:
         multi_psd_data = multi_psd_data[0]
 
-    return np.asarray(multi_psd_data)
+    return multi_psd_data
 
 
 if __name__ == '__main__':

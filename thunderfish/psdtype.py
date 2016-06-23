@@ -72,12 +72,11 @@ def psd_assignment(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=300
         all_percentiles.append(percentiles)
         proportions.append((percentiles[1] - percentiles[2]) / (percentiles[0] - percentiles[3]))
 
-    ################### doesnt work ###########################
     pulse_psd = np.mean(proportions) > proportion_th
 
-    # TODO check Juan how to print pulse versus wave
     if verbose >= 1:
-        print ('Pulse-PSD is %s. proportion = %.3f' % (pulse_psd, float(np.mean(proportions))))
+        f_type = 'pulse' if pulse_psd else 'wave'
+        print ('Pulse-PSD is %s. proportion = %.3f' % (f_type, float(np.mean(proportions))))
 
     if plot_data_func:
         plot_data_func(freqs, power, np.asarray(proportions), np.asarray(all_percentiles), **kwargs)
