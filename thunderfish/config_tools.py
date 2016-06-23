@@ -2,7 +2,6 @@ from collections import OrderedDict
 
 
 def get_config_dict():
-
     cfg = OrderedDict()
     cfgsec = dict()
 
