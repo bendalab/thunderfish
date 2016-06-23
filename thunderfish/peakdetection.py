@@ -2,6 +2,18 @@ import warnings
 import numpy as np
 
 
+def percentile_threshold(samplerate, percentile_th, th_factor, win_shift):
+    threshold = np.zeros(len(data))
+    win_shift_indices = int(win_shift * samplerate)
+
+    if percentile_th < 50.0:
+        percentile_th = 100.0 - percentile_th
+
+    for inx0 in xrange(0, len(data) - win_shift_indices / 2, win_shift_indices):
+        inx1 = inx0 + win_shift_indices
+        threshold[inx0:inx1] = np.diff(np.percentile(data[inx0:inx1], [100.0-percentile_th, percentile_th])) * th_factor
+    return threshold
+
 def detect_peaks(data, threshold, time=None,
                  check_peak_func=None, check_trough_func=None, **kwargs):
     """
@@ -554,4 +566,4 @@ if __name__ == "__main__":
 
     plt.ylim(-0.5,4.0)
     plt.show()
-    
+

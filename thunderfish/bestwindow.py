@@ -117,7 +117,7 @@ def clip_args(cfg, rate):
     return a
 
 
-def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.1, percentile_th=99,
+def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.1, percentile_th=99.9,
                         th_factor=0.8, min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
@@ -199,13 +199,8 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
         return 0, 0
 
     # threshold for peak detection:
-    threshold = np.zeros(len(data))
-    win_shift_indices = int(win_shift * samplerate)
 
-    for inx0 in xrange(0, len(data) - win_shift_indices / 2, win_shift_indices):
-        inx1 = inx0 + win_shift_indices
-        threshold[inx0:inx1] = np.diff(np.percentile(data[inx0:inx1],
-                                                     [percentile_th, 100. - percentile_th])) * th_factor
+    threshold = pd.percentile_threshold(samplerate, percentile_th, th_factor, win_shift)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pd.detect_peaks(data, threshold)
@@ -304,7 +299,7 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
     return idx0, idx1, clipped
 
 
-def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99, th_factor=0.8,
+def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99.9, th_factor=0.8,
                         min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
@@ -321,7 +316,7 @@ def best_window_times(data, rate, single=True, win_size=8., win_shift=0.1, perce
     return start_inx/rate, end_inx/rate, clipped
 
 
-def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99, th_factor=0.8,
+def best_window(data, rate, single=True, win_size=8., win_shift=0.1, percentile_th=99.9, th_factor=0.8,
                 min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                 plot_data_func=None, **kwargs):
@@ -423,5 +418,5 @@ if __name__ == "__main__":
     
     # find best window:
     best_window_indices(data, rate, single=False,
-                        win_size=1.0, win_shift=0.5, percentile_th=99,
+                        win_size=1.0, win_shift=0.5, percentile_th=99.9,
                         min_clip=min_clip, max_clip=max_clip, w_cv_ampl=10.0)
