@@ -448,7 +448,7 @@ def std_threshold(data, samplerate, win_shift=None, th_factor=5., **kwargs):
     :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
     """
 
-    if win_shift:
+    if samplerate and win_shift:
         threshold = np.zeros(len(data))
         win_shift_indices = int(win_shift * samplerate)
 
@@ -475,7 +475,7 @@ def minmax_threshold(data, samplerate, win_shift=None, th_factor=0.8, **kwargs):
     :param th_factor: (float). The threshold for peak detection is the inter-min-max-range multiplied by this factor.
     :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
     """
-    if win_shift:
+    if samplerate and win_shift:
         threshold = np.zeros(len(data))
         win_shift_indices = int(win_shift * samplerate)
 
@@ -485,14 +485,14 @@ def minmax_threshold(data, samplerate, win_shift=None, th_factor=0.8, **kwargs):
             window_min = np.min(data[inx0:inx1])
             window_max = np.max(data[inx0:inx1])
 
-            threshold[inx0:inx1] = np.squeeze(np.abs(window_max - window_min)) * th_factor
+            threshold[inx0:inx1] = np.squeeze(window_max - window_min) * th_factor
         return threshold
 
     else:
-        return np.squeeze(np.abs(np.diff([np.min(data), np.max(data)]))) * th_factor
+        return np.squeeze(np.max(data) - np.min(data)) * th_factor
 
 
-def percentile_threshold(data, samplerate, win_shift=None, th_factor=0.8, percentile_th=99.99, **kwargs):
+def percentile_threshold(data, samplerate=None, win_shift=None, th_factor=0.8, percentile_th=99.99, **kwargs):
     """
     Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using a high
     percentile in order to include the peaks and troughs from individual pulses within the data.
@@ -507,7 +507,7 @@ def percentile_threshold(data, samplerate, win_shift=None, th_factor=0.8, percen
 
     :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
     """
-    if win_shift:
+    if samplerate and win_shift:
         threshold = np.zeros(len(data))
         win_shift_indices = int(win_shift * samplerate)
 
