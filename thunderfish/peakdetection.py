@@ -434,7 +434,7 @@ def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfa
     return [time[peak_inx], data[peak_inx], size, width, 0.0], None
 
 
-def std_threshold(data, samplerate, win_shift=None, th_factor=5., **kwargs):
+def std_threshold(data, samplerate=None, win_shift=None, th_factor=5., **kwargs):
     """
     Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using the
     standard deviation of the data for each window multiplied by th_factor.
@@ -462,7 +462,7 @@ def std_threshold(data, samplerate, win_shift=None, th_factor=5., **kwargs):
         return np.std(data, ddof=1) * th_factor
 
 
-def minmax_threshold(data, samplerate, win_shift=None, th_factor=0.8, **kwargs):
+def minmax_threshold(data, samplerate=None, win_shift=None, th_factor=0.8, **kwargs):
     """
     Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using the
     diff(max, min) * th_factor of each window.
@@ -485,11 +485,11 @@ def minmax_threshold(data, samplerate, win_shift=None, th_factor=0.8, **kwargs):
             window_min = np.min(data[inx0:inx1])
             window_max = np.max(data[inx0:inx1])
 
-            threshold[inx0:inx1] = np.squeeze(window_max - window_min) * th_factor
+            threshold[inx0:inx1] = (window_max - window_min) * th_factor
         return threshold
 
     else:
-        return np.squeeze(np.max(data) - np.min(data)) * th_factor
+        return (np.max(data) - np.min(data)) * th_factor
 
 
 def percentile_threshold(data, samplerate=None, win_shift=None, th_factor=0.8, percentile_th=99.99, **kwargs):
