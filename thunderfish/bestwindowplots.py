@@ -1,4 +1,5 @@
 import bestwindow as bw
+import peakdetection as pkd
 
 
 def plot_clipping(data, winx0, winx1, bins,
@@ -135,7 +136,7 @@ if __name__ == "__main__":
     # compute best window:
     print("call bestwindow() function...")
     bw.best_window_indices(data, rate, single=False,
-                           win_size=1.0, win_shift=0.1,
+                           win_size=1.0, win_shift=0.5, threshold_func=pkd.percentile_threshold,
                            min_clip=min_clip, max_clip=max_clip,
                            w_cv_ampl=10.0, tolerance=0.5,
                            plot_data_func=plot_best_window, ax=ax, fs=12)

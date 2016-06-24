@@ -31,7 +31,7 @@ def plot_freq_histogram(freqs_array, x_label, bins='FD', savefig=False, save_pat
     sns.set_context("poster")
     sns.axes_style('white')
     sns.set_style("ticks")
-    fig, ax = plt.subplots(figsize=(20./inch_factor, 15./inch_factor))
+    fig, ax = plt.subplots(figsize=(20. / inch_factor, 15. / inch_factor))
 
     if bins == 'FD':
         ax.hist(freqs_array, bins=int(2 * (q75 - q25) * len(freqs_array) ** (-1. / 3.)),
@@ -51,8 +51,8 @@ def plot_freq_histogram(freqs_array, x_label, bins='FD', savefig=False, save_pat
         fig.savefig(save_path_and_name)
         plt.close()
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     # Test the plot_freq_histogram() function
     file_path = 'data/recordings_cano_rubiano_RAW/fish_wave.npy'
     freqs = np.load(file_path)

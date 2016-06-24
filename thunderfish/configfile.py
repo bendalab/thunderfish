@@ -1,7 +1,7 @@
 import os
 from collections import OrderedDict
 
-    
+
 class ConfigFile:
     """Handling of configuration parameter.
 
@@ -24,7 +24,7 @@ class ConfigFile:
     The configuration parameter can be written to a configuration file
     with dump() and loaded from a file with load() and load_files().
     """
-        
+
     def __init__(self, orig=None):
         if orig is None:
             self.cfg = OrderedDict()
@@ -35,13 +35,11 @@ class ConfigFile:
             self.sections = dict(orig.sections)
             self.new_section = None
 
-        
     def __eq__(self, other):
         """Check whether the parameter and ther values are the same.
         """
         return self.cfg == other.cfg
-            
-                
+
     def add(self, key, value, unit, description):
         """Add a new parameter to the configuration.
 
@@ -61,7 +59,6 @@ class ConfigFile:
         # add configuration parameter:
         self.cfg[key] = [value, unit, description]
 
-        
     def add_section(self, description):
         """Add a new section to the configuration.
 
@@ -69,7 +66,6 @@ class ConfigFile:
           description (string): a textual description of the section
         """
         self.new_section = description
-
 
     def __getitem__(self, key):
         """Returns the list [value, unit, description]
@@ -85,7 +81,6 @@ class ConfigFile:
         """
         return self.cfg[key]
 
-
     def value(self, key):
         """Returns the value of the configuration parameter defined by key.
 
@@ -97,7 +92,6 @@ class ConfigFile:
         """
         return self.cfg[key][0]
 
-
     def set(self, key, value):
         """Set the value of the configuration parameter defined by key.
 
@@ -106,7 +100,6 @@ class ConfigFile:
           value: the new value.
         """
         self.cfg[key][0] = value
-
 
     def map(self, mapping):
         """Map the values of the configuration onto new names.
@@ -127,7 +120,6 @@ class ConfigFile:
             a[dest] = self.value(src)
         return a
 
-                
     def dump(self, filename, header=None, maxline=60):
         """Pretty print configuration into file.
 
@@ -151,29 +143,29 @@ class ConfigFile:
 
         def write_comment(f, comment, maxline, cs):
             # format comment:
-            if len(comment) > 0 :
-                for line in comment.split('\n') :
+            if len(comment) > 0:
+                for line in comment.split('\n'):
                     f.write(cs + ' ')
                     cc = len(cs) + 1  # character count
-                    for w in line.strip().split(' ') :
+                    for w in line.strip().split(' '):
                         # line too long?
-                        if cc + len(w) > maxline :
+                        if cc + len(w) > maxline:
                             f.write('\n' + cs + ' ')
                             cc = len(cs) + 1
                         f.write(w + ' ')
                         cc += len(w) + 1
                     f.write('\n')
 
-        with open(filename, 'w') as f :
-            if header != None :
+        with open(filename, 'w') as f:
+            if header != None:
                 write_comment(f, header, maxline, '##')
             maxkey = 0
-            for key in self.cfg.keys() :
-                if maxkey < len(key) :
+            for key in self.cfg.keys():
+                if maxkey < len(key):
                     maxkey = len(key)
-            for key, v in self.cfg.items() :
+            for key, v in self.cfg.items():
                 # possible section entry:
-                if key in self.sections :
+                if key in self.sections:
                     f.write('\n\n')
                     write_comment(f, self.sections[key], maxline, '##')
 
@@ -181,13 +173,13 @@ class ConfigFile:
                 val = None
                 unit = ''
                 comment = ''
-                if hasattr(v, '__len__') and (not isinstance(v, str)) :
+                if hasattr(v, '__len__') and (not isinstance(v, str)):
                     val = v[0]
-                    if len(v) > 1 :
+                    if len(v) > 1:
                         unit = ' ' + v[1]
-                    if len(v) > 2 :
+                    if len(v) > 2:
                         comment = v[2]
-                else :
+                else:
                     val = v
 
                 # next key-value pair:
@@ -195,7 +187,6 @@ class ConfigFile:
                 write_comment(f, comment, maxline, '#')
                 f.write('{key:<{width}s}: {val}{unit:s}\n'.format(
                     key=key, width=maxkey, val=val, unit=unit))
-
 
     def load(self, filename):
         """Set values of configuration to values from key-value pairs read in
@@ -205,37 +196,36 @@ class ConfigFile:
             filename: The name of the file from which to read the configuration.
         """
         with open(filename, 'r') as f:
-            for line in f :
+            for line in f:
                 # do not process empty lines and comments:
                 if len(line.strip()) == 0 or line[0] == '#' or not ':' in line:
                     continue
                 key, val = line.split(':', 1)
                 key = key.strip()
-                if not key in self.cfg :
+                if not key in self.cfg:
                     continue
                 cv = self.cfg[key]
                 vals = val.strip().split(' ')
-                if hasattr(cv, '__len__') and (not isinstance(cv, str)) :
+                if hasattr(cv, '__len__') and (not isinstance(cv, str)):
                     unit = ''
-                    if len(vals) > 1 :
+                    if len(vals) > 1:
                         unit = vals[1]
-                    if unit != cv[1] :
+                    if unit != cv[1]:
                         print('unit for %s is %s but should be %s'
                               % (key, unit, cv[1]))
-                    if type(cv[0]) == bool :
+                    if type(cv[0]) == bool:
                         cv[0] = (vals[0].lower() == 'true'
                                  or vals[0].lower() == 'yes')
-                    else :
+                    else:
                         cv[0] = type(cv[0])(vals[0])
-                else :
-                    if type(cv[0]) == bool :
+                else:
+                    if type(cv[0]) == bool:
                         self.cfg[key] = (vals[0].lower() == 'true'
                                          or vals[0].lower() == 'yes')
-                    else :
+                    else:
                         self.cfg[key] = type(cv)(vals[0])
 
-
-    def load_files(self, cfgfile, filepath, maxlevel=3, verbose=0) :
+    def load_files(self, cfgfile, filepath, maxlevel=3, verbose=0):
         """Load configuration from current working directory
         as well as from several levels of a file path.
 
@@ -247,8 +237,8 @@ class ConfigFile:
         """
 
         # load configuration from the current directory:
-        if os.path.isfile(cfgfile) :
-            if verbose > 0 :
+        if os.path.isfile(cfgfile):
+            if verbose > 0:
                 print('load configuration %s' % cfgfile)
             self.load(cfgfile)
 
@@ -256,11 +246,11 @@ class ConfigFile:
         absfilepath = os.path.abspath(filepath)
         dirs = os.path.dirname(absfilepath).split('/')
         dirs.append('')
-        ml = len(dirs)-1
-        if ml > maxlevel :
+        ml = len(dirs) - 1
+        if ml > maxlevel:
             ml = maxlevel
-        for k in xrange(ml, 0, -1) :
+        for k in xrange(ml, 0, -1):
             path = '/'.join(dirs[:-k]) + '/' + cfgfile
-            if os.path.isfile(path) :
+            if os.path.isfile(path):
                 print('load configuration %s' % path)
                 self.load(path)
