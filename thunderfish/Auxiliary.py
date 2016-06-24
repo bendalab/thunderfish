@@ -5,7 +5,6 @@ import numpy as np
 import wave
 import matplotlib.pyplot as plt
 import sys
-# import seaborn as sns
 from scipy.signal import butter, filtfilt
 
 
