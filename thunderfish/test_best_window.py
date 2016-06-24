@@ -38,7 +38,7 @@ if __name__ == '__main__':
     recording_name = '_'.join(modfile.split('.')[0].split('_')[:2]) + '.pdf'
 
     fig, ax = plt.subplots(figsize=(12, 8))
-    fish.plot_wavenvelope(ax, w_start, w_start+w_width)
+    fish.plot_wavenvelope(ax, w_start, w_start + w_width)
     ax.set_title(recording_name, fontsize=18)
     fig.tight_layout()
     fig.savefig(savepath + recording_name)

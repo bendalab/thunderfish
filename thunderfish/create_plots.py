@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
+
 def load_data(glob_ls):
     """
     loads all .npy data (numpy.array) and converts it to a dictionary using part from filenames as keys.
@@ -20,6 +21,7 @@ def load_data(glob_ls):
     print 'data loaded successfully\n'
     return data
 
+
 def create_histo(data):
     """
     gets a list of data and creates an histogram of this data.
@@ -32,18 +34,18 @@ def create_histo(data):
     sns.set_context("poster")
     sns.axes_style('white')
     sns.set_style("ticks")
-    fig, ax = plt.subplots(figsize=(15./inch_factor, 10./inch_factor))
+    fig, ax = plt.subplots(figsize=(15. / inch_factor, 10. / inch_factor))
     colors = ['salmon', 'cornflowerblue']
 
     for enu, curr_fishtype in enumerate(data.keys()):
-        hist, bins = np.histogram(data[curr_fishtype], bins=len(data[curr_fishtype])//4)
+        hist, bins = np.histogram(data[curr_fishtype], bins=len(data[curr_fishtype]) // 4)
         width = 0.7 * (bins[1] - bins[0])
         center = (bins[:-1] + bins[1:]) / 2
         ax.bar(center, hist, align='center', width=width, alpha=0.8, facecolor=colors[enu], label=curr_fishtype)
 
     ax.set_ylabel('Counts', fontsize=14)
     ax.set_xlabel('Frequency [Hz]', fontsize=14)
-    ax.set_xticks(np.arange(0, max(np.hstack(data.values()))+100, 250))
+    ax.set_xticks(np.arange(0, max(np.hstack(data.values())) + 100, 250))
     ax.tick_params(axis='both', which='major', labelsize=12)
     ax.set_title('Distribution of EOD-Frequencies', fontsize=16)
     ax.legend(frameon=False, loc='best', fontsize=12)
@@ -71,10 +73,10 @@ def fishtype_barplot(data):
     sns.set_context("poster")
     sns.axes_style('white')
     sns.set_style("ticks")
-    fig, ax = plt.subplots(figsize=(10./inch_factor, 10./inch_factor))
+    fig, ax = plt.subplots(figsize=(10. / inch_factor, 10. / inch_factor))
     width = 0.5
-    ax.bar(1-width/2., count_wave, width=width, facecolor='cornflowerblue', alpha=0.8)
-    ax.bar(2-width/2., count_pulse, width=width, facecolor='salmon', alpha=0.8)
+    ax.bar(1 - width / 2., count_wave, width=width, facecolor='cornflowerblue', alpha=0.8)
+    ax.bar(2 - width / 2., count_pulse, width=width, facecolor='salmon', alpha=0.8)
     ax.set_xticks([1, 2])
     ax.set_xticklabels(['Wave-type', 'Pulse-type'])
     ax.tick_params(axis='both', which='major', labelsize=14)

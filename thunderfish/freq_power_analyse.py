@@ -25,7 +25,7 @@ pp = [1 for l in np.arange(len(pulse_prop))]
 wt = [1 for m in np.arange(len(wave_trace_prop))]
 pt = [1 for n in np.arange(len(pulse_trace_prop))]
 
-fig, ax = plt.subplots(facecolor = 'white', nrows=1, ncols=3)
+fig, ax = plt.subplots(facecolor='white', nrows=1, ncols=3)
 ax[0].set_title('difference (p90-p10)')
 ax[0].plot(wd, wave_diffs, '.')
 ax[0].plot(pd, pulse_diffs, '.', color='r')
@@ -40,7 +40,7 @@ ax[2].plot(pt, pulse_trace_prop, '.', color='r')
 
 plt.show()
 
-fig, ax = plt.subplots(facecolor = 'white')
+fig, ax = plt.subplots(facecolor='white')
 plt.xlabel('difference (p90-p10)')
 plt.ylabel('proportion ((p75-p25)/(p99-p1))')
 ax.plot(wave_diffs, wave_trace_prop, '.')

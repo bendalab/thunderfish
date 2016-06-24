@@ -80,7 +80,6 @@ def wave_or_pulse_psd(power, freqs, data, rate, fresolution, create_dataset=Fals
 
 
 def save_fundamentals(fishlist, output_folder):
-
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
 

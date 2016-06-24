@@ -1,8 +1,9 @@
 import bestwindow as bw
+import peakdetection as pkd
 
 
 def plot_clipping(data, winx0, winx1, bins,
-                  h, min_clip, max_clip, min_ampl, max_ampl):
+                  h, min_clip, max_clip, min_ampl, max_ampl, **kwargs):
     plt.subplot(2, 1, 1)
     plt.plot(data[winx0:winx1], 'b')
     plt.axhline(min_clip, color='r')
@@ -18,7 +19,7 @@ def plot_clipping(data, winx0, winx1, bins,
 
 def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
                      win_times, cv_interv, mean_ampl, cv_ampl, clipped_frac,
-                     cost, thresh, win_idx0, win_idx1, ax, fs=10):
+                     cost, thresh, win_idx0, win_idx1, ax, fs=10, **kwargs):
     # raw data:
     time = np.arange(0.0, len(data)) / rate
     ax[0].plot(time, data, color='royalblue', lw=3)
@@ -135,10 +136,10 @@ if __name__ == "__main__":
     # compute best window:
     print("call bestwindow() function...")
     bw.best_window_indices(data, rate, single=False,
-                           win_size=1.0, win_shift=0.1,
+                           win_size=1.0, win_shift=0.5, threshold_func=pkd.percentile_threshold,
                            min_clip=min_clip, max_clip=max_clip,
                            w_cv_ampl=10.0, tolerance=0.5,
-                           plot_data_func=plot_best_window, ax=ax, fs=12)
+                           plot_data_func=plot_best_window, th_factor=0.5, ax=ax, fs=12)
 
     plt.tight_layout()
     plt.show()

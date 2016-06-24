@@ -1,4 +1,3 @@
-
 """
 This module checks if the recorded signal corresponds to a wave- or a pulse-fish using two different approaches:
 One checks for the width of an EOD compared to the distance to the next EOD. The second performs a power-spectrum-
@@ -15,7 +14,6 @@ from matplotlib.patches import Rectangle
 
 def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
                       win_shift=0.5, pulse_thres=0.1, verbose=0, plot_data_func=None, **kwargs):
-
     """ Detects if fish is pulse or wave by calculating the proportion of the time distance between a peak and its
      following trough, relative to the time between consecutive peaks.
 
@@ -72,13 +70,7 @@ def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
         print('Analyzing Fish-Type...')
 
     # threshold for peak detection:
-    threshold = np.zeros(len(data))
-    win_shift_indices = int(win_shift * samplerate)
-
-    for inx0 in range(0, len(data), win_shift_indices):
-        inx1 = inx0 + win_shift_indices
-        threshold[inx0:inx1] = np.diff(np.percentile(
-            data[inx0:inx1], [percentile_th, 100. - percentile_th]))*th_factor
+    threshold = pkd.percentile_threshold(data, samplerate, win_shift)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pkd.detect_peaks(data, threshold)
@@ -173,7 +165,7 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
         ax.bar(center, hist, align='center', facecolor=hist_color, edgecolor='black', lw=2.5, alpha=0.4, width=width,
                label=plot_label)
         ax.plot([pulse_th, pulse_th], [0, np.max(hist)], '--k', lw=2.5, alpha=0.7)
-        ax.legend(frameon=False, loc='best', fontsize=label_size-2)
+        ax.legend(frameon=False, loc='best', fontsize=label_size - 2)
         pass
 
     t = np.arange(len(data)) / samplerate
@@ -195,12 +187,12 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     min_amp = np.min(data)
 
     ax[0].add_patch(Rectangle((t[start_in], min_amp),  # (x,y)
-                              t[end_in]-t[start_in],  # width
+                              t[end_in] - t[start_in],  # width
                               max_amp + abs(min_amp),  # height
                               edgecolor='black', facecolor='white', lw=3))
 
     # Cosmetics
-    ax[0].set_title('Raw-data with peak detection', fontsize=fs+2)
+    ax[0].set_title('Raw-data with peak detection', fontsize=fs + 2)
     ax[0].set_xlabel('Time [sec]', fontsize=fs)
     ax[0].set_ylabel('Amplitude [a.u.]', fontsize=fs)
     ax[0].tick_params(axis='both', which='major', labelsize=fs - 2)
@@ -270,19 +262,19 @@ if __name__ == "__main__":
         # ToDo: Make a parameter for the user to choose whether pulse- or wave-fish data should be generated!!
         print("Generating artificial waveform...")
         rate = 40000.0
-        time = np.arange(0.0, 10.0, 1./rate)
+        time = np.arange(0.0, 10.0, 1. / rate)
         f1 = 100.0
-        data0 = (0.5*np.sin(2.0*np.pi*f1*time)+0.5)**20.0
+        data0 = (0.5 * np.sin(2.0 * np.pi * f1 * time) + 0.5) ** 20.0
         amf1 = 0.3
-        data1 = data0*(1.0-np.cos(2.0*np.pi*amf1*time))
+        data1 = data0 * (1.0 - np.cos(2.0 * np.pi * amf1 * time))
         data1 += 0.2
-        f2 = f1*2.0*np.pi
-        data2 = 0.1*np.sin(2.0*np.pi*f2*time)
+        f2 = f1 * 2.0 * np.pi
+        data2 = 0.1 * np.sin(2.0 * np.pi * f2 * time)
         amf3 = 0.15
-        data3 = data2*(1.0-np.cos(2.0*np.pi*amf3*time))
-        #data = data1+data3
+        data3 = data2 * (1.0 - np.cos(2.0 * np.pi * amf3 * time))
+        # data = data1+data3
         data = data0
-        data += 0.01*np.random.randn(len(data))
+        data += 0.01 * np.random.randn(len(data))
 
     else:  # load data given by the user
         import dataloader as dl
