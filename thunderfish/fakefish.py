@@ -1,11 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from IPython import embed
 
 
 def generate_wavefish(freq, samplerate, time_len=20., harmonics=3):
-
-    # generate time
     """
 
     :param freq: (float). Frequency of the fish in Hz.
@@ -31,7 +28,6 @@ def generate_wavefish(freq, samplerate, time_len=20., harmonics=3):
 def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1, wave_cut=0.6,
                        pk_len=0.001, pk_std=0.1, peak_fac=2.,
                        tr_len=0.001, tr_std=0.12, tr_fac=1.2):
-
     """
 
     :param freq: (float). Frequency of the fish in Hz.
@@ -75,7 +71,6 @@ def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1, wave_cut=0
         return s
 
     def insert_pulses(freq, pulse, time_len, noise_fac):
-
         """Insert pulses into noisy baseline at a given frequency
 
         :param freq: s.a.
@@ -96,8 +91,6 @@ def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1, wave_cut=0
             dat[s:s+len(pulse)] = pulse
 
         return dat
-
-    # Create a pulse inset
 
     # Create a Gaussian Distribution; one for the peak and another for the trough
     mu = 0.  # Fix parameter, should not be changed
@@ -138,21 +131,43 @@ if __name__ == '__main__':
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
 
-    # embed()
-    # quit()
-
-    # ax[0] is complete wavefish
+    # ax[0][0] is complete wavefish
     ax[0][0].plot(time, wavefish, color='dodgerblue', alpha=0.7, lw=2)
     ax[0][0].set_title('Fake-wavefish-RECORDING', fontsize=fs+2)
 
-    # ax[1] is wavefish inset
+    # ax[0][1] is wavefish inset
     ax[0][1].plot(time[:samplerate*inset_len], wavefish[:samplerate*inset_len], '-o',
                   lw=3, color='dodgerblue', ms=10, mec='k', mew=1.5)
     ax[0][1].set_title('Fake-wavefish-INSET', fontsize=fs + 2)
 
-    for wave_ax in [ax[0][0], ax[0][1]]:
-        wave_ax.set_xlabel('Time [sec]', fontsize=fs)
-        wave_ax.set_ylabel('Amplitude [a.u.]', fontsize=fs)
-        wave_ax.tick_params(axis='both', which='major', labelsize=fs - 2)
+    # ax[1][0] is complete pulsefish
+    ax[1][0].plot(time, pulsefish, color='forestgreen', alpha=0.7, lw=2)
+    ax[1][0].set_title('Fake-pulsefish-RECORDING', fontsize=fs+2)
 
+    # get proper ylim
+    ymin = np.min(pulsefish)
+    ymax = np.max(pulsefish)
+    ws_fac = 1.2  # Whitespace factor
+    ax[1][0].set_ylim([ymin*ws_fac, ymax*ws_fac])
+
+    # ax[1][1] is pulsefish inset
+    ax[1][1].plot(time[:samplerate * inset_len], pulsefish[:samplerate * inset_len], '-o',
+                  lw=3, color='forestgreen', ms=10, mec='k', mew=1.5)
+    ax[1][1].set_title('Fake-pulsefish-INSET', fontsize=fs + 2)
+
+    # get proper ylim
+    ymin = np.min(pulsefish)
+    ymax = np.max(pulsefish)
+    yrange = np.abs(ymin) + np.abs(ymax)
+    ws_fac = 0.1  # Whitespace factor (between 0. and 1.; preferably a small number)
+    ax[1][0].set_ylim([ymin - yrange*ws_fac, ymax + yrange*ws_fac])
+    ax[1][1].set_ylim([ymin - yrange*ws_fac, ymax + yrange*ws_fac])
+
+    for row in ax:
+        for c_ax in row:
+            c_ax.set_xlabel('Time [sec]', fontsize=fs)
+            c_ax.set_ylabel('Amplitude [a.u.]', fontsize=fs)
+            c_ax.tick_params(axis='both', which='major', labelsize=fs - 2)
+
+    plt.tight_layout()
     plt.show()
