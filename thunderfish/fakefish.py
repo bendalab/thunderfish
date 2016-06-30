@@ -1,4 +1,6 @@
 import numpy as np
+from IPython import embed
+
 import matplotlib.pyplot as plt
 
 
@@ -24,77 +26,39 @@ def generate_wavefish(freq, samplerate, time_len=20., harmonics=3):
     return data
 
 
-def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1, wave_cut=0.6,
-                       pk_len=0.001, pk_std=0.1, peak_fac=2.,
-                       tr_len=0.001, tr_std=0.12, tr_fac=1.2):
+def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1,
+                       pk_std=0.001, pk_amplitude=1.,
+                       tr_std=0.001, tr_amplitude=0.5,
+                       tr_time=0.005):
     """
 
     :param freq: (float). Frequency of the fish in Hz.
     :param samplerate: (float). Sampling Rate in Hz
     :param time_len: (float). Length of the recording in sec.
     :param noise_fac: (float). Factor by which random gaussian distributed noise is inserted.
-    :param wave_cut: (float). Ideally between 0.5 and 1. marks the percentage at which the distribution is cut.
-    :param pk_len: (float). length of the positive part of the pulse.
-    :param pk_std: (float). std of the positive part of the pulse.
-    :param peak_fac: (float). Factor for regulating the positive part of the pulse.
-    :param tr_len: (float). length of the negative part of the pulse.
-    :param tr_std: (float). std of the negative part of the pulse.
-    :param tr_fac: (float). Factor for regulating the negative part of the pulse.
+    :param pk_std: (float). std of the positive part of the pulse in sec.
+    :param pk_amplitude: (float). Factor for regulating the positive part of the pulse.
+    :param tr_std: (float). std of the negative part of the pulse in sec.
+    :param tr_amplitude: (float). Factor for regulating the negative part of the pulse.
+    :param tr_time:
 
     :return: (array). Data with pulses at the given frequency.
     """
-
-    def get_slope(peak, trough, length_percent=0.05):
-        """Calculates the slope that connects the positive part of the pulse with the negative one.
-
-        :param peak: (array-like). the positive values of the pulse
-        :param trough: (array-like). the negative values of the pulse
-        :param length_percent: (float). How long (in percent) the slope should be compared to the whole pulse length
-        :return: (np.array). returns the slope values
-        """
-        slope_len = (len(peak) + len(trough)) * length_percent  # length of slope respective to length of entire pulse
-        s = np.linspace(peak[-1], trough[0], slope_len)
-        if len(s) < 3:
-            s = np.array([(peak[-1] + trough[0])/2.])
-        return s
-
-    def insert_pulses(freq, pulse, time_len, noise_fac):
-        """Insert pulses into noisy baseline at a given frequency
-
-        :param freq: s.a.
-        :param pulse: s.a.
-        :param time_len: s.a.
-        :param noise_fac: s.a.
-        :return: (array). Data with pulses at the given frequency.
-        """
-        time = np.arange(0, time_len, 1. / samplerate)
-
-        dat = (np.random.randn(len(time)) * noise_fac)
-
-        period = int(samplerate/freq)
-        for s in range(period/2, len(dat)-period/2, period):
-            dat[s:s+len(pulse)] += pulse
-
-        return dat
-
     # Create a Gaussian Distribution; one for the peak and another for the trough
-    pk_x = np.arange(-4.*pk_std, 4.*pk_std, 1./(samplerate * pk_len))
-    tr_x = np.arange(-4.*tr_std, 4.*tr_std, 1./(samplerate * tr_len))
-    pk_gaus = np.exp(-0.5 * (pk_x/pk_std)**2)
-    tr_gaus = -np.exp(-0.5 * (tr_x/tr_std)**2)
 
-    pk_end = len(pk_gaus)*wave_cut
-    tr_start = len(tr_gaus)*(1-wave_cut)
+    x = np.arange(-4.*pk_std, tr_time + 4.*tr_std, 1./samplerate)
 
-    peak = pk_gaus[:pk_end] * peak_fac
-    trough = tr_gaus[tr_start:] * tr_fac
-
-    slope = get_slope(peak, trough)
-
-    pulse = np.hstack((peak, slope, trough))  # This is a single pulse
+    pulse = np.exp(-0.5 * (x/pk_std)**2) * pk_amplitude  # Peak Gaussian
+    pulse -= np.exp(-0.5 * ((x-tr_time)/tr_std)**2) * tr_amplitude  # Trough Gaussian
 
     # Now we need to set the pulse into some baseline with noise.
-    data = insert_pulses(freq, pulse, time_len, noise_fac)
+    time = np.arange(0, time_len, 1. / samplerate)
+
+    data = np.random.randn(len(time)) * noise_fac
+
+    period = int(samplerate / freq)
+    for s in range(period / 2, len(data) - len(pulse), period):
+        data[s:s + len(pulse)] += pulse
 
     return data
 
@@ -109,9 +73,9 @@ if __name__ == '__main__':
     time = np.arange(0, rec_length, 1./samplerate)
 
     pulsefish = generate_pulsefish(80., samplerate, time_len=rec_length,
-                                   noise_fac=0.1, wave_cut=0.6,
-                                   pk_len=0.001, pk_std=0.1, peak_fac=2.,
-                                   tr_len=0.001, tr_std=0.12, tr_fac=1.2)
+                                   noise_fac=0.02,
+                                   pk_std=0.001, pk_amplitude=1.,
+                                   tr_std=0.001, tr_amplitude=0.5, tr_time=0.002)
 
     wavefish = generate_wavefish(300., samplerate, time_len=rec_length, harmonics=3)
 
