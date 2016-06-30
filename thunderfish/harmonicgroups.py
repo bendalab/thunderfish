@@ -209,7 +209,8 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
             if more_freqs[j, 0] > fmax and n - 1 - len(newmoregroup) > cfg['maxUpperFill'][0]:
                 # finish this group immediately
                 if verbose > 3:
-                    print('stopping group: too many upper fill-ins:', n - 1 - len(newmoregroup), '>', cfg['maxUpperFill'][0])
+                    print('stopping group: too many upper fill-ins:', n - 1 - len(newmoregroup), '>',
+                          cfg['maxUpperFill'][0])
                 break
 
             # fill in missing harmonics:
@@ -278,12 +279,14 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
                                                                                                             fz=fzero,
                                                                                                             ps=newmoregroup_peaksum,
                                                                                                             f=fills,
-                                                                                                            t=takes), newgroup)
+                                                                                                            t=takes),
+                  newgroup)
             print('newmoregroup:  divisor={d}, fzero={fz:.2f}Hz, peaksum={ps}, fills={f}, takes={t}'.format(d=divisor,
                                                                                                             fz=fzero,
                                                                                                             ps=newmoregroup_peaksum,
                                                                                                             f=fills,
-                                                                                                            t=takes), newmoregroup)
+                                                                                                            t=takes),
+                  newmoregroup)
             if verbose > 2:
                 print('bestgroup:     divisor={d}, fzero={fz:.2f}Hz, peaksum={ps}, fills={f}, takes={t}'.format(
                     d=best_divisor, fz=best_fzero, ps=best_group_peaksum, f=best_fills, t=best_takes), best_group)
@@ -529,6 +532,31 @@ def threshold_estimate(data, noise_factor, peak_factor):
     return lowthreshold, highthreshold, center
 
 
+def extract_fundamental_freqs(fishlists):
+    """
+    Extracts the fundamental frequencies of multiple or single fishlists created by the harmonicgroups modul.
+
+    This function gets a 4-D array as input. This input consists of multiple fishlists from the harmonicgroups modul
+    lists up (fishlists[list][fish][harmonic][frequency, power]). The amount of lists doesn't matter. With a for-loop
+    this function collects all fundamental frequencies of every fishlist. In the end the output is a 2-D array
+    containing the fundamentals of each list (fundamentals[list][fundamental_frequencies]).
+
+    :param fishlists:       (4-D array or 3-D array) List of or single fishlists with harmonics and each frequency and power.
+                            fishlists[fishlist][fish][harmonic][frequency, power]
+                            fishlists[fish][harmonic][frequency, power]
+    :return fundamentals:   (1-D array or 2-D array) list of or single arrays containing the fundamentals of a fishlist.
+                            fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
+                            fundamentals = [f1, f1, ..., f1, f1]
+    """
+    if hasattr(fishlists[0][0][0], '__len__'):
+        fundamentals = []
+        for fishlist in range(len(fishlists)):
+            fundamentals.append(np.array([fish[0][0] for fish in fishlists[fishlist]]))
+    else:
+        fundamentals = np.array([fish[0][0] for fish in fishlists])
+    return fundamentals
+
+
 def harmonic_groups(psd_freqs, psd, cfg):
     """
     Detect peaks in power spectrum and extract fundamentals of harmonic groups.
@@ -587,7 +615,7 @@ def harmonic_groups(psd_freqs, psd, cfg):
 
     if len(all_freqs) == 0:
         # TODO: Why has not been a peak detected?
-        return [], [], [], np.zeros((0,5)), [], low_threshold, high_threshold, center
+        return [], [], [], np.zeros((0, 5)), [], low_threshold, high_threshold, center
 
     # select good peaks:
     wthresh = cfg['maxPeakWidthFac'][0] * (psd_freqs[1] - psd_freqs[0])
