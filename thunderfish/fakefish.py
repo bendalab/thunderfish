@@ -29,18 +29,18 @@ def generate_wavefish(freq, samplerate, time_len=20., harmonics=3):
 def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1,
                        pk_std=0.001, pk_amplitude=1.,
                        tr_std=0.001, tr_amplitude=0.5,
-                       tr_time=0.005):
+                       tr_time=0.002):
     """
 
     :param freq: (float). Frequency of the fish in Hz.
     :param samplerate: (float). Sampling Rate in Hz
     :param time_len: (float). Length of the recording in sec.
     :param noise_fac: (float). Factor by which random gaussian distributed noise is inserted.
-    :param pk_std: (float). std of the positive part of the pulse in sec.
+    :param pk_std: (float). std of the positive part of the pulse in seconds.
     :param pk_amplitude: (float). Factor for regulating the positive part of the pulse.
-    :param tr_std: (float). std of the negative part of the pulse in sec.
+    :param tr_std: (float). std of the negative part of the pulse in seconds.
     :param tr_amplitude: (float). Factor for regulating the negative part of the pulse.
-    :param tr_time:
+    :param tr_time: (float). Time distance between peak and trough of the pulse in seconds.
 
     :return: (array). Data with pulses at the given frequency.
     """
