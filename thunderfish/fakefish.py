@@ -15,9 +15,8 @@ def generate_wavefish(freq, samplerate, time_len=20., harmonics=3):
     time = np.arange(0, time_len, 1./samplerate)
 
     data = np.sin(2 * np.pi * time * freq)
-    for har in range(harmonics):
-        if har > 1:
-            data += (np.sin(2*np.pi*time*(har*freq))) * 0.1*har
+    for har in range(1, harmonics):
+        data += (np.sin(2*np.pi*time*(har*freq))) * 0.1*har
 
     # Insert some noise
     data += 0.05 * np.random.randn(len(data))
@@ -45,17 +44,6 @@ def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1, wave_cut=0
     :return: (array). Data with pulses at the given frequency.
     """
 
-    def gaussian(x, mu, si):
-        """
-        Standard Gaussian function taken from Wikipedia.
-
-        :param x: (array-like). An arange of numbers.
-        :param mu: (float). The Mean, which in this case should be preferably 0.
-        :param si: (float). The Standard Deviation.
-        :return:
-        """
-        return (1./np.sqrt(2*si**2*np.pi)) * np.exp(-(x-mu)**2/(2*si**2))
-
     def get_slope(peak, trough, length_percent=0.05):
         """Calculates the slope that connects the positive part of the pulse with the negative one.
 
@@ -81,21 +69,19 @@ def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1, wave_cut=0
         """
         time = np.arange(0, time_len, 1. / samplerate)
 
-        noise = (np.random.randn(len(time)) * noise_fac)
-        dat = np.zeros(len(time)) * noise
+        dat = (np.random.randn(len(time)) * noise_fac)
 
-        bl_idx = np.arange(len(dat))
-        pulse_start = bl_idx[bl_idx % (samplerate/freq) == 0.]
-
-        for s in pulse_start:
-            dat[s:s+len(pulse)] = pulse
+        period = int(samplerate/freq)
+        for s in range(period/2, len(dat)-period/2, period):
+            dat[s:s+len(pulse)] += pulse
 
         return dat
 
     # Create a Gaussian Distribution; one for the peak and another for the trough
-    mu = 0.  # Fix parameter, should not be changed
-    pk_gaus = gaussian(np.arange(-0.5, 0.5, 1./(samplerate * pk_len)), mu, pk_std)
-    tr_gaus = -gaussian(np.arange(-0.5, 0.5, 1./(samplerate * tr_len)), mu, tr_std)
+    pk_x = np.arange(-4.*pk_std, 4.*pk_std, 1./(samplerate * pk_len))
+    tr_x = np.arange(-4.*tr_std, 4.*tr_std, 1./(samplerate * tr_len))
+    pk_gaus = np.exp(-0.5 * (pk_x/pk_std)**2)
+    tr_gaus = -np.exp(-0.5 * (tr_x/tr_std)**2)
 
     pk_end = len(pk_gaus)*wave_cut
     tr_start = len(tr_gaus)*(1-wave_cut)
@@ -105,7 +91,7 @@ def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1, wave_cut=0
 
     slope = get_slope(peak, trough)
 
-    pulse = np.hstack((np.hstack((peak, slope)), trough))  # This is a single pulse
+    pulse = np.hstack((peak, slope, trough))  # This is a single pulse
 
     # Now we need to set the pulse into some baseline with noise.
     data = insert_pulses(freq, pulse, time_len, noise_fac)
