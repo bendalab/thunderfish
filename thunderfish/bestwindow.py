@@ -12,8 +12,8 @@ clip_args(): retrieve parameters for clip_amplitudes() from configuration.
 add_best_window_config(): add parameters for best_window() to configuration.
 best_window_args(): retrieve parameters for best_window*() from configuration.
 
-See bestwindowplots module for visualizing the best_window algorithm
-and for usage.
+plot_clipping(): visualization of the algorithm for detecting clipped amplitudes in clip_amplitudes().
+plot_best_window(): visualization of the algorithm used in best_window_indices().
 """
 
 import warnings
@@ -38,6 +38,7 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
       plot_hist_func(data, winx0, winx1, bins, h,
                      min_clip, max_clip, min_ampl, max_ampl, kwargs):
         function for visualizing the histograms, is called for every window.
+        plot_clipping() is a simple function that can be passed as plot_hist_func.
         data: the full data array
         winx0: the start index of the current window
         winx1: the end index of the current window
@@ -77,6 +78,23 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
                            b, h, min_clipa, max_clipa,
                            min_ampl, max_ampl, **kwargs)
     return min_clipa, max_clipa
+
+
+def plot_clipping(data, winx0, winx1, bins,
+                  h, min_clip, max_clip, min_ampl, max_ampl):
+    """Visualize the data histograms and the detected clipping amplitudes in clip_amplitudes().
+    """
+    plt.subplot(2, 1, 1)
+    plt.plot(data[winx0:winx1], 'b')
+    plt.axhline(min_clip, color='r')
+    plt.axhline(max_clip, color='r')
+    plt.ylim(-1.0, 1.0)
+    plt.subplot(2, 1, 2)
+    plt.bar(bins[:-1], h, width=np.mean(np.diff(bins)))
+    plt.axvline(min_clip, color='r')
+    plt.axvline(max_clip, color='r')
+    plt.xlim(-1.0, 1.0)
+    plt.show()
 
 
 def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
@@ -169,6 +187,7 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
     :param tolerance: (float). Added to the minimum cost for selecting the region of best windows.
     :param plot_data_func: Function for plotting the raw data, detected peaks and troughs, the criteria,
     the cost function and the selected best window.
+    plot_best_window() is a simple function that can be passed as plot_data_func.
         plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
                        win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost,
                        thresh, valid_wins, **kwargs)
@@ -336,6 +355,59 @@ def best_window(data, samplerate, single=True, win_size=8., win_shift=0.1,
     return data[start_inx:end_inx], clipped
 
 
+def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
+                     win_times, cv_interv, mean_ampl, cv_ampl, clipped_frac,
+                     cost, thresh, win_idx0, win_idx1, ax):
+    """Visualize the cost function of best_window_indices().
+    """
+    # raw data:
+    time = np.arange(0.0, len(data)) / rate
+    ax[0].plot(time, data, lw=3)
+    if np.mean(clipped_frac[win_idx0:win_idx1]) > 0.01:
+        ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='magenta', lw=3)
+    else:
+        ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='grey', lw=3)
+    ax[0].plot(time[peak_idx], data[peak_idx], 'o', mfc='red', ms=6)
+    ax[0].plot(time[trough_idx], data[trough_idx], 'o', mfc='green', ms=6)
+    up_lim = np.max(data) * 1.05
+    down_lim = np.min(data) * .95
+    ax[0].set_ylim((down_lim, up_lim))
+    ax[0].set_ylabel('Amplitude [a.u]')
+
+    # cv of inter-peak intervals:
+    ax[1].plot(win_times[cv_interv < 1000.0], cv_interv[cv_interv < 1000.0], 'o', ms=10, color='grey', mew=2.,
+               mec='black', alpha=0.6)
+    ax[1].plot(win_times[win_idx0:win_idx1], cv_interv[win_idx0:win_idx1], 'o', ms=10, color='red', mew=2., mec='black',
+               alpha=0.6)
+    ax[1].set_ylabel('CV intervals')
+    ax[1].set_ylim(bottom=0.0)
+
+    # mean amplitude:
+    ax[2].plot(win_times[mean_ampl > 0.0], mean_ampl[mean_ampl > 0.0], 'o', ms=10, color='grey', mew=2., mec='black',
+               alpha=0.6)
+    ax[2].plot(win_times[win_idx0:win_idx1], mean_ampl[win_idx0:win_idx1], 'o', ms=10, color='red', mew=2., mec='black',
+               alpha=0.6)
+    ax[2].set_ylabel('Mean amplitude [a.u]')
+    ax[2].set_ylim(bottom=0.0)
+
+    # cv:
+    ax[3].plot(win_times[cv_ampl < 1000.0], cv_ampl[cv_ampl < 1000.0], 'o', ms=10, color='grey', mew=2., mec='black',
+               alpha=0.6)
+    ax[3].plot(win_times[win_idx0:win_idx1], cv_ampl[win_idx0:win_idx1], 'o', ms=10, color='red', mew=2., mec='black',
+               alpha=0.6)
+    ax[3].set_ylabel('CV amplitude')
+    ax[3].set_ylim(bottom=0.0)
+
+    # cost:
+    ax[4].plot(win_times[cost < thresh + 10], cost[cost < thresh + 10], 'o', ms=10, color='grey', mew=2., mec='black',
+               alpha=0.6)
+    ax[4].plot(win_times[win_idx0:win_idx1], cost[win_idx0:win_idx1], 'o', ms=10, color='red', mew=2., mec='black',
+               alpha=0.6)
+    ax[4].axhline(thresh, color='k')
+    ax[4].set_ylabel('Cost')
+    ax[4].set_xlabel('Time [sec]')
+
+    
 def add_best_window_config(cfg, single=True,
                            win_size=1., win_shift=0.1, thresh_ampl_fac=3.0,
                            min_clip=-np.inf, max_clip=np.inf,
@@ -391,38 +463,53 @@ def best_window_args(cfg):
 if __name__ == "__main__":
     print("Checking bestwindow module ...")
     import sys
+    import matplotlib.pyplot as plt
 
+    title = "bestwindow"
     if len(sys.argv) < 2:
         # generate data:
         print("generate waveform...")
-        samplerate = 40000.0
-        time = np.arange(0.0, 10.0, 1. / samplerate)
-        f1 = 100.0
-        data0 = (0.5 * np.sin(2.0 * np.pi * f1 * time) + 0.5) ** 20.0
-        amf1 = 0.3
-        data1 = data0 * (1.0 - np.cos(2.0 * np.pi * amf1 * time))
-        data1 += 0.2
-        f2 = f1 * 2.0 * np.pi
-        data2 = 0.1 * np.sin(2.0 * np.pi * f2 * time)
-        amf3 = 0.15
-        data3 = data2 * (1.0 - np.cos(2.0 * np.pi * amf3 * time))
-        # data = data1+data3
-        data = data2
+        rate = 100000.0
+        time = np.arange(0.0, 1.0, 1.0 / rate)
+        f = 600.0
+        snippets = []
+        amf = 20.0
+        for ampl in [0.2, 0.5, 0.8]:
+            for am_ampl in [0.0, 0.3, 0.9]:
+                data = ampl * np.sin(2.0 * np.pi * f * time) * (1.0 + am_ampl * np.sin(2.0 * np.pi * amf * time))
+                data[data > 1.3] = 1.3
+                data[data < -1.3] = -1.3
+                snippets.extend(data)
+        data = np.asarray(snippets)
+        title = "test sines"
         data += 0.01 * np.random.randn(len(data))
     else:
         import dataloader as dl
 
         print("load %s ..." % sys.argv[1])
-        data, samplerate, unit = dl.load_data(sys.argv[1], 0)
+        data, rate, unit = dl.load_data(sys.argv[1], 0)
+        title = sys.argv[1]
 
     # determine clipping amplitudes:
     clip_win_size = 0.5
     min_clip_fac = 2.0
-    min_clip, max_clip = clip_amplitudes(data, int(clip_win_size * samplerate), min_fac=min_clip_fac)
+    min_clip, max_clip = clip_amplitudes(data, int(clip_win_size * rate),
+                                         min_fac=min_clip_fac)
+    # min_clip, max_clip = clip_amplitudes(data, int(clip_win_size*rate),
+    #                                      min_fac=min_clip_fac,
+    #                                      plot_hist_func=plot_clipping)
 
-    # find best window:
-    win_shift = 0.5
-    best_window_indices(data, samplerate, single=False,
-                        win_size=1.0, win_shift=win_shift,
-                        threshold_func=pkd.percentile_threshold,
-                        min_clip=min_clip, max_clip=max_clip, w_cv_ampl=10.0)
+    # setup plots:
+    fig, ax = plt.subplots(5, sharex=True, figsize=(20, 12))
+    fig.canvas.set_window_title(title)
+
+    # compute best window:
+    print("call bestwindow() function...")
+    best_window_indices(data, rate, single=False,
+                        win_size=1.0, win_shift=0.5, threshold_func=pkd.percentile_threshold,
+                        min_clip=min_clip, max_clip=max_clip,
+                        w_cv_ampl=10.0, tolerance=0.5,
+                        plot_data_func=plot_best_window, ax=ax)
+
+    plt.tight_layout()
+    plt.show()
