@@ -51,9 +51,6 @@ def plot_dfs_histogram(dfs_array, binwidth='FD'):
     q75, q25 = np.percentile(abs(dfs_array), [75, 25])
 
     inch_factor = 2.54
-    sns.set_context("poster")
-    sns.axes_style('white')
-    sns.set_style("ticks")
     fig, ax = plt.subplots(figsize=(15. / inch_factor, 10. / inch_factor))
 
     if binwidth == 'FD':
@@ -68,7 +65,6 @@ def plot_dfs_histogram(dfs_array, binwidth='FD'):
     ax.set_xlabel('Possible Beat-Frequencies [Hz]', fontsize=14)
     ax.tick_params(axis='both', which='major', labelsize=12)
     ax.set_title('Distribution of Beat-Frequencies', fontsize=16)
-    sns.despine(fig=fig, ax=ax, offset=10)
     fig.tight_layout()
     fig.savefig('figures/histo_of_dfs.pdf')
     plt.close()
@@ -77,9 +73,6 @@ def plot_dfs_histogram(dfs_array, binwidth='FD'):
 def draw_bwin_analysis_plot(filename, t_trace, eod_trace, no_of_peaks, cvs, mean_ampl):
     fs = 20
     inch_factor = 2.54
-    sns.set_context("poster")
-    sns.axes_style('white')
-    sns.set_style("ticks")
 
     fig = plt.figure(figsize=(40. / inch_factor, 35. / inch_factor), num='Fish No. ' + filename[-10:-8])
 
@@ -147,7 +140,6 @@ def draw_bwin_in_plot(ax, filename, t_trace, eod_trace, start_bwin, len_bwin, pk
         if enu > 0:
             axis.set_xlim((0, 25))
 
-        sns.despine(ax=axis, offset=10)
     plt.tight_layout()
 
     if not savefig:
@@ -226,9 +218,6 @@ def create_outp_folder(filepath, out_path='.'):
 
 def beat_plot(beat_data, beat_time):
     inch_factor = 2.54
-    sns.set_context("poster")
-    sns.axes_style('white')
-    sns.set_style("ticks")
     fs = 16
 
     fig, ax = plt.subplots(figsize=(45. / inch_factor, 20. / inch_factor))
@@ -238,7 +227,6 @@ def beat_plot(beat_data, beat_time):
     ax.set_title('2Hz Beat', fontsize=fs + 2)
     ax.tick_params(axis='both', which='major', labelsize=fs - 2)
 
-    sns.despine(fig=fig, ax=ax, offset=10)
     fig.tight_layout()
     plt.show()
 
