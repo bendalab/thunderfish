@@ -1,123 +1,233 @@
+"""
+Generate artificial waveforms of weakly electric fish.
+
+The two main functions are
+
+generate_wavefish()
+generate_pulsefish()
+
+for generating EODs of wave-type and pulse_type electric fish, respectively.
+
+The following functions use the two functions to generate waveforms of specific fishes:
+
+generate_alepto()
+
+generates a waveform mimicking the one of the wave-type fish Apteronotus leptorhynchus.
+
+generate_monophasic_pulses()
+generate_biphasic_pulses()
+generate_triphasic_pulses()
+
+generate waveforms of monphasic, biphasic and triphasic pulse-type fishes.
+"""
+
 import numpy as np
-from IPython import embed
-
-import matplotlib.pyplot as plt
 
 
-def generate_wavefish(freq, samplerate, time_len=20., harmonics=3):
-    """
+def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.05,
+                      amplitudes=1.0):
+    """Generate EOD of a wave-type fish.
 
-    :param freq: (float). Frequency of the fish in Hz.
+    The fundamental frequency of the EOD is given by frequency. The amplitude of the
+    fundamental is given by the first element in amplitudes. The amplitudes of harmonics
+    are give by optional further elements of the amplitudes list.
+
+    The generated waveform is duration seconds long and is sampled with samplerate Hertz.
+    Gaussian white noise with a standard deviation of noise_std is added to the generated
+    waveform.
+
+    :param frequency: (float). EOD frequency of the fish in Hz.
     :param samplerate: (float). Sampling rate in Hz.
-    :param time_len: (float). Length of the recording in sec.
-    :param harmonics: (int). Number of harmonics of freq to be included.
+    :param duration: (float). Duration of the generated data in seconds.
+    :param noise_std: (float). Standard deviation of additive Gaussian white noise.
+    :param amplitudes: (float or list of floats). Amplitudes of fundamental and optional harmonics.
 
-    :return: (array). Data of a wavefish with given frequency.
+    :return data: (array). Generated data of a wave-type fish.
     """
-    time = np.arange(0, time_len, 1./samplerate)
-
-    data = np.sin(2 * np.pi * time * freq)
-    for har in range(1, harmonics):
-        data += (np.sin(2*np.pi*time*(har*freq))) * 0.1*har
-
-    # Insert some noise
-    data += 0.05 * np.random.randn(len(data))
-
+    time = np.arange(0, duration, 1./samplerate)
+    data = np.zeros(len(time))
+    if np.isscalar(amplitudes):
+        amplitudes = [amplitudes]
+    for har, ampl in enumerate(amplitudes):
+        data += ampl * np.sin(2*np.pi*time*(har+1)*frequency)
+    # add noise:
+    data += noise_std * np.random.randn(len(data))
     return data
 
 
-def generate_pulsefish(freq, samplerate, time_len=20., noise_fac=0.1,
-                       pk_std=0.001, pk_amplitude=1.,
-                       tr_std=0.001, tr_amplitude=0.5,
-                       tr_time=0.002):
-    """
+def generate_alepto(frequency=100.0, samplerate=44100., duration=1., noise_std=0.01):
+    """Generate EOD of a Apteronotus leptorhynchus.
 
-    :param freq: (float). Frequency of the fish in Hz.
+    See generate_wavefish() for details.
+    """
+    return generate_wavefish(frequency=frequency, samplerate=samplerate, duration=duration,
+                             noise_std=noise_std, amplitudes=[1.0, 0.5, 0.0, 0.01])
+
+
+def generate_pulsefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.01,
+                       jitter_cv=0.1, peak_std=0.001, peak_amplitude=1.0, peak_time=0.0):
+    """Generate EOD of a pulse-type fish.
+
+    Pulses are spaced by 1/frequency, jittered as determined by jitter_cv. Each pulse is
+    a combination of Gaussian peaks, whose widths, amplitudes, and positions are given by
+    their standard deviation peak_std, peak_amplitude, and peak_time, respectively.
+
+    The generated waveform is duration seconds long and is sampled with samplerate Hertz.
+    Gaussian white noise with a standard deviation of noise_std is added to the generated
+    pulse train.
+
+    :param frequency: (float). EOD frequency of the fish in Hz.
     :param samplerate: (float). Sampling Rate in Hz
-    :param time_len: (float). Length of the recording in sec.
-    :param noise_fac: (float). Factor by which random gaussian distributed noise is inserted.
-    :param pk_std: (float). std of the positive part of the pulse in seconds.
-    :param pk_amplitude: (float). Factor for regulating the positive part of the pulse.
-    :param tr_std: (float). std of the negative part of the pulse in seconds.
-    :param tr_amplitude: (float). Factor for regulating the negative part of the pulse.
-    :param tr_time: (float). Time distance between peak and trough of the pulse in seconds.
+    :param duration: (float). Duration of the generated data in seconds.
+    :param noise_std: (float). Standard deviation of additive Gaussian white noise.
+    :param jitter_cv: (float). Gaussian distributed jitter of pulse times as coefficient of variation of inter-pulse intervals.
+    :param peak_std: (float or list of floats). Standard deviation of Gaussian shaped peaks in seconds.
+    :param peak_amplitude: (float or list of floats). Amplitude of each peak (positive and negative).
+    :param peak_time: (float or list of floats). Position of each Gaussian peak in seconds.
 
-    :return: (array). Data with pulses at the given frequency.
+    :return data: (array). Generated data of a pulse-type fish.
     """
-    # Create a Gaussian Distribution; one for the peak and another for the trough
 
-    x = np.arange(-4.*pk_std, tr_time + 4.*tr_std, 1./samplerate)
+    # make sure peak properties are in a list:
+    if np.isscalar(peak_std):
+        peak_stds = [peak_std]
+        peak_amplitudes = [peak_amplitude]
+        peak_times = [peak_time]
+    else:
+        peak_stds = peak_std
+        peak_amplitudes = peak_amplitude
+        peak_times = peak_time
 
-    pulse = np.exp(-0.5 * (x/pk_std)**2) * pk_amplitude  # Peak Gaussian
-    pulse -= np.exp(-0.5 * ((x-tr_time)/tr_std)**2) * tr_amplitude  # Trough Gaussian
+    # time axis for single pulse:
+    min_time_inx = np.argmin(peak_times)
+    max_time_inx = np.argmax(peak_times)
+    x = np.arange(-4.*peak_stds[min_time_inx] + peak_times[min_time_inx],
+                  4.*peak_stds[max_time_inx] + peak_times[max_time_inx], 1.0/samplerate)
+    pulse_duration = x[-1] - x[0]
+    
+    # generate a single pulse:
+    pulse = np.zeros(len(x))
+    for time, ampl, std in zip(peak_times, peak_amplitudes, peak_stds):
+        pulse += ampl * np.exp(-0.5*((x-time)/std)**2) 
 
-    # Now we need to set the pulse into some baseline with noise.
-    time = np.arange(0, time_len, 1. / samplerate)
-
-    data = np.random.randn(len(time)) * noise_fac
-
-    period = int(samplerate / freq)
-    for s in range(period / 2, len(data) - len(pulse), period):
-        data[s:s + len(pulse)] += pulse
+    # paste the pulse onto the noise floor:
+    time = np.arange(0, duration, 1. / samplerate)
+    data = np.random.randn(len(time)) * noise_std
+    period = 1.0/frequency
+    jitter_std = period * jitter_cv
+    first_pulse = np.max(pulse_duration, 3.0*jitter_std)
+    pulse_times = np.arange(first_pulse, duration, period )
+    pulse_times += np.random.randn(len(pulse_times)) * jitter_std
+    pulse_indices = np.round(pulse_times * samplerate).astype(np.int)
+    for inx in pulse_indices[pulse_indices < len(data)-len(pulse)-1]:
+        data[inx:inx + len(pulse)] += pulse
 
     return data
+
+
+def generate_monophasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
+                               noise_std=0.01, jitter_cv=0.1):
+    """Generate EOD of a monophasic pulse-type fish.
+
+    See generate_pulsefish() for details.
+    """
+    return generate_pulsefish(frequency=frequency, samplerate=samplerate, duration=duration,
+                              noise_std=noise_std, jitter_cv=jitter_cv,
+                              peak_std=0.0003, peak_amplitude=1.0, peak_time=0.0)
+
+
+def generate_biphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
+                              noise_std=0.01, jitter_cv=0.1):
+    """Generate EOD of a biphasic pulse-type fish.
+
+    See generate_pulsefish() for details.
+    """
+    return generate_pulsefish(frequency=frequency, samplerate=samplerate, duration=duration,
+                              noise_std=noise_std, jitter_cv=jitter_cv,
+                              peak_std=[0.0001, 0.0002],
+                              peak_amplitude=[1.0, -0.3],
+                              peak_time=[0.0, 0.0003])
+
+
+def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
+                              noise_std=0.01, jitter_cv=0.1):
+    """Generate EOD of a triphasic pulse-type fish.
+
+    See generate_pulsefish() for details.
+    """
+    return generate_pulsefish(frequency=frequency, samplerate=samplerate, duration=duration,
+                              noise_std=noise_std, jitter_cv=jitter_cv,
+                              peak_std=[0.0001, 0.0002, 0.0002],
+                              peak_amplitude=[1.0, -0.3, -0.1],
+                              peak_time=[0.0, 0.0003, -0.0004])
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
 
-    samplerate = 20000.  # in Hz
-    fs = 16.  # Font size
-    rec_length = 20.  # in sec
-    inset_len = 0.02  # in sec
+    samplerate = 40000.  # in Hz
+    rec_length = 1.  # in sec
+    inset_len = 0.01  # in sec
+    inset_indices = int(inset_len*samplerate)
+    ws_fac = 0.1  # whitespace factor or ylim (between 0. and 1.; preferably a small number)
 
+    # generate data:
     time = np.arange(0, rec_length, 1./samplerate)
 
-    pulsefish = generate_pulsefish(80., samplerate, time_len=rec_length,
-                                   noise_fac=0.02,
-                                   pk_std=0.001, pk_amplitude=1.,
-                                   tr_std=0.001, tr_amplitude=0.5, tr_time=0.002)
+    wavefish = generate_wavefish(300., samplerate, duration=rec_length, noise_std=0.02, 
+                                 amplitudes=[1.0, 0.5, 0.0, 0.01])
+    #wavefish = generate_alepto(300., samplerate, duration=rec_length)
 
-    wavefish = generate_wavefish(300., samplerate, time_len=rec_length, harmonics=3)
+    pulsefish = generate_pulsefish(80., samplerate, duration=rec_length,
+                                   noise_std=0.02, jitter_cv=0.1,
+                                   peak_std=[0.0001, 0.0002, 0.0002],
+                                   peak_amplitude=[1.0, -0.3, -0.1],
+                                   peak_time=[0.0, 0.0003, -0.0004])
+    # pulsefish = generate_monophasic_pulses(80., samplerate, duration=rec_length)
+    # pulsefish = generate_biphasic_pulses(80., samplerate, duration=rec_length)
+    # pulsefish = generate_triphasic_pulses(80., samplerate, duration=rec_length)
 
+    # plot:
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
 
-    # ax[0][0] is complete wavefish
-    ax[0][0].plot(time, wavefish, color='dodgerblue', alpha=0.7, lw=2)
-    ax[0][0].set_title('Fake-wavefish-RECORDING', fontsize=fs+2)
+    # get proper wavefish ylim
+    ymin = np.min(wavefish)
+    ymax = np.max(wavefish)
+    dy = ws_fac*(ymax - ymin)
+    ymin -= dy
+    ymax += dy
 
-    # ax[0][1] is wavefish inset
-    ax[0][1].plot(time[:samplerate*inset_len], wavefish[:samplerate*inset_len], '-o',
-                  lw=3, color='dodgerblue', ms=10, mec='k', mew=1.5)
-    ax[0][1].set_title('Fake-wavefish-INSET', fontsize=fs + 2)
+    # complete wavefish:
+    ax[0][0].set_title('Wavefish')
+    ax[0][0].set_ylim(ymin, ymax)
+    ax[0][0].plot(time, wavefish)
 
-    # ax[1][0] is complete pulsefish
-    ax[1][0].plot(time, pulsefish, color='forestgreen', alpha=0.7, lw=2)
-    ax[1][0].set_title('Fake-pulsefish-RECORDING', fontsize=fs+2)
+    # wavefish zoom in:
+    ax[0][1].set_title('Wavefish ZOOM IN')
+    ax[0][1].set_ylim(ymin, ymax)
+    ax[0][1].plot(time[:inset_indices], wavefish[:inset_indices], '-o')
 
-    # get proper ylim
+    # get proper pulsefish ylim
     ymin = np.min(pulsefish)
     ymax = np.max(pulsefish)
-    ws_fac = 1.2  # Whitespace factor
-    ax[1][0].set_ylim([ymin*ws_fac, ymax*ws_fac])
+    dy = ws_fac*(ymax - ymin)
+    ymin -= dy
+    ymax += dy
 
-    # ax[1][1] is pulsefish inset
-    ax[1][1].plot(time[:samplerate * inset_len], pulsefish[:samplerate * inset_len], '-o',
-                  lw=3, color='forestgreen', ms=10, mec='k', mew=1.5)
-    ax[1][1].set_title('Fake-pulsefish-INSET', fontsize=fs + 2)
+    # complete pulsefish:
+    ax[1][0].set_title('Pulsefish')
+    ax[1][0].set_ylim(ymin, ymax)
+    ax[1][0].plot(time, pulsefish)
 
-    # get proper ylim
-    ymin = np.min(pulsefish)
-    ymax = np.max(pulsefish)
-    yrange = np.abs(ymin) + np.abs(ymax)
-    ws_fac = 0.1  # Whitespace factor (between 0. and 1.; preferably a small number)
-    ax[1][0].set_ylim([ymin - yrange*ws_fac, ymax + yrange*ws_fac])
-    ax[1][1].set_ylim([ymin - yrange*ws_fac, ymax + yrange*ws_fac])
-
+    # pulsefish zoom in:
+    ax[1][1].set_title('Pulsefish ZOOM IN')
+    ax[1][1].set_ylim(ymin, ymax)
+    ax[1][1].plot(time[:inset_indices/2], pulsefish[:inset_indices/2], '-o')
+    
     for row in ax:
         for c_ax in row:
-            c_ax.set_xlabel('Time [sec]', fontsize=fs)
-            c_ax.set_ylabel('Amplitude [a.u.]', fontsize=fs)
-            c_ax.tick_params(axis='both', which='major', labelsize=fs - 2)
+            c_ax.set_xlabel('Time [sec]')
+            c_ax.set_ylabel('Amplitude [a.u.]')
 
     plt.tight_layout()
     plt.show()
