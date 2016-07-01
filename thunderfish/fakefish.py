@@ -24,7 +24,7 @@ generate waveforms of monphasic, biphasic and triphasic pulse-type fishes.
 import numpy as np
 
 
-def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.01,
+def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.05,
                       amplitudes=1.0):
     """Generate EOD of a wave-type fish.
 
@@ -53,7 +53,7 @@ def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std
     for har, ampl in enumerate(amplitudes):
         data += ampl * np.sin(2*np.pi*time*(har+1)*frequency)
     # add noise:
-    data += 0.05 * np.random.randn(len(data))
+    data += noise_std * np.random.randn(len(data))
     return data
 
 
