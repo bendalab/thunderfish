@@ -28,9 +28,11 @@ def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std
                       amplitudes=1.0):
     """Generate EOD of a wave-type fish.
 
+    The waveform is constructed by superimposing sinewaves of integral multiples of
+    the fundamental frequency - the fundamental and its harmonics.
     The fundamental frequency of the EOD is given by frequency. The amplitude of the
-    fundamental is given by the first element in amplitudes. The amplitudes of harmonics
-    are give by optional further elements of the amplitudes list.
+    fundamental is given by the first element in amplitudes. The amplitudes of higher
+    harmonics are give by optional further elements of the amplitudes list.
 
     The generated waveform is duration seconds long and is sampled with samplerate Hertz.
     Gaussian white noise with a standard deviation of noise_std is added to the generated
@@ -110,7 +112,7 @@ def generate_pulsefish(frequency=100.0, samplerate=44100., duration=1., noise_st
     for time, ampl, std in zip(peak_times, peak_amplitudes, peak_stds):
         pulse += ampl * np.exp(-0.5*((x-time)/std)**2) 
 
-    # paste the pulse onto the noise floor:
+    # paste the pulse into the noise floor:
     time = np.arange(0, duration, 1. / samplerate)
     data = np.random.randn(len(time)) * noise_std
     period = 1.0/frequency
