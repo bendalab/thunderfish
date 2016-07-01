@@ -619,26 +619,26 @@ class SignalPlot:
             self.play_segment()
         elif event.key in 'P':
             self.play_all()
-        elif event.key in '1':
-            self.play_tone(132.0)  # C
-        elif event.key in '2':
-            self.play_tone(220.0)  # A
-        elif event.key in '3':
-            self.play_tone(330.0)  # E
-        elif event.key in '4':
-            self.play_tone(440.0)  # A
-        elif event.key in '5':
-            self.play_tone(528.0)  # C
-        elif event.key in '6':
-            self.play_tone(660.0)  # E
-        elif event.key in '7':
-            self.play_tone(792.0)  # G
-        elif event.key in '8':
-            self.play_tone(880.0)  # A
-        elif event.key in '9':
-            self.play_tone(1056.0)  # C
+        elif event.key in '1' :
+            self.play_tone('c3')
+        elif event.key in '2' :
+            self.play_tone('a3')
+        elif event.key in '3' :
+            self.play_tone('e4')
+        elif event.key in '4' :
+            self.play_tone('a4')
+        elif event.key in '5' :
+            self.play_tone('c5')
+        elif event.key in '6' :
+            self.play_tone('e5')
+        elif event.key in '7' :
+            self.play_tone('g5')
+        elif event.key in '8' :
+            self.play_tone('a5')
+        elif event.key in '9' :
+            self.play_tone('c6')
 
-    def buttonpress(self, event):
+    def buttonpress( self, event ) :
         # print 'mouse pressed', event.button, event.key, event.step
         if event.inaxes == self.axp:
             if event.key == 'shift' or event.key == 'control':
@@ -745,9 +745,9 @@ class SignalPlot:
 
     def play_all(self):
         self.audio.play(self.data[:], self.rate, blocking=False)
-
-    def play_tone(self, frequency):
-        self.audio.beep(1.0, frequency, self.rate)
+        
+    def play_tone( self, frequency ) :
+        self.audio.beep(1.0, frequency)
 
 
 def short_user_warning(message, category, filename, lineno, file=sys.stderr, line=''):
