@@ -1,5 +1,5 @@
-import numpy as np
 import sys
+import numpy as np
 import peakdetection as pkd
 
 
@@ -110,18 +110,18 @@ if __name__ == '__main__':
 
         # load data using dataloader module
         print('loading example data ...\n')
-        data, samplrate, unit = dl.load_data(audio_file)
+        data, samplerate, unit = dl.load_data(audio_file)
 
         # calculate best_window
         print('calculating best window ...\n')
-        bwin_data, clip = bw.best_window(data, samplrate)
+        bwin_data, clip = bw.best_window(data, samplerate)
 
         print('calculating powerspectrum ...\n')
-        power, freqs = ps.multi_resolution_psd(data, samplrate)
+        power, freqs = ps.multi_resolution_psd(data, samplerate)
 
         pulse_psd, proportion = pt.psd_assignment(power, freqs)
 
-        return bwin_data, samplrate, pulse_psd
+        return bwin_data, samplerate, pulse_psd
 
 
     print(
@@ -134,12 +134,12 @@ if __name__ == '__main__':
     if len(sys.argv) <= 1:
         quit()
 
-    bwin_data, samplrate, pulse_psd = load_example_data(sys.argv[1])
+    bwin_data, samplerate, pulse_psd = load_example_data(sys.argv[1])
 
     import matplotlib.pyplot as plt
 
     fig, ax = plt.subplots()
 
-    eod_idx_diff = eod_analysis(bwin_data, samplrate, plot_data_func=eod_analysis_plot, ax=ax)
+    eod_idx_diff = eod_analysis(bwin_data, samplerate, plot_data_func=eod_analysis_plot, ax=ax)
     plt.legend()
     plt.show()

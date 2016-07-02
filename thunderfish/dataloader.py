@@ -40,7 +40,7 @@ def load_data(filepath, channel=0, verbose=0):
 
     Returns:
         data (array): the data trace as a 1-D numpy array
-        freq (float): the sampling rate of the data in Hz
+        samplerate (float): the sampling rate of the data in Hz
         unit (string): the unit of the data
     """
     # check types:
@@ -51,17 +51,17 @@ def load_data(filepath, channel=0, verbose=0):
 
     # check values:
     data = np.array([])
-    freq = 0.0
+    samplerate = 0.0
     unit = ''
     if len(filepath) == 0:
         print('load_data(): input argument filepath is empty string!')
-        return data, freq, unit
+        return data, samplerate, unit
     if not os.path.isfile(filepath):
         print('load_data(): input argument filepath=%s does not indicate an existing file!' % filepath)
-        return data, freq, unit
+        return data, samplerate, unit
     if os.path.getsize(filepath) <= 0:
         print('load_data(): input argument filepath=%s indicates file of size 0!' % filepath)
-        return data, freq, unit
+        return data, samplerate, unit
     if channel < 0:
         print('load_data(): input argument channel=%d is negative!' % channel)
         channel = 0
@@ -69,9 +69,9 @@ def load_data(filepath, channel=0, verbose=0):
     # load data:
     ext = filepath.split('.')[-1]
     if ext == 'pkl':
-        data, freq, unit = load_pickle(filepath, channel)
+        data, samplerate, unit = load_pickle(filepath, channel)
     else:
-        data, freq = aio.load_audio(filepath, verbose)
+        data, samplerate = aio.load_audio(filepath, verbose)
         channels = data.shape[1]
         if channel >= channels:
             print('number of channels in file %s is %d, but requested channel %d' %
@@ -80,7 +80,7 @@ def load_data(filepath, channel=0, verbose=0):
         if channel >= 0:
             data = data[:, channel]
         unit = 'a.u.'
-    return data, freq, unit
+    return data, samplerate, unit
 
 
 class DataLoader(aio.AudioLoader):

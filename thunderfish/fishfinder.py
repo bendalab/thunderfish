@@ -79,13 +79,13 @@ cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
 ## plotting etc.
 
 class SignalPlot:
-    def __init__(self, samplingrate, data, unit, filename, channel):
+    def __init__(self, data, samplingrate, unit, filename, channel):
         self.filename = filename
         self.channel = channel
-        self.rate = samplingrate
+        self.samplerate = samplingrate
         self.data = data
         self.unit = unit
-        self.time = np.arange(0.0, len(self.data)) / self.rate
+        self.time = np.arange(0.0, len(self.data)) / self.samplerate
         self.toffset = 0.0
         self.twindow = 8.0
         if self.twindow > self.time[-1]:
@@ -273,8 +273,8 @@ class SignalPlot:
         self.remove_peak_annotation()
         # trace:
         self.axt.set_xlim(self.toffset, self.toffset + self.twindow)
-        t0 = int(np.round(self.toffset * self.rate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+        t0 = int(np.round(self.toffset * self.samplerate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
         if self.trace_artist == None:
             self.trace_artist, = self.axt.plot(self.time[t0:t1], self.data[t0:t1])
         else:
@@ -282,7 +282,7 @@ class SignalPlot:
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
-        nfft = int(np.round(2 ** (np.floor(np.log(self.rate / self.fresolution) / np.log(2.0)) + 1.0)))
+        nfft = int(np.round(2 ** (np.floor(np.log(self.samplerate / self.fresolution) / np.log(2.0)) + 1.0)))
         if nfft < 16:
             nfft = 16
         t00 = t0
@@ -298,7 +298,7 @@ class SignalPlot:
         if t00 < 0:
             t00 = 0
             t11 = w
-        power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=nfft / 2, Fs=self.rate, detrend=ml.detrend_mean)
+        power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=nfft / 2, Fs=self.samplerate, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
         self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = hg.harmonic_groups(
@@ -308,7 +308,7 @@ class SignalPlot:
 
         # spectrogram:
         t2 = t1 + nfft
-        specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.rate, noverlap=nfft / 2,
+        specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft / 2,
                                              detrend=ml.detrend_mean)
         z = 10. * np.log10(specpower)
         z = np.flipud(z)
@@ -335,7 +335,7 @@ class SignalPlot:
             dfs = '%.3gkHz' % 0.001 * self.deltaf
         else:
             dfs = '%.3gHz' % self.deltaf
-        tw = float(w) / self.rate
+        tw = float(w) / self.samplerate
         if tw < 1.0:
             tws = '%.3gms' % (1000.0 * tw)
         else:
@@ -426,15 +426,15 @@ class SignalPlot:
     def keypress(self, event):
         # print 'pressed', event.key
         if event.key in '+=X':
-            if self.twindow * self.rate > 20:
+            if self.twindow * self.samplerate > 20:
                 self.twindow *= 0.5
                 self.update_plots()
         elif event.key in '-x':
-            if self.twindow < len(self.data) / self.rate:
+            if self.twindow < len(self.data) / self.samplerate:
                 self.twindow *= 2.0
                 self.update_plots()
         elif event.key == 'pagedown':
-            if self.toffset + 0.5 * self.twindow < len(self.data) / self.rate:
+            if self.toffset + 0.5 * self.twindow < len(self.data) / self.samplerate:
                 self.toffset += 0.5 * self.twindow
                 self.update_plots()
         elif event.key == 'pageup':
@@ -446,16 +446,16 @@ class SignalPlot:
         elif event.key == 'a':
             if self.min_clip == 0.0 or self.max_clip == 0.0:
                 self.min_clip, self.max_clip = bw.clip_amplitudes(
-                    self.data, **bw.clip_args(cfg, self.rate))
+                    self.data, **bw.clip_args(cfg, self.samplerate))
             idx0, idx1, clipped = bw.best_window_indices(
-                self.data, self.rate, min_clip=self.min_clip,
+                self.data, self.samplerate, min_clip=self.min_clip,
                 max_clip=self.max_clip, **bw.best_window_args(cfg))
             if idx1 > 0:
-                self.toffset = idx0 / self.rate
-                self.twindow = (idx1 - idx0) / self.rate
+                self.toffset = idx0 / self.samplerate
+                self.twindow = (idx1 - idx0) / self.samplerate
                 self.update_plots()
         elif event.key == 'ctrl+pagedown':
-            if self.toffset + 5.0 * self.twindow < len(self.data) / self.rate:
+            if self.toffset + 5.0 * self.twindow < len(self.data) / self.samplerate:
                 self.toffset += 5.0 * self.twindow
                 self.update_plots()
         elif event.key == 'ctrl+pageup':
@@ -465,7 +465,7 @@ class SignalPlot:
                     self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'down':
-            if self.toffset + self.twindow < len(self.data) / self.rate:
+            if self.toffset + self.twindow < len(self.data) / self.samplerate:
                 self.toffset += 0.05 * self.twindow
                 self.update_plots()
         elif event.key == 'up':
@@ -479,7 +479,7 @@ class SignalPlot:
                 self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'end':
-            toffs = np.floor(len(self.data) / self.rate / self.twindow) * self.twindow
+            toffs = np.floor(len(self.data) / self.samplerate / self.twindow) * self.twindow
             if self.toffset < toffs:
                 self.toffset = toffs
                 self.update_plots()
@@ -498,8 +498,8 @@ class SignalPlot:
             self.axt.set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
         elif event.key == 'v':
-            t0 = int(np.round(self.toffset * self.rate))
-            t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+            t0 = int(np.round(self.toffset * self.samplerate))
+            t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
             min = np.min(self.data[t0:t1])
             max = np.max(self.data[t0:t1])
             h = 0.5 * (max - min)
@@ -525,7 +525,7 @@ class SignalPlot:
                 self.axp.set_xlim(self.fmin, self.fmax)
                 self.fig.canvas.draw()
         elif event.key == 'right':
-            if self.fmax < 0.5 * self.rate:
+            if self.fmax < 0.5 * self.samplerate:
                 fwidth = self.fmax - self.fmin
                 self.fmin += 0.5 * fwidth
                 self.fmax += 0.5 * fwidth
@@ -541,9 +541,9 @@ class SignalPlot:
                 self.axp.set_xlim(self.fmin, self.fmax)
                 self.fig.canvas.draw()
         elif event.key == 'ctrl+right':
-            if self.fmax < 0.5 * self.rate:
+            if self.fmax < 0.5 * self.samplerate:
                 fwidth = self.fmax - self.fmin
-                fm = 0.5 * self.rate
+                fm = 0.5 * self.samplerate
                 self.fmax = np.ceil(fm / fwidth) * fwidth
                 self.fmin = self.fmax - fwidth
                 if self.fmin < 0.0:
@@ -553,9 +553,9 @@ class SignalPlot:
                 self.axp.set_xlim(self.fmin, self.fmax)
                 self.fig.canvas.draw()
         elif event.key in 'f':
-            if self.fmax < 0.5 * self.rate or self.fmin > 0.0:
+            if self.fmax < 0.5 * self.samplerate or self.fmin > 0.0:
                 fwidth = self.fmax - self.fmin
-                if self.fmax < 0.5 * self.rate:
+                if self.fmax < 0.5 * self.samplerate:
                     self.fmax = self.fmin + 2.0 * fwidth
                 elif self.fmin > 0.0:
                     self.fmin = self.fmax - 2.0 * fwidth
@@ -718,8 +718,8 @@ class SignalPlot:
             ax.set_title(self.filename)
             figfile = '{name}-{time:.4g}s-waveform.png'.format(
                 name=name, time=self.toffset)
-        t0 = int(np.round(self.toffset * self.rate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+        t0 = int(np.round(self.toffset * self.samplerate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
         if self.twindow < 1.0:
             ax.set_xlabel('Time [ms]')
             ax.set_xlim(1000.0 * self.toffset,
@@ -737,14 +737,14 @@ class SignalPlot:
         print 'saved waveform figure to', figfile
 
     def play_segment(self):
-        t0 = int(np.round(self.toffset * self.rate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+        t0 = int(np.round(self.toffset * self.samplerate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
         playdata = 1.0 * self.data[t0:t1]
-        fade(playdata, self.rate, 0.1)
-        self.audio.play(playdata, self.rate, blocking=False)
+        fade(playdata, self.samplerate, 0.1)
+        self.audio.play(playdata, self.samplerate, blocking=False)
 
     def play_all(self):
-        self.audio.play(self.data[:], self.rate, blocking=False)
+        self.audio.play(self.data[:], self.samplerate, blocking=False)
         
     def play_tone( self, frequency ) :
         self.audio.beep(1.0, frequency)
@@ -809,11 +809,8 @@ if __name__ == '__main__':
     filename = os.path.basename(filepath)
     # TODO: add blocksize and backsize as configuration parameter!
     with dl.open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
-        freq = data.samplerate
-        unit = data.unit
-
         # plot:
-        sp = SignalPlot(freq, data, unit, filename, channel)
+        sp = SignalPlot(data, data.samplerate, data.unit, filename, channel)
 
 
 ## data = data/2.0**15

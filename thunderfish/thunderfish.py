@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import argparse
 import config_tools as ct
@@ -12,7 +11,7 @@ import eodanalysis as ea
 import matplotlib.pyplot as plt
 
 
-def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_output', verbose=None, beat_plot=False):
+def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
     # create figure and axis for the outputplot
     fig = plt.figure(facecolor='white', figsize=(12., 8.))
     ax1 = fig.add_subplot(2, 2, (3, 4))  # axis for the psd
@@ -26,16 +25,16 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
     channel = channel
 
     # load data using dataloader module
-    data, samplrate, unit = dl.load_data(audio_file)
+    raw_data, samplerate, unit = dl.load_data(audio_file)
 
     # calculate best_window
-    bwin_start, bwin_end, clip = bw.best_window_indices(data, samplrate)
+    data, clip = bw.best_window(raw_data, samplerate)
 
     # sort fish-type
-    sugg_type, pta_value = chp.check_pulse_width(data[bwin_start:bwin_end], samplrate)  # pta = peak-trough-analysis
+    sugg_type, pta_value = chp.check_pulse_width(data, samplerate)  # pta = peak-trough-analysis
 
     # calculate powerspectrums with different frequency resolutions
-    psd_data = ps.multi_resolution_psd(data[bwin_start:bwin_end], samplrate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
+    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
     ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax1, fs=12)
 
     # find the fishes in the different powerspectrums
@@ -53,7 +52,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
         cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1)
 
     # analyse the eod
-    eod_idx_diff = ea.eod_analysis(data[bwin_start:bwin_end], samplrate, plot_data_func=ea.eod_analysis_plot, ax=ax2)
+    eod_idx_diff = ea.eod_analysis(data, samplerate, plot_data_func=ea.eod_analysis_plot, ax=ax2)
 
     plt.tight_layout()
     plt.show()
@@ -62,7 +61,7 @@ def main(audio_file, channel=0, output_folder='.' + os.path.sep + 'analysis_outp
 if __name__ == '__main__':
     # command line arguments:
     parser = argparse.ArgumentParser(
-        description='Display waveform, spectrogram, and power spectrum of time series data.',
+        description='Analyse short EOD recordings of weakly electric fish.',
         epilog='by bendalab (2015-2016)')
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument('-v', action='count', dest='verbose')
@@ -71,4 +70,4 @@ if __name__ == '__main__':
     parser.add_argument('output_folder', nargs='?', default=".", type=str, help="location to store results, figures")
     args = parser.parse_args()
 
-    main(args.file, args.channel, args.output_folder, args.verbose)
+    main(args.file, args.channel, args.output_folder, verbose=args.verbose)
