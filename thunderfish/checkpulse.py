@@ -11,8 +11,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
 
-def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
-                      win_shift=0.5, pulse_thres=0.1, verbose=0, plot_data_func=None, **kwargs):
+def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=0.1,
+                      pulse_thres=0.1, verbose=0, plot_data_func=None, **kwargs):
     """Detects if a fish is pulse- or wave-type based on the proportion of the time distance
     between a peak and its following trough, relative to the time between consecutive peaks.
 
@@ -21,9 +21,9 @@ def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
 
     :param data: (1-D array). The data to be analyzed (Usually the best window already)
     :param samplerate: (float). Sampling rate of the data in Hz
-    :param percentile_th: (float between 0. and 50.). The inter-percentile range TODO
+    :param percentile: (float between 0. and 50.). The inter-percentile range TODO
     :param th_factor: (float). The threshold for peak detection is the inter-percentile-range multiplied by this factor.
-    :param win_shift: (float). Time shift in seconds between windows.
+    :param win_size: (float or None). Size of window in which a threshold value for etecting peaks and troughs is computed.
     :param pulse_thres: (float). a positive number setting the minimum distance between peaks and troughs
     :param verbose: (int). if > 1, print information in the command line.
     :param plot_data_func: Function for plotting the data with detected peaks and troughs, an inset and the distribution
@@ -70,8 +70,8 @@ def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
         print('Analyzing Fish-Type...')
 
     # threshold for peak detection:
-    threshold = pkd.percentile_threshold(data, samplerate, win_shift,
-                                         th_factor=th_factor, percentile_th=percentile_th)
+    threshold = pkd.percentile_threshold(data, samplerate, win_size,
+                                         th_factor=th_factor, percentile=percentile)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pkd.detect_peaks(data, threshold)

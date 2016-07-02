@@ -434,27 +434,30 @@ def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfa
     return [time[peak_inx], data[peak_inx], size, width, 0.0], None
 
 
-def std_threshold(data, samplerate=None, win_shift=None, th_factor=5., **kwargs):
-    """
-    Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using the
-    standard deviation of the data for each window multiplied by th_factor.
+def std_threshold(data, samplerate=None, win_size=None, th_factor=5., **kwargs):
+    """Esimates a threshold for detect_peaks() based on the standard deviation of the data.
 
-    :param data: (1-D array). The data to be analyzed
-    :param samplerate: (float). Sampling rate of the data in Hz
-    :param win_shift: (float). (Defined in bestwindow module). Time shift in seconds between windows.
-    Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
-    If win_shift=None, then the size of the window is as large as parameter data.
+    The threshold is computed as the standard deviation of the data multiplied with th_factor.
+
+    If samplerate and win_size is given, then the threshold is computed for
+    each non-overlapping window of duration win_size separately.
+    In this case the returned threshold is an array of the same size as data.
+    Without a samplerate and win_size a single threshold value determined from
+    the whole data array is returned.
+
+    :param data: (1-D array). The data to be analyzed.
+    :param samplerate: (float or None). Sampling rate of the data in Hz.
+    :param win_size: (float or None). Size of window in which a threshold value is computed.
     :param th_factor: (float). Factor by which the standard deviation is multiplied to set the threshold.
-    :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
+    :return: threshold: (float or 1-D array). The computed threshold.
     """
 
-    if samplerate and win_shift:
+    if samplerate and win_size:
         threshold = np.zeros(len(data))
-        win_shift_indices = int(win_shift * samplerate)
+        win_size_indices = int(win_size * samplerate)
 
-        for inx0 in range(0, len(data), win_shift_indices):
-            inx1 = inx0 + win_shift_indices
-
+        for inx0 in range(0, len(data), win_size_indices):
+            inx1 = inx0 + win_size_indices
             std = np.std(data[inx0:inx1], ddof=1)
             threshold[inx0:inx1] = std * th_factor
         return threshold
@@ -462,25 +465,32 @@ def std_threshold(data, samplerate=None, win_shift=None, th_factor=5., **kwargs)
         return np.std(data, ddof=1) * th_factor
 
 
-def minmax_threshold(data, samplerate=None, win_shift=None, th_factor=0.8, **kwargs):
-    """
-    Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using the
-    diff(max, min) * th_factor of each window.
+def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8, **kwargs):
+    """Esimates a threshold for detect_peaks() based on minimum and maximum values of the data.
 
-    :param data: (1-D array). The data to be analyzed
-    :param samplerate: (float). Sampling rate of the data in Hz
-    :param win_shift: (float). (Defined in bestwindow module). Time shift in seconds between windows.
-    Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
-    If win_shift=None, then the size of the window is as large as parameter data.
+    The threshold is computed as the difference between maximum and
+    minimum value of the data multiplied with th_factor.
+
+    If samplerate and win_size is given, then the threshold is computed for
+    each non-overlapping window of duration win_size separately.
+    In this case the returned threshold is an array of the same size as data.
+    Without a samplerate and win_size a single threshold value determined from
+    the whole data array is returned.
+
+    :param data: (1-D array). The data to be analyzed.
+    :param samplerate: (float or None). Sampling rate of the data in Hz.
+    :param win_size: (float or None). Size of window in which a threshold value is computed.
     :param th_factor: (float). The threshold for peak detection is the inter-min-max-range multiplied by this factor.
-    :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
-    """
-    if samplerate and win_shift:
-        threshold = np.zeros(len(data))
-        win_shift_indices = int(win_shift * samplerate)
+    :param th_factor: (float). Factor by which the difference between minimum and maximum data value is multiplied to set the threshold.
 
-        for inx0 in range(0, len(data), win_shift_indices):
-            inx1 = inx0 + win_shift_indices
+    :return: threshold: (float or 1-D array). The computed threshold.
+    """
+    if samplerate and win_size:
+        threshold = np.zeros(len(data))
+        win_size_indices = int(win_size * samplerate)
+
+        for inx0 in range(0, len(data), win_size_indices):
+            inx1 = inx0 + win_size_indices
 
             window_min = np.min(data[inx0:inx1])
             window_max = np.max(data[inx0:inx1])
@@ -492,33 +502,39 @@ def minmax_threshold(data, samplerate=None, win_shift=None, th_factor=0.8, **kwa
         return (np.max(data) - np.min(data)) * th_factor
 
 
-def percentile_threshold(data, samplerate=None, win_shift=None, th_factor=0.8, percentile_th=99.99, **kwargs):
-    """
-    Sets thresholds for peak-detection used in detect_peaks, one for each window. The threshold is set using a high
-    percentile in order to include the peaks and troughs from individual pulses within the data.
+def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, percentile=99.99, **kwargs):
+    """Esimates a threshold for detect_peaks() based on an inter-percentile range of the data.
 
-    :param data: (1-D array). The data to be analyzed
-    :param samplerate: (float). Sampling rate of the data in Hz
-    :param win_shift: (float). (Defined in bestwindow module). Time shift in seconds between windows.
-    Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
-    If win_shift=None, then the size of the window is as large as parameter data.
-    :param percentile_th: (int). Threshold for peak detection is the given percentile of the amplitude for win_shift wide windows.
-    :param th_factor: (float). The threshold for peak detection is the inter-percentile-range multiplied by this factor.
+    The threshold is computed as the range between the percentile and
+    100.0-percentile percentiles of the data multiplied with
+    th_factor.
 
-    :return: threshold: (1-D array). Array with same size as data, including a threshold for each window.
+    If samplerate and win_size is given, then the threshold is computed for
+    each non-overlapping window of duration win_size separately.
+    In this case the returned threshold is an array of the same size as data.
+    Without a samplerate and win_size a single threshold value determined from
+    the whole data array is returned.
+
+    :param data: (1-D array). The data to be analyzed.
+    :param samplerate: (float or None). Sampling rate of the data in Hz.
+    :param win_size: (float or None). Size of window in which a threshold value is computed.
+    :param percentile: (int). The interpercentile range is computed at percentile and 100.0-percentile.
+    :param th_factor: (float). Factor by which the inter-percentile range of the data is multiplied to set the threshold.
+
+    :return: threshold: (float or 1-D array). The computed threshold.
     """
-    if samplerate and win_shift:
+    if samplerate and win_size:
         threshold = np.zeros(len(data))
-        win_shift_indices = int(win_shift * samplerate)
+        win_size_indices = int(win_size * samplerate)
 
-        for inx0 in range(0, len(data), win_shift_indices):
-            inx1 = inx0 + win_shift_indices
+        for inx0 in range(0, len(data), win_size_indices):
+            inx1 = inx0 + win_size_indices
             threshold[inx0:inx1] = np.squeeze(np.abs(np.diff(
-                np.percentile(data[inx0:inx1], [100.0 - percentile_th, percentile_th])))) * th_factor
+                np.percentile(data[inx0:inx1], [100.0 - percentile, percentile])))) * th_factor
         return threshold
     else:
         return np.squeeze(np.abs(np.diff(
-            np.percentile(data, [100.0 - percentile_th, percentile_th])))) * th_factor
+            np.percentile(data, [100.0 - percentile, percentile])))) * th_factor
 
 
 def trim(peaks, troughs):
