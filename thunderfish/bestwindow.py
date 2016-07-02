@@ -136,7 +136,7 @@ def clip_args(cfg, rate):
 
 
 def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.1,
-                        threshold_func=pkd.percentile_threshold, min_clip=-np.inf, max_clip=np.inf,
+                        th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The data have
@@ -145,7 +145,9 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
     First, large peaks and troughs of the data are detected.  Peaks and
     troughs have to be separated in amplitude by at least the value of a
     dynamic threshold.  The threshold is computed in win_shift wide
-    windows as thresh_ampl_fac times the standard deviation of the data.
+    windows as thresh_ampl_fac times the interpercentile range at
+    the percentile and 100.0-percentile percentile of the data
+    using the peakdetection.percentile_threshold() function.
 
     Second, criteria for selecting the best window are computed for each
     window of width win_size shifted by win_shift trough the data. The
@@ -171,14 +173,13 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
     function plot_data_func.  Additional arguments for this function can
     be supplied via key-word arguments kwargs.
 
-
     :param data: (1-D array). The data to be analyzed
     :param samplerate: (float). Sampling rate of the data in Hz
     :param single: (boolean). If true return only the single window with the smallest cost. If False return the largest window with the cost below the minimum cost plus tolerance.
     :param win_size: (float). Size of the best window in seconds. Choose it large enough for a minimum analysis.
     :param win_shift: (float). Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
-    :param threshold_func: Function (method) for determining the threshold used in peakdetection. Choose between
-    percentile, minmax, or standard deviation. For details and input see each function in peakdetection.
+    :param percentile: (int). percentile parameter for the peakdetection.percentile_threhsold() function used to estimate thresholds for detecting peaks in the data.
+    :param th_factor: (float). th_factor parameter for the peakdetection.percentile_threhsold() function used to estimate thresholds for detecting peaks in the data.
     :param min_clip: (float). Minimum amplitude below which data are clipped.
     :param max_clip: (float). Maximum amplitude above which data are clipped.
     :param w_cv_interv: (float). Weight for the coefficient of variation of the intervals.
@@ -218,8 +219,9 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
         warnings.warn('no best window found: not enough data')
         return 0, 0
 
-    # threshold for peak detection: (can choose between std, percentile and min-max... see peakdetection module)
-    threshold = threshold_func(data, samplerate, win_shift, **kwargs)
+    # threshold for peak detection:
+    threshold = pkd.percentile_threshold(data, samplerate, win_shift,
+                                         th_factor=th_factor, percentile=percentile)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pkd.detect_peaks(data, threshold)
@@ -319,8 +321,7 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
 
 
 def best_window_times(data, samplerate, single=True, win_size=8., win_shift=0.1,
-                      threshold_func=pkd.percentile_threshold,
-                      min_clip=-np.inf, max_clip=np.inf,
+                      th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
                       w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                       plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
@@ -331,15 +332,14 @@ def best_window_times(data, samplerate, single=True, win_size=8., win_shift=0.1,
       clipped (float): The fraction of clipped peaks or troughs.
     """
     start_inx, end_inx, clipped = best_window_indices(data, samplerate, single, win_size, win_shift,
-                                                      threshold_func, min_clip, max_clip, w_cv_interv,
+                                                      th_factor, percentile, min_clip, max_clip, w_cv_interv,
                                                       w_ampl, w_cv_ampl, tolerance,
                                                       plot_data_func, **kwargs)
     return start_inx / samplerate, end_inx / samplerate, clipped
 
 
 def best_window(data, samplerate, single=True, win_size=8., win_shift=0.1,
-                threshold_func=pkd.percentile_threshold,
-                min_clip=-np.inf, max_clip=np.inf,
+                th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                 plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
@@ -349,7 +349,7 @@ def best_window(data, samplerate, single=True, win_size=8., win_shift=0.1,
       clipped (float): The fraction of clipped peaks or troughs.
     """
     start_inx, end_inx, clipped = best_window_indices(data, samplerate, single, win_size, win_shift,
-                                                      threshold_func, min_clip, max_clip, w_cv_interv,
+                                                      th_factor, percentile, min_clip, max_clip, w_cv_interv,
                                                       w_ampl, w_cv_ampl,
                                                       tolerance, plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
@@ -506,7 +506,7 @@ if __name__ == "__main__":
     # compute best window:
     print("call bestwindow() function...")
     best_window_indices(data, rate, single=False,
-                        win_size=1.0, win_shift=0.5, threshold_func=pkd.percentile_threshold,
+                        win_size=1.0, win_shift=0.5, th_factor=0.8, percentile=0.1,
                         min_clip=min_clip, max_clip=max_clip,
                         w_cv_ampl=10.0, tolerance=0.5,
                         plot_data_func=plot_best_window, ax=ax)

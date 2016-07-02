@@ -434,7 +434,7 @@ def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfa
     return [time[peak_inx], data[peak_inx], size, width, 0.0], None
 
 
-def std_threshold(data, samplerate=None, win_size=None, th_factor=5., **kwargs):
+def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
     """Esimates a threshold for detect_peaks() based on the standard deviation of the data.
 
     The threshold is computed as the standard deviation of the data multiplied with th_factor.
@@ -465,7 +465,7 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5., **kwargs):
         return np.std(data, ddof=1) * th_factor
 
 
-def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8, **kwargs):
+def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
     """Esimates a threshold for detect_peaks() based on minimum and maximum values of the data.
 
     The threshold is computed as the difference between maximum and
@@ -502,12 +502,18 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8, **kwar
         return (np.max(data) - np.min(data)) * th_factor
 
 
-def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, percentile=99.99, **kwargs):
+def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, percentile=0.1):
     """Esimates a threshold for detect_peaks() based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
     100.0-percentile percentiles of the data multiplied with
     th_factor.
+
+    For very small values of percentile the estimated threshold
+    approaches the one returned by minmax_threshold() (for same values
+    of th_factor). For percentile=16.0 and Gaussian distributed data,
+    the returned theshold is twice the one returned by std_threshold()
+    (two times the standard deviation).
 
     If samplerate and win_size is given, then the threshold is computed for
     each non-overlapping window of duration win_size separately.
