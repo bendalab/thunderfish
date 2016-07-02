@@ -1,2 +1,2 @@
-__all__ = ['dataloader', 'configfile', 'peakdetection', 'bestwindow', 'harmonicgroups']
+__all__ = ['dataloader', 'configfile', 'peakdetection', 'bestwindow', 'powerspectrum', 'harmonicgroups', 'checkpulse', 'consistentfishes', 'eodanalysis', 'fakefish']
 from thunderfish import *
