@@ -1,10 +1,10 @@
 __author__ = 'juan'
-# Imports
+
+import sys
 import os
 import numpy as np
-import wave
 import matplotlib.pyplot as plt
-import sys
+import wave
 from scipy.signal import butter, filtfilt
 
 
