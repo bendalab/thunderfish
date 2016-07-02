@@ -135,7 +135,7 @@ def clip_args(cfg, rate):
     return a
 
 
-def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.1,
+def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.1,
                         th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
@@ -320,7 +320,7 @@ def best_window_indices(data, samplerate, single=True, win_size=8., win_shift=0.
     return idx0, idx1, clipped
 
 
-def best_window_times(data, samplerate, single=True, win_size=8., win_shift=0.1,
+def best_window_times(data, samplerate, single=True, win_size=1., win_shift=0.1,
                       th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
                       w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                       plot_data_func=None, **kwargs):
@@ -331,14 +331,16 @@ def best_window_times(data, samplerate, single=True, win_size=8., win_shift=0.1,
       end_time (float): Time of the end of the best window.
       clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_indices(data, samplerate, single, win_size, win_shift,
-                                                      th_factor, percentile, min_clip, max_clip, w_cv_interv,
-                                                      w_ampl, w_cv_ampl, tolerance,
+    start_inx, end_inx, clipped = best_window_indices(data, samplerate, single,
+                                                      win_size, win_shift,
+                                                      th_factor, percentile,
+                                                      min_clip, max_clip,
+                                                      w_cv_interv, w_ampl, w_cv_ampl, tolerance,
                                                       plot_data_func, **kwargs)
     return start_inx / samplerate, end_inx / samplerate, clipped
 
 
-def best_window(data, samplerate, single=True, win_size=8., win_shift=0.1,
+def best_window(data, samplerate, single=True, win_size=1., win_shift=0.1,
                 th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                 plot_data_func=None, **kwargs):
@@ -348,9 +350,11 @@ def best_window(data, samplerate, single=True, win_size=8., win_shift=0.1,
       data (array): the data of the best window.
       clipped (float): The fraction of clipped peaks or troughs.
     """
-    start_inx, end_inx, clipped = best_window_indices(data, samplerate, single, win_size, win_shift,
-                                                      th_factor, percentile, min_clip, max_clip, w_cv_interv,
-                                                      w_ampl, w_cv_ampl,
+    start_inx, end_inx, clipped = best_window_indices(data, samplerate, single,
+                                                      win_size, win_shift,
+                                                      th_factor, percentile,
+                                                      min_clip, max_clip,
+                                                      w_cv_interv, w_ampl, w_cv_ampl,
                                                       tolerance, plot_data_func, **kwargs)
     return data[start_inx:end_inx], clipped
 
@@ -408,8 +412,8 @@ def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
     ax[4].set_xlabel('Time [sec]')
 
     
-def add_best_window_config(cfg, single=True,
-                           win_size=1., win_shift=0.1, thresh_ampl_fac=3.0,
+def add_best_window_config(cfg, single=True, win_size=1., win_shift=0.1,
+                           th_factor=0.8, percentile=0.1,
                            min_clip=-np.inf, max_clip=np.inf,
                            w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
                            tolerance=0.5):
@@ -425,8 +429,10 @@ def add_best_window_config(cfg, single=True,
     cfg.add('bestWindowSize', win_size, 's', 'Size of the best window.')
     cfg.add('bestWindowShift', win_shift, 's',
             'Increment for shifting the analysis windows trough the data.')
-    cfg.add('bestWindowThresholdFactor', thresh_ampl_fac, '',
-            'Threshold for detecting peaks is the standard deviation of the data time this factor.')
+    cfg.add('bestWindowThresholdPercentile', percentile, '%',
+            'Percentile for estimating interpercentile range.')
+    cfg.add('bestWindowThresholdFactor', th_factor, '',
+            'Threshold for detecting peaks is interperecntile range of the data times this factor.')
     cfg.add('weightCVInterval', w_cv_interv, '',
             'Weight factor for the coefficient of variation of the inter-peak and inter-trough intervals.')
     cfg.add('weightAmplitude', w_ampl, '',
@@ -452,7 +458,8 @@ def best_window_args(cfg):
     """
     return cfg.map({'win_size': 'bestWindowSize',
                     'win_shift': 'bestWindowShift',
-                    'thresh_ampl_fac': 'bestWindowThresholdFactor',
+                    'percentile': 'bestWindowThresholdPercentile',
+                    'th_factor': 'bestWindowThresholdFactor',
                     'w_cv_interv': 'weightCVInterval',
                     'w_ampl': 'weightAmplitude',
                     'w_cv_ampl': 'weightCVAmplitude',
@@ -495,6 +502,7 @@ if __name__ == "__main__":
     min_clip_fac = 2.0
     min_clip, max_clip = clip_amplitudes(data, int(clip_win_size * rate),
                                          min_fac=min_clip_fac)
+    print min_clip, max_clip
     # min_clip, max_clip = clip_amplitudes(data, int(clip_win_size*rate),
     #                                      min_fac=min_clip_fac,
     #                                      plot_hist_func=plot_clipping)

@@ -39,7 +39,7 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
     # by a range of integer divisors.
     # We do this, because fmax could just be a strong harmonic of the harmonic group
 
-    for divisor in xrange(1, cfg['maxDivisor'][0] + 1):
+    for divisor in range(1, cfg['maxDivisor'][0] + 1):
 
         # define the hypothesized fundamental, which is compared to all higher frequencies:
         fzero = fmax / divisor
@@ -58,7 +58,7 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
         npre = -1  # previous harmonics
         ndpre = 0.0  # difference of previous frequency
         connected = True
-        for j in xrange(freqs.shape[0]):
+        for j in range(freqs.shape[0]):
 
             if verbose > 2:
                 print('check freq {:3d} {:8.2f} '.format(j, freqs[j, 0]), end='')
@@ -144,7 +144,7 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
 
         # ###########################################
         # SEARCH ALL DETECTED FREQUENCIES in morefreqs
-        for j in xrange(more_freqs.shape[0]):
+        for j in range(more_freqs.shape[0]):
 
             if verbose > 3:
                 print('check more_freq %3d %8.2f ' % (j, more_freqs[j, 0]), end='')
@@ -248,12 +248,12 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
         # newgroup is needed to delete the right frequencies from freqs later on.
         newgroup = []
         fk = 0
-        for j in xrange(len(newmoregroup)):
+        for j in range(len(newmoregroup)):
             if newmoregroup[j] >= 0:
                 # existing frequency peak:
                 f = more_freqs[newmoregroup[j], 0]
                 # find this frequency in freqs:
-                for k in xrange(fk, freqs.shape[0]):
+                for k in range(fk, freqs.shape[0]):
                     if np.abs(freqs[k, 0] - f) < 1.0e-8:
                         newgroup.append(k)
                         fk = k + 1
@@ -349,7 +349,7 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
         refi = np.nonzero(group[:, 1] > 0.0)[0][0]
         print('')
         print('# resulting harmonic group for fmax=', fmax)
-        for i in xrange(group.shape[0]):
+        for i in range(group.shape[0]):
             print('{0:8.2f}Hz n={1:5.2f}: p={2:10.3g} p/p0={3:10.3g}'.format(group[i, 0], group[i, 0] / group[0, 0],
                                                                              group[i, 1], group[i, 1] / group[refi, 1]))
 
@@ -388,7 +388,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, cfg):
     # XXX might be improved!!!
     if mainsfreq > 0.0:
         pfreqtol = 1.0  # 1 Hz tolerance
-        for inx in reversed(xrange(len(good_freqs))):
+        for inx in reversed(range(len(good_freqs))):
             n = np.round(good_freqs[inx, 0] / mainsfreq)
             nd = np.abs(good_freqs[inx, 0] - n * mainsfreq)
             if nd <= pfreqtol:
@@ -460,7 +460,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, cfg):
         print('')
         if len(group_list) > 0:
             print('## FUNDAMENTALS FOUND: ##')
-            for i in xrange(len(group_list)):
+            for i in range(len(group_list)):
                 power = group_list[i][:, 1]
                 print('{:8.2f}Hz: {:10.8f} {:3d} {:3d}'.format(group_list[i][0, 0], np.sum(power),
                                                                np.sum(power <= 0.0), fzero_harmonics_list[i]))
@@ -471,7 +471,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, cfg):
     mains_list = []
     if mainsfreq > 0.0:
         pfreqtol = 1.0
-        for inx in xrange(len(all_freqs)):
+        for inx in range(len(all_freqs)):
             n = np.round(all_freqs[inx, 0] / mainsfreq)
             nd = np.abs(all_freqs[inx, 0] - n * mainsfreq)
             if nd <= pfreqtol:

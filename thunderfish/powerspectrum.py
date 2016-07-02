@@ -33,26 +33,21 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
     return np.asarray([power, freqs])
 
 
-def plot_decibel_psd(power, freqs, ax, fs, max_freq=3000, color='blue', alpha=1., verbose=0):
+def plot_decibel_psd(power, freqs, ax, max_freq=3000, fs=12, color='blue', alpha=1.):
     """
-    Plots a powerspectum.
+    Plots a powerspectum in decibel.
 
     :param power:               (1-D array) power array of a psd.
     :param freqs:               (1-D array) frequency array of a psd.
     :param ax:                  (axis for plot) empty axis that is filled with content in the function.
-    :param fs:                  (int) fontsize for the plot.
     :param max_freq:            (float) maximum frequency that shall appear in the plot.
+    :param fs:                  (int) fontsize for the plot.
     :param color:               (string) color that shall be used for the plot.
     :param alpha:               (float) transparency of the plot.
-    :param verbose:             (int) when the value is 1 you get additional shell output.
-    :return ax:                 (axis for plot) axis that is ready for plotting containing the powerspectrum.
     """
-    if verbose >= 1:
-        print('create PSD plot...')
-    power_cp = power.copy()
-    power_cp[power_cp < 1e-20] = np.nan
-
-    decibel_psd = 10.0 * np.log10(power_cp)
+    decibel_psd = power.copy()
+    decibel_psd[decibel_psd < 1e-20] = np.nan
+    decibel_psd[decibel_psd >= 1e-20] = 10.0 * np.log10(decibel_psd[decibel_psd >= 1e-20])
     ax.plot(freqs, decibel_psd, color=color, alpha=alpha)
     ax.set_ylabel('power [dB]', fontsize=fs)
     ax.set_xlabel('frequency [Hz]', fontsize=fs)
@@ -117,5 +112,5 @@ if __name__ == '__main__':
     psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 1], verbose=1)
 
     fig, ax = plt.subplots()
-    plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax=ax, fs=12, color='firebrick', alpha=0.9, verbose=1)
+    plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax=ax, fs=12, color='firebrick', alpha=0.9)
     plt.show()

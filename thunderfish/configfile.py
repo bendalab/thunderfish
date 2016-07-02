@@ -249,7 +249,7 @@ class ConfigFile:
         ml = len(dirs) - 1
         if ml > maxlevel:
             ml = maxlevel
-        for k in xrange(ml, 0, -1):
+        for k in range(ml, 0, -1):
             path = os.path.join(*(dirs[:-k] + [cfgfile]))
             if os.path.isfile(path):
                 print('load configuration %s' % path)

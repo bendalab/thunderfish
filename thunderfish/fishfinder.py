@@ -201,7 +201,7 @@ class SignalPlot:
         # first color range:
         cc0 = plt.cm.gist_rainbow(np.linspace(0.0, 1.0, 8.0))
         # shuffle it:
-        for k in xrange((len(cc0) + 1) / 2):
+        for k in range((len(cc0) + 1) / 2):
             self.colorrange.extend(cc0[k::(len(cc0) + 1) / 2])
         self.markerrange.extend(len(cc0) * 'o')
         mr2.extend(len(cc0) * 'v')
@@ -210,7 +210,7 @@ class SignalPlot:
         cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1])) * np.array([1.0, 0.9, 0.7, 0.0]))[0]
         cc1[:, 3] = 1.0
         # shuffle it:
-        for k in xrange((len(cc1) + 1) / 2):
+        for k in range((len(cc1) + 1) / 2):
             self.colorrange.extend(cc1[k::(len(cc1) + 1) / 2])
         self.markerrange.extend(len(cc1) * '^')
         mr2.extend(len(cc1) * '*')
@@ -219,7 +219,7 @@ class SignalPlot:
         cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc2])) * np.array([1.0, 0.5, 1.0, 0.0]))[0]
         cc2[:, 3] = 1.0
         # shuffle it:
-        for k in xrange((len(cc2) + 1) / 2):
+        for k in range((len(cc2) + 1) / 2):
             self.colorrange.extend(cc2[k::(len(cc2) + 1) / 2])
         self.markerrange.extend(len(cc2) * 'D')
         mr2.extend(len(cc2) * 'x')
@@ -381,13 +381,13 @@ class SignalPlot:
                                           np.zeros(len(self.allpeaks[:, 0])) + doty)
             self.good_peaks_artist.set_data(peaks, np.zeros(len(peaks)) + doty)
         labels = []
-        fsizes = [np.sqrt(np.sum(self.fishlist[k][:, 1])) for k in xrange(len(self.fishlist))]
+        fsizes = [np.sqrt(np.sum(self.fishlist[k][:, 1])) for k in range(len(self.fishlist))]
         fmaxsize = np.max(fsizes) if len(fsizes) > 0 else 1.0
         self.axp.set_color_cycle(self.colorrange)
-        for k in xrange(len(self.peak_artists)):
+        for k in range(len(self.peak_artists)):
             self.peak_artists[k].remove()
         self.peak_artists = []
-        for k in xrange(len(self.fishlist)):
+        for k in range(len(self.fishlist)):
             if k >= len(self.markerrange):
                 break
             fpeaks = self.fishlist[k][:, 0]
@@ -447,6 +447,7 @@ class SignalPlot:
             if self.min_clip == 0.0 or self.max_clip == 0.0:
                 self.min_clip, self.max_clip = bw.clip_amplitudes(
                     self.data, **bw.clip_args(cfg, self.samplerate))
+            print bw.best_window_args(cfg)
             idx0, idx1, clipped = bw.best_window_indices(
                 self.data, self.samplerate, min_clip=self.min_clip,
                 max_clip=self.max_clip, **bw.best_window_args(cfg))

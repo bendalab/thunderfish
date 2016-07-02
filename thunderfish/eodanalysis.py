@@ -22,7 +22,7 @@ def eod_snippets(bwin_data, samplerate, win_shift=0.5):
     threshold = np.zeros(len(bwin_data))
     win_shift_indices = int(win_shift * samplerate)
 
-    for inx0 in xrange(0, len(bwin_data) - win_shift_indices / 2, win_shift_indices):
+    for inx0 in range(0, len(bwin_data) - win_shift_indices, win_shift_indices):
         inx1 = inx0 + win_shift_indices
         threshold[inx0:inx1] = np.percentile(bwin_data[inx0:inx1], 99)
 
@@ -73,13 +73,13 @@ def eod_analysis(bwin_data, samplerate, verbose=0, plot_data_func=None, **kwargs
     :return eod_idx_diff        (1-D array) Containing the index differences between the detected eods.
     """
     if verbose >= 1:
-        print('Analysing EOD structures ...')
+        print('analyse EOD waveform ...')
+        
     eod_data, eod_idx_diff = eod_snippets(bwin_data, samplerate)
-
     mean_eod = np.mean(eod_data, axis=0)
     std_eod = np.std(eod_data, axis=0, ddof=1)
 
-    time = ((np.arange(len(mean_eod)) * 1.0 / samplerate) - 0.5 * len(mean_eod) / samplerate) * 1000.0
+    time = 1000.0 * (np.arange(len(mean_eod)) - len(mean_eod)/2) / samplerate
 
     if plot_data_func:
         plot_data_func(time, mean_eod, std_eod, **kwargs)

@@ -423,11 +423,11 @@ def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfa
     size = data[peak_inx] - data[min_inx]
     wthresh = data[min_inx] + pfac * size
     width = 0.0
-    for k in xrange(peak_inx, min_inx, -1):
+    for k in range(peak_inx, min_inx, -1):
         if data[k] < wthresh:
             width = time[peak_inx] - time[k]
             break
-    for k in xrange(peak_inx, index):
+    for k in range(peak_inx, index):
         if data[k] < wthresh:
             width += time[k] - time[peak_inx]
             break

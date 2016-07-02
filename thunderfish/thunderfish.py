@@ -20,18 +20,16 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
     # get config dictionary
     cfg = ct.get_config_dict()
 
-    if verbose is not None:  # ToDo: Need to document the whole cfg-dict thing.
-        cfg['verboseLevel'][0] = verbose
-    channel = channel
+    # load data:
+    raw_data, samplerate, unit = dl.load_data(audio_file, channel)
+    if len(raw_data) == 0:
+        return
 
-    # load data using dataloader module
-    raw_data, samplerate, unit = dl.load_data(audio_file)
+    # calculate best_window:
+    data, clip = bw.best_window(raw_data, samplerate, single=True, win_size=4.0)
 
-    # calculate best_window
-    data, clip = bw.best_window(raw_data, samplerate)
-
-    # sort fish-type
-    sugg_type, pta_value = chp.check_pulse_width(data, samplerate)  # pta = peak-trough-analysis
+    # pulse-type fish?
+    pulse_fish_width, pta_value = chp.check_pulse_width(data, samplerate)  # pta = peak-trough-analysis
 
     # calculate powerspectrums with different frequency resolutions
     psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
@@ -44,10 +42,10 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
         fishlists.append(fishlist)
 
     # find the psd_type
-    pulse_psd, proportion = chp.check_pulse_psd(psd_data[0][0], psd_data[0][1])
+    pulse_fish_psd, proportion = chp.check_pulse_psd(psd_data[0][0], psd_data[0][1])
 
-    # filter the different fishlists to get a fishlist with consistent fishes
-    if sugg_type is 'wave' and not pulse_psd:
+    # filter the different fishlists to get a fishlist with consistent fishes:
+    if pulse_fish_width and not pulse_fish_psd:
         filtered_fishlist = cf.consistent_fishes(fishlists)
         cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1)
 
