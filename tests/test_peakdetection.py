@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_almost_equal
+from nose.tools import assert_true, assert_equal, assert_almost_equal
 import numpy as np
 import thunderfish.peakdetection as pd
 
@@ -284,7 +284,5 @@ def test_trim_closest():
                 "trim_closest(peak_indices, peak_indices+5) failed on troughs")
 
     p_inx, t_inx = pd.trim_closest(np.array([]), np.array([]))
-    assert_true(len(p_inx) == 0,
-                "trim_closest([], []) failed on peaks")
-    assert_true(len(t_inx) == 0,
-                "trim_closest([], []) failed on troughs")
+    assert_equal(len(p_inx), 0, "trim_closest([], []) failed on peaks")
+    assert_equal(len(t_inx), 0, "trim_closest([], []) failed on troughs")

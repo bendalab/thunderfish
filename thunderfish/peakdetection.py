@@ -600,6 +600,8 @@ def trim_closest(peaks, troughs):
     pidx = 0
     tidx = 0
     nn = min(len(peaks), len(troughs))
+    if nn == 0:
+        return np.array([]), np.array([])
     dist = np.abs(np.mean(peaks[:nn] - troughs[:nn]))
     if len(peaks) == 0 or len(troughs) == 0:
         nn = 0
