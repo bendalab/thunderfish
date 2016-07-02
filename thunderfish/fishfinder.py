@@ -447,7 +447,6 @@ class SignalPlot:
             if self.min_clip == 0.0 or self.max_clip == 0.0:
                 self.min_clip, self.max_clip = bw.clip_amplitudes(
                     self.data, **bw.clip_args(cfg, self.samplerate))
-            print bw.best_window_args(cfg)
             idx0, idx1, clipped = bw.best_window_indices(
                 self.data, self.samplerate, min_clip=self.min_clip,
                 max_clip=self.max_clip, **bw.best_window_args(cfg))
@@ -812,6 +811,8 @@ if __name__ == '__main__':
     with dl.open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
         # plot:
         sp = SignalPlot(data, data.samplerate, data.unit, filename, channel)
+    ## data, samplerate, unit = dl.load_data(filepath,  verbose=cfg['verboseLevel'][0])
+    ## sp = SignalPlot(data, samplerate, unit, filename, channel)
 
 
 ## data = data/2.0**15

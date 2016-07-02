@@ -29,9 +29,9 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=0.1, start=None, st
     if start is None or stop is None:
         period = np.mean(np.diff(eod_times))
         if start is None:
-            start = -period/2
+            start = -period
         if stop is None:
-            stop = period/2
+            stop = period
     # start and stop indices:
     start_inx = int(start * samplerate)
     stop_inx = int(stop * samplerate)

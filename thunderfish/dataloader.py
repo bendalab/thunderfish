@@ -106,7 +106,7 @@ class DataLoader(aio.AudioLoader):
         self.unit = 'a.u.'
 
     def __getitem__(self, key):
-        if hasattr(key, '__len__'):
+        if type(key) is tuple:
             raise IndexError
         return super(DataLoader, self).__getitem__((key, self.channel))
 

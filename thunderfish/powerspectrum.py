@@ -9,28 +9,27 @@ import matplotlib.mlab as mlab
 def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
         window=mlab.window_hanning, overlap=0.5, pad_to=None,
         sides='default', scale_by_freq=None):
-    """
-    Calculates a Powerspecturm.
+    """Power spectrum density of a given frequency resolution.
 
-    This function takes a data array, its samplerate and a frequencyresolution for the powerspectrum.
-    With this input it first calculates a nfft value and later a powerspectrum.
-
-    (for further argument information see numpy.psd documentation)
+    From the requested frequency resolution and the samplerate
+    nfft is computed.
+    
     :param data:                (1-D array) data array you want to calculate a psd of.
-    :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
-    :param fresolution:         (float) frequency resolution of the psd.
-    :param overlap:             (float) used to calculate the noverlap used by the numpy.psd function.
-    :return:                    (2-D array) contains the power and frequency calculated in the powerspectrum.
+    :param samplerate:          (float) sampling rate of the data in Hertz.
+    :param fresolution:         (float) frequency resolution of the psd in Hertz.
+    :param overlap:             (float) fraction of overlap for the fft windows.
+    See numpy.psd for the remaining parameter.
+
+    :return:                    (2-D array) power and frequency.
     """
 
     nfft = int(np.round(2 ** (np.floor(np.log(samplerate / fresolution) / np.log(2.0)) + 1.0)))
     if nfft < 16:
         nfft = 16
-    noverlap = nfft * overlap
+    noverlap = int(nfft * overlap)
     power, freqs = mlab.psd(data, NFFT=nfft, noverlap=noverlap, Fs=samplerate, detrend=detrend, window=window,
                             pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
-
-    return np.asarray([power, freqs])
+    return np.asarray([np.squeeze(power), freqs])   # squeeze is necessary when nfft is to large with respect to the data
 
 
 def plot_decibel_psd(power, freqs, ax, max_freq=3000, fs=12, color='blue', alpha=1.):
@@ -49,23 +48,24 @@ def plot_decibel_psd(power, freqs, ax, max_freq=3000, fs=12, color='blue', alpha
     decibel_psd[decibel_psd < 1e-20] = np.nan
     decibel_psd[decibel_psd >= 1e-20] = 10.0 * np.log10(decibel_psd[decibel_psd >= 1e-20])
     ax.plot(freqs, decibel_psd, color=color, alpha=alpha)
-    ax.set_ylabel('power [dB]', fontsize=fs)
-    ax.set_xlabel('frequency [Hz]', fontsize=fs)
+    ax.set_ylabel('Power [dB]', fontsize=fs)
+    ax.set_xlabel('Frequency [Hz]', fontsize=fs)
     ax.set_xlim([0, max_freq])
 
 
-def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning,
-                         overlap=0.5, pad_to=None, sides='default', scale_by_freq=None, verbose=0):
-    """
-    This function is performing the steps to calculate a powerspectrum on the basis of a given dataset, a given
+def multi_resolution_psd(data, samplerate, fresolution=0.5,
+                         detrend=mlab.detrend_none, window=mlab.window_hanning,
+                         overlap=0.5, pad_to=None, sides='default',
+                         scale_by_freq=None):
+    """This function is performing the steps to calculate a powerspectrum on the basis of a given dataset, a given
     samplingrate and a given frequencyresolution for the psd. Therefore two other functions are called to first
     calculate the nfft value and second calculate the powerspectrum.
 
     (for further argument information see numpy.psd documentation)
     :param data:                (1-D array) data array you want to calculate a psd of.
-    :param samplerate:          (float) sampling rate of the data that you want to calculate a psd of.
-    :param fresolution:         (1-D array) frequency resolutions for one or multiple psds.
-    :param overlap:             (float) used to calculate the noverlap used by the numpy.psd function.
+    :param samplerate:          (float) sampling rate of the data in Hertz.
+    :param fresolution:         (float or 1-D array) frequency resolutions for one or multiple psds in Hertz.
+    :param overlap:             (float) fraction of overlap for the fft windows.
     :param plot_data_func:      (function) function (powerspectrum_plot()) that is used to create a axis for later
                                 plotting containing the calculated powerspectrum.
     :param **kwargs:            additional arguments that are passed to the plot_data_func().
@@ -76,9 +76,6 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5, detrend=mlab.detrend
     :return ax:                 (axis for plot) axis that is ready for plotting containing a figure that shows what the
                                 modul did.
     """
-    if verbose >= 1:
-        print('Coumputing powerspectrum ...')
-
     return_list = True
     if not hasattr(fresolution, '__len__'):
         return_list = False
@@ -109,7 +106,7 @@ if __name__ == '__main__':
     time = np.linspace(0, 8 - 1 / samplerate, 8 * samplerate)
     data = np.sin(time * 2 * np.pi * fundamental[0]) + np.sin(time * 2 * np.pi * fundamental[1])
 
-    psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 1], verbose=1)
+    psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 1])
 
     fig, ax = plt.subplots()
     plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax=ax, fs=12, color='firebrick', alpha=0.9)

@@ -29,13 +29,14 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
     data, clip = bw.best_window(raw_data, samplerate, single=True, win_size=4.0)
 
     # pulse-type fish?
-    pulse_fish_width, pta_value = chp.check_pulse_width(data, samplerate)  # pta = peak-trough-analysis
+    pulse_fish_width, pta_value = chp.check_pulse_width(data, samplerate)
 
     # calculate powerspectrums with different frequency resolutions
     psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
     ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax1, fs=12)
+    # TODO: plot harmonic groups in spectrum!
 
-    # find the fishes in the different powerspectrums
+    # find the fishes in the different powerspectrums:
     fishlists = []
     for i in range(len(psd_data)):
         fishlist = hg.harmonic_groups(psd_data[i][1], psd_data[i][0], cfg)[0]
@@ -49,10 +50,19 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
         filtered_fishlist = cf.consistent_fishes(fishlists)
         cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1)
 
-    # analyse the eod
-    eod_idx_diff = ea.eod_analysis(data, samplerate, plot_data_func=ea.eod_analysis_plot, ax=ax2)
+    # analyse eod waveform:
+    mean_eod, std_eod, time, eod_times = ea.eod_waveform(data, samplerate)
+    period = np.mean(np.diff(eod_times))
+    # TODO: analyse it!
+
+    # plot waveform:
+    ea.eod_waveform_plot(time, mean_eod, std_eod, ax2, unit=unit)
+    ax2.set_xlim(-500*period, 500*period)  # half a period in milliseconds
+    # TODO: make this dependen on fish type!
 
     plt.tight_layout()
+
+    # TODO: plot result in pdf!
     plt.show()
 
 
