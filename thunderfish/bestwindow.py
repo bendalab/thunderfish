@@ -178,8 +178,8 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     :param single: (boolean). If true return only the single window with the smallest cost. If False return the largest window with the cost below the minimum cost plus tolerance.
     :param win_size: (float). Size of the best window in seconds. Choose it large enough for a minimum analysis.
     :param win_shift: (float). Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
-    :param percentile: (int). percentile parameter for the peakdetection.percentile_threhsold() function used to estimate thresholds for detecting peaks in the data.
-    :param th_factor: (float). th_factor parameter for the peakdetection.percentile_threhsold() function used to estimate thresholds for detecting peaks in the data.
+    :param percentile: (int). percentile parameter for the peakdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
+    :param th_factor: (float). th_factor parameter for the peakdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
     :param min_clip: (float). Minimum amplitude below which data are clipped.
     :param max_clip: (float). Maximum amplitude above which data are clipped.
     :param w_cv_interv: (float). Weight for the coefficient of variation of the intervals.

@@ -159,7 +159,7 @@ def detect_peaks(data, threshold, time=None,
                 min_inx = index  # minimum element
                 min_value = value
 
-    return np.array(peaks_list), np.array(troughs_list)
+    return np.asarray(peaks_list), np.asarray(troughs_list)
 
 
 def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
@@ -340,7 +340,7 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
                 min_inx = index  # minimum element
                 min_value = value
 
-    return np.array(peaks_list), np.array(troughs_list)
+    return np.asarray(peaks_list), np.asarray(troughs_list)
 
 
 def accept_peak(time, data, event_inx, index, min_inx, threshold):
@@ -541,6 +541,43 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, pe
     else:
         return np.squeeze(np.abs(np.diff(
             np.percentile(data, [100.0 - percentile, percentile])))) * th_factor
+
+
+def snippets(data, indices, start=-10, stop=10):
+    """
+    Cuts out data arround each position given in indices.
+
+    :param data: (1-D array) Data array from which snippets are extracted.
+    :param indices: (list of int) Indices around which snippets are cut out.
+    :param start: (int) Each snippet starts at index + start.
+    :param stop: (int) Each snippet ends at index + stop.
+    :return snippet_data: (2-D array) The snippets: first index number of snippet, second index time.
+    """
+    idxs = indices[(indices>=-start) & (indices<len(data)-stop)]
+    snippet_data = np.empty((len(idxs), stop-start))
+    for k, idx in enumerate(idxs):
+        snippet_data[k] = data[idx+start:idx+stop]
+    return snippet_data
+
+
+def peak_snippets(data, indices, start=None, stop=None):
+    # threshold for peak detection:
+    threshold = pkd.percentile_threshold(data, samplerate, win_size,
+                                         th_factor=th_factor, percentile=percentile)
+
+    # detect peaks:
+    eod_idx = pkd.detect_peaks(data, threshold)[0]
+
+    eod_idx_diff = [(eod_idx[i + 1] - eod_idx[i]) for i in range(len(eod_idx) - 1)]
+    mean_th_idx_diff = np.mean(eod_idx_diff)
+
+    eod_data = []
+    for idx in eod_idx:
+        if int(idx - (mean_th_idx_diff / (3. / 2))) >= 0 and int(idx + (mean_th_idx_diff / (3. / 2))) <= len(bwin_data):
+            eod_data.append(
+                bwin_data[int(idx - (mean_th_idx_diff / (3. / 2))): int(idx + (mean_th_idx_diff / (3. / 2)))])
+
+    return np.asarray(eod_data), eod_idx_diff
 
 
 def trim(peaks, troughs):
