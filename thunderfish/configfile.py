@@ -244,13 +244,13 @@ class ConfigFile:
 
         # load configuration files from higher directories:
         absfilepath = os.path.abspath(filepath)
-        dirs = os.path.dirname(absfilepath).split('/')
+        dirs = os.path.dirname(absfilepath).split(os.sep)
         dirs.append('')
         ml = len(dirs) - 1
         if ml > maxlevel:
             ml = maxlevel
         for k in xrange(ml, 0, -1):
-            path = '/'.join(dirs[:-k]) + '/' + cfgfile
+            path = os.path.join(*(dirs[:-k] + [cfgfile]))
             if os.path.isfile(path):
                 print('load configuration %s' % path)
                 self.load(path)

@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Display waveform, spectrogram, and power spectrum of time series data.',
-        epilog='by bendalab (2015/2016)')
+        epilog='by bendalab (2015-2016)')
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument('-v', action='count', dest='verbose')
     parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')

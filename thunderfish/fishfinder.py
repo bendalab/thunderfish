@@ -765,13 +765,13 @@ if __name__ == '__main__':
     bw.add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
 
     # config file name:
-    progs = sys.argv[0].split('/')
-    cfgfile = progs[-1].split('.')[0] + '.cfg'
+    progname = os.path.basename(sys.argv[0])
+    cfgfile = os.path.splitext(progname)[0] + '.cfg'
 
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Display waveform, spectrogram, and power spectrum of time series data.',
-        epilog='by Jan Benda (2015)')
+        epilog='by Jan Benda (2015-2016)')
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument('-v', action='count', dest='verbose')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile, type=str, metavar='cfgfile',
@@ -796,8 +796,8 @@ if __name__ == '__main__':
 
     # save configuration:
     if len(args.save_config) > 0:
-        ext = args.save_config.split('.')[-1]
-        if ext != 'cfg':
+        ext = os.path.splitext(args.save_config)[1]
+        if ext != os.extsep + 'cfg':
             print('configuration file name must have .cfg as extension!')
         else:
             print('write configuration to %s ...' % args.save_config)
