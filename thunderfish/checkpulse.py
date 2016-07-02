@@ -1,9 +1,8 @@
 """
-This module checks if the recorded signal corresponds to a wave- or a pulse-fish using two different approaches:
-One checks for the width of an EOD compared to the distance to the next EOD. The second performs a power-spectrum-
-analysis.
-The key function for the pulse-width approach is check_pulse_width.
-The key function for the power-spectrum-analysis approach is check_pulse_psd .
+Functions for checking whether a pulse-type or a wave-type is present in a recording.
+
+check_pulse_width(): checks for a pulse-type fish based on the width of detected peaks.
+check_pulse_psd(): checks for puls_type fish based on its signature on the power sepctrum.
 """
 
 import numpy as np
@@ -14,10 +13,11 @@ from matplotlib.patches import Rectangle
 
 def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
                       win_shift=0.5, pulse_thres=0.1, verbose=0, plot_data_func=None, **kwargs):
-    """ Detects if fish is pulse or wave by calculating the proportion of the time distance between a peak and its
-     following trough, relative to the time between consecutive peaks.
+    """Detects if a fish is pulse- or wave-type based on the proportion of the time distance
+    between a peak and its following trough, relative to the time between consecutive peaks.
 
-     WARNING! This function does not detect monophasic pulse-fishes such as Brachyhypopomus bennetti or Electrophorus.
+     WARNING! This function does not (yet) detect monophasic pulse-fishes
+     such as Brachyhypopomus bennetti or Electrophorus.
 
     :param data: (1-D array). The data to be analyzed (Usually the best window already)
     :param samplerate: (float). Sampling rate of the data in Hz
@@ -28,19 +28,19 @@ def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
     :param verbose: (int). if > 1, print information in the command line.
     :param plot_data_func: Function for plotting the data with detected peaks and troughs, an inset and the distribution
     of peak-ratios.
-        plot_data_func(data, samplerate, peak_idx, trough_idx, peakdet_th, pulse_th, type_suggestion, pvt_dist, tvp_dist)
+        plot_data_func(data, samplerate, peak_idx, trough_idx, peakdet_th, pulse_th, pulse_fish, pvt_dist, tvp_dist)
         :param data: (array). the raw data.
         :param samplerate: (float). the sampling rate of the data.
         :param peak_idx: (array). indices into raw data indicating detected peaks.
         :param trough_idx: (array). indices into raw data indicating detected troughs.
         :param peakdet_th: (float). a positive number setting the minimum distance between peaks and troughs.
         :param pulse_th: (float). If the median r-value is smaller than this threshold, the fish is pulse-; else wave-type
-        :param type_suggestion: (bool). Fish-type suggested by the algorithm; True if pulse-fish, False if wave-fish
+        :param pulse_fish: (bool). True if algorithm suggests a pulse-type fish.
         :param pvt_dist: (array-like). distribution of r-values [pk2tr/pk2pk]
         :param tvp_dist: (array-like). distribution of r-values [tr2pk/tr2tr]
-    :return: suggestion: (bool). True if pulse-fish, False if wave-fish
+    :return pulse_fish: (bool). True if algorithm suggests a pulse-type fish.
     :return: peak_ratio: (float). Returns a float between 0. and 1. which gives the proportion of peak-2-trough,
-                            from peak-2-peak time distance. (Wave-fishes should have larger values than pulse-fishes)
+                            from peak-2-peak time distance. (Wave-type fish should have larger values than pulse-type fish)
     """
 
     def ratio(peak_idx, trough_idx):
@@ -70,7 +70,8 @@ def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
         print('Analyzing Fish-Type...')
 
     # threshold for peak detection:
-    threshold = pkd.percentile_threshold(data, samplerate, win_shift)
+    threshold = pkd.percentile_threshold(data, samplerate, win_shift,
+                                         th_factor=th_factor, percentile_th=percentile_th)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = pkd.detect_peaks(data, threshold)
@@ -80,27 +81,27 @@ def check_pulse_width(data, samplerate, percentile_th=1., th_factor=0.8,
 
     peak_ratio = np.mean([pr_pvt, pr_tvp])
 
-    suggestion = peak_ratio < pulse_thres
+    pulse_fish = peak_ratio < pulse_thres
 
     if plot_data_func:
-        plot_data_func(data, samplerate, peak_idx, trough_idx, threshold, pulse_thres, suggestion, pr_pvt, pr_tvp,
-                       **kwargs)
+        plot_data_func(data, samplerate, peak_idx, trough_idx, threshold, pulse_thres,
+                       pulse_fish, pr_pvt, pr_tvp, **kwargs)
 
     if verbose > 0:
-        f_type = 'pulse' if suggestion else 'wave'
+        f_type = 'pulse' if pulse_fish else 'wave'
         print('Fish-type is %s. r-value = %.3f' % (f_type, peak_ratio))
-    return suggestion, peak_ratio
+        
+    return pulse_fish, peak_ratio
 
 
-def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=3000, outer_percentile=1,
-                        inner_percentile=25, verbose=0, plot_data_func=None, **kwargs):
-    """
-    Function that is called when you got a PSD and want to find out from what fishtype this psd is. With the help of
-    several other function it analysis the structur of the EOD and can with this approach tell what type of fish the PSD
-    belongs to.
+def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=3000,
+                    outer_percentile=1, inner_percentile=25, verbose=0,
+                    plot_data_func=None, **kwargs):
+    """Detects if a fish is pulse- or wave-type based on the inter-quartile range
+    relative to the inter-percentile range in the power-spectrum.
 
-    :param power:           (1-D array) power array of a psd.
-    :param freqs:           (1-D array) frequency array of a psd.
+    :param power:           (1-D array) power array of a power spectrum.
+    :param freqs:           (1-D array) frequency array of a power spectrum.
     :param proportion_th:   (float) Proportion of the data that defines if the psd belongs to a wave or a pulsefish.
     :param freq_bins:       (float) width of frequency bins in which the psd shall be divided (Hz).
     :param max_freq:        (float) maximum frequency that shall be provided in the separated power array.
@@ -112,12 +113,12 @@ def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=30
     :param plot_data_func:  (function) function (psdtypeplot()) that is used to create a axis for later plotting about the process of psd
                             type detection.
     :param **kwargs:        additional arguments that are passed to the plot_data_func().
-    :return psd_type:       (string) "wave" or "pulse" depending on the proportion of the psd.
+    :return pulse_fish: (bool). True if algorithm suggests a pulse-type fish.
     :return proportions:    (1-D array) proportions of the single psd bins.
     """
 
     if verbose >= 1:
-        print('Checking if pulse-PSD ...')
+        print('checking for pulse-type fish in power spectrum ...')
     res = np.mean(np.diff(freqs))
 
     # Take a 1-D array of powers (from powerspectrums), transforms it into dB and divides it into several bins.
@@ -126,34 +127,38 @@ def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=30
     for trial in range(int(max_freq / freq_bins)):
         tmp_power_db = 10.0 * np.log10(power[trial * int(freq_bins / res): (trial + 1) * int(freq_bins / res)])
         # calculates 4 percentiles for each powerbin
-        percentiles = np.percentile(tmp_power_db, [outer_percentile, inner_percentile, 100 - inner_percentile,
+        percentiles = np.percentile(tmp_power_db, [outer_percentile, inner_percentile,
+                                                   100 - inner_percentile,
                                                    100 - outer_percentile])
         all_percentiles.append(percentiles)
         proportions.append((percentiles[1] - percentiles[2]) / (percentiles[0] - percentiles[3]))
 
-    pulse_psd = np.mean(proportions) > proportion_th
+    percentile_ratio = np.mean(proportions)
+
+    pulse_fish = percentile_ratio > proportion_th
 
     if verbose >= 1:
-        f_type = 'pulse' if pulse_psd else 'wave'
+        f_type = 'pulse' if pulse_fish else 'wave'
         print ('PSD-type is %s. proportion = %.3f' % (f_type, float(np.mean(proportions))))
 
     if plot_data_func:
-        plot_data_func(freqs, power, np.asarray(proportions), np.asarray(all_percentiles), **kwargs)
+        plot_data_func(freqs, power, proportions, all_percentiles, pulse_fish, **kwargs)
 
-    return pulse_psd, np.mean(proportions)
+    return pulse_fish, percentile_ratio
 
 
-def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, pulse_th, type_suggestion,
-                            pvt_dist, tvp_dist, ax, fs=14):
-    """ Plots the data, a zoomed index of it and the r-values that determine whether fish is pulse or wave-type.
+def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, pulse_th,
+                            pulse_fish, pvt_dist, tvp_dist, ax, fs=14):
+    """Plots the data, a zoomed index of it and the peak-width versus peak-period rations
+    that determine whether fish is pulse or wave-type.
 
     :param data: (array-like). amplitude data
-    :param samplerate: (float). sample-rate in Hz
+    :param samplerate: (float). sampling rate in Hz
     :param peak_idx: (array of int). Array with peak indices
     :param trough_idx: (array of int). Array with trough indices
     :param peakdet_th: (float). threshold for peak detection
     :param pulse_th: (float). If the median r-value is smaller than this threshold, the fish is pulse-; else wave-type
-    :param type_suggestion: (bool). Fish-type suggested by the algorithm (True for pulse-type)
+    :param pulse_fish: (bool). Fish-type suggested by the algorithm (True for pulse-type)
     :param pvt_dist: (array-like). Array with r-values (peak2trough / peak2peak)
     :param tvp_dist: (array-like). Array with r-values (trough2peak/ trough2trough)
     """
@@ -179,7 +184,7 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
             c_axis.plot(t[::10], peakdet_th[::10], '--k', lw=2., rasterized=True, alpha=0.7, label='peakdet-threshold')
             c_axis.plot(t[::10], np.zeros(len(t[::10])), '--k', lw=2., rasterized=True, alpha=0.7)
 
-    # Define Inset Boundaries and plot them
+    # define inset boundaries and plot them:
     inset_width = 20.  # in msec
     start_in = int((len(data) / 2. - (inset_width // 2. * samplerate * 0.001)))  # the 0.001 converts msec to sec
     end_in = int((len(data) / 2. + (inset_width // 2. * samplerate * 0.001)))
@@ -201,8 +206,8 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     ax[1].set_xlim(t[start_in], t[end_in])  # just set proper xlim!
 
     # Cosmetics
-    f_type = 'pulse' if type_suggestion else 'wave'
-    ax[1].set_title('Inset of plot above. Fish-type suggestion is %s' % f_type, fontsize=fs + 2)
+    f_type = 'pulse' if pulse_fish else 'wave'
+    ax[1].set_title('Inset of plot above. Suggested fish-type is %s' % f_type, fontsize=fs + 2)
     ax[1].set_xlabel('Time [sec]', fontsize=fs)
     ax[1].set_ylabel('Amplitude [a.u.]', fontsize=fs)
     ax[1].tick_params(axis='both', which='major', labelsize=fs - 2)
@@ -216,19 +221,16 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     ax[2].set_xlabel('Peak2Trough / Peak2Peak', fontsize=fs)
     ax[2].set_ylabel('Counts', fontsize=fs)
     ax[2].tick_params(axis='both', which='major', labelsize=fs - 2)
-    ax[2].set_title('Distribution of r-values', fontsize=fs + 2)
-
-    pass
+    ax[2].set_title('Distribution of peak-width versus peak interval ratios', fontsize=fs + 2)
 
 
-def plot_psd_proportion(freqs, power, proportions, percentiles, ax, fs, max_freq = 3000):
-    """
-    Makes a plot of what the rest of the modul is doing.
+def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
+                        ax, fs, max_freq = 3000):
+    """Visualizes the check_pulse_psd() algorithm.
 
     This function takes the frequency and power array of a powerspectrum as well as the calculated percentiles array
-    of the frequency bins (see: get_bin_percentiles()) and the proportions array calculated from these percentiles. With
-    all these arrays this function is plotting what the rest of the modul doing.
-
+    of the frequency bins (see: get_bin_percentiles()) and the proportions array calculated from these percentiles.
+    
     :param freqs:           (1-D array) frequency array of a psd.
     :param power:           (1-D array) power array of a psd.
     :param proportions:     (1-D array) proportions of the single psd bins.
@@ -238,6 +240,8 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, ax, fs, max_freq
     :param fs:              (int) fontsize for the plot.
     :param max_freq:        (float) maximum frequency that shall appear in the plot.
     """
+    f_type = 'pulse' if pulse_fish else 'wave'
+    ax.set_title('Suggested fish-type is %s' % f_type, fontsize=fs + 2)
     ax.plot(freqs[:int(max_freq / (freqs[-1] / len(freqs)))],
                 10.0 * np.log10(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
     for bin in range(len(proportions)):
@@ -286,21 +290,16 @@ if __name__ == "__main__":
     bwin_data, clip = bw.best_window(data, rate)
     psd_data = ps.multi_resolution_psd(bwin_data, rate)
 
-    # Draw Figure with subplots
-    fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
+    # draw figure with subplots:
+    fig1, ax1 = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
 
-    # run fish-type detector
-    type_suggestion, r_val = check_pulse_width(data, rate, plot_data_func=plot_width_period_ratio, ax=ax)
-
-    if len(sys.argv) >= 2:
-        filename = file_path.split('/')[-1]
-        f_type = 'pulse' if type_suggestion else 'wave'
-        title = 'Fish # %s is %s' % (filename, f_type)
-        fig = plt.gcf()
-        fig.canvas.set_window_title(title)
+    # run pulse-width-based detector:
+    pulse_fish, r_val = check_pulse_width(data, rate,
+                                          plot_data_func=plot_width_period_ratio, ax=ax1)
     plt.tight_layout()
 
     fig2, ax2 = plt.subplots()
-    psd_type, proportions = check_pulse_psd(psd_data[0], psd_data[1], verbose=1, plot_data_func=plot_psd_proportion, ax=ax2, fs=12)
+    psd_type, proportions = check_pulse_psd(psd_data[0], psd_data[1], verbose=1,
+                                            plot_data_func=plot_psd_proportion, ax=ax2, fs=12)
     plt.tight_layout()
     plt.show()
