@@ -260,35 +260,27 @@ if __name__ == "__main__":
     import sys
     import bestwindow as bw
     import powerspectrum as ps
+    import fakefish as ff
 
+    # generate data:
+    rate = 44100.0
     if len(sys.argv) < 2:
-        # generate data:
-        # ToDo: Make a parameter for the user to choose whether pulse- or wave-fish data should be generated!!
-        print("Generating artificial waveform...")
-        rate = 40000.0
-        time = np.arange(0.0, 10.0, 1. / rate)
-        f1 = 100.0
-        data0 = (0.5 * np.sin(2.0 * np.pi * f1 * time) + 0.5) ** 20.0
-        amf1 = 0.3
-        data1 = data0 * (1.0 - np.cos(2.0 * np.pi * amf1 * time))
-        data1 += 0.2
-        f2 = f1 * 2.0 * np.pi
-        data2 = 0.1 * np.sin(2.0 * np.pi * f2 * time)
-        amf3 = 0.15
-        data3 = data2 * (1.0 - np.cos(2.0 * np.pi * amf3 * time))
-        # data = data1+data3
-        data = data0
-        data += 0.01 * np.random.randn(len(data))
-
+        data = ff.generate_biphasic_pulses(80.0, rate, 8.0)
+    elif sys.argv[1] == '-w':
+        data = ff.generate_alepto(600.0, rate, 8.0)
+    elif sys.argv[1] == '-m':
+        data = ff.generate_monophasic_pulses(80.0, rate, 8.0)
+    elif sys.argv[1] == '-b':
+        data = ff.generate_biphasic_pulses(80.0, rate, 8.0)
+    elif sys.argv[1] == '-t':
+        data = ff.generate_triphasic_pulses(80.0, rate, 8.0)
     else:  # load data given by the user
         import dataloader as dl
 
         file_path = sys.argv[1]
         print("loading %s ...\n" % file_path)
-        data, rate, unit = dl.load_data(sys.argv[1], 0)
-
-    bwin_data, clip = bw.best_window(data, rate)
-    psd_data = ps.multi_resolution_psd(bwin_data, rate)
+        rawdata, rate, unit = dl.load_data(sys.argv[1], 0)
+        data, _ = bw.best_window(rawdata, rate)
 
     # draw figure with subplots:
     fig1, ax1 = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
@@ -299,6 +291,7 @@ if __name__ == "__main__":
     plt.tight_layout()
 
     fig2, ax2 = plt.subplots()
+    psd_data = ps.multi_resolution_psd(data, rate)
     psd_type, proportions = check_pulse_psd(psd_data[0], psd_data[1], verbose=1,
                                             plot_data_func=plot_psd_proportion, ax=ax2, fs=12)
     plt.tight_layout()
