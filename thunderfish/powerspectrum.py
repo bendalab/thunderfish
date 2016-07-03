@@ -60,7 +60,7 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
     :return:                    (2-D array) power and frequency.
     """
 
-    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, minn_nfft=16)
+    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=16)
     power, freqs = mlab.psd(data, NFFT=nfft, noverlap=noverlap, Fs=samplerate, detrend=detrend, window=window,
                             pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return np.asarray([np.squeeze(power), freqs])   # squeeze is necessary when nfft is to large with respect to the data
