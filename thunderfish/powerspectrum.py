@@ -6,8 +6,45 @@ import numpy as np
 import matplotlib.mlab as mlab
 
 
+def next_power_of_two(n):
+    """The next integer power of two for an arbitray number.
+    
+    :param n: (int or float) a positive number
+    :return: (int) the next integer power of two
+    """
+    return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))
+
+
+def nfft(freq_resolution, samplerate):
+    """The required number of points for an FFT to achieve a minimum frequency resolution.
+
+    :param freq_resolution: (float) the minimum required frequency resolution in Hertz.
+    :param samplerate: (float) the sampling rate of the data in Hert.
+    :return nfft: (int) the number of FFT points
+    """
+    return next_power_of_two(samplerate / fresolution)
+
+
+def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=0):
+    """The required number of points for an FFT to achieve a minimum frequency resolution
+    and the number of overlapping data points.
+
+    :param freq_resolution: (float) the minimum required frequency resolution in Hertz.
+    :param samplerate: (float) the sampling rate of the data in Hertz.
+    :param overlap_frac: (float) the fraction the FFT windows should overlap.
+    :param min_nfft: (int) the smallest value of nfft to be used.
+    :return nfft: (int) the number of FFT points.
+    :return noverlap: (int) the number of overlapping FFT points.
+    """
+    nfft = next_power_of_two(samplerate / freq_resolution)
+    if nfft < min_nfft:
+        nfft = min_nfft
+    noverlap = int(nfft * overlap_frac)
+    return nfft, noverlap
+
+
 def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
-        window=mlab.window_hanning, overlap=0.5, pad_to=None,
+        window=mlab.window_hanning, overlap_frac=0.5, pad_to=None,
         sides='default', scale_by_freq=None):
     """Power spectrum density of a given frequency resolution.
 
@@ -17,16 +54,13 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
     :param data:                (1-D array) data array you want to calculate a psd of.
     :param samplerate:          (float) sampling rate of the data in Hertz.
     :param fresolution:         (float) frequency resolution of the psd in Hertz.
-    :param overlap:             (float) fraction of overlap for the fft windows.
+    :param overlap_frac:             (float) fraction of overlap for the fft windows.
     See numpy.psd for the remaining parameter.
 
     :return:                    (2-D array) power and frequency.
     """
 
-    nfft = int(np.round(2 ** (np.floor(np.log(samplerate / fresolution) / np.log(2.0)) + 1.0)))
-    if nfft < 16:
-        nfft = 16
-    noverlap = int(nfft * overlap)
+    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, minn_nfft=16)
     power, freqs = mlab.psd(data, NFFT=nfft, noverlap=noverlap, Fs=samplerate, detrend=detrend, window=window,
                             pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return np.asarray([np.squeeze(power), freqs])   # squeeze is necessary when nfft is to large with respect to the data

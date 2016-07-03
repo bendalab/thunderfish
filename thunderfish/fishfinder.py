@@ -10,6 +10,7 @@ import matplotlib.mlab as ml
 import matplotlib.colors as mc
 import configfile as cf
 import dataloader as dl
+import powerspectrum as ps
 import harmonicgroups as hg
 import bestwindow as bw
 from audioio import PlayAudio, fade
@@ -285,6 +286,7 @@ class SignalPlot:
         nfft = int(np.round(2 ** (np.floor(np.log(self.samplerate / self.fresolution) / np.log(2.0)) + 1.0)))
         if nfft < 16:
             nfft = 16
+        nfft, noverlap = ps.nfft_noverlap(self.fresolution, self.samplerate, 0.5, 16)
         t00 = t0
         t11 = t1
         w = t11 - t00
@@ -298,7 +300,7 @@ class SignalPlot:
         if t00 < 0:
             t00 = 0
             t11 = w
-        power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=nfft / 2, Fs=self.samplerate, detrend=ml.detrend_mean)
+        power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=noverlap, Fs=self.samplerate, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
         self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = hg.harmonic_groups(
