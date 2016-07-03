@@ -109,7 +109,10 @@ class DataLoader(aio.AudioLoader):
         if type(key) is tuple:
             raise IndexError
         return super(DataLoader, self).__getitem__((key, self.channel))
-
+ 
+    def __next__(self):
+        return super(DataLoader, self).__next__()[self.channel]
+ 
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
         """Open data file for reading.
 

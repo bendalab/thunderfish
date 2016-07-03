@@ -22,6 +22,7 @@ import peakdetection as pkd
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
+                    min_ampl=-1.0, max_ampl=1.0,
                     plot_hist_func=None, **kwargs):
     """Find the amplitudes where the signal clips by looking at
     the histograms in data segements of win_indices length.
@@ -30,11 +31,13 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
 
     Args:
       data (array): 1-D array with the data.
-      win_indices: size of the analysis window in indices.
-      min_fac: if the first or the second bin is at least min_fac times
+      win_indices (int): size of the analysis window in indices.
+      min_fac (float): if the first or the second bin is at least min_fac times
         as large as the third bin, their upper bin edge is set as min_clip.
         Likewise for the last and next-to last bin.
-      nbins: number of bins used for computing a histogram
+      nbins (int): number of bins used for computing a histogram within min_ampl and max_ampl
+      min_ampl (float): minimum to be expected amplitude of the data
+      max_ampl (float): maximum to be expected amplitude of the data
       plot_hist_func(data, winx0, winx1, bins, h,
                      min_clip, max_clip, min_ampl, max_ampl, kwargs):
         function for visualizing the histograms, is called for every window.
@@ -55,8 +58,6 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
       max_clip : maximum amplitude that is not clipped.
     """
 
-    min_ampl = np.min(data)
-    max_ampl = np.max(data)
     min_clipa = min_ampl
     max_clipa = max_ampl
     bins = np.linspace(min_ampl, max_ampl, nbins, endpoint=True)
@@ -98,7 +99,8 @@ def plot_clipping(data, winx0, winx1, bins,
 
 
 def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
-                    window=1.0, min_fac=2.0, nbins=20):
+                    window=1.0, min_fac=2.0, nbins=20,
+                    min_ampl=-1.0, max_ampl=1.0):
     """ Add parameter needed for clip_amplitudes() as
     a new section to a configuration.
 
@@ -116,6 +118,8 @@ def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
     cfg.add('clipBins', nbins, '', 'Number of bins used for constructing histograms of signal amplitudes.')
     cfg.add('minClipFactor', min_fac, '',
             'Edge bins of the histogram of clipped signals have to be larger then their neighbors by this factor.')
+    cfg.add('minDataAmplitude', min_ampl, '', 'Minimum amplitude that is to be expected  in the data.')
+    cfg.add('maxDataAmplitude', max_ampl, '', 'Maximum amplitude that is to be expected  in the data.')
 
 
 def clip_args(cfg, rate):
@@ -130,7 +134,8 @@ def clip_args(cfg, rate):
     Returns:
       a (dict): dictionary with names of arguments of the clip_amplitudes() function and their values as supplied by cfg.
     """
-    a = cfg.map({'min_fac': 'minClipFactor', 'nbins': 'clipBins'})
+    a = cfg.map({'min_fac': 'minClipFactor', 'nbins': 'clipBins',
+                 'min_ampl': 'minDataAmplitude', 'max_ampl': 'maxDataAmplitude'})
     a['win_indices'] = int(cfg.value('clipWindow') * rate)
     return a
 
@@ -502,7 +507,6 @@ if __name__ == "__main__":
     min_clip_fac = 2.0
     min_clip, max_clip = clip_amplitudes(data, int(clip_win_size * rate),
                                          min_fac=min_clip_fac)
-    print min_clip, max_clip
     # min_clip, max_clip = clip_amplitudes(data, int(clip_win_size*rate),
     #                                      min_fac=min_clip_fac,
     #                                      plot_hist_func=plot_clipping)

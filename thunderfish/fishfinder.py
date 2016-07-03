@@ -810,9 +810,11 @@ if __name__ == '__main__':
     # TODO: add blocksize and backsize as configuration parameter!
     with dl.open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
         # plot:
-        sp = SignalPlot(data, data.samplerate, data.unit, filename, channel)
-    ## data, samplerate, unit = dl.load_data(filepath,  verbose=cfg['verboseLevel'][0])
-    ## sp = SignalPlot(data, samplerate, unit, filename, channel)
+        ## if len(data) < 10**8:
+        ##     # data[:].copy() makes bestwindow much faster (it's slow in peakdetection):
+        ##     SignalPlot(data[:].copy(), data.samplerate, data.unit, filename, channel)
+        ## else:
+        SignalPlot(data, data.samplerate, data.unit, filename, channel)
 
 
 ## data = data/2.0**15
