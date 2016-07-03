@@ -16,6 +16,7 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
     fig = plt.figure(facecolor='white', figsize=(12., 8.))
     ax1 = fig.add_subplot(2, 2, (3, 4))  # axis for the psd
     ax2 = fig.add_subplot(2, 2, 2)  # axis for the mean eod
+    # TODO: add axis at the top showing the whole trace and the best window
 
     # get config dictionary
     cfg = ct.get_config_dict()
@@ -26,7 +27,10 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
         return
 
     # calculate best_window:
-    data, clip = bw.best_window(raw_data, samplerate, single=True, win_size=4.0)
+    clip_win_size = 0.5
+    min_clip, max_clip = bw.clip_amplitudes(raw_data, int(clip_win_size * samplerate))
+    data, clip = bw.best_window(raw_data, samplerate, single=True, win_size=4.0,
+                                min_clip=min_clip, max_clip=max_clip)
 
     # pulse-type fish?
     pulse_fish_width, pta_value = chp.check_pulse_width(data, samplerate)
@@ -54,11 +58,12 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
     mean_eod, std_eod, time, eod_times = ea.eod_waveform(data, samplerate)
     period = np.mean(np.diff(eod_times))
     # TODO: analyse it!
+    # TODO: plot inter-peak interval histogram for pulse and wave fish, annotate with mean, standard deviation and CV.
 
     # plot waveform:
     ea.eod_waveform_plot(time, mean_eod, std_eod, ax2, unit=unit)
     ax2.set_xlim(-500*period, 500*period)  # half a period in milliseconds
-    # TODO: make this dependen on fish type!
+    # TODO: make xlim dependent on fish type!
 
     plt.tight_layout()
 
