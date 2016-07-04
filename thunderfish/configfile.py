@@ -120,8 +120,8 @@ class ConfigFile:
             a[dest] = self.value(src)
         return a
 
-    def dump(self, filename, header=None, maxline=60):
-        """Pretty print configuration into file.
+    def write(self, stream, header=None, maxline=60, comments=True):
+        """Pretty print configuration into stream.
 
         The description of a configuration parameter is printed out
         right before its key-value pair with an initial comment
@@ -136,58 +136,72 @@ class ConfigFile:
         formatted like the section titles.
 
         Args:
-            filename: The name of the file for writing the configuration.
+            stream: The stream for writing the configuration.
             header (string): A string that is written as an introductory comment into the file.
             maxline (int): Maximum number of characters that fit into a line.
+            comments (boolean): Print out descriptions as comments if True.
         """
 
-        def write_comment(f, comment, maxline, cs):
+        def write_comment(stream, comment, maxline, cs):
             # format comment:
             if len(comment) > 0:
                 for line in comment.split('\n'):
-                    f.write(cs + ' ')
+                    stream.write(cs + ' ')
                     cc = len(cs) + 1  # character count
                     for w in line.strip().split(' '):
                         # line too long?
                         if cc + len(w) > maxline:
-                            f.write('\n' + cs + ' ')
+                            stream.write('\n' + cs + ' ')
                             cc = len(cs) + 1
-                        f.write(w + ' ')
+                        stream.write(w + ' ')
                         cc += len(w) + 1
-                    f.write('\n')
+                    stream.write('\n')
 
+        if comments and header != None:
+            write_comment(stream, header, maxline, '##')
+        maxkey = 0
+        for key in self.cfg.keys():
+            if maxkey < len(key):
+                maxkey = len(key)
+        for key, v in self.cfg.items():
+            # possible section entry:
+            if comments and key in self.sections:
+                stream.write('\n\n')
+                write_comment(stream, self.sections[key], maxline, '##')
+
+            # get value, unit, and comment from v:
+            val = None
+            unit = ''
+            comment = ''
+            if hasattr(v, '__len__') and (not isinstance(v, str)):
+                val = v[0]
+                if len(v) > 1:
+                    unit = ' ' + v[1]
+                if len(v) > 2:
+                    comment = v[2]
+            else:
+                val = v
+
+            # write key-value pair:
+            if comments :
+                stream.write('\n')
+                write_comment(stream, comment, maxline, '#')
+            stream.write('{key:<{width}s}: {val}{unit:s}\n'.format(
+                key=key, width=maxkey, val=val, unit=unit))
+
+
+    def dump(self, filename, header=None, maxline=60, comments=True):
+        """Pretty print configuration into file.
+
+        See write() for more details.
+
+        Args:
+            filename: The name of the file for writing the configuration.
+        """
         with open(filename, 'w') as f:
-            if header != None:
-                write_comment(f, header, maxline, '##')
-            maxkey = 0
-            for key in self.cfg.keys():
-                if maxkey < len(key):
-                    maxkey = len(key)
-            for key, v in self.cfg.items():
-                # possible section entry:
-                if key in self.sections:
-                    f.write('\n\n')
-                    write_comment(f, self.sections[key], maxline, '##')
+            self.write(f, header, maxline, comments)
 
-                # get value, unit, and comment from v:
-                val = None
-                unit = ''
-                comment = ''
-                if hasattr(v, '__len__') and (not isinstance(v, str)):
-                    val = v[0]
-                    if len(v) > 1:
-                        unit = ' ' + v[1]
-                    if len(v) > 2:
-                        comment = v[2]
-                else:
-                    val = v
-
-                # next key-value pair:
-                f.write('\n')
-                write_comment(f, comment, maxline, '#')
-                f.write('{key:<{width}s}: {val}{unit:s}\n'.format(
-                    key=key, width=maxkey, val=val, unit=unit))
-
+            
     def load(self, filename):
         """Set values of configuration to values from key-value pairs read in
         from file.
@@ -244,13 +258,13 @@ class ConfigFile:
 
         # load configuration files from higher directories:
         absfilepath = os.path.abspath(filepath)
-        dirs = os.path.dirname(absfilepath).split('/')
+        dirs = os.path.dirname(absfilepath).split(os.sep)
         dirs.append('')
         ml = len(dirs) - 1
         if ml > maxlevel:
             ml = maxlevel
-        for k in xrange(ml, 0, -1):
-            path = '/'.join(dirs[:-k]) + '/' + cfgfile
+        for k in range(ml, 0, -1):
+            path = os.path.join(*(dirs[:-k] + [cfgfile]))
             if os.path.isfile(path):
                 print('load configuration %s' % path)
                 self.load(path)

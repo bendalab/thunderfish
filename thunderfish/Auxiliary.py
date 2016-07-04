@@ -1,10 +1,10 @@
 __author__ = 'juan'
-# Imports
+
+import sys
 import os
 import numpy as np
-import wave
 import matplotlib.pyplot as plt
-import sys
+import wave
 from scipy.signal import butter, filtfilt
 
 
@@ -196,14 +196,14 @@ def conv_to_single_ch_audio(audiofile):
     :param audiofile: sound-file that was recorded
     """
 
-    base, ext = os.path.splitext(audiofile)
-    base = base.split('/')[-1]
+    base, ext = os.path.splitext(os.path.basename(audiofile))
     new_mod_filename = 'recording_' + base + '_mod.wav'
     os.system('avconv -i {0:s} -ac 1 -y -acodec pcm_s16le {1:s}'.format(audiofile, new_mod_filename))
     return new_mod_filename
 
 
 def create_outp_folder(filepath, out_path='.'):
+    # What the heck is going on here? Document it and use os.path functions! No '/'!!!
     field_folder = '/'.join(filepath.split('.')[-2].split('/')[-3:-1])
 
     paths = {1: out_path, 2: field_folder}

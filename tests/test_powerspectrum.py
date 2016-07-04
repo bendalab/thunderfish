@@ -11,7 +11,7 @@ def test_powerspectrum():
     data = np.sin(time * 2 * np.pi * fundamental)
 
     # run multi_resolution_psd with 2 fresolutions (list)
-    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 1], verbose=1)
+    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 1])
 
     # test the results
     assert_equal(round(psd_data[0][1][np.argmax(psd_data[0][0])]), fundamental, 'peak in PSD is not the fundamental '
@@ -19,7 +19,7 @@ def test_powerspectrum():
     assert_equal(round(psd_data[1][1][np.argmax(psd_data[1][0])]), fundamental, 'peak in PSD is not the fundamental '
                                                                                    'frequency given.')
     # run multi_resolution_psd with 1 fresolutions (float)
-    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=0.5, verbose=0)
+    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=0.5)
 
     # test the result
     assert_equal(round(psd_data[1][np.argmax(psd_data[0])]), fundamental, 'peak in PSD is not the fundamental '

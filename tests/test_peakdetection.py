@@ -1,4 +1,4 @@
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_equal, assert_almost_equal
 import numpy as np
 import thunderfish.peakdetection as pd
 
@@ -170,6 +170,21 @@ def test_detect_dynamic_peaks():
                 "detect_dynamic_peaks(data, threshold, time, accept_peak_size_threshold) did not correctly detect troughs")
 
 
+def test_thresholds():
+    # generate data:
+    data = np.random.randn(10000)
+    std_th = pd.std_threshold(data, th_factor=1.0)
+    prc_th = pd.percentile_threshold(data, th_factor=1.0, percentile=16.0)
+    assert_almost_equal(std_th, 1.0, 1, 'std_threshold %g esimate failed' % std_th)
+    assert_almost_equal(prc_th, 2.0, 1, 'percentile_threshold %g esimate failed' % prc_th)
+    time = np.arange(0.0, 10.0, 0.01)
+    data = np.sin(2.0*np.pi*21.7*time)
+    mm_th = pd.minmax_threshold(data, th_factor=1.0)
+    assert_almost_equal(mm_th, 2.0, 2, 'minmax_threshold %g esimate failed' % mm_th)
+    prc_th = pd.percentile_threshold(data, th_factor=1.0, percentile=0.1)
+    assert_almost_equal(prc_th, 2.0, 1, 'percentile_threshold %g esimate failed' % prc_th)
+
+
 def test_trim():
     # generate peak and trough indices (same length, peaks first):
     pt_indices = np.random.randint(5, 1000, size=40)
@@ -205,7 +220,7 @@ def test_trim():
     assert_true(len(t_inx) == len(trough_indices[:-3]) and np.all(t_inx == trough_indices[:-3]),
                 "trim(peak_indices[1:-2], trough_indices) failed on troughs")
 
-
+    
 def test_trim_to_peak():
     # generate peak and trough indices (same length, peaks first):
     pt_indices = np.random.randint(5, 1000, size=40)
@@ -269,7 +284,5 @@ def test_trim_closest():
                 "trim_closest(peak_indices, peak_indices+5) failed on troughs")
 
     p_inx, t_inx = pd.trim_closest(np.array([]), np.array([]))
-    assert_true(len(p_inx) == 0,
-                "trim_closest([], []) failed on peaks")
-    assert_true(len(t_inx) == 0,
-                "trim_closest([], []) failed on troughs")
+    assert_equal(len(p_inx), 0, "trim_closest([], []) failed on peaks")
+    assert_equal(len(t_inx), 0, "trim_closest([], []) failed on troughs")

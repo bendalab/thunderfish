@@ -33,6 +33,7 @@ def test_best_window():
     # clipping:
     clip_win_size = 0.5
     min_clip, max_clip = bw.clip_amplitudes(data, int(clip_win_size * rate),
+                                            min_ampl=-1.3, max_ampl=1.3,
                                             min_fac=2.0, nbins=40)
 
     assert_true(min_clip <= -0.8 * clip and min_clip >= -clip,
