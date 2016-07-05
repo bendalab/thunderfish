@@ -1,18 +1,25 @@
+"""
+Functions to compare fishlists created by the harmonicgroups.py module in order to create a create a fishlist with only
+these fishes available in all fishlists.
+
+consistent_fishes(): Compares a list of fishlists and builds a consistent fishlist.
+"""
+
 import numpy as np
 import harmonicgroups as hg
 
 
 def find_consistency(fundamentals, df_th=1.):
     """
-    Compares several lists to find values that are, with a certain threshhold, available in every list.
+    Compares lists of floats to find these values consistent in every list. (with a certain threshold)
 
-    This function gets a list of lists conatining values as input. For every value in the first list this function is
-    looking in the other lists if there is a entry with the same value +- threshold. The vector consistancy_help
-    has the length of the first list of fundamentals and it's entries are all ones. When a value from the first list is
-    also available in another list this function adds 1 to that particular entry in the consostany_help vector. After
-    comparina all values from the first list with all values of the other lists the consostancy_help vector got values
-    between 1 and len(fundamentals). The indices where this vector is equal to len(fundamentals) are also the indices of
-    fishes in the first fishlist that are available in every fishlist.
+    Every value of the first list is compared to the values of the other lists. The consistency_help array consists in
+    the beginning of ones, has the same length as the first list and is used to keep the information about values that
+    are available in several lists. If the difference between a value of the first list and a value of another list is
+    below the threshold the entry of the consistency_help array is added 1 to at the index of the value in the value in
+    the first list. The indices of the consistency_help array that are equal to the amount of lists compared are the
+    indices of the values of the first list that are consistent in all lists. The consistent value array and the indices
+    are returned.
 
 
     :param fundamentals:    (2-D array) list of lists containing the fundamentals of a fishlist.
@@ -38,7 +45,7 @@ def find_consistency(fundamentals, df_th=1.):
 
 def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     """
-    Creates an axis for plotting to visualize what this modul did.
+    Creates an axis for plotting all lists and the consistent values marked with a bar.
 
     :param filtered_fishlist: (3-D array) Contains power and frequency of these fishes that hve been detected in
                             several powerspectra using different resolutions.
@@ -66,8 +73,9 @@ def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
 
 def consistent_fishes_psd_plot(filtered_fishlist, ax):
     """
-    This function can be passed to the consistent fishes plot as plot_data_func. It's purpose is to plot the four most
-    powerfull fundamental frequencies into a powerspectrum plot.
+    Creates an axis for plotting the power of the four most powerful detected fishes with its fundamental and harmonics.
+
+    The axis passed to this function should already contain the plotted power-spectrum in dB.
 
     :param filtered_fishlist: (3-D array) Contains power and frequency of these fishes that hve been detected in
                             several powerspectra using different resolutions.
@@ -89,8 +97,10 @@ def consistent_fishes_psd_plot(filtered_fishlist, ax):
 
 def consistent_fishes(fishlists, verbose=0, plot_data_func=None, **kwargs):
     """
-    This function gets several fishlists, compares them, and gives back one fishlist that only contains these fishes
-    that are available in every given fishlist. This is the main function that calls the other functions in the code.
+    Compares several fishlists to create a fishlist only containing these fishes present in all these fishlists.
+
+    Therefore several functions are used to first extract the fundamental frequencies of every fish in each fishlist,
+    before comparing them and building a fishlist only containing these fishes present in all fishlists.
 
     :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
                             fishlists[fishlist][fish][harmonic][frequency, power]
