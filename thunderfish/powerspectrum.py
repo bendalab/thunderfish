@@ -73,10 +73,9 @@ def plot_decibel_psd(power, freqs, ax, max_freq=3000, fs=12, color='blue', alpha
     decibel_psd = power.copy()
     decibel_psd[decibel_psd < 1e-20] = np.nan
     decibel_psd[decibel_psd >= 1e-20] = 10.0 * np.log10(decibel_psd[decibel_psd >= 1e-20])
-    ax.plot(freqs, decibel_psd, color=color, alpha=alpha)
+    ax.plot(freqs[freqs < max_freq], decibel_psd[freqs < max_freq], color=color, alpha=alpha)
     ax.set_ylabel('Power [dB]', fontsize=fs)
     ax.set_xlabel('Frequency [Hz]', fontsize=fs)
-    ax.set_xlim([0, max_freq])
 
 
 def multi_resolution_psd(data, samplerate, fresolution=0.5,
