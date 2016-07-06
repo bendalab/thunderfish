@@ -1,5 +1,8 @@
 """
+Functions to calculate a powerspectrum o n the basis of a given dataset, a given samplingrate and a given
+frequencyresolution for the psd.
 
+multi_resolution_psd(): Performs the steps to calculate a powerspectrum.
 """
 
 import numpy as np
@@ -13,16 +16,6 @@ def next_power_of_two(n):
     :return: (int) the next integer power of two
     """
     return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))
-
-
-def nfft(freq_resolution, samplerate):
-    """The required number of points for an FFT to achieve a minimum frequency resolution.
-
-    :param freq_resolution: (float) the minimum required frequency resolution in Hertz.
-    :param samplerate: (float) the sampling rate of the data in Hert.
-    :return nfft: (int) the number of FFT points
-    """
-    return next_power_of_two(samplerate / fresolution)
 
 
 def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=0):
@@ -48,8 +41,7 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
         sides='default', scale_by_freq=None):
     """Power spectrum density of a given frequency resolution.
 
-    From the requested frequency resolution and the samplerate
-    nfft is computed.
+    From the requested frequency resolution and the samplerate nfft is computed.
     
     :param data:                (1-D array) data array you want to calculate a psd of.
     :param samplerate:          (float) sampling rate of the data in Hertz.
@@ -68,7 +60,7 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
 
 def plot_decibel_psd(power, freqs, ax, max_freq=3000, fs=12, color='blue', alpha=1.):
     """
-    Plots a powerspectum in decibel.
+    Plots the powerspectum in decibel.
 
     :param power:               (1-D array) power array of a psd.
     :param freqs:               (1-D array) frequency array of a psd.
@@ -81,19 +73,20 @@ def plot_decibel_psd(power, freqs, ax, max_freq=3000, fs=12, color='blue', alpha
     decibel_psd = power.copy()
     decibel_psd[decibel_psd < 1e-20] = np.nan
     decibel_psd[decibel_psd >= 1e-20] = 10.0 * np.log10(decibel_psd[decibel_psd >= 1e-20])
-    ax.plot(freqs, decibel_psd, color=color, alpha=alpha)
+    ax.plot(freqs[freqs < max_freq], decibel_psd[freqs < max_freq], color=color, alpha=alpha)
     ax.set_ylabel('Power [dB]', fontsize=fs)
     ax.set_xlabel('Frequency [Hz]', fontsize=fs)
-    ax.set_xlim([0, max_freq])
 
 
 def multi_resolution_psd(data, samplerate, fresolution=0.5,
                          detrend=mlab.detrend_none, window=mlab.window_hanning,
                          overlap=0.5, pad_to=None, sides='default',
                          scale_by_freq=None):
-    """This function is performing the steps to calculate a powerspectrum on the basis of a given dataset, a given
-    samplingrate and a given frequencyresolution for the psd. Therefore two other functions are called to first
-    calculate the nfft value and second calculate the powerspectrum.
+    """Performs the steps to calculate a powerspectrum on the basis of a given dataset, a given samplingrate and a given
+    frequencyresolution for the psd.
+
+    Two other functions are called to first calculate the nfft value and second calculate the powerspectrum. The given
+    frequencyresolution can be a float or a list/array of floats.
 
     (for further argument information see numpy.psd documentation)
     :param data:                (1-D array) data array you want to calculate a psd of.

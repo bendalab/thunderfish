@@ -1,14 +1,23 @@
+"""
+Detects EODs in a given dataset and computes their mean waveform.
+
+eod_waveform(): calculates a mean EOD of a given dataset.
+"""
+
 import numpy as np
 import peakdetection as pkd
 
 
 def eod_waveform(data, samplerate, th_factor=0.8, percentile=0.1, start=None, stop=None):
-    """Detects EODs in the given data and computes their mean waveform.
+    """Detects EODs in the given data, extracts data snippets around each EOD and computes a mean waveform with standard
+    deviation.
 
     :param data: (1-D array) the data to be analysed.
     :param samplerate: (float) samplerate of the data in Hertz.
-    :param percentile: (int). percentile parameter for the peakdetection.percentile_threshold() function used to estimate thresholds for detecting EOD peaks in the data.
-    :param th_factor: (float). th_factor parameter for the peakdetection.percentile_threshold() function used to estimate thresholds for detecting EOD peaks in the data.
+    :param percentile: (int). percentile parameter for the peakdetection.percentile_threshold() function used to
+    estimate thresholds for detecting EOD peaks in the data.
+    :param th_factor: (float). th_factor parameter for the peakdetection.percentile_threshold() function used to
+    estimate thresholds for detecting EOD peaks in the data.
     :param start: (float or None) start time of EOD snippets relative to peak.
     :param stop: (float or None) stop time of EOD snippets relative to peak.
     :return mean_eod (1-D array) Average of the EOD snippets.
@@ -64,6 +73,7 @@ def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.'):
     ax.set_xlabel('Time [msec]')
     ax.set_ylabel('Amplitude [%s]' % unit)
     ax.set_xlim(1000.0*min(time), max(1000.0*time))
+    ax.legend(loc='upper right', frameon=False)
 
 
 if __name__ == '__main__':
