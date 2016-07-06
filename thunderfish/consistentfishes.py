@@ -71,7 +71,7 @@ def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     ax.set_xlabel('list no.', fontsize=fs)
 
 
-def consistent_fishes_psd_plot(filtered_fishlist, ax):
+def consistent_fishes_psd_plot(filtered_fishlist, ax, max_freq= 3000):
     """
     Creates an axis for plotting the power of the four most powerful detected fishes with its fundamental and harmonics.
 
@@ -91,7 +91,7 @@ def consistent_fishes_psd_plot(filtered_fishlist, ax):
         x = np.array([filtered_fishlist[fish][harmonic][0] for harmonic in range(len(filtered_fishlist[fish]))])
         y = np.array([filtered_fishlist[fish][harmonic][1] for harmonic in range(len(filtered_fishlist[fish]))])
         y[y < 1e-20] = np.nan
-        ax.plot(x, 10.0 * np.log10(y), 'o', markersize=8, label='%.1f' % filtered_fishlist[fish][0][0])
+        ax.plot(x[x < max_freq], 10.0 * np.log10(y[x < max_freq]), 'o', markersize=8, label='%.1f' % filtered_fishlist[fish][0][0])
         ax.legend(loc='upper right', frameon=False, numpoints=1)
 
 
