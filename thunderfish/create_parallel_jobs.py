@@ -3,6 +3,7 @@ __author__ = 'juan'
 import numpy as np
 import glob
 import sys
+import os
 
 if __name__ == '__main__':
 
@@ -15,7 +16,7 @@ if __name__ == '__main__':
     job_name = 'parallel_jobs_for_' + folders[-2] + '_' + folders[-1] + '.txt'
 
     rec_dir = sys.argv[1]
-    rec_files = glob.glob(os.path.join(rec_dir, '*')
+    rec_files = glob.glob(os.path.join(rec_dir, '*'))
     
     task_list = ['python thunderfish.py ' + e for e in rec_files]
     if len(task_list) > 0:
