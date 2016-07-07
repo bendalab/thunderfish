@@ -127,6 +127,7 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, mean_IP
     ax6.set_ylabel('n')
     ax6.legend(loc= 'upper right', frameon=False)
 
+    # cosmetics
     for ax in [ax2, ax3, ax4, ax6]:
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
@@ -151,8 +152,8 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
     # calculate best_window:
     clip_win_size = 0.5
     min_clip, max_clip = bw.clip_amplitudes(raw_data, int(clip_win_size * samplerate))
-    idx0, idx1, clipped = bw.best_window_indices(raw_data, samplerate, single=True, win_size=4.0, min_clip=min_clip,
-                                                 max_clip=max_clip)
+    idx0, idx1, clipped = bw.best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
+                                                 max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
     data = raw_data[idx0:idx1]
 
     # pulse-type fish?
@@ -177,7 +178,7 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
         filtered_fishlist = []
 
     # analyse eod waveform:
-    mean_eod, std_eod, time, eod_times = ea.eod_waveform(data, samplerate)
+    mean_eod, std_eod, time, eod_times = ea.eod_waveform(data, samplerate, th_factor=0.6)
     period = np.mean(np.diff(eod_times))
 
     # inter-peal interval
