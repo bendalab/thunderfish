@@ -11,8 +11,9 @@ import eodanalysis as ea
 import matplotlib.pyplot as plt
 
 
-def output_plot(axs, audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, mean_IPI, inter_eod_intervals, std_IPI,
-                raw_data, samplerate, idx0, idx1, filtered_fishlist, period):
+def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, mean_IPI, inter_eod_intervals, std_IPI,
+                raw_data, samplerate, idx0, idx1, filtered_fishlist, period, time_eod, mean_eod, std_eod, unit,
+                psd_data):
     """
     Creates an output plot for the Thunderfish program.
 
@@ -34,29 +35,54 @@ def output_plot(axs, audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, me
     :param idx1: (float) index of the end of the analysis window in the dataset.
     :param filtered_fishlist: (array) frequency and power of fundamental frequency/harmonics of several fish.
     :param period: (float) mean EOD time difference.
+    :param time_eod: (array) time for the mean EOD plot.
+    :param mean_eod: (array) mean array of EODs
+    :param std_eod: (array) standard deviation array of EODs
+    :param unit: (string) unit of the trace and the mean EOD
+    :param psd_data: (array) power spectrum of the analysed data for different frequency resolutions.
     """
-    # ToDo: Transfer everything needed for every plot into this function !!!
-    # plot inter EOD interval histogram
-    n, edges = np.histogram(inter_eod_intervals, bins=100)
+    fig = plt.figure(facecolor='white', figsize=(18., 10.))
+    ax1 = plt.subplot2grid((5, 6), (0, 0), colspan=6) # title
+    ax2 = plt.subplot2grid((5, 6), (1, 0), rowspan=2, colspan=3) # trace
+    ax3 = plt.subplot2grid((5, 6), (1, 3), rowspan=2, colspan=3) # psd
+    ax4 = plt.subplot2grid((5, 6), (3, 0), rowspan=2, colspan=2) # mean eod
+    ax5 = plt.subplot2grid((5, 6), (3, 2), rowspan=2, colspan=2) # meta data
+    ax6 = plt.subplot2grid((5, 6), (3, 4), rowspan=2, colspan=2) # inter EOD histogram
 
-    axs[3].bar(edges[:-1], n, edges[1]-edges[0])
-    axs[3].plot([mean_IPI, mean_IPI], [0, max(n)], '--', color= 'red', lw=2, label='mean')
-    axs[3].plot([mean_IPI - std_IPI, mean_IPI - std_IPI], [0, max(n)], '--', color= 'green', lw=2, label='std')
-    axs[3].plot([mean_IPI + std_IPI, mean_IPI + std_IPI], [0, max(n)], '--', color= 'green', lw=2)
-    axs[3].set_xlabel('inter EOD interval [ms]')
-    axs[3].set_ylabel('n')
-    axs[3].legend(loc= 'upper right', frameon=False)
+    # plot title
+    filename = audio_file.split('/')[-1]
+    ax1.text(0.5, 0.5, 'Thunderfish: %s' % filename, fontsize=30, horizontalalignment='center')
+    ax1.set_frame_on(False)
+    ax1.get_xaxis().set_visible(False)
+    ax1.get_yaxis().set_visible(False)
+    ############
 
     # plot trace
     time = np.arange(len(raw_data)) / samplerate
+    ax2.plot(time[:idx0], raw_data[:idx0], color='blue')
+    ax2.plot(time[idx1:], raw_data[idx1:], color='blue')
+    ax2.plot(time[idx0:idx1], raw_data[idx0:idx1], color='red', label='analysis window')
+    ax2.set_xlabel('Time [sec]')
+    ax2.set_ylabel('Amplitude [a.u.]')
+    ax2.legend(loc='upper right', frameon=False)
+    ############
 
-    axs[2].plot(time[:idx0], raw_data[:idx0], color='blue')
-    axs[2].plot(time[idx1:], raw_data[idx1:], color='blue')
-    axs[2].plot(time[idx0:idx1], raw_data[idx0:idx1], color='red', label='analysis window')
-    axs[2].set_xlabel('Time [sec]')
-    axs[2].set_ylabel('Amplitude [a.u.]')
-    axs[2].legend(loc='upper right', frameon=False)
+    # plot psd
+    ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax3, fs=12)
+    if not pulse_fish_width and not pulse_fish_psd:
+        cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax3)
+    ##########
 
+    # plot mean EOD
+    ea.eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
+    if not pulse_fish_width and not pulse_fish_psd:
+        ax4.set_xlim([-600 * period, 600 * period])  # half a period in milliseconds
+    else:
+        ax4.set_xlim([-100 * period, 100 * period])  # half a period in milliseconds
+    # TODO: make xlim dependent on fish type!
+    ###############
+
+    # plot meta data
     try:
         dom_freq = filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][0]
         fish_count = len(filtered_fishlist)
@@ -64,42 +90,48 @@ def output_plot(axs, audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, me
         dom_freq = 1./ period
         fish_count = 1
 
-    filename = audio_file.split('/')[-1]
-    ax5 = plt.subplot2grid((5, 6), (0, 0), colspan=6)
-    ax5.text(0.5, 0.5, 'Thunderfish: %s' % filename, fontsize= 30, horizontalalignment='center')
     ax5.set_frame_on(False)
     ax5.get_xaxis().set_visible(False)
     ax5.get_yaxis().set_visible(False)
-    for ax in axs:
+
+    fishtype = 'pulse' if pulse_fish_width and pulse_fish_psd else 'wave'
+    ax5.text(0.1, 0.9, 'fishtype:', fontsize=14)
+    ax5.text(0.6, 0.9, '%s' %fishtype, fontsize=14)
+
+    ax5.text(0.1, 0.7, '# detected fish:', fontsize=14)
+    ax5.text(0.6, 0.7, '%.0f' % fish_count, fontsize=14)
+
+    if fishtype is 'wave':
+        ax5.text(0.1, 0.5, 'dominant frequency:', fontsize=14)
+        ax5.text(0.6, 0.5, '%.1f Hz' % dom_freq, fontsize=14)
+    else:
+        ax5.text(0.1, 0.5, 'Mean pulse frequency:', fontsize=14)
+        ax5.text(0.6, 0.5, '%.1f Hz' % dom_freq, fontsize=14)
+
+    ax5.text(0.1, 0.3, '# detected EODs:', fontsize=14)
+    ax5.text(0.6, 0.3, '%.0f' %EOD_count, fontsize=14)
+
+    ax5.text(0.1, 0.1, 'mean EOD interval:', fontsize=14)
+    ax5.text(0.6, 0.1, '%.2f ms' %mean_IPI, fontsize=14)
+
+    ################
+
+    # plot inter EOD interval histogram
+    n, edges = np.histogram(inter_eod_intervals, bins=100)
+
+    ax6.bar(edges[:-1], n, edges[1]-edges[0])
+    ax6.plot([mean_IPI, mean_IPI], [0, max(n)], '--', color= 'red', lw=2, label='mean')
+    ax6.plot([mean_IPI - std_IPI, mean_IPI - std_IPI], [0, max(n)], '--', color= 'green', lw=2, label='std')
+    ax6.plot([mean_IPI + std_IPI, mean_IPI + std_IPI], [0, max(n)], '--', color= 'green', lw=2)
+    ax6.set_xlabel('inter EOD interval [ms]')
+    ax6.set_ylabel('n')
+    ax6.legend(loc= 'upper right', frameon=False)
+
+    for ax in [ax2, ax3, ax4, ax6]:
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
-
-    ax6 = plt.subplot2grid((5, 6), (3, 2), colspan=2, rowspan=2)
-    ax6.set_frame_on(False)
-    ax6.get_xaxis().set_visible(False)
-    ax6.get_yaxis().set_visible(False)
-
-    fishtype = 'pulse' if pulse_fish_width and pulse_fish_psd else 'wave'
-    ax6.text(0.1, 0.9, 'fishtype:', fontsize=14)
-    ax6.text(0.6, 0.9, '%s' %fishtype, fontsize=14)
-
-    ax6.text(0.1, 0.7, '# detected fish:', fontsize=14)
-    ax6.text(0.6, 0.7, '%.0f' % fish_count, fontsize=14)
-
-    if fishtype is 'wave':
-        ax6.text(0.1, 0.5, 'dominant frequency:', fontsize=14)
-        ax6.text(0.6, 0.5, '%.1f Hz' % dom_freq, fontsize=14)
-    else:
-        ax6.text(0.1, 0.5, 'Mean pulse frequency:', fontsize=14)
-        ax6.text(0.6, 0.5, '%.1f Hz' % dom_freq, fontsize=14)
-
-    ax6.text(0.1, 0.3, '# detected EODs:', fontsize=14)
-    ax6.text(0.6, 0.3, '%.0f' %EOD_count, fontsize=14)
-
-    ax6.text(0.1, 0.1, 'mean EOD interval:', fontsize=14)
-    ax6.text(0.6, 0.1, '%.2f ms' %mean_IPI, fontsize=14)
 
     plt.tight_layout()
 
@@ -108,12 +140,6 @@ def output_plot(axs, audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, me
 
 
 def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
-    fig = plt.figure(facecolor='white', figsize=(18., 10.))
-    ax1 = plt.subplot2grid((5, 6), (1, 3), colspan=3, rowspan=2)
-    ax2 = plt.subplot2grid((5, 6), (3, 0), colspan=2, rowspan=2)
-    ax3 = plt.subplot2grid((5, 6), (1, 0), colspan=3, rowspan=2)
-    ax4 = plt.subplot2grid((5, 6), (3, 4), colspan=2, rowspan=2)
-
     # get config dictionary
     cfg = ct.get_config_dict()
 
@@ -134,7 +160,6 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
 
     # calculate powerspectrums with different frequency resolutions
     psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
-    ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax1, fs=12)
 
     # find the fishes in the different powerspectrums:
     fishlists = []
@@ -148,7 +173,6 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
     # filter the different fishlists to get a fishlist with consistent fishes:
     if not pulse_fish_width and not pulse_fish_psd:
         filtered_fishlist = cf.consistent_fishes(fishlists)
-        cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax1)
     else:
         filtered_fishlist = []
 
@@ -161,14 +185,9 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
     mean_IPI = np.mean(inter_peak_intervals)
     std_IPI = np.std(inter_peak_intervals, ddof=1)
 
-    ### PLOTTING ###
-    # plot waveform:
-    ea.eod_waveform_plot(time, mean_eod, std_eod, ax2, unit=unit)
-    ax2.set_xlim([-500*period, 500*period])  # half a period in milliseconds
-    # TODO: make xlim dependent on fish type!
-
-    output_plot([ax1, ax2, ax3, ax4], audio_file, pulse_fish_width, pulse_fish_psd, len(eod_times), mean_IPI,
-                inter_peak_intervals, std_IPI, raw_data, samplerate, idx0, idx1, filtered_fishlist, period)
+    output_plot(audio_file, pulse_fish_width, pulse_fish_psd, len(eod_times), mean_IPI,
+                inter_peak_intervals, std_IPI, raw_data, samplerate, idx0, idx1, filtered_fishlist, period, time,
+                mean_eod, std_eod, unit, psd_data)
 
 
 if __name__ == '__main__':
