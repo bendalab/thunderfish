@@ -11,7 +11,7 @@ import eodanalysis as ea
 import matplotlib.pyplot as plt
 
 
-def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, mean_IPI, inter_eod_intervals, std_IPI,
+def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_IPI, inter_eod_intervals,
                 raw_data, samplerate, idx0, idx1, filtered_fishlist, period, time_eod, mean_eod, std_eod, unit,
                 psd_data):
     """
@@ -111,20 +111,24 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, mean_IP
     ax5.text(0.1, 0.3, '# detected EODs:', fontsize=14)
     ax5.text(0.6, 0.3, '%.0f' %EOD_count, fontsize=14)
 
-    ax5.text(0.1, 0.1, 'mean EOD interval:', fontsize=14)
-    ax5.text(0.6, 0.1, '%.2f ms' %mean_IPI, fontsize=14)
+    ax5.text(0.1, 0.1, 'median EOD interval:', fontsize=14)
+    ax5.text(0.6, 0.1, '%.2f ms' %median_IPI, fontsize=14)
 
     ################
 
     # plot inter EOD interval histogram
-    n, edges = np.histogram(inter_eod_intervals, bins=100)
+    tmp_period = 1000. / dom_freq
+    tmp_period = tmp_period - tmp_period % 0.05
+    n, edges = np.histogram(inter_eod_intervals, bins=np.arange(tmp_period - 5., tmp_period + 5., 0.05))
 
-    ax6.bar(edges[:-1], n, edges[1]-edges[0])
-    ax6.plot([mean_IPI, mean_IPI], [0, max(n)], '--', color= 'red', lw=2, label='mean')
-    ax6.plot([mean_IPI - std_IPI, mean_IPI - std_IPI], [0, max(n)], '--', color= 'green', lw=2, label='std')
-    ax6.plot([mean_IPI + std_IPI, mean_IPI + std_IPI], [0, max(n)], '--', color= 'green', lw=2)
+    ax6.bar(edges[:-1], n, edges[1]-edges[0]-0.001)
+    ax6.plot([median_IPI, median_IPI], [0, max(n)], '--', color= 'red', lw=2, label='median %.2f ms' % median_IPI)
     ax6.set_xlabel('inter EOD interval [ms]')
     ax6.set_ylabel('n')
+
+    if max(inter_eod_intervals) - min(inter_eod_intervals) < 1.:
+        ax6.set_xlim([median_IPI-0.5, median_IPI+0.5])
+    # ax6.set_xlim([0, 20])
     ax6.legend(loc= 'upper right', frameon=False)
 
     # cosmetics
@@ -183,12 +187,21 @@ def main(audio_file, channel=0, output_folder='', beat_plot=False, verbose=0):
 
     # inter-peal interval
     inter_peak_intervals = np.diff(eod_times)* 1000. # in ms
-    mean_IPI = np.mean(inter_peak_intervals)
-    std_IPI = np.std(inter_peak_intervals, ddof=1)
 
-    output_plot(audio_file, pulse_fish_width, pulse_fish_psd, len(eod_times), mean_IPI,
-                inter_peak_intervals, std_IPI, raw_data, samplerate, idx0, idx1, filtered_fishlist, period, time,
-                mean_eod, std_eod, unit, psd_data)
+    def notoutlier(x, p_th=1):
+        if x > np.percentile(inter_peak_intervals, p_th) and x < np.percentile(inter_peak_intervals, 100-p_th):
+            return True
+        else:
+            return False
+
+    inter_eod_intervals = np.array([inter_eod_interval for inter_eod_interval in inter_peak_intervals if
+                                    notoutlier(inter_eod_interval)])
+
+    median_IPI = np.median(inter_eod_intervals)
+    std_IPI = np.std(inter_eod_intervals, ddof=1)
+
+    output_plot(audio_file, pulse_fish_width, pulse_fish_psd, len(eod_times), median_IPI, inter_eod_intervals, raw_data,
+                samplerate, idx0, idx1, filtered_fishlist, period, time, mean_eod, std_eod, unit, psd_data)
 
 
 if __name__ == '__main__':
