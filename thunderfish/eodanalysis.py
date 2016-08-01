@@ -72,7 +72,6 @@ def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.'):
                     color='grey', alpha=0.3)
     ax.set_xlabel('Time [msec]')
     ax.set_ylabel('Amplitude [%s]' % unit)
-    ax.set_xlim(1000.0*min(time), max(1000.0*time))
     ax.legend(loc='upper right', frameon=False)
 
 
