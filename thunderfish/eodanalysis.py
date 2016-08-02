@@ -67,12 +67,11 @@ def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.'):
     :param ax: (axis for plot).
     :param unit: (string) Unit of the data.
     """
-    ax.plot(1000.0*time, mean_eod, lw=2, color='r', label='mean EOD')
+    ax.plot(1000.0*time, mean_eod, lw=2, color='r')
     ax.fill_between(1000.0*time, mean_eod + std_eod, mean_eod - std_eod,
                     color='grey', alpha=0.3)
     ax.set_xlabel('Time [msec]')
     ax.set_ylabel('Amplitude [%s]' % unit)
-    ax.legend(loc='upper right', frameon=False)
 
 
 if __name__ == '__main__':
