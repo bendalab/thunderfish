@@ -54,7 +54,13 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
 
     # plot title
     filepath, filename = os.path.split(audio_file)
-    ax1.text(0.5, 0.5, 'Thunderfish: %s' % filename, fontsize=30, horizontalalignment='center')
+    if not pulse_fish_width and not pulse_fish_psd:
+        ax1.text(-0.05, .75, '%s --- Recoding of a wavefish.' % filename, fontsize=20, color='grey')
+    elif pulse_fish_width and pulse_fish_psd:
+        ax1.text(-0.02, .65, '%s --- Recoding of a pulsefish.' % filename, fontsize=20, color='grey')
+    else:
+        ax1.text(-0.05, .75, '%s --- Recoding of wave- and pulsefish.' % filename, fontsize=20, color='grey')
+    ax1.text(0.83, .8, 'Thunderfish by Bendalab', fontsize=16, color='grey')
     ax1.set_frame_on(False)
     ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_visible(False)
@@ -71,20 +77,6 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     ############
 
     # plot psd
-    ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax3, fs=12)
-    if not pulse_fish_width and not pulse_fish_psd:
-        cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax3)
-    ##########
-
-    # plot mean EOD
-    ea.eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
-    if not pulse_fish_width and not pulse_fish_psd:
-        ax4.set_xlim([-600 * period, 600 * period])  # half a period in milliseconds
-    else:
-        ax4.set_xlim([-100 * period, 100 * period])  # half a period in milliseconds
-    ###############
-
-    # plot meta data
     try:
         dom_freq = filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][0]
         fish_count = len(filtered_fishlist)
@@ -92,29 +84,51 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
         dom_freq = 1./ period
         fish_count = 1
 
+    ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax3, fs=12)
+    if not pulse_fish_width and not pulse_fish_psd:
+        cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax3)
+    ax3.set_title('Powerspectrum (%.0f detected fish)' % fish_count)
+
+    ##########
+
+    # plot mean EOD
+    ea.eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
+    if pulse_fish_width and pulse_fish_psd:
+        ax4.set_title('Mean EOD (%.0f EODs; Pulse frequency: ~%.1f Hz)' % (EOD_count, dom_freq), fontsize= 14)
+        ax4.set_xlim([-100 * period, 100 * period])
+    else:
+        ax4.set_title('Mean EOD (%.0f EODs; Dominant frequency: %.1f Hz)' % (EOD_count, dom_freq), fontsize= 14)
+        ax4.set_xlim([-600 * period, 600 * period])
+    ###############
+
+    # plot meta data
     ax5.set_frame_on(False)
     ax5.get_xaxis().set_visible(False)
     ax5.get_yaxis().set_visible(False)
 
-    fishtype = 'pulse' if pulse_fish_width and pulse_fish_psd else 'wave'
-    ax5.text(0.1, 0.9, 'fishtype:', fontsize=14)
-    ax5.text(0.6, 0.9, '%s' %fishtype, fontsize=14)
+    # fishtype = 'pulse' if pulse_fish_width and pulse_fish_psd else 'wave'
+    # ax5.text(0.1, 0.9, 'wave-/pulsefish detected:', fontsize=14)
+    # ax5.text(0.6, 0.9, '%s / %s' %('-' if pulse_fish_psd else '+', '+' if pulse_fish_width or pulse_fish_psd else '-'),
+    #          fontsize=14)
 
-    ax5.text(0.1, 0.7, '# detected fish:', fontsize=14)
-    ax5.text(0.6, 0.7, '%.0f' % fish_count, fontsize=14)
+    # ax5.text(0.1, 0.9, 'fishtype:', fontsize=14)
+    # ax5.text(0.6, 0.9, '%s' %fishtype, fontsize=14)
 
-    if fishtype is 'wave':
-        ax5.text(0.1, 0.5, 'dominant frequency:', fontsize=14)
-        ax5.text(0.6, 0.5, '%.1f Hz' % dom_freq, fontsize=14)
-    else:
-        ax5.text(0.1, 0.5, 'Mean pulse frequency:', fontsize=14)
-        ax5.text(0.6, 0.5, '%.1f Hz' % dom_freq, fontsize=14)
-
-    ax5.text(0.1, 0.3, '# detected EODs:', fontsize=14)
-    ax5.text(0.6, 0.3, '%.0f' %EOD_count, fontsize=14)
-
-    ax5.text(0.1, 0.1, 'median EOD interval:', fontsize=14)
-    ax5.text(0.6, 0.1, '%.2f ms' % (median_IPI* 1000), fontsize=14)
+    # ax5.text(0.1, 0.7, '# detected fish:', fontsize=14)
+    # ax5.text(0.6, 0.7, '%.0f' % fish_count, fontsize=14)
+    #
+    # if fishtype is 'wave':
+    #     ax5.text(0.1, 0.5, 'dominant frequency:', fontsize=14)
+    #     ax5.text(0.6, 0.5, '%.1f Hz' % dom_freq, fontsize=14)
+    # else:
+    #     ax5.text(0.1, 0.5, 'Mean pulse frequency:', fontsize=14)
+    #     ax5.text(0.6, 0.5, '%.1f Hz' % dom_freq, fontsize=14)
+    #
+    # ax5.text(0.1, 0.3, '# detected EODs:', fontsize=14)
+    # ax5.text(0.6, 0.3, '%.0f' %EOD_count, fontsize=14)
+    #
+    # ax5.text(0.1, 0.1, 'median EOD interval:', fontsize=14)
+    # ax5.text(0.6, 0.1, '%.2f ms' % (median_IPI* 1000), fontsize=14)
 
     ################
 
@@ -129,6 +143,7 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     ax6.plot([median_IPI, median_IPI], [0, max(n)], '--', color= 'red', lw=2, label='median %.2f ms' % median_IPI)
     ax6.set_xlabel('inter EOD interval [ms]')
     ax6.set_ylabel('n')
+    ax6.set_title('Inter EOD interval histogram', fontsize=14)
 
     if max(inter_eod_intervals) - min(inter_eod_intervals) < 1.:
         ax6.set_xlim([median_IPI-0.5, median_IPI+0.5])
