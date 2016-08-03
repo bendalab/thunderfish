@@ -37,7 +37,7 @@ def spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, win
                                           noverlap=noverlap, pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return spectrum, freqs, time
 
-def chirp_detection(spectrum, freqs, time):
+def chirp_detection(spectrum, freqs, time, fundamentals):
     fig, ax = plt.subplots()
     colors = ['r', 'g', 'k', 'blue']
 
@@ -64,7 +64,7 @@ def chirp_analysis(data, samplerate, fundamentals):
 
     spectrum, freqs, time = spectogram(data, samplerate, overlap_frac=0.95)
 
-    chirp_detection(spectrum, freqs, time)
+    chirp_detection(spectrum, freqs, time, fundamentals)
 
     plt.show()
     embed()
