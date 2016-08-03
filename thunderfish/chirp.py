@@ -9,6 +9,7 @@ from scipy.signal import butter, lfilter
 import powerspectrum as ps
 import matplotlib.pyplot as plt
 from IPython import embed
+import peakdetection as pkd
 import time as tm
 
 def spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning, overlap_frac=0.5,
@@ -40,7 +41,7 @@ def spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, win
 def chirp_detection(spectrum, freqs, time, fundamentals):
     fig, ax = plt.subplots()
     colors = ['r', 'g', 'k', 'blue']
-
+    chirp_time = np.array([])
     for enu, fundamental in enumerate(fundamentals):
         spectrum1 = spectrum[freqs >= fundamental-5.]
         freqs1 = freqs[freqs >= fundamental-5.]
@@ -51,24 +52,51 @@ def chirp_detection(spectrum, freqs, time, fundamentals):
         power = np.max(spectrum2[:], axis=0)
 
         power_diff = np.diff(power)
-        diff_std = np.std(power_diff, ddof=1)
-        diff_mean = np.mean(power_diff)
 
-        ax.plot(time, power, colors[enu], marker= '.')
-        ax.plot(time[:len(power_diff)], power_diff, colors[enu])
-        ax.plot([0, time[len(power_diff)]], [diff_mean + 3*diff_std, diff_mean + 3*diff_std], colors[enu])
-        ax.plot([0, time[len(power_diff)]], [diff_mean - 3*diff_std, diff_mean - 3*diff_std], colors[enu])
+        threshold = pkd.percentile_threshold(power_diff, th_factor=0.4)
+        peaks, troughs = pkd.detect_peaks(power_diff, threshold)
+        troughs, peaks = pkd.trim_to_peak(troughs, peaks) # reversed troughs and peaks in output and input to get trim_to_troughs
 
+        chirp_time_idx = np.mean([troughs, peaks], axis=0)
+        chirp_time = np.concatenate((chirp_time, np.array([time[int(i)] for i in chirp_time_idx])))
+
+        ax.plot(time, power, colors[enu], marker= '.', label='%.1f Hz' % fundamental)
+        ax.plot(time[:len(power_diff)], power_diff, colors[enu], label='slope')
+
+        ax.plot(chirp_time, [0 for i in chirp_time], 'o', markersize=10, color=colors[enu], alpha=0.8, label='chirps')
+
+        ax.set_xlabel('time in sec')
+        ax.set_ylabel('power')
+
+    plt.legend(loc='upper right', bbox_to_anchor=(1, 1),frameon=False)
+
+    return chirp_time
+
+def chirp_data_snippets(chirp_times):
+    snippets = []
+    chirp_times = np.array(sorted(chirp_times))
+
+    while len(chirp_times) > 0:
+        snippets.append([chirp_times[0]-1, chirp_times[0]+9])
+        chirp_times = chirp_times[chirp_times > chirp_times[0] + 9 ]
+
+    for s_idx in np.arange(1, len(snippets))[::-1]:
+        if snippets[s_idx][0] < snippets[s_idx-1][1]:
+            snippets[s_idx][0] = snippets[s_idx-1][0]
+            snippets.pop(s_idx-1)
+
+    return snippets
 
 def chirp_analysis(data, samplerate, fundamentals):
 
     spectrum, freqs, time = spectogram(data, samplerate, overlap_frac=0.95)
 
-    chirp_detection(spectrum, freqs, time, fundamentals)
+    chirp_time = chirp_detection(spectrum, freqs, time, fundamentals)
 
-    plt.show()
+    chirp_snippets = chirp_data_snippets(chirp_time)
+
     embed()
-    quit()
+    plt.show()
 
 if __name__ == '__main__':
     cfg = ct.get_config_dict()
@@ -91,6 +119,5 @@ if __name__ == '__main__':
     for fish in fishlist:
         if fish[0][1] > 0.01:
             fundamentals.append(fish[0][0])
-        # fundamentals.append(fish[0][0])
 
     chirp_analysis(raw_data, samplerate, fundamentals)
