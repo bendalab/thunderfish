@@ -1,19 +1,24 @@
+"""
+Detection of chirps in weakly electric fish recordings.
+
+chirp_analysis(): calculates spectrogram, detects fishes and extracts chirp times(combined for all fishes).
+                  !!! recommended for short recordings (up to 5 min) where only the chirp times shall be extracted !!!
+chirp_detection(): extracts chirp times with help of given spectogram and fishlist.
+chirp_spectogram(): performs spectrogram suitable for chip detection.
+"""
+
 import sys
 import numpy as np
 import matplotlib.mlab as mlab
 import dataloader as dl
-import bestwindow as bw
 import harmonicgroups as hg
 import config_tools as ct
-from scipy.signal import butter, lfilter
 import powerspectrum as ps
 import matplotlib.pyplot as plt
-from IPython import embed
 import peakdetection as pkd
-import time as tm
 
-def spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning, overlap_frac=0.5,
-               pad_to=None, sides='default', scale_by_freq=None):
+def chirp_spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning, overlap_frac=0.5,
+                     pad_to=None, sides='default', scale_by_freq=None):
 
     def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=0, nfft_multiplikation = 1.):
         """The required number of points for an FFT to achieve a minimum frequency resolution
@@ -40,14 +45,14 @@ def spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, win
                                           noverlap=noverlap, pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return spectrum, freqs, time
 
-def clean_pk_and_tr(troughs, peaks, time, chirp_th=1):
-    for i in np.arange(len(troughs))[::-1]:
-        if abs(time[troughs[i]] - time[peaks[i]]) > chirp_th:
-            peaks = np.delete(peaks, i)
-            troughs = np.delete(troughs, i)
-    return troughs, peaks
-
 def clean_chirps(chirp_time_idx, power):
+    """
+    controls if the power at the time where chirps have been detected drops down as expected.
+
+    :param chirp_time_idx: (array) indices of chirps.
+    :param power: (array) power array containing for each timestamp the max value in power of a certain frequency range.
+    :return: chirp_time_idx: (array) indices of chirps that have been confirmed to be chirps.
+    """
     true_chirps = np.array([], dtype=bool)
     for i in range(len(chirp_time_idx)):
         idx0 = int(chirp_time_idx[i] - 50)
@@ -62,18 +67,34 @@ def clean_chirps(chirp_time_idx, power):
             true_chirps = np.append(true_chirps, False)
     return chirp_time_idx[true_chirps]
 
-def chirp_detection(spectrum, freqs, time, fundamentals, plot_data=False):
-    if plot_data:
-        fig, ax = plt.subplots()
-        colors = ['r', 'g', 'k', 'blue']
+def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tolerance=5., chirp_th=1., plot_data=False):
+    """
+    Detects chirps on the basis of a spectogram.
+
+    :param spectrum: (2d-array) spectrum calulated with the numpy.spectrogram function.
+    :param freqs: (array) frequencies of the spectrum.
+    :param time: (array) time of the nffts used in the spectrum.
+    :param fishlist: (array) power und frequncy for each fundamental/harmonic of a detected fish.
+                     fishlist[fish][harmonic][frequency, power]
+    :param min_power: (float) minimum power of the fundamental frequency for each fish to participate in chirp detection.
+    :param freq_tolerance: (float) frequency tolerance in the spectrum to detect the power of a certain frequency.
+    :param chirp_th: (float) minimum chirp duration to be accepted as a chirp.
+    :param plot_data: (bool) If True: plots the process of chirp detection.
+    :return:chirp_time: (array) array of times (in sec) where chirps have been detected.
+    """
+    fundamentals = []
+    for fish in fishlist:
+        if fish[0][1] > min_power:
+            fundamentals.append(fish[0][0])
+
     chirp_time = np.array([])
 
     for enu, fundamental in enumerate(fundamentals):
         # extract power of only the part of the spectrum that has to be analysied for each fundamental
-        spectrum1 = spectrum[freqs >= fundamental-5.]
-        freqs1 = freqs[freqs >= fundamental-5.]
-        spectrum2 = spectrum1[freqs1 <= fundamental+5.]
-        freqs2 = freqs1[freqs1 <= fundamental+5.]
+        spectrum1 = spectrum[freqs >= fundamental - freq_tolerance]
+        freqs1 = freqs[freqs >= fundamental - freq_tolerance]
+        spectrum2 = spectrum1[freqs1 <= fundamental + freq_tolerance]
+        freqs2 = freqs1[freqs1 <= fundamental + freq_tolerance]
 
         # get the peak power of every piont in time
         power = np.max(spectrum2[:], axis=0)
@@ -87,7 +108,10 @@ def chirp_detection(spectrum, freqs, time, fundamentals, plot_data=False):
         troughs, peaks = pkd.trim_to_peak(troughs, peaks) # reversed troughs and peaks in output and input to get trim_to_troughs
 
         # exclude peaks and troughs with to much time diff to be a chirp
-        troughs, peaks = clean_pk_and_tr(troughs, peaks, time)
+        for i in np.arange(len(troughs))[::-1]:
+            if abs(time[troughs[i]] - time[peaks[i]]) > chirp_th:
+                peaks = np.delete(peaks, i)
+                troughs = np.delete(troughs, i)
 
         if len(troughs) > 0:
             # chirps times defined as the mean time between the troughs and peaks
@@ -99,42 +123,44 @@ def chirp_detection(spectrum, freqs, time, fundamentals, plot_data=False):
             # add times of detected chirps to the list.
             chirp_time = np.concatenate((chirp_time, np.array([time[int(i)] for i in chirp_time_idx])))
 
-            if plot_data:
-                ax.plot(chirp_time, [0 for i in chirp_time], 'o', markersize=10, color=colors[enu], alpha=0.8, label='chirps')
-                ax.set_xlabel('time in sec')
-                ax.set_ylabel('power')
         else:
             chirp_time = np.array([])
+
         if plot_data:
+            if enu == 0:
+                fig, ax = plt.subplots()
+                colors = ['r', 'g', 'k', 'blue']
+            ax.plot(chirp_time, [0 for i in chirp_time], 'o', markersize=10, color=colors[enu], alpha=0.8, label='chirps')
+            ax.set_xlabel('time in sec')
+            ax.set_ylabel('power')
+
             ax.plot(time, power, colors[enu], marker= '.', label='%.1f Hz' % fundamental)
             ax.plot(time[:len(power_diff)], power_diff, colors[enu], label='slope')
-    if plot_data:
-        plt.legend(loc='upper right', bbox_to_anchor=(1, 1),frameon=False)
+            plt.legend(loc='upper right', bbox_to_anchor=(1, 1),frameon=False)
 
     return chirp_time
 
-def chirp_data_snippets(chirp_times):
-    snippets = []
-    chirp_times = np.array(sorted(chirp_times))
+def chirp_analysis(data, samplerate, cfg):
+    """
+    Performs the steps to detect chirps in a given dataset.
+    For further documentation see functions chirp_spectogram() and chirp_detection().
 
-    while len(chirp_times) > 0:
-        snippets.append([chirp_times[0]-1, chirp_times[0]+9])
-        chirp_times = chirp_times[chirp_times > chirp_times[0] + 9 ]
+    :param data: (array) data.
+    :param samplerate: (float) smaplerate of the data.
+    :param cfg:(dict) HAS TO BE REMOVED !!!!
+    """
+    spectrum, freqs, time = chirp_spectogram(data, samplerate, overlap_frac=0.95)
 
-    for s_idx in np.arange(1, len(snippets))[::-1]:
-        if snippets[s_idx][0] < snippets[s_idx-1][1]:
-            snippets[s_idx][0] = snippets[s_idx-1][0]
-            snippets.pop(s_idx-1)
+    power = np.mean(spectrum, axis=1)
 
-    return snippets
+    fishlist = hg.harmonic_groups(freqs, power, cfg)[0]
 
-def chirp_analysis(data, samplerate, fundamentals):
+    fundamentals = []
+    for fish in fishlist:
+        if fish[0][1] > 0.005:
+            fundamentals.append(fish[0][0])
 
-    spectrum, freqs, time = spectogram(data, samplerate, overlap_frac=0.95)
-
-    chirp_time = chirp_detection(spectrum, freqs, time, fundamentals)
-
-    chirp_snippets = chirp_data_snippets(chirp_time)
+    chirp_time = chirp_detection(spectrum, freqs, time, fishlist, plot_data=True)
 
     plt.show()
 
@@ -144,20 +170,6 @@ if __name__ == '__main__':
     audio_file = sys.argv[1]
     raw_data, samplerate, unit = dl.load_data(audio_file, channel=0)
 
-    clip_win_size = 0.5
-    min_clip, max_clip = bw.clip_amplitudes(raw_data, int(clip_win_size * samplerate))
-    idx0, idx1, clipped = bw.best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
-                                                 max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
-    data = raw_data[idx0:idx1]
+    chirp_analysis(raw_data, samplerate, cfg)
 
-    psd_data = ps.multi_resolution_psd(data, samplerate)
-
-    fishlist = hg.harmonic_groups(psd_data[1], psd_data[0], cfg)[0]
-
-    # find fishes powerful enough to detect chirps
-    fundamentals = []
-    for fish in fishlist:
-        if fish[0][1] > 0.01:
-            fundamentals.append(fish[0][0])
-
-    chirp_analysis(raw_data, samplerate, fundamentals)
+    # power = np.mean(spectrum[:, t:t + nffts_per_psd], axis=1)
