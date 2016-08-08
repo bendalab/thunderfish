@@ -151,7 +151,7 @@ def chirp_analysis(data, samplerate, cfg):
     """
     spectrum, freqs, time = chirp_spectogram(data, samplerate, overlap_frac=0.95)
 
-    power = np.mean(spectrum, axis=1)
+    power = np.mean(spectrum, axis=1) # spectrum[:, t0:t1] to only let spectrum of certain time....
 
     fishlist = hg.harmonic_groups(freqs, power, cfg)[0]
 
