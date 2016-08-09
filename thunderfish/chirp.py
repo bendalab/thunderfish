@@ -19,6 +19,17 @@ import peakdetection as pkd
 
 def chirp_spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning, overlap_frac=0.5,
                      pad_to=None, sides='default', scale_by_freq=None):
+    """
+    Spectogram of a given frequency resolution.
+
+    :param data: (array) data for the spectogram.
+    :param samplerate: (float) samplerate of data in Hertz.
+    :param fresolution: (float) frequency resolution for the spectogram.
+    :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
+    :return spectrum: (2d array) contains for every timestamp the power of the frequencies listed in the array "freqs".
+    :return freqs: (array) frequencies of the spectogram.
+    :return time: (array) time of the nffts.
+    """
 
     def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=0, nfft_multiplikation = 1.):
         """The required number of points for an FFT to achieve a minimum frequency resolution
@@ -28,14 +39,15 @@ def chirp_spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_non
         :param samplerate: (float) the sampling rate of the data in Hertz.
         :param overlap_frac: (float) the fraction the FFT windows should overlap.
         :param min_nfft: (int) the smallest value of nfft to be used.
+        :param nfft_multiplikation (float) value the nfft is multiplicated with to increase/decrease nfft size.
         :return nfft: (int) the number of FFT points.
         :return noverlap: (int) the number of overlapping FFT points.
         """
         nfft = ps.next_power_of_two(samplerate / freq_resolution)
-        if nfft < min_nfft:
-            nfft = min_nfft
         nfft *= nfft_multiplikation
         nfft = int(nfft)
+        if nfft < min_nfft:
+            nfft = min_nfft
         noverlap = int(nfft * overlap_frac)
         return nfft, noverlap
 
@@ -45,18 +57,19 @@ def chirp_spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_non
                                           noverlap=noverlap, pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return spectrum, freqs, time
 
-def clean_chirps(chirp_time_idx, power):
+def clean_chirps(chirp_time_idx, power, power_window=100):
     """
-    controls if the power at the time where chirps have been detected drops down as expected.
+    Chirp is only accepted as such if the power of the frequency drops down as expected.
 
     :param chirp_time_idx: (array) indices of chirps.
     :param power: (array) power array containing for each timestamp the max value in power of a certain frequency range.
+    :param power_window (int) datapoints arroung a detected chirp used to verify that there is a chirp.
     :return: chirp_time_idx: (array) indices of chirps that have been confirmed to be chirps.
     """
     true_chirps = np.array([], dtype=bool)
     for i in range(len(chirp_time_idx)):
-        idx0 = int(chirp_time_idx[i] - 50)
-        idx1 = int(chirp_time_idx[i] + 50)
+        idx0 = int(chirp_time_idx[i] - power_window/2)
+        idx1 = int(chirp_time_idx[i] + power_window/2)
 
         tmp_median = np.median(power[idx0:idx1])
         tmp_std = np.std(power[idx0:idx1], ddof=1)
@@ -94,7 +107,7 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
         spectrum1 = spectrum[freqs >= fundamental - freq_tolerance]
         freqs1 = freqs[freqs >= fundamental - freq_tolerance]
         spectrum2 = spectrum1[freqs1 <= fundamental + freq_tolerance]
-        freqs2 = freqs1[freqs1 <= fundamental + freq_tolerance]
+        # freqs2 = freqs1[freqs1 <= fundamental + freq_tolerance]
 
         # get the peak power of every piont in time
         power = np.max(spectrum2[:], axis=0)
@@ -129,7 +142,7 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
         if plot_data:
             if enu == 0:
                 fig, ax = plt.subplots()
-                colors = ['r', 'g', 'k', 'blue']
+                colors = ['r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue']
             ax.plot(chirp_time, [0 for i in chirp_time], 'o', markersize=10, color=colors[enu], alpha=0.8, label='chirps')
             ax.set_xlabel('time in sec')
             ax.set_ylabel('power')
@@ -140,7 +153,7 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
 
     return chirp_time
 
-def chirp_analysis(data, samplerate, cfg):
+def chirp_analysis(data, samplerate, cfg, min_power=0.005):
     """
     Performs the steps to detect chirps in a given dataset.
     For further documentation see functions chirp_spectogram() and chirp_detection().
@@ -148,6 +161,7 @@ def chirp_analysis(data, samplerate, cfg):
     :param data: (array) data.
     :param samplerate: (float) smaplerate of the data.
     :param cfg:(dict) HAS TO BE REMOVED !!!!
+    :param min_power: (float) minimal power of the fish fundamental to include this fish in chirp detection.
     """
     spectrum, freqs, time = chirp_spectogram(data, samplerate, overlap_frac=0.95)
 
@@ -157,19 +171,26 @@ def chirp_analysis(data, samplerate, cfg):
 
     fundamentals = []
     for fish in fishlist:
-        if fish[0][1] > 0.005:
+        if fish[0][1] > min_power:
             fundamentals.append(fish[0][0])
 
     chirp_time = chirp_detection(spectrum, freqs, time, fishlist, plot_data=True)
 
     plt.show()
 
+    return chirp_time
+
 if __name__ == '__main__':
+    ###
+    # If you want to test the code I propose to use the file '60427L05.WAV' of the transect
+    # '2016_04_27__downstream_stonewall_at_pool' made in colombia, 2016.
+    ###
+
     cfg = ct.get_config_dict()
 
     audio_file = sys.argv[1]
     raw_data, samplerate, unit = dl.load_data(audio_file, channel=0)
 
-    chirp_analysis(raw_data, samplerate, cfg)
+    chirp_time = chirp_analysis(raw_data, samplerate, cfg)
 
     # power = np.mean(spectrum[:, t:t + nffts_per_psd], axis=1)
