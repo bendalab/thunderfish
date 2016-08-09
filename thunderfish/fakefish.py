@@ -163,6 +163,26 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
                               peak_amplitude=[1.0, -0.3, -0.1],
                               peak_time=[0.0, 0.0003, -0.0004])
 
+def generate_alepto_with_chirps():
+    samplerate = 40000.0
+    duration = 6.0
+    feod = 820.0
+    frequency = feod * np.ones(int(duration*samplerate))
+    chirp_times = np.arange(0.5, 5.5, 1.5)
+    chirp_width = 0.005
+    chirp_t = np.arange(-4.0*chirp_width, 4.0*chirp_width, 1./samplerate)
+    chirp = 100.0 * np.exp(-0.5*(chirp_t/chirp_width)**2.0)
+    for c in chirp_times:
+        index = int(c*samplerate)
+        frequency[index:index+len(chirp)] += chirp
+    phase = np.cumsum(frequency)/samplerate
+    raw_data = np.sin(2.0*np.pi*phase)
+    raw_data += 0.5*np.sin(2.0*np.pi*2.0*phase)
+    raw_data += 0.1*np.sin(2.0*np.pi*3.0*phase)
+    raw_data += 0.1*np.random.randn(len(raw_data))
+    plt.psd(raw_data, Fs=samplerate, NFFT=4096*4)
+    plt.show()
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
