@@ -36,7 +36,7 @@ def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=0):
     return nfft, noverlap
 
 
-def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
+def psd(data, samplerate, fresolution, min_nfft, detrend=mlab.detrend_none,
         window=mlab.window_hanning, overlap_frac=0.5, pad_to=None,
         sides='default', scale_by_freq=None):
     """Power spectrum density of a given frequency resolution.
@@ -52,7 +52,7 @@ def psd(data, samplerate, fresolution, detrend=mlab.detrend_none,
     :return:                    (2-D array) power and frequency.
     """
 
-    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=16)
+    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=min_nfft)
     power, freqs = mlab.psd(data, NFFT=nfft, noverlap=noverlap, Fs=samplerate, detrend=detrend, window=window,
                             pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return np.asarray([np.squeeze(power), freqs])   # squeeze is necessary when nfft is to large with respect to the data
@@ -81,7 +81,7 @@ def plot_decibel_psd(power, freqs, ax, max_freq=3000, fs=12, color='blue', alpha
 def multi_resolution_psd(data, samplerate, fresolution=0.5,
                          detrend=mlab.detrend_none, window=mlab.window_hanning,
                          overlap=0.5, pad_to=None, sides='default',
-                         scale_by_freq=None):
+                         scale_by_freq=None, min_nfft=16):
     """Performs the steps to calculate a powerspectrum on the basis of a given dataset, a given samplingrate and a given
     frequencyresolution for the psd.
 
@@ -110,7 +110,7 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5,
 
     multi_psd_data = []
     for fres in fresolution:
-        psd_data = psd(data, samplerate, fres, detrend, window, overlap, pad_to, sides, scale_by_freq)
+        psd_data = psd(data, samplerate, fres, min_nfft, detrend, window, overlap, pad_to, sides, scale_by_freq)
         multi_psd_data.append(psd_data)
 
     if not return_list:
@@ -119,7 +119,7 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5,
     return multi_psd_data
 
 def spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning,
-                          overlap_frac=0.5, pad_to=None, sides='default', scale_by_freq=None):
+                          overlap_frac=0.5, pad_to=None, sides='default', scale_by_freq=None, min_nfft=16):
     """
     Spectrogram of a given frequency resolution.
 
@@ -132,7 +132,7 @@ def spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, wi
     :return time: (array) time of the nffts.
     """
 
-    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=16)
+    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=min_nfft)
 
     spectrum, freqs, time = mlab.specgram(data, NFFT=nfft, Fs=samplerate, detrend=detrend, window=window,
                                           noverlap=noverlap, pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
