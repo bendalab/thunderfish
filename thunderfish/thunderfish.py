@@ -212,8 +212,9 @@ def main(audio_file, channel=0, output_folder='', verbose=0):
     # inter-peal interval
     inter_peak_intervals = np.diff(eod_times) # in sec
 
-    inter_eod_intervals = inter_peak_intervals[(inter_peak_intervals > np.percentile(inter_peak_intervals, 1)) &
-                                               (inter_peak_intervals < np.percentile(inter_peak_intervals, 100-1))]
+    lower_perc, upper_perc = np.percentile(inter_peak_intervals, [1, 100-1])
+    inter_eod_intervals = inter_peak_intervals[(inter_peak_intervals > lower_perc) &
+                                               (inter_peak_intervals < upper_perc)]
 
     median_IPI = np.median(inter_eod_intervals)
     std_IPI = np.std(inter_eod_intervals, ddof=1)
