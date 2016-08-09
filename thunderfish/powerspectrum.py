@@ -118,6 +118,26 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5,
 
     return multi_psd_data
 
+def spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning,
+                          overlap_frac=0.5, pad_to=None, sides='default', scale_by_freq=None):
+    """
+    Spectrogram of a given frequency resolution.
+
+    :param data: (array) data for the spectrogram.
+    :param samplerate: (float) samplerate of data in Hertz.
+    :param fresolution: (float) frequency resolution for the spectrogram.
+    :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
+    :return spectrum: (2d array) contains for every timestamp the power of the frequencies listed in the array "freqs".
+    :return freqs: (array) frequencies of the spectrogram.
+    :return time: (array) time of the nffts.
+    """
+
+    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=16)
+
+    spectrum, freqs, time = mlab.specgram(data, NFFT=nfft, Fs=samplerate, detrend=detrend, window=window,
+                                          noverlap=noverlap, pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
+    return spectrum, freqs, time
+
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt

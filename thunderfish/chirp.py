@@ -7,55 +7,12 @@ chirp_detection(): extracts chirp times with help of given spectrogram and fishl
 chirp_spectrogram(): performs spectrogram suitable for chip detection.
 """
 
-import sys
 import numpy as np
-import matplotlib.mlab as mlab
-import dataloader as dl
-import harmonicgroups as hg
-import config_tools as ct
-import powerspectrum as ps
 import matplotlib.pyplot as plt
+import harmonicgroups as hg
+import powerspectrum as ps
 import peakdetection as pkd
 
-def chirp_spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning, overlap_frac=0.5,
-                      pad_to=None, sides='default', scale_by_freq=None):
-    """
-    Spectrogram of a given frequency resolution.
-
-    :param data: (array) data for the spectrogram.
-    :param samplerate: (float) samplerate of data in Hertz.
-    :param fresolution: (float) frequency resolution for the spectrogram.
-    :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
-    :return spectrum: (2d array) contains for every timestamp the power of the frequencies listed in the array "freqs".
-    :return freqs: (array) frequencies of the spectrogram.
-    :return time: (array) time of the nffts.
-    """
-
-    def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=0, nfft_multiplikation = 1.):
-        """The required number of points for an FFT to achieve a minimum frequency resolution
-        and the number of overlapping data points.
-
-        :param freq_resolution: (float) the minimum required frequency resolution in Hertz.
-        :param samplerate: (float) the sampling rate of the data in Hertz.
-        :param overlap_frac: (float) the fraction the FFT windows should overlap.
-        :param min_nfft: (int) the smallest value of nfft to be used.
-        :param nfft_multiplikation (float) value the nfft is multiplicated with to increase/decrease nfft size.
-        :return nfft: (int) the number of FFT points.
-        :return noverlap: (int) the number of overlapping FFT points.
-        """
-        nfft = ps.next_power_of_two(samplerate / freq_resolution)
-        nfft *= nfft_multiplikation
-        nfft = int(nfft)
-        if nfft < min_nfft:
-            nfft = min_nfft
-        noverlap = int(nfft * overlap_frac)
-        return nfft, noverlap
-
-    nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=16, nfft_multiplikation= 0.25)
-
-    spectrum, freqs, time = mlab.specgram(data, NFFT=nfft, Fs=samplerate, detrend=detrend, window=window,
-                                          noverlap=noverlap, pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
-    return spectrum, freqs, time
 
 def clean_chirps(chirp_time_idx, power, power_window=100):
     """
@@ -66,7 +23,8 @@ def clean_chirps(chirp_time_idx, power, power_window=100):
     :param power_window (int) datapoints arroung a detected chirp used to verify that there is a chirp.
     :return: chirp_time_idx: (array) indices of chirps that have been confirmed to be chirps.
     """
-    true_chirps = np.array([], dtype=bool)
+
+    true_chirp_time_idx = []
     for i in range(len(chirp_time_idx)):
         idx0 = int(chirp_time_idx[i] - power_window/2)
         idx1 = int(chirp_time_idx[i] + power_window/2)
@@ -75,12 +33,13 @@ def clean_chirps(chirp_time_idx, power, power_window=100):
         tmp_std = np.std(power[idx0:idx1], ddof=1)
 
         if np.min(power[idx0:idx1]) < tmp_median - 3*tmp_std:
-            true_chirps = np.append(true_chirps, True)
-        else:
-            true_chirps = np.append(true_chirps, False)
-    return chirp_time_idx[true_chirps]
+            true_chirp_time_idx.append(chirp_time_idx[i])
 
-def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tolerance=5., chirp_th=1., plot_data=False):
+    return np.array(true_chirp_time_idx)
+
+
+def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tolerance=5., chirp_th=1.,
+                    plot_data_func=None):
     """
     Detects chirps on the basis of a spectrogram.
 
@@ -103,15 +62,9 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
     chirp_time = np.array([])
 
     for enu, fundamental in enumerate(fundamentals):
-        # extract power of only the part of the spectrum that has to be analysied for each fundamental
-        spectrum1 = spectrum[freqs >= fundamental - freq_tolerance]
-        freqs1 = freqs[freqs >= fundamental - freq_tolerance]
-        spectrum2 = spectrum1[freqs1 <= fundamental + freq_tolerance]
-        # freqs2 = freqs1[freqs1 <= fundamental + freq_tolerance]
-
-        # get the peak power of every piont in time
-        power = np.max(spectrum2[:], axis=0)
-
+        # extract power of only the part of the spectrum that has to be analysied for each fundamental and get the peak
+        # power of every piont in time.
+        power = np.max(spectrum[(freqs >= fundamental - freq_tolerance) & (freqs <= fundamental + freq_tolerance)], axis=0)
         # calculate the slope by calculating the difference in the power
         power_diff = np.diff(power)
 
@@ -121,10 +74,8 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
         troughs, peaks = pkd.trim_to_peak(troughs, peaks) # reversed troughs and peaks in output and input to get trim_to_troughs
 
         # exclude peaks and troughs with to much time diff to be a chirp
-        for i in np.arange(len(troughs))[::-1]:
-            if abs(time[troughs[i]] - time[peaks[i]]) > chirp_th:
-                peaks = np.delete(peaks, i)
-                troughs = np.delete(troughs, i)
+        peaks = peaks[(troughs - peaks) < chirp_th]
+        troughs = troughs[(troughs - peaks) < chirp_th]
 
         if len(troughs) > 0:
             # chirps times defined as the mean time between the troughs and peaks
@@ -139,19 +90,34 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
         else:
             chirp_time = np.array([])
 
-        if plot_data:
-            if enu == 0:
-                fig, ax = plt.subplots()
-                colors = ['r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue']
-            ax.plot(chirp_time, [0 for i in chirp_time], 'o', markersize=10, color=colors[enu], alpha=0.8, label='chirps')
-            ax.set_xlabel('time in sec')
-            ax.set_ylabel('power')
-
-            ax.plot(time, power, colors[enu], marker= '.', label='%.1f Hz' % fundamental)
-            ax.plot(time[:len(power_diff)], power_diff, colors[enu], label='slope')
-            plt.legend(loc='upper right', bbox_to_anchor=(1, 1),frameon=False)
+        if plot_data_func:
+            plot_data_func(enu, chirp_time, time, power, power_diff, fundamental)
 
     return chirp_time
+
+
+def chirp_detection_plot(enu, chirp_time, time, power, power_diff, fundamental):
+    """
+    plots the process of chirp detection.
+
+    :param enu: (int) indication which fish in list is processed.
+    :param chirp_time: (array) timestamps when chirps have been detected.
+    :param time: (array) time array.
+    :param power: (array) power of a certain frequency band.
+    :param power_diff: (array) slope of the power array.
+    :param fundamental: (float) fundamental frequency around which the algorithm looked for chirps.
+    """
+    if enu == 0:
+        fig, ax = plt.subplots()
+        colors = ['r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue']
+    ax.plot(chirp_time, np.zeros(len(chirp_time)), 'o', markersize=10, color=colors[enu], alpha=0.8, label='chirps')
+    ax.set_xlabel('time in sec')
+    ax.set_ylabel('power')
+
+    ax.plot(time, power, colors[enu], marker='.', label='%.1f Hz' % fundamental)
+    ax.plot(time[:len(power_diff)], power_diff, colors[enu], label='slope')
+    plt.legend(loc='upper right', bbox_to_anchor=(1, 1), frameon=False)
+
 
 def chirp_analysis(data, samplerate, cfg, min_power=0.005):
     """
@@ -163,7 +129,7 @@ def chirp_analysis(data, samplerate, cfg, min_power=0.005):
     :param cfg:(dict) HAS TO BE REMOVED !!!!
     :param min_power: (float) minimal power of the fish fundamental to include this fish in chirp detection.
     """
-    spectrum, freqs, time = chirp_spectrogram(data, samplerate, overlap_frac=0.95)
+    spectrum, freqs, time = ps.spectrogram(data, samplerate, fresolution=2., overlap_frac=0.95)
 
     power = np.mean(spectrum, axis=1) # spectrum[:, t0:t1] to only let spectrum of certain time....
 
@@ -174,17 +140,21 @@ def chirp_analysis(data, samplerate, cfg, min_power=0.005):
         if fish[0][1] > min_power:
             fundamentals.append(fish[0][0])
 
-    chirp_time = chirp_detection(spectrum, freqs, time, fishlist, plot_data=True)
+    chirp_time = chirp_detection(spectrum, freqs, time, fishlist, plot_data_func=chirp_detection_plot)
 
     plt.show()
 
     return chirp_time
+
 
 if __name__ == '__main__':
     ###
     # If you want to test the code I propose to use the file '60427L05.WAV' of the transect
     # '2016_04_27__downstream_stonewall_at_pool' made in colombia, 2016.
     ###
+    import sys
+    import dataloader as dl
+    import config_tools as ct
 
     cfg = ct.get_config_dict()
 

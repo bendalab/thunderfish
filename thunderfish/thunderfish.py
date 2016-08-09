@@ -212,14 +212,8 @@ def main(audio_file, channel=0, output_folder='', verbose=0):
     # inter-peal interval
     inter_peak_intervals = np.diff(eod_times) # in sec
 
-    def notoutlier(x, p_th=1):
-        if x > np.percentile(inter_peak_intervals, p_th) and x < np.percentile(inter_peak_intervals, 100-p_th):
-            return True
-        else:
-            return False
-
-    inter_eod_intervals = np.array([inter_eod_interval for inter_eod_interval in inter_peak_intervals if
-                                    notoutlier(inter_eod_interval)])
+    inter_eod_intervals = inter_peak_intervals[(inter_peak_intervals > np.percentile(inter_peak_intervals, 1)) &
+                                               (inter_peak_intervals < np.percentile(inter_peak_intervals, 100-1))]
 
     median_IPI = np.median(inter_eod_intervals)
     std_IPI = np.std(inter_eod_intervals, ddof=1)
