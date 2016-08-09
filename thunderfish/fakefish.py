@@ -163,7 +163,7 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
                               peak_amplitude=[1.0, -0.3, -0.1],
                               peak_time=[0.0, 0.0003, -0.0004])
 
-def generate_alepte_with_chirps():
+def generate_alepto_with_chirps():
     samplerate = 40000.0
     duration = 6.0
     feod = 820.0
