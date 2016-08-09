@@ -3,8 +3,8 @@ Detection of chirps in weakly electric fish recordings.
 
 chirp_analysis(): calculates spectrogram, detects fishes and extracts chirp times(combined for all fishes).
                   !!! recommended for short recordings (up to 5 min) where only the chirp times shall be extracted !!!
-chirp_detection(): extracts chirp times with help of given spectogram and fishlist.
-chirp_spectogram(): performs spectrogram suitable for chip detection.
+chirp_detection(): extracts chirp times with help of given spectrogram and fishlist.
+chirp_spectrogram(): performs spectrogram suitable for chip detection.
 """
 
 import sys
@@ -17,17 +17,17 @@ import powerspectrum as ps
 import matplotlib.pyplot as plt
 import peakdetection as pkd
 
-def chirp_spectogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning, overlap_frac=0.5,
-                     pad_to=None, sides='default', scale_by_freq=None):
+def chirp_spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, window=mlab.window_hanning, overlap_frac=0.5,
+                      pad_to=None, sides='default', scale_by_freq=None):
     """
-    Spectogram of a given frequency resolution.
+    Spectrogram of a given frequency resolution.
 
-    :param data: (array) data for the spectogram.
+    :param data: (array) data for the spectrogram.
     :param samplerate: (float) samplerate of data in Hertz.
-    :param fresolution: (float) frequency resolution for the spectogram.
+    :param fresolution: (float) frequency resolution for the spectrogram.
     :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
     :return spectrum: (2d array) contains for every timestamp the power of the frequencies listed in the array "freqs".
-    :return freqs: (array) frequencies of the spectogram.
+    :return freqs: (array) frequencies of the spectrogram.
     :return time: (array) time of the nffts.
     """
 
@@ -82,7 +82,7 @@ def clean_chirps(chirp_time_idx, power, power_window=100):
 
 def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tolerance=5., chirp_th=1., plot_data=False):
     """
-    Detects chirps on the basis of a spectogram.
+    Detects chirps on the basis of a spectrogram.
 
     :param spectrum: (2d-array) spectrum calulated with the numpy.spectrogram function.
     :param freqs: (array) frequencies of the spectrum.
@@ -156,14 +156,14 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
 def chirp_analysis(data, samplerate, cfg, min_power=0.005):
     """
     Performs the steps to detect chirps in a given dataset.
-    For further documentation see functions chirp_spectogram() and chirp_detection().
+    For further documentation see functions chirp_spectrogram() and chirp_detection().
 
     :param data: (array) data.
     :param samplerate: (float) smaplerate of the data.
     :param cfg:(dict) HAS TO BE REMOVED !!!!
     :param min_power: (float) minimal power of the fish fundamental to include this fish in chirp detection.
     """
-    spectrum, freqs, time = chirp_spectogram(data, samplerate, overlap_frac=0.95)
+    spectrum, freqs, time = chirp_spectrogram(data, samplerate, overlap_frac=0.95)
 
     power = np.mean(spectrum, axis=1) # spectrum[:, t0:t1] to only let spectrum of certain time....
 
