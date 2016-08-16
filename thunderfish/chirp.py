@@ -24,9 +24,14 @@ def clean_chirps(chirp_time_idx, power, power_window=100):
     """
 
     true_chirp_time_idx = []
+
     for i in range(len(chirp_time_idx)):
         idx0 = int(chirp_time_idx[i] - power_window/2)
+        if idx0 < 0:
+            idx0 = 0
         idx1 = int(chirp_time_idx[i] + power_window/2)
+        if idx1 > len(power):
+            idx1 = len(power)
 
         tmp_median = np.median(power[idx0:idx1])
         tmp_std = np.std(power[idx0:idx1], ddof=1)
@@ -59,9 +64,9 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
             fundamentals.append(fish[0][0])
 
     chirp_time = np.array([])
+    chirp_freq = np.array([])
 
     for enu, fundamental in enumerate(fundamentals):
-        print fundamental
         # extract power of only the part of the spectrum that has to be analysied for each fundamental and get the peak
         # power of every piont in time.
         power = np.max(spectrum[(freqs >= fundamental - freq_tolerance) & (freqs <= fundamental + freq_tolerance)], axis=0)
@@ -88,14 +93,16 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
 
             # add times of detected chirps to the list.
             chirp_time = np.concatenate((chirp_time, np.array([time[int(i)] for i in chirp_time_idx])))
+            chirp_freq = np.concatenate((chirp_freq, np.array(fundamental* np.ones(len(chirp_time_idx)))))
 
         else:
             chirp_time = np.array([])
+            chirp_freq = np.array([])
 
         if plot_data_func:
             plot_data_func(enu, chirp_time, time, power, power2, power_diff, fundamental)
 
-    return chirp_time
+    return chirp_time, chirp_freq
 
 
 def chirp_detection_plot(enu, chirp_time, time, power, power2, power_diff, fundamental):
@@ -117,7 +124,7 @@ def chirp_detection_plot(enu, chirp_time, time, power, power2, power_diff, funda
     ax.set_ylabel('power')
 
     ax.plot(time, power, colors[enu], marker='.', label='%.1f Hz' % fundamental)
-    ax.plot(time, power2, colors[enu+1], marker='.', label='%.1f Hz' % (fundamental+50.0))
+    ax.plot(time, power2, colors[enu+1], label='%.1f Hz' % (fundamental+50.0))
     ax.plot(time[:len(power_diff)], power_diff, colors[enu], label='slope')
     plt.legend(loc='upper right', bbox_to_anchor=(1, 1), frameon=False)
 
@@ -140,11 +147,11 @@ def chirp_analysis(data, samplerate, cfg):
 
     fishlist = hg.harmonic_groups(freqs, power, cfg)[0]
 
-    chirp_time = chirp_detection(spectrum, freqs, time, fishlist, plot_data_func=chirp_detection_plot)
-    print chirp_time
+    chirp_time, chirp_freq = chirp_detection(spectrum, freqs, time, fishlist, plot_data_func=chirp_detection_plot)
+
     plt.show()
 
-    return chirp_time
+    return chirp_time, chirp_freq
 
 
 if __name__ == '__main__':
@@ -161,6 +168,6 @@ if __name__ == '__main__':
     audio_file = sys.argv[1]
     raw_data, samplerate, unit = dl.load_data(audio_file, channel=0)
 
-    chirp_time = chirp_analysis(raw_data, samplerate, cfg)
+    chirp_time, chirp_freq = chirp_analysis(raw_data, samplerate, cfg)
 
     # power = np.mean(spectrum[:, t:t + nffts_per_psd], axis=1)
