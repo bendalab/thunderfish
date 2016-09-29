@@ -5,7 +5,7 @@ eod_waveform(): calculates a mean EOD of a given dataset.
 """
 
 import numpy as np
-import peakdetection as pkd
+from .peakdetection import percentile_threshold, detect_peaks, snippets
 
 
 def eod_waveform(data, samplerate, th_factor=0.8, percentile=0.1, start=None, stop=None):
@@ -26,10 +26,10 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=0.1, start=None, st
     :return eod_times (1-D array) Times of EOD peaks in seconds.
     """
     # threshold for peak detection:
-    threshold = pkd.percentile_threshold(data, th_factor=th_factor, percentile=percentile)
+    threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
 
     # detect peaks:
-    eod_idx, _ = pkd.detect_peaks(data, threshold)
+    eod_idx, _ = detect_peaks(data, threshold)
 
     # eod times:
     eod_times = eod_idx / samplerate
@@ -46,7 +46,7 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=0.1, start=None, st
     stop_inx = int(stop * samplerate)
 
     # extract snippets:
-    eod_snippets = pkd.snippets(data, eod_idx, start_inx, stop_inx)
+    eod_snippets = snippets(data, eod_idx, start_inx, stop_inx)
 
     # mean and std of snippets:    
     mean_eod = np.mean(eod_snippets, axis=0)
@@ -76,10 +76,10 @@ def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.'):
 
 if __name__ == '__main__':
     import sys
-    import fakefish as ff
-    import dataloader as dl
-    import bestwindow as bw
     import matplotlib.pyplot as plt
+    from .fakefish import generate_biphasic_pulses
+    from .dataloader import load_data
+    from .bestwindow import best_window
 
     print('Analysis of EOD waveforms.')
     print('')
@@ -90,11 +90,11 @@ if __name__ == '__main__':
     # data:
     if len(sys.argv) <= 1:
         samplerate = 44100.0
-        data = ff.generate_biphasic_pulses(80.0, samplerate, 4.0, noise_std=0.05)
+        data = generate_biphasic_pulses(80.0, samplerate, 4.0, noise_std=0.05)
         unit = 'mV'
     else:
-        rawdata, samplerate, unit = dl.load_data(sys.argv[1])
-        data, _ = bw.best_window(rawdata, samplerate)
+        rawdata, samplerate, unit = load_data(sys.argv[1])
+        data, _ = best_window(rawdata, samplerate)
 
     # analyse EOD:
     mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate,

@@ -6,7 +6,7 @@ consistent_fishes(): Compares a list of fishlists and builds a consistent fishli
 """
 
 import numpy as np
-import harmonicgroups as hg
+from .harmonicgroups import extract_fundamental_freqs
 
 
 def find_consistency(fundamentals, df_th=1.):
@@ -115,7 +115,7 @@ def consistent_fishes(fishlists, verbose=0, plot_data_func=None, **kwargs):
     if verbose >= 1:
         print('Finding consistent fishes out of %0.f fishlists ...' % len(fishlists))
 
-    fundamentals = hg.extract_fundamental_freqs(fishlists)
+    fundamentals = extract_fundamental_freqs(fishlists)
 
     consistent_fundamentals, index = find_consistency(fundamentals)
 

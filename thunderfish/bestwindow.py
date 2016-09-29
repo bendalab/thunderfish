@@ -18,7 +18,7 @@ plot_best_window(): visualization of the algorithm used in best_window_indices()
 
 import warnings
 import numpy as np
-import peakdetection as pkd
+from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
@@ -225,11 +225,11 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
         return 0, 0
 
     # threshold for peak detection:
-    threshold = pkd.percentile_threshold(data, samplerate, win_shift,
-                                         th_factor=th_factor, percentile=percentile)
+    threshold = percentile_threshold(data, samplerate, win_shift,
+                                     th_factor=th_factor, percentile=percentile)
 
     # detect large peaks and troughs:
-    peak_idx, trough_idx = pkd.detect_peaks(data, threshold)
+    peak_idx, trough_idx = detect_peaks(data, threshold)
     if len(peak_idx) == 0 or len(trough_idx) == 0:
         warnings.warn('best_window(): no peaks or troughs detected')
         return 0, 0
@@ -246,7 +246,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
         # indices of peaks and troughs inside analysis window:
         pinx = (peak_idx >= wtinx) & (peak_idx <= wtinx + win_size_indices)
         tinx = (trough_idx >= wtinx) & (trough_idx <= wtinx + win_size_indices)
-        p_idx, t_idx = pkd.trim_to_peak(peak_idx[pinx], trough_idx[tinx])
+        p_idx, t_idx = trim_to_peak(peak_idx[pinx], trough_idx[tinx])
         # interval statistics:
         ipis = np.diff(p_idx)
         itis = np.diff(t_idx)
@@ -496,10 +496,10 @@ if __name__ == "__main__":
         title = "test sines"
         data += 0.01 * np.random.randn(len(data))
     else:
-        import dataloader as dl
+        from .dataloader import load_data
 
         print("load %s ..." % sys.argv[1])
-        data, rate, unit = dl.load_data(sys.argv[1], 0)
+        data, rate, unit = load_data(sys.argv[1], 0)
         title = sys.argv[1]
 
     # determine clipping amplitudes:

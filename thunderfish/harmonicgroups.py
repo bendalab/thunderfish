@@ -3,7 +3,7 @@
 
 from __future__ import print_function
 import numpy as np
-import peakdetection as pd
+from .peakdetection import detect_peaks, accept_peaks_size_width
 
 
 def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
@@ -610,8 +610,8 @@ def harmonic_groups(psd_freqs, psd, cfg):
             print('center=', center)
 
     # detect peaks in decibel power spectrum:
-    all_freqs, _ = pd.detect_peaks(log_psd, low_threshold, psd_freqs,
-                                   pd.accept_peaks_size_width)
+    all_freqs, _ = detect_peaks(log_psd, low_threshold, psd_freqs,
+                                accept_peaks_size_width)
 
     if len(all_freqs) == 0:
         # TODO: Why has not been a peak detected?

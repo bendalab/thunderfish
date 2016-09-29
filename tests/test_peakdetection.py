@@ -17,7 +17,7 @@ def test_detect_peaks():
     n = pt_indices[0]
     data[0:n] = 0.1 + 0.9 * np.arange(0.0, n) / n
     up = False
-    for i in xrange(0, len(pt_indices) - 1):
+    for i in range(len(pt_indices) - 1):
         n = pt_indices[i + 1] - pt_indices[i]
         if up:
             data[pt_indices[i]:pt_indices[i + 1]] = np.arange(0.0, n) / n
@@ -100,7 +100,7 @@ def test_detect_dynamic_peaks():
     n = pt_indices[0]
     data[0:n] = 0.1 + 0.9 * np.arange(0.0, n) / n
     up = False
-    for i in xrange(0, len(pt_indices) - 1):
+    for i in range(len(pt_indices) - 1):
         n = pt_indices[i + 1] - pt_indices[i]
         if up:
             data[pt_indices[i]:pt_indices[i + 1]] = np.arange(0.0, n) / n

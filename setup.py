@@ -8,3 +8,9 @@ setup(name='thunderfish',
       author='Jan Benda, Juan F. Sehuanes, Till Raab, Joerg Henninger, Jan Grewe, Fabian Sinz',
       requires=['numpy', 'matplotlib', 'audioio']
       )
+
+#      entry_points={
+#        'console_scripts': [
+#            'thunderfish = thunderfish.thunderfish:main',
+#            'fishfinder = thunderfish.fishfinder:main',
+#        ]},

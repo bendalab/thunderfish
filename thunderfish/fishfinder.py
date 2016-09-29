@@ -8,17 +8,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 import matplotlib.colors as mc
-import configfile as cf
-import dataloader as dl
-import powerspectrum as ps
-import harmonicgroups as hg
-import bestwindow as bw
+
+from .configfile import ConfigFile
+from .dataloader import open_data
+from .powerspectrum import nfft_noverlap
+from .harmonicgroups import harmonic_groups
+from .bestwindow import clip_amplitudes, clip_args, best_window_indices, add_clip_config, add_best_window_config
 from audioio import PlayAudio, fade
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
 
-cfg = cf.ConfigFile()
+cfg = ConfigFile()
 
 cfg.add_section('Power spectrum estimation:')
 cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
@@ -202,8 +203,8 @@ class SignalPlot:
         # first color range:
         cc0 = plt.cm.gist_rainbow(np.linspace(0.0, 1.0, 8.0))
         # shuffle it:
-        for k in range((len(cc0) + 1) / 2):
-            self.colorrange.extend(cc0[k::(len(cc0) + 1) / 2])
+        for k in range((len(cc0) + 1) // 2):
+            self.colorrange.extend(cc0[k::(len(cc0) + 1) // 2])
         self.markerrange.extend(len(cc0) * 'o')
         mr2.extend(len(cc0) * 'v')
         # second darker color range:
@@ -211,8 +212,8 @@ class SignalPlot:
         cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1])) * np.array([1.0, 0.9, 0.7, 0.0]))[0]
         cc1[:, 3] = 1.0
         # shuffle it:
-        for k in range((len(cc1) + 1) / 2):
-            self.colorrange.extend(cc1[k::(len(cc1) + 1) / 2])
+        for k in range((len(cc1) + 1) // 2):
+            self.colorrange.extend(cc1[k::(len(cc1) + 1) // 2])
         self.markerrange.extend(len(cc1) * '^')
         mr2.extend(len(cc1) * '*')
         # third lighter color range:
@@ -220,8 +221,8 @@ class SignalPlot:
         cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc2])) * np.array([1.0, 0.5, 1.0, 0.0]))[0]
         cc2[:, 3] = 1.0
         # shuffle it:
-        for k in range((len(cc2) + 1) / 2):
-            self.colorrange.extend(cc2[k::(len(cc2) + 1) / 2])
+        for k in range((len(cc2) + 1) // 2):
+            self.colorrange.extend(cc2[k::(len(cc2) + 1) // 2])
         self.markerrange.extend(len(cc2) * 'D')
         mr2.extend(len(cc2) * 'x')
         self.markerrange.extend(mr2)
@@ -286,11 +287,11 @@ class SignalPlot:
         nfft = int(np.round(2 ** (np.floor(np.log(self.samplerate / self.fresolution) / np.log(2.0)) + 1.0)))
         if nfft < 16:
             nfft = 16
-        nfft, noverlap = ps.nfft_noverlap(self.fresolution, self.samplerate, 0.5, 16)
+        nfft, noverlap = nfft_noverlap(self.fresolution, self.samplerate, 0.5, 16)
         t00 = t0
         t11 = t1
         w = t11 - t00
-        minw = nfft * (cfg['minPSDAverages'][0] + 1) / 2
+        minw = nfft * (cfg['minPSDAverages'][0] + 1) // 2
         if t11 - t00 < minw:
             w = minw
             t11 = t00 + w
@@ -303,14 +304,13 @@ class SignalPlot:
         power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=noverlap, Fs=self.samplerate, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
-        self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = hg.harmonic_groups(
-            freqs, power, cfg)
+        self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = harmonic_groups(freqs, power, cfg)
         highth = center + highth - 0.5 * lowth
         lowth = center + 0.5 * lowth
 
         # spectrogram:
         t2 = t1 + nfft
-        specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft / 2,
+        specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft // 2,
                                              detrend=ml.detrend_mean)
         z = 10. * np.log10(specpower)
         z = np.flipud(z)
@@ -342,7 +342,7 @@ class SignalPlot:
             tws = '%.3gms' % (1000.0 * tw)
         else:
             tws = '%.3gs' % (tw)
-        a = 2 * w / nfft - 1  # number of ffts
+        a = 2 * w // nfft - 1  # number of ffts
         m = ''
         if cfg['mainsFreq'][0] > 0.0:
             m = ', mains=%.0fHz' % cfg['mainsFreq'][0]
@@ -411,7 +411,7 @@ class SignalPlot:
                                         marker='.', color='k', ms=10, mec=None, mew=0.0, zorder=2)
             self.peak_artists.append(fishpoints)
             labels.append('%3.0f Hz mains' % cfg['mainsFreq'][0])
-        ncol = len(labels) / 8 + 1
+        ncol = len(labels) // 8 + 1
         self.legendhandle = self.axs.legend(self.peak_artists[:len(labels)], labels, loc='upper right', ncol=ncol)
         self.legenddict = dict()
         for legpoints, (finx, fish) in zip(self.legendhandle.get_lines(), enumerate(self.fishlist)):
@@ -426,7 +426,7 @@ class SignalPlot:
             self.fig.canvas.draw()
 
     def keypress(self, event):
-        # print 'pressed', event.key
+        # print('pressed', event.key)
         if event.key in '+=X':
             if self.twindow * self.samplerate > 20:
                 self.twindow *= 0.5
@@ -447,11 +447,11 @@ class SignalPlot:
                 self.update_plots()
         elif event.key == 'a':
             if self.min_clip == 0.0 or self.max_clip == 0.0:
-                self.min_clip, self.max_clip = bw.clip_amplitudes(
-                    self.data, **bw.clip_args(cfg, self.samplerate))
-            idx0, idx1, clipped = bw.best_window_indices(
+                self.min_clip, self.max_clip = clip_amplitudes(
+                    self.data, **clip_args(cfg, self.samplerate))
+            idx0, idx1, clipped = best_window_indices(
                 self.data, self.samplerate, min_clip=self.min_clip,
-                max_clip=self.max_clip, **bw.best_window_args(cfg))
+                max_clip=self.max_clip, **best_window_args(cfg))
             if idx1 > 0:
                 self.toffset = idx0 / self.samplerate
                 self.twindow = (idx1 - idx0) / self.samplerate
@@ -595,13 +595,13 @@ class SignalPlot:
             cfg['peakFactor'][0] -= 0.1
             if cfg['peakFactor'][0] < -5.0:
                 cfg['peakFactor'][0] = -5.0
-            print 'peakFactor =', cfg['peakFactor'][0]
+            print('peakFactor =', cfg['peakFactor'][0])
             self.update_plots()
         elif event.key in 'T':
             cfg['peakFactor'][0] += 0.1
             if cfg['peakFactor'][0] > 5.0:
                 cfg['peakFactor'][0] = 5.0
-            print 'peakFactor =', cfg['peakFactor'][0]
+            print('peakFactor =', cfg['peakFactor'][0])
             self.update_plots()
         elif event.key == 'escape':
             self.remove_peak_annotation()
@@ -641,7 +641,7 @@ class SignalPlot:
             self.play_tone('c6')
 
     def buttonpress( self, event ) :
-        # print 'mouse pressed', event.button, event.key, event.step
+        # print('mouse pressed', event.button, event.key, event.step)
         if event.inaxes == self.axp:
             if event.key == 'shift' or event.key == 'control':
                 # show next or previous harmonic:
@@ -685,13 +685,13 @@ class SignalPlot:
                     self.fig.canvas.draw()
 
     def onpick(self, event):
-        # print 'pick'
+        # print('pick')
         legendpoint = event.artist
         finx, fish = self.legenddict[legendpoint]
         self.annotate_fish(fish, finx)
 
     def resize(self, event):
-        # print 'resized', event.width, event.height
+        # print('resized', event.width, event.height)
         leftpixel = 80.0
         rightpixel = 20.0
         xaxispixel = 50.0
@@ -736,7 +736,7 @@ class SignalPlot:
         fig.savefig(figfile)
         fig.clear()
         plt.close(fig)
-        print 'saved waveform figure to', figfile
+        print('saved waveform figure to', figfile)
 
     def play_segment(self):
         t0 = int(np.round(self.toffset * self.samplerate))
@@ -763,8 +763,8 @@ def short_user_warning(message, category, filename, lineno, file=sys.stderr, lin
 if __name__ == '__main__':
     warnings.showwarning = short_user_warning
 
-    bw.add_clip_config(cfg)
-    bw.add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
+    add_clip_config(cfg)
+    add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
 
     # config file name:
     progname = os.path.basename(sys.argv[0])
@@ -810,7 +810,7 @@ if __name__ == '__main__':
     channel = args.channel
     filename = os.path.basename(filepath)
     # TODO: add blocksize and backsize as configuration parameter!
-    with dl.open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
+    with open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
         # plot:
         ## if len(data) < 10**8:
         ##     # data[:].copy() makes bestwindow much faster (it's slow in peakdetection):

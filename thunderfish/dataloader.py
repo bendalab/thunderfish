@@ -43,12 +43,6 @@ def load_data(filepath, channel=0, verbose=0):
         samplerate (float): the sampling rate of the data in Hz
         unit (string): the unit of the data
     """
-    # check types:
-    if not isinstance(filepath, basestring):
-        raise NameError('load_data(): input argument filepath must be a string!')
-    if not isinstance(channel, int):
-        raise NameError('load_data(): input argument channel must be an int!')
-
     # check values:
     data = np.array([])
     samplerate = 0.0
