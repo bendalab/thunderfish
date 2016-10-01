@@ -8,85 +8,26 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 import matplotlib.colors as mc
-
 from .configfile import ConfigFile
+from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
+from .bestwindow import add_clip_config, add_best_window_config
 from .dataloader import open_data
 from .powerspectrum import nfft_noverlap
-from .harmonicgroups import harmonic_groups
-from .bestwindow import clip_amplitudes, clip_args, best_window_indices, add_clip_config, add_best_window_config
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .bestwindow import clip_amplitudes, clip_args, best_window_indices
 from audioio import PlayAudio, fade
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
 
-cfg = ConfigFile()
-
-cfg.add_section('Power spectrum estimation:')
-cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
-cfg.add('initialFrequencyResolution', 1.0, 'Hz', 'Initial frequency resolution of the power spectrum.')
-
-cfg.add_section('Thresholds for peak detection in power spectra:')
-cfg.add('lowThreshold', 0.0, 'dB', 'Threshold for all peaks.\n If 0.0 estimate threshold from histogram.')
-cfg.add('highThreshold', 0.0, 'dB', 'Threshold for good peaks. If 0.0 estimate threshold from histogram.')
-# cfg['lowThreshold'][0] = 12. # panama
-# cfg['highThreshold'][0] = 18. # panama
-
-cfg.add_section(
-    'Threshold estimation:\nIf no thresholds are specified they are estimated from the histogram of the decibel power spectrum.')
-cfg.add('noiseFactor', 6.0, '', 'Factor for multiplying std of noise floor for lower threshold.')
-cfg.add('peakFactor', 0.5, '', 'Fractional position of upper threshold above lower threshold.')
-
-cfg.add_section('Peak detection in decibel power spectrum:')
-cfg.add('maxPeakWidthFac', 3.5, '',
-        'Maximum width of peaks at 0.75 hight in multiples of frequency resolution (might be increased)')
-cfg.add('minPeakWidth', 1.0, 'Hz', 'Peaks do not need to be narrower than this.')
-
-cfg.add_section('Harmonic groups:')
-cfg.add('mainsFreq', 60.0, 'Hz', 'Mains frequency to be excluded.')
-cfg.add('maxDivisor', 4, '', 'Maximum ratio between the frequency of the largest peak and its fundamental')
-cfg.add('freqTolerance', 0.7, '',
-        'Harmonics need be within this factor times the frequency resolution of the power spectrum. Needs to be higher than 0.5!')
-cfg.add('maxUpperFill', 1, '',
-        'As soon as more than this number of harmonics need to be filled in conescutively stop searching for higher harmonics.')
-cfg.add('maxFillRatio', 0.25, '',
-        'Maximum fraction of filled in harmonics allowed (usefull values are smaller than 0.5)')
-cfg.add('maxDoubleUseHarmonics', 8, '', 'Maximum harmonics up to which double uses are penalized.')
-cfg.add('maxDoubleUseCount', 1, '', 'Maximum overall double use count allowed.')
-cfg.add('powerNHarmonics', 10, '', 'Compute total power over the first # harmonics.')
-
-cfg.add_section('Acceptance of best harmonic groups:')
-cfg.add('minimumGroupSize', 3, '',
-        'Minimum required number of harmonics (inclusively fundamental) that are not filled in and are not used by other groups.')
-# cfg['minimumGroupSize'][0] = 2 # panama
-cfg.add('minimumFrequency', 20.0, 'Hz', 'Minimum frequency allowed for the fundamental.')
-cfg.add('maximumFrequency', 2000.0, 'Hz', 'Maximum frequency allowed for the fundamental.')
-cfg.add('maximumWorkingFrequency', 4000.0, 'Hz',
-        'Maximum frequency to be used to search for harmonic groups and to adjust fundamental frequency.')
-
-cfg.add('maxHarmonics', 0, '', '0: keep all, >0 only keep the first # harmonics.')
-
-cfg.add_section('Items to display:')
-cfg.add('displayHelp', False, '', 'Display help on key bindings')
-cfg.add('labelFrequency', True, '', 'Display the frequency of the peak')
-cfg.add('labelHarmonic', True, '', 'Display the harmonic of the peak')
-cfg.add('labelPower', True, '', 'Display the power of the peak')
-cfg.add('labelWidth', True, '', 'Display the width of the peak')
-cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
-
-cfg.add_section('Debugging:')
-cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
-
-
-###############################################################################
-## plotting etc.
-
 class SignalPlot:
-    def __init__(self, data, samplingrate, unit, filename, channel):
+    def __init__(self, data, samplingrate, unit, filename, channel, verbose):
         self.filename = filename
         self.channel = channel
         self.samplerate = samplingrate
         self.data = data
         self.unit = unit
+        self.verbose = verbose
         self.time = np.arange(0.0, len(self.data)) / self.samplerate
         self.toffset = 0.0
         self.twindow = 8.0
@@ -304,7 +245,9 @@ class SignalPlot:
         power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=noverlap, Fs=self.samplerate, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
-        self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = harmonic_groups(freqs, power, cfg)
+        h_kwargs = psd_peak_detection_args(cfg)
+        h_kwargs.update(harmonic_groups_args(cfg))
+        self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = harmonic_groups(freqs, power, verbose=self.verbose, **h_kwargs)
         highth = center + highth - 0.5 * lowth
         lowth = center + 0.5 * lowth
 
@@ -763,8 +706,29 @@ def short_user_warning(message, category, filename, lineno, file=sys.stderr, lin
 if __name__ == '__main__':
     warnings.showwarning = short_user_warning
 
+    # configuration options:
+    cfg = ConfigFile()
+
+    cfg.add_section('Power spectrum estimation:')
+    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
+    cfg.add('initialFrequencyResolution', 1.0, 'Hz', 'Initial frequency resolution of the power spectrum.')
+
+    cfg.add_section('Items to display:')
+    cfg.add('displayHelp', False, '', 'Display help on key bindings')
+    cfg.add('labelFrequency', True, '', 'Display the frequency of the peak')
+    cfg.add('labelHarmonic', True, '', 'Display the harmonic of the peak')
+    cfg.add('labelPower', True, '', 'Display the power of the peak')
+    cfg.add('labelWidth', True, '', 'Display the width of the peak')
+    cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
+
+    cfg.add_section('Debugging:')
+    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
+    
+    add_psd_peak_detection_config(cfg)
+    add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
     add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
+    cfg.set('bestWindowSize', 4.0)
 
     # config file name:
     progname = os.path.basename(sys.argv[0])
@@ -776,10 +740,13 @@ if __name__ == '__main__':
         epilog='by Jan Benda (2015-2016)')
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument('-v', action='count', dest='verbose')
-    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile, type=str, metavar='cfgfile',
+    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
+                        type=str, metavar='cfgfile',
                         help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
-    parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
+    parser.add_argument('file', nargs='?', default='', type=str,
+                        help='name of the file wih the time series data')
+    parser.add_argument('channel', nargs='?', default=0, type=int,
+                        help='channel to be displayed')
     args = parser.parse_args()
 
     # set verbosity level from command line:
@@ -816,7 +783,7 @@ if __name__ == '__main__':
         ##     # data[:].copy() makes bestwindow much faster (it's slow in peakdetection):
         ##     SignalPlot(data[:].copy(), data.samplerate, data.unit, filename, channel)
         ## else:
-        SignalPlot(data, data.samplerate, data.unit, filename, channel)
+        SignalPlot(data, data.samplerate, data.unit, filename, channel, cfg['verboseLevel'][0])
 
 
 ## data = data/2.0**15

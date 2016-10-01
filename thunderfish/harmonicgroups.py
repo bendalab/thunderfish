@@ -6,9 +6,10 @@ import numpy as np
 from .peakdetection import detect_peaks, accept_peaks_size_width
 
 
-def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
-    verbose = cfg['verboseLevel'][0]
-
+def build_harmonic_groups(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, max_freq=2000.0,
+                          freq_tol_fac=0.7, max_divisor=4, max_upper_fill=1,
+                          max_double_use_harmonics=8, max_double_use_count=1,
+                          max_fill_ratio=0.25, power_n_harmonics=10, **kwargs):
     # start at the strongest frequency:
     fmaxinx = np.argmax(freqs[:, 1])
     fmax = freqs[fmaxinx, 0]
@@ -17,7 +18,7 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
         print(70 * '#')
         print('freqs:     ', '[', ', '.join(['{:.2f}'.format(f) for f in freqs[:, 0]]), ']')
         print('more_freqs:', '[', ', '.join(
-            ['{:.2f}'.format(f) for f in more_freqs[:, 0] if f < cfg['maximumFrequency'][0]]), ']')
+            ['{:.2f}'.format(f) for f in more_freqs[:, 0] if f < max_freq]), ']')
         print('## fmax is: {0: .2f}Hz: {1:.5g} ##\n'.format(fmax, np.max(freqs[:, 1])))
 
     # container for harmonic groups
@@ -29,7 +30,7 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
     best_fzero = 0.0
     best_fzero_harmonics = 0
 
-    freqtol = cfg['freqTolerance'][0] * deltaf
+    freqtol = freq_tol_fac * deltaf
 
     # ###########################################
     # SEARCH FOR THE REST OF THE FREQUENCY GROUP
@@ -39,12 +40,12 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
     # by a range of integer divisors.
     # We do this, because fmax could just be a strong harmonic of the harmonic group
 
-    for divisor in range(1, cfg['maxDivisor'][0] + 1):
+    for divisor in range(1, max_divisor + 1):
 
         # define the hypothesized fundamental, which is compared to all higher frequencies:
         fzero = fmax / divisor
         # fzero is not allowed to be smaller than our chosen minimum frequency:
-        # if divisor > 1 and fzero < cfg['minimumFrequency'][0]:   # XXX why not also for divisor=1???
+        # if divisor > 1 and fzero < min_freq:   # XXX why not also for divisor=1???
         #    break
         fzero_harmonics = 1
 
@@ -206,11 +207,11 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
             ndpre = nd
 
             # too many fill-ins upstream of fmax ?
-            if more_freqs[j, 0] > fmax and n - 1 - len(newmoregroup) > cfg['maxUpperFill'][0]:
+            if more_freqs[j, 0] > fmax and n - 1 - len(newmoregroup) > max_upper_fill:
                 # finish this group immediately
                 if verbose > 3:
                     print('stopping group: too many upper fill-ins:', n - 1 - len(newmoregroup), '>',
-                          cfg['maxUpperFill'][0])
+                          max_upper_fill)
                 break
 
             # fill in missing harmonics:
@@ -219,7 +220,7 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
                 fill_ins += 1
 
             # count double usage of frequency:
-            if n <= cfg['maxDoubleUseHarmonics'][0]:
+            if n <= max_double_use_harmonics:
                 double_use += more_freqs[j, 4]
                 if verbose > 3 and more_freqs[j, 4] > 0:
                     print('double use of %.2fHz ' % more_freqs[j, 0], end='')
@@ -230,15 +231,15 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
                 print('append')
 
         # double use of points:
-        if double_use > cfg['maxDoubleUseCount'][0]:
+        if double_use > max_double_use_count:
             if verbose > 1:
                 print('discarded group because of double use:', double_use)
             continue
 
         # ratio of total fill-ins too large:
-        if float(fill_ins) / float(len(newmoregroup)) > cfg['maxFillRatio'][0]:
+        if float(fill_ins) / float(len(newmoregroup)) > max_fill_ratio:
             if verbose > 1:
-                print('dicarded group because of too many fill ins! %d from %d (%g)' %
+                print('discarded group because of too many fill ins! %d from %d (%g)' %
                       (fill_ins, len(newmoregroup), float(fill_ins) / float(len(newmoregroup))), newmoregroup)
             continue
 
@@ -267,7 +268,7 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
                 print("discarded: lost fmax")
             continue
 
-        n = cfg['powerNHarmonics'][0]
+        n = power_n_harmonics
         newmoregroup_peaksum = np.sum(more_freqs[newmoregroup[:n], 1])
         fills = np.sum(np.asarray(newmoregroup[:len(best_moregroup)]) < 0)
         best_fills = np.sum(np.asarray(best_moregroup[:len(newmoregroup)]) < 0)
@@ -364,37 +365,38 @@ def build_harmonic_groups(freqs, more_freqs, deltaf, cfg):
     return freqs, more_freqs, group, best_fzero_harmonics, fmax
 
 
-def extract_fundamentals(good_freqs, all_freqs, deltaf, cfg):
-    """
-    Extract fundamental frequencies from power-spectrum peaks.
+def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=0.7,
+                         mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
+                         max_divisor=4, max_upper_fill=1,
+                         max_double_use_harmonics=8, max_double_use_count=1,
+                         max_fill_ratio=0.25, power_n_harmonics=10,
+                         min_group_size=3, max_harmonics=0, **kwargs):
+    """Extract fundamental frequencies from power-spectrum peaks.
 
     Returns:
         group_list (list): list of all harmonic groups found
         fzero_harmonics_list (list): the harmonics from which the fundamental frequencies were computed
         mains_list (2-d array): list of mains peaks found
     """
-
-    verbose = cfg['verboseLevel'][0]
     if verbose > 0:
         print('')
 
     # set double use count to zero:
     all_freqs[:, 4] = 0.0
 
-    freqtol = cfg['freqTolerance'][0] * deltaf
-    mainsfreq = cfg['mainsFreq'][0]
+    freqtol = freq_tol_fac * deltaf
 
     # remove power line harmonics from good_freqs:
     # XXX might be improved!!!
-    if mainsfreq > 0.0:
+    if mains_freq > 0.0:
         pfreqtol = 1.0  # 1 Hz tolerance
         for inx in reversed(range(len(good_freqs))):
-            n = np.round(good_freqs[inx, 0] / mainsfreq)
-            nd = np.abs(good_freqs[inx, 0] - n * mainsfreq)
+            n = np.round(good_freqs[inx, 0] / mains_freq)
+            nd = np.abs(good_freqs[inx, 0] - n * mains_freq)
             if nd <= pfreqtol:
                 if verbose > 1:
                     print('remove power line frequency', inx, good_freqs[inx, 0], np.abs(
-                        good_freqs[inx, 0] - n * mainsfreq))
+                        good_freqs[inx, 0] - n * mains_freq))
                 good_freqs = np.delete(good_freqs, inx, axis=0)
 
     group_list = list()
@@ -403,7 +405,11 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, cfg):
     while good_freqs.shape[0] > 0:
         # we check for harmonic groups:
         good_freqs, all_freqs, harm_group, fzero_harmonics, fmax = \
-            build_harmonic_groups(good_freqs, all_freqs, deltaf, cfg)
+            build_harmonic_groups(good_freqs, all_freqs, deltaf,
+                                  verbose, min_freq, max_freq, freq_tol_fac,
+                                  max_divisor, max_upper_fill,
+                                  max_double_use_harmonics, max_double_use_count,
+                                  max_fill_ratio, power_n_harmonics)
 
         if verbose > 1:
             print('')
@@ -417,15 +423,15 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, cfg):
         # count number of harmonics which have been detected, are not fill-ins,
         # and are not doubly used:
         group_size = np.sum((harm_group[:, 1] > 0.0) & (harm_group[:, 4] < 2.0))
-        group_size_ok = (group_size >= cfg['minimumGroupSize'][0])
+        group_size_ok = (group_size >= min_group_size)
 
         # check frequency range of fundamental:
-        fundamental_ok = (harm_group[0, 0] >= cfg['minimumFrequency'][0] and
-                          harm_group[0, 0] <= cfg['maximumFrequency'][0])
+        fundamental_ok = (harm_group[0, 0] >= min_freq and
+                          harm_group[0, 0] <= max_freq)
 
         # check power hum (does this really ever happen???):
-        mains_ok = ((mainsfreq == 0.0) |
-                    (np.abs(harm_group[0, 0] - mainsfreq) > freqtol))
+        mains_ok = ((mains_freq == 0.0) |
+                    (np.abs(harm_group[0, 0] - mains_freq) > freqtol))
 
         # check:
         if group_size_ok and fundamental_ok and mains_ok:
@@ -448,13 +454,12 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, cfg):
     fzero_harmonics_list = [fzero_harmonics_list[fi] for fi in finx]
 
     # do not save more than n harmonics:
-    maxharmonics = cfg['maxHarmonics'][0]
-    if maxharmonics > 0:
+    if max_harmonics > 0:
         for group in group_list:
-            if group.shape[0] > maxharmonics:
+            if group.shape[0] > max_harmonics:
                 if verbose > 0:
                     print('Discarding some tailing harmonics')
-                group = group[:maxharmonics, :]
+                group = group[:max_harmonics, :]
 
     if verbose > 0:
         print('')
@@ -469,11 +474,11 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, cfg):
 
     # assemble mains frequencies from all_freqs:
     mains_list = []
-    if mainsfreq > 0.0:
+    if mains_freq > 0.0:
         pfreqtol = 1.0
         for inx in range(len(all_freqs)):
-            n = np.round(all_freqs[inx, 0] / mainsfreq)
-            nd = np.abs(all_freqs[inx, 0] - n * mainsfreq)
+            n = np.round(all_freqs[inx, 0] / mains_freq)
+            nd = np.abs(all_freqs[inx, 0] - n * mains_freq)
             if nd <= pfreqtol:
                 mains_list.append(all_freqs[inx])
     return group_list, fzero_harmonics_list, np.array(mains_list)
@@ -557,14 +562,18 @@ def extract_fundamental_freqs(fishlists):
     return fundamentals
 
 
-def harmonic_groups(psd_freqs, psd, cfg):
-    """
-    Detect peaks in power spectrum and extract fundamentals of harmonic groups.
+def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
+                    noise_fac=6.0, peak_fac=0.5, max_peak_width_fac=3.5, min_peak_width=1.0,
+                    freq_tol_fac=0.7, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
+                    max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
+                    max_double_use_harmonics=8, max_double_use_count=1,
+                    max_fill_ratio=0.25, power_n_harmonics=10,
+                    min_group_size=3, max_harmonics=0, **kwargs):
+    """Detect peaks in power spectrum and extract fundamentals of harmonic groups.
 
     Args:
         psd_freqs (array): frequencies of the power spectrum
         psd (array): power spectrum
-        cfg (dict): configuration parameter
 
     Returns:
         groups (list): all harmonic groups, sorted by fundamental frequency.
@@ -583,9 +592,6 @@ def harmonic_groups(psd_freqs, psd, cfg):
         high_threshold (float): the relative threshold for detecting good peaks in the decibel spectrum
         center (float): the baseline level of the power spectrum
     """
-
-    verbose = cfg['verboseLevel'][0]
-
     if verbose > 0:
         print('')
         print(70 * '#')
@@ -595,14 +601,11 @@ def harmonic_groups(psd_freqs, psd, cfg):
     log_psd = 10.0 * np.log10(psd)
 
     # thresholds:
-    low_threshold = cfg['lowThreshold'][0]
-    high_threshold = cfg['highThreshold'][0]
     center = np.NaN
-    if cfg['lowThreshold'][0] <= 0.0 or cfg['highThreshold'][0] <= 0.0:
+    if low_threshold <= 0.0 or high_threshold <= 0.0:
         n = len(log_psd)
-        low_threshold, high_threshold, center = threshold_estimate(log_psd[2 * n / 3:n * 9 / 10],
-                                                                   cfg['noiseFactor'][0],
-                                                                   cfg['peakFactor'][0])
+        low_threshold, high_threshold, center = threshold_estimate(log_psd[2 * n // 3:n * 9 // 10],
+                                                                   noise_fac, peak_fac)
         if verbose > 1:
             print('')
             print('low_threshold=', low_threshold, center + low_threshold)
@@ -618,12 +621,12 @@ def harmonic_groups(psd_freqs, psd, cfg):
         return [], [], [], np.zeros((0, 5)), [], low_threshold, high_threshold, center
 
     # select good peaks:
-    wthresh = cfg['maxPeakWidthFac'][0] * (psd_freqs[1] - psd_freqs[0])
-    if wthresh < cfg['minPeakWidth'][0]:
-        wthresh = cfg['minPeakWidth'][0]
+    wthresh = max_peak_width_fac * (psd_freqs[1] - psd_freqs[0])
+    if wthresh < min_peak_width:
+        wthresh = min_peak_width
     freqs = all_freqs[(all_freqs[:, 2] > high_threshold) &
-                      (all_freqs[:, 0] >= cfg['minimumFrequency'][0]) &
-                      (all_freqs[:, 0] <= cfg['maximumWorkingFrequency'][0]) &
+                      (all_freqs[:, 0] >= min_freq) &
+                      (all_freqs[:, 0] <= max_work_freq) &
                       (all_freqs[:, 3] < wthresh), :]
 
     # convert peak sizes back to power:
@@ -631,6 +634,126 @@ def harmonic_groups(psd_freqs, psd, cfg):
     all_freqs[:, 1] = 10.0 ** (0.1 * all_freqs[:, 1])
 
     # detect harmonic groups:
-    groups, fzero_harmonics, mains = extract_fundamentals(freqs, all_freqs, psd_freqs[1] - psd_freqs[0], cfg)
+    groups, fzero_harmonics, mains = extract_fundamentals(freqs, all_freqs,
+                                                          psd_freqs[1] - psd_freqs[0],
+                                                          verbose, freq_tol_fac,
+                                                          mains_freq, min_freq, max_freq,
+                                                          max_divisor, max_upper_fill,
+                                                          max_double_use_harmonics,
+                                                          max_double_use_count,max_fill_ratio,
+                                                          power_n_harmonics, min_group_size,
+                                                          max_harmonics)
 
     return groups, fzero_harmonics, mains, all_freqs, freqs[:, 0], low_threshold, high_threshold, center
+
+
+def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
+                                  noise_fac=6.0, peak_fac=0.5,
+                                  max_peak_width_fac=3.5, min_peak_width=1.0):
+    """ Add parameter needed for detection of peaks in power spectrum used by
+    harmonic_groups() as a new section to a configuration.
+
+    Args:
+      cfg (ConfigFile): the configuration
+    """
+
+    cfg.add_section('Thresholds for peak detection in power spectra:')
+    cfg.add('lowThreshold', low_threshold, 'dB', 'Threshold for all peaks.\n If 0.0 estimate threshold from histogram.')
+    cfg.add('highThreshold', high_threshold, 'dB', 'Threshold for good peaks. If 0.0 estimate threshold from histogram.')
+    # cfg['lowThreshold'][0] = 12. # panama
+    # cfg['highThreshold'][0] = 18. # panama
+    
+    cfg.add_section('Threshold estimation:\nIf no thresholds are specified they are estimated from the histogram of the decibel power spectrum.')
+    cfg.add('noiseFactor', noise_fac, '', 'Factor for multiplying std of noise floor for lower threshold.')
+    cfg.add('peakFactor', peak_fac, '', 'Fractional position of upper threshold above lower threshold.')
+
+    cfg.add_section('Peak detection in decibel power spectrum:')
+    cfg.add('maxPeakWidthFac', max_peak_width_fac, '',
+            'Maximum width of peaks at 0.75 hight in multiples of frequency resolution (might be increased)')
+    cfg.add('minPeakWidth', min_peak_width, 'Hz', 'Peaks do not need to be narrower than this.')
+
+
+def psd_peak_detection_args(cfg):
+    """ Translates a configuration to the respective parameter names for the
+    detection of peaks in power spectrum used by harmonic_groups().
+    The return value can then be passed as key-word arguments to this function.
+
+    Args:
+      cfg (ConfigFile): the configuration
+
+    Returns:
+      a (dict): dictionary with names of arguments of the harmonic-group()
+      function and their values as supplied by cfg.
+    """
+
+    return cfg.map({'low_threshold': 'lowThreshold',
+                    'high_threshold': 'highThreshold',
+                    'noise_fac': 'noiseFactor',
+                    'peak_fac': 'peakFactor',
+                    'max_peak_width_fac': 'maxPeakWidthFac',
+                    'min_peak_width': 'minPeakWidth'})
+
+
+def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac=0.7,
+                               max_upper_fill=1, max_fill_ratio=0.25,
+                               max_double_use_harmonics=8, max_double_use_count=1,
+                               power_n_harmonics=10, min_group_size=3,
+                               min_freq=20.0, max_freq=2000.0, max_work_freq=4000.0,
+                               max_harmonics=0):
+    """ Add parameter needed for detection of harmonic groups as
+    a new section to a configuration.
+
+    Args:
+      cfg (ConfigFile): the configuration
+    """
+    
+    cfg.add_section('Harmonic groups:')
+    cfg.add('mainsFreq', mains_freq, 'Hz', 'Mains frequency to be excluded.')
+    cfg.add('maxDivisor', max_divisor, '', 'Maximum ratio between the frequency of the largest peak and its fundamental')
+    cfg.add('freqTolerance', freq_tol_fac, '',
+            'Harmonics need be within this factor times the frequency resolution of the power spectrum. Needs to be higher than 0.5!')
+    cfg.add('maxUpperFill', max_upper_fill, '',
+            'As soon as more than this number of harmonics need to be filled in conescutively stop searching for higher harmonics.')
+    cfg.add('maxFillRatio', max_fill_ratio, '',
+            'Maximum fraction of filled in harmonics allowed (usefull values are smaller than 0.5)')
+    cfg.add('maxDoubleUseHarmonics', max_double_use_harmonics, '', 'Maximum harmonics up to which double uses are penalized.')
+    cfg.add('maxDoubleUseCount', max_double_use_count, '', 'Maximum overall double use count allowed.')
+    cfg.add('powerNHarmonics', power_n_harmonics, '', 'Compute total power over the first # harmonics.')
+    
+    cfg.add_section('Acceptance of best harmonic groups:')
+    cfg.add('minimumGroupSize', min_group_size, '',
+'Minimum required number of harmonics (inclusively fundamental) that are not filled in and are not used by other groups.')
+    # cfg['minimumGroupSize'][0] = 2 # panama
+    cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
+    cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
+    cfg.add('maximumWorkingFrequency', max_work_freq, 'Hz',
+            'Maximum frequency to be used to search for harmonic groups and to adjust fundamental frequency.')
+    cfg.add('maxHarmonics', max_harmonics, '', '0: keep all, >0 only keep the first # harmonics.')
+
+
+def harmonic_groups_args(cfg):
+    """ Translates a configuration to the
+    respective parameter names of the harmonic-group detection functions.
+    The return value can then be passed as key-word arguments to this function.
+
+    Args:
+      cfg (ConfigFile): the configuration
+
+    Returns:
+      a (dict): dictionary with names of arguments of the harmonic-group detection
+      functions and their values as supplied by cfg.
+    """
+    return cfg.map({'mains_freq': 'mainsFreq',
+                    'max_divisor': 'maxDivisor',
+                    'freq_tol_fac': 'freqTolerance',
+                    'max_upper_fill': 'maxUpperFill',
+                    'max_fill_ratio': 'maxFillRatio',
+                    'max_double_use_harmonics': 'maxDoubleUseHarmonics',
+                    'max_double_use_count': 'maxDoubleUseCount',
+                    'power_n_harmonics': 'powerNHarmonics',
+                    'min_group_size': 'minimumGroupSize',
+                    'min_freq': 'minimumFrequency',
+                    'max_freq': 'maximumFrequency',
+                    'max_work_freq': 'maximumWorkingFrequency',
+                    'max_harmonics': 'maxHarmonics'})
+

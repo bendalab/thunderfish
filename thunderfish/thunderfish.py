@@ -12,12 +12,14 @@ import argparse
 import os
 import sys
 import matplotlib.pyplot as plt
-from .config_tools import get_config_dict
+from .configfile import ConfigFile
+from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
+from .bestwindow import add_clip_config, add_best_window_config
 from .dataloader import load_data
 from .bestwindow import clip_amplitudes, best_window_indices
 from .checkpulse import check_pulse_width, check_pulse_psd
 from .powerspectrum import plot_decibel_psd, multi_resolution_psd
-from .harmonicgroups import harmonic_groups
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .consistentfishes import consistent_fishes_psd_plot, consistent_fishes
 from .eodanalysis import eod_waveform_plot, eod_waveform
 
@@ -177,9 +179,19 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     plt.close()
 
 
-def main(audio_file, channel=0, output_folder='', verbose=0):
+def main(audio_file, channel=0, output_folder='', verbosearg=0):
     # get config dictionary
-    cfg = get_config_dict()
+
+    cfg.add_section('Debugging:')
+    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
+
+    add_psd_peak_detection_config(cfg)
+    add_harmonic_groups_config(cfg)
+    add_clip_config(cfg)
+    add_best_window_config(cfg, w_cv_ampl=10.0)
+    verbose = cfg.value('verboseLevel')
+    if verbosearg is not None:
+        verbose = verbosearg
 
     # load data:
     raw_data, samplerate, unit = load_data(audio_file, channel)
@@ -202,7 +214,9 @@ def main(audio_file, channel=0, output_folder='', verbose=0):
     # find the fishes in the different powerspectrums:
     fishlists = []
     for i in range(len(psd_data)):
-        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], cfg)[0]
+        h_kwargs = psd_peak_detection_args(cfg)
+        h_kwargs.update(harmonic_groups_args(cfg))
+        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], verbose, **h_kwargs)[0]
         fishlists.append(fishlist)
 
     # find the psd_type
@@ -244,4 +258,4 @@ if __name__ == '__main__':
     parser.add_argument('-o', dest='output_folder', default=".", type=str, help="path where to store results and figures")
     args = parser.parse_args()
 
-    main(args.file, args.channel, args.output_folder, verbose=args.verbose)
+    main(args.file, args.channel, args.output_folder, verbosearg=args.verbose)
