@@ -179,9 +179,9 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     plt.close()
 
 
-def main(audio_file, channel=0, output_folder='', verbosearg=0):
-    # get config dictionary
-
+def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
+    # configuration options:
+    cfg = ConfigFile()
     cfg.add_section('Debugging:')
     cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
 
@@ -246,7 +246,7 @@ def main(audio_file, channel=0, output_folder='', verbosearg=0):
                 samplerate, idx0, idx1, filtered_fishlist, period, time, mean_eod, std_eod, unit, psd_data, output_folder)
 
 
-if __name__ == '__main__':
+def main():
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Analyse short EOD recordings of weakly electric fish.',
@@ -258,4 +258,9 @@ if __name__ == '__main__':
     parser.add_argument('-o', dest='output_folder', default=".", type=str, help="path where to store results and figures")
     args = parser.parse_args()
 
-    main(args.file, args.channel, args.output_folder, verbosearg=args.verbose)
+    thunderfish(args.file, args.channel, args.output_folder, verbosearg=args.verbose)
+
+    
+if __name__ == '__main__':
+    main()
+    
