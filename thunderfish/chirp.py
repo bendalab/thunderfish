@@ -13,7 +13,7 @@ import powerspectrum as ps
 import peakdetection as pkd
 
 
-def clean_chirps(chirp_time_idx, power, power_window=100):
+def true_chirp_power_drop(chirp_time_idx, power, power_window=100):
     """
     Chirp is only accepted as such if the power of the frequency drops down as expected.
 
@@ -42,7 +42,25 @@ def clean_chirps(chirp_time_idx, power, power_window=100):
     return np.array(true_chirp_time_idx)
 
 
-def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tolerance=1., chirp_th=1.,
+def true_chirp_power_rise_above(chirp_time_idx, power_above):
+
+    median_power_above = np.median(power_above)
+    std_power_above = np.std(power_above, ddof=1)
+
+    if median_power_above > 0.001:
+        print('another fish disturbs the chirp approval! Have to rely on other algorithms.')
+        return chirp_time_idx
+    else:
+        true_chirp_time_idx = []
+
+        for i in range(len(chirp_time_idx)):
+            if power_above[int(chirp_time_idx[i])] > median_power_above + 3*std_power_above:
+                true_chirp_time_idx.append(chirp_time_idx[i])
+
+        return true_chirp_time_idx
+
+
+def     chirp_detection(spectrum, freqs, time, fishlist=None, fundamentals=None, min_power= 0.005, freq_tolerance=1., chirp_th=1.,
                     plot_data_func=None):
     """
     Detects chirps on the basis of a spectrogram.
@@ -58,10 +76,15 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
     :param plot_data: (bool) If True: plots the process of chirp detection.
     :return:chirp_time: (array) array of times (in sec) where chirps have been detected.
     """
-    fundamentals = []
-    for fish in fishlist:
-        if fish[0][1] > min_power:
-            fundamentals.append(fish[0][0])
+    if not hasattr(fundamentals, '__len__'):
+        if not hasattr(fishlist, '__len__'):
+            print('fishlist or fundamentals missing as argument !!!')
+            quit()
+        else:
+            fundamentals = []
+            for fish in fishlist:
+                if fish[0][1] > min_power:
+                    fundamentals.append(fish[0][0])
 
     chirp_time = np.array([])
     chirp_freq = np.array([])
@@ -70,7 +93,7 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
         # extract power of only the part of the spectrum that has to be analysied for each fundamental and get the peak
         # power of every piont in time.
         power = np.max(spectrum[(freqs >= fundamental - freq_tolerance) & (freqs <= fundamental + freq_tolerance)], axis=0)
-        power2 = np.max(spectrum[(freqs >= fundamental +50.0) & (freqs <= fundamental + 55.0)], axis=0)
+        power_above = np.max(spectrum[(freqs >= fundamental + 50.0 -freq_tolerance) & (freqs <= fundamental + 50.0 + freq_tolerance)], axis=0)
         #power = np.mean(spectrum[(freqs >= fundamental - freq_tolerance) & (freqs <= fundamental + freq_tolerance)], axis=0)
         # calculate the slope by calculating the difference in the power
         power_diff = np.diff(power)
@@ -81,6 +104,7 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
         troughs, peaks = pkd.trim_to_peak(troughs, peaks) # reversed troughs and peaks in output and input to get trim_to_troughs
 
         # exclude peaks and troughs with to much time diff to be a chirp
+        # ToDO: not nice !!!
         peaks = peaks[(troughs - peaks) < chirp_th]
         troughs = troughs[(troughs - peaks) < chirp_th]
 
@@ -89,8 +113,9 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
             chirp_time_idx = np.mean([troughs, peaks], axis=0)
 
             # exclude detected chirps if the powervalue doesn't drop far enought
-            chirp_time_idx = clean_chirps(chirp_time_idx, power)
+            chirp_time_idx = true_chirp_power_drop(chirp_time_idx, power)
 
+            # chirp_time_idx = true_chirp_power_rise_above(chirp_time_idx, power_above)
             # add times of detected chirps to the list.
             chirp_time = np.concatenate((chirp_time, np.array([time[int(i)] for i in chirp_time_idx])))
             chirp_freq = np.concatenate((chirp_freq, np.array(fundamental* np.ones(len(chirp_time_idx)))))
@@ -100,7 +125,7 @@ def chirp_detection(spectrum, freqs, time, fishlist, min_power= 0.005, freq_tole
             chirp_freq = np.array([])
 
         if plot_data_func:
-            plot_data_func(enu, chirp_time, time, power, power2, power_diff, fundamental)
+            plot_data_func(enu, chirp_time, time, power, power_above, power_diff, fundamental)
 
     return chirp_time, chirp_freq
 
@@ -116,9 +141,14 @@ def chirp_detection_plot(enu, chirp_time, time, power, power2, power_diff, funda
     :param power_diff: (array) slope of the power array.
     :param fundamental: (float) fundamental frequency around which the algorithm looked for chirps.
     """
-    if enu == 0:
+    try:
+        ax
+    except NameError:
         fig, ax = plt.subplots()
         colors = ['r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue']
+    # if enu == 0:
+    #     fig, ax = plt.subplots()
+    #     colors = ['r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue', 'r', 'g', 'k', 'blue']
     ax.plot(chirp_time, np.zeros(len(chirp_time)), 'o', markersize=10, color=colors[enu], alpha=0.8, label='chirps')
     ax.set_xlabel('time in sec')
     ax.set_ylabel('power')
