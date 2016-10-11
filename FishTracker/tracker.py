@@ -10,7 +10,6 @@ import thunderfish.dataloader as dl
 import thunderfish.powerspectrum as ps
 import thunderfish.harmonicgroups as hg
 import thunderfish.config_tools as ct
-from IPython import embed
 
 
 def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_tolerance=5., freq_tolerance = 2., save_original_fishes=False):
