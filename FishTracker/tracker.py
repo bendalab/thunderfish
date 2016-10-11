@@ -10,9 +10,10 @@ import thunderfish.dataloader as dl
 import thunderfish.powerspectrum as ps
 import thunderfish.harmonicgroups as hg
 import thunderfish.config_tools as ct
+from IPython import embed
 
 
-def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_tolerance = 5, freq_tolerance = 2., save_original_fishes=False):
+def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_tolerance=5., freq_tolerance = 2., save_original_fishes=False):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
 
@@ -34,9 +35,9 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
     :return fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
-
+    # ToDo: insert clean up function that deletes fishes with less than 5 detections after every hour...
     detection_time_diff = np.median(np.diff(all_times))
-    dpm = int(60 / detection_time_diff)  # detections per minutes
+    dpm = 60. / detection_time_diff  # detections per minutes
 
     fishes = [[ 0. ]]
     last_fish_fundamentals = [ 0. ]
@@ -55,7 +56,6 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
             tollerated_diff_idx = sorted_diff_idx[diff[sorted_diff_idx] < freq_tolerance]
 
             last_detect_of_tollerated = np.array(end_nans)[tollerated_diff_idx]
-
 
             if len(tollerated_diff_idx) == 0:
                 fishes.append([np.nan for i in range(len(fishes[0]) - 1)])
@@ -95,12 +95,11 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     if save_original_fishes:
         filename = audio_file.split('/')[-1].split('.')[-2]
         np.save('fishes_'+ filename + '.npy', np.asarray(fishes))
-        # del a, filename
 
     return fishes
 
 
-def combine_fishes(fishes, all_times, max_time_tolerance = 5, max_freq_tolerance= 10):
+def combine_fishes(fishes, all_times, max_time_tolerance = 5., max_freq_tolerance= 10.):
     """
     Combine fishes when frequency and time of occurrence don't differ above the threshold.
 
@@ -116,7 +115,7 @@ def combine_fishes(fishes, all_times, max_time_tolerance = 5, max_freq_tolerance
     :return fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
     detection_time_diff = np.median(np.diff(all_times))
-    dpm = 60 / detection_time_diff  # detections per minutes
+    dpm = 60. / detection_time_diff  # detections per minutes
 
     occure_idx = []
     delete_idx = []
@@ -147,7 +146,7 @@ def combine_fishes(fishes, all_times, max_time_tolerance = 5, max_freq_tolerance
     return fishes[return_idx]
 
 
-def exclude_fishes(fishes, all_times, min_occure_time = 1):
+def exclude_fishes(fishes, all_times, min_occure_time = 1.):
     """
     Delete fishes that are present for a to short period of time.
 
@@ -159,7 +158,7 @@ def exclude_fishes(fishes, all_times, min_occure_time = 1):
     # ToDo: maybe delete only fishes that have less than 10 datapoints in the beginning. otherwise parts of rises may be lost.
     keep_idx = []
     detection_time_diff = np.median(np.diff(all_times))
-    dpm = 60 / detection_time_diff # detections per minute
+    dpm = 60. / detection_time_diff # detections per minute
 
     for fish in range(len(fishes)):
         if len(fishes[fish][~np.isnan(fishes[fish])]) >= min_occure_time * dpm:
@@ -289,7 +288,7 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
                 break
 
     print('sorting fishes')
-    fishes = first_level_fish_sorting(all_fundamentals, audio_file, all_times, save_original_fishes)
+    fishes = first_level_fish_sorting(all_fundamentals, audio_file, all_times, save_original_fishes=save_original_fishes)
 
     print('exclude fishes')
     fishes = exclude_fishes(fishes, all_times)
