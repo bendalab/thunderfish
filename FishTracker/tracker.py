@@ -117,7 +117,7 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     if save_original_fishes:
         filename = audio_file.split('/')[-1].split('.')[-2]
         np.save('fishes_'+ filename + '.npy', np.asarray(fishes))
-
+        np.save('times_'+ filename + '.npy', all_times)
     return fishes
 
 
