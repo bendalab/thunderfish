@@ -46,7 +46,6 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
         :return: last_fish_fundamentals: (list) cleaned up input list.
         :return: end_nans: (list) cleaned up input list.
         """
-        print('cleaning up ...')
         for fish in reversed(range(len(fishes))):
             if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= 10:
                 fishes.pop(fish)
@@ -58,7 +57,8 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     detection_time_diff = np.median(np.diff(all_times))
     dpm = 60. / detection_time_diff  # detections per minutes
 
-    fishes = [[ 0. ]]
+    fishes = [np.full(len(all_fundamentals)+1, np.nan)]
+    fishes[0][0] = 0.
     last_fish_fundamentals = [ 0. ]
     end_nans = [0]
 
@@ -67,15 +67,10 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     clean_up_idx = int(30 * dpm)
 
     for t_list in range(len(all_fundamentals)):
-        # ... first add a nan to all fishes. replace later !!!
         if t_list == clean_up_idx:
-            # print('savety clean up at %.0f' % clean_up_idx / dpm)
             print('cleaning up ...')
             fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
             clean_up_idx += int(30 * dpm)
-
-        for fish in fishes:
-            fish.append(np.nan)
 
         for idx in range(len(all_fundamentals[t_list])):
             diff = abs(np.asarray(last_fish_fundamentals) - all_fundamentals[t_list][idx])
@@ -85,21 +80,20 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
             last_detect_of_tollerated = np.array(end_nans)[tollerated_diff_idx]
 
             if len(tollerated_diff_idx) == 0:
-                fishes.append([np.nan for i in range(len(fishes[0]) - 1)])
-                fishes[-1].append(all_fundamentals[t_list][idx])
+                fishes.append(np.full(len(all_fundamentals)+1, np.nan))
+                fishes[-1][t_list+1] = all_fundamentals[t_list][idx]
                 last_fish_fundamentals.append(all_fundamentals[t_list][idx])
                 end_nans.append(0)
             else:
                 for i in tollerated_diff_idx[np.argsort(last_detect_of_tollerated)]:
-                # for i in tollerated_diff_idx:
-                    if np.isnan(fishes[i][-1]):
-                        fishes[i][-1] = all_fundamentals[t_list][idx]
+                    if np.isnan(fishes[i][t_list+1]):
+                        fishes[i][t_list+1] = all_fundamentals[t_list][idx]
                         last_fish_fundamentals[i] = all_fundamentals[t_list][idx]
                         end_nans[i] = 0
                         break
                     if i == tollerated_diff_idx[-1]:
-                        fishes.append([np.nan for i in range(len(fishes[0]) - 1)])
-                        fishes[-1].append(all_fundamentals[t_list][idx])
+                        fishes.append(np.full(len(all_fundamentals)+1, np.nan))
+                        fishes[-1][t_list+1] = all_fundamentals[t_list][idx]
                         last_fish_fundamentals.append(all_fundamentals[t_list][idx])
                         end_nans.append(0)
 
@@ -108,16 +102,17 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
                 last_fish_fundamentals[fish] = 0.
 
         for fish in range(len(fishes)):
-            if np.isnan(fishes[fish][-1]):
+            if np.isnan(fishes[fish][t_list+1]):
                 end_nans[fish] += 1
 
 
     # reshape everything to arrays
     for fish in range(len(fishes)):
-        fishes[fish].pop(0)
-        fishes[fish] = np.asarray(fishes[fish])
-    # remove first fish because it has been used for the first comparison !
-    fishes.pop(0)
+        fishes[fish] = fishes[fish][1:]
+
+    # if not removed be clean_up(): remove first fish because it has been used for the first comparison !
+    if fishes[0][0] == 0.:
+        fishes.pop(0)
 
     if save_original_fishes:
         filename = audio_file.split('/')[-1].split('.')[-2]
@@ -180,9 +175,8 @@ def exclude_fishes(fishes, all_times, min_occure_time = 1.):
     :param fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
     :param all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
     :param min_occure_time (int) minimum duration a fish has to be available to not get excluded.
-    :return fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
+    :return fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
-    # ToDo: maybe delete only fishes that have less than 10 datapoints in the beginning. otherwise parts of rises may be lost.
     keep_idx = []
     detection_time_diff = np.median(np.diff(all_times))
     dpm = 60. / detection_time_diff # detections per minute
@@ -201,11 +195,11 @@ def regress_combine(fishes, all_times, max_time_tolerance= 45., max_freq_toleran
     For every fish a regression is processed. If the first detection of another fish that appears later on first the
     regression and the time difference is below threshold the two fishes are combined.
 
-    :param fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
+    :param fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     :param all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
     :param max_time_tolerance: (int) maximum time between one fish disappears and another fish appears to try to combine them.
     :param max_freq_tolerance: (float) maximum frequency difference between the first detection of one fish compared with a regression of another fish.
-    :return: fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
+    :return: fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
     detection_time_diff = np.median(np.diff(all_times))
     dpm = 60. / detection_time_diff  # detections per minutes
@@ -222,9 +216,12 @@ def regress_combine(fishes, all_times, max_time_tolerance= 45., max_freq_toleran
 
             if occure_idx[fish][0] > occure_idx[comp_fish][1]:
                 if (occure_idx[fish][0] - occure_idx[comp_fish][1]) <= max_time_tolerance * dpm:
-
-                    comp_fish_snippet = fishes[comp_fish][occure_idx[comp_fish][1]-int(30*dpm): occure_idx[comp_fish][1]]
-                    comp_fish_snippet_time = all_times[occure_idx[comp_fish][1] - int(30 * dpm): occure_idx[comp_fish][1]]
+                    # embed()
+                    snippet_start_idx = occure_idx[comp_fish][1]-int(30*dpm)
+                    if snippet_start_idx < 0:
+                        snippet_start_idx = 0
+                    comp_fish_snippet = fishes[comp_fish][snippet_start_idx: occure_idx[comp_fish][1]]
+                    comp_fish_snippet_time = all_times[snippet_start_idx: occure_idx[comp_fish][1]]
 
                     comp_regress = np.polyfit(comp_fish_snippet_time[~np.isnan(comp_fish_snippet)],
                                               comp_fish_snippet[~np.isnan(comp_fish_snippet)], 1)
