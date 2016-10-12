@@ -10,6 +10,7 @@ import thunderfish.dataloader as dl
 import thunderfish.powerspectrum as ps
 import thunderfish.harmonicgroups as hg
 import thunderfish.config_tools as ct
+from IPython import embed
 
 
 def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_tolerance=5., freq_tolerance = 2., save_original_fishes=False):
@@ -34,7 +35,16 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
     :return fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
-    # ToDo: insert clean up function that deletes fishes with less than 5 detections after every hour...
+    def clean_up(fishes, last_fish_fundamentals, end_nans):
+        print('cleaning up ...')
+        for fish in reversed(range(len(fishes))):
+            if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= 10:
+                fishes.pop(fish)
+                last_fish_fundamentals.pop(fish)
+                end_nans.pop(fish)
+
+        return fishes, last_fish_fundamentals, end_nans
+
     detection_time_diff = np.median(np.diff(all_times))
     dpm = 60. / detection_time_diff  # detections per minutes
 
@@ -44,8 +54,16 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
 
     # for every list of fundamentals ...
     print len(all_fundamentals)
+    clean_up_idx = int(30 * dpm)
+
     for t_list in range(len(all_fundamentals)):
         # ... first add a nan to all fishes. replace later !!!
+        if t_list == clean_up_idx:
+            # print('savety clean up at %.0f' % clean_up_idx / dpm)
+            print('cleaning up ...')
+            fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
+            clean_up_idx += int(30 * dpm)
+
         for fish in fishes:
             fish.append(np.nan)
 
