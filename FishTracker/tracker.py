@@ -36,6 +36,16 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     :return fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
     def clean_up(fishes, last_fish_fundamentals, end_nans):
+        """
+        Delete fish arrays with too little data points to reduce memory usage.
+
+        :param fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
+        :param last_fish_fundamentals: (list) contains for every fish in fishes the last detected fundamental frequency.
+        :param end_nans: (list) for every fish contains the counts of nans since the last fundamental detection.
+        :return: fishes: (list) cleaned up input list.
+        :return: last_fish_fundamentals: (list) cleaned up input list.
+        :return: end_nans: (list) cleaned up input list.
+        """
         print('cleaning up ...')
         for fish in reversed(range(len(fishes))):
             if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= 10:
