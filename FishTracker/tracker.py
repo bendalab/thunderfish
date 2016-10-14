@@ -13,7 +13,64 @@ import thunderfish.config_tools as ct
 from IPython import embed
 
 
-def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_tolerance=5., freq_tolerance = 2., save_original_fishes=False):
+def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time, data_snippet_secs, nffts_per_psd,
+                                               fresolution=0.5, overlap_frac=.9, verbose=0):
+    """
+    For a long audio file calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
+    extracts fundamental frequncies.
+
+    :param data: (array) audiofile.
+    :param samplrate: (int) samplrate of audiofile.
+    :param start_time: (int) time in seconds when the analysis shall begin.
+    :param end_time: (int) time in seconds when the analysis shall end.
+    :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
+    :param nffts_per_psd: (int) amount of nffts used to calculate one psd.
+    :param fresolution: (float) frequency resolution for the spectrogram.
+    :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
+    :param verbose: (int) with increasing value provides more shell output.
+    :return all_fundamentals: (list) containing arrays with the fundamentals frequencies of fishes detected at a certain time.
+    :return all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
+    """
+    cfg = ct.get_config_dict()
+
+    all_fundamentals = []
+    all_times = np.array([])
+
+    while start_time < int((len(data)-data_snippet_secs*samplrate) / samplrate):
+        tmp_data = data[start_time*samplrate : (start_time+data_snippet_secs)*samplrate] # gaps between snippets !!!!
+
+        # spectrogram
+        spectrum, freqs, time = ps.spectrogram(tmp_data, samplrate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
+
+        all_times = np.concatenate((all_times, time[:len(time)-nffts_per_psd] + start_time))
+
+        # psd and fish fundamentals frequency detection
+        for t in range(len(time)-(nffts_per_psd)):
+            power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
+
+            fishlist = hg.harmonic_groups(freqs, power, cfg)[0]
+
+            if not fishlist == []:
+                fundamentals = hg.extract_fundamental_freqs(fishlist)
+                all_fundamentals.append(fundamentals)
+            else:
+                all_fundamentals.append(np.array([]))
+
+        if (int(start_time) % int(data_snippet_secs * 30)) > -1 and (int(start_time) % int(data_snippet_secs * 30)) < 1:
+            if verbose >= 2:
+                print('Minute %.0f' % (start_time/60))
+
+        start_time += data_snippet_secs
+        if end_time:
+            if start_time >= end_time:
+                if verbose >= 2:
+                    print('End time reached!')
+                break
+    return all_fundamentals, all_times
+
+
+def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_tolerance=5., freq_tolerance = 2.,
+                             save_original_fishes=False, verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
 
@@ -33,6 +90,7 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     :param max_time_tolerance: (int) time in minutes from when a certain fish is no longer tracked.
     :param freq_tolerance: (float) maximum frequency difference to assign a frequency to a certain fish.
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
+    :param verbose: (int) with increasing value provides more shell output.
     :return fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
     def clean_up(fishes, last_fish_fundamentals, end_nans):
@@ -68,7 +126,8 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
 
     for t_list in range(len(all_fundamentals)):
         if t_list == clean_up_idx:
-            print('cleaning up ...')
+            if verbose >= 2:
+                print('cleaning up ...')
             fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
             clean_up_idx += int(30 * dpm)
 
@@ -255,7 +314,7 @@ def plot_fishes(fishes, all_times):
 
 
 def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_time= 0, end_time = None, plot_data_func=None,
-                 save_original_fishes=False):
+                 save_original_fishes=False, verbose=0):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -273,61 +332,40 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
     :param plot_data_func: (function) if plot_data_func = plot_fishes creates a plot of the sorted fishes.
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
     """
-    all_fundamentals = []
-    all_times = np.array([])
-
-    # load data
-    cfg = ct.get_config_dict()
     data = dl.open_data(audio_file, 0, 60.0, 10.0)
     samplrate = data.samplerate
 
-    while start_time < int((len(data)-data_snippet_secs*samplrate) / samplrate):
-        tmp_data = data[start_time*samplrate : (start_time+data_snippet_secs)*samplrate] # gaps between snippets !!!!
+    if verbose >= 1:
+        print('extract fundamentals')
+    all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time,
+                                                                             data_snippet_secs, nffts_per_psd,
+                                                                             fresolution=0.5, overlap_frac=.9,
+                                                                             verbose=verbose)
+    if verbose >= 1:
+        print('sorting fishes')
+    fishes = first_level_fish_sorting(all_fundamentals, audio_file, all_times, save_original_fishes=save_original_fishes,
+                                      verbose=verbose)
 
-        # spectrogram
-        spectrum, freqs, time = ps.spectrogram(tmp_data, samplrate, fresolution=0.5, overlap_frac=.9)  # nfft window = 2 sec
-
-        all_times = np.concatenate((all_times, time[:len(time)-nffts_per_psd] + start_time))
-
-        # psd and fish fundamentals frequency detection
-        for t in range(len(time)-(nffts_per_psd)):
-            power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
-
-            fishlist = hg.harmonic_groups(freqs, power, cfg)[0]
-
-            if not fishlist == []:
-                fundamentals = hg.extract_fundamental_freqs(fishlist)
-                all_fundamentals.append(fundamentals)
-            else:
-                all_fundamentals.append(np.array([]))
-
-        if (int(start_time) % int(data_snippet_secs * 30)) > -1 and (int(start_time) % int(data_snippet_secs * 30)) < 1:
-            print('Minute')
-            print start_time / 60
-
-        start_time += data_snippet_secs
-        if end_time:
-            if start_time >= end_time:
-                print('End time reached!')
-                break
-
-    print('sorting fishes')
-    fishes = first_level_fish_sorting(all_fundamentals, audio_file, all_times, save_original_fishes=save_original_fishes)
-
-    print('exclude fishes')
+    if verbose >= 1:
+        print('exclude fishes')
     fishes = exclude_fishes(fishes, all_times)
 
-    print('combining fishes')
+    if verbose >= 1:
+        print('combining fishes')
     fishes = combine_fishes(fishes, all_times)
-    #
-    print('combining fishes based on regression')
+
+    if verbose >= 1:
+        print('combining fishes based on regression')
     fishes = regress_combine(fishes, all_times)
 
-    print('%.0f fishes left' % len(fishes))
+    if verbose >= 1:
+        print('%.0f fishes left' % len(fishes))
 
     if plot_data_func:
         plot_data_func(fishes, all_times)
-    print('Whole file processed.')
+    if verbose >= 1:
+        print('Whole file processed.')
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
@@ -367,6 +405,6 @@ if __name__ == '__main__':
         if len(sys.argv) == 4:
             start_time = float(sys.argv[2]) * 60
             end_time = float(sys.argv[3]) * 60
-            fish_tracker(audio_file, start_time=start_time, end_time=end_time, plot_data_func= plot_fishes)
+            fish_tracker(audio_file, start_time=start_time, end_time=end_time, plot_data_func= plot_fishes, verbose=2)
         else:
-            fish_tracker(audio_file, plot_data_func= plot_fishes, save_original_fishes=True) # whole file
+            fish_tracker(audio_file, plot_data_func= plot_fishes, save_original_fishes=True, verbose=2) # whole file
