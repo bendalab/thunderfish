@@ -121,7 +121,9 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     end_nans = [0]
 
     # for every list of fundamentals ...
-    print len(all_fundamentals)
+    if verbose >=2:
+        print('len of all_fundamentals: ', len(all_fundamentals))
+
     clean_up_idx = int(30 * dpm)
 
     for t_list in range(len(all_fundamentals)):
@@ -134,33 +136,32 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
         for idx in range(len(all_fundamentals[t_list])):
             diff = abs(np.asarray(last_fish_fundamentals) - all_fundamentals[t_list][idx])
             sorted_diff_idx = np.argsort(diff)
-            tollerated_diff_idx = sorted_diff_idx[diff[sorted_diff_idx] < freq_tolerance]
+            tolerated_diff_idx = sorted_diff_idx[diff[sorted_diff_idx] < freq_tolerance]
 
-            last_detect_of_tollerated = np.array(end_nans)[tollerated_diff_idx]
+            last_detect_of_tolerated = np.array(end_nans)[tolerated_diff_idx]
 
-            if len(tollerated_diff_idx) == 0:
+            if len(tolerated_diff_idx) == 0:
                 fishes.append(np.full(len(all_fundamentals)+1, np.nan))
                 fishes[-1][t_list+1] = all_fundamentals[t_list][idx]
                 last_fish_fundamentals.append(all_fundamentals[t_list][idx])
                 end_nans.append(0)
             else:
-                for i in tollerated_diff_idx[np.argsort(last_detect_of_tollerated)]:
+                for i in tolerated_diff_idx[np.argsort(last_detect_of_tolerated)]:
                     if np.isnan(fishes[i][t_list+1]):
                         fishes[i][t_list+1] = all_fundamentals[t_list][idx]
                         last_fish_fundamentals[i] = all_fundamentals[t_list][idx]
                         end_nans[i] = 0
                         break
-                    if i == tollerated_diff_idx[-1]:
+                    if i == tolerated_diff_idx[-1]:
                         fishes.append(np.full(len(all_fundamentals)+1, np.nan))
                         fishes[-1][t_list+1] = all_fundamentals[t_list][idx]
                         last_fish_fundamentals.append(all_fundamentals[t_list][idx])
                         end_nans.append(0)
 
-        for fish in range(len(end_nans)):
+        for fish in range(len(fishes)):
             if end_nans[fish] >= max_time_tolerance * dpm:
                 last_fish_fundamentals[fish] = 0.
 
-        for fish in range(len(fishes)):
             if np.isnan(fishes[fish][t_list+1]):
                 end_nans[fish] += 1
 
