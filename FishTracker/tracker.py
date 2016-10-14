@@ -287,7 +287,7 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
         # spectrogram
         spectrum, freqs, time = ps.spectrogram(tmp_data, samplrate, fresolution=0.5, overlap_frac=.9)  # nfft window = 2 sec
 
-        all_times = np.concatenate((all_times, time + start_time))
+        all_times = np.concatenate((all_times, time[:len(time)-nffts_per_psd] + start_time))
 
         # psd and fish fundamentals frequency detection
         for t in range(len(time)-(nffts_per_psd)):
@@ -344,10 +344,9 @@ if __name__ == '__main__':
 
     if sys.argv[1].split('.')[-1] == 'npy':
         a = np.load(sys.argv[1], mmap_mode='r+')
-
         fishes = a.copy()
 
-        all_times = np.arange(len(fishes[0])) * 0.2
+        all_times = np.load('times_' + sys.argv[1].replace('fishes_', ''))
 
         print('excluding fishes')
         fishes = exclude_fishes(fishes, all_times)
