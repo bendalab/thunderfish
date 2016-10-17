@@ -566,7 +566,7 @@ def threshold_estimate(data, noise_factor, peak_factor):
         noise_factor (float): multiplies the estimate of the standard deviation
                               of the noise to result in the low_threshold
         peak_factor (float): the high_threshold is the low_threshold plus
-                             this fraction times the distance between largest peaks
+                             this fraction times the distance between largest pe aks
                              and low_threshold plus half the low_threshold
 
     Returns:
@@ -579,8 +579,8 @@ def threshold_estimate(data, noise_factor, peak_factor):
     # XXX what about the number of bins for small data sets?
     hist, bins = np.histogram(data, 100, density=True)
     inx = hist > np.max(hist) / np.sqrt(np.e)
-    lower = bins[inx][0]
-    upper = bins[inx][-1]  # needs to return the next bin
+    lower = bins[0:-1][inx][0]
+    upper = bins[1:][inx][-1]  # needs to return the next bin
     center = 0.5 * (lower + upper)
     noisestd = 0.5 * (upper - lower)
 
@@ -594,7 +594,7 @@ def threshold_estimate(data, noise_factor, peak_factor):
     if bins[-2] >= lowerth:
         pthresh = cumhist[bins[:-1] >= lowerth][0]
         upperpthresh = pthresh + 0.95 * (1.0 - pthresh)
-    upperbins = bins[cumhist > upperpthresh]
+    upperbins = bins[:-1][cumhist > upperpthresh]
     if len(upperbins) > 0:
         upperth = upperbins[0]
     else:
