@@ -473,9 +473,65 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
     else:
         return np.std(data, ddof=1) * th_factor
 
+    
+def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
+                   nbins=100, hist_height=1.0/ np.sqrt(np.e)):
+    """Esimates a threshold for detect_peaks() based on a histogram of the data.
 
+    The standard deviation of the data is estimated from the
+    width of the histogram of the data at hist_height relative height.
+
+    If samplerate and win_size is given, then the threshold is computed for
+    each non-overlapping window of duration win_size separately.
+    In this case the returned threshold is an array of the same size as data.
+    Without a samplerate and win_size a single threshold value determined from
+    the whole data array is returned.
+
+    Args:
+        data: the data from which to estimate the threshold.
+        noise_factor (float): multiplies the estimate of the standard deviation
+                              of the noise to result in the low_threshold
+                              
+        data (1-D array): the data to be analyzed.
+        samplerate (float or None): sampling rate of the data in Hz.
+        win_size (float or None): Size of window in which a threshold value is computed in sec.
+        th_factor (float): factor by which the width of the histogram is multiplied to set the threshold.
+        nbins (int or list of floats): number of bins or the bins for computing the histogram.
+        hist_height (float): height between 0 and 1 at which the width of the histogram is computed.
+
+    Returns:
+        threshold (float or 1-D array): the computed threshold.
+        center (float or 1-D array): the center (mean) of the width of the histogram.
+    """
+
+    if samplerate and win_size:
+        threshold = np.zeros(len(data))
+        centers = np.zeros(len(data))
+        win_size_indices = int(win_size * samplerate)
+
+        for inx0 in range(0, len(data), win_size_indices):
+            inx1 = inx0 + win_size_indices
+            hist, bins = np.histogram(data[inx0:inx1], nbins, density=True)
+            inx = hist > np.max(hist) * hist_height
+            lower = bins[0:-1][inx][0]
+            upper = bins[1:][inx][-1]  # needs to return the next bin
+            center = 0.5 * (lower + upper)
+            std = 0.5 * (upper - lower)
+            threshold[inx0:inx1] = std * th_factor
+            centers[inx0:inx1] = center
+        return threshold, centers
+    else:
+        hist, bins = np.histogram(data, nbins, density=True)
+        inx = hist > np.max(hist) * hist_height
+        lower = bins[0:-1][inx][0]
+        upper = bins[1:][inx][-1]  # needs to return the next bin
+        center = 0.5 * (lower + upper)
+        std = 0.5 * (upper - lower)
+        return std * th_factor, center
+
+    
 def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
-    """Esimates a threshold for detect_peaks() based on minimum and maximum values of the data.
+    """Esimate a threshold for detect_peaks() based on minimum and maximum values of the data.
 
     The threshold is computed as the difference between maximum and
     minimum value of the data multiplied with th_factor.
@@ -489,7 +545,6 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
     :param data: (1-D array). The data to be analyzed.
     :param samplerate: (float or None). Sampling rate of the data in Hz.
     :param win_size: (float or None). Size of window in which a threshold value is computed.
-    :param th_factor: (float). The threshold for peak detection is the inter-min-max-range multiplied by this factor.
     :param th_factor: (float). Factor by which the difference between minimum and maximum data value is multiplied to set the threshold.
 
     :return: threshold: (float or 1-D array). The computed threshold.
@@ -512,7 +567,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
 
 
 def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, percentile=0.1):
-    """Esimates a threshold for detect_peaks() based on an inter-percentile range of the data.
+    """Esimate a threshold for detect_peaks() based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
     100.0-percentile percentiles of the data multiplied with

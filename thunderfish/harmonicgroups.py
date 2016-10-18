@@ -3,7 +3,7 @@
 harmonic_groups(): detect peaks in a power spectrum and groups them
                    according to their harmonic structure.
 
-extract_fundamentals():
+extract_fundamentals(): collect harmonic groups from lists of power spectrum peaks.
 threshold_estimate(): estimates thresholds for peak detection in a power spectrum.
 
 fundamental_freqs(): extract the fundamental frequencies from lists of harmonic groups
@@ -12,7 +12,7 @@ fundamental_freqs(): extract the fundamental frequencies from lists of harmonic 
 
 from __future__ import print_function
 import numpy as np
-from .peakdetection import detect_peaks, accept_peaks_size_width
+from .peakdetection import detect_peaks, accept_peaks_size_width, hist_threshold
 
 
 def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, max_freq=2000.0,
@@ -555,7 +555,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     return group_list, fzero_harmonics_list, np.array(mains_list)
 
 
-def threshold_estimate(data, noise_factor, peak_factor):
+def threshold_estimate(data, noise_factor=6.0, peak_factor=5.0):
     """Estimate noise standard deviation from histogram
     for usefull peak-detection thresholds.
 
@@ -577,16 +577,7 @@ def threshold_estimate(data, noise_factor, peak_factor):
     """
 
     # estimate noise standard deviation:
-    # XXX what about the number of bins for small data sets?
-    hist, bins = np.histogram(data, 100, density=True)
-    inx = hist > np.max(hist) / np.sqrt(np.e)
-    lower = bins[0:-1][inx][0]
-    upper = bins[1:][inx][-1]  # needs to return the next bin
-    center = 0.5 * (lower + upper)
-    noisestd = 0.5 * (upper - lower)
-
-    # low threshold:
-    lowthreshold = noise_factor * noisestd
+    lowthreshold, center = hist_threshold(data, th_factor=noise_factor)
 
     # high threshold:
     lowerth = center + 0.5 * lowthreshold
