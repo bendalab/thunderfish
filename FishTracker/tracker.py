@@ -50,6 +50,8 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
 
             fishlist = hg.harmonic_groups(freqs, power, cfg)[0]
 
+            # ToDo: Changed the function hg.extract_fundamental_freqs() in harmonicgroups.py. Is now capable to handle empty fishlists.
+            # ToDo: Delete this if loop as soon as it is accepted and installed.
             if not fishlist == []:
                 fundamentals = hg.extract_fundamental_freqs(fishlist)
                 all_fundamentals.append(fundamentals)
@@ -69,7 +71,7 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
     return all_fundamentals, all_times
 
 
-def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_tolerance=5., freq_tolerance = 2.,
+def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = 2.,
                              save_original_fishes=False, verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
@@ -85,7 +87,7 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
     (all_times). These fish arrays can be saved as .npy file to access the code after the time demanding step.
 
     :param all_fundamentals: (list) containing arrays with the fundamentals frequencies of fishes detected at a certain time.
-    :param audio_file: (string) filepath of the analysed audiofile.
+    :param base_name: (string) filename.
     :param all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
     :param max_time_tolerance: (int) time in minutes from when a certain fish is no longer tracked.
     :param freq_tolerance: (float) maximum frequency difference to assign a frequency to a certain fish.
@@ -134,7 +136,7 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
             clean_up_idx += int(30 * dpm)
 
         for idx in range(len(all_fundamentals[t_list])):
-            diff = abs(np.asarray(last_fish_fundamentals) - all_fundamentals[t_list][idx])
+            diff = np.abs(np.asarray(last_fish_fundamentals) - all_fundamentals[t_list][idx])
             sorted_diff_idx = np.argsort(diff)
             tolerated_diff_idx = sorted_diff_idx[diff[sorted_diff_idx] < freq_tolerance]
 
@@ -175,9 +177,8 @@ def first_level_fish_sorting(all_fundamentals, audio_file, all_times, max_time_t
         fishes.pop(0)
 
     if save_original_fishes:
-        filename = audio_file.split('/')[-1].split('.')[-2]
-        np.save('fishes_'+ filename + '.npy', np.asarray(fishes))
-        np.save('times_'+ filename + '.npy', all_times)
+        np.save(base_name + '-fishes.npy', np.asarray(fishes))
+        np.save(base_name + '-times.npy', all_times)
     return fishes
 
 
@@ -214,7 +215,7 @@ def combine_fishes(fishes, all_times, max_time_tolerance = 5., max_freq_toleranc
             if occure_idx[fish][0] > occure_idx[comp_fish][1] and occure_idx[fish][0] - occure_idx[comp_fish][1] <= max_time_tolerance * dpm:
 
                 # ToDO: replace index with time ... 5 min ?!
-                if abs(np.mean(fishes[fish][~np.isnan(fishes[fish])][:200]) - np.mean(fishes[comp_fish][~np.isnan(fishes[comp_fish])][-200:])) <= max_freq_tolerance:
+                if np.abs(np.mean(fishes[fish][~np.isnan(fishes[fish])][:200]) - np.mean(fishes[comp_fish][~np.isnan(fishes[comp_fish])][-200:])) <= max_freq_tolerance:
 
                     fishes[comp_fish][np.isnan(fishes[comp_fish])] = fishes[fish][np.isnan(fishes[comp_fish])]
                     delete_idx.append(fish)
@@ -286,7 +287,7 @@ def regress_combine(fishes, all_times, max_time_tolerance= 45., max_freq_toleran
                     comp_regress = np.polyfit(comp_fish_snippet_time[~np.isnan(comp_fish_snippet)],
                                               comp_fish_snippet[~np.isnan(comp_fish_snippet)], 1)
 
-                    if abs((all_times[occure_idx[fish][0]] * comp_regress[0] + comp_regress[1]) - (fishes[fish][occure_idx[fish][0]])) <= max_freq_tolerance:
+                    if np.abs((all_times[occure_idx[fish][0]] * comp_regress[0] + comp_regress[1]) - (fishes[fish][occure_idx[fish][0]])) <= max_freq_tolerance:
                         fishes[comp_fish][np.isnan(fishes[comp_fish])] = fishes[fish][np.isnan(fishes[comp_fish])]
                         delete_idx.append(fish)
 
@@ -335,6 +336,7 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
     """
     data = dl.open_data(audio_file, 0, 60.0, 10.0)
     samplrate = data.samplerate
+    base_name = audio_file.split('/')[-1].split('.')[-2]
 
     if verbose >= 1:
         print('extract fundamentals')
@@ -344,7 +346,7 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
                                                                              verbose=verbose)
     if verbose >= 1:
         print('sorting fishes')
-    fishes = first_level_fish_sorting(all_fundamentals, audio_file, all_times, save_original_fishes=save_original_fishes,
+    fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, save_original_fishes=save_original_fishes,
                                       verbose=verbose)
 
     if verbose >= 1:
@@ -385,7 +387,7 @@ if __name__ == '__main__':
         a = np.load(sys.argv[1], mmap_mode='r+')
         fishes = a.copy()
 
-        all_times = np.load('times_' + sys.argv[1].replace('fishes_', ''))
+        all_times = np.load(sys.argv[1].replace('-fishes', '-times'))
 
         print('excluding fishes')
         fishes = exclude_fishes(fishes, all_times)
