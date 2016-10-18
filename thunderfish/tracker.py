@@ -7,8 +7,9 @@ import sys
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from ..thunderfish.dataloader import open_data
-from ..thunderfish.harmonicgroups import harmonic_groups, extract_fundamental_freqs
+from .dataloader import open_data
+from .powerspectrum import spectrogram
+from .harmonicgroups import harmonic_groups, extract_fundamental_freqs
  
 
 def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time, data_snippet_secs, nffts_per_psd,
@@ -36,7 +37,7 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
         tmp_data = data[start_time*samplrate : (start_time+data_snippet_secs)*samplrate] # gaps between snippets !!!!
 
         # spectrogram
-        spectrum, freqs, time = ps.spectrogram(tmp_data, samplrate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
+        spectrum, freqs, time = spectrogram(tmp_data, samplrate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
 
         all_times = np.concatenate((all_times, time[:len(time)-nffts_per_psd] + start_time))
 
