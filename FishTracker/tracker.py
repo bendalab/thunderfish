@@ -7,8 +7,8 @@ import sys
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from .dataloader import open_data
-from .harmonicgroups import hg harmonic_groups extract_fundamental_freqs
+from ..thunderfish.dataloader import open_data
+from ..thunderfish.harmonicgroups import harmonic_groups, extract_fundamental_freqs
  
 
 def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time, data_snippet_secs, nffts_per_psd,
