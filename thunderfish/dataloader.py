@@ -157,7 +157,6 @@ if __name__ == "__main__":
     print("try DataLoader:")
     with open_data(filepath, 0, 2.0, 1.0, 1) as data:
         print('samplerate: %g' % data.samplerate)
-        print('channels: %d %d' % (data.channels, data.shape[1]))
         print('frames: %d %d' % (len(data), data.shape[0]))
         nframes = int(1.0 * data.samplerate)
         # forward:
