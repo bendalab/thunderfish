@@ -69,6 +69,10 @@ def detect_peaks(data, threshold, time=None,
           if time is None and no check_peak_func is given, then these are lists of the indices where the peaks/troughs occur.
           if time is given and no check_peak_func/check_trough_func is given, then these are lists of the times where the peaks/troughs occur.
           if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
+
+    Raises:
+        ValueError: if threshold <= 0.
+        IndexError: if data, time, and threshold arrays differ in length.
     """
 
     thresh_array = True
@@ -79,9 +83,9 @@ def detect_peaks(data, threshold, time=None,
         if threshold <= 0:
             raise ValueError('input argument threshold must be positive!')
     elif len(data) != len(threshold):
-        raise ValueError('input arrays data and threshold must have same length!')
+        raise IndexError('input arrays data and threshold must have same length!')
     if time is not None and len(data) != len(time):
-        raise ValueError('input arrays time and data must have same length!')
+        raise IndexError('input arrays time and data must have same length!')
 
     peaks_list = list()
     troughs_list = list()
@@ -234,6 +238,10 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
           if time is None and no check_peak_func is given, then these are lists of the indices where the peaks/troughs occur.
           if time is given and no check_peak_func/check_trough_func is given, then these are lists of the times where the peaks/troughs occur.
           if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
+
+    Raises:
+        ValueError: if threshold <= 0 or min_thresh <= 0 or tau <= 0.
+        IndexError: if data and time arrays differ in length.
     """
 
     if threshold <= 0:
@@ -243,7 +251,7 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
     if tau <= 0:
         raise ValueError('input argument tau must be positive!')
     if time is not None and len(data) != len(time):
-        raise ValueError('input arrays time and data must have same length!')
+        raise IndexError('input arrays time and data must have same length!')
 
     peaks_list = list()
     troughs_list = list()
