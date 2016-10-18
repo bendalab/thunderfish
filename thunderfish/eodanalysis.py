@@ -103,5 +103,4 @@ if __name__ == '__main__':
     # plot:
     fig, ax = plt.subplots()
     eod_waveform_plot(time, mean_eod, std_eod, ax, unit=unit)
-    ax.legend()
     plt.show()

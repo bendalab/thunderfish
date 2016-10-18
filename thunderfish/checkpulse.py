@@ -258,29 +258,29 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
 if __name__ == "__main__":
     print("\nChecking checkpulse module ...\n")
     import sys
-    import bestwindow as bw
-    import powerspectrum as ps
-    import fakefish as ff
+    from .bestwindow import best_window
+    from .powerspectrum import multi_resolution_psd
+    from .fakefish import generate_monophasic_pulses, generate_biphasic_pulses, generate_triphasic_pulses, generate_alepto
 
     # generate data:
     rate = 44100.0
     if len(sys.argv) < 2:
-        data = ff.generate_biphasic_pulses(80.0, rate, 8.0)
+        data = generate_biphasic_pulses(80.0, rate, 8.0)
     elif sys.argv[1] == '-w':
-        data = ff.generate_alepto(600.0, rate, 8.0)
+        data = generate_alepto(600.0, rate, 8.0)
     elif sys.argv[1] == '-m':
-        data = ff.generate_monophasic_pulses(80.0, rate, 8.0)
+        data = generate_monophasic_pulses(80.0, rate, 8.0)
     elif sys.argv[1] == '-b':
-        data = ff.generate_biphasic_pulses(80.0, rate, 8.0)
+        data = generate_biphasic_pulses(80.0, rate, 8.0)
     elif sys.argv[1] == '-t':
-        data = ff.generate_triphasic_pulses(80.0, rate, 8.0)
+        data = generate_triphasic_pulses(80.0, rate, 8.0)
     else:  # load data given by the user
         from .dataloader import load_data
 
         file_path = sys.argv[1]
         print("loading %s ...\n" % file_path)
         rawdata, rate, unit = load_data(sys.argv[1], 0)
-        data, _ = bw.best_window(rawdata, rate)
+        data, _ = best_window(rawdata, rate)
 
     # draw figure with subplots:
     fig1, ax1 = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
@@ -291,7 +291,7 @@ if __name__ == "__main__":
     plt.tight_layout()
 
     fig2, ax2 = plt.subplots()
-    psd_data = ps.multi_resolution_psd(data, rate)
+    psd_data = multi_resolution_psd(data, rate)
     psd_type, proportions = check_pulse_psd(psd_data[0], psd_data[1], verbose=1,
                                             plot_data_func=plot_psd_proportion, ax=ax2, fs=12)
     plt.tight_layout()
