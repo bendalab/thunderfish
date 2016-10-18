@@ -4,6 +4,7 @@ Functions to track wave-type electric fish frequencies over longer periods of ti
 fish_tracker(): main function which performs all steps including loading data, fish tracking and -sorting and more.
 """
 import sys
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import thunderfish.dataloader as dl
@@ -114,7 +115,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
 
         return fishes, last_fish_fundamentals, end_nans
 
-    detection_time_diff = np.median(np.diff(all_times))
+    detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff  # detections per minutes
 
     fishes = [np.full(len(all_fundamentals)+1, np.nan)]
@@ -128,15 +129,16 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
 
     clean_up_idx = int(30 * dpm)
 
-    for t_list in range(len(all_fundamentals)):
-        if t_list == clean_up_idx:
+    # ToDo: enumerate and fundamentals in all_fundamentals
+    for enu, fundamentals in enumerate(all_fundamentals):
+        if enu == clean_up_idx:
             if verbose >= 2:
                 print('cleaning up ...')
             fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
             clean_up_idx += int(30 * dpm)
 
-        for idx in range(len(all_fundamentals[t_list])):
-            diff = np.abs(np.asarray(last_fish_fundamentals) - all_fundamentals[t_list][idx])
+        for idx in range(len(fundamentals)):
+            diff = np.abs(np.asarray(last_fish_fundamentals) - fundamentals[idx])
             sorted_diff_idx = np.argsort(diff)
             tolerated_diff_idx = sorted_diff_idx[diff[sorted_diff_idx] < freq_tolerance]
 
@@ -144,27 +146,29 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
 
             if len(tolerated_diff_idx) == 0:
                 fishes.append(np.full(len(all_fundamentals)+1, np.nan))
-                fishes[-1][t_list+1] = all_fundamentals[t_list][idx]
-                last_fish_fundamentals.append(all_fundamentals[t_list][idx])
+                fishes[-1][enu+1] = fundamentals[idx]
+                last_fish_fundamentals.append(fundamentals[idx])
                 end_nans.append(0)
             else:
+                found = False
                 for i in tolerated_diff_idx[np.argsort(last_detect_of_tolerated)]:
-                    if np.isnan(fishes[i][t_list+1]):
-                        fishes[i][t_list+1] = all_fundamentals[t_list][idx]
-                        last_fish_fundamentals[i] = all_fundamentals[t_list][idx]
+                    if np.isnan(fishes[i][enu+1]):
+                        fishes[i][enu+1] = fundamentals[idx]
+                        last_fish_fundamentals[i] = fundamentals[idx]
                         end_nans[i] = 0
+                        found = True
                         break
-                    if i == tolerated_diff_idx[-1]:
-                        fishes.append(np.full(len(all_fundamentals)+1, np.nan))
-                        fishes[-1][t_list+1] = all_fundamentals[t_list][idx]
-                        last_fish_fundamentals.append(all_fundamentals[t_list][idx])
-                        end_nans.append(0)
+                if not found:
+                    fishes.append(np.full(len(all_fundamentals)+1, np.nan))
+                    fishes[-1][enu+1] = fundamentals[idx]
+                    last_fish_fundamentals.append(fundamentals[idx])
+                    end_nans.append(0)
 
         for fish in range(len(fishes)):
             if end_nans[fish] >= max_time_tolerance * dpm:
                 last_fish_fundamentals[fish] = 0.
 
-            if np.isnan(fishes[fish][t_list+1]):
+            if np.isnan(fishes[fish][enu+1]):
                 end_nans[fish] += 1
 
 
@@ -197,7 +201,7 @@ def combine_fishes(fishes, all_times, max_time_tolerance = 5., max_freq_toleranc
     :param max_freq_tolerance: (int) maximal frequency difference of two fishes to combine these.
     :return fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
-    detection_time_diff = np.median(np.diff(all_times))
+    detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff  # detections per minutes
 
     occure_idx = []
@@ -239,7 +243,7 @@ def exclude_fishes(fishes, all_times, min_occure_time = 1.):
     :return fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
     keep_idx = []
-    detection_time_diff = np.median(np.diff(all_times))
+    detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff # detections per minute
 
     for fish in range(len(fishes)):
@@ -262,7 +266,7 @@ def regress_combine(fishes, all_times, max_time_tolerance= 45., max_freq_toleran
     :param max_freq_tolerance: (float) maximum frequency difference between the first detection of one fish compared with a regression of another fish.
     :return: fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
-    detection_time_diff = np.median(np.diff(all_times))
+    detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff  # detections per minutes
 
     delete_idx = []
@@ -336,7 +340,7 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
     """
     data = dl.open_data(audio_file, 0, 60.0, 10.0)
     samplrate = data.samplerate
-    base_name = audio_file.split('/')[-1].split('.')[-2]
+    base_name = os.path.splitext(os.path.basename(audio_file))[0]
 
     if verbose >= 1:
         print('extract fundamentals')
