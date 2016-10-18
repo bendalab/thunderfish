@@ -548,7 +548,10 @@ def extract_fundamental_freqs(fishlists):
                             fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
                             fundamentals = [f1, f1, ..., f1, f1]
     """
-    if hasattr(fishlists[0][0][0], '__len__'):
+    if len(fishlists) == 0:
+        fundamentals = np.array([])
+
+    elif hasattr(fishlists[0][0][0], '__len__'):
         fundamentals = []
         for fishlist in range(len(fishlists)):
             fundamentals.append(np.array([fish[0][0] for fish in fishlists[fishlist]]))
