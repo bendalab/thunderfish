@@ -393,13 +393,17 @@ class SignalPlot:
             if self.min_clip == 0.0 or self.max_clip == 0.0:
                 self.min_clip, self.max_clip = clip_amplitudes(
                     self.data, **clip_args(self.cfg, self.samplerate))
-            idx0, idx1, clipped = best_window_indices(
-                self.data, self.samplerate, min_clip=self.min_clip,
-                max_clip=self.max_clip, **best_window_args(self.cfg))
-            if idx1 > 0:
-                self.toffset = idx0 / self.samplerate
-                self.twindow = (idx1 - idx0) / self.samplerate
-                self.update_plots()
+            try:
+                idx0, idx1, clipped = best_window_indices(
+                    self.data, self.samplerate, min_clip=self.min_clip,
+                    max_clip=self.max_clip, **best_window_args(self.cfg))
+                if idx1 > 0:
+                    self.toffset = idx0 / self.samplerate
+                    self.twindow = (idx1 - idx0) / self.samplerate
+                    self.update_plots()
+            except UserWarning as e:
+                if self.verbose > 0:
+                    print(str(e))
         elif event.key == 'ctrl+pagedown':
             if self.toffset + 5.0 * self.twindow < len(self.data) / self.samplerate:
                 self.toffset += 5.0 * self.twindow

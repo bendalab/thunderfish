@@ -1,4 +1,6 @@
-import warnings
+"""
+"""
+
 import numpy as np
 
 
@@ -57,15 +59,11 @@ def detect_peaks(data, threshold, time=None,
         thresh_array = False
         thresh = threshold
         if threshold <= 0:
-            warnings.warn('input argument threshold must be positive!')
-            return np.array([]), np.array([])
+            raise ValueError('input argument threshold must be positive!')
     elif len(data) != len(threshold):
-        warnings.warn('input arrays data and threshold must have same length!')
-        return np.array([]), np.array([])
-
+        raise ValueError('input arrays data and threshold must have same length!')
     if time is not None and len(data) != len(time):
-        warnings.warn('input arrays time and data must have same length!')
-        return np.array([]), np.array([])
+        raise ValueError('input arrays time and data must have same length!')
 
     peaks_list = list()
     troughs_list = list()
@@ -221,20 +219,13 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
     """
 
     if threshold <= 0:
-        warnings.warn('input argument threshold must be positive!')
-        return np.array([]), np.array([])
-
+        raise ValueError('input argument threshold must be positive!')
     if min_thresh <= 0:
-        warnings.warn('input argument min_thresh must be positive!')
-        return np.array([]), np.array([])
-
+        raise ValueError('input argument min_thresh must be positive!')
     if tau <= 0:
-        warnings.warn('input argument tau must be positive!')
-        return np.array([]), np.array([])
-
+        raise ValueError('input argument tau must be positive!')
     if time is not None and len(data) != len(time):
-        warnings.warn('input arrays time and data must have same length!')
-        return np.array([]), np.array([])
+        raise ValueError('input arrays time and data must have same length!')
 
     peaks_list = list()
     troughs_list = list()

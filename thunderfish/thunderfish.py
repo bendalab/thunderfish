@@ -201,8 +201,12 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     # calculate best_window:
     clip_win_size = 0.5
     min_clip, max_clip = clip_amplitudes(raw_data, int(clip_win_size * samplerate))
-    idx0, idx1, clipped = best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
-                                                 max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
+    try:
+        idx0, idx1, clipped = best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
+                                                    max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
+    except UserWarning as e:
+        print(str(e))
+        return
     data = raw_data[idx0:idx1]
 
     # pulse-type fish?
