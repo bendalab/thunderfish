@@ -7,12 +7,9 @@ import sys
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import thunderfish.dataloader as dl
-import thunderfish.powerspectrum as ps
-import thunderfish.harmonicgroups as hg
-import thunderfish.config_tools as ct
-from IPython import embed
-
+from .dataloader import open_data
+from .harmonicgroups import hg harmonic_groups extract_fundamental_freqs
+ 
 
 def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time, data_snippet_secs, nffts_per_psd,
                                                fresolution=0.5, overlap_frac=.9, verbose=0):
@@ -32,8 +29,6 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
     :return all_fundamentals: (list) containing arrays with the fundamentals frequencies of fishes detected at a certain time.
     :return all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
     """
-    cfg = ct.get_config_dict()
-
     all_fundamentals = []
     all_times = np.array([])
 
@@ -49,12 +44,12 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
         for t in range(len(time)-(nffts_per_psd)):
             power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
 
-            fishlist = hg.harmonic_groups(freqs, power, cfg)[0]
+            fishlist = harmonic_groups(freqs, power)[0]
 
             # ToDo: Changed the function hg.extract_fundamental_freqs() in harmonicgroups.py. Is now capable to handle empty fishlists.
             # ToDo: Delete this if loop as soon as it is accepted and installed.
             if not fishlist == []:
-                fundamentals = hg.extract_fundamental_freqs(fishlist)
+                fundamentals = extract_fundamental_freqs(fishlist)
                 all_fundamentals.append(fundamentals)
             else:
                 all_fundamentals.append(np.array([]))
@@ -281,7 +276,6 @@ def regress_combine(fishes, all_times, max_time_tolerance= 45., max_freq_toleran
 
             if occure_idx[fish][0] > occure_idx[comp_fish][1]:
                 if (occure_idx[fish][0] - occure_idx[comp_fish][1]) <= max_time_tolerance * dpm:
-                    # embed()
                     snippet_start_idx = occure_idx[comp_fish][1]-int(30*dpm)
                     if snippet_start_idx < 0:
                         snippet_start_idx = 0
@@ -338,7 +332,7 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
     :param plot_data_func: (function) if plot_data_func = plot_fishes creates a plot of the sorted fishes.
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
     """
-    data = dl.open_data(audio_file, 0, 60.0, 10.0)
+    data = open_data(audio_file, 0, 60.0, 10.0)
     samplrate = data.samplerate
     base_name = os.path.splitext(os.path.basename(audio_file))[0]
 

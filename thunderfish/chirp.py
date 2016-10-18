@@ -159,7 +159,7 @@ def chirp_detection_plot(enu, chirp_time, time, power, power2, power_diff, funda
     plt.legend(loc='upper right', bbox_to_anchor=(1, 1), frameon=False)
 
 
-def chirp_analysis(data, samplerate, cfg):
+def chirp_analysis(data, samplerate):
     """
     Performs all steps to detect chirps in a given dataset. This includes spectrogram calculation, fish detection and
     analysing of specific frequency bands.
@@ -168,14 +168,13 @@ def chirp_analysis(data, samplerate, cfg):
 
     :param data: (array) data.
     :param samplerate: (float) smaplerate of the data.
-    :param cfg:(dict) HAS TO BE REMOVED !!!!
     :param min_power: (float) minimal power of the fish fundamental to include this fish in chirp detection.
     """
     spectrum, freqs, time = spectrogram(data, samplerate, fresolution=2., overlap_frac=0.95)
 
     power = np.mean(spectrum, axis=1) # spectrum[:, t0:t1] to only let spectrum of certain time....
 
-    fishlist = harmonic_groups(freqs, power, cfg)[0]
+    fishlist = harmonic_groups(freqs, power)[0]
 
     chirp_time, chirp_freq = chirp_detection(spectrum, freqs, time, fishlist, plot_data_func=chirp_detection_plot)
 
@@ -190,14 +189,11 @@ if __name__ == '__main__':
     # '2016_04_27__downstream_stonewall_at_pool' made in colombia, 2016.
     ###
     import sys
-    from dataloader import load_data
-    from config_tools import get_config_dict
+    from .dataloader import load_data
 
-    cfg = get_config_dict()
+    data_file = sys.argv[1]
+    raw_data, samplerate, unit = load_data(data_file, channel=0)
 
-    audio_file = sys.argv[1]
-    raw_data, samplerate, unit = load_data(audio_file, channel=0)
-
-    chirp_time, chirp_freq = chirp_analysis(raw_data, samplerate, cfg)
+    chirp_time, chirp_freq = chirp_analysis(raw_data, samplerate)
 
     # power = np.mean(spectrum[:, t:t + nffts_per_psd], axis=1)
