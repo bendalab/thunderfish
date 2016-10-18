@@ -9,7 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .dataloader import open_data
 from .powerspectrum import spectrogram
-from .harmonicgroups import harmonic_groups, extract_fundamental_freqs
+from .harmonicgroups import harmonic_groups, fundamental_freqs
  
 
 def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time, data_snippet_secs, nffts_per_psd,
@@ -45,15 +45,9 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
         for t in range(len(time)-(nffts_per_psd)):
             power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
 
-            fishlist = harmonic_groups(freqs, power)[0]
-
-            # ToDo: Changed the function hg.extract_fundamental_freqs() in harmonicgroups.py. Is now capable to handle empty fishlists.
-            # ToDo: Delete this if loop as soon as it is accepted and installed.
-            if not fishlist == []:
-                fundamentals = extract_fundamental_freqs(fishlist)
-                all_fundamentals.append(fundamentals)
-            else:
-                all_fundamentals.append(np.array([]))
+            fishlist, _ = harmonic_groups(freqs, power)
+            fundamentals = fundamental_freqs(fishlist)
+            all_fundamentals.append(fundamentals)
 
         if (int(start_time) % int(data_snippet_secs * 30)) > -1 and (int(start_time) % int(data_snippet_secs * 30)) < 1:
             if verbose >= 2:

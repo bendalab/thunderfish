@@ -1,13 +1,13 @@
 """Functions for extracting harmonic groups from a power spectrum.
 
-harmonic_groups(): detects peaks in a power spectrum and groups them
+harmonic_groups(): detect peaks in a power spectrum and groups them
                    according to their harmonic structure.
-
-extract_fundamental_freqs(): extracts a simple list of fundamental frequencies from
-                             the detailed list returned by harmonic_groups().
 
 extract_fundamentals():
 threshold_estimate(): estimates thresholds for peak detection in a power spectrum.
+
+fundamental_freqs(): extract the fundamental frequencies from lists of harmonic groups
+                     as returned by harmonic_groups().
 """
 
 from __future__ import print_function
@@ -417,7 +417,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     Args:
         good_freqs (2-D numpy array): list of frequency, height, size, width and count of
                                  strong peaks in a power spectrum.
-        all_freqs (): list of frequency, height, size, width and count of
+        all_freqs (2-D numpy array): list of frequency, height, size, width and count of
                        all peaks in a power spectrum.
         deltaf (float): frequency resolution of the power spectrum
         verbose (int): verbosity level
@@ -446,7 +446,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
             and the second dimension containing frequency, height, and size of each harmonic.
             If the power is zero, there was no corresponding peak in the power spectrum.
         fzero_harmonics_list (list of int): the harmonics from which the fundamental frequencies were computed.
-        mains_list (2-d array): list of mains peaks found in all_freqs (frequency, height, size)
+        mains_list (2-d array): array of mains peaks found in all_freqs (frequency, height, size)
     """
     if verbose > 0:
         print('')
@@ -517,12 +517,6 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
                     harm_group[0, 0], np.sum(harm_group[:, 1]),
                     group_size, fundamental_ok, mains_ok))
 
-    # sort groups by fundamental frequency:
-    ffreqs = [f[0, 0] for f in group_list]
-    finx = np.argsort(ffreqs)
-    group_list = [group_list[fi] for fi in finx]
-    fzero_harmonics_list = [fzero_harmonics_list[fi] for fi in finx]
-
     # do not save more than n harmonics:
     if max_harmonics > 0:
         for group in group_list:
@@ -530,6 +524,12 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
                 if verbose > 1:
                     print('Discarding some tailing harmonics for f=%.2fHz' % group[0, 0])
                 group = group[:max_harmonics, :]
+
+    # sort groups by fundamental frequency:
+    ffreqs = [f[0, 0] for f in group_list]
+    finx = np.argsort(ffreqs)
+    group_list = [group_list[fi] for fi in finx]
+    fzero_harmonics_list = [fzero_harmonics_list[fi] for fi in finx]
 
     if verbose > 0:
         print('')
@@ -551,6 +551,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
             nd = np.abs(all_freqs[inx, 0] - n * mains_freq)
             if nd <= pfreqtol:
                 mains_list.append(all_freqs[inx, 0:2])
+                
     return group_list, fzero_harmonics_list, np.array(mains_list)
 
 
@@ -724,31 +725,29 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     return groups, fzero_harmonics, mains, all_freqs, freqs[:, 0], low_threshold, high_threshold, center
 
 
-def extract_fundamental_freqs(fishlists):
+def fundamental_freqs(group_lists):
     """
-    Extracts the fundamental frequencies of multiple or single fishlists created by the harmonicgroups modul.
+    Extract the fundamental frequencies from lists of harmonic groups.
 
-    This function gets a 4-D array as input. This input consists of multiple fishlists from the harmonicgroups modul
-    lists up (fishlists[list][fish][harmonic][frequency, power]). The amount of lists doesn't matter. With a for-loop
-    this function collects all fundamental frequencies of every fishlist. In the end the output is a 2-D array
-    containing the fundamentals of each list (fundamentals[list][fundamental_frequencies]).
+    Args:
+      group_lists (list of 2-D arrays or list of list of 2-D arrays):
+            Lists of harmonic groups as returned by extract_fundamentals() and
+            harmonic_groups() with the element [0][0] of the
+            harmonic groups being the fundamental frequency.
 
-    :param fishlists:       (4-D array or 3-D array) List of or single fishlists with harmonics and each frequency and power.
-                            fishlists[fishlist][fish][harmonic][frequency, power]
-                            fishlists[fish][harmonic][frequency, power]
-    :return fundamentals:   (1-D array or 2-D array) list of or single arrays containing the fundamentals of a fishlist.
-                            fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
-                            fundamentals = [f1, f1, ..., f1, f1]
+    Returns:
+      fundamentals (1-D array or list of 1-D array):
+            single array or list of arrays (corresponding to the input group_list)
+            of the fundamental frequencies.
     """
-    if len(fishlists) == 0:
+    if len(group_lists) == 0:
         fundamentals = np.array([])
-
-    elif hasattr(fishlists[0][0][0], '__len__'):
+    elif hasattr(group_lists[0][0][0], '__len__'):
         fundamentals = []
-        for fishlist in range(len(fishlists)):
-            fundamentals.append(np.array([fish[0][0] for fish in fishlists[fishlist]]))
+        for groups in group_lists:
+            fundamentals.append(np.array([harmonic_group[0][0] for harmonic_group in groups))
     else:
-        fundamentals = np.array([fish[0][0] for fish in fishlists])
+        fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_lists])
     return fundamentals
 
 
