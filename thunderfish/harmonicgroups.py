@@ -555,17 +555,19 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     return group_list, fzero_harmonics_list, np.array(mains_list)
 
 
-def threshold_estimate(data, noise_factor=6.0, peak_factor=5.0):
+def threshold_estimate(data, noise_factor=6.0, nbins=100, hist_height=1.0/ np.sqrt(np.e),
+                       peak_factor=5.0):
     """Estimate noise standard deviation from histogram
     for usefull peak-detection thresholds.
 
     The standard deviation of the noise floor without peaks is estimated from
-    the width of the histogram of the data at 1/sqrt(e) relative height.
+    the width of the histogram of the data at hist_height relative height.
 
     Args:
         data: the data from which to estimate the thresholds
-        noise_factor (float): multiplies the estimate of the standard deviation
-                              of the noise to result in the low_threshold
+        noise_factor (float): factor by which the width of the histogram is multiplied to set the low_threshold.
+        nbins (int or list of floats): number of bins or the bins for computing the histogram.
+        hist_height (float): height between 0 and 1 at which the width of the histogram is computed.
         peak_factor (float): the high_threshold is the low_threshold plus
                              this fraction times the distance between largest pe aks
                              and low_threshold plus half the low_threshold
@@ -577,7 +579,13 @@ def threshold_estimate(data, noise_factor=6.0, peak_factor=5.0):
     """
 
     # estimate noise standard deviation:
-    lowthreshold, center = hist_threshold(data, th_factor=noise_factor)
+    hist, bins = np.histogram(data, nbins, density=True)
+    inx = hist > np.max(hist) * hist_height
+    lower = bins[0:-1][inx][0]
+    upper = bins[1:][inx][-1]  # needs to return the next bin
+    center = 0.5 * (lower + upper)
+    noise_std = 0.5 * (upper - lower)
+    lowthreshold = noise_std * noise_factor
 
     # high threshold:
     lowerth = center + 0.5 * lowthreshold
@@ -591,15 +599,16 @@ def threshold_estimate(data, noise_factor=6.0, peak_factor=5.0):
         upperth = upperbins[0]
     else:
         upperth = bins[-1]
-    highthreshold = lowthreshold + peak_factor * noisestd
-    if upperth > lowerth + 0.1 * noisestd:
+    highthreshold = lowthreshold + peak_factor * noise_std
+    if upperth > lowerth + 0.1 * noise_std:
         highthreshold = lowerth + peak_factor * (upperth - lowerth) + 0.5 * lowthreshold - center
 
     return lowthreshold, highthreshold, center
 
 
 def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
-                    noise_fac=6.0, peak_fac=0.5, max_peak_width_fac=3.5, min_peak_width=1.0,
+                    thresh_bins=100, noise_fac=6.0, peak_fac=0.5,
+                    max_peak_width_fac=3.5, min_peak_width=1.0,
                     freq_tol_fac=0.7, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                     max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
                     max_double_use_harmonics=8, max_double_use_count=1,
@@ -616,6 +625,8 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
         high_threshold (float): the relative threshold for detecting good peaks
                                 in the decibel spectrum
                                 
+        thresh_bins (int or list of floats): number of bins or the bins for computing the histogram
+                    from which the standard deviation of the noise level in the psd is estimated.
         noise_factor (float): multiplies the estimate of the standard deviation
                               of the noise to result in the low_threshold
         peak_factor (float): the high_threshold is the low_threshold plus
@@ -674,7 +685,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     if low_threshold <= 0.0 or high_threshold <= 0.0:
         n = len(log_psd)
         low_threshold, high_threshold, center = threshold_estimate(log_psd[2 * n // 3:n * 9 // 10],
-                                                                   noise_fac, peak_fac)
+                                                                   noise_fac, thresh_bins,
+                                                                   peak_factor=peak_fac)
+        
         if verbose > 1:
             print('')
             print('low_threshold=', low_threshold, center + low_threshold)
@@ -736,14 +749,14 @@ def fundamental_freqs(group_lists):
     elif hasattr(group_lists[0][0][0], '__len__'):
         fundamentals = []
         for groups in group_lists:
-            fundamentals.append(np.array([harmonic_group[0][0] for harmonic_group in groups))
+            fundamentals.append(np.array([harmonic_group[0][0] for harmonic_group in groups]))
     else:
         fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_lists])
     return fundamentals
 
 
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
-                                  noise_fac=6.0, peak_fac=0.5,
+                                  thresh_bins=100, noise_fac=6.0, peak_fac=0.5,
                                   max_peak_width_fac=3.5, min_peak_width=1.0):
     """ Add parameter needed for detection of peaks in power spectrum used by
     harmonic_groups() as a new section to a configuration.
@@ -759,6 +772,7 @@ def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
     # cfg['highThreshold'][0] = 18. # panama
     
     cfg.add_section('Threshold estimation:\nIf no thresholds are specified they are estimated from the histogram of the decibel power spectrum.')
+    cfg.add('thresholdBins', thresh_bins, '', 'Number of bins used to compute the histogram used for threshold estimation.')
     cfg.add('noiseFactor', noise_fac, '', 'Factor for multiplying std of noise floor for lower threshold.')
     cfg.add('peakFactor', peak_fac, '', 'Fractional position of upper threshold above lower threshold.')
 
@@ -783,6 +797,7 @@ def psd_peak_detection_args(cfg):
 
     return cfg.map({'low_threshold': 'lowThreshold',
                     'high_threshold': 'highThreshold',
+                    'thresh_bins': 'thresholdBins',
                     'noise_fac': 'noiseFactor',
                     'peak_fac': 'peakFactor',
                     'max_peak_width_fac': 'maxPeakWidthFac',
@@ -852,3 +867,26 @@ def harmonic_groups_args(cfg):
                     'max_work_freq': 'maximumWorkingFrequency',
                     'max_harmonics': 'maxHarmonics'})
 
+if __name__ == "__main__":
+    print("Checking harmonicgroups module ...")
+    from .fakefish import generate_wavefish
+    from .powerspectrum import psd
+
+    # generate data:
+    samplerate = 44100.0
+    eodfs = [123.0, 321.0, 666.0, 668.0]
+    fish1 = generate_wavefish(eodfs[0], samplerate, duration=8.0, noise_std=0.01,
+                              amplitudes=[1.0, 0.5, 0.2, 0.1, 0.05])
+    fish2 = generate_wavefish(eodfs[1], samplerate, duration=8.0, noise_std=0.01,
+                              amplitudes=[1.0, 0.7, 0.2, 0.1])
+    fish3 = generate_wavefish(eodfs[2], samplerate, duration=8.0, noise_std=0.01,
+                              amplitudes=[10.0, 5.0, 1.0])
+    fish4 = generate_wavefish(eodfs[3], samplerate, duration=8.0, noise_std=0.01,
+                              amplitudes=[6.0, 3.0, 1.0])
+    data = fish1 + fish2 + fish3 + fish4
+
+    # analyse:
+    psd_data = psd(data, samplerate, fresolution=0.5)
+    groups = harmonic_groups(psd_data[1], psd_data[0])[0]
+    fundamentals = fundamental_freqs(groups)
+    print(fundamentals)

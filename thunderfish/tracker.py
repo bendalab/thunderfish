@@ -45,7 +45,7 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
         for t in range(len(time)-(nffts_per_psd)):
             power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
 
-            fishlist, _ = harmonic_groups(freqs, power)
+            fishlist = harmonic_groups(freqs, power)[0]
             fundamentals = fundamental_freqs(fishlist)
             all_fundamentals.append(fundamentals)
 

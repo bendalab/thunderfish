@@ -9,6 +9,7 @@ accept_peak_size_threshold(): adapt the dection threshold to the size of the det
 accept_peaks_size_width(): make detect_peaks() return time, height, size, and width of peaks.
 
 std_threshold(): estimate detection threshold based on the standard deviation.
+hist_threshold(): esimate detection threshold based on a histogram of the data.
 minmax_threshold(): estimate detection threshold based on maximum minus minimum value.
 percentile_threshold(): estimate detection threshold based on interpercentile range.
 
@@ -484,7 +485,7 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
     
 def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
                    nbins=100, hist_height=1.0/ np.sqrt(np.e)):
-    """Esimates a threshold for detect_peaks() based on a histogram of the data.
+    """Esimate a threshold for detect_peaks() based on a histogram of the data.
 
     The standard deviation of the data is estimated from the
     width of the histogram of the data at hist_height relative height.
@@ -496,10 +497,6 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
     the whole data array is returned.
 
     Args:
-        data: the data from which to estimate the threshold.
-        noise_factor (float): multiplies the estimate of the standard deviation
-                              of the noise to result in the low_threshold
-                              
         data (1-D array): the data to be analyzed.
         samplerate (float or None): sampling rate of the data in Hz.
         win_size (float or None): Size of window in which a threshold value is computed in sec.
