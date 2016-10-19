@@ -23,7 +23,7 @@ def extract_main_freqs_and_db(data, samplerate):
     return freqs, decibel
 
 
-def write_csv(filename, freq, decibel):
+def freqs_and_db_csv(filename, freq, decibel):
     header = ['fundamental frequency', 'dB']
     # convert to strings
     freq = np.array(['%.3f' % e for e in freq])
@@ -62,6 +62,6 @@ if __name__ == '__main__':
         data, samplerate, unit = load_data(sys.argv[1], 0)
 
     fund_freqs, db = extract_main_freqs_and_db(data, samplerate)
-    write_csv(filename, fund_freqs, db)
+    freqs_and_db_csv(filename, fund_freqs, db)
 
     print('\ncsv_file created in %s' % filename)
