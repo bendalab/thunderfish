@@ -1,23 +1,23 @@
 import numpy as np
-import dataloader as dl
-import config_tools as ct
-import consistentfishes as cf
-import harmonicgroups as hg
-import powerspectrum as ps
+from .dataloader import load_data
+from .config_tools import get_config_dict
+from .consistentfishes import consistent_fishes
+from .harmonicgroups import harmonic_groups
+from .powerspectrum import multi_resolution_psd
 
 
 def extract_main_freqs_and_db(data, samplerate):
-    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
+    psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
 
-    cfg = ct.get_config_dict()
+    cfg = get_config_dict()
 
     # find the fishes in the different powerspectra and extract fund. frequency and power
     fishlists = []
     for i in range(len(psd_data)):
-        fishlist = hg.harmonic_groups(psd_data[i][1], psd_data[i][0], cfg)[0]
+        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], cfg)[0]
         fishlists.append(fishlist)
 
-    filtered_fishlist = cf.consistent_fishes(fishlists)
+    filtered_fishlist = consistent_fishes(fishlists)
     tmp = np.vstack([filtered_fishlist[e][0] for e in range(len(filtered_fishlist))])
 
     freqs = tmp[:, 0]
@@ -45,7 +45,7 @@ if __name__ == '__main__':
     print("\nChecking csvmaker module ...")
     import os
     import sys
-    import fakefish as ff
+    from .fakefish import generate_alepto
 
     if len(sys.argv) == 1:  # user did not give a specific file to analyze
         filename = 'csvmaker_testfile.csv'
@@ -55,13 +55,13 @@ if __name__ == '__main__':
         fishfreqs = [400., 650, 924, 1270]
         for idx in range(len(fishfreqs)):
             if idx == 0:
-                data = ff.generate_alepto(fishfreqs[idx], samplerate, duration)
+                data = generate_alepto(fishfreqs[idx], samplerate, duration)
             else:
-                data += ff.generate_alepto(fishfreqs[idx], samplerate, duration)
+                data += generate_alepto(fishfreqs[idx], samplerate, duration)
 
     elif len(sys.argv) == 2:  # user specified a file to be analized
         filename = os.path.splitext(os.path.basename(sys.argv[1]))[0] + '.csv'
-        data, samplerate, unit = dl.load_data(sys.argv[1], 0)
+        data, samplerate, unit = load_data(sys.argv[1], 0)
 
     fund_freqs, db = extract_main_freqs_and_db(data, samplerate)
     write_csv(filename, fund_freqs, db)
