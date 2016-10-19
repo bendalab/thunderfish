@@ -1,6 +1,5 @@
 import numpy as np
 from .dataloader import load_data
-from .config_tools import get_config_dict
 from .consistentfishes import consistent_fishes
 from .harmonicgroups import harmonic_groups
 from .powerspectrum import multi_resolution_psd
@@ -9,12 +8,10 @@ from .powerspectrum import multi_resolution_psd
 def extract_main_freqs_and_db(data, samplerate):
     psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
 
-    cfg = get_config_dict()
-
     # find the fishes in the different powerspectra and extract fund. frequency and power
     fishlists = []
     for i in range(len(psd_data)):
-        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], cfg)[0]
+        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0])[0]
         fishlists.append(fishlist)
 
     filtered_fishlist = consistent_fishes(fishlists)
@@ -33,11 +30,12 @@ def write_csv(filename, freq, decibel):
     decibel = np.array(['%.3f' % e for e in decibel])
 
     with open(filename, 'wb') as fin:
-        fin.write(','.join(header))
-        fin.write('\n')
+        fin.write(str.encode(','.join(header)))
+        fin.write(str.encode('\n'))
         for row_id in range(len(freq)):
-            fin.write(','.join([freq[row_id], decibel[row_id]]))
-            fin.write('\n')
+
+            fin.write(str.encode(','.join([freq[row_id], decibel[row_id]])))
+            fin.write(str.encode('\n'))
     pass
 
 
