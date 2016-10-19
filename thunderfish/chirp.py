@@ -8,9 +8,9 @@ chirp_detection(): extracts chirp times with help of given spectrogram and fishl
 
 import numpy as np
 import matplotlib.pyplot as plt
-import harmonicgroups as hg
-import powerspectrum as ps
-import peakdetection as pkd
+from .harmonicgroups import harmonic_groups
+from .powerspectrum import spectrogram
+from .peakdetection import std_threshold, detect_peaks, trim_to_peak
 
 
 def true_chirp_power_drop(chirp_time_idx, power, power_window=100):
@@ -99,9 +99,9 @@ def     chirp_detection(spectrum, freqs, time, fishlist=None, fundamentals=None,
         power_diff = np.diff(power)
 
         # peakdetection in the power_diff to detect drops in power indicating chrips
-        threshold = pkd.std_threshold(power_diff)
-        peaks, troughs = pkd.detect_peaks(power_diff, threshold)
-        troughs, peaks = pkd.trim_to_peak(troughs, peaks) # reversed troughs and peaks in output and input to get trim_to_troughs
+        threshold = std_threshold(power_diff)
+        peaks, troughs = detect_peaks(power_diff, threshold)
+        troughs, peaks = trim_to_peak(troughs, peaks) # reversed troughs and peaks in output and input to get trim_to_troughs
 
         # exclude peaks and troughs with to much time diff to be a chirp
         # ToDO: not nice !!!
@@ -159,7 +159,7 @@ def chirp_detection_plot(enu, chirp_time, time, power, power2, power_diff, funda
     plt.legend(loc='upper right', bbox_to_anchor=(1, 1), frameon=False)
 
 
-def chirp_analysis(data, samplerate, cfg):
+def chirp_analysis(data, samplerate):
     """
     Performs all steps to detect chirps in a given dataset. This includes spectrogram calculation, fish detection and
     analysing of specific frequency bands.
@@ -168,14 +168,13 @@ def chirp_analysis(data, samplerate, cfg):
 
     :param data: (array) data.
     :param samplerate: (float) smaplerate of the data.
-    :param cfg:(dict) HAS TO BE REMOVED !!!!
     :param min_power: (float) minimal power of the fish fundamental to include this fish in chirp detection.
     """
-    spectrum, freqs, time = ps.spectrogram(data, samplerate, fresolution=2., overlap_frac=0.95)
+    spectrum, freqs, time = spectrogram(data, samplerate, fresolution=2., overlap_frac=0.95)
 
     power = np.mean(spectrum, axis=1) # spectrum[:, t0:t1] to only let spectrum of certain time....
 
-    fishlist = hg.harmonic_groups(freqs, power, cfg)[0]
+    fishlist = harmonic_groups(freqs, power)[0]
 
     chirp_time, chirp_freq = chirp_detection(spectrum, freqs, time, fishlist, plot_data_func=chirp_detection_plot)
 
@@ -190,14 +189,11 @@ if __name__ == '__main__':
     # '2016_04_27__downstream_stonewall_at_pool' made in colombia, 2016.
     ###
     import sys
-    import dataloader as dl
-    import config_tools as ct
+    from .dataloader import load_data
 
-    cfg = ct.get_config_dict()
+    data_file = sys.argv[1]
+    raw_data, samplerate, unit = load_data(data_file, channel=0)
 
-    audio_file = sys.argv[1]
-    raw_data, samplerate, unit = dl.load_data(audio_file, channel=0)
-
-    chirp_time, chirp_freq = chirp_analysis(raw_data, samplerate, cfg)
+    chirp_time, chirp_freq = chirp_analysis(raw_data, samplerate)
 
     # power = np.mean(spectrum[:, t:t + nffts_per_psd], axis=1)

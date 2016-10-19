@@ -1,4 +1,25 @@
-import warnings
+"""
+Detecting peaks in arrays.
+
+detect_peaks(): peak and trough detection with a relative threshold.
+detect_dynamic_peaks(): peak and trough detection with a dynamically adapted threshold.
+
+accept_peak(): make detect_peaks() return index/time and size of peaks.
+accept_peak_size_threshold(): adapt the dection threshold to the size of the detected peaks.
+accept_peaks_size_width(): make detect_peaks() return time, height, size, and width of peaks.
+
+std_threshold(): estimate detection threshold based on the standard deviation.
+hist_threshold(): esimate detection threshold based on a histogram of the data.
+minmax_threshold(): estimate detection threshold based on maximum minus minimum value.
+percentile_threshold(): estimate detection threshold based on interpercentile range.
+
+snippets(): cut out data snippets around a list of indices.
+
+trim(): make the list of peaks and troughs returned by detect_peaks() the same length.
+trim_to_peak(): ensure that the peak is first.
+trim_closest(): ensure that peaks minus troughs is smallest.
+"""
+
 import numpy as np
 
 
@@ -49,6 +70,10 @@ def detect_peaks(data, threshold, time=None,
           if time is None and no check_peak_func is given, then these are lists of the indices where the peaks/troughs occur.
           if time is given and no check_peak_func/check_trough_func is given, then these are lists of the times where the peaks/troughs occur.
           if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
+
+    Raises:
+        ValueError: if threshold <= 0.
+        IndexError: if data, time, and threshold arrays differ in length.
     """
 
     thresh_array = True
@@ -57,15 +82,11 @@ def detect_peaks(data, threshold, time=None,
         thresh_array = False
         thresh = threshold
         if threshold <= 0:
-            warnings.warn('input argument threshold must be positive!')
-            return np.array([]), np.array([])
+            raise ValueError('input argument threshold must be positive!')
     elif len(data) != len(threshold):
-        warnings.warn('input arrays data and threshold must have same length!')
-        return np.array([]), np.array([])
-
+        raise IndexError('input arrays data and threshold must have same length!')
     if time is not None and len(data) != len(time):
-        warnings.warn('input arrays time and data must have same length!')
-        return np.array([]), np.array([])
+        raise IndexError('input arrays time and data must have same length!')
 
     peaks_list = list()
     troughs_list = list()
@@ -218,23 +239,20 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
           if time is None and no check_peak_func is given, then these are lists of the indices where the peaks/troughs occur.
           if time is given and no check_peak_func/check_trough_func is given, then these are lists of the times where the peaks/troughs occur.
           if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
+
+    Raises:
+        ValueError: if threshold <= 0 or min_thresh <= 0 or tau <= 0.
+        IndexError: if data and time arrays differ in length.
     """
 
     if threshold <= 0:
-        warnings.warn('input argument threshold must be positive!')
-        return np.array([]), np.array([])
-
+        raise ValueError('input argument threshold must be positive!')
     if min_thresh <= 0:
-        warnings.warn('input argument min_thresh must be positive!')
-        return np.array([]), np.array([])
-
+        raise ValueError('input argument min_thresh must be positive!')
     if tau <= 0:
-        warnings.warn('input argument tau must be positive!')
-        return np.array([]), np.array([])
-
+        raise ValueError('input argument tau must be positive!')
     if time is not None and len(data) != len(time):
-        warnings.warn('input arrays time and data must have same length!')
-        return np.array([]), np.array([])
+        raise IndexError('input arrays time and data must have same length!')
 
     peaks_list = list()
     troughs_list = list()
@@ -464,9 +482,61 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
     else:
         return np.std(data, ddof=1) * th_factor
 
+    
+def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
+                   nbins=100, hist_height=1.0/ np.sqrt(np.e)):
+    """Esimate a threshold for detect_peaks() based on a histogram of the data.
 
+    The standard deviation of the data is estimated from the
+    width of the histogram of the data at hist_height relative height.
+
+    If samplerate and win_size is given, then the threshold is computed for
+    each non-overlapping window of duration win_size separately.
+    In this case the returned threshold is an array of the same size as data.
+    Without a samplerate and win_size a single threshold value determined from
+    the whole data array is returned.
+
+    Args:
+        data (1-D array): the data to be analyzed.
+        samplerate (float or None): sampling rate of the data in Hz.
+        win_size (float or None): Size of window in which a threshold value is computed in sec.
+        th_factor (float): factor by which the width of the histogram is multiplied to set the threshold.
+        nbins (int or list of floats): number of bins or the bins for computing the histogram.
+        hist_height (float): height between 0 and 1 at which the width of the histogram is computed.
+
+    Returns:
+        threshold (float or 1-D array): the computed threshold.
+        center (float or 1-D array): the center (mean) of the width of the histogram.
+    """
+
+    if samplerate and win_size:
+        threshold = np.zeros(len(data))
+        centers = np.zeros(len(data))
+        win_size_indices = int(win_size * samplerate)
+
+        for inx0 in range(0, len(data), win_size_indices):
+            inx1 = inx0 + win_size_indices
+            hist, bins = np.histogram(data[inx0:inx1], nbins, density=True)
+            inx = hist > np.max(hist) * hist_height
+            lower = bins[0:-1][inx][0]
+            upper = bins[1:][inx][-1]  # needs to return the next bin
+            center = 0.5 * (lower + upper)
+            std = 0.5 * (upper - lower)
+            threshold[inx0:inx1] = std * th_factor
+            centers[inx0:inx1] = center
+        return threshold, centers
+    else:
+        hist, bins = np.histogram(data, nbins, density=True)
+        inx = hist > np.max(hist) * hist_height
+        lower = bins[0:-1][inx][0]
+        upper = bins[1:][inx][-1]  # needs to return the next bin
+        center = 0.5 * (lower + upper)
+        std = 0.5 * (upper - lower)
+        return std * th_factor, center
+
+    
 def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
-    """Esimates a threshold for detect_peaks() based on minimum and maximum values of the data.
+    """Esimate a threshold for detect_peaks() based on minimum and maximum values of the data.
 
     The threshold is computed as the difference between maximum and
     minimum value of the data multiplied with th_factor.
@@ -480,7 +550,6 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
     :param data: (1-D array). The data to be analyzed.
     :param samplerate: (float or None). Sampling rate of the data in Hz.
     :param win_size: (float or None). Size of window in which a threshold value is computed.
-    :param th_factor: (float). The threshold for peak detection is the inter-min-max-range multiplied by this factor.
     :param th_factor: (float). Factor by which the difference between minimum and maximum data value is multiplied to set the threshold.
 
     :return: threshold: (float or 1-D array). The computed threshold.
@@ -503,7 +572,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
 
 
 def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, percentile=0.1):
-    """Esimates a threshold for detect_peaks() based on an inter-percentile range of the data.
+    """Esimate a threshold for detect_peaks() based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
     100.0-percentile percentiles of the data multiplied with
@@ -545,7 +614,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, pe
 
 def snippets(data, indices, start=-10, stop=10):
     """
-    Cuts out data arround each position given in indices.
+    Cut out data arround each position given in indices.
 
     :param data: (1-D array) Data array from which snippets are extracted.
     :param indices: (list of int) Indices around which snippets are cut out.
@@ -558,26 +627,6 @@ def snippets(data, indices, start=-10, stop=10):
     for k, idx in enumerate(idxs):
         snippet_data[k] = data[idx+start:idx+stop]
     return snippet_data
-
-
-def peak_snippets(data, indices, start=None, stop=None):
-    # threshold for peak detection:
-    threshold = pkd.percentile_threshold(data, samplerate, win_size,
-                                         th_factor=th_factor, percentile=percentile)
-
-    # detect peaks:
-    eod_idx = pkd.detect_peaks(data, threshold)[0]
-
-    eod_idx_diff = [(eod_idx[i + 1] - eod_idx[i]) for i in range(len(eod_idx) - 1)]
-    mean_th_idx_diff = np.mean(eod_idx_diff)
-
-    eod_data = []
-    for idx in eod_idx:
-        if int(idx - (mean_th_idx_diff / (3. / 2))) >= 0 and int(idx + (mean_th_idx_diff / (3. / 2))) <= len(bwin_data):
-            eod_data.append(
-                bwin_data[int(idx - (mean_th_idx_diff / (3. / 2))): int(idx + (mean_th_idx_diff / (3. / 2)))])
-
-    return np.asarray(eod_data), eod_idx_diff
 
 
 def trim(peaks, troughs):

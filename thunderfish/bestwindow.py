@@ -16,9 +16,8 @@ plot_clipping(): visualization of the algorithm for detecting clipped amplitudes
 plot_best_window(): visualization of the algorithm used in best_window_indices().
 """
 
-import warnings
 import numpy as np
-import peakdetection as pkd
+from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
@@ -221,18 +220,16 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
 
     # too little data:
     if len(data) / samplerate <= win_size:
-        warnings.warn('no best window found: not enough data')
-        return 0, 0
+        raise UserWarning('no best window found: not enough data')
 
     # threshold for peak detection:
-    threshold = pkd.percentile_threshold(data, samplerate, win_shift,
-                                         th_factor=th_factor, percentile=percentile)
+    threshold = percentile_threshold(data, samplerate, win_shift,
+                                     th_factor=th_factor, percentile=percentile)
 
     # detect large peaks and troughs:
-    peak_idx, trough_idx = pkd.detect_peaks(data, threshold)
+    peak_idx, trough_idx = detect_peaks(data, threshold)
     if len(peak_idx) == 0 or len(trough_idx) == 0:
-        warnings.warn('best_window(): no peaks or troughs detected')
-        return 0, 0
+        raise UserWarning('best_window(): no peaks or troughs detected')
 
     # compute cv of intervals, mean peak amplitude and its cv:
     invalid_cv = 1000.0
@@ -246,7 +243,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
         # indices of peaks and troughs inside analysis window:
         pinx = (peak_idx >= wtinx) & (peak_idx <= wtinx + win_size_indices)
         tinx = (trough_idx >= wtinx) & (trough_idx <= wtinx + win_size_indices)
-        p_idx, t_idx = pkd.trim_to_peak(peak_idx[pinx], trough_idx[tinx])
+        p_idx, t_idx = trim_to_peak(peak_idx[pinx], trough_idx[tinx])
         # interval statistics:
         ipis = np.diff(p_idx)
         itis = np.diff(t_idx)
@@ -275,14 +272,11 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
 
     # check:
     if len(mean_ampl[mean_ampl > 0.0]) <= 0:
-        warnings.warn('no finite amplitudes detected')
-        return 0, 0
+        raise UserWarning('no finite amplitudes detected')
     if len(cv_interv[cv_interv < invalid_cv]) <= 0:
-        warnings.warn('no valid interval cv detected')
-        return 0, 0
+        raise UserWarning('no valid interval cv detected')
     if len(cv_ampl[cv_ampl < invalid_cv]) <= 0:
-        warnings.warn('no valid amplitude cv detected')
-        return 0, 0
+        raise UserWarning('no valid amplitude cv detected')
 
     # cost function:
     cost = w_cv_interv * cv_interv + w_cv_ampl * cv_ampl - w_ampl * mean_ampl
@@ -292,8 +286,8 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     valid_win_idx = np.nonzero(cost <= thresh)[0]
     cidx0 = valid_win_idx[0]  # start of current window
     cidx1 = cidx0 + 1  # end of current window
-    win_idx0 = cidx0  # start of largest window
-    win_idx1 = cidx1  # end of largest window
+    win_idx0 = cidx0   # start of largest window
+    win_idx1 = cidx1   # end of largest window
     i = 1
     while i < len(valid_win_idx):  # loop through all valid window positions
         if valid_win_idx[i] == valid_win_idx[i - 1] + 1:
@@ -496,10 +490,10 @@ if __name__ == "__main__":
         title = "test sines"
         data += 0.01 * np.random.randn(len(data))
     else:
-        import dataloader as dl
+        from .dataloader import load_data
 
         print("load %s ..." % sys.argv[1])
-        data, rate, unit = dl.load_data(sys.argv[1], 0)
+        data, rate, unit = load_data(sys.argv[1], 0)
         title = sys.argv[1]
 
     # determine clipping amplitudes:

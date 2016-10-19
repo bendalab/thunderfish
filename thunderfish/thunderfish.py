@@ -1,16 +1,27 @@
+"""
+thunderfish
+
+some words of documentation...
+
+Run it from the thunderfish development directory as:
+python -m thunderfish.thunderfish audiofile.wav
+"""
+
 import numpy as np
 import argparse
 import os
 import sys
-import config_tools as ct
-import dataloader as dl
-import bestwindow as bw
-import checkpulse as chp
-import powerspectrum as ps
-import harmonicgroups as hg
-import consistentfishes as cf
-import eodanalysis as ea
 import matplotlib.pyplot as plt
+from .configfile import ConfigFile
+from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
+from .bestwindow import add_clip_config, add_best_window_config
+from .dataloader import load_data
+from .bestwindow import clip_amplitudes, best_window_indices
+from .checkpulse import check_pulse_width, check_pulse_psd
+from .powerspectrum import plot_decibel_psd, multi_resolution_psd
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .consistentfishes import consistent_fishes_psd_plot, consistent_fishes
+from .eodanalysis import eod_waveform_plot, eod_waveform
 
 
 def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_IPI, inter_eod_intervals,
@@ -84,15 +95,15 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
         dom_freq = 1./ period
         fish_count = 1
 
-    ps.plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax3, fs=12)
+    plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax3, fs=12)
     if not pulse_fish_width and not pulse_fish_psd:
-        cf.consistent_fishes_psd_plot(filtered_fishlist, ax=ax3)
+        consistent_fishes_psd_plot(filtered_fishlist, ax=ax3)
     ax3.set_title('Powerspectrum (%.0f detected fish)' % fish_count)
 
     ##########
 
     # plot mean EOD
-    ea.eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
+    eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
     if pulse_fish_width and pulse_fish_psd:
         ax4.set_title('Mean EOD (%.0f EODs; Pulse frequency: ~%.1f Hz)' % (EOD_count, dom_freq), fontsize= 14)
         ax4.set_xlim([-100 * period, 100 * period])
@@ -168,45 +179,61 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     plt.close()
 
 
-def main(audio_file, channel=0, output_folder='', verbose=0):
-    # get config dictionary
-    cfg = ct.get_config_dict()
+def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
+    # configuration options:
+    cfg = ConfigFile()
+    cfg.add_section('Debugging:')
+    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
+
+    add_psd_peak_detection_config(cfg)
+    add_harmonic_groups_config(cfg)
+    add_clip_config(cfg)
+    add_best_window_config(cfg, w_cv_ampl=10.0)
+    verbose = cfg.value('verboseLevel')
+    if verbosearg is not None:
+        verbose = verbosearg
 
     # load data:
-    raw_data, samplerate, unit = dl.load_data(audio_file, channel)
+    raw_data, samplerate, unit = load_data(audio_file, channel)
     if len(raw_data) == 0:
         return
 
     # calculate best_window:
     clip_win_size = 0.5
-    min_clip, max_clip = bw.clip_amplitudes(raw_data, int(clip_win_size * samplerate))
-    idx0, idx1, clipped = bw.best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
-                                                 max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
+    min_clip, max_clip = clip_amplitudes(raw_data, int(clip_win_size * samplerate))
+    try:
+        idx0, idx1, clipped = best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
+                                                    max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
+    except UserWarning as e:
+        print(str(e))
+        return
     data = raw_data[idx0:idx1]
 
     # pulse-type fish?
-    pulse_fish_width, pta_value = chp.check_pulse_width(data, samplerate)
+    pulse_fish_width, pta_value = check_pulse_width(data, samplerate)
 
     # calculate powerspectrums with different frequency resolutions
-    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
+    psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
 
     # find the fishes in the different powerspectrums:
     fishlists = []
     for i in range(len(psd_data)):
-        fishlist = hg.harmonic_groups(psd_data[i][1], psd_data[i][0], cfg)[0]
+        h_kwargs = psd_peak_detection_args(cfg)
+        h_kwargs.update(harmonic_groups_args(cfg))
+        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], verbose, **h_kwargs)[0]
         fishlists.append(fishlist)
 
     # find the psd_type
-    pulse_fish_psd, proportion = chp.check_pulse_psd(psd_data[0][0], psd_data[0][1])
+    pulse_fish_psd, proportion = check_pulse_psd(psd_data[0][0], psd_data[0][1])
 
     # filter the different fishlists to get a fishlist with consistent fishes:
     if not pulse_fish_width and not pulse_fish_psd:
-        filtered_fishlist = cf.consistent_fishes(fishlists)
+        filtered_fishlist = consistent_fishes(fishlists)
     else:
         filtered_fishlist = []
 
     # analyse eod waveform:
-    mean_eod, std_eod, time, eod_times = ea.eod_waveform(data, samplerate, th_factor=0.6)
+    mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6)
     period = np.mean(np.diff(eod_times))
 
     # inter-peal interval
@@ -223,7 +250,7 @@ def main(audio_file, channel=0, output_folder='', verbose=0):
                 samplerate, idx0, idx1, filtered_fishlist, period, time, mean_eod, std_eod, unit, psd_data, output_folder)
 
 
-if __name__ == '__main__':
+def main():
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Analyse short EOD recordings of weakly electric fish.',
@@ -235,4 +262,9 @@ if __name__ == '__main__':
     parser.add_argument('-o', dest='output_folder', default=".", type=str, help="path where to store results and figures")
     args = parser.parse_args()
 
-    main(args.file, args.channel, args.output_folder, verbose=args.verbose)
+    thunderfish(args.file, args.channel, args.output_folder, verbosearg=args.verbose)
+
+    
+if __name__ == '__main__':
+    main()
+    

@@ -8,84 +8,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 import matplotlib.colors as mc
-import configfile as cf
-import dataloader as dl
-import powerspectrum as ps
-import harmonicgroups as hg
-import bestwindow as bw
+from .configfile import ConfigFile
+from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
+from .bestwindow import add_clip_config, add_best_window_config, best_window_args
+from .dataloader import open_data
+from .powerspectrum import nfft_noverlap
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .bestwindow import clip_amplitudes, clip_args, best_window_indices
 from audioio import PlayAudio, fade
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
 
-cfg = cf.ConfigFile()
-
-cfg.add_section('Power spectrum estimation:')
-cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
-cfg.add('initialFrequencyResolution', 1.0, 'Hz', 'Initial frequency resolution of the power spectrum.')
-
-cfg.add_section('Thresholds for peak detection in power spectra:')
-cfg.add('lowThreshold', 0.0, 'dB', 'Threshold for all peaks.\n If 0.0 estimate threshold from histogram.')
-cfg.add('highThreshold', 0.0, 'dB', 'Threshold for good peaks. If 0.0 estimate threshold from histogram.')
-# cfg['lowThreshold'][0] = 12. # panama
-# cfg['highThreshold'][0] = 18. # panama
-
-cfg.add_section(
-    'Threshold estimation:\nIf no thresholds are specified they are estimated from the histogram of the decibel power spectrum.')
-cfg.add('noiseFactor', 6.0, '', 'Factor for multiplying std of noise floor for lower threshold.')
-cfg.add('peakFactor', 0.5, '', 'Fractional position of upper threshold above lower threshold.')
-
-cfg.add_section('Peak detection in decibel power spectrum:')
-cfg.add('maxPeakWidthFac', 3.5, '',
-        'Maximum width of peaks at 0.75 hight in multiples of frequency resolution (might be increased)')
-cfg.add('minPeakWidth', 1.0, 'Hz', 'Peaks do not need to be narrower than this.')
-
-cfg.add_section('Harmonic groups:')
-cfg.add('mainsFreq', 60.0, 'Hz', 'Mains frequency to be excluded.')
-cfg.add('maxDivisor', 4, '', 'Maximum ratio between the frequency of the largest peak and its fundamental')
-cfg.add('freqTolerance', 0.7, '',
-        'Harmonics need be within this factor times the frequency resolution of the power spectrum. Needs to be higher than 0.5!')
-cfg.add('maxUpperFill', 1, '',
-        'As soon as more than this number of harmonics need to be filled in conescutively stop searching for higher harmonics.')
-cfg.add('maxFillRatio', 0.25, '',
-        'Maximum fraction of filled in harmonics allowed (usefull values are smaller than 0.5)')
-cfg.add('maxDoubleUseHarmonics', 8, '', 'Maximum harmonics up to which double uses are penalized.')
-cfg.add('maxDoubleUseCount', 1, '', 'Maximum overall double use count allowed.')
-cfg.add('powerNHarmonics', 10, '', 'Compute total power over the first # harmonics.')
-
-cfg.add_section('Acceptance of best harmonic groups:')
-cfg.add('minimumGroupSize', 3, '',
-        'Minimum required number of harmonics (inclusively fundamental) that are not filled in and are not used by other groups.')
-# cfg['minimumGroupSize'][0] = 2 # panama
-cfg.add('minimumFrequency', 20.0, 'Hz', 'Minimum frequency allowed for the fundamental.')
-cfg.add('maximumFrequency', 2000.0, 'Hz', 'Maximum frequency allowed for the fundamental.')
-cfg.add('maximumWorkingFrequency', 4000.0, 'Hz',
-        'Maximum frequency to be used to search for harmonic groups and to adjust fundamental frequency.')
-
-cfg.add('maxHarmonics', 0, '', '0: keep all, >0 only keep the first # harmonics.')
-
-cfg.add_section('Items to display:')
-cfg.add('displayHelp', False, '', 'Display help on key bindings')
-cfg.add('labelFrequency', True, '', 'Display the frequency of the peak')
-cfg.add('labelHarmonic', True, '', 'Display the harmonic of the peak')
-cfg.add('labelPower', True, '', 'Display the power of the peak')
-cfg.add('labelWidth', True, '', 'Display the width of the peak')
-cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
-
-cfg.add_section('Debugging:')
-cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
-
-
-###############################################################################
-## plotting etc.
-
 class SignalPlot:
-    def __init__(self, data, samplingrate, unit, filename, channel):
+    def __init__(self, data, samplingrate, unit, filename, channel, cfg):
         self.filename = filename
         self.channel = channel
         self.samplerate = samplingrate
         self.data = data
         self.unit = unit
+        self.cfg = cfg
+        self.verbose = self.cfg['verboseLevel'][0]
         self.time = np.arange(0.0, len(self.data)) / self.samplerate
         self.toffset = 0.0
         self.twindow = 8.0
@@ -98,9 +41,9 @@ class SignalPlot:
         self.fmin = 0.0
         self.fmax = 0.0
         self.decibel = True
-        self.fresolution = cfg['initialFrequencyResolution'][0]
+        self.fresolution = self.cfg['initialFrequencyResolution'][0]
         self.deltaf = 1.0
-        self.mains_freq = cfg['mainsFreq'][0]
+        self.mains_freq = self.cfg['mainsFreq'][0]
         self.power_label = None
         self.all_peaks_artis = None
         self.good_peaks_artist = None
@@ -109,15 +52,15 @@ class SignalPlot:
         self.peak_artists = []
         self.legend = True
         self.legendhandle = None
-        self.help = cfg['displayHelp'][0]
+        self.help = self.cfg['displayHelp'][0]
         self.helptext = []
         self.allpeaks = []
         self.fishlist = []
         self.mains = []
         self.peak_specmarker = []
         self.peak_annotation = []
-        self.min_clip = cfg['minClipAmplitude'][0]
-        self.max_clip = cfg['maxClipAmplitude'][0]
+        self.min_clip = self.cfg['minClipAmplitude'][0]
+        self.max_clip = self.cfg['maxClipAmplitude'][0]
         self.generate_color_range()
 
         # audio output:
@@ -202,8 +145,8 @@ class SignalPlot:
         # first color range:
         cc0 = plt.cm.gist_rainbow(np.linspace(0.0, 1.0, 8.0))
         # shuffle it:
-        for k in range((len(cc0) + 1) / 2):
-            self.colorrange.extend(cc0[k::(len(cc0) + 1) / 2])
+        for k in range((len(cc0) + 1) // 2):
+            self.colorrange.extend(cc0[k::(len(cc0) + 1) // 2])
         self.markerrange.extend(len(cc0) * 'o')
         mr2.extend(len(cc0) * 'v')
         # second darker color range:
@@ -211,8 +154,8 @@ class SignalPlot:
         cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1])) * np.array([1.0, 0.9, 0.7, 0.0]))[0]
         cc1[:, 3] = 1.0
         # shuffle it:
-        for k in range((len(cc1) + 1) / 2):
-            self.colorrange.extend(cc1[k::(len(cc1) + 1) / 2])
+        for k in range((len(cc1) + 1) // 2):
+            self.colorrange.extend(cc1[k::(len(cc1) + 1) // 2])
         self.markerrange.extend(len(cc1) * '^')
         mr2.extend(len(cc1) * '*')
         # third lighter color range:
@@ -220,8 +163,8 @@ class SignalPlot:
         cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc2])) * np.array([1.0, 0.5, 1.0, 0.0]))[0]
         cc2[:, 3] = 1.0
         # shuffle it:
-        for k in range((len(cc2) + 1) / 2):
-            self.colorrange.extend(cc2[k::(len(cc2) + 1) / 2])
+        for k in range((len(cc2) + 1) // 2):
+            self.colorrange.extend(cc2[k::(len(cc2) + 1) // 2])
         self.markerrange.extend(len(cc2) * 'D')
         mr2.extend(len(cc2) * 'x')
         self.markerrange.extend(mr2)
@@ -247,15 +190,15 @@ class SignalPlot:
         # annotation:
         fwidth = self.fmax - self.fmin
         pl = []
-        if cfg['labelFrequency'][0]:
+        if self.cfg['labelFrequency'][0]:
             pl.append(r'$f=${:.1f} Hz'.format(peak[0]))
-        if cfg['labelHarmonic'][0] and harmonics >= 0:
+        if self.cfg['labelHarmonic'][0] and harmonics >= 0:
             pl.append(r'$h=${:d}'.format(harmonics))
-        if cfg['labelPower'][0]:
+        if self.cfg['labelPower'][0]:
             pl.append(r'$p=${:g}'.format(peak[1]))
-        if cfg['labelWidth'][0]:
+        if self.cfg['labelWidth'][0]:
             pl.append(r'$\Delta f=${:.2f} Hz'.format(peak[3]))
-        if cfg['labelDoubleUse'][0]:
+        if self.cfg['labelDoubleUse'][0]:
             pl.append(r'dc={:.0f}'.format(peak[4]))
         self.peak_annotation.append(self.axp.annotate('\n'.join(pl), xy=(peak[0], peak[1]),
                                                       xytext=(peak[0] + 0.03 * fwidth, peak[1]),
@@ -286,11 +229,11 @@ class SignalPlot:
         nfft = int(np.round(2 ** (np.floor(np.log(self.samplerate / self.fresolution) / np.log(2.0)) + 1.0)))
         if nfft < 16:
             nfft = 16
-        nfft, noverlap = ps.nfft_noverlap(self.fresolution, self.samplerate, 0.5, 16)
+        nfft, noverlap = nfft_noverlap(self.fresolution, self.samplerate, 0.5, 16)
         t00 = t0
         t11 = t1
         w = t11 - t00
-        minw = nfft * (cfg['minPSDAverages'][0] + 1) / 2
+        minw = nfft * (self.cfg['minPSDAverages'][0] + 1) // 2
         if t11 - t00 < minw:
             w = minw
             t11 = t00 + w
@@ -303,14 +246,15 @@ class SignalPlot:
         power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=noverlap, Fs=self.samplerate, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
-        self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = hg.harmonic_groups(
-            freqs, power, cfg)
+        h_kwargs = psd_peak_detection_args(self.cfg)
+        h_kwargs.update(harmonic_groups_args(self.cfg))
+        self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = harmonic_groups(freqs, power, verbose=self.verbose, **h_kwargs)
         highth = center + highth - 0.5 * lowth
         lowth = center + 0.5 * lowth
 
         # spectrogram:
         t2 = t1 + nfft
-        specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft / 2,
+        specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft // 2,
                                              detrend=ml.detrend_mean)
         z = 10. * np.log10(specpower)
         z = np.flipud(z)
@@ -342,10 +286,10 @@ class SignalPlot:
             tws = '%.3gms' % (1000.0 * tw)
         else:
             tws = '%.3gs' % (tw)
-        a = 2 * w / nfft - 1  # number of ffts
+        a = 2 * w // nfft - 1  # number of ffts
         m = ''
-        if cfg['mainsFreq'][0] > 0.0:
-            m = ', mains=%.0fHz' % cfg['mainsFreq'][0]
+        if self.cfg['mainsFreq'][0] > 0.0:
+            m = ', mains=%.0fHz' % self.cfg['mainsFreq'][0]
         if self.power_frequency_label == None:
             self.power_frequency_label = self.axp.set_xlabel(
                 r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(nfft, dfs, tws, a, m))
@@ -410,8 +354,8 @@ class SignalPlot:
             fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)], power[fpeakinx], linestyle='None',
                                         marker='.', color='k', ms=10, mec=None, mew=0.0, zorder=2)
             self.peak_artists.append(fishpoints)
-            labels.append('%3.0f Hz mains' % cfg['mainsFreq'][0])
-        ncol = len(labels) / 8 + 1
+            labels.append('%3.0f Hz mains' % self.cfg['mainsFreq'][0])
+        ncol = len(labels) // 8 + 1
         self.legendhandle = self.axs.legend(self.peak_artists[:len(labels)], labels, loc='upper right', ncol=ncol)
         self.legenddict = dict()
         for legpoints, (finx, fish) in zip(self.legendhandle.get_lines(), enumerate(self.fishlist)):
@@ -426,7 +370,7 @@ class SignalPlot:
             self.fig.canvas.draw()
 
     def keypress(self, event):
-        # print 'pressed', event.key
+        # print('pressed', event.key)
         if event.key in '+=X':
             if self.twindow * self.samplerate > 20:
                 self.twindow *= 0.5
@@ -447,15 +391,19 @@ class SignalPlot:
                 self.update_plots()
         elif event.key == 'a':
             if self.min_clip == 0.0 or self.max_clip == 0.0:
-                self.min_clip, self.max_clip = bw.clip_amplitudes(
-                    self.data, **bw.clip_args(cfg, self.samplerate))
-            idx0, idx1, clipped = bw.best_window_indices(
-                self.data, self.samplerate, min_clip=self.min_clip,
-                max_clip=self.max_clip, **bw.best_window_args(cfg))
-            if idx1 > 0:
-                self.toffset = idx0 / self.samplerate
-                self.twindow = (idx1 - idx0) / self.samplerate
-                self.update_plots()
+                self.min_clip, self.max_clip = clip_amplitudes(
+                    self.data, **clip_args(self.cfg, self.samplerate))
+            try:
+                idx0, idx1, clipped = best_window_indices(
+                    self.data, self.samplerate, min_clip=self.min_clip,
+                    max_clip=self.max_clip, **best_window_args(self.cfg))
+                if idx1 > 0:
+                    self.toffset = idx0 / self.samplerate
+                    self.twindow = (idx1 - idx0) / self.samplerate
+                    self.update_plots()
+            except UserWarning as e:
+                if self.verbose > 0:
+                    print(str(e))
         elif event.key == 'ctrl+pagedown':
             if self.toffset + 5.0 * self.twindow < len(self.data) / self.samplerate:
                 self.toffset += 5.0 * self.twindow
@@ -586,22 +534,22 @@ class SignalPlot:
             self.decibel = not self.decibel
             self.update_plots()
         elif event.key in 'm':
-            if cfg['mainsFreq'][0] == 0.0:
-                cfg['mainsFreq'][0] = self.mains_freq
+            if self.cfg['mainsFreq'][0] == 0.0:
+                self.cfg['mainsFreq'][0] = self.mains_freq
             else:
-                cfg['mainsFreq'][0] = 0.0
+                self.cfg['mainsFreq'][0] = 0.0
             self.update_plots()
         elif event.key in 't':
-            cfg['peakFactor'][0] -= 0.1
-            if cfg['peakFactor'][0] < -5.0:
-                cfg['peakFactor'][0] = -5.0
-            print 'peakFactor =', cfg['peakFactor'][0]
+            self.cfg['peakFactor'][0] -= 0.1
+            if self.cfg['peakFactor'][0] < -5.0:
+                self.cfg['peakFactor'][0] = -5.0
+            print('peakFactor =', self.cfg['peakFactor'][0])
             self.update_plots()
         elif event.key in 'T':
-            cfg['peakFactor'][0] += 0.1
-            if cfg['peakFactor'][0] > 5.0:
-                cfg['peakFactor'][0] = 5.0
-            print 'peakFactor =', cfg['peakFactor'][0]
+            self.cfg['peakFactor'][0] += 0.1
+            if self.cfg['peakFactor'][0] > 5.0:
+                self.cfg['peakFactor'][0] = 5.0
+            print('peakFactor =', self.cfg['peakFactor'][0])
             self.update_plots()
         elif event.key == 'escape':
             self.remove_peak_annotation()
@@ -641,7 +589,7 @@ class SignalPlot:
             self.play_tone('c6')
 
     def buttonpress( self, event ) :
-        # print 'mouse pressed', event.button, event.key, event.step
+        # print('mouse pressed', event.button, event.key, event.step)
         if event.inaxes == self.axp:
             if event.key == 'shift' or event.key == 'control':
                 # show next or previous harmonic:
@@ -685,13 +633,13 @@ class SignalPlot:
                     self.fig.canvas.draw()
 
     def onpick(self, event):
-        # print 'pick'
+        # print('pick')
         legendpoint = event.artist
         finx, fish = self.legenddict[legendpoint]
         self.annotate_fish(fish, finx)
 
     def resize(self, event):
-        # print 'resized', event.width, event.height
+        # print('resized', event.width, event.height)
         leftpixel = 80.0
         rightpixel = 20.0
         xaxispixel = 50.0
@@ -736,7 +684,7 @@ class SignalPlot:
         fig.savefig(figfile)
         fig.clear()
         plt.close(fig)
-        print 'saved waveform figure to', figfile
+        print('saved waveform figure to', figfile)
 
     def play_segment(self):
         t0 = int(np.round(self.toffset * self.samplerate))
@@ -760,11 +708,32 @@ def short_user_warning(message, category, filename, lineno, file=sys.stderr, lin
         file.write(s)
 
 
-if __name__ == '__main__':
+def main():
     warnings.showwarning = short_user_warning
 
-    bw.add_clip_config(cfg)
-    bw.add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
+    # configuration options:
+    cfg = ConfigFile()
+
+    cfg.add_section('Power spectrum estimation:')
+    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
+    cfg.add('initialFrequencyResolution', 1.0, 'Hz', 'Initial frequency resolution of the power spectrum.')
+
+    cfg.add_section('Items to display:')
+    cfg.add('displayHelp', False, '', 'Display help on key bindings')
+    cfg.add('labelFrequency', True, '', 'Display the frequency of the peak')
+    cfg.add('labelHarmonic', True, '', 'Display the harmonic of the peak')
+    cfg.add('labelPower', True, '', 'Display the power of the peak')
+    cfg.add('labelWidth', True, '', 'Display the width of the peak')
+    cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
+
+    cfg.add_section('Debugging:')
+    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
+    
+    add_psd_peak_detection_config(cfg)
+    add_harmonic_groups_config(cfg)
+    add_clip_config(cfg)
+    add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
+    cfg.set('bestWindowSize', 4.0)
 
     # config file name:
     progname = os.path.basename(sys.argv[0])
@@ -776,10 +745,13 @@ if __name__ == '__main__':
         epilog='by Jan Benda (2015-2016)')
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument('-v', action='count', dest='verbose')
-    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile, type=str, metavar='cfgfile',
+    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
+                        type=str, metavar='cfgfile',
                         help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
-    parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
+    parser.add_argument('file', nargs='?', default='', type=str,
+                        help='name of the file wih the time series data')
+    parser.add_argument('channel', nargs='?', default=0, type=int,
+                        help='channel to be displayed')
     args = parser.parse_args()
 
     # set verbosity level from command line:
@@ -810,15 +782,19 @@ if __name__ == '__main__':
     channel = args.channel
     filename = os.path.basename(filepath)
     # TODO: add blocksize and backsize as configuration parameter!
-    with dl.open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
+    with open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
         # plot:
         ## if len(data) < 10**8:
         ##     # data[:].copy() makes bestwindow much faster (it's slow in peakdetection):
         ##     SignalPlot(data[:].copy(), data.samplerate, data.unit, filename, channel)
         ## else:
-        SignalPlot(data, data.samplerate, data.unit, filename, channel)
+        SignalPlot(data, data.samplerate, data.unit, filename, channel, cfg)
 
+        
+if __name__ == '__main__':
+    main()
 
+    
 ## data = data/2.0**15
 ## time = np.arange( 0.0, len( data ) )/freq
 ## # t=69-69.25: EODf=324 and 344Hz

@@ -6,9 +6,9 @@ check_pulse_psd(): checks for puls_type fish based on its signature on the power
 """
 
 import numpy as np
-import peakdetection as pkd
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
+from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
 
 
 def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=0.1,
@@ -49,7 +49,7 @@ def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=
         :return: peak-ratio (float). The median of (peak-trough) / (peak-peak)
         :return: r_tr (array). The distribution of (peak-trough) / (peak-peak)
         """
-        peaks, troughs = pkd.trim_to_peak(peak_idx, trough_idx)
+        peaks, troughs = trim_to_peak(peak_idx, trough_idx)
 
         # get times of peaks and troughs, pk_times need to be floats!
         pk_times = peaks / float(samplerate)  # Actually there is no need to divide by samplerate.
@@ -70,11 +70,11 @@ def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=
         print('Analyzing Fish-Type...')
 
     # threshold for peak detection:
-    threshold = pkd.percentile_threshold(data, samplerate, win_size,
-                                         th_factor=th_factor, percentile=percentile)
+    threshold = percentile_threshold(data, samplerate, win_size,
+                                     th_factor=th_factor, percentile=percentile)
 
     # detect large peaks and troughs:
-    peak_idx, trough_idx = pkd.detect_peaks(data, threshold)
+    peak_idx, trough_idx = detect_peaks(data, threshold)
 
     pr_pvt, pvt_dist = ratio(peak_idx, trough_idx)
     pr_tvp, tvp_dist = ratio(trough_idx, peak_idx)
@@ -258,29 +258,29 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
 if __name__ == "__main__":
     print("\nChecking checkpulse module ...\n")
     import sys
-    import bestwindow as bw
-    import powerspectrum as ps
-    import fakefish as ff
+    from .bestwindow import best_window
+    from .powerspectrum import multi_resolution_psd
+    from .fakefish import generate_monophasic_pulses, generate_biphasic_pulses, generate_triphasic_pulses, generate_alepto
 
     # generate data:
     rate = 44100.0
     if len(sys.argv) < 2:
-        data = ff.generate_biphasic_pulses(80.0, rate, 8.0)
+        data = generate_biphasic_pulses(80.0, rate, 8.0)
     elif sys.argv[1] == '-w':
-        data = ff.generate_alepto(600.0, rate, 8.0)
+        data = generate_alepto(600.0, rate, 8.0)
     elif sys.argv[1] == '-m':
-        data = ff.generate_monophasic_pulses(80.0, rate, 8.0)
+        data = generate_monophasic_pulses(80.0, rate, 8.0)
     elif sys.argv[1] == '-b':
-        data = ff.generate_biphasic_pulses(80.0, rate, 8.0)
+        data = generate_biphasic_pulses(80.0, rate, 8.0)
     elif sys.argv[1] == '-t':
-        data = ff.generate_triphasic_pulses(80.0, rate, 8.0)
+        data = generate_triphasic_pulses(80.0, rate, 8.0)
     else:  # load data given by the user
-        import dataloader as dl
+        from .dataloader import load_data
 
         file_path = sys.argv[1]
         print("loading %s ...\n" % file_path)
-        rawdata, rate, unit = dl.load_data(sys.argv[1], 0)
-        data, _ = bw.best_window(rawdata, rate)
+        rawdata, rate, unit = load_data(sys.argv[1], 0)
+        data, _ = best_window(rawdata, rate)
 
     # draw figure with subplots:
     fig1, ax1 = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
@@ -291,7 +291,7 @@ if __name__ == "__main__":
     plt.tight_layout()
 
     fig2, ax2 = plt.subplots()
-    psd_data = ps.multi_resolution_psd(data, rate)
+    psd_data = multi_resolution_psd(data, rate)
     psd_type, proportions = check_pulse_psd(psd_data[0], psd_data[1], verbose=1,
                                             plot_data_func=plot_psd_proportion, ax=ax2, fs=12)
     plt.tight_layout()

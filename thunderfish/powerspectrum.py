@@ -18,7 +18,7 @@ def next_power_of_two(n):
     return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))
 
 
-def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=0):
+def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=16):
     """The required number of points for an FFT to achieve a minimum frequency resolution
     and the number of overlapping data points.
 
@@ -36,7 +36,7 @@ def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=0):
     return nfft, noverlap
 
 
-def psd(data, samplerate, fresolution, min_nfft, detrend=mlab.detrend_none,
+def psd(data, samplerate, fresolution, min_nfft=16, detrend=mlab.detrend_none,
         window=mlab.window_hanning, overlap_frac=0.5, pad_to=None,
         sides='default', scale_by_freq=None):
     """Power spectrum density of a given frequency resolution.

@@ -43,12 +43,6 @@ def load_data(filepath, channel=0, verbose=0):
         samplerate (float): the sampling rate of the data in Hz
         unit (string): the unit of the data
     """
-    # check types:
-    if not isinstance(filepath, basestring):
-        raise NameError('load_data(): input argument filepath must be a string!')
-    if not isinstance(channel, int):
-        raise NameError('load_data(): input argument channel must be an int!')
-
     # check values:
     data = np.array([])
     samplerate = 0.0
@@ -163,7 +157,6 @@ if __name__ == "__main__":
     print("try DataLoader:")
     with open_data(filepath, 0, 2.0, 1.0, 1) as data:
         print('samplerate: %g' % data.samplerate)
-        print('channels: %d %d' % (data.channels, data.shape[1]))
         print('frames: %d %d' % (len(data), data.shape[0]))
         nframes = int(1.0 * data.samplerate)
         # forward:
