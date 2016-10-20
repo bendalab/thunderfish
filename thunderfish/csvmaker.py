@@ -23,18 +23,17 @@ def extract_main_freqs_and_db(data, samplerate):
     return freqs, decibel
 
 
-def freqs_and_db_csv(filename, freq, decibel):
-    header = ['fundamental frequency', 'dB']
-    # convert to strings
-    freq = np.array(['%.3f' % e for e in freq])
-    decibel = np.array(['%.3f' % e for e in decibel])
+def write_csv(filename, csv_header, data_matrix):
+
+    # Check if header has same row length as data_matrix
+    if len(csv_header) != len(data_matrix[0]):
+        raise ValueError('The length of the header does not match the length of the data matrix!')
 
     with open(filename, 'wb') as fin:
-        fin.write(str.encode(','.join(header)))
+        fin.write(str.encode(','.join(csv_header)))
         fin.write(str.encode('\n'))
-        for row_id in range(len(freq)):
-
-            fin.write(str.encode(','.join([freq[row_id], decibel[row_id]])))
+        for row_id in range(len(data_matrix)):
+            fin.write(str.encode(','.join(['%.3f' % e for e in data_matrix[row_id]])))  # convert to strings!
             fin.write(str.encode('\n'))
     pass
 
@@ -62,6 +61,8 @@ if __name__ == '__main__':
         data, samplerate, unit = load_data(sys.argv[1], 0)
 
     fund_freqs, db = extract_main_freqs_and_db(data, samplerate)
-    freqs_and_db_csv(filename, fund_freqs, db)
+    csv_matrix = np.column_stack((fund_freqs, db))
+    header = ['fundamental frequency', 'dB']
+    write_csv(filename, header, csv_matrix)
 
     print('\ncsv_file created in %s' % filename)

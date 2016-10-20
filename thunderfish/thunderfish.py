@@ -22,7 +22,7 @@ from .powerspectrum import plot_decibel_psd, multi_resolution_psd
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .consistentfishes import consistent_fishes_psd_plot, consistent_fishes
 from .eodanalysis import eod_waveform_plot, eod_waveform
-from .csvmaker import extract_main_freqs_and_db, freqs_and_db_csv
+from .csvmaker import extract_main_freqs_and_db, write_csv
 
 
 def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_IPI, inter_eod_intervals,
@@ -253,7 +253,9 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     # Create csv file with main EODF and corresponding power in dB of detected fishes
     freqs, db = extract_main_freqs_and_db(data, samplerate)
     csv_name = os.path.splitext(os.path.basename(sys.argv[1]))[0] + '.csv'
-    freqs_and_db_csv(csv_name, freqs, db)
+    csv_matrix = np.column_stack((freqs, db))
+    header = ['fundamental frequency', 'dB']
+    write_csv(csv_name, header, csv_matrix)
 
 
 def main():
