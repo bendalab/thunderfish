@@ -1,8 +1,4 @@
 import numpy as np
-from .dataloader import load_data
-from .consistentfishes import consistent_fishes
-from .harmonicgroups import harmonic_groups
-from .powerspectrum import multi_resolution_psd
 
 
 def extract_main_freqs_and_db(filtered_grouplist):
@@ -74,6 +70,10 @@ if __name__ == '__main__':
     import os
     import sys
     from .fakefish import generate_alepto
+    from .dataloader import load_data
+    from .consistentfishes import consistent_fishes
+    from .harmonicgroups import harmonic_groups
+    from .powerspectrum import multi_resolution_psd
 
     if len(sys.argv) == 1:  # user did not give a specific file to analyze
         filename = 'csvmaker_testfile.csv'
