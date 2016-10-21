@@ -19,9 +19,10 @@ from .dataloader import load_data
 from .bestwindow import clip_amplitudes, best_window_indices
 from .checkpulse import check_pulse_width, check_pulse_psd
 from .powerspectrum import plot_decibel_psd, multi_resolution_psd
-from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs_and_db
 from .consistentfishes import consistent_fishes_psd_plot, consistent_fishes
 from .eodanalysis import eod_waveform_plot, eod_waveform
+from .csvmaker import write_csv
 
 
 def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_IPI, inter_eod_intervals,
@@ -193,6 +194,8 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     if verbosearg is not None:
         verbose = verbosearg
 
+    outfilename = os.path.splitext(os.path.basename(sys.argv[1]))[0]
+
     # load data:
     raw_data, samplerate, unit = load_data(audio_file, channel)
     if len(raw_data) == 0:
@@ -212,10 +215,10 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     # pulse-type fish?
     pulse_fish_width, pta_value = check_pulse_width(data, samplerate)
 
-    # calculate powerspectrums with different frequency resolutions
+    # calculate powerspectra with different frequency resolutions:
     psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
 
-    # find the fishes in the different powerspectrums:
+    # find the fishes in the different powerspectra:
     fishlists = []
     for i in range(len(psd_data)):
         h_kwargs = psd_peak_detection_args(cfg)
@@ -223,26 +226,33 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
         fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], verbose, **h_kwargs)[0]
         fishlists.append(fishlist)
 
-    # find the psd_type
+    # find the psd_type:
     pulse_fish_psd, proportion = check_pulse_psd(psd_data[0][0], psd_data[0][1])
 
     # filter the different fishlists to get a fishlist with consistent fishes:
     if not pulse_fish_width and not pulse_fish_psd:
         filtered_fishlist = consistent_fishes(fishlists)
+
+        # write csv file with main EODF and corresponding power in dB of detected fishes:
+        csv_matrix = fundamental_freqs_and_db(filtered_fishlist)
+        csv_name = outfilename + '-eodfs.csv'
+        header = ['fundamental frequency (Hz)', 'power (dB)']
+        write_csv(csv_name, header, csv_matrix)
     else:
         filtered_fishlist = []
 
     # analyse eod waveform:
     mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6)
+    header = ['time (ms)', 'mean', 'std']
+    write_csv(outfilename + '-eodwaveform.csv', header, np.column_stack((1000.0*time, mean_eod, std_eod)))
+
     period = np.mean(np.diff(eod_times))
 
-    # inter-peal interval
+    # analyze inter-peak intervals:
     inter_peak_intervals = np.diff(eod_times) # in sec
-
     lower_perc, upper_perc = np.percentile(inter_peak_intervals, [1, 100-1])
     inter_eod_intervals = inter_peak_intervals[(inter_peak_intervals > lower_perc) &
                                                (inter_peak_intervals < upper_perc)]
-
     median_IPI = np.median(inter_eod_intervals)
     std_IPI = np.std(inter_eod_intervals, ddof=1)
 
@@ -267,4 +277,4 @@ def main():
     
 if __name__ == '__main__':
     main()
-    
+    print('\nThanks for using thunderfish! Your files have been analyzed!')
