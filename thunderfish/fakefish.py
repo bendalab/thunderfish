@@ -10,15 +10,12 @@ for generating EODs of wave-type and pulse_type electric fish, respectively.
 
 The following functions use the two functions to generate waveforms of specific fishes:
 
-generate_alepto()
+generate_alepto(): mimicks the wave-type fish Apteronotus leptorhynchus, 
+generate_eigenmannia(): mimicks the wave-type fish Eigenmannia, 
 
-generates a waveform mimicking the one of the wave-type fish Apteronotus leptorhynchus.
-
-generate_monophasic_pulses()
-generate_biphasic_pulses()
-generate_triphasic_pulses()
-
-generate waveforms of monphasic, biphasic and triphasic pulse-type fishes.
+generate_monophasic_pulses(): mimicks a monophasic pulsefish,
+generate_biphasic_pulses(): mimicks a biphasic pulsefish,
+generate_triphasic_pulses(): mimicks a triphasic pulsefish.
 """
 
 import numpy as np
@@ -94,7 +91,19 @@ def generate_alepto(frequency=100.0, samplerate=44100., duration=1., noise_std=0
     See generate_wavefish() for details.
     """
     return generate_wavefish(frequency=frequency, samplerate=samplerate, duration=duration,
-                             noise_std=noise_std, amplitudes=[1.0, 0.5, 0.0, 0.01])
+                             noise_std=noise_std, amplitudes=[1.0, 0.5, 0.0, 0.01],
+                             phases=[0.0, 0.0, 0.0, 0.0])
+
+
+def generate_eigenmannia(frequency=100.0, samplerate=44100., duration=1., noise_std=0.01):
+    """Generate EOD of an Eigenmannia.
+
+    See generate_wavefish() for details.
+    """
+    return generate_wavefish(frequency=frequency, samplerate=samplerate, duration=duration,
+                             noise_std=noise_std, amplitudes=[1.0, 0.25, 0.0, 0.01],
+                             phases=[0.0, 0.5*np.pi, 0.0, 0.0])
+
 
 
 def generate_pulsefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.01,
@@ -230,9 +239,10 @@ if __name__ == '__main__':
     eodf = 300.0
     eodf = 500.0 - time/rec_length*400.0
     wavefish = generate_wavefish(eodf, samplerate, duration=rec_length, noise_std=0.02, 
-                                 amplitudes=[1.0, 0.25, 0.0, 0.0001],
-                                 phases=[0.0, 0.5*np.pi, 0.0, 0.0])
-    #wavefish = generate_alepto(300., samplerate, duration=rec_length)
+                                 amplitudes=[1.0, 0.5, 0.0, 0.0001],
+                                 phases=[0.0, 0.0, 0.0, 0.0])
+    #wavefish = generate_alepto(eodf, samplerate, duration=rec_length)
+    #wavefish = generate_eigenmannia(eodf, samplerate, duration=rec_length)
 
     pulsefish = generate_pulsefish(80., samplerate, duration=rec_length,
                                    noise_std=0.02, jitter_cv=0.1,
