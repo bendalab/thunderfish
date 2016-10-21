@@ -60,7 +60,7 @@ def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std
 
     Raises
     ------
-    IndexError: amplitudes and phases have different length
+    IndexError: amplitudes and phases differ in length.
     """
     
     # compute phase:
@@ -107,38 +107,56 @@ def generate_eigenmannia(frequency=100.0, samplerate=44100., duration=1., noise_
 
 
 def generate_pulsefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.01,
-                       jitter_cv=0.1, peak_std=0.001, peak_amplitude=1.0, peak_time=0.0):
-    """Generate EOD of a pulse-type fish.
+                       jitter_cv=0.1, peak_stds=0.001, peak_amplitudes=1.0, peak_times=0.0):
+    """
+    Generate EOD of a pulse-type fish.
 
     Pulses are spaced by 1/frequency, jittered as determined by jitter_cv. Each pulse is
     a combination of Gaussian peaks, whose widths, amplitudes, and positions are given by
-    their standard deviation peak_std, peak_amplitude, and peak_time, respectively.
+    their standard deviation peak_stds, peak_amplitudes, and peak_times, respectively.
 
     The generated waveform is duration seconds long and is sampled with samplerate Hertz.
     Gaussian white noise with a standard deviation of noise_std is added to the generated
     pulse train.
 
-    :param frequency: (float). EOD frequency of the fish in Hz.
-    :param samplerate: (float). Sampling Rate in Hz
-    :param duration: (float). Duration of the generated data in seconds.
-    :param noise_std: (float). Standard deviation of additive Gaussian white noise.
-    :param jitter_cv: (float). Gaussian distributed jitter of pulse times as coefficient of variation of inter-pulse intervals.
-    :param peak_std: (float or list of floats). Standard deviation of Gaussian shaped peaks in seconds.
-    :param peak_amplitude: (float or list of floats). Amplitude of each peak (positive and negative).
-    :param peak_time: (float or list of floats). Position of each Gaussian peak in seconds.
+    Parameters
+    ----------
+    frequency: float
+        EOD frequency of the fish in Hz.
+    samplerate: float
+        Sampling Rate in Hz.
+    duration: float
+        Duration of the generated data in seconds.
+    noise_std: float
+        Standard deviation of additive Gaussian white noise.
+    jitter_cv: float
+        Gaussian distributed jitter of pulse times as coefficient of variation of inter-pulse intervals.
+    peak_stds: float or list of floats
+        Standard deviation of Gaussian shaped peaks in seconds.
+    peak_amplitudes: float or list of floats
+        Amplitude of each peak (positive and negative).
+    peak_times: float or list of floats
+        Position of each Gaussian peak in seconds.
 
-    :return data: (array). Generated data of a pulse-type fish.
+    Returns
+    -------
+    data: array of floats
+        Generated data of a pulse-type fish.
+
+    Raises
+    ------
+    IndexError: peak_stds or peak_amplitudes or peak_times differ in length.
     """
 
     # make sure peak properties are in a list:
-    if np.isscalar(peak_std):
-        peak_stds = [peak_std]
-        peak_amplitudes = [peak_amplitude]
-        peak_times = [peak_time]
-    else:
-        peak_stds = peak_std
-        peak_amplitudes = peak_amplitude
-        peak_times = peak_time
+    if np.isscalar(peak_stds):
+        peak_stds = [peak_stds]
+    if np.isscalar(peak_amplitudes):
+        peak_amplitudes = [peak_amplitudes]
+    if np.isscalar(peak_times):
+        peak_times = [peak_times]
+    if len(peak_stds) != len(peak_amplitudes) or len(peak_stds) != len(peak_times):
+        raise IndexError('need exactly as many peak_stds as peak_amplitudes and peak_times')
 
     # time axis for single pulse:
     min_time_inx = np.argmin(peak_times)
@@ -175,7 +193,7 @@ def generate_monophasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
     """
     return generate_pulsefish(frequency=frequency, samplerate=samplerate, duration=duration,
                               noise_std=noise_std, jitter_cv=jitter_cv,
-                              peak_std=0.0003, peak_amplitude=1.0, peak_time=0.0)
+                              peak_stds=0.0003, peak_amplitudes=1.0, peak_times=0.0)
 
 
 def generate_biphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
@@ -186,9 +204,9 @@ def generate_biphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
     """
     return generate_pulsefish(frequency=frequency, samplerate=samplerate, duration=duration,
                               noise_std=noise_std, jitter_cv=jitter_cv,
-                              peak_std=[0.0001, 0.0002],
-                              peak_amplitude=[1.0, -0.3],
-                              peak_time=[0.0, 0.0003])
+                              peak_stds=[0.0001, 0.0002],
+                              peak_amplitudes=[1.0, -0.3],
+                              peak_times=[0.0, 0.0003])
 
 
 def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
@@ -199,9 +217,9 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
     """
     return generate_pulsefish(frequency=frequency, samplerate=samplerate, duration=duration,
                               noise_std=noise_std, jitter_cv=jitter_cv,
-                              peak_std=[0.0001, 0.0002, 0.0002],
-                              peak_amplitude=[1.0, -0.3, -0.1],
-                              peak_time=[0.0, 0.0003, -0.0004])
+                              peak_stds=[0.0001, 0.0001, 0.0002],
+                              peak_amplitudes=[1.0, -0.8, 0.1],
+                              peak_times=[0.0, 0.00015, 0.0004])
 
 def generate_alepto_with_chirps():
     samplerate = 40000.0
@@ -241,17 +259,17 @@ if __name__ == '__main__':
     wavefish = generate_wavefish(eodf, samplerate, duration=rec_length, noise_std=0.02, 
                                  amplitudes=[1.0, 0.5, 0.0, 0.0001],
                                  phases=[0.0, 0.0, 0.0, 0.0])
-    #wavefish = generate_alepto(eodf, samplerate, duration=rec_length)
-    #wavefish = generate_eigenmannia(eodf, samplerate, duration=rec_length)
+    # wavefish = generate_alepto(eodf, samplerate, duration=rec_length)
+    # wavefish = generate_eigenmannia(eodf, samplerate, duration=rec_length)
 
     pulsefish = generate_pulsefish(80., samplerate, duration=rec_length,
                                    noise_std=0.02, jitter_cv=0.1,
-                                   peak_std=[0.0001, 0.0002, 0.0002],
-                                   peak_amplitude=[1.0, -0.3, -0.1],
-                                   peak_time=[0.0, 0.0003, -0.0004])
+                                   peak_stds=[0.0001, 0.0002, 0.0002],
+                                   peak_amplitudes=[1.0, -0.3, -0.1],
+                                   peak_times=[0.0, 0.0003, -0.0004])
     # pulsefish = generate_monophasic_pulses(80., samplerate, duration=rec_length)
     # pulsefish = generate_biphasic_pulses(80., samplerate, duration=rec_length)
-    # pulsefish = generate_triphasic_pulses(80., samplerate, duration=rec_length)
+    pulsefish = generate_triphasic_pulses(80., samplerate, duration=rec_length)
 
     # plot:
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
