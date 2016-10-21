@@ -755,6 +755,41 @@ def fundamental_freqs(group_lists):
     return fundamentals
 
 
+def fundamental_freqs_and_db(grouplist):
+
+    """
+    Extract the fundamental frequencies and their power in dB from lists of harmonic groups.
+
+    Parameters
+    ----------
+    grouplist: list of 2-D arrays or list of list of 2-D arrays
+            Lists of harmonic groups as returned by extract_fundamentals() and
+            harmonic_groups() with the element [0][0] of the harmonic groups being the fundamental frequency,
+            and element[0][1] being the corresponding power.
+
+    Returns
+    -------
+    eodf_db_matrix: 2-D array or list of 2-D arrays
+        Matrix with fundamental frequencies in first column and corresponding power in dB in second column.
+
+    """
+
+    if len(grouplist) == 0:
+        eodf_db_matrix = np.array([])
+    elif hasattr(grouplist[0][0][0], '__len__'):
+        eodf_db_matrix = []
+        for groups in grouplist:
+            f = [np.array([harmonic_group[0][0], harmonic_group[0][1]]) for harmonic_group in grouplist]
+            f[:, 1] = 10.0 * np.log10(f[:, 1])  # calculate decibel using 1 as P0
+            eodf_db_matrix.append(f)
+    else:
+        eodf_db_matrix = np.array([np.array([harmonic_group[0][0], harmonic_group[0][1]])
+                                   for harmonic_group in grouplist])
+        eodf_db_matrix[:, 1] = 10.0 * np.log10(eodf_db_matrix[:, 1])  # calculate decibel using 1 as P0
+
+    return eodf_db_matrix
+
+
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
                                   thresh_bins=100, noise_fac=6.0, peak_fac=0.5,
                                   max_peak_width_fac=3.5, min_peak_width=1.0):
