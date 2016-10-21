@@ -25,33 +25,64 @@ import numpy as np
 
 
 def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.05,
-                      amplitudes=1.0):
-    """Generate EOD of a wave-type fish.
+                      amplitudes=1.0, phases=0.0):
+    """
+    Generate EOD of a wave-type fish.
 
     The waveform is constructed by superimposing sinewaves of integral multiples of
     the fundamental frequency - the fundamental and its harmonics.
     The fundamental frequency of the EOD is given by frequency. The amplitude of the
-    fundamental is given by the first element in amplitudes. The amplitudes of higher
-    harmonics are give by optional further elements of the amplitudes list.
+    fundamental is given by the first element in amplitudes. The amplitudes and
+    relative phases of higher harmonics are give by optional further elements of
+    the amplitudes and phases lists.
 
     The generated waveform is duration seconds long and is sampled with samplerate Hertz.
     Gaussian white noise with a standard deviation of noise_std is added to the generated
     waveform.
 
-    :param frequency: (float). EOD frequency of the fish in Hz.
-    :param samplerate: (float). Sampling rate in Hz.
-    :param duration: (float). Duration of the generated data in seconds.
-    :param noise_std: (float). Standard deviation of additive Gaussian white noise.
-    :param amplitudes: (float or list of floats). Amplitudes of fundamental and optional harmonics.
+    Parameters
+    ----------
+    frequency: float or array of floats
+        EOD frequency of the fish in Hz. Either fixed number or array for
+        time-dependent frequencies.
+    samplerate: float
+        Sampling rate in Hz.
+    duration: float
+        Duration of the generated data in seconds. Only used if frequency is float.
+    noise_std: float
+        Standard deviation of additive Gaussian white noise.
+    amplitudes: float or list of floats
+        Amplitudes of fundamental and optional harmonics.
+    phases: float or list of floats
+        Relative phases of fundamental and optional harmonics in radians.
 
-    :return data: (array). Generated data of a wave-type fish.
+    Returns
+    -------
+    data: array of floats
+        Generated data of a wave-type fish.
+
+    Raises
+    ------
+    IndexError: amplitudes and phases have different length
     """
-    time = np.arange(0, duration, 1./samplerate)
-    data = np.zeros(len(time))
+    
+    # compute phase:
+    if np.isscalar(frequency):
+        phase = np.arange(0, duration, 1./samplerate)
+        phase *= frequency
+    else:
+        phase = np.cumsum(frequency)/samplerate
+    # fix amplitudes and phases:
     if np.isscalar(amplitudes):
         amplitudes = [amplitudes]
-    for har, ampl in enumerate(amplitudes):
-        data += ampl * np.sin(2*np.pi*time*(har+1)*frequency)
+    if np.isscalar(phases):
+        phases = [phases]
+    if len(amplitudes) != len(phases):
+        raise IndexError('need exactly as many phases as amplitudes')
+    # generate EOD:
+    data = np.zeros(len(phase))
+    for har, (ampl, phi) in enumerate(zip(amplitudes, phases)):
+        data += ampl * np.sin(2*np.pi*(har+1)*phase+phi)
     # add noise:
     data += noise_std * np.random.randn(len(data))
     return data
@@ -196,8 +227,11 @@ if __name__ == '__main__':
     # generate data:
     time = np.arange(0, rec_length, 1./samplerate)
 
-    wavefish = generate_wavefish(300., samplerate, duration=rec_length, noise_std=0.02, 
-                                 amplitudes=[1.0, 0.5, 0.0, 0.01])
+    eodf = 300.0
+    eodf = 500.0 - time/rec_length*400.0
+    wavefish = generate_wavefish(eodf, samplerate, duration=rec_length, noise_std=0.02, 
+                                 amplitudes=[1.0, 0.25, 0.0, 0.0001],
+                                 phases=[0.0, 0.5*np.pi, 0.0, 0.0])
     #wavefish = generate_alepto(300., samplerate, duration=rec_length)
 
     pulsefish = generate_pulsefish(80., samplerate, duration=rec_length,
