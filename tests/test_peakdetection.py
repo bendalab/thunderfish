@@ -156,7 +156,7 @@ def test_thresholds():
     std_th = pd.std_threshold(data, th_factor=1.0)
     prc_th = pd.percentile_threshold(data, th_factor=1.0, percentile=16.0)
     assert_almost_equal(std_th, 1.0, 1, 'std_threshold %g esimate failed' % std_th)
-    assert_almost_equal(prc_th, 2.0, 1, 'percentile_threshold %g esimate failed' % prc_th)
+    assert_true(np.abs(prc_th-2.0) < 0.1, 'percentile_threshold %g esimate failed' % prc_th)
     time = np.arange(0.0, 10.0, 0.01)
     data = np.sin(2.0*np.pi*21.7*time)
     mm_th = pd.minmax_threshold(data, th_factor=1.0)
