@@ -162,7 +162,7 @@ def test_thresholds():
     mm_th = pd.minmax_threshold(data, th_factor=1.0)
     assert_almost_equal(mm_th, 2.0, 2, 'minmax_threshold %g esimate failed' % mm_th)
     prc_th = pd.percentile_threshold(data, th_factor=1.0, percentile=0.1)
-    assert_almost_equal(prc_th, 2.0, 1, 'percentile_threshold %g esimate failed' % prc_th)
+    assert_true(np.abs(prc_th-2.0) < 0.1, 'percentile_threshold %g esimate failed' % prc_th)
 
 
 def test_trim():
