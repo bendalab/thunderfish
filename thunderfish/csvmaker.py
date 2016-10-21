@@ -5,22 +5,23 @@ from .harmonicgroups import harmonic_groups
 from .powerspectrum import multi_resolution_psd
 
 
-def extract_main_freqs_and_db(data, samplerate):
-    psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
+def extract_main_freqs_and_db(filtered_grouplist):
 
-    # find the fishes in the different powerspectra and extract fund. frequency and power
-    fishlists = []
-    for i in range(len(psd_data)):
-        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0])[0]
-        fishlists.append(fishlist)
+    if len(filtered_grouplist) == 0:
+        fundamentals = np.array([])
+    elif hasattr(filtered_grouplist[0][0][0], '__len__'):
+        fundamentals = []
+        pows = []
+        for groups in filtered_grouplist:
+            fundamentals.append([harmonic_group[0][0] for harmonic_group in groups])
+            pows.append([harmonic_group[0][1] for harmonic_group in groups])
+    else:
+        fundamentals = [harmonic_group[0][0] for harmonic_group in filtered_grouplist]
+        pows = [harmonic_group[0][1] for harmonic_group in filtered_grouplist]
 
-    filtered_fishlist = consistent_fishes(fishlists)
-    tmp = np.vstack([filtered_fishlist[e][0] for e in range(len(filtered_fishlist))])
-
-    freqs = tmp[:, 0]
-    pows = tmp[:, 1]
     decibel = 10.0 * np.log10(pows)  # calculate decibel using 1 as P0
-    return freqs, decibel
+
+    return np.array(fundamentals), decibel
 
 
 def write_csv(filename, csv_header, data_matrix):
@@ -57,12 +58,22 @@ if __name__ == '__main__':
                 data += generate_alepto(fishfreqs[idx], samplerate, duration)
 
     elif len(sys.argv) == 2:  # user specified a file to be analized
-        filename = os.path.splitext(os.path.basename(sys.argv[1]))[0] + '.csv'
+        filename = os.path.splitext(os.path.basename(sys.argv[1]))[0] + '-eodfs.csv'
         data, samplerate, unit = load_data(sys.argv[1], 0)
 
-    fund_freqs, db = extract_main_freqs_and_db(data, samplerate)
+    # calculate powerspectrums with different frequency resolutions
+    psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
+
+    # find the fishes in the different powerspectra and extract fund. frequency and power
+    fishlists = []
+    for i in range(len(psd_data)):
+        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0])[0]
+        fishlists.append(fishlist)
+    filtered_fishlist = consistent_fishes(fishlists)
+
+    fund_freqs, db = extract_main_freqs_and_db(filtered_fishlist)
     csv_matrix = np.column_stack((fund_freqs, db))
     header = ['fundamental frequency', 'dB']
     write_csv(filename, header, csv_matrix)
-
+    
     print('\ncsv_file created in %s' % filename)

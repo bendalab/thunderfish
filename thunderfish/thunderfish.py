@@ -230,6 +230,13 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     # filter the different fishlists to get a fishlist with consistent fishes:
     if not pulse_fish_width and not pulse_fish_psd:
         filtered_fishlist = consistent_fishes(fishlists)
+
+        # Create csv file with main EODF and corresponding power in dB of detected fishes
+        freqs, db = extract_main_freqs_and_db(filtered_fishlist)
+        csv_name = os.path.splitext(os.path.basename(sys.argv[1]))[0] + '-eodfs.csv'
+        csv_matrix = np.column_stack((freqs, db))
+        header = ['fundamental frequency', 'dB']
+        write_csv(csv_name, header, csv_matrix)
     else:
         filtered_fishlist = []
 
@@ -250,13 +257,6 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     output_plot(audio_file, pulse_fish_width, pulse_fish_psd, len(eod_times), median_IPI, inter_eod_intervals, raw_data,
                 samplerate, idx0, idx1, filtered_fishlist, period, time, mean_eod, std_eod, unit, psd_data, output_folder)
 
-    # Create csv file with main EODF and corresponding power in dB of detected fishes
-    freqs, db = extract_main_freqs_and_db(data, samplerate)
-    csv_name = os.path.splitext(os.path.basename(sys.argv[1]))[0] + '.csv'
-    csv_matrix = np.column_stack((freqs, db))
-    header = ['fundamental frequency', 'dB']
-    write_csv(csv_name, header, csv_matrix)
-
 
 def main():
     # command line arguments:
@@ -275,4 +275,4 @@ def main():
     
 if __name__ == '__main__':
     main()
-    
+    print('\nThanks for using thunderfish! Your files have been analyzed!')
