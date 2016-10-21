@@ -7,6 +7,23 @@ from .powerspectrum import multi_resolution_psd
 
 def extract_main_freqs_and_db(filtered_grouplist):
 
+    """
+    Extract the fundamental frequencies from lists of harmonic groups.
+
+    Parameters
+    ----------
+    filtered_grouplist: list of 2-D arrays or list of list of 2-D arrays
+            Lists of harmonic groups as returned by extract_fundamentals() and
+            harmonic_groups() with the element [0][0] of the
+            harmonic groups being the fundamental frequency.
+
+    Returns
+    -------
+    fundamentals (array). Array with fundamental frequencies of fishes in filtered_grouplist.
+    decibel (array). Array with the corresponding power of the fundamental frequencies in dB.
+
+    """
+
     if len(filtered_grouplist) == 0:
         fundamentals = np.array([])
     elif hasattr(filtered_grouplist[0][0][0], '__len__'):
@@ -20,11 +37,24 @@ def extract_main_freqs_and_db(filtered_grouplist):
         pows = [harmonic_group[0][1] for harmonic_group in filtered_grouplist]
 
     decibel = 10.0 * np.log10(pows)  # calculate decibel using 1 as P0
+    fundamentals = np.array(fundamentals)
 
-    return np.array(fundamentals), decibel
+    return fundamentals, decibel
 
 
 def write_csv(filename, csv_header, data_matrix):
+
+    """
+
+    Parameters
+    ----------
+    filename: string
+        String with the path and filename of the csv-file to be produced.
+    csv_header: list or array with strings
+        List with the names of the columns of the csv-matrix.
+    data_matrix: n-d array
+        Matrix with the data to be converted into a csv-file.
+    """
 
     # Check if header has same row length as data_matrix
     if len(csv_header) != len(data_matrix[0]):
