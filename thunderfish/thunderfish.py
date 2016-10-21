@@ -236,13 +236,16 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
         # write csv file with main EODF and corresponding power in dB of detected fishes:
         csv_matrix = fundamental_freqs_and_db(filtered_fishlist)
         csv_name = outfilename + '-eodfs.csv'
-        header = ['fundamental frequency', 'dB']
+        header = ['fundamental frequency (Hz)', 'power (dB)']
         write_csv(csv_name, header, csv_matrix)
     else:
         filtered_fishlist = []
 
     # analyse eod waveform:
     mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6)
+    header = ['time (ms)', 'mean', 'std']
+    write_csv(outfilename + '-eodwaveform.csv', header, np.column_stack((1000.0*time, mean_eod, std_eod)))
+
     period = np.mean(np.diff(eod_times))
 
     # analyze inter-peak intervals:
