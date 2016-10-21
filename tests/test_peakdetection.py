@@ -167,10 +167,10 @@ def test_thresholds():
 
 def test_trim():
     # generate peak and trough indices (same length, peaks first):
-    pt_indices = np.random.randint(5, 1000, size=40)
-    pt_indices.sort()
-    peak_indices = pt_indices[0::2]
-    trough_indices = pt_indices[1::2]
+    pt_indices = np.unique(np.random.randint(5, 1000, size=40))
+    n = (len(pt_indices)//2)*2
+    peak_indices = pt_indices[0:n:2]
+    trough_indices = pt_indices[1:n:2]
 
     # peak first, same length:
     p_inx, t_inx = pd.trim(peak_indices, trough_indices)
@@ -203,10 +203,10 @@ def test_trim():
     
 def test_trim_to_peak():
     # generate peak and trough indices (same length, peaks first):
-    pt_indices = np.random.randint(5, 1000, size=40)
-    pt_indices.sort()
-    peak_indices = pt_indices[0::2]
-    trough_indices = pt_indices[1::2]
+    pt_indices = np.unique(np.random.randint(5, 1000, size=40))
+    n = (len(pt_indices)//2)*2
+    peak_indices = pt_indices[0:n:2]
+    trough_indices = pt_indices[1:n:2]
 
     # peak first, same length:
     p_inx, t_inx = pd.trim_to_peak(peak_indices, trough_indices)
@@ -239,9 +239,10 @@ def test_trim_to_peak():
 
 def test_trim_closest():
     # generate peak and trough indices (same length, peaks first):
-    pt_indices = np.random.randint(5, 100, size=40) * 10
-    pt_indices.sort()
-    peak_indices = pt_indices
+    pt_indices = np.unique(np.random.randint(5, 1000, size=40))
+    n = (len(pt_indices)//2)*2
+    peak_indices = pt_indices[0:n:2]
+    trough_indices = pt_indices[1:n:2]
 
     trough_indices = peak_indices - np.random.randint(1, 5, size=len(peak_indices))
     p_inx, t_inx = pd.trim_closest(peak_indices, trough_indices)
