@@ -4,7 +4,7 @@ thunderfish
 some words of documentation...
 
 Run it from the thunderfish development directory as:
-python -m thunderfish.thunderfish audiofile.wav
+python3 -m thunderfish.thunderfish audiofile.wav
 """
 
 import numpy as np
@@ -27,8 +27,7 @@ from .csvmaker import write_csv
 
 def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_IPI, inter_eod_intervals,
                 raw_data, samplerate, idx0, idx1, filtered_fishlist, period, time_eod, mean_eod, std_eod, unit,
-                psd_data, output_folder, saveplot=False):
-
+                psd_data, output_folder, saveplot=False, show_plot=False):
     """
     Creates an output plot for the Thunderfish program.
 
@@ -40,7 +39,7 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     Parameters
     ----------
     audio_file: string
-        Path to and name of audiofile.
+        Basename of audio_file.
     pulse_fish_width: bool
         True if a pulse-fish has been detected by analysis of the EODs.
     pulse_fish_psd: bool
@@ -77,6 +76,8 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
         Path indicating where output-files will be saved.
     saveplot: bool
         If True, the plot will be saved in output_folder.
+    show_plot: bool
+        If True (and saveplot=False) it will show the plot without saving.
     """
 
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
@@ -88,13 +89,12 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     ax6 = fig.add_axes([0.575, 0.2, 0.4, 0.3])  # inter EOD histogram
 
     # plot title
-    filepath, filename = os.path.split(audio_file)
     if not pulse_fish_width and not pulse_fish_psd:
-        ax1.text(-0.05, .75, '%s --- Recoding of a wavefish.' % filename, fontsize=20, color='grey')
+        ax1.text(-0.05, .75, '%s --- Recoding of a wavefish.' % audio_file, fontsize=20, color='grey')
     elif pulse_fish_width and pulse_fish_psd:
-        ax1.text(-0.02, .65, '%s --- Recoding of a pulsefish.' % filename, fontsize=20, color='grey')
+        ax1.text(-0.02, .65, '%s --- Recoding of a pulsefish.' % audio_file, fontsize=20, color='grey')
     else:
-        ax1.text(-0.05, .75, '%s --- Recoding of wave- and pulsefish.' % filename, fontsize=20, color='grey')
+        ax1.text(-0.05, .75, '%s --- Recoding of wave- and pulsefish.' % audio_file, fontsize=20, color='grey')
     ax1.text(0.83, .8, 'Thunderfish by Bendalab', fontsize=16, color='grey')
     ax1.set_frame_on(False)
     ax1.get_xaxis().set_visible(False)
@@ -130,7 +130,7 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
     if pulse_fish_width and pulse_fish_psd:
         ax4.set_title('Mean EOD (%.0f EODs; Pulse frequency: ~%.1f Hz)' % (EOD_count, dom_freq), fontsize= 14)
-        ax4.set_xlim([-100 * period, 100 * period])
+        # No xlim needed for pulse-fish, because of defined start and end in eod_waveform function of eodanalysis.py
     else:
         ax4.set_title('Mean EOD (%.0f EODs; Dominant frequency: %.1f Hz)' % (EOD_count, dom_freq), fontsize= 14)
         ax4.set_xlim([-600 * period, 600 * period])
@@ -183,7 +183,7 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     if max(inter_eod_intervals) - min(inter_eod_intervals) < 1.:
         ax6.set_xlim([median_IPI-0.5, median_IPI+0.5])
     # ax6.set_xlim([0, 20])
-    ax6.legend(loc= 'upper right', frameon=False)
+    ax6.legend(loc='upper right', frameon=False)
 
     # cosmetics
     for ax in [ax2, ax3, ax4, ax6]:
@@ -192,18 +192,28 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
 
-    # plt.tight_layout()
+    # save figure as pdf
+    if saveplot:
+        plt.savefig(os.path.join(output_folder, audio_file + '.pdf'))
+        plt.close()
+    elif show_plot:
+        plt.show()
+        plt.close()
+    else:
+        plt.close()
+
+
+def thunderfish(audio_file, channel=0, save_csvs=False, save_plot=False, output_folder='.', verbosearg=0):
+
+    # check if output_folder ends with a '/'
+    if output_folder[-1] != '/':
+        output_folder += '/'
 
     # create output folder
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
+    if save_csvs or save_plot:
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
 
-    # save figure as pdf
-    plt.savefig(os.path.join(output_folder, filename.split('.')[-2] + '.pdf'))
-    plt.close()
-
-
-def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     # configuration options:
     cfg = ConfigFile()
     cfg.add_section('Debugging:')
@@ -216,8 +226,7 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     verbose = cfg.value('verboseLevel')
     if verbosearg is not None:
         verbose = verbosearg
-
-    outfilename = os.path.splitext(os.path.basename(sys.argv[1]))[0]
+    outfilename = os.path.splitext(os.path.basename(audio_file))[0]
 
     # load data:
     raw_data, samplerate, unit = load_data(audio_file, channel)
@@ -255,14 +264,14 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     # filter the different fishlists to get a fishlist with consistent fishes:
     if not pulse_fish_width and not pulse_fish_psd:
         filtered_fishlist = consistent_fishes(fishlists)
-
-        # write csv file with main EODF and corresponding power in dB of detected fishes:
-        csv_matrix = fundamental_freqs_and_db(filtered_fishlist)
-        csv_name = outfilename + '-eodfs.csv'
-        header = ['fundamental frequency (Hz)', 'power (dB)']
-        write_csv(csv_name, header, csv_matrix)
         # analyse eod waveform:
         mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6)
+        if save_csvs:
+            # write csv file with main EODF and corresponding power in dB of detected fishes:
+            csv_matrix = fundamental_freqs_and_db(filtered_fishlist)
+            csv_name = output_folder + outfilename + '-wavefish_eodfs.csv'
+            header = ['fundamental frequency (Hz)', 'power (dB)']
+            write_csv(csv_name, header, csv_matrix)
     else:
         filtered_fishlist = []
         # analyse eod waveform:
@@ -270,9 +279,11 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
         mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6, start=-mean_eod_window,
                                                           stop=mean_eod_window)
 
-
-    header = ['time (ms)', 'mean', 'std']
-    write_csv(outfilename + '-eodwaveform.csv', header, np.column_stack((1000.0*time, mean_eod, std_eod)))
+    # write mean EOD
+    if save_csvs:
+        header = ['time (ms)', 'mean', 'std']
+        write_csv(output_folder + outfilename + '-mean_waveform.csv', header,
+                  np.column_stack((1000.0*time, mean_eod, std_eod)))
 
     period = np.mean(np.diff(eod_times))
 
@@ -284,9 +295,10 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     median_IPI = np.median(inter_eod_intervals)
     std_IPI = np.std(inter_eod_intervals, ddof=1)
 
-    output_plot(audio_file, pulse_fish_width, pulse_fish_psd, len(eod_times), median_IPI,
+    output_plot(outfilename, pulse_fish_width, pulse_fish_psd, len(eod_times), median_IPI,
                 inter_eod_intervals, raw_data, samplerate, idx0, idx1, filtered_fishlist,
-                period, time, mean_eod, std_eod, unit, psd_data, output_folder)
+                period, time, mean_eod, std_eod, unit, psd_data, output_folder,
+                saveplot=save_plot, show_plot=not save_csvs)
 
 
 def main():
@@ -295,13 +307,15 @@ def main():
         description='Analyse short EOD recordings of weakly electric fish.',
         epilog='by bendalab (2015-2016)')
     parser.add_argument('--version', action='version', version='1.0')
-    parser.add_argument('-v', action='count', dest='verbose')
+    parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
     parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
+    parser.add_argument('-p', dest='save_plot', action='store_true', help='use this argument to save output plot')
+    parser.add_argument('-s', dest='save_csvs', action='store_true', help='use this argument to save csv-analysis-files')
     parser.add_argument('-o', dest='output_folder', default=".", type=str, help="path where to store results and figures")
     args = parser.parse_args()
 
-    thunderfish(args.file, args.channel, args.output_folder, verbosearg=args.verbose)
+    thunderfish(args.file, args.channel, args.save_csvs, args.save_plot, args.output_folder, verbosearg=args.verbose)
 
     
 if __name__ == '__main__':
