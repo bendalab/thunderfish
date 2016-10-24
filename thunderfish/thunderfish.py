@@ -27,7 +27,8 @@ from .csvmaker import write_csv
 
 def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_IPI, inter_eod_intervals,
                 raw_data, samplerate, idx0, idx1, filtered_fishlist, period, time_eod, mean_eod, std_eod, unit,
-                psd_data, output_folder):
+                psd_data, output_folder, saveplot=False):
+
     """
     Creates an output plot for the Thunderfish program.
 
@@ -35,25 +36,47 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     where the detected fish are marked, a mean EOD plot, a histogram of the inter EOD interval and further information
     about the recording that is analysed.
 
-    :param axs: (list) list of axis fo plots.
-    :param audio_file: (string) path to and name of audiofile.
-    :param pulse_fish_width: (bool) True if a pulsefish has been detected by analysis of the EODs.
-    :param pulse_fish_psd: (bool) True if a pulsefish has been detected by analysis of the PSD.
-    :param EOD_count: (int) number of detected EODs.
-    :param mean_IPI: (float) mean inter EOD interval.
-    :param inter_eod_intervals: (array) time difference from one to another detected EOD.
-    :param std_IPI: (float) standard deviation of the inter EOD interval.
-    :param raw_data: (array) dataset.
-    :param samplerate: (float) samplerate of the dataset.
-    :param idx0: (float) index of the beginning of the analysis window in the dataset.
-    :param idx1: (float) index of the end of the analysis window in the dataset.
-    :param filtered_fishlist: (array) frequency and power of fundamental frequency/harmonics of several fish.
-    :param period: (float) mean EOD time difference.
-    :param time_eod: (array) time for the mean EOD plot.
-    :param mean_eod: (array) mean array of EODs
-    :param std_eod: (array) standard deviation array of EODs
-    :param unit: (string) unit of the trace and the mean EOD
-    :param psd_data: (array) power spectrum of the analysed data for different frequency resolutions.
+
+    Parameters
+    ----------
+    audio_file: string
+        Path to and name of audiofile.
+    pulse_fish_width: bool
+        True if a pulse-fish has been detected by analysis of the EODs.
+    pulse_fish_psd: bool
+        True if a pulse-fish has been detected by analysis of the PSD.
+    EOD_count: int
+        Number of detected EODs.
+    median_IPI: float
+        Mean inter EOD interval.
+    inter_eod_intervals: array
+        Time difference from one to another detected EOD.
+    raw_data: array
+        Dataset.
+    samplerate: float
+        Sampling-rate of the dataset.
+    idx0: float
+        Index of the beginning of the analysis window in the dataset.
+    idx1: float
+        Index of the end of the analysis window in the dataset.
+    filtered_fishlist: array
+        Frequency and power of fundamental frequency/harmonics of several fish.
+    period: float
+        Mean EOD time difference.
+    time_eod: array
+        Time for the mean EOD plot.
+    mean_eod: array
+        Mean trace for the mean EOD plot.
+    std_eod: array
+        Standard deviation for the mean EOD plot.
+    unit: string
+        Unit of the trace and the mean EOD.
+    psd_data: array
+        Power spectrum of the analysed data for different frequency resolutions.
+    output_folder: string
+        Path indicating where output-files will be saved.
+    saveplot: bool
+        If True, the plot will be saved in output_folder.
     """
 
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
@@ -238,11 +261,16 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
         csv_name = outfilename + '-eodfs.csv'
         header = ['fundamental frequency (Hz)', 'power (dB)']
         write_csv(csv_name, header, csv_matrix)
+        # analyse eod waveform:
+        mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6)
     else:
         filtered_fishlist = []
+        # analyse eod waveform:
+        mean_eod_window = 0.002
+        mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6, start=-mean_eod_window,
+                                                          stop=mean_eod_window)
 
-    # analyse eod waveform:
-    mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6)
+
     header = ['time (ms)', 'mean', 'std']
     write_csv(outfilename + '-eodwaveform.csv', header, np.column_stack((1000.0*time, mean_eod, std_eod)))
 
@@ -256,8 +284,9 @@ def thunderfish(audio_file, channel=0, output_folder='', verbosearg=0):
     median_IPI = np.median(inter_eod_intervals)
     std_IPI = np.std(inter_eod_intervals, ddof=1)
 
-    output_plot(audio_file, pulse_fish_width, pulse_fish_psd, len(eod_times), median_IPI, inter_eod_intervals, raw_data,
-                samplerate, idx0, idx1, filtered_fishlist, period, time, mean_eod, std_eod, unit, psd_data, output_folder)
+    output_plot(audio_file, pulse_fish_width, pulse_fish_psd, len(eod_times), median_IPI,
+                inter_eod_intervals, raw_data, samplerate, idx0, idx1, filtered_fishlist,
+                period, time, mean_eod, std_eod, unit, psd_data, output_folder)
 
 
 def main():
