@@ -10,7 +10,6 @@ python3 -m thunderfish.thunderfish audiofile.wav
 import numpy as np
 import argparse
 import os
-import sys
 import matplotlib.pyplot as plt
 from .configfile import ConfigFile
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
@@ -108,15 +107,17 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     ax2.plot(time[idx0:idx1], raw_data[idx0:idx1], color='red', label='analysis\nwindow')
     ax2.set_xlabel('Time [sec]')
     ax2.set_ylabel('Amplitude [a.u.]')
-    ax2.legend(bbox_to_anchor=(1.15, 1),frameon=False)
+    ax2.legend(bbox_to_anchor=(1.15, 1), frameon=False)
     ############
 
     # plot psd
     try:
-        dom_freq = filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][0]
+        dom_freq = \
+        filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][
+            0]
         fish_count = len(filtered_fishlist)
     except IndexError:
-        dom_freq = 1./ period
+        dom_freq = 1. / period
         fish_count = 1
 
     plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax3, fs=12)
@@ -129,10 +130,10 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     # plot mean EOD
     eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
     if pulse_fish_width and pulse_fish_psd:
-        ax4.set_title('Mean EOD (%.0f EODs; Pulse frequency: ~%.1f Hz)' % (EOD_count, dom_freq), fontsize= 14)
+        ax4.set_title('Mean EOD (%.0f EODs; Pulse frequency: ~%.1f Hz)' % (EOD_count, dom_freq), fontsize=14)
         # No xlim needed for pulse-fish, because of defined start and end in eod_waveform function of eodanalysis.py
     else:
-        ax4.set_title('Mean EOD (%.0f EODs; Dominant frequency: %.1f Hz)' % (EOD_count, dom_freq), fontsize= 14)
+        ax4.set_title('Mean EOD (%.0f EODs; Dominant frequency: %.1f Hz)' % (EOD_count, dom_freq), fontsize=14)
         ax4.set_xlim([-600 * period, 600 * period])
     ###############
 
@@ -170,18 +171,18 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
     # plot inter EOD interval histogram
     tmp_period = 1000. / dom_freq
     tmp_period = tmp_period - tmp_period % 0.05
-    inter_eod_intervals *= 1000. # transform sec in msec
-    median_IPI *= 1000. # tranform sec in msec
+    inter_eod_intervals *= 1000.  # transform sec in msec
+    median_IPI *= 1000.  # tranform sec in msec
     n, edges = np.histogram(inter_eod_intervals, bins=np.arange(tmp_period - 5., tmp_period + 5., 0.05))
 
-    ax6.bar(edges[:-1], n, edges[1]-edges[0]-0.001)
-    ax6.plot([median_IPI, median_IPI], [0, max(n)], '--', color= 'red', lw=2, label='median %.2f ms' % median_IPI)
+    ax6.bar(edges[:-1], n, edges[1] - edges[0] - 0.001)
+    ax6.plot([median_IPI, median_IPI], [0, max(n)], '--', color='red', lw=2, label='median %.2f ms' % median_IPI)
     ax6.set_xlabel('inter EOD interval [ms]')
     ax6.set_ylabel('n')
     ax6.set_title('Inter EOD interval histogram', fontsize=14)
 
     if max(inter_eod_intervals) - min(inter_eod_intervals) < 1.:
-        ax6.set_xlim([median_IPI-0.5, median_IPI+0.5])
+        ax6.set_xlim([median_IPI - 0.5, median_IPI + 0.5])
     # ax6.set_xlim([0, 20])
     ax6.legend(loc='upper right', frameon=False)
 
@@ -204,7 +205,6 @@ def output_plot(audio_file, pulse_fish_width, pulse_fish_psd, EOD_count, median_
 
 
 def thunderfish(audio_file, channel=0, save_csvs=False, save_plot=False, output_folder='.', verbosearg=0):
-
     # check if output_folder ends with a '/'
     if output_folder[-1] != '/':
         output_folder += '/'
@@ -238,7 +238,7 @@ def thunderfish(audio_file, channel=0, save_csvs=False, save_plot=False, output_
     min_clip, max_clip = clip_amplitudes(raw_data, int(clip_win_size * samplerate))
     try:
         idx0, idx1, clipped = best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
-                                                    max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
+                                                  max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
     except UserWarning as e:
         print(str(e))
         return
@@ -283,13 +283,13 @@ def thunderfish(audio_file, channel=0, save_csvs=False, save_plot=False, output_
     if save_csvs:
         header = ['time (ms)', 'mean', 'std']
         write_csv(output_folder + outfilename + '-mean_waveform.csv', header,
-                  np.column_stack((1000.0*time, mean_eod, std_eod)))
+                  np.column_stack((1000.0 * time, mean_eod, std_eod)))
 
     period = np.mean(np.diff(eod_times))
 
     # analyze inter-peak intervals:
-    inter_peak_intervals = np.diff(eod_times) # in sec
-    lower_perc, upper_perc = np.percentile(inter_peak_intervals, [1, 100-1])
+    inter_peak_intervals = np.diff(eod_times)  # in sec
+    lower_perc, upper_perc = np.percentile(inter_peak_intervals, [1, 100 - 1])
     inter_eod_intervals = inter_peak_intervals[(inter_peak_intervals > lower_perc) &
                                                (inter_peak_intervals < upper_perc)]
     median_IPI = np.median(inter_eod_intervals)
@@ -311,13 +311,15 @@ def main():
     parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='use this argument to save output plot')
-    parser.add_argument('-s', dest='save_csvs', action='store_true', help='use this argument to save csv-analysis-files')
-    parser.add_argument('-o', dest='output_folder', default=".", type=str, help="path where to store results and figures")
+    parser.add_argument('-s', dest='save_csvs', action='store_true',
+                        help='use this argument to save csv-analysis-files')
+    parser.add_argument('-o', dest='output_folder', default=".", type=str,
+                        help="path where to store results and figures")
     args = parser.parse_args()
 
     thunderfish(args.file, args.channel, args.save_csvs, args.save_plot, args.output_folder, verbosearg=args.verbose)
 
-    
+
 if __name__ == '__main__':
     main()
     print('\nThanks for using thunderfish! Your files have been analyzed!')
