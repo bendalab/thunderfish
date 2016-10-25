@@ -156,21 +156,21 @@ def test_thresholds():
     std_th = pd.std_threshold(data, th_factor=1.0)
     prc_th = pd.percentile_threshold(data, th_factor=1.0, percentile=16.0)
     assert_almost_equal(std_th, 1.0, 1, 'std_threshold %g esimate failed' % std_th)
-    assert_almost_equal(prc_th, 2.0, 1, 'percentile_threshold %g esimate failed' % prc_th)
+    assert_true(np.abs(prc_th-2.0) < 0.1, 'percentile_threshold %g esimate failed' % prc_th)
     time = np.arange(0.0, 10.0, 0.01)
     data = np.sin(2.0*np.pi*21.7*time)
     mm_th = pd.minmax_threshold(data, th_factor=1.0)
     assert_almost_equal(mm_th, 2.0, 2, 'minmax_threshold %g esimate failed' % mm_th)
     prc_th = pd.percentile_threshold(data, th_factor=1.0, percentile=0.1)
-    assert_almost_equal(prc_th, 2.0, 1, 'percentile_threshold %g esimate failed' % prc_th)
+    assert_true(np.abs(prc_th-2.0) < 0.1, 'percentile_threshold %g esimate failed' % prc_th)
 
 
 def test_trim():
     # generate peak and trough indices (same length, peaks first):
-    pt_indices = np.random.randint(5, 1000, size=40)
-    pt_indices.sort()
-    peak_indices = pt_indices[0::2]
-    trough_indices = pt_indices[1::2]
+    pt_indices = np.unique(np.random.randint(5, 1000, size=40))
+    n = (len(pt_indices)//2)*2
+    peak_indices = pt_indices[0:n:2]
+    trough_indices = pt_indices[1:n:2]
 
     # peak first, same length:
     p_inx, t_inx = pd.trim(peak_indices, trough_indices)
@@ -203,10 +203,10 @@ def test_trim():
     
 def test_trim_to_peak():
     # generate peak and trough indices (same length, peaks first):
-    pt_indices = np.random.randint(5, 1000, size=40)
-    pt_indices.sort()
-    peak_indices = pt_indices[0::2]
-    trough_indices = pt_indices[1::2]
+    pt_indices = np.unique(np.random.randint(5, 1000, size=40))
+    n = (len(pt_indices)//2)*2
+    peak_indices = pt_indices[0:n:2]
+    trough_indices = pt_indices[1:n:2]
 
     # peak first, same length:
     p_inx, t_inx = pd.trim_to_peak(peak_indices, trough_indices)
@@ -239,9 +239,10 @@ def test_trim_to_peak():
 
 def test_trim_closest():
     # generate peak and trough indices (same length, peaks first):
-    pt_indices = np.random.randint(5, 100, size=40) * 10
-    pt_indices.sort()
-    peak_indices = pt_indices
+    pt_indices = np.unique(np.random.randint(5, 1000, size=40))
+    n = (len(pt_indices)//2)*2
+    peak_indices = pt_indices[0:n:2]
+    trough_indices = pt_indices[1:n:2]
 
     trough_indices = peak_indices - np.random.randint(1, 5, size=len(peak_indices))
     p_inx, t_inx = pd.trim_closest(peak_indices, trough_indices)
