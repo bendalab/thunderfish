@@ -422,7 +422,7 @@ def fishgrid_files(filepathes, channel, grid_sizes):
         bn = os.path.basename(path)
         if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
             raise ValueError('invalid name %s of fishgrid traces file', path)
-        
+
     return filepathes
 
         
@@ -453,6 +453,8 @@ def load_fishgrid(filepathes, channel=-1, verbose=0):
         the unit of the data
     """
 
+    if type(filepathes) is not list:
+        filepathes = [filepathes]
     grids = fishgrid_grids(filepathes[0])
     grid_sizes = [r*c for r,c in grids]
     filepathes = fishgrid_files(filepathes, channel, grid_sizes)
@@ -673,7 +675,7 @@ class DataLoader(aio.AudioLoader):
         self.samplerate = None
         self.unit = ""
         for path in filepathes:
-            file = open(path, 'r')
+            file = open(path, 'rb')
             self.sf.append(file)
             if verbose > 0:
                 print( 'opened %s' % path)
@@ -766,6 +768,8 @@ class DataLoader(aio.AudioLoader):
         if self.sf is not None:
             self._close_fishgrid()
 
+        if type(filepathes) is not list:
+            filepathes = [filepathes]
         grids = fishgrid_grids(filepathes[0])
         grid_sizes = [r*c for r,c in grids]
         filepathes = fishgrid_files(filepathes, channel, grid_sizes)
@@ -787,7 +791,7 @@ class DataLoader(aio.AudioLoader):
             self.samplerate = fishgrid_samplerate(filepathes[0])
         self.unit = "V"
         for path in filepathes:
-            file = open(path, 'r')
+            file = open(path, 'rb')
             self.sf.append(file)
             if verbose > 0:
                 print( 'opened %s' % path)
