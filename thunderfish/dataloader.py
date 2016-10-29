@@ -12,7 +12,7 @@ def relacs_samplerate_unit(filename, channel=0):
     ----------
     filename: string
         path to a relacs data directory, a file in a relacs data directory,
-        or a relacs trace-*.raw files.
+        or a relacs trace-*.raw file.
     channel: int
         the channel (trace) number, if filename does not specify a trace-*.raw file.
 
@@ -242,6 +242,256 @@ def load_relacs(filepathes, channel=-1, verbose=0):
         return data[:, 0], samplerate, unit
 
 
+def fishgrid_samplerate(filename):
+    """
+    Opens the corresponding fishgrid.cfg file and reads the sampling rate.
+
+    Parameters
+    ----------
+    filename: string
+        path to a fishgrid data directory, a file in a fishgrid data directory,
+        or a fishgrid traces-*.raw file.
+
+    Returns
+    -------
+    samplerate: float
+        the sampling rate in Hertz
+
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If the fishgrid.cfg file does not exist.
+    ValueError:
+        fishgrid.cfg file does not contain sampling rate.
+    """
+
+    # check for fishgrid data directory:
+    fishgrid_dir = filename
+    if not os.path.isdir(filename):
+        fishgrid_dir = os.path.dirname(filename)
+
+    # retreive sampling rate from fishgrid.cfg file:
+    samplerate = None
+    fishgrid_file = os.path.join(fishgrid_dir, 'fishgrid.cfg')
+    with open(fishgrid_file, 'r') as sf:
+        for line in sf:
+            if "AISampleRate" in line:
+                value = line.split(':')[1].strip()
+                samplerate = float(value.replace('kHz',''))*1000.0
+
+    if samplerate is not None:
+        return samplerate
+    raise ValueError('could not retrieve sampling rate from ' + fishgrid_file)
+
+
+def fishgrid_grids(filename):
+    """
+    Opens the corresponding fishgrid.cfg file and reads grid sizes.
+
+    Parameters
+    ----------
+    filename: string
+        path to a fishgrid data directory, a file in a fishgrid data directory,
+        or a fishgrid traces-*.raw file.
+
+    Returns
+    -------
+    grids: list of tuples of ints
+        For each grid the number of rows and columns.
+
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If the fishgrid.cfg file does not exist.
+    """
+
+    # check for fishgrid data directory:
+    fishgrid_dir = filename
+    if not os.path.isdir(filename):
+        fishgrid_dir = os.path.dirname(filename)
+
+    # retreive grids from fishgrid.cfg file:
+    grids = []
+    rows = None
+    cols = None
+    fishgrid_file = os.path.join(fishgrid_dir, 'fishgrid.cfg')
+    with open(fishgrid_file, 'r') as sf:
+        for line in sf:
+            if "Grid" in line:
+                if rows is not None and cols is not None:
+                    grids.append((rows, cols))
+                rows = None
+                cols = None
+            elif "Columns" in line:
+                cols = int(line.split(':')[1].strip())
+            elif "Rows" in line:
+                rows = int(line.split(':')[1].strip())
+        if rows is not None and cols is not None:
+            grids.append((rows, cols))
+    return grids
+
+
+def check_fishgrid(filepathes):
+    """
+    Check whether filepathes are fishgrid files.
+
+    Parameters
+    ----------
+    filepathes: string or list of strings
+        path to a fishgrid data directory, a file in a fishgrid data directory,
+        or fishgrid traces-*.raw files.
+
+    Returns
+    -------
+    If filepathes is a single path, then returns True if it is a file in
+    a valid fishgrid data directory.
+    If filepathes are more than one path, then returns True if filepathes
+    are trace-*.raw files in a valid fishgrid data directory.
+    """
+
+    path = filepathes
+    # filepathes must be traces-*.raw:
+    if type(filepathes) is list:
+        if len(filepathes) > 1:
+            for file in filepathes:
+                bn = os.path.basename(file)
+                if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
+                    return False
+        path = filepathes[0]
+    # relacs data directory:
+    fishgrid_dir = path
+    if not os.path.isdir(path):
+        fishgrid_dir = os.path.dirname(path)
+    # check for a valid relacs data directory:
+    if (os.path.isfile(os.path.join(fishgrid_dir, 'fishgrid.cfg')) and
+        os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw'))):
+        return True
+    else:
+        return False
+
+    
+def fishgrid_files(filepathes, channel, grid_sizes):
+    """
+    Expand file pathes for fishgrid data.
+    """
+
+    # find grids:
+    grid = -1
+    if channel >= 0:
+        grid = -1
+        gs = 0
+        for g, s in enumerate(grid_sizes):
+            gs += s
+            if channel < gs:
+                grid = g
+                break
+        if grid < 0:
+            raise IndexError("invalid channel")
+            
+    if type(filepathes) is not list:
+        filepathes = [filepathes]
+    if len(filepathes) == 1:
+        if os.path.isdir(filepathes[0]):
+            if grid < 0:
+                fishgrid_dir = filepathes[0]
+                filepathes = []
+                for k in range(10000):
+                    file = os.path.join(fishgrid_dir, 'traces-grid%d.raw'%(k+1))
+                    if os.path.isfile(file):
+                        filepathes.append(file)
+                    else:
+                        break
+            else:
+                filepathes[0] = os.path.join(filepathes[0], 'traces-grid%d.raw' % (grid+1))
+        else:
+            bn = os.path.basename(filepathes[0])
+            if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
+                if grid < 0:
+                    fishgrid_dir = os.path.dirname(filepathes[0])
+                    filepathes = []
+                    for k in range(10000):
+                        file = os.path.join(fishgrid_dir, 'traces-grid%d.raw'%(k+1))
+                        if os.path.isfile(file):
+                            filepathes.append(file)
+                        else:
+                            break
+                else:
+                    filepathes[0] = os.path.join(os.path.dirname(filepathes[0]),
+                                                 'traces-grid%d.raw' % (grid+1))
+    for path in filepathes:
+        bn = os.path.basename(path)
+        if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
+            raise ValueError('invalid name %s of fishgrid traces file', path)
+        
+    return filepathes
+
+        
+def load_fishgrid(filepathes, channel=-1, verbose=0):
+    """
+    Load traces (traces-grid*.raw files) that have been recorded with fishgrid.
+
+    Parameters
+    ----------
+    filepathes: string or list of string
+        path to a fishgrid data directory, a fishgrid.cfg file,
+        or fidhgrid traces-grid*.raw files.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        if > 0 show detailed error/warning messages
+
+    Returns
+    -------
+    data: 1-D or 2-D array
+        If channel is negative or more than one trace file is specified,
+        a 2-D array with data of all channels is returned,
+        where first dimension is time and second dimension is channel number.
+        Otherwise an 1-D array with the data of that channel is returned.
+    samplerate: float
+        the sampling rate of the data in Hz
+    unit: string
+        the unit of the data
+
+    Raises
+    ------
+    ValueError:
+        - Invalid name for fishgrid traces-grid*.raw file.
+    """
+
+    grids = fishgrid_grids(filepathes[0])
+    grid_sizes = [r*c for r,c in grids]
+    filepathes = fishgrid_files(filepathes, channel, grid_sizes)
+                
+    # load traces-grid*.raw files:
+    nchannels = 0
+    for path in filepathes:
+        g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
+        nchannels += grid_sizes[g]
+    data = None
+    nrows = 0
+    n = 0
+    samplerate = None
+    if len(filepathes) > 0:
+        samplerate = fishgrid_samplerate(path)
+    unit = "V"
+    grids = []
+    for path in filepathes:
+        g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
+        grids.append(g)
+        x = np.fromfile(path, np.float32).reshape((-1, grid_sizes[g]))
+        if verbose > 0:
+            print( 'loaded %s' % path)
+        if data is None:
+            nrows = len(x)-2
+            data = np.empty((nrows, nchannels))
+        data[:,n:n+grid_sizes[g]] = x[:nrows,:]
+    if channel < 0:
+        return data, samplerate, unit
+    else:
+        # XXX find the right column!
+        return data[:, channel], samplerate, unit
+
+
 def check_pickle(filepath):
     """
     Check if filepath is a pickle file.
@@ -336,6 +586,8 @@ def load_data(filepath, channel=-1, verbose=0):
     # load data:
     if check_relacs(filepath):
         return load_relacs(filepath, channel, verbose)
+    elif check_fishgrid(filepath):
+        return load_fishgrid(filepath, channel, verbose)
     else:
         if type(filepath) is list:
             filepath = filepath[0]
@@ -553,6 +805,8 @@ if __name__ == "__main__":
         plt.xlabel('Time [s]')
         plt.ylabel('[' + unit + ']')
         plt.show()
+
+    exit()
 
     print('')
     print("try DataLoader for channel=%d:" % channel)
