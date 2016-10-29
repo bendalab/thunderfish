@@ -451,45 +451,45 @@ def load_fishgrid(filepathes, channel=-1, verbose=0):
         the sampling rate of the data in Hz
     unit: string
         the unit of the data
-
-    Raises
-    ------
-    ValueError:
-        - Invalid name for fishgrid traces-grid*.raw file.
     """
 
     grids = fishgrid_grids(filepathes[0])
     grid_sizes = [r*c for r,c in grids]
     filepathes = fishgrid_files(filepathes, channel, grid_sizes)
+    if len(filepathes) > 1:
+        channel = -1
                 
     # load traces-grid*.raw files:
+    grid_channels = []
     nchannels = 0
     for path in filepathes:
         g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
+        grid_channels.append(grid_sizes[g])
         nchannels += grid_sizes[g]
     data = None
     nrows = 0
     n = 0
     samplerate = None
     if len(filepathes) > 0:
-        samplerate = fishgrid_samplerate(path)
+        samplerate = fishgrid_samplerate(filepathes[0])
     unit = "V"
-    grids = []
-    for path in filepathes:
-        g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
-        grids.append(g)
-        x = np.fromfile(path, np.float32).reshape((-1, grid_sizes[g]))
+    for path, channels in zip(filepathes, grid_channels):
+        x = np.fromfile(path, np.float32).reshape((-1, channels))
         if verbose > 0:
             print( 'loaded %s' % path)
         if data is None:
             nrows = len(x)-2
             data = np.empty((nrows, nchannels))
-        data[:,n:n+grid_sizes[g]] = x[:nrows,:]
+        data[:,n:n+channels] = x[:nrows,:]
     if channel < 0:
         return data, samplerate, unit
     else:
-        # XXX find the right column!
-        return data[:, channel], samplerate, unit
+        gs = 0
+        for s in grid_sizes:
+            if channel < gs + s:
+                break
+            gs += s
+        return data[:, channel-gs], samplerate, unit
 
 
 def check_pickle(filepath):
@@ -679,15 +679,15 @@ class DataLoader(aio.AudioLoader):
                 print( 'opened %s' % path)
             # file size:
             file.seek(0, os.SEEK_END)
-            bytes = file.tell()
+            frames = file.tell()//4
             if self.frames is None:
-                self.frames = bytes//4
-            elif self.frames != bytes//4:
-                diff = self.frames - bytes//4
+                self.frames = frames
+            elif self.frames != frames:
+                diff = self.frames - frames
                 if diff > 1 or diff < -2:
                     raise ValueError('number of frames of traces differ')
                 elif diff >= 0:
-                    self.frames = bytes//4
+                    self.frames = frames
             file.seek(0)
             # retrieve sampling rate and unit:
             rate, us = relacs_samplerate_unit(path)
@@ -740,6 +740,119 @@ class DataLoader(aio.AudioLoader):
                 print('  loaded %d frames from %d up to %d'
                       % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
         
+    
+    # fishgrid interface:        
+    def open_fishgrid(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
+        """
+        Open fishgrid data files for reading.
+
+        Parameters
+        ----------
+        filepathes: string or list of string
+            Path to a fishgrid data directory, a fishgrid.cfg file,
+            or fishgrid trace-*.raw files.
+        channel: int
+            The data channel. If negative all channels are selected.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If > 0 show detailed error/warning messages.
+        """
+
+        self.verbose = verbose
+        
+        if self.sf is not None:
+            self._close_fishgrid()
+
+        grids = fishgrid_grids(filepathes[0])
+        grid_sizes = [r*c for r,c in grids]
+        filepathes = fishgrid_files(filepathes, channel, grid_sizes)
+        if len(filepathes) > 1:
+            channel = -1
+
+        # open grid files:
+        self.channels = 0
+        for path in filepathes:
+            g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
+            self.channels += grid_sizes[g]
+        self.sf = []
+        self.grid_channels = []
+        self.grid_offs = []
+        offs = 0
+        self.frames = None
+        self.samplerate = None
+        if len(filepathes) > 0:
+            self.samplerate = fishgrid_samplerate(filepathes[0])
+        self.unit = "V"
+        for path in filepathes:
+            file = open(path, 'r')
+            self.sf.append(file)
+            if verbose > 0:
+                print( 'opened %s' % path)
+            # grid channels:
+            g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
+            self.grid_channels.append(grid_sizes[g])
+            self.grid_offs.append(offs)
+            offs += grid_sizes[g]
+            # file size:
+            file.seek(0, os.SEEK_END)
+            frames = file.tell()//4//grid_sizes[g]
+            if self.frames is None:
+                self.frames = frames
+            elif self.frames != frames:
+                diff = self.frames - frames
+                if diff > 1 or diff < -2:
+                    raise ValueError('number of frames of traces differ')
+                elif diff >= 0:
+                    self.frames = frames
+            file.seek(0)
+        gs = 0
+        for s in grid_sizes:
+            if channel < gs + s:
+                break
+            gs += s
+        self.channel = channel - gs
+        self.shape = (self.frames, self.channels)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self._init_buffer()
+        self.offset = 0
+        self.close = self._close_fishgrid
+        self._update_buffer = self._update_buffer_fishgrid
+        return self
+
+    def _close_fishgrid(self):
+        """
+        Close the fishgrid data files.
+        """
+        
+        if self.sf is not None:
+            for file in self.sf:
+                file.close()
+            self.sf = None
+
+    def _update_buffer_fishgrid(self, start, stop):
+        """
+        Make sure that the buffer contains the data between
+        start and stop using the wave module.
+        """
+        if start < self.offset or stop > self.offset + self.buffer.shape[0]:
+            offset, size = self._read_indices(start, stop)
+            r_offset, r_size = self._recycle_buffer(offset, size)
+            # read buffer:
+            for file, gchannels, goffset in zip(self.sf, self.grid_channels, self.grid_offs):
+                file.seek(r_offset*4*gchannels)
+                buffer = file.read(r_size*4*gchannels)
+                self.buffer[r_offset-offset:r_offset+r_size-offset, goffset:goffset+gchannels] = np.fromstring(buffer, dtype=np.float32).reshape((-1, gchannels))
+            self.offset = offset
+            if self.verbose > 1:
+                print('  read %6d frames at %d' % (r_size, r_offset))
+            if self.verbose > 0:
+                print('  loaded %d frames from %d up to %d'
+                      % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
+        
 
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
         """
@@ -754,6 +867,8 @@ class DataLoader(aio.AudioLoader):
         """
         if check_relacs(filepath):
             self.open_relacs(filepath, channel, buffersize, backsize, verbose)
+        elif check_fishgrid(filepath):
+            self.open_fishgrid(filepath, channel, buffersize, backsize, verbose)
         else:
             if type(filepath) is list:
                 filepath = filepath[0]
@@ -805,8 +920,6 @@ if __name__ == "__main__":
         plt.xlabel('Time [s]')
         plt.ylabel('[' + unit + ']')
         plt.show()
-
-    exit()
 
     print('')
     print("try DataLoader for channel=%d:" % channel)
