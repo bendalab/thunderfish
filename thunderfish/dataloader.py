@@ -131,7 +131,7 @@ def check_relacs(filepathes):
         return False
     
 
-def load_relacs(filepathes, verbose=0):
+def load_relacs(filepathes, channel=-1, verbose=0):
     """
     Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).
 
@@ -140,11 +140,18 @@ def load_relacs(filepathes, verbose=0):
     filepathes: string or list of string
         path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
         or relacs trace-*.raw files.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        if > 0 show detailed error/warning messages
 
     Returns
     -------
-    data: 2-D array
-        the data, first dimension time, second dimension channel
+    data: 1-D or 2-D array
+        If channel is negative or more than one trace file is specified,
+        a 2-D array with data of all channels is returned,
+        where first dimension is time and second dimension is channel number.
+        Otherwise an 1-D array with the data of that channel is returned.
     samplerate: float
         the sampling rate of the data in Hz
     unit: string
@@ -163,12 +170,21 @@ def load_relacs(filepathes, verbose=0):
         filepathes = [filepathes]
     if len(filepathes) == 1:
         if os.path.isdir(filepathes[0]):
-            filepathes = glob.glob(os.path.join(filepathes[0], 'trace-*.raw'))
+            if channel < 0:
+                filepathes = glob.glob(os.path.join(filepathes[0], 'trace-*.raw'))
+            else:
+                filepathes[0] = os.path.join(filepathes[0], 'trace-%d.raw' % channel)
         else:
             bn = os.path.basename(filepathes[0])
             if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
-                filepathes = glob.glob(os.path.join(os.path.dirname(filepathes[0]),
-                                                    'trace-*.raw'))
+                if channel < 0:
+                    filepathes = glob.glob(os.path.join(os.path.dirname(filepathes[0]),
+                                                        'trace-*.raw'))
+                else:
+                    filepathes[0] = os.path.join(os.path.dirname(filepathes[0]),
+                                                 'trace-%d.raw' % channel)
+    else:
+        channel = -1
                 
     # load trace*.raw files:
     nchannels = len(filepathes)
@@ -197,7 +213,10 @@ def load_relacs(filepathes, verbose=0):
             unit = us
         elif us != unit:
             raise ValueError('unit of traces differ')
-    return data, samplerate, unit
+    if channel < 0:
+        return data, samplerate, unit
+    else:
+        return data[:, 0], samplerate, unit
 
 
 def check_pickle(filepath):
@@ -212,7 +231,7 @@ def check_pickle(filepath):
     return ext == 'pkl'
 
 
-def load_pickle(filename):
+def load_pickle(filename, channel=-1, verbose=0):
     """
     Load Joerg's pickle files.
 
@@ -221,12 +240,16 @@ def load_pickle(filename):
     filepath: string
         The full path and name of the file to load.
     channel: int
-        The single channel to be returned
+        The data channel. If negative all channels are selected.
+    verbose: int
+        if > 0 show detailed error/warning messages
 
     Returns
     -------
-    data: array
-        The data trace as a 1-D numpy array.
+    data: 1-D or 2-D array
+        If channel is negative, a 2-D array with data of all channels is returned,
+        where first dimension is time and second dimension is channel number.
+        Otherwise an 1-D array with the data of that channel is returned.
     samplerate: float
         The sampling rate of the data in Hz.
     unit: string
@@ -235,12 +258,19 @@ def load_pickle(filename):
     import pickle
     with open(filename, 'rb') as f:
         data = pickle.load(f)
+    if verbose > 0:
+        print( 'loaded %s' % filename)
     time = data['time_trace']
     samplerate = 1000.0 / (time[1] - time[0])
+    if channel >= 0:
+        if channel >= data.shape[1]:
+            raise IndexError('Invaliid channel number %d requested' % channel)
+        data = data[:, channel]
+        return data['raw_data'][:, channel], samplerate, 'mV'
     return data['raw_data'], samplerate, 'mV'
 
 
-def load_data(filepath, verbose=0):
+def load_data(filepath, channel=-1, verbose=0):
     """
     Call this function to load time-series data from a file.
 
@@ -249,13 +279,17 @@ def load_data(filepath, verbose=0):
     filepath: string or list of strings
         The full path and name of the file to load. For some file
         formats several files can be provided.
+    channel: int
+        The data channel. If negative all channels are selected.
     verbose: int
-        if >0 show detailed error/warning messages
+        if > 0 show detailed error/warning messages
 
     Returns
     -------
-    data: 2-D array
-        the data, first dimension time, second dimension channel
+    data: 1-D or 2-D array
+        If channel is negative, a 2-D array with data of all channels is returned,
+        where first dimension is time and second dimension is channel number.
+        Otherwise an 1-D array with the data of that channel is returned.
     samplerate: float
         the sampling rate of the data in Hz
     unit: string
@@ -264,7 +298,9 @@ def load_data(filepath, verbose=0):
     Raise
     -----
     ValueError:
-        input argument filepath is empty string or list.
+        Input argument filepath is empty string or list.
+    IndexError:
+        Invalid channel requested.
     """
     
     # check values:
@@ -276,20 +312,27 @@ def load_data(filepath, verbose=0):
 
     # load data:
     if check_relacs(filepath):
-        return load_relacs(filepath, verbose)
-    elif check_pickle(filepath):
-        return load_pickle(filepath, channel)
+        return load_relacs(filepath, channel, verbose)
     else:
-        data, samplerate = aio.load_audio(filepath, verbose)
-        unit = 'a.u.'
-    return data, samplerate, unit
+        if type(filepath) is list:
+            filepath = filepath[0]
+        if check_pickle(filepath):
+            return load_pickle(filepath, channel, verbose)
+        else:
+            data, samplerate = aio.load_audio(filepath, verbose)
+            if channel >= 0:
+                if channel >= data.shape[1]:
+                    raise IndexError('Invaliid channel number %d requested' % channel)
+                data = data[:, channel]
+            unit = 'a.u.'
+        return data, samplerate, unit
 
 
 class DataLoader(aio.AudioLoader):
     """
     """
 
-    def __init__(self, filepath=None, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
+    def __init__(self, filepath=None, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
         """Initialize the DataLoader instance. If filepath is not None open the file.
 
         Args:
@@ -300,20 +343,24 @@ class DataLoader(aio.AudioLoader):
           verbose (int): if >0 show detailed error/warning messages
         """
         super(DataLoader, self).__init__(filepath, buffersize, backsize, verbose)
-        if channel < 0:
-            channel = 0
         if channel > self.channels:
             channel = self.channels - 1
         self.channel = channel
         self.unit = 'a.u.'
 
     def __getitem__(self, key):
-        if type(key) is tuple:
-            raise IndexError
-        return super(DataLoader, self).__getitem__((key, self.channel))
+        if channel >= 0:
+            if type(key) is tuple:
+                raise IndexError
+            return super(DataLoader, self).__getitem__((key, self.channel))
+        else:
+            return super(DataLoader, self).__getitem__(key)
  
     def __next__(self):
-        return super(DataLoader, self).__next__()[self.channel]
+        if channel >= 0:
+            return super(DataLoader, self).__next__()[self.channel]
+        else:
+            return super(DataLoader, self).__next__()
  
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
         """Open data file for reading.
@@ -325,14 +372,17 @@ class DataLoader(aio.AudioLoader):
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
           verbose (int): if >0 show detailed error/warning messages
         """
+        if type(filepath) is list:
+            filepath = filepath[0]
         super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
-        if channel < 0:
-            channel = 0
         if channel > self.channels:
             channel = self.channels - 1
         self.channel = channel
+        if self.channel >= 0:
+            self.shape = (self.frames,)
+        else:
+            self.shape = (self.frames, self.channels)
         self.unit = 'a.u.'
-        self.shape = (self.frames,)
         return self
 
 
@@ -342,47 +392,65 @@ if __name__ == "__main__":
     import sys
     import matplotlib.pyplot as plt
     
-    data, rate, unit = load_relacs(sys.argv[1:])
-    print(data, rate, unit)
-    exit()
-
-
     print("Checking dataloader module ...")
     print('')
     print('Usage:')
-    print('  python dataloader.py [-p] <datafile>')
+    print('  python dataloader.py [-p] [-c <channel>] <datafile> <channel>')
     print('  -p: plot data')
     print('')
 
-    filepath = sys.argv[-1]
-    channel = 0
+    n = 1
     plot = False
-    if len(sys.argv) > 1 and sys.argv[1] == '-p':
+    if len(sys.argv) > n and sys.argv[n] == '-p':
         plot = True
-
+        n += 1
+    channel = 0
+    if len(sys.argv) > n+1 and sys.argv[n] == '-c':
+        channel = int(sys.argv[n+1])
+        n += 2
+    filepath = sys.argv[n:]
+        
     print("try load_data:")
-    data, rate, unit = load_data(filepath, channel, 2)
+    data, samplerate, unit = load_data(filepath, channel, 2)
     if plot:
-        plt.plot(np.arange(len(data)) / rate, data)
+        if channel < 0:
+            time = np.arange(len(data)) / samplerate
+            for c in range(data.shape[1]):
+                plt.plot(time, data[:, c])
+        else:
+            plt.plot(np.arange(len(data)) / samplerate, data)
+        plt.xlabel('Time [s]')
+        plt.ylabel('[' + unit + ']')
         plt.show()
 
     print('')
-    print("try DataLoader:")
-    with open_data(filepath, 0, 2.0, 1.0, 1) as data:
+    print("try DataLoader for channel=%d:" % channel)
+    with open_data(filepath, channel, 2.0, 1.0, 1) as data:
         print('samplerate: %g' % data.samplerate)
         print('frames: %d %d' % (len(data), data.shape[0]))
         nframes = int(1.0 * data.samplerate)
         # forward:
         for i in range(0, len(data), nframes):
             print('forward %d-%d' % (i, i + nframes))
-            x = data[i:i + nframes]
+            if channel < 0:
+                x = data[i:i + nframes, 0]
+            else:
+                x = data[i:i + nframes]
             if plot:
-                plt.plot((i + np.arange(len(x))) / rate, x)
+                plt.plot((i + np.arange(len(x))) / data.samplerate, x)
+                plt.xlabel('Time [s]')
+                plt.ylabel('[' + data.unit + ']')
                 plt.show()
         # and backwards:
         for i in reversed(range(0, len(data), nframes)):
             print('backward %d-%d' % (i, i + nframes))
-            x = data[i:i + nframes]
+            if channel < 0:
+                x = data[i:i + nframes, 0]
+            else:
+                x = data[i:i + nframes]
             if plot:
-                plt.plot((i + np.arange(len(x))) / rate, x)
+                plt.plot((i + np.arange(len(x))) / data.samplerate, x)
+                plt.xlabel('Time [s]')
+                plt.ylabel('[' + data.unit + ']')
                 plt.show()
+                

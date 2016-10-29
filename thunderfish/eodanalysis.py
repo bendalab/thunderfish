@@ -93,8 +93,8 @@ if __name__ == '__main__':
         data = generate_biphasic_pulses(80.0, samplerate, 4.0, noise_std=0.05)
         unit = 'mV'
     else:
-        rawdata, samplerate, unit = load_data(sys.argv[1])
-        data, _ = best_window(rawdata[:, 0], samplerate)
+        rawdata, samplerate, unit = load_data(sys.argv[1], 0)
+        data, _ = best_window(rawdata, samplerate)
 
     # analyse EOD:
     mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate,

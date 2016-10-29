@@ -493,8 +493,7 @@ if __name__ == "__main__":
         from .dataloader import load_data
 
         print("load %s ..." % sys.argv[1])
-        data, rate, unit = load_data(sys.argv[1])
-        data = data[:, 0]
+        data, rate, unit = load_data(sys.argv[1], 0)
         title = sys.argv[1]
 
     # determine clipping amplitudes:

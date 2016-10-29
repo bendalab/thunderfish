@@ -279,8 +279,8 @@ if __name__ == "__main__":
 
         file_path = sys.argv[1]
         print("loading %s ...\n" % file_path)
-        rawdata, rate, unit = load_data(sys.argv[1])
-        data, _ = best_window(rawdata[:, 0], rate)
+        rawdata, rate, unit = load_data(sys.argv[1], 0)
+        data, _ = best_window(rawdata, rate)
 
     # draw figure with subplots:
     fig1, ax1 = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
