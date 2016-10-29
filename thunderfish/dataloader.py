@@ -1,4 +1,4 @@
-import os.path
+import os
 import glob
 import numpy as np
 import audioio as aio
@@ -129,8 +129,51 @@ def check_relacs(filepathes):
         return True
     else:
         return False
-    
 
+    
+def relacs_files(filepathes, channel):
+    """
+    Expand file pathes for relacs data.
+    """
+    
+    if type(filepathes) is not list:
+        filepathes = [filepathes]
+    if len(filepathes) == 1:
+        if os.path.isdir(filepathes[0]):
+            if channel < 0:
+                relacs_dir = filepathes[0]
+                filepathes = []
+                for k in range(10000):
+                    file = os.path.join(relacs_dir, 'trace-%d.raw'%(k+1))
+                    if os.path.isfile(file):
+                        filepathes.append(file)
+                    else:
+                        break
+            else:
+                filepathes[0] = os.path.join(filepathes[0], 'trace-%d.raw' % (channel+1))
+        else:
+            bn = os.path.basename(filepathes[0])
+            if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
+                if channel < 0:
+                    relacs_dir = os.path.dirname(filepathes[0])
+                    filepathes = []
+                    for k in range(10000):
+                        file = os.path.join(relacs_dir, 'trace-%d.raw'%(k+1))
+                        if os.path.isfile(file):
+                            filepathes.append(file)
+                        else:
+                            break
+                else:
+                    filepathes[0] = os.path.join(os.path.dirname(filepathes[0]),
+                                                 'trace-%d.raw' % (channel+1))
+    for path in filepathes:
+        bn = os.path.basename(path)
+        if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
+            raise ValueError('invalid name %s of relacs trace file', path)
+        
+    return filepathes
+
+        
 def load_relacs(filepathes, channel=-1, verbose=0):
     """
     Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).
@@ -164,26 +207,9 @@ def load_relacs(filepathes, channel=-1, verbose=0):
         - Sampling rates of traces differ.
         - Unit of traces differ.
     """
-    
-    # fix pathes:
-    if type(filepathes) is not list:
-        filepathes = [filepathes]
-    if len(filepathes) == 1:
-        if os.path.isdir(filepathes[0]):
-            if channel < 0:
-                filepathes = glob.glob(os.path.join(filepathes[0], 'trace-*.raw'))
-            else:
-                filepathes[0] = os.path.join(filepathes[0], 'trace-%d.raw' % channel)
-        else:
-            bn = os.path.basename(filepathes[0])
-            if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
-                if channel < 0:
-                    filepathes = glob.glob(os.path.join(os.path.dirname(filepathes[0]),
-                                                        'trace-*.raw'))
-                else:
-                    filepathes[0] = os.path.join(os.path.dirname(filepathes[0]),
-                                                 'trace-%d.raw' % channel)
-    else:
+
+    filepathes = relacs_files(filepathes, channel)
+    if len(filepathes) > 1:
         channel = -1
                 
     # load trace*.raw files:
@@ -193,9 +219,6 @@ def load_relacs(filepathes, channel=-1, verbose=0):
     samplerate = None
     unit = ""
     for n, path in enumerate(filepathes):
-        bn = os.path.basename(path)
-        if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
-            raise ValueError('invalid name %s of relacs trace file', path)
         x = np.fromfile(path, np.float32)
         if verbose > 0:
             print( 'loaded %s' % path)
@@ -264,7 +287,7 @@ def load_pickle(filename, channel=-1, verbose=0):
     samplerate = 1000.0 / (time[1] - time[0])
     if channel >= 0:
         if channel >= data.shape[1]:
-            raise IndexError('Invaliid channel number %d requested' % channel)
+            raise IndexError('invalid channel number %d requested' % channel)
         data = data[:, channel]
         return data['raw_data'][:, channel], samplerate, 'mV'
     return data['raw_data'], samplerate, 'mV'
@@ -322,7 +345,7 @@ def load_data(filepath, channel=-1, verbose=0):
             data, samplerate = aio.load_audio(filepath, verbose)
             if channel >= 0:
                 if channel >= data.shape[1]:
-                    raise IndexError('Invaliid channel number %d requested' % channel)
+                    raise IndexError('invalid channel number %d requested' % channel)
                 data = data[:, channel]
             unit = 'a.u.'
         return data, samplerate, unit
@@ -342,14 +365,12 @@ class DataLoader(aio.AudioLoader):
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
           verbose (int): if >0 show detailed error/warning messages
         """
-        super(DataLoader, self).__init__(filepath, buffersize, backsize, verbose)
-        if channel > self.channels:
-            channel = self.channels - 1
-        self.channel = channel
-        self.unit = 'a.u.'
+        super(DataLoader, self).__init__(None, buffersize, backsize, verbose)
+        if filepath is not None:
+            self.open(filepath, channel, buffersize, backsize, verbose)
 
     def __getitem__(self, key):
-        if channel >= 0:
+        if self.channel >= 0:
             if type(key) is tuple:
                 raise IndexError
             return super(DataLoader, self).__getitem__((key, self.channel))
@@ -357,32 +378,142 @@ class DataLoader(aio.AudioLoader):
             return super(DataLoader, self).__getitem__(key)
  
     def __next__(self):
-        if channel >= 0:
+        if self.channel >= 0:
             return super(DataLoader, self).__next__()[self.channel]
         else:
             return super(DataLoader, self).__next__()
- 
+
+    
+    # relacs interface:        
+    def open_relacs(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
+        """
+        Open relacs data files for reading.
+
+        Parameters
+        ----------
+        filepathes: string or list of string
+            Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
+            or relacs trace-*.raw files.
+        channel: int
+            The data channel. If negative all channels are selected.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If > 0 show detailed error/warning messages.
+        """
+
+        self.verbose = verbose
+        
+        if self.sf is not None:
+            self._close_relacs()
+
+        filepathes = relacs_files(filepathes, channel)
+        if len(filepathes) > 1:
+            channel = -1
+        else:
+            channel = 0
+
+        # open trace files:
+        self.sf = []
+        self.frames = None
+        self.samplerate = None
+        self.unit = ""
+        for path in filepathes:
+            file = open(path, 'r')
+            self.sf.append(file)
+            if verbose > 0:
+                print( 'opened %s' % path)
+            # file size:
+            file.seek(0, os.SEEK_END)
+            bytes = file.tell()
+            if self.frames is None:
+                self.frames = bytes//4
+            elif self.frames != bytes//4:
+                diff = self.frames - bytes//4
+                if diff > 1 or diff < -2:
+                    raise ValueError('number of frames of traces differ')
+                elif diff >= 0:
+                    self.frames = bytes//4
+            file.seek(0)
+            # retrieve sampling rate and unit:
+            rate, us = relacs_samplerate_unit(path)
+            if self.samplerate is None:
+                self.samplerate = rate
+            elif rate != self.samplerate:
+                raise ValueError('sampling rates of traces differ')
+            if len(self.unit) == 0:
+                self.unit = us
+            elif us != self.unit:
+                raise ValueError('unit of traces differ')
+        self.channels = len(self.sf)
+        self.channel = channel
+        self.shape = (self.frames, self.channels)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self._init_buffer()
+        self.offset = 0
+        self.close = self._close_relacs
+        self._update_buffer = self._update_buffer_relacs
+        return self
+
+    def _close_relacs(self):
+        """
+        Close the relacs data files.
+        """
+        
+        if self.sf is not None:
+            for file in self.sf:
+                file.close()
+            self.sf = None
+
+    def _update_buffer_relacs(self, start, stop):
+        """
+        Make sure that the buffer contains the data between
+        start and stop using the wave module.
+        """
+        if start < self.offset or stop > self.offset + self.buffer.shape[0]:
+            offset, size = self._read_indices(start, stop)
+            r_offset, r_size = self._recycle_buffer(offset, size)
+            # read buffer:
+            for i, file in enumerate(self.sf):
+                file.seek(r_offset*4)
+                buffer = file.read(r_size*4)
+                self.buffer[r_offset-offset:r_offset+r_size-offset, i] = np.fromstring(buffer, dtype=np.float32)
+            self.offset = offset
+            if self.verbose > 1:
+                print('  read %6d frames at %d' % (r_size, r_offset))
+            if self.verbose > 0:
+                print('  loaded %d frames from %d up to %d'
+                      % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
+        
+
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
-        """Open data file for reading.
+        """
+        Open data file for reading.
 
         Args:
           filepath (string): name of the file
           channel (int): the single channel to be worked on
           buffersize (float): size of internal buffer in seconds
           backsize (float): part of the buffer to be loaded before the requested start index in seconds
-          verbose (int): if >0 show detailed error/warning messages
+          verbose (int): if > 0 show detailed error/warning messages
         """
-        if type(filepath) is list:
-            filepath = filepath[0]
-        super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
-        if channel > self.channels:
-            channel = self.channels - 1
-        self.channel = channel
-        if self.channel >= 0:
-            self.shape = (self.frames,)
+        if check_relacs(filepath):
+            self.open_relacs(filepath, channel, buffersize, backsize, verbose)
         else:
-            self.shape = (self.frames, self.channels)
-        self.unit = 'a.u.'
+            if type(filepath) is list:
+                filepath = filepath[0]
+            super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
+            if channel > self.channels:
+                raise IndexError('invalid channel number %d' % channel)
+            self.channel = channel
+            if self.channel >= 0:
+                self.shape = (self.frames,)
+            else:
+                self.shape = (self.frames, self.channels)
+            self.unit = 'a.u.'
         return self
 
 
