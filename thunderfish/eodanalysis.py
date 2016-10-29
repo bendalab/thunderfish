@@ -94,7 +94,7 @@ if __name__ == '__main__':
         unit = 'mV'
     else:
         rawdata, samplerate, unit = load_data(sys.argv[1])
-        data, _ = best_window(rawdata, samplerate)
+        data, _ = best_window(rawdata[:, 0], samplerate)
 
     # analyse EOD:
     mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate,

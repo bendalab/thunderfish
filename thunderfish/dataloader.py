@@ -212,49 +212,50 @@ def check_pickle(filepath):
     return ext == 'pkl'
 
 
-def load_pickle(filename, channel=0):
+def load_pickle(filename):
     """
     Load Joerg's pickle files.
 
-    Args:
-        filepath (string): the full path and name of the file to load
-        channel (int): the single channel to be returned
+    Parameters
+    ----------
+    filepath: string
+        The full path and name of the file to load.
+    channel: int
+        The single channel to be returned
 
-    Returns:
-        data (array): the data trace as a 1-D numpy array
-        freq (float): the sampling rate of the data in Hz
-        unit (string): the unit of the data
+    Returns
+    -------
+    data: array
+        The data trace as a 1-D numpy array.
+    samplerate: float
+        The sampling rate of the data in Hz.
+    unit: string
+        The unit of the data.
     """
     import pickle
     with open(filename, 'rb') as f:
         data = pickle.load(f)
     time = data['time_trace']
-    freq = 1000.0 / (time[1] - time[0])
-    tracen = data['raw_data'].shape[1]
-    if channel >= tracen:
-        print('number of channels in file %s is %d, but requested channel %d' %
-              (filename, tracen, channel))
-        channel = tracen - 1
-    return data['raw_data'][:, channel], freq, 'mV'
+    samplerate = 1000.0 / (time[1] - time[0])
+    return data['raw_data'], samplerate, 'mV'
 
 
-def load_data(filepath, channel=0, verbose=0):
+def load_data(filepath, verbose=0):
     """
-    Call this function to load a single trace of data from a file.
+    Call this function to load time-series data from a file.
 
     Parameters
     ----------
-    filepath: string
-        the full path and name of the file to load
-    channel: int
-        the single channel to be returned
+    filepath: string or list of strings
+        The full path and name of the file to load. For some file
+        formats several files can be provided.
     verbose: int
         if >0 show detailed error/warning messages
 
     Returns
     -------
-    data: array
-        the data trace as a 1-D numpy array
+    data: 2-D array
+        the data, first dimension time, second dimension channel
     samplerate: float
         the sampling rate of the data in Hz
     unit: string
@@ -275,26 +276,11 @@ def load_data(filepath, channel=0, verbose=0):
 
     # load data:
     if check_relacs(filepath):
-        data, samplerate, unit = load_relacs(filepath, verbose)
-        channels = data.shape[1]
-        if channel >= channels:
-            print('number of channels in file %s is %d, but requested channel %d' %
-                  (filepath, channels, channel))
-            channel = channels - 1
-        if channel >= 0:
-            data = data[:, channel]
-        return data, samplerate, unit
+        return load_relacs(filepath, verbose)
     elif check_pickle(filepath):
-        data, samplerate, unit = load_pickle(filepath, channel)
+        return load_pickle(filepath, channel)
     else:
         data, samplerate = aio.load_audio(filepath, verbose)
-        channels = data.shape[1]
-        if channel >= channels:
-            print('number of channels in file %s is %d, but requested channel %d' %
-                  (filepath, channels, channel))
-            channel = channels - 1
-        if channel >= 0:
-            data = data[:, channel]
         unit = 'a.u.'
     return data, samplerate, unit
 
