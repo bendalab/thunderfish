@@ -1,3 +1,18 @@
+"""
+Functions for loading time-series data from files.
+
+data, samplingrate, unit = load_data('data/file.wav')
+Loads the whole time-series from the file as a numpy array of floats.
+
+data = DataLoader('data/file.wav', 0, 60.0)
+or
+with open_data('data/file.wav', 0, 60.0) as data:
+Create an DataLoader object that loads chuncks of 60 seconds long data on demand.
+data can be used like a read-only numpy array of floats.
+
+relacs_metadata() reads key-value pairs from relacs *.dat file headers.
+"""
+
 import os
 import glob
 import numpy as np
@@ -6,7 +21,7 @@ import audioio as aio
 
 def relacs_samplerate_unit(filename, channel=0):
     """
-    Opens the corresponding stimuli.dat file and reads the sampling rate and unit.
+    Retrieve sampling rate and unit from a relacs stimuli.dat file.
 
     Parameters
     ----------
@@ -71,7 +86,7 @@ def relacs_metadata(filename):
     Returns
     -------
     data: dict
-        dictionary with the content of the file header.
+        dictionary with the key-value pairs of the file header.
         
     Raises
     ------
@@ -104,7 +119,7 @@ def check_relacs(filepathes):
 
     Returns
     -------
-    If filepathes is a single path, then returns True if it is a file in
+    If filepathes is a single path, then returns True if it is a or is a file in
     a valid relacs data directory.
     If filepathes are more than one path, then returns True if filepathes
     are trace-*.raw files in a valid relacs data directory.
@@ -133,7 +148,24 @@ def check_relacs(filepathes):
     
 def relacs_files(filepathes, channel):
     """
-    Expand file pathes for relacs data.
+    Expand file pathes for relacs data to appropriate trace*.raw file names.
+
+    Parameters
+    ----------
+    filepathes: string or list of strings
+        path to a relacs data directory, a file in a relacs data directory,
+        or relacs trace-*.raw files.
+    channel: int
+        The data channel. If negative all channels are selected.
+        
+    Returns
+    -------
+    filepathes: list of strings
+        List of relacs trace*.raw files.
+
+    Raises
+    ------
+    ValueError: 'invalid name of relacs trace file
     """
     
     if type(filepathes) is not list:
@@ -180,8 +212,8 @@ def load_relacs(filepathes, channel=-1, verbose=0):
 
     Parameters
     ----------
-    filepathes: string or list of string
-        path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
+    filepathes: string or list of strings
+        path to a relacs data directory, a file in a relacs data directory,
         or relacs trace-*.raw files.
     channel: int
         The data channel. If negative all channels are selected.
@@ -244,7 +276,7 @@ def load_relacs(filepathes, channel=-1, verbose=0):
 
 def fishgrid_samplerate(filename):
     """
-    Opens the corresponding fishgrid.cfg file and reads the sampling rate.
+    Retrieve the sampling rate from a fishgrid.cfg file.
 
     Parameters
     ----------
@@ -286,7 +318,7 @@ def fishgrid_samplerate(filename):
 
 def fishgrid_grids(filename):
     """
-    Opens the corresponding fishgrid.cfg file and reads grid sizes.
+    Retrieve grid sizes from a fishgrid.cfg file.
 
     Parameters
     ----------
@@ -333,7 +365,7 @@ def fishgrid_grids(filename):
 
 def check_fishgrid(filepathes):
     """
-    Check whether filepathes are fishgrid files.
+    Check whether filepathes are valid fishgrid files (https://github.com/bendalab/fishgrid).
 
     Parameters
     ----------
@@ -372,7 +404,26 @@ def check_fishgrid(filepathes):
     
 def fishgrid_files(filepathes, channel, grid_sizes):
     """
-    Expand file pathes for fishgrid data.
+    Expand file pathes for fishgrid data to appropriate traces-*.raw file names.
+
+    Parameters
+    ----------
+    filepathes: string or list of strings
+        path to a fishgrid data directory, a file in a fishgrid data directory,
+        or fishgrid traces-*.raw files.
+    channel: int
+        The data channel. If negative all channels are selected.
+    grid_sizes: list of int
+        The number of channels of each grid.
+        
+    Returns
+    -------
+    filepathes: list of strings
+        List of fishgrid traces-*.raw files.
+
+    Raises
+    ------
+    IndexError: invalid channel.
     """
 
     # find grids:
@@ -428,7 +479,7 @@ def fishgrid_files(filepathes, channel, grid_sizes):
         
 def load_fishgrid(filepathes, channel=-1, verbose=0):
     """
-    Load traces (traces-grid*.raw files) that have been recorded with fishgrid.
+    Load traces (traces-grid*.raw files) that have been recorded with fishgrid (https://github.com/bendalab/fishgrid).
 
     Parameters
     ----------
@@ -547,7 +598,7 @@ def load_pickle(filename, channel=-1, verbose=0):
 
 def load_data(filepath, channel=-1, verbose=0):
     """
-    Call this function to load time-series data from a file.
+    Call this function to load time-series data from a file of arbitrary format.
 
     Parameters
     ----------
@@ -570,8 +621,8 @@ def load_data(filepath, channel=-1, verbose=0):
     unit: string
         the unit of the data
 
-    Raise
-    -----
+    Raises
+    ------
     ValueError:
         Input argument filepath is empty string or list.
     IndexError:
@@ -607,17 +658,81 @@ def load_data(filepath, channel=-1, verbose=0):
 
 class DataLoader(aio.AudioLoader):
     """
+    Buffered reading of time-series data for random access of the data in the file.
+    This allows for reading very large data files that do not fit into memory.
+    An DataLoader instance can be used like a huge read-only numpy array, i.e.
+
+        data = DataLoader('path/to/data/file.dat')
+        x = data[10000:20000,0]
+
+    The first index specifies the frame, the second one the channel.
+
+    DataLoader first determines the format of the data file and then opens
+    the file (first line). It then reads data from the file
+    as necessary for the requested data (second line).
+
+    Supported file formats are relacs trace*.raw files (www.relacs.net),
+    fishgrid traces-*.raw files, and audio files via aduioio.AudioLoader.
+
+    Reading sequentially through the file is always possible. If previous data
+    are requested, then the file is read from the beginning. This might slow down access
+    to previous data considerably. Use the backsize argument to the open functions to
+    make sure some data are loaded before the requested frame. Then a subsequent access
+    to the data within backsize seconds before that frame can still be handled without
+    the need to reread the file from the beginning.
+
+    Usage:
+
+        import thunderfish.dataloader as dl
+        with dl.open_data(filepath, -1, 60.0, 10.0) as data:
+            # do something with the content of the file:
+            x = data[0:10000, 0]
+            y = data[10000:20000, 0]
+            z = x + y
+
+    Normal open and close:
+
+        data = dl.DataLoader(filepath, 0, 60.0)
+        x = data[:]  # read the whole file
+        data.close()
+        
+    that is the same as:
+
+        data = dl.DataLoader()
+        data.open(filepath, 0, 60.0)
+    
+
+    Member variables:
+      samplerate (float): the sampling rate of the data in seconds.
+      channels (int): the number of channels that are read in.
+      channel (int): the channel of which the trace is returned.
+                     If negative, all channels are returned.
+      frames (int): the number of frames in the file.
+      shape (tuple): frames and channels of the data.
+
+    Some member functions:
+      len(): the number of frames
+      open(): open a data file.
+      open_*(): open a data file of a specific format.
+      close(): close the file.
     """
 
     def __init__(self, filepath=None, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
-        """Initialize the DataLoader instance. If filepath is not None open the file.
+        """
+        Initialize the DataLoader instance. If filepath is not None open the file.
 
-        Args:
-          filepath (string): name of the file
-          channel (int): the single channel to be worked on
-          buffersize (float): size of internal buffer in seconds
-          backsize (float): part of the buffer to be loaded before the requested start index in seconds
-          verbose (int): if >0 show detailed error/warning messages
+        Parameters
+        ----------
+        filepath: string
+            Name of the file.
+        channel: int
+            The single channel to be worked on.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If > 0 show detailed error/warning messages.
         """
         super(DataLoader, self).__init__(None, buffersize, backsize, verbose)
         if filepath is not None:
@@ -641,7 +756,7 @@ class DataLoader(aio.AudioLoader):
     # relacs interface:        
     def open_relacs(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
         """
-        Open relacs data files for reading.
+        Open relacs data files (www.relacs.net) for reading.
 
         Parameters
         ----------
@@ -649,7 +764,7 @@ class DataLoader(aio.AudioLoader):
             Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
             or relacs trace-*.raw files.
         channel: int
-            The data channel. If negative all channels are selected.
+            The requested data channel. If negative all channels are selected.
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
@@ -703,7 +818,10 @@ class DataLoader(aio.AudioLoader):
                 raise ValueError('unit of traces differ')
         self.channels = len(self.sf)
         self.channel = channel
-        self.shape = (self.frames, self.channels)
+        if self.channel >= 0:
+            self.shape = (self.frames,)
+        else:
+            self.shape = (self.frames, self.channels)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
         self._init_buffer()
@@ -725,7 +843,7 @@ class DataLoader(aio.AudioLoader):
     def _update_buffer_relacs(self, start, stop):
         """
         Make sure that the buffer contains the data between
-        start and stop using the wave module.
+        start and stop for relacs files.
         """
         if start < self.offset or stop > self.offset + self.buffer.shape[0]:
             offset, size = self._read_indices(start, stop)
@@ -746,7 +864,7 @@ class DataLoader(aio.AudioLoader):
     # fishgrid interface:        
     def open_fishgrid(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
         """
-        Open fishgrid data files for reading.
+        Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
 
         Parameters
         ----------
@@ -754,7 +872,7 @@ class DataLoader(aio.AudioLoader):
             Path to a fishgrid data directory, a fishgrid.cfg file,
             or fishgrid trace-*.raw files.
         channel: int
-            The data channel. If negative all channels are selected.
+            The requested data channel. If negative all channels are selected.
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
@@ -818,7 +936,10 @@ class DataLoader(aio.AudioLoader):
                 break
             gs += s
         self.channel = channel - gs
-        self.shape = (self.frames, self.channels)
+        if self.channel >= 0:
+            self.shape = (self.frames,)
+        else:
+            self.shape = (self.frames, self.channels)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
         self._init_buffer()
@@ -840,7 +961,7 @@ class DataLoader(aio.AudioLoader):
     def _update_buffer_fishgrid(self, start, stop):
         """
         Make sure that the buffer contains the data between
-        start and stop using the wave module.
+        start and stop for fishgrid files.
         """
         if start < self.offset or stop > self.offset + self.buffer.shape[0]:
             offset, size = self._read_indices(start, stop)
@@ -860,14 +981,20 @@ class DataLoader(aio.AudioLoader):
 
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
         """
-        Open data file for reading.
+        Open file with time-series data for reading.
 
-        Args:
-          filepath (string): name of the file
-          channel (int): the single channel to be worked on
-          buffersize (float): size of internal buffer in seconds
-          backsize (float): part of the buffer to be loaded before the requested start index in seconds
-          verbose (int): if > 0 show detailed error/warning messages
+        Parameters
+        ----------
+        filepathes: string or list of string
+            Path to a data files or directory.
+        channel: int
+            The requested data channel. If negative all channels are selected.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If > 0 show detailed error/warning messages.
         """
         if check_relacs(filepath):
             self.open_relacs(filepath, channel, buffersize, backsize, verbose)
@@ -889,6 +1016,7 @@ class DataLoader(aio.AudioLoader):
 
 
 open_data = DataLoader
+
 
 if __name__ == "__main__":
     import sys
