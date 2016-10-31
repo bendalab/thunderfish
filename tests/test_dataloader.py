@@ -4,10 +4,40 @@ import numpy as np
 import thunderfish.dataloader as dl
 
 
-filename = 'testd'
+relacs_path = 'test_relacs'
+fishgrid_path = 'test_fishgrid'
+
+
+def generate_data():
+    samplerate = 44100.0
+    duration = 100.0
+    channels = 4
+    t = np.arange(int(duration*samplerate))/samplerate
+    data = np.sin(2.0*np.pi*880.0*t) * t/duration
+    data = data.reshape((-1, 1))
+    for k in range(data.shape[1], channels):
+        data = np.hstack((data, data[:,0].reshape((-1, 1))/k))
+    return data, samplerate
 
     
+def remove_files(path):
+    if os.path.isdir(path):
+        for root, dirs, files in os.walk(path, topdown=False):
+            for name in files:
+                os.remove(os.path.join(root, name))
+        os.rmdir(os.path.join(path))
+
+        
+def remove_relacs_files():
+    remove_files(relacs_path)
+
+    
+def remove_fishgrid_files():
+    remove_files(fishgrid_path)
+
+
 def write_relacs(path, data, samplerate):
+    remove_files(path)
     os.mkdir(path)
     for c in range(data.shape[1]):
         df = open(os.path.join(path, 'trace-%d.raw' % (c+1)), 'wb')
@@ -29,6 +59,7 @@ def write_relacs(path, data, samplerate):
 
 
 def write_fishgrid(path, data, samplerate):
+    remove_files(path)
     os.mkdir(path)
     df = open(os.path.join(path, 'traces-grid1.raw'), 'wb')
     df.write(np.array(data, dtype=np.float32).tostring())
@@ -40,22 +71,13 @@ def write_fishgrid(path, data, samplerate):
     df.write('     Columns    : 2\n')
     df.write('     Rows       : %d\n' % (data.shape[1]//2))
     df.write('  Hardware Settings\n')
-    df.write('    DAQ board\n')
+    df.write('    DAQ board:\n')
     df.write('      AISampleRate: %.3fkHz\n' % (0.001*samplerate))
     df.write('      AIMaxVolt   : 10.0mV\n')
     df.write('    Amplifier:\n')
     df.write('      AmplName: "16-channel-EPM-module"\n')
     df.close()
 
-    
-def remove_files():
-    path = filename
-    if os.path.isdir(path):
-        for root, dirs, files in os.walk(path, topdown=False):
-            for name in files:
-                os.remove(os.path.join(root, name))
-        os.rmdir(os.path.join(path))
-        
 
 def check_reading(filename, data):
     tolerance = 2.0**(-15)
@@ -100,33 +122,15 @@ def check_reading(filename, data):
     data.close()
     
 
-@with_setup(None, remove_files)
+@with_setup(None, remove_relacs_files)
 def test_dataloader_relacs():
-    # generate data:
-    samplerate = 44100.0
-    duration = 100.0
-    channels = 4
-    t = np.arange(int(duration*samplerate))/samplerate
-    data = np.sin(2.0*np.pi*880.0*t) * t/duration
-    data = data.reshape((-1, 1))
-    for k in range(data.shape[1], channels):
-        data = np.hstack((data, data[:,0].reshape((-1, 1))/k))
-
-    write_relacs(filename, data, samplerate)
-    check_reading(filename, data)
+    data, samplerate = generate_data()
+    write_relacs(relacs_path, data, samplerate)
+    check_reading(relacs_path, data)
 
 
-@with_setup(None, remove_files)
+@with_setup(None, remove_fishgrid_files)
 def test_dataloader_fishgrid():
-    # generate data:
-    samplerate = 44100.0
-    duration = 100.0
-    channels = 4
-    t = np.arange(int(duration*samplerate))/samplerate
-    data = np.sin(2.0*np.pi*880.0*t) * t/duration
-    data = data.reshape((-1, 1))
-    for k in range(data.shape[1], channels):
-        data = np.hstack((data, data[:,0].reshape((-1, 1))/k))
-
-    write_fishgrid(filename, data, samplerate)
-    check_reading(filename, data)
+    data, samplerate = generate_data()
+    write_fishgrid(fishgrid_path, data, samplerate)
+    check_reading(fishgrid_path, data)
