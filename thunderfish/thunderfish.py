@@ -229,6 +229,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False, output_fo
         verbose = verbosearg
     outfilename = os.path.splitext(os.path.basename(filename))[0]
 
+    # check channel:
+    if channel < 0:
+        print('invalid channel %d' % channel)
+        channel = 0
+
     # load data:
     raw_data, samplerate, unit = load_data(filename, channel)
     if len(raw_data) == 0:
@@ -236,7 +241,8 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False, output_fo
 
     # calculate best_window:
     clip_win_size = 0.5
-    min_clip, max_clip = clip_amplitudes(raw_data, int(clip_win_size * samplerate))
+    min_clip, max_clip = clip_amplitudes(raw_data,
+                                         int(clip_win_size * samplerate))
     try:
         idx0, idx1, clipped = best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
                                                   max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
