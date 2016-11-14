@@ -8,7 +8,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from .dataloader import open_data
-from .powerspectrum import spectrogram
+from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import harmonic_groups, fundamental_freqs
  
 
@@ -33,32 +33,42 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
     all_fundamentals = []
     all_times = np.array([])
 
-    while start_time < int((len(data)-data_snippet_secs*samplrate) / samplrate):
-        tmp_data = data[start_time*samplrate : (start_time+data_snippet_secs)*samplrate] # gaps between snippets !!!!
+    nfft = next_power_of_two(samplrate / fresolution)
+
+    while start_time < int((len(data)- data_snippet_secs*samplrate) / samplrate):
+        tmp_data = data[int(start_time*samplrate) : int((start_time+data_snippet_secs)*samplrate)] # gaps between snippets !!!!
 
         # spectrogram
         spectrum, freqs, time = spectrogram(tmp_data, samplrate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
 
-        all_times = np.concatenate((all_times, time[:len(time)-nffts_per_psd] + start_time))
-
+        all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] + start_time))
+        # print(len(all_times))
         # psd and fish fundamentals frequency detection
-        for t in range(len(time)-(nffts_per_psd)):
+        for t in range(len(time)-(nffts_per_psd-1)):
             power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
-
-            fishlist = harmonic_groups(freqs, power)[0]
+            try:
+                fishlist = harmonic_groups(freqs, power)[0]
+            except IndexError:
+                from IPython import embed
+                embed()
+                quit()
             fundamentals = fundamental_freqs(fishlist)
             all_fundamentals.append(fundamentals)
 
-        if (int(start_time) % int(data_snippet_secs * 30)) > -1 and (int(start_time) % int(data_snippet_secs * 30)) < 1:
+        # if (int(start_time) % int(data_snippet_secs * 30)) > -1 and (int(start_time) % int(data_snippet_secs * 30)) < 1:
+        if (len(all_times) % (280 * 30)) > -1 and (len(all_times) % (280 * 30)) < 1:
             if verbose >= 2:
                 print('Minute %.0f' % (start_time/60))
 
-        start_time += data_snippet_secs
+        start_time += time[-nffts_per_psd] - (0.5 -(1-overlap_frac)) * nfft / samplrate
+
+
         if end_time:
             if start_time >= end_time:
                 if verbose >= 2:
                     print('End time reached!')
                 break
+
     return all_fundamentals, all_times
 
 
@@ -171,6 +181,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
         fishes.pop(0)
 
     if save_original_fishes:
+        print('saving')
         np.save(base_name + '-fishes.npy', np.asarray(fishes))
         np.save(base_name + '-times.npy', all_times)
     return fishes
@@ -327,40 +338,51 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
     :param plot_data_func: (function) if plot_data_func = plot_fishes creates a plot of the sorted fishes.
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
     """
-    data = open_data(audio_file, 0, 60.0, 10.0)
-    samplrate = data.samplerate
-    base_name = os.path.splitext(os.path.basename(audio_file))[0]
+    # data = open_data(audio_file, 0, 60.0, 10.0)
+    with open_data(audio_file, 0, 60.0, 10.0) as data:
+        samplrate = data.samplerate
+        base_name = os.path.splitext(os.path.basename(audio_file))[0]
 
-    if verbose >= 1:
-        print('extract fundamentals')
-    all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time,
-                                                                             data_snippet_secs, nffts_per_psd,
-                                                                             fresolution=0.5, overlap_frac=.9,
-                                                                             verbose=verbose)
-    if verbose >= 1:
-        print('sorting fishes')
-    fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, save_original_fishes=save_original_fishes,
-                                      verbose=verbose)
+        if verbose >= 1:
+            print('extract fundamentals')
+        all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time,
+                                                                                 data_snippet_secs, nffts_per_psd,
+                                                                                 fresolution=0.5, overlap_frac=.9,
+                                                                                 verbose=verbose)
 
-    if verbose >= 1:
-        print('exclude fishes')
-    fishes = exclude_fishes(fishes, all_times)
+        # from IPython import embed
+        # embed()
+        # quit()
 
-    if verbose >= 1:
-        print('combining fishes')
-    fishes = combine_fishes(fishes, all_times)
+        if verbose >= 1:
+            print('sorting fishes')
+        fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, save_original_fishes=save_original_fishes,
+                                          verbose=verbose)
 
-    if verbose >= 1:
-        print('combining fishes based on regression')
-    fishes = regress_combine(fishes, all_times)
+        if verbose >= 1:
+            print('exclude fishes')
+        fishes = exclude_fishes(fishes, all_times)
+        if len(fishes) == 0:
+            print('excluded all fishes. Change parameters.')
+            quit()
 
-    if verbose >= 1:
-        print('%.0f fishes left' % len(fishes))
+        if verbose >= 1:
+            print('combining fishes')
+        fishes = combine_fishes(fishes, all_times)
 
-    if plot_data_func:
-        plot_data_func(fishes, all_times)
-    if verbose >= 1:
-        print('Whole file processed.')
+        if verbose >= 1:
+            print('combining fishes based on regression')
+        fishes = regress_combine(fishes, all_times)
+
+        if verbose >= 1:
+            print('%.0f fishes left' % len(fishes))
+
+        from IPython import embed
+
+        if plot_data_func:
+            plot_data_func(fishes, all_times)
+        if verbose >= 1:
+            print('Whole file processed.')
 
 
 if __name__ == '__main__':
@@ -384,6 +406,9 @@ if __name__ == '__main__':
 
         print('excluding fishes')
         fishes = exclude_fishes(fishes, all_times)
+        if len(fishes) == 0:
+            print('excluded all fishes. Change parameters.')
+            quit()
 
         print('combining fishes')
         fishes = combine_fishes(fishes, all_times)
@@ -403,4 +428,5 @@ if __name__ == '__main__':
             end_time = float(sys.argv[3]) * 60
             fish_tracker(audio_file, start_time=start_time, end_time=end_time, plot_data_func= plot_fishes, verbose=2)
         else:
-            fish_tracker(audio_file, plot_data_func= plot_fishes, save_original_fishes=True, verbose=2) # whole file
+            # fish_tracker(audio_file, plot_data_func= plot_fishes, save_original_fishes=True, verbose=2) # whole file
+            fish_tracker(audio_file, start_time=float(790) * 60,  plot_data_func= plot_fishes, verbose=2) # whole file
