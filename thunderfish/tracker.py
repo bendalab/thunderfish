@@ -36,27 +36,22 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
     nfft = next_power_of_two(samplrate / fresolution)
 
     while start_time < int((len(data)- data_snippet_secs*samplrate) / samplrate):
-        tmp_data = data[int(start_time*samplrate) : int((start_time+data_snippet_secs)*samplrate)] # gaps between snippets !!!!
+        tmp_data = data[int(start_time*samplrate) : int((start_time+data_snippet_secs)*samplrate)]
 
         # spectrogram
         spectrum, freqs, time = spectrogram(tmp_data, samplrate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
 
         all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] + start_time))
-        # print(len(all_times))
+
         # psd and fish fundamentals frequency detection
         for t in range(len(time)-(nffts_per_psd-1)):
             power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
-            try:
-                fishlist = harmonic_groups(freqs, power)[0]
-            except IndexError:
-                from IPython import embed
-                embed()
-                quit()
+            fishlist = harmonic_groups(freqs, power)[0]
             fundamentals = fundamental_freqs(fishlist)
             all_fundamentals.append(fundamentals)
 
-        # if (int(start_time) % int(data_snippet_secs * 30)) > -1 and (int(start_time) % int(data_snippet_secs * 30)) < 1:
-        if (len(all_times) % (280 * 30)) > -1 and (len(all_times) % (280 * 30)) < 1:
+        if (len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) > -1 and (
+                    len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) < 1:
             if verbose >= 2:
                 print('Minute %.0f' % (start_time/60))
 
@@ -350,10 +345,6 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
                                                                                  fresolution=0.5, overlap_frac=.9,
                                                                                  verbose=verbose)
 
-        # from IPython import embed
-        # embed()
-        # quit()
-
         if verbose >= 1:
             print('sorting fishes')
         fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, save_original_fishes=save_original_fishes,
@@ -377,8 +368,6 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
         if verbose >= 1:
             print('%.0f fishes left' % len(fishes))
 
-        from IPython import embed
-
         if plot_data_func:
             plot_data_func(fishes, all_times)
         if verbose >= 1:
@@ -390,11 +379,11 @@ if __name__ == '__main__':
         print('Tracks fundamental freuqnecies of wave-type weakly electric fish.')
         print('')
         print('Usage:')
-        print('  python tracker.py <audio_file> [start_time] [end_time]')
+        print('  python[3] -m thunderfish.tracker <audio_file> [start_time] [end_time]')
         print('  -> start- and endtime (in minutes) can be used to only analyse parts of a audio file.')
         print('')
         print('or:')
-        print('  python tracker.py <npy_file>')
+        print('  python[3] -m thunderfish.tracker <npy_file>')
         print('  -> loads the numpy file containing the fishes after the first, time demanding, sorting step.')
         quit()
 
@@ -428,5 +417,5 @@ if __name__ == '__main__':
             end_time = float(sys.argv[3]) * 60
             fish_tracker(audio_file, start_time=start_time, end_time=end_time, plot_data_func= plot_fishes, verbose=2)
         else:
-            # fish_tracker(audio_file, plot_data_func= plot_fishes, save_original_fishes=True, verbose=2) # whole file
-            fish_tracker(audio_file, start_time=float(790) * 60,  plot_data_func= plot_fishes, verbose=2) # whole file
+            fish_tracker(audio_file, plot_data_func= plot_fishes, save_original_fishes=True, verbose=2) # whole file
+            # fish_tracker(audio_file, start_time=float(790) * 60,  plot_data_func= plot_fishes, verbose=2) # whole file
