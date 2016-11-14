@@ -29,11 +29,11 @@ class SignalPlot:
         self.unit = unit
         self.cfg = cfg
         self.verbose = self.cfg['verboseLevel'][0]
-        self.time = np.arange(0.0, len(self.data)) / self.samplerate
+        self.tmax = (len(self.data)-1)/self.samplerate
         self.toffset = 0.0
         self.twindow = 8.0
-        if self.twindow > self.time[-1]:
-            self.twindow = np.round(2 ** (np.floor(np.log(self.time[-1]) / np.log(2.0)) + 1.0))
+        if self.twindow > self.tmax:
+            self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
         self.ymin = -1.0
         self.ymax = +1.0
         self.trace_artist = None
@@ -219,10 +219,13 @@ class SignalPlot:
         self.axt.set_xlim(self.toffset, self.toffset + self.twindow)
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        if t1>len(self.data):
+            t1 = len(self.data)
+        time = np.arange(t0, t1) / self.samplerate
         if self.trace_artist == None:
-            self.trace_artist, = self.axt.plot(self.time[t0:t1], self.data[t0:t1])
+            self.trace_artist, = self.axt.plot(time, self.data[t0:t1])
         else:
-            self.trace_artist.set_data(self.time[t0:t1], self.data[t0:t1])
+            self.trace_artist.set_data(time, self.data[t0:t1])
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
@@ -527,7 +530,7 @@ class SignalPlot:
                 self.fresolution *= 2.0
                 self.update_plots()
         elif event.key in 'R':
-            if 1.0 / self.fresolution < self.time[-1]:
+            if 1.0 / self.fresolution < self.tmax:
                 self.fresolution *= 0.5
                 self.update_plots()
         elif event.key in 'd':
@@ -670,15 +673,18 @@ class SignalPlot:
                 name=name, time=self.toffset)
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        if t1>len(self.data):
+            t1 = len(self.data)
+        time = np.arange(t0, t1) / self.samplerate
         if self.twindow < 1.0:
             ax.set_xlabel('Time [ms]')
             ax.set_xlim(1000.0 * self.toffset,
                         1000.0 * (self.toffset + self.twindow))
-            ax.plot(1000.0 * self.time[t0:t1], self.data[t0:t1])
+            ax.plot(1000.0 * time, self.data[t0:t1])
         else:
             ax.set_xlabel('Time [s]')
             ax.set_xlim(self.toffset, self.toffset + self.twindow)
-            ax.plot(self.time[t0:t1], self.data[t0:t1])
+            ax.plot(time, self.data[t0:t1])
         ax.set_ylabel('Amplitude [{:s}]'.format(self.unit))
         fig.tight_layout()
         fig.savefig(figfile)
