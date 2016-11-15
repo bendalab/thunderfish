@@ -335,6 +335,10 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
     """
 
     data = open_data(audio_file, 0, 60.0, 10.0)
+
+    from IPython import embed
+    embed()
+    quit()
     # with open_data(audio_file, 0, 60.0, 10.0) as data:
     samplrate = data.samplerate
     base_name = os.path.splitext(os.path.basename(audio_file))[0]
