@@ -5,6 +5,7 @@ fish_tracker(): main function which performs all steps including loading data, f
 """
 import sys
 import os
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from .dataloader import open_data, load_fishgrid
@@ -34,19 +35,40 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
     all_times = np.array([])
 
     nfft = next_power_of_two(samplrate / fresolution)
+    if len(data.shape) > 1:
+        channels = range(data.shape[1])
+    else:
+        channels = range(1)
 
     while start_time < int((len(data)- data_snippet_secs*samplrate) / samplrate):
-        tmp_data = data[int(start_time*samplrate) : int((start_time+data_snippet_secs)*samplrate)]
+        if verbose > 2:
+            print('Minute %.2f' % (start_time/60))
 
-        # spectrogram
-        spectrum, freqs, time = spectrogram(tmp_data, samplrate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
+        for channel in channels:
+            # print(channel)
+            if len(channels) > 1:
+                tmp_data = data[int(start_time*samplrate) : int((start_time+data_snippet_secs)*samplrate), channel]
+            else:
+                tmp_data = data[int(start_time*samplrate) : int((start_time+data_snippet_secs)*samplrate)]
+
+            # spectrogram
+            spectrum, freqs, time = spectrogram(tmp_data, samplrate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
+
+            # psd and fish fundamentals frequency detection
+            tmp_power = [np.array([]) for i in range(len(time)-(nffts_per_psd-1))]
+            for t in range(len(time)-(nffts_per_psd-1)):
+                # power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
+                tmp_power[t] = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
+            if channel == 0:
+                power = tmp_power
+            else:
+                for t in range(len(power)):
+                    power[t] += tmp_power[t]
 
         all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] + start_time))
 
-        # psd and fish fundamentals frequency detection
-        for t in range(len(time)-(nffts_per_psd-1)):
-            power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
-            fishlist = harmonic_groups(freqs, power)[0]
+        for p in range(len(power)):
+            fishlist = harmonic_groups(freqs, power[p])[0]
             fundamentals = fundamental_freqs(fishlist)
             all_fundamentals.append(fundamentals)
 
@@ -58,7 +80,7 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
         start_time += time[-nffts_per_psd] - (0.5 -(1-overlap_frac)) * nfft / samplrate
 
 
-        if end_time:
+        if end_time > 0:
             if start_time >= end_time:
                 if verbose >= 2:
                     print('End time reached!')
@@ -67,7 +89,7 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
     return all_fundamentals, all_times
 
 
-def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = 2.,
+def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = 1.,
                              save_original_fishes=False, verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
@@ -166,7 +188,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
             if np.isnan(fishes[fish][enu+1]):
                 end_nans[fish] += 1
 
-
+    fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
     # reshape everything to arrays
     for fish in range(len(fishes)):
         fishes[fish] = fishes[fish][1:]
@@ -179,10 +201,10 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
         print('saving')
         np.save(base_name + '-fishes.npy', np.asarray(fishes))
         np.save(base_name + '-times.npy', all_times)
-    return fishes
+    return np.asarray(fishes)
 
 
-def combine_fishes(fishes, all_times, max_time_tolerance = 5., max_freq_tolerance= 10.):
+def combine_fishes(fishes, all_times, max_time_tolerance = 5., max_freq_tolerance= 5.):
     """
     Combine fishes when frequency and time of occurrence don't differ above the threshold.
 
@@ -209,12 +231,31 @@ def combine_fishes(fishes, all_times, max_time_tolerance = 5., max_freq_toleranc
 
     fish_occure_order = np.arange(len(fishes))[np.argsort(np.asarray(occure_idx)[:,0])]
 
-    for fish in reversed(fish_occure_order):
-        help_idx = np.where(fish_occure_order==fish)[0][0]
-        for comp_fish in reversed(fish_occure_order[:help_idx]):
-            if occure_idx[fish][0] > occure_idx[comp_fish][1] and occure_idx[fish][0] - occure_idx[comp_fish][1] <= max_time_tolerance * dpm:
+    # for fish in reversed(fish_occure_order):
+    #     help_idx = np.where(fish_occure_order==fish)[0][0]
+    #     for comp_fish in reversed(fish_occure_order[:help_idx+1]):
+    for fish in reversed(range(len(fishes))):
+        for comp_fish in reversed(range(fish)):
+            #####################################################
+            combinable = False
+            try:
+                if occure_idx[fish][0] > occure_idx[comp_fish][1] and occure_idx[fish][0] - occure_idx[comp_fish][1] <= max_time_tolerance * dpm:
+                    combinable=True
+                elif occure_idx[fish][0] < occure_idx[comp_fish][1] and occure_idx[comp_fish][0] < occure_idx[fish][0] and occure_idx[comp_fish][1] < occure_idx[fish][1]:
+                    combinable=True
+                elif occure_idx[fish][0] > occure_idx[comp_fish][0] and occure_idx[fish][1] < occure_idx[comp_fish][1]:
+                    combinable=True
+            except IndexError:
+                from IPython import embed
+                embed()
+                quit()
+            if combinable:
+                nantest = fishes[fish] + fishes[comp_fish]
+                if len(nantest[~np.isnan(nantest)]) >= 10:
+                    combinable = False
 
-                # ToDO: replace index with time ... 5 min ?!
+            if combinable:
+                # ToDO: replace index with time ... 5 min ?! AND!!!! ... other data snippets for different cases...
                 if np.abs(np.mean(fishes[fish][~np.isnan(fishes[fish])][:200]) - np.mean(fishes[comp_fish][~np.isnan(fishes[comp_fish])][-200:])) <= max_freq_tolerance:
 
                     fishes[comp_fish][np.isnan(fishes[comp_fish])] = fishes[fish][np.isnan(fishes[comp_fish])]
@@ -229,7 +270,83 @@ def combine_fishes(fishes, all_times, max_time_tolerance = 5., max_freq_toleranc
     return fishes[return_idx]
 
 
-def exclude_fishes(fishes, all_times, min_occure_time = 1.):
+def check_frequency_consistency(fishes, all_times, f_th = 3.):
+    # ToDo: Do it in bins !!!
+    # for fish in reversed(range(len(fishes))):
+    # print len(fishes)
+    detection_time_diff = all_times[1] - all_times[0]
+    dpm = 60. / detection_time_diff
+
+    new_fishes = []
+    for fish in reversed(range(len(fishes))):
+        non_nan_idx = np.arange(len(fishes[fish]))[~np.isnan(fishes[fish])]
+
+        all_t0 = np.arange((non_nan_idx[-1] - non_nan_idx[0]) // np.floor((dpm * 5) / 2) + 1) * np.floor((dpm * 5) / 2) + non_nan_idx[0]
+
+        # mean_time = all_times[fishes[fish] > np.mean(fishes[fish][~np.isnan(fishes[fish])])][0]
+        # ToDo: ab hier in for loop mit t0 ... data[t0: t1]; t1 = t0+ np.floor(dpm * 30)
+        for t0 in reversed(all_t0):
+            t1 = t0 + np.floor(dpm * 5)
+
+            tmp_fish = fishes[fish][t0:t1]
+            tmp_time = all_times[t0:t1]
+            tmp_nnan_idx = np.arange(len(tmp_fish))[~np.isnan(tmp_fish)]
+
+            if len(tmp_nnan_idx) > 0:
+                p1 = np.percentile(tmp_fish[tmp_nnan_idx], 1)
+                p99 = np.percentile(tmp_fish[tmp_nnan_idx], 99)
+
+                cut=False
+                if p99 - p1 > f_th:
+                    p90 = p99 - ((p99 - p1) / 10.)
+                    p10 = p1 + ((p99 - p1) / 10.)
+
+                    time_start_rise = tmp_time[tmp_nnan_idx][tmp_fish[tmp_nnan_idx] > p90][-1]
+                    # freq_start_rise = fishes[fish][fishes[fish] >= p90][-1]
+
+                    time_end_rise = tmp_time[tmp_nnan_idx][tmp_fish[tmp_nnan_idx] < p10][0]
+                    # freq_end_rise = fishes[fish][fishes[fish] <= p10][0]
+
+                    if time_end_rise - time_start_rise <= 600 and time_end_rise - time_start_rise > 0:
+                        cut = True
+                    if time_start_rise - all_times[non_nan_idx[0]] < 120:
+                        cut = False
+
+                    fig, ax = plt.subplots()
+                    ax.plot(tmp_time[tmp_nnan_idx], tmp_fish[tmp_nnan_idx])
+                    ax.plot([tmp_time[tmp_nnan_idx[0]], tmp_time[tmp_nnan_idx[-1]]], [p99, p99], '-', color='green')
+                    ax.plot([tmp_time[tmp_nnan_idx[0]], tmp_time[tmp_nnan_idx[-1]]], [p1, p1], '-', color='green')
+
+                    if cut:
+                        mid_freq = np.min(tmp_fish[tmp_nnan_idx]) + (np.max(tmp_fish[tmp_nnan_idx]) - np.min(tmp_fish[tmp_nnan_idx])) / 2.
+                        tmp_cut_idx = np.arange(len(tmp_fish))[tmp_nnan_idx][tmp_fish[tmp_nnan_idx] >= mid_freq]
+                        ax.plot(tmp_time[tmp_cut_idx][-1], tmp_fish[tmp_cut_idx][-1], 'o', color='red', markersize=10)
+                        # ToDo: cut_idx finden vor dem der value abfaellt und t diff nicht zu hoch.
+
+                        # cut_idx = tmp_cut_idx(np.where((np.diff(tmp_fish[tmp_cut_idx])) > 0 & (np.diff(tmp_cut_idx) < 10) )[0][-1] + 1)
+
+                        # cut_idx = tmp_cut_idx[np.diff(tmp_fish[tmp_cut_idx]) > 0]
+
+                        # from IPython import embed
+                        # embed()
+                        # quit()
+                        #########################################
+
+                        cut_idx = tmp_cut_idx[-1]
+
+                        new_fishes.append(np.full(len(all_times), np.nan))
+                        new_fishes[-1][cut_idx:] = fishes[fish][cut_idx:]
+
+                        fishes[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
+                    plt.show()
+
+    if new_fishes == []:
+        return fishes
+    else:
+        return np.append(fishes, new_fishes, axis=0)
+
+
+def exclude_fishes(fishes, all_times, min_occure_time = .1):
     """
     Delete fishes that are present for a to short period of time.
 
@@ -262,6 +379,7 @@ def regress_combine(fishes, all_times, max_time_tolerance= 45., max_freq_toleran
     :param max_freq_tolerance: (float) maximum frequency difference between the first detection of one fish compared with a regression of another fish.
     :return: fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
+    # ToDo: wenn steigung zu krass oder zu wenig datenpunkte NICHT kombinieren
     detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff  # detections per minutes
 
@@ -279,6 +397,7 @@ def regress_combine(fishes, all_times, max_time_tolerance= 45., max_freq_toleran
                 if (occure_idx[fish][0] - occure_idx[comp_fish][1]) <= max_time_tolerance * dpm:
                     snippet_start_idx = occure_idx[comp_fish][1]-int(30*dpm)
                     if snippet_start_idx < 0:
+                        # break
                         snippet_start_idx = 0
                     comp_fish_snippet = fishes[comp_fish][snippet_start_idx: occure_idx[comp_fish][1]]
                     comp_fish_snippet_time = all_times[snippet_start_idx: occure_idx[comp_fish][1]]
@@ -299,7 +418,7 @@ def regress_combine(fishes, all_times, max_time_tolerance= 45., max_freq_toleran
     return fishes[return_idx]
 
 
-def plot_fishes(fishes, all_times):
+def plot_fishes(fishes, all_times, base_name, save_plot):
     """
     Plot shows the detected fish fundamental frequencies plotted against the time in hours.
 
@@ -311,11 +430,17 @@ def plot_fishes(fishes, all_times):
         ax.plot(all_times[~np.isnan(fish)] / 3600., fish[~np.isnan(fish)], color=np.random.rand(3, 1), marker='.')
     plt.ylabel('Frequency [Hz]')
     plt.xlabel('Time [h]')
-    plt.show()
+
+    if save_plot:
+        # ToDo: save as pdf... import PdfPages or something....
+        plt.savefig(base_name)
+        plt.close(fig)
+    else:
+        plt.show()
 
 
-def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_time= 0, end_time = None, plot_data_func=None,
-                 save_original_fishes=False, verbose=0):
+def fish_tracker(audio_file, start_time= 0, end_time = None, gridfile=False, save_plot=False,
+                 save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, verbose=0):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -333,12 +458,18 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
     :param plot_data_func: (function) if plot_data_func = plot_fishes creates a plot of the sorted fishes.
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
     """
+    # ToDo: how to recognize grid file? load all channels -1 in grid; else 0
+    if gridfile:
+        data = open_data(audio_file, -1, 60.0, 10.0)
+        print('--- GRID FILE ANALYSIS ---')
+        print('ALL traces are analysed')
+        print('--------------------------')
+    else:
+        data = open_data(audio_file, 0, 60.0, 10.0)
+        print('--- ONE TRACE ANALYSIS ---')
+        print('ONLY 1 trace is analysed')
+        print('--------------------------')
 
-    data = open_data(audio_file, 0, 60.0, 10.0)
-
-    from IPython import embed
-    embed()
-    quit()
     # with open_data(audio_file, 0, 60.0, 10.0) as data:
     samplrate = data.samplerate
     base_name = os.path.splitext(os.path.basename(audio_file))[0]
@@ -366,30 +497,48 @@ def fish_tracker(audio_file, data_snippet_secs = 60., nffts_per_psd = 4, start_t
         print('combining fishes')
     fishes = combine_fishes(fishes, all_times)
 
-    if verbose >= 1:
-        print('combining fishes based on regression')
-    fishes = regress_combine(fishes, all_times)
+    # if verbose >= 1:
+    #     print('combining fishes based on regression')
+    # fishes = regress_combine(fishes, all_times)
 
     if verbose >= 1:
         print('%.0f fishes left' % len(fishes))
 
-    if plot_data_func:
-        plot_data_func(fishes, all_times)
+    plot_fishes(fishes, all_times, base_name, save_plot)
     if verbose >= 1:
         print('Whole file processed.')
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+        description='Analyse long single- or multi electrode EOD recordings of weakly electric fish.',
+        epilog='by bendalab (2015-2016)')
+    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
+    parser.add_argument('start_time', nargs='?', default=0, type=int, help='start time of analysis in min.')
+    parser.add_argument('end_time', nargs='?', default=-1, type=int, help='end time of analysis in min.')
+    parser.add_argument('-g', dest='grid', action='store_true', help='use this argument to analysis 64 electrode grid data.')
+    parser.add_argument('-p', dest='save_plot', action='store_true', help='use this argument to save output plot')
+    parser.add_argument('-s', dest='save_fish', action='store_true',
+                        help='use this argument to save fish EODs after first stage of sorting.')
+    args = parser.parse_args()
+
     if len(sys.argv) == 1:
         print('Tracks fundamental freuqnecies of wave-type weakly electric fish.')
         print('')
         print('Usage:')
-        print('  python[3] -m thunderfish.tracker <audio_file> [start_time] [end_time]')
-        print('  -> start- and endtime (in minutes) can be used to only analyse parts of a audio file.')
+        print('  python[3] -m thunderfish.tracker <audio_file> [start_time] [end_time] [-g] [-p] [-s]')
+        print('  -> start- and endtime: (in minutes) can be used to only analyse parts of a audio file.')
+        print('  -> -g: the powerspectra of all channels at a time are summed up.')
+        print('         can be used when there are multiple channels to analyse.')
+        print('  -> -p: saves the final plot as png')
+        print('  -> -s: saves the of array of array, one for every detected fish, containing their frequency at all')
+        print('         time of the recording. Usefull when you analyse data for the first time to reduce compilation')
+        print('         time in further runs.')
         print('')
         print('or:')
         print('  python[3] -m thunderfish.tracker <npy_file>')
         print('  -> loads the numpy file containing the fishes after the first, time demanding, sorting step.')
+        print('     base_name + "-fishes.npy"')
         quit()
 
     if sys.argv[1].split('.')[-1] == 'npy':
@@ -400,27 +549,31 @@ if __name__ == '__main__':
 
         print('excluding fishes')
         fishes = exclude_fishes(fishes, all_times)
-        if len(fishes) == 0:
-            print('excluded all fishes. Change parameters.')
-            quit()
+        #############################################################################################
+        # NEW FUNCTION TO CHECK FREQUENCY CONSISTANCY
+
+        # print ('')
+        # print len(fishes)
+        # print ('')
+        # fishes = check_frequency_consistency(fishes, all_times)
+
+        # print('excluding fishes')
+        # fishes = exclude_fishes(fishes, all_times)
+        # if len(fishes) == 0:
+        #     print('excluded all fishes. Change parameters.')
+        #     quit()
 
         print('combining fishes')
         fishes = combine_fishes(fishes, all_times)
-
-        print('combining fishes based on regression')
-        fishes = regress_combine(fishes, all_times)
+        #
+        # print('combining fishes based on regression')
+        # fishes = regress_combine(fishes, all_times)
 
         print('%.0f fishes left' % len(fishes))
 
+        base_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
         print('plotting')
-        plot_fishes(fishes, all_times)
+        plot_fishes(fishes, all_times, base_name, args.save_plot)
 
     else:
-        audio_file = sys.argv[1]
-        if len(sys.argv) == 4:
-            start_time = float(sys.argv[2]) * 60
-            end_time = float(sys.argv[3]) * 60
-            fish_tracker(audio_file, start_time=start_time, end_time=end_time, plot_data_func= plot_fishes, verbose=2)
-        else:
-            fish_tracker(audio_file, plot_data_func= plot_fishes, save_original_fishes=True, verbose=2) # whole file
-            # fish_tracker(audio_file, start_time=float(790) * 60,  plot_data_func= plot_fishes, verbose=2) # whole file
+        fish_tracker(args.file, args.start_time*60, args.end_time*60, args.grid, args.save_plot, args.save_fish, verbose=3)
