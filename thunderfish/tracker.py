@@ -346,7 +346,7 @@ def check_frequency_consistency(fishes, all_times, f_th = 3.):
         return np.append(fishes, new_fishes, axis=0)
 
 
-def exclude_fishes(fishes, all_times, min_occure_time = .1):
+def exclude_fishes(fishes, all_times, min_occure_time = 1):
     """
     Delete fishes that are present for a to short period of time.
 
