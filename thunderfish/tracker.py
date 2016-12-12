@@ -444,7 +444,7 @@ def plot_fishes(fishes, all_times, base_name, save_plot):
 
 
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
-                 save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, verbose=0):
+                 save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, verbose=0, **kwargs):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -461,6 +461,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     :param end_time: (int) stop analysis at this time (in seconds).  XXX this should be a float!!!!
     :param plot_data_func: (function) if plot_data_func = plot_fishes creates a plot of the sorted fishes.
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
+    :param kwargs: further arguments are passed on to harmonic_groups().
     """
     # ToDo: how to recognize grid file? load all channels -1 in grid; else 0
     if gridfile:
@@ -483,7 +484,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplerate, start_time, end_time,
                                                                              data_snippet_secs, nffts_per_psd,
                                                                              fresolution=0.5, overlap_frac=.9,
-                                                                             verbose=verbose)
+                                                                             verbose=verbose, **kwargs)
 
     if verbose >= 1:
         print('sorting fishes')
