@@ -14,7 +14,7 @@ from .harmonicgroups import harmonic_groups, fundamental_freqs
  
 
 def long_term_recording_fundamental_extraction(data, samplerate, start_time=None, end_time=None, data_snippet_secs=60.0,
-                                               nffts_per_psd=4, fresolution=0.5, overlap_frac=.9, verbose=0):
+                                               nffts_per_psd=4, fresolution=0.5, overlap_frac=.9, verbose=0, **kwargs):
     """
     For a long data array calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
     extracts fundamental frequncies.
@@ -28,6 +28,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=None
     :param fresolution: (float) frequency resolution for the spectrogram.
     :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
     :param verbose: (int) with increasing value provides more output on console.
+    :param kwargs: further arguments are passed on to harmonic_groups().
     :return all_fundamentals: (list) containing arrays with the fundamentals frequencies of fishes detected at a certain time.
     :return all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
     """
@@ -73,7 +74,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=None
         all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] + start_time))
 
         for p in range(len(power)):
-            fishlist = harmonic_groups(freqs, power[p])[0]
+            fishlist = harmonic_groups(freqs, power[p], **kwargs)[0]
             fundamentals = fundamental_freqs(fishlist)
             all_fundamentals.append(fundamentals)
 
