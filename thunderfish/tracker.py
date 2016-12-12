@@ -13,7 +13,7 @@ from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import harmonic_groups, fundamental_freqs
  
 
-def long_term_recording_fundamental_extraction(data, samplerate, start_time=None, end_time=None, data_snippet_secs=60.0,
+def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0, end_time=-1.0, data_snippet_secs=60.0,
                                                nffts_per_psd=4, fresolution=0.5, overlap_frac=.9, verbose=0, **kwargs):
     """
     For a long data array calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
@@ -22,7 +22,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=None
     :param data: (array) raw data.
     :param samplerate: (int) samplerate of data.
     :param start_time: (int) analyze data from this time on (in seconds).  XXX this should be a float!!!! Internally I would use indices.
-    :param end_time: (int) stop analysis at this time (in seconds).  XXX this should be a float!!!! Internally I would use indices.
+    :param end_time: (int) stop analysis at this time (in seconds). If -1 then analyse to the end of the data. XXX this should be a float!!!! Internally I would use indices.
     :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
     :param nffts_per_psd: (int) number of nffts used for calculating one psd.
     :param fresolution: (float) frequency resolution for the spectrogram.
@@ -35,9 +35,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=None
     all_fundamentals = []
     all_times = np.array([])
 
-    if start_time is None:
-        start_time = 0.0
-    if end_time is None:
+    if end_time < 0.0:
         end_time = len(data)/samplerate
 
     nfft = next_power_of_two(samplerate / fresolution)
@@ -445,7 +443,7 @@ def plot_fishes(fishes, all_times, base_name, save_plot):
         plt.show()
 
 
-def fish_tracker(data_file, start_time= 0, end_time = None, gridfile=False, save_plot=False,
+def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, verbose=0):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
