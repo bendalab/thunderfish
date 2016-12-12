@@ -13,26 +13,31 @@ from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import harmonic_groups, fundamental_freqs
  
 
-def long_term_recording_fundamental_extraction(data, samplerate, start_time, end_time, data_snippet_secs, nffts_per_psd,
-                                               fresolution=0.5, overlap_frac=.9, verbose=0):
+def long_term_recording_fundamental_extraction(data, samplerate, start_time=None, end_time=None, data_snippet_secs=60.0,
+                                               nffts_per_psd=4, fresolution=0.5, overlap_frac=.9, verbose=0):
     """
     For a long data array calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
     extracts fundamental frequncies.
 
     :param data: (array) raw data.
     :param samplerate: (int) samplerate of data.
-    :param start_time: (int) time in seconds when the analysis shall begin.
-    :param end_time: (int) time in seconds when the analysis shall end.
+    :param start_time: (int) analyze data from this time on (in seconds).  XXX this should be a float!!!! Internally I would use indices.
+    :param end_time: (int) stop analysis at this time (in seconds).  XXX this should be a float!!!! Internally I would use indices.
     :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
-    :param nffts_per_psd: (int) amount of nffts used to calculate one psd.
+    :param nffts_per_psd: (int) number of nffts used for calculating one psd.
     :param fresolution: (float) frequency resolution for the spectrogram.
     :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
-    :param verbose: (int) with increasing value provides more shell output.
+    :param verbose: (int) with increasing value provides more output on console.
     :return all_fundamentals: (list) containing arrays with the fundamentals frequencies of fishes detected at a certain time.
     :return all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
     """
     all_fundamentals = []
     all_times = np.array([])
+
+    if start_time is None:
+        start_time = 0.0
+    if end_time is None:
+        end_time = len(data)/samplerate
 
     nfft = next_power_of_two(samplerate / fresolution)
     if len(data.shape) > 1:
@@ -453,8 +458,8 @@ def fish_tracker(data_file, start_time= 0, end_time = None, gridfile=False, save
     :param data_file: (string) filepath of the analysed data file.
     :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
     :param nffts_per_psd: (int) amount of nffts used to calculate one psd.
-    :param start_time: (int) time in seconds when the analysis shall begin.
-    :param end_time: (int) time in seconds when the analysis shall end.
+    :param start_time: (int) analyze data from this time on (in seconds).  XXX this should be a float!!!!
+    :param end_time: (int) stop analysis at this time (in seconds).  XXX this should be a float!!!!
     :param plot_data_func: (function) if plot_data_func = plot_fishes creates a plot of the sorted fishes.
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
     """
