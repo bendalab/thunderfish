@@ -8,19 +8,19 @@ import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from .dataloader import open_data, load_fishgrid
+from .dataloader import open_data
 from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import harmonic_groups, fundamental_freqs
  
 
-def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time, data_snippet_secs, nffts_per_psd,
+def long_term_recording_fundamental_extraction(data, samplerate, start_time, end_time, data_snippet_secs, nffts_per_psd,
                                                fresolution=0.5, overlap_frac=.9, verbose=0):
     """
-    For a long audio file calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
+    For a long data array calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
     extracts fundamental frequncies.
 
-    :param data: (array) audiofile.
-    :param samplrate: (int) samplrate of audiofile.
+    :param data: (array) raw data.
+    :param samplerate: (int) samplerate of data.
     :param start_time: (int) time in seconds when the analysis shall begin.
     :param end_time: (int) time in seconds when the analysis shall end.
     :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
@@ -34,25 +34,25 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
     all_fundamentals = []
     all_times = np.array([])
 
-    nfft = next_power_of_two(samplrate / fresolution)
+    nfft = next_power_of_two(samplerate / fresolution)
     if len(data.shape) > 1:
         channels = range(data.shape[1])
     else:
         channels = range(1)
 
-    while start_time < int((len(data)- data_snippet_secs*samplrate) / samplrate):
+    while start_time < int((len(data)- data_snippet_secs*samplerate) / samplerate):
         if verbose > 2:
             print('Minute %.2f' % (start_time/60))
 
         for channel in channels:
             # print(channel)
             if len(channels) > 1:
-                tmp_data = data[int(start_time*samplrate) : int((start_time+data_snippet_secs)*samplrate), channel]
+                tmp_data = data[int(start_time*samplerate) : int((start_time+data_snippet_secs)*samplerate), channel]
             else:
-                tmp_data = data[int(start_time*samplrate) : int((start_time+data_snippet_secs)*samplrate)]
+                tmp_data = data[int(start_time*samplerate) : int((start_time+data_snippet_secs)*samplerate)]
 
             # spectrogram
-            spectrum, freqs, time = spectrogram(tmp_data, samplrate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
+            spectrum, freqs, time = spectrogram(tmp_data, samplerate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
 
             # psd and fish fundamentals frequency detection
             tmp_power = [np.array([]) for i in range(len(time)-(nffts_per_psd-1))]
@@ -77,7 +77,7 @@ def long_term_recording_fundamental_extraction(data, samplrate, start_time, end_
             if verbose >= 2:
                 print('Minute %.0f' % (start_time/60))
 
-        start_time += time[-nffts_per_psd] - (0.5 -(1-overlap_frac)) * nfft / samplrate
+        start_time += time[-nffts_per_psd] - (0.5 -(1-overlap_frac)) * nfft / samplerate
 
 
         if end_time > 0:
@@ -439,7 +439,7 @@ def plot_fishes(fishes, all_times, base_name, save_plot):
         plt.show()
 
 
-def fish_tracker(audio_file, start_time= 0, end_time = None, gridfile=False, save_plot=False,
+def fish_tracker(data_file, start_time= 0, end_time = None, gridfile=False, save_plot=False,
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, verbose=0):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
@@ -450,7 +450,7 @@ def fish_tracker(audio_file, start_time= 0, end_time = None, gridfile=False, sav
     detected for every time-step throughout the whole file. Afterwards the fundamental frequencies get assigned to
     different fishes.
 
-    :param audio_file: (string) filepath of the analysed audiofile.
+    :param data_file: (string) filepath of the analysed data file.
     :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
     :param nffts_per_psd: (int) amount of nffts used to calculate one psd.
     :param start_time: (int) time in seconds when the analysis shall begin.
@@ -460,23 +460,23 @@ def fish_tracker(audio_file, start_time= 0, end_time = None, gridfile=False, sav
     """
     # ToDo: how to recognize grid file? load all channels -1 in grid; else 0
     if gridfile:
-        data = open_data(audio_file, -1, 60.0, 10.0)
+        data = open_data(data_file, -1, 60.0, 10.0)
         print('--- GRID FILE ANALYSIS ---')
         print('ALL traces are analysed')
         print('--------------------------')
     else:
-        data = open_data(audio_file, 0, 60.0, 10.0)
+        data = open_data(data_file, 0, 60.0, 10.0)
         print('--- ONE TRACE ANALYSIS ---')
         print('ONLY 1 trace is analysed')
         print('--------------------------')
 
-    # with open_data(audio_file, 0, 60.0, 10.0) as data:
-    samplrate = data.samplerate
-    base_name = os.path.splitext(os.path.basename(audio_file))[0]
+    # with open_data(data_file, 0, 60.0, 10.0) as data:
+    samplerate = data.samplerate
+    base_name = os.path.splitext(os.path.basename(data_file))[0]
 
     if verbose >= 1:
         print('extract fundamentals')
-    all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplrate, start_time, end_time,
+    all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplerate, start_time, end_time,
                                                                              data_snippet_secs, nffts_per_psd,
                                                                              fresolution=0.5, overlap_frac=.9,
                                                                              verbose=verbose)
@@ -526,8 +526,8 @@ if __name__ == '__main__':
         print('Tracks fundamental freuqnecies of wave-type weakly electric fish.')
         print('')
         print('Usage:')
-        print('  python[3] -m thunderfish.tracker <audio_file> [start_time] [end_time] [-g] [-p] [-s]')
-        print('  -> start- and endtime: (in minutes) can be used to only analyse parts of a audio file.')
+        print('  python[3] -m thunderfish.tracker <data_file> [start_time] [end_time] [-g] [-p] [-s]')
+        print('  -> start- and endtime: (in minutes) can be used to only analyse parts of a data file.')
         print('  -> -g: the powerspectra of all channels at a time are summed up.')
         print('         can be used when there are multiple channels to analyse.')
         print('  -> -p: saves the final plot as png')
