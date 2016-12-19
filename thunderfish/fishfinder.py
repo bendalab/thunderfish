@@ -151,8 +151,8 @@ class SignalPlot:
         mr2.extend(len(cc0) * 'v')
         # second darker color range:
         cc1 = plt.cm.gist_rainbow(np.linspace(0.33 / 7.0, 1.0, 7.0))
-        cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1])) * np.array([1.0, 0.9, 0.7, 0.0]))[0]
-        cc1[:, 3] = 1.0
+        cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.9, 0.7]))[0]
+        cc1 = np.hstack((cc1, np.ones((len(cc1),1))))
         # shuffle it:
         for k in range((len(cc1) + 1) // 2):
             self.colorrange.extend(cc1[k::(len(cc1) + 1) // 2])
@@ -160,8 +160,8 @@ class SignalPlot:
         mr2.extend(len(cc1) * '*')
         # third lighter color range:
         cc2 = plt.cm.gist_rainbow(np.linspace(0.67 / 6.0, 1.0, 6.0))
-        cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc2])) * np.array([1.0, 0.5, 1.0, 0.0]))[0]
-        cc2[:, 3] = 1.0
+        cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.5, 1.0]))[0]
+        cc2 = np.hstack((cc2, np.ones((len(cc2),1))))
         # shuffle it:
         for k in range((len(cc2) + 1) // 2):
             self.colorrange.extend(cc2[k::(len(cc2) + 1) // 2])
@@ -332,7 +332,6 @@ class SignalPlot:
         labels = []
         fsizes = [np.sqrt(np.sum(self.fishlist[k][:, 1])) for k in range(len(self.fishlist))]
         fmaxsize = np.max(fsizes) if len(fsizes) > 0 else 1.0
-        self.axp.set_color_cycle(self.colorrange)
         for k in range(len(self.peak_artists)):
             self.peak_artists[k].remove()
         self.peak_artists = []
@@ -343,7 +342,9 @@ class SignalPlot:
             fpeakinx = [int(np.round(fp / self.deltaf)) for fp in fpeaks if fp < freqs[-1]]
             fsize = 7.0 + 10.0 * (fsizes[k] / fmaxsize) ** 0.5
             fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)], power[fpeakinx], linestyle='None',
-                                        marker=self.markerrange[k], ms=fsize, mec=None, mew=0.0, zorder=1)
+                                        color=self.colorrange[k % len(self.colorrange)],
+                                        marker=self.markerrange[k], ms=fsize,
+                                        mec=None, mew=0.0, zorder=1)
             self.peak_artists.append(fishpoints)
             if self.deltaf < 0.1:
                 labels.append('%4.2f Hz' % fpeaks[0])
