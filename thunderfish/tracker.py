@@ -93,7 +93,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
     return all_fundamentals, all_times
 
 
-def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = 1.,
+def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = .5,
                              save_original_fishes=False, verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
