@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from .dataloader import open_data
 from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import harmonic_groups, fundamental_freqs
+from IPython import embed
  
 
 def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0, end_time=-1.0, data_snippet_secs=60.0,
@@ -44,8 +45,8 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
     else:
         channels = range(1)
 
-    while start_time < int((len(data)- data_snippet_secs*samplerate) / samplerate):
-        if verbose > 2:
+    while start_time < int((len(data)- data_snippet_secs*samplerate) / samplerate) or int(start_time) == 0:
+        if verbose >= 2:
             print('Minute %.2f' % (start_time/60))
 
         for channel in channels:
@@ -145,9 +146,6 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
     end_nans = [0]
 
     # for every list of fundamentals ...
-    if verbose >=2:
-        print('len of all_fundamentals: ', len(all_fundamentals))
-
     clean_up_idx = int(30 * dpm)
 
     for enu, fundamentals in enumerate(all_fundamentals):
@@ -190,7 +188,8 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
 
             if np.isnan(fishes[fish][enu+1]):
                 end_nans[fish] += 1
-
+    if verbose >= 2:
+        print('cleaning up ...')
     fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
     # reshape everything to arrays
     for fish in range(len(fishes)):
@@ -207,7 +206,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
     return np.asarray(fishes)
 
 
-def detect_rises(fishes, all_times, f_th = .5):
+def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     """
     Detects rises in frequency arrays that belong to a certain fish.
 
@@ -223,7 +222,7 @@ def detect_rises(fishes, all_times, f_th = .5):
                        all_rises[ fish ][ rise ][ [idx_start, idx_end], [freq_start, freq_end] ]
     """
 
-    def detect_single_rise(fish, non_nan_idx, f_th, dpm):
+    def detect_single_rise(fish, non_nan_idx, rise_f_th, dpm):
         """
         Detects a single rise in an array of fish frequencies.
 
@@ -277,7 +276,7 @@ def detect_rises(fishes, all_times, f_th = .5):
                         last_possibe = True
 
                     if len(fish[idxs2][fish[idxs2] >= fish[non_nan_idx[j]]]) == len(fish[idxs2]) or non_nan_idx[j] == non_nan_idx[-1] or last_possibe:
-                        freq_th = f_th + ((non_nan_idx[j] - non_nan_idx[i]) *1.) // (dpm /60. *30) * f_th
+                        freq_th = rise_f_th + ((non_nan_idx[j] - non_nan_idx[i]) *1.) // (dpm /60. *30) * rise_f_th
                         if fish[non_nan_idx[i]] - fish[non_nan_idx[j]] >= freq_th:
                             nnans_befor_start = non_nan_idx[(non_nan_idx > non_nan_idx[i] - dpm / 60 *10) & (non_nan_idx <= non_nan_idx[i])]
                             diff_nnans_before = np.append([nnans_befor_start[0] - (non_nan_idx[i] - dpm / 60 * 10)],np.diff(nnans_befor_start))
@@ -290,23 +289,25 @@ def detect_rises(fishes, all_times, f_th = .5):
                             break
         return [[], []], [non_nan_idx[-1]]
 
-    print('rise detection...')
     detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff
     all_rises = []
-    print len(fishes)
     progress = '0.00'
+    if verbose >= 2:
+        print('Progress:')
     for enu, fish in enumerate(fishes):
-        if ('%.2f' % (enu * 1.0 / len(fishes))) != progress:
-            print('%.2f' % (enu * 1.0 / len(fishes)))
-            progress = ('%.2f' % (enu * 1.0 / len(fishes)))
+        if verbose >= 2:
+            if ('%.2f' % (enu * 1.0 / len(fishes))) != progress:
+                print('%.2f' % (enu * 1.0 / len(fishes)))
+                progress = ('%.2f' % (enu * 1.0 / len(fishes)))
         non_nan_idx = np.arange(len(fish))[~np.isnan(fish)]
         fish_rises = []
         while non_nan_idx[-1] - non_nan_idx[0] > (dpm / 60. * 10) + 1:
-            rise_data, non_nan_idx = detect_single_rise(fish, non_nan_idx, f_th, dpm)
+            rise_data, non_nan_idx = detect_single_rise(fish, non_nan_idx, rise_f_th, dpm)
             fish_rises.append(rise_data)
-        if fish_rises[-1][0] == []:
-            fish_rises.pop(-1)
+        if not fish_rises == []:
+            if fish_rises[-1][0] == []:
+                fish_rises.pop(-1)
         all_rises.append(fish_rises)
 
     return all_rises
@@ -417,6 +418,9 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
 
     combining_finished = False
     while combining_finished == False:
+        if np.size(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]) == 0:
+            combining_finished = True
+            continue
 
         fish = np.where(possible_combinations_all_fish == np.min(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]))[0][0]
         comp_fish = np.where(possible_combinations_all_fish == np.min(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]))[1][0]
@@ -467,7 +471,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
     return fishes[return_idxs], all_rises
 
 
-def exclude_fishes(fishes, all_times, min_occure_time = 1):
+def exclude_fishes(fishes, all_times, min_occure_time = 1.):
     """
     Delete fishes that are present for a to short period of time.
 
@@ -514,8 +518,12 @@ def cut_at_rises(fishes, all_rises):
             delete_idx.append(fish)
             all_rises.pop(fish)
     return_idx = np.setdiff1d(np.arange(len(fishes)), np.array(delete_idx))
-
-    return np.append(fishes[return_idx], new_fishes, axis=0), all_rises
+    # ToDo: include the case that no rises are detected...
+    if len(new_fishes) == 0:
+        return fishes, all_rises
+    else:
+        return np.append(fishes[return_idx], new_fishes, axis=0), all_rises
+    # return np.append(fishes[return_idx], new_fishes, axis=0), all_rises
 
 
 def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
@@ -525,19 +533,52 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
     :param fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
     :param all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
     """
-    fig, ax = plt.subplots(facecolor='white')
+    fig, ax = plt.subplots(facecolor='white', figsize=(11.6, 8.2))
+    if all_times[-1] <= 120:
+        time_factor = 1.
+    elif all_times[-1] > 120 and all_times[-1] < 7200:
+        time_factor = 60.
+    else:
+        time_factor = 3600.
 
     for fish in range(len(fishes)):
         color = np.random.rand(3, 1)
-        ax.plot(all_times[~np.isnan(fishes[fish])]/ 3600., fishes[fish][~np.isnan(fishes[fish])], color=color, marker='.')
+        ax.plot(all_times[~np.isnan(fishes[fish])] / time_factor, fishes[fish][~np.isnan(fishes[fish])], color=color, marker='.')
 
+    legend_in = False
     for fish in range(len(all_rises)):
         for rise in all_rises[fish]:
-            ax.plot(all_times[rise[0][0]] / 3600., rise[1][0], 'o', color='red', markersize= 7, markerfacecolor='None')
-            ax.plot(all_times[rise[0][1]] / 3600., rise[1][1], 's', color='green', markersize= 7, markerfacecolor='None')
+            if rise[1][0] - rise[1][1] > 1.5:
+                if legend_in == False:
+                    ax.plot(all_times[rise[0][0]] / time_factor, rise[1][0], 'o', color='red', markersize= 7,
+                            markerfacecolor='None', label='rise begin')
+                    ax.plot(all_times[rise[0][1]] / time_factor, rise[1][1], 's', color='green', markersize= 7,
+                            markerfacecolor='None', label='rise end')
+                    legend_in = True
+                    plt.legend(loc=1, numpoints=1, frameon=False, fontsize = 12)
+                else:
+                    ax.plot(all_times[rise[0][0]] / time_factor, rise[1][0], 'o', color='red', markersize=7,
+                            markerfacecolor='None')
+                    ax.plot(all_times[rise[0][1]] / time_factor, rise[1][1], 's', color='green', markersize=7,
+                            markerfacecolor='None')
 
-    plt.ylabel('Frequency [Hz]')
-    plt.xlabel('Time [h]')
+    maxy = np.max(np.array([np.mean(fishes[fish][~np.isnan(fishes[fish])]) for fish in range(len(fishes))]))
+    miny = np.min(np.array([np.mean(fishes[fish][~np.isnan(fishes[fish])]) for fish in range(len(fishes))]))
+
+    plt.ylim([miny-150, maxy+150])
+    plt.ylabel('Frequency [Hz]', fontsize=14)
+    if time_factor == 1.:
+        plt.xlabel('Time [sec]', fontsize=14)
+    elif time_factor == 60.:
+        plt.xlabel('Time [min]', fontsize=14)
+    else:
+        plt.xlabel('Time [h]', fontsize=14)
+    plt.title(base_name, fontsize=16)
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
 
     if save_plot:
         plt.savefig(base_name)
@@ -547,7 +588,9 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
 
 
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
-                 save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, verbose=0, **kwargs):
+                 save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
+                 overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 10.,
+                 f_th= 5., verbose=0, **kwargs):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -568,12 +611,12 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     """
     if gridfile:
         data = open_data(data_file, -1, 60.0, 10.0)
-        print('--- GRID FILE ANALYSIS ---')
+        print('\n--- GRID FILE ANALYSIS ---')
         print('ALL traces are analysed')
         print('--------------------------')
     else:
         data = open_data(data_file, 0, 60.0, 10.0)
-        print('--- ONE TRACE ANALYSIS ---')
+        print('\n--- ONE TRACE ANALYSIS ---')
         print('ONLY 1 trace is analysed')
         print('--------------------------')
 
@@ -582,39 +625,59 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     base_name = os.path.splitext(os.path.basename(data_file))[0]
 
     if verbose >= 1:
-        print('extract fundamentals')
+        print('\nextract fundamentals...')
+        if verbose >= 3:
+            print('> frequency resolution = %.2f Hz' % fresolution)
+            print('> nfft overlap fraction = %.2f' % overlap_frac)
     all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplerate, start_time, end_time,
                                                                              data_snippet_secs, nffts_per_psd,
-                                                                             fresolution=0.5, overlap_frac=.9,
+                                                                             fresolution=fresolution,
+                                                                             overlap_frac=overlap_frac,
                                                                              verbose=verbose, **kwargs)
 
     if verbose >= 1:
-        print('sorting fishes')
-    fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, freq_tolerance=0.5, save_original_fishes=save_original_fishes,
-                                      verbose=verbose)
+        print('\nsorting fishes...')
+        if verbose >= 3:
+            print('> frequency tolerance = %.2f Hz' % freq_tolerance)
+    fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, freq_tolerance=freq_tolerance,
+                                      save_original_fishes=save_original_fishes, verbose=verbose)
+
+    min_occure_time = all_times[-1] * 0.01 / 60.
+    if min_occure_time > 1.:
+        min_occure_time = 1.
 
     if verbose >= 1:
-        print('exclude fishes')
-    fishes = exclude_fishes(fishes, all_times)
+        print('\nexclude fishes...')
+        if verbose >= 3:
+            print('> minimum occur time: %.2f min' % min_occure_time)
+    fishes = exclude_fishes(fishes, all_times, min_occure_time)
+
     if len(fishes) == 0:
         print('excluded all fishes. Change parameters.')
         quit()
-    all_rises = detect_rises(fishes, all_times)
+    if verbose >= 1:
+        print('\nrise detection...')
+        if verbose >= 3:
+            print('> rise frequency th = %.2f Hz' % rise_f_th)
+    all_rises = detect_rises(fishes, all_times, rise_f_th, verbose=verbose)
 
+    if verbose >= 1:
+        print('\ncut fishes at rises...')
     fishes, all_rises = cut_at_rises(fishes, all_rises)
 
-    rise_count = np.sum([len(all_rises[i]) for i in range(len(all_rises))])
-    print('%.0f rises detected.' % rise_count)
-
-    print('combining fishes')
-    fishes, all_rises = combine_fishes(fishes, all_times, all_rises)
+    if verbose >= 1:
+        print('\ncombining fishes...')
+        if verbose >= 3:
+            print('> maximum time difference: %.2f min' % max_time_tolerance)
+            print('> maximum frequency difference: %.2f Hz' % f_th)
+    fishes, all_rises = combine_fishes(fishes, all_times, all_rises, max_time_tolerance, f_th)
 
     if verbose >= 1:
         print('%.0f fishes left' % len(fishes))
 
     plot_fishes(fishes, all_times, all_rises, base_name, save_plot)
     if verbose >= 1:
-        print('Whole file processed.')
+        print('\nWhole file processed.')
 
 
 if __name__ == '__main__':
@@ -624,6 +687,7 @@ if __name__ == '__main__':
     parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
     parser.add_argument('start_time', nargs='?', default=0, type=int, help='start time of analysis in min.')
     parser.add_argument('end_time', nargs='?', default=-1, type=int, help='end time of analysis in min.')
+    parser.add_argument('-v', dest='verbose', default=0, type=int,  help='verbosity level')
     parser.add_argument('-g', dest='grid', action='store_true', help='use this argument to analysis 64 electrode grid data.')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='use this argument to save output plot')
     parser.add_argument('-s', dest='save_fish', action='store_true',
@@ -650,29 +714,50 @@ if __name__ == '__main__':
         quit()
 
     if sys.argv[1].split('.')[-1] == 'npy':
+        verbose = args.verbose
+        rise_f_th = .5
+        max_time_tolerance = 10.
+        f_th = 5.
+
         a = np.load(sys.argv[1], mmap_mode='r+')
         fishes = a.copy()
 
         all_times = np.load(sys.argv[1].replace('-fishes', '-times'))
 
-        print('excluding fishes')
-        fishes = exclude_fishes(fishes, all_times)
+        min_occure_time = all_times[-1] * 0.01 / 60.
+        if min_occure_time > 1.:
+            min_occure_time = 1.
 
-        all_rises = detect_rises(fishes, all_times)
+        if verbose >= 1:
+            print('\nexclude fishes...')
+            if verbose >= 3:
+                print('> minimum occur time: %.2f min' % min_occure_time)
+        fishes = exclude_fishes(fishes, all_times, min_occure_time=min_occure_time)
 
+        if verbose >= 1:
+            print('\nrise detection...')
+            if verbose >= 3:
+                print('> rise frequency th = %.2f Hz' % rise_f_th)
+        all_rises = detect_rises(fishes, all_times, rise_f_th, verbose)
+
+        if verbose >= 1:
+            print('\ncut fishes at rises...')
         fishes, all_rises = cut_at_rises(fishes, all_rises)
 
-        rise_count = np.sum([len(all_rises[i]) for i in range(len(all_rises))])
-        print('%.0f rises detected.' % rise_count)
-
-        print('combining fishes')
-        fishes, all_rises = combine_fishes(fishes, all_times, all_rises)
-
-        print('%.0f fishes left' % len(fishes))
+        if verbose >= 1:
+            print('\ncombining fishes...')
+            if verbose >= 3:
+                print('> maximum time difference: %.2f min' % max_time_tolerance)
+                print('> maximum frequency difference: %.2f Hz' % f_th)
+        fishes, all_rises = combine_fishes(fishes, all_times, all_rises, max_time_tolerance, f_th)
+        if verbose >= 1:
+            print('%.0f fishes left' % len(fishes))
 
         base_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
-        print('plotting')
+
         plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot)
+        if verbose >= 1:
+            print('Whole file processed.')
 
     else:
-        fish_tracker(args.file, args.start_time*60, args.end_time*60, args.grid, args.save_plot, args.save_fish, verbose=3)
+        fish_tracker(args.file, args.start_time*60, args.end_time*60, args.grid, args.save_plot, args.save_fish, verbose=args.verbose)
