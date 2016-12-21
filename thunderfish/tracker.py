@@ -46,7 +46,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
         channels = range(1)
 
     while start_time < int((len(data)- data_snippet_secs*samplerate) / samplerate) or int(start_time) == 0:
-        if verbose >= 2:
+        if verbose >= 3:
             print('Minute %.2f' % (start_time/60))
 
         for channel in channels:
@@ -79,7 +79,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
 
         if (len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) > -1 and (
                     len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) < 1:
-            if verbose >= 2:
+            if verbose >= 3:
                 print('Minute %.0f' % (start_time/60))
 
         start_time += time[-nffts_per_psd] - (0.5 -(1-overlap_frac)) * nfft / samplerate
@@ -87,7 +87,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
 
         if end_time > 0:
             if start_time >= end_time:
-                if verbose >= 2:
+                if verbose >= 3:
                     print('End time reached!')
                 break
 
@@ -150,7 +150,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
 
     for enu, fundamentals in enumerate(all_fundamentals):
         if enu == clean_up_idx:
-            if verbose >= 2:
+            if verbose >= 3:
                 print('cleaning up ...')
             fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
             clean_up_idx += int(30 * dpm)
@@ -188,7 +188,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
 
             if np.isnan(fishes[fish][enu+1]):
                 end_nans[fish] += 1
-    if verbose >= 2:
+    if verbose >= 3:
         print('cleaning up ...')
     fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
     # reshape everything to arrays
@@ -293,10 +293,10 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     dpm = 60. / detection_time_diff
     all_rises = []
     progress = '0.00'
-    if verbose >= 2:
+    if verbose >= 3:
         print('Progress:')
     for enu, fish in enumerate(fishes):
-        if verbose >= 2:
+        if verbose >= 3:
             if ('%.2f' % (enu * 1.0 / len(fishes))) != progress:
                 print('%.2f' % (enu * 1.0 / len(fishes)))
                 progress = ('%.2f' % (enu * 1.0 / len(fishes)))
@@ -626,7 +626,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
 
     if verbose >= 1:
         print('\nextract fundamentals...')
-        if verbose >= 3:
+        if verbose >= 2:
             print('> frequency resolution = %.2f Hz' % fresolution)
             print('> nfft overlap fraction = %.2f' % overlap_frac)
     all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplerate, start_time, end_time,
@@ -637,7 +637,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
 
     if verbose >= 1:
         print('\nsorting fishes...')
-        if verbose >= 3:
+        if verbose >= 2:
             print('> frequency tolerance = %.2f Hz' % freq_tolerance)
     fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, freq_tolerance=freq_tolerance,
                                       save_original_fishes=save_original_fishes, verbose=verbose)
@@ -648,7 +648,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
 
     if verbose >= 1:
         print('\nexclude fishes...')
-        if verbose >= 3:
+        if verbose >= 2:
             print('> minimum occur time: %.2f min' % min_occure_time)
     fishes = exclude_fishes(fishes, all_times, min_occure_time)
 
@@ -657,7 +657,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
         quit()
     if verbose >= 1:
         print('\nrise detection...')
-        if verbose >= 3:
+        if verbose >= 2:
             print('> rise frequency th = %.2f Hz' % rise_f_th)
     all_rises = detect_rises(fishes, all_times, rise_f_th, verbose=verbose)
 
@@ -667,7 +667,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
 
     if verbose >= 1:
         print('\ncombining fishes...')
-        if verbose >= 3:
+        if verbose >= 2:
             print('> maximum time difference: %.2f min' % max_time_tolerance)
             print('> maximum frequency difference: %.2f Hz' % f_th)
     fishes, all_rises = combine_fishes(fishes, all_times, all_rises, max_time_tolerance, f_th)
@@ -687,7 +687,8 @@ if __name__ == '__main__':
     parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
     parser.add_argument('start_time', nargs='?', default=0, type=int, help='start time of analysis in min.')
     parser.add_argument('end_time', nargs='?', default=-1, type=int, help='end time of analysis in min.')
-    parser.add_argument('-v', dest='verbose', default=0, type=int,  help='verbosity level')
+    # parser.add_argument('-v', dest='verbose', default=0, type=int,  help='verbosity level')
+    parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
     parser.add_argument('-g', dest='grid', action='store_true', help='use this argument to analysis 64 electrode grid data.')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='use this argument to save output plot')
     parser.add_argument('-s', dest='save_fish', action='store_true',
@@ -730,13 +731,13 @@ if __name__ == '__main__':
 
         if verbose >= 1:
             print('\nexclude fishes...')
-            if verbose >= 3:
+            if verbose >= 2:
                 print('> minimum occur time: %.2f min' % min_occure_time)
         fishes = exclude_fishes(fishes, all_times, min_occure_time=min_occure_time)
 
         if verbose >= 1:
             print('\nrise detection...')
-            if verbose >= 3:
+            if verbose >= 2:
                 print('> rise frequency th = %.2f Hz' % rise_f_th)
         all_rises = detect_rises(fishes, all_times, rise_f_th, verbose)
 
@@ -746,7 +747,7 @@ if __name__ == '__main__':
 
         if verbose >= 1:
             print('\ncombining fishes...')
-            if verbose >= 3:
+            if verbose >= 2:
                 print('> maximum time difference: %.2f min' % max_time_tolerance)
                 print('> maximum frequency difference: %.2f Hz' % f_th)
         fishes, all_rises = combine_fishes(fishes, all_times, all_rises, max_time_tolerance, f_th)
