@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 from .dataloader import open_data
 from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import harmonic_groups, fundamental_freqs
-from IPython import embed
  
 
 def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0, end_time=-1.0, data_snippet_secs=60.0,
