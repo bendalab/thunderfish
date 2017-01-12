@@ -9,7 +9,7 @@ threshold_estimate(): estimates thresholds for peak detection in a power spectru
 fundamental_freqs(): extract the fundamental frequencies from lists of harmonic groups
                      as returned by harmonic_groups().
 colors_markers(): Generate a list of colors and markers for plotting.
-plot_harmonic_groups(): Plot decibel power of fundamentals and their harmonics.
+plot_harmonic_groups(): Mark decibel power of fundamentals and their harmonics.
 plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
 """
 
@@ -843,9 +843,7 @@ def colors_markers():
 def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
-    Plot decibel power of fundamentals and their harmonics.
-
-    The axis passed to this function should already contain a plotted decibel power-spectrum.
+    Mark decibel power of fundamentals and their harmonics in a plot.
 
     Args:
     -----
@@ -935,8 +933,6 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
         Limits of frequency axis are set to (0, max_freq) if max_freq is greater than zero.
     """
     
-    # plot power spectrum:
-    plot_decibel_psd(ax, psd_freqs, psd, max_freq=max_freq, color='blue')
     # mark all and good psd peaks:
     pmin, pmax = ax.get_ylim()
     doty = pmax - 5.0
@@ -956,6 +952,8 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
     plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
                          colors=colors, markers=markers, legend_rows=8,
                          loc='upper right')
+    # plot power spectrum:
+    plot_decibel_psd(ax, psd_freqs, psd, max_freq=max_freq, color='blue')
 
     
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,

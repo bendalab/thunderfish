@@ -122,12 +122,12 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
         dom_freq = 1. / period
         fish_count = 1
 
-    plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=3000.0, color='blue')
     if not pulse_fish_width and not pulse_fish_psd:
         colors, markers = colors_markers()
         plot_harmonic_groups(ax3, filtered_fishlist, max_groups=0, sort_by_freq=True,
                              colors=colors, markers=markers, legend_rows=4,
                              frameon=False, bbox_to_anchor=(1.2, 1), loc='upper right')
+    plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=3000.0, color='blue')
     ax3.set_title('Powerspectrum (%.0f detected fish)' % fish_count)
 
     ##########
@@ -334,4 +334,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    print('\nThanks for using thunderfish! Your files have been analyzed!')
+    print('Thank you for using thunderfish!')
