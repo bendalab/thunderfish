@@ -8,6 +8,9 @@ threshold_estimate(): estimates thresholds for peak detection in a power spectru
 
 fundamental_freqs(): extract the fundamental frequencies from lists of harmonic groups
                      as returned by harmonic_groups().
+colors_markers(): Generate a list of colors and markers for plotting.
+plot_harmonic_groups(): Plot decibel power of fundamentals and their harmonics.
+plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
 """
 
 from __future__ import print_function
@@ -840,7 +843,7 @@ def colors_markers():
 def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
-    Plot decibel power of fundamental and its harmonics.
+    Plot decibel power of fundamentals and their harmonics.
 
     The axis passed to this function should already contain a plotted decibel power-spectrum.
 
