@@ -82,7 +82,7 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
 
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
     ax1 = fig.add_axes([0.05, 0.9, 0.9, 0.1])  # title
-    ax2 = fig.add_axes([0.075, 0.05, 0.8, 0.1])  # trace
+    ax2 = fig.add_axes([0.075, 0.05, 0.9, 0.1])  # trace
     ax3 = fig.add_axes([0.075, 0.6, 0.4, 0.3])  # psd
     ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])  # mean eod
     ax5 = fig.add_axes([0.575, 0.6, 0.4, 0.3])  # meta data
@@ -106,9 +106,11 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     ax2.plot(time[:idx0], raw_data[:idx0], color='blue')
     ax2.plot(time[idx1:], raw_data[idx1:], color='blue')
     ax2.plot(time[idx0:idx1], raw_data[idx0:idx1], color='red', label='analysis\nwindow')
+    ax2.text(time[(idx0+idx1)//2], 0.0, 'analysis\nwindow', ha='center', va='center')
+    ax2.set_xlim(time[0], time[-1])
     ax2.set_xlabel('Time [sec]')
     ax2.set_ylabel('Amplitude [a.u.]')
-    ax2.legend(bbox_to_anchor=(1.15, 1), frameon=False)
+    #ax2.legend(bbox_to_anchor=(1.15, 1), frameon=False)
     ############
 
     # plot psd
@@ -120,7 +122,7 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
         dom_freq = 1. / period
         fish_count = 1
 
-    plot_decibel_psd(psd_data[0][1], psd_data[0][0], ax3, color='blue')
+    plot_decibel_psd(psd_data[0][1], psd_data[0][0], ax3, max_freq=3000.0, color='blue')
     if not pulse_fish_width and not pulse_fish_psd:
         colors, markers = colors_markers()
         plot_harmonic_groups(filtered_fishlist, ax=ax3, max_groups=0, sort_by_freq=True,
