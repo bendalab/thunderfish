@@ -208,10 +208,11 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
         rise_tau.append([])
         rise_dt.append([])
         rise_df.append([])
-
-        tmp_t = []
+        rise_iri.append([])
+        #
+        # tmp_t = []
         if all_rises[fish] == []:
-            rise_iri.append(np.array([]))
+            # rise_iri.append(np.array([]))
             continue
         else:
             for rise in range(len(all_rises[fish])):
@@ -219,7 +220,11 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
                     counter1 += 1
                     continue
 
-                tmp_t.append(all_rises[fish][rise][0][0])
+                # tmp_t.append(all_rises[fish][rise][0][0])
+                rise_f[-1].append(all_rises[fish][rise][1][1])
+                rise_t[-1].append(all_times[all_rises[fish][rise][0][0]])
+                rise_dt[-1].append(all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]])
+
 
                 end_idx_plus = all_rises[fish][rise][0][1] + dpm / 2
                 other_start_idx = np.array([all_rises[fish][x][0][0] for x in np.arange(rise+1, len(all_rises[fish]))])
@@ -228,21 +233,24 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
 
                 if calculate_tau:
                     if True in larger_than:
+                        rise_tau[-1].append(np.nan)
                         counter2 += 1
                         continue
                     popt = compute_tau(all_rises, fishes, all_times, rise, fish, dpm)
                     if popt[1] >= 200:
+                        rise_tau[-1].append(np.nan)
                         continue
 
                     rise_tau[-1].append(popt[1])
                     rise_df[-1].append(all_rises[fish][rise][1][0] - exponenial_func(popt[1] * 2, *popt))
                 else:
+                    rise_tau[-1].append(np.nan)
                     rise_df[-1].append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
 
-                rise_f[-1].append(all_rises[fish][rise][1][1])
-                rise_t[-1].append(all_times[all_rises[fish][rise][0][0]])
-                rise_dt[-1].append(all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]])
-            rise_iri.append(np.diff(tmp_t))
+                # rise_f[-1].append(all_rises[fish][rise][1][1])
+                # rise_t[-1].append(all_times[all_rises[fish][rise][0][0]])
+                # rise_dt[-1].append(all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]])
+            rise_iri[-1] = np.diff(rise_t[-1])
 
     total_rise_count = np.sum([len(all_rises[x]) for x in range(len(all_rises))])
     c1p = 100. * counter1 / total_rise_count
