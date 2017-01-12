@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
+from .powerspectrum import decibel
 
 
 def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=0.1,
@@ -125,7 +126,7 @@ def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=30
     proportions = []
     all_percentiles = []
     for trial in range(int(max_freq / freq_bins)):
-        tmp_power_db = 10.0 * np.log10(power[trial * int(freq_bins / res): (trial + 1) * int(freq_bins / res)])
+        tmp_power_db = decibel(power[trial * int(freq_bins / res): (trial + 1) * int(freq_bins / res)])
         # calculates 4 percentiles for each powerbin
         percentiles = np.percentile(tmp_power_db, [outer_percentile, inner_percentile,
                                                    100 - inner_percentile,
@@ -243,7 +244,7 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
     f_type = 'pulse' if pulse_fish else 'wave'
     ax.set_title('Suggested fish-type is %s' % f_type, fontsize=fs + 2)
     ax.plot(freqs[:int(max_freq / (freqs[-1] / len(freqs)))],
-                10.0 * np.log10(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
+            decibel(power[:int(3000 / (freqs[-1] / len(freqs)))]), '-', alpha=0.5)
     for bin in range(len(proportions)):
         ax.fill_between([bin * 125, (bin + 1) * 125], percentiles[bin][0], percentiles[bin][1], color='red',
                         alpha=0.7)

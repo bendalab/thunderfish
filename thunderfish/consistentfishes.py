@@ -7,6 +7,7 @@ consistent_fishes(): Compares a list of fishlists and builds a consistent fishli
 
 import numpy as np
 from .harmonicgroups import fundamental_freqs
+from .powerspectrum import decibel
 
 
 def find_consistency(fundamentals, df_th=1.):
@@ -91,7 +92,7 @@ def consistent_fishes_psd_plot(filtered_fishlist, ax, max_freq= 3000):
         x = np.array([filtered_fishlist[fish][harmonic][0] for harmonic in range(len(filtered_fishlist[fish]))])
         y = np.array([filtered_fishlist[fish][harmonic][1] for harmonic in range(len(filtered_fishlist[fish]))])
         y[y < 1e-20] = np.nan
-        ax.plot(x[x < max_freq], 10.0 * np.log10(y[x < max_freq]), 'o', markersize=8, label='%.1f' % filtered_fishlist[fish][0][0])
+        ax.plot(x[x < max_freq], decibel(y[x < max_freq]), 'o', markersize=8, label='%.1f' % filtered_fishlist[fish][0][0])
         ax.legend(frameon=False, numpoints=1, bbox_to_anchor=(1.2, 1))
 
 

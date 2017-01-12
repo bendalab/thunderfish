@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import sys
 import os
 import warnings
@@ -8,14 +6,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 import matplotlib.colors as mc
+from audioio import PlayAudio, fade
 from .configfile import ConfigFile
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
 from .dataloader import open_data
-from .powerspectrum import nfft_noverlap
+from .powerspectrum import nfft_noverlap, decibel
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
-from audioio import PlayAudio, fade
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
@@ -259,7 +257,7 @@ class SignalPlot:
         t2 = t1 + nfft
         specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft // 2,
                                              detrend=ml.detrend_mean)
-        z = 10. * np.log10(specpower)
+        z = decibel(specpower)
         z = np.flipud(z)
         extent = self.toffset, self.toffset + np.amax(bins), freqs[0], freqs[-1]
         self.axs.set_xlim(self.toffset, self.toffset + self.twindow)
@@ -304,8 +302,8 @@ class SignalPlot:
             self.power_label = self.axp.set_ylabel('Power')
         if self.decibel:
             if len(self.allpeaks) > 0:
-                self.allpeaks[:, 1] = 10.0 * np.log10(self.allpeaks[:, 1])
-            power = 10.0 * np.log10(power)
+                self.allpeaks[:, 1] = decibel(self.allpeaks[:, 1])
+            power = decibel(power)
             pmin = np.min(power[freqs < self.fmax])
             pmin = np.floor(pmin / 10.0) * 10.0
             pmax = np.max(power[freqs < self.fmax])

@@ -13,6 +13,7 @@ fundamental_freqs(): extract the fundamental frequencies from lists of harmonic 
 from __future__ import print_function
 import numpy as np
 from .peakdetection import detect_peaks, accept_peaks_size_width, hist_threshold
+from .powerspectrum import decibel
 
 
 def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, max_freq=2000.0,
@@ -678,7 +679,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
         print('##### harmonic_groups', 48 * '#')
 
     # decibel power spectrum:
-    log_psd = 10.0 * np.log10(psd)
+    log_psd = decibel(psd)
 
     # thresholds:
     center = np.NaN
@@ -780,12 +781,12 @@ def fundamental_freqs_and_db(grouplist):
         eodf_db_matrix = []
         for groups in grouplist:
             f = [np.array([harmonic_group[0][0], harmonic_group[0][1]]) for harmonic_group in grouplist]
-            f[:, 1] = 10.0 * np.log10(f[:, 1])  # calculate decibel using 1 as P0
+            f[:, 1] = decibel(f[:, 1])  # calculate decibel using 1 as reference power
             eodf_db_matrix.append(f)
     else:
         eodf_db_matrix = np.array([np.array([harmonic_group[0][0], harmonic_group[0][1]])
                                    for harmonic_group in grouplist])
-        eodf_db_matrix[:, 1] = 10.0 * np.log10(eodf_db_matrix[:, 1])  # calculate decibel using 1 as P0
+        eodf_db_matrix[:, 1] = decibel(eodf_db_matrix[:, 1])  # calculate decibel using 1 as reference power
 
     return eodf_db_matrix
 

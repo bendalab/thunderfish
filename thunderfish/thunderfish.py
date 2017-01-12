@@ -90,11 +90,11 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
 
     # plot title
     if not pulse_fish_width and not pulse_fish_psd:
-        ax1.text(-0.05, .75, '%s --- Recoding of a wavefish.' % base_name, fontsize=20, color='grey')
+        ax1.text(-0.05, .75, '%s --- Recording of a wavefish.' % base_name, fontsize=20, color='grey')
     elif pulse_fish_width and pulse_fish_psd:
-        ax1.text(-0.02, .65, '%s --- Recoding of a pulsefish.' % base_name, fontsize=20, color='grey')
+        ax1.text(-0.02, .65, '%s --- Recording of a pulsefish.' % base_name, fontsize=20, color='grey')
     else:
-        ax1.text(-0.05, .75, '%s --- Recoding of wave- and pulsefish.' % base_name, fontsize=20, color='grey')
+        ax1.text(-0.05, .75, '%s --- Recording of wave- and pulsefish.' % base_name, fontsize=20, color='grey')
     ax1.text(0.83, .8, 'Thunderfish by Bendalab', fontsize=16, color='grey')
     ax1.set_frame_on(False)
     ax1.get_xaxis().set_visible(False)
@@ -121,7 +121,7 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
         dom_freq = 1. / period
         fish_count = 1
 
-    plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax3, fs=12)
+    plot_decibel_psd(psd_data[0][1], psd_data[0][0], ax3, color='blue')
     if not pulse_fish_width and not pulse_fish_psd:
         consistent_fishes_psd_plot(filtered_fishlist, ax=ax3)
     ax3.set_title('Powerspectrum (%.0f detected fish)' % fish_count)
