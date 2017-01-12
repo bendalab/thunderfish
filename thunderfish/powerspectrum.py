@@ -1,8 +1,5 @@
 """
-Functions to calculate and plot powerspectra and spectrograms.
-
- on the basis of a given dataset, a given samplingrate and a given
-frequency resolution for the psd.
+Computing and plot powerspectra and spectrograms.
 
 next_power_of_two(): rounds an integer up to the next power of two.
 nfff_overlap():      computes nfft and overlap based on a requested minimum frequency resolution

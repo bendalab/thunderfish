@@ -12,6 +12,8 @@ fundamental_freqs(): extract the fundamental frequencies from lists of harmonic 
 
 from __future__ import print_function
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.colors as mc
 from .peakdetection import detect_peaks, accept_peaks_size_width, hist_threshold
 from .powerspectrum import decibel
 
@@ -730,12 +732,12 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     return groups, fzero_harmonics, mains, all_freqs, freqs[:, 0], low_threshold, high_threshold, center
 
 
-def fundamental_freqs(group_lists):
+def fundamental_freqs(group_list):
     """
     Extract the fundamental frequencies from lists of harmonic groups.
 
     Args:
-      group_lists (list of 2-D arrays or list of list of 2-D arrays):
+      group_list (list of 2-D arrays or list of list of 2-D arrays):
             Lists of harmonic groups as returned by extract_fundamentals() and
             harmonic_groups() with the element [0][0] of the
             harmonic groups being the fundamental frequency.
@@ -745,25 +747,25 @@ def fundamental_freqs(group_lists):
             single array or list of arrays (corresponding to the input group_list)
             of the fundamental frequencies.
     """
-    if len(group_lists) == 0:
+    if len(group_list) == 0:
         fundamentals = np.array([])
-    elif hasattr(group_lists[0][0][0], '__len__'):
+    elif hasattr(group_list[0][0][0], '__len__'):
         fundamentals = []
-        for groups in group_lists:
+        for groups in group_list:
             fundamentals.append(np.array([harmonic_group[0][0] for harmonic_group in groups]))
     else:
-        fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_lists])
+        fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_list])
     return fundamentals
 
 
-def fundamental_freqs_and_db(grouplist):
+def fundamental_freqs_and_db(group_list):
 
     """
     Extract the fundamental frequencies and their power in dB from lists of harmonic groups.
 
     Parameters
     ----------
-    grouplist: list of 2-D arrays or list of list of 2-D arrays
+    group_list: list of 2-D arrays or list of list of 2-D arrays
             Lists of harmonic groups as returned by extract_fundamentals() and
             harmonic_groups() with the element [0][0] of the harmonic groups being the fundamental frequency,
             and element[0][1] being the corresponding power.
@@ -775,20 +777,134 @@ def fundamental_freqs_and_db(grouplist):
 
     """
 
-    if len(grouplist) == 0:
+    if len(group_list) == 0:
         eodf_db_matrix = np.array([])
-    elif hasattr(grouplist[0][0][0], '__len__'):
+    elif hasattr(group_list[0][0][0], '__len__'):
         eodf_db_matrix = []
-        for groups in grouplist:
-            f = [np.array([harmonic_group[0][0], harmonic_group[0][1]]) for harmonic_group in grouplist]
+        for groups in group_list:
+            f = [np.array([harmonic_group[0][0], harmonic_group[0][1]]) for harmonic_group in group_list]
             f[:, 1] = decibel(f[:, 1])  # calculate decibel using 1 as reference power
             eodf_db_matrix.append(f)
     else:
         eodf_db_matrix = np.array([np.array([harmonic_group[0][0], harmonic_group[0][1]])
-                                   for harmonic_group in grouplist])
+                                   for harmonic_group in group_list])
         eodf_db_matrix[:, 1] = decibel(eodf_db_matrix[:, 1])  # calculate decibel using 1 as reference power
 
     return eodf_db_matrix
+
+
+def colors_markers():
+    """
+    Generate a list of colors and markers for plotting.
+
+    Returns:
+    --------
+    colors: list
+        list of colors
+    markers: list
+        list of markers
+    """
+    # color and marker range:
+    colors = []
+    markers = []
+    mr2 = []
+    # first color range:
+    cc0 = plt.cm.gist_rainbow(np.linspace(0.0, 1.0, 8.0))
+    # shuffle it:
+    for k in range((len(cc0) + 1) // 2):
+        colors.extend(cc0[k::(len(cc0) + 1) // 2])
+    markers.extend(len(cc0) * 'o')
+    mr2.extend(len(cc0) * 'v')
+    # second darker color range:
+    cc1 = plt.cm.gist_rainbow(np.linspace(0.33 / 7.0, 1.0, 7.0))
+    cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.9, 0.7]))[0]
+    cc1 = np.hstack((cc1, np.ones((len(cc1),1))))
+    # shuffle it:
+    for k in range((len(cc1) + 1) // 2):
+        colors.extend(cc1[k::(len(cc1) + 1) // 2])
+    markers.extend(len(cc1) * '^')
+    mr2.extend(len(cc1) * '*')
+    # third lighter color range:
+    cc2 = plt.cm.gist_rainbow(np.linspace(0.67 / 6.0, 1.0, 6.0))
+    cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.5, 1.0]))[0]
+    cc2 = np.hstack((cc2, np.ones((len(cc2),1))))
+    # shuffle it:
+    for k in range((len(cc2) + 1) // 2):
+        colors.extend(cc2[k::(len(cc2) + 1) // 2])
+    markers.extend(len(cc2) * 'D')
+    mr2.extend(len(cc2) * 'x')
+    markers.extend(mr2)
+    return colors, markers
+
+
+def plot_harmonic_groups(group_list, ax, max_groups=0, sort_by_freq=True,
+                         colors=None, markers=None, legend_rows=8, **kwargs):
+    """
+    Plot decibel power of fundamental and its harmonics.
+
+    The axis passed to this function should already contain a plotted decibel power-spectrum.
+
+    Args:
+    -----
+    group_list: list of 2-D arrays
+            Lists of harmonic groups as returned by extract_fundamentals() and
+            harmonic_groups() with the element [0, 0] of the harmonic groups being the fundamental frequency,
+            and element[0, 1] being the corresponding power.
+    ax: axis for plot
+            axis used for plotting.
+    max_groups: int
+            if not zero plot only the max_groups powerful groups.
+    sort_by_freq: boolean
+            if True sort legend by frequency, otherwise by power.
+    colors: list of colors or None
+            if not None list of colors for plotting each group
+    markers: list of markers or None
+            if not None list of markers for plotting each group
+    legend_rows: int
+            maximum number of rows to be used for the legend.
+    kwargs: 
+            key word arguments for the legend of the plot.
+    """
+
+    if len(group_list) == 0:
+        return
+    
+    # sort by power:
+    power = np.array([np.sum(fish[:10, 1]) for fish in group_list])
+    max_power = np.max(power)
+    idx_maxpower = np.argsort(power)
+    if max_groups > 0 and len(idx_maxpower > max_groups):
+        idx_maxpower = idx_maxpower[-max_groups:]
+    idx = np.array(list(reversed(idx_maxpower)))
+
+    # sort by frequency:
+    if sort_by_freq:
+        freqs = [group_list[group][0, 0] for group in idx]
+        idx = idx[np.argsort(freqs)]
+
+    # plot:
+    for k, i in enumerate(idx):
+        group = group_list[i]
+        x = np.array([harmonic[0] for harmonic in group])
+        y = np.array([harmonic[1] for harmonic in group])
+        msize = 7.0 + 10.0 * (power[i] / max_power) ** 0.25
+        color_kwargs = {}
+        if colors is not None:
+            color_kwargs = {'color': colors[k%len(colors)]}
+        if markers is None:
+            ax.plot(x, decibel(y), 'o', ms=msize, label='%.1f Hz' % group[0, 0], **color_kwargs)
+        else:
+            if k >= len(markers):
+                break
+            ax.plot(x, decibel(y), linestyle='None', marker=markers[k], mec=None, mew=0.0,
+                    ms=msize, label='%.1f Hz' % group[0, 0], **color_kwargs)
+
+    # legend:
+    if legend_rows > 0:
+        ncol = (len(idx)-1) // legend_rows + 1
+        ax.legend(numpoints=1, ncol=ncol, **kwargs)
+    else:
+        ax.legend(numpoints=1, **kwargs)
 
 
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,

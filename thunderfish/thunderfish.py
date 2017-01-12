@@ -19,8 +19,8 @@ from .dataloader import load_data
 from .bestwindow import clip_amplitudes, best_window_indices
 from .checkpulse import check_pulse_width, check_pulse_psd
 from .powerspectrum import plot_decibel_psd, multi_resolution_psd
-from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs_and_db
-from .consistentfishes import consistent_fishes_psd_plot, consistent_fishes
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs_and_db, colors_markers, plot_harmonic_groups
+from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform_plot, eod_waveform
 from .csvmaker import write_csv
 
@@ -114,8 +114,7 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     # plot psd
     try:
         dom_freq = \
-        filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][
-            0]
+        filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][0]
         fish_count = len(filtered_fishlist)
     except IndexError:
         dom_freq = 1. / period
@@ -123,7 +122,10 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
 
     plot_decibel_psd(psd_data[0][1], psd_data[0][0], ax3, color='blue')
     if not pulse_fish_width and not pulse_fish_psd:
-        consistent_fishes_psd_plot(filtered_fishlist, ax=ax3)
+        colors, markers = colors_markers()
+        plot_harmonic_groups(filtered_fishlist, ax=ax3, max_groups=0, sort_by_freq=True,
+                             colors=colors, markers=markers, legend_rows=4,
+                             frameon=False, bbox_to_anchor=(1.2, 1), loc='upper right')
     ax3.set_title('Powerspectrum (%.0f detected fish)' % fish_count)
 
     ##########
