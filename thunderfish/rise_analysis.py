@@ -202,6 +202,12 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
     counter1 = 0
     counter2 = 0
     for fish in range(len(all_rises)):
+        rise_f.append([])
+        rise_t.append([])
+        rise_tau.append([])
+        rise_dt.append([])
+        rise_df.append([])
+
         if all_rises[fish] == []:
             continue
         else:
@@ -223,14 +229,14 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
                     if popt[1] >= 200:
                         continue
 
-                    rise_tau.append(popt[1])
-                    rise_df.append(all_rises[fish][rise][1][0] - exponenial_func(popt[1] * 2, *popt))
+                    rise_tau[-1].append(popt[1])
+                    rise_df[-1].append(all_rises[fish][rise][1][0] - exponenial_func(popt[1] * 2, *popt))
                 else:
-                    rise_df.append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
+                    rise_df[-1].append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
 
-                rise_f.append(all_rises[fish][rise][1][1])
-                rise_t.append(all_times[all_rises[fish][rise][0][0]])
-                rise_dt.append(all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]])
+                rise_f[-1].append(all_rises[fish][rise][1][1])
+                rise_t[-1].append(all_times[all_rises[fish][rise][0][0]])
+                rise_dt[-1].append(all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]])
 
     total_rise_count = np.sum([len(all_rises[x]) for x in range(len(all_rises))])
     c1p = 100. * counter1 / total_rise_count
@@ -312,7 +318,13 @@ def rise_analysis(file_path):
     if len(folders) > 1:
         folders = folders[1:]
 
-    fishes, all_times, all_rises = fist_level_analysis(folders)
+        for folder in folders:
+            tmp_fishes, all_times, all_rises = load_data(folder)
+            f, t, tau, dt, df = get_rise_params(tmp_fishes, all_times, all_rises, calculate_tau=True)
+            embed()
+            quit()
+
+    # fishes, all_times, all_rises = fist_level_analysis(folders)
 
     if len(folders) == 1:
         IRIs(all_rises)
