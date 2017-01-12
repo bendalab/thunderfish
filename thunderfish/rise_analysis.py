@@ -7,6 +7,7 @@ import scipy.stats as scp
 from scipy.optimize import curve_fit
 from IPython import embed
 
+
 def multi_file_rise_analysis(file_path):
     def load_and_join_data(file_path):
         rise_dt = []
@@ -144,8 +145,8 @@ def rise_train_analysis(file_path):
         for rise in range(len(all_rises[fish])):
             rise_times[-1].append(np.mean([times[all_rises[fish][rise][0][1]], times[all_rises[fish][rise][0][0]]]))
             time_vec.append(np.mean([times[all_rises[fish][rise][0][1]], times[all_rises[fish][rise][0][0]]]))
-
 ##############################################################################
+
 
 def load_data(folder):
     all_rises = None
@@ -169,9 +170,25 @@ def load_data(folder):
     return fishes, all_times, all_rises
 
 
-def get_rise_params(fishes, all_times, all_rises):
+def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
     def exponenial_func(t, c1, tau, c2):
         return c1 * np.exp(-t / tau) + c2
+
+    def compute_tau(all_rises, fishes, all_times, rise, fish, dpm):
+        test_rise = all_rises[fish][rise]
+        test_fish = fishes[fish][test_rise[0][0]: test_rise[0][1] + np.floor(dpm / 2)]
+        test_time = all_times[test_rise[0][0]: test_rise[0][1] + np.floor(dpm/ 2)]
+
+        test_time = test_time[~np.isnan(test_fish)]
+        test_fish = test_fish[~np.isnan(test_fish)]
+        test_time -= test_time[0]
+
+
+        c1 = all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1]
+        tau = (all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]]) * 0.3
+        c2 = all_rises[fish][rise][1][1]
+        popt, pcov = curve_fit(exponenial_func, test_time, test_fish, p0=(c1, tau, c2))
+        return popt
 
     detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff  # detections per minute
@@ -198,63 +215,29 @@ def get_rise_params(fishes, all_times, all_rises):
                 larger_than = end_idx_plus > other_start_idx
                 # print larger_than
 
-                if True in larger_than:
-                    counter2 += 1
-                    continue
+                if calculate_tau:
+                    if True in larger_than:
+                        counter2 += 1
+                        continue
+                    popt = compute_tau(all_rises, fishes, all_times, rise, fish, dpm)
+                    if popt[1] >= 200:
+                        continue
 
-                test_rise = all_rises[fish][rise]
-                test_fish = fishes[fish][test_rise[0][0]: test_rise[0][1] + np.floor(dpm / 2)]
-                test_time = all_times[test_rise[0][0]: test_rise[0][1] + np.floor(dpm/ 2)]
+                    rise_tau.append(popt[1])
+                    rise_df.append(all_rises[fish][rise][1][0] - exponenial_func(popt[1] * 2, *popt))
+                else:
+                    rise_df.append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
 
-                test_time = test_time[~np.isnan(test_fish)]
-                test_fish = test_fish[~np.isnan(test_fish)]
-                test_time -= test_time[0]
-
-
-                c1 = all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1]
-                tau = (all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]]) * 0.3
-                c2 = all_rises[fish][rise][1][1]
-                popt, pcov = curve_fit(exponenial_func, test_time, test_fish, p0=(c1, tau, c2))
-
-
-                if popt[1] >= 200:
-                    continue
-
-                rise_tau.append(popt[1])
-                rise_df.append(all_rises[fish][rise][1][0] - exponenial_func(popt[1] * 2, *popt))
                 rise_f.append(all_rises[fish][rise][1][1])
                 rise_t.append(all_times[all_rises[fish][rise][0][0]])
                 rise_dt.append(all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]])
 
-
-                # fig, ax = plt.subplots()
-                #
-                # ax.plot(test_time, test_fish, '.')
-                # yy = exponenial_func(test_time, *popt)
-                # ax.plot(test_time, yy)
-                #
-                # ## times
-                # ax.plot(popt[1]*2, popt[2], 'o', color='red')
-                # # ax.plot(test_time[-1], popt[2], 'o', color='green')
-                #
-                # ## freq
-                # ax.plot([popt[1]*2, popt[1]*2], [exponenial_func(popt[1] * 2, *popt), all_rises[fish][rise][1][0]])
-                # plt.show()
-
-                # rise_df.append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
-                # rise_df.append(popt[0])
-
-                # embed()
-                # quit()
     total_rise_count = np.sum([len(all_rises[x]) for x in range(len(all_rises))])
     c1p = 100. * counter1 / total_rise_count
     c2p = 100. * counter2 / total_rise_count
     print('\n# excluded because df to low:          %.1f percent' % c1p)
     print('\n# excluded because not able to fit:    %.1f percent' %c2p)
     print('')
-
-    # embed()
-    # quit()
 
     return rise_f, rise_t, rise_tau, rise_dt, rise_df
 
@@ -264,7 +247,7 @@ def fist_level_analysis(folders):
 
     for folder in folders:
         tmp_fishes, all_times, all_rises = load_data(folder)
-        f, t, tau, dt, df = get_rise_params(tmp_fishes, all_times, all_rises)
+        f, t, tau, dt, df = get_rise_params(tmp_fishes, all_times, all_rises, calculate_tau=True)
 
         rise_f += f
         rise_t += t
@@ -310,10 +293,17 @@ def fist_level_analysis(folders):
     ax3.set_xlabel('tau [s]')
     ax3.set_title('Rise tau histogram (bw = 1s)')
 
-    # plt.draw()
-    # plt.pause(0.001)
-    plt.show()
+    plt.draw()
+    plt.pause(0.001)
 
+    return tmp_fishes, all_times, all_rises
+
+def IRIs(all_rises):
+    iri = []
+
+
+    embed()
+    quit()
 
 
 def rise_analysis(file_path):
@@ -322,7 +312,10 @@ def rise_analysis(file_path):
     if len(folders) > 1:
         folders = folders[1:]
 
-    fist_level_analysis(folders)
+    fishes, all_times, all_rises = fist_level_analysis(folders)
+
+    if len(folders) == 1:
+        IRIs(all_rises)
 
 
 if __name__ == '__main__':
