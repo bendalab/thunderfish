@@ -15,7 +15,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mc
 from .peakdetection import detect_peaks, accept_peaks_size_width, hist_threshold
-from .powerspectrum import decibel
+from .powerspectrum import decibel, plot_decibel_psd
 
 
 def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, max_freq=2000.0,
@@ -837,7 +837,7 @@ def colors_markers():
     return colors, markers
 
 
-def plot_harmonic_groups(group_list, ax, max_groups=0, sort_by_freq=True,
+def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
     Plot decibel power of fundamental and its harmonics.
@@ -846,24 +846,24 @@ def plot_harmonic_groups(group_list, ax, max_groups=0, sort_by_freq=True,
 
     Args:
     -----
+    ax: axis for plot
+            Axis used for plotting.
     group_list: list of 2-D arrays
             Lists of harmonic groups as returned by extract_fundamentals() and
             harmonic_groups() with the element [0, 0] of the harmonic groups being the fundamental frequency,
             and element[0, 1] being the corresponding power.
-    ax: axis for plot
-            axis used for plotting.
     max_groups: int
-            if not zero plot only the max_groups powerful groups.
+            If not zero plot only the max_groups powerful groups.
     sort_by_freq: boolean
-            if True sort legend by frequency, otherwise by power.
+            If True sort legend by frequency, otherwise by power.
     colors: list of colors or None
-            if not None list of colors for plotting each group
+            If not None list of colors for plotting each group
     markers: list of markers or None
-            if not None list of markers for plotting each group
+            If not None list of markers for plotting each group
     legend_rows: int
-            maximum number of rows to be used for the legend.
+            Maximum number of rows to be used for the legend.
     kwargs: 
-            key word arguments for the legend of the plot.
+            Key word arguments for the legend of the plot.
     """
 
     if len(group_list) == 0:
@@ -907,6 +907,54 @@ def plot_harmonic_groups(group_list, ax, max_groups=0, sort_by_freq=True,
         ax.legend(numpoints=1, **kwargs)
 
 
+def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_freqs=None, good_freqs=None,
+                             max_freq=2000.0):
+    """
+    Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
+    
+    Parameters:
+    -----------
+    psd_freqs: array
+        Frequencies of the power spectrum.
+    psd: array
+        Power spectrum (linear, not decible).
+    group_list: list of 2-D arrays
+        Lists of harmonic groups as returned by extract_fundamentals() and
+        harmonic_groups() with the element [0, 0] of the harmonic groups being the fundamental frequency,
+        and element[0, 1] being the corresponding power.
+    mains: 2-D array
+        Frequencies and power of multiples of the mains frequency found in the power spectrum.
+    all_freqs: 2-D array
+        Peaks in the power spectrum detected with low threshold.
+    good_freqs: 1-D array
+        Frequencies of peaks detected with high threshold.
+    max_freq: float
+        Limits of frequency axis are set to (0, max_freq) if max_freq is greater than zero.
+    """
+    
+    # plot power spectrum:
+    plot_decibel_psd(ax, psd_freqs, psd, max_freq=max_freq, color='blue')
+    # mark all and good psd peaks:
+    pmin, pmax = ax.get_ylim()
+    doty = pmax - 5.0
+    if all_freqs is not None:
+        ax.plot(all_freqs[:, 0], np.zeros(len(all_freqs[:, 0])) + doty, 'o', color='#ffffff')
+    if good_freqs is not None:
+        ax.plot(good_freqs, np.zeros(len(good_freqs)) + doty, 'o', color='#888888')
+    # mark mains frequencies:
+    if mains is not None and len(mains) > 0:
+        fpeaks = mains[:, 0]
+        fpeakinx = [np.round(fp/(psd_freqs[1]-psd_freqs[0])) for fp in fpeaks if fp < psd_freqs[-1]]
+        ax.plot(fpeaks[:len(fpeakinx)], decibel(psd[fpeakinx]), linestyle='None',
+                marker='.', color='k', ms=10, mec=None, mew=0.0,
+                label='%3.0f Hz mains' % mains[0, 0])
+    # mark harmonic groups:
+    colors, markers = colors_markers()
+    plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
+                         colors=colors, markers=markers, legend_rows=8,
+                         loc='upper right')
+
+    
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
                                   thresh_bins=100, noise_fac=6.0, peak_fac=0.5,
                                   max_peak_width_fac=3.5, min_peak_width=1.0):
@@ -1028,17 +1076,23 @@ if __name__ == "__main__":
     samplerate = 44100.0
     eodfs = [123.0, 321.0, 666.0, 668.0]
     fish1 = generate_wavefish(eodfs[0], samplerate, duration=8.0, noise_std=0.01,
-                              amplitudes=[1.0, 0.5, 0.2, 0.1, 0.05])
+                              amplitudes=[1.0, 0.5, 0.2, 0.1, 0.05], phases=[0.0, 0.0, 0.0, 0.0, 0.0])
     fish2 = generate_wavefish(eodfs[1], samplerate, duration=8.0, noise_std=0.01,
-                              amplitudes=[1.0, 0.7, 0.2, 0.1])
+                              amplitudes=[1.0, 0.7, 0.2, 0.1], phases=[0.0, 0.0, 0.0, 0.0])
     fish3 = generate_wavefish(eodfs[2], samplerate, duration=8.0, noise_std=0.01,
-                              amplitudes=[10.0, 5.0, 1.0])
+                              amplitudes=[10.0, 5.0, 1.0], phases=[0.0, 0.0, 0.0])
     fish4 = generate_wavefish(eodfs[3], samplerate, duration=8.0, noise_std=0.01,
-                              amplitudes=[6.0, 3.0, 1.0])
+                              amplitudes=[6.0, 3.0, 1.0], phases=[0.0, 0.0, 0.0])
     data = fish1 + fish2 + fish3 + fish4
 
     # analyse:
     psd_data = psd(data, samplerate, fresolution=0.5)
-    groups = harmonic_groups(psd_data[1], psd_data[0])[0]
+    groups, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(psd_data[1], psd_data[0])
     fundamentals = fundamental_freqs(groups)
     print(fundamentals)
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    plot_psd_harmonic_groups(ax, psd_data[1], psd_data[0], groups, mains, all_freqs, good_freqs,
+                             max_freq=3000.0)
+    plt.show()
+    

@@ -93,18 +93,18 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     return decibel_psd
 
 
-def plot_decibel_psd(freqs, power, ax, ref_power=1.0, min_power=1e-20, max_freq=2000.0, **kwargs):
+def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20, max_freq=2000.0, **kwargs):
     """
     Plot the powerspectum in decibel relative to ref_power.
 
     Parameters
     ----------
+    ax:
+        axis for plot
     freqs: 1-D array
         frequency array of a psd.
     power: 1-D array
         power array of a psd.
-    ax:
-        axis for plot
     ref_power: float
         the reference power for computing decibel. If set to None the maximum power is used.
     min_power: float
@@ -117,10 +117,17 @@ def plot_decibel_psd(freqs, power, ax, ref_power=1.0, min_power=1e-20, max_freq=
      
     decibel_psd = decibel(power, ref_power=ref_power, min_power=min_power)
     ax.plot(freqs, decibel_psd, **kwargs)
+    ax.set_xlabel('Frequency [Hz]')
     if max_freq > 0.0:
         ax.set_xlim(0, max_freq)
+    else:
+        max_freq = freqs[-1]
+    pmin = np.nanmin(decibel_psd[freqs < max_freq])
+    pmin = np.floor(pmin / 10.0) * 10.0
+    pmax = np.nanmax(decibel_psd[freqs < max_freq])
+    pmax = np.ceil(pmax / 10.0) * 10.0
+    ax.set_ylim(pmin, pmax)
     ax.set_ylabel('Power [dB]')
-    ax.set_xlabel('Frequency [Hz]')
 
 
 def multi_resolution_psd(data, samplerate, fresolution=0.5,
@@ -196,6 +203,6 @@ if __name__ == '__main__':
     psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 1])
 
     fig, ax = plt.subplots()
-    plot_decibel_psd(psd_data[0][1], psd_data[0][0], ax=ax, lw=2)
-    plot_decibel_psd(psd_data[1][1], psd_data[1][0], ax=ax, lw=2)
+    plot_decibel_psd(ax, psd_data[0][1], psd_data[0][0], lw=2)
+    plot_decibel_psd(ax, psd_data[1][1], psd_data[1][0], lw=2)
     plt.show()
