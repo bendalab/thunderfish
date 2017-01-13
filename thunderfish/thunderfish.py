@@ -19,8 +19,8 @@ from .dataloader import load_data
 from .bestwindow import clip_amplitudes, best_window_indices
 from .checkpulse import check_pulse_width, check_pulse_psd
 from .powerspectrum import plot_decibel_psd, multi_resolution_psd
-from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs_and_db
-from .consistentfishes import consistent_fishes_psd_plot, consistent_fishes
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs_and_db, colors_markers, plot_harmonic_groups
+from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform_plot, eod_waveform
 from .csvmaker import write_csv
 
@@ -82,7 +82,7 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
 
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
     ax1 = fig.add_axes([0.05, 0.9, 0.9, 0.1])  # title
-    ax2 = fig.add_axes([0.075, 0.05, 0.8, 0.1])  # trace
+    ax2 = fig.add_axes([0.075, 0.05, 0.9, 0.1])  # trace
     ax3 = fig.add_axes([0.075, 0.6, 0.4, 0.3])  # psd
     ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])  # mean eod
     ax5 = fig.add_axes([0.575, 0.6, 0.4, 0.3])  # meta data
@@ -90,11 +90,11 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
 
     # plot title
     if not pulse_fish_width and not pulse_fish_psd:
-        ax1.text(-0.05, .75, '%s --- Recoding of a wavefish.' % base_name, fontsize=20, color='grey')
+        ax1.text(-0.05, .75, '%s --- Recording of a wavefish.' % base_name, fontsize=20, color='grey')
     elif pulse_fish_width and pulse_fish_psd:
-        ax1.text(-0.02, .65, '%s --- Recoding of a pulsefish.' % base_name, fontsize=20, color='grey')
+        ax1.text(-0.02, .65, '%s --- Recording of a pulsefish.' % base_name, fontsize=20, color='grey')
     else:
-        ax1.text(-0.05, .75, '%s --- Recoding of wave- and pulsefish.' % base_name, fontsize=20, color='grey')
+        ax1.text(-0.05, .75, '%s --- Recording of wave- and pulsefish.' % base_name, fontsize=20, color='grey')
     ax1.text(0.83, .8, 'Thunderfish by Bendalab', fontsize=16, color='grey')
     ax1.set_frame_on(False)
     ax1.get_xaxis().set_visible(False)
@@ -106,24 +106,28 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     ax2.plot(time[:idx0], raw_data[:idx0], color='blue')
     ax2.plot(time[idx1:], raw_data[idx1:], color='blue')
     ax2.plot(time[idx0:idx1], raw_data[idx0:idx1], color='red', label='analysis\nwindow')
+    ax2.text(time[(idx0+idx1)//2], 0.0, 'analysis\nwindow', ha='center', va='center')
+    ax2.set_xlim(time[0], time[-1])
     ax2.set_xlabel('Time [sec]')
     ax2.set_ylabel('Amplitude [a.u.]')
-    ax2.legend(bbox_to_anchor=(1.15, 1), frameon=False)
+    #ax2.legend(bbox_to_anchor=(1.15, 1), frameon=False)
     ############
 
     # plot psd
     try:
         dom_freq = \
-        filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][
-            0]
+        filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][0]
         fish_count = len(filtered_fishlist)
     except IndexError:
         dom_freq = 1. / period
         fish_count = 1
 
-    plot_decibel_psd(psd_data[0][0], psd_data[0][1], ax3, fs=12)
     if not pulse_fish_width and not pulse_fish_psd:
-        consistent_fishes_psd_plot(filtered_fishlist, ax=ax3)
+        colors, markers = colors_markers()
+        plot_harmonic_groups(ax3, filtered_fishlist, max_groups=0, sort_by_freq=True,
+                             colors=colors, markers=markers, legend_rows=4,
+                             frameon=False, bbox_to_anchor=(1.2, 1), loc='upper right')
+    plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=3000.0, color='blue')
     ax3.set_title('Powerspectrum (%.0f detected fish)' % fish_count)
 
     ##########
@@ -330,4 +334,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    print('\nThanks for using thunderfish! Your files have been analyzed!')
+    print('Thank you for using thunderfish!')

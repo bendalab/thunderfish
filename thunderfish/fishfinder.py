@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import sys
 import os
 import warnings
@@ -8,14 +6,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 import matplotlib.colors as mc
+from audioio import PlayAudio, fade
 from .configfile import ConfigFile
-from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
+from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
 from .dataloader import open_data
-from .powerspectrum import nfft_noverlap
+from .powerspectrum import nfft_noverlap, decibel
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
-from audioio import PlayAudio, fade
 
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
@@ -61,7 +59,7 @@ class SignalPlot:
         self.peak_annotation = []
         self.min_clip = self.cfg['minClipAmplitude'][0]
         self.max_clip = self.cfg['maxClipAmplitude'][0]
-        self.generate_color_range()
+        self.colorrange, self.markerrange = colors_markers()
 
         # audio output:
         self.audio = PlayAudio()
@@ -136,38 +134,6 @@ class SignalPlot:
 
     def __del(self):
         self.audio.close()
-
-    def generate_color_range(self):
-        # color and marker range:
-        self.colorrange = []
-        self.markerrange = []
-        mr2 = []
-        # first color range:
-        cc0 = plt.cm.gist_rainbow(np.linspace(0.0, 1.0, 8.0))
-        # shuffle it:
-        for k in range((len(cc0) + 1) // 2):
-            self.colorrange.extend(cc0[k::(len(cc0) + 1) // 2])
-        self.markerrange.extend(len(cc0) * 'o')
-        mr2.extend(len(cc0) * 'v')
-        # second darker color range:
-        cc1 = plt.cm.gist_rainbow(np.linspace(0.33 / 7.0, 1.0, 7.0))
-        cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.9, 0.7]))[0]
-        cc1 = np.hstack((cc1, np.ones((len(cc1),1))))
-        # shuffle it:
-        for k in range((len(cc1) + 1) // 2):
-            self.colorrange.extend(cc1[k::(len(cc1) + 1) // 2])
-        self.markerrange.extend(len(cc1) * '^')
-        mr2.extend(len(cc1) * '*')
-        # third lighter color range:
-        cc2 = plt.cm.gist_rainbow(np.linspace(0.67 / 6.0, 1.0, 6.0))
-        cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.5, 1.0]))[0]
-        cc2 = np.hstack((cc2, np.ones((len(cc2),1))))
-        # shuffle it:
-        for k in range((len(cc2) + 1) // 2):
-            self.colorrange.extend(cc2[k::(len(cc2) + 1) // 2])
-        self.markerrange.extend(len(cc2) * 'D')
-        mr2.extend(len(cc2) * 'x')
-        self.markerrange.extend(mr2)
 
     def remove_peak_annotation(self):
         for fm in self.peak_specmarker:
@@ -259,7 +225,7 @@ class SignalPlot:
         t2 = t1 + nfft
         specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft // 2,
                                              detrend=ml.detrend_mean)
-        z = 10. * np.log10(specpower)
+        z = decibel(specpower)
         z = np.flipud(z)
         extent = self.toffset, self.toffset + np.amax(bins), freqs[0], freqs[-1]
         self.axs.set_xlim(self.toffset, self.toffset + self.twindow)
@@ -304,8 +270,8 @@ class SignalPlot:
             self.power_label = self.axp.set_ylabel('Power')
         if self.decibel:
             if len(self.allpeaks) > 0:
-                self.allpeaks[:, 1] = 10.0 * np.log10(self.allpeaks[:, 1])
-            power = 10.0 * np.log10(power)
+                self.allpeaks[:, 1] = decibel(self.allpeaks[:, 1])
+            power = decibel(power)
             pmin = np.min(power[freqs < self.fmax])
             pmin = np.floor(pmin / 10.0) * 10.0
             pmax = np.max(power[freqs < self.fmax])
@@ -359,7 +325,7 @@ class SignalPlot:
                                         marker='.', color='k', ms=10, mec=None, mew=0.0, zorder=2)
             self.peak_artists.append(fishpoints)
             labels.append('%3.0f Hz mains' % self.cfg['mainsFreq'][0])
-        ncol = len(labels) // 8 + 1
+        ncol = (len(labels)-1) // 8 + 1
         self.legendhandle = self.axs.legend(self.peak_artists[:len(labels)], labels, loc='upper right', ncol=ncol)
         self.legenddict = dict()
         for legpoints, (finx, fish) in zip(self.legendhandle.get_lines(), enumerate(self.fishlist)):

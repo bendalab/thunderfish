@@ -7,6 +7,7 @@ consistent_fishes(): Compares a list of fishlists and builds a consistent fishli
 
 import numpy as np
 from .harmonicgroups import fundamental_freqs
+from .powerspectrum import decibel
 
 
 def find_consistency(fundamentals, df_th=1.):
@@ -69,30 +70,6 @@ def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     ax.set_xlim([0, len(fishlists) + 1])
     ax.set_ylabel('value', fontsize=fs)
     ax.set_xlabel('list no.', fontsize=fs)
-
-
-def consistent_fishes_psd_plot(filtered_fishlist, ax, max_freq= 3000):
-    """
-    Creates an axis for plotting the power of the four most powerful detected fishes with its fundamental and harmonics.
-
-    The axis passed to this function should already contain the plotted power-spectrum in dB.
-
-    :param filtered_fishlist: (3-D array) Contains power and frequency of these fishes that hve been detected in
-                            several powerspectra using different resolutions.
-    :param ax:              (axis for plot) empty axis that is filled with content in the function.
-    """
-    fundamental_power = [filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))]
-    if len(filtered_fishlist) >= 4:
-        idx_maxpower = np.argsort(fundamental_power)[-4:]
-    else:
-        idx_maxpower = np.argsort(fundamental_power)[:]
-
-    for fish in idx_maxpower:
-        x = np.array([filtered_fishlist[fish][harmonic][0] for harmonic in range(len(filtered_fishlist[fish]))])
-        y = np.array([filtered_fishlist[fish][harmonic][1] for harmonic in range(len(filtered_fishlist[fish]))])
-        y[y < 1e-20] = np.nan
-        ax.plot(x[x < max_freq], 10.0 * np.log10(y[x < max_freq]), 'o', markersize=8, label='%.1f' % filtered_fishlist[fish][0][0])
-        ax.legend(frameon=False, numpoints=1, bbox_to_anchor=(1.2, 1))
 
 
 def consistent_fishes(fishlists, verbose=0, plot_data_func=None, **kwargs):
