@@ -8,6 +8,7 @@ setup(name='thunderfish',
         'console_scripts': [
             'thunderfish = thunderfish.thunderfish:main',
             'fishfinder = thunderfish.fishfinder:main',
+            'tracker = thunderfish.tracker:main',
         ]},
       description='Algorithms and scripts for analyzing recordings of e-fish electric fields.',
       author='Jan Benda, Juan F. Sehuanes, Till Raab, Joerg Henninger, Jan Grewe, Fabian Sinz',

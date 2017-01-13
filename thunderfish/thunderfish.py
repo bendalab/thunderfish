@@ -8,13 +8,14 @@ python3 -m thunderfish.thunderfish audiofile.wav   or
 python -m thunderfish.thunderfish audiofile.wav
 """
 
-import numpy as np
-import argparse
+import sys
 import os
+import argparse
+import numpy as np
 import matplotlib.pyplot as plt
 from .configfile import ConfigFile
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
-from .bestwindow import add_clip_config, add_best_window_config
+from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
 from .dataloader import load_data
 from .bestwindow import clip_amplitudes, best_window_indices
 from .checkpulse import check_pulse_width, check_pulse_psd
@@ -209,28 +210,42 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
         plt.close()
 
 
-def thunderfish(filename, channel=0, save_csvs=False, save_plot=False, output_folder='.', verbosearg=0):
-    # check if output_folder ends with a '/'
-    if output_folder[-1] != '/':
-        output_folder += '/'
+def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
+                output_folder='.', cfgfile='', save_config='', verbosearg=0):
+    # configuration options:
+    cfg = ConfigFile()
+    cfg.add_section('Power spectrum estimation:')
+    cfg.add('minimumFrequencyResolution', 0.5, 'Hz', 'Minimum frequency resolution used for estimating power spectrum.')
+    add_psd_peak_detection_config(cfg)
+    add_harmonic_groups_config(cfg)
+    add_clip_config(cfg)
+    add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
+    cfg.set('clipWindow', 0.5)
+    cfg.add_section('Debugging:')
+    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
+
+    # load configuration from working directory and data directories:
+    cfg.load_files(cfgfile, filename, 3, cfg.value('verboseLevel'))
+
+    # save configuration:
+    if len(save_config) > 0:
+        ext = os.path.splitext(save_config)[1]
+        if ext != os.extsep + 'cfg':
+            print('configuration file name must have .cfg as extension!')
+        else:
+            print('write configuration to %s ...' % save_config)
+            cfg.dump(save_config)
+        return
+    
+    # set verbosity level from command line:
+    verbose = cfg.value('verboseLevel')
+    if verbosearg is not None:
+        verbose = verbosearg
 
     # create output folder
     if save_csvs or save_plot:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
-
-    # configuration options:
-    cfg = ConfigFile()
-    cfg.add_section('Debugging:')
-    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
-
-    add_psd_peak_detection_config(cfg)
-    add_harmonic_groups_config(cfg)
-    add_clip_config(cfg)
-    add_best_window_config(cfg, w_cv_ampl=10.0)
-    verbose = cfg.value('verboseLevel')
-    if verbosearg is not None:
-        verbose = verbosearg
     outfilename = os.path.splitext(os.path.basename(filename))[0]
 
     # check channel:
@@ -244,22 +259,26 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False, output_fo
         return
 
     # calculate best_window:
-    clip_win_size = 0.5
-    min_clip, max_clip = clip_amplitudes(raw_data,
-                                         int(clip_win_size * samplerate))
+    min_clip = cfg.value('minClipAmplitude')
+    max_clip = cfg.value('maxClipAmplitude')
+    if min_clip == 0.0 or max_clip == 0.0:
+        min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
     try:
-        idx0, idx1, clipped = best_window_indices(raw_data, samplerate, single=True, win_size=8.0, min_clip=min_clip,
-                                                  max_clip=max_clip, w_cv_ampl=10.0, th_factor=0.8)
+        idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
+                                                  min_clip=min_clip, max_clip=max_clip,
+                                                  **best_window_args(cfg))
     except UserWarning as e:
         print(str(e))
         return
     data = raw_data[idx0:idx1]
 
     # pulse-type fish?
+    # TODO: add configuration parameter for check_pulse()!
     pulse_fish_width, pta_value = check_pulse_width(data, samplerate)
 
     # calculate powerspectra with different frequency resolutions:
-    psd_data = multi_resolution_psd(data, samplerate, fresolution=[0.5, 2 * 0.5, 4 * 0.5])
+    minfres = cfg.value('minimumFrequencyResolution')
+    psd_data = multi_resolution_psd(data, samplerate, fresolution=[minfres, 2*minfres, 4*minfres])
 
     # find the fishes in the different powerspectra:
     fishlists = []
@@ -270,30 +289,34 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False, output_fo
         fishlists.append(fishlist)
 
     # find the psd_type:
+    # TODO: add configuration parameter for check_pulse()!
     pulse_fish_psd, proportion = check_pulse_psd(psd_data[0][0], psd_data[0][1])
 
     # filter the different fishlists to get a fishlist with consistent fishes:
     if not pulse_fish_width and not pulse_fish_psd:
+        # TODO: add configuration parameter for consistent_fishes()!
         filtered_fishlist = consistent_fishes(fishlists)
         # analyse eod waveform:
+        # TODO: add configuration parameter for eod_waveform()!
         mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6)
         if save_csvs:
             # write csv file with main EODF and corresponding power in dB of detected fishes:
             csv_matrix = fundamental_freqs_and_db(filtered_fishlist)
-            csv_name = output_folder + outfilename + '-wavefish_eodfs.csv'
+            csv_name = os.path.join(output_folder, outfilename + '-wavefish_eodfs.csv')
             header = ['fundamental frequency (Hz)', 'power (dB)']
             write_csv(csv_name, header, csv_matrix)
     else:
         filtered_fishlist = []
         # analyse eod waveform:
         mean_eod_window = 0.002
+        # TODO: add configuration parameter for eod_waveform()!
         mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6, start=-mean_eod_window,
                                                           stop=mean_eod_window)
 
     # write mean EOD
     if save_csvs:
         header = ['time (ms)', 'mean', 'std']
-        write_csv(output_folder + outfilename + '-mean_waveform.csv', header,
+        write_csv(os.path.join(output_folder, outfilename + '-mean_waveform.csv'), header,
                   np.column_stack((1000.0 * time, mean_eod, std_eod)))
 
     period = np.mean(np.diff(eod_times))
@@ -314,24 +337,32 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False, output_fo
 
 
 def main():
+    # config file name:
+    progname = os.path.basename(sys.argv[0])
+    cfgfile = os.path.splitext(progname)[0] + '.cfg'
+
     # command line arguments:
     parser = argparse.ArgumentParser(
-        description='Analyse short EOD recordings of weakly electric fish.',
-        epilog='by bendalab (2015-2016)')
+        description='Analyze EOD waveforms of weakly electric fish.',
+        epilog='by bendalab (2015-2017)')
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
-    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
-    parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be displayed')
-    parser.add_argument('-p', dest='save_plot', action='store_true', help='use this argument to save output plot')
+    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
+                        type=str, metavar='cfgfile',
+                        help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
+    parser.add_argument('file', nargs=1, default='', type=str, help='name of the file with the time series data')
+    parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be analyzed')
+    parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
     parser.add_argument('-s', dest='save_csvs', action='store_true',
-                        help='use this argument to save csv-analysis-files')
+                        help='save analysis results as csv-files')
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
                         help="path where to store results and figures")
     args = parser.parse_args()
 
-    thunderfish(args.file, args.channel, args.save_csvs, args.save_plot, args.output_folder, verbosearg=args.verbose)
+    thunderfish(args.file[0], args.channel, args.save_csvs, args.save_plot, args.output_folder,
+                cfgfile, args.save_config, verbosearg=args.verbose)
+    print('Thank you for using thunderfish!')
 
 
 if __name__ == '__main__':
     main()
-    print('Thank you for using thunderfish!')

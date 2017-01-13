@@ -714,15 +714,15 @@ def main():
 
     # command line arguments:
     parser = argparse.ArgumentParser(
-        description='Display waveform, spectrogram, and power spectrum of time series data.',
-        epilog='by Jan Benda (2015-2016)')
+        description='Display waveform, and power spectrum with detected fundamental frequencies of EOD recordings.',
+        epilog='by Jan Benda (2015-2017)')
     parser.add_argument('--version', action='version', version='1.0')
     parser.add_argument('-v', action='count', dest='verbose')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',
                         help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs='?', default='', type=str,
-                        help='name of the file wih the time series data')
+    parser.add_argument('file', nargs=1, default='', type=str,
+                        help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int,
                         help='channel to be displayed')
     args = parser.parse_args()
@@ -732,7 +732,7 @@ def main():
         cfg['verboseLevel'][0] = args.verbose
 
     # load configuration from working directory and data directories:
-    filepath = args.file
+    filepath = args.file[0]
     cfg.load_files(cfgfile, filepath, 3, cfg['verboseLevel'][0])
 
     # set verbosity level from command line (it migh have been overwritten):
