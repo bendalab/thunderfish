@@ -710,8 +710,7 @@ def main():
     cfg.set('bestWindowSize', 4.0)
 
     # config file name:
-    progname = os.path.basename(sys.argv[0])
-    cfgfile = os.path.splitext(progname)[0] + '.cfg'
+    cfgfile = __package__ + '.cfg'
 
     # command line arguments:
     parser = argparse.ArgumentParser(

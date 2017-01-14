@@ -339,8 +339,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
 
 def main():
     # config file name:
-    progname = os.path.basename(sys.argv[0])
-    cfgfile = os.path.splitext(progname)[0] + '.cfg'
+    cfgfile = __package__ + '.cfg'
 
     # command line arguments:
     parser = argparse.ArgumentParser(

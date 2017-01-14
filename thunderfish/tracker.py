@@ -693,8 +693,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
 
 def main():
     # config file name:
-    progname = os.path.basename(sys.argv[0])
-    cfgfile = os.path.splitext(progname)[0] + '.cfg'
+    cfgfile = __package__ + '.cfg'
 
     # command line arguments:
     parser = argparse.ArgumentParser(
