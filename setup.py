@@ -1,8 +1,10 @@
 from distutils.core import setup
 from setuptools import find_packages
 
+exec(open('thunderfish/version.py').read())
+
 setup(name='thunderfish',
-      version='0.5.0',     # see http://semver.org/
+      version=__version__,
       packages=find_packages(exclude=['contrib', 'doc', 'tests*']),
       entry_points={
         'console_scripts': [

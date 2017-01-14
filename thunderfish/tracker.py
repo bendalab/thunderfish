@@ -8,6 +8,7 @@ import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from .version import __version__
 from .configfile import ConfigFile
 from .dataloader import open_data
 from .powerspectrum import spectrogram, next_power_of_two
@@ -699,7 +700,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Analyse long single- or multi electrode EOD recordings of weakly electric fish.',
         epilog='by bendalab (2015-2017)')
-    parser.add_argument('--version', action='version', version='1.0')
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',

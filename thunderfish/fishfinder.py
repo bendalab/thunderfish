@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 import matplotlib.colors as mc
 from audioio import PlayAudio, fade
+from .version import __version__
 from .configfile import ConfigFile
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
@@ -716,7 +717,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Display waveform, and power spectrum with detected fundamental frequencies of EOD recordings.',
         epilog='by Jan Benda (2015-2017)')
-    parser.add_argument('--version', action='version', version='1.0')
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',

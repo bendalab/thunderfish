@@ -13,6 +13,7 @@ import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from .version import __version__
 from .configfile import ConfigFile
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
@@ -345,7 +346,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Analyze EOD waveforms of weakly electric fish.',
         epilog='by bendalab (2015-2017)')
-    parser.add_argument('--version', action='version', version='1.0')
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',
