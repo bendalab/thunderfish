@@ -714,17 +714,20 @@ def main():
     parser.add_argument('-f', dest='plot_harmonic_groups', action='store_true', help='plot harmonic group detection')
     args = parser.parse_args()
 
+    # set verbosity level from command line:
+    verbose = 0
+    if args.verbose != None:
+        verbose = args.verbose
+
     # configuration options:
     cfg = ConfigFile()
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
-    cfg.add_section('Debugging:')
-    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
 
     datafile = args.file[0]
     
     # load configuration from working directory and data directories:
-    cfg.load_files(cfgfile, datafile, 3, cfg.value('verboseLevel'))
+    cfg.load_files(cfgfile, datafile, 3, verbose)
 
     # save configuration:
     if len(args.save_config) > 0:
@@ -735,11 +738,6 @@ def main():
             print('write configuration to %s ...' % args.save_config)
             cfg.dump(args.save_config)
         return
-    
-    # set verbosity level from command line:
-    verbose = cfg.value('verboseLevel')
-    if args.verbose is not None:
-        verbose = args.verbose
 
     if os.path.splitext(datafile)[1] == 'npy':
         rise_f_th = .5

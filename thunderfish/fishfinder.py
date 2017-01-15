@@ -20,14 +20,14 @@ from .bestwindow import clip_amplitudes, clip_args, best_window_indices
 
 
 class SignalPlot:
-    def __init__(self, data, samplingrate, unit, filename, channel, cfg):
+    def __init__(self, data, samplingrate, unit, filename, channel, verbose, cfg):
         self.filename = filename
         self.channel = channel
         self.samplerate = samplingrate
         self.data = data
         self.unit = unit
         self.cfg = cfg
-        self.verbose = self.cfg['verboseLevel'][0]
+        self.verbose = verbose
         self.tmax = (len(self.data)-1)/self.samplerate
         self.toffset = 0.0
         self.twindow = 8.0
@@ -699,9 +699,6 @@ def main():
     cfg.add('labelPower', True, '', 'Display the power of the peak')
     cfg.add('labelWidth', True, '', 'Display the width of the peak')
     cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
-
-    cfg.add_section('Debugging:')
-    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
     
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
@@ -728,18 +725,13 @@ def main():
     args = parser.parse_args()
 
     # set verbosity level from command line:
+    verbose = 0
     if args.verbose != None:
-        cfg['verboseLevel'][0] = args.verbose
+        verbose = args.verbose
 
     # load configuration from working directory and data directories:
     filepath = args.file[0]
-    cfg.load_files(cfgfile, filepath, 3, cfg['verboseLevel'][0])
-
-    # set verbosity level from command line (it migh have been overwritten):
-    if args.verbose != None:
-        cfg['verboseLevel'][0] = args.verbose
-    if cfg['verboseLevel'][0] == 0:
-        warnings.filterwarnings("ignore")
+    cfg.load_files(cfgfile, filepath, 3, verbose)
 
     # save configuration:
     if len(args.save_config) > 0:
@@ -755,13 +747,13 @@ def main():
     channel = args.channel
     filename = os.path.basename(filepath)
     # TODO: add blocksize and backsize as configuration parameter!
-    with open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
+    with open_data(filepath, channel, 60.0, 10.0, verbose) as data:
         # plot:
         ## if len(data) < 10**8:
         ##     # data[:].copy() makes bestwindow much faster (it's slow in peakdetection):
         ##     SignalPlot(data[:].copy(), data.samplerate, data.unit, filename, channel)
         ## else:
-        SignalPlot(data, data.samplerate, data.unit, filename, channel, cfg)
+        SignalPlot(data, data.samplerate, data.unit, filename, channel, verbose, cfg)
 
         
 if __name__ == '__main__':

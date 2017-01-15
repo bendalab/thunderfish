@@ -212,7 +212,7 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
 
 
 def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
-                output_folder='.', cfgfile='', save_config='', verbosearg=0):
+                output_folder='.', cfgfile='', save_config='', verbose=0):
     # configuration options:
     cfg = ConfigFile()
     cfg.add_section('Power spectrum estimation:')
@@ -222,11 +222,9 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     add_clip_config(cfg)
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
     cfg.set('clipWindow', 0.5)
-    cfg.add_section('Debugging:')
-    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
 
     # load configuration from working directory and data directories:
-    cfg.load_files(cfgfile, filename, 3, cfg.value('verboseLevel'))
+    cfg.load_files(cfgfile, filename, 3, verbose)
 
     # save configuration:
     if len(save_config) > 0:
@@ -237,11 +235,6 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             print('write configuration to %s ...' % save_config)
             cfg.dump(save_config)
         return
-    
-    # set verbosity level from command line:
-    verbose = cfg.value('verboseLevel')
-    if verbosearg is not None:
-        verbose = verbosearg
 
     # create output folder
     if save_csvs or save_plot:
@@ -359,8 +352,13 @@ def main():
                         help="path where to store results and figures")
     args = parser.parse_args()
 
+    # set verbosity level from command line:
+    verbose = 0
+    if args.verbose != None:
+        verbose = args.verbose
+
     thunderfish(args.file[0], args.channel, args.save_csvs, args.save_plot, args.output_folder,
-                cfgfile, args.save_config, verbosearg=args.verbose)
+                cfgfile, args.save_config, verbose=verbose)
     print('Thank you for using thunderfish!')
 
 
