@@ -1,7 +1,7 @@
 """
-Functions to track wave-type electric fish frequencies over longer periods of time.
+Track wave-type electric fish frequencies over time.
 
-fish_tracker(): main function which performs all steps including loading data, fish tracking and -sorting and more.
+fish_tracker(): load data and track fish.
 """
 import sys
 import os
@@ -15,10 +15,14 @@ from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
 from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
- 
 
-def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0, end_time=-1.0, data_snippet_secs=60.0,
-                                               nffts_per_psd=4, fresolution=0.5, overlap_frac=.9, plot_harmonic_groups=False, verbose=0, **kwargs):
+# TODO: update to numpy doc style!
+
+# TODO: add configuration parameter!
+def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
+                         data_snippet_secs=60.0,
+                         nffts_per_psd=4, fresolution=0.5, overlap_frac=.9,
+                         plot_harmonic_groups=False, verbose=0, **kwargs):
     """
     For a long data array calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
     extracts fundamental frequncies.
@@ -26,7 +30,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
     :param data: (array) raw data.
     :param samplerate: (int) samplerate of data.
     :param start_time: (int) analyze data from this time on (in seconds).  XXX this should be a float!!!! Internally I would use indices.
-    :param end_time: (int) stop analysis at this time (in seconds). If -1 then analyse to the end of the data. XXX this should be a float!!!! Internally I would use indices.
+    :param end_time: (int) stop analysis at this time (in seconds). If -1 then analyse to the end of the data. XXX TODO this should be a float!!!! Internally I would use indices.
     :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
     :param nffts_per_psd: (int) number of nffts used for calculating one psd.
     :param fresolution: (float) frequency resolution for the spectrogram.
@@ -84,7 +88,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
                 ax = fig.add_subplot(1, 1, 1)
                 plot_psd_harmonic_groups(ax, freqs, power[p], fishlist, mains,
                                          all_freqs, good_freqs, max_freq=3000.0)
-                ax.set_title('time = %gmin' % ((start_time+0.0)/60.0))  # XXX plus what???
+                ax.set_title('time = %gmin' % ((start_time+0.0)/60.0))  # XXX TODO plus what???
                 plt.show()
 
         if (len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) > -1 and (
@@ -104,6 +108,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
     return all_fundamentals, all_times
 
 
+# TODO: add configuration parameter!
 def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = .5,
                              save_original_fishes=False, verbose=0):
     """
@@ -216,6 +221,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
     return np.asarray(fishes)
 
 
+# TODO: add configuration parameter!
 def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     """
     Detects rises in frequency arrays that belong to a certain fish.
@@ -323,6 +329,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     return all_rises
 
 
+# TODO: add configuration parameter!
 def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th = 5.):
     """
     Combines array of electric fish fundamental frequencies which, based on frequency difference and time of occurrence
@@ -481,6 +488,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
     return fishes[return_idxs], all_rises
 
 
+# TODO: add configuration parameter!
 def exclude_fishes(fishes, all_times, min_occure_time = 1.):
     """
     Delete fishes that are present for a to short period of time.
@@ -597,6 +605,7 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
         plt.show()
 
 
+# TODO: add configuration parameter!
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
                  overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 10.,
@@ -633,18 +642,18 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     # with open_data(data_file, 0, 60.0, 10.0) as data:
     samplerate = data.samplerate
     base_name = os.path.splitext(os.path.basename(data_file))[0]
-
+    
     if verbose >= 1:
         print('\nextract fundamentals...')
         if verbose >= 2:
             print('> frequency resolution = %.2f Hz' % fresolution)
             print('> nfft overlap fraction = %.2f' % overlap_frac)
-    all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplerate, start_time, end_time,
-                                                                             data_snippet_secs, nffts_per_psd,
-                                                                             fresolution=fresolution,
-                                                                             overlap_frac=overlap_frac,
-                                                                             plot_harmonic_groups=plot_harmonic_groups,
-                                                                             verbose=verbose, **kwargs)
+    all_fundamentals, all_times = extract_fundamentals(data, samplerate, start_time, end_time,
+                                                       data_snippet_secs, nffts_per_psd,
+                                                       fresolution=fresolution,
+                                                       overlap_frac=overlap_frac,
+                                                       plot_harmonic_groups=plot_harmonic_groups,
+                                                       verbose=verbose, **kwargs)
 
     if verbose >= 1:
         print('\nsorting fishes...')
@@ -714,6 +723,8 @@ def main():
     parser.add_argument('-f', dest='plot_harmonic_groups', action='store_true', help='plot harmonic group detection')
     args = parser.parse_args()
 
+    datafile = args.file[0]
+
     # set verbosity level from command line:
     verbose = 0
     if args.verbose != None:
@@ -723,8 +734,6 @@ def main():
     cfg = ConfigFile()
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
-
-    datafile = args.file[0]
     
     # load configuration from working directory and data directories:
     cfg.load_files(cfgfile, datafile, 3, verbose)

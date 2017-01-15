@@ -685,27 +685,6 @@ def short_user_warning(message, category, filename, lineno, file=sys.stderr, lin
 def main():
     warnings.showwarning = short_user_warning
 
-    # configuration options:
-    cfg = ConfigFile()
-
-    cfg.add_section('Power spectrum estimation:')
-    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
-    cfg.add('initialFrequencyResolution', 1.0, 'Hz', 'Initial frequency resolution of the power spectrum.')
-
-    cfg.add_section('Items to display:')
-    cfg.add('displayHelp', False, '', 'Display help on key bindings')
-    cfg.add('labelFrequency', True, '', 'Display the frequency of the peak')
-    cfg.add('labelHarmonic', True, '', 'Display the harmonic of the peak')
-    cfg.add('labelPower', True, '', 'Display the power of the peak')
-    cfg.add('labelWidth', True, '', 'Display the width of the peak')
-    cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
-    
-    add_psd_peak_detection_config(cfg)
-    add_harmonic_groups_config(cfg)
-    add_clip_config(cfg)
-    add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
-    cfg.set('bestWindowSize', 4.0)
-
     # config file name:
     cfgfile = __package__ + '.cfg'
 
@@ -728,6 +707,27 @@ def main():
     verbose = 0
     if args.verbose != None:
         verbose = args.verbose
+
+    # configuration options:
+    cfg = ConfigFile()
+
+    cfg.add_section('Power spectrum estimation:')
+    cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
+    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
+
+    cfg.add_section('Items to display:')
+    cfg.add('displayHelp', False, '', 'Display help on key bindings')
+    cfg.add('labelFrequency', True, '', 'Display the frequency of the peak')
+    cfg.add('labelHarmonic', True, '', 'Display the harmonic of the peak')
+    cfg.add('labelPower', True, '', 'Display the power of the peak')
+    cfg.add('labelWidth', True, '', 'Display the width of the peak')
+    cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
+    
+    add_psd_peak_detection_config(cfg)
+    add_harmonic_groups_config(cfg)
+    add_clip_config(cfg)
+    add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
+    cfg.set('bestWindowSize', 4.0)
 
     # load configuration from working directory and data directories:
     filepath = args.file[0]

@@ -216,12 +216,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     # configuration options:
     cfg = ConfigFile()
     cfg.add_section('Power spectrum estimation:')
-    cfg.add('minimumFrequencyResolution', 0.5, 'Hz', 'Minimum frequency resolution used for estimating power spectrum.')
+    cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
-    cfg.set('clipWindow', 0.5)
 
     # load configuration from working directory and data directories:
     cfg.load_files(cfgfile, filename, 3, verbose)
@@ -271,7 +270,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     pulse_fish_width, pta_value = check_pulse_width(data, samplerate)
 
     # calculate powerspectra with different frequency resolutions:
-    minfres = cfg.value('minimumFrequencyResolution')
+    minfres = cfg.value('frequencyResolution')
     psd_data = multi_resolution_psd(data, samplerate, fresolution=[minfres, 2*minfres, 4*minfres])
 
     # find the fishes in the different powerspectra:
