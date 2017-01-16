@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 import matplotlib.colors as mc
 from audioio import PlayAudio, fade
+from .version import __version__
 from .configfile import ConfigFile
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
@@ -19,14 +20,14 @@ from .bestwindow import clip_amplitudes, clip_args, best_window_indices
 
 
 class SignalPlot:
-    def __init__(self, data, samplingrate, unit, filename, channel, cfg):
+    def __init__(self, data, samplingrate, unit, filename, channel, verbose, cfg):
         self.filename = filename
         self.channel = channel
         self.samplerate = samplingrate
         self.data = data
         self.unit = unit
         self.cfg = cfg
-        self.verbose = self.cfg['verboseLevel'][0]
+        self.verbose = verbose
         self.tmax = (len(self.data)-1)/self.samplerate
         self.toffset = 0.0
         self.twindow = 8.0
@@ -684,12 +685,35 @@ def short_user_warning(message, category, filename, lineno, file=sys.stderr, lin
 def main():
     warnings.showwarning = short_user_warning
 
+    # config file name:
+    cfgfile = __package__ + '.cfg'
+
+    # command line arguments:
+    parser = argparse.ArgumentParser(
+        description='Display waveform, and power spectrum with detected fundamental frequencies of EOD recordings.',
+        epilog='by Jan Benda (2015-2017)')
+    parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('-v', action='count', dest='verbose')
+    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
+                        type=str, metavar='cfgfile',
+                        help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
+    parser.add_argument('file', nargs=1, default='', type=str,
+                        help='name of the file with the time series data')
+    parser.add_argument('channel', nargs='?', default=0, type=int,
+                        help='channel to be displayed')
+    args = parser.parse_args()
+
+    # set verbosity level from command line:
+    verbose = 0
+    if args.verbose != None:
+        verbose = args.verbose
+
     # configuration options:
     cfg = ConfigFile()
 
     cfg.add_section('Power spectrum estimation:')
+    cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
     cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
-    cfg.add('initialFrequencyResolution', 1.0, 'Hz', 'Initial frequency resolution of the power spectrum.')
 
     cfg.add_section('Items to display:')
     cfg.add('displayHelp', False, '', 'Display help on key bindings')
@@ -698,9 +722,6 @@ def main():
     cfg.add('labelPower', True, '', 'Display the power of the peak')
     cfg.add('labelWidth', True, '', 'Display the width of the peak')
     cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
-
-    cfg.add_section('Debugging:')
-    cfg.add('verboseLevel', 0, '', '0=off upto 4 very detailed')
     
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
@@ -708,38 +729,9 @@ def main():
     add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
     cfg.set('bestWindowSize', 4.0)
 
-    # config file name:
-    progname = os.path.basename(sys.argv[0])
-    cfgfile = os.path.splitext(progname)[0] + '.cfg'
-
-    # command line arguments:
-    parser = argparse.ArgumentParser(
-        description='Display waveform, spectrogram, and power spectrum of time series data.',
-        epilog='by Jan Benda (2015-2016)')
-    parser.add_argument('--version', action='version', version='1.0')
-    parser.add_argument('-v', action='count', dest='verbose')
-    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
-                        type=str, metavar='cfgfile',
-                        help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs='?', default='', type=str,
-                        help='name of the file wih the time series data')
-    parser.add_argument('channel', nargs='?', default=0, type=int,
-                        help='channel to be displayed')
-    args = parser.parse_args()
-
-    # set verbosity level from command line:
-    if args.verbose != None:
-        cfg['verboseLevel'][0] = args.verbose
-
     # load configuration from working directory and data directories:
-    filepath = args.file
-    cfg.load_files(cfgfile, filepath, 3, cfg['verboseLevel'][0])
-
-    # set verbosity level from command line (it migh have been overwritten):
-    if args.verbose != None:
-        cfg['verboseLevel'][0] = args.verbose
-    if cfg['verboseLevel'][0] == 0:
-        warnings.filterwarnings("ignore")
+    filepath = args.file[0]
+    cfg.load_files(cfgfile, filepath, 3, verbose)
 
     # save configuration:
     if len(args.save_config) > 0:
@@ -755,13 +747,13 @@ def main():
     channel = args.channel
     filename = os.path.basename(filepath)
     # TODO: add blocksize and backsize as configuration parameter!
-    with open_data(filepath, channel, 60.0, 10.0, verbose=cfg['verboseLevel'][0]) as data:
+    with open_data(filepath, channel, 60.0, 10.0, verbose) as data:
         # plot:
         ## if len(data) < 10**8:
         ##     # data[:].copy() makes bestwindow much faster (it's slow in peakdetection):
         ##     SignalPlot(data[:].copy(), data.samplerate, data.unit, filename, channel)
         ## else:
-        SignalPlot(data, data.samplerate, data.unit, filename, channel, cfg)
+        SignalPlot(data, data.samplerate, data.unit, filename, channel, verbose, cfg)
 
         
 if __name__ == '__main__':

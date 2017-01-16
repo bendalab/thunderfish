@@ -1,20 +1,28 @@
 """
-Functions to track wave-type electric fish frequencies over longer periods of time.
+Track wave-type electric fish frequencies over time.
 
-fish_tracker(): main function which performs all steps including loading data, fish tracking and -sorting and more.
+fish_tracker(): load data and track fish.
 """
 import sys
 import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from .version import __version__
+from .configfile import ConfigFile
 from .dataloader import open_data
 from .powerspectrum import spectrogram, next_power_of_two
-from .harmonicgroups import harmonic_groups, fundamental_freqs
- 
+from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
+from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
+from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
 
-def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0, end_time=-1.0, data_snippet_secs=60.0,
-                                               nffts_per_psd=4, fresolution=0.5, overlap_frac=.9, verbose=0, **kwargs):
+# TODO: update to numpy doc style!
+
+# TODO: add configuration parameter!
+def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
+                         data_snippet_secs=60.0,
+                         nffts_per_psd=4, fresolution=0.5, overlap_frac=.9,
+                         plot_harmonic_groups=False, verbose=0, **kwargs):
     """
     For a long data array calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
     extracts fundamental frequncies.
@@ -22,7 +30,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
     :param data: (array) raw data.
     :param samplerate: (int) samplerate of data.
     :param start_time: (int) analyze data from this time on (in seconds).  XXX this should be a float!!!! Internally I would use indices.
-    :param end_time: (int) stop analysis at this time (in seconds). If -1 then analyse to the end of the data. XXX this should be a float!!!! Internally I would use indices.
+    :param end_time: (int) stop analysis at this time (in seconds). If -1 then analyse to the end of the data. XXX TODO this should be a float!!!! Internally I would use indices.
     :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
     :param nffts_per_psd: (int) number of nffts used for calculating one psd.
     :param fresolution: (float) frequency resolution for the spectrogram.
@@ -72,9 +80,16 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
         all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] + start_time))
 
         for p in range(len(power)):
-            fishlist = harmonic_groups(freqs, power[p], **kwargs)[0]
+            fishlist, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(freqs, power[p], **kwargs)
             fundamentals = fundamental_freqs(fishlist)
             all_fundamentals.append(fundamentals)
+            if plot_harmonic_groups:
+                fig = plt.figure()
+                ax = fig.add_subplot(1, 1, 1)
+                plot_psd_harmonic_groups(ax, freqs, power[p], fishlist, mains,
+                                         all_freqs, good_freqs, max_freq=3000.0)
+                ax.set_title('time = %gmin' % ((start_time+0.0)/60.0))  # XXX TODO plus what???
+                plt.show()
 
         if (len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) > -1 and (
                     len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) < 1:
@@ -93,6 +108,7 @@ def long_term_recording_fundamental_extraction(data, samplerate, start_time=0.0,
     return all_fundamentals, all_times
 
 
+# TODO: add configuration parameter!
 def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = .5,
                              save_original_fishes=False, verbose=0):
     """
@@ -205,6 +221,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
     return np.asarray(fishes)
 
 
+# TODO: add configuration parameter!
 def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     """
     Detects rises in frequency arrays that belong to a certain fish.
@@ -312,6 +329,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     return all_rises
 
 
+# TODO: add configuration parameter!
 def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th = 5.):
     """
     Combines array of electric fish fundamental frequencies which, based on frequency difference and time of occurrence
@@ -470,6 +488,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
     return fishes[return_idxs], all_rises
 
 
+# TODO: add configuration parameter!
 def exclude_fishes(fishes, all_times, min_occure_time = 1.):
     """
     Delete fishes that are present for a to short period of time.
@@ -586,10 +605,11 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
         plt.show()
 
 
+# TODO: add configuration parameter!
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
                  overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 10.,
-                 f_th= 5., verbose=0, **kwargs):
+                 f_th= 5., plot_harmonic_groups=False, verbose=0, **kwargs):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -622,17 +642,18 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     # with open_data(data_file, 0, 60.0, 10.0) as data:
     samplerate = data.samplerate
     base_name = os.path.splitext(os.path.basename(data_file))[0]
-
+    
     if verbose >= 1:
         print('\nextract fundamentals...')
         if verbose >= 2:
             print('> frequency resolution = %.2f Hz' % fresolution)
             print('> nfft overlap fraction = %.2f' % overlap_frac)
-    all_fundamentals, all_times = long_term_recording_fundamental_extraction(data, samplerate, start_time, end_time,
-                                                                             data_snippet_secs, nffts_per_psd,
-                                                                             fresolution=fresolution,
-                                                                             overlap_frac=overlap_frac,
-                                                                             verbose=verbose, **kwargs)
+    all_fundamentals, all_times = extract_fundamentals(data, samplerate, start_time, end_time,
+                                                       data_snippet_secs, nffts_per_psd,
+                                                       fresolution=fresolution,
+                                                       overlap_frac=overlap_frac,
+                                                       plot_harmonic_groups=plot_harmonic_groups,
+                                                       verbose=verbose, **kwargs)
 
     if verbose >= 1:
         print('\nsorting fishes...')
@@ -679,42 +700,55 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
         print('\nWhole file processed.')
 
 
-if __name__ == '__main__':
+def main():
+    # config file name:
+    cfgfile = __package__ + '.cfg'
+
+    # command line arguments:
     parser = argparse.ArgumentParser(
         description='Analyse long single- or multi electrode EOD recordings of weakly electric fish.',
-        epilog='by bendalab (2015-2016)')
-    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data')
-    parser.add_argument('start_time', nargs='?', default=0, type=int, help='start time of analysis in min.')
-    parser.add_argument('end_time', nargs='?', default=-1, type=int, help='end time of analysis in min.')
-    # parser.add_argument('-v', dest='verbose', default=0, type=int,  help='verbosity level')
+        epilog='by bendalab (2015-2017)')
+    parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
-    parser.add_argument('-g', dest='grid', action='store_true', help='use this argument to analysis 64 electrode grid data.')
-    parser.add_argument('-p', dest='save_plot', action='store_true', help='use this argument to save output plot')
+    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
+                        type=str, metavar='cfgfile',
+                        help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
+    parser.add_argument('file', nargs=1, default='', type=str, help='name of the file wih the time series data or the -fishes.npy file saved with the -s option')
+    parser.add_argument('start_time', nargs='?', default=0.0, type=float, help='start time of analysis in min.')
+    parser.add_argument('end_time', nargs='?', default=-1.0, type=float, help='end time of analysis in min.')
+    parser.add_argument('-g', dest='grid', action='store_true', help='sum up spectrograms of all channels available.')
+    parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as png file')
     parser.add_argument('-s', dest='save_fish', action='store_true',
-                        help='use this argument to save fish EODs after first stage of sorting.')
+                        help='save fish EODs after first stage of sorting.')
+    parser.add_argument('-f', dest='plot_harmonic_groups', action='store_true', help='plot harmonic group detection')
     args = parser.parse_args()
 
-    if len(sys.argv) == 1:
-        print('Tracks fundamental freuqnecies of wave-type weakly electric fish.')
-        print('')
-        print('Usage:')
-        print('  python[3] -m thunderfish.tracker <data_file> [start_time] [end_time] [-g] [-p] [-s]')
-        print('  -> start- and endtime: (in minutes) can be used to only analyse parts of a data file.')
-        print('  -> -g: the powerspectra of all channels at a time are summed up.')
-        print('         can be used when there are multiple channels to analyse.')
-        print('  -> -p: saves the final plot as png')
-        print('  -> -s: saves the of array of array, one for every detected fish, containing their frequency at all')
-        print('         time of the recording. Usefull when you analyse data for the first time to reduce compilation')
-        print('         time in further runs.')
-        print('')
-        print('or:')
-        print('  python[3] -m thunderfish.tracker <npy_file>')
-        print('  -> loads the numpy file containing the fishes after the first, time demanding, sorting step.')
-        print('     base_name + "-fishes.npy"')
-        quit()
+    datafile = args.file[0]
 
-    if sys.argv[1].split('.')[-1] == 'npy':
+    # set verbosity level from command line:
+    verbose = 0
+    if args.verbose != None:
         verbose = args.verbose
+
+    # configuration options:
+    cfg = ConfigFile()
+    add_psd_peak_detection_config(cfg)
+    add_harmonic_groups_config(cfg)
+    
+    # load configuration from working directory and data directories:
+    cfg.load_files(cfgfile, datafile, 3, verbose)
+
+    # save configuration:
+    if len(args.save_config) > 0:
+        ext = os.path.splitext(args.save_config)[1]
+        if ext != os.extsep + 'cfg':
+            print('configuration file name must have .cfg as extension!')
+        else:
+            print('write configuration to %s ...' % args.save_config)
+            cfg.dump(args.save_config)
+        return
+
+    if os.path.splitext(datafile)[1] == 'npy':
         rise_f_th = .5
         max_time_tolerance = 10.
         f_th = 5.
@@ -760,4 +794,12 @@ if __name__ == '__main__':
             print('Whole file processed.')
 
     else:
-        fish_tracker(args.file, args.start_time*60, args.end_time*60, args.grid, args.save_plot, args.save_fish, verbose=args.verbose)
+        h_kwargs = psd_peak_detection_args(cfg)
+        h_kwargs.update(harmonic_groups_args(cfg))
+        fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
+                     args.grid, args.save_plot, args.save_fish,
+                     plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, **h_kwargs)
+
+
+if __name__ == '__main__':
+    main()

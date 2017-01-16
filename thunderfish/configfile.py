@@ -25,102 +25,135 @@ class ConfigFile:
     with dump() and loaded from a file with load() and load_files().
     """
 
+    
     def __init__(self, orig=None):
         if orig is None:
             self.cfg = OrderedDict()
             self.sections = dict()
             self.new_section = None
         else:
-            self.cfg = OrderedDict(orig.cfg)
-            self.sections = dict(orig.sections)
+            self.cfg = orig.cfg
+            self.sections = orig.sections
             self.new_section = None
 
+            
     def __eq__(self, other):
-        """Check whether the parameter and ther values are the same.
+        """Check whether the parameter and their values are the same.
         """
         return self.cfg == other.cfg
 
+    
     def add(self, key, value, unit, description):
         """Add a new parameter to the configuration.
 
         The description of the parameter is a single string. Newline
         characters are intepreted as new paragraphs.
 
-        Args:
-          key (string): the key of the parameter
-          value (arbitrary): the value of the parameter
-          unit (string): the unit of the parameter value
-          description (string): a textual description of the parameter.
+        Parameters
+        ----------
+        key: string
+            Key of the parameter.
+        value: any type
+            Value of the parameter.
+        unit: string
+            Unit of the parameter value.
+        description: string
+            Textual description of the parameter.
         """
         # add a pending section:
         if self.new_section is not None:
             self.sections[key] = self.new_section
             self.new_section = None
-        # add configuration parameter:
-        self.cfg[key] = [value, unit, description]
+        # add configuration parameter (4th element is default value):
+        self.cfg[key] = [value, unit, description, value]
 
+        
     def add_section(self, description):
         """Add a new section to the configuration.
 
-        Args:
-          description (string): a textual description of the section
+        Parameters
+        ----------
+        description: string
+            Textual description of the section
         """
         self.new_section = description
 
+        
     def __getitem__(self, key):
         """Returns the list [value, unit, description]
         of the configuration parameter key.
 
-        Args:
-          key (string): the key of the configuration parameter.
+        Parameters
+        ----------
+        key: string
+            Key of the configuration parameter.
 
-        Returns:
-          value: the value of the configuraion parameter.
-          unit (string): the unit of the configuraion parameter.
-          description (string): the description of the configuraion parameter.
+        Returns
+        -------
+        value: any type
+            Value of the configuraion parameter.
+        unit: string
+            Unit of the configuraion parameter.
+        description: string
+            Description of the configuraion parameter.
         """
         return self.cfg[key]
 
+    
     def value(self, key):
         """Returns the value of the configuration parameter defined by key.
 
-        Args:
-          key (string): the key of the configuration parameter.
+        Parameters
+        ----------
+        key: string
+            Key of the configuration parameter.
 
-        Returns:
-          value: the value of the configuraion parameter.
+        Returns
+        -------
+        value: any type
+            Value of the configuraion parameter.
         """
         return self.cfg[key][0]
 
+    
     def set(self, key, value):
         """Set the value of the configuration parameter defined by key.
 
-        Args:
-          key (string): the key of the configuration parameter.
-          value: the new value.
+        Parameters
+        ----------
+        key: string
+            Key of the configuration parameter.
+        value: any type
+            The new value.
         """
         self.cfg[key][0] = value
 
+        
     def map(self, mapping):
         """Map the values of the configuration onto new names.
         Use this function to generate key-word arguments
         that can be passed on to functions.
 
-        Args:
-          mapping (dict): a dictionary with its keys being the new names
-          and its values being the parameter names of the configuration.
+        Parameters
+        ----------
+        mapping: dict
+            Dictionary with its keys being the new names
+            and its values being the parameter names of the configuration.
 
-        Returns:
-          a (dict): a dictionary with the keys of mapping
-          and the corresponding values retrieved from the configuration
-          using the values from mapping.
+        Returns
+        -------
+        a: dict
+            A dictionary with the keys of mapping
+            and the corresponding values retrieved from the configuration
+            using the values from mapping.
         """
         a = {}
         for dest, src in mapping.items():
             a[dest] = self.value(src)
         return a
 
-    def write(self, stream, header=None, maxline=60, comments=True):
+    
+    def write(self, stream, header=None, diff_only=False, maxline=60, comments=True):
         """Pretty print configuration into stream.
 
         The description of a configuration parameter is printed out
@@ -135,11 +168,18 @@ class ConfigFile:
         A header can be printed initially. This is a simple string that is
         formatted like the section titles.
 
-        Args:
-            stream: The stream for writing the configuration.
-            header (string): A string that is written as an introductory comment into the file.
-            maxline (int): Maximum number of characters that fit into a line.
-            comments (boolean): Print out descriptions as comments if True.
+        Parameters
+        ----------
+        stream:
+            Stream for writing the configuration.
+        header: string
+            A string that is written as an introductory comment into the file.
+        diff_only: bool
+            If true write out only those parameters whose value differs from their default.
+        maxline: int
+            Maximum number of characters that fit into a line.
+        comments: boolean
+            Print out descriptions as comments if True.
         """
 
         def write_comment(stream, comment, maxline, cs):
@@ -157,31 +197,47 @@ class ConfigFile:
                         cc += len(w) + 1
                     stream.write('\n')
 
+        # write header:
         if comments and header != None:
             write_comment(stream, header, maxline, '##')
+        # get length of longest key:
         maxkey = 0
         for key in self.cfg.keys():
             if maxkey < len(key):
                 maxkey = len(key)
+        # write out parameter:
+        section = ''
         for key, v in self.cfg.items():
             # possible section entry:
             if comments and key in self.sections:
-                stream.write('\n\n')
-                write_comment(stream, self.sections[key], maxline, '##')
+                section = self.sections[key]
 
             # get value, unit, and comment from v:
             val = None
             unit = ''
             comment = ''
+            differs = False
             if hasattr(v, '__len__') and (not isinstance(v, str)):
                 val = v[0]
                 if len(v) > 1:
                     unit = ' ' + v[1]
                 if len(v) > 2:
                     comment = v[2]
+                if len(v) > 3:
+                    differs = (val != v[3])
             else:
                 val = v
 
+            # only write parameter whose value differs:
+            if diff_only and not differs:
+                continue
+
+            # write out section
+            if len(section) > 0:
+                stream.write('\n\n')
+                write_comment(stream, section, maxline, '##')
+                section = ''
+            
             # write key-value pair:
             if comments :
                 stream.write('\n')
@@ -190,32 +246,38 @@ class ConfigFile:
                 key=key, width=maxkey, val=val, unit=unit))
 
 
-    def dump(self, filename, header=None, maxline=60, comments=True):
+    def dump(self, filename, header=None, diff_only=False, maxline=60, comments=True):
         """Pretty print configuration into file.
 
         See write() for more details.
 
-        Args:
-            filename: The name of the file for writing the configuration.
+        Parameters
+        ----------
+        filename: string
+            Name of the file for writing the configuration.
         """
         with open(filename, 'w') as f:
-            self.write(f, header, maxline, comments)
+            self.write(f, header, diff_only, maxline, comments)
 
             
     def load(self, filename):
         """Set values of configuration to values from key-value pairs read in
         from file.
 
-        Args:
-            filename: The name of the file from which to read the configuration.
+        Parameters
+        ----------
+        filename: string
+            Name of the file from which to read the configuration.
         """
         with open(filename, 'r') as f:
             for line in f:
                 # do not process empty lines and comments:
                 if len(line.strip()) == 0 or line[0] == '#' or not ':' in line:
                     continue
+                # parse key value pair:
                 key, val = line.split(':', 1)
                 key = key.strip()
+                # only read values of existing keys:
                 if not key in self.cfg:
                     continue
                 cv = self.cfg[key]
@@ -239,15 +301,22 @@ class ConfigFile:
                     else:
                         self.cfg[key] = type(cv)(vals[0])
 
+                        
     def load_files(self, cfgfile, filepath, maxlevel=3, verbose=0):
         """Load configuration from current working directory
         as well as from several levels of a file path.
 
-        Args:
-          cfgfile (string): name of the configuration file.
-          filepath (string): path of a file. Configuration files are read in from different levels of the expanded path.
-          maxlevel (int): Read configuration files from up to maxlevel parent directories.
-          verbose (int): if greater than zero, print out from which files configuration has been loaded.
+        Parameters
+        ----------
+        cfgfile: string
+            Name of the configuration file.
+        filepath: string
+            Path of a file. Configuration files are read in from different levels
+            of the expanded path.
+        maxlevel: int
+            Read configuration files from up to maxlevel parent directories.
+        verbose: int
+            If greater than zero, print out from which files configuration has been loaded.
         """
 
         # load configuration from the current directory:
@@ -266,5 +335,6 @@ class ConfigFile:
         for k in range(ml, 0, -1):
             path = os.path.join(*(dirs[:-k] + [cfgfile]))
             if os.path.isfile(path):
-                print('load configuration %s' % path)
+                if verbose > 0:
+                    print('load configuration %s' % path)
                 self.load(path)
