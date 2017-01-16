@@ -18,7 +18,7 @@ from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmoni
 
 # TODO: update to numpy doc style!
 
-# TODO: add configuration parameter!
+
 def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                          data_snippet_secs=60.0,
                          nffts_per_psd=4, fresolution=0.5, overlap_frac=.9,
@@ -108,9 +108,8 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
     return all_fundamentals, all_times
 
 
-# TODO: add configuration parameter!
-def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = .5,
-                             save_original_fishes=False, verbose=0):
+def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_tolerance=5., freq_tolerance = .5,
+                             save_original_fishes=False, output_folder = '.', verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
 
@@ -127,7 +126,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
     :param all_fundamentals: (list) containing arrays with the fundamentals frequencies of fishes detected at a certain time.
     :param base_name: (string) filename.
     :param all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
-    :param max_time_tolerance: (int) time in minutes from when a certain fish is no longer tracked.
+    :param prim_time_tolerance: (int) time in minutes from when a certain fish is no longer tracked.
     :param freq_tolerance: (float) maximum frequency difference to assign a frequency to a certain fish.
     :param save_original_fishes: (boolean) if True saves the sorted fishes after the first level of fish sorting.
     :param verbose: (int) with increasing value provides more shell output.
@@ -198,7 +197,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
                     end_nans.append(0)
 
         for fish in range(len(fishes)):
-            if end_nans[fish] >= max_time_tolerance * dpm:
+            if end_nans[fish] >= prim_time_tolerance * dpm:
                 last_fish_fundamentals[fish] = 0.
 
             if np.isnan(fishes[fish][enu+1]):
@@ -216,12 +215,12 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
 
     if save_original_fishes:
         print('saving')
-        np.save(base_name + '-fishes.npy', np.asarray(fishes))
-        np.save(base_name + '-times.npy', all_times)
+        np.save(os.path.join(output_folder, base_name) + '-fishes.npy', np.asarray(fishes))
+        np.save(os.path.join(output_folder, base_name) + '-times.npy', all_times)
+
     return np.asarray(fishes)
 
 
-# TODO: add configuration parameter!
 def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     """
     Detects rises in frequency arrays that belong to a certain fish.
@@ -232,7 +231,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
 
     :param fishes: (array) containing arrays of sorted fish frequencies. Each array represents one fish.
     :param all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
-    :param f_th: (float) minimum frequency difference between peak and base of a rise to be detected as such.
+    :param rise_f_th: (float) minimum frequency difference between peak and base of a rise to be detected as such.
     :return all_rises: (list) contains a list for each fish which each contains a list for every detected rise. In this
                        last list there are two arrays containing the frequency and the index of start and end of the rise.
                        all_rises[ fish ][ rise ][ [idx_start, idx_end], [freq_start, freq_end] ]
@@ -329,7 +328,6 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     return all_rises
 
 
-# TODO: add configuration parameter!
 def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th = 5.):
     """
     Combines array of electric fish fundamental frequencies which, based on frequency difference and time of occurrence
@@ -488,7 +486,6 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
     return fishes[return_idxs], all_rises
 
 
-# TODO: add configuration parameter!
 def exclude_fishes(fishes, all_times, min_occure_time = 1.):
     """
     Delete fishes that are present for a to short period of time.
@@ -536,7 +533,7 @@ def cut_at_rises(fishes, all_rises):
             delete_idx.append(fish)
             all_rises.pop(fish)
     return_idx = np.setdiff1d(np.arange(len(fishes)), np.array(delete_idx))
-    # ToDo: include the case that no rises are detected...
+
     if len(new_fishes) == 0:
         return fishes, all_rises
     else:
@@ -544,7 +541,13 @@ def cut_at_rises(fishes, all_rises):
     # return np.append(fishes[return_idx], new_fishes, axis=0), all_rises
 
 
-def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
+def save_data(fishes, all_times, all_rises, base_name, output_folder):
+    np.save(os.path.join(output_folder, base_name) + '-final_fishes.npy', np.asarray(fishes))
+    np.save(os.path.join(output_folder, base_name) + '-final_times.npy', all_times)
+    np.save(os.path.join(output_folder, base_name) + '-final_rises.npy', np.asarray(all_rises))
+
+
+def plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folder):
     """
     Plot shows the detected fish fundamental frequencies plotted against the time in hours.
 
@@ -599,17 +602,83 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
     ax.get_yaxis().tick_left()
 
     if save_plot:
-        plt.savefig(base_name)
+        plt.savefig(os.path.join(output_folder, base_name))
         plt.close(fig)
     else:
         plt.show()
 
 
-# TODO: add configuration parameter!
+def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, fresolution = 0.5, overlap_frac = .9,
+                       freq_tolerance = 0.5, rise_f_th = 0.5, prim_time_tolerance = 5., max_time_tolerance = 10., f_th=5.):
+    """ Add parameter needed for fish_tracker() as
+    a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        the configuration
+    data_snipped_secs: float
+         duration of data snipped processed at once in seconds.
+    nffts_per_psd: int
+        nffts used for powerspectrum analysis.
+    fresolution: float
+        frequency resoltution of the spectrogram.
+    overlap_frac: float
+        overlap fraction of nffts for powerspectrum analysis.
+    freq_tolerance: float
+        frequency tollerance for combining fishes.
+    rise_f_th: float
+        minimum frequency difference between peak and base of a rise to be detected as such.
+    prim_time_tolerance: float
+        maximum time differencs in minutes in the first fish sorting step.
+    max_time_tolerance: float
+        maximum time difference in minutes between two fishes to combine these.
+    f_th: float
+        maximum frequency difference between two fishes to combine these.
+    """
+    cfg.add_section('Fish tracking:')
+    cfg.add('DataSnippedSize', data_snipped_secs, 's', 'Duration of data snipped processed at once in seconds.')
+    cfg.add('NfftPerPsd', nffts_per_psd, '', 'Number of nffts used for powerspectrum analysis.')
+    cfg.add('FreqResolution', fresolution, 'Hz', 'Frequency resolution of the spectrogram')
+    cfg.add('OverlapFrac', overlap_frac, '', 'Overlap fraction of the nffts during Powerspectrum analysis')
+    cfg.add('FreqTolerance', freq_tolerance, 'Hz', 'Frequency tolernace in the first fish sorting step.')
+    cfg.add('RiseFreqTh', rise_f_th, 'Hz', 'Frequency threshold for the primary rise detection.')
+    cfg.add('PrimTimeTolerance', prim_time_tolerance, 'min', 'Time tolerance in the first fish sorting step.')
+    cfg.add('MaxTimeTolerance', max_time_tolerance, 'min', 'Time tolerance between the occurrance of two fishes to join them.')
+    cfg.add('FrequencyThreshold', f_th, 'Hz', 'Maximum Frequency difference between two fishes to join them.')
+
+
+def tracker_args(cfg):
+    """ Translates a configuration to the
+    respective parameter names of the function fish_tracker().
+    The return value can then be passed as key-word arguments to this function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        the configuration
+
+    Returns (dict): dictionary with names of arguments of the clip_amplitudes() function and their values as supplied by cfg.
+    -------
+    dict
+        dictionary with names of arguments of the fish_tracker() function and their values as supplied by cfg.
+    """
+    return cfg.map({'data_snipped_secs': 'DataSnippedSize',
+                    'nffts_per_psd': 'NfftPerPsd',
+                    'fresolution': 'FreqResolution',
+                    'overlap_frac': 'OverlapFrac',
+                    'freq_tolerance': 'FreqTolerance',
+                    'rise_f_th': 'RiseFreqTh',
+                    'prim_time_tolerance': 'PrimTimeTolerance',
+                    'max_time_tolerance': 'MaxTimeTolerance',
+                    'f_th': 'FrequencyThreshold'})
+
+
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
                  overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 10.,
-                 f_th= 5., plot_harmonic_groups=False, verbose=0, **kwargs):
+                 f_th= 5., output_folder = '.', plot_harmonic_groups=False, verbose=0, **kwargs):
+
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -660,7 +729,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
         if verbose >= 2:
             print('> frequency tolerance = %.2f Hz' % freq_tolerance)
     fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, freq_tolerance=freq_tolerance,
-                                      save_original_fishes=save_original_fishes, verbose=verbose)
+                                      save_original_fishes=save_original_fishes, output_folder=output_folder, verbose=verbose)
 
     min_occure_time = all_times[-1] * 0.01 / 60.
     if min_occure_time > 1.:
@@ -695,7 +764,12 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     if verbose >= 1:
         print('%.0f fishes left' % len(fishes))
 
-    plot_fishes(fishes, all_times, all_rises, base_name, save_plot)
+    plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folder)
+
+    if save_original_fishes:
+        if verbose >= 1:
+            print('saving data to ' + output_folder)
+        save_data(fishes, all_times, all_rises, base_name, output_folder)
     if verbose >= 1:
         print('\nWhole file processed.')
 
@@ -721,7 +795,12 @@ def main():
     parser.add_argument('-s', dest='save_fish', action='store_true',
                         help='save fish EODs after first stage of sorting.')
     parser.add_argument('-f', dest='plot_harmonic_groups', action='store_true', help='plot harmonic group detection')
+    parser.add_argument('-o', dest='output_folder', default=".", type=str,
+                        help="path where to store results and figures")
     args = parser.parse_args()
+
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
 
     datafile = args.file[0]
 
@@ -734,6 +813,7 @@ def main():
     cfg = ConfigFile()
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
+    add_tracker_config(cfg)
     
     # load configuration from working directory and data directories:
     cfg.load_files(cfgfile, datafile, 3, verbose)
@@ -748,10 +828,12 @@ def main():
             cfg.dump(args.save_config)
         return
 
-    if os.path.splitext(datafile)[1] == 'npy':
+
+    if os.path.splitext(datafile)[1] == '.npy':
         rise_f_th = .5
         max_time_tolerance = 10.
         f_th = 5.
+        output_folder = args.output_folder
 
         a = np.load(sys.argv[1], mmap_mode='r+')
         fishes = a.copy()
@@ -789,17 +871,24 @@ def main():
 
         base_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
 
-        plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot)
+        plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot, args.output_folder)
+
+        if args.save_fish:
+            if verbose >= 1:
+                print('saving data to ' + output_folder)
+            save_data(fishes, all_times, all_rises, base_name, output_folder)
+
         if verbose >= 1:
             print('Whole file processed.')
 
     else:
-        h_kwargs = psd_peak_detection_args(cfg)
-        h_kwargs.update(harmonic_groups_args(cfg))
+        t_kwargs = psd_peak_detection_args(cfg)
+        t_kwargs.update(harmonic_groups_args(cfg))
+        t_kwargs.update(tracker_args(cfg))
         fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
-                     args.grid, args.save_plot, args.save_fish,
-                     plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, **h_kwargs)
-
+                     args.grid, args.save_plot, args.save_fish, output_folder=args.output_folder,
+                     plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, **t_kwargs)
 
 if __name__ == '__main__':
     main()
+
