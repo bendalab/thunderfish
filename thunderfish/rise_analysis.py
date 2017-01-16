@@ -223,7 +223,7 @@ def cross_t(rise_t):
                 continue
 
             # ToDo: bootstrap, gauss kernal, usw.
-            rel_t = np.arange(-180, 180, 0.1)
+            rel_t = np.arange(-180, 180, 1)
             sumed_gaus = np.zeros(len(rel_t))
 
             rel_possition = []
@@ -236,21 +236,43 @@ def cross_t(rise_t):
                     counter += 1
                     sumed_gaus += gauss_kernal(rel_t, mu, 10.)
 
-            embed()
-            quit()
-            for i in range(10):
-                rise_t_fish_cp = np.copy(rise_t[fish])
-                rise_t_comp_fish_cp = np.copy(rise_t[comp_fish])
-
-                dt_fish = np.diff(np.append(0, rise_t_fish_cp))
-                dt_comp = np.diff(np.append(0, rise_t_comp_fish_cp))
-
-                np.random.shuffle(dt_fish)
-
-                new_t_fish = np.cumsum(dt_fish)
-
-
-
+            ### boot strapping ... still in progress
+            # boot_sumed_gaus = []
+            # for i in range(2000):
+            #     boot_sumed_gaus.append(np.zeros(len(rel_t)))
+            #     rise_t_fish_cp = np.copy(rise_t[fish])
+            #     rise_t_comp_fish_cp = np.copy(rise_t[comp_fish])
+            #
+            #     dt_fish = np.diff(np.append(0, rise_t_fish_cp))
+            #     dt_comp = np.diff(np.append(0, rise_t_comp_fish_cp))
+            #
+            #     np.random.shuffle(dt_fish)
+            #     np.random.shuffle(dt_comp)
+            #
+            #     new_t_fish = np.cumsum(dt_fish)
+            #     new_t_cfish = np.cumsum(dt_comp)
+            #
+            #     rel_possition = []
+            #     for t0 in new_t_fish:
+            #         for t1 in new_t_cfish:
+            #             rel_possition.append(t1 - t0)
+            #
+            #     for mu in rel_possition:
+            #         if (mu > -200) & (mu < 200):
+            #             counter += 1
+            #             boot_sumed_gaus[-1] += gauss_kernal(rel_t, mu, 10.)
+            #
+            # p975 = np.ones(np.size(boot_sumed_gaus, axis=1))
+            # p025 = np.ones(np.size(boot_sumed_gaus, axis=1))
+            #
+            # for i in range(np.size(boot_sumed_gaus, axis=1)):
+            #     p975, p025 = np.percentile(np.array(boot_sumed_gaus)[:,1], (97.5, 2.5))
+            #
+            # if counter >= 5:
+            #     fig, ax = plt.subplots()
+            #     ax.fill_between(rel_t, p975, p025, alpha=0.5)
+            #     ax.plot(rel_t, sumed_gaus, color='red')
+            #     plt.show()
 
             if counter >= 5:
                 fig, ax = plt.subplots()
