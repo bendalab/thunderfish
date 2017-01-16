@@ -40,7 +40,7 @@ class SignalPlot:
         self.fmin = 0.0
         self.fmax = 0.0
         self.decibel = True
-        self.fresolution = self.cfg['initialFrequencyResolution'][0]
+        self.fresolution = self.cfg['frequencyResolution'][0]
         self.deltaf = 1.0
         self.mains_freq = self.cfg['mainsFreq'][0]
         self.power_label = None
