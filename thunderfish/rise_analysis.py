@@ -5,147 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.stats as scp
 from scipy.optimize import curve_fit
+from scipy.signal import correlate
+
 from IPython import embed
-
-
-def multi_file_rise_analysis(file_path):
-    def load_and_join_data(file_path):
-        rise_dt = []
-        rise_df = []
-
-        subdirectories = np.array([x[0] for x in os.walk(file_path)])[2:]
-
-        for folder in subdirectories:
-            all_rises = None
-            all_times = None
-            for file in os.listdir(folder):
-                if file.endswith('final_rises.npy'):
-                    all_rises = np.load(os.path.join(folder, file))
-                elif file.endswith('final_times.npy'):
-                    all_times = np.load(os.path.join(folder, file))
-            if all_rises == None or all_times == None:
-                print('missing data ...')
-                print(folder)
-
-            for fish in range(len(all_rises)):
-                if all_rises[fish] == []:
-                    continue
-                else:
-                    for rise in range(len(all_rises[fish])):
-                        if all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1] >= 1.5:
-                            rise_df.append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
-                            rise_dt.append(all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]])
-        return rise_df, rise_dt
-
-    ## Rise duration vs. delta freq ##
-    rise_df, rise_dt = load_and_join_data(file_path)
-
-    slope, intercept, r_val, p_val, stderr = scp.linregress(rise_dt, rise_df)
-    x = np.arange(np.min(rise_dt), np.max(rise_dt), 0.01)
-    y = slope * x + intercept
-
-    fig1, ax1 = plt.subplots(facecolor='white')
-    ax1.plot(rise_dt, rise_df, '.')
-    ax1.plot(x, y)
-
-    ax1.set_ylabel('delta frequency [Hz]')
-    ax1.set_xlabel('duration [s]')
-    ax1.set_title('Single rise df/dt (R=%.2f; p=%.3f; n = %.0f)' % (r_val, p_val, len(rise_dt)))
-
-    ## df distribution ##
-    fig2, ax2 = plt.subplots(facecolor='white')
-    bins = np.arange(0, np.ceil(np.max(rise_df)), 0.1)
-    n, edges = np.histogram(rise_df, bins)
-    ax2.bar(edges[:-1], n, 0.1)
-    ax2.set_ylabel('count')
-    ax2.set_xlabel('delta frequency [Hz]')
-    ax2.set_title('Rise delta frequency histogram (bw = 0.1Hz)')
-
-    ## dt distribution ##
-    fig3, ax3 = plt.subplots(facecolor='white')
-    bins = np.arange(0, np.ceil(np.max(rise_dt)), 1)
-    n, edges = np.histogram(rise_dt, bins)
-    ax3.bar(edges[:-1], n, 1)
-    ax3.set_ylabel('count')
-    ax3.set_xlabel('delta time [s]')
-    ax3.set_title('Rise delta frequency histogram (bw = 1s)')
-
-    plt.show()
-
-
-def rise_train_analysis(file_path):
-    def exponenial_func(t, c1, tau, c2):
-        return c1 * np.exp(-t / tau) + c2
-
-    def load_rise_data(file_path):
-        fishes = None
-        times = None
-        all_rises = None
-
-        for file in os.listdir(file_path):
-            if file.endswith("final_fishes.npy"):
-                fishes = np.load(os.path.join(file_path, file))
-            elif file.endswith("final_times.npy"):
-                times = np.load(os.path.join(file_path, file))
-            elif file.endswith("final_rises.npy"):
-                all_rises = np.load(os.path.join(file_path, file))
-            else:
-                continue
-
-        if fishes == None or times == None or all_rises == None:
-            print('missing data files.')
-            quit()
-
-        return fishes, times, all_rises
-
-    fishes, times, all_rises = load_rise_data(file_path)
-
-    #### exponential fit test ####
-    # fish 12 rise -6
-
-    fish = 12
-    rise = -6
-
-    for fish in range(len(all_rises)):
-        if all_rises[fish] == []:
-            continue
-        else:
-            for rise in range(len(all_rises[fish])):
-
-
-                test_rise = all_rises[fish][rise]
-
-                test_fish = fishes[fish][test_rise[0][0] : test_rise[0][1]+1]
-                test_fish = test_fish[~np.isnan(test_fish)]
-
-                test_time = times[test_rise[0][0] : test_rise[0][1]+1]
-                test_time = test_time[~np.isnan(test_fish)]
-                test_time -= test_time[0]
-
-                popt, pcov = curve_fit(exponenial_func, test_time, test_fish)
-
-                yy = exponenial_func(test_time, popt[0], popt[1], popt[2])
-
-                all_rises[fish][rise].append(popt[1])
-                # fig, ax = plt.subplots()
-                # ax.plot(test_time, test_fish, '.')
-                # ax.plot(test_time, yy, '--')
-                # plt.draw()
-                # plt.pause(2)
-                # plt.close()
-    embed()
-    quit()
-
-    ##############################
-    time_vec = []
-    tau_vac = []
-    rise_times = []
-    for fish in range(len(all_rises)):
-        rise_times.append([])
-        for rise in range(len(all_rises[fish])):
-            rise_times[-1].append(np.mean([times[all_rises[fish][rise][0][1]], times[all_rises[fish][rise][0][0]]]))
-            time_vec.append(np.mean([times[all_rises[fish][rise][0][1]], times[all_rises[fish][rise][0][0]]]))
-##############################################################################
 
 
 def load_data(folder):
@@ -208,7 +70,7 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
         rise_tau.append([])
         rise_dt.append([])
         rise_df.append([])
-        rise_iri.append([])
+        rise_iri.append(np.array([]))
         #
         # tmp_t = []
         if all_rises[fish] == []:
@@ -234,11 +96,13 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
                 if calculate_tau:
                     if True in larger_than:
                         rise_tau[-1].append(np.nan)
+                        rise_df[-1].append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
                         counter2 += 1
                         continue
                     popt = compute_tau(all_rises, fishes, all_times, rise, fish, dpm)
                     if popt[1] >= 200:
                         rise_tau[-1].append(np.nan)
+                        rise_df[-1].append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
                         continue
 
                     rise_tau[-1].append(popt[1])
@@ -247,9 +111,6 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
                     rise_tau[-1].append(np.nan)
                     rise_df[-1].append(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
 
-                # rise_f[-1].append(all_rises[fish][rise][1][1])
-                # rise_t[-1].append(all_times[all_rises[fish][rise][0][0]])
-                # rise_dt[-1].append(all_times[all_rises[fish][rise][0][1]] - all_times[all_rises[fish][rise][0][0]])
             rise_iri[-1] = np.diff(rise_t[-1])
 
     total_rise_count = np.sum([len(all_rises[x]) for x in range(len(all_rises))])
@@ -262,68 +123,141 @@ def get_rise_params(fishes, all_times, all_rises, calculate_tau=False):
     return rise_f, rise_t, rise_tau, rise_dt, rise_df, rise_iri
 
 
-def fist_level_analysis(rise_tau, rise_df):
+def fist_level_analysis(rise_tau, rise_df, show_plot=False):
     ## Rise tau vs. delta freq ##
     slope, intercept, r_val, p_val, stderr = scp.linregress(rise_tau, rise_df)
     x = np.arange(np.min(rise_tau), np.max(rise_tau), 0.01)
     y = slope * x + intercept
 
-    fig1, ax1 = plt.subplots(facecolor='white')
+    if show_plot:
+        fig1, ax1 = plt.subplots(facecolor='white')
 
-    ax1.plot(rise_tau, rise_df, '.')
-    ax1.plot(x, y)
+        ax1.plot(rise_tau, rise_df, '.')
+        ax1.plot(x, y)
 
-    ax1.set_ylabel('delta frequency [Hz]')
-    ax1.set_xlabel('tau [s]')
-    ax1.set_title('Single rise df/tau (R=%.2f; p=%.3f; n = %.0f)' % (r_val, p_val, len(rise_tau)))
-    # plt.draw()
-    # plt.pause(0.001)
+        ax1.set_ylabel('delta frequency [Hz]')
+        ax1.set_xlabel('tau [s]')
+        ax1.set_title('Single rise df/tau (R=%.2f; p=%.3f; n = %.0f)' % (r_val, p_val, len(rise_tau)))
+        # plt.draw()
+        # plt.pause(0.001)
 
-    ## df distribution ##
-    fig2, ax2 = plt.subplots(facecolor='white')
-    bins = np.arange(0, np.ceil(np.max(rise_df)), 0.1)
-    n, edges = np.histogram(rise_df, bins)
-    ax2.bar(edges[:-1], n, 0.1)
-    ax2.set_ylabel('count')
-    ax2.set_xlabel('delta frequency [Hz]')
-    ax2.set_title('Rise delta frequency histogram (bw = 0.1Hz)')
-    # plt.draw()
-    # plt.pause(0.001)
+        ## df distribution ##
+        fig2, ax2 = plt.subplots(facecolor='white')
+        bins = np.arange(0, np.ceil(np.max(rise_df)), 0.1)
+        n, edges = np.histogram(rise_df, bins)
+        ax2.bar(edges[:-1], n, 0.1)
+        ax2.set_ylabel('count')
+        ax2.set_xlabel('delta frequency [Hz]')
+        ax2.set_title('Rise delta frequency histogram (bw = 0.1Hz)')
+        # plt.draw()
+        # plt.pause(0.001)
 
-    ## tau distribution ##
-    fig3, ax3 = plt.subplots(facecolor='white')
-    bins = np.arange(0, np.ceil(np.max(rise_tau)), 1)
-    n, edges = np.histogram(rise_tau, bins)
-    ax3.bar(edges[:-1], n, 1)
-    ax3.set_ylabel('count')
-    ax3.set_xlabel('tau [s]')
-    ax3.set_title('Rise tau histogram (bw = 1s)')
+        ## tau distribution ##
+        fig3, ax3 = plt.subplots(facecolor='white')
+        bins = np.arange(0, np.ceil(np.max(rise_tau)), 1)
+        n, edges = np.histogram(rise_tau, bins)
+        ax3.bar(edges[:-1], n, 1)
+        ax3.set_ylabel('count')
+        ax3.set_xlabel('tau [s]')
+        ax3.set_title('Rise tau histogram (bw = 1s)')
 
-    plt.show()
+        plt.show()
 
 
 def IRIs(rise_iri):
-    # serial correlation#
     lags = np.arange(1, 5)
-    corrkof = []
-    p_val = []
+
+    ser_IRI_data = []
 
     for fish in range(len(rise_iri)):
         if len(rise_iri[fish]) <= lags[-1] + 1:
-            corrkof.append(np.array([]))
-            p_val.append(np.array([]))
+            ser_IRI_data.append([[], [], []])
             continue
-        corrkof.append(np.ones(len(lags)+1))
-        p_val.append(np.zeros(len(lags)+1))
-        for lag in lags:
-            corrkof[fish][lag], p_val[fish][lag] = scp.pearsonr(rise_iri[fish][lag:], rise_iri[fish][:-lag])
 
-    for fish in range(len(corrkof)):
-        if len(corrkof[fish]) == 0:
+        # real serial correlation ###
+        corrcof = np.ones(len(lags)+1)
+        for lag in lags:
+            corrcof[lag] = scp.pearsonr(rise_iri[fish][lag:], rise_iri[fish][:-lag])[0]
+
+        # bootstrapt serial correlation ###
+        boot_corrcof = []
+        for i in range(2000):
+            boot_corrcof.append(np.ones(len(lags)+1))
+            tmp_iri = np.copy(rise_iri[fish])
+            np.random.shuffle(tmp_iri)
+
+            for lag in lags:
+                boot_corrcof[-1][lag] = scp.pearsonr(tmp_iri[lag:], tmp_iri[:-lag])[0]
+
+        # calculate percentiles
+        p975 = np.ones(np.size(boot_corrcof, axis=1))
+        p025 = np.ones(np.size(boot_corrcof, axis=1))
+
+        for i in range(np.size(boot_corrcof, axis=1)):
+            p975[i], p025[i] = np.percentile(np.array(boot_corrcof)[:, i], (97.5, 2.5))
+
+        ser_IRI_data.append([corrcof, p975, p025])
+
+    for fish in range(len(ser_IRI_data)):
+        if ser_IRI_data[fish][0] == []:
             continue
+
         fig, ax = plt.subplots()
-        ax.plot(np.arange(5), corrkof[fish], marker='o')
-        plt.show()
+        ax.fill_between(np.arange(len(lags)+1), ser_IRI_data[fish][1], ser_IRI_data[fish][2], alpha=0.5)
+        ax.plot(np.arange(len(lags)+1), ser_IRI_data[fish][0], color='red', marker='o')
+        ax.set_ylabel('corrkoef')
+        ax.set_xlabel('lag')
+        ax.set_title('fish %.0f; rise n = %.0f' % (fish, len(rise_iri[fish])+1))
+    plt.show()
+
+
+def cross_t(rise_t):
+    def gauss_kernal(t, mu, sigma):
+        return 1/(np.sqrt(2 * np.pi) *sigma) * np.exp( -1. * (t - mu)**2 / (2*(sigma**2))  )
+
+    for fish in range(len(rise_t)-1):
+        if rise_t[fish] == []:
+            continue
+        for comp_fish in range(fish+1, len(rise_t)):
+            if rise_t[comp_fish] == []:
+                continue
+
+            # ToDo: bootstrap, gauss kernal, usw.
+            rel_t = np.arange(-180, 180, 0.1)
+            sumed_gaus = np.zeros(len(rel_t))
+
+            rel_possition = []
+            for t0 in rise_t[fish]:
+                for t1 in rise_t[comp_fish]:
+                    rel_possition.append(t1 - t0)
+            counter = 0
+            for mu in rel_possition:
+                if (mu > -200) & (mu < 200):
+                    counter += 1
+                    sumed_gaus += gauss_kernal(rel_t, mu, 10.)
+
+            embed()
+            quit()
+            for i in range(10):
+                rise_t_fish_cp = np.copy(rise_t[fish])
+                rise_t_comp_fish_cp = np.copy(rise_t[comp_fish])
+
+                dt_fish = np.diff(np.append(0, rise_t_fish_cp))
+                dt_comp = np.diff(np.append(0, rise_t_comp_fish_cp))
+
+                np.random.shuffle(dt_fish)
+
+                new_t_fish = np.cumsum(dt_fish)
+
+
+
+
+            if counter >= 5:
+                fig, ax = plt.subplots()
+                ax.plot(rel_t, sumed_gaus)
+                ax.set_xlabel('time [s]')
+                ax.set_title('fish %.0f (%.0f); comp_fish %.0f (%.0f); n= %.0f' % (fish, len(rise_t[fish]), comp_fish, len(rise_t[comp_fish]), counter))
+                plt.show()
 
 def rise_analysis(file_path):
     folders = np.array([x[0] for x in os.walk(file_path)])
@@ -334,23 +268,20 @@ def rise_analysis(file_path):
 
     for folder in folders:
         tmp_fishes, all_times, all_rises = load_data(folder)
-        # ToDo: which variables shall be calculated if tau is not calculatable !!! np.nans ?
         f, t, tau, dt, df, iri = get_rise_params(tmp_fishes, all_times, all_rises, calculate_tau=True)
 
-        # params of the rises larger than 1.5 Hz and where tau was possible to calculate.
-        # --IRIs are NOT dependant on the ability of tau calculation--
         f_vec = np.concatenate((f_vec, np.hstack(f)))  # rise base freq
         t_vec = np.concatenate((t_vec, np.hstack(t)))  # rise time of occurrence
         tau_vec = np.concatenate((tau_vec, np.hstack(tau)))  # tau of rise
         dt_vec = np.concatenate((dt_vec, np.hstack(dt)))  # rise duration
         df_vec = np.concatenate((df_vec, np.hstack(df)))  # delta frequency of rise
 
-    fist_level_analysis(tau_vec, df_vec)
+    fist_level_analysis(tau_vec[~np.isnan(tau_vec)], df_vec[~np.isnan(tau_vec)], show_plot=False)
 
-    embed()
-    quit()
     if len(folders) == 1:
-        IRIs(iri)
+        # IRIs(iri)
+
+        cross_t(t)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(

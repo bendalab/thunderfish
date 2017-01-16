@@ -110,7 +110,7 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
 
 # TODO: add configuration parameter!
 def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_tolerance=5., freq_tolerance = .5,
-                             save_original_fishes=False, verbose=0):
+                             save_original_fishes=False, output_folder = '.', verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
 
@@ -216,8 +216,9 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, max_time_to
 
     if save_original_fishes:
         print('saving')
-        np.save(base_name + '-fishes.npy', np.asarray(fishes))
-        np.save(base_name + '-times.npy', all_times)
+        np.save(os.path.join(output_folder, base_name) + '-fishes.npy', np.asarray(fishes))
+        np.save(os.path.join(output_folder, base_name) + '-times.npy', all_times)
+
     return np.asarray(fishes)
 
 
@@ -544,7 +545,13 @@ def cut_at_rises(fishes, all_rises):
     # return np.append(fishes[return_idx], new_fishes, axis=0), all_rises
 
 
-def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
+def save_data(fishes, all_times, all_rises, base_name, output_folder):
+    np.save(os.path.join(output_folder, base_name) + '-final_fishes.npy', np.asarray(fishes))
+    np.save(os.path.join(output_folder, base_name) + '-final_times.npy', all_times)
+    np.save(os.path.join(output_folder, base_name) + '-final_rises.npy', np.asarray(all_rises))
+
+
+def plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folder):
     """
     Plot shows the detected fish fundamental frequencies plotted against the time in hours.
 
@@ -599,7 +606,7 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
     ax.get_yaxis().tick_left()
 
     if save_plot:
-        plt.savefig(base_name)
+        plt.savefig(os.path.join(output_folder, base_name))
         plt.close(fig)
     else:
         plt.show()
@@ -609,7 +616,8 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot):
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
                  overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 10.,
-                 f_th= 5., plot_harmonic_groups=False, verbose=0, **kwargs):
+                 f_th= 5., output_folder = '.', plot_harmonic_groups=False, verbose=0, **kwargs):
+
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -660,7 +668,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
         if verbose >= 2:
             print('> frequency tolerance = %.2f Hz' % freq_tolerance)
     fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, freq_tolerance=freq_tolerance,
-                                      save_original_fishes=save_original_fishes, verbose=verbose)
+                                      save_original_fishes=save_original_fishes, output_folder=output_folder, verbose=verbose)
 
     min_occure_time = all_times[-1] * 0.01 / 60.
     if min_occure_time > 1.:
@@ -695,7 +703,11 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     if verbose >= 1:
         print('%.0f fishes left' % len(fishes))
 
-    plot_fishes(fishes, all_times, all_rises, base_name, save_plot)
+    plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folder)
+
+    if verbose >= 1:
+        print('saving data to ' + output_folder)
+    save_data(fishes, all_times, all_rises, base_name, output_folder)
     if verbose >= 1:
         print('\nWhole file processed.')
 
@@ -721,7 +733,12 @@ def main():
     parser.add_argument('-s', dest='save_fish', action='store_true',
                         help='save fish EODs after first stage of sorting.')
     parser.add_argument('-f', dest='plot_harmonic_groups', action='store_true', help='plot harmonic group detection')
+    parser.add_argument('-o', dest='output_folder', default=".", type=str,
+                        help="path where to store results and figures")
     args = parser.parse_args()
+
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
 
     datafile = args.file[0]
 
@@ -752,6 +769,7 @@ def main():
         rise_f_th = .5
         max_time_tolerance = 10.
         f_th = 5.
+        output_folder = args.output_folder
 
         a = np.load(sys.argv[1], mmap_mode='r+')
         fishes = a.copy()
@@ -789,7 +807,12 @@ def main():
 
         base_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
 
-        plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot)
+        plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot, args.output_folder)
+
+        if verbose >= 1:
+            print('saving data to ' + output_folder)
+        save_data(fishes, all_times, all_rises, base_name, output_folder)
+
         if verbose >= 1:
             print('Whole file processed.')
 
@@ -797,9 +820,9 @@ def main():
         h_kwargs = psd_peak_detection_args(cfg)
         h_kwargs.update(harmonic_groups_args(cfg))
         fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
-                     args.grid, args.save_plot, args.save_fish,
+                     args.grid, args.save_plot, args.save_fish, output_folder=args.output_folder,
                      plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, **h_kwargs)
-
 
 if __name__ == '__main__':
     main()
+
