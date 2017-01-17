@@ -156,7 +156,10 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
     detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff  # detections per minutes
 
-    fishes = [np.full(len(all_fundamentals)+1, np.nan)]
+    try:
+        fishes = [np.full(len(all_fundamentals)+1, np.nan)]
+    except AttributeError:
+        fishes = [np.zeros(len(all_fundamentals)+1) / 0.]
     fishes[0][0] = 0.
     last_fish_fundamentals = [ 0. ]
     end_nans = [0]
@@ -179,7 +182,10 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
             last_detect_of_tolerated = np.array(end_nans)[tolerated_diff_idx]
 
             if len(tolerated_diff_idx) == 0:
-                fishes.append(np.full(len(all_fundamentals)+1, np.nan))
+                try:
+                    fishes.append(np.full(len(all_fundamentals)+1, np.nan))
+                except AttributeError:
+                    fishes.append(np.zeros(len(all_fundamentals)+1) / 0.)
                 fishes[-1][enu+1] = fundamentals[idx]
                 last_fish_fundamentals.append(fundamentals[idx])
                 end_nans.append(0)
@@ -193,7 +199,10 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
                         found = True
                         break
                 if not found:
-                    fishes.append(np.full(len(all_fundamentals)+1, np.nan))
+                    try:
+                        fishes.append(np.full(len(all_fundamentals)+1, np.nan))
+                    except AttributeError:
+                        fishes.append(np.zeros(len(all_fundamentals)+1) / 0.)
                     fishes[-1][enu+1] = fundamentals[idx]
                     last_fish_fundamentals.append(fundamentals[idx])
                     end_nans.append(0)
@@ -376,7 +385,10 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
 
     occure_idx = []
     delete_idx = []
-    possible_combinations_all_fish = np.array([np.full(len(fishes), np.nan) for i in range(len(fishes))])
+    try:
+        possible_combinations_all_fish = np.array([np.full(len(fishes), np.nan) for i in range(len(fishes))])
+    except AttributeError:
+        possible_combinations_all_fish = np.array([np.zeros(len(fishes)) / 0. for i in range(len(fishes))])
 
     for fish in range(len(fishes)):
         non_nan_idx = np.arange(len(fishes[fish]))[~np.isnan(fishes[fish])]
@@ -386,9 +398,14 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
     occure_order = np.argsort(np.array([occure_idx[i][0] for i in range(len(fishes))]))
 
     for fish in reversed(occure_order):
-        possible_freq_combinations = np.full(len(fishes), np.nan)
-        possible_idx_combinations = np.full(len(fishes), np.nan)
-        possible_combinations = np.full(len(fishes), np.nan)
+        try:
+            possible_freq_combinations = np.full(len(fishes), np.nan)
+            possible_idx_combinations = np.full(len(fishes), np.nan)
+            possible_combinations = np.full(len(fishes), np.nan)
+        except AttributeError:
+            possible_freq_combinations = np.zeros(len(fishes)) / 0.
+            possible_idx_combinations = np.zeros(len(fishes)) / 0.
+            possible_combinations = np.zeros(len(fishes)) / 0.
 
         for comp_fish in reversed(occure_order[:np.where(occure_order == fish)[0][0]]):
 
@@ -449,7 +466,10 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
             continue
 
         fishes[comp_fish][~np.isnan(fishes[fish])] = fishes[fish][~np.isnan(fishes[fish])]
-        fishes[fish] = np.full(len(fishes[fish]), np.nan)
+        try:
+            fishes[fish] = np.full(len(fishes[fish]), np.nan)
+        except AttributeError:
+            fishes[fish] = np.zeros(len(fishes[fish])) / 0.
 
         # clean up possible_combination all fish
         for i in range(len(possible_combinations_all_fish)):
@@ -463,7 +483,10 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
                     possible_combinations_all_fish[i][fish] = np.nan
                 else:
                     possible_combinations_all_fish[i][fish] = np.nan
-        possible_combinations_all_fish[fish] = np.full(len(possible_combinations_all_fish[fish]), np.nan)
+        try:
+            possible_combinations_all_fish[fish] = np.full(len(possible_combinations_all_fish[fish]), np.nan)
+        except AttributeError:
+            possible_combinations_all_fish[fish] = np.zeros(len(possible_combinations_all_fish[fish])) / 0.
 
         if all_rises[fish] != []:
             for rise in range(len(all_rises[fish])):
@@ -524,9 +547,19 @@ def cut_at_rises(fishes, all_rises):
 
         for rise in reversed(range(len(all_rises[fish]))):
             cut_idx = all_rises[fish][rise][0][0]
-            new_fishes.append(np.full(len(fishes[fish]), np.nan))
+
+            try:
+                new_fishes.append(np.full(len(fishes[fish]), np.nan))
+            except AttributeError:
+                new_fishes.append(np.zeros(len(fishes[fish])) / 0.)
+
             new_fishes[-1][cut_idx:] = fishes[fish][cut_idx:]
-            fishes[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
+
+            try:
+                fishes[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
+            except AttributeError:
+                fishes[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
+
             all_rises.append([all_rises[fish][rise]])
             all_rises[fish].pop(rise)
     for fish in reversed(range(len(fishes))):
