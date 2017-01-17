@@ -123,7 +123,10 @@ if __name__ == '__main__':
                  [np.array([np.array([349.8, 0])]), np.array([np.array([700.5, 0])]),
                   np.array([np.array([1000.3, 0])])]]
     #
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        pass
 
     fig, ax = plt.subplots()
     filtered_fishlist = consistent_fishes(fishlists, verbose=1, plot_data_func=consistent_fishes_plot, ax=ax, fs=12)

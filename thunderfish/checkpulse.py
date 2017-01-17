@@ -6,11 +6,13 @@ check_pulse_psd(): checks for puls_type fish based on its signature on the power
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
 from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
 from .powerspectrum import decibel
-
+try:
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Rectangle
+except ImportError:
+    pass
 
 def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=0.1,
                       pulse_thres=0.1, verbose=0, plot_data_func=None, **kwargs):

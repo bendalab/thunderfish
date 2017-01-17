@@ -325,7 +325,10 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        pass
 
     samplerate = 40000.  # in Hz
     duration = 1.  # in sec

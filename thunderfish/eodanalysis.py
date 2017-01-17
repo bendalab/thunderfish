@@ -76,7 +76,10 @@ def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.'):
 
 if __name__ == '__main__':
     import sys
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        pass
     from .fakefish import generate_biphasic_pulses
     from .dataloader import load_data
     from .bestwindow import best_window

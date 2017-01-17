@@ -15,10 +15,13 @@ plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, har
 
 from __future__ import print_function
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.colors as mc
 from .peakdetection import detect_peaks, accept_peaks_size_width, hist_threshold
 from .powerspectrum import decibel, plot_decibel_psd
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.colors as mc
+except ImportError:
+    pass
 
 
 def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, max_freq=2000.0,
