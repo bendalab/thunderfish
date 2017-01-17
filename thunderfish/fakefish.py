@@ -162,7 +162,7 @@ def chirps_frequency(eodf=100.0, samplerate=44100., duration=1.,
 
 
 def rises_frequency(eodf=100.0, samplerate=44100., duration=1.,
-                    rise_freq=1.0, rise_size=10.0, rise_tau=0.01, decay_tau=0.1):
+                    rise_freq=0.1, rise_size=10.0, rise_tau=1.0, decay_tau=10.0):
     """
     Generate frequency trace with rises.
 
@@ -203,8 +203,11 @@ def rises_frequency(eodf=100.0, samplerate=44100., duration=1.,
     for r in rise_times:
         index = int(r*samplerate)
         if index+len(rise) > len(frequency):
+            rise_index = len(frequency)-index
+            frequency[index:index+rise_index] += rise[:rise_index]
             break
-        frequency[index:index+len(rise)] += rise
+        else:
+            frequency[index:index+len(rise)] += rise
     return frequency
 
 
@@ -325,13 +328,17 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
 
 
 if __name__ == '__main__':
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        pass
+    import matplotlib.pyplot as plt
+    from audioio import write_audio
+
+    #plot = False
+    plot = True
+    save = False
+    #save = True
 
     samplerate = 40000.  # in Hz
-    duration = 1.  # in sec
+    duration = 10.       # in sec
+    #duration = 100.     # in sec
     
     inset_len = 0.01  # in sec
     inset_indices = int(inset_len*samplerate)
@@ -340,13 +347,18 @@ if __name__ == '__main__':
     # generate data:
     time = np.arange(0, duration, 1./samplerate)
 
-    eodf = 300.0
-    eodf = 500.0 - time/duration*400.0
+    eodf = 400.0
+    #eodf = 500.0 - time/duration*400.0
     wavefish = generate_wavefish(eodf, samplerate, duration=duration, noise_std=0.02, 
-                                 amplitudes=[1.0, 0.5, 0.0, 0.0001],
+                                 amplitudes=[1.0, 0.5, 0.1, 0.0001],
                                  phases=[0.0, 0.0, 0.0, 0.0])
+    eodf = 650.0
     # wavefish = generate_alepto(eodf, samplerate, duration=duration)
-    # wavefish = generate_eigenmannia(eodf, samplerate, duration=duration)
+    wavefish += 0.5*generate_eigenmannia(eodf, samplerate, duration=duration)
+
+    # save fake data:
+    if save:
+        write_audio('fakefish.wav', 0.5*wavefish, samplerate)
 
     pulsefish = generate_pulsefish(80., samplerate, duration=duration,
                                    noise_std=0.02, jitter_cv=0.1,
@@ -358,48 +370,49 @@ if __name__ == '__main__':
     # pulsefish = generate_triphasic_pulses(80., samplerate, duration=duration)
 
     # plot:
-    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
+    if plot:
+        fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
 
-    # get proper wavefish ylim
-    ymin = np.min(wavefish)
-    ymax = np.max(wavefish)
-    dy = ws_fac*(ymax - ymin)
-    ymin -= dy
-    ymax += dy
+        # get proper wavefish ylim
+        ymin = np.min(wavefish)
+        ymax = np.max(wavefish)
+        dy = ws_fac*(ymax - ymin)
+        ymin -= dy
+        ymax += dy
 
-    # complete wavefish:
-    ax[0][0].set_title('Wavefish')
-    ax[0][0].set_ylim(ymin, ymax)
-    ax[0][0].plot(time, wavefish)
+        # complete wavefish:
+        ax[0][0].set_title('Wavefish')
+        ax[0][0].set_ylim(ymin, ymax)
+        ax[0][0].plot(time, wavefish)
 
-    # wavefish zoom in:
-    ax[0][1].set_title('Wavefish ZOOM IN')
-    ax[0][1].set_ylim(ymin, ymax)
-    ax[0][1].plot(time[:inset_indices], wavefish[:inset_indices], '-o')
+        # wavefish zoom in:
+        ax[0][1].set_title('Wavefish ZOOM IN')
+        ax[0][1].set_ylim(ymin, ymax)
+        ax[0][1].plot(time[:inset_indices], wavefish[:inset_indices], '-o')
 
-    # get proper pulsefish ylim
-    ymin = np.min(pulsefish)
-    ymax = np.max(pulsefish)
-    dy = ws_fac*(ymax - ymin)
-    ymin -= dy
-    ymax += dy
+        # get proper pulsefish ylim
+        ymin = np.min(pulsefish)
+        ymax = np.max(pulsefish)
+        dy = ws_fac*(ymax - ymin)
+        ymin -= dy
+        ymax += dy
 
-    # complete pulsefish:
-    ax[1][0].set_title('Pulsefish')
-    ax[1][0].set_ylim(ymin, ymax)
-    ax[1][0].plot(time, pulsefish)
+        # complete pulsefish:
+        ax[1][0].set_title('Pulsefish')
+        ax[1][0].set_ylim(ymin, ymax)
+        ax[1][0].plot(time, pulsefish)
 
-    # pulsefish zoom in:
-    ax[1][1].set_title('Pulsefish ZOOM IN')
-    ax[1][1].set_ylim(ymin, ymax)
-    ax[1][1].plot(time[:inset_indices/2], pulsefish[:inset_indices/2], '-o')
-    
-    for row in ax:
-        for c_ax in row:
-            c_ax.set_xlabel('Time [sec]')
-            c_ax.set_ylabel('Amplitude [a.u.]')
+        # pulsefish zoom in:
+        ax[1][1].set_title('Pulsefish ZOOM IN')
+        ax[1][1].set_ylim(ymin, ymax)
+        ax[1][1].plot(time[:inset_indices/2], pulsefish[:inset_indices/2], '-o')
 
-    plt.tight_layout()
+        for row in ax:
+            for c_ax in row:
+                c_ax.set_xlabel('Time [sec]')
+                c_ax.set_ylabel('Amplitude [a.u.]')
+
+        plt.tight_layout()
 
     # chirps:
     chirps_freq = chirps_frequency(600.0, samplerate, duration=duration, chirp_kurtosis=1.0)
@@ -409,24 +422,29 @@ if __name__ == '__main__':
     rises_freq = rises_frequency(600.0, samplerate, duration=duration, rise_size=20.0)
     rises_data = generate_alepto(rises_freq, samplerate)
 
-    # plot:
-    nfft = 256
-    fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(19, 10))
-    ax[0].set_title('Chirps')
-    ax[0].specgram(chirps_data, Fs=samplerate, NFFT=nfft, noverlap=nfft//16)
-    time = np.arange(len(chirps_freq))/samplerate
-    ax[0].plot(time[:-nfft/2], chirps_freq[nfft/2:], '-k', lw=2)
-    ax[0].set_ylim(0.0, 3000.0)
-    ax[0].set_ylabel('Frequency [Hz]')
+    # save fake data:
+    #if save:
+    #    write_audio('fakefish.wav', 0.5*(wavefish+0.5*rises_data), samplerate)
 
-    nfft = 4096
-    ax[1].set_title('Rises')
-    ax[1].specgram(rises_data, Fs=samplerate, NFFT=nfft, noverlap=nfft//2)
-    time = np.arange(len(rises_freq))/samplerate
-    ax[1].plot(time[:-nfft/4], rises_freq[nfft/4:], '-k', lw=2)
-    ax[1].set_ylim(500.0, 700.0)
-    ax[1].set_ylabel('Frequency [Hz]')
-    ax[1].set_xlabel('Time [s]')
-    plt.tight_layout()
-    
-    plt.show()
+    # plot:
+    if plot:
+        nfft = 256
+        fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(19, 10))
+        ax[0].set_title('Chirps')
+        ax[0].specgram(chirps_data, Fs=samplerate, NFFT=nfft, noverlap=nfft//16)
+        time = np.arange(len(chirps_freq))/samplerate
+        ax[0].plot(time[:-nfft/2], chirps_freq[nfft/2:], '-k', lw=2)
+        ax[0].set_ylim(0.0, 3000.0)
+        ax[0].set_ylabel('Frequency [Hz]')
+
+        nfft = 4096
+        ax[1].set_title('Rises')
+        ax[1].specgram(rises_data, Fs=samplerate, NFFT=nfft, noverlap=nfft//2)
+        time = np.arange(len(rises_freq))/samplerate
+        ax[1].plot(time[:-nfft/4], rises_freq[nfft/4:], '-k', lw=2)
+        ax[1].set_ylim(500.0, 700.0)
+        ax[1].set_ylabel('Frequency [Hz]')
+        ax[1].set_xlabel('Time [s]')
+        plt.tight_layout()
+
+        plt.show()
