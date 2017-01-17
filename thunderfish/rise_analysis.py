@@ -218,6 +218,7 @@ def cross_t(rise_t):
     for fish in range(len(rise_t)-1):
         if rise_t[fish] == []:
             continue
+        # todo one vs all
         for comp_fish in range(fish+1, len(rise_t)):
             if rise_t[comp_fish] == []:
                 continue
@@ -236,50 +237,49 @@ def cross_t(rise_t):
                     counter += 1
                     sumed_gaus += gauss_kernal(rel_t, mu, 10.)
 
-            ### boot strapping ... still in progress
-            # boot_sumed_gaus = []
-            # for i in range(2000):
-            #     boot_sumed_gaus.append(np.zeros(len(rel_t)))
-            #     rise_t_fish_cp = np.copy(rise_t[fish])
-            #     rise_t_comp_fish_cp = np.copy(rise_t[comp_fish])
-            #
-            #     dt_fish = np.diff(np.append(0, rise_t_fish_cp))
-            #     dt_comp = np.diff(np.append(0, rise_t_comp_fish_cp))
-            #
-            #     np.random.shuffle(dt_fish)
-            #     np.random.shuffle(dt_comp)
-            #
-            #     new_t_fish = np.cumsum(dt_fish)
-            #     new_t_cfish = np.cumsum(dt_comp)
-            #
-            #     rel_possition = []
-            #     for t0 in new_t_fish:
-            #         for t1 in new_t_cfish:
-            #             rel_possition.append(t1 - t0)
-            #
-            #     for mu in rel_possition:
-            #         if (mu > -200) & (mu < 200):
-            #             counter += 1
-            #             boot_sumed_gaus[-1] += gauss_kernal(rel_t, mu, 10.)
-            #
-            # p975 = np.ones(np.size(boot_sumed_gaus, axis=1))
-            # p025 = np.ones(np.size(boot_sumed_gaus, axis=1))
-            #
-            # for i in range(np.size(boot_sumed_gaus, axis=1)):
-            #     p975, p025 = np.percentile(np.array(boot_sumed_gaus)[:,1], (97.5, 2.5))
-            #
-            # if counter >= 5:
-            #     fig, ax = plt.subplots()
-            #     ax.fill_between(rel_t, p975, p025, alpha=0.5)
-            #     ax.plot(rel_t, sumed_gaus, color='red')
-            #     plt.show()
+            boot_sumed_gaus = []
+            for i in range(2000):
+                boot_sumed_gaus.append(np.zeros(len(rel_t)))
+                rise_t_fish_cp = np.copy(rise_t[fish])
+                rise_t_comp_fish_cp = np.copy(rise_t[comp_fish])
+
+                dt_fish = np.diff(np.append(0, rise_t_fish_cp))
+                dt_comp = np.diff(np.append(0, rise_t_comp_fish_cp))
+
+                np.random.shuffle(dt_fish)
+                np.random.shuffle(dt_comp)
+
+                new_t_fish = np.cumsum(dt_fish)
+                new_t_cfish = np.cumsum(dt_comp)
+
+                rel_possition = []
+                for t0 in new_t_fish:
+                    for t1 in new_t_cfish:
+                        rel_possition.append(t1 - t0)
+
+                for mu in rel_possition:
+                    if (mu > -200) & (mu < 200):
+                        boot_sumed_gaus[-1] += gauss_kernal(rel_t, mu, 10.)
+
+
+            p975, p025 = np.percentile(np.array(boot_sumed_gaus), (97.5, 2.5), axis=0)
+            # embed()
+            # quit()
 
             if counter >= 5:
                 fig, ax = plt.subplots()
-                ax.plot(rel_t, sumed_gaus)
+                ax.fill_between(rel_t, p975, p025, alpha=0.5)
+                ax.plot(rel_t, sumed_gaus, color='red')
                 ax.set_xlabel('time [s]')
                 ax.set_title('fish %.0f (%.0f); comp_fish %.0f (%.0f); n= %.0f' % (fish, len(rise_t[fish]), comp_fish, len(rise_t[comp_fish]), counter))
-                plt.show()
+    plt.show()
+
+            # if counter >= 5:
+            #     fig, ax = plt.subplots()
+            #     ax.plot(rel_t, sumed_gaus)
+            #     ax.set_xlabel('time [s]')
+            #     ax.set_title('fish %.0f (%.0f); comp_fish %.0f (%.0f); n= %.0f' % (fish, len(rise_t[fish]), comp_fish, len(rise_t[comp_fish]), counter))
+            #     plt.show()
 
 def rise_analysis(file_path):
     folders = np.array([x[0] for x in os.walk(file_path)])

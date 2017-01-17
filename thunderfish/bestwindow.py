@@ -469,7 +469,10 @@ def best_window_args(cfg):
 if __name__ == "__main__":
     print("Checking bestwindow module ...")
     import sys
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        pass
 
     title = "bestwindow"
     if len(sys.argv) < 2:

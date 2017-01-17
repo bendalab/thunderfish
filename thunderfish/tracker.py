@@ -7,7 +7,6 @@ import sys
 import os
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
 from .version import __version__
 from .configfile import ConfigFile
 from .dataloader import open_data
@@ -15,7 +14,10 @@ from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
 from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
-
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 # TODO: update to numpy doc style!
 
 
@@ -383,7 +385,6 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
 
     occure_order = np.argsort(np.array([occure_idx[i][0] for i in range(len(fishes))]))
 
-    # fig, ax = plt.subplots()
     for fish in reversed(occure_order):
         possible_freq_combinations = np.full(len(fishes), np.nan)
         possible_idx_combinations = np.full(len(fishes), np.nan)
@@ -764,7 +765,8 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     if verbose >= 1:
         print('%.0f fishes left' % len(fishes))
 
-    plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folder)
+    if 'plt' in locals() or 'plt' in globals():
+        plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folder)
 
     if save_original_fishes:
         if verbose >= 1:
@@ -871,7 +873,8 @@ def main():
 
         base_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
 
-        plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot, args.output_folder)
+        if 'plt' in locals() or 'plt' in globals():
+            plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot, args.output_folder)
 
         if args.save_fish:
             if verbose >= 1:

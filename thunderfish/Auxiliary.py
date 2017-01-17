@@ -3,10 +3,12 @@ __author__ = 'juan'
 import sys
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import wave
 from scipy.signal import butter, filtfilt
-
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 def normalized_signal(data, rate, win_duration=.1, min_std=0.1):
     """Removes mean and normalizes data by dividing by the standard deviation.

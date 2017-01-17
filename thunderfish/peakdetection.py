@@ -710,7 +710,10 @@ def trim_closest(peaks, troughs):
 
 if __name__ == "__main__":
     print("Checking peakdetection module ...")
-    import matplotlib.pyplot as plt
+    try:
+        import matplotlib.pyplot as plt
+    except ImportError:
+        pass
 
     print('')
     # generate data:
