@@ -235,6 +235,10 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             cfg.dump(save_config)
         return
 
+    # check data file:
+    if len(filename) == 0:
+        return 'you need to specify a file containing some data'
+
     # create output folder
     if save_csvs or save_plot:
         if not os.path.exists(output_folder):
@@ -342,7 +346,7 @@ def main():
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',
                         help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs=1, default='', type=str, help='name of the file with the time series data')
+    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be analyzed')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
     parser.add_argument('-s', dest='save_csvs', action='store_true',
@@ -356,9 +360,12 @@ def main():
     if args.verbose != None:
         verbose = args.verbose
 
-    thunderfish(args.file[0], args.channel, args.save_csvs, args.save_plot, args.output_folder,
+    msg = thunderfish(args.file, args.channel, args.save_csvs, args.save_plot, args.output_folder,
                 cfgfile, args.save_config, verbose=verbose)
-    print('Thank you for using thunderfish!')
+    if msg is not None:
+        parser.error(msg)
+    else:
+        print('Thank you for using thunderfish!')
 
 
 if __name__ == '__main__':

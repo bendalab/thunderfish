@@ -797,7 +797,7 @@ def main():
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',
                         help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs=1, default='', type=str, help='name of the file wih the time series data or the -fishes.npy file saved with the -s option')
+    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data or the -fishes.npy file saved with the -s option')
     parser.add_argument('start_time', nargs='?', default=0.0, type=float, help='start time of analysis in min.')
     parser.add_argument('end_time', nargs='?', default=-1.0, type=float, help='end time of analysis in min.')
     parser.add_argument('-g', dest='grid', action='store_true', help='sum up spectrograms of all channels available.')
@@ -808,11 +808,7 @@ def main():
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
                         help="path where to store results and figures")
     args = parser.parse_args()
-
-    if not os.path.exists(args.output_folder):
-        os.makedirs(args.output_folder)
-
-    datafile = args.file[0]
+    datafile = args.file
 
     # set verbosity level from command line:
     verbose = 0
@@ -838,6 +834,14 @@ def main():
             cfg.dump(args.save_config)
         return
 
+    # check data file:
+    if len(datafile) == 0:
+        parser.error('you need to specify a file containing some data')
+        return
+
+    # output directory:    
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
 
     if os.path.splitext(datafile)[1] == '.npy':
         rise_f_th = .5
