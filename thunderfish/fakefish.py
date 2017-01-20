@@ -99,7 +99,7 @@ def generate_alepto(frequency=100.0, samplerate=44100., duration=1., noise_std=0
     See generate_wavefish() for details.
     """
     return generate_wavefish(frequency=frequency, samplerate=samplerate, duration=duration,
-                             noise_std=noise_std, amplitudes=[1.0, 0.1, 0.02, 0.005, 0.001],
+                             noise_std=noise_std, amplitudes=[1.0, 0.5, 0.1, 0.01, 0.001],
                              phases=[0.0, 0.0, 0.0, 0.0, 0.0])
 
 
@@ -327,50 +327,139 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
                               peak_times=[0.0, 0.00015, 0.0004])
 
 
-if __name__ == '__main__':
+def main():
+    import sys
     import matplotlib.pyplot as plt
     from audioio import write_audio
+    try:
+        input_ = raw_input
+    except NameError:
+        input_ = input
 
-    #plot = False
-    plot = True
-    save = False
-    #save = True
+    def read(prompt, default=None, dtype=str, min=None, max=None):
+        if default is not None:
+            prompt += ' (%s): ' % default
+        while True:
+            s = input_(prompt)
+            if len(s) == 0 and default is not None:
+                s = default
+            if len(s) > 0:
+                try:
+                    x = dtype(s)
+                except ValueError:
+                    x = None
+                if x is not None:
+                    if min is not None and x < min:
+                        continue
+                    if max is not None and x > max:
+                        continue
+                    return x
 
-    samplerate = 40000.  # in Hz
-    duration = 10.       # in sec
-    #duration = 100.     # in sec
+    def select(prompt, default, options, descriptions):
+        print(prompt)
+        for o, d in zip(options, descriptions):
+            print('  [%s] %s' % (o, d))
+        sprompt = '  Select'
+        if default is not None:
+            sprompt += ' (%s): ' % default
+        while True:
+            s = input_(sprompt).lower()
+            if len(s) == 0:
+                s = default
+            if s in options:
+                return s
+            
     
-    inset_len = 0.01  # in sec
-    inset_indices = int(inset_len*samplerate)
-    ws_fac = 0.1  # whitespace factor or ylim (between 0. and 1.; preferably a small number)
+    if len(sys.argv) > 1:
+        if len(sys.argv) == 2 or sys.argv[1] != '-s':
+            print('usage: fakefish [-h] [-s audiofile]')
+            print('')
+            print('Without arguments, run a demo for illustrating fakefish functionality.')
+            print('')
+            print('-s audiofile: writes audiofile with user defined simulated electric fishes.')
+            print('')
+            print('by bendalab (2017)')
+        else:
+            # generate file:
+            audiofile = sys.argv[2]
+            samplerate = read('Sampling rate in Hz', '44100', float, 1.0)
+            duration = read('Duration in seconds', '10', float, 0.001)
+            nfish = read('Number of fish', '1', int, 1)
+            eodt = 'a'
+            eodf = 800.0
+            eoda = 1.0
+            eodsig = 'n'
+            pulse_jitter = 0.1
+            for k in range(nfish):
+                print('')
+                fish = 'Fish %d: ' % (k+1)
+                eodt = select(fish + 'EOD type', eodt, ['a', 'e', '1', '2', '3'],
+                              ['Apteronotus', 'Eigenmannia',
+                               'monophasic pulse', 'biphasic pulse', 'triphasic pulse'])
+                eodf = read(fish + 'EOD frequency in Hz', '%g'%eodf, float, 1.0, 3000.0)
+                eoda = read(fish + 'EOD amplitude', '%g'%eoda, float, 0.0, 10.0)
+                if eodt in 'ae':
+                    eodsig = select(fish + 'Add communication signals', eodsig, ['n', 'c', 'r'],
+                              ['fixed EOD', 'chirps', 'rises'])
+                    eodfreq = eodf
+                    if eodsig == 'c':
+                        eodfreq = chirps_frequency(eodf, samplerate, duration)
+                    elif eodsig == 'r':
+                        eodfreq = rises_frequency(eodf, samplerate, duration)
+                    if eodt == 'a':
+                        fishdata = eoda*generate_alepto(eodfreq, samplerate, duration=duration)
+                    elif eodt == 'e':
+                        fishdata = eoda*generate_eigenmannia(eodfreq, samplerate, duration=duration)
+                else:
+                    pulse_jitter = read(fish + 'CV of pulse jitter', '%g'%pulse_jitter, float, 0.0, 2.0)
+                    if eodt == '1':
+                        fishdata = eoda*generate_monophasic_pulses(eodf, samplerate, duration,
+                                                                   jitter_cv=pulse_jitter)
+                    elif eodt == '2':
+                        fishdata = eoda*generate_biphasic_pulses(eodf, samplerate, duration,
+                                                                 jitter_cv=pulse_jitter)
+                    elif eodt == '3':
+                        fishdata = eoda*generate_triphasic_pulses(eodf, samplerate, duration,
+                                                                  jitter_cv=pulse_jitter)
+                if k == 0:
+                    data = fishdata
+                else:
+                    data += fishdata
 
-    # generate data:
-    time = np.arange(0, duration, 1./samplerate)
+            maxdata = np.max(np.abs(data))
+            write_audio(audiofile, 0.9*data/maxdata, samplerate)
+            print('\nWrote fakefish data to file "%s".' % audiofile)
+    
+    else:
+        # demo:
+        samplerate = 40000.  # in Hz
+        duration = 10.0       # in sec
 
-    eodf = 400.0
-    #eodf = 500.0 - time/duration*400.0
-    wavefish = generate_wavefish(eodf, samplerate, duration=duration, noise_std=0.02, 
-                                 amplitudes=[1.0, 0.5, 0.1, 0.0001],
-                                 phases=[0.0, 0.0, 0.0, 0.0])
-    eodf = 650.0
-    # wavefish = generate_alepto(eodf, samplerate, duration=duration)
-    wavefish += 0.5*generate_eigenmannia(eodf, samplerate, duration=duration)
+        inset_len = 0.01  # in sec
+        inset_indices = int(inset_len*samplerate)
+        ws_fac = 0.1  # whitespace factor or ylim (between 0. and 1.; preferably a small number)
 
-    # save fake data:
-    if save:
-        write_audio('fakefish.wav', 0.5*wavefish, samplerate)
+        # generate data:
+        time = np.arange(0, duration, 1./samplerate)
 
-    pulsefish = generate_pulsefish(80., samplerate, duration=duration,
-                                   noise_std=0.02, jitter_cv=0.1,
-                                   peak_stds=[0.0001, 0.0002],
-                                   peak_amplitudes=[1.0, -0.3],
-                                   peak_times=[0.0, 0.0003])
-    # pulsefish = generate_monophasic_pulses(80., samplerate, duration=duration)
-    # pulsefish = generate_biphasic_pulses(80., samplerate, duration=duration)
-    # pulsefish = generate_triphasic_pulses(80., samplerate, duration=duration)
+        eodf = 400.0
+        #eodf = 500.0 - time/duration*400.0
+        wavefish = generate_wavefish(eodf, samplerate, duration=duration, noise_std=0.02, 
+                                     amplitudes=[1.0, 0.5, 0.1, 0.0001],
+                                     phases=[0.0, 0.0, 0.0, 0.0])
+        eodf = 650.0
+        # wavefish = generate_alepto(eodf, samplerate, duration=duration)
+        wavefish += 0.5*generate_eigenmannia(eodf, samplerate, duration=duration)
 
-    # plot:
-    if plot:
+        pulsefish = generate_pulsefish(80., samplerate, duration=duration,
+                                       noise_std=0.02, jitter_cv=0.1,
+                                       peak_stds=[0.0001, 0.0002],
+                                       peak_amplitudes=[1.0, -0.3],
+                                       peak_times=[0.0, 0.0003])
+        # pulsefish = generate_monophasic_pulses(80., samplerate, duration=duration)
+        # pulsefish = generate_biphasic_pulses(80., samplerate, duration=duration)
+        # pulsefish = generate_triphasic_pulses(80., samplerate, duration=duration)
+
         fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
 
         # get proper wavefish ylim
@@ -414,20 +503,14 @@ if __name__ == '__main__':
 
         plt.tight_layout()
 
-    # chirps:
-    chirps_freq = chirps_frequency(600.0, samplerate, duration=duration, chirp_kurtosis=1.0)
-    chirps_data = generate_alepto(chirps_freq, samplerate)
+        # chirps:
+        chirps_freq = chirps_frequency(600.0, samplerate, duration=duration, chirp_kurtosis=1.0)
+        chirps_data = generate_alepto(chirps_freq, samplerate)
 
-    # rises:
-    rises_freq = rises_frequency(600.0, samplerate, duration=duration, rise_size=20.0)
-    rises_data = generate_alepto(rises_freq, samplerate)
+        # rises:
+        rises_freq = rises_frequency(600.0, samplerate, duration=duration, rise_size=20.0)
+        rises_data = generate_alepto(rises_freq, samplerate)
 
-    # save fake data:
-    #if save:
-    #    write_audio('fakefish.wav', 0.5*(wavefish+0.5*rises_data), samplerate)
-
-    # plot:
-    if plot:
         nfft = 256
         fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(19, 10))
         ax[0].set_title('Chirps')
@@ -448,3 +531,7 @@ if __name__ == '__main__':
         plt.tight_layout()
 
         plt.show()
+
+            
+if __name__ == '__main__':
+    main()
