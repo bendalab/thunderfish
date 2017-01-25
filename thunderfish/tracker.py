@@ -340,7 +340,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     return all_rises
 
 
-def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th = 5.):
+def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th = 5.):
     """
     Combines array of electric fish fundamental frequencies which, based on frequency difference and time of occurrence
     likely belong to the same fish.
@@ -717,7 +717,7 @@ def tracker_args(cfg):
 
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
-                 overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 10.,
+                 overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 5.,
                  f_th= 5., output_folder = '.', plot_harmonic_groups=False, verbose=0, **kwargs):
 
     """
