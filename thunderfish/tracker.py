@@ -110,7 +110,7 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
     return all_fundamentals, all_times
 
 
-def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_tolerance=5., freq_tolerance = .5,
+def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_tolerance=1., freq_tolerance = .5,
                              save_original_fishes=False, output_folder = '.', verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
@@ -134,7 +134,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
     :param verbose: (int) with increasing value provides more shell output.
     :return fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
-    def clean_up(fishes, last_fish_fundamentals, end_nans):
+    def clean_up(fishes, last_fish_fundamentals, end_nans, dpm):
         """
         Delete fish arrays with too little data points to reduce memory usage.
 
@@ -146,7 +146,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
         :return: end_nans: (list) cleaned up input list.
         """
         for fish in reversed(range(len(fishes))):
-            if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= 10:
+            if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= dpm:
                 fishes.pop(fish)
                 last_fish_fundamentals.pop(fish)
                 end_nans.pop(fish)
@@ -171,7 +171,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
         if enu == clean_up_idx:
             if verbose >= 3:
                 print('cleaning up ...')
-            fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
+            fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans, dpm)
             clean_up_idx += int(30 * dpm)
 
         for idx in range(len(fundamentals)):
@@ -215,7 +215,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
                 end_nans[fish] += 1
     if verbose >= 3:
         print('cleaning up ...')
-    fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans)
+    fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans, dpm)
     # reshape everything to arrays
     for fish in range(len(fishes)):
         fishes[fish] = fishes[fish][1:]
@@ -304,11 +304,12 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                     if len(fish[idxs2][fish[idxs2] >= fish[non_nan_idx[j]]]) == len(fish[idxs2]) or non_nan_idx[j] == non_nan_idx[-1] or last_possibe:
                         freq_th = rise_f_th + ((non_nan_idx[j] - non_nan_idx[i]) *1.) // (dpm /60. *30) * rise_f_th
                         if fish[non_nan_idx[i]] - fish[non_nan_idx[j]] >= freq_th:
-                            nnans_befor_start = non_nan_idx[(non_nan_idx > non_nan_idx[i] - dpm / 60 *10) & (non_nan_idx <= non_nan_idx[i])]
-                            diff_nnans_before = np.append([nnans_befor_start[0] - (non_nan_idx[i] - dpm / 60 * 10)],np.diff(nnans_befor_start))
-                            if len(diff_nnans_before[diff_nnans_before >= dpm / 60 * 3]) > 0:
-                                new_start_idx = nnans_befor_start[diff_nnans_before >= dpm / 60 * 3][-1]
-                                return [[new_start_idx, non_nan_idx[j]], [fish[new_start_idx], fish[non_nan_idx[j]]]] , non_nan_idx[j+1:]
+                            ### Here I moved the start index of a rise ... this is not used anymore for reasons of to crowded data !!!
+                            # nnans_befor_start = non_nan_idx[(non_nan_idx > non_nan_idx[i] - dpm / 60 *10) & (non_nan_idx <= non_nan_idx[i])]
+                            # diff_nnans_before = np.append([nnans_befor_start[0] - (non_nan_idx[i] - dpm / 60 * 10)],np.diff(nnans_befor_start))
+                            # if len(diff_nnans_before[diff_nnans_before >= dpm / 60 * 3]) > 0:
+                            #     new_start_idx = nnans_befor_start[diff_nnans_before >= dpm / 60 * 3][-1]
+                            #     return [[new_start_idx, non_nan_idx[j]], [fish[new_start_idx], fish[non_nan_idx[j]]]] , non_nan_idx[j+1:]
 
                             return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
                         else:
@@ -416,30 +417,36 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 10., f_th 
                 if all_rises[fish] != []:
                     if occure_idx[fish][0] in [all_rises[fish][i][0][0] for i in range(len(all_rises[fish]))]:
                         x = np.where( np.array([all_rises[fish][i][0][0] for i in range(len(all_rises[fish]))]) == occure_idx[fish][0])[0][0]
-                        compare_idxs = [all_rises[fish][x][0][1], comp_fish_nnans_idxs[comp_fish_nnans_idxs < all_rises[fish][x][0][1]][-1]]
+                        compare_idxs = [all_rises[fish][x][0][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < all_rises[fish][x][0][1]][-1]]
+                        compare_freq_idxs = [all_rises[fish][x][0][1], comp_fish_nnans_idxs[comp_fish_nnans_idxs < all_rises[fish][x][0][1]][-1]]
                     else:
                         compare_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
+                        compare_freq_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
                 else:
                     compare_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
+                    compare_freq_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
 
             elif occure_idx[fish][0] > occure_idx[comp_fish][1] and occure_idx[fish][0] - occure_idx[comp_fish][1] < max_time_tolerance * dpm:
                 combinable = True
                 if all_rises[fish] != []:
                     if occure_idx[fish][0] in [all_rises[fish][i][0][0] for i in range(len(all_rises[fish]))]:
                         x = np.where( np.array([all_rises[fish][i][0][0] for i in range(len(all_rises[fish]))]) == occure_idx[fish][0])[0][0]
-                        compare_idxs = [all_rises[fish][x][0][1], occure_idx[comp_fish][1]]
+                        compare_idxs = [all_rises[fish][x][0][0], occure_idx[comp_fish][1]]
+                        compare_freq_idxs = [all_rises[fish][x][0][1], occure_idx[comp_fish][1]]
                     else:
                         compare_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
+                        compare_freq_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
                 else:
                     compare_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
+                    compare_freq_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
 
             if combinable:
                 alpha = 0.01 # alpha cant be larger ... to many mistakes !!!
-                if np.abs(fishes[fish][compare_idxs[0]] - fishes[comp_fish][compare_idxs[1]]) <= f_th:
+                if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) <= f_th:
                     nan_test = fishes[fish] + fishes[comp_fish]
-                    if len(nan_test[~np.isnan(nan_test)]) <= 20:
+                    if len(nan_test[~np.isnan(nan_test)]) <= 50:
                         possible_freq_combinations[comp_fish] = np.abs(
-                            [fishes[fish][compare_idxs[0]] - fishes[comp_fish][compare_idxs[1]]])
+                            [fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]])
                         possible_idx_combinations[comp_fish] = np.abs([compare_idxs[0] - compare_idxs[1]])
 
                         possible_combinations[comp_fish] = possible_freq_combinations[comp_fish] + possible_idx_combinations[comp_fish] / (dpm / 60.) * alpha
@@ -643,7 +650,7 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folde
 
 
 def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, fresolution = 0.5, overlap_frac = .9,
-                       freq_tolerance = 0.5, rise_f_th = 0.5, prim_time_tolerance = 5., max_time_tolerance = 10., f_th=5.):
+                       freq_tolerance = 0.5, rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
 
@@ -668,7 +675,7 @@ def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, fresolut
     max_time_tolerance: float
         maximum time difference in minutes between two fishes to combine these.
     f_th: float
-        maximum frequency difference between two fishes to combine these.
+        maximum frequency difference between two fishes to combine these in last combining step.
     """
     cfg.add_section('Fish tracking:')
     cfg.add('DataSnippedSize', data_snipped_secs, 's', 'Duration of data snipped processed at once in seconds.')
