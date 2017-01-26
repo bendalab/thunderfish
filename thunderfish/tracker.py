@@ -408,7 +408,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
             possible_idx_combinations = np.zeros(len(fishes)) / 0.
             possible_combinations = np.zeros(len(fishes)) / 0.
 
-        for comp_fish in reversed(occure_order[:np.where(occure_order == fish)[0][0]]):
+        for enu, comp_fish in enumerate(reversed(occure_order[:np.where(occure_order == fish)[0][0]])):
 
             combinable = False
             if occure_idx[fish][0] > occure_idx[comp_fish][0] and occure_idx[fish][0] < occure_idx[comp_fish][1]:
@@ -453,7 +453,11 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
 
                         # ax.plot([compare_idxs[0], compare_idxs[1]], [fishes[fish][compare_idxs[0]], fishes[comp_fish][compare_idxs[1]]], '-', color = 'red')
 
-            if comp_fish == 0 and len(possible_freq_combinations[~np.isnan(possible_freq_combinations)]) > 0:
+            # here I exited the loop to early ....
+            if enu == len(occure_order[:np.where(occure_order == fish)[0][0]]) and \
+                            len(possible_combinations[~np.isnan(possible_combinations)]) > 0:
+
+            # if comp_fish == 0 and len(possible_freq_combinations[~np.isnan(possible_freq_combinations)]) > 0:
                 possible_combinations_all_fish[fish] = possible_combinations
 
     combining_finished = False
