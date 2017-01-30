@@ -428,17 +428,24 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
 
             elif occure_idx[fish][0] > occure_idx[comp_fish][1] and occure_idx[fish][0] - occure_idx[comp_fish][1] < max_time_tolerance * dpm:
                 combinable = True
+                comp_fish_nnans_idxs = np.arange(len(fishes[comp_fish]))[~np.isnan(fishes[comp_fish])]
                 if all_rises[fish] != []:
                     if occure_idx[fish][0] in [all_rises[fish][i][0][0] for i in range(len(all_rises[fish]))]:
                         x = np.where( np.array([all_rises[fish][i][0][0] for i in range(len(all_rises[fish]))]) == occure_idx[fish][0])[0][0]
-                        compare_idxs = [all_rises[fish][x][0][0], occure_idx[comp_fish][1]]
-                        compare_freq_idxs = [all_rises[fish][x][0][1], occure_idx[comp_fish][1]]
+                        # compare_idxs = [all_rises[fish][x][0][0], occure_idx[comp_fish][1]]
+                        # compare_freq_idxs = [all_rises[fish][x][0][1], occure_idx[comp_fish][1]]
+                        compare_idxs = [all_rises[fish][x][0][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < all_rises[fish][x][0][1]][-1]]
+                        compare_freq_idxs = [all_rises[fish][x][0][1], comp_fish_nnans_idxs[comp_fish_nnans_idxs < all_rises[fish][x][0][1]][-1]]
                     else:
-                        compare_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
-                        compare_freq_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
+                        # compare_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
+                        # compare_freq_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
+                        compare_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
+                        compare_freq_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
                 else:
-                    compare_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
-                    compare_freq_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
+                    # compare_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
+                    # compare_freq_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
+                    compare_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
+                    compare_freq_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
 
             if combinable:
                 alpha = 0.01 # alpha cant be larger ... to many mistakes !!!
@@ -471,7 +478,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
         comp_fish = np.where(possible_combinations_all_fish == np.min(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]))[1][0]
 
         nan_test2 = fishes[fish] +  fishes[comp_fish]
-        if len(nan_test2[~np.isnan(nan_test2)]) >= 20:
+        if len(nan_test2[~np.isnan(nan_test2)]) >= 50:
             possible_combinations_all_fish[fish][comp_fish] = np.nan
             if np.size(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]) == 0:
                 combining_finished = True
@@ -484,13 +491,15 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
             fishes[fish] = np.zeros(len(fishes[fish])) / 0.
 
         # clean up possible_combination all fish
-        for i in range(len(possible_combinations_all_fish)):
-            if not np.isnan(possible_combinations_all_fish[i][fish]):
-                if np.isnan(possible_combinations_all_fish[i][comp_fish]):
+        for i in range(len(possible_combinations_all_fish)):  # loop over all fishes ...
+            if not np.isnan(possible_combinations_all_fish[i][fish]):  # if this fish points on 'fish'...
+                if np.isnan(possible_combinations_all_fish[i][comp_fish]): # if this fish doesnt points on 'compfish'
+                    # the loop fish points now on comp fish and no longer on fish
                     possible_combinations_all_fish[i][comp_fish] = possible_combinations_all_fish[i][fish]
                     possible_combinations_all_fish[i][fish] = np.nan
 
-                elif possible_combinations_all_fish[i][fish] < possible_combinations_all_fish[i][comp_fish]:
+                elif possible_combinations_all_fish[i][fish] < possible_combinations_all_fish[i][comp_fish]:  # if this fish points on compfish
+                    # the loop fish still pionts on compfish
                     possible_combinations_all_fish[i][comp_fish] = possible_combinations_all_fish[i][fish]
                     possible_combinations_all_fish[i][fish] = np.nan
                 else:
