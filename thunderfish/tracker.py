@@ -291,7 +291,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                     if fish[non_nan_idx[j]] >= fish[non_nan_idx[i]]:
                         break
 
-                    if non_nan_idx[j] - non_nan_idx[i] >= dpm * 1.:
+                    if non_nan_idx[j] - non_nan_idx[i] >= dpm * 3.:
                         break
 
                     help_idx2 = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[j] + dpm / 60. * 30][-1]
@@ -303,13 +303,21 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
 
                     if len(fish[idxs2][fish[idxs2] >= fish[non_nan_idx[j]]]) == len(fish[idxs2]) or non_nan_idx[j] == non_nan_idx[-1] or last_possibe:
                         freq_th = rise_f_th + ((non_nan_idx[j] - non_nan_idx[i]) *1.) // (dpm /60. *30) * rise_f_th
+                        # ToDo: make regress from start to end and see if
                         if fish[non_nan_idx[i]] - fish[non_nan_idx[j]] >= freq_th:
-                            ### Here I moved the start index of a rise ... this is not used anymore for reasons of to crowded data !!!
-                            # nnans_befor_start = non_nan_idx[(non_nan_idx > non_nan_idx[i] - dpm / 60 *10) & (non_nan_idx <= non_nan_idx[i])]
-                            # diff_nnans_before = np.append([nnans_befor_start[0] - (non_nan_idx[i] - dpm / 60 * 10)],np.diff(nnans_befor_start))
-                            # if len(diff_nnans_before[diff_nnans_before >= dpm / 60 * 3]) > 0:
-                            #     new_start_idx = nnans_befor_start[diff_nnans_before >= dpm / 60 * 3][-1]
-                            #     return [[new_start_idx, non_nan_idx[j]], [fish[new_start_idx], fish[non_nan_idx[j]]]] , non_nan_idx[j+1:]
+                            di = non_nan_idx[j] - non_nan_idx[i]
+                            pre_rise_data = fish[non_nan_idx[i] - di:non_nan_idx[i]]
+                            pre_rise_idx = np.arange(non_nan_idx[i] - di, non_nan_idx[i])
+                            if len(pre_rise_data[~np.isnan(pre_rise_data)]) <= 1:
+                                return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
+                            else:
+                                pre_rise_slope = (pre_rise_data[~np.isnan(pre_rise_data)][-1] - pre_rise_data[~np.isnan(pre_rise_data)][0]) / (pre_rise_idx[~np.isnan(pre_rise_data)][-1] - pre_rise_idx[~np.isnan(pre_rise_data)][0])
+                                prediction = fish[non_nan_idx[i]] + di * pre_rise_slope
+                                alpha = 0.01
+                                tollerance = di / (dpm / 60.) * alpha
+
+                                if np.abs(fish[non_nan_idx[j]] - prediction) < tollerance:
+                                    break
 
                             return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
                         else:
@@ -629,10 +637,10 @@ def cut_at_rises(fishes, all_rises, all_times, min_occure_time):
                     quit()
 
             if not there_is_another_fish:
-                print('not cutting')
+                # print('not cutting')
                 continue
-            else:
-                print('cutting')
+            # else:
+            #     print('cutting')
 
 
             ################################
