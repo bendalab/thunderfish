@@ -291,7 +291,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                     if fish[non_nan_idx[j]] >= fish[non_nan_idx[i]]:
                         break
 
-                    if non_nan_idx[j] - non_nan_idx[i] >= dpm * 10.:
+                    if non_nan_idx[j] - non_nan_idx[i] >= dpm * 1.:
                         break
 
                     help_idx2 = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[j] + dpm / 60. * 30][-1]
@@ -577,7 +577,7 @@ def exclude_fishes(fishes, all_times, min_occure_time = 1.):
     return np.asarray(fishes)[keep_idx]
 
 
-def cut_at_rises(fishes, all_rises, all_times):
+def cut_at_rises(fishes, all_rises, all_times, min_occure_time):
     """
     Cuts fish arrays at detected rise peaks. For each rise two fish arrays are created with the same length as the
     original fish array.
@@ -662,7 +662,7 @@ def cut_at_rises(fishes, all_rises, all_times):
             # all_rises.append([all_rises[fish][rise]])
             # all_rises[fish].pop(rise)
     for fish in reversed(range(len(fishes))):
-        if len(fishes[fish][~np.isnan(fishes[fish])]) <= 10:
+        if len(fishes[fish][~np.isnan(fishes[fish])]) < min_occure_time * dpm:
             delete_idx.append(fish)
             all_rises.pop(fish)
     return_idx = np.setdiff1d(np.arange(len(fishes)), np.array(delete_idx))
@@ -889,7 +889,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
 
     if verbose >= 1:
         print('\ncut fishes at rises...')
-    fishes, all_rises = cut_at_rises(fishes, all_rises, all_times)
+    fishes, all_rises = cut_at_rises(fishes, all_rises, all_times, min_occure_time)
 
     if verbose >= 1:
         print('\ncombining fishes...')
@@ -996,7 +996,7 @@ def main():
 
         if verbose >= 1:
             print('\ncut fishes at rises...')
-        fishes, all_rises = cut_at_rises(fishes, all_rises, all_times)
+        fishes, all_rises = cut_at_rises(fishes, all_rises, all_times, min_occure_time)
 
         if verbose >= 1:
             print('\ncombining fishes...')

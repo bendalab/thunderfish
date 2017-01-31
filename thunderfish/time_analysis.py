@@ -37,13 +37,67 @@ def main(file_path, plot_final_fishes = True):
                 fishes = np.load(os.path.join(folder, file))
             elif file.endswith('final_rises.npy'):
                 all_rises = np.load(os.path.join(folder, file))
-        if plot_final_fishes:
-            fig, ax = plt.subplots()
-            for fish in fishes:
 
-                ax.plot(all_times[~np.isnan(fish)] / 3600., fish[~np.isnan(fish)], color=np.random.rand(3, 1), marker='.')
-            plt.title(folder)
+        if plot_final_fishes:
+            fig, ax = plt.subplots(facecolor='white', figsize=(11.6, 8.2))
+            if all_times[-1] <= 120:
+                time_factor = 1.
+            elif all_times[-1] > 120 and all_times[-1] < 7200:
+                time_factor = 60.
+            else:
+                time_factor = 3600.
+
+            for fish in range(len(fishes)):
+                color = np.random.rand(3, 1)
+                ax.plot(all_times[~np.isnan(fishes[fish])] / time_factor, fishes[fish][~np.isnan(fishes[fish])],
+                        color=color, marker='.')
+                #
+                # for rise in all_rises[fish]:
+                #     ax.plot(all_times[rise[0][0]] / time_factor, rise[1][0], 'o', color=color, markersize=7)
+                #     ax.plot(all_times[rise[0][1]] / time_factor, rise[1][1], 's', color=color, markersize=7)
+
+            legend_in = False
+            for fish in range(len(all_rises)):
+                for rise in all_rises[fish]:
+                    if rise[1][0] - rise[1][1] > 1.5:
+                        if legend_in == False:
+                            ax.plot(all_times[rise[0][0]] / time_factor, rise[1][0], 'o', color='red', markersize=7,
+                                    markerfacecolor='None', label='rise begin')
+                            ax.plot(all_times[rise[0][1]] / time_factor, rise[1][1], 's', color='green', markersize=7,
+                                    markerfacecolor='None', label='rise end')
+                            legend_in = True
+                            plt.legend(loc=1, numpoints=1, frameon=False, fontsize=12)
+                        else:
+                            ax.plot(all_times[rise[0][0]] / time_factor, rise[1][0], 'o', color='red', markersize=7,
+                                    markerfacecolor='None')
+                            ax.plot(all_times[rise[0][1]] / time_factor, rise[1][1], 's', color='green', markersize=7,
+                                    markerfacecolor='None')
+
+            maxy = np.max(np.array([np.mean(fishes[fish][~np.isnan(fishes[fish])]) for fish in range(len(fishes))]))
+            miny = np.min(np.array([np.mean(fishes[fish][~np.isnan(fishes[fish])]) for fish in range(len(fishes))]))
+
+            plt.ylim([miny - 150, maxy + 150])
+            plt.ylabel('Frequency [Hz]', fontsize=14)
+            if time_factor == 1.:
+                plt.xlabel('Time [sec]', fontsize=14)
+            elif time_factor == 60.:
+                plt.xlabel('Time [min]', fontsize=14)
+            else:
+                plt.xlabel('Time [h]', fontsize=14)
+
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.get_xaxis().tick_bottom()
+            ax.get_yaxis().tick_left()
+
             plt.show()
+
+            # fig, ax = plt.subplots()
+            # for fish in fishes:
+            #
+            #     ax.plot(all_times[~np.isnan(fish)] / 3600., fish[~np.isnan(fish)], color=np.random.rand(3, 1), marker='.')
+            # plt.title(folder)
+            # plt.show()
 
 
         start_h = int(folder[-5:-3])
