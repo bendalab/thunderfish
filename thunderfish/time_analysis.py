@@ -35,6 +35,8 @@ def main(file_path, plot_final_fishes = True):
                 all_times = np.load(os.path.join(folder, file))
             elif file.endswith('final_fishes.npy'):
                 fishes = np.load(os.path.join(folder, file))
+            elif file.endswith('final_rises.npy'):
+                all_rises = np.load(os.path.join(folder, file))
         if plot_final_fishes:
             fig, ax = plt.subplots()
             for fish in fishes:
