@@ -40,12 +40,13 @@ def main(file_path, plot_final_fishes = True):
 
         if plot_final_fishes:
             fig, ax = plt.subplots(facecolor='white', figsize=(11.6, 8.2))
-            if all_times[-1] <= 120:
-                time_factor = 1.
-            elif all_times[-1] > 120 and all_times[-1] < 7200:
-                time_factor = 60.
-            else:
-                time_factor = 3600.
+            time_factor = 1.
+            # if all_times[-1] <= 120:
+            #     time_factor = 1.
+            # elif all_times[-1] > 120 and all_times[-1] < 7200:
+            #     time_factor = 60.
+            # else:
+            #     time_factor = 3600.
 
             for fish in range(len(fishes)):
                 color = np.random.rand(3, 1)
