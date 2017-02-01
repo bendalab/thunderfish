@@ -285,6 +285,15 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
             if len(idxs) < dpm / 60. * 1.:
                 continue
 
+            slope_help_idx = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[i] + dpm / 60. * 5][-1]
+            slope_idx = non_nan_idx[i:slope_help_idx]
+
+            if len(fish[slope_idx]) <= 1:
+                continue
+            elif np.max(fish[slope_idx]) - np.min(fish[slope_idx]) < rise_f_th:
+                continue
+
+
             if len(fish[idxs][fish[idxs] < fish[non_nan_idx[i]]]) == len(fish[idxs]):
                 for j in loop_idxs[loop_idxs > i]:
 
@@ -305,19 +314,19 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                         freq_th = rise_f_th + ((non_nan_idx[j] - non_nan_idx[i]) *1.) // (dpm /60. *30) * rise_f_th
                         # ToDo: make regress from start to end and see if
                         if fish[non_nan_idx[i]] - fish[non_nan_idx[j]] >= freq_th:
-                            di = non_nan_idx[j] - non_nan_idx[i]
-                            pre_rise_data = fish[non_nan_idx[i] - di:non_nan_idx[i]]
-                            pre_rise_idx = np.arange(non_nan_idx[i] - di, non_nan_idx[i])
-                            if len(pre_rise_data[~np.isnan(pre_rise_data)]) <= 1:
-                                return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
-                            else:
-                                pre_rise_slope = (pre_rise_data[~np.isnan(pre_rise_data)][-1] - pre_rise_data[~np.isnan(pre_rise_data)][0]) / (pre_rise_idx[~np.isnan(pre_rise_data)][-1] - pre_rise_idx[~np.isnan(pre_rise_data)][0])
-                                prediction = fish[non_nan_idx[i]] + di * pre_rise_slope
-                                alpha = 0.01
-                                tollerance = di / (dpm / 60.) * alpha
-
-                                if np.abs(fish[non_nan_idx[j]] - prediction) < tollerance:
-                                    break
+                            # di = non_nan_idx[j] - non_nan_idx[i]
+                            # pre_rise_data = fish[non_nan_idx[i] - di:non_nan_idx[i]]
+                            # pre_rise_idx = np.arange(non_nan_idx[i] - di, non_nan_idx[i])
+                            # if len(pre_rise_data[~np.isnan(pre_rise_data)]) <= 1:
+                            #     return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
+                            # else:
+                            #     pre_rise_slope = (pre_rise_data[~np.isnan(pre_rise_data)][-1] - pre_rise_data[~np.isnan(pre_rise_data)][0]) / (pre_rise_idx[~np.isnan(pre_rise_data)][-1] - pre_rise_idx[~np.isnan(pre_rise_data)][0])
+                            #     prediction = fish[non_nan_idx[i]] + di * pre_rise_slope
+                            #     alpha = 0.01
+                            #     tollerance = di / (dpm / 60.) * alpha
+                            #
+                            #     if np.abs(fish[non_nan_idx[j]] - prediction) < tollerance:
+                            #         break
 
                             return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
                         else:
