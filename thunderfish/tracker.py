@@ -492,7 +492,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                         for h_fish in range(len(fishes)):
                             if h_fish == comp_fish:
                                 continue
-                            h_fish_data = fishes[h_fish][compare_freq_idxs[1] - dpm * 3.:compare_freq_idxs[1]]
+                            h_fish_data = fishes[h_fish][np.floor(compare_freq_idxs[1] - dpm * 2.):compare_freq_idxs[1]]
                             y = h_fish_data[~np.isnan(h_fish_data)]
                             x = np.arange(len(h_fish_data))[~np.isnan(h_fish_data)]
                             if len(y) >= 2:
@@ -500,11 +500,14 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                                 slope_h_fish, _, _, _, _ = scp.linregress(x, y)
                                 med_slope.append(slope_h_fish)
 
-                        if len(med_slope) >= 3:
+                        if len(med_slope) > 0:
+                            print('new')
                             pred_freq = fishes[comp_fish][compare_freq_idxs[1]] +\
                                         np.abs(compare_freq_idxs[1] - compare_freq_idxs[0]) * np.median(med_slope)
                         else:
-                            pred_freq = fishes[comp_fish][compare_freq_idxs[1]]
+                            continue
+                            # print('old')
+                            # pred_freq = fishes[comp_fish][compare_freq_idxs[1]]
 
                         # possible_freq_combinations[comp_fish] = np.abs(
                         #     [fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]])
