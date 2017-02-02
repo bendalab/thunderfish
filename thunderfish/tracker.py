@@ -305,12 +305,12 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                     if non_nan_idx[j] - non_nan_idx[i] >= dpm * 3.:
                         break
 
-                    help_idx2 = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[j] + dpm / 60. * 60][-1]
+                    help_idx2 = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[j] + dpm / 60. * 30][-1]
                     idxs2 = non_nan_idx[j+1:help_idx2]
 
                     last_possibe = False
-                    # if fish[non_nan_idx[j]] - np.median(fish[idxs2]) < 0.025:
-                    #     last_possibe = True
+                    if fish[non_nan_idx[j]] - np.median(fish[idxs2]) < 0.025:
+                        last_possibe = True
 
                     if len(fish[idxs2][fish[idxs2] >= fish[non_nan_idx[j]]]) == len(fish[idxs2]) or non_nan_idx[j] == non_nan_idx[-1] or last_possibe:
                         freq_th = rise_f_th + ((non_nan_idx[j] - non_nan_idx[i]) *1.) // (dpm /60. *30) * rise_f_th
@@ -486,27 +486,34 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                 if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) <= f_th:
                     nan_test = fishes[fish] + fishes[comp_fish]
                     if len(nan_test[~np.isnan(nan_test)]) <= 50:
-                        # fig, ax = plt.subplots()
-                        # ax.plot(all_times[~np.isnan(fishes[fish])], fishes[fish][~np.isnan(fishes[fish])], color='red',
-                        #         marker='.')
-                        # ax.plot(all_times[~np.isnan(fishes[comp_fish])],
-                        #         fishes[comp_fish][~np.isnan(fishes[comp_fish])], color='blue', marker='.')
-                        #
-                        # ax.plot(all_times[compare_idxs[0]], fishes[fish][compare_idxs[0]], 'o', color='k', markersize=10)
-                        # ax.plot(all_times[compare_idxs[1]], fishes[comp_fish][compare_idxs[1]], 'o', color='k', markersize=10)
-                        #
-                        # ax.plot(all_times[compare_freq_idxs[0]], fishes[fish][compare_freq_idxs[0]], 'o', color='green', markersize=7)
-                        # ax.plot(all_times[compare_freq_idxs[1]], fishes[comp_fish][compare_freq_idxs[1]], 'o',color='green', markersize=7)
-                        #
-                        # plt.show()
+                        help_cfish_data = fishes[comp_fish][compare_freq_idxs[1] - dpm * 3.:compare_freq_idxs[1]]
+                        # help_cfish_data = help_cfish_data[~np.isnan(help_cfish_data)]
 
-                        # from IPython import embed
-                        # embed()
-                        # quit()
+                        if len(help_cfish_data[~np.isnan(help_cfish_data)]) >=2:
+                            try:
+                                y = help_cfish_data[~np.isnan(help_cfish_data)]
+                                x = np.arange(len(help_cfish_data))[~np.isnan(help_cfish_data)]
 
+                                help_percentiles = np.percentile(y, (75, 25))
+                                x = x[(y <= help_percentiles[0]) & (y >= help_percentiles[1])]
+                                y = y[(y <= help_percentiles[0]) & (y >= help_percentiles[1])]
+                            except ValueError:
+                                from IPython import embed
+                                embed()
+                                quit()
 
-                        possible_freq_combinations[comp_fish] = np.abs(
-                            [fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]])
+                            if len(y) >= 2:
+                                slope_cfish_data, _, _, _, _ = scp.linregress(x, y)
+                                pred_cfish_freq = fishes[comp_fish][compare_freq_idxs[1]] +\
+                                                  np.abs(compare_freq_idxs[1] - compare_freq_idxs[0]) * slope_cfish_data
+                            else:
+                                pred_cfish_freq = fishes[comp_fish][compare_freq_idxs[1]]
+                        else:
+                            pred_cfish_freq = fishes[comp_fish][compare_freq_idxs[1]]
+
+                        # possible_freq_combinations[comp_fish] = np.abs(
+                        #     [fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]])
+                        possible_freq_combinations[comp_fish] = np.abs(fishes[fish][compare_freq_idxs[0]] - pred_cfish_freq)
                         possible_idx_combinations[comp_fish] = np.abs([compare_idxs[0] - compare_idxs[1]])
 
                         possible_combinations[comp_fish] = possible_freq_combinations[comp_fish] + possible_idx_combinations[comp_fish] / (dpm / 60.) * alpha
