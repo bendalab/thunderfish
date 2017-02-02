@@ -486,34 +486,29 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                 if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) <= f_th:
                     nan_test = fishes[fish] + fishes[comp_fish]
                     if len(nan_test[~np.isnan(nan_test)]) <= 50:
-                        help_cfish_data = fishes[comp_fish][compare_freq_idxs[1] - dpm * 3.:compare_freq_idxs[1]]
-                        # help_cfish_data = help_cfish_data[~np.isnan(help_cfish_data)]
 
-                        if len(help_cfish_data[~np.isnan(help_cfish_data)]) >=2:
-                            try:
-                                y = help_cfish_data[~np.isnan(help_cfish_data)]
-                                x = np.arange(len(help_cfish_data))[~np.isnan(help_cfish_data)]
-
-                                help_percentiles = np.percentile(y, (75, 25))
-                                x = x[(y <= help_percentiles[0]) & (y >= help_percentiles[1])]
-                                y = y[(y <= help_percentiles[0]) & (y >= help_percentiles[1])]
-                            except ValueError:
-                                from IPython import embed
-                                embed()
-                                quit()
-
+                        med_slope = []
+                        counter = 0
+                        for h_fish in range(len(fishes)):
+                            if h_fish == comp_fish:
+                                continue
+                            h_fish_data = fishes[h_fish][compare_freq_idxs[1] - dpm * 3.:compare_freq_idxs[1]]
+                            y = h_fish_data[~np.isnan(h_fish_data)]
+                            x = np.arange(len(h_fish_data))[~np.isnan(h_fish_data)]
                             if len(y) >= 2:
-                                slope_cfish_data, _, _, _, _ = scp.linregress(x, y)
-                                pred_cfish_freq = fishes[comp_fish][compare_freq_idxs[1]] +\
-                                                  np.abs(compare_freq_idxs[1] - compare_freq_idxs[0]) * slope_cfish_data
-                            else:
-                                pred_cfish_freq = fishes[comp_fish][compare_freq_idxs[1]]
+                                counter += 1
+                                slope_h_fish, _, _, _, _ = scp.linregress(x, y)
+                                med_slope.append(slope_h_fish)
+
+                        if len(med_slope) >= 3:
+                            pred_freq = fishes[comp_fish][compare_freq_idxs[1]] +\
+                                        np.abs(compare_freq_idxs[1] - compare_freq_idxs[0]) * np.median(med_slope)
                         else:
-                            pred_cfish_freq = fishes[comp_fish][compare_freq_idxs[1]]
+                            pred_freq = fishes[comp_fish][compare_freq_idxs[1]]
 
                         # possible_freq_combinations[comp_fish] = np.abs(
                         #     [fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]])
-                        possible_freq_combinations[comp_fish] = np.abs(fishes[fish][compare_freq_idxs[0]] - pred_cfish_freq)
+                        possible_freq_combinations[comp_fish] = np.abs(fishes[fish][compare_freq_idxs[0]] - pred_freq)
                         possible_idx_combinations[comp_fish] = np.abs([compare_idxs[0] - compare_idxs[1]])
 
                         possible_combinations[comp_fish] = possible_freq_combinations[comp_fish] + possible_idx_combinations[comp_fish] / (dpm / 60.) * alpha
