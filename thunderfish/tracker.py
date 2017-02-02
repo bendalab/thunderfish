@@ -286,15 +286,6 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
             if len(idxs) < dpm / 60. * 1.:
                 continue
 
-            # slope_help_idx = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[i] + dpm / 60. * 4][-1]
-            # slope_idx = non_nan_idx[i:slope_help_idx]
-            #
-            # if len(fish[slope_idx]) <= 1:
-            #     continue
-            # elif np.max(fish[slope_idx]) - np.min(fish[slope_idx]) < rise_f_th:
-            #     continue
-
-
             if len(fish[idxs][fish[idxs] < fish[non_nan_idx[i]]]) == len(fish[idxs]):
                 for j in loop_idxs[loop_idxs > i]:
 
@@ -307,37 +298,37 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                     help_idx2 = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[j] + dpm / 60. * 30][-1]
                     idxs2 = non_nan_idx[j+1:help_idx2]
 
-                    last_possibe = False
-                    if fish[non_nan_idx[j]] - np.median(fish[idxs2]) < 0.05:
-                        last_possibe = True
+                    # last_possibe = False
+                    # if fish[non_nan_idx[j]] - np.median(fish[idxs2]) < 0.05:
+                    #     last_possibe = True
 
-                    if len(fish[idxs2][fish[idxs2] >= fish[non_nan_idx[j]]]) == len(fish[idxs2]) or non_nan_idx[j] == non_nan_idx[-1] or last_possibe:
+                    if len(fish[idxs2][fish[idxs2] >= fish[non_nan_idx[j]]]) == len(fish[idxs2]) or non_nan_idx[j] == non_nan_idx[-1]:
                         freq_th = rise_f_th + ((non_nan_idx[j] - non_nan_idx[i]) *1.) // (dpm /60. *30) * rise_f_th
                         # ToDo: make regress from start to end and see if
                         if fish[non_nan_idx[i]] - fish[non_nan_idx[j]] >= freq_th:
-                            di = non_nan_idx[j] - non_nan_idx[i]
-                            pre_rise_data = fish[non_nan_idx[i] - di:non_nan_idx[i]]
-                            pre_rise_idx = np.arange(non_nan_idx[i] - di, non_nan_idx[i])
-
-                            if len(pre_rise_data[~np.isnan(pre_rise_data)]) <= 1 or \
-                                            non_nan_idx[i] - pre_rise_idx[~np.isnan(pre_rise_data)][0] < (non_nan_idx[j] - non_nan_idx[i]) / 10.:
-                                return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
-                            else:
-                                # pre_rise_slope = (pre_rise_data[~np.isnan(pre_rise_data)][-1] - pre_rise_data[~np.isnan(pre_rise_data)][0]) / (pre_rise_idx[~np.isnan(pre_rise_data)][-1] - pre_rise_idx[~np.isnan(pre_rise_data)][0])
-                                pre_rise_slope, _, _, _, _ = scp.linregress(pre_rise_idx[~np.isnan(pre_rise_data)], pre_rise_data[~np.isnan(pre_rise_data)])
-                                # prediction = fish[non_nan_idx[i]] + di * pre_rise_slope
-                                pred_t0 = pre_rise_data[~np.isnan(pre_rise_data)][0] + (non_nan_idx[i] - pre_rise_idx[
-                                    ~np.isnan(pre_rise_idx)][0]) * pre_rise_slope
-                                pred_t1 = pre_rise_data[~np.isnan(pre_rise_data)][0] + (non_nan_idx[j] - pre_rise_idx[
-                                    ~np.isnan(pre_rise_idx)][0]) * pre_rise_slope
-
-                                deltaf = np.abs(pred_t0 - pred_t1)
-
-                                if non_nan_idx[i] > 35000 * (dpm / 60):
-                                    print ('critical snipped')
-                                # if np.abs(fish[non_nan_idx[j]] - prediction) < tollerance:
-                                if np.abs(fish[non_nan_idx[j]] - pred_t1) < deltaf / 2. :
-                                    break
+                            # di = non_nan_idx[j] - non_nan_idx[i]
+                            # pre_rise_data = fish[non_nan_idx[i] - di:non_nan_idx[i]]
+                            # pre_rise_idx = np.arange(non_nan_idx[i] - di, non_nan_idx[i])
+                            #
+                            # if len(pre_rise_data[~np.isnan(pre_rise_data)]) <= 1 or \
+                            #                 non_nan_idx[i] - pre_rise_idx[~np.isnan(pre_rise_data)][0] < (non_nan_idx[j] - non_nan_idx[i]) / 10.:
+                            #     return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
+                            # else:
+                            #     # pre_rise_slope = (pre_rise_data[~np.isnan(pre_rise_data)][-1] - pre_rise_data[~np.isnan(pre_rise_data)][0]) / (pre_rise_idx[~np.isnan(pre_rise_data)][-1] - pre_rise_idx[~np.isnan(pre_rise_data)][0])
+                            #     pre_rise_slope, _, _, _, _ = scp.linregress(pre_rise_idx[~np.isnan(pre_rise_data)], pre_rise_data[~np.isnan(pre_rise_data)])
+                            #     # prediction = fish[non_nan_idx[i]] + di * pre_rise_slope
+                            #     pred_t0 = pre_rise_data[~np.isnan(pre_rise_data)][0] + (non_nan_idx[i] - pre_rise_idx[
+                            #         ~np.isnan(pre_rise_idx)][0]) * pre_rise_slope
+                            #     pred_t1 = pre_rise_data[~np.isnan(pre_rise_data)][0] + (non_nan_idx[j] - pre_rise_idx[
+                            #         ~np.isnan(pre_rise_idx)][0]) * pre_rise_slope
+                            #
+                            #     deltaf = np.abs(pred_t0 - pred_t1)
+                            #
+                            #     if non_nan_idx[i] > 35000 * (dpm / 60):
+                            #         print ('critical snipped')
+                            #     # if np.abs(fish[non_nan_idx[j]] - prediction) < tollerance:
+                            #     if np.abs(fish[non_nan_idx[j]] - pred_t1) < deltaf / 2. :
+                            #         break
 
                             return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
                         else:
@@ -481,7 +472,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                     embed()
 
             if combinable:
-                alpha = 0.01 # alpha cant be larger ... to many mistakes !!!
+                alpha = 0.005 # alpha cant be larger ... to many mistakes !!!
                 if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) <= f_th:
                     nan_test = fishes[fish] + fishes[comp_fish]
                     if len(nan_test[~np.isnan(nan_test)]) <= 50:
