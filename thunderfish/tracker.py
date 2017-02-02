@@ -487,25 +487,22 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                     nan_test = fishes[fish] + fishes[comp_fish]
                     if len(nan_test[~np.isnan(nan_test)]) <= 50:
 
+                        # ToDo: plot the regression, the prediction and the two fishes... look if regression is correct...
                         med_slope = []
-                        counter = 0
                         for h_fish in range(len(fishes)):
-                            # if h_fish == comp_fish:
-                            #     continue
+                            if h_fish == comp_fish:
+                                continue
                             h_fish_data = fishes[h_fish][np.floor(compare_freq_idxs[0] - dpm * 3.):compare_freq_idxs[0]]
                             y = h_fish_data[~np.isnan(h_fish_data)]
                             x = np.arange(len(h_fish_data))[~np.isnan(h_fish_data)]
                             if len(y) >= 2:
-                                if 1. * len(y) / len(h_fish_data) < 0.25:
-                                    continue
-                                counter += 1
                                 slope_h_fish, _, _, _, _ = scp.linregress(x, y)
                                 med_slope.append(slope_h_fish)
 
                         if len(med_slope) > 0:
                             # print('new')
                             pred_freq = fishes[comp_fish][compare_freq_idxs[1]] +\
-                                        np.abs(compare_freq_idxs[1] - compare_freq_idxs[0]) * np.median(med_slope)
+                                        np.abs(compare_freq_idxs[0] - compare_freq_idxs[1]) * np.median(med_slope)
                         else:
                             continue
                             # print('old')
