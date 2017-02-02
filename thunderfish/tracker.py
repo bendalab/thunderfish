@@ -492,12 +492,12 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                         for h_fish in range(len(fishes)):
                             # if h_fish == comp_fish:
                             #     continue
-                            h_fish_data = fishes[h_fish][np.floor(compare_idxs[0] - dpm * 3.):compare_idxs[0]]
+                            h_fish_data = fishes[h_fish][np.floor(compare_freq_idxs[0] - dpm * 3.):compare_freq_idxs[0]]
                             y = h_fish_data[~np.isnan(h_fish_data)]
-                            if len(y) / len(h_fish_data) < 0.25:
-                                continue
                             x = np.arange(len(h_fish_data))[~np.isnan(h_fish_data)]
                             if len(y) >= 2:
+                                if 1. * len(y) / len(h_fish_data) < 0.25:
+                                    continue
                                 counter += 1
                                 slope_h_fish, _, _, _, _ = scp.linregress(x, y)
                                 med_slope.append(slope_h_fish)
