@@ -308,7 +308,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                     help_idx2 = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[j] + dpm / 60. * 60][-1]
                     idxs2 = non_nan_idx[j+1:help_idx2]
 
-                    # last_possibe = False
+                    last_possibe = False
                     # if fish[non_nan_idx[j]] - np.median(fish[idxs2]) < 0.025:
                     #     last_possibe = True
 
