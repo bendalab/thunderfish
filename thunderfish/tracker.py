@@ -482,7 +482,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                     embed()
 
             if combinable:
-                alpha = 0.005 # alpha cant be larger ... to many mistakes !!!
+                alpha = 0.01 # alpha cant be larger ... to many mistakes !!!
                 if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) <= f_th:
                     nan_test = fishes[fish] + fishes[comp_fish]
                     if len(nan_test[~np.isnan(nan_test)]) <= 50:
@@ -501,7 +501,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                                 med_slope.append(slope_h_fish)
 
                         if len(med_slope) > 0:
-                            print('new')
+                            # print('new')
                             pred_freq = fishes[comp_fish][compare_freq_idxs[1]] +\
                                         np.abs(compare_freq_idxs[1] - compare_freq_idxs[0]) * np.median(med_slope)
                         else:
