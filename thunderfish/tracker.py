@@ -492,7 +492,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                         for h_fish in range(len(fishes)):
                             if h_fish == comp_fish:
                                 continue
-                            h_fish_data = fishes[h_fish][np.floor(compare_freq_idxs[1] - dpm * 2.):compare_freq_idxs[1]]
+                            h_fish_data = fishes[h_fish][np.floor(compare_freq_idxs[1] - dpm * 3.):compare_freq_idxs[1]]
                             y = h_fish_data[~np.isnan(h_fish_data)]
                             x = np.arange(len(h_fish_data))[~np.isnan(h_fish_data)]
                             if len(y) >= 2:
