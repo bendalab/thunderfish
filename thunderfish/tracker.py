@@ -289,11 +289,15 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
 
             test_idx = non_nan_idx[test_help_idx:i]
             test_fish = fish[test_idx]
-            if len(test_fish[test_fish > fish[non_nan_idx[i]] + rise_f_th]) >= 1:
-                continue
+            # if len(test_fish[test_fish > fish[non_nan_idx[i]] + rise_f_th]) >= 1:
+            #     continue
 
             if len(fish[idxs][fish[idxs] < fish[non_nan_idx[i]]]) == len(fish[idxs]):
                 for j in loop_idxs[loop_idxs > i]:
+
+                    # if len(test_fish[np.isnan(test_fish)]) > 0:
+                    #     if np.median(test_fish[~np.isnan(test_fish)]) > fish[non_nan_idx[j]] + rise_f_th / 2.:
+                    #         break
 
                     if fish[non_nan_idx[j]] >= fish[non_nan_idx[i]]:
                         break
@@ -301,11 +305,11 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                     if non_nan_idx[j] - non_nan_idx[i] >= dpm * 3.:
                         break
 
-                    help_idx2 = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[j] + dpm / 60. * 30][-1]
+                    help_idx2 = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[j] + dpm / 60. * 60][-1]
                     idxs2 = non_nan_idx[j+1:help_idx2]
 
                     last_possibe = False
-                    if fish[non_nan_idx[j]] - np.median(fish[idxs2]) < 0.05:
+                    if fish[non_nan_idx[j]] - np.median(fish[idxs2]) < 0.025:
                         last_possibe = True
 
                     if len(fish[idxs2][fish[idxs2] >= fish[non_nan_idx[j]]]) == len(fish[idxs2]) or non_nan_idx[j] == non_nan_idx[-1] or last_possibe:
