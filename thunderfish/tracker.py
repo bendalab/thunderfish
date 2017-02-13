@@ -87,6 +87,43 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
             fundamentals = fundamental_freqs(fishlist)
             all_fundamentals.append(fundamentals)
             if plot_harmonic_groups:
+                fs = 14
+                colors = ['#BA2D22', '#F47F17', '#53379B', '#3673A4', '#AAB71B', '#DC143C', '#1E90FF']
+
+                inch_factor = 2.54
+                fig, ax = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
+                plot_power = 10.0 * np.log10(power[p])
+                ax.plot(freqs[freqs <= 3000.0], plot_power[freqs <= 3000.0], color=colors[-1])
+
+                power_order = np.argsort([fish[0][1] for fish in fishlist])[::-1]
+                for enu, fish in enumerate(power_order):
+                    if enu == len(colors)-1:
+                        break
+                    for harmonic in range(len(fishlist[fish])):
+                        if fishlist[fish][harmonic][0] >= 3000.0:
+                            break
+                        if harmonic == 0:
+                            ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
+                                    color=colors[enu], markersize= 9, alpha=0.9, label='%.1f' % fishlist[fish][harmonic][0])
+                        else:
+                            ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
+                                    color=colors[enu], markersize= 9, alpha=0.9)
+                plt.legend(loc=1, ncol=2, fontsize=fs-4, frameon=False, numpoints=1)
+
+                ax.spines['top'].set_visible(False)
+                ax.spines['right'].set_visible(False)
+                ax.get_xaxis().tick_bottom()
+                ax.get_yaxis().tick_left()
+
+                ax.tick_params(labelsize=fs - 2)
+                ax.set_ylim([np.min(plot_power) - 5., np.max(plot_power) + 15.])
+                plt.xlabel('frequency [Hz]', fontsize=fs)
+                plt.ylabel('power [dB]', fontsize=fs)
+                plt.title('Powerspectrum with detected EOD frequencies', fontsize=fs + 2)
+
+                plt.tight_layout()
+                plt.show()
+
                 fig = plt.figure()
                 ax = fig.add_subplot(1, 1, 1)
                 plot_psd_harmonic_groups(ax, freqs, power[p], fishlist, mains,
@@ -146,8 +183,12 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
         :return: last_fish_fundamentals: (list) cleaned up input list.
         :return: end_nans: (list) cleaned up input list.
         """
+        min_occure_time = all_times[-1] * 0.01 / 60.
+        if min_occure_time > 1.:
+            min_occure_time = 1.
+
         for fish in reversed(range(len(fishes))):
-            if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= dpm:
+            if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= dpm* min_occure_time:
                 fishes.pop(fish)
                 last_fish_fundamentals.pop(fish)
                 end_nans.pop(fish)
@@ -168,6 +209,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
     # for every list of fundamentals ...
     clean_up_idx = int(30 * dpm)
 
+    alpha = 0.01
     for enu, fundamentals in enumerate(all_fundamentals):
         if enu == clean_up_idx:
             if verbose >= 3:
@@ -175,38 +217,44 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
             fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans, dpm)
             clean_up_idx += int(30 * dpm)
 
+        diffs = []
         for idx in range(len(fundamentals)):
-            diff = np.abs(np.asarray(last_fish_fundamentals) - fundamentals[idx])
-            sorted_diff_idx = np.argsort(diff)
-            tolerated_diff_idx = sorted_diff_idx[diff[sorted_diff_idx] < freq_tolerance]
+            diffs.append(np.abs(np.asarray(last_fish_fundamentals) - fundamentals[idx]))
+            diffs[idx][diffs[idx] > freq_tolerance] = np.nan
+            diffs[idx] = np.array([diffs[idx][i] + end_nans[i] / (dpm / 60.) * alpha for i in range(len(end_nans))])
 
-            last_detect_of_tolerated = np.array(end_nans)[tolerated_diff_idx]
+        diffs = np.array(diffs)
+        assigned_freq_idx = []
+        while True:
+            if np.size(diffs[~np.isnan(diffs)]) == 0:
+                break
+            add_freq = np.where(diffs == np.min(diffs[~np.isnan(diffs)]))[0][0]
+            add_fish = np.where(diffs == np.min(diffs[~np.isnan(diffs)]))[1][0]
 
-            if len(tolerated_diff_idx) == 0:
+            assigned_freq_idx.append(add_freq)
+
+            fishes[add_fish][enu+1] = fundamentals[add_freq]
+            last_fish_fundamentals[add_fish] = fundamentals[add_freq]
+            end_nans[add_fish] = 0
+            try:
+                diffs[add_freq] = np.full(len(diffs[add_freq]), np.nan)
+            except AttributeError:
+                diffs[add_freq] = np.zeros(len(diffs[add_freq]) / 0.)
+
+            for j in range(len(diffs)):
+                diffs[j][add_fish] = np.nan
+
+        for i in range(len(diffs)):
+            if i in assigned_freq_idx:
+                continue
+            else:
                 try:
-                    fishes.append(np.full(len(all_fundamentals)+1, np.nan))
+                    fishes.append(np.full(len(all_fundamentals) + 1, np.nan))
                 except AttributeError:
                     fishes.append(np.zeros(len(all_fundamentals)+1) / 0.)
-                fishes[-1][enu+1] = fundamentals[idx]
-                last_fish_fundamentals.append(fundamentals[idx])
+                fishes[-1][enu + 1] = fundamentals[i]
+                last_fish_fundamentals.append(fundamentals[i])
                 end_nans.append(0)
-            else:
-                found = False
-                for i in tolerated_diff_idx[np.argsort(last_detect_of_tolerated)]:
-                    if np.isnan(fishes[i][enu+1]):
-                        fishes[i][enu+1] = fundamentals[idx]
-                        last_fish_fundamentals[i] = fundamentals[idx]
-                        end_nans[i] = 0
-                        found = True
-                        break
-                if not found:
-                    try:
-                        fishes.append(np.full(len(all_fundamentals)+1, np.nan))
-                    except AttributeError:
-                        fishes.append(np.zeros(len(all_fundamentals)+1) / 0.)
-                    fishes[-1][enu+1] = fundamentals[idx]
-                    last_fish_fundamentals.append(fundamentals[idx])
-                    end_nans.append(0)
 
         for fish in range(len(fishes)):
             if end_nans[fish] >= prim_time_tolerance * dpm:
