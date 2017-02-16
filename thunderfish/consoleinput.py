@@ -71,7 +71,7 @@ def select(prompt, default, options, descriptions):
     Returns
     -------
     s: string
-        the selected value.
+        the selected value (one of the characters in options).
     """
     print(prompt)
     for o, d in zip(options, descriptions):
@@ -86,3 +86,15 @@ def select(prompt, default, options, descriptions):
         if s in options:
             return s
 
+
+            
+if __name__ == '__main__':
+    x = read('Give me a number between 1 and 10', '5', int, 1, 10)
+    print(x)
+    print('')
+    
+    y = select('Your options are', 'a', ['a', 'b', 'o'], ['apples', 'bananas', 'oranges'])
+    print(y)
+    print('')
+    
+    

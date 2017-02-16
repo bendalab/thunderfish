@@ -331,7 +331,7 @@ def main():
     import sys
     import matplotlib.pyplot as plt
     from audioio import write_audio
-    from .consoleinput import read, select
+    from .consoleinput import read, select 
     
     if len(sys.argv) > 1:
         if len(sys.argv) == 2 or sys.argv[1] != '-s':
