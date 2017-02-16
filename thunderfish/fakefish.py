@@ -331,44 +331,7 @@ def main():
     import sys
     import matplotlib.pyplot as plt
     from audioio import write_audio
-    try:
-        input_ = raw_input
-    except NameError:
-        input_ = input
-
-    def read(prompt, default=None, dtype=str, min=None, max=None):
-        if default is not None:
-            prompt += ' (%s): ' % default
-        while True:
-            s = input_(prompt)
-            if len(s) == 0 and default is not None:
-                s = default
-            if len(s) > 0:
-                try:
-                    x = dtype(s)
-                except ValueError:
-                    x = None
-                if x is not None:
-                    if min is not None and x < min:
-                        continue
-                    if max is not None and x > max:
-                        continue
-                    return x
-
-    def select(prompt, default, options, descriptions):
-        print(prompt)
-        for o, d in zip(options, descriptions):
-            print('  [%s] %s' % (o, d))
-        sprompt = '  Select'
-        if default is not None:
-            sprompt += ' (%s): ' % default
-        while True:
-            s = input_(sprompt).lower()
-            if len(s) == 0:
-                s = default
-            if s in options:
-                return s
-            
+    from .consoleinput import read, select
     
     if len(sys.argv) > 1:
         if len(sys.argv) == 2 or sys.argv[1] != '-s':
