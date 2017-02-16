@@ -390,6 +390,14 @@ def main():
             eoda = 1.0
             eodsig = 'n'
             pulse_jitter = 0.1
+            chirp_freq = 5.0
+            chirp_size = 100.0
+            chirp_width = 0.01
+            chirp_kurtosis = 1.0            
+            rise_freq = 0.1
+            rise_size = 10.0
+            rise_tau = 1.0
+            rise_decay_tau = 10.0
             for k in range(nfish):
                 print('')
                 fish = 'Fish %d: ' % (k+1)
@@ -403,9 +411,18 @@ def main():
                               ['fixed EOD', 'chirps', 'rises'])
                     eodfreq = eodf
                     if eodsig == 'c':
-                        eodfreq = chirps_frequency(eodf, samplerate, duration)
+                        chirp_freq = read('Number of chirps per second', '%g'%chirp_freq, float, 0.001)
+                        chirp_size = read('Size of chirp in Hz', '%g'%chirp_size, float, 1.0)
+                        chirp_width = 0.001*read('Width of chirp in ms', '%g'%(1000.0*chirp_width), float, 1.0)
+                        eodfreq = chirps_frequency(eodf, samplerate, duration,
+                                                   chirp_freq, chirp_size, chirp_width, chirp_kurtosis)
                     elif eodsig == 'r':
-                        eodfreq = rises_frequency(eodf, samplerate, duration)
+                        rise_freq = read('Number of rises per second', '%g'%rise_freq, float, 0.00001)
+                        rise_size = read('Size of rise in Hz', '%g'%rise_size, float, 0.01)
+                        rise_tau = read('Time-constant of rise onset in seconds', '%g'%rise_tau, float, 0.01)
+                        rise_decay_tau = read('Time-constant of rise decay in seconds', '%g'%rise_decay_tau, float, 0.01)
+                        eodfreq = rises_frequency(eodf, samplerate, duration,
+                                                  rise_freq, rise_size, rise_tau, rise_decay_tau)
                     if eodt == 'a':
                         fishdata = eoda*generate_alepto(eodfreq, samplerate, duration=duration)
                     elif eodt == 'e':
