@@ -3,12 +3,17 @@ User input from console.
 
 read(): read a single value from console.
 select(): select a menue option.
+
+recorded_inputs: list of strings with all inputs received by read() and select().
 """
 
 try:
     input_ = raw_input
 except NameError:
     input_ = input
+
+
+recorded_inputs = []
 
     
 def read(prompt, default=None, dtype=str, min=None, max=None):
@@ -50,6 +55,7 @@ def read(prompt, default=None, dtype=str, min=None, max=None):
                     continue
                 if max is not None and x > max:
                     continue
+                recorded_inputs.append(s)
                 return x
 
             
@@ -84,9 +90,27 @@ def select(prompt, default, options, descriptions):
         if len(s) == 0:
             s = default
         if s in options:
+            recorded_inputs.append(s)
             return s
 
 
+def save_inputs(file):
+    """
+    Write all inputs from read() and select() into a file.
+
+    This file can then be used to pipe these inputs to the program
+    instead of typing them in manually.
+    
+    Parameters
+    ----------
+    file: string
+        Name of the file where to save the inputs.
+    """
+    with open(file, 'w') as df:
+        for line in recorded_inputs:
+            df.write(line)
+            df.write('\n')
+            
             
 if __name__ == '__main__':
     x = read('Give me a number between 1 and 10', '5', int, 1, 10)
@@ -96,5 +120,10 @@ if __name__ == '__main__':
     y = select('Your options are', 'a', ['a', 'b', 'o'], ['apples', 'bananas', 'oranges'])
     print(y)
     print('')
+
+    print('your successfull inputs have been:')
+    print(recorded_inputs)
     
-    
+    # save_inputs('test.txt')
+    ## you then can call the script like this:
+    ## python -m thunderfish.consoleinput < test.txt
