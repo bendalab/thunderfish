@@ -329,9 +329,10 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
 
 def main():
     import sys
+    import os
     import matplotlib.pyplot as plt
     from audioio import write_audio
-    from .consoleinput import read, select 
+    from .consoleinput import read, select, save_inputs
     
     if len(sys.argv) > 1:
         if len(sys.argv) == 2 or sys.argv[1] != '-s':
@@ -418,6 +419,8 @@ def main():
 
             maxdata = np.max(np.abs(data))
             write_audio(audiofile, 0.9*data/maxdata, samplerate)
+            input_file = os.path.splitext(audiofile)[0] + '.inp' 
+            save_inputs(input_file)
             print('\nWrote fakefish data to file "%s".' % audiofile)
     
     else:
