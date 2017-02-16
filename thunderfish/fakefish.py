@@ -385,6 +385,12 @@ def main():
             samplerate = read('Sampling rate in Hz', '44100', float, 1.0)
             duration = read('Duration in seconds', '10', float, 0.001)
             nfish = read('Number of fish', '1', int, 1)
+            ndata = read('Number of electrodes', '1', int, 1)
+            fish_spread = 1
+            if ndata > 1:
+                fish_spread = read('Number of electrodes fish are spread over', '2', int, 1)
+            data = np.random.randn(int(duration*samplerate), ndata)*0.01
+            fish_indices = np.random.randint(ndata, size=nfish)
             eodt = 'a'
             eodf = 800.0
             eoda = 1.0
@@ -424,24 +430,28 @@ def main():
                         eodfreq = rises_frequency(eodf, samplerate, duration,
                                                   rise_freq, rise_size, rise_tau, rise_decay_tau)
                     if eodt == 'a':
-                        fishdata = eoda*generate_alepto(eodfreq, samplerate, duration=duration)
+                        fishdata = eoda*generate_alepto(eodfreq, samplerate, duration=duration,
+                                                        noise_std=0.0)
                     elif eodt == 'e':
-                        fishdata = eoda*generate_eigenmannia(eodfreq, samplerate, duration=duration)
+                        fishdata = eoda*generate_eigenmannia(eodfreq, samplerate, duration=duration,
+                                                             noise_std=0.0)
                 else:
                     pulse_jitter = read(fish + 'CV of pulse jitter', '%g'%pulse_jitter, float, 0.0, 2.0)
                     if eodt == '1':
                         fishdata = eoda*generate_monophasic_pulses(eodf, samplerate, duration,
-                                                                   jitter_cv=pulse_jitter)
+                                                                   jitter_cv=pulse_jitter,
+                                                                   noise_std=0.0)
                     elif eodt == '2':
                         fishdata = eoda*generate_biphasic_pulses(eodf, samplerate, duration,
-                                                                 jitter_cv=pulse_jitter)
+                                                                 jitter_cv=pulse_jitter,
+                                                                 noise_std=0.0)
                     elif eodt == '3':
                         fishdata = eoda*generate_triphasic_pulses(eodf, samplerate, duration,
-                                                                  jitter_cv=pulse_jitter)
-                if k == 0:
-                    data = fishdata
-                else:
-                    data += fishdata
+                                                                  jitter_cv=pulse_jitter,
+                                                                  noise_std=0.0)
+                i = fish_indices[k]
+                for j in range(fish_spread):
+                    data[:, (i+j)%ndata] += fishdata*(0.2**j)
 
             maxdata = np.max(np.abs(data))
             write_audio(audiofile, 0.9*data/maxdata, samplerate)
