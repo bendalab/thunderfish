@@ -329,23 +329,13 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
         loop_idxs = np.arange(len(non_nan_idx[non_nan_idx <= non_nan_idx[-1] - dpm/ 60. * 10]))
         for i in loop_idxs:
             help_idx = np.arange(len(non_nan_idx))[non_nan_idx < non_nan_idx[i] + dpm / 60. * 10][-1]
-            test_help_idx = np.arange(len(non_nan_idx))[non_nan_idx > non_nan_idx[i] - dpm / 60. *30][0]
 
             idxs = non_nan_idx[i+1:help_idx]
             if len(idxs) < dpm / 60. * 1.:
                 continue
 
-            test_idx = non_nan_idx[test_help_idx:i]
-            test_fish = fish[test_idx]
-            # if len(test_fish[test_fish > fish[non_nan_idx[i]] + rise_f_th]) >= 1:
-            #     continue
-
             if len(fish[idxs][fish[idxs] < fish[non_nan_idx[i]]]) == len(fish[idxs]):
                 for j in loop_idxs[loop_idxs > i]:
-
-                    # if len(test_fish[np.isnan(test_fish)]) > 0:
-                    #     if np.median(test_fish[~np.isnan(test_fish)]) > fish[non_nan_idx[j]] + rise_f_th / 2.:
-                    #         break
 
                     if fish[non_nan_idx[j]] >= fish[non_nan_idx[i]]:
                         break
@@ -357,36 +347,13 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
                     idxs2 = non_nan_idx[j+1:help_idx2]
 
                     last_possibe = False
+
                     if fish[non_nan_idx[j]] - np.median(fish[idxs2]) < 0.025:
                         last_possibe = True
 
                     if len(fish[idxs2][fish[idxs2] >= fish[non_nan_idx[j]]]) == len(fish[idxs2]) or non_nan_idx[j] == non_nan_idx[-1] or last_possibe:
                         freq_th = rise_f_th + ((non_nan_idx[j] - non_nan_idx[i]) *1.) // (dpm /60. *30) * rise_f_th
-                        # ToDo: make regress from start to end and see if
                         if fish[non_nan_idx[i]] - fish[non_nan_idx[j]] >= freq_th:
-                            # di = non_nan_idx[j] - non_nan_idx[i]
-                            # pre_rise_data = fish[non_nan_idx[i] - di:non_nan_idx[i]]
-                            # pre_rise_idx = np.arange(non_nan_idx[i] - di, non_nan_idx[i])
-                            #
-                            # if len(pre_rise_data[~np.isnan(pre_rise_data)]) <= 1 or \
-                            #                 non_nan_idx[i] - pre_rise_idx[~np.isnan(pre_rise_data)][0] < (non_nan_idx[j] - non_nan_idx[i]) / 10.:
-                            #     return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
-                            # else:
-                            #     # pre_rise_slope = (pre_rise_data[~np.isnan(pre_rise_data)][-1] - pre_rise_data[~np.isnan(pre_rise_data)][0]) / (pre_rise_idx[~np.isnan(pre_rise_data)][-1] - pre_rise_idx[~np.isnan(pre_rise_data)][0])
-                            #     pre_rise_slope, _, _, _, _ = scp.linregress(pre_rise_idx[~np.isnan(pre_rise_data)], pre_rise_data[~np.isnan(pre_rise_data)])
-                            #     # prediction = fish[non_nan_idx[i]] + di * pre_rise_slope
-                            #     pred_t0 = pre_rise_data[~np.isnan(pre_rise_data)][0] + (non_nan_idx[i] - pre_rise_idx[
-                            #         ~np.isnan(pre_rise_idx)][0]) * pre_rise_slope
-                            #     pred_t1 = pre_rise_data[~np.isnan(pre_rise_data)][0] + (non_nan_idx[j] - pre_rise_idx[
-                            #         ~np.isnan(pre_rise_idx)][0]) * pre_rise_slope
-                            #
-                            #     deltaf = np.abs(pred_t0 - pred_t1)
-                            #
-                            #     if non_nan_idx[i] > 35000 * (dpm / 60):
-                            #         print ('critical snipped')
-                            #     # if np.abs(fish[non_nan_idx[j]] - prediction) < tollerance:
-                            #     if np.abs(fish[non_nan_idx[j]] - pred_t1) < deltaf / 2. :
-                            #         break
 
                             return [[non_nan_idx[i], non_nan_idx[j]], [fish[non_nan_idx[i]], fish[non_nan_idx[j]]]], non_nan_idx[j+1:]
                         else:
