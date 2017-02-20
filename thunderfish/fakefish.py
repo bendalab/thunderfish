@@ -336,7 +336,7 @@ def main():
     
     if len(sys.argv) > 1:
         if len(sys.argv) == 2 or sys.argv[1] != '-s':
-            print('usage: fakefish [-h] [-s audiofile]')
+            print('usage: fakefish [-h|--help] [-s audiofile]')
             print('')
             print('Without arguments, run a demo for illustrating fakefish functionality.')
             print('')

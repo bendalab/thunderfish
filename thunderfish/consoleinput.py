@@ -40,7 +40,7 @@ def read(prompt, default=None, dtype=str, min=None, max=None):
     """
     
     if default is not None:
-        prompt += ' (%s): ' % default
+        prompt += ' [%s]: ' % default
     while True:
         s = input_(prompt)
         if len(s) == 0 and default is not None:
@@ -84,7 +84,7 @@ def select(prompt, default, options, descriptions):
         print('  [%s] %s' % (o, d))
     sprompt = '  Select'
     if default is not None:
-        sprompt += ' (%s): ' % default
+        sprompt += ' [%s]: ' % default
     while True:
         s = input_(sprompt).lower()
         if len(s) == 0:
