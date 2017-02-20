@@ -118,23 +118,21 @@ def rises_per_hour(fishes, all_times, all_rises, temp, slope):
         cp_fish += cp_temp * slope[fish]
         if len(cp_fish[~np.isnan(cp_fish)]) <= 1:
             continue
+        first = all_times[~np.isnan(fishes[fish])][0]
+        last = all_times[~np.isnan(fishes[fish])][-1]
+        if (last - first) < 1800.:
+            continue
+
         med_fish_freq = np.median(cp_fish[~np.isnan(cp_fish)])
 
-        # rise_count
         rise_count = 0
         for rise in all_rises[fish]:
             if rise[1][0] - rise[1][1] > 1.:
                 rise_count += 1
-        # print rise_count
-
-        # occure time
 
         occure_h = (all_times[~np.isnan(cp_fish)][-1] - all_times[~np.isnan(cp_fish)][0]) / 3600.
 
         rises_ph_n_f.append([1.0* rise_count / occure_h, med_fish_freq])
-
-    fig, ax = plt.subplots()
-    ax.scatter([rises_ph_n_f[n][1] for n in range(len(rises_ph_n_f))], [rises_ph_n_f[n][0] for n in range(len(rises_ph_n_f))])
 
     return rises_ph_n_f
 
@@ -213,6 +211,7 @@ def plot_fishes(fishes, all_times, all_rises, temp, start_time_str, hz_p_deg    
             plt.xticks(old_ticks, new_ticks)
             ax.set_xlabel('Time')
     plt.tight_layout()
+    plt.show()
 
 
 
@@ -223,7 +222,7 @@ def plot_freq_vs_temp(fishes, temp):
         ax.scatter(temp[~np.isnan(fish)], fish[~np.isnan(fish)])
         plt.show()
 
-def main(file_path):
+def main(file_path, show_fish_plot=True):
     # load data and get fishcount per half an hour...
     rise_phnf= []
     folders = np.array([x[0] for x in os.walk(file_path)])
@@ -270,22 +269,88 @@ def main(file_path):
             # rises_per_hour(fishes, all_times, all_rises, temp, slopes)
 
         # plot fishes
-        plot_fishes(fishes, all_times, all_rises, temp, start_time_str, hz_p_deg)
+        if show_fish_plot:
+            plot_fishes(fishes, all_times, all_rises, temp, start_time_str, hz_p_deg)
 
         if log_infos and temp != []:
             rises_ph_n_f = rises_per_hour(fishes, all_times, all_rises, temp, slopes)
             rise_phnf += rises_ph_n_f
-            plt.close()
+            # plt.close()
 
-        # plt.draw()
-        # plt.pause(2)
-        plt.close()
-        # plot_freq_vs_temp(fishes, temp)
+    rise_base_freq = np.array([rise_phnf[n][1] for n in range(len(rise_phnf))])
+    rise_counts = np.array([rise_phnf[n][0] for n in range(len(rise_phnf))])
 
-    fig, ax = plt.subplots()
-    ax.scatter([rise_phnf[n][1] for n in range(len(rise_phnf))],
-               [rise_phnf[n][0] for n in range(len(rise_phnf))])
+    bins = np.arange(455, 1055, 10)
+    bins = bins.tolist()
+    rise_freq_counts = []
+    for bin_c in bins:
+        rise_freq_counts.append(rise_counts[(rise_base_freq >= bin_c -5) & (rise_base_freq < bin_c +5)])
+
+    for bin in reversed(range(len(bins))):
+        if len(rise_freq_counts[bin]) == 0:
+            rise_freq_counts.pop(bin)
+            bins.pop(bin)
+    bins = np.array(bins)
+
+    # male plot
+    inch_factor = 2.54
+    fig, ax = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
+    ax.boxplot(np.array(rise_freq_counts)[(bins >= 800) & (bins < 1050)], sym='')
+    old_ticks = ax.get_xticks()
+    plt.xticks(old_ticks, bins[(bins >= 800) & (bins < 1050)], rotation=45)
+
+    male_base_freq = rise_base_freq[(rise_base_freq >= 800) & (rise_base_freq < 1050)]
+    male_rise_count = rise_counts[(rise_base_freq >= 800) & (rise_base_freq < 1050)]
+    r_val, p_val = scp.pearsonr(male_base_freq, male_rise_count)
+
+    ax.set_ylim([0, 10])
+    ax.set_xlabel('frequency [Hz]')
+    ax.set_ylabel('rise count per h [n/h]')
+    ax.set_title('Risecounts vs. frequency in Males \n(pearsonr; r= %.3f; p= %.3f)' % (r_val, p_val))
+    plt.tight_layout()
+
+
+    # neutron plot
+    inch_factor = 2.54
+    fig, ax = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
+    ax.boxplot(np.array(rise_freq_counts)[(bins >= 700) & (bins < 800)], sym='')
+    old_ticks = ax.get_xticks()
+    plt.xticks(old_ticks, bins[(bins >= 700) & (bins < 800)], rotation=45)
+    ax.set_ylim([0, 10])
+
+    # neutron plot
+    inch_factor = 2.54
+    fig, ax = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
+    ax.boxplot(np.array(rise_freq_counts)[(bins >= 450) & (bins < 700)], sym='')
+    old_ticks = ax.get_xticks()
+    plt.xticks(old_ticks, bins[(bins >= 450) & (bins < 700)], rotation=45)
+
+    female_base_freq = rise_base_freq[(rise_base_freq >= 450) & (rise_base_freq < 700)]
+    female_rise_count = rise_counts[(rise_base_freq >= 450) & (rise_base_freq < 700)]
+    r_val, p_val = scp.pearsonr(female_base_freq, female_rise_count)
+
+    ax.set_ylim([0, 10])
+    ax.set_xlabel('frequency [Hz]')
+    ax.set_ylabel('rise count per h [n/h]')
+    ax.set_title('Risecounts vs. frequency in Females \n(pearsonr; r= %.3f; p= %.3f)' % (r_val, p_val))
+    plt.tight_layout()
+
+    # male female neurtron plot
+    f_rise_counts = rise_counts[(rise_base_freq >= 450) & (rise_base_freq < 700)]
+    n_rise_counts = rise_counts[(rise_base_freq >= 700) & (rise_base_freq < 800)]
+    m_rise_counts = rise_counts[(rise_base_freq >= 800) & (rise_base_freq < 1050)]
+
+    fig, ax = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
+    ax.boxplot([f_rise_counts, n_rise_counts, m_rise_counts], sym='')
+    old_ticks = ax.get_xticks()
+    plt.xticks(old_ticks, ['female', 'neutron', 'male'])
     plt.show()
+
+    # fig, ax = plt.subplots()
+    # ax.scatter([rise_phnf[n][1] for n in range(len(rise_phnf))],
+    #            [rise_phnf[n][0] for n in range(len(rise_phnf))])
+    #
+    # plt.show()
     ######################### old stuff ##################################
 
     # ### create a clock array ###

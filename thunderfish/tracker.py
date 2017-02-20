@@ -239,7 +239,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
             try:
                 diffs[add_freq] = np.full(len(diffs[add_freq]), np.nan)
             except AttributeError:
-                diffs[add_freq] = np.zeros(len(diffs[add_freq]) / 0.)
+                diffs[add_freq] = np.zeros(len(diffs[add_freq])) / 0.
 
             for j in range(len(diffs)):
                 diffs[j][add_fish] = np.nan
