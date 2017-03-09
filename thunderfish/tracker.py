@@ -209,7 +209,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
     # for every list of fundamentals ...
     clean_up_idx = int(30 * dpm)
 
-    alpha = 0.01
+    alpha = 0.02
     for enu, fundamentals in enumerate(all_fundamentals):
         if enu == clean_up_idx:
             if verbose >= 3:
@@ -384,7 +384,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     return all_rises
 
 
-def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th = 5.):
+def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th = 5., plot_combi=False):
     """
     Combines array of electric fish fundamental frequencies which, based on frequency difference and time of occurrence
     likely belong to the same fish.
@@ -476,18 +476,12 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                 if all_rises[fish] != []:
                     if occure_idx[fish][0] in [all_rises[fish][i][0][0] for i in range(len(all_rises[fish]))]:
                         x = np.where( np.array([all_rises[fish][i][0][0] for i in range(len(all_rises[fish]))]) == occure_idx[fish][0])[0][0]
-                        # compare_idxs = [all_rises[fish][x][0][0], occure_idx[comp_fish][1]]
-                        # compare_freq_idxs = [all_rises[fish][x][0][1], occure_idx[comp_fish][1]]
                         compare_idxs = [all_rises[fish][x][0][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < all_rises[fish][x][0][0]][-1]]
                         compare_freq_idxs = [all_rises[fish][x][0][1], comp_fish_nnans_idxs[comp_fish_nnans_idxs < all_rises[fish][x][0][0]][-1]]
                     else:
-                        # compare_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
-                        # compare_freq_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
                         compare_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
                         compare_freq_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
                 else:
-                    # compare_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
-                    # compare_freq_idxs = [occure_idx[fish][0], occure_idx[comp_fish][1]]
                     compare_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
                     compare_freq_idxs = [occure_idx[fish][0], comp_fish_nnans_idxs[comp_fish_nnans_idxs < occure_idx[fish][0]][-1]]
             else:
@@ -498,51 +492,56 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
 
             if combinable:
                 alpha = 0.01 # alpha cant be larger ... to many mistakes !!!
-                if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) <= f_th:
-                    nan_test = fishes[fish] + fishes[comp_fish]
-                    if len(nan_test[~np.isnan(nan_test)]) <= 50:
+                # if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) <= f_th:
+                nan_test = fishes[fish] + fishes[comp_fish]
+                if len(nan_test[~np.isnan(nan_test)]) <= 50:
+                    med_slope = []
+                    if plot_combi:
+                        fig, ax = plt.subplots()
+                        ax.plot(all_times[~np.isnan(fishes[fish])], fishes[fish][~np.isnan(fishes[fish])], marker= '.', color = 'green')
+                        ax.plot(all_times[~np.isnan(fishes[comp_fish])], fishes[comp_fish][~np.isnan(fishes[comp_fish])], marker= '.', color = 'red')
 
-                        # ToDo: plot the regression, the prediction and the two fishes... look if regression is correct...
-                        med_slope = []
-                        for h_fish in range(len(fishes)):
-                            if h_fish == comp_fish:
-                                continue
-                            h_fish_data = fishes[h_fish][np.floor(compare_freq_idxs[0] - dpm * 3.):compare_freq_idxs[0]]
-                            y = h_fish_data[~np.isnan(h_fish_data)]
-                            x = np.arange(len(h_fish_data))[~np.isnan(h_fish_data)]
-                            if len(y) >= 2:
-                                slope_h_fish, _, _, _, _ = scp.linregress(x, y)
-                                med_slope.append(slope_h_fish)
-
-                        if len(med_slope) > 0:
-                            # print('new')
-                            pred_freq = fishes[comp_fish][compare_freq_idxs[1]] +\
-                                        np.abs(compare_freq_idxs[0] - compare_freq_idxs[1]) * np.median(med_slope)
-                        else:
+                    for h_fish in range(len(fishes)):
+                        if h_fish == fish:
                             continue
-                            # print('old')
-                            # pred_freq = fishes[comp_fish][compare_freq_idxs[1]]
+                        h_fish_data = fishes[h_fish][np.floor(compare_freq_idxs[0] - dpm * 3.):compare_freq_idxs[0]]
+                        h_fish_time = all_times[np.floor(compare_freq_idxs[0] - dpm * 3.):compare_freq_idxs[0]]
+                        y = h_fish_data[~np.isnan(h_fish_data)]
+                        x = h_fish_time[~np.isnan(h_fish_data)]
+                        if len(y) >= 2:
+                            slope_h_fish, interc, _, _, _ = scp.linregress(x, y)
+                            med_slope.append(slope_h_fish)
+                            if plot_combi:
+                                ax.scatter(all_times[np.floor(compare_freq_idxs[0] - dpm * 3.):compare_freq_idxs[0]],
+                                           h_fish_data, color = 'grey', alpha= 0.1)
+                                ax.plot(x, interc + x * slope_h_fish, '-', linewidth=1, color='blue')
 
-                        # possible_freq_combinations[comp_fish] = np.abs(
-                        #     [fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]])
+                    if len(med_slope) > 0:
+
+                        pred_freq = fishes[comp_fish][compare_freq_idxs[1]] +\
+                                    np.abs(compare_freq_idxs[0] - compare_freq_idxs[1]) * np.median(med_slope)
+                        if plot_combi:
+                            ax.plot([all_times[compare_freq_idxs[1]], all_times[compare_freq_idxs[0]]],
+                                    [fishes[comp_fish][compare_freq_idxs[1]], pred_freq], linewidth= 2, color='k')
+                    else:
+                        continue
+
+                    if plot_combi:
+                        plt.show()
+
+                    if np.abs(fishes[fish][compare_freq_idxs[0]] - pred_freq) > f_th:
+                        continue
+                    else:
                         possible_freq_combinations[comp_fish] = np.abs(fishes[fish][compare_freq_idxs[0]] - pred_freq)
                         possible_idx_combinations[comp_fish] = np.abs([compare_idxs[0] - compare_idxs[1]])
 
                         possible_combinations[comp_fish] = possible_freq_combinations[comp_fish] + possible_idx_combinations[comp_fish] / (dpm / 60.) * alpha
 
-                        # ax.plot([compare_idxs[0], compare_idxs[1]], [fishes[fish][compare_idxs[0]], fishes[comp_fish][compare_idxs[1]]], '-', color = 'red')
-
-            # here I exited the loop to early ....
-            # if enu == len(occure_order[:np.where(occure_order == fish)[0][0]]) and \
-            #                 len(possible_combinations[~np.isnan(possible_combinations)]) > 0:
-            #
-            # if comp_fish == occure_order[0] and len(possible_combinations[~np.isnan(possible_combinations)]) > 0:
-            # if comp_fish == 0 and len(possible_freq_combinations[~np.isnan(possible_freq_combinations)]) > 0:
-            #     possible_combinations_all_fish[fish] = possible_combinations
         if len(possible_combinations[~np.isnan(possible_combinations)]) > 0:
             possible_combinations_all_fish[fish] = possible_combinations
 
     combining_finished = False
+
     while combining_finished == False:
         if np.size(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]) == 0:
             combining_finished = True
@@ -557,6 +556,14 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
             if np.size(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]) == 0:
                 combining_finished = True
             continue
+        print('plotting')
+        # fig, ax = plt.subplots()
+        # for fishy in range(len(fishes)):
+        #     ax.scatter(all_times[~np.isnan(fishes[fishy])], fishes[fishy][~np.isnan(fishes[fishy])], color='grey', alpha= 0.1)
+        # ax.plot(all_times[~np.isnan(fishes[fish])], fishes[fish][~np.isnan(fishes[fish])], color='red', marker='.')
+        # ax.plot(all_times[~np.isnan(fishes[comp_fish])], fishes[comp_fish][~np.isnan(fishes[comp_fish])], color='green', marker='.')
+        # plt.show()
+
 
         fishes[comp_fish][~np.isnan(fishes[fish])] = fishes[fish][~np.isnan(fishes[fish])]
         try:
@@ -590,10 +597,6 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
 
         if np.size(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]) == 0:
             combining_finished = True
-
-    # for i in range(len(fishes)):
-    #     ax.plot(np.arange(len(fishes[i]))[~np.isnan(fishes[i])], fishes[i][~np.isnan(fishes[i])], color= np.random.rand(3, 1), marker='.')
-    # plt.show()
 
     for fish in reversed(range(len(fishes))):
         if len(fishes[fish][~np.isnan(fishes[fish])]) == 0:
@@ -659,22 +662,14 @@ def cut_at_rises(fishes, all_rises, all_times, min_occure_time):
             df = np.abs(all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1])
             check_f = [all_rises[fish][rise][1][0] + df / 2, all_rises[fish][rise][1][1] - df / 2]
 
-            # from IPython import embed
-            # embed()
-            # quit()
             there_is_another_fish = False
             for check_fish in range(len(fishes)):
                 if check_fish == fish:
                     continue
-                try:
-                    if len(fishes[check_fish][check_idx][~np.isnan(fishes[check_fish][check_idx])]) > 0:
-                        check_freqs = fishes[check_fish][check_idx][~np.isnan(fishes[check_fish][check_idx])]
-                        if len(check_freqs[(check_freqs < check_f[0]) & (check_freqs > check_f[1])]) > 0:
-                            there_is_another_fish = True
-                except IndexError:
-                    from IPython import embed
-                    embed()
-                    quit()
+                if len(fishes[check_fish][check_idx][~np.isnan(fishes[check_fish][check_idx])]) > 0:
+                    check_freqs = fishes[check_fish][check_idx][~np.isnan(fishes[check_fish][check_idx])]
+                    if len(check_freqs[(check_freqs < check_f[0]) & (check_freqs > check_f[1])]) > 0:
+                        there_is_another_fish = True
 
             if not there_is_another_fish:
                 # print('not cutting')
@@ -699,9 +694,6 @@ def cut_at_rises(fishes, all_rises, all_times, min_occure_time):
                 fishes[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
 
             # ToDo rises correkt uebertragen...
-            # from IPython import embed
-            # embed()
-            # quit()
             new_rises = all_rises[fish][rise:]
             old_rises = all_rises[fish][:rise]
             all_rises.append(new_rises)

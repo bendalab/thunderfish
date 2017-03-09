@@ -12,9 +12,10 @@ def load_temp_and_time(all_times, log_infos):
     dpm = 60./ dt
 
     if log_infos == False:
-        return [], []
+        return [], [], []
     else:
         start_time_str = False
+        start_date_str = False
         for i in range(len(log_infos)):
             if log_infos[i][2] == 'begin of recording':
                 start_time_str = ' ' + log_infos[i][1]
@@ -41,6 +42,15 @@ def load_temp_and_time(all_times, log_infos):
                 end_time[t] = '0' + end_time[t]
         end_time_str = ' ' +  end_time[0] + ':' + end_time[1]
 
+        if int(start_time_str.split(':')[0]) < int(end_time_str.split(':')[0]):
+            end_date_str = start_date_str
+        else:
+            new_day = int(start_date_str.split('/')[0])+1
+            if new_day < 10:
+                end_date_str = '0' + str(new_day) + start_date_str[2:]
+            else:
+                end_date_str = str(new_day) + start_date_str[2:]
+
     # load temperature
     hobo_logger1 = pd.read_csv('../../raab_data/colombia_2016/hobo_logger_data/logger1.csv')
     hobo_logger2 = pd.read_csv('../../raab_data/colombia_2016/hobo_logger_data/logger2.csv')
@@ -49,10 +59,11 @@ def load_temp_and_time(all_times, log_infos):
     temp_idx = []
     for hobo_logger in [hobo_logger1, hobo_logger2]:
         start_idx = hobo_logger['DateTime'][(hobo_logger['DateTime'].str.contains(start_date_str)) &
-                                        (hobo_logger['DateTime'].str.contains(start_time_str))].index
+                                            (hobo_logger['DateTime'].str.contains(start_time_str))].index
 
-        end_idx = hobo_logger['DateTime'][hobo_logger['DateTime'].str.contains(end_time_str)].index
-
+        # end_idx = hobo_logger['DateTime'][hobo_logger['DateTime'].str.contains(end_time_str)].index
+        end_idx = hobo_logger['DateTime'][(hobo_logger['DateTime'].str.contains(end_date_str)) &
+                                          (hobo_logger['DateTime'].str.contains(end_time_str))].index
         # embed()
         if len(end_idx) == 0:
             continue
@@ -84,12 +95,9 @@ def load_temp_and_time(all_times, log_infos):
             break
 
     if temp == []:
-        return [], []
+        return [], start_time_str, end_time_str
     else:
-        temp = temp[temp_idx < len(all_times)]
-        temp_idx = temp_idx[temp_idx < len(all_times)]
-
-        return interp_temp, start_time_str
+        return interp_temp, start_time_str, end_time_str
         # return temp, temp_idx, start_time_str
 
 
@@ -136,7 +144,8 @@ def rises_per_hour(fishes, all_times, all_rises, temp, slope):
 
     return rises_ph_n_f
 
-def plot_fishes(fishes, all_times, all_rises, temp, start_time_str, hz_p_deg    ):
+
+def plot_fishes(fishes, all_times, all_rises, temp, start_time_str, hz_p_deg):
 
     fig, ax = plt.subplots(facecolor='white', figsize=(11.6, 8.2))
 
@@ -161,7 +170,7 @@ def plot_fishes(fishes, all_times, all_rises, temp, start_time_str, hz_p_deg    
             if rise[1][0] - rise[1][1] > 1.5:
                 if legend_in == False:
                     ax.plot(all_times[rise[0][0]] / time_factor, rise[1][0], 'o', color='red', markersize=7,
-                            markerfacecolor='None', label='rise begin')
+                            markerfacecolor='None', label='rise peak')
                     ax.plot(all_times[rise[0][1]] / time_factor, rise[1][1], 's', color='green', markersize=7,
                             markerfacecolor='None', label='rise end')
                     legend_in = True
@@ -214,7 +223,6 @@ def plot_fishes(fishes, all_times, all_rises, temp, start_time_str, hz_p_deg    
     plt.show()
 
 
-
 def plot_freq_vs_temp(fishes, temp):
     # embed()
     for fish in fishes:
@@ -222,14 +230,71 @@ def plot_freq_vs_temp(fishes, temp):
         ax.scatter(temp[~np.isnan(fish)], fish[~np.isnan(fish)])
         plt.show()
 
-def main(file_path, show_fish_plot=True):
+
+def comb_fish_plot(ax_all, fishes, all_times, start_time_str, last_end_time, last_t, old_colors):
+    new_colors = []
+    if not last_end_time:
+        start_t = 0
+    else:
+        last_end_time = [int(last_end_time.split(':')[n]) for n in range(2)]
+        start_time = [int(start_time_str.split(':')[n]) for n in range(2)]
+
+        if start_time[1] < last_end_time[1]:
+            start_time[1] += 60
+            last_end_time[0] += 1
+        if start_time[0] < last_end_time[0]:
+            start_time[0] += 24
+
+        ds = (start_time[1] - last_end_time[1]) * 60. + (start_time[0] - last_end_time[0]) * 3600.
+
+        start_t = last_t + ds
+
+    for fish in range(len(fishes)):
+        if all_times[~np.isnan(fishes[fish])][0] - all_times[0] <= 1800:
+            if old_colors and old_colors != []:
+                # embed()
+                freq_diff = np.array([old_colors[n][0] for n in range(len(old_colors))]) - fishes[fish][~np.isnan(fishes[fish])][0]
+                sorted_idx = np.argsort(np.abs(freq_diff))
+                # embed()
+                for min_freq_diff_idx in sorted_idx:
+                    if freq_diff[min_freq_diff_idx] <= 2.:
+                        color = old_colors[min_freq_diff_idx][1]
+                        old_colors.pop(min_freq_diff_idx)
+                        break
+                    else:
+                        color = np.random.rand(3, 1)
+            else:
+                color = np.random.rand(3, 1)
+        else:
+            color = np.random.rand(3, 1)
+
+        ax_all.plot((all_times[~np.isnan(fishes[fish])] + start_t) / 3600, fishes[fish][~np.isnan(fishes[fish])],
+                    color=color, marker='.', zorder=2)
+
+        if all_times[-1] - all_times[~np.isnan(fishes[fish])][-1] <= 1800:
+            new_colors.append([fishes[fish][~np.isnan(fishes[fish])][-1], color])
+
+    last_t = all_times[-1] + start_t
+    return last_t, new_colors
+
+
+def main(file_path, show_fish_plot=True, show_combined_fishes=False):
     # load data and get fishcount per half an hour...
     rise_phnf= []
+    old_colors = False
+
     folders = np.array([x[0] for x in os.walk(file_path)])
     if len(folders) > 1:
         folders = folders[1:]
 
-    for folder in sorted(folders):
+    if show_combined_fishes:
+        inch_factor = 2.54
+        fig_all, ax_all = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
+        last_t = 0
+        last_end_time = False
+        first_start_time = False
+
+    for enu, folder in enumerate(sorted(folders)):
         print folder
         # load data
         dat_file = False
@@ -251,12 +316,12 @@ def main(file_path, show_fish_plot=True):
         temp = False
         hz_p_deg = False
         start_time_str = False
+        end_time_str = False
         if dat_file:
             log_infos = load_dat_file(dat_file)
 
-        if log_infos:
             # temp, temp_idx, start_time_str = load_temp_and_time(all_times, log_infos)
-            temp, start_time_str = load_temp_and_time(all_times, log_infos)
+            temp, start_time_str, end_time_str = load_temp_and_time(all_times, log_infos)
 
             # calculate freq change per deg C
             if temp != []:
@@ -264,7 +329,10 @@ def main(file_path, show_fish_plot=True):
                 for fish in fishes:
                     slope, intercept, _, _, _ = scp.linregress(temp[~np.isnan(fish)], fish[~np.isnan(fish)])
                     slopes.append(slope)
+                slopes = np.array(slopes)
                 hz_p_deg = np.median(slopes[slopes > 0])
+                # embed()
+                # quit()
 
             # rises_per_hour(fishes, all_times, all_rises, temp, slopes)
 
@@ -272,11 +340,52 @@ def main(file_path, show_fish_plot=True):
         if show_fish_plot:
             plot_fishes(fishes, all_times, all_rises, temp, start_time_str, hz_p_deg)
 
+        if show_combined_fishes:
+            last_t, old_colors = comb_fish_plot(ax_all, fishes, all_times, start_time_str, last_end_time, last_t, old_colors)
+            last_end_time = end_time_str
+            # embed()
+            if not first_start_time:
+                first_start_time = start_time_str
+
+            # if enu == 3:
+            #     plt.show()
+
         if log_infos and temp != []:
             rises_ph_n_f = rises_per_hour(fishes, all_times, all_rises, temp, slopes)
             rise_phnf += rises_ph_n_f
             # plt.close()
+    if show_combined_fishes:
+        first_start_time = [int(first_start_time.split(':')[n]) for n in range(2)]
+        morning_time = [6, 0]
 
+        if morning_time[1] < first_start_time[1]:
+            morning_time[1] += 60
+            first_start_time[0] += 1
+        if morning_time[0] < first_start_time[0]:
+            morning_time[0] += 24
+
+        dh = (morning_time[1] - first_start_time[1]) / 60. + (morning_time[0] - first_start_time[0])
+
+        xlimits = ax_all.get_xlim()
+        ylimits = ax_all.get_ylim()
+
+        mornings = np.arange(dh, xlimits[1], 24)
+
+        for morning in mornings:
+            evening = morning - 12.
+            if evening < 0:
+                evening = 0
+
+            ax_all.fill_between([evening, morning], [ylimits[0], ylimits[0]], [ylimits[1], ylimits[1]], color='grey',
+                                alpha= 0.4, zorder= 1)
+        # embed()
+        # quit()
+        ax_all.set_ylim([400, 950])
+        ax_all.set_xlim([0, 355])
+        ax_all.set_xlabel('time [h]')
+        ax_all.set_ylabel('frequency [Hz]')
+        plt.tight_layout()
+        plt.show()
     rise_base_freq = np.array([rise_phnf[n][1] for n in range(len(rise_phnf))])
     rise_counts = np.array([rise_phnf[n][0] for n in range(len(rise_phnf))])
 
