@@ -491,8 +491,9 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                     embed()
 
             if combinable:
+                if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) > f_th:
+                    continue
                 alpha = 0.01 # alpha cant be larger ... to many mistakes !!!
-                # if np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]]) <= f_th:
                 nan_test = fishes[fish] + fishes[comp_fish]
                 if len(nan_test[~np.isnan(nan_test)]) <= 50:
                     med_slope = []
@@ -533,6 +534,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                         continue
                     else:
                         possible_freq_combinations[comp_fish] = np.abs(fishes[fish][compare_freq_idxs[0]] - pred_freq)
+                    # possible_freq_combinations[comp_fish] = np.abs(fishes[fish][compare_freq_idxs[0]] - fishes[comp_fish][compare_freq_idxs[1]])
                         possible_idx_combinations[comp_fish] = np.abs([compare_idxs[0] - compare_idxs[1]])
 
                         possible_combinations[comp_fish] = possible_freq_combinations[comp_fish] + possible_idx_combinations[comp_fish] / (dpm / 60.) * alpha
@@ -556,7 +558,7 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
             if np.size(possible_combinations_all_fish[~np.isnan(possible_combinations_all_fish)]) == 0:
                 combining_finished = True
             continue
-        print('plotting')
+        # print('plotting')
         # fig, ax = plt.subplots()
         # for fishy in range(len(fishes)):
         #     ax.scatter(all_times[~np.isnan(fishes[fishy])], fishes[fishy][~np.isnan(fishes[fishy])], color='grey', alpha= 0.1)
