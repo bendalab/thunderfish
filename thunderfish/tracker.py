@@ -20,8 +20,6 @@ except ImportError:
     pass
 # TODO: update to numpy doc style!
 
-import time as tt
-
 
 def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                          data_snippet_secs=60.0,
@@ -60,7 +58,6 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
         if verbose >= 3:
             print('Minute %.2f' % (start_time/60))
 
-        startt = tt.time()
         for channel in channels:
             # print(channel)
             if len(channels) > 1:
@@ -81,12 +78,9 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
             else:
                 for t in range(len(power)):
                     power[t] += tmp_power[t]
-        endt = tt.time()
-        print 'spectrogram took', endt - startt
 
         all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] + start_time))
 
-        startt = tt.time()
         for p in range(len(power)):
             fishlist, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(freqs, power[p], **kwargs)
             fundamentals = fundamental_freqs(fishlist)
@@ -98,8 +92,6 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                                          all_freqs, good_freqs, max_freq=3000.0)
                 ax.set_title('time = %gmin' % ((start_time+0.0)/60.0))  # XXX TODO plus what???
                 plt.show()
-        endt = tt.time()
-        print 'harmonic groups took', endt - startt
 
         if (len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) > -1 and (
                     len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) < 1:
