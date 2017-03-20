@@ -699,7 +699,7 @@ def main():
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',
                         help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs=1, default='', type=str,
+    parser.add_argument('file', nargs='?', default='', type=str,
                         help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int,
                         help='channel to be displayed')
@@ -732,7 +732,7 @@ def main():
     cfg.set('bestWindowSize', 4.0)
 
     # load configuration from working directory and data directories:
-    filepath = args.file[0]
+    filepath = args.file
     cfg.load_files(cfgfile, filepath, 3, verbose)
 
     # save configuration:
@@ -743,11 +743,14 @@ def main():
         else:
             print('write configuration to %s ...' % args.save_config)
             cfg.dump(args.save_config)
-        quit()
+        return
 
     # load data:
-    channel = args.channel
+    if len(filepath) == 0:
+        parser.error('you need to specify a file containing some data')
+        return
     filename = os.path.basename(filepath)
+    channel = args.channel
     # TODO: add blocksize and backsize as configuration parameter!
     with open_data(filepath, channel, 60.0, 10.0, verbose) as data:
         # plot:
