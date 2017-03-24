@@ -1,23 +1,23 @@
 """
 Analysis of Voronoi diagrams and convex hulls based on scipy.spatial
 
-Voronoi diagrams:
------------------
+Voronoi diagrams
+----------------
 voronoi_distances(): Nearest neighbor distances.
 voronoi_areas(): The areas of the Voronoi regions for each input point.
 
-Convex hulls:
--------------
+Convex hulls
+------------
 in_hull(): Test if points are within hull.
 flatten_simplices(simplices): Transforms list of simplex indices to list of vertex indices.
 
-Bootstrap Voronoi diagrams:
----------------------------
+Bootstrap Voronoi diagrams
+--------------------------
 random_hull_points(): Generate random points within a hull.
 voronoi_bootstrap(): Bootstrapped distances and areas for random point positions.
 
-Usage:
-------
+Usage
+-----
 Generate 20 random points in 2-D:
 '''
 import numpy as np
@@ -82,12 +82,13 @@ Bootstrap Voronoi distances and areas inside the hull:
 '''
 d, a = voronoi_bootstrap(vor, hull=delaunay, area_mode='finite')
 plt.subplot(2, 1, 1)
-plt.hist(d, 50)
+plt.hist([ddd for dd in d for ddd in dd], 50)
 plt.xlabel('distance')
 plt.subplot(2, 1, 2)
-plt.hist(a, bins=np.arange(0, 0.2, 0.005))
+plt.hist(a.ravel(), bins=np.arange(0, 0.2, 0.005))
 plt.xlabel('area')
 '''
+... well, actually, instead of making histograms of the flattened data you want to compute percentiles for each bin.
 """
 
 import numpy as np
@@ -98,13 +99,13 @@ def voronoi_distances(vor):
     """
     Nearest neighbor distances.
     
-    Args:
-    -----
+    Parameters
+    ----------
     vor: scipy.spatial.Voronoi
         The Voronoi class with the data.
     
-    Returns:
-    --------
+    Returns
+    -------
     distances: array of floats
         For each ridge in vor.ridge_points the distance of the two points
         that are separated by the ridge.
@@ -120,13 +121,13 @@ def voronoi_ridge_length(vor):
     """
     Length of Voronoi ridges between nearest neighbors.
     
-    Args:
-    -----
+    Parameters
+    ----------
     vor: scipy.spatial.Voronoi
         The Voronoi class with the data.
     
-    Returns:
-    --------
+    Returns
+    -------
     distances: array of floats
         The length of each ridge in vor.ridge_vertices.
         np.inf if vertex is unknown.
@@ -152,13 +153,13 @@ def voronoi_ridge_areas(vor):
     -----
     Only two-dimensional data are processed, i.e. vor.ndim must be 2.
         
-    Args:
-    -----
+    Parameters
+    ----------
     vor: scipy.spatial.Voronoi
         The Voronoi class with the data.
     
-    Returns:
-    --------
+    Returns
+    -------
     areas: array of floats
         For each ridge its corresponding triangular area.
         np.inf for infinite ridges.
@@ -178,8 +179,8 @@ def voronoi_areas(vor, mode='finite'):
     -----
     Only two-dimensional data are processed, i.e. vor.ndim must be 2.
         
-    Args:
-    -----
+    Parameters
+    ----------
     vor: scipy.spatial.Voronoi
         The Voronoi class with the data.
     mode: string
@@ -189,8 +190,8 @@ def voronoi_areas(vor, mode='finite'):
                 only areas contributed from finite ridges are considered.
         'all': Calculate area of all Voronoi regions. NOT IMPLEMENTED YET.
     
-    Returns:
-    --------
+    Returns
+    -------
     areas: array of floats
         For each point its corresponding area.
     """
@@ -226,15 +227,15 @@ def in_hull(hull, p):
 
     From http://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl/16898636#16898636
 
-    Parameter:
+    Parameters
     ----------
     hull: scipy.spatial.Delaunay or scipy.spatial.ConvexHull
         The hull.
     p: 2-D array
         Array of points to be tested.
 
-    Returns:
-    --------
+    Returns
+    -------
     inside: array of booleans
         For each point in p whether it is inside the hull.
     """
@@ -251,13 +252,13 @@ def flatten_simplices(simplices):
     For example, transforms the Delaunay.convex_hull to a list of points
     of the hull, that can then be easily plotted.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     simplices: 2-D array of ints
         List of pairs of indices of points forming each ridge of a polygon.
 
-    Returns:
-    --------
+    Returns
+    -------
     indices: list of ints
         Indices of vertices of the polygon.
     """
@@ -281,15 +282,15 @@ def random_hull_points(delaunay, n):
     """
     Generate random points within a hull.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     delaunay: scipy.spatial.Delaunay
         Delaunay tesselation of some input points that defines the hull.
     n: int
         Number of random points to be generated.
 
-    Returns:
-    --------
+    Returns
+    -------
     points: 2-D array
         List of randomly generated points.
     """
@@ -318,8 +319,8 @@ def voronoi_bootstrap(vor, n=1000, hull=None, area_mode='finite'):
     Same number of points as in vor, randomly placed in the same region
     as given by vor.min_bound and vor.max_bound.
         
-    Args:
-    -----
+    Parameters
+    ----------
     vor: scipy.spatial.Voronoi
         The Voronoi class with the original data.
     n: int
@@ -330,11 +331,11 @@ def voronoi_bootstrap(vor, n=1000, hull=None, area_mode='finite'):
     area_mode: string
         Mode string passed to voronoi_areas().
     
-    Returns:
-    --------
-    distances: array of floats
+    Returns
+    -------
+    distances: list of 1-D array of floats
         The bootstrapped distances of nearest neighbors.
-    areas: array of floats
+    areas: n x vor.npoints array of floats
         The bootstrapped Voronoi areas.
     """
     distances = []
@@ -350,9 +351,9 @@ def voronoi_bootstrap(vor, n=1000, hull=None, area_mode='finite'):
             points += vor.min_bound
         # Voronoi:
         vvor = ss.Voronoi(points)
-        distances.extend(voronoi_distances(vvor))
-        areas.extend(voronoi_areas(vvor, area_mode))
-    return np.array(distances), np.array(areas)
+        distances.append(voronoi_distances(vvor))
+        areas.append(voronoi_areas(vvor, area_mode))
+    return distances, np.array(areas)
 
 
 if __name__ == "__main__":
@@ -489,19 +490,19 @@ if __name__ == "__main__":
 
     plt.figure()
     plt.subplot(2, 2, 1)
-    plt.hist(db, 50)
+    plt.hist([d for dd in db for d in dd], 50)
     plt.title('bootstrap bounding box')
     plt.xlabel('distance')
     plt.subplot(2, 2, 2)
-    plt.hist(ab, bins=np.arange(0, 0.2, 0.005))
+    plt.hist(ab.ravel(), bins=np.arange(0, 0.2, 0.005))
     plt.title('bootstrap bounding box')
     plt.xlabel('area')
     plt.subplot(2, 2, 3)
-    plt.hist(dd, 50)
+    plt.hist([d for dd in db for d in dd], 50)
     plt.title('bootstrap hull')
     plt.xlabel('distance')
     plt.subplot(2, 2, 4)
-    plt.hist(ad, bins=np.arange(0, 0.2, 0.005))
+    plt.hist(ad.ravel(), bins=np.arange(0, 0.2, 0.005))
     plt.title('bootstrap hull')
     plt.xlabel('area')
     plt.tight_layout()
