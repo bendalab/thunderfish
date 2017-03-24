@@ -9,5 +9,6 @@ __all__ = ['dataloader',
            'checkpulse',
            'consistentfishes',
            'eodanalysis',
+           'spatial',
            'fakefish',
            'tracker']
