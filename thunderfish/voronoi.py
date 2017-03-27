@@ -1,7 +1,70 @@
+"""
+Analysis of Voronoi diagrams based on scipy.spatial.
+
+class Voronoi: Compute and analyse Voronoi diagrams.
+"""
+
+
 import numpy as np
 import scipy.spatial as ss
 
+
 class Voronoi:
+    """
+    Voronoi diagram
+    ---------------
+    distances(): Nearest neighbor distances.
+    ridge_lengths(): Length of Voronoi ridges between nearest neighbors.
+    areas(): The areas of the Voronoi regions for each input point.
+    point_types(): The type of Voronoi area (infinite, finite, inside)
+    
+    Convex hull
+    -----------
+    in_hull(): Test if points are within hull.
+    
+    Bootstrap Voronoi diagrams
+    --------------------------
+    random_points(): Generate random points.
+    bootstrap(): Bootstrapped distances and areas for random point positions.
+
+    Plotting
+    --------
+    plot_points(): Plot and optionally annotate the input points of the Voronoi diagram.
+    plot_vertices(): Plot and optionally annotate the vertices of the Voronoi diagram.
+    plot_distances(): Plot lines connecting the nearest neighbors in the Voronoi diagram.
+    plot_ridges(): Plot the finite ridges of the Voronoi diagram.
+    fill_regions(): Fill each finite region of the Voronoi diagram with a color.
+    plot_hull(): Plot the hull line containing the input points.
+    fill_hull(): Fill the hull containing the input points with a color.
+    
+    Usage
+    -----
+    Generate 20 random points in 2-D:
+    '''
+    import numpy as np
+    points = np.random.rand(20, 2)
+    '''
+    
+    Calculate the Voronoi diagram:
+    '''
+    import thunderfish.spatial as ss
+    vor = ss.Voronoi(points)
+    '''
+    
+    Compute nearest-neighbor distances and Voronoi areas:
+    '''
+    distance = vor.distances()
+    areas = vor.areas()
+    '''
+    
+    Plot Voronoi areas, distances and input points:
+    '''
+    import matplotlib.pyplot as plt
+    vor.fill_regions(colors=['red', 'green', 'blue', 'orange', 'cyan'], alpha=0.3)
+    vor.plot_distances(color='red')
+    vor.plot_points(text='p%d', c='c', s=100)
+    '''
+    """
     
     def __init__(self, points, qhull_options=None):
         """
@@ -222,10 +285,10 @@ class Voronoi:
                       whose vertices are all inside the hull,
                       set all other to np.nan.
             'finite': Calculate area of all Voronoi regions. From infinite regions
-                    only areas contributed from finite ridges are considered.
+                    only areas contributed by finite ridges are considered.
             'finite_inside': Calculate area of all Voronoi regions.
                     Consider only areas of finite ridges
-                    whose vertices are both inside the hull.
+                    whose vertices are all inside the hull.
 
         Returns
         -------
@@ -319,8 +382,16 @@ class Voronoi:
                 # only take the ones within hull:
                 inside = vor.in_hull(newpoints)
                 points = np.vstack((points, newpoints[inside]))
-            else:
+            elif mode == 'bbox':
                 points = np.vstack((points, newpoints))
+            else:
+                print('')            
+                print('Voronoi.random_points(): unknown value "%s" for the mode parameter:' % mode)
+                print('Use one of the following values:')
+                print('  bbox: Place points within rectangular bounding box.')
+                print('  hull: Place points inside the hull.')
+                print('')
+                return
         return points[:n]
 
 
@@ -416,7 +487,7 @@ class Voronoi:
 
     def plot_distances(self, ax=None, **kwargs):
         """
-        Plot lines connecting the neares neighbors in the Voronoi diagram.
+        Plot lines connecting the nearest neighbors in the Voronoi diagram.
 
         Parameter
         ---------
