@@ -40,6 +40,7 @@ class Voronoi:
         self.ridge_vertices = self.vor.ridge_vertices
         self.min_bound = self.vor.min_bound
         self.max_bound = self.vor.max_bound
+        self.inside_vertices = self.in_hull(self.vertices)
         self.hull_vertices = self._flatten_simplices(self.hull.convex_hull)
         self.outer_hull_vertices = self._flatten_simplices(self.outer_hull.convex_hull)
 
@@ -138,6 +139,10 @@ class Voronoi:
         """
         Length of Voronoi ridges between nearest neighbors.
 
+        May be used, for example, as a weigth for distances().
+        XXX How to deal wit infinite ridges?
+        XXX How to deal with ridges with vertices outside the hull?
+
         Returns
         -------
         distances: array of floats
@@ -190,9 +195,14 @@ class Voronoi:
         mode: string
             'full': Calculate area of finite Voronoi regions only,
                     set all other to np.nan.
+            'inside': Calculate area of finite Voronoi regions
+                      whose vertices are all inside the hull,
+                      set all other to np.nan.
             'finite': Calculate area of all Voronoi regions. From infinite regions
                     only areas contributed from finite ridges are considered.
-            'all': Calculate area of all Voronoi regions. NOT IMPLEMENTED YET.
+            'finite_inside': Calculate area of all Voronoi regions.
+                    Consider only areas of finite ridges
+                    whose vertices are both inside the hull.
 
         Returns
         -------
@@ -201,7 +211,19 @@ class Voronoi:
         """
         ridge_areas = self.ridge_areas()
         areas = np.zeros(len(self.vor.points))
-        if mode == 'full':
+        if mode == 'inside':
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp:
+                        if ridge_areas[j] != np.inf and \
+                          np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
+                            a += ridge_areas[j]
+                        else:
+                            a = np.nan
+                            break
+                areas[i] = a
+        elif mode == 'full':
             for i in range(len(self.vor.points)):
                 a = 0.0
                 for j, rp in enumerate(self.vor.ridge_points):
@@ -212,9 +234,14 @@ class Voronoi:
                             a = np.nan
                             break
                 areas[i] = a
-        elif mode == 'all':
-            print('all mode not supported yet!')
-            # see http://stackoverflow.com/questions/20515554/colorize-voronoi-diagram
+        elif mode == 'finite_inside'
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp and ridge_areas[j] != np.inf and \
+                      np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
+                        a += ridge_areas[j]
+                areas[i] = a
         else:  # mode == 'finite'
             for i in range(len(self.vor.points)):
                 a = 0.0
@@ -299,6 +326,22 @@ class Voronoi:
                     s = text % i
                 ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
 
+    def plot_distances(self, ax=None, **kwargs):
+        """
+        Plot lines connecting the neares neighbors in the Voronoi diagram.
+
+        Parameter
+        ---------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        """
+        if ax is None:
+            ax = plt.gca()
+        for i, p in enumerate(self.ridge_points):
+            ax.plot(self.points[p, 0], self.points[p, 1], **kwargs)
+
     def plot_ridges(self, ax=None, **kwargs):
         """
         Plot the finite ridges of the Voronoi diagram.
@@ -314,7 +357,7 @@ class Voronoi:
             ax = plt.gca()
         for i, p in enumerate(self.ridge_vertices):
             if np.all(np.array(p)>=0):
-                ax.plot(self.vertices[p,0], self.vertices[p,1], **kwargs)
+                ax.plot(self.vertices[p, 0], self.vertices[p, 1], **kwargs)
 
     def fill_regions(self, ax=None, colors=None, **kwargs):
         """
@@ -441,16 +484,17 @@ if __name__ == "__main__":
 
     # plot Voronoi diagram:
     plt.title('Voronoi')
-    vor.fill_outer_hull(color='black', alpha=0.2)
-    vor.plot_outer_hull(color='m', lw=2)
+    #vor.fill_outer_hull(color='black', alpha=0.2)
+    #vor.plot_outer_hull(color='m', lw=2)
     vor.fill_hull(color='black', alpha=0.1)
-    vor.plot_hull(color='r', lw=2)
+    #vor.plot_hull(color='r', lw=2)
     vor.fill_regions(colors=['red', 'green', 'blue', 'orange', 'cyan'], alpha=0.3)
+    vor.plot_distances(color='red')
     vor.plot_points(text='p%d', c='c', s=100)
     vor.plot_ridges(c='g', lw=2)
     vor.plot_vertices(text='v%d', c='r', s=60)
-    #plt.xlim(vor.min_bound[0]-0.5, vor.max_bound[0]+0.5)
-    #plt.ylim(vor.min_bound[1]-0.5, vor.max_bound[1]+0.5)
+    plt.xlim(vor.min_bound[0]-0.2, vor.max_bound[0]+0.2)
+    plt.ylim(vor.min_bound[1]-0.2, vor.max_bound[1]+0.2)
     plt.axes().set_aspect('equal')
 
     plt.show()
