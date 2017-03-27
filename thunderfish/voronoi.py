@@ -284,21 +284,77 @@ class Voronoi:
         return areas
     
 
-    def nfinite_regions(self):
+    def random_points(self, n=None, mode='bbox'):
         """
-        Number of finite Voronoi regions.
+        Generate random points.
+
+        Parameters
+        ----------
+        n: int or None
+            Number of random points to be generated.
+            If None n is set to the number of points in the Voronoi diagram.
+        mode: string
+            'bbox' place points randomly in rectangular bounding box of the Voronoi diagram.
+            'hull' place points randomly within hull of input data.
 
         Returns
         -------
-        nregions: int
-            The number of finite Voronoi regions.
+        points: 2-D array
+            List of randomly generated points.
         """
-        nregions = 0
-        for region in self.vor.regions:
-            if len(region) > 0 and not -1 in region:
-                nregions += 1
-        return nregions
-    
+        # number of points:
+        if n is None:
+            n = self.npoints
+        # get bounding box:
+        min_bound = np.min(self.points, axis=0)
+        max_bound = np.max(self.points, axis=0)
+        # generate random points:
+        points = np.zeros((0, self.ndim))
+        while len(points) < n:
+            # random points within bounding box:
+            newpoints = np.random.rand(n/2, self.ndim)
+            newpoints *= max_bound - min_bound
+            newpoints += min_bound
+            if mode == 'hull':
+                # only take the ones within hull:
+                inside = in_hull(delaunay, newpoints)
+                points = np.vstack((points, newpoints[inside]))
+            else:
+                points = np.vstack((points, newpoints))
+        return points[:n]
+
+
+    def bootstrap(self, n=1000, mode='bbox', area_mode='finite'):
+        """
+        Bootstrapped distances and areas for random point positions.
+
+        Parameters
+        ----------
+        n: int
+            The number of bootstraps.
+        mode: string
+            Mode string passed to random_points().
+        area_mode: string
+            Mode string passed to areas().
+
+        Returns
+        -------
+        distances: list of 1-D array of floats
+            The bootstrapped distances of nearest neighbors.
+        areas: n x npoints array of floats
+            The bootstrapped Voronoi areas.
+        """
+        distances = []
+        areas = []
+        for k in range(n):
+            # random points:
+            points = self.random_points(mode=mode)
+            # Voronoi:
+            vor = Voronoi(points)
+            distances.append(vor.distances())
+            areas.append(vor.areas(area_mode))
+        return distances, np.array(areas)
+
 
     def plot_points(self, ax=None, text=None, text_offs=(0, 0.05), text_align='center',
                     **kwargs):
