@@ -317,7 +317,7 @@ class Voronoi:
             newpoints += min_bound
             if mode == 'hull':
                 # only take the ones within hull:
-                inside = in_hull(delaunay, newpoints)
+                inside = vor.in_hull(newpoints)
                 points = np.vstack((points, newpoints[inside]))
             else:
                 points = np.vstack((points, newpoints))
@@ -562,7 +562,6 @@ if __name__ == "__main__":
     # what we get is:
     print('dimension: %d' % vor.ndim)
     print('number of points: %d' % vor.npoints)
-    print('number of finite Voronoi regions: %d' % vor.nfinite_regions())
     print('points enclosing ridges:')
     print(vor.ridge_points)
     print('distances of nearest neighbors:')
@@ -597,9 +596,7 @@ if __name__ == "__main__":
     plt.ylim(vor.min_bound[1]-0.2, vor.max_bound[1]+0.2)
     plt.axes().set_aspect('equal')
 
-    plt.show()
-    exit()
-
+    """
     vor.remove_vertices_outside_hull()
     plt.figure()
     plt.title('Voronoi inside hull')
@@ -612,5 +609,33 @@ if __name__ == "__main__":
     #plt.xlim(vor.min_bound[0]-0.5, vor.max_bound[0]+0.5)
     #plt.ylim(vor.min_bound[1]-0.5, vor.max_bound[1]+0.5)
     plt.axes().set_aspect('equal')
+    """
+
+    # bootstrap:
+    print('bootstrap bounding box ...')
+    db, ab = vor.bootstrap(mode='bbox', area_mode='finite')
+    print('bootstrap hull ...')
+    dd, ad = vor.bootstrap(mode='hull', area_mode='finite')
+    print('... done.')
+
+    plt.figure()
+    plt.subplot(2, 2, 1)
+    plt.hist([d for dd in db for d in dd], 50)
+    plt.title('bootstrap bounding box')
+    plt.xlabel('distance')
+    plt.subplot(2, 2, 2)
+    plt.hist(ab.ravel(), bins=np.arange(0, 0.2, 0.005))
+    plt.title('bootstrap bounding box')
+    plt.xlabel('area')
+    plt.subplot(2, 2, 3)
+    plt.hist([d for dd in db for d in dd], 50)
+    plt.title('bootstrap hull')
+    plt.xlabel('distance')
+    plt.subplot(2, 2, 4)
+    plt.hist(ad.ravel(), bins=np.arange(0, 0.2, 0.005))
+    plt.title('bootstrap hull')
+    plt.xlabel('area')
+    plt.tight_layout()
 
     plt.show()
+
