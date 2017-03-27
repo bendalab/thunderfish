@@ -135,6 +135,29 @@ class Voronoi:
         return ss.minkowski_distance(p1, p2)
 
 
+    def point_types(self):
+        """
+        The type of the Voronoi regions for each input point.
+
+        Returns
+        -------
+        points: array of ints
+            For each point 1: finite region with all vertices inside hull, 0: finite regions,
+                          -1: infinite regions
+        """
+        points = np.ones(len(self.vor.points), dtype=int)
+        for i in range(len(self.vor.points)):
+            for j, rp in enumerate(self.vor.ridge_points):
+                if i in rp:
+                    if not np.all(self.inside_vertices[self.vor.ridge_vertices[j]]) and\
+                      points[i] > 0:
+                        points[i] = 0
+                    if not np.all(np.array(self.vor.ridge_vertices[j]) >= 0) and\
+                      points[i] > -1:
+                        points[i] = -1
+        return points
+
+
     def ridge_lengths(self):
         """
         Length of Voronoi ridges between nearest neighbors.
@@ -181,7 +204,7 @@ class Voronoi:
         areas = 0.5*ridges*heights
         return areas
 
-
+    
     def areas(self, mode='finite'):
         """
         The areas of the Voronoi regions for each input point.
@@ -234,7 +257,7 @@ class Voronoi:
                             a = np.nan
                             break
                 areas[i] = a
-        elif mode == 'finite_inside'
+        elif mode == 'finite_inside':
             for i in range(len(self.vor.points)):
                 a = 0.0
                 for j, rp in enumerate(self.vor.ridge_points):
@@ -242,13 +265,22 @@ class Voronoi:
                       np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
                         a += ridge_areas[j]
                 areas[i] = a
-        else:  # mode == 'finite'
+        elif mode == 'finite':
             for i in range(len(self.vor.points)):
                 a = 0.0
                 for j, rp in enumerate(self.vor.ridge_points):
                     if i in rp and ridge_areas[j] != np.inf:
                         a += ridge_areas[j]
                 areas[i] = a
+        else:
+            print('')            
+            print('Voronoi.areas(): unknown value "%s" for the mode parameter:' % mode)
+            print('Use one of the following values:')
+            print('  full: Finite Voronoi regions only.')
+            print('  inside: Finite Voronoi regions whose vertices are all inside the hull.')
+            print('  finite: Use all areas corresponding to finite ridges.')
+            print('  finite_inside: Use all areas corresponding to finite ridges whose vertices are all inside the hull.')
+            print('')            
         return areas
     
 
@@ -461,6 +493,10 @@ if __name__ == "__main__":
     print("Checking voronoi module ...")
 
     # generate random points:
+    rs = np.random.randint(0xffffffff)
+    #rs = 3550922155
+    print('random seed: %ld' % rs)
+    np.random.seed(rs)
     n = 10
     points = np.random.rand(n, 2)
     
@@ -479,8 +515,16 @@ if __name__ == "__main__":
     print(vor.ridge_lengths())
     print('area of corresponding triangles:')
     print(vor.ridge_areas())
-    print('Voronoi area of each point:')
-    print(vor.areas())
+    print('Voronoi area of each point (full):')
+    print(vor.areas('full'))
+    print('Voronoi area of each point (inside):')
+    print(vor.areas('inside'))
+    print('Voronoi area of each point (finite):')
+    print(vor.areas('finite'))
+    print('Voronoi area of each point (finite_inside):')
+    print(vor.areas('finite_inside'))
+    print('Type of Voronoi area of each point:')
+    print(vor.point_types())
 
     # plot Voronoi diagram:
     plt.title('Voronoi')
