@@ -95,6 +95,7 @@ class Voronoi:
                                       furthest_site=False, incremental=False,
                                       qhull_options=qhull_options)
         self._compute_distances()
+        self._compute_infinite_vertices()
         self.ndim = self.vor.ndim
         self.npoints = self.vor.npoints
         self.points = self.vor.points
@@ -135,7 +136,24 @@ class Voronoi:
         self.nearest_distances = np.zeros(len(self.neighbor_distances))
         for k in range(len(self.neighbor_distances)):
             self.nearest_distances[k] = self.neighbor_distances[k][0]
-    
+
+    def _compute_infinite_vertices(self):
+        center = self.vor.points.mean(axis=0)
+        ptp_bound = self.vor.points.ptp(axis=0)
+        self.infinite_vertices = []
+        for points, vertices in zip(self.vor.ridge_points, self.vor.ridge_vertices):
+            vertices = np.asarray(vertices)
+            if np.all(vertices >= 0):
+                self.infinite_vertices.append([])
+            else:
+                i = vertices[vertices >= 0][0]  # finite end Voronoi vertex
+                t = self.vor.points[points[1]] - self.vor.points[points[0]]  # tangent
+                t /= np.linalg.norm(t)
+                n = np.array([-t[1], t[0]])  # normal
+                midpoint = self.vor.points[points].mean(axis=0)
+                direction = np.sign(np.dot(midpoint - center, n)) * n
+                far_point = self.vor.vertices[i] + direction * ptp_bound.max()
+                self.infinite_vertices.append(far_point)
 
     def _flatten_simplices(self, simplices):
         """
@@ -370,8 +388,8 @@ class Voronoi:
             The area of the convex hull.
         """
         # two sides of the simplex triangles:
-        ab = self.hull.points[self.hull.simplices[:, 0], :] - self.hull.points[self.hull.simplices[:, 1], :]
-        cb = self.hull.points[self.hull.simplices[:, 2], :] - self.hull.points[self.hull.simplices[:, 1], :]
+        ab = self.hull.points[self.hull.simplices[:,0],:] - self.hull.points[self.hull.simplices[:,1],:]
+        cb = self.hull.points[self.hull.simplices[:,2],:] - self.hull.points[self.hull.simplices[:,1],:]
         # area of each simplex is half of the absolute value of the cross product:
         area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
         return area
@@ -548,12 +566,31 @@ class Voronoi:
             if np.all(np.array(p)>=0):
                 ax.plot(self.vertices[p, 0], self.vertices[p, 1], **kwargs)
 
+    def plot_infinite_ridges(self, ax=None, **kwargs):
+        """
+        Plot the infinite ridges of the Voronoi diagram.
+
+        Parameter
+        ---------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        """
+        if ax is None:
+            ax = plt.gca()
+        for far_point, vertices in zip(self.infinite_vertices, self.vor.ridge_vertices):
+            vertices = np.asarray(vertices)
+            if not np.all(vertices >= 0):
+                i = vertices[vertices >= 0][0]  # finite end Voronoi vertex
+                ax.plot([self.vor.vertices[i][0], far_point[0]],
+                        [self.vor.vertices[i][1], far_point[1]], **kwargs)
+
     def fill_regions(self, ax=None, colors=None, **kwargs):
         """
         Fill each finite region of the Voronoi diagram with a color.
-
+        
         See also http://stackoverflow.com/questions/20515554/colorize-voronoi-diagram
-        and https://gist.github.com/pv/8036995
 
         Parameter
         ---------
@@ -567,6 +604,7 @@ class Voronoi:
         if ax is None:
             ax = plt.gca()
         c = 0
+        print self.regions
         for region in self.regions:
             if not -1 in region:
                 polygon = self.vertices[region]
@@ -700,7 +738,8 @@ if __name__ == "__main__":
     vor.fill_regions(colors=['red', 'green', 'blue', 'orange', 'cyan'], alpha=0.3)
     #vor.plot_distances(color='red')
     vor.plot_points(text='p%d', c='c', s=100)
-    #vor.plot_ridges(c='g', lw=2)
+    vor.plot_ridges(c='g', lw=2)
+    vor.plot_infinite_ridges(c='g', lw=2, linestyle='dashed')
     #vor.plot_vertices(text='v%d', c='r', s=60)
     plt.xlim(vor.min_bound[0]-0.2, vor.max_bound[0]+0.2)
     plt.ylim(vor.min_bound[1]-0.2, vor.max_bound[1]+0.2)
