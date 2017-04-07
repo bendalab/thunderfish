@@ -6,7 +6,7 @@ class Voronoi: Compute and analyse Voronoi diagrams.
 
 
 import numpy as np
-import scipy.spatial as ss
+import scipy.spatial as sp
 
 
 class Voronoi:
@@ -47,8 +47,8 @@ class Voronoi:
     
     Calculate the Voronoi diagram:
     '''
-    import thunderfish.spatial as ss
-    vor = ss.Voronoi(points)
+    from thunderfish.voronoi import Voronoi
+    vor = Voronoi(points)
     '''
     
     Compute nearest-neighbor distances and Voronoi areas:
@@ -87,13 +87,14 @@ class Voronoi:
             QVn  - Voronoi vertices for input point n, -n if not
             Default is: "Qbb Qc Qz Qx" for ndim > 4 and "Qbb Qc Qz" otherwise.
         """
-        self.vor = ss.Voronoi(points, furthest_site=False, incremental=False,
+        self.vor = sp.Voronoi(points, furthest_site=False, incremental=False,
                               qhull_options=qhull_options)
-        self.hull = ss.Delaunay(points, furthest_site=False, incremental=False,
+        self.hull = sp.Delaunay(points, furthest_site=False, incremental=False,
                                 qhull_options=qhull_options)
-        self.outer_hull = ss.Delaunay(np.vstack((self.vor.points, self.vor.vertices)),
+        self.outer_hull = sp.Delaunay(np.vstack((self.vor.points, self.vor.vertices)),
                                       furthest_site=False, incremental=False,
                                       qhull_options=qhull_options)
+        self._compute_distances()
         self.ndim = self.vor.ndim
         self.npoints = self.vor.npoints
         self.points = self.vor.points
@@ -107,6 +108,34 @@ class Voronoi:
         self.hull_vertices = self._flatten_simplices(self.hull.convex_hull)
         self.outer_hull_vertices = self._flatten_simplices(self.outer_hull.convex_hull)
 
+
+    def _compute_distances(self):
+        """
+        Compute distances between points.
+        """
+        # For each ridge the distance of the points enclosing the ridge:
+        p1 = self.vor.points[self.vor.ridge_points[:,0]]
+        p2 = self.vor.points[self.vor.ridge_points[:,1]]
+        self.ridge_distances =  sp.minkowski_distance(p1, p2)
+
+        # For each point all its Voronoi distances:
+        self.neighbor_points = [[] for k in range(len(self.vor.points))]
+        self.neighbor_distances = [[] for k in range(len(self.vor.points))]
+        for dist, points in zip(self.ridge_distances, self.vor.ridge_points):
+            self.neighbor_points[points[0]].append(points[1])
+            self.neighbor_points[points[1]].append(points[0])
+            self.neighbor_distances[points[0]].append(dist)
+            self.neighbor_distances[points[1]].append(dist)
+        for k in range(len(self.neighbor_points)):
+            inx = np.argsort(self.neighbor_distances[k])
+            self.neighbor_points[k] = np.array(self.neighbor_points[k])[inx]
+            self.neighbor_distances[k] = np.array(self.neighbor_distances[k])[inx]
+
+        # For each point the distance to its neares neighbor:
+        self.nearest_distances = np.zeros(len(self.neighbor_distances))
+        for k in range(len(self.neighbor_distances)):
+            self.nearest_distances[k] = self.neighbor_distances[k][0]
+    
 
     def _flatten_simplices(self, simplices):
         """
@@ -183,21 +212,6 @@ class Voronoi:
         self.outer_hull_vertices = self.hull_vertices
 
 
-    def distances(self):
-        """
-        Nearest neighbor distances.
-
-        Returns
-        -------
-        distances: array of floats
-            For each ridge in vor.ridge_points the distance of the two points
-            that are separated by the ridge.
-        """
-        p1 = self.points[self.ridge_points[:,0]]
-        p2 = self.points[self.ridge_points[:,1]]
-        return ss.minkowski_distance(p1, p2)
-
-
     def point_types(self):
         """
         The type of the Voronoi regions for each input point.
@@ -226,7 +240,6 @@ class Voronoi:
         Length of Voronoi ridges between nearest neighbors.
 
         May be used, for example, as a weigth for distances().
-        XXX How to deal wit infinite ridges?
         XXX How to deal with ridges with vertices outside the hull?
 
         Returns
@@ -240,7 +253,7 @@ class Voronoi:
             if np.all(np.array(p)>=0):
                 p1 = self.vor.vertices[p[0]]
                 p2 = self.vor.vertices[p[1]]
-                ridges[k] = ss.minkowski_distance(p1, p2)
+                ridges[k] = sp.minkowski_distance(p1, p2)
             else:
                 ridges[k] = np.inf
         return ridges
@@ -262,7 +275,7 @@ class Voronoi:
             np.inf for infinite ridges.
         """
         ridges = self.ridge_lengths()
-        heights = 0.5*self.distances()
+        heights = 0.5*self.ridge_distances
         # area of a triangle:
         areas = 0.5*ridges*heights
         return areas
@@ -345,6 +358,23 @@ class Voronoi:
             print('  finite_inside: Use all areas corresponding to finite ridges whose vertices are all inside the hull.')
             print('')            
         return areas
+
+
+    def hull_area(self):
+        """
+        The area of the convex hull of the input points.
+        
+        Returns
+        -------
+        area: float
+            The area of the convex hull.
+        """
+        # two sides of the simplex triangles:
+        ab = self.hull.points[self.hull.simplices[:, 0], :] - self.hull.points[self.hull.simplices[:, 1], :]
+        cb = self.hull.points[self.hull.simplices[:, 2], :] - self.hull.points[self.hull.simplices[:, 1], :]
+        # area of each simplex is half of the absolute value of the cross product:
+        area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
+        return area
     
 
     def random_points(self, n=None, mode='bbox'):
@@ -422,7 +452,7 @@ class Voronoi:
             points = self.random_points(mode=mode)
             # Voronoi:
             vor = Voronoi(points)
-            distances.append(vor.distances())
+            distances.append(vor.ridge_distances)
             areas.append(vor.areas(area_mode))
         return distances, np.array(areas)
 
@@ -633,10 +663,19 @@ if __name__ == "__main__":
     # what we get is:
     print('dimension: %d' % vor.ndim)
     print('number of points: %d' % vor.npoints)
-    print('points enclosing ridges:')
-    print(vor.ridge_points)
+    print('area of convex hull: %g' % vor.hull_area())
+    print('')
     print('distances of nearest neighbors:')
-    print(vor.distances())
+    print(vor.nearest_distances)
+    print('for each point all Voronoi distances:')
+    print(vor.neighbor_distances)
+    print('for each point all its neighbors:')
+    print(vor.neighbor_points)
+    print('for each ridge distances of neighbors:')
+    print(vor.ridge_distances)
+    print('corresponding neighbors enclosing ridges:')
+    print(vor.ridge_points)
+    print('')
     print('length of corresponding ridges:')
     print(vor.ridge_lengths())
     print('area of corresponding triangles:')
@@ -659,10 +698,10 @@ if __name__ == "__main__":
     vor.fill_hull(color='black', alpha=0.1)
     #vor.plot_hull(color='r', lw=2)
     vor.fill_regions(colors=['red', 'green', 'blue', 'orange', 'cyan'], alpha=0.3)
-    vor.plot_distances(color='red')
+    #vor.plot_distances(color='red')
     vor.plot_points(text='p%d', c='c', s=100)
-    vor.plot_ridges(c='g', lw=2)
-    vor.plot_vertices(text='v%d', c='r', s=60)
+    #vor.plot_ridges(c='g', lw=2)
+    #vor.plot_vertices(text='v%d', c='r', s=60)
     plt.xlim(vor.min_bound[0]-0.2, vor.max_bound[0]+0.2)
     plt.ylim(vor.min_bound[1]-0.2, vor.max_bound[1]+0.2)
     plt.axes().set_aspect('equal')
@@ -681,6 +720,11 @@ if __name__ == "__main__":
     #plt.ylim(vor.min_bound[1]-0.5, vor.max_bound[1]+0.5)
     plt.axes().set_aspect('equal')
     """
+
+    #hull = sp.Delaunay(vor.points[vor.hull_vertices[:-1]])
+
+    plt.show()
+    exit()
 
     # bootstrap:
     print('bootstrap bounding box ...')
