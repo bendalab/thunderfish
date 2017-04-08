@@ -101,7 +101,7 @@ class Voronoi:
     ```
     """
     
-    def __init__(self, points, radius=None, qhull_options=None):
+    def __init__(self, points, radius=None, outer_fac=1.0, qhull_options=None):
         """
         Compute and analyze the Voronoi diagram and the convex hull for some input points in 2D.
 
@@ -112,6 +112,9 @@ class Voronoi:
         radius: float or None
             Radius for computing far points of infinite ridges.
             If None twice the maximum extent of the input points is used.
+        outer_fac: float
+            The outer hull is the convex hull enlarged by
+            the mean nearest-neighbor distance of the points multiplied by `outer_fac`.
         qhull_options: string or None
             Options to be passed on to QHull. From the manual:
             Qbb  - scale last coordinate to [0,m] for Delaunay triangulations
@@ -133,7 +136,7 @@ class Voronoi:
                                 qhull_options=qhull_options)
         self._compute_distances()
         self._compute_infinite_vertices()
-        self._compute_hull(qhull_options)
+        self._compute_hull(outer_fac, qhull_options)
         self.ndim = self.vor.ndim
         self.npoints = self.vor.npoints
         self.points = self.vor.points
@@ -275,7 +278,7 @@ class Voronoi:
                     break
         return indices
 
-    def _compute_hull(self, qhull_options):
+    def _compute_hull(self, outer_fac, qhull_options):
         self.inside_vertices = self.in_hull(self.vor.vertices)
         self.hull_points = self._flatten_simplices(self.hull.convex_hull)
         self.hull_center = np.mean(self.hull.points[self.hull_points], axis=0)
@@ -286,7 +289,7 @@ class Voronoi:
         for k, point in enumerate(self.hull.points[self.hull_points]):
             point -= self.hull_center
             l = np.linalg.norm(point)
-            point *= (l + md)/l
+            point *= (l + outer_fac*md)/l
             point += self.hull_center
             self.outer_hull_points[k] = point
         # compute outer hull:
@@ -530,7 +533,7 @@ class Voronoi:
         return area
     
 
-    def random_points(self, n=None, mode='bbox'):
+    def random_points(self, n=None, poisson=False, mode='bbox'):
         """
         Generate random points.
 
@@ -539,9 +542,13 @@ class Voronoi:
         n: int or None
             Number of random points to be generated.
             If None n is set to the number of points in the Voronoi diagram.
+        poisson: boolean
+            If True then draw the number of points from a Poisson distribution
+            with mean number of points given by `n`.
         mode: string
             'bbox' place points randomly in rectangular bounding box of the Voronoi diagram.
-            'hull' place points randomly within hull of input data.
+            'hull' place points randomly within convex hull of input data.
+            'outer' place points randomly within outer hull.
 
         Returns
         -------
@@ -555,13 +562,23 @@ class Voronoi:
         min_bound = np.min(self.points, axis=0)
         max_bound = np.max(self.points, axis=0)
         # generate random points:
+        nn = n
+        if poisson:
+            nn = np.random.poisson(n)
+        m = nn/2
+        if m < 5:
+            m = 5
         points = np.zeros((0, self.ndim))
-        while len(points) < n:
+        while len(points) < nn:
             # random points within bounding box:
-            newpoints = np.random.rand(n/2, self.ndim)
+            newpoints = np.random.rand(m, self.ndim)
             newpoints *= max_bound - min_bound
             newpoints += min_bound
-            if mode == 'hull':
+            if mode == 'outer':
+                # only take the ones within outer hull:
+                inside = vor.in_outer_hull(newpoints)
+                points = np.vstack((points, newpoints[inside]))
+            elif mode == 'hull':
                 # only take the ones within hull:
                 inside = vor.in_hull(newpoints)
                 points = np.vstack((points, newpoints[inside]))
@@ -572,42 +589,11 @@ class Voronoi:
                 print('Voronoi.random_points(): unknown value "%s" for the mode parameter:' % mode)
                 print('Use one of the following values:')
                 print('  bbox: Place points within rectangular bounding box.')
-                print('  hull: Place points inside the hull.')
+                print('  hull: Place points inside the convex hull.')
+                print('  outer: Place points inside the outer hull.')
                 print('')
                 return
-        return points[:n]
-
-
-    def bootstrap(self, n=1000, mode='bbox', area_mode='finite'):
-        """
-        Bootstrapped distances and areas for random point positions.
-
-        Parameters
-        ----------
-        n: int
-            The number of bootstraps.
-        mode: string
-            Mode string passed to random_points().
-        area_mode: string
-            Mode string passed to areas().
-
-        Returns
-        -------
-        distances: list of 1-D array of floats
-            The bootstrapped distances of nearest neighbors.
-        areas: n x npoints array of floats
-            The bootstrapped Voronoi areas.
-        """
-        distances = []
-        areas = []
-        for k in range(n):
-            # random points:
-            points = self.random_points(mode=mode)
-            # Voronoi:
-            vor = Voronoi(points)
-            distances.append(vor.ridge_distances)
-            areas.append(vor.areas(area_mode))
-        return distances, np.array(areas)
+        return points[:nn]
 
 
     def plot_points(self, ax=None, text=None, text_offs=(0, 0.05), text_align='center',
@@ -878,11 +864,11 @@ if __name__ == "__main__":
     # rs = 2751318392  # double infinite ridges at a vertex
     print('random seed: %ld' % rs)
     np.random.seed(rs)
-    n = 10
+    n = 20
     points = np.random.rand(n, 2)
     
     # calculate Voronoi diagram:
-    vor = Voronoi(points)
+    vor = Voronoi(points, outer_fac=2.0)
     
     # what we get is:
     print('dimension: %d' % vor.ndim)
@@ -942,50 +928,63 @@ if __name__ == "__main__":
     plt.axes().set_aspect('equal')
     """
 
+    # Convex hull:
     print('Convex hull:')
     print('Area of convex hull: %g' % vor.hull_area())
     print('Area of outer hull: %g' % vor.outer_hull_area())
 
     # plot convex hull:
     plt.figure()
-    vor.fill_outer_hull(color='black', alpha=0.4)
+    vor.fill_outer_hull(color='black', alpha=0.1)
     vor.plot_outer_hull(color='m', lw=2)
-    vor.fill_hull(color='black', alpha=0.1)
+    vor.fill_hull(color='black', alpha=0.2)
     vor.plot_hull(color='r', lw=2)
-    vor.plot_hull_center(color='g', ms=10)
+    vor.plot_hull_center(color='r', ms=16)
     vor.plot_points(text='p%d', c='c', s=100, zorder=10)
     plt.xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
     plt.ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
     plt.axes().set_aspect('equal')
-
-    plt.show()
-    exit()
-
+    
     # bootstrap:
-    print('bootstrap bounding box ...')
-    db, ab = vor.bootstrap(mode='bbox', area_mode='finite')
-    print('bootstrap hull ...')
-    dd, ad = vor.bootstrap(mode='hull', area_mode='finite')
-    print('... done.')
+    def bootstrapped_nearest_distances(vor, n, poisson, mode):
+        ps = 'fixed'
+        if poisson:
+            ps = 'poisson'
+        print('bootstrap %s %s ...' % (mode, ps))
+        mds = True
+        distances = []
+        for j in range(n):
+            points = vor.random_points(poisson=poisson, mode=mode)
+            if len(points) < 4:
+                continue
+            bvor = Voronoi(points)
+            if mds:
+                distances.append(np.mean(bvor.nearest_distances))
+            else:
+                distances.extend(bvor.nearest_distances)
+        plt.title('bootstrap %s %s' % (mode, ps))
+        if mds:
+            plt.hist(distances, 20)
+        else:
+            plt.hist(distances, 40)
+        bmd = np.mean(distances)
+        plt.plot([bmd, bmd], [0.0, nb/8], 'g', lw=2)
+        plt.xlabel('distance')
 
+    md = np.mean(vor.nearest_distances)
+    print('Mean distance: %g' % md)
+    nb = 500
     plt.figure()
-    plt.subplot(2, 2, 1)
-    plt.hist([d for dd in db for d in dd], 50)
-    plt.title('bootstrap bounding box')
-    plt.xlabel('distance')
-    plt.subplot(2, 2, 2)
-    plt.hist(ab.ravel(), bins=np.arange(0, 0.2, 0.005))
-    plt.title('bootstrap bounding box')
-    plt.xlabel('area')
-    plt.subplot(2, 2, 3)
-    plt.hist([d for dd in db for d in dd], 50)
-    plt.title('bootstrap hull')
-    plt.xlabel('distance')
-    plt.subplot(2, 2, 4)
-    plt.hist(ad.ravel(), bins=np.arange(0, 0.2, 0.005))
-    plt.title('bootstrap hull')
-    plt.xlabel('area')
+    ax1 = plt.subplot(2, 3, 1)
+    k = 1
+    for poisson in [False, True]:
+        for mode in ['bbox', 'hull', 'outer']:
+            if k > 1:
+                plt.subplot(2, 3, k, sharex=ax1)
+            bootstrapped_nearest_distances(vor, nb, poisson, mode)
+            plt.plot([md, md], [0.0, nb/8], 'r', lw=2)
+            k += 1
+    print('... done.')
     plt.tight_layout()
-
     plt.show()
 
