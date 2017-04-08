@@ -11,16 +11,31 @@ import scipy.spatial as sp
 
 class Voronoi:
     """
+    Distances between input points
+    ------------------------------
+    ridge_points: list of list of ints
+        List of pairs of indices to `points` enclosing a Voronoi ridge.
+    ridge_distances: array of floats
+        For each ridge in `ridge_points` the distance between the enclosing points.
+    neighbor_points: list of arrays of ints
+        For each point in `points` a list of indices of the Voronoi-cell's neighboring points.
+    neighbor_distances: list of arrays of floats
+        For each point in `points` a list of distances to the Voronoi-cell's neighboring points,
+        matching `neighbor_points`.
+    nearest_points: list of ints
+        For each point in `points` the index of its nearest neighbor.
+    nearest_distances: array of floats
+        For each point in `points` the distance to its nearest neighbor.
+    
     Voronoi diagram
     ---------------
-    distances(): Nearest neighbor distances.
     ridge_lengths(): Length of Voronoi ridges between nearest neighbors.
-    areas(): The areas of the Voronoi regions for each input point.
-    point_types(): The type of Voronoi area (infinite, finite, inside)
+    areas(): The areas of the Voronoi regions for each input point in `points`.
+    point_types(): The type of Voronoi area (infinite, finite, inside) for each input point in `points`.
     
     Convex hull
     -----------
-    in_hull(): Test if points are within hull.
+    in_hull(): Test if points are within the convex hull of the input points.
     
     Bootstrap Voronoi diagrams
     --------------------------
@@ -31,7 +46,7 @@ class Voronoi:
     --------
     plot_points(): Plot and optionally annotate the input points of the Voronoi diagram.
     plot_vertices(): Plot and optionally annotate the vertices of the Voronoi diagram.
-    plot_distances(): Plot lines connecting the nearest neighbors in the Voronoi diagram.
+    plot_distances(): Plot lines connecting the neighbors in the Voronoi diagram.
     plot_ridges(): Plot the finite ridges of the Voronoi diagram.
     plot_infinite_ridges(): Plot the infinite ridges of the Voronoi diagram.
     fill_regions(): Fill each finite region of the Voronoi diagram with a color.
@@ -42,35 +57,35 @@ class Voronoi:
     Usage
     -----
     Generate 20 random points in 2-D:
-    '''
+    ```
     import numpy as np
     points = np.random.rand(20, 2)
-    '''
+    ```
     
     Calculate the Voronoi diagram:
-    '''
+    ```
     from thunderfish.voronoi import Voronoi
     vor = Voronoi(points)
-    '''
+    ```
     
-    Compute nearest-neighbor distances and Voronoi areas:
-    '''
-    distance = vor.distances()
+    Retrieve nearest-neighbor distances and compute Voronoi areas:
+    ```
+    dists = vor.nearest_distances
     areas = vor.areas()
-    '''
+    ```
     
     Plot Voronoi areas, distances and input points:
-    '''
+    ```
     import matplotlib.pyplot as plt
     vor.fill_regions(colors=['red', 'green', 'blue', 'orange', 'cyan'], alpha=0.3)
     vor.plot_distances(color='red')
     vor.plot_points(text='p%d', c='c', s=100)
-    '''
+    ```
     """
     
     def __init__(self, points, radius=None, qhull_options=None):
         """
-        Compute the Voronoi diagram and the convex hull for a set of points.
+        Compute and analyze the Voronoi diagram and the convex hull for some input points in 2D.
 
         Parameter
         ---------
@@ -78,7 +93,7 @@ class Voronoi:
             List of point coordiantes.
         radius: float or None
             Radius for computing far points of infinite ridges.
-            If None the maximum extent of the input points is used.
+            If None twice the maximum extent of the input points is used.
         qhull_options: string or None
             Options to be passed on to QHull. From the manual:
             Qbb  - scale last coordinate to [0,m] for Delaunay triangulations
@@ -94,6 +109,8 @@ class Voronoi:
         """
         self.vor = sp.Voronoi(points, furthest_site=False, incremental=False,
                               qhull_options=qhull_options)
+        if self.vor.ndim != 2:
+            raise ValueError("Only 2D input points are supported.")
         self.hull = sp.Delaunay(points, furthest_site=False, incremental=False,
                                 qhull_options=qhull_options)
         self.outer_hull = sp.Delaunay(np.vstack((self.vor.points, self.vor.vertices)),
@@ -138,8 +155,10 @@ class Voronoi:
             self.neighbor_distances[k] = np.array(self.neighbor_distances[k])[inx]
 
         # For each point the distance to its neares neighbor:
+        self.nearest_points = []
         self.nearest_distances = np.zeros(len(self.neighbor_distances))
         for k in range(len(self.neighbor_distances)):
+            self.nearest_points.append(self.neighbor_points[k][0])
             self.nearest_distances[k] = self.neighbor_distances[k][0]
 
     def _compute_infinite_vertices(self, radius=None):
@@ -150,7 +169,7 @@ class Voronoi:
         ----------
         radius: float or None
             Radius for computing far points of infinite ridges.
-            If None the maximum extent of the input points is used.
+            If None twice the maximum extent of the input points is used.
 
         Note
         ----
