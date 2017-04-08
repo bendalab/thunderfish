@@ -31,19 +31,31 @@ class Voronoi:
     ---------------
     ridge_lengths(): Length of Voronoi ridges between nearest neighbors.
     areas(): The areas of the Voronoi regions for each input point in `points`.
-    point_types(): The type of Voronoi area (infinite, finite, inside) for each input point in `points`.
+    point_types(): The type of Voronoi area (infinite, finite, inside) for each input point.
+    inside_vertices: list of ints
+        Indices of `vertices` that are inside the convex hull of the input points.
     
     Convex hull
     -----------
+    hull_points: list of ints
+        List of indices of the points in `points` making up the convex hull.
+    hull_center: array of floats
+        Center of mass of the points making up the convex hull.
     in_hull(): Test if points are within the convex hull of the input points.
+    hull_area(): The area contained in the convex hull.
+    
+    Outer hull
+    ----------
+    in_outer_hull(): Test if points are within the outer hull.
+    outer_hull_area(): The area contained in the outer hull.
     
     Bootstrap Voronoi diagrams
     --------------------------
     random_points(): Generate random points.
     bootstrap(): Bootstrapped distances and areas for random point positions.
 
-    Plotting
-    --------
+    Plotting the Voronoi diagram
+    ----------------------------
     plot_points(): Plot and optionally annotate the input points of the Voronoi diagram.
     plot_vertices(): Plot and optionally annotate the vertices of the Voronoi diagram.
     plot_distances(): Plot lines connecting the neighbors in the Voronoi diagram.
@@ -51,8 +63,14 @@ class Voronoi:
     plot_infinite_ridges(): Plot the infinite ridges of the Voronoi diagram.
     fill_regions(): Fill each finite region of the Voronoi diagram with a color.
     fill_infinite_regions(): Fill each infinite region of the Voronoi diagram with a color.
-    plot_hull(): Plot the hull line containing the input points.
-    fill_hull(): Fill the hull containing the input points with a color.
+    
+    Plotting the convex hull
+    ------------------------
+    plot_hull(): Plot the convex hull line containing the input points.
+    fill_hull(): Fill the convex hull.
+    plot_hull_center(): Plot the center of mass of the convex hull.
+    plot_outer_hull(): Plot the outer hull edge.
+    fill_outer_hull(): Fill the outer hull.
     
     Usage
     -----
@@ -113,11 +131,9 @@ class Voronoi:
             raise ValueError("Only 2D input points are supported.")
         self.hull = sp.Delaunay(points, furthest_site=False, incremental=False,
                                 qhull_options=qhull_options)
-        self.outer_hull = sp.Delaunay(np.vstack((self.vor.points, self.vor.vertices)),
-                                      furthest_site=False, incremental=False,
-                                      qhull_options=qhull_options)
         self._compute_distances()
         self._compute_infinite_vertices()
+        self._compute_hull(qhull_options)
         self.ndim = self.vor.ndim
         self.npoints = self.vor.npoints
         self.points = self.vor.points
@@ -127,9 +143,6 @@ class Voronoi:
         self.ridge_vertices = self.vor.ridge_vertices
         self.min_bound = self.vor.min_bound
         self.max_bound = self.vor.max_bound
-        self.inside_vertices = self.in_hull(self.vertices)
-        self.hull_vertices = self._flatten_simplices(self.hull.convex_hull)
-        self.outer_hull_vertices = self._flatten_simplices(self.outer_hull.convex_hull)
 
 
     def _compute_distances(self):
@@ -154,7 +167,7 @@ class Voronoi:
             self.neighbor_points[k] = np.array(self.neighbor_points[k])[inx]
             self.neighbor_distances[k] = np.array(self.neighbor_distances[k])[inx]
 
-        # For each point the distance to its neares neighbor:
+        # For each point the distance to its nearest neighbor:
         self.nearest_points = []
         self.nearest_distances = np.zeros(len(self.neighbor_distances))
         for k in range(len(self.neighbor_distances)):
@@ -262,12 +275,29 @@ class Voronoi:
                     break
         return indices
 
+    def _compute_hull(self, qhull_options):
+        self.inside_vertices = self.in_hull(self.vor.vertices)
+        self.hull_points = self._flatten_simplices(self.hull.convex_hull)
+        self.hull_center = np.mean(self.hull.points[self.hull_points], axis=0)
 
+        # enlarge hull by mean nearest-neighbor distance:
+        md = np.mean(self.nearest_distances)
+        self.outer_hull_points = np.zeros((len(self.hull_points), self.vor.ndim))
+        for k, point in enumerate(self.hull.points[self.hull_points]):
+            point -= self.hull_center
+            l = np.linalg.norm(point)
+            point *= (l + md)/l
+            point += self.hull_center
+            self.outer_hull_points[k] = point
+        # compute outer hull:
+        self.outer_hull = sp.Delaunay(self.outer_hull_points,
+                                      furthest_site=False, incremental=False,
+                                      qhull_options=qhull_options)
+        
+        
     def in_hull(self, p):
         """
-        Test if points p are within hull.
-
-        From http://stackoverflow.com/questions/16750618/whats-an-efficient-way-to-find-if-a-point-lies-in-the-convex-hull-of-a-point-cl/16898636#16898636
+        Test if points `p` are within convex hull of the input points.
 
         Parameters
         ----------
@@ -280,6 +310,23 @@ class Voronoi:
             For each point in `p` whether it is inside the hull.
         """
         inside = self.hull.find_simplex(p) >= 0
+        return inside
+        
+    def in_outer_hull(self, p):
+        """
+        Test if points `p` are within the outer hull.
+
+        Parameters
+        ----------
+        p: 2-D array
+            Array of points to be tested.
+
+        Returns
+        -------
+        inside: array of booleans
+            For each point in `p` whether it is inside the outer hull.
+        """
+        inside = self.outer_hull.find_simplex(p) >= 0
         return inside
 
 
@@ -302,7 +349,7 @@ class Voronoi:
             for k in range(len(region)):
                 region[k] = vert_map[region[k]]
         self.outer_hull = self.hull
-        self.outer_hull_vertices = self.hull_vertices
+        self.outer_hull_points = self.hull_points
 
 
     def point_types(self):
@@ -462,6 +509,22 @@ class Voronoi:
         # two sides of the simplex triangles:
         ab = self.hull.points[self.hull.simplices[:,0],:] - self.hull.points[self.hull.simplices[:,1],:]
         cb = self.hull.points[self.hull.simplices[:,2],:] - self.hull.points[self.hull.simplices[:,1],:]
+        # area of each simplex is half of the absolute value of the cross product:
+        area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
+        return area
+
+    def outer_hull_area(self):
+        """
+        The area of the outer hull.
+        
+        Returns
+        -------
+        area: float
+            The area of the outer hull.
+        """
+        # two sides of the simplex triangles:
+        ab = self.outer_hull.points[self.outer_hull.simplices[:,0],:] - self.outer_hull.points[self.outer_hull.simplices[:,1],:]
+        cb = self.outer_hull.points[self.outer_hull.simplices[:,2],:] - self.outer_hull.points[self.outer_hull.simplices[:,1],:]
         # area of each simplex is half of the absolute value of the cross product:
         area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
         return area
@@ -736,8 +799,8 @@ class Voronoi:
         """
         if ax is None:
             ax = plt.gca()
-        ax.plot(self.hull.points[self.hull_vertices, 0],
-                self.hull.points[self.hull_vertices, 1], **kwargs)
+        ax.plot(self.hull.points[self.hull_points, 0],
+                self.hull.points[self.hull_points, 1], **kwargs)
 
     def fill_hull(self, ax=None, **kwargs):
         """
@@ -752,8 +815,23 @@ class Voronoi:
         """
         if ax is None:
             ax = plt.gca()
-        ax.fill(self.hull.points[self.hull_vertices, 0],
-                self.hull.points[self.hull_vertices, 1], **kwargs)
+        ax.fill(self.hull.points[self.hull_points, 0],
+                self.hull.points[self.hull_points, 1], lw=0, **kwargs)
+        
+    def plot_hull_center(self, ax=None, **kwargs):
+        """
+        Plot the center of mass of the convex hull of the input points.
+
+        Parameter
+        ---------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        """
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.hull_center[0], self.hull_center[1], 'o', **kwargs)
         
     def plot_outer_hull(self, ax=None, **kwargs):
         """
@@ -768,8 +846,8 @@ class Voronoi:
         """
         if ax is None:
             ax = plt.gca()
-        ax.plot(self.outer_hull.points[self.outer_hull_vertices, 0],
-                self.outer_hull.points[self.outer_hull_vertices, 1], **kwargs)
+        ax.plot(self.outer_hull_points[:, 0],
+                self.outer_hull_points[:, 1], **kwargs)
 
     def fill_outer_hull(self, ax=None, **kwargs):
         """
@@ -784,8 +862,8 @@ class Voronoi:
         """
         if ax is None:
             ax = plt.gca()
-        ax.fill(self.outer_hull.points[self.outer_hull_vertices, 0],
-                self.outer_hull.points[self.outer_hull_vertices, 1], **kwargs)
+        ax.fill(self.outer_hull_points[:, 0],
+                self.outer_hull_points[:, 1], lw=0, **kwargs)
 
         
 if __name__ == "__main__":
@@ -809,7 +887,6 @@ if __name__ == "__main__":
     # what we get is:
     print('dimension: %d' % vor.ndim)
     print('number of points: %d' % vor.npoints)
-    print('area of convex hull: %g' % vor.hull_area())
     print('')
     print('distances of nearest neighbors:')
     print(vor.nearest_distances)
@@ -837,13 +914,9 @@ if __name__ == "__main__":
 
     # plot Voronoi diagram:
     plt.title('Voronoi')
-    #vor.fill_outer_hull(color='black', alpha=0.2)
-    #vor.plot_outer_hull(color='m', lw=2)
     vor.fill_regions(inside=True, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=1.0, zorder=0)
     vor.fill_regions(inside=False, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.4, zorder=0)
     vor.fill_infinite_regions(colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.1, zorder=0)
-    #vor.fill_hull(color='black', alpha=0.1)
-    #vor.plot_hull(color='r', lw=2)
     vor.plot_distances(color='red')
     vor.plot_ridges(c='k', lw=2)
     vor.plot_infinite_ridges(c='k', lw=2, linestyle='dashed')
@@ -869,7 +942,21 @@ if __name__ == "__main__":
     plt.axes().set_aspect('equal')
     """
 
-    #hull = sp.Delaunay(vor.points[vor.hull_vertices[:-1]])
+    print('Convex hull:')
+    print('Area of convex hull: %g' % vor.hull_area())
+    print('Area of outer hull: %g' % vor.outer_hull_area())
+
+    # plot convex hull:
+    plt.figure()
+    vor.fill_outer_hull(color='black', alpha=0.4)
+    vor.plot_outer_hull(color='m', lw=2)
+    vor.fill_hull(color='black', alpha=0.1)
+    vor.plot_hull(color='r', lw=2)
+    vor.plot_hull_center(color='g', ms=10)
+    vor.plot_points(text='p%d', c='c', s=100, zorder=10)
+    plt.xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
+    plt.ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
+    plt.axes().set_aspect('equal')
 
     plt.show()
     exit()
