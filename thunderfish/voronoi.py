@@ -277,7 +277,7 @@ class Voronoi:
         Returns
         -------
         inside: array of booleans
-            For each point in p whether it is inside the hull.
+            For each point in `p` whether it is inside the hull.
         """
         inside = self.hull.find_simplex(p) >= 0
         return inside
@@ -312,19 +312,19 @@ class Voronoi:
         Returns
         -------
         points: array of ints
-            For each point 1: finite region with all vertices inside hull, 0: finite regions,
-                          -1: infinite regions
+            For each point 2: finite region with all vertices inside hull, 1: finite regions,
+                           0: infinite regions
         """
-        points = np.ones(len(self.vor.points), dtype=int)
+        points = np.zeros(len(self.vor.points), dtype=int) + 2
         for i in range(len(self.vor.points)):
             for j, rp in enumerate(self.vor.ridge_points):
                 if i in rp:
                     if not np.all(self.inside_vertices[self.vor.ridge_vertices[j]]) and\
                       points[i] > 0:
-                        points[i] = 0
+                        points[i] = 1
                     if not np.all(np.array(self.vor.ridge_vertices[j]) >= 0) and\
                       points[i] > -1:
-                        points[i] = -1
+                        points[i] = 0
         return points
 
 
@@ -338,7 +338,7 @@ class Voronoi:
         Returns
         -------
         distances: array of floats
-            The length of each ridge in vor.ridge_vertices.
+            The length of each ridge in `ridge_vertices`.
             np.inf if vertex is unknown.
         """
         ridges = np.zeros(len(self.vor.ridge_vertices))
@@ -357,14 +357,11 @@ class Voronoi:
         For each ridge the triangular area of the Voronoi region
         spanned by the center point and the ridge.
 
-        Note:
-        -----
-        Only two-dimensional data are processed, i.e. vor.ndim must be 2.
-
         Returns
         -------
         areas: array of floats
-            For each ridge its corresponding triangular area.
+            For each ridge in `ridge_points` or `ridge_vertices`
+            its corresponding triangular area.
             np.inf for infinite ridges.
         """
         ridges = self.ridge_lengths()
@@ -385,21 +382,21 @@ class Voronoi:
         Parameters
         ----------
         mode: string
-            'full': Calculate area of finite Voronoi regions only,
-                    set all other to np.nan.
             'inside': Calculate area of finite Voronoi regions
                       whose vertices are all inside the hull,
-                      set all other to np.nan.
-            'finite': Calculate area of all Voronoi regions. From infinite regions
-                    only areas contributed by finite ridges are considered.
+                      set all other to zero.
             'finite_inside': Calculate area of all Voronoi regions.
                     Consider only areas of finite ridges
                     whose vertices are all inside the hull.
+            'full': Calculate area of finite Voronoi regions only,
+                    set all other to zero.
+            'finite': Calculate area of all Voronoi regions. From infinite regions
+                    only areas contributed by finite ridges are considered.
 
         Returns
         -------
         areas: array of floats
-            For each point its corresponding area.
+            For each point in `points` its corresponding area.
         """
         ridge_areas = self.ridge_areas()
         areas = np.zeros(len(self.vor.points))
@@ -412,7 +409,7 @@ class Voronoi:
                           np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
                             a += ridge_areas[j]
                         else:
-                            a = np.nan
+                            a = 0.0
                             break
                 areas[i] = a
         elif mode == 'full':
@@ -423,7 +420,7 @@ class Voronoi:
                         if ridge_areas[j] != np.inf:
                             a += ridge_areas[j]
                         else:
-                            a = np.nan
+                            a = 0.0
                             break
                 areas[i] = a
         elif mode == 'finite_inside':
@@ -445,10 +442,10 @@ class Voronoi:
             print('')            
             print('Voronoi.areas(): unknown value "%s" for the mode parameter:' % mode)
             print('Use one of the following values:')
-            print('  full: Finite Voronoi regions only.')
             print('  inside: Finite Voronoi regions whose vertices are all inside the hull.')
-            print('  finite: Use all areas corresponding to finite ridges.')
             print('  finite_inside: Use all areas corresponding to finite ridges whose vertices are all inside the hull.')
+            print('  full: Finite Voronoi regions only.')
+            print('  finite: Use all areas corresponding to finite ridges.')
             print('')            
         return areas
 
@@ -829,14 +826,12 @@ if __name__ == "__main__":
     print(vor.ridge_lengths())
     print('area of corresponding triangles:')
     print(vor.ridge_areas())
-    print('Voronoi area of each point (full):')
-    print(vor.areas('full'))
-    print('Voronoi area of each point (inside):')
-    print(vor.areas('inside'))
-    print('Voronoi area of each point (finite):')
-    print(vor.areas('finite'))
-    print('Voronoi area of each point (finite_inside):')
-    print(vor.areas('finite_inside'))
+    for mode in ['inside', 'finite_inside', 'full', 'finite']:
+        print('Voronoi area of each point (%s):' % mode)
+        print(vor.areas(mode))
+    print('Comparison of sum of Voronoi areas (inside < finite_inside < full < finit):')
+    a = ['%.2f' % np.sum(vor.areas(mode)) for mode in ['inside', 'finite_inside', 'full', 'finite']]
+    print(' < '.join(a))
     print('Type of Voronoi area of each point:')
     print(vor.point_types())
 
