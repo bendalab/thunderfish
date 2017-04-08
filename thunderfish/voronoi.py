@@ -642,7 +642,7 @@ class Voronoi:
                 ax.plot([self.vor.vertices[i][0], far_point[0]],
                         [self.vor.vertices[i][1], far_point[1]], **kwargs)
 
-    def fill_regions(self, ax=None, colors=None, **kwargs):
+    def fill_regions(self, ax=None, inside=None, colors=None, **kwargs):
         """
         Fill each finite region of the Voronoi diagram with a color.
 
@@ -650,6 +650,10 @@ class Voronoi:
         ---------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
+        inside: boolean or None
+            True: plot only finite regions with all vertices inside the hull
+            False: plot only finite regions with at least one vertex outside the hull
+            None: plot all finite regions
         colors: list of colors or None
             If not None then these colors are used in turn to fill the regions.
         **kwargs:
@@ -662,12 +666,14 @@ class Voronoi:
             if not -1 in region:
                 polygon = self.vertices[region]
                 if len(polygon) > 0:
-                    c += 1
-                    if colors is None:
-                        ax.fill(polygon[:, 0], polygon[:, 1], lw=0, **kwargs)
-                    else:
-                        ax.fill(polygon[:, 0], polygon[:, 1],
-                                color=colors[c % len(colors)], lw=0, **kwargs)
+                    inside_hull = self.in_hull(polygon)
+                    if inside is None or (inside and all(inside_hull)) or (not inside and any(inside_hull)):
+                        c += 1
+                        if colors is None:
+                            ax.fill(polygon[:, 0], polygon[:, 1], lw=0, **kwargs)
+                        else:
+                            ax.fill(polygon[:, 0], polygon[:, 1],
+                                    color=colors[c % len(colors)], lw=0, **kwargs)
 
     def fill_infinite_regions(self, ax=None, colors=None, **kwargs):
         """
@@ -819,14 +825,15 @@ if __name__ == "__main__":
     plt.title('Voronoi')
     #vor.fill_outer_hull(color='black', alpha=0.2)
     #vor.plot_outer_hull(color='m', lw=2)
-    vor.fill_regions(colors=['red', 'green', 'blue', 'orange', 'cyan'], alpha=0.6)
-    vor.fill_infinite_regions(colors=['red', 'green', 'blue', 'orange', 'cyan'], alpha=0.1)
+    vor.fill_regions(inside=True, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=1.0, zorder=0)
+    vor.fill_regions(inside=False, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.4, zorder=0)
+    vor.fill_infinite_regions(colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.1, zorder=0)
     #vor.fill_hull(color='black', alpha=0.1)
     #vor.plot_hull(color='r', lw=2)
-    #vor.plot_distances(color='red')
-    vor.plot_ridges(c='g', lw=2)
-    vor.plot_infinite_ridges(c='g', lw=2, linestyle='dashed')
-    vor.plot_points(text='p%d', c='c', s=100)
+    vor.plot_distances(color='red')
+    vor.plot_ridges(c='k', lw=2)
+    vor.plot_infinite_ridges(c='k', lw=2, linestyle='dashed')
+    vor.plot_points(text='p%d', c='c', s=100, zorder=10)
     vor.plot_vertices(text='v%d', c='r', s=60)
     ex = 0.3
     plt.xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
