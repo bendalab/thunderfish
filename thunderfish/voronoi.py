@@ -223,6 +223,17 @@ class Voronoi:
             self.nearest_points.append(self.neighbor_points[k][0])
             self.nearest_distances[k] = self.neighbor_distances[k][0]
         self.mean_nearest_distance = np.mean(self.nearest_distances)
+
+        ## # estimate aspect ratio
+        ## # XXX better would be a ratio of the two main PCI axis
+        ## bbox = self.vor.max_bound - self.vor.min_bound
+        ## aspect_ratio = bbox[1]/bbox[0]
+        ## if aspect_ratio > 1.0:
+        ##     aspect_ratio = 1.0/aspect_ratio
+        ## ratio = np.sqrt(0.5*(1.0+1.0/aspect_ratio))
+        ## self.mean_nearest_distance *= 1.0 - ratio*2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
+        ## # this is not the right correction factor!
+        
         self.mean_nearest_distance *= 1.0 - 2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
 
 
@@ -574,7 +585,8 @@ class Voronoi:
         mode: string
             'bbox' place points randomly in rectangular bounding box of the Voronoi diagram.
             'hull' place points randomly within convex hull of input data.
-            'outer' place points randomly within outer hull.
+            'outer' place points randomly within outer hull. The mean nearest-neighbor distance
+            between the generated points will be close to the observed one.
 
         Returns
         -------
@@ -591,7 +603,7 @@ class Voronoi:
         else:
             min_bound = self.min_bound
             max_bound = self.max_bound
-        delta = max_bound - min_bound
+        delta = np.max(max_bound - min_bound)
         # generate random points:
         nn = n
         if poisson:
@@ -614,7 +626,7 @@ class Voronoi:
                 inside = vor.in_hull(newpoints)
                 points = np.vstack((points, newpoints[inside]))
             elif mode == 'bbox':
-                points = np.vstack((points, newpoints))
+                points = np.vstack((points, newpoints[np.all(newpoints<max_bound, axis=1),:]))
             else:
                 print('')            
                 print('Voronoi.random_points(): unknown value "%s" for the mode parameter:' % mode)
@@ -912,8 +924,10 @@ if __name__ == "__main__":
     #rs = 2751318392  # double infinite ridges at vertex 0 (n=10)
     print('random seed: %ld' % rs)
     np.random.seed(rs)
-    n = 20
-    points = np.random.rand(n, 2)
+    n = 20    # number of points
+    ar = 1.0  # aspect ratio of area in which the points should be placed
+    points = np.random.rand(int(n//ar), 2)
+    points = points[points[:, 1] < ar, :]
     
     # calculate Voronoi diagram:
     vor = Voronoi(points)
@@ -985,42 +999,73 @@ if __name__ == "__main__":
     plt.legend()
     
     # bootstrap:
-    def bootstrapped_nearest_distances(vor, n, poisson, mode):
+    def bootstrapped_nearest_distances(vor, n, poisson, mode, ax1, ax2):
         ps = 'fixed'
         if poisson:
             ps = 'poisson'
         print('bootstrap %s %s ...' % (mode, ps))
         distances = []
+        cvs = []
         for j in range(n):
             points = vor.random_points(poisson=poisson, mode=mode)
             if len(points) < 4:
                 continue
-            bvor = Voronoi(points)
+            try:
+                bvor = Voronoi(points)
+            except:
+                continue
             distances.append(np.mean(bvor.nearest_distances))
-        plt.title('bootstrap %s %s' % (mode, ps))
-        plt.hist(distances, 30, normed=True, label='bootstrap')
+            cvs.append(np.std(bvor.nearest_distances)/np.mean(bvor.nearest_distances))
+        ax1.set_title('bootstrap %s %s' % (mode, ps))
+        ax1.hist(distances, 30, normed=True, label='bootstrap')
         de = np.mean(vor.nearest_distances)
-        sem = 0.26136*np.sqrt(vor.outer_hull_area())/vor.npoints
+        sem = 2.1*0.26136*np.sqrt(vor.outer_hull_area())/vor.npoints # note factor 2.1!
         h = 0.4/sem
         x = np.linspace(de-4.0*sem, de+4.0*sem, 200)
         p = st.norm.pdf(x, loc=de, scale=sem)
-        plt.plot(x, p, 'r', lw=2, label='Gaussian')
-        plt.plot([de, de], [0.0, h], 'r', lw=4, label='observed a.n.n.')
+        ax1.plot(x, p, 'r', lw=2, label='Gaussian')
+        ax1.plot([de, de], [0.0, h], 'r', lw=4, label='observed a.n.n.')
         bmd = np.mean(distances)
-        plt.plot([bmd, bmd], [0.0, h], 'g', lw=4, label='bootstrapped a.n.n.')
-        plt.xlabel('distance')
-        plt.legend()
-
+        ax1.plot([bmd, bmd], [0.0, h], 'g', lw=4, label='bootstrapped a.n.n.')
+        ax1.set_xlabel('distance')
+        ax1.legend()
+        ax2.set_title('bootstrap %s %s' % (mode, ps))
+        ax2.hist(cvs, 30, normed=True, label='bootstrap')
+        # observed cv:
+        cvo = np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)
+        # significance from bootstrap:
+        pb = 0.01*st.percentileofscore(cvs, cvo)
+        if pb > 0.5:
+            pb = 1.0-pb
+        pb *= 2.0
+        # significance from z-score:
+        secv = 2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(vor.npoints)
+        zcv = (cvo - 2.0*0.26136)/secv
+        pz = 2.0*(1.0 - st.norm.cdf(np.abs(zcv)))
+        h = 0.4/secv
+        ax2.plot([cvo, cvo], [0.0, h], 'r', lw=4, label=r'observed CV $\alpha=$%.0f%%' % (100.0*pz))
+        cvb = np.mean(cvs)
+        x = np.linspace(cvb-4.0*secv, cvb+4.0*secv, 200)
+        p = st.norm.pdf(x, loc=cvb, scale=secv)
+        ax2.plot(x, p, 'g', lw=2, label='Gaussian')
+        ax2.plot([cvb, cvb], [0.0, h], 'g', lw=4, label=r'bootstrapped CV $\alpha=$%.0f%%' % (100.0*pb))
+        ax2.set_xlabel('CV')
+        ax2.legend()
+        
     print('Mean distance: %g' % np.mean(vor.nearest_distances))
+    print('CV: %g' % (np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)))
     nb = 300
-    plt.figure()
-    ax1 = plt.subplot(2, 2, 1)
+    fig1 = plt.figure()
+    ax11 = ax1 = fig1.add_subplot(2, 2, 1)
+    fig2 = plt.figure()
+    ax21 = ax2 = fig2.add_subplot(2, 2, 1)
     k = 1
     for poisson in [False, True]:
         for mode in ['hull', 'outer']:
             if k > 1:
-                plt.subplot(2, 2, k, sharex=ax1)
-            bootstrapped_nearest_distances(vor, nb, poisson, mode)
+                ax1 = fig1.add_subplot(2, 2, k, sharex=ax11)
+                ax2 = fig2.add_subplot(2, 2, k, sharex=ax21)
+            bootstrapped_nearest_distances(vor, nb, poisson, mode, ax1, ax2)
             k += 1
     print('... done.')
     plt.tight_layout()
