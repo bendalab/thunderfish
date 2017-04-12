@@ -1,5 +1,8 @@
 sudo: false
 
+virtualenv:
+    system_site_packages: true
+
 language: python
 
 python:
@@ -8,14 +11,15 @@ python:
 addons:
   apt:
     packages:
-    - python-numpy
-    - python-scipy
+    - libblas-dev
+    - liblapack-dev
+    - gfortran
     - python-matplotlib
     - python-pandas
     - python-tk
 
-virtualenv:
-    system_site_packages: true
+before_install:
+  - pip install -U pip
 
 install:
   - pip install git+https://github.com/bendalab/audioio
