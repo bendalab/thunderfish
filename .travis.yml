@@ -16,7 +16,8 @@ addons:
     - gfortran
     - python-matplotlib
     - python-pandas
- 
+    - python-tk
+
 before_install:
   - pip install -U pip
 

@@ -1,8 +1,8 @@
+import matplotlib as mpl
+mpl.use('Agg')
 from nose.tools import assert_true, assert_equal, assert_raises
 import os
 import numpy as np
-import matplotlib as mpl
-mpl.use('Agg')
 import matplotlib.pyplot as plt
 from thunderfish.voronoi import Voronoi
 
