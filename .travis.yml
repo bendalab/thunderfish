@@ -1,5 +1,8 @@
 sudo: false
 
+virtualenv:
+    system_site_packages: true
+
 language: python
 
 python:
@@ -8,20 +11,25 @@ python:
 addons:
   apt:
     packages:
-    - python-numpy
-    - python-scipy
+    - libblas-dev
+    - liblapack-dev
+    - gfortran
     - python-matplotlib
     - python-pandas
     - python-tk
 
-virtualenv:
-    system_site_packages: true
+before_install:
+  - pip install -U pip
 
 install:
-  - pip install git+https://github.com/G-Node/python-odml.git
   - pip install git+https://github.com/bendalab/audioio
   - pip install nose nose-cov python-coveralls
   - pip install -r requirements.txt
+
+before_script: # configure a headless display to test plot generation
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - sleep 3
 
 # command to run tests
 script:
