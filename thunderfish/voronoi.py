@@ -575,7 +575,7 @@ class Voronoi:
         area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
         return area
 
-    def random_points(self, n=None, poisson=False, mode='bbox'):
+    def random_points(self, n=None, poisson=True, mode='outer'):
         """
         Generate random points.
 
@@ -601,6 +601,12 @@ class Voronoi:
         # number of points:
         if n is None:
             n = self.npoints
+        nn = n
+        if poisson:
+            nn = np.random.poisson(n)
+        m = nn/2
+        if m < 5:
+            m = 5
         # get bounding box:
         if mode == 'outer':
             min_bound = self.outer_min_bound
@@ -609,13 +615,6 @@ class Voronoi:
             min_bound = self.min_bound
             max_bound = self.max_bound
         delta = np.max(max_bound - min_bound)
-        # generate random points:
-        nn = n
-        if poisson:
-            nn = np.random.poisson(n)
-        m = nn/2
-        if m < 5:
-            m = 5
         points = np.zeros((0, self.ndim))
         while len(points) < nn:
             # random points within bounding box:
@@ -624,11 +623,11 @@ class Voronoi:
             newpoints += min_bound
             if mode == 'outer':
                 # only take the ones within outer hull:
-                inside = vor.in_outer_hull(newpoints)
+                inside = self.in_outer_hull(newpoints)
                 points = np.vstack((points, newpoints[inside]))
             elif mode == 'hull':
                 # only take the ones within hull:
-                inside = vor.in_hull(newpoints)
+                inside = self.in_hull(newpoints)
                 points = np.vstack((points, newpoints[inside]))
             elif mode == 'bbox':
                 points = np.vstack((points, newpoints[np.all(newpoints<max_bound, axis=1),:]))
@@ -917,7 +916,6 @@ class Voronoi:
 if __name__ == "__main__":
     import scipy.stats as st
     import matplotlib.pyplot as plt
-    from matplotlib.collections import PolyCollection
     
     print("Checking voronoi module ...")
 
