@@ -140,6 +140,12 @@ class Voronoi:
     areas = vor.areas()
     ```
     
+    Generate random points drawn from a Poisson process with the same
+    intensity and mean nearest neighbor distance as the data:
+    ```
+    new_points = vor.random_points(poisson=True, mode='outer')
+    ```
+    
     Plot Voronoi regions, distances, and input points:
     ```
     import matplotlib.pyplot as plt
@@ -193,7 +199,6 @@ class Voronoi:
         self.max_bound = self.vor.max_bound
         self.center = np.mean(self.points, axis=0)
 
-
     def _compute_distances(self):
         """
         Compute distances between points.
@@ -234,8 +239,7 @@ class Voronoi:
         ## self.mean_nearest_distance *= 1.0 - ratio*2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
         ## # this is not the right correction factor!
         
-        self.mean_nearest_distance *= 1.0 - 2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
-
+        self.mean_nearest_distance *= 1.0-2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
 
     def _compute_infinite_vertices(self, radius=None):
         """
@@ -291,21 +295,25 @@ class Voronoi:
                     if v >= 0:
                         new_rvertices.append(v)
                     else:
-                        for v1_inx, (points, vertices) in enumerate(zip(self.vor.ridge_points, self.vor.ridge_vertices)):
-                            if prev_vertex in vertices and -1 in vertices and (region_point is None or region_point in points):
+                        for v1_inx, (points, vertices) in enumerate(zip(self.vor.ridge_points,
+                                                                        self.vor.ridge_vertices)):
+                            if prev_vertex in vertices and -1 in vertices and \
+                              (region_point is None or region_point in points):
                                 new_rvertices.append(-v1_inx-1)
                                 break
                         next_vertex = rvertices[0]
                         if v_inx+1 < len(rvertices):
                             next_vertex = rvertices[v_inx+1]
-                        for v2_inx, (points, vertices) in enumerate(zip(self.vor.ridge_points, self.vor.ridge_vertices)):
-                            if next_vertex in vertices and -1 in vertices and (region_point is None or region_point in points) and new_rvertices[-1] != -v2_inx-1:
+                        for v2_inx, (points, vertices) in enumerate(zip(self.vor.ridge_points,
+                                                                        self.vor.ridge_vertices)):
+                            if next_vertex in vertices and -1 in vertices and \
+                              (region_point is None or region_point in points) and \
+                              new_rvertices[-1] != -v2_inx-1:
                                 new_rvertices.append(-v2_inx-1)
                                 break
                     prev_vertex = v
                 self.infinite_regions.append(new_rvertices)
                 
-
     def _flatten_simplices(self, simplices):
         """
         Transforms list of simplex indices to list of vertex indices.
@@ -339,6 +347,9 @@ class Voronoi:
         return indices
 
     def _compute_hull(self, qhull_options):
+        """
+        Compute properties of the convex hull and set up the outer hull.
+        """
         self.inside_vertices = self.in_hull(self.vor.vertices)
         self.hull_points = self._flatten_simplices(self.hull.convex_hull)
         self.hull_center = np.mean(self.hull.points[self.hull_points], axis=0)
@@ -394,7 +405,6 @@ class Voronoi:
         inside = self.outer_hull.find_simplex(p) >= 0
         return inside
 
-
     def point_types(self):
         """
         The type of the Voronoi regions for each input point.
@@ -419,7 +429,6 @@ class Voronoi:
                         points[i] = 0
         return points
 
-
     def ridge_lengths(self):
         """
         Length of Voronoi ridges between nearest neighbors.
@@ -442,7 +451,6 @@ class Voronoi:
                 ridges[k] = np.inf
         return ridges
 
-
     def ridge_areas(self):
         """
         For each ridge the triangular area of the Voronoi region
@@ -460,7 +468,6 @@ class Voronoi:
         # area of a triangle:
         areas = 0.5*ridges*heights
         return areas
-
     
     def areas(self, mode='finite'):
         """
@@ -536,7 +543,6 @@ class Voronoi:
             print('')            
         return areas
 
-
     def hull_area(self):
         """
         The area of the convex hull of the input points.
@@ -568,7 +574,6 @@ class Voronoi:
         # area of each simplex is half of the absolute value of the cross product:
         area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
         return area
-    
 
     def random_points(self, n=None, poisson=False, mode='bbox'):
         """
@@ -637,7 +642,6 @@ class Voronoi:
                 print('')
                 return
         return points[:nn]
-
 
     def plot_points(self, ax=None, text=None, text_offs=(0, 0.05), text_align='center',
                     **kwargs):
