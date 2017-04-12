@@ -1,5 +1,3 @@
-import matplotlib as mpl
-mpl.use('Agg')
 from nose.tools import assert_true, assert_equal, assert_raises
 import os
 import numpy as np
