@@ -1001,12 +1001,13 @@ if __name__ == "__main__":
     plt.legend()
     
     # bootstrap:
-    def bootstrapped_nearest_distances(vor, n, poisson, mode, ax1, ax2):
+    def bootstrapped_nearest_distances(vor, n, poisson, mode, ax1, ax2, ax3, bins):
         ps = 'fixed'
         if poisson:
             ps = 'poisson'
         print('bootstrap %s %s ...' % (mode, ps))
-        distances = []
+        hist_distances = np.zeros((n, len(bins)-1))
+        mean_distances = []
         cvs = []
         for j in range(n):
             points = vor.random_points(poisson=poisson, mode=mode)
@@ -1016,10 +1017,11 @@ if __name__ == "__main__":
                 bvor = Voronoi(points)
             except:
                 continue
-            distances.append(np.mean(bvor.nearest_distances))
+            hist_distances[j,:] = np.histogram(bvor.nearest_distances, bins=bins, normed=True)[0]
+            mean_distances.append(np.mean(bvor.nearest_distances))
             cvs.append(np.std(bvor.nearest_distances)/np.mean(bvor.nearest_distances))
         ax1.set_title('bootstrap %s %s' % (mode, ps))
-        ax1.hist(distances, 30, normed=True, label='bootstrap')
+        ax1.hist(mean_distances, 30, normed=True, label='bootstrap')
         de = np.mean(vor.nearest_distances)
         sem = 2.1*0.26136*np.sqrt(vor.outer_hull_area())/vor.npoints # note factor 2.1!
         h = 0.4/sem
@@ -1027,9 +1029,9 @@ if __name__ == "__main__":
         p = st.norm.pdf(x, loc=de, scale=sem)
         ax1.plot(x, p, 'r', lw=2, label='Gaussian')
         ax1.plot([de, de], [0.0, h], 'r', lw=4, label='observed a.n.n.')
-        bmd = np.mean(distances)
+        bmd = np.mean(mean_distances)
         ax1.plot([bmd, bmd], [0.0, h], 'g', lw=4, label='bootstrapped a.n.n.')
-        ax1.set_xlabel('distance')
+        ax1.set_xlabel('mean nearest-neighbor distance')
         ax1.legend()
         ax2.set_title('bootstrap %s %s' % (mode, ps))
         ax2.hist(cvs, 30, normed=True, label='bootstrap')
@@ -1053,22 +1055,36 @@ if __name__ == "__main__":
         ax2.plot([cvb, cvb], [0.0, h], 'g', lw=4, label=r'bootstrapped CV $\alpha=$%.0f%%' % (100.0*pb))
         ax2.set_xlabel('CV')
         ax2.legend()
+        # nearest-neighbor distance histogram:
+        ax3.set_title('bootstrap %s %s' % (mode, ps))
+        ax3.fill_between(bins[:-1], *np.percentile(hist_distances, [2.5, 97.5], axis=0), facecolor='blue', alpha=0.5)
+        ax3.plot(bins[:-1], np.median(hist_distances, axis=0), 'b', lw=2)
+        hd = np.histogram(vor.nearest_distances, bins=bins, normed=True)[0]
+        ax3.plot(bins[:-1], hd, 'r', lw=2)
+        ax3.set_xlim(0.0, 0.5)
+        ax3.set_xlabel('nearest-neighbor distance')
         
     print('Mean distance: %g' % np.mean(vor.nearest_distances))
     print('CV: %g' % (np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)))
+    bins = np.linspace(0.0, 1.0, 30)
     nb = 300
     fig1 = plt.figure()
     ax11 = ax1 = fig1.add_subplot(2, 2, 1)
     fig2 = plt.figure()
     ax21 = ax2 = fig2.add_subplot(2, 2, 1)
+    fig3 = plt.figure()
+    ax31 = ax3 = fig3.add_subplot(2, 2, 1)
     k = 1
     for poisson in [False, True]:
         for mode in ['hull', 'outer']:
             if k > 1:
                 ax1 = fig1.add_subplot(2, 2, k, sharex=ax11)
                 ax2 = fig2.add_subplot(2, 2, k, sharex=ax21)
-            bootstrapped_nearest_distances(vor, nb, poisson, mode, ax1, ax2)
+                ax3 = fig3.add_subplot(2, 2, k, sharex=ax31)
+            bootstrapped_nearest_distances(vor, nb, poisson, mode, ax1, ax2, ax3, bins)
             k += 1
+    for f in [fig1, fig2, fig3]:
+        f.tight_layout()
     print('... done.')
     plt.tight_layout()
     plt.show()
