@@ -30,14 +30,21 @@ def detect_peaks(data, threshold, time=None,
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
     Computers and Biomedical Research 32, 322-335.
 
-    Args:
-        data (array): an 1-D array of input data where peaks are detected
-        threshold (float or array): a positive number setting the minimum distance between peaks and troughs
-        time (array): the (optional) 1-D array with the time corresponding to the data values
-        check_peak_func (function): an optional function to be used for further evaluating and analysing a peak
-          The signature of the function is
-          r, th = check_peak_func(time, data, peak_inx, index, min_inx, threshold, **kwargs)
-          with
+    Parameters
+    ----------
+    data: array
+        An 1-D array of input data where peaks are detected.
+    threshold: float or array
+        A positive number setting the minimum distance between peaks and troughs.
+    time: array
+        The (optional) 1-D array with the time corresponding to the data values.
+    check_peak_func: function
+        An optional function to be used for further evaluating and analysing a peak.
+        The signature of the function is
+        ```
+        r, th = check_peak_func(time, data, peak_inx, index, min_inx, threshold, **kwargs)
+        ```
+        with
             time (array): the full time array that might be None
             data (array): the full data array
             peak_inx (int): the index of the  detected peak
@@ -47,10 +54,13 @@ def detect_peaks(data, threshold, time=None,
             **kwargs: further arguments
             r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
             th (float): a new value for the threshold or None (to keep the original value)
-        check_trough_func (function): an optional function to be used for further evaluating and analysing a trough
-          The signature of the function is
-          r, th = check_trough_func(time, data, trough_inx, index, max_inx, threshold, **kwargs)
-          with
+    check_trough_func: function
+        An optional function to be used for further evaluating and analysing a trough.
+        The signature of the function is
+        ```
+        r, th = check_trough_func(time, data, trough_inx, index, max_inx, threshold, **kwargs)
+        ```
+        with
             time (array): the full time array that might be None
             data (array): the full data array
             trough_inx (int): the index of the  detected trough
@@ -62,18 +72,26 @@ def detect_peaks(data, threshold, time=None,
                                     or None to skip the trough
             th (float): a new value for the threshold (is overwritten by an threshold array)
                         or None (to keep the original value)            
-        kwargs: arguments passed on to check_peak_func and check_trough_func
+    kwargs: key-word arguments
+        Arguments passed on to `check_peak_func` and `check_trough_func`.
     
-    Returns: 
-        peak_list (np.array): a list of peaks
-        trough_list (np.array): a list of troughs
-          if time is None and no check_peak_func is given, then these are lists of the indices where the peaks/troughs occur.
-          if time is given and no check_peak_func/check_trough_func is given, then these are lists of the times where the peaks/troughs occur.
-          if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
+    Returns
+    -------
+    peak_list: np.array
+        A list of peaks.
+    trough_list: np.array
+        A list of troughs.
+    If time is `None` and no `check_peak_func` is given,
+    then these are lists of the indices where the peaks/troughs occur.
+    If time is given and no `check_peak_func`/`check_trough_func` is given,
+    then these are lists of the times where the peaks/troughs occur.
+    If `check_peak_func` or `check_trough_func` is given,
+    then these are lists of whatever `check_peak_func`/`check_trough_func` return.
 
-    Raises:
-        ValueError: if threshold <= 0.
-        IndexError: if data, time, and threshold arrays differ in length.
+    Raises
+    ------
+    ValueError: If `threshold <= 0`.
+    IndexError: If `data`, `time`, and `threshold` arrays differ in length.
     """
 
     thresh_array = True
@@ -190,19 +208,28 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
     Computers and Biomedical Research 32, 322-335.
     The threshold decays dynamically towards min_thresh with time constant tau.
-    Use check_peak_func or check_trough_func to reset the threshold to an appropriate size.
+    Use `check_peak_func` or `check_trough_func` to reset the threshold to an appropriate size.
 
-    Args:
-        data (array): an 1-D array of input data where peaks are detected
-        threshold (float): a positive number setting the minimum distance between peaks and troughs
-        min_thresh (float): the minimum value the threshold is allowed to assume.
-        tau (float): the time constant of the the decay of the threshold value
-                     given in indices (time is None) or time units (time is not None)
-        time (array): the (optional) 1-D array with the time corresponding to the data values
-        check_peak_func (function): an optional function to be used for further evaluating and analysing a peak
-          The signature of the function is
-          r, th = check_peak_func(time, data, peak_inx, index, min_inx, threshold, **kwargs)
-          with
+    Parameters
+    ----------
+    data: array
+        An 1-D array of input data where peaks are detected.
+    threshold: float
+        A positive number setting the minimum distance between peaks and troughs.
+    min_thresh: float
+        The minimum value the threshold is allowed to assume.
+    tau: float
+        The time constant of the the decay of the threshold value
+        given in indices (`time` is None) or time units (`time` is not `None`).
+    time: array
+        The (optional) 1-D array with the time corresponding to the data values.
+    check_peak_func: function
+        An optional function to be used for further evaluating and analysing a peak.
+        The signature of the function is
+        ```
+        r, th = check_peak_func(time, data, peak_inx, index, min_inx, threshold, **kwargs)
+        ```
+        with
             time (array): the full time array that might be None
             data (array): the full data array
             peak_inx (int): the index of the  detected peak
@@ -215,10 +242,13 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
             **kwargs: further keyword arguments provided by the user
             r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
             th (float): a new value for the threshold or None (to keep the original value)
-        check_trough_func (function): an optional function to be used for further evaluating and analysing a trough
-          The signature of the function is
-          r, th = check_trough_func(time, data, trough_inx, index, max_inx, threshold, **kwargs)
-          with
+    check_trough_func: function
+        An optional function to be used for further evaluating and analysing a trough.
+        The signature of the function is
+        ```
+        r, th = check_trough_func(time, data, trough_inx, index, max_inx, threshold, **kwargs)
+        ```
+        with
             time (array): the full time array that might be None
             data (array): the full data array
             trough_inx (int): the index of the  detected trough
@@ -231,18 +261,26 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
             **kwargs: further keyword arguments provided by the user
             r (scalar or np.array): a single number or an array with properties of the trough or None to skip the trough
             th (float): a new value for the threshold or None (to keep the original value)            
-        kwargs: arguments passed on to check_peak_func and check_trough_func
+    kwargs: key-word arguments
+        Arguments passed on to `check_peak_func` and `check_trough_func`.
     
-    Returns: 
-        peak_list (np.array): a list of peaks
-        trough_list (np.array): a list of troughs
-          if time is None and no check_peak_func is given, then these are lists of the indices where the peaks/troughs occur.
-          if time is given and no check_peak_func/check_trough_func is given, then these are lists of the times where the peaks/troughs occur.
-          if check_peak_func or check_trough_func is given, then these are lists of whatever check_peak_func/check_trough_func return.
+    Returns 
+    -------
+    peak_list: np.array
+        A list of peaks.
+    trough_list: np.array
+        A list of troughs.
+    If time is `None` and no `check_peak_func` is given,
+    then these are lists of the indices where the peaks/troughs occur.
+    If `time` is given and no `check_peak_func`/`check_trough_func` is given,
+    then these are lists of the times where the peaks/troughs occur.
+    If `check_peak_func` or `check_trough_func` is given,
+    then these are lists of whatever `check_peak_func`/`check_trough_func` return.
 
-    Raises:
-        ValueError: if threshold <= 0 or min_thresh <= 0 or tau <= 0.
-        IndexError: if data and time arrays differ in length.
+    Raises
+    ------
+    ValueError: If `threshold <= 0` or `min_thresh <= 0` or `tau <= 0`.
+    IndexError: If `data` and `time` arrays differ in length.
     """
 
     if threshold <= 0:
@@ -365,18 +403,29 @@ def accept_peak(time, data, event_inx, index, min_inx, threshold):
     """
     Accept each detected peak/trough and return its index (or time) and its data value.
 
-    Args:
-        freqs (array): frequencies of the power spectrum
-        data (array): the power spectrum
-        event_inx: index of the current peak/trough
-        index: current index
-        min_inx: index of the previous trough/peak
-        threshold: threshold value
+    Parameters
+    ----------
+    freqs: array
+        Frequencies of the power spectrum.
+    data: array
+        The power spectrum.
+    event_inx: int
+        Index of the current peak/trough.
+    index: int
+        Current index.
+    min_inx: int
+        Index of the previous trough/peak.
+    threshold: float
+        Threshold value.
     
-    Returns: 
-        index (int): index of the peak/trough
-        time (float): time of the peak/trough if time is not None
-        value (float): value of data at the peak
+    Returns 
+    -------
+    index: int
+        Index of the peak/trough.
+    time: float
+        Time of the peak/trough if `time` is not `None`.
+    value: float
+        Value of data at the peak.
     """
     size = data[event_inx]
     if time is None:
@@ -391,23 +440,38 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
     Adjust the threshold to the size of the detected peak.
     To be passed to the detect_dynamic_peaks() function.
 
-    Args:
-        time (array): time values, can be None
-        data (array): the data in wich peaks and troughs are detected
-        event_inx: index of the current peak/trough
-        index: current index
-        min_inx: index of the previous trough/peak
-        threshold: threshold value
-        min_thresh (float): the minimum value the threshold is allowed to assume.
-        tau (float): the time constant of the the decay of the threshold value
-                     given in indices (time is None) or time units (time is not None)
-        thresh_ampl_fac (float): the new threshold is thresh_ampl_fac times the size of the current peak
-        thresh_weight (float): new threshold is weighted against current threshold with thresh_weight
+    Parameters
+    ----------
+    time: array
+        Time values, can be `None`.
+    data: array
+        The data in wich peaks and troughs are detected.
+    event_inx: int
+        Index of the current peak/trough.
+    index: int
+        Current index.
+    min_inx: int
+        Index of the previous trough/peak.
+    threshold: float
+        Threshold value.
+    min_thresh: float
+        The minimum value the threshold is allowed to assume..
+    tau: float
+        The time constant of the the decay of the threshold value
+        given in indices (`time` is `None`) or time units (`time` is not `None`).
+    thresh_ampl_fac: float
+        The new threshold is `thresh_ampl_fac` times the size of the current peak.
+    thresh_weight: float
+        New threshold is weighted against current threshold with `thresh_weight`.
 
-    Returns: 
-        index (int): index of the peak/trough if time is None
-        time (int): time of the peak/trough if time is not None
-        threshold (float): the new threshold to be used
+    Returns 
+    -------
+    index: int
+        Index of the peak/trough if `time` is `None`.
+    time: int
+        Time of the peak/trough if `time` is not `None`.
+    threshold: float
+        The new threshold to be used.
     """
     size = data[event_inx] - data[min_inx]
     threshold += thresh_weight * (thresh_ampl_fac * size - threshold)
@@ -421,21 +485,35 @@ def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfa
     """
     Accept each detected peak and compute its size and width.
 
-    Args:
-        time (array): time, must not be None
-        data (array): the data with teh peaks
-        peak_inx: index of the current peak
-        index: current index
-        min_inx: index of the previous trough
-        threshold: threshold value
-        pfac: fraction of peak height where its width is measured
+    Parameters
+    ----------
+    time: array
+        Time, must not be `None`.
+    data: array
+        The data with the peaks.
+    peak_inx: int
+        Index of the current peak.
+    index: int
+        Current index.
+    min_inx: int
+        Index of the previous trough.
+    threshold: float
+        Threshold value.
+    pfac: float
+        Fraction of peak height where its width is measured.
     
-    Returns: 
-        time (float): time of the peak
-        height (float): height of the peak (value of data at the peak)
-        size (float): size of the peak (peak minus previous trough)
-        width (float): width of the peak at 0.75*size
-        count (float): zero
+    Returns 
+    -------
+    time: float
+        Time of the peak.
+    height: float
+        Height of the peak (value of data at the peak).
+    size: float
+        Size of the peak (peak minus previous trough).
+    width: float
+        Width of the peak at 0.75*size.
+    count: float
+        Zero.
     """
 
     size = data[peak_inx] - data[min_inx]
@@ -463,11 +541,21 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
 
-    :param data: (1-D array). The data to be analyzed.
-    :param samplerate: (float or None). Sampling rate of the data in Hz.
-    :param win_size: (float or None). Size of window in which a threshold value is computed.
-    :param th_factor: (float). Factor by which the standard deviation is multiplied to set the threshold.
-    :return: threshold: (float or 1-D array). The computed threshold.
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analyzed.
+    samplerate: float or None
+        Sampling rate of the data in Hz.
+    win_size: float or None
+        Size of window in which a threshold value is computed.
+    th_factor: float
+        Factor by which the standard deviation is multiplied to set the threshold.
+
+    Returns
+    -------
+    threshold: float or 1-D array
+        The computed threshold.
     """
 
     if samplerate and win_size:
@@ -484,7 +572,7 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
 
     
 def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
-                   nbins=100, hist_height=1.0/ np.sqrt(np.e)):
+                   nbins=100, hist_height=1.0/np.sqrt(np.e)):
     """Esimate a threshold for detect_peaks() based on a histogram of the data.
 
     The standard deviation of the data is estimated from the
@@ -496,17 +584,27 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
 
-    Args:
-        data (1-D array): the data to be analyzed.
-        samplerate (float or None): sampling rate of the data in Hz.
-        win_size (float or None): Size of window in which a threshold value is computed in sec.
-        th_factor (float): factor by which the width of the histogram is multiplied to set the threshold.
-        nbins (int or list of floats): number of bins or the bins for computing the histogram.
-        hist_height (float): height between 0 and 1 at which the width of the histogram is computed.
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analyzed.
+    samplerate: float or None
+        Sampling rate of the data in Hz.
+    win_size: float or None
+        Size of window in which a threshold value is computed in sec.
+    th_factor: float
+        Factor by which the width of the histogram is multiplied to set the threshold.
+    nbins: int or list of floats
+        Number of bins or the bins for computing the histogram.
+    hist_height: float
+        Height between 0 and 1 at which the width of the histogram is computed.
 
-    Returns:
-        threshold (float or 1-D array): the computed threshold.
-        center (float or 1-D array): the center (mean) of the width of the histogram.
+    Returns
+    -------
+    threshold: float or 1-D array
+        The computed threshold.
+    center: float or 1-D array
+        The center (mean) of the width of the histogram.
     """
 
     if samplerate and win_size:
@@ -547,12 +645,22 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
 
-    :param data: (1-D array). The data to be analyzed.
-    :param samplerate: (float or None). Sampling rate of the data in Hz.
-    :param win_size: (float or None). Size of window in which a threshold value is computed.
-    :param th_factor: (float). Factor by which the difference between minimum and maximum data value is multiplied to set the threshold.
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analyzed.
+    samplerate: float or None
+        Sampling rate of the data in Hz.
+    win_size: float or None
+        Size of window in which a threshold value is computed.
+    th_factor: float
+        Factor by which the difference between minimum and maximum data value
+        is multiplied to set the threshold.
 
-    :return: threshold: (float or 1-D array). The computed threshold.
+    Returns
+    -------
+    threshold: float or 1-D array
+        The computed threshold.
     """
     if samplerate and win_size:
         threshold = np.zeros(len(data))
@@ -590,13 +698,23 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, pe
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
 
-    :param data: (1-D array). The data to be analyzed.
-    :param samplerate: (float or None). Sampling rate of the data in Hz.
-    :param win_size: (float or None). Size of window in which a threshold value is computed.
-    :param percentile: (int). The interpercentile range is computed at percentile and 100.0-percentile.
-    :param th_factor: (float). Factor by which the inter-percentile range of the data is multiplied to set the threshold.
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analyzed.
+    samplerate: float or None
+        Sampling rate of the data in Hz.
+    win_size: float or None
+        Size of window in which a threshold value is computed.
+    percentile: int
+        The interpercentile range is computed at percentile and 100.0-percentile.
+    th_factor: float
+        Factor by which the inter-percentile range of the data is multiplied to set the threshold.
 
-    :return: threshold: (float or 1-D array). The computed threshold.
+    Returns
+    -------
+    threshold: float or 1-D array
+        The computed threshold.
     """
     if samplerate and win_size:
         threshold = np.zeros(len(data))
@@ -616,11 +734,21 @@ def snippets(data, indices, start=-10, stop=10):
     """
     Cut out data arround each position given in indices.
 
-    :param data: (1-D array) Data array from which snippets are extracted.
-    :param indices: (list of int) Indices around which snippets are cut out.
-    :param start: (int) Each snippet starts at index + start.
-    :param stop: (int) Each snippet ends at index + stop.
-    :return snippet_data: (2-D array) The snippets: first index number of snippet, second index time.
+    Parameters
+    ----------
+    data: 1-D array
+        Data array from which snippets are extracted.
+    indices: list of int
+        Indices around which snippets are cut out.
+    start: int
+        Each snippet starts at index + start.
+    stop: int
+        Each snippet ends at index + stop.
+        
+    Returns
+    -------
+    snippet_data: 2-D array
+        The snippets: first index number of snippet, second index time.
     """
     idxs = indices[(indices>=-start) & (indices<len(data)-stop)]
     snippet_data = np.empty((len(idxs), stop-start))
@@ -633,13 +761,19 @@ def trim(peaks, troughs):
     """
     Trims the peaks and troughs arrays such that they have the same length.
     
-    Args:
-        peaks (numpy array): list of peak indices or times
-        troughs (numpy array): list of trough indices or times
+    Parameters
+    ----------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
 
-    Returns:
-        peaks (numpy array): list of peak indices or times
-        troughs (numpy array): list of trough indices or times
+    Returns
+    -------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
     """
     # common len:
     n = min(len(peaks), len(troughs))
@@ -652,13 +786,19 @@ def trim_to_peak(peaks, troughs):
     Trims the peaks and troughs arrays such that they have the same length
     and the first peak comes first.
     
-    Args:
-        peaks (numpy array): list of peak indices or times
-        troughs (numpy array): list of trough indices or times
+    Parameters
+    ----------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
 
-    Returns:
-        peaks (numpy array): list of peak indices or times
-        troughs (numpy array): list of trough indices or times
+    Returns
+    -------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
     """
     # start index for troughs:
     tidx = 0
@@ -675,13 +815,19 @@ def trim_closest(peaks, troughs):
     Trims the peaks and troughs arrays such that they have the same length
     and that peaks-troughs is on average as small as possible.
     
-    Args:
-        peaks (numpy array): list of peak indices or times
-        troughs (numpy array): list of trough indices or times
+    Parameters
+    ----------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
 
-    Returns:
-        peaks (numpy array): list of peak indices or times
-        troughs (numpy array): list of trough indices or times
+    Returns
+    -------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
     """
     pidx = 0
     tidx = 0

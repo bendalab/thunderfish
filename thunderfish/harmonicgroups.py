@@ -30,34 +30,49 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
                          max_fill_ratio=0.25, power_n_harmonics=10, **kwargs):
     """Find all the harmonics belonging to the largest peak in a list of frequency peaks.
 
-    Args:
-        freqs (2-D numpy array): list of frequency, height, size, width and count of
-                                 strong peaks in a power spectrum.
-        more_freqs (): list of frequency, height, size, width and count of
-                       all peaks in a power spectrum.
-        deltaf (float): frequency resolution of the power spectrum
-        verbose (int): verbosity level
-        min_freq (float): minimum frequency accepted as a fundamental frequency
-        max_freq (float): maximum frequency accepted as a fundamental frequency
-        freq_tol_fac (float): harmonics need to fall within deltaf*freq_tol_fac
-        max_divisor (int): maximum divisor used for checking for sub-harmonics
-        max_upper_fill (int): maximum number of frequencies that are allowed to be filled in
-            (i.e. they are not contained in more_freqs) above the frequency of the
-            largest peak in freqs for constructing a harmonic group.
-        max_double_use_harmonics (int): maximum harmonics for which double uses of peaks
-                                        are counted.
-        max_double_use_count (int): maximum number of harmonic groups a single peak can be part of.
-        max_fill_ratio (float): maximum allowed fraction of filled in frequencies.
-        power_n_harmonics (int): maximum number of harmonics over which the total power
-                                 of the signal is computed.
+    Parameters
+    ----------
+    freqs: 2-D array
+        List of frequency, height, size, width and count of strong peaks in a power spectrum.
+    more_freqs:
+        List of frequency, height, size, width and count of all peaks in a power spectrum.
+    deltaf: float
+        Frequency resolution of the power spectrum.
+    verbose: int
+        Verbosity level.
+    min_freq: float
+        Minimum frequency accepted as a fundamental frequency.
+    max_freq: float
+        Maximum frequency accepted as a fundamental frequency.
+    freq_tol_fac: float
+        Harmonics need to fall within deltaf*freq_tol_fac.
+    max_divisor: int
+        Maximum divisor used for checking for sub-harmonics.
+    max_upper_fill: int
+        Maximum number of frequencies that are allowed to be filled in
+        (i.e. they are not contained in more_freqs) above the frequency of the
+        largest peak in freqs for constructing a harmonic group.
+    max_double_use_harmonics: int
+        Maximum harmonics for which double uses of peaks are counted.
+    max_double_use_count: int
+        Maximum number of harmonic groups a single peak can be part of.
+    max_fill_ratio: float
+        Maximum allowed fraction of filled in frequencies.
+    power_n_harmonics: int
+        Maximum number of harmonics over which the total power of the signal is computed.
     
-    Returns:
-        freqs (2-D numpy array): list of strong frequencies with the frequencies of group removed
-        more_freqs (2-D numpy array): list of all frequencies with updated double-use counts
-        group (2-D numpy array): the detected harmonic group. Might be empty.
-        best_fzero_harmonics (int): the highest harmonics that was used to recompute
-                                    the fundamental frequency
-        fmax (float): the frequency of the largest peak in freqs for which the harmonic group was detected.
+    Returns
+    -------
+    freqs: 2-D array
+        List of strong frequencies with the frequencies of group removed.
+    more_freqs: 2-D array
+        List of all frequencies with updated double-use counts.
+    group: 2-D array
+        The detected harmonic group. Might be empty.
+    best_fzero_harmonics: int
+        The highest harmonics that was used to recompute the fundamental frequency.
+    fmax: float
+        The frequency of the largest peak in freqs for which the harmonic group was detected.
     """
     
     # start at the strongest frequency:
@@ -423,39 +438,55 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
                          min_group_size=3, max_harmonics=0, **kwargs):
     """Extract fundamental frequencies from power-spectrum peaks.
                          
-    Args:
-        good_freqs (2-D numpy array): list of frequency, height, size, width and count of
-                                 strong peaks in a power spectrum.
-        all_freqs (2-D numpy array): list of frequency, height, size, width and count of
-                       all peaks in a power spectrum.
-        deltaf (float): frequency resolution of the power spectrum
-        verbose (int): verbosity level
-        freq_tol_fac (float): harmonics need to fall within deltaf*freq_tol_fac
-        mains_freq (float): frequency of the mains power supply.
-        min_freq (float): minimum frequency accepted as a fundamental frequency
-        max_freq (float): maximum frequency accepted as a fundamental frequency
-        max_divisor (int): maximum divisor used for checking for sub-harmonics
-        max_upper_fill (int): maximum number of frequencies that are allowed to be filled in
-            (i.e. they are not contained in more_freqs) above the frequency of the
-            largest peak in freqs for constructing a harmonic group.
-        max_double_use_harmonics (int): maximum harmonics for which double uses of peaks
-                                        are counted.
-        max_double_use_count (int): maximum number of harmonic groups a single peak can be part of.
-        max_fill_ratio (float): maximum allowed fraction of filled in frequencies.
-        power_n_harmonics (int): maximum number of harmonics over which the total power
-                                 of the signal is computed.
-        min_group_size (int): minimum required number of harmonics that are not filled in and
-                              are not part of other, so far detected,  harmonics groups.
-        max_harmonics (int): maximum number of harmonics to be returned for each group.
+    Parameters
+    ----------
+    good_freqs: 2-D array
+        List of frequency, height, size, width and count of strong peaks in a power spectrum.
+    all_freqs: 2-D array
+        List of frequency, height, size, width and count of all peaks in a power spectrum.
+    deltaf: float
+        Frequency resolution of the power spectrum.
+    verbose: int
+        Verbosity level.
+    freq_tol_fac: float
+        Harmonics need to fall within `deltaf*freq_tol_fac`.
+    mains_freq: float
+        Frequency of the mains power supply.
+    min_freq: float
+        Minimum frequency accepted as a fundamental frequency.
+    max_freq: float
+        Maximum frequency accepted as a fundamental frequency.
+    max_divisor: int
+        Maximum divisor used for checking for sub-harmonics.
+    max_upper_fill: int
+        Maximum number of frequencies that are allowed to be filled in
+        (i.e. they are not contained in more_freqs) above the frequency of the
+        largest peak in freqs for constructing a harmonic group.
+    max_double_use_harmonics: int
+        Maximum harmonics for which double uses of peaks are counted.
+    max_double_use_count: int
+        Maximum number of harmonic groups a single peak can be part of.
+    max_fill_ratio: float
+        Maximum allowed fraction of filled in frequencies..
+    power_n_harmonics: int
+        Maximum number of harmonics over which the total power of the signal is computed.
+    min_group_size: int
+        Minimum required number of harmonics that are not filled in and
+        are not part of other, so far detected,  harmonics groups.
+    max_harmonics: int
+        Maximum number of harmonics to be returned for each group.
 
-    Returns:
-        group_list (list of 2-D numpy arrays): list of all harmonic groups found sorted
-            by fundamental frequency.
-            Each harmonic group is a 2-D numpy array with the first dimension the harmonics
-            and the second dimension containing frequency, height, and size of each harmonic.
-            If the power is zero, there was no corresponding peak in the power spectrum.
-        fzero_harmonics_list (list of int): the harmonics from which the fundamental frequencies were computed.
-        mains_list (2-d array): array of mains peaks found in all_freqs (frequency, height, size)
+    Returns
+    -------
+    group_list: list of 2-D arrays
+        List of all harmonic groups found sorted by fundamental frequency.
+        Each harmonic group is a 2-D array with the first dimension the harmonics
+        and the second dimension containing frequency, height, and size of each harmonic.
+        If the power is zero, there was no corresponding peak in the power spectrum.
+    fzero_harmonics_list: list of int
+        The harmonics from which the fundamental frequencies were computed.
+    mains_list: 2-d array
+        Array of mains peaks found in all_freqs (frequency, height, size).
     """
     if verbose > 0:
         print('')
@@ -572,19 +603,27 @@ def threshold_estimate(data, noise_factor=6.0, nbins=100, hist_height=1.0/ np.sq
     The standard deviation of the noise floor without peaks is estimated from
     the width of the histogram of the data at hist_height relative height.
 
-    Args:
-        data: the data from which to estimate the thresholds
-        noise_factor (float): factor by which the width of the histogram is multiplied to set the low_threshold.
-        nbins (int or list of floats): number of bins or the bins for computing the histogram.
-        hist_height (float): height between 0 and 1 at which the width of the histogram is computed.
-        peak_factor (float): the high_threshold is the low_threshold plus
-                             this fraction times the distance between largest pe aks
-                             and low_threshold plus half the low_threshold
+    Parameters
+    ----------
+    data: the data from which to estimate the thresholds
+        noise_factor: float
+            Factor by which the width of the histogram is multiplied to set the low_threshold.
+    nbins: int or list of floats
+        Number of bins or the bins for computing the histogram.
+    hist_height: float
+        Height between 0 and 1 at which the width of the histogram is computed.
+    peak_factor: float
+        The high_threshold is the low_threshold plus this fraction times the
+        distance between largest peaks and `low_threshold` plus half the `low_threshold`.
 
-    Returns:
-        low_threshold (float): the threshold just above the noise floor
-        high_threshold (float): the threshold for clear peaks
-        center: (float): estimate of the median of the data without peaks
+    Returns
+    -------
+    low_threshold: float
+        The threshold just above the noise floor.
+    high_threshold: float
+        The threshold for clear peaks.
+    center:: float
+        Estimate of the median of the data without peaks.
     """
 
     # estimate noise standard deviation:
@@ -625,61 +664,84 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
                     min_group_size=3, max_harmonics=0, **kwargs):
     """Detect peaks in power spectrum and extract fundamentals of harmonic groups.
 
-    Args:
-        psd_freqs (array): frequencies of the power spectrum
-        psd (array): power spectrum (linear, not decible)
-        verbose (int): verbosity level
-        low_threshold (float): the relative threshold for detecting all peaks
-                               in the decibel spectrum.
-        high_threshold (float): the relative threshold for detecting good peaks
-                                in the decibel spectrum
-                                
-        thresh_bins (int or list of floats): number of bins or the bins for computing the histogram
-                    from which the standard deviation of the noise level in the psd is estimated.
-        noise_factor (float): multiplies the estimate of the standard deviation
-                              of the noise to result in the low_threshold
-        peak_factor (float): the high_threshold is the low_threshold plus
-                             this fraction times the distance between largest peaks
-                             and low_threshold plus half the low_threshold
-        max_peak_width_fac (float): the maximum allowed width of a good peak
-                                    in the decibel power spectrum in multiples of
-                                    the frequency resolution.
-        min_peak_width (float): the minimum absolute value for the maximum width
-                                of a peak in Hertz.
-        freq_tol_fac (float): harmonics need to fall within deltaf*freq_tol_fac
-        mains_freq (float): frequency of the mains power supply.
-        min_freq (float): minimum frequency accepted as a fundamental frequency
-        max_freq (float): maximum frequency accepted as a fundamental frequency
-        max_work_freq (float): maximum frequency to be used for strong ("good") peaks
-        max_divisor (int): maximum divisor used for checking for sub-harmonics
-        max_upper_fill (int): maximum number of frequencies that are allowed to be filled in
-            (i.e. they are not contained in more_freqs) above the frequency of the
-            largest peak in freqs for constructing a harmonic group.
-        max_double_use_harmonics (int): maximum harmonics for which double uses of peaks
-                                        are counted.
-        max_double_use_count (int): maximum number of harmonic groups a single peak can be part of.
-        max_fill_ratio (float): maximum allowed fraction of filled in frequencies.
-        power_n_harmonics (int): maximum number of harmonics over which the total power
-                                 of the signal is computed.
-        min_group_size (int): minimum required number of harmonics that are not filled in and
-                              are not part of other, so far detected,  harmonics groups.
-        max_harmonics (int): maximum number of harmonics to be returned for each group.
+    Parameters
+    ----------
+    psd_freqs: array
+        Frequencies of the power spectrum.
+    psd: array
+        Power spectrum (linear, not decible).
+    verbose: int
+        Verbosity level.
+    low_threshold: float
+        The relative threshold for detecting all peaks in the decibel spectrum.
+    high_threshold: float
+        The relative threshold for detecting good peaks in the decibel spectrum.
+    thresh_bins: int or list of floats
+        Number of bins or the bins for computing the histogram from
+        which the standard deviation of the noise level in the `psd` is estimated.
+    noise_factor: float
+        Multiplies the estimate of the standard deviation of the noise
+        to result in the `low_threshold`.
+    peak_factor: float
+        The high_threshold is the low_threshold plus this fraction times
+        the distance between largest peaks and low_threshold plus half the low_threshold.
+    max_peak_width_fac: float
+        The maximum allowed width of a good peak in the decibel power spectrum in multiples of
+        the frequency resolution.
+    min_peak_width: float
+        The minimum absolute value for the maximum width of a peak in Hertz.
+    freq_tol_fac: float
+        Harmonics need to fall within `deltaf*freq_tol_fac`.
+    mains_freq: float
+        Frequency of the mains power supply.
+    min_freq: float
+        Minimum frequency accepted as a fundamental frequency.
+    max_freq: float
+        Maximum frequency accepted as a fundamental frequency.
+    max_work_freq: float
+        Maximum frequency to be used for strong ("good") peaks.
+    max_divisor: int
+        Maximum divisor used for checking for sub-harmonics.
+    max_upper_fill: int
+        Maximum number of frequencies that are allowed to be filled in
+        (i.e. they are not contained in more_freqs) above the frequency of the
+        largest peak in freqs for constructing a harmonic group.
+    max_double_use_harmonics: int
+        Maximum harmonics for which double uses of peaks are counted.
+    max_double_use_count: int
+        Maximum number of harmonic groups a single peak can be part of.
+    max_fill_ratio: float
+        Maximum allowed fraction of filled in frequencies.
+    power_n_harmonics: int
+        Maximum number of harmonics over which the total power of the signal is computed.
+    min_group_size: int
+        Minimum required number of harmonics that are not filled in and
+        are not part of other, so far detected,  harmonics groups.
+    max_harmonics: int
+        Maximum number of harmonics to be returned for each group.
 
-    Returns:
-        group_list (list of 2-D numpy arrays): list of all extracted harmonic groups, sorted
-            by fundamental frequency.
-            Each harmonic group is a 2-D numpy array with the first dimension the harmonics
-            and the second dimension containing frequency, height, and size of each harmonic.
-            If the power is zero, there was no corresponding peak in the power spectrum.
-        fzero_harmonics (list of ints) : The harmonics from
-            which the fundamental frequencies were computed.
-        mains (2-d array): frequencies and power of multiples of the mains frequency found in the power spectrum.
-        all_freqs (2-d array): peaks in the power spectrum detected with low threshold
-                  [frequency, power, size, width, double use count].
-        good_freqs (1-d array): frequencies of peaks detected with high threshold.
-        low_threshold (float): the relative threshold for detecting all peaks in the decibel spectrum.
-        high_threshold (float): the relative threshold for detecting good peaks in the decibel spectrum.
-        center (float): the baseline level of the power spectrum.
+    Returns
+    -------
+    group_list: list of 2-D arrays
+        List of all extracted harmonic groups, sorted by fundamental frequency.
+        Each harmonic group is a 2-D array with the first dimension the harmonics
+        and the second dimension containing frequency, height, and size of each harmonic.
+        If the power is zero, there was no corresponding peak in the power spectrum.
+    fzero_harmonics: list of ints
+        The harmonics from which the fundamental frequencies were computed.
+    mains: 2-d array
+        Frequencies and power of multiples of the mains frequency found in the power spectrum.
+    all_freqs: 2-d array
+        Peaks in the power spectrum detected with low threshold
+        [frequency, power, size, width, double use count].
+    good_freqs: 1-d array
+        Frequencies of peaks detected with high threshold.
+    low_threshold: float
+        The relative threshold for detecting all peaks in the decibel spectrum.
+    high_threshold: float
+        The relative threshold for detecting good peaks in the decibel spectrum.
+    center: float
+        The baseline level of the power spectrum.
     """
     if verbose > 0:
         print('')
@@ -742,16 +804,18 @@ def fundamental_freqs(group_list):
     """
     Extract the fundamental frequencies from lists of harmonic groups.
 
-    Args:
-      group_list (list of 2-D arrays or list of list of 2-D arrays):
-            Lists of harmonic groups as returned by extract_fundamentals() and
-            harmonic_groups() with the element [0][0] of the
-            harmonic groups being the fundamental frequency.
+    Parameters
+    ----------
+    group_list: list of 2-D arrays or list of list of 2-D arrays
+        Lists of harmonic groups as returned by extract_fundamentals() and
+        harmonic_groups() with the element [0][0] of the
+        harmonic groups being the fundamental frequency.
 
-    Returns:
-      fundamentals (1-D array or list of 1-D array):
-            single array or list of arrays (corresponding to the input group_list)
-            of the fundamental frequencies.
+    Returns
+    -------
+    fundamentals: 1-D array or list of 1-D array
+        Single array or list of arrays (corresponding to the input group_list)
+        of the fundamental frequencies.
     """
     if len(group_list) == 0:
         fundamentals = np.array([])
@@ -773,14 +837,15 @@ def fundamental_freqs_and_db(group_list):
     ----------
     group_list: list of 2-D arrays or list of list of 2-D arrays
             Lists of harmonic groups as returned by extract_fundamentals() and
-            harmonic_groups() with the element [0][0] of the harmonic groups being the fundamental frequency,
+            harmonic_groups() with the element [0][0] of the harmonic groups
+            being the fundamental frequency,
             and element[0][1] being the corresponding power.
 
     Returns
     -------
     eodf_db_matrix: 2-D array or list of 2-D arrays
-        Matrix with fundamental frequencies in first column and corresponding power in dB in second column.
-
+        Matrix with fundamental frequencies in first column and
+        corresponding power in dB in second column.
     """
 
     if len(group_list) == 0:
@@ -803,8 +868,8 @@ def colors_markers():
     """
     Generate a list of colors and markers for plotting.
 
-    Returns:
-    --------
+    Returns
+    -------
     colors: list
         list of colors
     markers: list
@@ -848,8 +913,8 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
     """
     Mark decibel power of fundamentals and their harmonics in a plot.
 
-    Args:
-    -----
+    Parameters
+    ----------
     ax: axis for plot
             Axis used for plotting.
     group_list: list of 2-D arrays
@@ -965,8 +1030,10 @@ def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
     """ Add parameter needed for detection of peaks in power spectrum used by
     harmonic_groups() as a new section to a configuration.
 
-    Args:
-      cfg (ConfigFile): the configuration
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
     """
 
     cfg.add_section('Thresholds for peak detection in power spectra:')
@@ -991,12 +1058,16 @@ def psd_peak_detection_args(cfg):
     detection of peaks in power spectrum used by harmonic_groups().
     The return value can then be passed as key-word arguments to this function.
 
-    Args:
-      cfg (ConfigFile): the configuration
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
 
-    Returns:
-      a (dict): dictionary with names of arguments of the harmonic-group()
-      function and their values as supplied by cfg.
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `harmonic-group()` function
+        and their values as supplied by `cfg`.
     """
 
     return cfg.map({'low_threshold': 'lowThreshold',
@@ -1017,8 +1088,10 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac
     """ Add parameter needed for detection of harmonic groups as
     a new section to a configuration.
 
-    Args:
-      cfg (ConfigFile): the configuration
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
     """
     
     cfg.add_section('Harmonic groups:')
@@ -1050,12 +1123,16 @@ def harmonic_groups_args(cfg):
     respective parameter names of the harmonic-group detection functions.
     The return value can then be passed as key-word arguments to this function.
 
-    Args:
-      cfg (ConfigFile): the configuration
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
 
-    Returns:
-      a (dict): dictionary with names of arguments of the harmonic-group detection
-      functions and their values as supplied by cfg.
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the harmonic-group detection functions
+        and their values as supplied by `cfg`.
     """
     return cfg.map({'mains_freq': 'mainsFreq',
                     'max_divisor': 'maxDivisor',

@@ -159,8 +159,8 @@ class Voronoi:
         """
         Compute and analyze the Voronoi diagram and the convex hull for some input points in 2D.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         points: list of lists of floats
             List of point coordiantes.
         radius: float or None
