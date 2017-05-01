@@ -1,12 +1,13 @@
 """
-Detecting peaks in arrays.
+Detecting and handling peaks and troughs in data arrays.
 
 detect_peaks(): peak and trough detection with a relative threshold.
-detect_dynamic_peaks(): peak and trough detection with a dynamically adapted threshold.
 
-accept_peak(): make detect_peaks() return index/time and size of peaks.
-accept_peak_size_threshold(): adapt the dection threshold to the size of the detected peaks.
-accept_peaks_size_width(): make detect_peaks() return time, height, size, and width of peaks.
+peak_size_width(): compute for each peak its size and width.
+
+trim(): make the list of peaks and troughs returned by detect_peaks() the same length.
+trim_to_peak(): ensure that the peak is first.
+trim_closest(): ensure that peaks minus troughs is smallest.
 
 std_threshold(): estimate detection threshold based on the standard deviation.
 hist_threshold(): esimate detection threshold based on a histogram of the data.
@@ -15,16 +16,14 @@ percentile_threshold(): estimate detection threshold based on interpercentile ra
 
 snippets(): cut out data snippets around a list of indices.
 
-trim(): make the list of peaks and troughs returned by detect_peaks() the same length.
-trim_to_peak(): ensure that the peak is first.
-trim_closest(): ensure that peaks minus troughs is smallest.
+detect_dynamic_peaks(): peak and trough detection with a dynamically adapted threshold.
+accept_peak_size_threshold(): adapt the dection threshold to the size of the detected peaks.
 """
 
 import numpy as np
 
 
-def detect_peaks(data, threshold, time=None,
-                 check_peak_func=None, check_trough_func=None, **kwargs):
+def detect_peaks(data, threshold, time=None):
     """
     Detect peaks and troughs using a fixed, relative threshold according to
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
@@ -35,58 +34,19 @@ def detect_peaks(data, threshold, time=None,
     data: array
         An 1-D array of input data where peaks are detected.
     threshold: float or array
-        A positive number setting the minimum distance between peaks and troughs.
+        A positive number or array of numbers setting the detection threshold,
+        i.e. the minimum distance between peaks and troughs.
     time: array
         The (optional) 1-D array with the time corresponding to the data values.
-    check_peak_func: function
-        An optional function to be used for further evaluating and analysing a peak.
-        The signature of the function is
-        ```
-        r, th = check_peak_func(time, data, peak_inx, index, min_inx, threshold, **kwargs)
-        ```
-        with
-            time (array): the full time array that might be None
-            data (array): the full data array
-            peak_inx (int): the index of the  detected peak
-            index (int): the current index
-            min_inx (int): the index of the trough preceeding the peak (might be 0)
-            threshold (float): the threshold value
-            **kwargs: further arguments
-            r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
-            th (float): a new value for the threshold or None (to keep the original value)
-    check_trough_func: function
-        An optional function to be used for further evaluating and analysing a trough.
-        The signature of the function is
-        ```
-        r, th = check_trough_func(time, data, trough_inx, index, max_inx, threshold, **kwargs)
-        ```
-        with
-            time (array): the full time array that might be None
-            data (array): the full data array
-            trough_inx (int): the index of the  detected trough
-            index (int): the current index
-            max_inx (int): the index of the peak preceeding the trough (might be 0)
-            threshold (float): the threshold value
-            **kwargs: further arguments
-            r (scalar or np.array): a single number or an array with properties of the trough
-                                    or None to skip the trough
-            th (float): a new value for the threshold (is overwritten by an threshold array)
-                        or None (to keep the original value)            
-    kwargs: key-word arguments
-        Arguments passed on to `check_peak_func` and `check_trough_func`.
     
     Returns
     -------
-    peak_list: np.array
+    peak_array: array
         A list of peaks.
-    trough_list: np.array
+    trough_array: array
         A list of troughs.
-    If time is `None` and no `check_peak_func` is given,
-    then these are lists of the indices where the peaks/troughs occur.
-    If time is given and no `check_peak_func`/`check_trough_func` is given,
-    then these are lists of the times where the peaks/troughs occur.
-    If `check_peak_func` or `check_trough_func` is given,
-    then these are lists of whatever `check_peak_func`/`check_trough_func` return.
+    If time is `None` then these are arrays of the indices where the peaks/troughs occur.
+    If time is given then these are arrays of the times where the peaks/troughs occur.
 
     Raises
     ------
@@ -132,21 +92,11 @@ def detect_peaks(data, threshold, time=None,
             # otherwise, if the new value is falling below the maximum value minus the threshold:
             # the maximum is a peak!
             elif max_value >= value + thresh:
-                # check and update peak with the check_peak_func function:
-                if check_peak_func:
-                    r, th = check_peak_func(time, data, max_inx, index,
-                                            min_inx, thresh, **kwargs)
-                    if r is not None:
-                        # this really is a peak:
-                        peaks_list.append(r)
-                    if th is not None:
-                        thresh = th
+                # this is a peak:
+                if time is None:
+                    peaks_list.append(max_inx)
                 else:
-                    # this is a peak:
-                    if time is None:
-                        peaks_list.append(max_inx)
-                    else:
-                        peaks_list.append(time[max_inx])
+                    peaks_list.append(time[max_inx])
 
                 # change direction:
                 min_inx = index  # minimum element
@@ -161,22 +111,10 @@ def detect_peaks(data, threshold, time=None,
 
             elif value >= min_value + thresh:
                 # there was a trough:
-
-                # check and update trough with the check_trough function:
-                if check_trough_func:
-                    r, th = check_trough_func(time, data, min_inx, index,
-                                              max_inx, thresh, **kwargs)
-                    if r is not None:
-                        # this really is a trough:
-                        troughs_list.append(r)
-                    if th is not None:
-                        thresh = th
+                if time is None:
+                    troughs_list.append(min_inx)
                 else:
-                    # this is a trough:
-                    if time is None:
-                        troughs_list.append(min_inx)
-                    else:
-                        troughs_list.append(time[min_inx])
+                    troughs_list.append(time[min_inx])
 
                 # change direction:
                 max_inx = index  # maximum element
@@ -201,289 +139,9 @@ def detect_peaks(data, threshold, time=None,
     return np.asarray(peaks_list), np.asarray(troughs_list)
 
 
-def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
-                         check_peak_func=None, check_trough_func=None, **kwargs):
+def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
     """
-    Detect peaks and troughs using a relative threshold according to
-    Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
-    Computers and Biomedical Research 32, 322-335.
-    The threshold decays dynamically towards min_thresh with time constant tau.
-    Use `check_peak_func` or `check_trough_func` to reset the threshold to an appropriate size.
-
-    Parameters
-    ----------
-    data: array
-        An 1-D array of input data where peaks are detected.
-    threshold: float
-        A positive number setting the minimum distance between peaks and troughs.
-    min_thresh: float
-        The minimum value the threshold is allowed to assume.
-    tau: float
-        The time constant of the the decay of the threshold value
-        given in indices (`time` is None) or time units (`time` is not `None`).
-    time: array
-        The (optional) 1-D array with the time corresponding to the data values.
-    check_peak_func: function
-        An optional function to be used for further evaluating and analysing a peak.
-        The signature of the function is
-        ```
-        r, th = check_peak_func(time, data, peak_inx, index, min_inx, threshold, **kwargs)
-        ```
-        with
-            time (array): the full time array that might be None
-            data (array): the full data array
-            peak_inx (int): the index of the  detected peak
-            index (int): the current index
-            min_inx (int): the index of the trough preceeding the peak (might be 0)
-            threshold (float): the threshold value
-            min_thresh (float): the minimum value the threshold is allowed to assume.
-            tau (float): the time constant of the the decay of the threshold value
-                         given in indices (time is None) or time units (time is not None)
-            **kwargs: further keyword arguments provided by the user
-            r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
-            th (float): a new value for the threshold or None (to keep the original value)
-    check_trough_func: function
-        An optional function to be used for further evaluating and analysing a trough.
-        The signature of the function is
-        ```
-        r, th = check_trough_func(time, data, trough_inx, index, max_inx, threshold, **kwargs)
-        ```
-        with
-            time (array): the full time array that might be None
-            data (array): the full data array
-            trough_inx (int): the index of the  detected trough
-            index (int): the current index
-            max_inx (int): the index of the peak preceeding the trough (might be 0)
-            threshold (float): the threshold value
-            min_thresh (float): the minimum value the threshold is allowed to assume.
-            tau (float): the time constant of the the decay of the threshold value
-                         given in indices (time is None) or time units (time is not None)
-            **kwargs: further keyword arguments provided by the user
-            r (scalar or np.array): a single number or an array with properties of the trough or None to skip the trough
-            th (float): a new value for the threshold or None (to keep the original value)            
-    kwargs: key-word arguments
-        Arguments passed on to `check_peak_func` and `check_trough_func`.
-    
-    Returns 
-    -------
-    peak_list: np.array
-        A list of peaks.
-    trough_list: np.array
-        A list of troughs.
-    If time is `None` and no `check_peak_func` is given,
-    then these are lists of the indices where the peaks/troughs occur.
-    If `time` is given and no `check_peak_func`/`check_trough_func` is given,
-    then these are lists of the times where the peaks/troughs occur.
-    If `check_peak_func` or `check_trough_func` is given,
-    then these are lists of whatever `check_peak_func`/`check_trough_func` return.
-
-    Raises
-    ------
-    ValueError: If `threshold <= 0` or `min_thresh <= 0` or `tau <= 0`.
-    IndexError: If `data` and `time` arrays differ in length.
-    """
-
-    if threshold <= 0:
-        raise ValueError('input argument threshold must be positive!')
-    if min_thresh <= 0:
-        raise ValueError('input argument min_thresh must be positive!')
-    if tau <= 0:
-        raise ValueError('input argument tau must be positive!')
-    if time is not None and len(data) != len(time):
-        raise IndexError('input arrays time and data must have same length!')
-
-    peaks_list = list()
-    troughs_list = list()
-
-    # initialize:
-    dir = 0
-    min_inx = 0
-    max_inx = 0
-    min_value = data[0]
-    max_value = min_value
-
-    # loop through the data:
-    for index, value in enumerate(data):
-
-        # decaying threshold (1. order low pass filter):
-        if time is None:
-            threshold += (min_thresh - threshold) / tau
-        else:
-            idx = index
-            if idx + 1 >= len(data):
-                idx = len(data) - 2
-            threshold += (min_thresh - threshold) * (time[idx + 1] - time[idx]) / tau
-
-        # rising?
-        if dir > 0:
-            # if the new value is bigger than the old maximum: set it as new maximum:
-            if value > max_value:
-                max_inx = index  # maximum element
-                max_value = value
-
-            # otherwise, if the new value is falling below the maximum value minus the threshold:
-            # the maximum is a peak!
-            elif max_value >= value + threshold:
-                # check and update peak with the check_peak_func function:
-                if check_peak_func:
-                    r, th = check_peak_func(time, data, max_inx, index,
-                                            min_inx, threshold,
-                                            min_thresh=min_thresh, tau=tau, **kwargs)
-                    if r is not None:
-                        # this really is a peak:
-                        peaks_list.append(r)
-                    if th is not None:
-                        threshold = th
-                        if threshold < min_thresh:
-                            threshold = min_thresh
-                else:
-                    # this is a peak:
-                    if time is None:
-                        peaks_list.append(max_inx)
-                    else:
-                        peaks_list.append(time[max_inx])
-
-                # change direction:
-                min_inx = index  # minimum element
-                min_value = value
-                dir = -1
-
-        # falling?
-        elif dir < 0:
-            if value < min_value:
-                min_inx = index  # minimum element
-                min_value = value
-
-            elif value >= min_value + threshold:
-                # there was a trough:
-
-                # check and update trough with the check_trough function:
-                if check_trough_func:
-                    r, th = check_trough_func(time, data, min_inx, index,
-                                              max_inx, threshold,
-                                              min_thresh=min_thresh, tau=tau, **kwargs)
-                    if r is not None:
-                        # this really is a trough:
-                        troughs_list.append(r)
-                    if th is not None:
-                        threshold = th
-                        if threshold < min_thresh:
-                            threshold = min_thresh
-                else:
-                    # this is a trough:
-                    if time is None:
-                        troughs_list.append(min_inx)
-                    else:
-                        troughs_list.append(time[min_inx])
-
-                # change direction:
-                max_inx = index  # maximum element
-                max_value = value
-                dir = 1
-
-        # don't know direction yet:
-        else:
-            if max_value >= value + threshold:
-                dir = -1  # falling
-            elif value >= min_value + threshold:
-                dir = 1  # rising
-
-            if max_value < value:
-                max_inx = index  # maximum element
-                max_value = value
-
-            elif value < min_value:
-                min_inx = index  # minimum element
-                min_value = value
-
-    return np.asarray(peaks_list), np.asarray(troughs_list)
-
-
-def accept_peak(time, data, event_inx, index, min_inx, threshold):
-    """
-    Accept each detected peak/trough and return its index (or time) and its data value.
-
-    Parameters
-    ----------
-    freqs: array
-        Frequencies of the power spectrum.
-    data: array
-        The power spectrum.
-    event_inx: int
-        Index of the current peak/trough.
-    index: int
-        Current index.
-    min_inx: int
-        Index of the previous trough/peak.
-    threshold: float
-        Threshold value.
-    
-    Returns 
-    -------
-    index: int
-        Index of the peak/trough.
-    time: float
-        Time of the peak/trough if `time` is not `None`.
-    value: float
-        Value of data at the peak.
-    """
-    size = data[event_inx]
-    if time is None:
-        return [event_inx, size], None
-    else:
-        return [event_inx, time[event_inx], size], None
-
-
-def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
-                               min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02):
-    """Accept each detected peak/trough and return its index or time.
-    Adjust the threshold to the size of the detected peak.
-    To be passed to the detect_dynamic_peaks() function.
-
-    Parameters
-    ----------
-    time: array
-        Time values, can be `None`.
-    data: array
-        The data in wich peaks and troughs are detected.
-    event_inx: int
-        Index of the current peak/trough.
-    index: int
-        Current index.
-    min_inx: int
-        Index of the previous trough/peak.
-    threshold: float
-        Threshold value.
-    min_thresh: float
-        The minimum value the threshold is allowed to assume..
-    tau: float
-        The time constant of the the decay of the threshold value
-        given in indices (`time` is `None`) or time units (`time` is not `None`).
-    thresh_ampl_fac: float
-        The new threshold is `thresh_ampl_fac` times the size of the current peak.
-    thresh_weight: float
-        New threshold is weighted against current threshold with `thresh_weight`.
-
-    Returns 
-    -------
-    index: int
-        Index of the peak/trough if `time` is `None`.
-    time: int
-        Time of the peak/trough if `time` is not `None`.
-    threshold: float
-        The new threshold to be used.
-    """
-    size = data[event_inx] - data[min_inx]
-    threshold += thresh_weight * (thresh_ampl_fac * size - threshold)
-    if time is None:
-        return event_inx, threshold
-    else:
-        return time[event_inx], threshold
-
-
-def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfac=0.75):
-    """
-    Accept each detected peak and compute its size and width.
+    Compute for each peak its size and width.
 
     Parameters
     ----------
@@ -491,43 +149,153 @@ def accept_peaks_size_width(time, data, peak_inx, index, min_inx, threshold, pfa
         Time, must not be `None`.
     data: array
         The data with the peaks.
-    peak_inx: int
-        Index of the current peak.
-    index: int
-        Current index.
-    min_inx: int
-        Index of the previous trough.
-    threshold: float
-        Threshold value.
+    peak_indices: array
+        Indices of the peaks.
+    trough_indices: array
+        Indices of the troughs.
     pfac: float
         Fraction of peak height where its width is measured.
     
     Returns 
     -------
-    time: float
-        Time of the peak.
-    height: float
-        Height of the peak (value of data at the peak).
-    size: float
-        Size of the peak (peak minus previous trough).
-    width: float
-        Width of the peak at 0.75*size.
-    count: float
-        Zero.
+    peaks: 2-D array
+        First dimension is the peak index. Second dimension is
+        time, height (value of data at the peak),
+        size (peak height minus height of closest trough),
+        width (at `pfac` size), 0.0 (count) of the peak.
     """
+    peaks = np.zeros((len(peak_indices), 5))
+    if len(peak_indices) == 0:
+        return peaks
+    # time point of peaks:
+    peaks[:, 0] = time[peak_indices]
+    # height of peaks:
+    peaks[:, 1] = data[peak_indices]
+    # we need a trough before and after each peak:
+    peak_inx = peak_indices
+    trough_inx = trough_indices
+    if peak_inx[0] < trough_inx[0]:
+         trough_inx = np.hstack((0, trough_inx))
+    if peak_inx[-1] > trough_inx[-1]:
+         trough_inx = np.hstack((trough_inx, len(data)-1))
+    # size of peaks:
+    offs = 0
+    if np.mean(peak_inx - trough_inx[:-1]) < np.mean(peak_inx - trough_inx[1:]):
+        peaks[:, 2] = data[peak_inx] - data[trough_inx[:-1]]
+    else:
+        peaks[:, 2] = data[peak_inx] - data[trough_inx[1:]]
+        offs = 1
+    # width of peaks:
+    for j in range(len(peak_inx)):
+        wthresh = data[trough_inx[j+offs]] + pfac * peaks[j, 2]
+        width = 0.0
+        for k in range(peak_inx[j], trough_inx[j], -1):
+            if data[k] < wthresh:
+                break
+            width += time[k+1] - time[k]
+        for k in range(peak_inx[j], trough_inx[j+1]):
+            if data[k] < wthresh:
+                break
+            width += time[k] - time[k-1]
+        peaks[j, 3] = width
+    return peaks
+    
 
-    size = data[peak_inx] - data[min_inx]
-    wthresh = data[min_inx] + pfac * size
-    width = 0.0
-    for k in range(peak_inx, min_inx, -1):
-        if data[k] < wthresh:
-            width = time[peak_inx] - time[k]
-            break
-    for k in range(peak_inx, index):
-        if data[k] < wthresh:
-            width += time[k] - time[peak_inx]
-            break
-    return [time[peak_inx], data[peak_inx], size, width, 0.0], None
+def trim(peaks, troughs):
+    """
+    Trims the peaks and troughs arrays such that they have the same length.
+    
+    Parameters
+    ----------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
+
+    Returns
+    -------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
+    """
+    # common len:
+    n = min(len(peaks), len(troughs))
+    # align arrays:
+    return peaks[:n], troughs[:n]
+
+
+def trim_to_peak(peaks, troughs):
+    """
+    Trims the peaks and troughs arrays such that they have the same length
+    and the first peak comes first.
+    
+    Parameters
+    ----------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
+
+    Returns
+    -------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
+    """
+    # start index for troughs:
+    tidx = 0
+    if len(peaks) > 0 and len(troughs) > 0 and troughs[0] < peaks[0]:
+        tidx = 1
+    # common len:
+    n = min(len(peaks), len(troughs[tidx:]))
+    # align arrays:
+    return peaks[:n], troughs[tidx:tidx + n]
+
+
+def trim_closest(peaks, troughs):
+    """
+    Trims the peaks and troughs arrays such that they have the same length
+    and that peaks-troughs is on average as small as possible.
+    
+    Parameters
+    ----------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
+
+    Returns
+    -------
+    peaks: array
+        List of peak indices or times.
+    troughs: array
+        List of trough indices or times.
+    """
+    pidx = 0
+    tidx = 0
+    nn = min(len(peaks), len(troughs))
+    if nn == 0:
+        return np.array([]), np.array([])
+    dist = np.abs(np.mean(peaks[:nn] - troughs[:nn]))
+    if len(peaks) == 0 or len(troughs) == 0:
+        nn = 0
+    else:
+        if peaks[0] < troughs[0]:
+            nnp = min(len(peaks[1:]), len(troughs))
+            distp = np.abs(np.mean(peaks[1:nnp] - troughs[:nnp - 1]))
+            if distp < dist:
+                pidx = 1
+                nn = nnp
+        else:
+            nnt = min(len(peaks), len(troughs[1:]))
+            distt = np.abs(np.mean(peaks[:nnt - 1] - troughs[1:nnt]))
+            if distt < dist:
+                tidx = 1
+                nn = nnt
+    # align arrays:
+    return peaks[pidx:pidx + nn], troughs[tidx:tidx + nn]
 
 
 def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
@@ -757,101 +525,249 @@ def snippets(data, indices, start=-10, stop=10):
     return snippet_data
 
 
-def trim(peaks, troughs):
+def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
+                         check_peak_func=None, check_trough_func=None, **kwargs):
     """
-    Trims the peaks and troughs arrays such that they have the same length.
-    
+    Detect peaks and troughs using a relative threshold according to
+    Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
+    Computers and Biomedical Research 32, 322-335.
+    The threshold decays dynamically towards min_thresh with time constant tau.
+    Use `check_peak_func` or `check_trough_func` to reset the threshold to an appropriate size.
+
     Parameters
     ----------
-    peaks: array
-        List of peak indices or times.
-    troughs: array
-        List of trough indices or times.
-
-    Returns
-    -------
-    peaks: array
-        List of peak indices or times.
-    troughs: array
-        List of trough indices or times.
-    """
-    # common len:
-    n = min(len(peaks), len(troughs))
-    # align arrays:
-    return peaks[:n], troughs[:n]
-
-
-def trim_to_peak(peaks, troughs):
-    """
-    Trims the peaks and troughs arrays such that they have the same length
-    and the first peak comes first.
+    data: array
+        An 1-D array of input data where peaks are detected.
+    threshold: float
+        A positive number setting the minimum distance between peaks and troughs.
+    min_thresh: float
+        The minimum value the threshold is allowed to assume.
+    tau: float
+        The time constant of the the decay of the threshold value
+        given in indices (`time` is None) or time units (`time` is not `None`).
+    time: array
+        The (optional) 1-D array with the time corresponding to the data values.
+    check_peak_func: function
+        An optional function to be used for further evaluating and analysing a peak.
+        The signature of the function is
+        ```
+        r, th = check_peak_func(time, data, peak_inx, index, min_inx, threshold, **kwargs)
+        ```
+        with
+            time (array): the full time array that might be None
+            data (array): the full data array
+            peak_inx (int): the index of the  detected peak
+            index (int): the current index
+            min_inx (int): the index of the trough preceeding the peak (might be 0)
+            threshold (float): the threshold value
+            min_thresh (float): the minimum value the threshold is allowed to assume.
+            tau (float): the time constant of the the decay of the threshold value
+                         given in indices (time is None) or time units (time is not None)
+            **kwargs: further keyword arguments provided by the user
+            r (scalar or np.array): a single number or an array with properties of the peak or None to skip the peak
+            th (float): a new value for the threshold or None (to keep the original value)
+    check_trough_func: function
+        An optional function to be used for further evaluating and analysing a trough.
+        The signature of the function is
+        ```
+        r, th = check_trough_func(time, data, trough_inx, index, max_inx, threshold, **kwargs)
+        ```
+        with
+            time (array): the full time array that might be None
+            data (array): the full data array
+            trough_inx (int): the index of the  detected trough
+            index (int): the current index
+            max_inx (int): the index of the peak preceeding the trough (might be 0)
+            threshold (float): the threshold value
+            min_thresh (float): the minimum value the threshold is allowed to assume.
+            tau (float): the time constant of the the decay of the threshold value
+                         given in indices (time is None) or time units (time is not None)
+            **kwargs: further keyword arguments provided by the user
+            r (scalar or np.array): a single number or an array with properties of the trough or None to skip the trough
+            th (float): a new value for the threshold or None (to keep the original value)            
+    kwargs: key-word arguments
+        Arguments passed on to `check_peak_func` and `check_trough_func`.
     
-    Parameters
-    ----------
-    peaks: array
-        List of peak indices or times.
-    troughs: array
-        List of trough indices or times.
-
-    Returns
+    Returns 
     -------
-    peaks: array
-        List of peak indices or times.
-    troughs: array
-        List of trough indices or times.
-    """
-    # start index for troughs:
-    tidx = 0
-    if len(peaks) > 0 and len(troughs) > 0 and troughs[0] < peaks[0]:
-        tidx = 1
-    # common len:
-    n = min(len(peaks), len(troughs[tidx:]))
-    # align arrays:
-    return peaks[:n], troughs[tidx:tidx + n]
+    peak_list: np.array
+        A list of peaks.
+    trough_list: np.array
+        A list of troughs.
+    If time is `None` and no `check_peak_func` is given,
+    then these are lists of the indices where the peaks/troughs occur.
+    If `time` is given and no `check_peak_func`/`check_trough_func` is given,
+    then these are lists of the times where the peaks/troughs occur.
+    If `check_peak_func` or `check_trough_func` is given,
+    then these are lists of whatever `check_peak_func`/`check_trough_func` return.
 
-
-def trim_closest(peaks, troughs):
+    Raises
+    ------
+    ValueError: If `threshold <= 0` or `min_thresh <= 0` or `tau <= 0`.
+    IndexError: If `data` and `time` arrays differ in length.
     """
-    Trims the peaks and troughs arrays such that they have the same length
-    and that peaks-troughs is on average as small as possible.
-    
-    Parameters
-    ----------
-    peaks: array
-        List of peak indices or times.
-    troughs: array
-        List of trough indices or times.
 
-    Returns
-    -------
-    peaks: array
-        List of peak indices or times.
-    troughs: array
-        List of trough indices or times.
-    """
-    pidx = 0
-    tidx = 0
-    nn = min(len(peaks), len(troughs))
-    if nn == 0:
-        return np.array([]), np.array([])
-    dist = np.abs(np.mean(peaks[:nn] - troughs[:nn]))
-    if len(peaks) == 0 or len(troughs) == 0:
-        nn = 0
-    else:
-        if peaks[0] < troughs[0]:
-            nnp = min(len(peaks[1:]), len(troughs))
-            distp = np.abs(np.mean(peaks[1:nnp] - troughs[:nnp - 1]))
-            if distp < dist:
-                pidx = 1
-                nn = nnp
+    if threshold <= 0:
+        raise ValueError('input argument threshold must be positive!')
+    if min_thresh <= 0:
+        raise ValueError('input argument min_thresh must be positive!')
+    if tau <= 0:
+        raise ValueError('input argument tau must be positive!')
+    if time is not None and len(data) != len(time):
+        raise IndexError('input arrays time and data must have same length!')
+
+    peaks_list = list()
+    troughs_list = list()
+
+    # initialize:
+    dir = 0
+    min_inx = 0
+    max_inx = 0
+    min_value = data[0]
+    max_value = min_value
+
+    # loop through the data:
+    for index, value in enumerate(data):
+
+        # decaying threshold (first order low pass filter):
+        if time is None:
+            threshold += (min_thresh - threshold) / tau
         else:
-            nnt = min(len(peaks), len(troughs[1:]))
-            distt = np.abs(np.mean(peaks[:nnt - 1] - troughs[1:nnt]))
-            if distt < dist:
-                tidx = 1
-                nn = nnt
-    # align arrays:
-    return peaks[pidx:pidx + nn], troughs[tidx:tidx + nn]
+            idx = index
+            if idx + 1 >= len(data):
+                idx = len(data) - 2
+            threshold += (min_thresh - threshold) * (time[idx + 1] - time[idx]) / tau
+
+        # rising?
+        if dir > 0:
+            # if the new value is bigger than the old maximum: set it as new maximum:
+            if value > max_value:
+                max_inx = index  # maximum element
+                max_value = value
+
+            # otherwise, if the new value is falling below the maximum value minus the threshold:
+            # the maximum is a peak!
+            elif max_value >= value + threshold:
+                # check and update peak with the check_peak_func function:
+                if check_peak_func:
+                    r, th = check_peak_func(time, data, max_inx, index,
+                                            min_inx, threshold,
+                                            min_thresh=min_thresh, tau=tau, **kwargs)
+                    if r is not None:
+                        # this really is a peak:
+                        peaks_list.append(r)
+                    if th is not None:
+                        threshold = th
+                        if threshold < min_thresh:
+                            threshold = min_thresh
+                else:
+                    # this is a peak:
+                    if time is None:
+                        peaks_list.append(max_inx)
+                    else:
+                        peaks_list.append(time[max_inx])
+
+                # change direction:
+                min_inx = index  # minimum element
+                min_value = value
+                dir = -1
+
+        # falling?
+        elif dir < 0:
+            if value < min_value:
+                min_inx = index  # minimum element
+                min_value = value
+
+            elif value >= min_value + threshold:
+                # there was a trough:
+
+                # check and update trough with the check_trough function:
+                if check_trough_func:
+                    r, th = check_trough_func(time, data, min_inx, index,
+                                              max_inx, threshold,
+                                              min_thresh=min_thresh, tau=tau, **kwargs)
+                    if r is not None:
+                        # this really is a trough:
+                        troughs_list.append(r)
+                    if th is not None:
+                        threshold = th
+                        if threshold < min_thresh:
+                            threshold = min_thresh
+                else:
+                    # this is a trough:
+                    if time is None:
+                        troughs_list.append(min_inx)
+                    else:
+                        troughs_list.append(time[min_inx])
+
+                # change direction:
+                max_inx = index  # maximum element
+                max_value = value
+                dir = 1
+
+        # don't know direction yet:
+        else:
+            if max_value >= value + threshold:
+                dir = -1  # falling
+            elif value >= min_value + threshold:
+                dir = 1  # rising
+
+            if max_value < value:
+                max_inx = index  # maximum element
+                max_value = value
+
+            elif value < min_value:
+                min_inx = index  # minimum element
+                min_value = value
+
+    return np.asarray(peaks_list), np.asarray(troughs_list)
+
+
+def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
+                               min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02):
+    """Accept each detected peak/trough and return its index or time.
+    Adjust the threshold to the size of the detected peak.
+    To be passed to the detect_dynamic_peaks() function.
+
+    Parameters
+    ----------
+    time: array
+        Time values, can be `None`.
+    data: array
+        The data in wich peaks and troughs are detected.
+    event_inx: int
+        Index of the current peak/trough.
+    index: int
+        Current index.
+    min_inx: int
+        Index of the previous trough/peak.
+    threshold: float
+        Threshold value.
+    min_thresh: float
+        The minimum value the threshold is allowed to assume..
+    tau: float
+        The time constant of the the decay of the threshold value
+        given in indices (`time` is `None`) or time units (`time` is not `None`).
+    thresh_ampl_fac: float
+        The new threshold is `thresh_ampl_fac` times the size of the current peak.
+    thresh_weight: float
+        New threshold is weighted against current threshold with `thresh_weight`.
+
+    Returns 
+    -------
+    index: int
+        Index of the peak/trough if `time` is `None`.
+    time: int
+        Time of the peak/trough if `time` is not `None`.
+    threshold: float
+        The new threshold to be used.
+    """
+    size = data[event_inx] - data[min_inx]
+    threshold += thresh_weight * (thresh_ampl_fac * size - threshold)
+    if time is None:
+        return event_inx, threshold
+    else:
+        return time[event_inx], threshold
 
 
 if __name__ == "__main__":
@@ -875,34 +791,26 @@ if __name__ == "__main__":
     print('')
     print('check detect_peaks(data, 0.5, time)...')
     peaks, troughs = detect_peaks(data, 0.5, time)
-    # print peaks
+    # print peaks:
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (
         len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks))))
-    # print troughs
+    # print troughs:
     print('detected %d troughs with period %g that differs from the real frequency by %g' % (
         len(troughs), np.mean(np.diff(troughs)), f - 1.0 / np.mean(np.diff(troughs))))
 
     print('')
     print('check detect_peaks(data, 0.5)...')
     peaks, troughs = detect_peaks(data, 0.5)
-    # print peaks
+    # print peaks:
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (
         len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks)) / np.mean(np.diff(time))))
-    # print troughs
+    # print troughs:
     print('detected %d troughs with period %g that differs from the real frequency by %g' % (
         len(troughs), np.mean(np.diff(troughs)), f - 1.0 / np.mean(np.diff(troughs)) / np.mean(np.diff(time))))
 
-    print('')
-    print('check detect_peaks(data, 0.5, time, accept_peak, accept_peak)...')
-    peaks, troughs = detect_peaks(data, 0.5, time, accept_peak, accept_peak)
-    # print peaks
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (
-        len(peaks), np.mean(np.diff(peaks[:, 1])), f - 1.0 / np.mean(np.diff(peaks[:, 1]))))
-    # print troughs
-    print('detected %d troughs with period %g that differs from the real frequency by %g' % (
-        len(troughs), np.mean(np.diff(troughs[:, 1])), f - 1.0 / np.mean(np.diff(troughs[:, 1]))))
-    plt.plot(peaks[:, 1], peaks[:, 2], '.r', ms=20)
-    plt.plot(troughs[:, 1], troughs[:, 2], '.g', ms=20)
+    # plot peaks and troughs:
+    plt.plot(time[peaks], data[peaks], '.r', ms=20)
+    plt.plot(time[troughs], data[troughs], '.g', ms=20)
 
     plt.ylim(-0.5, 4.0)
     plt.show()

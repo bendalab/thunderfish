@@ -15,7 +15,7 @@ plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, har
 
 from __future__ import print_function
 import numpy as np
-from .peakdetection import detect_peaks, accept_peaks_size_width, hist_threshold
+from .peakdetection import detect_peaks, peak_size_width, hist_threshold
 from .powerspectrum import decibel, power, plot_decibel_psd
 try:
     import matplotlib.pyplot as plt
@@ -648,7 +648,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 
 def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
                     thresh_bins=100, low_thresh_factor=6.0, high_thresh_factor=10.0,
-                    max_peak_width_fac=3.5, min_peak_width=1.0,
+                    max_peak_width_fac=5.0, min_peak_width=1.0,
                     freq_tol_fac=0.7, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                     max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
                     max_double_use_harmonics=8, max_double_use_count=1,
@@ -678,8 +678,8 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
         Factor by which the estimated standard deviation of the noise floor
         is multiplied to set the `high_threshold`.
     max_peak_width_fac: float
-        The maximum allowed width of a good peak in the decibel power spectrum in multiples of
-        the frequency resolution.
+        The maximum allowed width at 0.75 height of a good peak in the decibel power spectrum
+        in multiples of the frequency resolution.
     min_peak_width: float
         The minimum absolute value for the maximum width of a peak in Hertz.
     freq_tol_fac: float
@@ -744,6 +744,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
 
     # decibel power spectrum:
     log_psd = decibel(psd)
+    delta_f = psd_freqs[1] - psd_freqs[0]
 
     # thresholds:
     center = np.NaN
@@ -759,14 +760,14 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
             print('center=', center)
 
     # detect peaks in decibel power spectrum:
-    all_freqs, _ = detect_peaks(log_psd, low_threshold, psd_freqs,
-                                accept_peaks_size_width)
+    peaks, troughs = detect_peaks(log_psd, low_threshold)
+    all_freqs = peak_size_width(psd_freqs, log_psd, peaks, troughs)
 
     if len(all_freqs) == 0:
         return [], [], [], np.zeros((0, 5)), [], low_threshold, high_threshold, center
 
     # maximum width of a frequency peak:
-    wthresh = max_peak_width_fac * (psd_freqs[1] - psd_freqs[0])
+    wthresh = max_peak_width_fac * delta_f
     if wthresh < min_peak_width:
         wthresh = min_peak_width
         
@@ -781,8 +782,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     all_freqs[:, 1] = power(all_freqs[:, 1])
 
     # detect harmonic groups:
-    groups, fzero_harmonics, mains = extract_fundamentals(freqs, all_freqs,
-                                                          psd_freqs[1] - psd_freqs[0],
+    groups, fzero_harmonics, mains = extract_fundamentals(freqs, all_freqs, delta_f,
                                                           verbose, freq_tol_fac,
                                                           mains_freq, min_freq, max_freq,
                                                           max_divisor, max_upper_fill,
@@ -1021,7 +1021,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
                                   thresh_bins=100,
                                   low_thresh_factor=6.0, high_thresh_factor=10.0,
-                                  max_peak_width_fac=3.5, min_peak_width=1.0):
+                                  max_peak_width_fac=5.0, min_peak_width=1.0):
     """ Add parameter needed for detection of peaks in power spectrum used by
     harmonic_groups() as a new section to a configuration.
 
@@ -1044,8 +1044,8 @@ def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
 
     cfg.add_section('Peak detection in decibel power spectrum:')
     cfg.add('maxPeakWidthFac', max_peak_width_fac, '',
-            'Maximum width of peaks at 0.75 hight in multiples of frequency resolution (might be increased)')
-    cfg.add('minPeakWidth', min_peak_width, 'Hz', 'Peaks do not need to be narrower than this.')
+            'Maximum width of peaks at 0.75 hight in multiples of frequency resolution.')
+    cfg.add('minPeakWidth', min_peak_width, 'Hz', 'Peaks do never need to be narrower than this.')
 
 
 def psd_peak_detection_args(cfg):
