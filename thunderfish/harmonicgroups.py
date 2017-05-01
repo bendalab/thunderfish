@@ -435,7 +435,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
                          max_divisor=4, max_upper_fill=1,
                          max_double_use_harmonics=8, max_double_use_count=1,
                          max_fill_ratio=0.25, power_n_harmonics=10,
-                         min_group_size=3, max_harmonics=0, **kwargs):
+                         min_group_size=3, max_harmonics=0, max_groups=0, **kwargs):
     """Extract fundamental frequencies from power-spectrum peaks.
                          
     Parameters
@@ -475,6 +475,8 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
         are not part of other, so far detected,  harmonics groups.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
+    max_groups: int
+        If not zero the maximum number of most powerful harmonic groups.
 
     Returns
     -------
@@ -562,9 +564,18 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
         for group in group_list:
             if group.shape[0] > max_harmonics:
                 if verbose > 1:
-                    print('Discarding some tailing harmonics for f=%.2fHz' % group[0, 0])
+                    print('Discarding harmonics higher than %d for f=%.2fHz' % (max_harmonics, group[0, 0]))
                 group = group[:max_harmonics, :]
 
+    # select most powerful harmonic groups:
+    if max_groups > 0:
+        powers = [np.sum(group[:, 1]) for group in group_list]
+        powers_inx = np.argsort(powers)
+        group_list = [group_list[pi] for pi in powers_inx[-max_groups:]]
+        fzero_harmonics_list = [fzero_harmonics_list[pi] for pi in powers_inx[-max_groups:]]
+        if verbose > 0:
+            print('Selected the %d most powerful groups.' % max_groups)
+        
     # sort groups by fundamental frequency:
     ffreqs = [f[0, 0] for f in group_list]
     finx = np.argsort(ffreqs)
@@ -642,7 +653,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
                     max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
                     max_double_use_harmonics=8, max_double_use_count=1,
                     max_fill_ratio=0.25, power_n_harmonics=10,
-                    min_group_size=3, max_harmonics=0, **kwargs):
+                    min_group_size=3, max_harmonics=0, max_groups=0, **kwargs):
     """Detect peaks in power spectrum and extract fundamentals of harmonic groups.
 
     Parameters
@@ -700,6 +711,8 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
         are not part of other, so far detected,  harmonics groups.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
+    max_groups: int
+        If not zero the maximum number of most powerful harmonic groups.
 
     Returns
     -------
@@ -774,9 +787,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
                                                           mains_freq, min_freq, max_freq,
                                                           max_divisor, max_upper_fill,
                                                           max_double_use_harmonics,
-                                                          max_double_use_count,max_fill_ratio,
+                                                          max_double_use_count, max_fill_ratio,
                                                           power_n_harmonics, min_group_size,
-                                                          max_harmonics)
+                                                          max_harmonics, max_groups)
 
     return groups, fzero_harmonics, mains, all_freqs, freqs[:, 0], low_threshold, high_threshold, center
 
@@ -903,7 +916,7 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
             harmonic_groups() with the element [0, 0] of the harmonic groups being the fundamental frequency,
             and element[0, 1] being the corresponding power.
     max_groups: int
-            If not zero plot only the max_groups powerful groups.
+            If not zero plot only the max_groups most powerful groups.
     sort_by_freq: boolean
             If True sort legend by frequency, otherwise by power.
     colors: list of colors or None
@@ -1066,7 +1079,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac
                                max_double_use_harmonics=8, max_double_use_count=1,
                                power_n_harmonics=10, min_group_size=3,
                                min_freq=20.0, max_freq=2000.0, max_work_freq=4000.0,
-                               max_harmonics=0):
+                               max_harmonics=0, max_groups=0):
     """ Add parameter needed for detection of harmonic groups as
     a new section to a configuration.
 
@@ -1098,6 +1111,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac
     cfg.add('maximumWorkingFrequency', max_work_freq, 'Hz',
             'Maximum frequency to be used to search for harmonic groups and to adjust fundamental frequency.')
     cfg.add('maxHarmonics', max_harmonics, '', '0: keep all, >0 only keep the first # harmonics.')
+    cfg.add('maxGroups', max_groups, '', 'Maximum number of harmonic groups. If 0 process all.')
 
 
 def harmonic_groups_args(cfg):
@@ -1128,7 +1142,8 @@ def harmonic_groups_args(cfg):
                     'min_freq': 'minimumFrequency',
                     'max_freq': 'maximumFrequency',
                     'max_work_freq': 'maximumWorkingFrequency',
-                    'max_harmonics': 'maxHarmonics'})
+                    'max_harmonics': 'maxHarmonics',
+                    'max_groups': 'maxGroups'})
 
 if __name__ == "__main__":
     print("Checking harmonicgroups module ...")
