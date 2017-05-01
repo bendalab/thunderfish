@@ -1,12 +1,13 @@
 """
-Computing and plot powerspectra and spectrograms.
+Compute and plot powerspectra and spectrograms for a given minimum frequency resolution.
 
-next_power_of_two(): rounds an integer up to the next power of two.
-nfff_overlap():      computes nfft and overlap based on a requested minimum frequency resolution
+next_power_of_two(): Round an integer up to the next power of two.
+nfff_overlap():      Compute nfft and overlap based on a requested minimum frequency resolution
                      and overlap fraction.
                 
 psd():                  Compute power spectrum with a given frequency resolution.
-decibel():              Transforms power to decibel.
+decibel():              Transform power to decibel.
+power():                Transform decibel to power.
 plot_decibel_psd():     Plot power spectrum in decibel.
 multi_resolution_psd(): Performs the steps to calculate a powerspectrum.
 spectrogram():          Spectrogram of a given frequency resolution and overlap fraction.
@@ -22,10 +23,17 @@ except ImportError:
 
 
 def next_power_of_two(n):
-    """The next integer power of two for an arbitray number.
+    """The next integer power of two.
     
-    :param n: (int or float) a positive number
-    :return: (int) the next integer power of two
+    Parameters
+    ----------
+    n: int or float
+        A positive number.
+
+    Returns
+    -------
+    m: int
+        The next integer power of two equal or larger than `n`.
     """
     return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))
 
@@ -34,12 +42,23 @@ def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=16):
     """The required number of points for an FFT to achieve a minimum frequency resolution
     and the number of overlapping data points.
 
-    :param freq_resolution: (float) the minimum required frequency resolution in Hertz.
-    :param samplerate: (float) the sampling rate of the data in Hertz.
-    :param overlap_frac: (float) the fraction the FFT windows should overlap.
-    :param min_nfft: (int) the smallest value of nfft to be used.
-    :return nfft: (int) the number of FFT points.
-    :return noverlap: (int) the number of overlapping FFT points.
+    Parameters
+    ----------
+    freq_resolution: float
+        The minimum required frequency resolution in Hertz.
+    samplerate: float
+        The sampling rate of the data in Hertz.
+    overlap_frac: float
+        The fraction the FFT windows should overlap.
+    min_nfft: int
+        The smallest value of nfft to be used.
+
+    Returns
+    -------
+    nfft: int
+        The number of FFT points.
+    noverlap: int
+        The number of overlapping FFT points.
     """
     nfft = next_power_of_two(samplerate / freq_resolution)
     if nfft < min_nfft:
@@ -53,15 +72,22 @@ def psd(data, samplerate, fresolution, min_nfft=16, detrend=mlab.detrend_none,
         sides='default', scale_by_freq=None):
     """Power spectrum density of a given frequency resolution.
 
-    From the requested frequency resolution and the samplerate nfft is computed.
+    NFFT is computed from the requested frequency resolution and the samplerate.
     
-    :param data:                (1-D array) data array you want to calculate a psd of.
-    :param samplerate:          (float) sampling rate of the data in Hertz.
-    :param fresolution:         (float) frequency resolution of the psd in Hertz.
-    :param overlap_frac:             (float) fraction of overlap for the fft windows.
+    data: 1-D array
+        Data array you want to calculate a psd of.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    fresolution: float
+        Frequency resolution of the psd in Hertz.
+    overlap_frac: float
+        Fraction of overlap for the fft windows.
     See numpy.psd for the remaining parameter.
 
-    :return:                    (2-D array) power and frequency.
+    Returns
+    -------
+    psd: 2-D array
+        Power and frequency.
     """
 
     nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=min_nfft)
@@ -72,23 +98,24 @@ def psd(data, samplerate, fresolution, min_nfft=16, detrend=mlab.detrend_none,
 
 def decibel(power, ref_power=1.0, min_power=1e-20):
     """
-    Transforms power to decibel relative to ref_power.
-
-    decibel_psd = 10 * log10(power/ref_power)
+    Transform power to decibel relative to ref_power.
+    ```
+    decibel = 10 * log10(power/ref_power)
+    ```
 
     Parameters
     ----------
     power: array
-        the power values of the power spectrum or spectrogram.
+        Power values of the power spectrum or spectrogram.
     ref_power: float
-        the reference power for computing decibel. If set to None the maximum power is used.
+        Reference power for computing decibel. If set to `None` the maximum power is used.
     min_power: float
-        power values smaller than min_power are set to np.nan.
+        Power values smaller than `min_power` are set to `np.nan`.
 
     Returns
     -------
     decibel_psd: array
-        the power values in decibel
+        Power values in decibel.
     """
     if ref_power is None:
         ref_power = np.max(power)
@@ -98,6 +125,28 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     return decibel_psd
 
 
+def power(decibel, ref_power=1.0):
+    """
+    Transform decibel back to power relative to ref_power.
+    ```
+    power = ref_power * 10**(0.1 * decibel)
+    ```
+    
+    Parameters
+    ----------
+    decibel: array
+        Decibel values of the power spectrum or spectrogram.
+    ref_power: float
+        Reference power for computing power.
+
+    Returns
+    -------
+    power: array
+        Power values of the power spectrum or spectrogram.
+    """
+    return ref_power * 10.0 ** (0.1 * decibel)
+
+
 def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20, max_freq=2000.0, **kwargs):
     """
     Plot the powerspectum in decibel relative to ref_power.
@@ -105,19 +154,19 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20, max_freq=
     Parameters
     ----------
     ax:
-        axis for plot
+        Axis for plot.
     freqs: 1-D array
-        frequency array of a psd.
+        Frequency array of the power spectrum.
     power: 1-D array
-        power array of a psd.
+        Power values of the power spectrum.
     ref_power: float
-        the reference power for computing decibel. If set to None the maximum power is used.
+        Reference power for computing decibel. If set to `None` the maximum power is used.
     min_power: float
-        power values smaller than min_power are set to np.nan.
+        Power values smaller than `min_power` are set to `np.nan`.
     max_freq: float
-        limits of frequency axis are set to (0, max_freq) if max_freq is greater than zero
+        Limits of frequency axis are set to `(0, max_freq)` if `max_freq` is greater than zero
     kwargs:
-        plot parameter that are passed on to the plot() function.
+        Plot parameter that are passed on to the `plot()` function.
     """
      
     decibel_psd = decibel(power, ref_power=ref_power, min_power=min_power)
@@ -144,15 +193,25 @@ def multi_resolution_psd(data, samplerate, fresolution=0.5,
     Two other functions are called to first calculate the nfft value and second calculate the powerspectrum. The given
     frequencyresolution can be a float or a list/array of floats.
 
-    (for information on further arguments see numpy.psd documentation)
-    :param data:                (1-D array) data array you want to calculate a psd of.
-    :param samplerate:          (float) sampling rate of the data in Hertz.
-    :param fresolution:         (float or 1-D array) frequency resolutions for one or multiple psds in Hertz.
-    :param overlap:             (float) fraction of overlap for the fft windows.
-    :return multi_psd_data:     (3-D or 2-D array) if the psd is calculated for one frequency resolution
-                                a 2-D array with the single power spectrum is returned (psd_data[power, freq]).
-                                If the psd is calculated for multiple frequency resolutions
-                                a list of 2-D array is returned (psd_data[frequency_resolution][power, freq]).
+    Parameters
+    ----------
+    data: 1-D array
+        Data array you want to calculate a psd of.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    fresolution: float or 1-D array
+        Frequency resolutions for one or multiple psds in Hertz.
+    overlap: float
+        Fraction of overlap for the fft windows.
+    For information on further arguments see `numpy.psd` documentation.
+
+    Returns
+    -------
+    multi_psd_data: 3-D or 2-D array
+        If the power spectrum is calculated for one frequency resolution
+        a 2-D array with the single power spectrum is returned (`psd_data[power, freq]`).
+        If the power sepctrum is calculated for multiple frequency resolutions
+        a list of 2-D array is returned (`psd_data[frequency_resolution][power, freq]`).
     """
     return_list = True
     if not hasattr(fresolution, '__len__'):
@@ -175,13 +234,25 @@ def spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, wi
     """
     Spectrogram of a given frequency resolution.
 
-    :param data: (array) data for the spectrogram.
-    :param samplerate: (float) samplerate of data in Hertz.
-    :param fresolution: (float) frequency resolution for the spectrogram.
-    :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
-    :return spectrum: (2d array) contains for every timestamp the power of the frequencies listed in the array "freqs".
-    :return freqs: (array) frequencies of the spectrogram.
-    :return time: (array) time of the nffts.
+    Parameters
+    ----------
+    data: array
+        Data for the spectrogram.
+    samplerate: float
+        Samplerate of data in Hertz.
+    fresolution: float
+        Frequency resolution for the spectrogram.
+    overlap_frac: float
+        Overlap of the nffts (0 = no overlap; 1 = total overlap).
+
+    Returns
+    -------
+    spectrum: 2d array
+        Contains for every timestamp the power of the frequencies listed in the array `freqs`.
+    freqs: array
+        Frequencies of the spectrogram.
+    time: array
+        Time of the nfft windows.
     """
 
     nfft, noverlap = nfft_noverlap(fresolution, samplerate, overlap_frac, min_nfft=min_nfft)

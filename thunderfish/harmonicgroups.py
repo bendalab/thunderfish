@@ -16,7 +16,7 @@ plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, har
 from __future__ import print_function
 import numpy as np
 from .peakdetection import detect_peaks, accept_peaks_size_width, hist_threshold
-from .powerspectrum import decibel, plot_decibel_psd
+from .powerspectrum import decibel, power, plot_decibel_psd
 try:
     import matplotlib.pyplot as plt
     import matplotlib.colors as mc
@@ -576,9 +576,9 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
         if len(group_list) > 0:
             print('## FUNDAMENTALS FOUND: ##')
             for i in range(len(group_list)):
-                power = group_list[i][:, 1]
-                print('{:8.2f}Hz: {:10.8f} {:3d} {:3d}'.format(group_list[i][0, 0], np.sum(power),
-                                                               np.sum(power <= 0.0), fzero_harmonics_list[i]))
+                powers = group_list[i][:, 1]
+                print('{:8.2f}Hz: {:10.8f} {:3d} {:3d}'.format(group_list[i][0, 0], np.sum(powers),
+                                                               np.sum(powers <= 0.0), fzero_harmonics_list[i]))
         else:
             print('## NO FUNDAMENTALS FOUND ##')
 
@@ -605,9 +605,10 @@ def threshold_estimate(data, noise_factor=6.0, nbins=100, hist_height=1.0/ np.sq
 
     Parameters
     ----------
-    data: the data from which to estimate the thresholds
-        noise_factor: float
-            Factor by which the width of the histogram is multiplied to set the low_threshold.
+    data: array
+        The data from which to estimate the thresholds
+    noise_factor: float
+        Factor by which the width of the histogram is multiplied to set the low_threshold.
     nbins: int or list of floats
         Number of bins or the bins for computing the histogram.
     hist_height: float
@@ -626,32 +627,38 @@ def threshold_estimate(data, noise_factor=6.0, nbins=100, hist_height=1.0/ np.sq
         Estimate of the median of the data without peaks.
     """
 
-    # estimate noise standard deviation:
-    hist, bins = np.histogram(data, nbins, density=True)
-    inx = hist > np.max(hist) * hist_height
-    lower = bins[0:-1][inx][0]
-    upper = bins[1:][inx][-1]  # needs to return the next bin
-    center = 0.5 * (lower + upper)
-    noise_std = 0.5 * (upper - lower)
-    lowthreshold = noise_std * noise_factor
+    n = len(data)
+    data_seg = data[n//2:n*3//4]
+    noise_std, center = hist_threshold(data_seg, th_factor=1.0, nbins=nbins)
+    low_threshold = noise_std * noise_factor
+    high_threshold = 2.0*noise_std * noise_factor
+    
+    ## # estimate noise standard deviation:
+    ## hist, bins = np.histogram(data, nbins, density=True)
+    ## inx = hist > np.max(hist) * hist_height
+    ## lower = bins[0:-1][inx][0]
+    ## upper = bins[1:][inx][-1]  # needs to return the next bin
+    ## center = 0.5 * (lower + upper)
+    ## noise_std = 0.5 * (upper - lower)
+    ## lowthreshold = noise_std * noise_factor
 
-    # high threshold:
-    lowerth = center + 0.5 * lowthreshold
-    cumhist = np.cumsum(hist) / np.sum(hist)
-    upperpthresh = 0.95
-    if bins[-2] >= lowerth:
-        pthresh = cumhist[bins[:-1] >= lowerth][0]
-        upperpthresh = pthresh + 0.95 * (1.0 - pthresh)
-    upperbins = bins[:-1][cumhist > upperpthresh]
-    if len(upperbins) > 0:
-        upperth = upperbins[0]
-    else:
-        upperth = bins[-1]
-    highthreshold = lowthreshold + peak_factor * noise_std
-    if upperth > lowerth + 0.1 * noise_std:
-        highthreshold = lowerth + peak_factor * (upperth - lowerth) + 0.5 * lowthreshold - center
+    ## # high threshold:
+    ## lowerth = center + 0.5 * lowthreshold
+    ## cumhist = np.cumsum(hist) / np.sum(hist)
+    ## upperpthresh = 0.95
+    ## if bins[-2] >= lowerth:
+    ##     pthresh = cumhist[bins[:-1] >= lowerth][0]
+    ##     upperpthresh = pthresh + 0.95 * (1.0 - pthresh)
+    ## upperbins = bins[:-1][cumhist > upperpthresh]
+    ## if len(upperbins) > 0:
+    ##     upperth = upperbins[0]
+    ## else:
+    ##     upperth = bins[-1]
+    ## highthreshold = lowthreshold + peak_factor * noise_std
+    ## if upperth > lowerth + 0.1 * noise_std:
+    ##     highthreshold = lowerth + peak_factor * (upperth - lowerth) + 0.5 * lowthreshold - center
 
-    return lowthreshold, highthreshold, center
+    return low_threshold, high_threshold, center
 
 
 def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
@@ -754,8 +761,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     # thresholds:
     center = np.NaN
     if low_threshold <= 0.0 or high_threshold <= 0.0:
-        n = len(log_psd)
-        low_threshold, high_threshold, center = threshold_estimate(log_psd[2 * n // 3:n * 9 // 10],
+        low_threshold, high_threshold, center = threshold_estimate(log_psd,
                                                                    noise_fac, thresh_bins,
                                                                    peak_factor=peak_fac)
         
@@ -770,21 +776,22 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
                                 accept_peaks_size_width)
 
     if len(all_freqs) == 0:
-        # TODO: Why has not been a peak detected?
         return [], [], [], np.zeros((0, 5)), [], low_threshold, high_threshold, center
 
-    # select good peaks:
+    # maximum width of a frequency peak:
     wthresh = max_peak_width_fac * (psd_freqs[1] - psd_freqs[0])
     if wthresh < min_peak_width:
         wthresh = min_peak_width
+        
+    # select good peaks:
     freqs = all_freqs[(all_freqs[:, 2] > high_threshold) &
                       (all_freqs[:, 0] >= min_freq) &
                       (all_freqs[:, 0] <= max_work_freq) &
                       (all_freqs[:, 3] < wthresh), :]
 
     # convert peak sizes back to power:
-    freqs[:, 1] = 10.0 ** (0.1 * freqs[:, 1])
-    all_freqs[:, 1] = 10.0 ** (0.1 * all_freqs[:, 1])
+    freqs[:, 1] = power(freqs[:, 1])
+    all_freqs[:, 1] = power(all_freqs[:, 1])
 
     # detect harmonic groups:
     groups, fzero_harmonics, mains = extract_fundamentals(freqs, all_freqs,
@@ -939,9 +946,9 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
         return
     
     # sort by power:
-    power = np.array([np.sum(fish[:10, 1]) for fish in group_list])
-    max_power = np.max(power)
-    idx_maxpower = np.argsort(power)
+    powers = np.array([np.sum(fish[:10, 1]) for fish in group_list])
+    max_power = np.max(powers)
+    idx_maxpower = np.argsort(powers)
     if max_groups > 0 and len(idx_maxpower > max_groups):
         idx_maxpower = idx_maxpower[-max_groups:]
     idx = np.array(list(reversed(idx_maxpower)))
@@ -956,7 +963,7 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
         group = group_list[i]
         x = np.array([harmonic[0] for harmonic in group])
         y = np.array([harmonic[1] for harmonic in group])
-        msize = 7.0 + 10.0 * (power[i] / max_power) ** 0.25
+        msize = 7.0 + 10.0 * (powers[i] / max_power) ** 0.25
         color_kwargs = {}
         if colors is not None:
             color_kwargs = {'color': colors[k%len(colors)]}
