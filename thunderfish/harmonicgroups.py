@@ -595,74 +595,48 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     return group_list, fzero_harmonics_list, np.array(mains_list)
 
 
-def threshold_estimate(data, noise_factor=6.0, nbins=100, hist_height=1.0/ np.sqrt(np.e),
-                       peak_factor=5.0):
-    """Estimate noise standard deviation from histogram
-    for usefull peak-detection thresholds.
+def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
+                       nbins=100, hist_height=1.0/ np.sqrt(np.e)):
+    """Estimate thresholds for peak detection from histogram of power spectrum.
 
     The standard deviation of the noise floor without peaks is estimated from
-    the width of the histogram of the data at hist_height relative height.
+    the width of the histogram of the power spectrum at `hist_height` relative height.
+    The histogtram is computed in the third quarter of the power spectrum.
 
     Parameters
     ----------
-    data: array
-        The data from which to estimate the thresholds
-    noise_factor: float
-        Factor by which the width of the histogram is multiplied to set the low_threshold.
+    psd_data: array
+        The power spectrum from which to estimate the thresholds.
+    low_thresh_factor: float
+        Factor by which the estimated standard deviation of the noise floor
+        is multiplied to set the `low_threshold`.
+    high_thresh_factor: float
+        Factor by which the estimated standard deviation of the noise floor
+        is multiplied to set the `high_threshold`.
     nbins: int or list of floats
         Number of bins or the bins for computing the histogram.
     hist_height: float
-        Height between 0 and 1 at which the width of the histogram is computed.
-    peak_factor: float
-        The high_threshold is the low_threshold plus this fraction times the
-        distance between largest peaks and `low_threshold` plus half the `low_threshold`.
+        Height between 0 and 1 at which the standard deviation of the histogram is estimated.
 
     Returns
     -------
     low_threshold: float
-        The threshold just above the noise floor.
+        The threshold for peaks just above the noise floor.
     high_threshold: float
-        The threshold for clear peaks.
-    center:: float
-        Estimate of the median of the data without peaks.
+        The threshold for distinct peaks.
+    center: float
+        The baseline level of the power spectrum.
     """
-
-    n = len(data)
-    data_seg = data[n//2:n*3//4]
-    noise_std, center = hist_threshold(data_seg, th_factor=1.0, nbins=nbins)
-    low_threshold = noise_std * noise_factor
-    high_threshold = 2.0*noise_std * noise_factor
-    
-    ## # estimate noise standard deviation:
-    ## hist, bins = np.histogram(data, nbins, density=True)
-    ## inx = hist > np.max(hist) * hist_height
-    ## lower = bins[0:-1][inx][0]
-    ## upper = bins[1:][inx][-1]  # needs to return the next bin
-    ## center = 0.5 * (lower + upper)
-    ## noise_std = 0.5 * (upper - lower)
-    ## lowthreshold = noise_std * noise_factor
-
-    ## # high threshold:
-    ## lowerth = center + 0.5 * lowthreshold
-    ## cumhist = np.cumsum(hist) / np.sum(hist)
-    ## upperpthresh = 0.95
-    ## if bins[-2] >= lowerth:
-    ##     pthresh = cumhist[bins[:-1] >= lowerth][0]
-    ##     upperpthresh = pthresh + 0.95 * (1.0 - pthresh)
-    ## upperbins = bins[:-1][cumhist > upperpthresh]
-    ## if len(upperbins) > 0:
-    ##     upperth = upperbins[0]
-    ## else:
-    ##     upperth = bins[-1]
-    ## highthreshold = lowthreshold + peak_factor * noise_std
-    ## if upperth > lowerth + 0.1 * noise_std:
-    ##     highthreshold = lowerth + peak_factor * (upperth - lowerth) + 0.5 * lowthreshold - center
-
+    n = len(psd_data)
+    psd_data_seg = psd_data[n//2:n*3//4]
+    noise_std, center = hist_threshold(psd_data_seg, th_factor=1.0, nbins=nbins)
+    low_threshold = noise_std * low_thresh_factor
+    high_threshold = noise_std * high_thresh_factor
     return low_threshold, high_threshold, center
 
 
 def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
-                    thresh_bins=100, noise_fac=6.0, peak_fac=0.5,
+                    thresh_bins=100, low_thresh_factor=6.0, high_thresh_factor=10.0,
                     max_peak_width_fac=3.5, min_peak_width=1.0,
                     freq_tol_fac=0.7, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                     max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
@@ -686,12 +660,12 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     thresh_bins: int or list of floats
         Number of bins or the bins for computing the histogram from
         which the standard deviation of the noise level in the `psd` is estimated.
-    noise_factor: float
-        Multiplies the estimate of the standard deviation of the noise
-        to result in the `low_threshold`.
-    peak_factor: float
-        The high_threshold is the low_threshold plus this fraction times
-        the distance between largest peaks and low_threshold plus half the low_threshold.
+    low_thresh_factor: float
+        Factor by which the estimated standard deviation of the noise floor
+        is multiplied to set the `low_threshold`.
+    high_thresh_factor: float
+        Factor by which the estimated standard deviation of the noise floor
+        is multiplied to set the `high_threshold`.
     max_peak_width_fac: float
         The maximum allowed width of a good peak in the decibel power spectrum in multiples of
         the frequency resolution.
@@ -761,9 +735,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     # thresholds:
     center = np.NaN
     if low_threshold <= 0.0 or high_threshold <= 0.0:
-        low_threshold, high_threshold, center = threshold_estimate(log_psd,
-                                                                   noise_fac, thresh_bins,
-                                                                   peak_factor=peak_fac)
+        low_threshold, high_threshold, center = threshold_estimate(log_psd, low_thresh_factor,
+                                                                   high_thresh_factor,
+                                                                   thresh_bins)
         
         if verbose > 1:
             print('')
@@ -1032,7 +1006,8 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
 
     
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
-                                  thresh_bins=100, noise_fac=6.0, peak_fac=0.5,
+                                  thresh_bins=100,
+                                  low_thresh_factor=6.0, high_thresh_factor=10.0,
                                   max_peak_width_fac=3.5, min_peak_width=1.0):
     """ Add parameter needed for detection of peaks in power spectrum used by
     harmonic_groups() as a new section to a configuration.
@@ -1051,8 +1026,8 @@ def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
     
     cfg.add_section('Threshold estimation:\nIf no thresholds are specified they are estimated from the histogram of the decibel power spectrum.')
     cfg.add('thresholdBins', thresh_bins, '', 'Number of bins used to compute the histogram used for threshold estimation.')
-    cfg.add('noiseFactor', noise_fac, '', 'Factor for multiplying std of noise floor for lower threshold.')
-    cfg.add('peakFactor', peak_fac, '', 'Fractional position of upper threshold above lower threshold.')
+    cfg.add('lowThresholdFactor', low_thresh_factor, '', 'Factor for multiplying standard deviation of noise floor for lower threshold.')
+    cfg.add('highThresholdFactor', high_thresh_factor, '', 'Factor for multiplying standard deviation of noise floor for higher threshold.')
 
     cfg.add_section('Peak detection in decibel power spectrum:')
     cfg.add('maxPeakWidthFac', max_peak_width_fac, '',
@@ -1080,8 +1055,8 @@ def psd_peak_detection_args(cfg):
     return cfg.map({'low_threshold': 'lowThreshold',
                     'high_threshold': 'highThreshold',
                     'thresh_bins': 'thresholdBins',
-                    'noise_fac': 'noiseFactor',
-                    'peak_fac': 'peakFactor',
+                    'low_thresh_factor': 'lowThresholdFactor',
+                    'high_thresh_factor': 'highThresholdFactor',
                     'max_peak_width_fac': 'maxPeakWidthFac',
                     'min_peak_width': 'minPeakWidth'})
 
