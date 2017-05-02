@@ -15,7 +15,6 @@ spectrogram():          Spectrogram of a given frequency resolution and overlap 
 
 import numpy as np
 import scipy.signal as scps
-
 try:
     import matplotlib.mlab as mlab
 except ImportError:
@@ -263,12 +262,9 @@ def spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, wi
 
 
 if __name__ == '__main__':
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        pass
+    import matplotlib.pyplot as plt
 
-    print('Computes powerspectrum of a created signal of two wavefish (300 and 450 Hz)')
+    print('Compute powerspectrum of a simulated signal of two wavefish (300 and 450 Hz)')
     print('')
     print('Usage:')
     print('  python powerspectrum.py')

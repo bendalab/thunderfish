@@ -14,10 +14,7 @@ from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
 from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    pass
+import matplotlib.pyplot as plt
 # TODO: update to numpy doc style!
 
 

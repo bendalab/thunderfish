@@ -1020,10 +1020,7 @@ open_data = DataLoader
 
 if __name__ == "__main__":
     import sys
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        pass
+    import matplotlib.pyplot as plt
 
     print("Checking dataloader module ...")
     print('')

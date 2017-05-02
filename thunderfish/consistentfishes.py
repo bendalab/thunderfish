@@ -108,6 +108,8 @@ def consistent_fishes(fishlists, verbose=0, plot_data_func=None, **kwargs):
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    
     print('Creating one fishlist containing only the fishes that are consistant in several fishlists.')
     print('The input structur locks like this fishlists[list][fish][harmonic][frequency, power]')
     print('')
@@ -123,11 +125,7 @@ if __name__ == '__main__':
                  [np.array([np.array([349.8, 0])]), np.array([np.array([700.5, 0])]),
                   np.array([np.array([1000.3, 0])])]]
     #
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        pass
-
+    
     fig, ax = plt.subplots()
     filtered_fishlist = consistent_fishes(fishlists, verbose=1, plot_data_func=consistent_fishes_plot, ax=ax, fs=12)
     plt.show()

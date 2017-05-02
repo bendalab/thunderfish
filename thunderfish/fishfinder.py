@@ -12,12 +12,9 @@ from .dataloader import open_data
 from .powerspectrum import nfft_noverlap, decibel
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
-try:
-    import matplotlib.pyplot as plt
-    import matplotlib.mlab as ml
-    import matplotlib.colors as mc
-except ImportError:
-    pass
+import matplotlib.pyplot as plt
+import matplotlib.mlab as ml
+import matplotlib.colors as mc
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
 

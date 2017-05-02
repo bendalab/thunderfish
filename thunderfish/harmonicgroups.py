@@ -18,7 +18,6 @@ import numpy as np
 from .peakdetection import detect_peaks, peak_size_width, hist_threshold
 from .powerspectrum import decibel, power, plot_decibel_psd
 try:
-    import matplotlib.pyplot as plt
     import matplotlib.colors as mc
 except ImportError:
     pass
@@ -1145,11 +1144,14 @@ def harmonic_groups_args(cfg):
                     'max_harmonics': 'maxHarmonics',
                     'max_groups': 'maxGroups'})
 
+
 if __name__ == "__main__":
-    print("Checking harmonicgroups module ...")
+    import matplotlib.pyplot as plt
     from .fakefish import generate_wavefish
     from .powerspectrum import psd
 
+    print("Checking harmonicgroups module ...")
+    
     # generate data:
     samplerate = 44100.0
     eodfs = [123.0, 321.0, 666.0, 668.0]

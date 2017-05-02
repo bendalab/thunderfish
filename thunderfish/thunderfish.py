@@ -1,8 +1,6 @@
 """
 thunderfish
 
-some words of documentation...
-
 Run it from the thunderfish development directory as:
 python3 -m thunderfish.thunderfish audiofile.wav   or
 python -m thunderfish.thunderfish audiofile.wav

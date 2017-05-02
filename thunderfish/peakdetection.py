@@ -771,12 +771,9 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
 
 
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+    
     print("Checking peakdetection module ...")
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        pass
-
     print('')
     # generate data:
     time = np.arange(0.0, 10.0, 0.01)

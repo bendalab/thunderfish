@@ -5,10 +5,6 @@ import os
 import numpy as np
 import wave
 from scipy.signal import butter, filtfilt
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    pass
 
 def normalized_signal(data, rate, win_duration=.1, min_std=0.1):
     """Removes mean and normalizes data by dividing by the standard deviation.
@@ -235,6 +231,7 @@ def beat_plot(beat_data, beat_time):
 
 if __name__ == '__main__':
     # Test the df_histogram function
+    import matplotlib.pyplot as plt
     a = np.load('%s' % sys.argv[1])
     dfs = df_histogram(a)
     plot_dfs_histogram(dfs)
