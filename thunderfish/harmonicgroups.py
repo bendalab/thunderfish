@@ -18,6 +18,7 @@ import numpy as np
 from .peakdetection import detect_peaks, peak_size_width, hist_threshold
 from .powerspectrum import decibel, power, plot_decibel_psd
 try:
+    import matplotlib.cm as cm
     import matplotlib.colors as mc
 except ImportError:
     pass
@@ -647,7 +648,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 
 def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
                     thresh_bins=100, low_thresh_factor=6.0, high_thresh_factor=10.0,
-                    max_peak_width_fac=5.0, min_peak_width=1.0,
+                    max_peak_width_fac=10.0, min_peak_width=1.0,
                     freq_tol_fac=0.7, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                     max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
                     max_double_use_harmonics=8, max_double_use_count=1,
@@ -873,14 +874,14 @@ def colors_markers():
     markers = []
     mr2 = []
     # first color range:
-    cc0 = plt.cm.gist_rainbow(np.linspace(0.0, 1.0, 8.0))
+    cc0 = cm.gist_rainbow(np.linspace(0.0, 1.0, 8.0))
     # shuffle it:
     for k in range((len(cc0) + 1) // 2):
         colors.extend(cc0[k::(len(cc0) + 1) // 2])
     markers.extend(len(cc0) * 'o')
     mr2.extend(len(cc0) * 'v')
     # second darker color range:
-    cc1 = plt.cm.gist_rainbow(np.linspace(0.33 / 7.0, 1.0, 7.0))
+    cc1 = cm.gist_rainbow(np.linspace(0.33 / 7.0, 1.0, 7.0))
     cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.9, 0.7]))[0]
     cc1 = np.hstack((cc1, np.ones((len(cc1),1))))
     # shuffle it:
@@ -889,7 +890,7 @@ def colors_markers():
     markers.extend(len(cc1) * '^')
     mr2.extend(len(cc1) * '*')
     # third lighter color range:
-    cc2 = plt.cm.gist_rainbow(np.linspace(0.67 / 6.0, 1.0, 6.0))
+    cc2 = cm.gist_rainbow(np.linspace(0.67 / 6.0, 1.0, 6.0))
     cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.5, 1.0]))[0]
     cc2 = np.hstack((cc2, np.ones((len(cc2),1))))
     # shuffle it:
@@ -1020,7 +1021,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
                                   thresh_bins=100,
                                   low_thresh_factor=6.0, high_thresh_factor=10.0,
-                                  max_peak_width_fac=5.0, min_peak_width=1.0):
+                                  max_peak_width_fac=10.0, min_peak_width=1.0):
     """ Add parameter needed for detection of peaks in power spectrum used by
     harmonic_groups() as a new section to a configuration.
 

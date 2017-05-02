@@ -10,6 +10,11 @@ import numpy as np
 from .harmonicgroups import harmonic_groups
 from .powerspectrum import spectrogram
 from .peakdetection import std_threshold, detect_peaks, trim_to_peak
+try:
+    # TODO remove plt usage from algorithms!
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 
 def true_chirp_power_drop(chirp_time_idx, power, power_window=100):

@@ -7,6 +7,10 @@ class Voronoi: Compute and analyse Voronoi diagrams.
 
 import numpy as np
 import scipy.spatial as sp
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 
 class Voronoi:

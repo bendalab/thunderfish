@@ -201,12 +201,9 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     # save figure as pdf
     if save_plot:
         plt.savefig(os.path.join(output_folder, base_name + '.pdf'))
-        plt.close()
     elif show_plot:
         plt.show()
-        plt.close()
-    else:
-        plt.close()
+    plt.close()
 
 
 def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
@@ -231,7 +228,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         else:
             print('write configuration to %s ...' % save_config)
             cfg.dump(save_config)
-        return
+        return ''
 
     # check data file:
     if len(filename) == 0:
@@ -245,13 +242,12 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
 
     # check channel:
     if channel < 0:
-        print('invalid channel %d' % channel)
-        channel = 0
+        return 'invalid channel %d' % channel
 
     # load data:
     raw_data, samplerate, unit = load_data(filename, channel)
     if len(raw_data) == 0:
-        return
+        return 'empty data file %s' % filename
 
     # calculate best_window:
     min_clip = cfg.value('minClipAmplitude')
@@ -264,7 +260,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                                                   **best_window_args(cfg))
     except UserWarning as e:
         print(str(e))
-        return
+        return ''
     data = raw_data[idx0:idx1]
 
     # pulse-type fish?
