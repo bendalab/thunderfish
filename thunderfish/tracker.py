@@ -15,10 +15,9 @@ from .powerspectrum import spectrogram, next_power_of_two
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
 from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    pass
+# TODO: separate plt usage out from analysis!
+import matplotlib.pyplot as plt
+
 # TODO: update to numpy doc style!
 
 
@@ -55,6 +54,9 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
     else:
         channels = range(1)
 
+    low_threshold = kwargs.pop('low_threshold', 0.0)
+    high_threshold = kwargs.pop('high_threshold', 0.0)
+
     while start_time < int((len(data)- data_snippet_secs*samplerate) / samplerate) or int(start_time) == 0:
         if verbose >= 3:
             print('Minute %.2f' % (start_time/60))
@@ -83,7 +85,9 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
         all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] + start_time))
 
         for p in range(len(power)):
-            fishlist, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(freqs, power[p], **kwargs)
+            fishlist, _, mains, all_freqs, good_freqs, low_threshold, high_threshold, _ = \
+              harmonic_groups(freqs, power[p],
+                              low_threshold=low_threshold, high_threshold=high_threshold, **kwargs)
             fundamentals = fundamental_freqs(fishlist)
             all_fundamentals.append(fundamentals)
             if plot_harmonic_groups:
@@ -789,25 +793,25 @@ def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, fresolut
     Parameters
     ----------
     cfg: ConfigFile
-        the configuration
+        The configuration.
     data_snipped_secs: float
-         duration of data snipped processed at once in seconds.
+         Duration of data snipped processed at once in seconds.
     nffts_per_psd: int
         nffts used for powerspectrum analysis.
     fresolution: float
-        frequency resoltution of the spectrogram.
+        Frequency resoltution of the spectrogram.
     overlap_frac: float
-        overlap fraction of nffts for powerspectrum analysis.
+        Overlap fraction of nffts for powerspectrum analysis.
     freq_tolerance: float
-        frequency tollerance for combining fishes.
+        Frequency tollerance for combining fishes.
     rise_f_th: float
-        minimum frequency difference between peak and base of a rise to be detected as such.
+        Minimum frequency difference between peak and base of a rise to be detected as such.
     prim_time_tolerance: float
-        maximum time differencs in minutes in the first fish sorting step.
+        Maximum time differencs in minutes in the first fish sorting step.
     max_time_tolerance: float
-        maximum time difference in minutes between two fishes to combine these.
+        Maximum time difference in minutes between two fishes to combine these.
     f_th: float
-        maximum frequency difference between two fishes to combine these in last combining step.
+        Maximum frequency difference between two fishes to combine these.
     """
     cfg.add_section('Fish tracking:')
     cfg.add('DataSnippedSize', data_snipped_secs, 's', 'Duration of data snipped processed at once in seconds.')
@@ -829,12 +833,12 @@ def tracker_args(cfg):
     Parameters
     ----------
     cfg: ConfigFile
-        the configuration
+        The configuration.
 
-    Returns (dict): dictionary with names of arguments of the clip_amplitudes() function and their values as supplied by cfg.
+    Returns
     -------
-    dict
-        dictionary with names of arguments of the fish_tracker() function and their values as supplied by cfg.
+    dict: dictionary
+        Names of arguments of the fish_tracker() function and their values as supplied by cfg.
     """
     return cfg.map({'data_snipped_secs': 'DataSnippedSize',
                     'nffts_per_psd': 'NfftPerPsd',
@@ -961,7 +965,7 @@ def main():
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',
                         help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs=1, default='', type=str, help='name of the file wih the time series data or the -fishes.npy file saved with the -s option')
+    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file wih the time series data or the -fishes.npy file saved with the -s option')
     parser.add_argument('start_time', nargs='?', default=0.0, type=float, help='start time of analysis in min.')
     parser.add_argument('end_time', nargs='?', default=-1.0, type=float, help='end time of analysis in min.')
     parser.add_argument('-g', dest='grid', action='store_true', help='sum up spectrograms of all channels available.')
@@ -972,11 +976,7 @@ def main():
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
                         help="path where to store results and figures")
     args = parser.parse_args()
-
-    if not os.path.exists(args.output_folder):
-        os.makedirs(args.output_folder)
-
-    datafile = args.file[0]
+    datafile = args.file
 
     # set verbosity level from command line:
     verbose = 0
@@ -1002,6 +1002,14 @@ def main():
             cfg.dump(args.save_config)
         return
 
+    # check data file:
+    if len(datafile) == 0:
+        parser.error('you need to specify a file containing some data')
+        return
+
+    # output directory:    
+    if not os.path.exists(args.output_folder):
+        os.makedirs(args.output_folder)
 
     if os.path.splitext(datafile)[1] == '.npy':
         rise_f_th = .5

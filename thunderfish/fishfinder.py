@@ -3,6 +3,8 @@ import os
 import warnings
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.mlab as ml
 from audioio import PlayAudio, fade
 from .version import __version__
 from .configfile import ConfigFile
@@ -12,12 +14,6 @@ from .dataloader import open_data
 from .powerspectrum import nfft_noverlap, decibel
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
-try:
-    import matplotlib.pyplot as plt
-    import matplotlib.mlab as ml
-    import matplotlib.colors as mc
-except ImportError:
-    pass
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
 
@@ -513,16 +509,20 @@ class SignalPlot:
                 self.cfg['mainsFreq'][0] = 0.0
             self.update_plots()
         elif event.key in 't':
-            self.cfg['peakFactor'][0] -= 0.1
-            if self.cfg['peakFactor'][0] < -5.0:
-                self.cfg['peakFactor'][0] = -5.0
-            print('peakFactor =', self.cfg['peakFactor'][0])
+            t_diff = self.cfg['highThresholdFactor'][0] - self.cfg['lowThresholdFactor'][0]
+            self.cfg['lowThresholdFactor'][0] -= 0.1
+            if self.cfg['lowThresholdFactor'][0] < 0.1:
+                self.cfg['lowThresholdFactor'][0] = 0.1
+            self.cfg['highThresholdFactor'][0] = self.cfg['lowThresholdFactor'][0] + t_diff
+            print('lowThresholdFactor =', self.cfg['lowThresholdFactor'][0])
             self.update_plots()
         elif event.key in 'T':
-            self.cfg['peakFactor'][0] += 0.1
-            if self.cfg['peakFactor'][0] > 5.0:
-                self.cfg['peakFactor'][0] = 5.0
-            print('peakFactor =', self.cfg['peakFactor'][0])
+            t_diff = self.cfg['highThresholdFactor'][0] - self.cfg['lowThresholdFactor'][0]
+            self.cfg['lowThresholdFactor'][0] += 0.1
+            if self.cfg['lowThresholdFactor'][0] > 20.0:
+                self.cfg['lowThresholdFactor'][0] = 20.0
+            self.cfg['highThresholdFactor'][0] = self.cfg['lowThresholdFactor'][0] + t_diff
+            print('lowThresholdFactor =', self.cfg['lowThresholdFactor'][0])
             self.update_plots()
         elif event.key == 'escape':
             self.remove_peak_annotation()
@@ -699,7 +699,7 @@ def main():
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='cfgfile',
                         help='save configuration to file cfgfile (defaults to {0})'.format(cfgfile))
-    parser.add_argument('file', nargs=1, default='', type=str,
+    parser.add_argument('file', nargs='?', default='', type=str,
                         help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int,
                         help='channel to be displayed')
@@ -732,7 +732,7 @@ def main():
     cfg.set('bestWindowSize', 4.0)
 
     # load configuration from working directory and data directories:
-    filepath = args.file[0]
+    filepath = args.file
     cfg.load_files(cfgfile, filepath, 3, verbose)
 
     # save configuration:
@@ -743,11 +743,14 @@ def main():
         else:
             print('write configuration to %s ...' % args.save_config)
             cfg.dump(args.save_config)
-        quit()
+        return
 
     # load data:
-    channel = args.channel
+    if len(filepath) == 0:
+        parser.error('you need to specify a file containing some data')
+        return
     filename = os.path.basename(filepath)
+    channel = args.channel
     # TODO: add blocksize and backsize as configuration parameter!
     with open_data(filepath, channel, 60.0, 10.0, verbose) as data:
         # plot:

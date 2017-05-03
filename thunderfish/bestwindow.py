@@ -18,6 +18,10 @@ plot_best_window(): visualization of the algorithm used in best_window_indices()
 
 import numpy as np
 from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
@@ -469,10 +473,6 @@ def best_window_args(cfg):
 if __name__ == "__main__":
     print("Checking bestwindow module ...")
     import sys
-    try:
-        import matplotlib.pyplot as plt
-    except ImportError:
-        pass
 
     title = "bestwindow"
     if len(sys.argv) < 2:

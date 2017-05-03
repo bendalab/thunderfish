@@ -9,10 +9,10 @@ import numpy as np
 from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
 from .powerspectrum import decibel
 try:
-    import matplotlib.pyplot as plt
     from matplotlib.patches import Rectangle
 except ImportError:
     pass
+
 
 def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=0.1,
                       pulse_thres=0.1, verbose=0, plot_data_func=None, **kwargs):
@@ -259,12 +259,14 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
     ax.set_ylabel('Power [dB]', fontsize=fs)
 
 if __name__ == "__main__":
-    print("\nChecking checkpulse module ...\n")
     import sys
+    import matplotlib.pyplot as plt
     from .bestwindow import best_window
     from .powerspectrum import multi_resolution_psd
     from .fakefish import generate_monophasic_pulses, generate_biphasic_pulses, generate_triphasic_pulses, generate_alepto
 
+    print("\nChecking checkpulse module ...\n")
+    
     # generate data:
     rate = 44100.0
     if len(sys.argv) < 2:
