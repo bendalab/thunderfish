@@ -108,7 +108,7 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                         else:
                             ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
                                     color=colors[enu], markersize= 9, alpha=0.9)
-                plt.legend(loc=1, ncol=2, fontsize=fs-4, frameon=False, numpoints=1)
+                ax.legend(loc=1, ncol=2, fontsize=fs-4, frameon=False, numpoints=1)
 
                 ax.spines['top'].set_visible(False)
                 ax.spines['right'].set_visible(False)
@@ -117,18 +117,11 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
 
                 ax.tick_params(labelsize=fs - 2)
                 ax.set_ylim([np.min(plot_power) - 5., np.max(plot_power) + 15.])
-                plt.xlabel('frequency [Hz]', fontsize=fs)
-                plt.ylabel('power [dB]', fontsize=fs)
-                plt.title('Powerspectrum with detected EOD frequencies', fontsize=fs + 2)
+                ax.set_xlabel('frequency [Hz]', fontsize=fs)
+                ax.set_ylabel('power [dB]', fontsize=fs)
+                ax.set_title('time = %gmin' % ((start_time+time[p])/60.0))
 
-                plt.tight_layout()
-                plt.show()
-
-                fig = plt.figure()
-                ax = fig.add_subplot(1, 1, 1)
-                plot_psd_harmonic_groups(ax, freqs, power[p], fishlist, mains,
-                                         all_freqs, good_freqs, max_freq=3000.0)
-                ax.set_title('time = %gmin' % ((start_time+0.0)/60.0))  # XXX TODO plus what???
+                fig.tight_layout()
                 plt.show()
 
         if (len(all_times) % ((len(time) - (nffts_per_psd-1)) * 30)) > -1 and (
