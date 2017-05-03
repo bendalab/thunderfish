@@ -11,6 +11,7 @@ from .harmonicgroups import harmonic_groups
 from .powerspectrum import spectrogram
 from .peakdetection import std_threshold, detect_peaks, trim_to_peak
 try:
+    # TODO remove plt usage from algorithms!
     import matplotlib.pyplot as plt
 except ImportError:
     pass
@@ -63,7 +64,7 @@ def true_chirp_power_rise_above(chirp_time_idx, power_above):
         return true_chirp_time_idx
 
 
-def     chirp_detection(spectrum, freqs, time, fishlist=None, fundamentals=None, min_power= 0.005, freq_tolerance=1., chirp_th=1.,
+def chirp_detection(spectrum, freqs, time, fishlist=None, fundamentals=None, min_power= 0.005, freq_tolerance=1., chirp_th=1.,
                     plot_data_func=None):
     """
     Detects chirps on the basis of a spectrogram.
@@ -159,7 +160,7 @@ def chirp_detection_plot(enu, chirp_time, time, power, power2, power_diff, funda
     ax.plot(time, power, colors[enu], marker='.', label='%.1f Hz' % fundamental)
     ax.plot(time, power2, colors[enu+1], label='%.1f Hz' % (fundamental+50.0))
     ax.plot(time[:len(power_diff)], power_diff, colors[enu], label='slope')
-    plt.legend(loc='upper right', bbox_to_anchor=(1, 1), frameon=False)
+    ax.legend(loc='upper right', bbox_to_anchor=(1, 1), frameon=False)
 
 
 def chirp_analysis(data, samplerate):
@@ -192,6 +193,7 @@ if __name__ == '__main__':
     # '2016_04_27__downstream_stonewall_at_pool' made in colombia, 2016.
     ###
     import sys
+    import matplotlib.pyplot as plt
     from .dataloader import load_data
 
     data_file = sys.argv[1]

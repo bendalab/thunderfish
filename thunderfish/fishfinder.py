@@ -3,6 +3,8 @@ import os
 import warnings
 import argparse
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.mlab as ml
 from audioio import PlayAudio, fade
 from .version import __version__
 from .configfile import ConfigFile
@@ -12,12 +14,6 @@ from .dataloader import open_data
 from .powerspectrum import nfft_noverlap, decibel
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
-try:
-    import matplotlib.pyplot as plt
-    import matplotlib.mlab as ml
-    import matplotlib.colors as mc
-except ImportError:
-    pass
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
 
@@ -513,16 +509,20 @@ class SignalPlot:
                 self.cfg['mainsFreq'][0] = 0.0
             self.update_plots()
         elif event.key in 't':
-            self.cfg['peakFactor'][0] -= 0.1
-            if self.cfg['peakFactor'][0] < -5.0:
-                self.cfg['peakFactor'][0] = -5.0
-            print('peakFactor =', self.cfg['peakFactor'][0])
+            t_diff = self.cfg['highThresholdFactor'][0] - self.cfg['lowThresholdFactor'][0]
+            self.cfg['lowThresholdFactor'][0] -= 0.1
+            if self.cfg['lowThresholdFactor'][0] < 0.1:
+                self.cfg['lowThresholdFactor'][0] = 0.1
+            self.cfg['highThresholdFactor'][0] = self.cfg['lowThresholdFactor'][0] + t_diff
+            print('lowThresholdFactor =', self.cfg['lowThresholdFactor'][0])
             self.update_plots()
         elif event.key in 'T':
-            self.cfg['peakFactor'][0] += 0.1
-            if self.cfg['peakFactor'][0] > 5.0:
-                self.cfg['peakFactor'][0] = 5.0
-            print('peakFactor =', self.cfg['peakFactor'][0])
+            t_diff = self.cfg['highThresholdFactor'][0] - self.cfg['lowThresholdFactor'][0]
+            self.cfg['lowThresholdFactor'][0] += 0.1
+            if self.cfg['lowThresholdFactor'][0] > 20.0:
+                self.cfg['lowThresholdFactor'][0] = 20.0
+            self.cfg['highThresholdFactor'][0] = self.cfg['lowThresholdFactor'][0] + t_diff
+            print('lowThresholdFactor =', self.cfg['lowThresholdFactor'][0])
             self.update_plots()
         elif event.key == 'escape':
             self.remove_peak_annotation()
