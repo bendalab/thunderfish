@@ -603,6 +603,9 @@ def main():
     parser.add_argument('rises', nargs='?', default='', type=str, help='rises detected for every EOD frequency trace.')
     args = parser.parse_args()
 
+    embed()
+    quit()
+    
     a = np.load(args.file[0], mmap_mode='r+')
     data = list(a.copy())
     time = np.load(args.file[0].replace('fishes.', 'times.'))
