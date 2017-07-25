@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 from IPython import embed
 
 class Human_tracker():
-    def __init__(self, data, time, rises=None):
+    def __init__(self, data, time, basename, rises=None):
         self.data = data
         self.time = time
+        self.basename = basename
         self.rises = rises
 
         self.trace_handlers = []
@@ -29,11 +30,12 @@ class Human_tracker():
         self.current_task = None
 
         plt.rcParams['keymap.fullscreen'] = 'ctrl+f'
+        plt.rcParams['keymap.save'] = ''  # was s
+        plt.rcParams['keymap.yscale'] = ''  # was l
         plt.rcParams['keymap.back'] = ''  # was c
         plt.rcParams['keymap.home'] = ''  # was was r
 
-
-        self.fig = plt.figure()
+        self.fig = plt.figure(facecolor='white', figsize=(25./2.54, 15./2.54))
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
         self.fig.canvas.mpl_connect('button_press_event', self.buttonpress)
 
@@ -42,7 +44,7 @@ class Human_tracker():
 
         plt.show()
 
-    def plot_data(self):
+    def plot_data(self, draw=False):
         for i in range(len(self.data)):
             color = np.random.rand(3, 1)
             rph = None
@@ -55,12 +57,23 @@ class Human_tracker():
                 peak_idx = [rise[0][0] for rise in self.rises[i]]
                 floor_idx = [rise[0][1] for rise in self.rises[i]]
 
-                rph, = self.ax.plot(self.time[peak_idx], self.data[i][peak_idx], 'o', color=color, markersize=7)
                 reh, = self.ax.plot(self.time[floor_idx], self.data[i][floor_idx], 's', color=color, markersize=7)
+                rph, = self.ax.plot(self.time[peak_idx], self.data[i][peak_idx], 'o', color=color, markersize=7)
 
             self.trace_handlers.append(h)
             self.rise_peak_handlers.append(rph if rph else None)
             self.rise_end_handlers.append(reh if reh else None)
+
+        self.ax.spines['top'].set_visible(False)
+        self.ax.spines['right'].set_visible(False)
+        self.ax.get_xaxis().tick_bottom()
+        self.ax.get_yaxis().tick_left()
+
+        self.ax.set_ylabel('frequeny [Hz]')
+        self.ax.set_xlabel('time [s]')
+
+        if draw:
+            self.fig.canvas.draw()
 
     def keypress(self, event):
         # zoom plot
@@ -139,6 +152,12 @@ class Human_tracker():
         if event.key in 'e':
             embed()
             quit()
+
+        if event.key in 's':
+            self.save_huob()
+
+        if event.key in 'l':
+            self.load_huob()
 
         if event.key == 'enter':
             if self.current_task == 'join':
@@ -593,6 +612,42 @@ class Human_tracker():
             self.tmp_plot_handle1.remove()
             self.tmp_plot_handle1 = None
 
+    def save_huob(self):
+        if 'huob_fishes' in self.basename:
+            trace_str = self.basename
+        else:
+            trace_str = self.basename.replace('fishes.', 'huob_fishes.')
+        time_str = trace_str.replace('huob_fishes.', 'huob_times.')
+        rise_str = trace_str.replace('huob_fishes.', 'huob_rises.')
+
+        np.save(trace_str, np.asarray(self.data))
+        np.save(time_str, self.time)
+        if self.rises != None:
+            np.save(rise_str, self.rises)
+
+    def load_huob(self):
+        self.all_reset()
+
+        for i in range(len(self.trace_handlers)):
+            self.trace_handlers[i].remove()
+            self.rise_peak_handlers[i].remove()
+            self.rise_end_handlers[i].remove()
+        self.trace_handlers = []
+        self.rise_peak_handlers = []
+        self.rise_end_handlers = []
+
+        trace_str = self.basename.replace('fishes.', 'huob_fishes.')
+        time_str = trace_str.replace('huob_fishes.', 'huob_times.')
+        rise_str = trace_str.replace('huob_fishes.', 'huob_rises.')
+
+        del self.data, self.time, self.rises
+
+        a = np.load(trace_str, mmap_mode='r+')
+        self.data = list(a.copy())
+        self.time = np.load(time_str)
+        self.rises = list(np.load(rise_str))
+
+        self.plot_data(draw=True)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -603,11 +658,10 @@ def main():
     parser.add_argument('rises', nargs='?', default='', type=str, help='rises detected for every EOD frequency trace.')
     args = parser.parse_args()
 
-    embed()
-    quit()
-    
+    basename = args.file[0]
     a = np.load(args.file[0], mmap_mode='r+')
     data = list(a.copy())
+    del a
     time = np.load(args.file[0].replace('fishes.', 'times.'))
 
     if args.rises != '':
@@ -615,7 +669,7 @@ def main():
     else:
         rises = None
 
-    Human_tracker(data, time, rises)
+    Human_tracker(data, time, basename, rises)
 
 if __name__ == '__main__':
     main()
