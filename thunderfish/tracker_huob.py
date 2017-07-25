@@ -165,6 +165,18 @@ class Human_tracker():
                 else:
                     self.modify_rise_end()
 
+            if self.current_task == 'add rise':
+                if self.active_fish0 == None or self.active_index0 == None or self.active_index1 == None:
+                    print('need active trace and two active indices.')
+                else:
+                    self.add_rise()
+
+            if self.current_task == 'remove rise':
+                if self.active_fish0 == None or self.active_rise0 == None or self.active_index0 == None or self.active_index1 == None:
+                    print('need active trace, active rise and two active indices.')
+                else:
+                    self.remove_rise()
+
         self.fig.canvas.draw()
 
     def buttonpress(self, event):
@@ -318,6 +330,62 @@ class Human_tracker():
                                                               self.data[self.active_fish0][self.active_index1], 'o',
                                                               color = 'green', markersize = 10, alpha=0.5)
 
+            if self.current_task == 'add rise':
+                if event.button == 1:
+                    x = event.xdata
+                    y = event.ydata
+
+                    min_distance = []
+                    for f in self.data:
+                        df = np.min(np.abs(f[~np.isnan(f)] - y))
+                        dt = np.min(np.abs(self.time[~np.isnan(f)] - x))
+                        min_distance.append(np.sqrt(df**2 + dt**2))
+
+                    self.active_fish0 = np.argmin(min_distance)
+                    next_t = self.time[~np.isnan(self.data[self.active_fish0])][self.time[~np.isnan(self.data[self.active_fish0])] > x][0]
+                    self.active_index0 = np.where(self.time == next_t)[0][0]
+
+                    if not self.tmp_plot_handle0 == None:
+                        self.tmp_plot_handle0.remove()
+
+                    self.tmp_plot_handle0, = self.ax.plot(self.time[self.active_index0], self.data[self.active_fish0][self.active_index0], 'o', color = 'red', markersize = 10, alpha=0.5)
+
+                if event.button == 3:
+                    x = event.xdata
+                    next_t = self.time[~np.isnan(self.data[self.active_fish0])][self.time[~np.isnan(self.data[self.active_fish0])] > x][0]
+
+                    self.active_index1 = np.where(self.time == next_t)[0][0]
+
+                    if not self.tmp_plot_handle1 == None:
+                        self.tmp_plot_handle1.remove()
+
+                    self.tmp_plot_handle1, = self.ax.plot(self.time[self.active_index1], self.data[self.active_fish0][self.active_index1], 's', color = 'green', markersize = 10, alpha=0.5)
+
+            if self.current_task == 'remove rise':
+                if event.button == 1:
+                    x = event.xdata
+                    y = event.ydata
+
+                    min_distance = []
+                    for trace in range(len(self.rises)):
+                        for rise in range(len(self.rises[trace])):
+                            min_distance.append([trace, rise, np.sqrt((x - self.time[self.rises[trace][rise][0][0]])**2 + (y-self.rises[trace][rise][1][0])**2)])
+
+                    ind_rise = np.argmin([min_distance[i][2] for i in range(len(min_distance))])
+
+                    self.active_fish0 = min_distance[ind_rise][0]
+                    self.active_rise0 = min_distance[ind_rise][1]
+                    self.active_index0 = self.rises[self.active_fish0][self.active_rise0][0][0]
+                    self.active_index1 = self.rises[self.active_fish0][self.active_rise0][0][1]
+
+                    if not self.tmp_plot_handle0 == None:
+                            self.tmp_plot_handle0.remove()
+                    if not self.tmp_plot_handle1 == None:
+                        self.tmp_plot_handle1.remove()
+
+                    self.tmp_plot_handle0, = self.ax.plot(self.time[self.active_index0], self.data[self.active_fish0][self.active_index0], 'o', color = 'red', markersize = 10, alpha=0.5)
+                    self.tmp_plot_handle1, = self.ax.plot(self.time[self.active_index1], self.data[self.active_fish0][self.active_index1], 's', color = 'green', markersize = 10, alpha=0.5)
+
         self.fig.canvas.draw()
 
     def join_traces(self):
@@ -454,6 +522,48 @@ class Human_tracker():
 
         floor_idx = [rise[0][1] for rise in self.rises[self.active_fish0]]
         self.rise_end_handlers[self.active_fish0], = self.ax.plot(self.time[floor_idx], self.data[self.active_fish0][floor_idx], 's', color=c1, markersize=7)
+
+        self.all_reset()
+        self.fig.canvas.draw()
+
+    def add_rise(self):
+        self.rise_peak_handlers[self.active_fish0].remove()
+        self.rise_end_handlers[self.active_fish0].remove()
+        self.tmp_plot_handle0.remove()
+        self.tmp_plot_handle0 = None
+        self.tmp_plot_handle1.remove()
+        self.tmp_plot_handle1 = None
+
+        self.rises[self.active_fish0].append([[self.active_index0, self.active_index1],
+                                              [self.data[self.active_fish0][self.active_index0], self.data[self.active_fish0][self.active_index1]]])
+
+        peak_idx = [rise[0][0] for rise in self.rises[self.active_fish0]]
+        floor_idx = [rise[0][1] for rise in self.rises[self.active_fish0]]
+        c0 = self.trace_handlers[self.active_fish0].get_color()
+
+        self.rise_peak_handlers[self.active_fish0], = self.ax.plot(self.time[peak_idx], self.data[self.active_fish0][peak_idx], 'o', color=c0, markersize=7)
+        self.rise_end_handlers[self.active_fish0], = self.ax.plot(self.time[floor_idx], self.data[self.active_fish0][floor_idx], 's', color=c0, markersize=7)
+
+        self.all_reset()
+        self.fig.canvas.draw()
+        # print('do it')
+
+    def remove_rise(self):
+        self.rise_peak_handlers[self.active_fish0].remove()
+        self.rise_end_handlers[self.active_fish0].remove()
+        self.tmp_plot_handle0.remove()
+        self.tmp_plot_handle0 = None
+        self.tmp_plot_handle1.remove()
+        self.tmp_plot_handle1 = None
+
+        self.rises[self.active_fish0].pop(self.active_rise0)
+
+        peak_idx = [rise[0][0] for rise in self.rises[self.active_fish0]]
+        floor_idx = [rise[0][1] for rise in self.rises[self.active_fish0]]
+        c0 = self.trace_handlers[self.active_fish0].get_color()
+
+        self.rise_peak_handlers[self.active_fish0], = self.ax.plot(self.time[peak_idx], self.data[self.active_fish0][peak_idx], 'o', color=c0, markersize=7)
+        self.rise_end_handlers[self.active_fish0], = self.ax.plot(self.time[floor_idx], self.data[self.active_fish0][floor_idx], 's', color=c0, markersize=7)
 
         self.all_reset()
         self.fig.canvas.draw()
