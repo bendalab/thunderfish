@@ -116,7 +116,7 @@ class Human_tracker():
             if self.rises == None:
                 print('\nno rise file loaded')
             else:
-                rise_tasks = ['modify peak', 'modify end', 'add', 'remove']
+                rise_tasks = ['modify rise peak', 'modify rise end', 'add rise', 'remove rise']
                 if self.current_task not in rise_tasks:
                     self.current_task = rise_tasks[0]
                 elif self.current_task == rise_tasks[0]:
@@ -130,7 +130,7 @@ class Human_tracker():
                 else:
                     print('something really strange happend o_O')
 
-                print('\ntask: (rise) %s' % self.current_task)
+                print('\ntask: %s' % self.current_task)
 
         # terminate plot
         if event.key in 'q':
@@ -153,13 +153,13 @@ class Human_tracker():
                 else:
                     self.cut_trace()
 
-            if self.current_task == 'modify peak':
+            if self.current_task == 'modify rise peak':
                 if self.active_fish0 == None or self.active_rise0 == None or self.active_index0 == None or self.active_index1 == None:
                     print('need active trace, active rise and two active indices.')
                 else:
                     self.modify_rise_peak()
 
-            if self.current_task == 'modify end':
+            if self.current_task == 'modify rise end':
                 if self.active_fish0 == None or self.active_rise0 == None or self.active_index0 == None or self.active_index1 == None:
                     print('need active trace, active rise and two active indices.')
                 else:
@@ -244,7 +244,7 @@ class Human_tracker():
                                                               self.data[self.active_fish0][self.active_index0], 'o',
                                                               color = 'red', markersize = 10, alpha=0.5)
 
-            if self.current_task == 'modify peak':
+            if self.current_task == 'modify rise peak':
                 if event.button == 1:
                     x = event.xdata
                     y = event.ydata
@@ -281,7 +281,7 @@ class Human_tracker():
                                                               self.data[self.active_fish0][self.active_index1], 'o',
                                                               color = 'green', markersize = 10, alpha=0.5)
 
-            if self.current_task == 'modify end':
+            if self.current_task == 'modify rise end':
                 if event.button == 1:
                     x = event.xdata
                     y = event.ydata
