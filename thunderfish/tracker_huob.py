@@ -1,6 +1,7 @@
 import sys
 import numpy as np
 import argparse
+import os
 import matplotlib.pyplot as plt
 from IPython import embed
 
@@ -210,9 +211,13 @@ class Human_tracker():
 
                     min_distance = []  # gewichtung von time und frequency
                     for f in self.data:
-                        df = np.min(np.abs(f[~np.isnan(f)] - y))
-                        dt = np.min(np.abs(self.time[~np.isnan(f)] - x))
-                        min_distance.append(np.sqrt(df**2 + dt**2))
+                        # ToDo: this is wrong ... dt and df shall be dependent they are not so. go for argmin ... problem in join cut and add rise...
+                        non_nan_idx = np.arange(len(f))[~np.isnan(f)]
+                        idx_of_interest = non_nan_idx[np.argmin(np.abs(self.time[~np.isnan(f)] - x))]
+
+                        dt = np.abs(self.time[idx_of_interest] - x)
+                        df = np.abs(f[idx_of_interest] - y)
+                        min_distance.append(np.sqrt(df**2 + (dt * 0.01)**2))
 
                     if np.argmin(min_distance) != self.active_fish1:
                         if not self.active_plot_handle0 == None:
@@ -228,9 +233,12 @@ class Human_tracker():
 
                     min_distance = []  # gewichtung von time und frequency
                     for f in self.data:
-                        df = np.min(np.abs(f[~np.isnan(f)] - y))
-                        dt = np.min(np.abs(self.time[~np.isnan(f)] - x))
-                        min_distance.append(np.sqrt(df**2 + dt**2))
+                        non_nan_idx = np.arange(len(f))[~np.isnan(f)]
+                        idx_of_interest = non_nan_idx[np.argmin(np.abs(self.time[~np.isnan(f)] - x))]
+
+                        dt = np.abs(self.time[idx_of_interest] - x)
+                        df = np.abs(f[idx_of_interest] - y)
+                        min_distance.append(np.sqrt(df ** 2 + (dt * 0.01) ** 2))
 
                     if np.argmin(min_distance) != self.active_fish0:
                         if not self.active_plot_handle1 == None:
@@ -247,9 +255,13 @@ class Human_tracker():
 
                     min_distance = []  # gewichtung von time und frequency
                     for f in self.data:
-                        df = np.min(np.abs(f[~np.isnan(f)] - y))
-                        dt = np.min(np.abs(self.time[~np.isnan(f)] - x))
-                        min_distance.append(np.sqrt(df**2 + dt**2))
+                        non_nan_idx = np.arange(len(f))[~np.isnan(f)]
+                        idx_of_interest = non_nan_idx[np.argmin(np.abs(self.time[~np.isnan(f)] - x))]
+
+                        dt = np.abs(self.time[idx_of_interest] - x)
+                        df = np.abs(f[idx_of_interest] - y)
+                        min_distance.append(np.sqrt(df**2 + (dt * 0.01)**2))
+
 
                     if np.argmin(min_distance) != self.active_fish1:
                         if not self.active_plot_handle0 == None:
@@ -356,9 +368,13 @@ class Human_tracker():
 
                     min_distance = []
                     for f in self.data:
-                        df = np.min(np.abs(f[~np.isnan(f)] - y))
-                        dt = np.min(np.abs(self.time[~np.isnan(f)] - x))
-                        min_distance.append(np.sqrt(df**2 + dt**2))
+                        non_nan_idx = np.arange(len(f))[~np.isnan(f)]
+                        idx_of_interest = non_nan_idx[np.argmin(np.abs(self.time[~np.isnan(f)] - x))]
+
+                        dt = np.abs(self.time[idx_of_interest] - x)
+                        df = np.abs(f[idx_of_interest] - y)
+                        min_distance.append(np.sqrt(df ** 2 + (dt * 0.01) ** 2))
+
 
                     self.active_fish0 = np.argmin(min_distance)
                     next_t = self.time[~np.isnan(self.data[self.active_fish0])][self.time[~np.isnan(self.data[self.active_fish0])] > x][0]
@@ -630,22 +646,27 @@ class Human_tracker():
 
         for i in range(len(self.trace_handlers)):
             self.trace_handlers[i].remove()
-            self.rise_peak_handlers[i].remove()
-            self.rise_end_handlers[i].remove()
+            if self.rises != None:
+                self.rise_peak_handlers[i].remove()
+                self.rise_end_handlers[i].remove()
         self.trace_handlers = []
         self.rise_peak_handlers = []
         self.rise_end_handlers = []
 
+        del self.data, self.time, self.rises
         trace_str = self.basename.replace('fishes.', 'huob_fishes.')
         time_str = trace_str.replace('huob_fishes.', 'huob_times.')
-        rise_str = trace_str.replace('huob_fishes.', 'huob_rises.')
-
-        del self.data, self.time, self.rises
 
         a = np.load(trace_str, mmap_mode='r+')
         self.data = list(a.copy())
         self.time = np.load(time_str)
-        self.rises = list(np.load(rise_str))
+
+        files = os.listdir(os.path.split(self.basename)[0])
+        if any(['huob_rises' in files[i] for i in range(len(files))]):
+            rise_str = trace_str.replace('huob_fishes.', 'huob_rises.')
+            self.rises = list(np.load(rise_str))
+        else:
+            self.rises=None
 
         self.plot_data(draw=True)
 

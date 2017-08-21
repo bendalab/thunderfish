@@ -185,6 +185,7 @@ def fish_n_rise_count_per_time(fishes, all_times, start_time, temp, all_rises):
     mean_clock_temp = np.full(len(full_clock), np.nan)
 
     beat_f = []
+    beat_dn = []
 
     dt = all_times[1] - all_times[0]
     dpm = 60./ dt
@@ -199,7 +200,8 @@ def fish_n_rise_count_per_time(fishes, all_times, start_time, temp, all_rises):
         start_clock_str = str(start_clock[0]) + ':' + str(start_clock[1])
 
     clock_idx = np.where(full_clock == start_clock_str)[0][0]
-
+    # embed()
+    # quit()
     while True:
         end_idx = np.floor(start_idx + 30. * dpm)
         if end_idx >= len(fishes[0]):
@@ -254,6 +256,12 @@ def fish_n_rise_count_per_time(fishes, all_times, start_time, temp, all_rises):
             df = snippet_freq[i+1:] - snippet_freq[i]
             beat_f += df.tolist()
 
+            if clock_idx >= 12 and clock_idx < 36:
+                dn = np.ones(len(df))
+            else:
+                dn = np.zeros(len(df))
+            beat_dn += dn.tolist()
+
         fish_clock_counts[clock_idx] = count
         m_clock_counts[clock_idx] = m_count
         f_clock_counts[clock_idx] = f_count
@@ -275,7 +283,7 @@ def fish_n_rise_count_per_time(fishes, all_times, start_time, temp, all_rises):
         start_idx = end_idx
 
     return fish_clock_counts, m_clock_counts, f_clock_counts, rise_clock_counts, m_rise_clock_counts, f_rise_clock_counts, \
-           rise_rate_clock, m_rise_rate_clock, f_rise_rate_clock, mean_clock_temp, full_clock, beat_f
+           rise_rate_clock, m_rise_rate_clock, f_rise_rate_clock, mean_clock_temp, full_clock, beat_f, beat_dn
 
 
 def get_presence_time(fishes, all_times, start_time):
@@ -283,7 +291,11 @@ def get_presence_time(fishes, all_times, start_time):
     vanish_time = []
     presence_freq = []
     appear_time_h = []
+    appear_time_m = []
+    appear_time_f = []
     vanish_time_h = []
+    vanish_time_m = []
+    vanish_time_f = []
 
     start_min = start_time[0] * 60 + start_time[1]
 
@@ -294,20 +306,44 @@ def get_presence_time(fishes, all_times, start_time):
 
         if all_times[~np.isnan(fish)][0] / 60. >= 300.:
             appear_time_h.append(start_min + all_times[~np.isnan(fish)][0] / 60.)
+            if presence_freq[-1] >= 730 and presence_freq[-1] < 1050:
+                appear_time_m.append(start_min + all_times[~np.isnan(fish)][0] / 60.)
+            if presence_freq[-1] >= 550 and presence_freq[-1] < 730:
+                appear_time_f.append(start_min + all_times[~np.isnan(fish)][0] / 60.)
+
         if all_times[~np.isnan(fish)][-1] / 60. <=  all_times[-1] / 60. - 300.:
             vanish_time_h.append(start_min + all_times[~np.isnan(fish)][-1] / 60.)
+            if presence_freq[-1] >= 730 and presence_freq[-1] < 1050:
+                vanish_time_m.append(start_min + all_times[~np.isnan(fish)][0] / 60.)
+            if presence_freq[-1] >= 550 and presence_freq[-1] < 730:
+                vanish_time_f.append(start_min + all_times[~np.isnan(fish)][0] / 60.)
 
     for i in range(len(vanish_time)):
         if vanish_time[i] >= 1440:
             vanish_time[i] -= 1440
+
     for i in range(len(appear_time_h)):
         if appear_time_h[i] >= 1440:
             appear_time_h[i] -= 1440
+    for i in range(len(appear_time_m)):
+        if appear_time_m[i] >= 1440:
+            appear_time_m[i] -= 1440
+    for i in range(len(appear_time_f)):
+        if appear_time_f[i] >= 1440:
+            appear_time_f[i] -= 1440
+
     for i in range(len(vanish_time_h)):
         if vanish_time_h[i] >= 1440:
             vanish_time_h[i] -= 1440
+    for i in range(len(vanish_time_m)):
+        if vanish_time_m[i] >= 1440:
+            vanish_time_m[i] -= 1440
+    for i in range(len(vanish_time_f)):
+        if vanish_time_f[i] >= 1440:
+            vanish_time_f[i] -= 1440
 
-    return np.array(presence_time), np.array(vanish_time), np.array(presence_freq), np.array(appear_time_h), np.array(vanish_time_h)
+    return np.array(presence_time), np.array(vanish_time), np.array(presence_freq), np.array(appear_time_h), np.array(vanish_time_h), \
+           np.array(appear_time_m), np.array(appear_time_f), np.array(vanish_time_m), np.array(vanish_time_f)
 
 
 def get_rise_characteristic(fishes, all_rises, all_times):
@@ -1740,16 +1776,44 @@ def plot_rise_df(rise_base_f_and_df):
     # embed()
     # quit()
 
-def plot_dfs(all_beat_f):
+def plot_dfs(all_beat_f, all_beat_dn):
+    all_beat_f = np.array(all_beat_f)
+    all_beat_dn = np.array(all_beat_dn)
+
     colors = ['#BA2D22', '#F47F17', '#53379B', '#3673A4', '#AAB71B', '#DC143C', '#1E90FF', 'magenta']
     inch_factor = 2.54
     fs = 14
 
+    ###############################################################
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
+
+    # bin_borders = np.arange(0, 50, 0.2)
+    bin_borders = np.arange(0, 402, 2)
+
+    hist, bins = np.histogram(np.abs(all_beat_f), bins=bin_borders)  # Night
+    width = bins[1] - bins[0]
+    center = (bins[:-1] + bins[1:]) / 2.
+    ax1.bar(center, hist, align='center', width=width, color=colors[4])
+
+    hist, bins = np.histogram(np.abs(all_beat_f[all_beat_dn > 0.5]), bins=bin_borders)  # Day
+    width = bins[1] - bins[0]
+    center = (bins[:-1] + bins[1:]) / 2.
+    ax2.bar(center, hist, align='center', width=width, color=colors[4])
+
+    hist, bins = np.histogram(np.abs(all_beat_f[all_beat_dn < 0.5]), bins=bin_borders)  # Night
+    width = bins[1] - bins[0]
+    center = (bins[:-1] + bins[1:]) / 2.
+    ax3.bar(center, hist, align='center', width=width, color=colors[4])
+
+    plt.show()
+
+
+    ###############################################################
     bin_borders = np.arange(0, 402, 2)
     hist, bins = np.histogram(np.abs(all_beat_f), bins=bin_borders)
 
     width = bins[1] - bins[0]
-    center = (bins[:-1] + bins[1:]) / 2
+    center = (bins[:-1] + bins[1:]) / 2.
 
     # p_exp = scp.expon.pdf(center - 1, scale=np.mean(rise_base_f_and_df[1]) - 1.)
     fig, ax = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
@@ -1773,6 +1837,7 @@ def main(file_path, hobo_path, show_fish_plot=False, show_combined_fishes=False,
     rng = np.random.RandomState(15235412311)
 
     all_beat_f = []
+    all_beat_dn = []
 
     rise_phnf= []  # rises per hour and frequency.
     all_clock_counts = []  # num of fishes available in 30 min bins
@@ -1793,7 +1858,12 @@ def main(file_path, hobo_path, show_fish_plot=False, show_combined_fishes=False,
     all_presence_freq = []  # mean freq of all fishes
 
     all_appear_time_h = []  # appear time of fishes available for more than 30 min
+    all_appear_time_m = []  # appear time of fishes available for more than 30 min
+    all_appear_time_f = []  # appear time of fishes available for more than 30 min
+
     all_vanish_time_h = []  # vanish time of fishes available for more than 30 min
+    all_vanish_time_m = []  # vanish time of fishes available for more than 30 min
+    all_vanish_time_f = []  # vanish time of fishes available for more than 30 min
 
     all_slopes = []  # slope of temperature dependant frequency
     all_freq_at_25 = []  # frequency at 25 degree for the array above
@@ -1976,10 +2046,11 @@ def main(file_path, hobo_path, show_fish_plot=False, show_combined_fishes=False,
         ################################################################################
         # calculate fish count per hour.
         clock_counts, m_clock_counts, f_clock_counts, rise_clock_counts, m_rise_clock_counts, f_rise_clock_counts, \
-        rise_rate_clock, m_rise_rate_clock, f_rise_rate_clock, mean_clock_temp, full_clock, beat_f = \
+        rise_rate_clock, m_rise_rate_clock, f_rise_rate_clock, mean_clock_temp, full_clock, beat_f, beat_dn = \
             fish_n_rise_count_per_time(fishes, all_times, start_time, temp, all_rises)
 
         all_beat_f += beat_f
+        all_beat_dn += beat_dn
 
         all_clock_counts.append(clock_counts)
         all_m_clock_counts.append(m_clock_counts)
@@ -1996,12 +2067,20 @@ def main(file_path, hobo_path, show_fish_plot=False, show_combined_fishes=False,
 
         all_mean_clock_temp.append(mean_clock_temp)
 
-        presence_time, vanish_time, presence_freq, appear_time_h, vanish_time_h = get_presence_time(fishes, all_times, start_time)
+        presence_time, vanish_time, presence_freq, appear_time_h, vanish_time_h, appear_time_m, appear_time_f, \
+        vanish_time_m, vanish_time_f = get_presence_time(fishes, all_times, start_time)
+
         all_presence_time.append(presence_time)
         all_vanish_time.append(vanish_time)
         all_presence_freq.append(presence_freq)
+
         all_appear_time_h.append(appear_time_h)
+        all_appear_time_m.append(appear_time_m)
+        all_appear_time_f.append(appear_time_f)
+
         all_vanish_time_h.append(vanish_time_h)
+        all_vanish_time_m.append(vanish_time_m)
+        all_vanish_time_f.append(vanish_time_f)
 
         dt = all_times[1] - all_times[0]
         dpm = 60. / dt
@@ -2077,13 +2156,16 @@ def main(file_path, hobo_path, show_fish_plot=False, show_combined_fishes=False,
         np.save('mb_df.npy', np.array(all_b_df_male))
         np.save('fb_df.npy', np.array(all_b_df_female))
 
-    plot_dfs(all_beat_f)
+    plot_dfs(all_beat_f, all_beat_dn)
 
     # temp and frequency couses
     plot_slope_freq_dependancy(all_freq_at_25, all_slopes)
 
     # frequency courses
     plot_appear_n_vanish_time(all_appear_time_h, all_vanish_time_h)
+    plot_appear_n_vanish_time(all_appear_time_m, all_vanish_time_m)
+    plot_appear_n_vanish_time(all_appear_time_f, all_vanish_time_f)
+
 
     day_recording = np.array(day_recording)
     plot_presence_time(all_presence_time, all_vanish_time, all_presence_freq, day_recording, start_dates)
