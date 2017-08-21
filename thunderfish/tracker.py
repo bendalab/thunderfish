@@ -17,7 +17,6 @@ from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
 from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
 # TODO: separate plt usage out from analysis!
 import matplotlib.pyplot as plt
-
 # TODO: update to numpy doc style!
 
 
@@ -42,17 +41,20 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
     :return all_fundamentals: (list) containing arrays with the fundamentals frequencies of fishes detected at a certain time.
     :return all_times: (array) containing time stamps of frequency detection. (  len(all_times) == len(fishes[xy])  )
     """
+
     all_fundamentals = []
     all_times = np.array([])
 
+    data_snippet_idxs = int(data_snippet_secs * samplerate)
+    start_idx = int(start_time * samplerate)
+
     if end_time < 0.0:
         end_time = len(data)/samplerate
+        end_idx = int(len(data)-1)
+    else:
+        end_idx = int(end_time * samplerate)
 
     nfft = next_power_of_two(samplerate / fresolution)
-    if len(data.shape) > 1:
-        channels = range(data.shape[1])
-    else:
-        channels = range(1)
 
     low_threshold = kwargs.pop('low_threshold', 0.0)
     high_threshold = kwargs.pop('high_threshold', 0.0)
@@ -62,28 +64,27 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
             print('Minute %.2f' % (start_time/60))
 
         for channel in channels:
-            # print(channel)
             if len(channels) > 1:
-                tmp_data = data[int(start_time*samplerate) : int((start_time+data_snippet_secs)*samplerate), channel]
+                tmp_data = data[start_idx: start_idx + data_snippet_idxs, channel]
             else:
-                tmp_data = data[int(start_time*samplerate) : int((start_time+data_snippet_secs)*samplerate)]
+                tmp_data = data[start_idx : start_idx + data_snippet_idxs]
 
             # spectrogram
-            spectrum, freqs, time = spectrogram(tmp_data, samplerate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
+            spectrum, freqs, time = spectrogram(tmp_data, samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
 
             # psd and fish fundamentals frequency detection
             tmp_power = [np.array([]) for i in range(len(time)-(nffts_per_psd-1))]
             for t in range(len(time)-(nffts_per_psd-1)):
-                # power = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
                 tmp_power[t] = np.mean(spectrum[:, t:t+nffts_per_psd], axis=1)
+
             if channel == 0:
                 power = tmp_power
             else:
                 for t in range(len(power)):
                     power[t] += tmp_power[t]
 
-        all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] + start_time))
-
+        all_times = np.concatenate((all_times, time[:-(nffts_per_psd-1)] - ((nfft / samplerate) / 2) + (start_idx /
+                                                                                                        samplerate)))
         for p in range(len(power)):
             fishlist, _, mains, all_freqs, good_freqs, low_threshold, high_threshold, _ = \
               harmonic_groups(freqs, power[p],
@@ -98,9 +99,18 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                 fig, ax = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
                 plot_power = 10.0 * np.log10(power[p])
                 ax.plot(freqs[freqs <= 3000.0], plot_power[freqs <= 3000.0], color=colors[-1])
+                # ax.plot(freqs[freqs <= 3000.0], plot_power[freqs <= 3000.0], color='grey', lw=2, alpha=0.8)  # juan & paper
 
                 power_order = np.argsort([fish[0][1] for fish in fishlist])[::-1]
+                # freq_order = np.argsort([fish[0][0] for fish in fishlist])
+                # embed()
+                # quit()
+
+                # counter = 4  # juan & paper
                 for enu, fish in enumerate(power_order):
+                # for enu, fish in enumerate(freq_order):
+                #     if fishlist[fish][0][0] < 800. or fishlist[fish][0][0] > 830.:
+                #         continue
                     if enu == len(colors)-1:
                         break
                     for harmonic in range(len(fishlist[fish])):
@@ -109,9 +119,19 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                         if harmonic == 0:
                             ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
                                     color=colors[enu], markersize= 9, alpha=0.9, label='%.1f' % fishlist[fish][harmonic][0])
+                            # ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
+                            #         color=colors[counter], markersize=9, alpha=0.9, mec='k', mew=2,
+                            #         label='%.1f' % fishlist[fish][harmonic][0])  # juan & paper
                         else:
                             ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
                                     color=colors[enu], markersize= 9, alpha=0.9)
+                            # ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
+                            #         color=colors[counter], markersize=9, alpha=0.9, mec='k', mew=2)
+                        # counter += 1
+                        # if counter >= len(colors):
+                        #     counter=0
+
+
                 ax.legend(loc=1, ncol=2, fontsize=fs-4, frameon=False, numpoints=1)
 
                 ax.spines['top'].set_visible(False)
@@ -120,10 +140,11 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                 ax.get_yaxis().tick_left()
 
                 ax.tick_params(labelsize=fs - 2)
+                # ax.set_xlim([800, 830])
                 ax.set_ylim([np.min(plot_power) - 5., np.max(plot_power) + 15.])
-                ax.set_xlabel('frequency [Hz]', fontsize=fs)
-                ax.set_ylabel('power [dB]', fontsize=fs)
-                ax.set_title('time = %gmin' % ((start_time+time[p])/60.0))
+                ax.set_xlabel('Frequency [Hz]', fontsize=fs)
+                ax.set_ylabel('Power [dB]', fontsize=fs)
+                # ax.set_title('time = %gmin' % ((start_time+time[p])/60.0))
 
                 fig.tight_layout()
                 plt.show()
@@ -133,11 +154,13 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
             if verbose >= 3:
                 print('Minute %.0f' % (start_time/60))
 
-        start_time += time[-nffts_per_psd] - (0.5 -(1-overlap_frac)) * nfft / samplerate
+        start_time += time[-nffts_per_psd] - (0.5 - (1-overlap_frac)) * nfft / samplerate
 
+        non_overlapping_idx = (1-overlap_frac) * nfft
+        start_idx += len(time[:-(nffts_per_psd-1)]) * non_overlapping_idx
 
         if end_time > 0:
-            if start_time >= end_time:
+            if start_idx >= end_idx:
                 if verbose >= 3:
                     print('End time reached!')
                 break
@@ -185,7 +208,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
             min_occure_time = 1.
 
         for fish in reversed(range(len(fishes))):
-            if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= dpm* min_occure_time:
+            if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= dpm * min_occure_time:
                 fishes.pop(fish)
                 last_fish_fundamentals.pop(fish)
                 end_nans.pop(fish)
@@ -199,6 +222,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
         fishes = [np.full(len(all_fundamentals)+1, np.nan)]
     except AttributeError:
         fishes = [np.zeros(len(all_fundamentals)+1) / 0.]
+
     fishes[0][0] = 0.
     last_fish_fundamentals = [ 0. ]
     end_nans = [0]
@@ -216,12 +240,13 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
 
         diffs = []
         for idx in range(len(fundamentals)):
-            diffs.append(np.abs(np.asarray(last_fish_fundamentals) - fundamentals[idx]))
-            diffs[idx][diffs[idx] > freq_tolerance] = np.nan
-            diffs[idx] = np.array([diffs[idx][i] + end_nans[i] / (dpm / 60.) * alpha for i in range(len(end_nans))])
+            diffs.append(np.abs(np.asarray(last_fish_fundamentals) - fundamentals[idx]))  # calulate diffs to previously detected fish
+            diffs[idx][diffs[idx] > freq_tolerance] = np.nan  # exclide fish with to large diffs
+            diffs[idx] = np.array([diffs[idx][i] + end_nans[i] / (dpm / 60.) * alpha for i in range(len(end_nans))])  # adapt delta to last detection of fish x
 
         diffs = np.array(diffs)
         assigned_freq_idx = []
+
         while True:
             if np.size(diffs[~np.isnan(diffs)]) == 0:
                 break
@@ -233,6 +258,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
             fishes[add_fish][enu+1] = fundamentals[add_freq]
             last_fish_fundamentals[add_fish] = fundamentals[add_freq]
             end_nans[add_fish] = 0
+
             try:
                 diffs[add_freq] = np.full(len(diffs[add_freq]), np.nan)
             except AttributeError:
@@ -259,6 +285,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
 
             if np.isnan(fishes[fish][enu+1]):
                 end_nans[fish] += 1
+
     if verbose >= 3:
         print('cleaning up ...')
     fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans, dpm)
@@ -271,7 +298,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
         fishes.pop(0)
 
     if save_original_fishes:
-        print('saving')
+        print('saving...')
         np.save(os.path.join(output_folder, base_name) + '-fishes.npy', np.asarray(fishes))
         np.save(os.path.join(output_folder, base_name) + '-times.npy', all_times)
 
@@ -894,20 +921,23 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
         if verbose >= 2:
             print('> frequency resolution = %.2f Hz' % fresolution)
             print('> nfft overlap fraction = %.2f' % overlap_frac)
+
     all_fundamentals, all_times = extract_fundamentals(data, samplerate, start_time, end_time,
                                                        data_snippet_secs, nffts_per_psd,
                                                        fresolution=fresolution,
                                                        overlap_frac=overlap_frac,
                                                        plot_harmonic_groups=plot_harmonic_groups,
                                                        verbose=verbose, **kwargs)
-
     if verbose >= 1:
         print('\nsorting fishes...')
         if verbose >= 2:
             print('> frequency tolerance = %.2f Hz' % freq_tolerance)
+
     fishes = first_level_fish_sorting(all_fundamentals, base_name, all_times, freq_tolerance=freq_tolerance,
                                       save_original_fishes=save_original_fishes, output_folder=output_folder, verbose=verbose)
 
+    ###########
+    # is this still important ? clean up function in first_level_fish_sorting
     min_occure_time = all_times[-1] * 0.01 / 60.
     if min_occure_time > 1.:
         min_occure_time = 1.
@@ -921,6 +951,8 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     if len(fishes) == 0:
         print('excluded all fishes. Change parameters.')
         quit()
+    ###########
+
     if verbose >= 1:
         print('\nrise detection...')
         if verbose >= 2:
@@ -1073,5 +1105,8 @@ def main():
                      plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, **t_kwargs)
 
 if __name__ == '__main__':
+    # how to execute this code properly
+    # python -m thunderfish.tracker ../../raab_data/colombia_2016/stone_stack_overnight_recording/60428L01_usb_2.WAV
+    # -p -s -o ../../analysis_output/stacked_stones/first -v -v -v
     main()
 

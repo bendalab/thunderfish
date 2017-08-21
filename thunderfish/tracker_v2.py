@@ -52,7 +52,9 @@ def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=4, freso
     electrode_fund_power = []
 
     # def nfft size
+    fresolution *= 2.
     nfft = next_power_of_two(samplerate / fresolution)
+
 
     # spectrogram
     spectrum, freqs, time = spectrogram(data, samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
@@ -69,6 +71,49 @@ def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=4, freso
 
         electrode_fundamentals.append(fundamentals)
         electrode_fund_power.append(fund_power)
+
+        if plot_harmonic_groups:
+            fs = 14
+            colors = ['#BA2D22', '#F47F17', '#53379B', '#3673A4', '#AAB71B', '#DC143C', '#1E90FF']
+
+            inch_factor = 2.54
+            fig, ax = plt.subplots(facecolor='white', figsize=(20. / inch_factor, 12. / inch_factor))
+            plot_power = 10.0 * np.log10(power[p])
+            ax.plot(freqs[freqs <= 3000.0], plot_power[freqs <= 3000.0], color=colors[-1])
+
+            power_order = np.argsort([fish[0][1] for fish in fishlist])[::-1]
+
+            for enu, fish in enumerate(power_order):
+                if enu == len(colors) - 1:
+                    break
+                for harmonic in range(len(fishlist[fish])):
+                    if fishlist[fish][harmonic][0] >= 3000.0:
+                        break
+                    if harmonic == 0:
+                        ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
+                                color=colors[enu], markersize=9, alpha=0.9, label='%.1f' % fishlist[fish][harmonic][0])
+                    else:
+                        ax.plot(fishlist[fish][harmonic][0], 10.0 * np.log10(fishlist[fish][harmonic][1]), 'o',
+                                color=colors[enu], markersize=9, alpha=0.9)
+            ax.legend(loc=1, ncol=2, fontsize=fs - 4, frameon=False, numpoints=1)
+
+            ax.spines['top'].set_visible(False)
+            ax.spines['right'].set_visible(False)
+            ax.get_xaxis().tick_bottom()
+            ax.get_yaxis().tick_left()
+
+            ax.tick_params(labelsize=fs - 2)
+            ax.set_ylim([np.min(plot_power) - 5., np.max(plot_power) + 15.])
+            ax.set_xlabel('Frequency [Hz]', fontsize=fs)
+            ax.set_ylabel('Power [dB]', fontsize=fs)
+
+            ax.set_xlim([800, 850])
+
+            fig.tight_layout()
+            print nfft
+            print nffts_per_psd
+            print samplerate
+            plt.show()
 
     electrode_times = time[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
 
@@ -960,7 +1005,11 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
         t0 = time.time()
 
         core_count = multiprocessing.cpu_count()
-        pool = multiprocessing.Pool(core_count - 1)
+
+        if plot_harmonic_groups:
+            pool = multiprocessing.Pool(1)
+        else:
+            pool = multiprocessing.Pool(core_count - 1)
 
         func = partial(snipped_fundamentals, samplerate=samplerate, start_idx=start_idx, nffts_per_psd=nffts_per_psd,
                        fresolution=fresolution, overlap_frac=overlap_frac, plot_harmonic_groups=plot_harmonic_groups,

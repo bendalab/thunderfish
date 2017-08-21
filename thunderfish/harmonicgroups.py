@@ -302,10 +302,14 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
             continue
 
         # ratio of total fill-ins too large:
-        if float(fill_ins) / float(len(newmoregroup)) > max_fill_ratio:
+        if len(newmoregroup) == 0 or float(fill_ins) / float(len(newmoregroup)) > max_fill_ratio:
             if verbose > 1:
-                print('discarded group because of too many fill ins! %d from %d (%g)' %
-                      (fill_ins, len(newmoregroup), float(fill_ins) / float(len(newmoregroup))), newmoregroup)
+                if len(newmoregroup) == 0:
+                    print('discarded group because newmoregroup is empty! %d from %d' %
+                          (fill_ins, len(newmoregroup)))
+                else:
+                    print('discarded group because of too many fill ins! %d from %d (%g)' %
+                          (fill_ins, len(newmoregroup), float(fill_ins) / float(len(newmoregroup))), newmoregroup)
             continue
 
         # REASSEMBLE NEW GROUP BECAUSE FZERO MIGHT HAVE CHANGED AND
@@ -794,7 +798,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     return groups, fzero_harmonics, mains, all_freqs, freqs[:, 0], low_threshold, high_threshold, center
 
 
-def fundamental_freqs(group_list):
+def fundamental_freqs(group_list, return_power=False):
     """
     Extract the fundamental frequencies from lists of harmonic groups.
 
@@ -813,13 +817,21 @@ def fundamental_freqs(group_list):
     """
     if len(group_list) == 0:
         fundamentals = np.array([])
+        fund_power = np.array([])
     elif hasattr(group_list[0][0][0], '__len__'):
         fundamentals = []
+        fund_power = []
         for groups in group_list:
             fundamentals.append(np.array([harmonic_group[0][0] for harmonic_group in groups]))
+            fund_power.append(np.array([harmonic_group[0][1] for harmonic_group in groups]))
     else:
         fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_list])
-    return fundamentals
+        fund_power = np.array([harmonic_group[0][1] for harmonic_group in group_list])
+
+    if return_power:
+        return fundamentals, fund_power
+    else:
+        return fundamentals
 
 
 def fundamental_freqs_and_db(group_list):
