@@ -52,7 +52,7 @@ def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=4, freso
     electrode_fund_power = []
 
     # def nfft size
-    fresolution *= 2.
+    # fresolution *= 2.
     nfft = next_power_of_two(samplerate / fresolution)
 
 
@@ -485,8 +485,8 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
                     for h_fish in range(len(fishes)):
                         if h_fish == fish:
                             continue
-                        h_fish_data = fishes[h_fish][np.floor(compare_freq_idxs[0] - dpm * 3.):compare_freq_idxs[0]]
-                        h_fish_time = all_times[np.floor(compare_freq_idxs[0] - dpm * 3.):compare_freq_idxs[0]]
+                        h_fish_data = fishes[h_fish][int(np.floor(compare_freq_idxs[0] - dpm * 3.)):int(compare_freq_idxs[0])]
+                        h_fish_time = all_times[int(np.floor(compare_freq_idxs[0] - dpm * 3.)):int(compare_freq_idxs[0])]
                         y = h_fish_data[~np.isnan(h_fish_data)]
                         x = h_fish_time[~np.isnan(h_fish_data)]
                         if len(y) >= 2:
@@ -768,7 +768,7 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folde
         plt.show()
 
 
-def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, fresolution = 0.5, overlap_frac = .9,
+def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 1, fresolution = 0.5, overlap_frac = .9,
                        freq_tolerance = 0.5, rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
