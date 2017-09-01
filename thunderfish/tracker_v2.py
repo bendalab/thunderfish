@@ -1054,9 +1054,10 @@ def grid_fish_frequency_and_position(t_fundamentals, t_power, channels, coords, 
 
     for enu, fish in enumerate(f_pos_pow_ci):
         try:
-            fish[3] = list(np.array(fish[3])[np.array(fish[2]) != 0])
-            fish[2] = list(np.array(fish[2])[np.array(fish[2]) != 0])
             fish[1] = list(np.array(fish[1])[np.array(fish[2]) != 0])
+            fish[3] = list(np.array(fish[3])[np.array(fish[2]) != 0])
+
+            fish[2] = list(np.array(fish[2])[np.array(fish[2]) != 0])
         except ValueError:
             embed()
             quit()
