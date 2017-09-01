@@ -124,7 +124,7 @@ def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=4, freso
     return electrode_fundamentals, electrode_fund_power, electrode_times, start_idx, nfft
 
 
-def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions, prim_time_tolerance=1., freq_tolerance = .5,
+def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions=[], prim_time_tolerance=1., freq_tolerance = .5,
                              save_original_fishes=False, output_folder = '.', verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
@@ -166,8 +166,9 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions, 
         for fish in reversed(range(len(fishes))):
             if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= dpm * min_occure_time:
                 fishes.pop(fish)
-                fishes_x_pos.pop(fish)
-                fishes_y_pos.pop(fish)
+                if fishes_x_pos != []:
+                    fishes_x_pos.pop(fish)
+                    fishes_y_pos.pop(fish)
                 last_fish_fundamentals.pop(fish)
                 end_nans.pop(fish)
 
@@ -178,12 +179,20 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions, 
 
     try:
         fishes = [np.full(len(all_fundamentals)+1, np.nan)]
-        fishes_x_pos = [np.full(len(all_fundamentals)+1, np.nan)]
-        fishes_y_pos = [np.full(len(all_fundamentals)+1, np.nan)]
+        if positions != []:
+            fishes_x_pos = [np.full(len(all_fundamentals)+1, np.nan)]
+            fishes_y_pos = [np.full(len(all_fundamentals)+1, np.nan)]
+        else:
+            fishes_x_pos = []
+            fishes_y_pos = []
     except AttributeError:
         fishes = [np.zeros(len(all_fundamentals)+1) / 0.]
-        fishes_x_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
-        fishes_y_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
+        if positions != []:
+            fishes_x_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
+            fishes_y_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
+        else:
+            fishes_x_pos = []
+            fishes_y_pos = []
 
     fishes[0][0] = 0.
     last_fish_fundamentals = [ 0. ]
@@ -198,7 +207,8 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions, 
             # ToDo: add positions to clean up function !!!
             if verbose >= 3:
                 print('cleaning up ...')
-            fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans = clean_up(fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans, dpm)
+            fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans = \
+                clean_up(fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans, dpm)
             clean_up_idx += int(30 * dpm)
 
         diffs = []
@@ -219,8 +229,9 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions, 
             assigned_freq_idx.append(add_freq)
 
             fishes[add_fish][enu+1] = fundamentals[add_freq]
-            fishes_x_pos[add_fish][enu+1] = positions[enu][add_freq][0]
-            fishes_y_pos[add_fish][enu+1] = positions[enu][add_freq][1]
+            if positions != []:
+                fishes_x_pos[add_fish][enu+1] = positions[enu][add_freq][0]
+                fishes_y_pos[add_fish][enu+1] = positions[enu][add_freq][1]
 
             last_fish_fundamentals[add_fish] = fundamentals[add_freq]
             end_nans[add_fish] = 0
@@ -239,17 +250,20 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions, 
             else:
                 try:
                     fishes.append(np.full(len(all_fundamentals) + 1, np.nan))
-                    fishes_x_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
-                    fishes_y_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
+                    if positions != []:
+                        fishes_x_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
+                        fishes_y_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
 
                 except AttributeError:
                     fishes.append(np.zeros(len(all_fundamentals)+1) / 0.)
-                    fishes_x_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
-                    fishes_y_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
+                    if positions != []:
+                        fishes_x_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
+                        fishes_y_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
 
                 fishes[-1][enu + 1] = fundamentals[i]
-                fishes_x_pos[-1][enu + 1] = positions[enu][i][0]
-                fishes_y_pos[-1][enu + 1] = positions[enu][i][1]
+                if positions != []:
+                    fishes_x_pos[-1][enu + 1] = positions[enu][i][0]
+                    fishes_y_pos[-1][enu + 1] = positions[enu][i][1]
 
                 last_fish_fundamentals.append(fundamentals[i])
                 end_nans.append(0)
@@ -268,14 +282,16 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions, 
     # reshape everything to arrays
     for fish in range(len(fishes)):
         fishes[fish] = fishes[fish][1:]
-        fishes_x_pos[fish] = fishes_x_pos[fish][1:]
-        fishes_y_pos[fish] = fishes_y_pos[fish][1:]
+        if positions != []:
+            fishes_x_pos[fish] = fishes_x_pos[fish][1:]
+            fishes_y_pos[fish] = fishes_y_pos[fish][1:]
 
     # if not removed be clean_up(): remove first fish because it has been used for the first comparison !
     if fishes[0][0] == 0.:
         fishes.pop(0)
-        fishes_x_pos.pop(0)
-        fishes_y_pos.pop(0)
+        if positions != []:
+            fishes_x_pos.pop(0)
+            fishes_y_pos.pop(0)
 
     if save_original_fishes:
         print('saving...')
@@ -986,11 +1002,8 @@ def grid_fish_frequency_and_position(t_fundamentals, t_power, channels, coords, 
     f_pos_pow_ci = []
     for f in unique_fundamentals:
         pos_i = np.arange(len(t_fundamentals))[np.array([f in t_fundamentals[i] for i in range(len(t_fundamentals))])]
-
-        # pos_e = np.array(channels)[np.array([f in t_fundamentals[i] for i in range(len(t_fundamentals))])]
         pos_e = list(np.array(channels)[pos_i])
         pos_e_power = [t_power[p][t_fundamentals[p] == f][0] for p in pos_i]
-        # pos_e_power = [t_power[p][t_fundamentals[p] == f][0] for p in range(len(pos_e))]
         f_pos_pow_ci.append([f, pos_e, pos_e_power, pos_i])
 
     # check for potential combinations (similar frequencies) of neighboring electrodes
@@ -1214,7 +1227,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
                  overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 5.,
                  f_th= 5., output_folder = '.', plot_harmonic_groups=False, plot_field=False, verbose=0,
-                 part_analysis=False, **kwargs):
+                 part_analysis=False, not_tracking=False, **kwargs):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -1291,8 +1304,8 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
             nfft = a[0][4]
             # embed()
             # quit()
-        except IndexError:
-            print ('IndexError in pool analysis... start_idx = %.0f' % start_idx)
+        except:
+            print ('Error in pool analysis... start_idx = %.0f' % start_idx)
             all_ele_fundamentals = []
             all_ele_fund_power = []
 
@@ -1307,8 +1320,8 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
                     all_ele_fund_power.append(electrode_fund_power)
 
                     ele_times = electrode_times
-                except IndexError:
-                    print ('IndexError also in single channel analysis... start_idx = %.0f; channel = %.0f'
+                except:
+                    print ('Error also in single channel analysis... start_idx = %.0f; channel = %.0f'
                            % (start_idx, channel))
                     all_ele_fundamentals.append([np.array([], dtype=float) for i in range(len(a[0][0])) ])
                     all_ele_fund_power.append([np.array([], dtype=float) for i in range(len(a[0][1])) ])
@@ -1325,7 +1338,8 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
                 np.array(all_ele_fundamentals)[:, t], np.array(all_ele_fund_power)[:, t], channels, coords, neighbours)
 
             fundamentals.append(current_fundamentals)
-            positions.append(current_positions)
+            if not not_tracking:
+                positions.append(current_positions)
 
         times = np.concatenate((times, ele_times))
 
@@ -1338,12 +1352,13 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
         if start_idx >= end_idx:
             break
 
-    fishes, fishes_x_pos, fishes_y_pos = first_level_fish_sorting(fundamentals, base_name, times, positions,
+    fishes, fishes_x_pos, fishes_y_pos = first_level_fish_sorting(fundamentals, base_name, times, positions=positions,
                                                                   freq_tolerance=freq_tolerance,
                                                                   save_original_fishes=save_original_fishes,
                                                                   output_folder=output_folder, verbose=verbose)
-
-
+    # embed()
+    # quit()
+    ################################## continue no tracking ... ####################################
     min_occure_time = times[-1] * 0.01 / 60.
     if min_occure_time > 1.:
         min_occure_time = 1.
@@ -1380,12 +1395,8 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
 
     fishes, fishes_x_pos, fishes_y_pos, all_rises = combine_fishes(fishes, fishes_x_pos, fishes_y_pos, times, all_rises, max_time_tolerance, f_th)
 
-    print ('1')
-    plot_positions(fishes, fishes_x_pos, fishes_y_pos, times)
-
-    print ('2')
-
     if 'plt' in locals() or 'plt' in globals():
+        plot_positions(fishes, fishes_x_pos, fishes_y_pos, times)
         plot_fishes(fishes, times, all_rises, base_name, save_plot, output_folder)
 
     if save_original_fishes:
@@ -1421,6 +1432,7 @@ def main():
     parser.add_argument('-s', dest='save_fish', action='store_true',
                         help='save fish EODs after first stage of sorting.')
     parser.add_argument('-f', dest='plot_harmonic_groups', action='store_true', help='plot harmonic group detection')
+    parser.add_argument('-t', dest='not_tracking', action='store_true', help='dont track positions')
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
                         help="path where to store results and figures")
     args = parser.parse_args()
@@ -1514,7 +1526,8 @@ def main():
         t_kwargs.update(tracker_args(cfg))
         fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
                      args.grid, args.save_plot, args.save_fish, output_folder=args.output_folder,
-                     plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, part_analysis=False, **t_kwargs)
+                     plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, not_tracking=args.not_tracking,
+                     part_analysis=False, **t_kwargs)
 
 if __name__ == '__main__':
     # how to execute this code properly
