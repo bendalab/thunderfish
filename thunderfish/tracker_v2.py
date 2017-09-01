@@ -124,7 +124,7 @@ def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=4, freso
     return electrode_fundamentals, electrode_fund_power, electrode_times, start_idx, nfft
 
 
-def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_tolerance=1., freq_tolerance = .5,
+def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions, prim_time_tolerance=1., freq_tolerance = .5,
                              save_original_fishes=False, output_folder = '.', verbose=0):
     """
     Sorts fundamental frequencies of wave-type electric fish detected at certain timestamps to fishes.
@@ -148,7 +148,7 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
     :param verbose: (int) with increasing value provides more shell output.
     :return fishes: (list) containing arrays of sorted fish frequencies. Each array represents one fish.
     """
-    def clean_up(fishes, last_fish_fundamentals, end_nans, dpm):
+    def clean_up(fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans, dpm):
         """
         Delete fish arrays with too little data points to reduce memory usage.
 
@@ -166,18 +166,24 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
         for fish in reversed(range(len(fishes))):
             if len(np.array(fishes[fish])[~np.isnan(fishes[fish])]) <= dpm * min_occure_time:
                 fishes.pop(fish)
+                fishes_x_pos.pop(fish)
+                fishes_y_pos.pop(fish)
                 last_fish_fundamentals.pop(fish)
                 end_nans.pop(fish)
 
-        return fishes, last_fish_fundamentals, end_nans
+        return fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans
 
     detection_time_diff = all_times[1] - all_times[0]
     dpm = 60. / detection_time_diff  # detections per minutes
 
     try:
         fishes = [np.full(len(all_fundamentals)+1, np.nan)]
+        fishes_x_pos = [np.full(len(all_fundamentals)+1, np.nan)]
+        fishes_y_pos = [np.full(len(all_fundamentals)+1, np.nan)]
     except AttributeError:
         fishes = [np.zeros(len(all_fundamentals)+1) / 0.]
+        fishes_x_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
+        fishes_y_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
 
     fishes[0][0] = 0.
     last_fish_fundamentals = [ 0. ]
@@ -189,9 +195,10 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
     alpha = 0.02
     for enu, fundamentals in enumerate(all_fundamentals):
         if enu == clean_up_idx:
+            # ToDo: add positions to clean up function !!!
             if verbose >= 3:
                 print('cleaning up ...')
-            fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans, dpm)
+            fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans = clean_up(fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans, dpm)
             clean_up_idx += int(30 * dpm)
 
         diffs = []
@@ -212,6 +219,9 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
             assigned_freq_idx.append(add_freq)
 
             fishes[add_fish][enu+1] = fundamentals[add_freq]
+            fishes_x_pos[add_fish][enu+1] = positions[enu][add_freq][0]
+            fishes_y_pos[add_fish][enu+1] = positions[enu][add_freq][1]
+
             last_fish_fundamentals[add_fish] = fundamentals[add_freq]
             end_nans[add_fish] = 0
 
@@ -229,9 +239,18 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
             else:
                 try:
                     fishes.append(np.full(len(all_fundamentals) + 1, np.nan))
+                    fishes_x_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
+                    fishes_y_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
+
                 except AttributeError:
                     fishes.append(np.zeros(len(all_fundamentals)+1) / 0.)
+                    fishes_x_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
+                    fishes_y_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
+
                 fishes[-1][enu + 1] = fundamentals[i]
+                fishes_x_pos[-1][enu + 1] = positions[enu][i][0]
+                fishes_y_pos[-1][enu + 1] = positions[enu][i][1]
+
                 last_fish_fundamentals.append(fundamentals[i])
                 end_nans.append(0)
 
@@ -244,21 +263,27 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, prim_time_t
 
     if verbose >= 3:
         print('cleaning up ...')
-    fishes, last_fish_fundamentals, end_nans = clean_up(fishes, last_fish_fundamentals, end_nans, dpm)
+    fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans = clean_up(fishes, fishes_x_pos, fishes_y_pos, last_fish_fundamentals, end_nans, dpm)
+
     # reshape everything to arrays
     for fish in range(len(fishes)):
         fishes[fish] = fishes[fish][1:]
+        fishes_x_pos[fish] = fishes_x_pos[fish][1:]
+        fishes_y_pos[fish] = fishes_y_pos[fish][1:]
 
     # if not removed be clean_up(): remove first fish because it has been used for the first comparison !
     if fishes[0][0] == 0.:
         fishes.pop(0)
+        fishes_x_pos.pop(0)
+        fishes_y_pos.pop(0)
 
     if save_original_fishes:
         print('saving...')
+        # ToDo: also save posiotions
         np.save(os.path.join(output_folder, base_name) + '-fishes.npy', np.asarray(fishes))
         np.save(os.path.join(output_folder, base_name) + '-times.npy', all_times)
 
-    return np.asarray(fishes)
+    return np.asarray(fishes), np.array(fishes_x_pos), np.array(fishes_y_pos)
 
 
 def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
@@ -364,7 +389,7 @@ def detect_rises(fishes, all_times, rise_f_th = .5, verbose = 0):
     return all_rises
 
 
-def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th = 5., plot_combi=False):
+def combine_fishes(fishes, fishes_x_pos, fishes_y_pos, all_times, all_rises, max_time_tolerance = 5., f_th = 5., plot_combi=False):
     """
     Combines array of electric fish fundamental frequencies which, based on frequency difference and time of occurrence
     likely belong to the same fish.
@@ -548,10 +573,17 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
 
 
         fishes[comp_fish][~np.isnan(fishes[fish])] = fishes[fish][~np.isnan(fishes[fish])]
+        fishes_x_pos[comp_fish][~np.isnan(fishes_x_pos[fish])] = fishes_x_pos[fish][~np.isnan(fishes_x_pos[fish])]
+        fishes_y_pos[comp_fish][~np.isnan(fishes_y_pos[fish])] = fishes_y_pos[fish][~np.isnan(fishes_y_pos[fish])]
+
         try:
             fishes[fish] = np.full(len(fishes[fish]), np.nan)
+            fishes_x_pos[fish] = np.full(len(fishes_x_pos[fish]), np.nan)
+            fishes_y_pos[fish] = np.full(len(fishes_y_pos[fish]), np.nan)
         except AttributeError:
             fishes[fish] = np.zeros(len(fishes[fish])) / 0.
+            fishes_x_pos[fish] = np.zeros(len(fishes_x_pos[fish])) / 0.
+            fishes_y_pos[fish] = np.zeros(len(fishes_y_pos[fish])) / 0.
 
         # clean up possible_combination all fish
         for i in range(len(possible_combinations_all_fish)):  # loop over all fishes ...
@@ -587,10 +619,10 @@ def combine_fishes(fishes, all_times, all_rises, max_time_tolerance = 5., f_th =
 
     return_idxs = np.setdiff1d(np.arange(len(fishes)), np.array(delete_idx))
 
-    return fishes[return_idxs], all_rises
+    return fishes[return_idxs], fishes_x_pos[return_idxs], fishes_y_pos[return_idxs], all_rises
 
 
-def exclude_fishes(fishes, all_times, min_occure_time = 1.):
+def exclude_fishes(fishes, fishes_x_pos, fishes_y_pos, all_times, min_occure_time = 1.):
     """
     Delete fishes that are present for a to short period of time.
 
@@ -607,10 +639,10 @@ def exclude_fishes(fishes, all_times, min_occure_time = 1.):
         if len(fishes[fish][~np.isnan(fishes[fish])]) >= min_occure_time * dpm:
             keep_idx.append(fish)
 
-    return np.asarray(fishes)[keep_idx]
+    return fishes[keep_idx], fishes_x_pos[keep_idx], fishes_y_pos[keep_idx]
 
 
-def cut_at_rises(fishes, all_rises, all_times, min_occure_time):
+def cut_at_rises(fishes, fishes_x_pos, fishes_y_pos, all_rises, all_times, min_occure_time):
     """
     Cuts fish arrays at detected rise peaks. For each rise two fish arrays are created with the same length as the
     original fish array.
@@ -625,6 +657,9 @@ def cut_at_rises(fishes, all_rises, all_times, min_occure_time):
     dpm = 60. / detection_time_diff  # detections per minutes
 
     new_fishes = []
+    new_fishes_x_pos = []
+    new_fishes_y_pos = []
+
     delete_idx = []
     for fish in reversed(range(len(fishes))):
 
@@ -665,15 +700,25 @@ def cut_at_rises(fishes, all_rises, all_times, min_occure_time):
 
             try:
                 new_fishes.append(np.full(len(fishes[fish]), np.nan))
+                new_fishes_x_pos.append(np.full(len(fishes[fish]), np.nan))
+                new_fishes_y_pos.append(np.full(len(fishes[fish]), np.nan))
             except AttributeError:
                 new_fishes.append(np.zeros(len(fishes[fish])) / 0.)
+                new_fishes_x_pos.append(np.zeros(len(fishes[fish])) / 0.)
+                new_fishes_y_pos.append(np.zeros(len(fishes[fish])) / 0.)
 
             new_fishes[-1][cut_idx:] = fishes[fish][cut_idx:]
+            new_fishes_x_pos[-1][cut_idx:] = fishes_x_pos[fish][cut_idx:]
+            new_fishes_y_pos[-1][cut_idx:] = fishes_y_pos[fish][cut_idx:]
 
             try:
                 fishes[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
+                fishes_x_pos[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
+                fishes_y_pos[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
             except AttributeError:
                 fishes[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
+                fishes_x_pos[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
+                fishes_y_pos[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
 
             # ToDo rises correkt uebertragen...
             new_rises = all_rises[fish][rise:]
@@ -690,14 +735,17 @@ def cut_at_rises(fishes, all_rises, all_times, min_occure_time):
     return_idx = np.setdiff1d(np.arange(len(fishes)), np.array(delete_idx))
 
     if len(new_fishes) == 0:
-        return fishes, all_rises
+        return fishes, fishes_x_pos, fishes_y_pos, all_rises
     else:
-        return np.append(fishes[return_idx], new_fishes, axis=0), all_rises
+        return np.append(fishes[return_idx], new_fishes, axis=0), np.append(fishes_x_pos[return_idx], new_fishes_x_pos, axis=0),\
+               np.append(fishes_y_pos[return_idx], new_fishes_y_pos, axis=0), all_rises
     # return np.append(fishes[return_idx], new_fishes, axis=0), all_rises
 
 
-def save_data(fishes, all_times, all_rises, base_name, output_folder):
+def save_data(fishes, fishes_x_pos, fishes_y_pos, all_times, all_rises, base_name, output_folder):
     np.save(os.path.join(output_folder, base_name) + '-final_fishes.npy', np.asarray(fishes))
+    np.save(os.path.join(output_folder, base_name) + '-final_x_pos.npy', np.asarray(fishes_x_pos))
+    np.save(os.path.join(output_folder, base_name) + '-final_y_pos.npy', np.asarray(fishes_y_pos))
     np.save(os.path.join(output_folder, base_name) + '-final_times.npy', all_times)
     np.save(os.path.join(output_folder, base_name) + '-final_rises.npy', np.asarray(all_rises))
 
@@ -768,7 +816,69 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folde
         plt.show()
 
 
-def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 1, fresolution = 0.5, overlap_frac = .9,
+def plot_positions(fishes, fishes_x_pos, fishes_y_pos, all_times):
+    plt.ion()
+    fig = plt.figure(facecolor='white', figsize=(25./2.54, 25./2.54))
+    ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
+    ax.set_xlim([0, 9])
+    ax.set_ylim([0, 9])
+    fig.canvas.draw()
+    # plt.show(block=False)
+    end_min = all_times[-1] // 60
+    end_sec = all_times[-1] % 60
+
+    f_handles = []
+    l_handles = []
+    i0 = 0
+    i1 = 3
+    # lw = np.zeros(i1)
+    # lw[-1] = 2
+    alphas = np.linspace(0.1, 1, i1)
+    plt.waitforbuttonpress()
+    for i in range(len(fishes)):
+        colors = np.zeros((i1, 4))
+
+        c = np.random.rand(3)
+        colors[:, 0:3] = c
+        colors[:, 3] = alphas
+
+        f = ax.scatter(fishes_x_pos[i][i0:i1] + 1., fishes_y_pos[i][i0:i1] + 1., color=colors, s=80)
+        l, = ax.plot(fishes_x_pos[i][i0:i1] + 1., fishes_y_pos[i][i0:i1] + 1., color=c, alpha=0.5)
+
+        current_min = all_times[i1] // 60
+        current_sec = all_times[i1] % 60
+        ax.set_title('%.0fmin %.0fsec of %.0fmin %.0fsec' % (current_min, current_sec, end_min, end_sec))
+        f_handles.append(f)
+        l_handles.append(l)
+    fig.canvas.draw()
+    t0 = time.time()
+
+    while True:
+        i0 += 1
+        i1 += 1
+
+        if i1 == len(fishes[0]):
+            break
+        for enu, f in enumerate(f_handles):
+            f_handles[enu].set_offsets(np.c_[fishes_x_pos[enu][i0:i1] + 1., fishes_y_pos[enu][i0:i1] + 1.])
+            # f.set_offsets(np.c_[fishes_x_pos[enu][i0:i1] + 1., fishes_y_pos[enu][i0:i1] + 1.])
+            l_handles[enu].set_data(fishes_x_pos[enu][i0:i1] + 1., fishes_y_pos[enu][i0:i1] + 1.)
+
+        if time.time() - t0 < 0.335:
+            time.sleep(0.335 - (time.time() - t0))
+        # time.sleep(1.)
+        current_min = all_times[i1] // 60
+        current_sec = all_times[i1] % 60
+        ax.set_title('%.0fmin %.0fsec of %.0fmin %.0fsec' % (current_min, current_sec, end_min, end_sec))
+
+        fig.canvas.draw()
+        t0 = time.time()
+
+    plt.ioff()
+    plt.show()
+
+
+def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 2, fresolution = 0.5, overlap_frac = .9,
                        freq_tolerance = 0.5, rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
@@ -834,61 +944,100 @@ def tracker_args(cfg):
                     'f_th': 'FrequencyThreshold'})
 
 
-def grid_fish_frequency_and_position(t_fundamentals, t_power, plot_field=False):
+def grid_fish_frequency_and_position(t_fundamentals, t_power, channels, coords, neighbours, plot_field=False):
 
-    def contains_neighbors(pos1, pos2, n_x_elec=8, n_y_elec=8, n_tolance_e = 2):
-        for p in pos1:
-            x = p // n_y_elec
-            y = p % n_y_elec
-
-            neighbor_coords = []
-            for i in np.arange(-n_tolance_e, n_tolance_e+1):
-                for j in np.arange(-n_tolance_e, n_tolance_e+1):
-                    neighbor_coords.append([x+i, y+j])
-
-            for k in reversed(range(len(neighbor_coords))):
-                if all((i >= 0) & (i <= 7) for i in neighbor_coords[k]):
-                    continue
-                else:
-                    neighbor_coords.pop(k)
-            neighbor_e = [n[0] * 8 + n[1] for n in neighbor_coords]
-
-            if set(neighbor_e).intersection(pos2):
-                return True
-
-        return False
+    # def contains_neighbors(pos1, pos2, grid, n_tolance_e = 2):
+    #     if not grid or grid > 3:
+    #         n_x_elec, n_y_elec = 8, 8
+    #     elif grid == 1:
+    #         n_x_elec, n_y_elec = 3, 3
+    #     elif grid == 2:
+    #         n_x_elec, n_y_elec = 4, 4
+    #     elif grid == 3:
+    #         print ('should not have gotten to this point.')
+    #         quit()
+    #
+    #     for p in pos1:
+    #         x = p // n_y_elec
+    #         y = p % n_y_elec
+    #
+    #         neighbor_coords = []
+    #         for i in np.arange(-n_tolance_e, n_tolance_e+1):
+    #             for j in np.arange(-n_tolance_e, n_tolance_e+1):
+    #                 neighbor_coords.append([x+i, y+j])
+    #
+    #         for k in reversed(range(len(neighbor_coords))):
+    #             if all((i >= 0) & (i <= 7) for i in neighbor_coords[k]):
+    #                 continue
+    #             else:
+    #                 neighbor_coords.pop(k)
+    #         neighbor_e = [n[0] * 8 + n[1] for n in neighbor_coords]
+    #
+    #         if set(neighbor_e).intersection(pos2):
+    #             return True
+    #
+    #     return False
 
     #  unify fundamentals
+
     unique_fundamentals = np.unique(np.concatenate((t_fundamentals)))
 
     #  check for each fundamental in which electrodes they are detected
-    f_pos_pow = []
+    f_pos_pow_ci = []
     for f in unique_fundamentals:
-        pos = np.arange(len(t_fundamentals))[np.array([f in t_fundamentals[i] for i in range(len(t_fundamentals))])]
-        pos_power = [t_power[p][t_fundamentals[p] == f][0] for p in pos]
-        f_pos_pow.append([f, pos.tolist(), pos_power])
+        pos_i = np.arange(len(t_fundamentals))[np.array([f in t_fundamentals[i] for i in range(len(t_fundamentals))])]
+
+        # pos_e = np.array(channels)[np.array([f in t_fundamentals[i] for i in range(len(t_fundamentals))])]
+        pos_e = list(np.array(channels)[pos_i])
+        pos_e_power = [t_power[p][t_fundamentals[p] == f][0] for p in pos_i]
+        # pos_e_power = [t_power[p][t_fundamentals[p] == f][0] for p in range(len(pos_e))]
+        f_pos_pow_ci.append([f, pos_e, pos_e_power, pos_i])
 
     # check for potential combinations (similar frequencies) of neighboring electrodes
-    pot_f = np.array([f_pos_pow[i][0] for i in range(len(f_pos_pow))])
+    pot_f = np.array([f_pos_pow_ci[i][0] for i in range(len(f_pos_pow_ci))])
     pot_combinations = []
+
     for i in range(len(pot_f) - 1):
         for j in range(i + 1, len(pot_f)):
             if np.abs(pot_f[i] - pot_f[j]) <= 0.2:
-                if contains_neighbors(f_pos_pow[i][1], f_pos_pow[j][1]):
-                    pot_combinations.append([np.abs(pot_f[i] - pot_f[j]), i, j])
 
+                # embed()
+                # quit()
+                # if not set(f_pos_pow[i][1]).intersection(f_pos_pow[j][1]):
+                if len([x for x in f_pos_pow_ci[i][1] if x in f_pos_pow_ci[j][1]]) == 0: #no equal electrodes
+                    all_possible_neigbours = []
+                    for nli in f_pos_pow_ci[i][3]:
+                        all_possible_neigbours.extend(neighbours[nli])
+                    if len([x for x in all_possible_neigbours if x in f_pos_pow_ci[j][1]]) >= 1:
+                        pot_combinations.append([np.abs(pot_f[i] - pot_f[j]), i, j])
+                #     if len(f_pos_pow[i][1]) == 1:
+                #         if set(neighbours[f_pos_pow[i][1]]).intersection(f_pos_pow[j][1]):
+                #             pot_combinations.append([np.abs(pot_f[i] - pot_f[j]), i, j])
+                #     else:
+                #         if set(np.concatenate((neighbours[f_pos_pow[i][1]]))).intersection((f_pos_pow[j][1])):
+                #             pot_combinations.append([np.abs(pot_f[i] - pot_f[j]), i, j])
+
+                # embed()
+                # quit()
+                # position f1 = f_pos_pow[i][1]   ;    positions f2 = f_pos_pow[j][1]
+
+                # if contains_neighbors(f_pos_pow[i][1], f_pos_pow[j][1], grid):
+                #     pot_combinations.append([np.abs(pot_f[i] - pot_f[j]), i, j])
     # combine those fuckers
     while len(pot_combinations) > 0:
         smalles_diff_idx = np.argmin([pot_combinations[i][0] for i in range(len(pot_combinations))])
 
         idxs = [pot_combinations[smalles_diff_idx][1], pot_combinations[smalles_diff_idx][2]]
-        idx0 = idxs[0] if len(f_pos_pow[idxs[0]][1]) >= len(f_pos_pow[idxs[1]][1]) else idxs[1]
-        idx1 = idxs[1] if len(f_pos_pow[idxs[0]][1]) >= len(f_pos_pow[idxs[1]][1]) else idxs[0]
+        idx0 = idxs[0] if len(f_pos_pow_ci[idxs[0]][1]) >= len(f_pos_pow_ci[idxs[1]][1]) else idxs[1]
+        idx1 = idxs[1] if len(f_pos_pow_ci[idxs[0]][1]) >= len(f_pos_pow_ci[idxs[1]][1]) else idxs[0]
 
-        if len(set(f_pos_pow[idx0][1]).intersection(f_pos_pow[idx1][1])) == 0:
-            f_pos_pow[idx0][1] += f_pos_pow[idx1][1]
-            f_pos_pow[idx0][2] += f_pos_pow[idx1][2]
-            f_pos_pow[idx1] = np.nan
+        if len(set(f_pos_pow_ci[idx0][1]).intersection(f_pos_pow_ci[idx1][1])) == 0:
+            # print 'combining fishes'
+            f_pos_pow_ci[idx0][1] += f_pos_pow_ci[idx1][1]
+            f_pos_pow_ci[idx0][2] += f_pos_pow_ci[idx1][2]
+            f_pos_pow_ci[idx0][3] = np.concatenate((f_pos_pow_ci[idx0][3], f_pos_pow_ci[idx1][3]))
+
+            f_pos_pow_ci[idx1] = np.nan
 
         pot_combinations.pop(smalles_diff_idx)
 
@@ -896,15 +1045,21 @@ def grid_fish_frequency_and_position(t_fundamentals, t_power, plot_field=False):
             pot_combinations[i][1] = idx0 if pot_combinations[i][1] == idx1 else pot_combinations[i][1]
             pot_combinations[i][2] = idx0 if pot_combinations[i][2] == idx1 else pot_combinations[i][2]
 
-    for i in reversed(range(len(f_pos_pow))):
-        if not hasattr(f_pos_pow[i], '__len__'):
-            f_pos_pow.pop(i)
+    for i in reversed(range(len(f_pos_pow_ci))):
+        if not hasattr(f_pos_pow_ci[i], '__len__'):
+            f_pos_pow_ci.pop(i)
 
     # calculate relative position in grid
     freq_x_y = []
-    for enu, fish in enumerate(f_pos_pow):
-        fish[2] = list(np.array(fish[2])[np.array(fish[2]) != 0])
-        fish[1] = list(np.array(fish[1])[np.array(fish[2]) != 0])
+
+    for enu, fish in enumerate(f_pos_pow_ci):
+        try:
+            fish[3] = list(np.array(fish[3])[np.array(fish[2]) != 0])
+            fish[2] = list(np.array(fish[2])[np.array(fish[2]) != 0])
+            fish[1] = list(np.array(fish[1])[np.array(fish[2]) != 0])
+        except ValueError:
+            embed()
+            quit()
 
         if len(fish[2]) < 1:
             continue
@@ -912,11 +1067,34 @@ def grid_fish_frequency_and_position(t_fundamentals, t_power, plot_field=False):
         root_power = np.sqrt(fish[2])
         max_p = np.max(root_power)
         min_p = np.min(root_power)
+        # embed()
+        # quit()
 
-        x = np.array(fish[1]) // 8
-        y = np.array(fish[1]) % 8
+        x = np.array([coords[i][0] for i in fish[3]])
+        y = np.array([coords[i][1] for i in fish[3]])
+        #
+        # if not grid or grid > 3:
+        #     x, y = np.array(fish[1]) // 8, np.array(fish[1]) % 8
+        # elif grid == 1:
+        #     x, y = np.array(fish[1]) // 3, np.array(fish[1]) % 3
+        # elif grid == 2:
+        #     x, y = np.array(fish[1]) // 4, np.array(fish[1]) % 4
+        # elif grid == 3:
+        #     print('never ever should have gotten here...')
+        # else:
+        #     print ('strange...')
+        #
+        # if part_analysis:
+        #     x = np.array(fish[1]) // 3
+        #     y = np.array(fish[1]) % 3
+        # else:
+        #     x = np.array(fish[1]) // 8
+        #     y = np.array(fish[1]) % 8
 
         triang_idxs = np.argsort(root_power)[-4:]
+        # embed()
+        # quit()
+
         x_pos = np.sum([x[i] * root_power[i] for i in triang_idxs]) / np.sum(root_power[triang_idxs])
         y_pos = np.sum([y[i] * root_power[i] for i in triang_idxs]) / np.sum(root_power[triang_idxs])
         freq_x_y.append([fish[0], x_pos, y_pos])
@@ -939,15 +1117,103 @@ def grid_fish_frequency_and_position(t_fundamentals, t_power, plot_field=False):
             plt.close(fig)
 
     return_fundamentals = [freq_x_y[i][0] for i in range(len(freq_x_y))]
-    return_positions = [[freq_x_y[i][1], freq_x_y[i][1]] for i in range(len(freq_x_y))]
+    return_positions = [[freq_x_y[i][1], freq_x_y[i][2]] for i in range(len(freq_x_y))]
 
     return return_fundamentals, return_positions
 
 
-def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
+def get_grid_proportions(data, grid=False, n_tolerance_e=2, verbose=0):
+    if verbose >= 1:
+        print('')
+        if not grid:
+            print ('standard grid (8 x 8) or all electrodes')
+        elif grid == 1:
+            print ('small grid (3 x 3)')
+        elif grid == 2:
+            print ('medium grid (4 x 4)')
+        elif grid == 3:
+            print ('U.S. grid')
+        else:
+            print ('standard (8 x 8) or all electrodes')
+
+    # get channels
+    if not grid or grid >= 4:
+        channels = range(data.shape[1]) if len(data.shape) > 1 else range(1)
+        positions = np.array([[i // 8, i % 8] for i in channels])
+        neighbours = []
+        for x, y in positions:
+            neighbor_coords = []
+            for i in np.arange(-n_tolerance_e, n_tolerance_e+1):
+                for j in np.arange(-n_tolerance_e, n_tolerance_e+1):
+                    if i == 0 and j == 0:
+                        continue
+                    else:
+                        neighbor_coords.append([x+i, y+j])
+
+            for k in reversed(range(len(neighbor_coords))):
+                if all((i >= 0) & (i <= 7) for i in neighbor_coords[k]):
+                    continue
+                else:
+                    neighbor_coords.pop(k)
+            neighbours.append(np.array([n[0] * 8 + n[1] for n in neighbor_coords]))
+
+    elif grid == 1:
+        channels = [18, 19, 20, 26, 27, 28, 34, 35, 36]
+        positions = np.array([[i // 8, i % 8] for i in channels])
+        neighbours = []
+
+        for x, y in positions:
+            neighbor_coords = []
+            for i in np.arange(-n_tolerance_e, n_tolerance_e+1):
+                for j in np.arange(-n_tolerance_e, n_tolerance_e+1):
+                    if i == 0 and j == 0:
+                        continue
+                    else:
+                        neighbor_coords.append([x+i, y+j])
+
+            for k in reversed(range(len(neighbor_coords))):
+                if all((i >= 2) & (i <= 4) for i in neighbor_coords[k]):
+                    continue
+                else:
+                    neighbor_coords.pop(k)
+            neighbours.append(np.array([n[0] * 8 + n[1] for n in neighbor_coords]))
+
+    elif grid == 2:
+        channels = [18, 19, 20, 21, 26, 27, 28, 29, 34, 35, 36, 37, 42, 43, 44, 45]
+        positions = np.array([[i // 8, i % 8] for i in channels])
+        neighbours = []
+
+        for x, y in positions:
+            neighbor_coords = []
+            for i in np.arange(-n_tolerance_e, n_tolerance_e+1):
+                for j in np.arange(-n_tolerance_e, n_tolerance_e+1):
+                    if i == 0 and j == 0:
+                        continue
+                    else:
+                        neighbor_coords.append([x+i, y+j])
+
+            for k in reversed(range(len(neighbor_coords))):
+                if all((i >= 2) & (i <= 5) for i in neighbor_coords[k]):
+                    continue
+                else:
+                    neighbor_coords.pop(k)
+            neighbours.append(np.array([n[0] * 8 + n[1] for n in neighbor_coords]))
+
+    elif grid == 3:
+        print('correct information missing')
+        quit()
+    else:
+        'stange error...'
+        quit()
+
+    return channels, positions, np.array(neighbours)
+
+
+def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot=False,
                  save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
                  overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 5.,
-                 f_th= 5., output_folder = '.', plot_harmonic_groups=False, plot_field=False, verbose=0, **kwargs):
+                 f_th= 5., output_folder = '.', plot_harmonic_groups=False, plot_field=False, verbose=0,
+                 part_analysis=False, **kwargs):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -972,19 +1238,14 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     base_name = os.path.splitext(os.path.basename(data_file))[0]
     f0, f1 = 400, 1050
 
+    channels, coords, neighbours = get_grid_proportions(data, grid, n_tolerance_e=2, verbose=verbose)
+
     if verbose >= 1:
         print('\nextract fundamentals...')
         if verbose >= 2:
             print('> frequency resolution = %.2f Hz' % fresolution)
             print('> nfft overlap fraction = %.2f' % overlap_frac)
 
-    # get channels
-    channels = range(data.shape[1]) if len(data.shape) > 1 else range(1)
-    # channels = range(5)
-
-    # define data siez analised at once
-    ### temp change ###
-    # data_snippet_secs = 20.
 
     data_snippet_idxs = int(data_snippet_secs * samplerate)
 
@@ -995,13 +1256,15 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
         end_idx = int(len(data) - 1)
     else:
         end_idx = int(end_time * samplerate)
+        if end_idx >= int(len(data) - 1):
+            end_idx = int(len(data) - 1)
 
     fundamentals = []
     positions = []
     times = np.array([])
 
     increase_start_idx = False
-    while start_idx <= end_idx:
+    while start_idx <= end_idx - data_snippet_idxs:
         t0 = time.time()
 
         core_count = multiprocessing.cpu_count()
@@ -1011,62 +1274,54 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
         else:
             pool = multiprocessing.Pool(core_count - 1)
 
-        func = partial(snipped_fundamentals, samplerate=samplerate, start_idx=start_idx, nffts_per_psd=nffts_per_psd,
-                       fresolution=fresolution, overlap_frac=overlap_frac, plot_harmonic_groups=plot_harmonic_groups,
-                       increase_start_idx = increase_start_idx, verbose=verbose, **kwargs)
+        ############################## ERROR #####################################
+        # ToDo: quick and dirty ...
+        try:
+            func = partial(snipped_fundamentals, samplerate=samplerate, start_idx=start_idx, nffts_per_psd=nffts_per_psd,
+                           fresolution=fresolution, overlap_frac=overlap_frac, plot_harmonic_groups=plot_harmonic_groups,
+                           increase_start_idx = increase_start_idx, verbose=verbose, **kwargs)
 
-        a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in channels])
+            a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in channels])
 
-        all_ele_fundamentals = [a[channel][0] for channel in range(len(a))]
-        all_ele_fund_power = [a[channel][1] for channel in range(len(a))]
-        ele_times = a[0][2]
-        start_idx = a[0][3]
-        nfft = a[0][4]
+            all_ele_fundamentals = [a[channel][0] for channel in range(len(a))]
+            all_ele_fund_power = [a[channel][1] for channel in range(len(a))]
+            ele_times = a[0][2]
+            start_idx = a[0][3]
+            nfft = a[0][4]
+            # embed()
+            # quit()
+        except IndexError:
+            print ('IndexError in pool analysis... start_idx = %.0f' % start_idx)
+            all_ele_fundamentals = []
+            all_ele_fund_power = []
+
+            for channel in channels:
+                try:
+                    electrode_fundamentals, electrode_fund_power, electrode_times, start_idx, nfft = snipped_fundamentals(
+                        data[start_idx: start_idx + data_snippet_idxs, channel], samplerate=samplerate,
+                        start_idx=start_idx, nffts_per_psd=nffts_per_psd, fresolution=fresolution, overlap_frac=overlap_frac,
+                        plot_harmonic_groups=plot_harmonic_groups, increase_start_idx = increase_start_idx,
+                        verbose=verbose, **kwargs)
+                    all_ele_fundamentals.append(electrode_fundamentals)
+                    all_ele_fund_power.append(electrode_fund_power)
+
+                    ele_times = electrode_times
+                except IndexError:
+                    print ('IndexError also in single channel analysis... start_idx = %.0f; channel = %.0f'
+                           % (start_idx, channel))
+                    all_ele_fundamentals.append([np.array([], dtype=float) for i in range(len(a[0][0])) ])
+                    all_ele_fund_power.append([np.array([], dtype=float) for i in range(len(a[0][1])) ])
+
+                    print('appended empty. Its dirty but works')
+
+        ##############################################################################
 
         non_overlapping_idx = (1 - overlap_frac) * nfft
         start_idx += int(len(ele_times) * non_overlapping_idx)
 
-        # print(time.time() - t0)
-
-        ##########################################################################################################
-        #
-        # v2 = True
-        # if v2:
-        #     all_ele_fundamentals = []
-        #     all_ele_fund_power = []
-        #
-        #     for enu, channel in enumerate(channels):
-        #         print channel
-        #         ele_fundamentals, ele_fund_power, ele_times, start_idx, nfft = \
-        #             snipped_fundamentals(data[start_idx: start_idx + data_snippet_idxs, channel], samplerate, start_idx,
-        #                                  nffts_per_psd, fresolution=fresolution, overlap_frac=overlap_frac,
-        #                                  plot_harmonic_groups=plot_harmonic_groups, increase_start_idx = increase_start_idx,
-        #                                  verbose=verbose, **kwargs)
-        #
-        #         all_ele_fundamentals.append(ele_fundamentals)
-        #         all_ele_fund_power.append(ele_fund_power)
-        #
-        #         increase_start_idx = False
-        #
-        #         if channel == 4:
-        #             break
-        #
-        #         if time.time() - t0 > 1800.:
-        #             help_time = 1. * times[-1] / 60. if len(times) > 0 else 0
-        #             print('\nTime: %.1f min' % help_time)
-        #             print('electrode %.0f' % enu)
-        #             t0 = time.time()
-        #
-        #     increase_start_idx = True
-        #     print(time.time() - t0)
-        #     embed()
-        ##########################################################################################################
-
-        # reduce number of detected fundamental frequencies and extract spatial information for every time stamp
-
         for t in range(np.shape(all_ele_fundamentals)[1]):
             current_fundamentals, current_positions = grid_fish_frequency_and_position(
-                np.array(all_ele_fundamentals)[:, t], np.array(all_ele_fund_power)[:, t])
+                np.array(all_ele_fundamentals)[:, t], np.array(all_ele_fund_power)[:, t], channels, coords, neighbours)
 
             fundamentals.append(current_fundamentals)
             positions.append(current_positions)
@@ -1075,70 +1330,72 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
 
         pool.terminate()  # VERRY IMPORTANT OR MEMORY GETS FLOODED LIKE HELL !!!
 
-        # del all_ele_fund_power, all_ele_fundamentals, ele_times, nfft, a, func, pool, core_count
+        if verbose >= 3:
+            print('')
+            print('analysis speed' + ' %.1f' % ((data_snippet_secs / (time.time() - t0)) * 100) + '% ' + 'of realtime.')
 
-        # print('%.1f' % (((time.time() - t0) / data_snippet_secs) * 100) + ' % ' + 'realtime analysis speed')
-        print('analysis speed' + ' %.1f' % ((data_snippet_secs / (time.time() - t0)) * 100) + '% ' + 'of realtime.')
         if start_idx >= end_idx:
             break
 
-    # ToDo: add the positions to the sorting algorhithms
-    fishes = first_level_fish_sorting(fundamentals, base_name, times, freq_tolerance=freq_tolerance,
-                                      save_original_fishes=save_original_fishes, output_folder=output_folder, verbose=verbose)
+    fishes, fishes_x_pos, fishes_y_pos = first_level_fish_sorting(fundamentals, base_name, times, positions,
+                                                                  freq_tolerance=freq_tolerance,
+                                                                  save_original_fishes=save_original_fishes,
+                                                                  output_folder=output_folder, verbose=verbose)
 
-    # ###########
-    # # is this still important ? clean up function in first_level_fish_sorting
+
     min_occure_time = times[-1] * 0.01 / 60.
     if min_occure_time > 1.:
         min_occure_time = 1.
-    #
-    # if verbose >= 1:
-    #     print('\nexclude fishes...')
-    #     if verbose >= 2:
-    #         print('> minimum occur time: %.2f min' % min_occure_time)
-    fishes = exclude_fishes(fishes, times, min_occure_time)
-    #
-    # if len(fishes) == 0:
-    #     print('excluded all fishes. Change parameters.')
-    #     quit()
-    # ###########
-    #
-    # if verbose >= 1:
-    #     print('\nrise detection...')
-    #     if verbose >= 2:
-    #         print('> rise frequency th = %.2f Hz' % rise_f_th)
+
+    if verbose >= 1:
+        print('\nexclude fishes...')
+        if verbose >= 2:
+            print('> minimum occur time: %.2f min' % min_occure_time)
+
+    fishes, fishes_x_pos, fishes_y_pos = exclude_fishes(fishes, fishes_x_pos, fishes_y_pos , times, min_occure_time)
+
+    if len(fishes) == 0:
+        print('excluded all fishes. Change parameters.')
+        quit()
+
+    if verbose >= 1:
+        print('\nrise detection...')
+        if verbose >= 2:
+            print('> rise frequency th = %.2f Hz' % rise_f_th)
+
     all_rises = detect_rises(fishes, times, rise_f_th, verbose=verbose)
-    #
-    # if verbose >= 1:
-    #     print('\ncut fishes at rises...')
-    fishes, all_rises = cut_at_rises(fishes, all_rises, times, min_occure_time)
-    #
-    # if verbose >= 1:
-    #     print('\ncombining fishes...')
-    #     if verbose >= 2:
-    #         print('> maximum time difference: %.2f min' % max_time_tolerance)
-    #         print('> maximum frequency difference: %.2f Hz' % f_th)
-    fishes, all_rises = combine_fishes(fishes, times, all_rises, max_time_tolerance, f_th)
-    #
-    ############# clean up rises ... we dont need the little ones
 
-    # for fish in reversed(range(len(all_rises))):
-    #     for rise in reversed(range(len(all_rises[fish]))):
-    #         if all_rises[fish][rise][1][0] - all_rises[fish][rise][1][1] < 1:
-    #             all_rises[fish].pop(rise)
+    if verbose >= 1:
+        print('')
+        print('cut fishes at rises...')
 
-    # if verbose >= 1:
-    #     print('%.0f fishes left' % len(fishes))
-    #
+    fishes, fishes_x_pos, fishes_y_pos, all_rises = cut_at_rises(fishes, fishes_x_pos, fishes_y_pos, all_rises, times, min_occure_time)
+
+    if verbose >= 1:
+        print('\ncombining fishes...')
+        if verbose >= 2:
+            print('> maximum time difference: %.2f min' % max_time_tolerance)
+            print('> maximum frequency difference: %.2f Hz' % f_th)
+
+    fishes, fishes_x_pos, fishes_y_pos, all_rises = combine_fishes(fishes, fishes_x_pos, fishes_y_pos, times, all_rises, max_time_tolerance, f_th)
+
+    print ('1')
+    plot_positions(fishes, fishes_x_pos, fishes_y_pos, times)
+
+    print ('2')
+
     if 'plt' in locals() or 'plt' in globals():
         plot_fishes(fishes, times, all_rises, base_name, save_plot, output_folder)
-    #
+
     if save_original_fishes:
         if verbose >= 1:
+            print('')
             print('saving data to ' + output_folder)
-        save_data(fishes, times, all_rises, base_name, output_folder)
+        save_data(fishes, fishes_x_pos, fishes_y_pos, times, all_rises, base_name, output_folder)
+
     if verbose >= 1:
-        print('\nWhole file processed.')
+        print('')
+        print('Whole file processed.')
 
 
 def main():
@@ -1157,7 +1414,8 @@ def main():
     parser.add_argument('file', nargs=1, default='', type=str, help='name of the file wih the time series data or the -fishes.npy file saved with the -s option')
     parser.add_argument('start_time', nargs='?', default=0.0, type=float, help='start time of analysis in min.')
     parser.add_argument('end_time', nargs='?', default=-1.0, type=float, help='end time of analysis in min.')
-    parser.add_argument('-g', dest='grid', action='store_true', help='sum up spectrograms of all channels available.')
+    # parser.add_argument('-g', dest='grid', action='store_true', help='sum up spectrograms of all channels available.')
+    parser.add_argument('-g', action='count', dest='grid', help='grid information')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as png file')
     parser.add_argument('-s', dest='save_fish', action='store_true',
                         help='save fish EODs after first stage of sorting.')
@@ -1195,6 +1453,7 @@ def main():
             cfg.dump(args.save_config)
         return
 
+    # work with previously sorted frequency traces saved as .npy file
     if os.path.splitext(datafile)[1] == '.npy':
         rise_f_th = .5
         max_time_tolerance = 10.
@@ -1254,11 +1513,10 @@ def main():
         t_kwargs.update(tracker_args(cfg))
         fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
                      args.grid, args.save_plot, args.save_fish, output_folder=args.output_folder,
-                     plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, **t_kwargs)
+                     plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, part_analysis=False, **t_kwargs)
 
 if __name__ == '__main__':
     # how to execute this code properly
-    # python -m thunderfish.tracker ../../raab_data/colombia_2016/stone_stack_overnight_recording/60428L01_usb_2.WAV
-    # -p -s -o ../../analysis_output/stacked_stones/first -v -v -v
+    # python -m thunderfish.tracker_v2 'RAW file' -v -v -v
     main()
 
