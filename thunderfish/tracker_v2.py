@@ -180,16 +180,20 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions=[
     try:
         fishes = [np.full(len(all_fundamentals)+1, np.nan)]
         if positions != []:
-            fishes_x_pos = [np.full(len(all_fundamentals)+1, np.nan)]
-            fishes_y_pos = [np.full(len(all_fundamentals)+1, np.nan)]
+            # fishes_x_pos = [np.full(len(all_fundamentals)+1, np.nan)]
+            # fishes_y_pos = [np.full(len(all_fundamentals)+1, np.nan)]
+            fishes_x_pos = [0.]
+            fishes_y_pos = [0.]
         else:
             fishes_x_pos = []
             fishes_y_pos = []
     except AttributeError:
         fishes = [np.zeros(len(all_fundamentals)+1) / 0.]
         if positions != []:
-            fishes_x_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
-            fishes_y_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
+            # fishes_x_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
+            # fishes_y_pos = [np.zeros(len(all_fundamentals)+1) / 0.]
+            fishes_x_pos = [[0.]]
+            fishes_y_pos = [[0.]]
         else:
             fishes_x_pos = []
             fishes_y_pos = []
@@ -230,8 +234,10 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions=[
 
             fishes[add_fish][enu+1] = fundamentals[add_freq]
             if positions != []:
-                fishes_x_pos[add_fish][enu+1] = positions[enu][add_freq][0]
-                fishes_y_pos[add_fish][enu+1] = positions[enu][add_freq][1]
+                # fishes_x_pos[add_fish][enu+1] = positions[enu][add_freq][0]
+                # fishes_y_pos[add_fish][enu+1] = positions[enu][add_freq][1]
+                fishes_x_pos[add_fish].append(positions[enu][add_freq][0])
+                fishes_y_pos[add_fish].append(positions[enu][add_freq][1])
 
             last_fish_fundamentals[add_fish] = fundamentals[add_freq]
             end_nans[add_fish] = 0
@@ -251,19 +257,25 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions=[
                 try:
                     fishes.append(np.full(len(all_fundamentals) + 1, np.nan))
                     if positions != []:
-                        fishes_x_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
-                        fishes_y_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
+                        # fishes_x_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
+                        # fishes_y_pos.append(np.full(len(all_fundamentals) + 1, np.nan))
+                        fishes_x_pos.append([0.])
+                        fishes_y_pos.append([0.])
 
                 except AttributeError:
                     fishes.append(np.zeros(len(all_fundamentals)+1) / 0.)
                     if positions != []:
-                        fishes_x_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
-                        fishes_y_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
+                        # fishes_x_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
+                        # fishes_y_pos.append(np.zeros(len(all_fundamentals)+1) / 0.)
+                        fishes_x_pos.append([0.])
+                        fishes_y_pos.append([0.])
 
                 fishes[-1][enu + 1] = fundamentals[i]
                 if positions != []:
-                    fishes_x_pos[-1][enu + 1] = positions[enu][i][0]
-                    fishes_y_pos[-1][enu + 1] = positions[enu][i][1]
+                    # fishes_x_pos[-1][enu + 1] = positions[enu][i][0]
+                    # fishes_y_pos[-1][enu + 1] = positions[enu][i][1]
+                    fishes_x_pos[-1].append(positions[enu][i][0])
+                    fishes_y_pos[-1].append(positions[enu][i][1])
 
                 last_fish_fundamentals.append(fundamentals[i])
                 end_nans.append(0)
@@ -281,10 +293,10 @@ def first_level_fish_sorting(all_fundamentals, base_name, all_times, positions=[
 
     # reshape everything to arrays
     for fish in range(len(fishes)):
-        fishes[fish] = fishes[fish][1:]
+        fishes[fish] = np.array(fishes[fish])[1:]
         if positions != []:
-            fishes_x_pos[fish] = fishes_x_pos[fish][1:]
-            fishes_y_pos[fish] = fishes_y_pos[fish][1:]
+            fishes_x_pos[fish] = np.array(fishes_x_pos[fish])[1:]
+            fishes_y_pos[fish] = np.array(fishes_y_pos[fish])[1:]
 
     # if not removed be clean_up(): remove first fish because it has been used for the first comparison !
     if fishes[0][0] == 0.:
@@ -588,18 +600,41 @@ def combine_fishes(fishes, fishes_x_pos, fishes_y_pos, all_times, all_rises, max
         # plt.show()
 
 
+        non_nan_idx_fish = np.arange(len(fishes[fish]))[~np.isnan(fishes[fish])]
+        non_nan_idx_comp_fish = np.arange(len(fishes[comp_fish]))[~np.isnan(fishes[comp_fish])]
+
+        try:
+            help_x_pos = np.full(len(fishes[comp_fish]), np.nan)
+            help_y_pos = np.full(len(fishes[comp_fish]), np.nan)
+        except:
+            help_x_pos = np.zeros(len(fishes[comp_fish])) / 0.
+            help_y_pos = np.zeros(len(fishes[comp_fish])) / 0.
+
+        # fishes_x_pos[comp_fish][~np.isnan(fishes_x_pos[fish])] = fishes_x_pos[fish][~np.isnan(fishes_x_pos[fish])]
+        # fishes_y_pos[comp_fish][~np.isnan(fishes_y_pos[fish])] = fishes_y_pos[fish][~np.isnan(fishes_y_pos[fish])]
+
+        help_x_pos[non_nan_idx_comp_fish] = fishes_x_pos[comp_fish]
+        help_x_pos[non_nan_idx_fish] = fishes_x_pos[fish]
+        fishes_x_pos[comp_fish] = help_x_pos[~np.isnan(help_x_pos)]
+
+        help_y_pos[non_nan_idx_comp_fish] = fishes_y_pos[comp_fish]
+        help_y_pos[non_nan_idx_fish] = fishes_y_pos[fish]
+        fishes_y_pos[comp_fish] = help_y_pos[~np.isnan(help_y_pos)]
+
         fishes[comp_fish][~np.isnan(fishes[fish])] = fishes[fish][~np.isnan(fishes[fish])]
-        fishes_x_pos[comp_fish][~np.isnan(fishes_x_pos[fish])] = fishes_x_pos[fish][~np.isnan(fishes_x_pos[fish])]
-        fishes_y_pos[comp_fish][~np.isnan(fishes_y_pos[fish])] = fishes_y_pos[fish][~np.isnan(fishes_y_pos[fish])]
 
         try:
             fishes[fish] = np.full(len(fishes[fish]), np.nan)
-            fishes_x_pos[fish] = np.full(len(fishes_x_pos[fish]), np.nan)
-            fishes_y_pos[fish] = np.full(len(fishes_y_pos[fish]), np.nan)
+            # fishes_x_pos[fish] = np.full(len(fishes_x_pos[fish]), np.nan)
+            # fishes_y_pos[fish] = np.full(len(fishes_y_pos[fish]), np.nan)
+            fishes_x_pos[fish] = np.array([])
+            fishes_y_pos[fish] = np.array([])
         except AttributeError:
             fishes[fish] = np.zeros(len(fishes[fish])) / 0.
-            fishes_x_pos[fish] = np.zeros(len(fishes_x_pos[fish])) / 0.
-            fishes_y_pos[fish] = np.zeros(len(fishes_y_pos[fish])) / 0.
+            # fishes_x_pos[fish] = np.zeros(len(fishes_x_pos[fish])) / 0.
+            # fishes_y_pos[fish] = np.zeros(len(fishes_y_pos[fish])) / 0.
+            fishes_x_pos[fish] = np.array([])
+            fishes_y_pos[fish] = np.array([])
 
         # clean up possible_combination all fish
         for i in range(len(possible_combinations_all_fish)):  # loop over all fishes ...
@@ -713,28 +748,41 @@ def cut_at_rises(fishes, fishes_x_pos, fishes_y_pos, all_rises, all_times, min_o
 
             ################################
             cut_idx = all_rises[fish][rise][0][0]
+            print('cutting')
 
             try:
                 new_fishes.append(np.full(len(fishes[fish]), np.nan))
-                new_fishes_x_pos.append(np.full(len(fishes[fish]), np.nan))
-                new_fishes_y_pos.append(np.full(len(fishes[fish]), np.nan))
+                # new_fishes_x_pos.append(np.full(len(fishes[fish]), np.nan))
+                # new_fishes_y_pos.append(np.full(len(fishes[fish]), np.nan))
+                new_fishes_x_pos.append([])
+                new_fishes_y_pos.append([])
             except AttributeError:
                 new_fishes.append(np.zeros(len(fishes[fish])) / 0.)
-                new_fishes_x_pos.append(np.zeros(len(fishes[fish])) / 0.)
-                new_fishes_y_pos.append(np.zeros(len(fishes[fish])) / 0.)
+                # new_fishes_x_pos.append(np.zeros(len(fishes[fish])) / 0.)
+                # new_fishes_y_pos.append(np.zeros(len(fishes[fish])) / 0.)
+                new_fishes_x_pos.append([])
+                new_fishes_y_pos.append([])
 
             new_fishes[-1][cut_idx:] = fishes[fish][cut_idx:]
-            new_fishes_x_pos[-1][cut_idx:] = fishes_x_pos[fish][cut_idx:]
-            new_fishes_y_pos[-1][cut_idx:] = fishes_y_pos[fish][cut_idx:]
+            non_nans_before = len(fishes[fish][:cut_idx][~np.isnan(fishes[fish][:cut_idx])])
+
+            # new_fishes_x_pos[-1][cut_idx:] = fishes_x_pos[fish][cut_idx:]
+            # new_fishes_y_pos[-1][cut_idx:] = fishes_y_pos[fish][cut_idx:]
+            new_fishes_x_pos[-1] = fishes_x_pos[fish][non_nans_before:]
+            new_fishes_y_pos[-1] = fishes_y_pos[fish][non_nans_before:]
 
             try:
                 fishes[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
-                fishes_x_pos[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
-                fishes_y_pos[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
+                # fishes_x_pos[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
+                # fishes_y_pos[fish][cut_idx:] = np.full(len(fishes[fish][cut_idx:]), np.nan)
+                fishes_x_pos[fish] = fishes_x_pos[fish][:non_nans_before]
+                fishes_y_pos[fish] = fishes_y_pos[fish][:non_nans_before]
             except AttributeError:
                 fishes[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
-                fishes_x_pos[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
-                fishes_y_pos[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
+                # fishes_x_pos[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
+                # fishes_y_pos[fish][cut_idx:] = np.zeros(len(fishes[fish][cut_idx:])) / 0.
+                fishes_x_pos[fish] = fishes_x_pos[fish][:non_nans_before]
+                fishes_y_pos[fish] = fishes_y_pos[fish][:non_nans_before]
 
             # ToDo rises correkt uebertragen...
             new_rises = all_rises[fish][rise:]
@@ -750,11 +798,15 @@ def cut_at_rises(fishes, fishes_x_pos, fishes_y_pos, all_rises, all_times, min_o
             all_rises.pop(fish)
     return_idx = np.setdiff1d(np.arange(len(fishes)), np.array(delete_idx))
 
+    # embed()
+    # quit()
     if len(new_fishes) == 0:
         return fishes, fishes_x_pos, fishes_y_pos, all_rises
     else:
-        return np.append(fishes[return_idx], new_fishes, axis=0), np.append(fishes_x_pos[return_idx], new_fishes_x_pos, axis=0),\
-               np.append(fishes_y_pos[return_idx], new_fishes_y_pos, axis=0), all_rises
+        # return np.append(fishes[return_idx], new_fishes, axis=0), np.append(fishes_x_pos[return_idx], new_fishes_x_pos, axis=0),\
+        #        np.append(fishes_y_pos[return_idx], new_fishes_y_pos, axis=0), all_rises
+        return np.append(fishes[return_idx], new_fishes, axis=0), np.array(list(fishes_x_pos[return_idx]) + list(new_fishes_x_pos) ),\
+               np.array(list(fishes_y_pos[return_idx]) + list(new_fishes_y_pos)), all_rises
     # return np.append(fishes[return_idx], new_fishes, axis=0), all_rises
 
 
@@ -833,8 +885,19 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folde
 
 
 def plot_positions(fishes, fishes_x_pos, fishes_y_pos, all_times):
+    non_nan_idx = []
+    for fish in fishes:
+        non_nan_idx.append(np.arange(len(fish))[~np.isnan(fish)])
+
+    plot_x = np.full((len(fishes), 3), np.nan)
+    plot_y = np.full((len(fishes), 3), np.nan)
+
+    f_handles = []
+    l_handles = []
+    i0 = 0
+
     plt.ion()
-    fig = plt.figure(facecolor='white', figsize=(25./2.54, 25./2.54))
+    fig = plt.figure(facecolor='white', figsize=(25. / 2.54, 25. / 2.54))
     ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
     ax.set_xlim([0, 9])
     ax.set_ylim([0, 9])
@@ -843,52 +906,69 @@ def plot_positions(fishes, fishes_x_pos, fishes_y_pos, all_times):
     end_min = all_times[-1] // 60
     end_sec = all_times[-1] % 60
 
-    f_handles = []
-    l_handles = []
-    i0 = 0
-    i1 = 3
-    # lw = np.zeros(i1)
-    # lw[-1] = 2
-    alphas = np.linspace(0.1, 1, i1)
+    colors = [[255./255., 140./255., 0./255.], [100./255., 149./255., 237./255.]] # orange, cornflowerblue
+    alphas = np.linspace(0.1, 1, 3)
+
     plt.waitforbuttonpress()
+
     for i in range(len(fishes)):
-        colors = np.zeros((i1, 4))
+        # embed()
+        # quit()
+        c = np.zeros((3, 4))
+        if np.median(fishes[i][~np.isnan(fishes[i])]) <= 730:
+            line_c = colors[1]
+            c[:, 0:3] = colors[1]
+        else:
+            line_c = colors[0]
+            c[:, 0:3] = colors[0]
+        c[:, 3] = alphas
 
-        c = np.random.rand(3)
-        colors[:, 0:3] = c
-        colors[:, 3] = alphas
+        if i0 in non_nan_idx[i]:
+            plot_x[i][-1] = fishes_x_pos[i][non_nan_idx[i] == i0] + 1.
+            plot_y[i][-1] = fishes_y_pos[i][non_nan_idx[i] == i0] + 1.
+        # embed()
+        # quit()
+        f = ax.scatter(plot_x[i], plot_y[i], color=c, s=80)
+        l, = ax.plot(plot_x[i], plot_y[i], color=line_c, alpha=0.5)
 
-        f = ax.scatter(fishes_x_pos[i][i0:i1] + 1., fishes_y_pos[i][i0:i1] + 1., color=colors, s=80)
-        l, = ax.plot(fishes_x_pos[i][i0:i1] + 1., fishes_y_pos[i][i0:i1] + 1., color=c, alpha=0.5)
-
-        current_min = all_times[i1] // 60
-        current_sec = all_times[i1] % 60
+        current_min = all_times[i0] // 60
+        current_sec = all_times[i0] % 60
         ax.set_title('%.0fmin %.0fsec of %.0fmin %.0fsec' % (current_min, current_sec, end_min, end_sec))
+
         f_handles.append(f)
         l_handles.append(l)
     fig.canvas.draw()
     t0 = time.time()
+    # embed()
+    # quit()
 
     while True:
         i0 += 1
-        i1 += 1
 
-        if i1 == len(fishes[0]):
-            break
-        for enu, f in enumerate(f_handles):
-            f_handles[enu].set_offsets(np.c_[fishes_x_pos[enu][i0:i1] + 1., fishes_y_pos[enu][i0:i1] + 1.])
-            # f.set_offsets(np.c_[fishes_x_pos[enu][i0:i1] + 1., fishes_y_pos[enu][i0:i1] + 1.])
-            l_handles[enu].set_data(fishes_x_pos[enu][i0:i1] + 1., fishes_y_pos[enu][i0:i1] + 1.)
+        plot_x = np.roll(plot_x, -1)
+        plot_y = np.roll(plot_y, -1)
+        plot_x[:, 2] = np.nan
+        plot_y[:, 2] = np.nan
+
+        for i in range(len(fishes)):
+            if i0 in non_nan_idx[i]:
+                plot_x[i][-1] = fishes_x_pos[i][non_nan_idx[i] == i0] + 1.
+                plot_y[i][-1] = fishes_y_pos[i][non_nan_idx[i] == i0] + 1.
+
+            f_handles[i].set_offsets(np.c_[plot_x[i], plot_y[i]])
+            l_handles[i].set_data(plot_x[i], plot_y[i])
+
+        current_min = all_times[i0] // 60
+        current_sec = all_times[i0] % 60
+        ax.set_title('%.0fmin %.0fsec of %.0fmin %.0fsec' % (current_min, current_sec, end_min, end_sec))
 
         if time.time() - t0 < 0.335:
             time.sleep(0.335 - (time.time() - t0))
-        # time.sleep(1.)
-        current_min = all_times[i1] // 60
-        current_sec = all_times[i1] % 60
-        ax.set_title('%.0fmin %.0fsec of %.0fmin %.0fsec' % (current_min, current_sec, end_min, end_sec))
-
+        # print (plot_x[i])
         fig.canvas.draw()
         t0 = time.time()
+        if i0 == len(all_times) - 1:
+            break
 
     plt.ioff()
     plt.show()
@@ -1356,8 +1436,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
                                                                   freq_tolerance=freq_tolerance,
                                                                   save_original_fishes=save_original_fishes,
                                                                   output_folder=output_folder, verbose=verbose)
-    # embed()
-    # quit()
+
     ################################## continue no tracking ... ####################################
     min_occure_time = times[-1] * 0.01 / 60.
     if min_occure_time > 1.:
@@ -1385,6 +1464,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
         print('')
         print('cut fishes at rises...')
 
+    # here somethins is fishy...
     fishes, fishes_x_pos, fishes_y_pos, all_rises = cut_at_rises(fishes, fishes_x_pos, fishes_y_pos, all_rises, times, min_occure_time)
 
     if verbose >= 1:
@@ -1395,6 +1475,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
 
     fishes, fishes_x_pos, fishes_y_pos, all_rises = combine_fishes(fishes, fishes_x_pos, fishes_y_pos, times, all_rises, max_time_tolerance, f_th)
 
+    # ToDo: positions simplified... include in plot...
     if 'plt' in locals() or 'plt' in globals():
         plot_positions(fishes, fishes_x_pos, fishes_y_pos, times)
         plot_fishes(fishes, times, all_rises, base_name, save_plot, output_folder)
