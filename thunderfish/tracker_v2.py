@@ -111,12 +111,12 @@ def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=2, freso
             ax.set_xlim([800, 850])
 
             fig.tight_layout()
-            print nfft
-            print nffts_per_psd
-            print samplerate
+            print(nfft)
+            print(nffts_per_psd)
+            print(samplerate)
             plt.show()
 
-    if nffts_per_psd ==1:
+    if nffts_per_psd == 1:
         electrode_times = time - ((nfft / samplerate) / 2) + (start_idx / samplerate)
     else:
         electrode_times = time[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
@@ -127,23 +127,37 @@ def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=2, freso
 
     return electrode_fundamentals, electrode_fund_power, electrode_times, start_idx, nfft, spectrum[freqs < 1500], freqs[freqs < 1500]
 
+def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_distribution,
+                   min_f_weight=0.4, max_f_weight=0.9, t_of_max_f_weight=2., max_t_error=10.):
+    if t_error >= 2.:
+        f_weight = max_f_weight
+    else:
+        f_weight = 1. * (max_f_weight - min_f_weight) / t_of_max_f_weight * t_error + min_f_weight
+    a_weight = 1. - f_weight
 
-def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels):
+    a_e = a_weight * len(a_error_distribution[a_error_distribution <= a_error]) / len(a_error_distribution)
+    f_e = f_weight * len(f_error_distribution[f_error_distribution <= f_error]) / len(f_error_distribution)
+    t_e = 0.5 * (1. * t_error / max_t_error) ** (1. / 3)  # when weight is 0.1 I end up in an endless loop somewhere
 
-    def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_distribution,
-                       min_f_weight = 0.4, max_f_weight = 0.9, t_of_max_f_weight = 2., max_t_error = 10.):
+    return a_e + f_e + t_e
 
-        if t_error >=2.:
-            f_weight = max_f_weight
-        else:
-            f_weight = 1. * (max_f_weight - min_f_weight) / t_of_max_f_weight * t_error + min_f_weight
-        a_weight = 1. - f_weight
 
-        a_e = a_weight * len(a_error_distribution[a_error_distribution <= a_error]) / len(a_error_distribution)
-        f_e = f_weight * len(f_error_distribution[f_error_distribution <= f_error]) / len(f_error_distribution)
-        t_e = 0.75 * np.sqrt(t_error / max_t_error)  # when weight is 0.1 I end up in an endless loop somewhere
+def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels, ax=False):
 
-        return a_e + f_e + t_e
+    # def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_distribution,
+    #                    min_f_weight = 0.4, max_f_weight = 0.9, t_of_max_f_weight = 2., max_t_error = 10.):
+    #
+    #     if t_error >= 2.:
+    #         f_weight = max_f_weight
+    #     else:
+    #         f_weight = 1. * (max_f_weight - min_f_weight) / t_of_max_f_weight * t_error + min_f_weight
+    #     a_weight = 1. - f_weight
+    #
+    #     a_e = a_weight * len(a_error_distribution[a_error_distribution <= a_error]) / len(a_error_distribution)
+    #     f_e = f_weight * len(f_error_distribution[f_error_distribution <= f_error]) / len(f_error_distribution)
+    #     t_e = 0.5 * (1. * t_error / max_t_error)**(1./3)  # when weight is 0.1 I end up in an endless loop somewhere
+    #
+    #     return a_e + f_e + t_e
 
     detection_time_diff = times[1] - times[0]
     dps = 1. / detection_time_diff  # detections per second (temp. resolution of frequency tracking)
@@ -253,6 +267,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
             old_idx0 = np.nan
             old_idx1 = np.nan
+
             counter = 0
             while True:
                 help_error_v = np.hstack(error_cube[j])
@@ -268,12 +283,22 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                 idx0s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[0]
                 idx1s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[1]
 
-                idx0 = idx0s[counter]
-                idx1 = idx1s[counter]
-                if counter + 1 == len(idx0s):
-                    counter = 0
-                else:
-                    counter += 1
+                try:
+                    if len(idx0s) == 1:
+                        idx0 = idx0s[0]
+                        idx1 = idx1s[0]
+                        counter = 0
+                    else:
+                        idx0 = idx0s[counter]
+                        idx1 = idx1s[counter]
+                        if counter + 1 >= len(idx0s):
+                            counter = 0
+                        else:
+                            counter += 1
+                except:
+                    print('still not solved')
+                    embed()
+                    quit()
 
                 if old_idx0 == idx0 and old_idx1 == idx1:
                     print ('\n indices did not change ... why ?')
@@ -284,7 +309,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                     old_idx0 = idx0
 
                 ioi = i1_m[j][idx1]  # index of interest
-                ioi_mask = [ioi in i1_m[k] for k in range(j+1,len(i1_m))]  # true if ioi is target of others
+                ioi_mask = [ioi in i1_m[k] for k in range(j+1, len(i1_m))]  # true if ioi is target of others
 
                 if len(ioi_mask) > 0:
                     masks_idxs_feat_ioi = np.arange(j + 1, len(error_cube))[np.array(ioi_mask)]
@@ -293,12 +318,16 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                 other_errors_to_idx1 = []
 
                 for mask in masks_idxs_feat_ioi:
-                    check_col = np.where(i1_m[mask] == ioi)
+                    if len(np.hstack(mask_cube[mask])) == 0:  #?
+                        continue  #?
+
+                    check_col = np.where(i1_m[mask] == ioi)[0][0]
                     row_mask = np.hstack(mask_cube[mask][:, check_col])
                     possible_error = np.hstack(error_cube[mask][:, check_col])[row_mask]
 
                     if len(possible_error) == 0:
                         continue
+
                     elif len(possible_error) == 1:
                         other_errors_to_idx1.append(possible_error[0])
                     else:
@@ -390,23 +419,12 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                                                               f_error_distribution)
             error_cube.append(error_matrix)
         cube_app_idx += 1
-        ################################################
-        # embed()
-        # quit()
+
     print('reached the end')
-    fig, ax = plt.subplots()
 
-    # embed()
-    # quit()
-    for ident in np.unique(ident_v[~np.isnan(ident_v)]):
-        c = np.random.rand(3)
-        # ax.plot(times[idx_v[ident_v == ident]], fund_v[ident_v == ident], marker='.', color=c)
-        ax.plot(idx_v[ident_v == ident], fund_v[ident_v == ident], marker='.', color=c)
+    return fund_v, ident_v, idx_v, sign_v
 
-    plt.show()
 
-    embed()
-    quit()
 
 def freq_tracking(fundamentals, signatures, positions, times, freq_tolerance, n_channels):
     detection_time_diff = times[1] - times[0]
@@ -2152,8 +2170,476 @@ def amplitude_distance(fundamentals, signatures, freq_tolerance):
     return f_bin_start, amp_error_th
 
 
+class Obs_tracker():
+    def __init__(self, data, samplerate, times, fund_v, ident_v, idx_v, sign_v, tmp_spectra, start_time, end_time,
+                 fresolution, overlap_frac, channels, nffts_per_psd, **kwargs):
+        self.data = data
+        self.samplerate = samplerate
+        self.times = times
+        self.start_time = start_time
+        self.end_time = end_time
+        self.fresolution = fresolution
+        self.overlap_frac = overlap_frac
+        self.channels = channels
+        self.nffts_per_psd = nffts_per_psd
+        self.kwargs = kwargs
+        self.kwargs['mains_freq'] = 0.
+        self.kwargs['max_fill_ratio'] = 0.5
+        self.kwargs['min_group_size'] = 2
+
+        self.fund_v = fund_v
+        self.ident_v = ident_v
+        self.idx_v = idx_v
+        self.sign_v = sign_v
+
+        self.tmp_spectra = tmp_spectra
+
+        self.current_task = None
+        self.current_idx = None
+        self.x_zoom_0 = None
+        self.x_zoom_1 = None
+        self.y_zoom_0 = None
+        self.y_zoom_1 = None
+
+        plt.rcParams['keymap.save'] = ''  # was s
+
+        self.main_fig = plt.figure(facecolor='white', figsize=(55. / 2.54, 30. / 2.54))
+        self.main_fig.canvas.mpl_connect('key_press_event', self.keypress)
+        self.main_fig.canvas.mpl_connect('button_press_event', self.buttonpress)
+
+        self.main_ax = self.main_fig.add_axes([0.1, 0.1, 0.8, 0.6])
+
+        self.tmp_plothandel_main = None
+        self.plot_data()
+
+        self.spec_ax = None
+        self.tmp_plothandel_ps = []
+        self.tmp_harmonics_plot = None
+        self.all_peakf_dots = None
+        self.good_peakf_dots = None
+
+        self.text_handles_key = []
+        self.text_handles_effect = []
+        self.key_options()
+
+        self.main_fig.canvas.draw()
+        plt.show()
+
+    def key_options(self):
+        # for i in range(len(self.text_handles_key)):
+        for i, j in zip(self.text_handles_key, self.text_handles_effect):
+            self.main_fig.texts.remove(i)
+            self.main_fig.texts.remove(j)
+        self.text_handles_key = []
+        self.text_handles_effect = []
+
+        if True:
+            t = self.main_fig.text(0.1, 0.85,  'h:')
+            t1 = self.main_fig.text(0.15, 0.85,  'home (axis)')
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.1, 0.825, 'enter:')
+            t1 = self.main_fig.text(0.15, 0.825, 'execute task')
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.1, 0.8,  'e:')
+            t1 = self.main_fig.text(0.15, 0.8, 'embed')
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.1, 0.775, 's:')
+            t1 = self.main_fig.text(0.15, 0.775, 'create spectrogram')
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.1, 0.75,  '(ctrl+)q:')
+            t1 = self.main_fig.text(0.15, 0.75,  'close (all)/ powerspectrum')
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.1, 0.725, 'z')
+            t1 = self.main_fig.text(0.15, 0.725, 'zoom')
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+        if self.spec_ax:
+            t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
+            t1 = self.main_fig.text(0.35, 0.85, '%.2f dB; rel. dB th for good Peaks' % (self.kwargs['high_threshold']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
+            t1 = self.main_fig.text(0.35, 0.825, '%.2f dB; rel. dB th for all Peaks' % (self.kwargs['low_threshold']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
+            t1 = self.main_fig.text(0.35, 0.8, '%.2f; x bin std = low Th' % (self.kwargs['noise_fac']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.3, 0.775, '(ctrl+)4:')
+            t1 = self.main_fig.text(0.35, 0.775, '%.2f; peak_fac' % (self.kwargs['peak_fac']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.3, 0.75, '(ctrl+)5:')
+            t1 = self.main_fig.text(0.35, 0.75, '%.2f dB; min Peak width' % (self.kwargs['min_peak_width']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.3, 0.725, '(ctrl+)6:')
+            t1 = self.main_fig.text(0.35, 0.725, '%.2f X fresolution; max Peak width' % (self.kwargs['max_peak_width_fac']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.5, 0.85, '(ctrl+)7:')
+            t1 = self.main_fig.text(0.55, 0.85, '%.0f; min group size' % (self.kwargs['min_group_size']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.5, 0.825, '(ctrl+)8:')
+            t1 = self.main_fig.text(0.55, 0.825, '%.1f; * fresolution = max dif of harmonics' % (self.kwargs['freq_tol_fac']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.5, 0.8, '(ctrl+)9:')
+            t1 = self.main_fig.text(0.55, 0.8, '%.0f; max divisor to check subharmonics' % (self.kwargs['max_divisor']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.5, 0.775, '(ctrl+)0:')
+            t1 = self.main_fig.text(0.55, 0.775, '%.0f; max freqs to fill in' % (self.kwargs['max_upper_fill']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.5, 0.75, '(ctrl+)+:')
+            t1 = self.main_fig.text(0.55, 0.75, '%.0f; 1 group max double used peaks' % (self.kwargs['max_double_use_harmonics']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.5, 0.725, '(ctrl+)#:')
+            t1 = self.main_fig.text(0.55, 0.725, '%.0f; 1 Peak part of n groups' % (self.kwargs['max_double_use_count']))
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+    def keypress(self, event):
+        if event.key in 'h':
+            if self.main_ax:
+                self.main_ax.set_xlim([self.start_time, self.end_time])
+                self.main_ax.set_ylim([0, 2000])
+            if self.spec_ax:
+                self.spec_ax.set_ylim([0, 2000])
+
+        if event.key in 'enter':
+            if self.current_task == 'show_spectrum':
+                if self.tmp_plothandel_main and self.ioi:
+                    self.current_task = None
+                    self.plot_spectrum()
+                else:
+                    print('\nmissing data')
+
+            if self.current_task == 'update_hg':
+                self.update_hg()
+
+            if self.current_task == 'zoom':
+                self.zoom()
+
+        if event.key in 'e':
+            embed()
+            # quit()
+
+        if event.key in 'p':
+            self.current_task = 'show_spectrum'
+            # print('\n%s' % self.current_task)
+
+        if event.key == 'ctrl+q':
+            plt.close(self.main_fig)
+            # self.main_fig.close()
+            return
+
+        if event.key in 'q' and self.spec_ax:
+            self.main_fig.delaxes(self.spec_ax)
+            self.spec_ax = None
+            self.tmp_plothandel_ps = []
+            self.all_peakf_dots = None
+            self.good_peakf_dots = None
+            self.main_ax.set_position([.1, .1, .8, .6])
+
+        if event.key in 'z':
+            self.current_task = 'zoom'
+
+        if self.spec_ax:
+            if event.key == '1':
+                self.kwargs['high_threshold'] -= 2.5
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+1':
+                self.kwargs['high_threshold'] += 2.5
+                self.current_task = 'update_hg'
+
+            if event.key == '2':
+                self.kwargs['low_threshold'] -= 2.5
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+2':
+                self.kwargs['low_threshold'] += 2.5
+                self.current_task = 'update_hg'
+
+            if event.key == '3':
+                self.kwargs['noise_fac'] -= 1
+                self.kwargs['low_threshold'] = 0.
+                self.kwargs['high_threshold'] = 0.
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+3':
+                self.kwargs['noise_fac'] += 1
+                self.kwargs['low_threshold'] = 0.
+                self.kwargs['high_threshold'] = 0.
+                self.current_task = 'update_hg'
+
+            if event.key == '4':
+                self.kwargs['peak_fac'] -= 0.1
+                self.kwargs['low_threshold'] = 0.
+                self.kwargs['high_threshold'] = 0.
+                self.current_task = 'update_hg'
+
+            if event.key == 'ctrl+4':
+                self.kwargs['peak_fac'] += 0.1
+                self.kwargs['low_threshold'] = 0.
+                self.kwargs['high_threshold'] = 0.
+                self.current_task = 'update_hg'
+
+            if event.key == '5':
+                self.kwargs['min_peak_width'] -= 0.5
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+5':
+                self.kwargs['min_peak_width'] += 0.5
+                self.current_task = 'update_hg'
+
+            if event.key == '6':
+                self.kwargs['max_peak_width_fac'] -= 1.
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+6':
+                self.kwargs['max_peak_width_fac'] += 1.
+                self.current_task = 'update_hg'
+
+            if event.key == '7':
+                self.kwargs['min_group_size'] -= 1.
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+7':
+                self.kwargs['min_group_size'] += 1.
+                self.current_task = 'update_hg'
+
+            if event.key == '8':
+                self.kwargs['freq_tol_fac'] -= .1
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+8':
+                self.kwargs['freq_tol_fac'] += .1
+                self.current_task = 'update_hg'
+
+            if event.key == '9':
+                self.kwargs['max_divisor'] -= 1.
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+9':
+                self.kwargs['max_divisor'] += 1.
+                self.current_task = 'update_hg'
+
+            if event.key == '0':
+                self.kwargs['max_upper_fill'] -= 1
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+0':
+                self.kwargs['max_upper_fill'] += 1
+                self.current_task = 'update_hg'
+
+            if event.key == '+':
+                self.kwargs['max_double_use_harmonics'] -= 1
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+' + '+':
+                self.kwargs['max_double_use_harmonics'] += 1.
+                self.current_task = 'update_hg'
+
+            if event.key == '#':
+                self.kwargs['max_double_use_count'] -= 1
+                self.current_task = 'update_hg'
+            if event.key == 'ctrl+#':
+                self.kwargs['max_double_use_count'] += 1.
+                self.current_task = 'update_hg'
+
+        self.key_options()
+        self.main_fig.canvas.draw()
+
+    def buttonpress(self, event):
+        if event.button == 2:
+            if event.inaxes != self.spec_ax:
+                if self.tmp_plothandel_main:
+                    self.tmp_plothandel_main.remove()
+                    self.tmp_plothandel_main = None
+
+            if self.tmp_harmonics_plot:
+                self.tmp_harmonics_plot.remove()
+                self.tmp_harmonics_plot = None
+                if self.spec_ax:
+                    ylims = self.main_ax.get_ylim()
+                    self.spec_ax.set_ylim([ylims[0], ylims[1]])
+
+        if event.inaxes == self.main_ax:
+            if self.current_task == 'show_spectrum':
+                if event.button == 1:
+                    x = event.xdata
+                    self.ioi = np.argmin(np.abs(self.times-x))
+
+                    y_lims = self.main_ax.get_ylim()
+                    if self.tmp_plothandel_main:
+                        self.tmp_plothandel_main.remove()
+                    self.tmp_plothandel_main, = self.main_ax.plot([self.times[self.ioi], self.times[self.ioi]], [y_lims[0], y_lims[1]], color='red', linewidth='2')
+
+            if self.current_task == 'zoom':
+                if event.button == 2:
+                    self.x_zoom_0 = None
+                    self.x_zoom_1 = None
+                    self.y_zoom_0 = None
+                    self.y_zoom_1 = None
+
+                if event.inaxes == self.main_ax:
+                    if event.button == 1:
+                        if self.x_zoom_0:
+                            self.x_zoom_1 = event.xdata
+                        else:
+                            self.x_zoom_0 = event.xdata
+                    if event.button == 3:
+                        if self.y_zoom_0:
+                            self.y_zoom_1 = event.ydata
+                        else:
+                            self.y_zoom_0 = event.ydata
+
+        if event.inaxes == self.spec_ax:
+            if event.button == 1:
+                plot_power = 10.0 * np.log10(self.power)
+                y = event.ydata
+                active_all_freq = self.all_peakf[:, 0][np.argsort(np.abs(self.all_peakf[:, 0] - y))][0]
+                plot_harmonics = np.arange(active_all_freq, 3000, active_all_freq)
+                if self.tmp_harmonics_plot:
+                    self.tmp_harmonics_plot.remove()
+                self.tmp_harmonics_plot, = self.spec_ax.plot(np.ones(len(plot_harmonics)) * np.max(plot_power[self.freqs <= 3000.0]) + 10., plot_harmonics, 'o', color='k')
+                self.spec_ax.set_ylim([np.min(plot_harmonics)-5., np.max(plot_harmonics)+5.])
+
+        self.main_fig.canvas.draw()
+
+
+    def plot_data(self):
+        self.main_ax.imshow(10.0 * np.log10(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000], aspect='auto', alpha=0.7)
+
+        possible_identities = np.unique(self.ident_v[~np.isnan(self.ident_v)])
+        for ident in np.array(possible_identities):
+            c = np.random.rand(3)
+            self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]], self.fund_v[self.ident_v == ident], marker='.', color=c)
+
+        # self.main_fig.canvas.draw()
+
+    def plot_spectrum(self):
+        nfft = next_power_of_two(self.samplerate / self.fresolution)
+        data_idx0 = int(self.times[self.ioi] * self.samplerate)
+        data_idx1 = int(data_idx0 + nfft+1)
+
+        all_c_spectra = []
+        all_c_freqs = None
+
+        for channel in self.channels:
+            c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
+                                                      fresolution = self.fresolution, overlap_frac = self.overlap_frac)
+            if not hasattr(all_c_freqs, '__len__'):
+                all_c_freqs = c_freqs
+            all_c_spectra.append(c_spectrum)
+
+        comb_spectra = np.sum(all_c_spectra, axis=0)
+        self.power = np.hstack(comb_spectra)
+        self.freqs = all_c_freqs
+
+        groups, _, _, self.all_peakf, self.good_peakf, self.kwargs['low_threshold'], self.kwargs['high_threshold'], self.psd_baseline = harmonic_groups(all_c_freqs, self.power, **self.kwargs)
+
+        plot_power = 10.0 * np.log10(self.power)
+
+        if not self.spec_ax:
+            self.main_ax.set_position([.1, .1, .5, .6])
+            self.spec_ax = self.main_fig.add_axes([.6, .1, .3, .6])
+            self.spec_ax.set_yticks([])
+            self.ps_handle, =self.spec_ax.plot(plot_power[self.freqs <= 3000.0], self.freqs[self.freqs <= 3000.0],
+                                               color='cornflowerblue')
+
+            self.all_peakf_dots, = self.spec_ax.plot(np.ones(len(self.all_peakf[:, 0])) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.all_peakf[:, 0], 'o', color='red')
+            self.good_peakf_dots, = self.spec_ax.plot(np.ones(len(self.good_peakf)) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.good_peakf, 'o', color='green')
+
+        else:
+            self.ps_handle.set_data(plot_power[all_c_freqs <= 3000.0], all_c_freqs[all_c_freqs <= 3000.0])
+            self.all_peakf_dots.remove()
+            self.good_peakf_dots.remove()
+            self.all_peakf_dots, = self.spec_ax.plot(
+                np.ones(len(self.all_peakf[:, 0])) * np.max(plot_power[all_c_freqs <= 3000.0]) +5., self.all_peakf[:, 0], 'o',
+                color='red')
+            self.good_peakf_dots, = self.spec_ax.plot(
+                np.ones(len(self.good_peakf)) * np.max(plot_power[all_c_freqs <= 3000.0]) +5., self.good_peakf, 'o',
+                color='green')
+
+        for i in range(len(self.tmp_plothandel_ps)):
+            self.tmp_plothandel_ps[i].remove()
+        self.tmp_plothandel_ps = []
+
+        for fish in range(len(groups)):
+            c = np.random.rand(3)
+
+            h, = self.spec_ax.plot(10.0 * np.log10(groups[fish][groups[fish][:, 0] < 3000., 1]),
+                                   groups[fish][groups[fish][:, 0] < 3000., 0], 'o', color=c,
+                                   markersize=7, alpha=0.9)
+            self.tmp_plothandel_ps.append(h)
+
+        ylims = self.main_ax.get_ylim()
+        self.spec_ax.set_ylim([ylims[0], ylims[1]])
+
+    def update_hg(self):
+        # groups = harmonic_groups(self.freqs, self.power, **self.kwargs)
+        groups, _, _, self.all_peakf, self.good_peakf, self.kwargs['low_threshold'], self.kwargs['high_threshold'], self.psd_baseline = \
+            harmonic_groups(self.freqs, self.power, **self.kwargs)
+        # print(self.psd_baseline)
+        for i in range(len(self.tmp_plothandel_ps)):
+            self.tmp_plothandel_ps[i].remove()
+        self.tmp_plothandel_ps = []
+
+        for fish in range(len(groups)):
+            c = np.random.rand(3)
+
+            h, = self.spec_ax.plot(10.0 * np.log10(groups[fish][groups[fish][:, 0] < 3000., 1]),
+                                   groups[fish][groups[fish][:, 0] < 3000., 0], 'o', color=c,
+                                   markersize=7, alpha=0.9)
+            self.tmp_plothandel_ps.append(h)
+        plot_power = 10.0 * np.log10(self.power)
+        self.all_peakf_dots.remove()
+        self.good_peakf_dots.remove()
+        self.all_peakf_dots, = self.spec_ax.plot(
+            np.ones(len(self.all_peakf[:, 0])) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.all_peakf[:, 0], 'o',
+            color='red')
+        self.good_peakf_dots, = self.spec_ax.plot(
+            np.ones(len(self.good_peakf)) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.good_peakf, 'o',
+            color='green')
+
+        ylims = self.main_ax.get_ylim()
+        self.spec_ax.set_ylim([ylims[0], ylims[1]])
+
+    def zoom(self):
+        if self.x_zoom_0 and self.x_zoom_1:
+            xlims = np.array([self.x_zoom_0, self.x_zoom_1])
+            self.main_ax.set_xlim(xlims[np.argsort(xlims)])
+        if self.y_zoom_0 and self.y_zoom_1:
+            ylims = np.array([self.y_zoom_0, self.y_zoom_1])
+            self.main_ax.set_ylim(ylims[np.argsort(ylims)])
+            if self.spec_ax:
+                self.spec_ax.set_ylim(ylims[np.argsort(ylims)])
+        self.x_zoom_0 = None
+        self.x_zoom_1 = None
+        self.y_zoom_0 = None
+        self.y_zoom_1 = None
+
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot=False,
-                 save_original_fishes=False, data_snippet_secs = 30., nffts_per_psd = 2, fresolution = 0.5,
+                 save_original_fishes=False, data_snippet_secs = 15., nffts_per_psd = 2, fresolution = 0.5,
                  overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 5.,
                  f_th= 1., output_folder = '.', plot_harmonic_groups=False, plot_field=False, verbose=0,
                  part_analysis=False, not_tracking=False, **kwargs):
@@ -2222,12 +2708,36 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
         init_idx = start_idx
     next_message = 0.00
 
+    # create spectra plot ####
+    fig_xspan = 20.
+    fig_yspan = 12.
+    fig_dpi = 80.
+    no_x = fig_xspan * fig_dpi
+    no_y = fig_yspan * fig_dpi
+
+    min_x = start_time
+    max_x = end_time
+
+    min_y = 0.
+    max_y = 2000.
+
+    x_borders = np.linspace(min_x, max_x, no_x * 2)
+    y_borders = np.linspace(min_y, max_y, no_y * 2)
+
+    # fig, ax = plt.subplots(figsize=(fig_xspan, fig_yspan), dpi=fig_dpi)
+    tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
+
+    checked_xy_borders = False
+
     while start_idx <= end_idx:
+        t0 = time.time()
+        t1 = time.time()
+
         next_message = include_progress_bar(start_idx - init_idx, end_idx - init_idx, 'extract fundamentals', next_message)
         if start_idx >= end_idx - data_snippet_idxs:
             last_run = True
 
-        t0 = time.time()
+        # t0 = time.time()
         core_count = multiprocessing.cpu_count()
 
         if plot_harmonic_groups:
@@ -2235,119 +2745,211 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
         else:
             pool = multiprocessing.Pool(core_count - 1)
 
-        ############################## ERROR #####################################
-        try:
-            # fig, ax = plt.subplots(figsize=(10., 8.))
+        ##################### new frequency extraction ###########################
+        nfft = next_power_of_two(samplerate / fresolution)
 
-            func = partial(snipped_fundamentals, samplerate=samplerate, start_idx=start_idx, nffts_per_psd=nffts_per_psd,
-                           fresolution=fresolution, overlap_frac=overlap_frac, plot_harmonic_groups=plot_harmonic_groups,
-                           increase_start_idx = increase_start_idx, verbose=verbose, **kwargs)
+        func = partial(spectrogram, samplerate = samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
+        a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in channels])  # ret: spec, freq, time
 
-            a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in channels])
+        spectra = [a[channel][0] for channel in range(len(a))]
+        spec_freqs = a[0][1]
+        spec_times = a[0][2]
+        pool.terminate()
 
-            all_ele_fundamentals = [a[channel][0] for channel in range(len(a))]
-            all_ele_fund_power = [a[channel][1] for channel in range(len(a))]
-            ele_spectra = [a[channel][5] for channel in range(len(a))]
+        # print('\n%.2f -- spectogram' % (time.time() - t0))
+        # t0 = time.time()
 
-            ele_spectrum_freqs = a[0][6]
-            ele_times = a[0][2]
-            start_idx = a[0][3]
-            nfft = a[0][4]
-            pool.terminate()
+        comb_spectra = np.sum(spectra, axis=0)
 
-            # max_spectrum = np.max(np.array(ele_spectra)[:, :, :-1], axis=0)
-            # x_steps =
-            # red_spectrum =
+        if nffts_per_psd == 1:
+            tmp_times = spec_times - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+        else:
+            tmp_times = spec_times[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
 
+        # # create spectra plot
+        # fig_xspan = 20.
+        # fig_yspan = 12.
+        # fig_dpi = 80.
+        # no_x = fig_xspan * fig_dpi
+        # no_y = fig_yspan * fig_dpi
+        #
+        # min_x = start_time
+        # max_x = end_time
+        #
+        # min_y = 0.
+        # max_y = 2000.
+        #
+        # x_borders = np.linspace(min_x, max_x, no_x+1)
+        # y_borders = np.linspace(min_y, max_y, no_y * 2)
 
-        except:
-            pool.terminate()
-            print ('Error in pool analysis... start_idx = %.0f' % start_idx)
-            all_ele_fundamentals = []
-            all_ele_fund_power = []
-            ele_spectra = []
+        plot_freqs = spec_freqs[spec_freqs < 2000.]
 
-            for channel in channels:
-                try:
-                    electrode_fundamentals, electrode_fund_power, electrode_times, start_idx, nfft, spectrum, freqs= snipped_fundamentals(
-                        data[start_idx: start_idx + data_snippet_idxs, channel], samplerate=samplerate,
-                        start_idx=start_idx, nffts_per_psd=nffts_per_psd, fresolution=fresolution, overlap_frac=overlap_frac,
-                        plot_harmonic_groups=plot_harmonic_groups, increase_start_idx = increase_start_idx,
-                        verbose=verbose, **kwargs)
-                    all_ele_fundamentals.append(electrode_fundamentals)
-                    all_ele_fund_power.append(electrode_fund_power)
+        # max_spectra = np.max(spectra, axis=0)[spec_freqs < 2000.]
+        max_spectra = np.sum(spectra, axis=0)[spec_freqs < 2000.]
 
-                    ele_spectra.append(spectrum)
-                    ele_spectrum_freqs = freqs
-                    ele_times = electrode_times
-                except:
-                    print ('Error also in single channel analysis... start_idx = %.0f; channel = %.0f'
-                           % (start_idx, channel))
-                    #all_ele_fundamentals.append([np.array([], dtype=float) for i in range(len(a[0][0]))])
-                    all_ele_fundamentals.append([np.array([], dtype=float) for i in range(len(electrode_fundamentals))])
+        if not checked_xy_borders:
+            if (tmp_times[1] - tmp_times[0])  > (x_borders[1] - x_borders[0]):
+                x_borders = np.linspace(min_x, max_x, (max_x - min_x) // (tmp_times[1] - tmp_times[0]) + 1)
+                tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
 
-                    #all_ele_fund_power.append([np.array([], dtype=float) for i in range(len(a[0][1]))])
-                    all_ele_fund_power.append([np.array([], dtype=float) for i in range(len(electrode_fund_power))])
+            checked_xy_borders = True
 
-                    #ele_spectra.append([np.full(len(spectrum), np.nan) for i in range(len(a[0][1]))])
-                    ele_spectra.append([np.full(len(spectrum[0]), np.nan) for i in range(len(spectrum))])
+        for i in range(len(y_borders)-1):
+            for j in range(len(x_borders)-1):
+                if x_borders[j] > tmp_times[-1]:
+                    break
+                if x_borders[j+1] < tmp_times[0]:
+                    continue
 
-                    print('appended empty. Its dirty but works')
+                t_mask = np.arange(len(tmp_times))[(tmp_times >= x_borders[j]) & (tmp_times < x_borders[j+1])]
+                f_mask = np.arange(len(max_spectra))[(plot_freqs >= y_borders[i]) & (plot_freqs < y_borders[i+1])]
 
-        ##############################################################################
-        non_overlapping_idx = (1 - overlap_frac) * nfft
-        start_idx += int(len(ele_times) * non_overlapping_idx)
+                # if len(t_mask) == 0:
+                #     break
+                if len(t_mask) == 0 or len(f_mask) == 0:
+                    continue
+                # embed()
+                # quit()
+                tmp_spectra[i, j] = np.max(max_spectra[f_mask[:, None], t_mask])
+                # tmp_spectra.append(np.max(max_spectra[(plot_freqs >=y_borders[i]) & (plot_freqs < y_borders[i+1]), :], axis=0))
+        # print(time.time()-t0)
+        # ax.imshow(10.0 * np.log10(tmp_spectra), extent=[0, 30, 0, 2000], aspect='auto')
+        # # ax.invert_yaxis()
+        # plt.show()
 
-        for t in range(np.shape(all_ele_fundamentals)[1]):
-            current_fundamentals, current_positions = grid_fish_frequency_and_position(
-                np.array(all_ele_fundamentals)[:, t], np.array(all_ele_fund_power)[:, t], channels, coords, neighbours)
-            fundamentals.append(current_fundamentals)
-            if len(current_fundamentals) >= 1:
-                #tmp_signatures = np.zeros(( len(current_fundamentals), len(channels) ))
-                f_idx = np.array([ np.argmin(np.abs(ele_spectrum_freqs - f)) for f in current_fundamentals])
+        # psd and fish fundamentals frequency detection
+        power = [np.array([]) for i in range(len(spec_times) - (nffts_per_psd - 1))]
 
-                #tmp_signatures = np.array(ele_spectra)[:, np.array(f_idx), t].transpose()
-                tmp_signatures = 10.0 * np.log10(np.array(ele_spectra))[:, np.array(f_idx), t].transpose()
+        for t in range(len(spec_times) - (nffts_per_psd - 1)):
+            power[t] = np.mean(comb_spectra[:, t:t + nffts_per_psd], axis=1)
+
+        ###############################################################
+        # tmp_fundamentals = []
+        if plot_harmonic_groups:
+            pool = multiprocessing.Pool(1)
+        else:
+            pool = multiprocessing.Pool(core_count - 1)
+
+        func = partial(harmonic_groups, spec_freqs, **kwargs)
+        a = pool.map(func, power)
+        pool.terminate()
+
+        # log spectra once
+        log_spectra = 10.0 * np.log10(np.array(spectra))
+
+        for p in range(len(power)):
+            tmp_fundamentals = fundamental_freqs(a[p][0])
+            # tmp_fundamentals = a[p][0]
+            fundamentals.append(tmp_fundamentals)
+
+            if len(tmp_fundamentals) >= 1:
+                f_idx = np.array([np.argmin(np.abs(spec_freqs - f)) for f in tmp_fundamentals])
+                tmp_signatures = log_spectra[:, np.array(f_idx), p].transpose()
             else:
                 tmp_signatures = np.array([])
 
             signatures.append(tmp_signatures)
+        pool.terminate()
 
-            if not not_tracking:
-                positions.append(current_positions)
+        if nffts_per_psd == 1:
+            tmp_times = spec_times - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+        else:
+            tmp_times = spec_times[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
 
-        times = np.concatenate((times, ele_times))
+        non_overlapping_idx = (1 - overlap_frac) * nfft
+        start_idx += int((len(spec_times) - nffts_per_psd+1) * non_overlapping_idx)
+
+        times = np.concatenate((times, tmp_times))
 
         if start_idx >= end_idx or last_run:
             break
+
+            ########## ERROR - single electrode fundamental extraction ###############
+            # try:
+            #     # fig, ax = plt.subplots(figsize=(10., 8.))
+            #
+            # func = partial(snipped_fundamentals, samplerate=samplerate, start_idx=start_idx, nffts_per_psd=nffts_per_psd,
+            #                    fresolution=fresolution, overlap_frac=overlap_frac, plot_harmonic_groups=plot_harmonic_groups,
+            #                    increase_start_idx = increase_start_idx, verbose=verbose, **kwargs)
+            #
+            #     a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in channels])
+            #
+            #     all_ele_fundamentals = [a[channel][0] for channel in range(len(a))]
+            #     all_ele_fund_power = [a[channel][1] for channel in range(len(a))]
+            #     ele_spectra = [a[channel][5] for channel in range(len(a))]
+            #
+            #     ele_spectrum_freqs = a[0][6]
+            #     ele_times = a[0][2]
+            #     start_idx = a[0][3]
+            #     nfft = a[0][4]
+            #     pool.terminate()
+            #
+            # except:
+            #     pool.terminate()
+            #     print ('Error in pool analysis... start_idx = %.0f' % start_idx)
+            #     all_ele_fundamentals = []
+            #     all_ele_fund_power = []
+            #     ele_spectra = []
+            #
+            #     for channel in channels:
+            #         try:
+            #             electrode_fundamentals, electrode_fund_power, electrode_times, start_idx, nfft, spectrum, freqs= snipped_fundamentals(
+            #                 data[start_idx: start_idx + data_snippet_idxs, channel], samplerate=samplerate,
+            #                 start_idx=start_idx, nffts_per_psd=nffts_per_psd, fresolution=fresolution, overlap_frac=overlap_frac,
+            #                 plot_harmonic_groups=plot_harmonic_groups, increase_start_idx = increase_start_idx,
+            #                 verbose=verbose, **kwargs)
+            #             all_ele_fundamentals.append(electrode_fundamentals)
+            #             all_ele_fund_power.append(electrode_fund_power)
+            #
+            #             ele_spectra.append(spectrum)
+            #             ele_spectrum_freqs = freqs
+            #             ele_times = electrode_times
+            #         except:
+            #             print ('Error also in single channel analysis... start_idx = %.0f; channel = %.0f'
+            #                    % (start_idx, channel))
+            #             #all_ele_fundamentals.append([np.array([], dtype=float) for i in range(len(a[0][0]))])
+            #             all_ele_fundamentals.append([np.array([], dtype=float) for i in range(len(electrode_fundamentals))])
+            #
+            #             #all_ele_fund_power.append([np.array([], dtype=float) for i in range(len(a[0][1]))])
+            #             all_ele_fund_power.append([np.array([], dtype=float) for i in range(len(electrode_fund_power))])
+            #
+            #             #ele_spectra.append([np.full(len(spectrum), np.nan) for i in range(len(a[0][1]))])
+            #             ele_spectra.append([np.full(len(spectrum[0]), np.nan) for i in range(len(spectrum))])
+            #
+            #             print('appended empty. Its dirty but works')
+            #
+            # ##############################################################################
+            # non_overlapping_idx = (1 - overlap_frac) * nfft
+            # start_idx += int(len(ele_times) * non_overlapping_idx)
+            #
+            # for t in range(np.shape(all_ele_fundamentals)[1]):
+            #     current_fundamentals, current_positions = grid_fish_frequency_and_position(
+            #         np.array(all_ele_fundamentals)[:, t], np.array(all_ele_fund_power)[:, t], channels, coords, neighbours)
+            #     fundamentals.append(current_fundamentals)
+            #     if len(current_fundamentals) >= 1:
+            #         #tmp_signatures = np.zeros(( len(current_fundamentals), len(channels) ))
+            #         f_idx = np.array([ np.argmin(np.abs(ele_spectrum_freqs - f)) for f in current_fundamentals])
+            #
+            #         #tmp_signatures = np.array(ele_spectra)[:, np.array(f_idx), t].transpose()
+            #         tmp_signatures = 10.0 * np.log10(np.array(ele_spectra))[:, np.array(f_idx), t].transpose()
+            #     else:
+            #         tmp_signatures = np.array([])
+            #
+            #     signatures.append(tmp_signatures)
+            #
+            #     if not not_tracking:
+            #         positions.append(current_positions)
+            #
+            # times = np.concatenate((times, ele_times))
+            #
+            # if start_idx >= end_idx or last_run:
+            #     break
     print ('')
-    #amplitude_distance(fundamentals, signatures)
-    # f_bin_start, amp_error_th = amplitude_distance(fundamentals, signatures, freq_tolerance)
 
     if verbose >= 1:
         print('\nfirst level fish tracking ...')
         if verbose >= 3:
             print ('> frequency tolerance: %.2f Hz' % freq_tolerance)
-
-    ### start of notes:
-    # EODf = Voice --> mostly sufficient for identification, but if there is a similar voice/frequency nearby ...
-    # Power of fundamentals and harmonics --> maybe identification
-    # Electrode power mark --> Influence on environment
-    # Position --> good if position estimate can be made percisely
-
-    # --> if two frequencies are neerby put frequencies and associated traces on hold (and all others influenced by this)
-    #     finish sorting the rest and than recalculate distance using another/multiple sorting factors.
-
-    #     start h0: frequency belongs to the closest frequency track
-    #     if one other category also points to this: accept else: reject
-    #     if FUNDAMENTAL HARMONIC doesnt work: do distance approximation by electrode power mark.
-
-    #amplitude_distance(fundamentals, signatures)
-
-    #ToDo: we got some weird dubble detections... at one time we detect one the same electrode similar frequencies.
-    #ToDo: But most likely looks like the same fish. python -m thunderfish.tracker_v2 10 12 <colombia_snipped> -vvv [-gg]
-
-    # ToDo: maybe don't allow connections of frequencies that would cross more than 1 fish ...
 
     old_tracking = False
     if old_tracking:
@@ -2356,11 +2958,15 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
                                                                       freq_tolerance=freq_tolerance,
                                                                       save_original_fishes=save_original_fishes,
                                                                       output_folder=output_folder, verbose=verbose)
-    else:
-        freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels = len(channels))
-        # freq_tracking(fundamentals, signatures, positions, times, freq_tolerance, n_channels= len(channels))
-        # amp_signature_tracking(fundamentals, signatures, positions, times, freq_tolerance, n_channels = len(channels))
 
+    else:
+        fund_v, ident_v, idx_v, sign_v = freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels = len(channels))
+
+        Obs_tracker(data, samplerate, times, fund_v, ident_v, idx_v, sign_v, tmp_spectra, start_time, end_time, fresolution, overlap_frac, channels, nffts_per_psd, **kwargs)
+
+    # embed()
+    quit()
+####################################################################
 
     plot_fishes(fishes, times, np.array([]), base_name, save_plot, output_folder)
 
@@ -2532,6 +3138,7 @@ def main():
         t_kwargs = psd_peak_detection_args(cfg)
         t_kwargs.update(harmonic_groups_args(cfg))
         t_kwargs.update(tracker_args(cfg))
+
         fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
                      args.grid, args.save_plot, args.save_fish, output_folder=args.output_folder,
                      plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, not_tracking=args.not_tracking,
