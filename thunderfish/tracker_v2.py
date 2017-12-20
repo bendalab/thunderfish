@@ -13,7 +13,7 @@ from functools import partial
 from .version import __version__
 from .configfile import ConfigFile
 from .dataloader import open_data
-from .powerspectrum import spectrogram, next_power_of_two
+from .powerspectrum import spectrogram, next_power_of_two, decibel
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
 from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
@@ -24,7 +24,6 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     pass
-# TODO: update to numpy doc style!
 
 
 def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=2, fresolution=0.5,
@@ -127,6 +126,7 @@ def snipped_fundamentals(data, samplerate, start_idx = 0, nffts_per_psd=2, freso
 
     return electrode_fundamentals, electrode_fund_power, electrode_times, start_idx, nfft, spectrum[freqs < 1500], freqs[freqs < 1500]
 
+
 def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_distribution,
                    min_f_weight=0.4, max_f_weight=0.9, t_of_max_f_weight=2., max_t_error=10.):
     if t_error >= 2.:
@@ -142,7 +142,7 @@ def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_dist
     return a_e + f_e + t_e
 
 
-def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels, ax=False):
+def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels):
 
     # def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_distribution,
     #                    min_f_weight = 0.4, max_f_weight = 0.9, t_of_max_f_weight = 2., max_t_error = 10.):
@@ -178,7 +178,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
     low_freq_th = 400.  # min. frequency tracked
     high_freq_th = 1050.  # max. frequency tracked
 
-    # get f and amp signature distribution
+    # get f and amp signature distribution ############### BOOT #######################
     a_error_distribution = np.zeros(20000)  # distribution of amplitude errors
     f_error_distribution = np.zeros(20000)  # distribution of frequency errors
     idx_of_distribution = np.zeros(20000)  # corresponding indices
@@ -213,11 +213,12 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
     ### FREQUENCY SORTING ALGOITHM ###
 
-    # get initial distance cube (3D-matrix)
+    # get initial distance cube (3D-matrix) ##################### ERROR CUBE #######################
     error_cube = []  # [fundamental_list_idx, freqs_to_assign, target_freqs]
     i0_m = []
     i1_m = []
 
+    print('\n ')
     next_message = 0.
     for i in range(idx_comp_range):
         next_message = include_progress_bar(i, idx_comp_range, 'initial error cube', next_message)
@@ -252,6 +253,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
     cube_app_idx = len(error_cube)
 
     next_identity = 0  # next unassigned fish identity no.
+    print('\n ')
     next_message = 0.  # feedback
     for i in range(int(len(fundamentals))):
         next_message = include_progress_bar(i, len(fundamentals), 'tracking', next_message)  # feedback
@@ -277,28 +279,25 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                 if len(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]) == 0:
                     break
 
-                # idx0 = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[0][0]
-                # idx1 = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[1][0]
-
                 idx0s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[0]
                 idx1s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[1]
 
-                try:
-                    if len(idx0s) == 1:
-                        idx0 = idx0s[0]
-                        idx1 = idx1s[0]
+                # try:
+                if len(idx0s) == 1:
+                    idx0 = idx0s[0]
+                    idx1 = idx1s[0]
+                    counter = 0
+                else:
+                    idx0 = idx0s[counter]
+                    idx1 = idx1s[counter]
+                    if counter + 1 >= len(idx0s):
                         counter = 0
                     else:
-                        idx0 = idx0s[counter]
-                        idx1 = idx1s[counter]
-                        if counter + 1 >= len(idx0s):
-                            counter = 0
-                        else:
-                            counter += 1
-                except:
-                    print('still not solved')
-                    embed()
-                    quit()
+                        counter += 1
+                # except:
+                #     print('still not solved')
+                #     embed()
+                #     quit()
 
                 if old_idx0 == idx0 and old_idx1 == idx1:
                     print ('\n indices did not change ... why ?')
@@ -315,8 +314,8 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                     masks_idxs_feat_ioi = np.arange(j + 1, len(error_cube))[np.array(ioi_mask)]
                 else:
                     masks_idxs_feat_ioi = np.array([])
-                other_errors_to_idx1 = []
 
+                other_errors_to_idx1 = []
                 for mask in masks_idxs_feat_ioi:
                     if len(np.hstack(mask_cube[mask])) == 0:  #?
                         continue  #?
@@ -336,7 +335,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                         quit()
 
                 # conditions !!!
-                if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][idx1]]) / (( idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 1.5:
+                if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][idx1]]) / (( idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 2.5:
                     tmp_mask[idx0, idx1] = 0
                     continue
 
@@ -387,6 +386,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
             mask_cube[j] = mask_matrix
         # update error cube in second loop ############################
+
         i0_m.pop(0)
         i1_m.pop(0)
         error_cube.pop(0)
@@ -399,6 +399,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
         if len(i0_v) == 0 or len(i1_v) == 0:  # if nothing to assign or no targets continue
             error_cube.append([[]])
+
         else:
             error_matrix = np.full((len(i0_v), len(i1_v)), np.nan)
 
@@ -418,12 +419,12 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                     error_matrix[enu0, enu1] = estimate_error(a_error, f_error, t_error, a_error_distribution,
                                                               f_error_distribution)
             error_cube.append(error_matrix)
+
         cube_app_idx += 1
 
     print('reached the end')
 
-    return fund_v, ident_v, idx_v, sign_v
-
+    return fund_v, ident_v, idx_v, sign_v, a_error_distribution, f_error_distribution
 
 
 def freq_tracking(fundamentals, signatures, positions, times, freq_tolerance, n_channels):
@@ -1781,7 +1782,7 @@ def plot_positions(fishes, fishes_x_pos, fishes_y_pos, all_times):
     plt.show()
 
 
-def add_tracker_config(cfg, data_snippet_secs = 15., nffts_per_psd = 2, fresolution =.5, overlap_frac = .9,
+def add_tracker_config(cfg, data_snippet_secs = 30., nffts_per_psd = 2, fresolution =.5, overlap_frac = .9,
                        freq_tolerance = 20., rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
@@ -2170,29 +2171,275 @@ def amplitude_distance(fundamentals, signatures, freq_tolerance):
     return f_bin_start, amp_error_th
 
 
+def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_idxs, start_time, end_time, fresolution = 0.5,
+                                     overlap_frac=.9, nffts_per_psd= 2, comp_min_freq= 0., comp_max_freq = 2000., plot_harmonic_groups=False,
+                                     create_plotable_spectrogram=False, extract_funds_and_signature=True, **kwargs):
+    fundamentals = []
+    positions = []
+    times = np.array([])
+    signatures = []
+
+    start_idx = int(start_time * samplerate)
+    if end_time < 0.0:
+        end_time = len(data) / samplerate
+        end_idx = int(len(data) - 1)
+    else:
+        end_idx = int(end_time * samplerate)
+        if end_idx >= int(len(data) - 1):
+            end_idx = int(len(data) - 1)
+
+    # increase_start_idx = False
+    last_run = False
+
+    print ('')
+    init_idx = False
+    if not init_idx:
+        init_idx = start_idx
+    next_message = 0.00
+
+    # create spectra plot ####
+    get_spec_plot_matrix = False
+    # fig_xspan = 20.
+    # fig_yspan = 12.
+    # fig_dpi = 80.
+    # no_x = fig_xspan * fig_dpi
+    # no_y = fig_yspan * fig_dpi
+    #
+    # min_x = start_time
+    # max_x = end_time
+    #
+    # min_y = 0.
+    # max_y = 2000.
+    #
+    # x_borders = np.linspace(min_x, max_x, no_x * 2)
+    # y_borders = np.linspace(min_y, max_y, no_y * 2)
+    # # checked_xy_borders = False
+    #
+    # tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
+
+    while start_idx <= end_idx:
+        if create_plotable_spectrogram:
+            next_message = include_progress_bar(start_idx - init_idx, end_idx - init_idx, 'get plotable spec',
+                                                next_message)
+        else:
+            next_message = include_progress_bar(start_idx - init_idx, end_idx - init_idx, 'extract fundamentals',
+                                                next_message)
+
+        if start_idx >= end_idx - data_snippet_idxs:
+            last_run = True
+
+        # calulate spectogram ....
+        core_count = multiprocessing.cpu_count()
+
+        if plot_harmonic_groups:
+            pool = multiprocessing.Pool(1)
+        else:
+            pool = multiprocessing.Pool(core_count // 2)
+            # pool = multiprocessing.Pool(core_count - 1)
+
+        nfft = next_power_of_two(samplerate / fresolution)
+
+        func = partial(spectrogram, samplerate=samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
+        a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in
+                            channels])  # ret: spec, freq, time
+
+        spectra = [a[channel][0] for channel in range(len(a))]
+        spec_freqs = a[0][1]
+        spec_times = a[0][2]
+        pool.terminate()
+
+        comb_spectra = np.sum(spectra, axis=0)
+
+        if nffts_per_psd == 1:
+            tmp_times = spec_times - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+        else:
+            tmp_times = spec_times[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+
+        # etxtract reduced spectrum for plot
+        plot_freqs = spec_freqs[spec_freqs < comp_max_freq]
+        plot_spectra = np.sum(spectra, axis=0)[spec_freqs < comp_max_freq]
+
+        if create_plotable_spectrogram:
+            # if not checked_xy_borders:
+            if not get_spec_plot_matrix:
+                fig_xspan = 20.
+                fig_yspan = 12.
+                fig_dpi = 80.
+                no_x = fig_xspan * fig_dpi
+                no_y = fig_yspan * fig_dpi
+
+                min_x = start_time
+                max_x = end_time
+
+                min_y = comp_min_freq
+                max_y = comp_max_freq
+
+                x_borders = np.linspace(min_x, max_x, no_x * 2)
+                y_borders = np.linspace(min_y, max_y, no_y * 2)
+                # checked_xy_borders = False
+
+                tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
+
+                recreate_matrix = False
+                if (tmp_times[1] - tmp_times[0]) > (x_borders[1] - x_borders[0]):
+                    x_borders = np.linspace(min_x, max_x, (max_x - min_x) // (tmp_times[1] - tmp_times[0]) + 1)
+                    recreate_matrix = True
+                if (spec_freqs[1] - spec_freqs[0]) > (y_borders[1] - y_borders[0]):
+                    recreate_matrix = True
+                    y_borders = np.linspace(min_y, max_y, (max_y - min_y) // (spec_freqs[1] - spec_freqs[0]) + 1)
+                if recreate_matrix:
+                    tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
+
+                get_spec_plot_matrix = True
+                # checked_xy_borders = True
+
+            for i in range(len(y_borders) - 1):
+                for j in range(len(x_borders) - 1):
+                    if x_borders[j] > tmp_times[-1]:
+                        break
+                    if x_borders[j + 1] < tmp_times[0]:
+                        continue
+
+                    t_mask = np.arange(len(tmp_times))[(tmp_times >= x_borders[j]) & (tmp_times < x_borders[j + 1])]
+                    f_mask = np.arange(len(plot_spectra))[(plot_freqs >= y_borders[i]) & (plot_freqs < y_borders[i + 1])]
+
+                    if len(t_mask) == 0 or len(f_mask) == 0:
+                        continue
+
+                    tmp_spectra[i, j] = np.max(plot_spectra[f_mask[:, None], t_mask])
+
+
+        # psd and fish fundamentals frequency detection
+        if extract_funds_and_signature:
+            power = [np.array([]) for i in range(len(spec_times) - (nffts_per_psd - 1))]
+
+            for t in range(len(spec_times) - (nffts_per_psd - 1)):
+                power[t] = np.mean(comb_spectra[:, t:t + nffts_per_psd], axis=1)
+
+            if plot_harmonic_groups:
+                pool = multiprocessing.Pool(1)
+            else:
+                pool = multiprocessing.Pool(core_count // 2)
+                # pool = multiprocessing.Pool(core_count - 1)
+            func = partial(harmonic_groups, spec_freqs, **kwargs)
+            a = pool.map(func, power)
+            pool.terminate()
+
+            # get signatures
+            # log_spectra = 10.0 * np.log10(np.array(spectra))
+            log_spectra = decibel(np.array(spectra))
+
+            for p in range(len(power)):
+                tmp_fundamentals = fundamental_freqs(a[p][0])
+                # tmp_fundamentals = a[p][0]
+                fundamentals.append(tmp_fundamentals)
+
+                if len(tmp_fundamentals) >= 1:
+                    f_idx = np.array([np.argmin(np.abs(spec_freqs - f)) for f in tmp_fundamentals])
+                    tmp_signatures = log_spectra[:, np.array(f_idx), p].transpose()
+                else:
+                    tmp_signatures = np.array([])
+
+                signatures.append(tmp_signatures)
+            pool.terminate()
+
+        # if nffts_per_psd == 1:
+        #     tmp_times = spec_times - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+        # else:
+        #     tmp_times = spec_times[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+        non_overlapping_idx = (1 - overlap_frac) * nfft
+        start_idx += int((len(spec_times) - nffts_per_psd + 1) * non_overlapping_idx)
+        times = np.concatenate((times, tmp_times))
+
+        if start_idx >= end_idx or last_run:
+            break
+
+    if create_plotable_spectrogram and not extract_funds_and_signature:
+        return tmp_spectra, times
+
+    elif extract_funds_and_signature and not create_plotable_spectrogram:
+        return fundamentals, signatures, positions, times
+
+    else:
+        return fundamentals, signatures, positions, times, tmp_spectra
+
+
+# def decibel(spec, ref_power=1.0, min_power=1e-20):
+#     """
+#     Transforms power to decibel relative to ref_power.
+#
+#     decibel_psd = 10 * log10(power/ref_power)
+#
+#     Parameters
+#     ----------
+#     spec: array
+#         the power values of the power spectrum or spectrogram.
+#     ref_power: float
+#         the reference power for computing decibel. If set to None the maximum power is used.
+#     min_power: float
+#         power values smaller than min_power are set to np.nan.
+#
+#     Returns
+#     -------
+#     decibel_psd: array
+#         the power values in decibel
+#     """
+#     if ref_power is None:
+#         ref_power = np.max(spec)
+#
+#     decibel_spec = spec.copy()
+#     for i in range(len(spec)):
+#         decibel_spec[i][decibel_spec[i] < min_power] = np.nan
+#         decibel_spec[i][decibel_spec[i] >= min_power] = 10.0 * np.log10(decibel_spec[i][decibel_spec[i] >= min_power]/ref_power)
+#     return decibel_spec
+
+
 class Obs_tracker():
-    def __init__(self, data, samplerate, times, fund_v, ident_v, idx_v, sign_v, tmp_spectra, start_time, end_time,
-                 fresolution, overlap_frac, channels, nffts_per_psd, **kwargs):
+    # def __init__(self, data, samplerate, start_time, end_time, fresolution, overlap_frac, channels,
+    #              nffts_per_psd, data_snippet_idxs, freq_tolerance, tmp_spectra=None, times=None, fund_v=None, ident_v=None, idx_v=None, sign_v=None, **kwargs):
+    def __init__(self, data, samplerate, start_time, end_time, channels, data_snippet_idxs, **kwargs):
+
+        # write input into self.
         self.data = data
         self.samplerate = samplerate
-        self.times = times
         self.start_time = start_time
         self.end_time = end_time
-        self.fresolution = fresolution
-        self.overlap_frac = overlap_frac
+        if self.end_time < 0.0:
+            self.end_time = len(self.data) / self.samplerate
+
+        # self.fresolution = fresolution
+        # self.overlap_frac = overlap_frac
         self.channels = channels
-        self.nffts_per_psd = nffts_per_psd
+        # self.nffts_per_psd = nffts_per_psd
+        self.data_snippet_idxs = data_snippet_idxs
+        # self.freq_tolerance = freq_tolerance
         self.kwargs = kwargs
+
+        # recalculate right start/end time and idx
+        # self.start_idx = int(self.start_time * self.samplerate)
+        # if self.end_time < 0.0:
+        #     self.end_time = len(self.data) / self.samplerate
+        #     self.end_idx = int(len(self.data) - 1)
+        # else:
+        #     self.end_idx = int(self.end_time * self.samplerate)
+        #     if self.end_idx >= int(len(self.data) - 1):
+        #         self.end_idx = int(len(self.data) - 1)
+
         self.kwargs['mains_freq'] = 0.
         self.kwargs['max_fill_ratio'] = 0.5
         self.kwargs['min_group_size'] = 2
 
-        self.fund_v = fund_v
-        self.ident_v = ident_v
-        self.idx_v = idx_v
-        self.sign_v = sign_v
+        # primary tracking vectors
+        self.fund_v = None
+        self.ident_v = None
+        self.idx_v = None
+        self.sign_v = None
 
-        self.tmp_spectra = tmp_spectra
+        # plot spectrum
+        self.fundamentals = None
+        self.times = None
+        self.tmp_spectra = None
+        self.part_spectra = None
 
         self.current_task = None
         self.current_idx = None
@@ -2201,29 +2448,53 @@ class Obs_tracker():
         self.y_zoom_0 = None
         self.y_zoom_1 = None
 
-        plt.rcParams['keymap.save'] = ''  # was s
-
+        # create plot environment
         self.main_fig = plt.figure(facecolor='white', figsize=(55. / 2.54, 30. / 2.54))
+
+        # main window
         self.main_fig.canvas.mpl_connect('key_press_event', self.keypress)
         self.main_fig.canvas.mpl_connect('button_press_event', self.buttonpress)
+        plt.rcParams['keymap.save'] = ''  # was s
+        plt.rcParams['keymap.back'] = ''  # was c
 
         self.main_ax = self.main_fig.add_axes([0.1, 0.1, 0.8, 0.6])
+        self.spec_img_handle = None
 
-        self.tmp_plothandel_main = None
-        self.plot_data()
+        self.tmp_plothandel_main = None  # red line
+        self.trace_handles = []
+        self.active_fundamental0_0 = None
+        self.active_fundamental0_1 = None
+        self.active_fundamental0_0_handle = None
+        self.active_fundamental0_1_handle = None
 
-        self.spec_ax = None
+        self.active_fundamental1_0 = None
+        self.active_fundamental1_1 = None
+        self.active_fundamental1_0_handle = None
+        self.active_fundamental1_1_handle = None
+        # self.plot_spectrum()
+
+        # powerspectrum window and parameters
+        self.ps_ax = None
         self.tmp_plothandel_ps = []
         self.tmp_harmonics_plot = None
         self.all_peakf_dots = None
         self.good_peakf_dots = None
 
+        self.active_harmonic = None
+
+        # get key options into plot
         self.text_handles_key = []
         self.text_handles_effect = []
         self.key_options()
 
         self.main_fig.canvas.draw()
+        # print('i am in the main loop')
+
+        # get prim spectrum and plot it...
+        self.plot_spectrum()
+
         plt.show()
+
 
     def key_options(self):
         # for i in range(len(self.text_handles_key)):
@@ -2244,13 +2515,15 @@ class Obs_tracker():
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.1, 0.8,  'e:')
-            t1 = self.main_fig.text(0.15, 0.8, 'embed')
+            # t = self.main_fig.text(0.1, 0.8,  'e:')
+            # t1 = self.main_fig.text(0.15, 0.8, 'embed')
+            t = self.main_fig.text(0.1, 0.8, 'p:')
+            t1 = self.main_fig.text(0.15, 0.8, 'calc/show PSD')
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
             t = self.main_fig.text(0.1, 0.775, 's:')
-            t1 = self.main_fig.text(0.15, 0.775, 'create spectrogram')
+            t1 = self.main_fig.text(0.15, 0.775, 'create part spectrogram')
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
@@ -2264,88 +2537,217 @@ class Obs_tracker():
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
-        if self.spec_ax:
+        if self.ps_ax:
+            if self.current_task == 'part_spec' or self.current_task == 'track_snippet':
+                pass
+            else:
+                t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
+                t1 = self.main_fig.text(0.35, 0.85, '%.2f dB; rel. dB th for good Peaks' % (self.kwargs['high_threshold']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
+                t1 = self.main_fig.text(0.35, 0.825, '%.2f dB; rel. dB th for all Peaks' % (self.kwargs['low_threshold']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
+                t1 = self.main_fig.text(0.35, 0.8, '%.2f; x bin std = low Th' % (self.kwargs['noise_fac']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.3, 0.775, '(ctrl+)4:')
+                t1 = self.main_fig.text(0.35, 0.775, '%.2f; peak_fac' % (self.kwargs['peak_fac']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.3, 0.75, '(ctrl+)5:')
+                t1 = self.main_fig.text(0.35, 0.75, '%.2f dB; min Peak width' % (self.kwargs['min_peak_width']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.3, 0.725, '(ctrl+)6:')
+                t1 = self.main_fig.text(0.35, 0.725, '%.2f X fresolution; max Peak width' % (self.kwargs['max_peak_width_fac']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.85, '(ctrl+)7:')
+                t1 = self.main_fig.text(0.55, 0.85, '%.0f; min group size' % (self.kwargs['min_group_size']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.825, '(ctrl+)8:')
+                t1 = self.main_fig.text(0.55, 0.825, '%.1f; * fresolution = max dif of harmonics' % (self.kwargs['freq_tol_fac']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.8, '(ctrl+)9:')
+                t1 = self.main_fig.text(0.55, 0.8, '%.0f; max divisor to check subharmonics' % (self.kwargs['max_divisor']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.775, '(ctrl+)0:')
+                t1 = self.main_fig.text(0.55, 0.775, '%.0f; max freqs to fill in' % (self.kwargs['max_upper_fill']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.75, '(ctrl+)+:')
+                t1 = self.main_fig.text(0.55, 0.75, '%.0f; 1 group max double used peaks' % (self.kwargs['max_double_use_harmonics']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.725, '(ctrl+)#:')
+                t1 = self.main_fig.text(0.55, 0.725, '%.0f; 1 Peak part of n groups' % (self.kwargs['max_double_use_count']))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+        if self.current_task == 'part_spec':
             t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
-            t1 = self.main_fig.text(0.35, 0.85, '%.2f dB; rel. dB th for good Peaks' % (self.kwargs['high_threshold']))
+            t1 = self.main_fig.text(0.35, 0.85, '%.2f Hz; freuency resolution' % (self.kwargs['fresolution']))
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
             t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
-            t1 = self.main_fig.text(0.35, 0.825, '%.2f dB; rel. dB th for all Peaks' % (self.kwargs['low_threshold']))
+            t1 = self.main_fig.text(0.35, 0.825, '%.2f; overlap fraction of FFT windows' % (self.kwargs['overlap_frac']))
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
             t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
-            t1 = self.main_fig.text(0.35, 0.8, '%.2f; x bin std = low Th' % (self.kwargs['noise_fac']))
+            t1 = self.main_fig.text(0.35, 0.8, '%.0f; n fft widnows averaged for psd' % (self.kwargs['nffts_per_psd']))
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.3, 0.775, '(ctrl+)4:')
-            t1 = self.main_fig.text(0.35, 0.775, '%.2f; peak_fac' % (self.kwargs['peak_fac']))
+            t = self.main_fig.text(0.3, 0.775, '')
+            t1 = self.main_fig.text(0.35, 0.775, '%.0f; nfft' % (next_power_of_two(
+                self.samplerate / self.kwargs['fresolution'])))
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.3, 0.75, '(ctrl+)5:')
-            t1 = self.main_fig.text(0.35, 0.75, '%.2f dB; min Peak width' % (self.kwargs['min_peak_width']))
+            t = self.main_fig.text(0.3, 0.75, '')
+            t1 = self.main_fig.text(0.35, 0.75,
+                                    '%.3f s; temporal resolution' % (next_power_of_two(
+                                        self.samplerate / self.kwargs['fresolution']) / self.samplerate * (
+                                        1.-self.kwargs['overlap_frac']) ))
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.3, 0.725, '(ctrl+)6:')
-            t1 = self.main_fig.text(0.35, 0.725, '%.2f X fresolution; max Peak width' % (self.kwargs['max_peak_width_fac']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
+        if self.current_task == 'check_tracking':
+            if self.active_fundamental0_0 and self.active_fundamental0_1:
+                a_error = np.sqrt(
+                    np.sum([(self.signatures[self.active_fundamental0_0[0]][self.active_fundamental0_0[1]][k]
+                             - self.signatures[self.active_fundamental0_1[0]][self.active_fundamental0_1[1]][k]) ** 2
+                            for k in
+                            range(len(self.signatures[self.active_fundamental0_0[0]][self.active_fundamental0_0[1]]))]))
+                f_error = np.abs(self.fundamentals[self.active_fundamental0_0[0]][self.active_fundamental0_0[1]] -
+                                 self.fundamentals[self.active_fundamental0_1[0]][self.active_fundamental0_1[1]])
+                t_error = np.abs(self.times[self.active_fundamental0_0[0]] - self.times[self.active_fundamental0_1[0]])
+                error = estimate_error(a_error, f_error, t_error, self.a_error_dist, self.f_error_dist)
 
-            t = self.main_fig.text(0.5, 0.85, '(ctrl+)7:')
-            t1 = self.main_fig.text(0.55, 0.85, '%.0f; min group size' % (self.kwargs['min_group_size']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
+                t = self.main_fig.text(0.3, 0.85, 'freq error:')
+                t1 = self.main_fig.text(0.35, 0.85, '%.2f Hz' % (f_error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.5, 0.825, '(ctrl+)8:')
-            t1 = self.main_fig.text(0.55, 0.825, '%.1f; * fresolution = max dif of harmonics' % (self.kwargs['freq_tol_fac']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
+                t = self.main_fig.text(0.3, 0.825, 'amp. error:')
+                t1 = self.main_fig.text(0.35, 0.825, '%.2f dB' % (a_error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.5, 0.8, '(ctrl+)9:')
-            t1 = self.main_fig.text(0.55, 0.8, '%.0f; max divisor to check subharmonics' % (self.kwargs['max_divisor']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
+                t = self.main_fig.text(0.3, 0.8, 'time error')
+                t1 = self.main_fig.text(0.35, 0.8, '%.2f s' % (t_error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.5, 0.775, '(ctrl+)0:')
-            t1 = self.main_fig.text(0.55, 0.775, '%.0f; max freqs to fill in' % (self.kwargs['max_upper_fill']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
+                t = self.main_fig.text(0.3, 0.775, 'df / s')
+                t1 = self.main_fig.text(0.35, 0.775, '%.2f s' % (f_error / t_error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.5, 0.75, '(ctrl+)+:')
-            t1 = self.main_fig.text(0.55, 0.75, '%.0f; 1 group max double used peaks' % (self.kwargs['max_double_use_harmonics']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
+                t = self.main_fig.text(0.3, 0.725, 'error value')
+                t1 = self.main_fig.text(0.35, 0.725, '%.3f' % (error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.5, 0.725, '(ctrl+)#:')
-            t1 = self.main_fig.text(0.55, 0.725, '%.0f; 1 Peak part of n groups' % (self.kwargs['max_double_use_count']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
+            if self.active_fundamental1_0 and self.active_fundamental1_1:
+                a_error = np.sqrt(
+                    np.sum([(self.signatures[self.active_fundamental1_0[0]][self.active_fundamental1_0[1]][k]
+                             - self.signatures[self.active_fundamental1_1[0]][self.active_fundamental1_1[1]][k]) ** 2
+                            for k in
+                            range(len(self.signatures[self.active_fundamental1_0[0]][self.active_fundamental1_0[1]]))]))
+                f_error = np.abs(self.fundamentals[self.active_fundamental1_0[0]][self.active_fundamental1_0[1]] -
+                                 self.fundamentals[self.active_fundamental1_1[0]][self.active_fundamental1_1[1]])
+                t_error = np.abs(self.times[self.active_fundamental1_0[0]] - self.times[self.active_fundamental1_1[0]])
+                error = estimate_error(a_error, f_error, t_error, self.a_error_dist, self.f_error_dist)
+
+                t = self.main_fig.text(0.5, 0.85, 'freq error:')
+                t1 = self.main_fig.text(0.55, 0.85, '%.2f Hz' % (f_error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.825, 'amp. error:')
+                t1 = self.main_fig.text(0.55, 0.825, '%.2f dB' % (a_error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.8, 'time error')
+                t1 = self.main_fig.text(0.55, 0.8, '%.2f s' % (t_error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.775, 'df / s')
+                t1 = self.main_fig.text(0.55, 0.775, '%.2f s' % (f_error / t_error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
+                t = self.main_fig.text(0.5, 0.725, 'error value')
+                t1 = self.main_fig.text(0.55, 0.725, '%.3f' % (error))
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
 
     def keypress(self, event):
+        self.key_options()
+
         if event.key in 'h':
             if self.main_ax:
                 self.main_ax.set_xlim([self.start_time, self.end_time])
                 self.main_ax.set_ylim([0, 2000])
-            if self.spec_ax:
-                self.spec_ax.set_ylim([0, 2000])
+            if self.ps_ax:
+                self.ps_ax.set_ylim([0, 2000])
+
+            if hasattr(self.part_spectra, '__len__'):
+                # self.main_fig.delaxes(self.main_ax)
+                # self.main_ax = self.main_fig.add_axes([.1, .1, .8, .6])
+                self.spec_img_handle.remove()
+                self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
+                                    aspect='auto', alpha=0.7)
+                self.main_ax.set_xlim([self.start_time, self.end_time])
+                self.main_ax.set_ylim([0, 2000])
+                self.main_ax.set_xlabel('time [s]')
+                self.main_ax.set_ylabel('frequency [Hz]')
 
         if event.key in 'enter':
             if self.current_task == 'show_spectrum':
                 if self.tmp_plothandel_main and self.ioi:
                     self.current_task = None
-                    self.plot_spectrum()
+                    self.plot_ps()
                 else:
                     print('\nmissing data')
 
             if self.current_task == 'update_hg':
+                self.current_task = None
                 self.update_hg()
 
             if self.current_task == 'zoom':
+                self.current_task = None
                 self.zoom()
+
+            if self.current_task == 'track_snippet':
+                self.current_task = None
+                self.track_snippet()
+
+            if self.current_task == 'part_spec':
+                self.current_task = None
+                self.plot_spectrum(part_spec=True)
 
         if event.key in 'e':
             embed()
@@ -2355,122 +2757,160 @@ class Obs_tracker():
             self.current_task = 'show_spectrum'
             # print('\n%s' % self.current_task)
 
+        if event.key in 't':
+            self.current_task = 'track_snippet'
+
         if event.key == 'ctrl+q':
             plt.close(self.main_fig)
             # self.main_fig.close()
             return
 
-        if event.key in 'q' and self.spec_ax:
-            self.main_fig.delaxes(self.spec_ax)
-            self.spec_ax = None
+        if event.key in 'q' and self.ps_ax:
+            self.main_fig.delaxes(self.ps_ax)
+            self.ps_ax = None
             self.tmp_plothandel_ps = []
             self.all_peakf_dots = None
             self.good_peakf_dots = None
             self.main_ax.set_position([.1, .1, .8, .6])
 
+        if event.key in 'c':
+            self.current_task = 'check_tracking'
+
         if event.key in 'z':
             self.current_task = 'zoom'
 
-        if self.spec_ax:
+        if event.key in 's':
+            self.current_task = 'part_spec'
+
+
+        if self.current_task == 'part_spec':
             if event.key == '1':
-                self.kwargs['high_threshold'] -= 2.5
-                self.current_task = 'update_hg'
+                if self.kwargs['fresolution'] > 0.25:
+                    self.kwargs['fresolution'] -= 0.25
+                else:
+                    self.kwargs['fresolution'] -= 0.05
+
             if event.key == 'ctrl+1':
-                self.kwargs['high_threshold'] += 2.5
-                self.current_task = 'update_hg'
+                if self.kwargs['fresolution'] >= 0.25:
+                    self.kwargs['fresolution'] += 0.25
+                else:
+                    self.kwargs['fresolution'] += 0.05
 
             if event.key == '2':
-                self.kwargs['low_threshold'] -= 2.5
-                self.current_task = 'update_hg'
+                self.kwargs['overlap_frac'] -= 0.05
+
             if event.key == 'ctrl+2':
-                self.kwargs['low_threshold'] += 2.5
-                self.current_task = 'update_hg'
+                self.kwargs['overlap_frac'] += 0.05
 
             if event.key == '3':
-                self.kwargs['noise_fac'] -= 1
-                self.kwargs['low_threshold'] = 0.
-                self.kwargs['high_threshold'] = 0.
-                self.current_task = 'update_hg'
+                self.kwargs['nffts_per_psd'] -= 1
+
             if event.key == 'ctrl+3':
-                self.kwargs['noise_fac'] += 1
-                self.kwargs['low_threshold'] = 0.
-                self.kwargs['high_threshold'] = 0.
-                self.current_task = 'update_hg'
+                self.kwargs['nffts_per_psd'] += 1
 
-            if event.key == '4':
-                self.kwargs['peak_fac'] -= 0.1
-                self.kwargs['low_threshold'] = 0.
-                self.kwargs['high_threshold'] = 0.
-                self.current_task = 'update_hg'
+        else:
+            if self.ps_ax:
+                if event.key == '1':
+                    self.kwargs['high_threshold'] -= 2.5
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+1':
+                    self.kwargs['high_threshold'] += 2.5
+                    self.current_task = 'update_hg'
 
-            if event.key == 'ctrl+4':
-                self.kwargs['peak_fac'] += 0.1
-                self.kwargs['low_threshold'] = 0.
-                self.kwargs['high_threshold'] = 0.
-                self.current_task = 'update_hg'
+                if event.key == '2':
+                    self.kwargs['low_threshold'] -= 2.5
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+2':
+                    self.kwargs['low_threshold'] += 2.5
+                    self.current_task = 'update_hg'
 
-            if event.key == '5':
-                self.kwargs['min_peak_width'] -= 0.5
-                self.current_task = 'update_hg'
-            if event.key == 'ctrl+5':
-                self.kwargs['min_peak_width'] += 0.5
-                self.current_task = 'update_hg'
+                if event.key == '3':
+                    self.kwargs['noise_fac'] -= 1
+                    self.kwargs['low_threshold'] = 0.
+                    self.kwargs['high_threshold'] = 0.
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+3':
+                    self.kwargs['noise_fac'] += 1
+                    self.kwargs['low_threshold'] = 0.
+                    self.kwargs['high_threshold'] = 0.
+                    self.current_task = 'update_hg'
 
-            if event.key == '6':
-                self.kwargs['max_peak_width_fac'] -= 1.
-                self.current_task = 'update_hg'
-            if event.key == 'ctrl+6':
-                self.kwargs['max_peak_width_fac'] += 1.
-                self.current_task = 'update_hg'
+                if event.key == '4':
+                    self.kwargs['peak_fac'] -= 0.1
+                    self.kwargs['low_threshold'] = 0.
+                    self.kwargs['high_threshold'] = 0.
+                    self.current_task = 'update_hg'
 
-            if event.key == '7':
-                self.kwargs['min_group_size'] -= 1.
-                self.current_task = 'update_hg'
-            if event.key == 'ctrl+7':
-                self.kwargs['min_group_size'] += 1.
-                self.current_task = 'update_hg'
+                if event.key == 'ctrl+4':
+                    self.kwargs['peak_fac'] += 0.1
+                    self.kwargs['low_threshold'] = 0.
+                    self.kwargs['high_threshold'] = 0.
+                    self.current_task = 'update_hg'
 
-            if event.key == '8':
-                self.kwargs['freq_tol_fac'] -= .1
-                self.current_task = 'update_hg'
-            if event.key == 'ctrl+8':
-                self.kwargs['freq_tol_fac'] += .1
-                self.current_task = 'update_hg'
+                if event.key == '5':
+                    self.kwargs['min_peak_width'] -= 0.5
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+5':
+                    self.kwargs['min_peak_width'] += 0.5
+                    self.current_task = 'update_hg'
 
-            if event.key == '9':
-                self.kwargs['max_divisor'] -= 1.
-                self.current_task = 'update_hg'
-            if event.key == 'ctrl+9':
-                self.kwargs['max_divisor'] += 1.
-                self.current_task = 'update_hg'
+                if event.key == '6':
+                    self.kwargs['max_peak_width_fac'] -= 1.
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+6':
+                    self.kwargs['max_peak_width_fac'] += 1.
+                    self.current_task = 'update_hg'
 
-            if event.key == '0':
-                self.kwargs['max_upper_fill'] -= 1
-                self.current_task = 'update_hg'
-            if event.key == 'ctrl+0':
-                self.kwargs['max_upper_fill'] += 1
-                self.current_task = 'update_hg'
+                if event.key == '7':
+                    self.kwargs['min_group_size'] -= 1.
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+7':
+                    self.kwargs['min_group_size'] += 1.
+                    self.current_task = 'update_hg'
 
-            if event.key == '+':
-                self.kwargs['max_double_use_harmonics'] -= 1
-                self.current_task = 'update_hg'
-            if event.key == 'ctrl+' + '+':
-                self.kwargs['max_double_use_harmonics'] += 1.
-                self.current_task = 'update_hg'
+                if event.key == '8':
+                    self.kwargs['freq_tol_fac'] -= .1
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+8':
+                    self.kwargs['freq_tol_fac'] += .1
+                    self.current_task = 'update_hg'
 
-            if event.key == '#':
-                self.kwargs['max_double_use_count'] -= 1
-                self.current_task = 'update_hg'
-            if event.key == 'ctrl+#':
-                self.kwargs['max_double_use_count'] += 1.
-                self.current_task = 'update_hg'
+                if event.key == '9':
+                    self.kwargs['max_divisor'] -= 1.
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+9':
+                    self.kwargs['max_divisor'] += 1.
+                    self.current_task = 'update_hg'
+
+                if event.key == '0':
+                    self.kwargs['max_upper_fill'] -= 1
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+0':
+                    self.kwargs['max_upper_fill'] += 1
+                    self.current_task = 'update_hg'
+
+                if event.key == '+':
+                    self.kwargs['max_double_use_harmonics'] -= 1
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+' + '+':
+                    self.kwargs['max_double_use_harmonics'] += 1.
+                    self.current_task = 'update_hg'
+
+                if event.key == '#':
+                    self.kwargs['max_double_use_count'] -= 1
+                    self.current_task = 'update_hg'
+                if event.key == 'ctrl+#':
+                    self.kwargs['max_double_use_count'] += 1.
+                    self.current_task = 'update_hg'
 
         self.key_options()
         self.main_fig.canvas.draw()
+        # plt.show()
+
 
     def buttonpress(self, event):
         if event.button == 2:
-            if event.inaxes != self.spec_ax:
+            if event.inaxes != self.ps_ax:
                 if self.tmp_plothandel_main:
                     self.tmp_plothandel_main.remove()
                     self.tmp_plothandel_main = None
@@ -2478,9 +2918,29 @@ class Obs_tracker():
             if self.tmp_harmonics_plot:
                 self.tmp_harmonics_plot.remove()
                 self.tmp_harmonics_plot = None
-                if self.spec_ax:
+                self.active_harmonic = None
+
+                if self.ps_ax:
                     ylims = self.main_ax.get_ylim()
-                    self.spec_ax.set_ylim([ylims[0], ylims[1]])
+                    self.ps_ax.set_ylim([ylims[0], ylims[1]])
+
+            if self.active_fundamental0_0_handle:
+                self.active_fundamental0_0 = None
+                self.active_fundamental0_0_handle.remove()
+                self.active_fundamental0_0_handle = None
+            if self.active_fundamental0_1_handle:
+                self.active_fundamental0_1 = None
+                self.active_fundamental0_1_handle.remove()
+                self.active_fundamental0_1_handle = None
+            if self.active_fundamental1_0_handle:
+                self.active_fundamental1_0 = None
+                self.active_fundamental1_0_handle.remove()
+                self.active_fundamental1_0_handle = None
+            if self.active_fundamental1_1_handle:
+                self.active_fundamental1_1 = None
+                self.active_fundamental1_1_handle.remove()
+                self.active_fundamental1_1_handle = None
+
 
         if event.inaxes == self.main_ax:
             if self.current_task == 'show_spectrum':
@@ -2512,32 +2972,185 @@ class Obs_tracker():
                         else:
                             self.y_zoom_0 = event.ydata
 
-        if event.inaxes == self.spec_ax:
+            if self.current_task == 'check_tracking' and hasattr(self.fundamentals, '__len__'):
+
+                if event.button == 1:
+                    if event.key == 'control':
+                        x = event.xdata
+                        y = event.ydata
+
+                        funds_ioi = np.argsort(np.abs(self.times - x))[0]
+                        fund_ioi = np.argsort(np.abs(self.fundamentals[funds_ioi] - y))[0]
+
+                        self.active_fundamental0_0 = (funds_ioi, fund_ioi)
+
+                        if self.active_fundamental0_0_handle:
+                            self.active_fundamental0_0_handle.remove()
+                        self.active_fundamental0_0_handle, = self.main_ax.plot(self.times[funds_ioi], self.fundamentals[funds_ioi][fund_ioi], 'o', color='red', markersize=4)
+                    else:
+                        x = event.xdata
+                        y = event.ydata
+
+                        funds_ioi = np.argsort(np.abs(self.times - x))[0]
+                        fund_ioi = np.argsort(np.abs(self.fundamentals[funds_ioi] - y))[0]
+
+                        self.active_fundamental0_1 = (funds_ioi, fund_ioi)
+
+                        if self.active_fundamental0_1_handle:
+                            self.active_fundamental0_1_handle.remove()
+
+                        self.active_fundamental0_1_handle, = self.main_ax.plot(self.times[funds_ioi], self.fundamentals[funds_ioi][fund_ioi], 'o', color='red', markersize=4)
+
+                if event.button == 3:
+                    if event.key == 'control':
+                        x = event.xdata
+                        y = event.ydata
+
+                        funds_ioi = np.argsort(np.abs(self.times - x))[0]
+                        fund_ioi = np.argsort(np.abs(self.fundamentals[funds_ioi] - y))[0]
+
+                        self.active_fundamental1_0 = (funds_ioi, fund_ioi)
+
+                        if self.active_fundamental1_0_handle:
+                            self.active_fundamental1_0_handle.remove()
+                        self.active_fundamental1_0_handle, = self.main_ax.plot(self.times[funds_ioi],
+                                                                               self.fundamentals[funds_ioi][fund_ioi],
+                                                                               'o', color='green', markersize=4)
+                    else:
+                        x = event.xdata
+                        y = event.ydata
+
+                        funds_ioi = np.argsort(np.abs(self.times - x))[0]
+                        fund_ioi = np.argsort(np.abs(self.fundamentals[funds_ioi] - y))[0]
+
+                        self.active_fundamental1_1 = (funds_ioi, fund_ioi)
+
+                        if self.active_fundamental1_1_handle:
+                            self.active_fundamental1_1_handle.remove()
+
+                        self.active_fundamental1_1_handle, = self.main_ax.plot(self.times[funds_ioi],
+                                                                               self.fundamentals[funds_ioi][fund_ioi],
+                                                                               'o', color='green', markersize=4)
+
+        if self.ps_ax and event.inaxes == self.ps_ax:
+            if not self.active_harmonic:
+                self.active_harmonic = 1.
+
             if event.button == 1:
-                plot_power = 10.0 * np.log10(self.power)
+                plot_power = decibel(self.power)
                 y = event.ydata
                 active_all_freq = self.all_peakf[:, 0][np.argsort(np.abs(self.all_peakf[:, 0] - y))][0]
+
                 plot_harmonics = np.arange(active_all_freq, 3000, active_all_freq)
+
                 if self.tmp_harmonics_plot:
                     self.tmp_harmonics_plot.remove()
-                self.tmp_harmonics_plot, = self.spec_ax.plot(np.ones(len(plot_harmonics)) * np.max(plot_power[self.freqs <= 3000.0]) + 10., plot_harmonics, 'o', color='k')
-                self.spec_ax.set_ylim([np.min(plot_harmonics)-5., np.max(plot_harmonics)+5.])
 
+                self.tmp_harmonics_plot, = self.ps_ax.plot(np.ones(len(plot_harmonics)) * np.max(plot_power[self.freqs <= 3000.0]) + 10., plot_harmonics, 'o', color='k')
+
+                current_ylim = self.ps_ax.get_ylim()
+                self.ps_ax.set_ylim([current_ylim[0] + active_all_freq / self.active_harmonic, current_ylim[1] + active_all_freq / self.active_harmonic])
+                self.active_harmonic += 1
+
+            if event.button == 3:
+                plot_power = decibel(self.power)
+                y = event.ydata
+                active_all_freq = self.all_peakf[:, 0][np.argsort(np.abs(self.all_peakf[:, 0] - y))][0]
+
+                plot_harmonics = np.arange(active_all_freq, 3000, active_all_freq)
+
+                if self.tmp_harmonics_plot:
+                    self.tmp_harmonics_plot.remove()
+
+                self.tmp_harmonics_plot, = self.ps_ax.plot(np.ones(len(plot_harmonics)) * np.max(plot_power[self.freqs <= 3000.0]) + 10., plot_harmonics, 'o', color='k')
+
+                current_ylim = self.ps_ax.get_ylim()
+                self.ps_ax.set_ylim([current_ylim[0] - active_all_freq / self.active_harmonic, current_ylim[1] - active_all_freq / self.active_harmonic])
+                self.active_harmonic -= 1
+
+        self.key_options()
         self.main_fig.canvas.draw()
 
 
-    def plot_data(self):
-        self.main_ax.imshow(10.0 * np.log10(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000], aspect='auto', alpha=0.7)
+    def plot_spectrum(self, part_spec = False):
+        if part_spec:
+            limitations = self.main_ax.get_xlim()
+            min_freq = self.main_ax.get_ylim()[0]
+            max_freq = self.main_ax.get_ylim()[1]
+
+            self.part_spectra, self.part_times = get_spectrum_funds_amp_signature(
+                self.data, self.samplerate, self.channels, self.data_snippet_idxs, limitations[0], limitations[1],
+                comp_min_freq=min_freq, comp_max_freq=max_freq, create_plotable_spectrogram=True,
+                extract_funds_and_signature=False, **self.kwargs)
+
+                # self.main_fig.delaxes(self.main_ax)
+            self.spec_img_handle.remove()
+
+            # self.main_ax = self.main_fig.add_axes([.1, .1, .8, .6])
+            self.spec_img_handle = self.main_ax.imshow(decibel(self.part_spectra)[::-1],
+                                                       extent=[limitations[0], limitations[1], min_freq, max_freq],
+                                                       aspect='auto', alpha=0.7)
+            self.main_ax.set_xlabel('time [s]')
+            self.main_ax.set_ylabel('frequency [Hz]')
+        else:
+            if not hasattr(self.tmp_spectra, '__len__'):
+                self.tmp_spectra, self.times = get_spectrum_funds_amp_signature(
+                    self.data, self.samplerate, self.channels, self.data_snippet_idxs, self.start_time, self.end_time,
+                    create_plotable_spectrogram=True, extract_funds_and_signature=False,  **self.kwargs)
+
+            self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
+                                aspect='auto', alpha=0.7)
+            self.main_ax.set_xlabel('time [s]')
+            self.main_ax.set_ylabel('frequency [Hz]')
+
+    def track_snippet(self):
+        if hasattr(self.fund_v, '__len__'):
+            for i in reversed(range(len(self.trace_handles))):
+                self.trace_handles[i].remove()
+                self.trace_handles.pop(i)
+
+            self.fund_v = None
+            self.ident_v = None
+            self.idx_v = None
+            self.sign_v = None
+
+        snippet_start, snippet_end = self.main_ax.get_xlim()
+
+        reextract_fundamentals = True
+        if self.fundamentals:
+            if (snippet_start >= self.times[0]) and (snippet_end <= self.times[-1]):
+                reextract_fundamentals = False
+
+        if reextract_fundamentals:
+            self.fundamentals, self.signatures, self.positions, self.times = \
+                get_spectrum_funds_amp_signature(self.data, self.samplerate, self.channels, self.data_snippet_idxs,
+                                                 snippet_start, snippet_end, create_plotable_spectrogram=False,
+                                                 extract_funds_and_signature=True, **self.kwargs)
+
+            self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist = \
+                freq_tracking_v2(self.fundamentals, self.signatures, self.positions, self.times, self.kwargs['freq_tolerance'],
+                                 n_channels = len(self.channels))
+
+        else:
+            mask = np.arange(len(self.times))[(self.times >= snippet_start) & (self.times <= snippet_end)]
+            self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist = \
+                freq_tracking_v2(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
+                                 self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels))
+
+        self.plot_traces()
+
+    def plot_traces(self):
+        # self.main_ax.imshow(10.0 * np.log10(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000], aspect='auto', alpha=0.7)
 
         possible_identities = np.unique(self.ident_v[~np.isnan(self.ident_v)])
         for ident in np.array(possible_identities):
             c = np.random.rand(3)
-            self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]], self.fund_v[self.ident_v == ident], marker='.', color=c)
+            h, =self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]], self.fund_v[self.ident_v == ident], marker='.', color=c)
+            self.trace_handles.append(h)
 
-        # self.main_fig.canvas.draw()
-
-    def plot_spectrum(self):
-        nfft = next_power_of_two(self.samplerate / self.fresolution)
+    def plot_ps(self):
+        # nfft = next_power_of_two(self.samplerate / self.fresolution)
+        nfft = next_power_of_two(self.samplerate / self.kwargs['fresolution'])
         data_idx0 = int(self.times[self.ioi] * self.samplerate)
         data_idx1 = int(data_idx0 + nfft+1)
 
@@ -2545,8 +3158,10 @@ class Obs_tracker():
         all_c_freqs = None
 
         for channel in self.channels:
+            # c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
+            #                                           fresolution = self.fresolution, overlap_frac = self.overlap_frac)
             c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
-                                                      fresolution = self.fresolution, overlap_frac = self.overlap_frac)
+                                                      fresolution=self.kwargs['fresolution'], overlap_frac=self.kwargs['overlap_frac'])
             if not hasattr(all_c_freqs, '__len__'):
                 all_c_freqs = c_freqs
             all_c_spectra.append(c_spectrum)
@@ -2557,26 +3172,31 @@ class Obs_tracker():
 
         groups, _, _, self.all_peakf, self.good_peakf, self.kwargs['low_threshold'], self.kwargs['high_threshold'], self.psd_baseline = harmonic_groups(all_c_freqs, self.power, **self.kwargs)
 
-        plot_power = 10.0 * np.log10(self.power)
+        # plot_power = 10.0 * np.log10(self.power)
+        plot_power = decibel(self.power)
 
-        if not self.spec_ax:
+        if not self.ps_ax:
             self.main_ax.set_position([.1, .1, .5, .6])
-            self.spec_ax = self.main_fig.add_axes([.6, .1, .3, .6])
-            self.spec_ax.set_yticks([])
-            self.ps_handle, =self.spec_ax.plot(plot_power[self.freqs <= 3000.0], self.freqs[self.freqs <= 3000.0],
-                                               color='cornflowerblue')
+            self.ps_ax = self.main_fig.add_axes([.6, .1, .3, .6])
+            # self.ps_ax.set_yticks([])
+            self.ps_ax.yaxis.tick_right()
+            self.ps_ax.yaxis.set_label_position("right")
+            self.ps_ax.set_ylabel('frequency [Hz]')
+            self.ps_ax.set_xlabel('power [dB]')
+            self.ps_handle, =self.ps_ax.plot(plot_power[self.freqs <= 3000.0], self.freqs[self.freqs <= 3000.0],
+                                             color='cornflowerblue')
 
-            self.all_peakf_dots, = self.spec_ax.plot(np.ones(len(self.all_peakf[:, 0])) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.all_peakf[:, 0], 'o', color='red')
-            self.good_peakf_dots, = self.spec_ax.plot(np.ones(len(self.good_peakf)) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.good_peakf, 'o', color='green')
+            self.all_peakf_dots, = self.ps_ax.plot(np.ones(len(self.all_peakf[:, 0])) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.all_peakf[:, 0], 'o', color='red')
+            self.good_peakf_dots, = self.ps_ax.plot(np.ones(len(self.good_peakf)) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.good_peakf, 'o', color='green')
 
         else:
             self.ps_handle.set_data(plot_power[all_c_freqs <= 3000.0], all_c_freqs[all_c_freqs <= 3000.0])
             self.all_peakf_dots.remove()
             self.good_peakf_dots.remove()
-            self.all_peakf_dots, = self.spec_ax.plot(
+            self.all_peakf_dots, = self.ps_ax.plot(
                 np.ones(len(self.all_peakf[:, 0])) * np.max(plot_power[all_c_freqs <= 3000.0]) +5., self.all_peakf[:, 0], 'o',
                 color='red')
-            self.good_peakf_dots, = self.spec_ax.plot(
+            self.good_peakf_dots, = self.ps_ax.plot(
                 np.ones(len(self.good_peakf)) * np.max(plot_power[all_c_freqs <= 3000.0]) +5., self.good_peakf, 'o',
                 color='green')
 
@@ -2587,15 +3207,16 @@ class Obs_tracker():
         for fish in range(len(groups)):
             c = np.random.rand(3)
 
-            h, = self.spec_ax.plot(10.0 * np.log10(groups[fish][groups[fish][:, 0] < 3000., 1]),
-                                   groups[fish][groups[fish][:, 0] < 3000., 0], 'o', color=c,
-                                   markersize=7, alpha=0.9)
+            h, = self.ps_ax.plot(decibel(groups[fish][groups[fish][:, 0] < 3000., 1]),
+                                 groups[fish][groups[fish][:, 0] < 3000., 0], 'o', color=c,
+                                 markersize=7, alpha=0.9)
             self.tmp_plothandel_ps.append(h)
 
         ylims = self.main_ax.get_ylim()
-        self.spec_ax.set_ylim([ylims[0], ylims[1]])
+        self.ps_ax.set_ylim([ylims[0], ylims[1]])
 
     def update_hg(self):
+        # self.fundamentals = None
         # groups = harmonic_groups(self.freqs, self.power, **self.kwargs)
         groups, _, _, self.all_peakf, self.good_peakf, self.kwargs['low_threshold'], self.kwargs['high_threshold'], self.psd_baseline = \
             harmonic_groups(self.freqs, self.power, **self.kwargs)
@@ -2607,22 +3228,22 @@ class Obs_tracker():
         for fish in range(len(groups)):
             c = np.random.rand(3)
 
-            h, = self.spec_ax.plot(10.0 * np.log10(groups[fish][groups[fish][:, 0] < 3000., 1]),
-                                   groups[fish][groups[fish][:, 0] < 3000., 0], 'o', color=c,
-                                   markersize=7, alpha=0.9)
+            h, = self.ps_ax.plot(decibel(groups[fish][groups[fish][:, 0] < 3000., 1]),
+                                 groups[fish][groups[fish][:, 0] < 3000., 0], 'o', color=c,
+                                 markersize=7, alpha=0.9)
             self.tmp_plothandel_ps.append(h)
-        plot_power = 10.0 * np.log10(self.power)
+        plot_power = decibel(self.power)
         self.all_peakf_dots.remove()
         self.good_peakf_dots.remove()
-        self.all_peakf_dots, = self.spec_ax.plot(
+        self.all_peakf_dots, = self.ps_ax.plot(
             np.ones(len(self.all_peakf[:, 0])) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.all_peakf[:, 0], 'o',
             color='red')
-        self.good_peakf_dots, = self.spec_ax.plot(
+        self.good_peakf_dots, = self.ps_ax.plot(
             np.ones(len(self.good_peakf)) * np.max(plot_power[self.freqs <= 3000.0]) + 5., self.good_peakf, 'o',
             color='green')
 
         ylims = self.main_ax.get_ylim()
-        self.spec_ax.set_ylim([ylims[0], ylims[1]])
+        self.ps_ax.set_ylim([ylims[0], ylims[1]])
 
     def zoom(self):
         if self.x_zoom_0 and self.x_zoom_1:
@@ -2631,18 +3252,14 @@ class Obs_tracker():
         if self.y_zoom_0 and self.y_zoom_1:
             ylims = np.array([self.y_zoom_0, self.y_zoom_1])
             self.main_ax.set_ylim(ylims[np.argsort(ylims)])
-            if self.spec_ax:
-                self.spec_ax.set_ylim(ylims[np.argsort(ylims)])
+            if self.ps_ax:
+                self.ps_ax.set_ylim(ylims[np.argsort(ylims)])
         self.x_zoom_0 = None
         self.x_zoom_1 = None
         self.y_zoom_0 = None
         self.y_zoom_1 = None
 
-def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot=False,
-                 save_original_fishes=False, data_snippet_secs = 15., nffts_per_psd = 2, fresolution = 0.5,
-                 overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 5.,
-                 f_th= 1., output_folder = '.', plot_harmonic_groups=False, plot_field=False, verbose=0,
-                 part_analysis=False, not_tracking=False, **kwargs):
+def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, data_snippet_secs=15., verbose=0, **kwargs):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -2674,195 +3291,157 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
     f0, f1 = 400, 1050
 
     channels, coords, neighbours = get_grid_proportions(data, grid, n_tolerance_e=2, verbose=verbose)
-
-    if verbose >= 1:
-        print('\nextract fundamentals...')
-        if verbose >= 2:
-            print('> frequency resolution = %.2f Hz' % fresolution)
-            print('> nfft overlap fraction = %.2f' % overlap_frac)
-
+    #
+    # if verbose >= 1:
+    #     print('\nextract fundamentals...')
+    #     if verbose >= 2:
+    #         print('> frequency resolution = %.2f Hz' % fresolution)
+    #         print('> nfft overlap fraction = %.2f' % overlap_frac)
 
     data_snippet_idxs = int(data_snippet_secs * samplerate)
 
     # start and end idx
-    start_idx = int(start_time * samplerate)
-    if end_time < 0.0:
-        end_time = len(data) / samplerate
-        end_idx = int(len(data) - 1)
-    else:
-        end_idx = int(end_time * samplerate)
-        if end_idx >= int(len(data) - 1):
-            end_idx = int(len(data) - 1)
+    # start_idx = int(start_time * samplerate)
+    # if end_time < 0.0:
+    #     end_time = len(data) / samplerate
+    #     end_idx = int(len(data) - 1)
+    # else:
+    #     end_idx = int(end_time * samplerate)
+    #     if end_idx >= int(len(data) - 1):
+    #         end_idx = int(len(data) - 1)
 
-    fundamentals = []
-    positions = []
-    times = np.array([])
-    signatures = []
-
-    increase_start_idx = False
-    last_run = False
-
-    print ('')
-    init_idx = False
-    if not init_idx:
-        init_idx = start_idx
-    next_message = 0.00
-
-    # create spectra plot ####
-    fig_xspan = 20.
-    fig_yspan = 12.
-    fig_dpi = 80.
-    no_x = fig_xspan * fig_dpi
-    no_y = fig_yspan * fig_dpi
-
-    min_x = start_time
-    max_x = end_time
-
-    min_y = 0.
-    max_y = 2000.
-
-    x_borders = np.linspace(min_x, max_x, no_x * 2)
-    y_borders = np.linspace(min_y, max_y, no_y * 2)
-
-    # fig, ax = plt.subplots(figsize=(fig_xspan, fig_yspan), dpi=fig_dpi)
-    tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
-
-    checked_xy_borders = False
-
-    while start_idx <= end_idx:
-        t0 = time.time()
-        t1 = time.time()
-
-        next_message = include_progress_bar(start_idx - init_idx, end_idx - init_idx, 'extract fundamentals', next_message)
-        if start_idx >= end_idx - data_snippet_idxs:
-            last_run = True
-
-        # t0 = time.time()
-        core_count = multiprocessing.cpu_count()
-
-        if plot_harmonic_groups:
-            pool = multiprocessing.Pool(1)
-        else:
-            pool = multiprocessing.Pool(core_count - 1)
-
-        ##################### new frequency extraction ###########################
-        nfft = next_power_of_two(samplerate / fresolution)
-
-        func = partial(spectrogram, samplerate = samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
-        a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in channels])  # ret: spec, freq, time
-
-        spectra = [a[channel][0] for channel in range(len(a))]
-        spec_freqs = a[0][1]
-        spec_times = a[0][2]
-        pool.terminate()
-
-        # print('\n%.2f -- spectogram' % (time.time() - t0))
-        # t0 = time.time()
-
-        comb_spectra = np.sum(spectra, axis=0)
-
-        if nffts_per_psd == 1:
-            tmp_times = spec_times - ((nfft / samplerate) / 2) + (start_idx / samplerate)
-        else:
-            tmp_times = spec_times[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
-
-        # # create spectra plot
-        # fig_xspan = 20.
-        # fig_yspan = 12.
-        # fig_dpi = 80.
-        # no_x = fig_xspan * fig_dpi
-        # no_y = fig_yspan * fig_dpi
-        #
-        # min_x = start_time
-        # max_x = end_time
-        #
-        # min_y = 0.
-        # max_y = 2000.
-        #
-        # x_borders = np.linspace(min_x, max_x, no_x+1)
-        # y_borders = np.linspace(min_y, max_y, no_y * 2)
-
-        plot_freqs = spec_freqs[spec_freqs < 2000.]
-
-        # max_spectra = np.max(spectra, axis=0)[spec_freqs < 2000.]
-        max_spectra = np.sum(spectra, axis=0)[spec_freqs < 2000.]
-
-        if not checked_xy_borders:
-            if (tmp_times[1] - tmp_times[0])  > (x_borders[1] - x_borders[0]):
-                x_borders = np.linspace(min_x, max_x, (max_x - min_x) // (tmp_times[1] - tmp_times[0]) + 1)
-                tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
-
-            checked_xy_borders = True
-
-        for i in range(len(y_borders)-1):
-            for j in range(len(x_borders)-1):
-                if x_borders[j] > tmp_times[-1]:
-                    break
-                if x_borders[j+1] < tmp_times[0]:
-                    continue
-
-                t_mask = np.arange(len(tmp_times))[(tmp_times >= x_borders[j]) & (tmp_times < x_borders[j+1])]
-                f_mask = np.arange(len(max_spectra))[(plot_freqs >= y_borders[i]) & (plot_freqs < y_borders[i+1])]
-
-                # if len(t_mask) == 0:
-                #     break
-                if len(t_mask) == 0 or len(f_mask) == 0:
-                    continue
-                # embed()
-                # quit()
-                tmp_spectra[i, j] = np.max(max_spectra[f_mask[:, None], t_mask])
-                # tmp_spectra.append(np.max(max_spectra[(plot_freqs >=y_borders[i]) & (plot_freqs < y_borders[i+1]), :], axis=0))
-        # print(time.time()-t0)
-        # ax.imshow(10.0 * np.log10(tmp_spectra), extent=[0, 30, 0, 2000], aspect='auto')
-        # # ax.invert_yaxis()
-        # plt.show()
-
-        # psd and fish fundamentals frequency detection
-        power = [np.array([]) for i in range(len(spec_times) - (nffts_per_psd - 1))]
-
-        for t in range(len(spec_times) - (nffts_per_psd - 1)):
-            power[t] = np.mean(comb_spectra[:, t:t + nffts_per_psd], axis=1)
-
-        ###############################################################
-        # tmp_fundamentals = []
-        if plot_harmonic_groups:
-            pool = multiprocessing.Pool(1)
-        else:
-            pool = multiprocessing.Pool(core_count - 1)
-
-        func = partial(harmonic_groups, spec_freqs, **kwargs)
-        a = pool.map(func, power)
-        pool.terminate()
-
-        # log spectra once
-        log_spectra = 10.0 * np.log10(np.array(spectra))
-
-        for p in range(len(power)):
-            tmp_fundamentals = fundamental_freqs(a[p][0])
-            # tmp_fundamentals = a[p][0]
-            fundamentals.append(tmp_fundamentals)
-
-            if len(tmp_fundamentals) >= 1:
-                f_idx = np.array([np.argmin(np.abs(spec_freqs - f)) for f in tmp_fundamentals])
-                tmp_signatures = log_spectra[:, np.array(f_idx), p].transpose()
-            else:
-                tmp_signatures = np.array([])
-
-            signatures.append(tmp_signatures)
-        pool.terminate()
-
-        if nffts_per_psd == 1:
-            tmp_times = spec_times - ((nfft / samplerate) / 2) + (start_idx / samplerate)
-        else:
-            tmp_times = spec_times[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
-
-        non_overlapping_idx = (1 - overlap_frac) * nfft
-        start_idx += int((len(spec_times) - nffts_per_psd+1) * non_overlapping_idx)
-
-        times = np.concatenate((times, tmp_times))
-
-        if start_idx >= end_idx or last_run:
-            break
+    #############################################################################################
+    # fundamentals = []
+    # positions = []
+    # times = np.array([])
+    # signatures = []
+    #
+    # # increase_start_idx = False
+    # last_run = False
+    #
+    # print ('')
+    # init_idx = False
+    # if not init_idx:
+    #     init_idx = start_idx
+    # next_message = 0.00
+    #
+    # # create spectra plot ####
+    # fig_xspan = 20.
+    # fig_yspan = 12.
+    # fig_dpi = 80.
+    # no_x = fig_xspan * fig_dpi
+    # no_y = fig_yspan * fig_dpi
+    #
+    # min_x = start_time
+    # max_x = end_time
+    #
+    # min_y = 300.
+    # max_y = 1200.
+    #
+    # x_borders = np.linspace(min_x, max_x, no_x * 4)
+    # y_borders = np.linspace(min_y, max_y, no_y * 4)
+    # checked_xy_borders = False
+    #
+    # tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
+    #
+    # while start_idx <= end_idx:
+    #     next_message = include_progress_bar(start_idx - init_idx, end_idx - init_idx, 'extract fundamentals', next_message)
+    #
+    #     if start_idx >= end_idx - data_snippet_idxs:
+    #         last_run = True
+    #
+    #     # calulate spectogram ....
+    #     core_count = multiprocessing.cpu_count()
+    #
+    #     if plot_harmonic_groups:
+    #         pool = multiprocessing.Pool(1)
+    #     else:
+    #         pool = multiprocessing.Pool(core_count - 1)
+    #
+    #     nfft = next_power_of_two(samplerate / fresolution)
+    #
+    #     func = partial(spectrogram, samplerate = samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
+    #     a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in channels])  # ret: spec, freq, time
+    #
+    #     spectra = [a[channel][0] for channel in range(len(a))]
+    #     spec_freqs = a[0][1]
+    #     spec_times = a[0][2]
+    #     pool.terminate()
+    #
+    #     comb_spectra = np.sum(spectra, axis=0)
+    #
+    #     if nffts_per_psd == 1:
+    #         tmp_times = spec_times - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+    #     else:
+    #         tmp_times = spec_times[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+    #
+    #
+    #     # etxtract reduced spectrum for plot
+    #     plot_freqs = spec_freqs[spec_freqs < 2000.]
+    #     plot_spectra = np.sum(spectra, axis=0)[spec_freqs < 2000.]
+    #     if not checked_xy_borders:
+    #         if (tmp_times[1] - tmp_times[0])  > (x_borders[1] - x_borders[0]):
+    #             x_borders = np.linspace(min_x, max_x, (max_x - min_x) // (tmp_times[1] - tmp_times[0]) + 1)
+    #             tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
+    #
+    #         checked_xy_borders = True
+    #
+    #     for i in range(len(y_borders)-1):
+    #         for j in range(len(x_borders)-1):
+    #             if x_borders[j] > tmp_times[-1]:
+    #                 break
+    #             if x_borders[j+1] < tmp_times[0]:
+    #                 continue
+    #
+    #             t_mask = np.arange(len(tmp_times))[(tmp_times >= x_borders[j]) & (tmp_times < x_borders[j+1])]
+    #             f_mask = np.arange(len(plot_spectra))[(plot_freqs >= y_borders[i]) & (plot_freqs < y_borders[i+1])]
+    #
+    #             if len(t_mask) == 0 or len(f_mask) == 0:
+    #                 continue
+    #             tmp_spectra[i, j] = np.max(plot_spectra[f_mask[:, None], t_mask])
+    #
+    #     # psd and fish fundamentals frequency detection
+    #     power = [np.array([]) for i in range(len(spec_times) - (nffts_per_psd - 1))]
+    #
+    #     for t in range(len(spec_times) - (nffts_per_psd - 1)):
+    #         power[t] = np.mean(comb_spectra[:, t:t + nffts_per_psd], axis=1)
+    #
+    #     if plot_harmonic_groups:
+    #         pool = multiprocessing.Pool(1)
+    #     else:
+    #         pool = multiprocessing.Pool(core_count - 1)
+    #     func = partial(harmonic_groups, spec_freqs, **kwargs)
+    #     a = pool.map(func, power)
+    #     pool.terminate()
+    #
+    #     # get signatures
+    #     log_spectra = 10.0 * np.log10(np.array(spectra))
+    #     for p in range(len(power)):
+    #         tmp_fundamentals = fundamental_freqs(a[p][0])
+    #         # tmp_fundamentals = a[p][0]
+    #         fundamentals.append(tmp_fundamentals)
+    #
+    #         if len(tmp_fundamentals) >= 1:
+    #             f_idx = np.array([np.argmin(np.abs(spec_freqs - f)) for f in tmp_fundamentals])
+    #             tmp_signatures = log_spectra[:, np.array(f_idx), p].transpose()
+    #         else:
+    #             tmp_signatures = np.array([])
+    #
+    #         signatures.append(tmp_signatures)
+    #     pool.terminate()
+    #
+    #     if nffts_per_psd == 1:
+    #         tmp_times = spec_times - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+    #     else:
+    #         tmp_times = spec_times[:-(nffts_per_psd - 1)] - ((nfft / samplerate) / 2) + (start_idx / samplerate)
+    #
+    #     non_overlapping_idx = (1 - overlap_frac) * nfft
+    #     start_idx += int((len(spec_times) - nffts_per_psd+1) * non_overlapping_idx)
+    #
+    #     times = np.concatenate((times, tmp_times))
+    #
+    #     if start_idx >= end_idx or last_run:
+    #         break
 
             ########## ERROR - single electrode fundamental extraction ###############
             # try:
@@ -2944,85 +3523,106 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, save_plot
             #
             # if start_idx >= end_idx or last_run:
             #     break
-    print ('')
 
-    if verbose >= 1:
-        print('\nfirst level fish tracking ...')
-        if verbose >= 3:
-            print ('> frequency tolerance: %.2f Hz' % freq_tolerance)
+    Obs_tracker(data, samplerate, start_time, end_time, channels, data_snippet_idxs, **kwargs)
 
-    old_tracking = False
-    if old_tracking:
-        fishes, fishes_x_pos, fishes_y_pos = first_level_fish_sorting(fundamentals, signatures, base_name, times,
-                                                                      n_channels= len(channels), positions=positions,
-                                                                      freq_tolerance=freq_tolerance,
-                                                                      save_original_fishes=save_original_fishes,
-                                                                      output_folder=output_folder, verbose=verbose)
 
-    else:
-        fund_v, ident_v, idx_v, sign_v = freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels = len(channels))
-
-        Obs_tracker(data, samplerate, times, fund_v, ident_v, idx_v, sign_v, tmp_spectra, start_time, end_time, fresolution, overlap_frac, channels, nffts_per_psd, **kwargs)
-
-    # embed()
-    quit()
-####################################################################
-
-    plot_fishes(fishes, times, np.array([]), base_name, save_plot, output_folder)
-
-    ################################## continue no tracking ... ####################################
-    min_occure_time = times[-1] * 0.01 / 60.
-    if min_occure_time > 1.:
-        min_occure_time = 1.
-
-    if verbose >= 1:
-        print('\nexclude fishes...')
-        if verbose >= 2:
-            print('> minimum occur time: %.2f min' % min_occure_time)
-
-    fishes, fishes_x_pos, fishes_y_pos = exclude_fishes(fishes, fishes_x_pos, fishes_y_pos , times, min_occure_time)
-
-    if len(fishes) == 0:
-        print('excluded all fishes. Change parameters.')
-        quit()
-
-    if verbose >= 1:
-        print('\nrise detection...')
-        if verbose >= 2:
-            print('> rise frequency th = %.2f Hz' % rise_f_th)
-
-    all_rises = detect_rises(fishes, times, rise_f_th, verbose=verbose)
-
-    if verbose >= 1:
-        print('')
-        print('cut fishes at rises...')
-
-    # here somethins is fishy...
-    #fishes, fishes_x_pos, fishes_y_pos, all_rises = cut_at_rises(fishes, fishes_x_pos, fishes_y_pos, all_rises, times, min_occure_time)
-
-    if verbose >= 1:
-        print('\ncombining fishes...')
-        if verbose >= 2:
-            print('> maximum time difference: %.2f min' % max_time_tolerance)
-            print('> maximum frequency difference: %.2f Hz' % f_th)
-
-    fishes, fishes_x_pos, fishes_y_pos, all_rises = combine_fishes(fishes, fishes_x_pos, fishes_y_pos, times, all_rises, max_time_tolerance, f_th)
-
-    if 'plt' in locals() or 'plt' in globals():
-        #if not not_tracking:
-        #    plot_positions(fishes, fishes_x_pos, fishes_y_pos, times)
-        plot_fishes(fishes, times, all_rises, base_name, save_plot, output_folder)
-
-    if save_original_fishes:
-        if verbose >= 1:
-            print('')
-            print('saving data to ' + output_folder)
-        save_data(fishes, fishes_x_pos, fishes_y_pos, times, all_rises, base_name, output_folder)
-
-    if verbose >= 1:
-        print('')
-        print('Whole file processed.')
-
+#     tmp_spectra, times = get_spectrum_funds_amp_signature(data, samplerate, channels, fresolution, overlap_frac, nffts_per_psd,
+#                                                    data_snippet_idxs, start_time, start_idx, end_time, end_idx,
+#                                                    plot_harmonic_groups, extract_funds_and_signature=False, **kwargs)
+#
+#     # tr = Obs_tracker(data, samplerate, times, tmp_spectra, start_time, end_time, fresolution, overlap_frac, channels,
+#     #                  nffts_per_psd, **kwargs)
+#     #
+#     #
+#     # print('returned')
+#     # # embed()
+#     # quit()
+#
+#
+#     fundamentals, signatures, positions, times= \
+#         get_spectrum_funds_amp_signature(data, samplerate, channels, fresolution, overlap_frac, nffts_per_psd,
+#                                          data_snippet_idxs, start_time, start_idx, end_time, end_idx,
+#                                          plot_harmonic_groups, create_plotable_spectrogram=False, **kwargs)
+#
+#     if verbose >= 1:
+#         print('\nfirst level fish tracking ...')
+#         if verbose >= 3:
+#             print ('> frequency tolerance: %.2f Hz' % freq_tolerance)
+#
+#     old_tracking = False
+#     if old_tracking:
+#         fishes, fishes_x_pos, fishes_y_pos = first_level_fish_sorting(fundamentals, signatures, base_name, times,
+#                                                                       n_channels= len(channels), positions=positions,
+#                                                                       freq_tolerance=freq_tolerance,
+#                                                                       save_original_fishes=save_original_fishes,
+#                                                                       output_folder=output_folder, verbose=verbose)
+#
+#     else:
+#         fund_v, ident_v, idx_v, sign_v = freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
+#                                                           n_channels = len(channels))
+#
+#         Obs_tracker(data, samplerate, times, start_time, end_time, fresolution, overlap_frac, channels, nffts_per_psd,
+#                     tmp_spectra, fund_v, ident_v, idx_v, sign_v, **kwargs)
+#
+#     # embed()
+#     quit()
+# ####################################################################
+#
+#     plot_fishes(fishes, times, np.array([]), base_name, save_plot, output_folder)
+#
+#     ################################## continue no tracking ... ####################################
+#     min_occure_time = times[-1] * 0.01 / 60.
+#     if min_occure_time > 1.:
+#         min_occure_time = 1.
+#
+#     if verbose >= 1:
+#         print('\nexclude fishes...')
+#         if verbose >= 2:
+#             print('> minimum occur time: %.2f min' % min_occure_time)
+#
+#     fishes, fishes_x_pos, fishes_y_pos = exclude_fishes(fishes, fishes_x_pos, fishes_y_pos , times, min_occure_time)
+#
+#     if len(fishes) == 0:
+#         print('excluded all fishes. Change parameters.')
+#         quit()
+#
+#     if verbose >= 1:
+#         print('\nrise detection...')
+#         if verbose >= 2:
+#             print('> rise frequency th = %.2f Hz' % rise_f_th)
+#
+#     all_rises = detect_rises(fishes, times, rise_f_th, verbose=verbose)
+#
+#     if verbose >= 1:
+#         print('')
+#         print('cut fishes at rises...')
+#
+#     # here somethins is fishy...
+#     #fishes, fishes_x_pos, fishes_y_pos, all_rises = cut_at_rises(fishes, fishes_x_pos, fishes_y_pos, all_rises, times, min_occure_time)
+#
+#     if verbose >= 1:
+#         print('\ncombining fishes...')
+#         if verbose >= 2:
+#             print('> maximum time difference: %.2f min' % max_time_tolerance)
+#             print('> maximum frequency difference: %.2f Hz' % f_th)
+#
+#     fishes, fishes_x_pos, fishes_y_pos, all_rises = combine_fishes(fishes, fishes_x_pos, fishes_y_pos, times, all_rises, max_time_tolerance, f_th)
+#
+#     if 'plt' in locals() or 'plt' in globals():
+#         #if not not_tracking:
+#         #    plot_positions(fishes, fishes_x_pos, fishes_y_pos, times)
+#         plot_fishes(fishes, times, all_rises, base_name, save_plot, output_folder)
+#
+#     if save_original_fishes:
+#         if verbose >= 1:
+#             print('')
+#             print('saving data to ' + output_folder)
+#         save_data(fishes, fishes_x_pos, fishes_y_pos, times, all_rises, base_name, output_folder)
+#
+#     if verbose >= 1:
+#         print('')
+#         print('Whole file processed.')
 
 def main():
     # config file name:
@@ -3139,10 +3739,13 @@ def main():
         t_kwargs.update(harmonic_groups_args(cfg))
         t_kwargs.update(tracker_args(cfg))
 
-        fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
-                     args.grid, args.save_plot, args.save_fish, output_folder=args.output_folder,
-                     plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, not_tracking=args.not_tracking,
-                     part_analysis=False, **t_kwargs)
+        # fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
+        #              args.grid, args.save_plot, args.save_fish, output_folder=args.output_folder,
+        #              plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, not_tracking=args.not_tracking,
+        #              part_analysis=False, **t_kwargs)
+        fish_tracker(datafile, args.start_time * 60.0, args.end_time * 60.0,
+                     args.grid, **t_kwargs)
+        # data_file, start_time = 0.0, end_time = -1.0, grid = False, data_snippet_secs = 15., verbose = 0, ** kwargs
 
 if __name__ == '__main__':
     # how to execute this code properly
