@@ -2014,7 +2014,7 @@ def plot_positions(fishes, fishes_x_pos, fishes_y_pos, all_times):
     plt.show()
 
 
-def add_tracker_config(cfg, data_snippet_secs = 60., nffts_per_psd = 2, fresolution =.5, overlap_frac = .9,
+def add_tracker_config(cfg, data_snippet_secs = 15., nffts_per_psd = 2, fresolution =.5, overlap_frac = .9,
                        freq_tolerance = 20., rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
