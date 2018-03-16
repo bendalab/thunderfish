@@ -7,6 +7,7 @@ import sys
 import os
 import argparse
 import numpy as np
+import glob
 import scipy.stats as scp
 import multiprocessing
 from functools import partial
@@ -151,15 +152,14 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                      return_tmp_idenities=False, ioi_fti=False, a_error_distribution=False, f_error_distribution=False,
                      fig = False, ax = False, freq_lims=False):
 
-    # embed()
-    # quit()
-    # next_message = 0.0
+    # _____ exclude frequencies with lower dFs than 0.5Hz from algorythm ______ ###
     for i in range(len(fundamentals)):
         # include_progress_bar(i, len(fundamentals), 'clear dubble deltections', next_message)
         mask = np.zeros(len(fundamentals[i]), dtype=bool)
         order = np.argsort(fundamentals[i])
         fundamentals[i][order[np.arange(len(mask)-1)[np.diff(sorted(fundamentals[i])) < 0.5]+1]] = 0
 
+    # _____ plot environment for live tracking _____ ###
     if fig and ax:
         xlim = ax.get_xlim()
         ax.set_xlim(xlim[0], xlim[0]+20)
@@ -192,9 +192,11 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
     low_freq_th = 400.  # min. frequency tracked
     high_freq_th = 1050.  # max. frequency tracked
 
+    # _____ artificial bootstrap: get amplitude error distribution and frequency error distribution _____ ###
     if hasattr(a_error_distribution, '__len__') and hasattr(f_error_distribution, '__len__'):
         pass
     else:
+        # ToDo: improve!!! takes longer the longer the data snipped is to analyse ... why ?
         # get f and amp signature distribution ############### BOOT #######################
         a_error_distribution = np.zeros(20000)  # distribution of amplitude errors
         f_error_distribution = np.zeros(20000)  # distribution of frequency errors
@@ -229,9 +231,9 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
             f_error_distribution[b] = np.abs(f0 - f1)
             b += 1
 
-    ### FREQUENCY SORTING ALGOITHM ###
+    # _____ FREQUENCY SORTING ALGOITHM _____ ###
 
-    # get initial distance cube (3D-matrix) ##################### ERROR CUBE #######################
+    # _____ get initial distance cube (3D-matrix) --> ERROR CUBE _____ ###
     error_cube = []  # [fundamental_list_idx, freqs_to_assign, target_freqs]
     i0_m = []
     i1_m = []
@@ -239,7 +241,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
     print('\n ')
     next_message = 0.
 
-    start_idx = 0 if not ioi_fti else idx_v[ioi_fti]
+    start_idx = 0 if not ioi_fti else idx_v[ioi_fti] # Index Of Interest First Time Index (if not starts at t=0)
 
     for i in range(start_idx, start_idx + idx_comp_range):
         next_message = include_progress_bar(i - start_idx, idx_comp_range, 'initial error cube', next_message)
@@ -277,16 +279,18 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
     print('\n ')
     next_message = 0.  # feedback
 
-    # assigned = 0
-
-
+    global_t0 = time.time()
+    global_time0 = times[start_idx]
+    # _____ sorting based on minimal distance algorithms _____ ###
     for i in range(int(len(fundamentals))):
         next_message = include_progress_bar(i, len(fundamentals), 'tracking', next_message)  # feedback
 
         next_tmp_identity = 0
         tmp_ident_v = np.full(len(fund_v), np.nan)  # fish identities of frequencies
-        # prepare error cube --> build the masks
         mask_cube = np.array([np.ones(np.shape(error_cube[n]), dtype=bool) for n in range(len(error_cube))])
+
+        # ____ j != 0 --> temporal indentity assignment _____ ###
+        # ____ j == 0 --> accual identity assignment based on temporal identities
         for j in reversed(range(len(error_cube))):
             tmp_mask = mask_cube[j] # 0 == perviouse nans; 1 == possible connection
 
@@ -299,13 +303,23 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
             error_report = False
             error_counter = 0
             errors_to_assigne = 0
+
+            first_assignes = False
+            # _____ print analysis speed _____ #
             while True:
+                if time.time() - global_t0 >= 60:
+                    print('\n in 1 min analysed: %.1f' % (times[idx_v[i0_m[0][0]]] - global_time0))
+                    global_t0 = time.time()
+                    global_time0 = times[idx_v[i0_m[0][0]]]
+
                 help_error_v = np.hstack(error_cube[j])
                 help_mask_v = np.hstack(tmp_mask)
 
+                # endlessloop check
                 if len(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]) != errors_to_assigne:
                     errors_to_assigne = len(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])])
                     t0 = time.time()
+
                 if time.time() - t0 >= 60:
                     print('endlessloop ... cant assigne new stuff ...')
                     error_report = True
@@ -313,16 +327,16 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                 if len(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]) == 0:
                     break
 
+                # get minimal distance value
                 idx0s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[0]
                 idx1s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[1]
 
                 idx0 = idx0s[counter]
                 idx1 = idx1s[counter]
 
-                # while idx0 == old_idx0 and idx1 == old_idx1:
+                # alternative idx0/idx1 if error value did not change
                 while mask_cube[j][idx0, idx1] == False:
                     counter += 1
-
                     try:
                         idx0 = idx0s[counter]
                         idx1 = idx1s[counter]
@@ -378,10 +392,23 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                         continue
 
                 if j > 0:
-                    if idx_v[i1_m[j][idx1]]  -   idx_v[[i0_m[0][0]]] > idx_comp_range:
+                    if idx_v[i1_m[j][idx1]] - idx_v[[i0_m[0][0]]] > idx_comp_range:
                     # if times[idx_v[i1_m[j][idx1]]]  -   times[idx_v[[i0_m[0][0]]]] > 10.:
                         tmp_mask[idx0, idx1] = 0
                         continue
+                else:
+                    if not np.isnan(ident_v[i1_m[j][idx1]]):
+                        tmp_mask[idx0, idx1] = 0
+                        continue
+
+                    # set new identities on hold and assign them last by increasing the error value by 2 (regual max error value = 1.5)
+                    if np.isnan(ident_v[i0_m[j][idx0]]) and not first_assignes:
+                        if np.all(error_cube[j][idx0][ ~np.isnan(error_cube[j][idx0]) ] >= 2.):
+                            first_assignes = True
+                            pass
+                        else:
+                            error_cube[j][idx0] += 2.
+                            continue
 
                 if error_report:
                     print('--------------------')
@@ -392,11 +419,12 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                         embed()
                         quit()
 
+                # dont accept connections with slope larger than xy (different values for upwards/downwards slopes --> rises)
                 if fund_v[i0_m[j][idx0]] > fund_v[i1_m[j][idx1]]:
                     if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][idx1]]) / (( idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 2.:
                         tmp_mask[idx0, idx1] = 0
                         continue
-                else:
+                else: ## ??? brauch ich das ?
                     if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][idx1]]) / (( idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 5.:
                         tmp_mask[idx0, idx1] = 0
                         continue
@@ -406,6 +434,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                     embed()
                     quit()
 
+                # _____ check if a later connection to target has a better connection in the future --> if so ... continue
                 ioi = i1_m[j][idx1]  # index of interest
                 ioi_mask = [ioi in i1_m[k] for k in range(j+1, len(i1_m))]  # true if ioi is target of others
 
@@ -438,6 +467,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
                 # conditions !!!
 
+                # _____ get temporal identieties which can be changes in the process _____ ###
                 if j > 0:
                     if np.any(np.array(other_errors_to_idx1) < error_cube[j][idx0, idx1]):
                         tmp_mask[idx0, idx1] = 0
@@ -490,6 +520,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
                         tmp_mask[:, idx1] = np.zeros(len(tmp_mask), dtype=bool)
 
+                # _____ accual identity assignment _____ ###
                 else:
                     if ioi_fti and return_tmp_idenities:
                         return fund_v, tmp_ident_v, idx_v
@@ -505,16 +536,8 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                                 ident_v[i1_m[j][idx1]] = next_identity
                                 next_identity += 1
                             else:  # i1 does have identity
-
-                                if idx_v[i0_m[j][idx0]] in idx_v[ident_v == ident_v[i1_m[j][idx1]]]:  # i0 idx in i1 indices --> no combining
-                                    # ident_v[i0_m[j][idx0]] = next_identity
-                                    # next_identity += 1
-                                    tmp_mask[idx0, idx1] = 0
-                                    continue
-                                else:  # i0 idx not in i1 indices --> append
-
-                                    ident_v[i0_m[j][idx0]] = ident_v[i1_m[j][idx1]]
-
+                                tmp_mask[idx0, idx1] = 0
+                                continue
 
                         else:  # i0 does have identity
                             if np.isnan(ident_v[i1_m[j][idx1]]):  # i1 doesnt have identity
@@ -522,8 +545,9 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                                     tmp_mask[idx0, idx1] = 0
                                     continue
 
-
-                                # ToDo Wrong ...
+                                # _____ if either idx0-idx1 is not a direct connection or ...
+                                # _____ idx1 is not the new last point of ident[idx0] check ...
+                                # _____ check if closest connections (before and after idx1) have same temp identieties ... else continue
                                 if not idx_v[i0_m[j][idx0]] == idx_v[ident_v == ident_v[i0_m[j][idx0]]][-1]: # if i0 is not the last ...
                                     ##########################
                                     if len(ident_v[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v > idx_v[i0_m[j][idx0]]) & (idx_v < idx_v[i1_m[j][idx1]])]) == 0: # zwischen i0 und i1 keiner
@@ -562,15 +586,8 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
                                 ident_v[i1_m[j][idx1]] = ident_v[i0_m[j][idx0]]
                             else:
-                                ident0_idxs = idx_v[ident_v == ident_v[i0_m[j][idx0]]]
-                                ident1_idxs = idx_v[ident_v == ident_v[i1_m[j][idx1]]]
-
-                                if np.any([x in ident1_idxs for x in ident0_idxs]):
-                                    tmp_mask[idx0, idx1] = 0
-                                    continue
-                                else:
-                                    # print('both have identities ... why? ')
-                                    ident_v[ident_v == ident_v[i0_m[j][idx0]]] = ident_v[i1_m[j][idx1]]
+                                tmp_mask[idx0, idx1] = 0
+                                continue
 
                         idx_of_origin_v[i1_m[j][idx1]] = i0_m[j][idx0]
 
@@ -578,6 +595,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                         # tmp_mask[idx0] = np.zeros(np.shape(tmp_mask[idx0]), dtype=bool)
                         tmp_mask[:, idx1] = np.zeros(len(tmp_mask), dtype=bool)
 
+                        # _____ live plotting _____ ### slows everything extemly down ?!
                         if fig and ax:
                             for handle in life_handels:
                                 handle.remove()
@@ -590,22 +608,28 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
                             life0, = ax.plot(times[idx_v[i0_m[j][idx0]]], fund_v[i0_m[j][idx0]], color='red', marker = 'o')
                             life1, = ax.plot(times[idx_v[i1_m[j][idx1]]], fund_v[i1_m[j][idx1]], color='red', marker = 'o')
+
+                            xlims = ax.get_xlim()
                             for ident in np.unique(ident_v[~np.isnan(ident_v)]):
-                                h, = ax.plot(times[idx_v[ident_v == ident]], fund_v[ident_v == ident], color='k', marker = '.', markersize=5)
+                                # embed()
+                                # quit()
+                                plot_times = times[idx_v[ident_v == ident]]
+                                plot_freqs = fund_v[ident_v == ident]
+
+                                # h, = ax.plot(times[idx_v[ident_v == ident]], fund_v[ident_v == ident ], color='k', marker = '.', markersize=5)
+                                h, = ax.plot(plot_times[(plot_times >= xlims[0]-1)],
+                                             plot_freqs[(plot_times >= xlims[0]-1)], color='k', marker = '.', markersize=5)
                                 life_handels.append(h)
-                                if times[idx_v[ident_v == ident]][-1] > ax.get_xlim()[1]:
-                                    xlim = ax.get_xlim()
-                                    ax.set_xlim([xlim[0] + 10, xlim[1]+10])
+
+                                if times[idx_v[ident_v == ident]][-1] > xlims[1]:
+                                    # xlim = ax.get_xlim()
+                                    ax.set_xlim([xlims[0] + 10, xlims[1]+10])
 
 
                             fig.canvas.draw()
 
-                    ### combining plz
-
-                    ### update distribution ### optional
-
             mask_cube[j] = mask_matrix
-        # update error cube in second loop ############################
+        # _____ update error cube _____ ###
 
         i0_m.pop(0)
         i1_m.pop(0)
@@ -2525,9 +2549,9 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
 
         # psd and fish fundamentals frequency detection
         if extract_funds_and_signature:
-            power = [np.array([]) for i in range(len(spec_times) - (nffts_per_psd - 1))]
+            power = [np.array([]) for i in range(len(spec_times) - (int(nffts_per_psd) - 1))]
 
-            for t in range(len(spec_times) - (nffts_per_psd - 1)):
+            for t in range(len(spec_times) - (int(nffts_per_psd) - 1)):
                 power[t] = np.mean(comb_spectra[:, t:t + nffts_per_psd], axis=1)
 
             if plot_harmonic_groups:
@@ -2579,12 +2603,11 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
 
 
 class Obs_tracker():
-    # def __init__(self, data, samplerate, start_time, end_time, fresolution, overlap_frac, channels,
-    #              nffts_per_psd, data_snippet_idxs, freq_tolerance, tmp_spectra=None, times=None, fund_v=None, ident_v=None, idx_v=None, sign_v=None, **kwargs):
-    def __init__(self, data, samplerate, start_time, end_time, channels, data_snippet_idxs, **kwargs):
+    def __init__(self, data, samplerate, start_time, end_time, channels, data_snippet_idxs, data_file, **kwargs):
 
         # write input into self.
         self.data = data
+        self.data_file = data_file
         self.samplerate = samplerate
         self.start_time = start_time
         self.end_time = end_time
@@ -2623,14 +2646,40 @@ class Obs_tracker():
         self.y_zoom_0 = None
         self.y_zoom_1 = None
 
+        self.live_tracking = False
+
+        # task lists
+        self.t_tasks = ['track_snippet', 'track_snippet_live', 'plot_tmp_identities', 'check_tracking']
+        self.c_tasks = ['cut_trace', 'connect_trace', 'delete_trace']
+        self.p_tasks = ['part_spec', 'show_powerspectum']
+        self.s_tasks = ['save_plot', 'save_traces']
+
         # create plot environment
         self.main_fig = plt.figure(facecolor='white', figsize=(55. / 2.54, 30. / 2.54))
 
         # main window
         self.main_fig.canvas.mpl_connect('key_press_event', self.keypress)
         self.main_fig.canvas.mpl_connect('button_press_event', self.buttonpress)
+
+        # keymap.fullscreen : f, ctrl+f       # toggling
+        # keymap.home : h, r, home            # home or reset mnemonic
+        # keymap.back : left, c, backspace    # forward / backward keys to enable
+        # keymap.forward : right, v           #   left handed quick navigation
+        # keymap.pan : p                      # pan mnemonic
+        # keymap.zoom : o                     # zoom mnemonic
+        # keymap.save : s                     # saving current figure
+        # keymap.quit : ctrl+w, cmd+w         # close the current figure
+        # keymap.grid : g                     # switching on/off a grid in current axes
+        # keymap.yscale : l                   # toggle scaling of y-axes ('log'/'linear')
+        # keymap.xscale : L, k                # toggle scaling of x-axes ('log'/'linear')
+        # keymap.all_axes : a                 # enable all axes
+
         plt.rcParams['keymap.save'] = ''  # was s
         plt.rcParams['keymap.back'] = ''  # was c
+        plt.rcParams['keymap.yscale'] = ''
+        plt.rcParams['keymap.pan'] = ''
+        plt.rcParams['keymap.home'] = ''
+
 
         self.main_ax = self.main_fig.add_axes([0.1, 0.1, 0.8, 0.6])
         self.spec_img_handle = None
@@ -2654,6 +2703,13 @@ class Obs_tracker():
 
         self.active_vec_idx = None
         self.active_vec_idx_handle = None
+        self.active_vec_idx1 = None
+        self.active_vec_idx_handle1 = None
+
+        self.active_ident_handle0 = None
+        self.active_ident0 = None
+        self.active_ident_handle1 = None
+        self.active_ident1 = None
 
         # powerspectrum window and parameters
         self.ps_ax = None
@@ -2683,7 +2739,6 @@ class Obs_tracker():
 
         plt.show()
 
-
     def key_options(self):
         # for i in range(len(self.text_handles_key)):
         for i, j in zip(self.text_handles_key, self.text_handles_effect):
@@ -2693,6 +2748,12 @@ class Obs_tracker():
         self.text_handles_effect = []
 
         if True:
+            if self.current_task:
+                t = self.main_fig.text(0.1, 0.90, 'task: ')
+                t1 = self.main_fig.text(0.2, 0.90, '%s' % self.current_task)
+                self.text_handles_key.append(t)
+                self.text_handles_effect.append(t1)
+
             t = self.main_fig.text(0.1, 0.85,  'h:')
             t1 = self.main_fig.text(0.15, 0.85,  'home (axis)')
             self.text_handles_key.append(t)
@@ -2898,8 +2959,32 @@ class Obs_tracker():
 
     def keypress(self, event):
         self.key_options()
+        if event.key == 'up':
+            ylims = self.main_ax.get_ylim()
+            self.main_ax.set_ylim(ylims[0] + 0.5* (ylims[1]-ylims[0]), ylims[1] + 0.5* (ylims[1]-ylims[0]))
+            if self.ps_ax:
+                self.ps_ax.set_ylim(ylims[0] + 0.5* (ylims[1]-ylims[0]), ylims[1] + 0.5* (ylims[1]-ylims[0]))
+
+        if event.key == 'down':
+            ylims = self.main_ax.get_ylim()
+            self.main_ax.set_ylim(ylims[0] - 0.5* (ylims[1]-ylims[0]), ylims[1] - 0.5* (ylims[1]-ylims[0]))
+            if self.ps_ax:
+                self.ps_ax.set_ylim(ylims[0] - 0.5* (ylims[1]-ylims[0]), ylims[1] - 0.5* (ylims[1]-ylims[0]))
+
+        if event.key == 'right':
+            xlims = self.main_ax.get_xlim()
+            self.main_ax.set_xlim(xlims[0] + 0.5* (xlims[1]-xlims[0]), xlims[1] + 0.5* (xlims[1]-xlims[0]))
+
+        if event.key == 'left':
+            xlims = self.main_ax.get_xlim()
+            self.main_ax.set_xlim(xlims[0] - 0.5* (xlims[1]-xlims[0]), xlims[1] - 0.5* (xlims[1]-xlims[0]))
+
+        if event.key in 'b':
+            self.current_task = 'save_plot'
 
         if event.key in 'h':
+            self.current_task = None
+
             if self.main_ax:
                 self.main_ax.set_xlim([self.start_time, self.end_time])
                 self.main_ax.set_ylim([0, 2000])
@@ -2917,64 +3002,20 @@ class Obs_tracker():
                 self.main_ax.set_xlabel('time [s]')
                 self.main_ax.set_ylabel('frequency [Hz]')
 
-        if event.key in 'enter':
-            if self.current_task == 'show_spectrum':
-                if self.tmp_plothandel_main and self.ioi:
-                    self.current_task = None
-                    self.plot_ps()
-                else:
-                    print('\nmissing data')
-
-            if self.current_task == 'update_hg':
-                self.current_task = None
-                self.update_hg()
-
-            if self.current_task == 'zoom':
-                self.current_task = None
-                self.zoom()
-
-            if self.current_task == 'track_snippet':
-                self.current_task = None
-                self.track_snippet()
-
-            if self.current_task == 'part_spec':
-                self.current_task = None
-                self.plot_spectrum(part_spec=True)
-
-            if self.current_task == 'plot_tmp_identities':
-                if self.active_vec_idx and hasattr(self.f_error_dist, '__len__') and hasattr(self.a_error_dist, '__len__'):
-                    tmp_fund_v, tmp_ident_v, tmp_idx_v, = \
-                        freq_tracking_v2(self.fundamentals, self.signatures, self.positions, self.times,
-                                         self.kwargs['freq_tolerance'], n_channels=len(self.channels),
-                                         return_tmp_idenities=True, ioi_fti = self.active_vec_idx,
-                                         a_error_distribution=self.a_error_dist, f_error_distribution=self.f_error_dist)
-
-                    for handle in self.tmp_trace_handels:
-                        handle.remove()
-                    self.tmp_trace_handels = []
-
-                    possible_identities = np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)])
-                    for ident in np.array(possible_identities):
-                        c = np.random.rand(3)
-                        h, = self.main_ax.plot(self.times[tmp_idx_v[tmp_ident_v == ident]],
-                                               tmp_fund_v[tmp_ident_v == ident], marker='o', color=c,
-                                               linewidth=3, markersize=5)
-                        self.tmp_trace_handels.append(h)
-
-
         if event.key in 'e':
             embed()
-            # quit()
 
         if event.key in 'p':
-            self.current_task = 'show_spectrum'
-            # print('\n%s' % self.current_task)
-
-        if event.key == 't':
-            self.current_task = 'track_snippet'
+            self.current_task = self.p_tasks[0]
+            self.p_tasks = np.roll(self.p_tasks, -1)
 
         if event.key == 'ctrl+t':
-            self.current_task = 'plot_tmp_identities'
+            self.current_task = self.t_tasks[0]
+            self.t_tasks = np.roll(self.t_tasks, -1)
+
+        if event.key == 'c':
+            self.current_task = self.c_tasks[0]
+            self.c_tasks = np.roll(self.c_tasks, -1)
 
         if event.key == 'ctrl+q':
             plt.close(self.main_fig)
@@ -2991,15 +3032,16 @@ class Obs_tracker():
             if hasattr(self.a_error_dist, '__len__') and hasattr(self.f_error_dist, '__len__'):
                 self.plot_error()
 
-        if event.key in 'c':
-            self.current_task = 'check_tracking'
-
         if event.key in 'z':
             self.current_task = 'zoom'
 
         if event.key in 's':
-            self.current_task = 'part_spec'
+            self.current_task = self.s_tasks[0]
+            self.s_tasks = np.roll(self.s_tasks, -1)
+            # self.current_task = 'part_spec'
 
+        if event.key in 'l':
+            self.current_task = 'load_traces'
 
         if self.current_task == 'part_spec':
             if event.key == '1':
@@ -3121,6 +3163,80 @@ class Obs_tracker():
                     self.kwargs['max_double_use_count'] += 1.
                     self.current_task = 'update_hg'
 
+        if event.key == 'enter':
+            if self.current_task == 'load_traces':
+                self.load_trace()
+                self.current_task = None
+
+            if self.current_task == 'save_traces':
+                self.save_traces()
+                self.current_task = None
+
+            if self.current_task == 'connect_trace':
+                if self.active_ident_handle0 and self.active_ident_handle1:
+                    self.connect_trace()
+
+            if self.current_task == 'cut_trace':
+                if self.active_ident_handle0 and self.active_fundamental0_0:
+                    self.cut_trace()
+
+            if self.current_task == 'delete_trace':
+                if self.active_ident_handle0:
+                    self.delete_trace()
+
+            if self.current_task == 'save_plot':
+                self.current_task = None
+                self.save_plot()
+
+            if self.current_task == 'show_powerspectum':
+                if self.tmp_plothandel_main and self.ioi:
+                    self.current_task = None
+                    self.plot_ps()
+                else:
+                    print('\nmissing data')
+
+            if self.current_task == 'update_hg':
+                self.current_task = None
+                self.update_hg()
+
+            if self.current_task == 'zoom':
+                self.current_task = None
+                self.zoom()
+
+            if self.current_task == 'track_snippet':
+                self.current_task = None
+                self.track_snippet()
+
+            if self.current_task == 'track_snippet_live':
+                self.current_task = None
+                self.live_tracking = True
+                self.track_snippet()
+                self.live_tracking = False
+
+            if self.current_task == 'part_spec':
+                self.current_task = None
+                self.plot_spectrum(part_spec=True)
+
+            if self.current_task == 'plot_tmp_identities':
+                if self.active_vec_idx and hasattr(self.f_error_dist, '__len__') and hasattr(self.a_error_dist, '__len__'):
+                    tmp_fund_v, tmp_ident_v, tmp_idx_v, = \
+                        freq_tracking_v2(self.fundamentals, self.signatures, self.positions, self.times,
+                                         self.kwargs['freq_tolerance'], n_channels=len(self.channels),
+                                         return_tmp_idenities=True, ioi_fti = self.active_vec_idx,
+                                         a_error_distribution=self.a_error_dist, f_error_distribution=self.f_error_dist)
+
+                    for handle in self.tmp_trace_handels:
+                        handle.remove()
+                    self.tmp_trace_handels = []
+
+                    possible_identities = np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)])
+                    for ident in np.array(possible_identities):
+                        c = np.random.rand(3)
+                        h, = self.main_ax.plot(self.times[tmp_idx_v[tmp_ident_v == ident]],
+                                               tmp_fund_v[tmp_ident_v == ident], marker='o', color=c,
+                                               linewidth=3, markersize=5)
+                        self.tmp_trace_handels.append(h)
+
         self.key_options()
         self.main_fig.canvas.draw()
         # plt.show()
@@ -3162,9 +3278,20 @@ class Obs_tracker():
                 self.active_vec_idx_handle.remove()
                 self.active_vec_idx_handle = None
 
+            if self.active_vec_idx:
+                self.active_vec_idx = None
+                self.active_ident0 = None
+                self.active_ident_handle0.remove()
+                self.active_ident_handle0 = None
+
+            if self.active_vec_idx1:
+                self.active_vec_idx1 = None
+                self.active_ident1 = None
+                self.active_ident_handle1.remove()
+                self.active_ident_handle1 = None
 
         if event.inaxes == self.main_ax:
-            if self.current_task == 'show_spectrum':
+            if self.current_task == 'show_powerspectum':
                 if event.button == 1:
                     x = event.xdata
                     self.ioi = np.argmin(np.abs(self.times-x))
@@ -3272,7 +3399,6 @@ class Obs_tracker():
 
                         self.active_fundamental1_1_handle, = self.main_ax.plot(self.times[self.idx_v[current_idx]], self.fund_v[current_idx], 'o', color='green', markersize=4)
 
-
             if self.current_task == 'plot_tmp_identities':
                 if event.button == 1:
                     x = event.xdata
@@ -3286,6 +3412,92 @@ class Obs_tracker():
                         self.active_vec_idx_handle.remove()
                     # self.active_vec_idx_handle, = self.main_ax.plot(self.time[self.idx_v[t_idx]], self.fund_v[self.idx_v == t_idx][f_idx], 'o', color='red', markersize=4)
                     self.active_vec_idx_handle, = self.main_ax.plot(self.times[t_idx], self.fund_v[self.active_vec_idx], 'o', color='red', markersize=4)
+
+            if self.current_task == 'connect_trace':
+                if event.button == 1:
+                    x = event.xdata
+                    y = event.ydata
+
+                    t_idx = np.argsort(np.abs(self.times - x))[0]
+                    f_idx = np.argsort(np.abs(self.fund_v[self.idx_v == t_idx] - y))[0]
+
+                    self.active_vec_idx = np.arange(len(self.fund_v))[(self.idx_v == t_idx) & (self.fund_v == self.fund_v[self.idx_v == t_idx][f_idx])][0]
+                    self.active_ident0 = self.ident_v[self.active_vec_idx]
+
+                    if self.active_ident_handle0:
+                        self.active_ident_handle0.remove()
+
+                    self.active_ident_handle0, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == self.active_ident0]], self.fund_v[self.ident_v == self.active_ident0], color = 'red', alpha=0.7, linewidth=4)
+
+                if event.button == 3:
+                    x = event.xdata
+                    y = event.ydata
+
+                    t_idx = np.argsort(np.abs(self.times - x))[0]
+                    f_idx = np.argsort(np.abs(self.fund_v[self.idx_v == t_idx] - y))[0]
+
+                    self.active_vec_idx1 = np.arange(len(self.fund_v))[
+                        (self.idx_v == t_idx) & (self.fund_v == self.fund_v[self.idx_v == t_idx][f_idx])][0]
+                    self.active_ident1 = self.ident_v[self.active_vec_idx1]
+
+                    if self.active_ident_handle1:
+                        self.active_ident_handle1.remove()
+
+                    self.active_ident_handle1, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == self.active_ident1]], self.fund_v[self.ident_v == self.active_ident1], color='green', alpha=0.7, linewidth=4)
+
+            if self.current_task == 'cut_trace':
+                if event.button == 1:
+                    x = event.xdata
+                    y = event.ydata
+
+                    t_idx = np.argsort(np.abs(self.times - x))[0]
+                    f_idx = np.argsort(np.abs(self.fund_v[self.idx_v == t_idx] - y))[0]
+
+                    self.active_vec_idx = np.arange(len(self.fund_v))[
+                        (self.idx_v == t_idx) & (self.fund_v == self.fund_v[self.idx_v == t_idx][f_idx])][0]
+                    self.active_ident0 = self.ident_v[self.active_vec_idx]
+
+                    if self.active_ident_handle0:
+                        self.active_ident_handle0.remove()
+
+                    self.active_ident_handle0, = self.main_ax.plot(
+                        self.times[self.idx_v[self.ident_v == self.active_ident0]],
+                        self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
+
+                if event.button == 3:
+                    x = event.xdata
+                    y = event.ydata
+
+                    idx_searched = np.argsort(np.abs(self.times - x))[0]
+                    fund_searched = self.fund_v[self.idx_v == idx_searched][
+                        np.argsort(np.abs(self.fund_v[(self.idx_v == idx_searched)] - y))[0]]
+                    current_idx = \
+                    np.arange(len(self.fund_v))[(self.idx_v == idx_searched) & (self.fund_v == fund_searched)][0]
+
+                    self.active_fundamental0_0 = current_idx
+                    if self.active_fundamental0_0_handle:
+                        self.active_fundamental0_0_handle.remove()
+                    self.active_fundamental0_0_handle, = self.main_ax.plot(self.times[self.idx_v[current_idx]],
+                                                                           self.fund_v[current_idx], 'o', color='red',
+                                                                           markersize=4)
+
+            if self.current_task == 'delete_trace':
+                x = event.xdata
+                y = event.ydata
+
+                t_idx = np.argsort(np.abs(self.times - x))[0]
+                f_idx = np.argsort(np.abs(self.fund_v[self.idx_v == t_idx] - y))[0]
+
+                self.active_vec_idx = np.arange(len(self.fund_v))[
+                    (self.idx_v == t_idx) & (self.fund_v == self.fund_v[self.idx_v == t_idx][f_idx])][0]
+                self.active_ident0 = self.ident_v[self.active_vec_idx]
+
+                if self.active_ident_handle0:
+                    self.active_ident_handle0.remove()
+
+                self.active_ident_handle0, = self.main_ax.plot(
+                    self.times[self.idx_v[self.ident_v == self.active_ident0]],
+                    self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
 
         if self.ps_ax and event.inaxes == self.ps_ax:
             if not self.active_harmonic:
@@ -3326,6 +3538,101 @@ class Obs_tracker():
         self.key_options()
         self.main_fig.canvas.draw()
 
+    def connect_trace(self):
+
+        overlapping_idxs = [x for x in self.idx_v[self.ident_v == self.active_ident0] if x in self.idx_v[self.ident_v == self.active_ident1]]
+
+        # self.ident_v[(self.idx_v == overlapping_idxs) & (self.ident_v == self.active_ident0)] = np.nan
+        self.ident_v[(np.in1d(self.idx_v, np.array(overlapping_idxs))) & (self.ident_v == self.active_ident0)] = np.nan
+        self.ident_v[self.ident_v == self.active_ident1] = self.active_ident0
+
+        self.active_ident_handle0.remove()
+        self.active_ident_handle0 = None
+
+        self.active_ident_handle1.remove()
+        self.active_ident_handle1 = None
+
+        self.plot_traces(clear_traces=True)
+
+    def save_traces(self):
+        folder = os.path.split(self.data_file)[0]
+        np.save(os.path.join(folder, 'fund_v.npy'), self.fund_v)
+        np.save(os.path.join(folder, 'sign_v.npy'), self.sign_v)
+        np.save(os.path.join(folder, 'idx_v.npy'), self.idx_v)
+        np.save(os.path.join(folder, 'ident_v.npy'), self.ident_v)
+        np.save(os.path.join(folder, 'times.npy'), self.times)
+
+        np.save(os.path.join(folder, 'spec.npy'), self.tmp_spectra)
+
+    def load_trace(self):
+        folder = os.path.split(self.data_file)[0]
+        if os.path.exists(os.path.join(folder, 'fund_v.npy')):
+            self.fund_v = np.load(os.path.join(folder, 'fund_v.npy'))
+            self.sign_v = np.load(os.path.join(folder, 'sign_v.npy'))
+            self.idx_v = np.load(os.path.join(folder, 'idx_v.npy'))
+            self.ident_v = np.load(os.path.join(folder, 'ident_v.npy'))
+            self.times = np.load(os.path.join(folder, 'times.npy'))
+            self.tmp_spectra = np.load(os.path.join(folder, 'spec.npy'))
+
+            self.plot_traces(clear_traces=True)
+
+
+    def cut_trace(self):
+        next_ident = np.max(self.ident_v[~np.isnan(self.ident_v)]) + 1
+        self.ident_v[(self.ident_v == self.active_ident0) & (self.idx_v < self.idx_v[self.active_fundamental0_0])] = next_ident
+
+        self.active_ident_handle0.remove()
+        self.active_ident_handle0 = None
+
+        self.active_fundamental0_0_handle.remove()
+        self.active_fundamental0_0_handle = None
+        self.active_fundamental0_0 = None
+
+        self.plot_traces(clear_traces=True)
+
+    def delete_trace(self):
+        self.ident_v[self.ident_v == self.active_ident0] = np.nan
+        self.active_ident0 = None
+        self.active_ident_handle0.remove()
+        self.active_ident_handle0 = None
+
+        self.plot_traces(clear_traces=True)
+
+    def save_plot(self):
+        self.main_ax.set_position([.1, .1, .8, .8])
+        if self.ps_ax:
+            self.main_fig.delaxes(self.ps_as)
+            self.ps_ax = None
+            self.all_peakf_dots = None
+            self.good_peakf_dots = None
+            # self.main_ax.set_position([.1, .1, .8, .8])
+
+        for i, j in zip(self.text_handles_key, self.text_handles_effect):
+            self.main_fig.texts.remove(i)
+            self.main_fig.texts.remove(j)
+        self.text_handles_key = []
+        self.text_handles_effect = []
+
+        if self.f_error_ax:
+            self.main_fig.delaxes(self.f_error_ax)
+            self.f_error_ax = None
+        if self.a_error_ax:
+            self.main_fig.delaxes(self.a_error_ax)
+            self.a_error_ax = None
+        if self.t_error_ax:
+            self.main_fig.delaxes(self.t_error_ax)
+            self.t_error_ax = None
+
+        self.main_fig.set_size_inches(20./2.54, 12./2.54)
+        self.main_fig.canvas.draw()
+
+        plot_nr = len(glob.glob('/home/raab/Desktop/plot*'))
+        self.main_fig.savefig('/home/raab/Desktop/plot%.0f.pdf' % plot_nr)
+
+        self.main_fig.set_size_inches(55. / 2.54, 30. / 2.54)
+        self.main_ax.set_position([.1, .1, .8, .6])
+        self.main_fig.canvas.draw()
+
     def plot_spectrum(self, part_spec = False):
         if part_spec:
             limitations = self.main_ax.get_xlim()
@@ -3344,8 +3651,8 @@ class Obs_tracker():
             self.spec_img_handle = self.main_ax.imshow(decibel(self.part_spectra)[::-1],
                                                        extent=[limitations[0], limitations[1], min_freq, max_freq],
                                                        aspect='auto', alpha=0.7)
-            self.main_ax.set_xlabel('time [s]')
-            self.main_ax.set_ylabel('frequency [Hz]')
+            self.main_ax.set_xlabel('time [s]', fontsize=12)
+            self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
         else:
             if not hasattr(self.tmp_spectra, '__len__'):
                 self.tmp_spectra, self.times = get_spectrum_funds_amp_signature(
@@ -3354,8 +3661,9 @@ class Obs_tracker():
 
             self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
                                 aspect='auto', alpha=0.7)
-            self.main_ax.set_xlabel('time [s]')
-            self.main_ax.set_ylabel('frequency [Hz]')
+            self.main_ax.set_xlabel('time [s]', fontsize=12)
+            self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
+        self.main_ax.tick_params(labelsize=10)
 
     def track_snippet(self):
         if hasattr(self.fund_v, '__len__'):
@@ -3370,31 +3678,22 @@ class Obs_tracker():
 
         snippet_start, snippet_end = self.main_ax.get_xlim()
 
-        reextract_fundamentals = True
-        if self.fundamentals:
-            if (snippet_start >= self.times[0]) and (snippet_end <= self.times[-1]):
-                reextract_fundamentals = False
+        self.fundamentals, self.signatures, self.positions, self.times = \
+            get_spectrum_funds_amp_signature(self.data, self.samplerate, self.channels, self.data_snippet_idxs,
+                                             snippet_start, snippet_end, create_plotable_spectrogram=False,
+                                             extract_funds_and_signature=True, **self.kwargs)
 
-        if reextract_fundamentals:
-            self.fundamentals, self.signatures, self.positions, self.times = \
-                get_spectrum_funds_amp_signature(self.data, self.samplerate, self.channels, self.data_snippet_idxs,
-                                                 snippet_start, snippet_end, create_plotable_spectrogram=False,
-                                                 extract_funds_and_signature=True, **self.kwargs)
-            mask = np.arange(len(self.times))[(self.times >= snippet_start) & (self.times <= snippet_end)]
+        mask = np.arange(len(self.times))[(self.times >= snippet_start) & (self.times <= snippet_end)]
+        if self.live_tracking:
             self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v = \
                 freq_tracking_v2(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
                                  self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels),
                                  fig=self.main_fig, ax = self.main_ax, freq_lims=(self.main_ax.get_ylim() ))
-            # self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v = \
-            #     freq_tracking_v2(self.fundamentals, self.signatures, self.positions, self.times, self.kwargs['freq_tolerance'],
-            #                      n_channels = len(self.channels), fig=self.main_fig, ax = self.main_ax,
-            #                      freq_lims=(self.main_ax.get_ylim() ))
-
         else:
-            mask = np.arange(len(self.times))[(self.times >= snippet_start) & (self.times <= snippet_end)]
-            self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v= \
+            self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v = \
                 freq_tracking_v2(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
-                                 self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels))
+                                 self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels),
+                                 freq_lims=(self.main_ax.get_ylim() ))
 
         self.plot_traces()
 
@@ -3414,24 +3713,29 @@ class Obs_tracker():
         self.f_error_ax = self.main_fig.add_axes([.75, .5, 0.15, 0.15])
         # self.f_error_ax.plot(h[:-1] + (h[1]- h[0]) / 2., n, '.', color='cornflowerblue')
         self.f_error_ax.plot(h[1:], np.cumsum(n) / np.sum(n), color='cornflowerblue', linewidth=2)
-        self.f_error_ax.set_xlabel('frequency error [Hz]')
+        self.f_error_ax.set_xlabel('frequency error [Hz]', fontsize=12)
 
         n, h = np.histogram(self.a_error_dist, 5000)
         self.a_error_ax = self.main_fig.add_axes([.75, .3, 0.15, 0.15])
         # self.a_error_ax.plot(h[:-1] + (h[1]- h[0]) / 2., n, '.', color='green')
         self.a_error_ax.plot(h[1:], np.cumsum(n) / np.sum(n), color='green', linewidth=2)
-        self.a_error_ax.set_xlabel('amplitude error [a.u.]')
-        self.a_error_ax.set_ylabel('cumsum of error distribution')
+        self.a_error_ax.set_xlabel('amplitude error [a.u.]', fontsize=12)
+        self.a_error_ax.set_ylabel('cumsum of error distribution', fontsize=12)
 
 
         self.t_error_ax = self.main_fig.add_axes([.75, .1, 0.15, 0.15])
         t = np.arange(0, 10, 0.0001)
         f = (0.25 - 0.0) / (1. + np.exp(- (t - 4) / 0.85)) + 0.0
         self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
-        self.t_error_ax.set_xlabel('time error [s]')
+        self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
 
-    def plot_traces(self):
+    def plot_traces(self, clear_traces = False):
         # self.main_ax.imshow(10.0 * np.log10(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000], aspect='auto', alpha=0.7)
+        if clear_traces:
+            for handle in self.trace_handles:
+                handle.remove()
+            self.trace_handles = []
+
 
         possible_identities = np.unique(self.ident_v[~np.isnan(self.ident_v)])
         for ident in np.array(possible_identities):
@@ -3482,8 +3786,8 @@ class Obs_tracker():
             # self.ps_ax.set_yticks([])
             self.ps_ax.yaxis.tick_right()
             self.ps_ax.yaxis.set_label_position("right")
-            self.ps_ax.set_ylabel('frequency [Hz]')
-            self.ps_ax.set_xlabel('power [dB]')
+            self.ps_ax.set_ylabel('frequency [Hz]', fontsize=12)
+            self.ps_ax.set_xlabel('power [dB]', fontsize=12)
             self.ps_handle, =self.ps_ax.plot(plot_power[self.freqs <= 3000.0], self.freqs[self.freqs <= 3000.0],
                                              color='cornflowerblue')
 
@@ -3589,16 +3893,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, data_snip
         data = open_data(data_file, -1, 60.0, 10.0)
         samplerate = data.samplerate
 
-    base_name = os.path.splitext(os.path.basename(data_file))[0]
-    f0, f1 = 400, 1050
-
     channels, coords, neighbours = get_grid_proportions(data, grid, n_tolerance_e=2, verbose=verbose)
-    #
-    # if verbose >= 1:
-    #     print('\nextract fundamentals...')
-    #     if verbose >= 2:
-    #         print('> frequency resolution = %.2f Hz' % fresolution)
-    #         print('> nfft overlap fraction = %.2f' % overlap_frac)
 
     data_snippet_idxs = int(data_snippet_secs * samplerate)
 
@@ -3826,7 +4121,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, data_snip
             # if start_idx >= end_idx or last_run:
             #     break
 
-    Obs_tracker(data, samplerate, start_time, end_time, channels, data_snippet_idxs, **kwargs)
+    Obs_tracker(data, samplerate, start_time, end_time, channels, data_snippet_idxs, data_file, **kwargs)
 
 #     tmp_spectra, times = get_spectrum_funds_amp_signature(data, samplerate, channels, fresolution, overlap_frac, nffts_per_psd,
 #                                                    data_snippet_idxs, start_time, start_idx, end_time, end_idx,
@@ -3984,72 +4279,66 @@ def main():
     # work with previously sorted frequency traces saved as .npy file
     if os.path.splitext(datafile)[1] == '.npy':
         rise_f_th = .5
-        max_time_tolerance = 10.
-        f_th = 5.
-        output_folder = args.output_folder
-
-        a = np.load(sys.argv[1], mmap_mode='r+')
-        fishes = a.copy()
-
-        all_times = np.load(sys.argv[1].replace('-fishes', '-times'))
-
-        min_occure_time = all_times[-1] * 0.01 / 60.
-        if min_occure_time > 1.:
-            min_occure_time = 1.
-
-        if verbose >= 1:
-            print('\nexclude fishes...')
-            if verbose >= 2:
-                print('> minimum occur time: %.2f min' % min_occure_time)
-        fishes = exclude_fishes(fishes, all_times, min_occure_time=min_occure_time)
-
-        if verbose >= 1:
-            print('\nrise detection...')
-            if verbose >= 2:
-                print('> rise frequency th = %.2f Hz' % rise_f_th)
-        all_rises = detect_rises(fishes, all_times, rise_f_th, verbose)
-
-        if verbose >= 1:
-            print('\ncut fishes at rises...')
-        fishes, all_rises = cut_at_rises(fishes, all_rises, all_times, min_occure_time)
-
-        if verbose >= 1:
-            print('\ncombining fishes...')
-            if verbose >= 2:
-                print('> maximum time difference: %.2f min' % max_time_tolerance)
-                print('> maximum frequency difference: %.2f Hz' % f_th)
-        fishes, all_rises = combine_fishes(fishes, all_times, all_rises, max_time_tolerance, f_th)
-        if verbose >= 1:
-            print('%.0f fishes left' % len(fishes))
-
-        base_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
-
-        if 'plt' in locals() or 'plt' in globals():
-            plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot, args.output_folder)
-
-        if args.save_fish:
-            if verbose >= 1:
-                print('saving data to ' + output_folder)
-            save_data(fishes, all_times, all_rises, base_name, output_folder)
-
-        if verbose >= 1:
-            print('Whole file processed.')
+        # max_time_tolerance = 10.
+        # f_th = 5.
+        # output_folder = args.output_folder
+        #
+        # a = np.load(sys.argv[1], mmap_mode='r+')
+        # fishes = a.copy()
+        #
+        # all_times = np.load(sys.argv[1].replace('-fishes', '-times'))
+        #
+        # min_occure_time = all_times[-1] * 0.01 / 60.
+        # if min_occure_time > 1.:
+        #     min_occure_time = 1.
+        #
+        # if verbose >= 1:
+        #     print('\nexclude fishes...')
+        #     if verbose >= 2:
+        #         print('> minimum occur time: %.2f min' % min_occure_time)
+        # fishes = exclude_fishes(fishes, all_times, min_occure_time=min_occure_time)
+        #
+        # if verbose >= 1:
+        #     print('\nrise detection...')
+        #     if verbose >= 2:
+        #         print('> rise frequency th = %.2f Hz' % rise_f_th)
+        # all_rises = detect_rises(fishes, all_times, rise_f_th, verbose)
+        #
+        # if verbose >= 1:
+        #     print('\ncut fishes at rises...')
+        # fishes, all_rises = cut_at_rises(fishes, all_rises, all_times, min_occure_time)
+        #
+        # if verbose >= 1:
+        #     print('\ncombining fishes...')
+        #     if verbose >= 2:
+        #         print('> maximum time difference: %.2f min' % max_time_tolerance)
+        #         print('> maximum frequency difference: %.2f Hz' % f_th)
+        # fishes, all_rises = combine_fishes(fishes, all_times, all_rises, max_time_tolerance, f_th)
+        # if verbose >= 1:
+        #     print('%.0f fishes left' % len(fishes))
+        #
+        # base_name = os.path.splitext(os.path.basename(sys.argv[1]))[0]
+        #
+        # if 'plt' in locals() or 'plt' in globals():
+        #     plot_fishes(fishes, all_times, all_rises, base_name, args.save_plot, args.output_folder)
+        #
+        # if args.save_fish:
+        #     if verbose >= 1:
+        #         print('saving data to ' + output_folder)
+        #     save_data(fishes, all_times, all_rises, base_name, output_folder)
+        #
+        # if verbose >= 1:
+        #     print('Whole file processed.')
 
     else:
         t_kwargs = psd_peak_detection_args(cfg)
         t_kwargs.update(harmonic_groups_args(cfg))
         t_kwargs.update(tracker_args(cfg))
 
-        # fish_tracker(datafile, args.start_time*60.0, args.end_time*60.0,
-        #              args.grid, args.save_plot, args.save_fish, output_folder=args.output_folder,
-        #              plot_harmonic_groups=args.plot_harmonic_groups, verbose=verbose, not_tracking=args.not_tracking,
-        #              part_analysis=False, **t_kwargs)
-        fish_tracker(datafile, args.start_time * 60.0, args.end_time * 60.0,
-                     args.grid, **t_kwargs)
-        # data_file, start_time = 0.0, end_time = -1.0, grid = False, data_snippet_secs = 15., verbose = 0, ** kwargs
+        fish_tracker(datafile, args.start_time * 60.0, args.end_time * 60.0, args.grid, **t_kwargs)
 
 if __name__ == '__main__':
     # how to execute this code properly
-    # python -m thunderfish.tracker_v2 <data file> [-v(vv)] [-g(ggg)]
+    # python3 -m thunderfish.tracker_v2 <data file> [-v(vv)] [-g(ggg)]
     main()
 
