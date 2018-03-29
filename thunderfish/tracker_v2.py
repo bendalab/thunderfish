@@ -148,11 +148,478 @@ def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_dist
     return a_e + f_e + t_e
 
 
+def freq_tracking_v3(fundamentals, signatures, positions, times, freq_tolerance, n_channels, return_tmp_idenities=False,
+                     ioi_fti=False, a_error_distribution=False, f_error_distribution=False,fig = False, ax = False,
+                     freq_lims=False):
+
+    def clean_up(fund_v, ident_v, idx_v, times):
+        print('clean up')
+        for ident in np.unique(ident_v[~np.isnan(ident_v)]):
+            if np.median(np.abs(np.diff(fund_v[ident_v == ident]))) >= 0.25:
+                ident_v[ident_v == ident] = np.nan
+                continue
+
+            if len(ident_v[ident_v == ident]) <= 10:
+                ident_v[ident_v == ident] = np.nan
+                continue
+
+        return ident_v
+
+    def get_a_and_f_error_dist(fund_v, idx_v, sign_v, ):
+        # ToDo: improve!!! takes longer the longer the data snipped is to analyse ... why ?
+        # get f and amp signature distribution ############### BOOT #######################
+        a_error_distribution = np.zeros(20000)  # distribution of amplitude errors
+        f_error_distribution = np.zeros(20000)  # distribution of frequency errors
+        idx_of_distribution = np.zeros(20000)  # corresponding indices
+
+        b = 0  # loop varialble
+        next_message = 0.  # feedback
+
+        while b < 20000:
+            next_message = include_progress_bar(b, 20000, 'get f and sign dist', next_message)  # feedback
+
+            while True:  # finding compare indices to create initial amp and freq distribution
+                # r_idx0 = np.random.randint(np.max(idx_v[~np.isnan(idx_v)]))
+                r_idx0 = np.random.randint(np.max(idx_v[~np.isnan(idx_v)]))
+                r_idx1 = r_idx0 + 1
+                if len(sign_v[idx_v == r_idx0]) != 0 and len(sign_v[idx_v == r_idx1]) != 0:
+                    break
+
+            r_idx00 = np.random.randint(len(sign_v[idx_v == r_idx0]))
+            r_idx11 = np.random.randint(len(sign_v[idx_v == r_idx1]))
+
+            s0 = sign_v[idx_v == r_idx0][r_idx00]  # amplitude signatures
+            s1 = sign_v[idx_v == r_idx1][r_idx11]
+
+            f0 = fund_v[idx_v == r_idx0][r_idx00]  # fundamentals
+            f1 = fund_v[idx_v == r_idx1][r_idx11]
+
+            # if np.abs(f0 - f1) > freq_tolerance:  # frequency threshold
+            if np.abs(f0 - f1) > 10.:  # frequency threshold
+                continue
+
+            idx_of_distribution[b] = r_idx0
+            a_error_distribution[b] = np.sqrt(np.sum([(s0[k] - s1[k]) ** 2 for k in range(len(s0))]))
+            f_error_distribution[b] = np.abs(f0 - f1)
+            b += 1
+
+        return f_error_distribution, a_error_distribution
+
+    def get_tmp_identities(i0_m, i1_m, error_cube, fund_v, idx_v, i, ioi_fti, dps):
+
+        next_tmp_identity = 0
+        mask_cube = np.array([np.ones(np.shape(error_cube[n]), dtype=bool) for n in range(len(error_cube))])
+        tmp_ident_v = np.full(len(fund_v), np.nan)
+        errors_to_v = np.full(len(fund_v), np.nan)
+
+        while True:
+            min_in_layer = []
+            for enu, layer in enumerate(error_cube[1:]):
+                layer_v = np.hstack(layer)
+                mask_v = np.hstack(mask_cube[enu + 1])
+                if len(layer_v[mask_v][~np.isnan(layer_v[mask_v])]) >= 1:
+                    min_in_layer.append(np.min(layer_v[mask_v][~np.isnan(layer_v[mask_v])]))
+                else:
+                    min_in_layer.append(np.nan)
+            min_in_layer = np.array(min_in_layer)
+            if len(min_in_layer[~np.isnan(min_in_layer)]) == 0:
+                break
+
+            lowest_layer = np.where(min_in_layer == np.min(min_in_layer[~np.isnan(min_in_layer)]))[0]
+
+            layer_i0_i1 = [[], [], []]
+
+            for layer in lowest_layer:
+                idx0s, idx1s = np.where(error_cube[layer + 1] == min_in_layer[layer])
+                # layer_i0_i1[0].extend(list(np.ones(len(idx0s), dtype=int) * layer + 1))
+                layer_i0_i1[0].extend(list(np.ones(len(idx0s), dtype=int) + layer))
+                layer_i0_i1[1].extend(list(idx0s))
+                layer_i0_i1[2].extend(list(idx1s))
+
+            counter = 0
+            layer = layer_i0_i1[0][counter]
+            idx0 = layer_i0_i1[1][counter]
+            idx1 = layer_i0_i1[2][counter]
+
+            # alternative idx0/idx1 if error value did not change
+            while mask_cube[layer][idx0, idx1] == False:
+                counter += 1
+                layer = layer_i0_i1[0][counter]
+                idx0 = layer_i0_i1[1][counter]
+                idx1 = layer_i0_i1[2][counter]
+
+            # _____ some control functions _____ ###
+            if not ioi_fti:
+                if idx_v[i1_m[layer][idx1]] - i > idx_comp_range:
+                    mask_cube[layer][idx0, idx1] = 0
+                    continue
+            else:
+                if idx_v[i1_m[layer][idx1]] - idx_v[ioi_fti] > idx_comp_range:
+                    mask_cube[layer][idx0, idx1] = 0
+                    continue
+
+            if fund_v[i0_m[layer][idx0]] > fund_v[i1_m[layer][idx1]]:
+                if 1. * np.abs(fund_v[i0_m[layer][idx0]] - fund_v[i1_m[layer][idx1]]) / ((idx_v[i1_m[layer][idx1]] - idx_v[i0_m[layer][idx0]]) / dps) > 2.:
+                    mask_cube[layer][idx0, idx1] = 0
+                    continue
+            else:
+                if 1. * np.abs(fund_v[i0_m[layer][idx0]] - fund_v[i1_m[layer][idx1]]) / ((idx_v[i1_m[layer][idx1]] - idx_v[i0_m[layer][idx0]]) / dps) > 2.:
+                    mask_cube[layer][idx0, idx1] = 0
+                    continue
+
+            if np.isnan(tmp_ident_v[i0_m[layer][idx0]]):
+                if np.isnan(tmp_ident_v[i1_m[layer][idx1]]):
+                    tmp_ident_v[i0_m[layer][idx0]] = next_tmp_identity
+                    tmp_ident_v[i1_m[layer][idx1]] = next_tmp_identity
+                    errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
+                    # errors_to_v[i0_m[layer][idx0]] = error_cube[layer][idx0, idx1]
+
+                    # errors_to_v[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))] = error_cube[layer][idx0, idx1]
+                    next_tmp_identity += 1
+                else:
+                    if idx_v[i0_m[layer][idx0]] in idx_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]]:
+                        mask_cube[layer][idx0, idx1] = 0
+                        continue
+                    tmp_ident_v[i0_m[layer][idx0]] = tmp_ident_v[i1_m[layer][idx1]]
+                    errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
+
+                    # errors_to_v[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))] = error_cube[layer][idx0, idx1]
+                    # errors_to_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]][0] = np.nan
+
+            else:
+                if np.isnan(tmp_ident_v[i1_m[layer][idx1]]):
+                    if idx_v[i1_m[layer][idx1]] in idx_v[tmp_ident_v == tmp_ident_v[i0_m[layer][idx0]]]:
+                        mask_cube[layer][idx0, idx1] = 0
+                        continue
+                    tmp_ident_v[i1_m[layer][idx1]] = tmp_ident_v[i0_m[layer][idx0]]
+                    errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
+
+                    # errors_to_v[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))] = error_cube[layer][idx0, idx1]
+                    # errors_to_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]][0] = np.nan
+
+                else:
+                    if tmp_ident_v[i0_m[layer][idx0]] == tmp_ident_v[i1_m[layer][idx1]]:
+                        errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
+                        mask_cube[layer][idx0, idx1] = 0
+                        continue
+
+                    idxs_i0 = idx_v[tmp_ident_v == tmp_ident_v[i0_m[layer][idx0]]]
+                    idxs_i1 = idx_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]]
+
+                    if np.any(np.diff(sorted(np.concatenate((idxs_i0, idxs_i1)))) == 0):
+                        mask_cube[layer][idx0, idx1] = 0
+                        continue
+                    tmp_ident_v[tmp_ident_v == tmp_ident_v[i0_m[layer][idx0]]] = tmp_ident_v[i1_m[layer][idx1]]
+
+                    if np.isnan(errors_to_v[i1_m[layer][idx1]]):
+                        errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
+                    # errors_to_fill_v = np.arange(len(errors_to_v))[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))]
+                    # errors_to_v[errors_to_fill_v] = error_cube[layer][idx0, idx1]
+                    # errors_to_v[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))] = error_cube[layer][idx0, idx1]
+                    # ToDo: errors_to_v refill .... CHECK THIS SHIT !!!
+                    # errors_to_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]][0] = np.nan
+
+
+            mask_cube[layer][idx0][idx_v[i1_m[layer]] == idx_v[i1_m[layer][idx1]]] = 0
+            # tmp_mask[idx0] = np.zeros(np.shape(tmp_mask[idx0]), dtype=bool)
+            mask_cube[layer][:, idx1] = np.zeros(len(mask_cube[layer]), dtype=bool)
+
+
+
+        return tmp_ident_v, errors_to_v
+
+    # _____ plot environment for live tracking _____ ###
+    if fig and ax:
+        xlim = ax.get_xlim()
+        ax.set_xlim(xlim[0], xlim[0]+20)
+        fig.canvas.draw()
+        life_handels = []
+        tmp_handles = []
+        life0 = None
+        life1 = None
+
+    # _____ exclude frequencies with lower dFs than 0.5Hz from algorythm ______ ###
+    # ToDo choose the one with the bigger power
+    for i in range(len(fundamentals)):
+        # include_progress_bar(i, len(fundamentals), 'clear dubble deltections', next_message)
+        mask = np.zeros(len(fundamentals[i]), dtype=bool)
+        order = np.argsort(fundamentals[i])
+        fundamentals[i][order[np.arange(len(mask)-1)[np.diff(sorted(fundamentals[i])) < 0.5]+1]] = 0
+
+    # _____ parameters and vectors _____ ###
+    detection_time_diff = times[1] - times[0]
+    dps = 1. / detection_time_diff
+    fund_v = np.hstack(fundamentals)
+    ident_v = np.full(len(fund_v), np.nan)  # fish identities of frequencies
+    idx_of_origin_v = np.full(len(fund_v), np.nan)
+
+    idx_v = []  # temportal indices
+    sign_v = []  # power of fundamentals on all electrodes
+    for enu, funds in enumerate(fundamentals):
+        idx_v.extend(np.ones(len(funds)) * enu)
+        sign_v.extend(signatures[enu])
+    idx_v = np.array(idx_v, dtype=int)
+    sign_v = np.array(sign_v)
+
+    idx_comp_range = int(np.floor(dps * 5.))  # maximum compare range backwards for amplitude signature comparison
+    low_freq_th = 400.  # min. frequency tracked
+    high_freq_th = 1050.  # max. frequency tracked
+
+    # _____ get amp and freq error distribution
+    if hasattr(a_error_distribution, '__len__') and hasattr(f_error_distribution, '__len__'):
+        pass
+    else:
+        f_error_distribution, a_error_distribution = get_a_and_f_error_dist(fund_v, idx_v, sign_v)
+
+    # _____ create initial error cube _____ ###
+    error_cube = []  # [fundamental_list_idx, freqs_to_assign, target_freqs]
+    i0_m = []
+    i1_m = []
+
+    next_message = 0.
+    start_idx = 0 if not ioi_fti else idx_v[ioi_fti] # Index Of Interest for temporal identities
+
+    for i in range(start_idx, int(start_idx + idx_comp_range)):
+        next_message = include_progress_bar(i - start_idx, int(idx_comp_range), 'initial error cube', next_message)
+        i0_v = np.arange(len(idx_v))[idx_v == i]  # indices of fundamtenals to assign
+        i1_v = np.arange(len(idx_v))[(idx_v > i) & (idx_v <= (i + int(idx_comp_range)))]  # indices of possible targets
+
+        i0_m.append(i0_v)
+        i1_m.append(i1_v)
+
+        if len(i0_v) == 0 or len(i1_v) == 0:  # if nothing to assign or no targets continue
+            error_cube.append([[]])
+            continue
+
+        error_matrix = np.full((len(i0_v), len(i1_v)), np.nan)
+
+        for enu0 in range(len(fund_v[i0_v])):
+            if fund_v[i0_v[enu0]] < low_freq_th or fund_v[
+                i0_v[enu0]] > high_freq_th:  # freq to assigne out of tracking range
+                continue
+            for enu1 in range(len(fund_v[i1_v])):
+                if fund_v[i1_v[enu1]] < low_freq_th or fund_v[
+                    i1_v[enu1]] > high_freq_th:  # target freq out of tracking range
+                    continue
+                if np.abs(fund_v[i0_v[enu0]] - fund_v[i1_v[enu1]]) >= freq_tolerance:  # freq difference to high
+                    continue
+
+                a_error = np.sqrt(
+                    np.sum([(sign_v[i0_v[enu0]][j] - sign_v[i1_v[enu1]][j]) ** 2 for j in range(n_channels)]))
+                f_error = np.abs(fund_v[i0_v[enu0]] - fund_v[i1_v[enu1]])
+                t_error = 1. * np.abs(idx_v[i0_v[enu0]] - idx_v[i1_v[enu1]]) / dps
+
+                error_matrix[enu0, enu1] = estimate_error(a_error, f_error, t_error, a_error_distribution,
+                                                          f_error_distribution)
+        error_cube.append(error_matrix)
+
+    cube_app_idx = len(error_cube)
+
+    # _____ accual tracking _____ ###
+    next_identity = 0
+    next_message = 0.00
+    for i in range(len(fundamentals)):
+        if i != 0 and (i % int(idx_comp_range * 120)) == 0: # clean up every 10 minutes
+            ident_v = clean_up(fund_v, ident_v, idx_v, times)
+
+        if not return_tmp_idenities:
+            next_message = include_progress_bar(i, len(fundamentals), 'tracking', next_message)  # feedback
+
+        tmp_ident_v, errors_to_v = get_tmp_identities(i0_m, i1_m, error_cube, fund_v, idx_v, i, ioi_fti, dps)
+
+        if fig and ax:
+            for handle in tmp_handles:
+                handle.remove()
+            tmp_handles = []
+
+            for ident in np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)]):
+                plot_times = times[idx_v[tmp_ident_v == ident]]
+                plot_freqs = fund_v[tmp_ident_v == ident]
+
+                # h, = ax.plot(times[idx_v[ident_v == ident]], fund_v[ident_v == ident ], color='k', marker = '.', markersize=5)
+                h, = ax.plot(plot_times, plot_freqs, color='white', linewidth=4)
+                tmp_handles.append(h)
+
+            fig.canvas.draw()
+
+        if ioi_fti and return_tmp_idenities:
+            return fund_v, tmp_ident_v, idx_v
+
+        mask_matrix = np.ones(np.shape(error_cube[0]), dtype=bool)
+        while True:
+            layer_v = np.hstack(error_cube[0])
+            mask_v = np.hstack(mask_matrix)
+            if len(layer_v[mask_v][~np.isnan(layer_v[mask_v])]) == 0:
+                break
+
+            idx0s, idx1s = np.where(error_cube[0] == np.min(layer_v[mask_v][~np.isnan(layer_v[mask_v])]))
+
+            counter = 0
+            idx0 = idx0s[counter]
+            idx1 = idx1s[counter]
+            while mask_matrix[idx0, idx1] == False:
+                counter += 1
+                idx0 = idx0s[counter]
+                idx1 = idx1s[counter]
+
+            if freq_lims:
+                if fund_v[i0_m[0][idx0]] > freq_lims[1] or fund_v[i0_m[0][idx0]] < freq_lims[0]:
+                    mask_matrix[idx0] = np.zeros(len(mask_matrix[idx0]), dtype=bool)
+                    continue
+                if fund_v[i1_m[0][idx1]] > freq_lims[1] or fund_v[i1_m[0][idx1]] < freq_lims[0]:
+                    mask_matrix[idx0] = np.zeros(np.shape(mask_matrix[idx0]), dtype=bool)
+                    continue
+
+            if not np.isnan(ident_v[i1_m[0][idx1]]):
+                mask_matrix[idx0, idx1] = 0
+                continue
+
+            if not np.isnan(errors_to_v[i1_m[0][idx1]]):
+                if errors_to_v[i1_m[0][idx1]] < error_cube[0][idx0, idx1]:
+                    mask_matrix[idx0, idx1] = 0
+                    continue
+
+            if 1. * np.abs(fund_v[i0_m[0][idx0]] - fund_v[i1_m[0][idx1]]) / ((idx_v[i1_m[0][idx1]] - idx_v[i0_m[0][idx0]]) / dps) > 2.:
+                mask_matrix[idx0, idx1] = 0
+                continue
+
+            # _____ assignment _____ ###
+            if np.isnan(ident_v[i0_m[0][idx0]]):  # i0 doesnt have identity
+                if np.isnan(ident_v[i1_m[0][idx1]]):  # i1 doesnt have identity
+                    ident_v[i0_m[0][idx0]] = next_identity
+                    ident_v[i1_m[0][idx1]] = next_identity
+                    next_identity += 1
+                else:  # i1 does have identity
+                    mask_matrix[idx0, idx1] = 0
+                    continue
+
+            else:  # i0 does have identity
+                if np.isnan(ident_v[i1_m[0][idx1]]):  # i1 doesnt have identity
+                    if idx_v[i1_m[0][idx1]] in idx_v[ident_v == ident_v[i0_m[0][idx0]]]:
+                        mask_matrix[idx0, idx1] = 0
+                        continue
+                    # _____ if either idx0-idx1 is not a direct connection or ...
+                    # _____ idx1 is not the new last point of ident[idx0] check ...
+                    if not idx_v[i0_m[0][idx0]] == idx_v[ident_v == ident_v[i0_m[0][idx0]]][-1]:  # if i0 is not the last ...
+                        if len(ident_v[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v > idx_v[i0_m[0][idx0]]) & (idx_v < idx_v[i1_m[0][idx1]])]) == 0:  # zwischen i0 und i1 keiner
+                            next_idx_after_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v > idx_v[i1_m[0][idx1]])][0]
+                            if tmp_ident_v[next_idx_after_new] != tmp_ident_v[i1_m[0][idx1]]:
+                                mask_matrix[idx0, idx1] = 0
+                                continue
+                        elif len(ident_v[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v > idx_v[i1_m[0][idx1]])]) == 0:  # keiner nach i1
+                            last_idx_before_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v < idx_v[i1_m[0][idx1]])][-1]
+                            if tmp_ident_v[last_idx_before_new] != tmp_ident_v[i1_m[0][idx1]]:
+                                mask_matrix[idx0, idx1] = 0
+                                continue
+                        else:  # sowohl als auch
+                            next_idx_after_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v > idx_v[i1_m[0][idx1]])][0]
+                            last_idx_before_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v < idx_v[i1_m[0][idx1]])][-1]
+                            if tmp_ident_v[last_idx_before_new] != tmp_ident_v[i1_m[0][idx1]] or tmp_ident_v[next_idx_after_new] == tmp_ident_v[i1_m[0][idx1]]:
+                                mask_matrix[idx0, idx1] = 0
+                                continue
+
+                    ident_v[i1_m[0][idx1]] = ident_v[i0_m[0][idx0]]
+                else:
+                    mask_matrix[idx0, idx1] = 0
+                    continue
+
+            idx_of_origin_v[i1_m[0][idx1]] = i0_m[0][idx0]
+
+            mask_matrix[idx0][idx_v[i1_m[0]] == idx_v[i1_m[0][idx1]]] = 0
+            mask_matrix[:, idx1] = np.zeros(len(mask_matrix), dtype=bool)
+
+            # _____ live tracking _____ ###
+            if fig and ax:
+                for handle in life_handels:
+                    handle.remove()
+                if life0:
+                    life0.remove()
+                    life1.remove()
+
+                life_handels = []
+
+                life0, = ax.plot(times[idx_v[i0_m[0][idx0]]], fund_v[i0_m[0][idx0]], color='red', marker='o')
+                life1, = ax.plot(times[idx_v[i1_m[0][idx1]]], fund_v[i1_m[0][idx1]], color='red', marker='o')
+
+                xlims = ax.get_xlim()
+                for ident in np.unique(ident_v[~np.isnan(ident_v)]):
+                    # embed()
+                    # quit()
+                    plot_times = times[idx_v[ident_v == ident]]
+                    plot_freqs = fund_v[ident_v == ident]
+
+                    # h, = ax.plot(times[idx_v[ident_v == ident]], fund_v[ident_v == ident ], color='k', marker = '.', markersize=5)
+                    h, = ax.plot(plot_times[(plot_times >= xlims[0] - 1)],
+                                 plot_freqs[(plot_times >= xlims[0] - 1)], color='k', marker='.', markersize=5)
+                    life_handels.append(h)
+
+                    if times[idx_v[ident_v == ident]][-1] > xlims[1]:
+                        # xlim = ax.get_xlim()
+                        ax.set_xlim([xlims[0] + 10, xlims[1] + 10])
+
+                fig.canvas.draw()
+
+        i0_m.pop(0)
+        i1_m.pop(0)
+        error_cube.pop(0)
+
+        i0_v = np.arange(len(idx_v))[idx_v == cube_app_idx]  # indices of fundamtenals to assign
+        i1_v = np.arange(len(idx_v))[
+            (idx_v > cube_app_idx) & (idx_v <= (cube_app_idx + idx_comp_range))]  # indices of possible targets
+
+        i0_m.append(i0_v)
+        i1_m.append(i1_v)
+
+        if len(i0_v) == 0 or len(i1_v) == 0:  # if nothing to assign or no targets continue
+            error_cube.append([[]])
+
+        else:
+            error_matrix = np.full((len(i0_v), len(i1_v)), np.nan)
+
+            for enu0 in range(len(fund_v[i0_v])):
+                if fund_v[i0_v[enu0]] < low_freq_th or fund_v[i0_v[enu0]] > high_freq_th:  # freq to assigne out of tracking range
+                    continue
+
+                for enu1 in range(len(fund_v[i1_v])):
+                    if fund_v[i1_v[enu1]] < low_freq_th or fund_v[i1_v[enu1]] > high_freq_th:  # target freq out of tracking range
+                        continue
+                    if np.abs(fund_v[i0_v[enu0]] - fund_v[i1_v[enu1]]) >= freq_tolerance:  # freq difference to high
+                        continue
+
+                    a_error = np.sqrt(
+                        np.sum([(sign_v[i0_v[enu0]][j] - sign_v[i1_v[enu1]][j]) ** 2 for j in range(n_channels)]))
+                    f_error = np.abs(fund_v[i0_v[enu0]] - fund_v[i1_v[enu1]])
+                    t_error = 1. * np.abs(idx_v[i0_v[enu0]] - idx_v[i1_v[enu1]]) / dps
+
+                    error_matrix[enu0, enu1] = estimate_error(a_error, f_error, t_error, a_error_distribution,
+                                                              f_error_distribution)
+            error_cube.append(error_matrix)
+
+        cube_app_idx += 1
+    ident_v = clean_up(fund_v, ident_v, idx_v, times)
+
+    return fund_v, ident_v, idx_v, sign_v, a_error_distribution, f_error_distribution, idx_of_origin_v
+
+
 def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels,
                      return_tmp_idenities=False, ioi_fti=False, a_error_distribution=False, f_error_distribution=False,
                      fig = False, ax = False, freq_lims=False):
 
+    def clean_up(fund_v, ident_v, idx_v, times):
+        print('clean up')
+        for ident in np.unique(ident_v[~np.isnan(ident_v)]):
+            if np.median(np.abs(np.diff(fund_v[ident_v == ident]))) >= 0.25:
+                ident_v[ident_v == ident] = np.nan
+                continue
+
+            if len(ident_v[ident_v == ident]) <= 10:
+                ident_v[ident_v == ident] = np.nan
+                continue
+
+        return ident_v
+
     # _____ exclude frequencies with lower dFs than 0.5Hz from algorythm ______ ###
+    # ToDo choose the one with the bigger power
     for i in range(len(fundamentals)):
         # include_progress_bar(i, len(fundamentals), 'clear dubble deltections', next_message)
         mask = np.zeros(len(fundamentals[i]), dtype=bool)
@@ -204,10 +671,12 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
         b = 0  # loop varialble
         next_message = 0.  # feedback
+
         while b < 20000:
             next_message = include_progress_bar(b, 20000, 'get f and sign dist', next_message)  # feedback
 
             while True: # finding compare indices to create initial amp and freq distribution
+                # r_idx0 = np.random.randint(np.max(idx_v[~np.isnan(idx_v)]))
                 r_idx0 = np.random.randint(np.max(idx_v[~np.isnan(idx_v)]))
                 r_idx1 = r_idx0 + 1
                 if len(sign_v[idx_v == r_idx0]) != 0 and len(sign_v[idx_v == r_idx1]) != 0:
@@ -241,12 +710,16 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
     print('\n ')
     next_message = 0.
 
-    start_idx = 0 if not ioi_fti else idx_v[ioi_fti] # Index Of Interest First Time Index (if not starts at t=0)
+    start_idx = 0 if not ioi_fti else idx_v[ioi_fti] # Index Of Interest for temporal identities
 
-    for i in range(start_idx, start_idx + idx_comp_range):
-        next_message = include_progress_bar(i - start_idx, idx_comp_range, 'initial error cube', next_message)
+    # for i in range(start_idx, start_idx + idx_comp_range):
+    # for i in range(start_idx, int(start_idx + idx_comp_range * 2)):
+    for i in range(start_idx, int(start_idx + idx_comp_range)):
+        # next_message = include_progress_bar(i - start_idx, int(idx_comp_range * 2.), 'initial error cube', next_message)
+        next_message = include_progress_bar(i - start_idx, int(idx_comp_range), 'initial error cube', next_message)
         i0_v = np.arange(len(idx_v))[idx_v == i]  # indices of fundamtenals to assign
-        i1_v = np.arange(len(idx_v))[(idx_v > i) & (idx_v <= (i + idx_comp_range))]  # indices of possible targets
+        # i1_v = np.arange(len(idx_v))[(idx_v > i) & (idx_v <= (i + int(idx_comp_range * 2.)))]  # indices of possible targets
+        i1_v = np.arange(len(idx_v))[(idx_v > i) & (idx_v <= (i + int(idx_comp_range)))]  # indices of possible targets
 
         i0_m.append(i0_v)
         i1_m.append(i1_v)
@@ -282,23 +755,34 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
     global_t0 = time.time()
     global_time0 = times[start_idx]
     # _____ sorting based on minimal distance algorithms _____ ###
-    for i in range(int(len(fundamentals))):
-        next_message = include_progress_bar(i, len(fundamentals), 'tracking', next_message)  # feedback
+    # idx_counter = 0
+    # tmp_ident_v = np.full(len(fund_v), np.nan)
+    # calc_tmp_identities = True
+
+    for i in range(len(fundamentals)):
+        if i != 0 and (i % int(idx_comp_range * 120)) == 0: # clean up every 10 minutes
+            ident_v = clean_up(fund_v, ident_v, idx_v, times)
+
+        # ttt000 = time.time()
+        if not return_tmp_idenities:
+            next_message = include_progress_bar(i, len(fundamentals), 'tracking', next_message)  # feedback
+        else:
+            next_message = 0.00
 
         next_tmp_identity = 0
-        tmp_ident_v = np.full(len(fund_v), np.nan)  # fish identities of frequencies
         mask_cube = np.array([np.ones(np.shape(error_cube[n]), dtype=bool) for n in range(len(error_cube))])
 
-        # ____ j != 0 --> temporal indentity assignment _____ ###
-        # ____ j == 0 --> accual identity assignment based on temporal identities
+        tmp_ident_v = np.full(len(fund_v), np.nan)
+        #
         for j in reversed(range(len(error_cube))):
+            if return_tmp_idenities:
+                next_message = include_progress_bar(len(error_cube)-j, len(error_cube), 'tmp_ident', next_message)
+
             tmp_mask = mask_cube[j] # 0 == perviouse nans; 1 == possible connection
 
             # create mask_matrix: only contains one 1 for each row and else 0... --> mask_cube
             mask_matrix = np.zeros(np.shape(mask_cube[j]), dtype=bool)
-            # t0 = time.time()
 
-            counter = 0
             t0 = time.time()
             error_report = False
             error_counter = 0
@@ -307,12 +791,8 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
             first_assignes = False
             # _____ print analysis speed _____ #
             while True:
-                if time.time() - global_t0 >= 60:
-                    print('\n in 1 min analysed: %.1f' % (times[idx_v[i0_m[0][0]]] - global_time0))
-                    global_t0 = time.time()
-                    global_time0 = times[idx_v[i0_m[0][0]]]
 
-                help_error_v = np.hstack(error_cube[j])
+                help_error_v = np.hstack(error_cube[j]) # ToDo: reshape
                 help_mask_v = np.hstack(tmp_mask)
 
                 # endlessloop check
@@ -328,23 +808,17 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                     break
 
                 # get minimal distance value
-                idx0s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[0]
-                idx1s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))[1]
+                idx0s, idx1s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))
 
+                # ToDo: one line ?!
+                counter = 0
                 idx0 = idx0s[counter]
                 idx1 = idx1s[counter]
-
                 # alternative idx0/idx1 if error value did not change
                 while mask_cube[j][idx0, idx1] == False:
                     counter += 1
-                    try:
-                        idx0 = idx0s[counter]
-                        idx1 = idx1s[counter]
-                    except:
-                        print('embed in counter')
-                        embed()
-                        quit()
-                counter = 0
+                    idx0 = idx0s[counter]
+                    idx1 = idx1s[counter]
 
                 # if j == 0:
                 #     if fund_v[i0_m[j][idx0]] > 811.8 and fund_v[i0_m[j][idx0]] < 811.9 and times[idx_v[i0_m[j][idx0]]] > 928.5 and times[idx_v[i0_m[j][idx0]]] < 928.6:
@@ -392,11 +866,23 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                         continue
 
                 if j > 0:
-                    if idx_v[i1_m[j][idx1]] - idx_v[[i0_m[0][0]]] > idx_comp_range:
-                    # if times[idx_v[i1_m[j][idx1]]]  -   times[idx_v[[i0_m[0][0]]]] > 10.:
+                    if return_tmp_idenities:
+                        if idx_v[i1_m[j][idx1]] - idx_v[ioi_fti] > idx_comp_range:  # error no [0][0] in some datas
+                            # if times[idx_v[i1_m[j][idx1]]]  -   times[idx_v[[i0_m[0][0]]]] > 10.:
+                            tmp_mask[idx0, idx1] = 0
+                            continue
+                        # embed()
+                        # quit()
+                    else:
+                        if idx_v[i1_m[j][idx1]] - i > idx_comp_range: # error no [0][0] in some datas
+                        # if times[idx_v[i1_m[j][idx1]]]  -   times[idx_v[[i0_m[0][0]]]] > 10.:
+                            tmp_mask[idx0, idx1] = 0
+                            continue
+                else:
+                    if idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]] >= idx_comp_range:
                         tmp_mask[idx0, idx1] = 0
                         continue
-                else:
+
                     if not np.isnan(ident_v[i1_m[j][idx1]]):
                         tmp_mask[idx0, idx1] = 0
                         continue
@@ -425,7 +911,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                         tmp_mask[idx0, idx1] = 0
                         continue
                 else: ## ??? brauch ich das ?
-                    if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][idx1]]) / (( idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 5.:
+                    if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][idx1]]) / (( idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 2.:
                         tmp_mask[idx0, idx1] = 0
                         continue
 
@@ -465,10 +951,8 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                     #     other_errors_to_idx1.append(possible_error[0])
                     #     pass
 
-                # conditions !!!
-
-                # _____ get temporal identieties which can be changes in the process _____ ###
-                if j > 0:
+                # _____ get temporal identities which can be changes in the process _____ ###
+                if j > 0: # ToDo: we got major errors in tmp identity identification ... why and where ?
                     if np.any(np.array(other_errors_to_idx1) < error_cube[j][idx0, idx1]):
                         tmp_mask[idx0, idx1] = 0
                         continue
@@ -480,11 +964,15 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                             tmp_ident_v[i0_m[j][idx0]] = next_tmp_identity
                             next_tmp_identity += 1
                         else:
-                            alt_idx1 = np.arange(len(i1_m[j]))[tmp_ident_v[i1_m[j]] == tmp_ident_v[i1_m[j][idx1]]]
-
-                            # if ~np.any(idx_v[alt_idx1] == idx_v[i0_m[j][idx0]]):
                             steal = False
-                            if ~np.any(idx_v[i1_m[j][alt_idx1]] == idx_v[i0_m[j][idx0]]):
+                            # if idx_v[i0_m[j][idx0]] in idx_v[tmp_ident_v == tmp_ident_v[i1_m[j][idx1]]]:
+                            #     steal = True
+
+                            # if steal == False:
+                            alt_idx1 = np.arange(len(i1_m[j]))[tmp_ident_v[i1_m[j]] == tmp_ident_v[i1_m[j][idx1]]]
+                            # if ~np.any(idx_v[alt_idx1] == idx_v[i0_m[j][idx0]]):
+                            if ~np.any(idx_v[i1_m[j][alt_idx1]] == idx_v[i0_m[j][idx0]]) : #### <<--- ####
+                            # if ~np.any(idx_v[tmp_ident_v[i1_m[j][idx1]]] == idx_v[i0_m[j][idx0]]) : #### <<--- ####
                                 # try:
                                 # idx1 = i1_m[j][     np.where(idx_v[i1_m[j][alt_idx1]] == np.min(idx_v[i1_m[j][alt_idx1]]))[0][0]    ]
                                 tmp_mask[idx0, idx1] = 0
@@ -522,6 +1010,7 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
                 # _____ accual identity assignment _____ ###
                 else:
+                    # print(len(tmp_ident_v[~np.isnan(tmp_ident_v)]))
                     if ioi_fti and return_tmp_idenities:
                         return fund_v, tmp_ident_v, idx_v
 
@@ -605,7 +1094,6 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
                             life_handels = []
 
-
                             life0, = ax.plot(times[idx_v[i0_m[j][idx0]]], fund_v[i0_m[j][idx0]], color='red', marker = 'o')
                             life1, = ax.plot(times[idx_v[i1_m[j][idx1]]], fund_v[i1_m[j][idx1]], color='red', marker = 'o')
 
@@ -629,6 +1117,11 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
                             fig.canvas.draw()
 
             mask_cube[j] = mask_matrix
+
+            if j == 0:
+                break
+        # print('tracking %.2f' % (time.time()-ttt000))
+        # ttt000 = time.time()
         # _____ update error cube _____ ###
 
         i0_m.pop(0)
@@ -666,6 +1159,10 @@ def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance,
 
         cube_app_idx += 1
 
+        # print('cube update %.2f' % (time.time() - ttt000))
+        # ttt000 = time.time()
+
+    ident_v = clean_up(fund_v, ident_v, idx_v, times)
     print('reached the end')
 
     if fig and ax:
@@ -2428,7 +2925,7 @@ def amplitude_distance(fundamentals, signatures, freq_tolerance):
 
 def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_idxs, start_time, end_time, fresolution = 0.5,
                                      overlap_frac=.9, nffts_per_psd= 2, comp_min_freq= 0., comp_max_freq = 2000., plot_harmonic_groups=False,
-                                     create_plotable_spectrogram=False, extract_funds_and_signature=True, **kwargs):
+                                     create_plotable_spectrogram=False, extract_funds_and_signature=True, noice_cancel = False, **kwargs):
     fundamentals = []
     positions = []
     times = np.array([])
@@ -2478,8 +2975,21 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
         nfft = next_power_of_two(samplerate / fresolution)
 
         func = partial(spectrogram, samplerate=samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
-        a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in
-                            channels])  # ret: spec, freq, time
+
+        if noice_cancel:
+            # print('denoiced')
+            denoiced_data = np.array([data[start_idx: start_idx + data_snippet_idxs, channel] for channel in channels])
+            # print(denoiced_data.shape)
+            mean_data = np.mean(denoiced_data, axis = 0)
+            # mean_data.shape = (len(mean_data), 1)
+            denoiced_data -=mean_data
+
+
+            a = pool.map(func, denoiced_data)
+        # self.data = self.data - mean_data
+        else:
+            a = pool.map(func, [data[start_idx: start_idx + data_snippet_idxs, channel] for channel in
+                                channels])  # ret: spec, freq, time
 
         spectra = [a[channel][0] for channel in range(len(a))]
         spec_freqs = a[0][1]
@@ -2607,6 +3117,24 @@ class Obs_tracker():
 
         # write input into self.
         self.data = data
+
+        ### ONLY WITH MULTIPLE ELECTRODES !!!!
+        # print(self.data[0])
+        # mean_data = np.mean(self.data, axis = 1)
+        # mean_data.shape = (len(mean_data), 1)
+        #
+        # self.c_data = self.data - mean_data
+        # print(self.c_data[5, 5])
+        ######################################
+
+        # self.data =
+        # embed()
+        # quit()
+        # t0 = time.time()
+        # self.data = (self.data.transpose() - np.mean(self.data, axis =1)).transpose()
+        # print(time.time()-t0)
+        # embed()
+        # quit()
         self.data_file = data_file
         self.samplerate = samplerate
         self.start_time = start_time
@@ -2646,12 +3174,14 @@ class Obs_tracker():
         self.y_zoom_0 = None
         self.y_zoom_1 = None
 
+        self.last_xy_lims = None
+
         self.live_tracking = False
 
         # task lists
         self.t_tasks = ['track_snippet', 'track_snippet_live', 'plot_tmp_identities', 'check_tracking']
         self.c_tasks = ['cut_trace', 'connect_trace', 'delete_trace']
-        self.p_tasks = ['part_spec', 'show_powerspectum']
+        self.p_tasks = ['part_spec', 'show_powerspectum', 'hide_spectogram', 'show_spectogram']
         self.s_tasks = ['save_plot', 'save_traces']
 
         # create plot environment
@@ -2660,6 +3190,8 @@ class Obs_tracker():
         # main window
         self.main_fig.canvas.mpl_connect('key_press_event', self.keypress)
         self.main_fig.canvas.mpl_connect('button_press_event', self.buttonpress)
+        self.main_fig.canvas.mpl_connect('button_release_event', self.buttonrelease)
+
 
         # keymap.fullscreen : f, ctrl+f       # toggling
         # keymap.home : h, r, home            # home or reset mnemonic
@@ -2959,6 +3491,12 @@ class Obs_tracker():
 
     def keypress(self, event):
         self.key_options()
+        if event.key == 'backspace':
+            if hasattr(self.last_xy_lims, '__len__'):
+                self.main_ax.set_xlim(self.last_xy_lims[0][0], self.last_xy_lims[0][1])
+                self.main_ax.set_ylim(self.last_xy_lims[1][0], self.last_xy_lims[1][1])
+                if self.ps_ax:
+                    self.ps_ax.set_ylim(self.last_xy_lims[1])
         if event.key == 'up':
             ylims = self.main_ax.get_ylim()
             self.main_ax.set_ylim(ylims[0] + 0.5* (ylims[1]-ylims[0]), ylims[1] + 0.5* (ylims[1]-ylims[0]))
@@ -3164,6 +3702,22 @@ class Obs_tracker():
                     self.current_task = 'update_hg'
 
         if event.key == 'enter':
+            if self.current_task == 'hide_spectogram':
+                if self.spec_img_handle:
+                    self.spec_img_handle.remove()
+                    self.spec_img_handle = None
+
+            if self.current_task == 'show_spectogram':
+                if hasattr(self.tmp_spectra, '__len__'):
+                    if self.spec_img_handle:
+                        self.spec_img_handle.remove()
+                    self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1],
+                                                               extent=[self.start_time, self.end_time, 0, 2000],
+                                                               aspect='auto', alpha=0.7)
+                    self.main_ax.set_xlabel('time [s]', fontsize=12)
+                    self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
+
+
             if self.current_task == 'load_traces':
                 self.load_trace()
                 self.current_task = None
@@ -3199,9 +3753,9 @@ class Obs_tracker():
                 self.current_task = None
                 self.update_hg()
 
-            if self.current_task == 'zoom':
-                self.current_task = None
-                self.zoom()
+            # if self.current_task == 'zoom':
+            #     self.current_task = None
+            #     self.zoom()
 
             if self.current_task == 'track_snippet':
                 self.current_task = None
@@ -3218,17 +3772,22 @@ class Obs_tracker():
                 self.plot_spectrum(part_spec=True)
 
             if self.current_task == 'plot_tmp_identities':
+
                 if self.active_vec_idx and hasattr(self.f_error_dist, '__len__') and hasattr(self.a_error_dist, '__len__'):
-                    tmp_fund_v, tmp_ident_v, tmp_idx_v, = \
-                        freq_tracking_v2(self.fundamentals, self.signatures, self.positions, self.times,
+                    # tmp_fund_v, tmp_ident_v, tmp_idx_v = \
+                        # freq_tracking_v2(self.fundamentals, self.signatures, self.positions, self.times,
+                        #                  self.kwargs['freq_tolerance'], n_channels=len(self.channels),
+                        #                  return_tmp_idenities=True, ioi_fti = self.active_vec_idx,
+                        #                  a_error_distribution=self.a_error_dist, f_error_distribution=self.f_error_dist)
+                    tmp_fund_v, tmp_ident_v, tmp_idx_v = \
+                        freq_tracking_v3(self.fundamentals, self.signatures, self.positions, self.times,
                                          self.kwargs['freq_tolerance'], n_channels=len(self.channels),
-                                         return_tmp_idenities=True, ioi_fti = self.active_vec_idx,
+                                         return_tmp_idenities=True, ioi_fti=self.active_vec_idx,
                                          a_error_distribution=self.a_error_dist, f_error_distribution=self.f_error_dist)
 
                     for handle in self.tmp_trace_handels:
                         handle.remove()
                     self.tmp_trace_handels = []
-
                     possible_identities = np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)])
                     for ident in np.array(possible_identities):
                         c = np.random.rand(3)
@@ -3281,12 +3840,14 @@ class Obs_tracker():
             if self.active_vec_idx:
                 self.active_vec_idx = None
                 self.active_ident0 = None
+            if self.active_ident_handle0:
                 self.active_ident_handle0.remove()
                 self.active_ident_handle0 = None
 
             if self.active_vec_idx1:
                 self.active_vec_idx1 = None
                 self.active_ident1 = None
+            if self.active_ident_handle1:
                 self.active_ident_handle1.remove()
                 self.active_ident_handle1 = None
 
@@ -3300,25 +3861,6 @@ class Obs_tracker():
                     if self.tmp_plothandel_main:
                         self.tmp_plothandel_main.remove()
                     self.tmp_plothandel_main, = self.main_ax.plot([self.times[self.ioi], self.times[self.ioi]], [y_lims[0], y_lims[1]], color='red', linewidth='2')
-
-            if self.current_task == 'zoom':
-                if event.button == 2:
-                    self.x_zoom_0 = None
-                    self.x_zoom_1 = None
-                    self.y_zoom_0 = None
-                    self.y_zoom_1 = None
-
-                if event.inaxes == self.main_ax:
-                    if event.button == 1:
-                        if self.x_zoom_0:
-                            self.x_zoom_1 = event.xdata
-                        else:
-                            self.x_zoom_0 = event.xdata
-                    if event.button == 3:
-                        if self.y_zoom_0:
-                            self.y_zoom_1 = event.ydata
-                        else:
-                            self.y_zoom_0 = event.ydata
 
             if self.current_task == 'check_tracking' and hasattr(self.fundamentals, '__len__'):
 
@@ -3413,66 +3955,16 @@ class Obs_tracker():
                     # self.active_vec_idx_handle, = self.main_ax.plot(self.time[self.idx_v[t_idx]], self.fund_v[self.idx_v == t_idx][f_idx], 'o', color='red', markersize=4)
                     self.active_vec_idx_handle, = self.main_ax.plot(self.times[t_idx], self.fund_v[self.active_vec_idx], 'o', color='red', markersize=4)
 
-            if self.current_task == 'connect_trace':
-                if event.button == 1:
-                    x = event.xdata
-                    y = event.ydata
-
-                    t_idx = np.argsort(np.abs(self.times - x))[0]
-                    f_idx = np.argsort(np.abs(self.fund_v[self.idx_v == t_idx] - y))[0]
-
-                    self.active_vec_idx = np.arange(len(self.fund_v))[(self.idx_v == t_idx) & (self.fund_v == self.fund_v[self.idx_v == t_idx][f_idx])][0]
-                    self.active_ident0 = self.ident_v[self.active_vec_idx]
-
-                    if self.active_ident_handle0:
-                        self.active_ident_handle0.remove()
-
-                    self.active_ident_handle0, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == self.active_ident0]], self.fund_v[self.ident_v == self.active_ident0], color = 'red', alpha=0.7, linewidth=4)
-
-                if event.button == 3:
-                    x = event.xdata
-                    y = event.ydata
-
-                    t_idx = np.argsort(np.abs(self.times - x))[0]
-                    f_idx = np.argsort(np.abs(self.fund_v[self.idx_v == t_idx] - y))[0]
-
-                    self.active_vec_idx1 = np.arange(len(self.fund_v))[
-                        (self.idx_v == t_idx) & (self.fund_v == self.fund_v[self.idx_v == t_idx][f_idx])][0]
-                    self.active_ident1 = self.ident_v[self.active_vec_idx1]
-
-                    if self.active_ident_handle1:
-                        self.active_ident_handle1.remove()
-
-                    self.active_ident_handle1, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == self.active_ident1]], self.fund_v[self.ident_v == self.active_ident1], color='green', alpha=0.7, linewidth=4)
+            if self.current_task in ['connect_trace', 'delete_trace', 'zoom', 'cut_trace']:
+                self.x = (event.xdata, 0)
+                self.y = (event.ydata, 0)
 
             if self.current_task == 'cut_trace':
-                if event.button == 1:
-                    x = event.xdata
-                    y = event.ydata
-
-                    t_idx = np.argsort(np.abs(self.times - x))[0]
-                    f_idx = np.argsort(np.abs(self.fund_v[self.idx_v == t_idx] - y))[0]
-
-                    self.active_vec_idx = np.arange(len(self.fund_v))[
-                        (self.idx_v == t_idx) & (self.fund_v == self.fund_v[self.idx_v == t_idx][f_idx])][0]
-                    self.active_ident0 = self.ident_v[self.active_vec_idx]
-
-                    if self.active_ident_handle0:
-                        self.active_ident_handle0.remove()
-
-                    self.active_ident_handle0, = self.main_ax.plot(
-                        self.times[self.idx_v[self.ident_v == self.active_ident0]],
-                        self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
-
                 if event.button == 3:
                     x = event.xdata
-                    y = event.ydata
 
-                    idx_searched = np.argsort(np.abs(self.times - x))[0]
-                    fund_searched = self.fund_v[self.idx_v == idx_searched][
-                        np.argsort(np.abs(self.fund_v[(self.idx_v == idx_searched)] - y))[0]]
-                    current_idx = \
-                    np.arange(len(self.fund_v))[(self.idx_v == idx_searched) & (self.fund_v == fund_searched)][0]
+                    trace_idxs = self.idx_v[self.ident_v == self.active_ident0]
+                    current_idx = np.arange(len(self.fund_v))[(self.ident_v == self.active_ident0)][np.argsort(np.abs(self.times[trace_idxs] - x))[0]]
 
                     self.active_fundamental0_0 = current_idx
                     if self.active_fundamental0_0_handle:
@@ -3480,24 +3972,6 @@ class Obs_tracker():
                     self.active_fundamental0_0_handle, = self.main_ax.plot(self.times[self.idx_v[current_idx]],
                                                                            self.fund_v[current_idx], 'o', color='red',
                                                                            markersize=4)
-
-            if self.current_task == 'delete_trace':
-                x = event.xdata
-                y = event.ydata
-
-                t_idx = np.argsort(np.abs(self.times - x))[0]
-                f_idx = np.argsort(np.abs(self.fund_v[self.idx_v == t_idx] - y))[0]
-
-                self.active_vec_idx = np.arange(len(self.fund_v))[
-                    (self.idx_v == t_idx) & (self.fund_v == self.fund_v[self.idx_v == t_idx][f_idx])][0]
-                self.active_ident0 = self.ident_v[self.active_vec_idx]
-
-                if self.active_ident_handle0:
-                    self.active_ident_handle0.remove()
-
-                self.active_ident_handle0, = self.main_ax.plot(
-                    self.times[self.idx_v[self.ident_v == self.active_ident0]],
-                    self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
 
         if self.ps_ax and event.inaxes == self.ps_ax:
             if not self.active_harmonic:
@@ -3538,6 +4012,114 @@ class Obs_tracker():
         self.key_options()
         self.main_fig.canvas.draw()
 
+    def buttonrelease(self, event):
+        if event.inaxes == self.main_ax:
+            if self.current_task == 'delete_trace':
+                if event.button == 1:
+                    self.x = (self.x[0], event.xdata)
+                    self.y = (self.y[0], event.ydata)
+
+                    self.active_vec_idx = np.arange(len(self.fund_v))[(self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (self.times[self.idx_v] >= np.min(self.x)) & (self.times[self.idx_v] < np.max(self.x))]
+                    if len(self.active_vec_idx) > 0:
+                        self.active_vec_idx = self.active_vec_idx[~np.isnan(self.ident_v[self.active_vec_idx])][0]
+                    else:
+                        self.active_vec_idx = None
+
+                    self.active_ident0 = self.ident_v[self.active_vec_idx]
+
+                    if self.active_ident_handle0:
+                        self.active_ident_handle0.remove()
+
+                    self.active_ident_handle0, = self.main_ax.plot(
+                        self.times[self.idx_v[self.ident_v == self.active_ident0]],
+                        self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
+
+            if self.current_task == 'cut_trace':
+                if event.button == 1:
+                    self.x = (self.x[0], event.xdata)
+                    self.y = (self.y[0], event.ydata)
+
+                    self.active_vec_idx = np.arange(len(self.fund_v))[(self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (self.times[self.idx_v] >= np.min(self.x)) & (self.times[self.idx_v] < np.max(self.x))]
+                    if len(self.active_vec_idx) > 0:
+                        self.active_vec_idx = self.active_vec_idx[~np.isnan(self.ident_v[self.active_vec_idx])][0]
+                    else:
+                        self.active_vec_idx = None
+
+                    self.active_ident0 = self.ident_v[self.active_vec_idx]
+
+                    if self.active_ident_handle0:
+                        self.active_ident_handle0.remove()
+
+                    self.active_ident_handle0, = self.main_ax.plot(
+                        self.times[self.idx_v[self.ident_v == self.active_ident0]],
+                        self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
+
+            if self.current_task == 'connect_trace':
+                if event.button == 1:
+                    self.x = (self.x[0], event.xdata)
+                    self.y = (self.y[0], event.ydata)
+
+                    self.active_vec_idx = np.arange(len(self.fund_v))[
+                        (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
+                                self.times[self.idx_v] >= np.min(self.x)) & (self.times[self.idx_v] < np.max(self.x))]
+                    if len(self.active_vec_idx) > 0:
+                        self.active_vec_idx = self.active_vec_idx[~np.isnan(self.ident_v[self.active_vec_idx])][0]
+                    else:
+                        self.active_vec_idx = None
+
+                    self.active_ident0 = self.ident_v[self.active_vec_idx]
+
+                    if self.active_ident_handle0:
+                        self.active_ident_handle0.remove()
+
+                    self.active_ident_handle0, = self.main_ax.plot(
+                        self.times[self.idx_v[self.ident_v == self.active_ident0]],
+                        self.fund_v[self.ident_v == self.active_ident0], color='green', alpha=0.7, linewidth=4)
+
+                if event.button == 3:
+                    self.x = (self.x[0], event.xdata)
+                    self.y = (self.y[0], event.ydata)
+
+                    if self.active_ident0:
+                        self.active_vec_idx1 = np.arange(len(self.fund_v))[(self.fund_v >= np.min(self.y)) &
+                                                                           (self.fund_v < np.max(self.y)) &
+                                                                           (self.times[self.idx_v] >= np.min(self.x)) &
+                                                                           (self.times[self.idx_v] < np.max(self.x)) &
+                                                                           (self.ident_v != self.active_ident0)]
+                        if len(self.active_vec_idx1) > 0:
+                            self.active_vec_idx1 = self.active_vec_idx1[~np.isnan(self.ident_v[self.active_vec_idx1])][0]
+                        else:
+                            self.active_vec_idx1 = None
+
+                        self.active_ident1 = self.ident_v[self.active_vec_idx1]
+
+                        if self.active_ident_handle1:
+                            self.active_ident_handle1.remove()
+
+                        self.active_ident_handle1, = self.main_ax.plot(
+                            self.times[self.idx_v[self.ident_v == self.active_ident1]],
+                            self.fund_v[self.ident_v == self.active_ident1], color='red', alpha=0.7, linewidth=4)
+
+            if self.current_task == 'zoom':
+                self.last_xy_lims = [self.main_ax.get_xlim(), self.main_ax.get_ylim()]
+
+                self.x = (self.x[0], event.xdata)
+                self.y = (self.y[0], event.ydata)
+
+                if event.button == 1:
+                    self.main_ax.set_xlim(np.array(self.x)[np.argsort(self.x)])
+
+                self.main_ax.set_ylim(np.array(self.y)[np.argsort(self.y)])
+                if self.ps_ax:
+
+                    self.ps_ax.set_ylim(np.array(self.y)[np.argsort(self.y)])
+
+
+
+        self.key_options()
+        self.main_fig.canvas.draw()
+
+
     def connect_trace(self):
 
         overlapping_idxs = [x for x in self.idx_v[self.ident_v == self.active_ident0] if x in self.idx_v[self.ident_v == self.active_ident1]]
@@ -3546,13 +4128,13 @@ class Obs_tracker():
         self.ident_v[(np.in1d(self.idx_v, np.array(overlapping_idxs))) & (self.ident_v == self.active_ident0)] = np.nan
         self.ident_v[self.ident_v == self.active_ident1] = self.active_ident0
 
+        self.plot_traces(clear_traces=False, refresh=True)
+
         self.active_ident_handle0.remove()
         self.active_ident_handle0 = None
 
         self.active_ident_handle1.remove()
         self.active_ident_handle1 = None
-
-        self.plot_traces(clear_traces=True)
 
     def save_traces(self):
         folder = os.path.split(self.data_file)[0]
@@ -3561,6 +4143,9 @@ class Obs_tracker():
         np.save(os.path.join(folder, 'idx_v.npy'), self.idx_v)
         np.save(os.path.join(folder, 'ident_v.npy'), self.ident_v)
         np.save(os.path.join(folder, 'times.npy'), self.times)
+        np.save(os.path.join(folder, 'meta.npy'), np.array([self.start_time, self.end_time]))
+        # np.save(os.path.join(folder, 'a_error_dist.npy'), self.a_error_dist)
+        # np.save(os.path.join(folder, 'f_error_dist.npy'), self.f_error_dist)
 
         np.save(os.path.join(folder, 'spec.npy'), self.tmp_spectra)
 
@@ -3573,9 +4158,18 @@ class Obs_tracker():
             self.ident_v = np.load(os.path.join(folder, 'ident_v.npy'))
             self.times = np.load(os.path.join(folder, 'times.npy'))
             self.tmp_spectra = np.load(os.path.join(folder, 'spec.npy'))
+            self.start_time, self.end_time = np.load(os.path.join(folder, 'meta.npy'))
+            # self.a_error_dist = np.load(os.path.join(folder, 'a_error_dist.npy'))
+            # self.f_error_dist = np.load(os.path.join(folder, 'f_error_dist.npy'))
+
+            if self.spec_img_handle:
+                self.spec_img_handle.remove()
+            self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
+                                aspect='auto', alpha=0.7)
+            self.main_ax.set_xlabel('time [s]', fontsize=12)
+            self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
 
             self.plot_traces(clear_traces=True)
-
 
     def cut_trace(self):
         next_ident = np.max(self.ident_v[~np.isnan(self.ident_v)]) + 1
@@ -3685,17 +4279,25 @@ class Obs_tracker():
 
         mask = np.arange(len(self.times))[(self.times >= snippet_start) & (self.times <= snippet_end)]
         if self.live_tracking:
+            # self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v = \
+            #     freq_tracking_v2(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
+            #                      self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels),
+            #                      fig=self.main_fig, ax = self.main_ax, freq_lims=(self.main_ax.get_ylim() ))
             self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v = \
-                freq_tracking_v2(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
+                freq_tracking_v3(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
                                  self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels),
-                                 fig=self.main_fig, ax = self.main_ax, freq_lims=(self.main_ax.get_ylim() ))
+                                 fig=self.main_fig, ax=self.main_ax, freq_lims=(self.main_ax.get_ylim()))
         else:
-            self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v = \
-                freq_tracking_v2(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
-                                 self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels),
-                                 freq_lims=(self.main_ax.get_ylim() ))
+            # self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v = \
+            #     freq_tracking_v2(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
+            #                      self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels),
+            #                      freq_lims=(self.main_ax.get_ylim() ))
+            self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v= \
+                freq_tracking_v3(np.array(self.fundamentals)[mask], np.array(self.signatures)[mask], self.positions,
+                             self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels),
+                             freq_lims=(self.main_ax.get_ylim() ))
 
-        self.plot_traces()
+        self.plot_traces(clear_traces=True)
 
         self.plot_error()
 
@@ -3729,19 +4331,37 @@ class Obs_tracker():
         self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
         self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
 
-    def plot_traces(self, clear_traces = False):
+    def plot_traces(self, clear_traces = False, refresh= False):
         # self.main_ax.imshow(10.0 * np.log10(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000], aspect='auto', alpha=0.7)
+        if refresh:
+            # embed()
+            # quit()
+            handle_idents = np.array([x[1] for x in self.trace_handles])
+
+            remove_handle = np.array(self.trace_handles)[handle_idents == self.active_ident1][0]
+            remove_handle[0].remove()
+
+            joined_handle = np.array(self.trace_handles)[handle_idents == self.active_ident0][0]
+            joined_handle[0].remove()
+
+            c = np.random.rand(3)
+            h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == self.active_ident0]], self.fund_v[self.ident_v == self.active_ident0], marker='.', color=c)
+            self.trace_handles[np.arange(len(self.trace_handles))[handle_idents == self.active_ident0][0]] = (h, self.active_ident0)
+            # self.trace_handles.append((h, self.active_ident0))
+
+            self.trace_handles.pop(np.arange(len(self.trace_handles))[handle_idents == self.active_ident1][0])
+
         if clear_traces:
             for handle in self.trace_handles:
-                handle.remove()
+                handle[0].remove()
             self.trace_handles = []
 
 
-        possible_identities = np.unique(self.ident_v[~np.isnan(self.ident_v)])
-        for ident in np.array(possible_identities):
-            c = np.random.rand(3)
-            h, =self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]], self.fund_v[self.ident_v == ident], marker='.', color=c)
-            self.trace_handles.append(h)
+            possible_identities = np.unique(self.ident_v[~np.isnan(self.ident_v)])
+            for ident in np.array(possible_identities):
+                c = np.random.rand(3)
+                h, =self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]], self.fund_v[self.ident_v == ident], marker='.', color=c)
+                self.trace_handles.append((h, ident))
 
     def plot_ps(self):
         if self.f_error_ax:
@@ -3762,11 +4382,22 @@ class Obs_tracker():
         all_c_spectra = []
         all_c_freqs = None
 
+        if self.kwargs['noice_cancel']:
+            denoiced_data = np.array([self.data[data_idx0: data_idx1, channel] for channel in self.channels])
+            # print(denoiced_data.shape)
+            mean_data = np.mean(denoiced_data, axis = 0)
+            # mean_data.shape = (len(mean_data), 1)
+            denoiced_data -=mean_data
+
         for channel in self.channels:
             # c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
             #                                           fresolution = self.fresolution, overlap_frac = self.overlap_frac)
-            c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
+            if self.kwargs['noice_cancel']:
+                c_spectrum, c_freqs, c_time = spectrogram(denoiced_data[channel], self.samplerate,
                                                       fresolution=self.kwargs['fresolution'], overlap_frac=self.kwargs['overlap_frac'])
+            else:
+                c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
+                                                          fresolution=self.kwargs['fresolution'], overlap_frac=self.kwargs['overlap_frac'])
             if not hasattr(all_c_freqs, '__len__'):
                 all_c_freqs = c_freqs
             all_c_spectra.append(c_spectrum)
@@ -3850,19 +4481,19 @@ class Obs_tracker():
         ylims = self.main_ax.get_ylim()
         self.ps_ax.set_ylim([ylims[0], ylims[1]])
 
-    def zoom(self):
-        if self.x_zoom_0 and self.x_zoom_1:
-            xlims = np.array([self.x_zoom_0, self.x_zoom_1])
-            self.main_ax.set_xlim(xlims[np.argsort(xlims)])
-        if self.y_zoom_0 and self.y_zoom_1:
-            ylims = np.array([self.y_zoom_0, self.y_zoom_1])
-            self.main_ax.set_ylim(ylims[np.argsort(ylims)])
-            if self.ps_ax:
-                self.ps_ax.set_ylim(ylims[np.argsort(ylims)])
-        self.x_zoom_0 = None
-        self.x_zoom_1 = None
-        self.y_zoom_0 = None
-        self.y_zoom_1 = None
+    # def zoom(self):
+    #     if self.x_zoom_0 and self.x_zoom_1:
+    #         xlims = np.array([self.x_zoom_0, self.x_zoom_1])
+    #         self.main_ax.set_xlim(xlims[np.argsort(xlims)])
+    #     if self.y_zoom_0 and self.y_zoom_1:
+    #         ylims = np.array([self.y_zoom_0, self.y_zoom_1])
+    #         self.main_ax.set_ylim(ylims[np.argsort(ylims)])
+    #         if self.ps_ax:
+    #             self.ps_ax.set_ylim(ylims[np.argsort(ylims)])
+    #     self.x_zoom_0 = None
+    #     self.x_zoom_1 = None
+    #     self.y_zoom_0 = None
+    #     self.y_zoom_1 = None
 
 
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, data_snippet_secs=15., verbose=0, **kwargs):
@@ -4239,6 +4870,7 @@ def main():
     # parser.add_argument('-g', dest='grid', action='store_true', help='sum up spectrograms of all channels available.')
     parser.add_argument('-g', action='count', dest='grid', help='grid information')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as png file')
+    parser.add_argument('-n', dest='noice_cancel', action='store_true', help='cancsels noice by substracting mean of all electrodes from all electrodes')
     parser.add_argument('-s', dest='save_fish', action='store_true',
                         help='save fish EODs after first stage of sorting.')
     parser.add_argument('-f', dest='plot_harmonic_groups', action='store_true', help='plot harmonic group detection')
@@ -4334,6 +4966,7 @@ def main():
         t_kwargs = psd_peak_detection_args(cfg)
         t_kwargs.update(harmonic_groups_args(cfg))
         t_kwargs.update(tracker_args(cfg))
+        t_kwargs['noice_cancel'] = args.noice_cancel
 
         fish_tracker(datafile, args.start_time * 60.0, args.end_time * 60.0, args.grid, **t_kwargs)
 
