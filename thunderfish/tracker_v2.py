@@ -27,8 +27,60 @@ except ImportError:
     pass
 
 def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_distribution,
-                   min_f_weight=0.4, max_f_weight=0.9, t_of_max_f_weight=2., max_t_error=10.):
+                   min_f_weight=0.4, max_f_weight=0.9, t_of_max_f_weight=2.):
+    """
+    Cost function estimating the error between two fish signals at two different times using realative frequency
+    difference and relative signal amplitude difference on n electrodes (relative because the values are compared to a
+    given distribution of these values). With increasing time difference between the signals the impact of frequency
+    error increases and the influence of amplitude error decreases due to potential changes caused by fish movement.
+
+    Parameters
+    ----------
+    a_error: float
+        MSE of amplitude difference of two electric signals recorded with n electodes.
+    f_error: float
+        absolute frequency difference between two electric signals.
+    t_error: float
+        temporal difference between two measured signals in s.
+    a_error_distribution: array
+        distribution of possible MSE of the amplitudes between random data points in the dataset.
+    f_error_distribution: array
+        distribution of possible frequency differences between random data points in the dataset.
+    min_f_weight: float
+        minimum proportion of the frequency impact to the error value.
+    max_f_weight: float
+        maximum proportion of the frequency impact to the error value.
+    t_of_max_f_weight: float
+        error value between two electric signals at two time points.
+
+    Returns
+    -------
+    float
+        error value between two electric signals at two time points
+    """
     def boltzmann(t, alpha= 0.25, beta = 0.0, x0 = 4, dx = 0.85):
+        """
+        Calulates a boltzmann function.
+
+        Parameters
+        ----------
+        t: array
+            time vector.
+        alpha: float
+            max value of the boltzmann function.
+        beta: float
+            min value of the boltzmann function.
+        x0: float
+            time where the turning point of the boltzmann function occurs.
+        dx: float
+            slope of the boltzman function.
+
+        Returns
+        -------
+        array
+            boltzmann function of the given time array base on the other parameters given.
+        """
+
         boltz = (alpha - beta) / (1. + np.exp(- (t - x0 ) / dx)  ) + beta
         return boltz
 
@@ -49,7 +101,28 @@ def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_dist
 def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels, return_tmp_idenities=False,
                      ioi_fti=False, a_error_distribution=False, f_error_distribution=False,fig = False, ax = False,
                      freq_lims=(400, 1200)):
+    """
+    Does some magic.
 
+    Parameters
+    ----------
+    fundamentals:
+    signatures:
+    times:
+    freq_tolerance:
+    n_channels:
+    return_tmp_idenities:
+    ioi_fti:
+    a_error_distribution:
+    f_error_distribution:
+    fig:
+    ax:
+    freq_lims:
+
+    Returns
+    -------
+
+    """
     def clean_up(fund_v, ident_v, idx_v, times):
         print('clean up')
         for ident in np.unique(ident_v[~np.isnan(ident_v)]):
@@ -103,143 +176,6 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
 
         return f_error_distribution, a_error_distribution
 
-    def get_tmp_identities_v2(i0_m, i1_m, error_cube, fund_v, idx_v, i, ioi_fti, dps, idx_comp_range):
-
-        next_tmp_identity = 0
-        mask_cube = [np.ones(np.shape(error_cube[n]), dtype=bool) for n in range(len(error_cube))]
-
-        try:
-            tmp_ident_v = np.full(len(fund_v), np.nan)
-            errors_to_v = np.full(len(fund_v), np.nan)
-        except:
-            print('got here')
-            tmp_ident_v = np.zeros(len(fund_v)) / 0.
-            errors_to_v = np.zeros(len(fund_v)) / 0.
-
-        while True:
-            min_in_layer = []
-            # t0 = time.time()
-            for enu, layer in enumerate(error_cube[1:]):
-                if not np.shape(layer) == (1, 0):
-                    min_in_layer.append(np.nanmin(layer.flatten()[mask_cube[enu+1].flatten()]))
-                else:
-                    min_in_layer.append(np.nan)
-
-                # layer_v = np.hstack(layer)
-                # mask_v = np.hstack(mask_cube[enu + 1])
-                # if len(layer_v[mask_v][~np.isnan(layer_v[mask_v])]) >= 1:
-                #     min_in_layer.append(np.min(layer_v[mask_v][~np.isnan(layer_v[mask_v])]))
-                # else:
-                #     min_in_layer.append(np.nan)
-            # print(time.time() -t0)
-            # embed()
-            # quit()
-            min_in_layer = np.array(min_in_layer)
-            if len(min_in_layer[~np.isnan(min_in_layer)]) == 0:
-                break
-
-            lowest_layer = np.where(min_in_layer == np.nanmin(min_in_layer))[0]
-
-            layer_i0_i1 = [[], [], []]
-
-            for layer in lowest_layer:
-                idx0s, idx1s = np.where(error_cube[layer + 1] == min_in_layer[layer])
-                # layer_i0_i1[0].extend(list(np.ones(len(idx0s), dtype=int) * layer + 1))
-                layer_i0_i1[0].extend(list(np.ones(len(idx0s), dtype=int) + layer))
-                layer_i0_i1[1].extend(list(idx0s))
-                layer_i0_i1[2].extend(list(idx1s))
-
-            counter = 0
-            layer = layer_i0_i1[0][counter]
-            idx0 = layer_i0_i1[1][counter]
-            idx1 = layer_i0_i1[2][counter]
-
-            # alternative idx0/idx1 if error value did not change
-            while mask_cube[layer][idx0, idx1] == False:
-                counter += 1
-                layer = layer_i0_i1[0][counter]
-                idx0 = layer_i0_i1[1][counter]
-                idx1 = layer_i0_i1[2][counter]
-
-            # _____ some control functions _____ ###
-            if not ioi_fti:
-                if idx_v[i1_m[layer][idx1]] - i > idx_comp_range*2:
-                    mask_cube[layer][idx0, idx1] = 0
-                    continue
-            else:
-                if idx_v[i1_m[layer][idx1]] - idx_v[ioi_fti] > idx_comp_range*2:
-                    mask_cube[layer][idx0, idx1] = 0
-                    continue
-
-            if fund_v[i0_m[layer][idx0]] > fund_v[i1_m[layer][idx1]]:
-                if 1. * np.abs(fund_v[i0_m[layer][idx0]] - fund_v[i1_m[layer][idx1]]) / ((idx_v[i1_m[layer][idx1]] - idx_v[i0_m[layer][idx0]]) / dps) > 2.:
-                    mask_cube[layer][idx0, idx1] = 0
-                    continue
-            else:
-                if 1. * np.abs(fund_v[i0_m[layer][idx0]] - fund_v[i1_m[layer][idx1]]) / ((idx_v[i1_m[layer][idx1]] - idx_v[i0_m[layer][idx0]]) / dps) > 2.:
-                    mask_cube[layer][idx0, idx1] = 0
-                    continue
-
-            if np.isnan(tmp_ident_v[i0_m[layer][idx0]]):
-                if np.isnan(tmp_ident_v[i1_m[layer][idx1]]):
-                    tmp_ident_v[i0_m[layer][idx0]] = next_tmp_identity
-                    tmp_ident_v[i1_m[layer][idx1]] = next_tmp_identity
-                    errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
-                    # errors_to_v[i0_m[layer][idx0]] = error_cube[layer][idx0, idx1]
-
-                    # errors_to_v[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))] = error_cube[layer][idx0, idx1]
-                    next_tmp_identity += 1
-                else:
-                    if idx_v[i0_m[layer][idx0]] in idx_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]]:
-                        mask_cube[layer][idx0, idx1] = 0
-                        continue
-                    tmp_ident_v[i0_m[layer][idx0]] = tmp_ident_v[i1_m[layer][idx1]]
-                    errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
-
-                    # errors_to_v[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))] = error_cube[layer][idx0, idx1]
-                    # errors_to_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]][0] = np.nan
-
-            else:
-                if np.isnan(tmp_ident_v[i1_m[layer][idx1]]):
-                    if idx_v[i1_m[layer][idx1]] in idx_v[tmp_ident_v == tmp_ident_v[i0_m[layer][idx0]]]:
-                        mask_cube[layer][idx0, idx1] = 0
-                        continue
-                    tmp_ident_v[i1_m[layer][idx1]] = tmp_ident_v[i0_m[layer][idx0]]
-                    errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
-
-                    # errors_to_v[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))] = error_cube[layer][idx0, idx1]
-                    # errors_to_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]][0] = np.nan
-
-                else:
-                    if tmp_ident_v[i0_m[layer][idx0]] == tmp_ident_v[i1_m[layer][idx1]]:
-                        if np.isnan(errors_to_v[i1_m[layer][idx1]]):
-                            errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
-                        mask_cube[layer][idx0, idx1] = 0
-                        continue
-
-                    idxs_i0 = idx_v[tmp_ident_v == tmp_ident_v[i0_m[layer][idx0]]]
-                    idxs_i1 = idx_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]]
-
-                    if np.any(np.diff(sorted(np.concatenate((idxs_i0, idxs_i1)))) == 0):
-                        mask_cube[layer][idx0, idx1] = 0
-                        continue
-                    tmp_ident_v[tmp_ident_v == tmp_ident_v[i0_m[layer][idx0]]] = tmp_ident_v[i1_m[layer][idx1]]
-
-                    if np.isnan(errors_to_v[i1_m[layer][idx1]]):
-                        errors_to_v[i1_m[layer][idx1]] = error_cube[layer][idx0, idx1]
-                    # errors_to_fill_v = np.arange(len(errors_to_v))[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))]
-                    # errors_to_v[errors_to_fill_v] = error_cube[layer][idx0, idx1]
-                    # errors_to_v[(tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]) & (np.isnan(errors_to_v))] = error_cube[layer][idx0, idx1]
-                    # ToDo: errors_to_v refill .... CHECK THIS SHIT !!!
-                    # errors_to_v[tmp_ident_v == tmp_ident_v[i1_m[layer][idx1]]][0] = np.nan
-
-
-            mask_cube[layer][idx0][idx_v[i1_m[layer]] == idx_v[i1_m[layer][idx1]]] = 0
-            # tmp_mask[idx0] = np.zeros(np.shape(tmp_mask[idx0]), dtype=bool)
-            mask_cube[layer][:, idx1] = np.zeros(len(mask_cube[layer]), dtype=bool)
-
-        return tmp_ident_v, errors_to_v
-
     def get_tmp_identities(i0_m, i1_m, error_cube, fund_v, idx_v, i, ioi_fti, dps, idx_comp_range):
 
         next_tmp_identity = 0
@@ -261,53 +197,7 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
         layers, idx0s, idx1s = np.unravel_index(np.argsort(cp_error_cube, axis=None), np.shape(cp_error_cube))
 
         layers = layers+1
-        # embed()
-        # quit()
 
-        # while True:
-        #     min_in_layer = []
-        #     # t0 = time.time()
-        #     for enu, layer in enumerate(error_cube[1:]):
-        #         if not np.shape(layer) == (1, 0):
-        #             min_in_layer.append(np.nanmin(layer.flatten()[mask_cube[enu+1].flatten()]))
-        #         else:
-        #             min_in_layer.append(np.nan)
-        #
-        #         # layer_v = np.hstack(layer)
-        #         # mask_v = np.hstack(mask_cube[enu + 1])
-        #         # if len(layer_v[mask_v][~np.isnan(layer_v[mask_v])]) >= 1:
-        #         #     min_in_layer.append(np.min(layer_v[mask_v][~np.isnan(layer_v[mask_v])]))
-        #         # else:
-        #         #     min_in_layer.append(np.nan)
-        #     # print(time.time() -t0)
-        #     # embed()
-        #     # quit()
-        #     min_in_layer = np.array(min_in_layer)
-        #     if len(min_in_layer[~np.isnan(min_in_layer)]) == 0:
-        #         break
-        #
-        #     lowest_layer = np.where(min_in_layer == np.nanmin(min_in_layer))[0]
-        #
-        #     layer_i0_i1 = [[], [], []]
-        #
-        #     for layer in lowest_layer:
-        #         idx0s, idx1s = np.where(error_cube[layer + 1] == min_in_layer[layer])
-        #         # layer_i0_i1[0].extend(list(np.ones(len(idx0s), dtype=int) * layer + 1))
-        #         layer_i0_i1[0].extend(list(np.ones(len(idx0s), dtype=int) + layer))
-        #         layer_i0_i1[1].extend(list(idx0s))
-        #         layer_i0_i1[2].extend(list(idx1s))
-        #
-        #     counter = 0
-        #     layer = layer_i0_i1[0][counter]
-        #     idx0 = layer_i0_i1[1][counter]
-        #     idx1 = layer_i0_i1[2][counter]
-        #
-        #     # alternative idx0/idx1 if error value did not change
-        #     while mask_cube[layer][idx0, idx1] == False:
-        #         counter += 1
-        #         layer = layer_i0_i1[0][counter]
-        #         idx0 = layer_i0_i1[1][counter]
-        #         idx1 = layer_i0_i1[2][counter]
 
         for layer, idx0, idx1 in zip(layers, idx0s, idx1s):
             if np.isnan(cp_error_cube[layer-1, idx0, idx1]):
@@ -377,6 +267,8 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
 
         return tmp_ident_v, errors_to_v
 
+    # total_t0 = time.time()
+
     # _____ plot environment for live tracking _____ ###
     if fig and ax:
         xlim = ax.get_xlim()
@@ -395,6 +287,8 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
         order = np.argsort(fundamentals[i])
         fundamentals[i][order[np.arange(len(mask)-1)[np.diff(sorted(fundamentals[i])) < 0.5]+1]] = 0
 
+    pre_sort_time = 0.
+    sort_time = 0.
     # _____ parameters and vectors _____ ###
     detection_time_diff = times[1] - times[0]
     dps = 1. / detection_time_diff
@@ -482,9 +376,9 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
             next_message = include_progress_bar(i, len(fundamentals), 'tracking', next_message)  # feedback
 
         if enu % idx_comp_range == 0:
-            t0 = time.time()
+            # t0 = time.time()
             tmp_ident_v, errors_to_v = get_tmp_identities(i0_m, i1_m, error_cube, fund_v, idx_v, i, ioi_fti, dps, idx_comp_range)
-            print('%.2f' %(time.time() - t0) )
+            # pre_sort_time += time.time() - t0
             # print('got through')
             # embed()
             # quit()
@@ -506,56 +400,33 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
         if ioi_fti and return_tmp_idenities:
             return fund_v, tmp_ident_v, idx_v
 
-        mask_matrix = np.ones(np.shape(error_cube[0]), dtype=bool)
+        # mask_matrix = np.ones(np.shape(error_cube[0]), dtype=bool)
 
-        while True:
-            layer_v = np.hstack(error_cube[0])
-            mask_v = np.hstack(mask_matrix)
-            if len(layer_v[mask_v][~np.isnan(layer_v[mask_v])]) == 0:
+        # t0 = time.time()
+
+        idx0s, idx1s = np.unravel_index(np.argsort(error_cube[0], axis=None), np.shape(error_cube[0]))
+
+        # embed()
+        # quit()
+        for idx0, idx1 in zip(idx0s, idx1s):
+            if np.isnan(error_cube[0][idx0, idx1]):
                 break
-
-            idx0s, idx1s = np.where(error_cube[0] == np.min(layer_v[mask_v][~np.isnan(layer_v[mask_v])]))
-
-            counter = 0
-            idx0 = idx0s[counter]
-            idx1 = idx1s[counter]
-            while mask_matrix[idx0, idx1] == False:
-                counter += 1
-                idx0 = idx0s[counter]
-                idx1 = idx1s[counter]
-
-            # if times[idx_v[i0_m[0][idx0]]] > 0.65 and times[idx_v[i0_m[0][idx0]]] < 0.7:
-            #     if times[idx_v[i1_m[0][idx1]]] > 1.60 and times[idx_v[i1_m[0][idx1]]] < 1.65:
-            #         if fund_v[i1_m[0][idx1]] > 647.65 and fund_v[i1_m[0][idx1]] < 647.7:
-            #             if fund_v[i0_m[0][idx0]] > 647.65 and fund_v[i0_m[0][idx0]] < 647.7:
-            #                 embed()
-            #                 quit()
 
             if freq_lims:
                 if fund_v[i0_m[0][idx0]] > freq_lims[1] or fund_v[i0_m[0][idx0]] < freq_lims[0]:
-                    mask_matrix[idx0] = np.zeros(len(mask_matrix[idx0]), dtype=bool)
                     continue
                 if fund_v[i1_m[0][idx1]] > freq_lims[1] or fund_v[i1_m[0][idx1]] < freq_lims[0]:
-                    mask_matrix[idx0] = np.zeros(np.shape(mask_matrix[idx0]), dtype=bool)
                     continue
 
             if not np.isnan(ident_v[i1_m[0][idx1]]):
-                mask_matrix[idx0, idx1] = 0
                 continue
 
             if not np.isnan(errors_to_v[i1_m[0][idx1]]):
                 if errors_to_v[i1_m[0][idx1]] < error_cube[0][idx0, idx1]:
-                    mask_matrix[idx0, idx1] = 0
                     continue
 
-            # if 1. * np.abs(fund_v[i0_m[0][idx0]] - fund_v[i1_m[0][idx1]]) / ((idx_v[i1_m[0][idx1]] - idx_v[i0_m[0][idx0]]) / dps) > 2.:
-            #     mask_matrix[idx0, idx1] = 0
-            #     continue
-
-            # _____ assignment _____ ###
             if np.isnan(ident_v[i0_m[0][idx0]]):  # i0 doesnt have identity
                 if 1. * np.abs(fund_v[i0_m[0][idx0]] - fund_v[i1_m[0][idx1]]) / ((idx_v[i1_m[0][idx1]] - idx_v[i0_m[0][idx0]]) / dps) > 2.:
-                    mask_matrix[idx0, idx1] = 0
                     continue
 
                 if np.isnan(ident_v[i1_m[0][idx1]]):  # i1 doesnt have identity
@@ -563,13 +434,11 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
                     ident_v[i1_m[0][idx1]] = next_identity
                     next_identity += 1
                 else:  # i1 does have identity
-                    mask_matrix[idx0, idx1] = 0
                     continue
 
             else:  # i0 does have identity
                 if np.isnan(ident_v[i1_m[0][idx1]]):  # i1 doesnt have identity
                     if idx_v[i1_m[0][idx1]] in idx_v[ident_v == ident_v[i0_m[0][idx0]]]:
-                        mask_matrix[idx0, idx1] = 0
                         continue
                     # _____ if either idx0-idx1 is not a direct connection or ...
                     # _____ idx1 is not the new last point of ident[idx0] check ...
@@ -577,31 +446,23 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
                         if len(ident_v[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v > idx_v[i0_m[0][idx0]]) & (idx_v < idx_v[i1_m[0][idx1]])]) == 0:  # zwischen i0 und i1 keiner
                             next_idx_after_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v > idx_v[i1_m[0][idx1]])][0]
                             if tmp_ident_v[next_idx_after_new] != tmp_ident_v[i1_m[0][idx1]]:
-                                mask_matrix[idx0, idx1] = 0
                                 continue
                         elif len(ident_v[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v > idx_v[i1_m[0][idx1]])]) == 0:  # keiner nach i1
                             last_idx_before_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v < idx_v[i1_m[0][idx1]])][-1]
                             if tmp_ident_v[last_idx_before_new] != tmp_ident_v[i1_m[0][idx1]]:
-                                mask_matrix[idx0, idx1] = 0
                                 continue
                         else:  # sowohl als auch
                             next_idx_after_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v > idx_v[i1_m[0][idx1]])][0]
                             last_idx_before_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[0][idx0]]) & (idx_v < idx_v[i1_m[0][idx1]])][-1]
                             if tmp_ident_v[last_idx_before_new] != tmp_ident_v[i1_m[0][idx1]] or tmp_ident_v[next_idx_after_new] != tmp_ident_v[i1_m[0][idx1]]:
-                                mask_matrix[idx0, idx1] = 0
                                 continue
 
                     ident_v[i1_m[0][idx1]] = ident_v[i0_m[0][idx0]]
                 else:
-                    mask_matrix[idx0, idx1] = 0
                     continue
 
             idx_of_origin_v[i1_m[0][idx1]] = i0_m[0][idx0]
 
-            mask_matrix[idx0][idx_v[i1_m[0]] == idx_v[i1_m[0][idx1]]] = 0
-            mask_matrix[:, idx1] = np.zeros(len(mask_matrix), dtype=bool)
-
-            # _____ live tracking _____ ###
             if fig and ax:
                 for handle in life_handels:
                     handle.remove()
@@ -632,12 +493,10 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
 
                 fig.canvas.draw()
 
+        # sort_time += time.time()-t0
         i0_m.pop(0)
         i1_m.pop(0)
         error_cube.pop(0)
-
-        # i0_v = np.arange(len(idx_v))[(idx_v == i) & (fund_v >= freq_lims[0]) & (fund_v <= freq_lims[1])]  # indices of fundamtenals to assign
-        # i1_v = np.arange(len(idx_v))[(idx_v > i) & (idx_v <= (i + int(idx_comp_range))) & (fund_v >= freq_lims[0]) & (fund_v <= freq_lims[1])]  # indices of possible targets
 
         i0_v = np.arange(len(idx_v))[(idx_v == cube_app_idx) & (fund_v >= freq_lims[0]) & (fund_v <= freq_lims[1])]  # indices of fundamtenals to assign
         i1_v = np.arange(len(idx_v))[(idx_v > cube_app_idx) & (idx_v <= (cube_app_idx + idx_comp_range)) & (fund_v >= freq_lims[0]) & (fund_v <= freq_lims[1])]  # indices of possible targets
@@ -679,595 +538,8 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
     return fund_v, ident_v, idx_v, sign_v, a_error_distribution, f_error_distribution, idx_of_origin_v
 
 
-def freq_tracking_v2(fundamentals, signatures, positions, times, freq_tolerance, n_channels,
-                     return_tmp_idenities=False, ioi_fti=False, a_error_distribution=False, f_error_distribution=False,
-                     fig = False, ax = False, freq_lims=False):
-
-    def clean_up(fund_v, ident_v, idx_v, times):
-        print('clean up')
-        for ident in np.unique(ident_v[~np.isnan(ident_v)]):
-            if np.median(np.abs(np.diff(fund_v[ident_v == ident]))) >= 0.25:
-                ident_v[ident_v == ident] = np.nan
-                continue
-
-            if len(ident_v[ident_v == ident]) <= 10:
-                ident_v[ident_v == ident] = np.nan
-                continue
-
-        return ident_v
-
-    # _____ exclude frequencies with lower dFs than 0.5Hz from algorythm ______ ###
-    # ToDo choose the one with the bigger power
-    for i in range(len(fundamentals)):
-        # include_progress_bar(i, len(fundamentals), 'clear dubble deltections', next_message)
-        mask = np.zeros(len(fundamentals[i]), dtype=bool)
-        order = np.argsort(fundamentals[i])
-        fundamentals[i][order[np.arange(len(mask)-1)[np.diff(sorted(fundamentals[i])) < 0.5]+1]] = 0
-
-    # _____ plot environment for live tracking _____ ###
-    if fig and ax:
-        xlim = ax.get_xlim()
-        ax.set_xlim(xlim[0], xlim[0]+20)
-        fig.canvas.draw()
-
-    detection_time_diff = times[1] - times[0]
-    dps = 1. / detection_time_diff  # detections per second (temp. resolution of frequency tracking)
-
-    life_handels = []
-    life0 = None
-    life1 = None
-    # fig, ax = plt.subplots()
-    # first = True
-
-    # vector creation
-    fund_v = np.hstack(fundamentals)  # fundamental frequencies
-    try:
-        ident_v = np.full(len(fund_v), np.nan)  # fish identities of frequencies
-        idx_of_origin_v = np.full(len(fund_v), np.nan)
-    except:
-        ident_v = np.zeros(len(fund_v)) / 0.  # fish identities of frequencies
-        idx_of_origin_v = np.zeros(len(fund_v)) / 0.
-
-    idx_v = []  # temportal indices
-    sign_v = []  # power of fundamentals on all electrodes
-    for enu, funds in enumerate(fundamentals):
-        idx_v.extend(np.ones(len(funds)) * enu)
-        sign_v.extend(signatures[enu])
-    idx_v = np.array(idx_v, dtype=int)
-    sign_v = np.array(sign_v)
-
-    # sorting parameters
-    idx_comp_range = int(np.floor(dps * 5.))  # maximum compare range backwards for amplitude signature comparison
-    low_freq_th = 400.  # min. frequency tracked
-    high_freq_th = 1050.  # max. frequency tracked
-
-    # _____ artificial bootstrap: get amplitude error distribution and frequency error distribution _____ ###
-    if hasattr(a_error_distribution, '__len__') and hasattr(f_error_distribution, '__len__'):
-        pass
-    else:
-        # ToDo: improve!!! takes longer the longer the data snipped is to analyse ... why ?
-        # get f and amp signature distribution ############### BOOT #######################
-        a_error_distribution = np.zeros(20000)  # distribution of amplitude errors
-        f_error_distribution = np.zeros(20000)  # distribution of frequency errors
-        idx_of_distribution = np.zeros(20000)  # corresponding indices
-
-        b = 0  # loop varialble
-        next_message = 0.  # feedback
-
-        while b < 20000:
-            next_message = include_progress_bar(b, 20000, 'get f and sign dist', next_message)  # feedback
-
-            while True: # finding compare indices to create initial amp and freq distribution
-                # r_idx0 = np.random.randint(np.max(idx_v[~np.isnan(idx_v)]))
-                r_idx0 = np.random.randint(np.max(idx_v[~np.isnan(idx_v)]))
-                r_idx1 = r_idx0 + 1
-                if len(sign_v[idx_v == r_idx0]) != 0 and len(sign_v[idx_v == r_idx1]) != 0:
-                    break
-
-            r_idx00 = np.random.randint(len(sign_v[idx_v == r_idx0]))
-            r_idx11 = np.random.randint(len(sign_v[idx_v == r_idx1]))
-
-            s0 = sign_v[idx_v == r_idx0][r_idx00]  # amplitude signatures
-            s1 = sign_v[idx_v == r_idx1][r_idx11]
-
-            f0 = fund_v[idx_v == r_idx0][r_idx00]  # fundamentals
-            f1 = fund_v[idx_v == r_idx1][r_idx11]
-
-            # if np.abs(f0 - f1) > freq_tolerance:  # frequency threshold
-            if np.abs(f0 - f1) > 10.:  # frequency threshold
-                continue
-
-            idx_of_distribution[b] = r_idx0
-            a_error_distribution[b] = np.sqrt(np.sum([(s0[k] - s1[k]) ** 2 for k in range(len(s0))]))
-            f_error_distribution[b] = np.abs(f0 - f1)
-            b += 1
-
-    # _____ FREQUENCY SORTING ALGOITHM _____ ###
-
-    # _____ get initial distance cube (3D-matrix) --> ERROR CUBE _____ ###
-    error_cube = []  # [fundamental_list_idx, freqs_to_assign, target_freqs]
-    i0_m = []
-    i1_m = []
-
-    print('\n ')
-    next_message = 0.
-
-    start_idx = 0 if not ioi_fti else idx_v[ioi_fti] # Index Of Interest for temporal identities
-
-    # for i in range(start_idx, start_idx + idx_comp_range):
-    # for i in range(start_idx, int(start_idx + idx_comp_range * 2)):
-    for i in range(start_idx, int(start_idx + idx_comp_range)):
-        # next_message = include_progress_bar(i - start_idx, int(idx_comp_range * 2.), 'initial error cube', next_message)
-        next_message = include_progress_bar(i - start_idx, int(idx_comp_range), 'initial error cube', next_message)
-        i0_v = np.arange(len(idx_v))[idx_v == i]  # indices of fundamtenals to assign
-        # i1_v = np.arange(len(idx_v))[(idx_v > i) & (idx_v <= (i + int(idx_comp_range * 2.)))]  # indices of possible targets
-        i1_v = np.arange(len(idx_v))[(idx_v > i) & (idx_v <= (i + int(idx_comp_range)))]  # indices of possible targets
-
-        i0_m.append(i0_v)
-        i1_m.append(i1_v)
-
-        if len(i0_v) == 0 or len(i1_v) == 0:  # if nothing to assign or no targets continue
-            error_cube.append([[]])
-            continue
-
-        try:
-            error_matrix = np.full((len(i0_v), len(i1_v)), np.nan)
-        except:
-            error_matrix = np.zeros((len(i0_v), len(i1_v))) / 0.
-
-        for enu0 in range(len(fund_v[i0_v])):
-            if fund_v[i0_v[enu0]] < low_freq_th or fund_v[i0_v[enu0]] > high_freq_th:  # freq to assigne out of tracking range
-                continue
-            for enu1 in range(len(fund_v[i1_v])):
-                if fund_v[i1_v[enu1]] < low_freq_th or fund_v[i1_v[enu1]] > high_freq_th:  # target freq out of tracking range
-                    continue
-                if np.abs(fund_v[i0_v[enu0]] - fund_v[i1_v[enu1]]) >= freq_tolerance:  # freq difference to high
-                    continue
-
-                a_error = np.sqrt(np.sum([(sign_v[i0_v[enu0]][j] - sign_v[i1_v[enu1]][j]) ** 2 for j in range(n_channels)]))
-                f_error = np.abs(fund_v[i0_v[enu0]] - fund_v[i1_v[enu1]])
-                t_error = 1. * np.abs(idx_v[i0_v[enu0]] - idx_v[i1_v[enu1]]) / dps
-
-                error_matrix[enu0, enu1] = estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_distribution)
-        error_cube.append(error_matrix)
-
-    cube_app_idx = len(error_cube)
-
-    next_identity = 0  # next unassigned fish identity no.
-    print('\n ')
-    next_message = 0.  # feedback
-
-    global_t0 = time.time()
-    global_time0 = times[start_idx]
-    # _____ sorting based on minimal distance algorithms _____ ###
-    # idx_counter = 0
-    # tmp_ident_v = np.full(len(fund_v), np.nan)
-    # calc_tmp_identities = True
-
-    for i in range(len(fundamentals)):
-        if i != 0 and (i % int(idx_comp_range * 120)) == 0: # clean up every 10 minutes
-            ident_v = clean_up(fund_v, ident_v, idx_v, times)
-
-        # ttt000 = time.time()
-        if not return_tmp_idenities:
-            next_message = include_progress_bar(i, len(fundamentals), 'tracking', next_message)  # feedback
-        else:
-            next_message = 0.00
-
-        next_tmp_identity = 0
-        mask_cube = np.array([np.ones(np.shape(error_cube[n]), dtype=bool) for n in range(len(error_cube))])
-
-        try:
-            tmp_ident_v = np.full(len(fund_v), np.nan)
-        except:
-            tmp_ident_v = np.zeros(len(fund_v)) / 0.
-        #
-        for j in reversed(range(len(error_cube))):
-            if return_tmp_idenities:
-                next_message = include_progress_bar(len(error_cube)-j, len(error_cube), 'tmp_ident', next_message)
-
-            tmp_mask = mask_cube[j] # 0 == perviouse nans; 1 == possible connection
-
-            # create mask_matrix: only contains one 1 for each row and else 0... --> mask_cube
-            mask_matrix = np.zeros(np.shape(mask_cube[j]), dtype=bool)
-
-            t0 = time.time()
-            error_report = False
-            error_counter = 0
-            errors_to_assigne = 0
-
-            first_assignes = False
-            # _____ print analysis speed _____ #
-            while True:
-
-                help_error_v = np.hstack(error_cube[j]) # ToDo: reshape
-                help_mask_v = np.hstack(tmp_mask)
-
-                # endlessloop check
-                if len(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]) != errors_to_assigne:
-                    errors_to_assigne = len(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])])
-                    t0 = time.time()
-
-                if time.time() - t0 >= 60:
-                    print('endlessloop ... cant assigne new stuff ...')
-                    error_report = True
-
-                if len(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]) == 0:
-                    break
-
-                # get minimal distance value
-                idx0s, idx1s = np.where(error_cube[j] == np.min(help_error_v[help_mask_v][~np.isnan(help_error_v[help_mask_v])]))
-
-                # ToDo: one line ?!
-                counter = 0
-                idx0 = idx0s[counter]
-                idx1 = idx1s[counter]
-                # alternative idx0/idx1 if error value did not change
-                while mask_cube[j][idx0, idx1] == False:
-                    counter += 1
-                    idx0 = idx0s[counter]
-                    idx1 = idx1s[counter]
-
-                # if j == 0:
-                #     if fund_v[i0_m[j][idx0]] > 811.8 and fund_v[i0_m[j][idx0]] < 811.9 and times[idx_v[i0_m[j][idx0]]] > 928.5 and times[idx_v[i0_m[j][idx0]]] < 928.6:
-                #         # embed()
-                #         if idx_v[i1_m[j][idx1]] == idx_v[i0_m[j][idx0]] + 1:
-                #             embed()
-                #             quit()
-
-                # if len(idx0s) == 1:
-                #     idx0 = idx0s[0]
-                #     idx1 = idx1s[0]
-                #     counter = 0
-                # else:
-                #     embed()
-                #     quit()
-                #     while True:
-                #         try:
-                #             idx0 = idx0s[counter]
-                #             idx1 = idx1s[counter]
-                #             if counter + 1 >= len(idx0s):
-                #                 counter = 0
-                #             else:
-                #                 counter += 1
-                #             break
-                #         except:
-                #             print('index probelm in counter ... reduce index by 1')
-                #             counter -= 1
-
-
-                # if old_idx0 == idx0 and old_idx1 == idx1:
-                #     print ('\n indices did not change ... why ?')
-                #     embed()
-                #     quit()
-                # else:
-                #     old_idx1 = idx1
-                #     old_idx0 = idx0
-                ##################################
-
-                if freq_lims:
-                    if fund_v[i0_m[j][idx0]] > freq_lims[1] or fund_v[i0_m[j][idx0]] < freq_lims[0]:
-                        tmp_mask[idx0] = np.zeros(len(tmp_mask[idx0]), dtype=bool)
-                        continue
-                    if fund_v[i1_m[j][idx1]] > freq_lims[1] or fund_v[i1_m[j][idx1]] < freq_lims[0]:
-                        tmp_mask[idx0] = np.zeros(np.shape(tmp_mask[idx0]), dtype=bool)
-                        continue
-
-                if j > 0:
-                    if return_tmp_idenities:
-                        if idx_v[i1_m[j][idx1]] - idx_v[ioi_fti] > idx_comp_range:  # error no [0][0] in some datas
-                            # if times[idx_v[i1_m[j][idx1]]]  -   times[idx_v[[i0_m[0][0]]]] > 10.:
-                            tmp_mask[idx0, idx1] = 0
-                            continue
-                        # embed()
-                        # quit()
-                    else:
-                        if idx_v[i1_m[j][idx1]] - i > idx_comp_range: # error no [0][0] in some datas
-                        # if times[idx_v[i1_m[j][idx1]]]  -   times[idx_v[[i0_m[0][0]]]] > 10.:
-                            tmp_mask[idx0, idx1] = 0
-                            continue
-                else:
-                    if idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]] >= idx_comp_range:
-                        tmp_mask[idx0, idx1] = 0
-                        continue
-
-                    if not np.isnan(ident_v[i1_m[j][idx1]]):
-                        tmp_mask[idx0, idx1] = 0
-                        continue
-
-                    # set new identities on hold and assign them last by increasing the error value by 2 (regual max error value = 1.5)
-                    if np.isnan(ident_v[i0_m[j][idx0]]) and not first_assignes:
-                        if np.all(error_cube[j][idx0][ ~np.isnan(error_cube[j][idx0]) ] >= 2.):
-                            first_assignes = True
-                            pass
-                        else:
-                            error_cube[j][idx0] += 2.
-                            continue
-
-                if error_report:
-                    print('--------------------')
-                    print('idx0:%.0f  idx_v: %.0f' % (idx0, i0_m[j][idx0]))
-                    print('idx1:%.0f  idx_v: %.0f' % (idx1, i1_m[j][idx1]))
-                    error_counter += 1
-                    if error_counter >= 20:
-                        embed()
-                        quit()
-
-                # dont accept connections with slope larger than xy (different values for upwards/downwards slopes --> rises)
-                if fund_v[i0_m[j][idx0]] > fund_v[i1_m[j][idx1]]:
-                    if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][idx1]]) / (( idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 2.:
-                        tmp_mask[idx0, idx1] = 0
-                        continue
-                else: ## ??? brauch ich das ?
-                    if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][idx1]]) / (( idx_v[i1_m[j][idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 2.:
-                        tmp_mask[idx0, idx1] = 0
-                        continue
-
-                if idx_v[i0_m[j][idx0]] == idx_v[i1_m[j][idx1]]:
-                    print('same indices in time')
-                    embed()
-                    quit()
-
-                # _____ check if a later connection to target has a better connection in the future --> if so ... continue
-                ioi = i1_m[j][idx1]  # index of interest
-                ioi_mask = [ioi in i1_m[k] for k in range(j+1, len(i1_m))]  # true if ioi is target of others
-
-                if len(ioi_mask) > 0:
-                    masks_idxs_feat_ioi = np.arange(j + 1, len(error_cube))[np.array(ioi_mask)]
-                else:
-                    masks_idxs_feat_ioi = np.array([])
-
-                other_errors_to_idx1 = []
-                for mask in masks_idxs_feat_ioi:
-                    if len(np.hstack(mask_cube[mask])) == 0:  #?
-                        continue  #?
-
-                    check_col = np.where(i1_m[mask] == ioi)[0][0]
-                    row_mask = np.hstack(mask_cube[mask][:, check_col])
-                    possible_error = np.hstack(error_cube[mask][:, check_col])[row_mask]
-
-                    if len(possible_error) == 0:
-                        continue
-                    else:
-                        other_errors_to_idx1.extend(possible_error)
-                    # elif len(possible_error) == 1:
-                    #     other_errors_to_idx1.append(possible_error[0])
-                    # else:
-                    #     embed()
-                    #     quit()
-                    #     print('something strange that should not be possible occurred! ')
-                    #     other_errors_to_idx1.append(possible_error[0])
-                    #     pass
-
-                # _____ get temporal identities which can be changes in the process _____ ###
-                if j > 0: # ToDo: we got major errors in tmp identity identification ... why and where ?
-                    if np.any(np.array(other_errors_to_idx1) < error_cube[j][idx0, idx1]):
-                        tmp_mask[idx0, idx1] = 0
-                        continue
-                    else:
-                        # this is not necessarily the right index to block ...
-                        # if tmp_ident_v[i1_m[j][idx1]] already has an tmp_ident ... check if it collides and decide ...
-                        if np.isnan(tmp_ident_v[i1_m[j][idx1]]):
-                            tmp_ident_v[i1_m[j][idx1]] = next_tmp_identity
-                            tmp_ident_v[i0_m[j][idx0]] = next_tmp_identity
-                            next_tmp_identity += 1
-                        else:
-                            steal = False
-                            # if idx_v[i0_m[j][idx0]] in idx_v[tmp_ident_v == tmp_ident_v[i1_m[j][idx1]]]:
-                            #     steal = True
-
-                            # if steal == False:
-                            alt_idx1 = np.arange(len(i1_m[j]))[tmp_ident_v[i1_m[j]] == tmp_ident_v[i1_m[j][idx1]]]
-                            # if ~np.any(idx_v[alt_idx1] == idx_v[i0_m[j][idx0]]):
-                            if ~np.any(idx_v[i1_m[j][alt_idx1]] == idx_v[i0_m[j][idx0]]) : #### <<--- ####
-                            # if ~np.any(idx_v[tmp_ident_v[i1_m[j][idx1]]] == idx_v[i0_m[j][idx0]]) : #### <<--- ####
-                                # try:
-                                # idx1 = i1_m[j][     np.where(idx_v[i1_m[j][alt_idx1]] == np.min(idx_v[i1_m[j][alt_idx1]]))[0][0]    ]
-                                tmp_mask[idx0, idx1] = 0
-
-                                help_idx1 = alt_idx1[idx_v[i1_m[j][alt_idx1]] == np.min(idx_v[i1_m[j][alt_idx1]]) ][0]
-                                if 1. * np.abs(fund_v[i0_m[j][idx0]] - fund_v[i1_m[j][help_idx1]]) / (( idx_v[i1_m[j][help_idx1]] - idx_v[i0_m[j][idx0]]) / dps) > 2.5:
-                                    steal = True
-                                else:
-                                # idx1 = alt_idx1[idx_v[i1_m[j][alt_idx1]] == np.min(idx_v[i1_m[j][alt_idx1]]) ][0]
-                                    idx1 = help_idx1
-                                    tmp_ident_v[i0_m[j][idx0]] = tmp_ident_v[i1_m[j][idx1]]
-                            else:
-                                steal = True
-                                # except:
-                                #     print('embed in alt_idx')
-                                #     embed()
-                                # print('alt_idx1:')
-                                # print(alt_idx1)
-                                # print('idxs:')
-                                # print(idx_v[i1_m[j][alt_idx1]])  <<-- here we got the problem !
-                                # print('tmp_ident:')
-                                # print(tmp_ident_v[i1_m[j][alt_idx1]])
-                                # quit()
-                            if steal:
-                                tmp_ident_v[i0_m[j][idx0]] = next_tmp_identity
-                                tmp_ident_v[(tmp_ident_v == tmp_ident_v[i1_m[j][idx1]]) & (idx_v >= idx_v[i1_m[j][idx1]])] = next_tmp_identity
-                                next_tmp_identity += 1
-
-                        # tmp_ident_v[i1_m[j][idx1]] = np.nan
-                        mask_matrix[idx0, idx1] = 1
-
-                        tmp_mask[idx0] = np.zeros(np.shape(tmp_mask[idx0]), dtype=bool)
-
-                        tmp_mask[:, idx1] = np.zeros(len(tmp_mask), dtype=bool)
-
-                # _____ accual identity assignment _____ ###
-                else:
-                    # print(len(tmp_ident_v[~np.isnan(tmp_ident_v)]))
-                    if ioi_fti and return_tmp_idenities:
-                        return fund_v, tmp_ident_v, idx_v
-
-                    if np.any(np.array(other_errors_to_idx1) < error_cube[j][idx0, idx1]):
-                        tmp_mask[idx0, idx1] = 0
-                        continue
-                    else:
-
-                        if np.isnan(ident_v[i0_m[j][idx0]]):  # i0 doesnt have identity
-                            if np.isnan(ident_v[i1_m[j][idx1]]):  # i1 doesnt have identity
-                                ident_v[i0_m[j][idx0]] = next_identity
-                                ident_v[i1_m[j][idx1]] = next_identity
-                                next_identity += 1
-                            else:  # i1 does have identity
-                                tmp_mask[idx0, idx1] = 0
-                                continue
-
-                        else:  # i0 does have identity
-                            if np.isnan(ident_v[i1_m[j][idx1]]):  # i1 doesnt have identity
-                                if idx_v[i1_m[j][idx1]] in idx_v[ident_v == ident_v[i0_m[j][idx0]]]:
-                                    tmp_mask[idx0, idx1] = 0
-                                    continue
-
-                                # _____ if either idx0-idx1 is not a direct connection or ...
-                                # _____ idx1 is not the new last point of ident[idx0] check ...
-                                # _____ check if closest connections (before and after idx1) have same temp identieties ... else continue
-                                if not idx_v[i0_m[j][idx0]] == idx_v[ident_v == ident_v[i0_m[j][idx0]]][-1]: # if i0 is not the last ...
-                                    ##########################
-                                    if len(ident_v[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v > idx_v[i0_m[j][idx0]]) & (idx_v < idx_v[i1_m[j][idx1]])]) == 0: # zwischen i0 und i1 keiner
-                                        next_idx_after_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v > idx_v[i1_m[j][idx1]])][0]
-                                        if tmp_ident_v[next_idx_after_new] != tmp_ident_v[i1_m[j][idx1]]:
-                                            tmp_mask[idx0, idx1] = 0
-                                            continue
-
-                                    elif len(ident_v[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v > idx_v[i1_m[j][idx1]]) ]) == 0: # keiner nach i1
-                                        last_idx_before_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v < idx_v[i1_m[j][idx1]])][-1]
-                                        if tmp_ident_v[last_idx_before_new] != tmp_ident_v[i1_m[j][idx1]]:
-                                            tmp_mask[idx0, idx1] = 0
-                                            continue
-                                    else: # sowohl als auch
-                                        next_idx_after_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v > idx_v[i1_m[j][idx1]])][0]
-                                        last_idx_before_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v < idx_v[i1_m[j][idx1]])][-1]
-                                        if tmp_ident_v[last_idx_before_new] != tmp_ident_v[i1_m[j][idx1]] or tmp_ident_v[next_idx_after_new] == tmp_ident_v[i1_m[j][idx1]]:
-                                            tmp_mask[idx0, idx1] = 0
-                                            continue
-
-                                    ###################################
-                                    # if idx_v[i1_m[j][idx1]] == idx_v[i0_m[j][idx0]] + 1:
-                                    #     next_idx_after_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v > idx_v[i1_m[j][idx1]])][0]
-                                    #     if not tmp_ident_v[next_idx_after_new] == tmp_ident_v[i1_m[j][idx1]]:
-                                    #         tmp_mask[idx0, idx1] = 0
-                                    #         continue
-                                    #     # pass
-                                    # else:
-                                    #     last_idx_before_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v < idx_v[i1_m[j][idx1]])  ][-1]
-                                    #     next_idx_after_new = np.arange(len(ident_v))[(ident_v == ident_v[i0_m[j][idx0]]) & (idx_v > idx_v[i1_m[j][idx1]])  ][0]
-                                    #
-                                    #     if tmp_ident_v[last_idx_before_new] != tmp_ident_v[i1_m[j][idx1]] or tmp_ident_v[next_idx_after_new] == tmp_ident_v[i1_m[j][idx1]]:
-                                    #         tmp_mask[idx0, idx1] = 0
-                                    #         continue
-                                    # ToDo: look in both directions ?!
-
-                                ident_v[i1_m[j][idx1]] = ident_v[i0_m[j][idx0]]
-                            else:
-                                tmp_mask[idx0, idx1] = 0
-                                continue
-
-                        idx_of_origin_v[i1_m[j][idx1]] = i0_m[j][idx0]
-
-                        tmp_mask[idx0][  idx_v[i1_m[j]] == idx_v[i1_m[j][idx1]]  ] = 0
-                        # tmp_mask[idx0] = np.zeros(np.shape(tmp_mask[idx0]), dtype=bool)
-                        tmp_mask[:, idx1] = np.zeros(len(tmp_mask), dtype=bool)
-
-                        # _____ live plotting _____ ### slows everything extemly down ?!
-                        if fig and ax:
-                            for handle in life_handels:
-                                handle.remove()
-                            if life0:
-                                life0.remove()
-                                life1.remove()
-
-                            life_handels = []
-
-                            life0, = ax.plot(times[idx_v[i0_m[j][idx0]]], fund_v[i0_m[j][idx0]], color='red', marker = 'o')
-                            life1, = ax.plot(times[idx_v[i1_m[j][idx1]]], fund_v[i1_m[j][idx1]], color='red', marker = 'o')
-
-                            xlims = ax.get_xlim()
-                            for ident in np.unique(ident_v[~np.isnan(ident_v)]):
-                                # embed()
-                                # quit()
-                                plot_times = times[idx_v[ident_v == ident]]
-                                plot_freqs = fund_v[ident_v == ident]
-
-                                # h, = ax.plot(times[idx_v[ident_v == ident]], fund_v[ident_v == ident ], color='k', marker = '.', markersize=5)
-                                h, = ax.plot(plot_times[(plot_times >= xlims[0]-1)],
-                                             plot_freqs[(plot_times >= xlims[0]-1)], color='k', marker = '.', markersize=5)
-                                life_handels.append(h)
-
-                                if times[idx_v[ident_v == ident]][-1] > xlims[1]:
-                                    # xlim = ax.get_xlim()
-                                    ax.set_xlim([xlims[0] + 10, xlims[1]+10])
-
-
-                            fig.canvas.draw()
-
-            mask_cube[j] = mask_matrix
-
-            if j == 0:
-                break
-        # print('tracking %.2f' % (time.time()-ttt000))
-        # ttt000 = time.time()
-        # _____ update error cube _____ ###
-
-        i0_m.pop(0)
-        i1_m.pop(0)
-        error_cube.pop(0)
-
-        i0_v = np.arange(len(idx_v))[idx_v == cube_app_idx]  # indices of fundamtenals to assign
-        i1_v = np.arange(len(idx_v))[(idx_v > cube_app_idx) & (idx_v <= (cube_app_idx + idx_comp_range))]  # indices of possible targets
-
-        i0_m.append(i0_v)
-        i1_m.append(i1_v)
-
-        if len(i0_v) == 0 or len(i1_v) == 0:  # if nothing to assign or no targets continue
-            error_cube.append([[]])
-
-        else:
-            try:
-                error_matrix = np.full((len(i0_v), len(i1_v)), np.nan)
-            except:
-                error_matrix = np.zeros((len(i0_v), len(i1_v))) / 0.
-
-            for enu0 in range(len(fund_v[i0_v])):
-                if fund_v[i0_v[enu0]] < low_freq_th or fund_v[i0_v[enu0]] > high_freq_th:  # freq to assigne out of tracking range
-                    continue
-                for enu1 in range(len(fund_v[i1_v])):
-                    if fund_v[i1_v[enu1]] < low_freq_th or fund_v[i1_v[enu1]] > high_freq_th:  # target freq out of tracking range
-                        continue
-                    if np.abs(fund_v[i0_v[enu0]] - fund_v[i1_v[enu1]]) >= freq_tolerance:  # freq difference to high
-                        continue
-
-                    a_error = np.sqrt(np.sum([(sign_v[i0_v[enu0]][j] - sign_v[i1_v[enu1]][j]) ** 2 for j in range(n_channels)]))
-                    f_error = np.abs(fund_v[i0_v[enu0]] - fund_v[i1_v[enu1]])
-                    t_error = 1. * np.abs(idx_v[i0_v[enu0]] - idx_v[i1_v[enu1]]) / dps
-
-                    error_matrix[enu0, enu1] = estimate_error(a_error, f_error, t_error, a_error_distribution,
-                                                              f_error_distribution)
-            error_cube.append(error_matrix)
-
-        cube_app_idx += 1
-
-        # print('cube update %.2f' % (time.time() - ttt000))
-        # ttt000 = time.time()
-
-    ident_v = clean_up(fund_v, ident_v, idx_v, times)
-    print('reached the end')
-
-    if fig and ax:
-        for handle in life_handels:
-            handle.remove()
-        if life0:
-            life0.remove()
-            life1.remove()
-
-    return fund_v, ident_v, idx_v, sign_v, a_error_distribution, f_error_distribution, idx_of_origin_v
-
-
 def add_tracker_config(cfg, data_snippet_secs = 15., nffts_per_psd = 1, fresolution =.5, overlap_frac = .9,
-                       freq_tolerance = 20., rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
+                       freq_tolerance = 5., rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
 
@@ -3052,8 +2324,6 @@ class Obs_tracker():
 
         ylims = self.main_ax.get_ylim()
         self.ps_ax.set_ylim([ylims[0], ylims[1]])
-
-
 
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, auto = False, data_snippet_secs=15., verbose=0, **kwargs):
     """
