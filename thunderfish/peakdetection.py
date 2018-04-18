@@ -174,10 +174,13 @@ def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
     # we need a trough before and after each peak:
     peak_inx = peak_indices
     trough_inx = trough_indices
+    if len(peak_inx) == 0 or len(trough_inx) == 0:
+        return []
+
     if peak_inx[0] < trough_inx[0]:
-         trough_inx = np.hstack((0, trough_inx))
+        trough_inx = np.hstack((0, trough_inx))
     if peak_inx[-1] > trough_inx[-1]:
-         trough_inx = np.hstack((trough_inx, len(data)-1))
+        trough_inx = np.hstack((trough_inx, len(data)-1))
     # size of peaks:
     offs = 0
     if np.mean(peak_inx - trough_inx[:-1]) < np.mean(peak_inx - trough_inx[1:]):
