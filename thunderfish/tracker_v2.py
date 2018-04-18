@@ -26,6 +26,105 @@ try:
 except ImportError:
     pass
 
+def auto_connect_traces(fund_v, idx_v, ident_v, times, max_dt=300., max_df=2., max_overlap_n = 0):
+    """
+    Connects EOD frequency traces that are less than 5 minutes, and more than 5 seconds apart. These traces are not
+    connected because of the temporal resolution of the tracking algorithm. For each EOD frequency trace pair the
+    the relative temporal difference and the relative frequency difference decide weather they belong to each other or
+    not. (Maximum temporal difference is 300 sec.; maximum frequency difference is 2Hz; Maximum overlapping datapoints
+    are 5)
+
+    Parameters
+    ----------
+    fund_v: array
+        detected fundamental frequencies throughout the recording. Result from frequency sorting algorithm (len = n).
+    idx_v: array
+        time indices of the respective frequency in fund_v (len = n).
+    ident_v: array
+        respective identity based on tracking algorithm of a signal (len = n).
+    times: array
+        time array for the whole recording (len = np.unique(idx_v)).
+    max_dt: float
+        maximum time difference to connect two identities in s.
+    max_df: float
+        maximum median frequency difference between two identities to be connecten in Hz.
+    max_overlap_n: int
+        maximum number of overlapping indices between two identities to still be connected.
+
+    Returns
+    -------
+    ident_v: array
+        updated identity array
+
+    """
+    idents = np.unique(ident_v[~np.isnan(ident_v)])
+    med_ident_freq = [np.median(fund_v[ident_v == ident]) for ident in idents]
+
+    # embed()
+    # quit()
+    i0s = []
+    i1s = []
+    di = []
+    df = []
+    # embed()
+    # quit()
+    next_message = 0.0
+    for enu in np.arange(len(idents)-1):
+    # for enu, i0 in enumerate(idents[:-1]):
+        # print(enu)
+        next_message = include_progress_bar(enu, len(idents)-1, 'error traces', next_message)
+        for enu1 in np.arange(enu+1, len(idents)):
+        # for enu1, i1 in enumerate(idents[enu+1:]):
+            if np.abs(med_ident_freq[enu] - med_ident_freq[enu1]) > max_df:
+                continue
+
+            if idx_v[ident_v == idents[enu]][-1] < idx_v[ident_v == idents[enu1]][0]:
+                if np.abs(times[idx_v[ident_v == idents[enu]][-1]] - times[idx_v[ident_v == idents[enu1]][0]]) > max_dt:
+                    continue
+                delta_idx = idx_v[ident_v == idents[enu1]][0] - idx_v[ident_v == idents[enu]][-1]
+
+                # i0 before i1
+                # print('wuff')
+            elif idx_v[ident_v == idents[enu1]][-1] < idx_v[ident_v == idents[enu]][0]:
+                if np.abs(times[idx_v[ident_v == idents[enu1]][-1]] - times[idx_v[ident_v == idents[enu]][0]]) > max_dt:
+                    continue
+                delta_idx = idx_v[ident_v == idents[enu]][0] - idx_v[ident_v == idents[enu1]][-1]
+                # i1 before i1
+            else:
+                delta_idx = 0
+                # overlapping
+
+            i0s.append(idents[enu])
+            i1s.append(idents[enu1])
+            di.append(delta_idx)
+            df.append(np.abs(med_ident_freq[enu] - med_ident_freq[enu1]))
+
+    i0s = np.array(i0s)
+    i1s = np.array(i1s)
+    di = np.array(di)
+    rel_di = (di - np.min(di)) / (np.max(di) - np.min(di))
+    df = np.array(df)
+    rel_df = (df - np.min(df)) / (np.max(df) - np.min(df))
+
+    error = rel_di + rel_df
+    # embed()
+    # quit()
+    next_message = 0.00
+    for enu, i in enumerate(np.argsort(error)):
+        next_message = include_progress_bar(enu, len(error), 'connecting traces', next_message)
+
+        # if df[enu] >= max_df:
+        #     continue
+        if len(np.intersect1d(idx_v[ident_v ==i0s[i]], idx_v[ident_v == i1s[i]])) > max_overlap_n:
+            continue
+        else:
+            ident_v[ident_v == i1s[i]] = i0s[i]
+            i0s[i0s == i1s[i]] = i0s[i]
+            i1s[i1s == i1s[i]] = i0s[i]
+
+    return ident_v
+
+
 def estimate_error(a_error, f_error, t_error, a_error_distribution, f_error_distribution,
                    min_f_weight=0.4, max_f_weight=0.9, t_of_max_f_weight=2.):
     """
@@ -102,29 +201,94 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
                      ioi_fti=False, a_error_distribution=False, f_error_distribution=False,fig = False, ax = False,
                      freq_lims=(400, 1200)):
     """
-    Does some magic.
+    Sorting algorithm which sorts fundamental EOD frequnecies detected in consecutive powespectra of single or
+    multielectrode recordings using frequency difference and frequnency-power amplitude difference on the electodes.
+
+    Signal tracking and identity assiginment is accomplished in four steps:
+    1) Extracting possible frequency and amplitude difference distributions.
+    2) Esitmate relative error between possible datapoint connections (relative amplitude and frequency error based on
+    frequency and amplitude error distribution).
+    3) For a data window covering the EOD frequencies detected 10 seconds before the accual datapoint to assigne
+    identify temporal identities based on overall error between two datapoints from smalles to largest.
+    4) Form tight connections between datapoints where one datapoint is in the timestep that is currently of interest.
+
+    Repeat these steps until the end of the recording.
+    The temporal identities are only updated when the timestep of current interest reaches the middle (5 sec.) of the
+    temporal identities. This is because no tight connection shall be made without checking the temporal identities.
+    The temnporal identities are used to check if the potential connection from the timestep of interest to a certain
+    datsapoint is the possibly best or if a connection in the futur will be better. If a future connection is better
+    the thight connection is not made.
 
     Parameters
     ----------
-    fundamentals:
-    signatures:
-    times:
-    freq_tolerance:
-    n_channels:
-    return_tmp_idenities:
-    ioi_fti:
-    a_error_distribution:
-    f_error_distribution:
-    fig:
-    ax:
-    freq_lims:
+    fundamentals: 2d-arraylike / list
+        list of arrays of fundemantal EOD frequnecies. For each timestep/powerspectrum contains one list with the
+        respectivly detected fundamental EOD frequnecies.
+    signatures: 3d-arraylike / list
+        same as fundamentals but for each value in fundamentals contains a list of powers of the respective frequency
+        detected of n electrodes used.
+    times: array
+        respective time vector.
+    freq_tolerance: float
+        maximum frequency difference between two datapoints to be connected in Hz.
+    n_channels: int
+        number of channels/electodes used in the analysis.,
+    return_tmp_idenities: bool
+        only returne temporal identities at a certain timestep. Dependent on ioi_fti and only used to check algorithm.
+    ioi_fti: int
+        Index Of Interest For Temporal Identities: respective index in fund_v to calculate the temporal identities for.
+    a_error_distribution: array
+        possible amplitude error distributions for the dataset.
+    f_error_distribution: array
+        possible frequency error distribution for the dataset.
+    fig: mpl.figure
+        figure to plot the tracking progress life.
+    ax: mpl.axis
+        axis to plot the tracking progress life.
+    freq_lims: double
+        minimum/maximum frequency to be tracked.
 
     Returns
     -------
-
+    fund_v: array
+        flattened fundamtantals array containing all detected EOD frequencies in the recording.
+    ident_v: array
+        respective assigned identites throughout the tracking progress.
+    idx_v: array
+        respective index vectro impliing the time of the detected frequency.
+    sign_v: 2d-array
+        for each fundamental frequency the power of this frequency on the used electodes.
+    a_error_distribution: array
+        possible amplitude error distributions for the dataset.
+    f_error_distribution: array
+        possible frequency error distribution for the dataset.
+    idx_of_origin_v: array
+        for each assigned identity the index of the datapoint on which basis the assignement was made.
     """
     def clean_up(fund_v, ident_v, idx_v, times):
-        print('clean up')
+        """
+        deletes/replaces with np.nan those identities only consisting from little data points and thus are tracking
+        artefacts. Identities get deleted when the proportion of the trace (slope, ratio of detected datapoints, etc.)
+        does not fit a real fish.
+
+        Parameters
+        ----------
+        fund_v: array
+            flattened fundamtantals array containing all detected EOD frequencies in the recording.
+        ident_v: array
+            respective assigned identites throughout the tracking progress.
+        idx_v: array
+            respective index vectro impliing the time of the detected frequency.
+        times: array
+            respective time vector.
+
+        Returns
+        -------
+        ident_v: array
+            cleaned up identities vector.
+
+        """
+        # print('clean up')
         for ident in np.unique(ident_v[~np.isnan(ident_v)]):
             if np.median(np.abs(np.diff(fund_v[ident_v == ident]))) >= 0.25:
                 ident_v[ident_v == ident] = np.nan
@@ -137,7 +301,25 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
         return ident_v
 
     def get_a_and_f_error_dist(fund_v, idx_v, sign_v, ):
-        # ToDo: improve!!! takes longer the longer the data snipped is to analyse ... why ?
+        """
+        get the distribution of possible frequency and amplitude errors for the tracking.
+
+        Parameters
+        ----------
+        fund_v: array
+            flattened fundamtantals array containing all detected EOD frequencies in the recording.
+        idx_v: array
+            respective index vectro impliing the time of the detected frequency.
+        sign_v: 2d-array
+            for each fundamental frequency the power of this frequency on the used electodes.
+
+        Returns
+        -------
+        f_error_distribution: array
+            possible frequency error distribution for the dataset.
+        a_error_distribution: array
+            possible amplitude error distributions for the dataset.
+        """
         # get f and amp signature distribution ############### BOOT #######################
         a_error_distribution = np.zeros(20000)  # distribution of amplitude errors
         f_error_distribution = np.zeros(20000)  # distribution of frequency errors
@@ -177,7 +359,41 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
         return f_error_distribution, a_error_distribution
 
     def get_tmp_identities(i0_m, i1_m, error_cube, fund_v, idx_v, i, ioi_fti, dps, idx_comp_range):
+        """
+        extract temporal identities for a datasnippted of 2*index compare range of the original tracking algorithm.
+        for each data point in the data window finds the best connection within index compare range and, thus connects
+        the datapoints based on their minimal error value until no connections are left or possible anymore.
 
+        Parameters
+        ----------
+        i0_m: 2d-array
+            for consecutive timestamps contains for each the indices of the origin EOD frequencies.
+        i1_m: 2d-array
+            respectively contains the indices of the targen EOD frequencies, laying within index compare range.
+        error_cube: 3d-array
+            error values for each combination from i0_m and the respective indices in i1_m.
+        fund_v: array
+            flattened fundamtantals array containing all detected EOD frequencies in the recording.
+        idx_v: array
+            respective index vectro impliing the time of the detected frequency.
+        i: int
+            loop variable and current index of interest for the assignment of tight connections.
+        ioi_fti: int
+            index of interest for temporal identities.
+        dps: float
+            detections per second. 1. / 'temporal resolution of the tracking'
+        idx_comp_range: int
+            index compare range for the assignment of two data points to each other.
+
+        Returns
+        -------
+        tmp_ident_v: array
+            for each EOD frequencies within the index compare range for the current time step of interest contains the
+            temporal identity.
+        errors_to_v: array
+            for each assigned temporal identity contains the error value based on which this connection was made.
+
+        """
         next_tmp_identity = 0
         # mask_cube = [np.ones(np.shape(error_cube[n]), dtype=bool) for n in range(len(error_cube))]
 
@@ -190,7 +406,6 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
             tmp_ident_v = np.full(len(fund_v), np.nan)
             errors_to_v = np.full(len(fund_v), np.nan)
         except:
-            print('got here')
             tmp_ident_v = np.zeros(len(fund_v)) / 0.
             errors_to_v = np.zeros(len(fund_v)) / 0.
 
@@ -210,13 +425,10 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
             else:
                 if idx_v[i1_m[layer][idx1]] - idx_v[ioi_fti] > idx_comp_range*2:
                     continue
-            try:
-                if fund_v[i0_m[layer][idx0]] > fund_v[i1_m[layer][idx1]]:
-                    if 1. * np.abs(fund_v[i0_m[layer][idx0]] - fund_v[i1_m[layer][idx1]]) / ((idx_v[i1_m[layer][idx1]] - idx_v[i0_m[layer][idx0]]) / dps) > 2.:
-                        continue
-            except:
-                embed()
-                quit()
+
+            if fund_v[i0_m[layer][idx0]] > fund_v[i1_m[layer][idx1]]:
+                if 1. * np.abs(fund_v[i0_m[layer][idx0]] - fund_v[i1_m[layer][idx1]]) / ((idx_v[i1_m[layer][idx1]] - idx_v[i0_m[layer][idx0]]) / dps) > 2.:
+                    continue
             else:
                 if 1. * np.abs(fund_v[i0_m[layer][idx0]] - fund_v[i1_m[layer][idx1]]) / ((idx_v[i1_m[layer][idx1]] - idx_v[i0_m[layer][idx0]]) / dps) > 2.:
                     continue
@@ -697,6 +909,22 @@ def get_grid_proportions(data, grid=False, n_tolerance_e=2, verbose=0):
 
 
 def load_matfile(data_file):
+    """
+    loads matlab files trying two possible methodes.
+
+    Parameters
+    ----------
+    data_file: str
+        datapath.
+
+    Returns
+    -------
+    data: array
+        nd-array with the recorded data. Dimensions vary with the used  number of recording electrodes.
+    samplerate: int
+        samplerate of the data
+
+    """
     try:
         import h5py
         mat = h5py.File(data_file)
@@ -712,6 +940,26 @@ def load_matfile(data_file):
 
 
 def include_progress_bar(loop_v, loop_end, taskname ='', next_message=0.00):
+    """
+    creates based on the progress of a loop a progressbar in a linux shell-
+
+    Parameters
+    ----------
+    loop_v: int
+        current loop variable.
+    loop_end: int
+        last loop.
+    taskname: str
+        tasename.
+    next_message: float
+        the proportion when the next message shall be posted.
+
+    Returns
+    -------
+    next_message: float
+        last next_message + 0.05
+
+    """
     if len(taskname) > 30 or taskname == '':
         taskname = '        random task         ' # 30 characters
     else:
@@ -933,9 +1181,10 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
 
 def grid_config_update(cfg):
     cfg['mains_freq'] = 0.
-    cfg['max_fill_ratio'] = 0.5
+    cfg['max_fill_ratio'] = .75
     cfg['min_group_size'] = 2
-    cfg['noise_fac'] = 4
+    cfg['low_thresh_factor'] = 4
+    cfg['high_thresh_factor'] = 8
     cfg['min_peak_width'] = 0.5
     cfg['max_peak_width_fac'] = 9.5
 
@@ -985,7 +1234,7 @@ class Obs_tracker():
 
         # task lists
         self.t_tasks = ['track_snippet', 'track_snippet_live', 'plot_tmp_identities', 'check_tracking']
-        self.c_tasks = ['cut_trace', 'connect_trace', 'delete_trace']
+        self.c_tasks = ['cut_trace', 'connect_trace', 'delete_trace', 'auto connect_traces']
         self.p_tasks = ['part_spec', 'show_powerspectum', 'hide_spectogram', 'show_spectogram']
         self.s_tasks = ['save_plot', 'save_traces']
 
@@ -1149,12 +1398,12 @@ class Obs_tracker():
                 self.text_handles_effect.append(t1)
 
                 t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
-                t1 = self.main_fig.text(0.35, 0.8, '%.2f; x bin std = low Th' % (self.kwargs['noise_fac']))
+                t1 = self.main_fig.text(0.35, 0.8, '%.2f; low th fac' % (self.kwargs['low_thresh_factor']))
                 self.text_handles_key.append(t)
                 self.text_handles_effect.append(t1)
 
                 t = self.main_fig.text(0.3, 0.775, '(ctrl+)4:')
-                t1 = self.main_fig.text(0.35, 0.775, '%.2f; peak_fac' % (self.kwargs['peak_fac']))
+                t1 = self.main_fig.text(0.35, 0.775, '%.2f; high th fac' % (self.kwargs['high_thresh_factor']))
                 self.text_handles_key.append(t)
                 self.text_handles_effect.append(t1)
 
@@ -1439,24 +1688,24 @@ class Obs_tracker():
                     self.current_task = 'update_hg'
 
                 if event.key == '3':
-                    self.kwargs['noise_fac'] -= 1
+                    self.kwargs['low_thresh_factor'] -= 1
                     self.kwargs['low_threshold'] = 0.
                     self.kwargs['high_threshold'] = 0.
                     self.current_task = 'update_hg'
                 if event.key == 'ctrl+3':
-                    self.kwargs['noise_fac'] += 1
+                    self.kwargs['low_thresh_factor'] += 1
                     self.kwargs['low_threshold'] = 0.
                     self.kwargs['high_threshold'] = 0.
                     self.current_task = 'update_hg'
 
                 if event.key == '4':
-                    self.kwargs['peak_fac'] -= 0.1
+                    self.kwargs['high_thresh_factor'] -= 1
                     self.kwargs['low_threshold'] = 0.
                     self.kwargs['high_threshold'] = 0.
                     self.current_task = 'update_hg'
 
                 if event.key == 'ctrl+4':
-                    self.kwargs['peak_fac'] += 0.1
+                    self.kwargs['high_thresh_factor'] += 1
                     self.kwargs['low_threshold'] = 0.
                     self.kwargs['high_threshold'] = 0.
                     self.current_task = 'update_hg'
@@ -1518,6 +1767,11 @@ class Obs_tracker():
                     self.current_task = 'update_hg'
 
         if event.key == 'enter':
+            if self.current_task == 'auto connect_traces':
+                self.ident_v = auto_connect_traces(self.fund_v, self.idx_v, self.ident_v, self.times)
+                self.current_task = None
+                self.plot_traces(clear_traces=True)
+
             if self.current_task == 'hide_spectogram':
                 if self.spec_img_handle:
                     self.spec_img_handle.remove()
@@ -2426,9 +2680,11 @@ def main():
     t_kwargs = grid_config_update(t_kwargs)
 
     if args.transect_data:
-        t_kwargs['noise_fac'] = 6.
-        t_kwargs['peak_fac'] = 1.5
+        t_kwargs['low_thresh_factor'] = 6.
+        t_kwargs['high_thresh_factor'] = 8.
 
+    # embed()
+    # quit()
     fish_tracker(datafile, args.start_time * 60.0, args.end_time * 60.0, args.grid, args.auto, **t_kwargs)
 
 if __name__ == '__main__':
