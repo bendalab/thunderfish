@@ -26,7 +26,7 @@ try:
 except ImportError:
     pass
 
-def auto_connect_traces(fund_v, idx_v, ident_v, times, max_dt=300., max_df=2., max_overlap_n = 0):
+def auto_connect_traces(fund_v, idx_v, ident_v, times, max_dt=30., max_df=.5, max_overlap_n = 0):
     """
     Connects EOD frequency traces that are less than 5 minutes, and more than 5 seconds apart. These traces are not
     connected because of the temporal resolution of the tracking algorithm. For each EOD frequency trace pair the
@@ -493,11 +493,11 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
 
     # _____ exclude frequencies with lower dFs than 0.5Hz from algorythm ______ ###
     # ToDo choose the one with the bigger power
-    for i in range(len(fundamentals)):
-        # include_progress_bar(i, len(fundamentals), 'clear dubble deltections', next_message)
-        mask = np.zeros(len(fundamentals[i]), dtype=bool)
-        order = np.argsort(fundamentals[i])
-        fundamentals[i][order[np.arange(len(mask)-1)[np.diff(sorted(fundamentals[i])) < 0.5]+1]] = 0
+    # for i in range(len(fundamentals)):
+    #     # include_progress_bar(i, len(fundamentals), 'clear dubble deltections', next_message)
+    #     mask = np.zeros(len(fundamentals[i]), dtype=bool)
+    #     order = np.argsort(fundamentals[i])
+    #     fundamentals[i][order[np.arange(len(mask)-1)[np.diff(sorted(fundamentals[i])) < 0.5]+1]] = 0
 
     pre_sort_time = 0.
     sort_time = 0.
@@ -750,8 +750,8 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
     return fund_v, ident_v, idx_v, sign_v, a_error_distribution, f_error_distribution, idx_of_origin_v
 
 
-def add_tracker_config(cfg, data_snippet_secs = 15., nffts_per_psd = 1, fresolution =.5, overlap_frac = .9,
-                       freq_tolerance = 5., rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
+def add_tracker_config(cfg, data_snippet_secs = 15., nffts_per_psd = 1, fresolution =.25, overlap_frac = .95,
+                       freq_tolerance = 5., rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=2.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
 
@@ -1234,7 +1234,7 @@ class Obs_tracker():
 
         # task lists
         self.t_tasks = ['track_snippet', 'track_snippet_live', 'plot_tmp_identities', 'check_tracking']
-        self.c_tasks = ['cut_trace', 'connect_trace', 'delete_trace', 'auto connect_traces']
+        self.c_tasks = ['cut_trace', 'connect_trace', 'delete_trace', 'auto connect_traces', 'group_delete']
         self.p_tasks = ['part_spec', 'show_powerspectum', 'hide_spectogram', 'show_spectogram']
         self.s_tasks = ['save_plot', 'save_traces']
 
@@ -1308,6 +1308,9 @@ class Obs_tracker():
             self.active_ident_handle1 = None
             self.active_ident1 = None
 
+            self.active_indices = []
+            self.active_indices_handle = []
+
             # powerspectrum window and parameters
             self.ps_ax = None
             self.tmp_plothandel_ps = []
@@ -1346,30 +1349,35 @@ class Obs_tracker():
 
         if True:
             if self.current_task:
-                t = self.main_fig.text(0.1, 0.90, 'task: ')
-                t1 = self.main_fig.text(0.2, 0.90, '%s' % self.current_task)
+                t = self.main_fig.text(0.1, 0.925, 'task: ')
+                t1 = self.main_fig.text(0.2, 0.925, '%s' % self.current_task)
                 self.text_handles_key.append(t)
                 self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.1, 0.85,  'h:')
-            t1 = self.main_fig.text(0.15, 0.85,  'home (axis)')
+            t = self.main_fig.text(0.1, 0.875, 'enter:')
+            t1 = self.main_fig.text(0.15, 0.875, 'execute task')
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.1, 0.825, 'enter:')
-            t1 = self.main_fig.text(0.15, 0.825, 'execute task')
+            t = self.main_fig.text(0.1, 0.85, 'ctrl+t:')
+            t1 = self.main_fig.text(0.15, 0.85, 'tracking tasks')
+            self.text_handles_key.append(t)
+            self.text_handles_effect.append(t1)
+
+            t = self.main_fig.text(0.1, 0.825,  'c:')
+            t1 = self.main_fig.text(0.15, 0.825,  'correction tasks')
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
             # t = self.main_fig.text(0.1, 0.8,  'e:')
             # t1 = self.main_fig.text(0.15, 0.8, 'embed')
             t = self.main_fig.text(0.1, 0.8, 'p:')
-            t1 = self.main_fig.text(0.15, 0.8, 'calc/show PSD')
+            t1 = self.main_fig.text(0.15, 0.8, 'spectral tasks')
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.1, 0.775, 's:')
-            t1 = self.main_fig.text(0.15, 0.775, 'create part spectrogram')
+            t = self.main_fig.text(0.1, 0.775, 's/l:')
+            t1 = self.main_fig.text(0.15, 0.775, 'save/load arrays or plots')
             self.text_handles_key.append(t)
             self.text_handles_effect.append(t1)
 
@@ -1767,6 +1775,12 @@ class Obs_tracker():
                     self.current_task = 'update_hg'
 
         if event.key == 'enter':
+            if self.current_task == 'group_delete':
+                self.group_delete()
+                # self.current_task = None
+                self.plot_traces(clear_traces=True)
+
+
             if self.current_task == 'auto connect_traces':
                 self.ident_v = auto_connect_traces(self.fund_v, self.idx_v, self.ident_v, self.times)
                 self.current_task = None
@@ -1885,6 +1899,9 @@ class Obs_tracker():
                 if self.ps_ax:
                     ylims = self.main_ax.get_ylim()
                     self.ps_ax.set_ylim([ylims[0], ylims[1]])
+
+            if len(self.active_indices) > 0:
+                self.active_indices = []
 
             if self.active_fundamental0_0_handle:
                 self.active_fundamental0_0 = None
@@ -2025,7 +2042,12 @@ class Obs_tracker():
                     # self.active_vec_idx_handle, = self.main_ax.plot(self.time[self.idx_v[t_idx]], self.fund_v[self.idx_v == t_idx][f_idx], 'o', color='red', markersize=4)
                     self.active_vec_idx_handle, = self.main_ax.plot(self.times[t_idx], self.fund_v[self.active_vec_idx], 'o', color='red', markersize=4)
 
-            if self.current_task in ['connect_trace', 'delete_trace', 'zoom', 'cut_trace']:
+            if self.current_task in ['connect_trace', 'delete_trace', 'zoom', 'cut_trace', 'group_delete']:
+                if self.current_task == 'group_delete':
+                    if self.active_indices_handle:
+                        self.active_indices_handle.remove()
+                        self.active_indices_handle = None
+
                 self.x = (event.xdata, 0)
                 self.y = (event.ydata, 0)
 
@@ -2084,6 +2106,23 @@ class Obs_tracker():
 
     def buttonrelease(self, event):
         if event.inaxes == self.main_ax:
+            if self.current_task == 'group_delete':
+                if event.button == 1:
+                    self.x = (self.x[0], event.xdata)
+                    self.y = (self.y[0], event.ydata)
+
+                    # self.active_indices = np.arange(len(self.fund_v))[(self.fund_v >= np.min(self.y)) &
+                    #                                                   (self.fund_v < np.max(self.y)) &
+                    #                                                     (self.times[self.idx_v] >= np.min(self.x)),
+                    #                                                   (self.times[self.idx_v] < np.max(self.x))]
+                    self.active_indices = np.arange(len(self.fund_v))[
+                        (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
+                                self.times[self.idx_v] >= np.min(self.x)) & (self.times[self.idx_v] < np.max(self.x))]
+                    self.active_indices = self.active_indices[~np.isnan(self.ident_v[self.active_indices])]
+
+                    self.active_indices_handle, = self.main_ax.plot(self.times[self.idx_v[self.active_indices]], self.fund_v[self.active_indices], 'o', color='orange')
+
+
             if self.current_task == 'delete_trace':
                 if event.button == 1:
                     self.x = (self.x[0], event.xdata)
@@ -2189,22 +2228,6 @@ class Obs_tracker():
         self.key_options()
         self.main_fig.canvas.draw()
 
-    def connect_trace(self):
-
-        overlapping_idxs = [x for x in self.idx_v[self.ident_v == self.active_ident0] if x in self.idx_v[self.ident_v == self.active_ident1]]
-
-        # self.ident_v[(self.idx_v == overlapping_idxs) & (self.ident_v == self.active_ident0)] = np.nan
-        self.ident_v[(np.in1d(self.idx_v, np.array(overlapping_idxs))) & (self.ident_v == self.active_ident0)] = np.nan
-        self.ident_v[self.ident_v == self.active_ident1] = self.active_ident0
-
-        self.plot_traces(clear_traces=False, refresh=True)
-
-        self.active_ident_handle0.remove()
-        self.active_ident_handle0 = None
-
-        self.active_ident_handle1.remove()
-        self.active_ident_handle1 = None
-
     def save_traces(self):
         folder = os.path.split(self.data_file)[0]
         np.save(os.path.join(folder, 'fund_v.npy'), self.fund_v)
@@ -2241,6 +2264,23 @@ class Obs_tracker():
 
             self.plot_traces(clear_traces=True)
 
+    def connect_trace(self):
+
+        # overlapping_idxs = [x for x in self.idx_v[self.ident_v == self.active_ident0] if x in self.idx_v[self.ident_v == self.active_ident1]]
+        overlapping_idxs = np.intersect1d(self.idx_v[self.ident_v == self.active_ident0], self.idx_v[self.ident_v == self.active_ident1])
+
+        # self.ident_v[(self.idx_v == overlapping_idxs) & (self.ident_v == self.active_ident0)] = np.nan
+        self.ident_v[(np.in1d(self.idx_v, np.array(overlapping_idxs))) & (self.ident_v == self.active_ident0)] = np.nan
+        self.ident_v[self.ident_v == self.active_ident1] = self.active_ident0
+
+        self.plot_traces(clear_traces=False, post_connect=True)
+
+        self.active_ident_handle0.remove()
+        self.active_ident_handle0 = None
+
+        self.active_ident_handle1.remove()
+        self.active_ident_handle1 = None
+
     def cut_trace(self):
         next_ident = np.max(self.ident_v[~np.isnan(self.ident_v)]) + 1
         self.ident_v[(self.ident_v == self.active_ident0) & (self.idx_v < self.idx_v[self.active_fundamental0_0])] = next_ident
@@ -2252,15 +2292,24 @@ class Obs_tracker():
         self.active_fundamental0_0_handle = None
         self.active_fundamental0_0 = None
 
-        self.plot_traces(clear_traces=True)
+        # self.plot_traces(clear_traces=True)
+        self.plot_traces(clear_traces=False, post_cut=True)
 
     def delete_trace(self):
         self.ident_v[self.ident_v == self.active_ident0] = np.nan
+        self.plot_traces(clear_traces=False, post_delete=True)
         self.active_ident0 = None
         self.active_ident_handle0.remove()
         self.active_ident_handle0 = None
 
-        self.plot_traces(clear_traces=True)
+        # self.plot_traces(clear_traces=True)
+
+    def group_delete(self):
+        self.ident_v[self.active_indices] = np.nan
+        self.active_indices = []
+        self.active_indices_handle.remove()
+        self.active_indices_handle = None
+
 
     def save_plot(self):
         self.main_ax.set_position([.1, .1, .8, .8])
@@ -2416,16 +2465,38 @@ class Obs_tracker():
         self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
         self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
 
-    def plot_traces(self, clear_traces = False, refresh= False):
+    def plot_traces(self, clear_traces = False, post_connect= False, post_cut=False, post_delete=False):
         """
         shows/updates/deletes all frequency traces of individually tracked fish in a plot.
 
         :param clear_traces: (bool) if true removes all preiouly plotted traces before plotting the new ones
-        :param refresh: (bool) refreshes/deletes single identity traces previously selected and stored in class variables.
+        :param post_connect: (bool) refreshes/deletes single identity traces previously selected and stored in class variables.
         """
         # self.main_ax.imshow(10.0 * np.log10(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000], aspect='auto', alpha=0.7)
-        if refresh:
-            # embed()
+        if post_delete:
+            handle_idents = np.array([x[1] for x in self.trace_handles])
+            delete_handle_idx = np.arange(len(self.trace_handles))[handle_idents == self.active_ident0][0]
+            delete_handle = np.array(self.trace_handles)[handle_idents == self.active_ident0][0]
+            delete_handle[0].remove()
+
+            self.trace_handles.pop(delete_handle_idx)
+
+        if post_cut:
+            handle_idents = np.array([x[1] for x in self.trace_handles])
+            refresh_handle = np.array(self.trace_handles)[handle_idents == self.active_ident0][0]
+            refresh_handle[0].remove()
+
+            c = np.random.rand(3)
+            h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == self.active_ident0]], self.fund_v[self.ident_v == self.active_ident0], marker='.', color=c)
+            self.trace_handles[np.arange(len(self.trace_handles))[handle_idents == self.active_ident0][0]] = (h, self.active_ident0)
+
+            new_ident = np.max(self.ident_v[~np.isnan(self.ident_v)])
+            c = np.random.rand(3)
+            h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == new_ident]], self.fund_v[self.ident_v == new_ident], marker='.', color=c)
+            self.trace_handles.append((h, new_ident))
+
+        if post_connect:
+            # embed()s
             # quit()
             handle_idents = np.array([x[1] for x in self.trace_handles])
 
