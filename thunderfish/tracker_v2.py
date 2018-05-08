@@ -1234,7 +1234,8 @@ class Obs_tracker():
 
         # task lists
         self.t_tasks = ['track_snippet', 'track_snippet_live', 'plot_tmp_identities', 'check_tracking']
-        self.c_tasks = ['cut_trace', 'connect_trace', 'delete_trace', 'auto connect_traces', 'group_delete']
+        self.c_tasks = ['cut_trace', 'connect_trace', 'auto connect_traces']
+        self.d_tasks = ['delete_trace', 'group_delete', 'delete_noise']
         self.p_tasks = ['part_spec', 'show_powerspectum', 'hide_spectogram', 'show_spectogram']
         self.s_tasks = ['save_plot', 'save_traces']
 
@@ -1282,6 +1283,7 @@ class Obs_tracker():
             self.spec_img_handle = None
 
             self.tmp_plothandel_main = None  # red line
+            self.tmp_plothandel_ps = None  # red line
             self.trace_handles = []
             self.tmp_trace_handels = []
 
@@ -1616,6 +1618,10 @@ class Obs_tracker():
         if event.key in 'e':
             embed()
 
+        if event.key in 'd':
+            self.current_task = self.d_tasks[0]
+            self.d_tasks = np.roll(self.d_tasks, -1)
+
         if event.key in 'p':
             self.current_task = self.p_tasks[0]
             self.p_tasks = np.roll(self.p_tasks, -1)
@@ -1780,7 +1786,6 @@ class Obs_tracker():
                 # self.current_task = None
                 self.plot_traces(clear_traces=True)
 
-
             if self.current_task == 'auto connect_traces':
                 self.ident_v = auto_connect_traces(self.fund_v, self.idx_v, self.ident_v, self.times)
                 self.current_task = None
@@ -1801,6 +1806,35 @@ class Obs_tracker():
                     self.main_ax.set_xlabel('time [s]', fontsize=12)
                     self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
 
+            if self.current_task == 'delete_noise':
+                if self.active_indices_handle:
+                    self.ident_v[self.active_indices] = np.nan
+                    self.active_indices_handle.remove()
+                    self.active_indices_handle = None
+                    self.plot_traces(clear_traces=True)
+
+                min_x, max_x = self.main_ax.get_xlim()
+                min_y, max_y = self.main_ax.get_ylim()
+                self.iois = np.arange(len(self.fund_v))[(self.times[self.idx_v] >= min_x) & (self.times[self.idx_v] < max_x) & (self.fund_v >= min_y) & (self.fund_v < max_y)]
+                self.iois = self.iois[~np.isnan(self.ident_v[self.iois])]
+                self.min_max = np.max(self.sign_v[self.iois], axis=1) -  np.min(self.sign_v[self.iois], axis=1)
+
+                if self.ps_ax:
+                    self.main_fig.delaxes(self.ps_ax)
+                    self.ps_ax = None
+                    self.tmp_plothandel_ps = []
+                    self.all_peakf_dots = None
+                    self.good_peakf_dots = None
+                    self.main_ax.set_position([.1, .1, .8, .6])
+                self.main_ax.set_position([.1, .1, .5, .6])
+                self.ps_ax = self.main_fig.add_axes([.6, .1, .3, .6])
+                # self.ps_ax.set_yticks([])
+                self.ps_ax.yaxis.tick_right()
+                self.ps_ax.yaxis.set_label_position("right")
+                self.ps_ax.set_ylabel('frequency [Hz]', fontsize=12)
+                self.ps_ax.set_xlabel('max - min power', fontsize=12)
+                self.ps_handle, = self.ps_ax.plot(self.min_max, self.fund_v[self.iois], '.')
+                self.ps_ax.set_ylim(self.main_ax.get_ylim())
 
             if self.current_task == 'load_traces':
                 self.load_trace()
@@ -1902,6 +1936,10 @@ class Obs_tracker():
 
             if len(self.active_indices) > 0:
                 self.active_indices = []
+
+            if self.active_indices_handle:
+                self.active_indices_handle.remove()
+                self.active_indices_handle = None
 
             if self.active_fundamental0_0_handle:
                 self.active_fundamental0_0 = None
@@ -2066,40 +2104,57 @@ class Obs_tracker():
                                                                            markersize=4)
 
         if self.ps_ax and event.inaxes == self.ps_ax:
-            if not self.active_harmonic:
-                self.active_harmonic = 1.
+            if self.current_task == 'delete_noise':
+                if event.button == 1:
+                    x = event.xdata
+                    self.noi = np.argmin(np.abs(self.times-x))
 
-            if event.button == 1:
-                plot_power = decibel(self.power)
-                y = event.ydata
-                active_all_freq = self.all_peakf[:, 0][np.argsort(np.abs(self.all_peakf[:, 0] - y))][0]
+                    y_lims = self.ps_ax.get_ylim()
+                    if self.tmp_plothandel_ps:
+                        self.tmp_plothandel_ps.remove()
+                    self.tmp_plothandel_ps, = self.ps_ax.plot([x, x], [y_lims[0], y_lims[1]], color='red', linewidth='2')
+                # print('wuff')
+                self.active_indices = self.iois[self.min_max <=     x]
+                if self.active_indices_handle:
+                    self.active_indices_handle.remove()
+                self.active_indices_handle, = self.main_ax.plot(self.times[self.idx_v[self.active_indices]], self.fund_v[self.active_indices], 'o', color='orange')
 
-                plot_harmonics = np.arange(active_all_freq, 3000, active_all_freq)
 
-                if self.tmp_harmonics_plot:
-                    self.tmp_harmonics_plot.remove()
+            else:
+                if not self.active_harmonic:
+                    self.active_harmonic = 1.
 
-                self.tmp_harmonics_plot, = self.ps_ax.plot(np.ones(len(plot_harmonics)) * np.max(plot_power[self.freqs <= 3000.0]) + 10., plot_harmonics, 'o', color='k')
+                if event.button == 1:
+                    plot_power = decibel(self.power)
+                    y = event.ydata
+                    active_all_freq = self.all_peakf[:, 0][np.argsort(np.abs(self.all_peakf[:, 0] - y))][0]
 
-                current_ylim = self.ps_ax.get_ylim()
-                self.ps_ax.set_ylim([current_ylim[0] + active_all_freq / self.active_harmonic, current_ylim[1] + active_all_freq / self.active_harmonic])
-                self.active_harmonic += 1
+                    plot_harmonics = np.arange(active_all_freq, 3000, active_all_freq)
 
-            if event.button == 3:
-                plot_power = decibel(self.power)
-                y = event.ydata
-                active_all_freq = self.all_peakf[:, 0][np.argsort(np.abs(self.all_peakf[:, 0] - y))][0]
+                    if self.tmp_harmonics_plot:
+                        self.tmp_harmonics_plot.remove()
 
-                plot_harmonics = np.arange(active_all_freq, 3000, active_all_freq)
+                    self.tmp_harmonics_plot, = self.ps_ax.plot(np.ones(len(plot_harmonics)) * np.max(plot_power[self.freqs <= 3000.0]) + 10., plot_harmonics, 'o', color='k')
 
-                if self.tmp_harmonics_plot:
-                    self.tmp_harmonics_plot.remove()
+                    current_ylim = self.ps_ax.get_ylim()
+                    self.ps_ax.set_ylim([current_ylim[0] + active_all_freq / self.active_harmonic, current_ylim[1] + active_all_freq / self.active_harmonic])
+                    self.active_harmonic += 1
 
-                self.tmp_harmonics_plot, = self.ps_ax.plot(np.ones(len(plot_harmonics)) * np.max(plot_power[self.freqs <= 3000.0]) + 10., plot_harmonics, 'o', color='k')
+                if event.button == 3:
+                    plot_power = decibel(self.power)
+                    y = event.ydata
+                    active_all_freq = self.all_peakf[:, 0][np.argsort(np.abs(self.all_peakf[:, 0] - y))][0]
 
-                current_ylim = self.ps_ax.get_ylim()
-                self.ps_ax.set_ylim([current_ylim[0] - active_all_freq / self.active_harmonic, current_ylim[1] - active_all_freq / self.active_harmonic])
-                self.active_harmonic -= 1
+                    plot_harmonics = np.arange(active_all_freq, 3000, active_all_freq)
+
+                    if self.tmp_harmonics_plot:
+                        self.tmp_harmonics_plot.remove()
+
+                    self.tmp_harmonics_plot, = self.ps_ax.plot(np.ones(len(plot_harmonics)) * np.max(plot_power[self.freqs <= 3000.0]) + 10., plot_harmonics, 'o', color='k')
+
+                    current_ylim = self.ps_ax.get_ylim()
+                    self.ps_ax.set_ylim([current_ylim[0] - active_all_freq / self.active_harmonic, current_ylim[1] - active_all_freq / self.active_harmonic])
+                    self.active_harmonic -= 1
 
         self.key_options()
         self.main_fig.canvas.draw()
@@ -2310,7 +2365,6 @@ class Obs_tracker():
         self.active_indices_handle.remove()
         self.active_indices_handle = None
 
-
     def save_plot(self):
         self.main_ax.set_position([.1, .1, .8, .8])
         if self.ps_ax:
@@ -2496,8 +2550,6 @@ class Obs_tracker():
             self.trace_handles.append((h, new_ident))
 
         if post_connect:
-            # embed()s
-            # quit()
             handle_idents = np.array([x[1] for x in self.trace_handles])
 
             remove_handle = np.array(self.trace_handles)[handle_idents == self.active_ident1][0]
