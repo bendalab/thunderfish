@@ -1630,7 +1630,7 @@ class Obs_tracker():
                 # self.main_ax = self.main_fig.add_axes([.1, .1, .8, .6])
                 self.spec_img_handle.remove()
                 self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
-                                    aspect='auto', alpha=0.7)
+                                    aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
                 self.main_ax.set_xlim([self.start_time, self.end_time])
                 self.main_ax.set_ylim([0, 2000])
                 self.main_ax.set_xlabel('time')
@@ -1833,7 +1833,7 @@ class Obs_tracker():
                         self.spec_img_handle.remove()
                     self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1],
                                                                extent=[self.start_time, self.end_time, 0, 2000],
-                                                               aspect='auto', alpha=0.7)
+                                                               aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
                     self.main_ax.set_xlabel('time', fontsize=12)
                     self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
 
@@ -2350,7 +2350,7 @@ class Obs_tracker():
             if self.spec_img_handle:
                 self.spec_img_handle.remove()
             self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
-                                aspect='auto', alpha=0.7)
+                                aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
             self.main_ax.set_xlabel('time', fontsize=12)
             self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
             self.main_ax.set_xlim([self.start_time, self.end_time])
@@ -2545,7 +2545,7 @@ class Obs_tracker():
             # self.main_ax = self.main_fig.add_axes([.1, .1, .8, .6])
             self.spec_img_handle = self.main_ax.imshow(decibel(self.part_spectra)[::-1],
                                                        extent=[limitations[0], limitations[1], min_freq, max_freq],
-                                                       aspect='auto', alpha=0.7)
+                                                       aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
             self.main_ax.set_xlabel('time', fontsize=12)
             self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
             self.main_ax.tick_params(labelsize=10)
@@ -2557,7 +2557,7 @@ class Obs_tracker():
 
             if not self.auto:
                 self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
-                                    aspect='auto', alpha=0.7)
+                                    aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
                 self.main_ax.set_xlabel('time', fontsize=12)
                 self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
                 self.main_ax.tick_params(labelsize=10)
