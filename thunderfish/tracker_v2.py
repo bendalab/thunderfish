@@ -1570,7 +1570,6 @@ class Obs_tracker():
     def keypress(self, event):
         self.key_options()
         if event.key == 'ctrl+backspace':
-            print('rewrote ident_v')
             self.ident_v = self.last_ident_v
             self.plot_traces(clear_traces=True)
 
@@ -1699,7 +1698,7 @@ class Obs_tracker():
                 self.kwargs['nffts_per_psd'] += 1
 
         else:
-            if self.ps_ax:
+            if self.ps_ax and not self.current_task == 'delete_noise':
                 if event.key == '1':
                     self.kwargs['high_threshold'] -= 2.5
                     self.current_task = 'update_hg'
@@ -1827,7 +1826,8 @@ class Obs_tracker():
                     self.ident_v[self.active_indices] = np.nan
                     self.active_indices_handle.remove()
                     self.active_indices_handle = None
-                    self.plot_traces(clear_traces=True)
+                    # self.plot_traces(clear_traces=True)
+                    self.plot_traces(post_group_delete=True)
 
                 min_x, max_x = self.main_ax.get_xlim()
                 min_y, max_y = self.main_ax.get_ylim()
