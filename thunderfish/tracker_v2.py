@@ -1211,6 +1211,7 @@ class Obs_tracker():
         # primary tracking vectors
         self.fund_v = None
         self.ident_v = None
+        self.last_ident_v = None
         self.idx_v = None
         self.sign_v = None
         self.idx_of_origin_v = None
@@ -1338,6 +1339,8 @@ class Obs_tracker():
 
             # get prim spectrum and plot it...
             self.plot_spectrum()
+
+            self.get_clock_time()
 
             plt.show()
 
@@ -1566,12 +1569,18 @@ class Obs_tracker():
 
     def keypress(self, event):
         self.key_options()
+        if event.key == 'ctrl+backspace':
+            print('rewrote ident_v')
+            self.ident_v = self.last_ident_v
+            self.plot_traces(clear_traces=True)
+
         if event.key == 'backspace':
             if hasattr(self.last_xy_lims, '__len__'):
                 self.main_ax.set_xlim(self.last_xy_lims[0][0], self.last_xy_lims[0][1])
                 self.main_ax.set_ylim(self.last_xy_lims[1][0], self.last_xy_lims[1][1])
                 if self.ps_ax:
                     self.ps_ax.set_ylim(self.last_xy_lims[1])
+                self.get_clock_time()
         if event.key == 'up':
             ylims = self.main_ax.get_ylim()
             self.main_ax.set_ylim(ylims[0] + 0.5* (ylims[1]-ylims[0]), ylims[1] + 0.5* (ylims[1]-ylims[0]))
@@ -1587,10 +1596,12 @@ class Obs_tracker():
         if event.key == 'right':
             xlims = self.main_ax.get_xlim()
             self.main_ax.set_xlim(xlims[0] + 0.5* (xlims[1]-xlims[0]), xlims[1] + 0.5* (xlims[1]-xlims[0]))
+            self.get_clock_time()
 
         if event.key == 'left':
             xlims = self.main_ax.get_xlim()
             self.main_ax.set_xlim(xlims[0] - 0.5* (xlims[1]-xlims[0]), xlims[1] - 0.5* (xlims[1]-xlims[0]))
+            self.get_clock_time()
 
         if event.key in 'b':
             self.current_task = 'save_plot'
@@ -1612,8 +1623,10 @@ class Obs_tracker():
                                     aspect='auto', alpha=0.7)
                 self.main_ax.set_xlim([self.start_time, self.end_time])
                 self.main_ax.set_ylim([0, 2000])
-                self.main_ax.set_xlabel('time [s]')
+                self.main_ax.set_xlabel('time')
                 self.main_ax.set_ylabel('frequency [Hz]')
+
+            self.get_clock_time()
 
         if event.key in 'e':
             embed()
@@ -1782,9 +1795,11 @@ class Obs_tracker():
 
         if event.key == 'enter':
             if self.current_task == 'group_delete':
+                self.last_ident_v = np.copy(self.ident_v)
                 self.group_delete()
                 # self.current_task = None
-                self.plot_traces(clear_traces=True)
+                # self.plot_traces(clear_traces=True)
+                self.plot_traces(post_group_delete=True)
 
             if self.current_task == 'auto connect_traces':
                 self.ident_v = auto_connect_traces(self.fund_v, self.idx_v, self.ident_v, self.times)
@@ -1803,11 +1818,12 @@ class Obs_tracker():
                     self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1],
                                                                extent=[self.start_time, self.end_time, 0, 2000],
                                                                aspect='auto', alpha=0.7)
-                    self.main_ax.set_xlabel('time [s]', fontsize=12)
+                    self.main_ax.set_xlabel('time', fontsize=12)
                     self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
 
             if self.current_task == 'delete_noise':
                 if self.active_indices_handle:
+                    self.last_ident_v = np.copy(self.ident_v)
                     self.ident_v[self.active_indices] = np.nan
                     self.active_indices_handle.remove()
                     self.active_indices_handle = None
@@ -1846,14 +1862,17 @@ class Obs_tracker():
 
             if self.current_task == 'connect_trace':
                 if self.active_ident_handle0 and self.active_ident_handle1:
+                    self.last_ident_v = np.copy(self.ident_v)
                     self.connect_trace()
 
             if self.current_task == 'cut_trace':
                 if self.active_ident_handle0 and self.active_fundamental0_0:
+                    self.last_ident_v = np.copy(self.ident_v)
                     self.cut_trace()
 
             if self.current_task == 'delete_trace':
                 if self.active_ident_handle0:
+                    self.last_ident_v = np.copy(self.ident_v)
                     self.delete_trace()
 
             if self.current_task == 'save_plot':
@@ -1985,7 +2004,7 @@ class Obs_tracker():
                     y_lims = self.main_ax.get_ylim()
                     if self.tmp_plothandel_main:
                         self.tmp_plothandel_main.remove()
-                    self.tmp_plothandel_main, = self.main_ax.plot([self.times[self.ioi], self.times[self.ioi]], [y_lims[0], y_lims[1]], color='red', linewidth='2')
+                    self.tmp_plothandel_main, = self.main_ax.plot([self.times[self.ioi], self.times[self.ioi]], [y_lims[0], y_lims[1]], color='red', linewidth=2)
 
             if self.current_task == 'check_tracking' and hasattr(self.fundamentals, '__len__'):
 
@@ -2112,9 +2131,9 @@ class Obs_tracker():
                     y_lims = self.ps_ax.get_ylim()
                     if self.tmp_plothandel_ps:
                         self.tmp_plothandel_ps.remove()
-                    self.tmp_plothandel_ps, = self.ps_ax.plot([x, x], [y_lims[0], y_lims[1]], color='red', linewidth='2')
+                    self.tmp_plothandel_ps, = self.ps_ax.plot([x, x], [y_lims[0], y_lims[1]], color='red', linewidth=2)
                 # print('wuff')
-                self.active_indices = self.iois[self.min_max <=     x]
+                self.active_indices = self.iois[self.min_max <= x]
                 if self.active_indices_handle:
                     self.active_indices_handle.remove()
                 self.active_indices_handle, = self.main_ax.plot(self.times[self.idx_v[self.active_indices]], self.fund_v[self.active_indices], 'o', color='orange')
@@ -2278,6 +2297,8 @@ class Obs_tracker():
 
                     self.ps_ax.set_ylim(np.array(self.y)[np.argsort(self.y)])
 
+                self.get_clock_time()
+
 
 
         self.key_options()
@@ -2313,11 +2334,13 @@ class Obs_tracker():
                 self.spec_img_handle.remove()
             self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
                                 aspect='auto', alpha=0.7)
-            self.main_ax.set_xlabel('time [s]', fontsize=12)
+            self.main_ax.set_xlabel('time', fontsize=12)
             self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
             self.main_ax.set_xlim([self.start_time, self.end_time])
 
             self.plot_traces(clear_traces=True)
+
+            self.get_clock_time()
 
     def connect_trace(self):
 
@@ -2361,7 +2384,7 @@ class Obs_tracker():
 
     def group_delete(self):
         self.ident_v[self.active_indices] = np.nan
-        self.active_indices = []
+        # self.active_indices = []
         self.active_indices_handle.remove()
         self.active_indices_handle = None
 
@@ -2379,6 +2402,68 @@ class Obs_tracker():
             self.main_fig.texts.remove(j)
         self.text_handles_key = []
         self.text_handles_effect = []
+
+        for handle in self.trace_handles:
+            handle[0].remove()
+        self.trace_handles = []
+
+        possible_identities = np.unique(self.ident_v[~np.isnan(self.ident_v)])
+        for ident in np.array(possible_identities):
+            c = np.random.rand(3)
+            h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]], self.fund_v[self.ident_v == ident],
+                                   marker='.', color=c, markersize=1)
+            self.trace_handles.append((h, ident))
+
+        # time_extend = np.diff(self.main_ax.get_xlim())[0]
+        # time_str = os.path.split(self.data_file)[0][-5:].replace('_', '').replace(':', '')
+        # h = int(time_str[0:2])
+        # m = int(time_str[2:])
+        #
+        # start_m = h * 60 + m
+        #
+        # first_h = h
+        # first_m = m
+        # first_s = 0
+        # if time_extend <= 600.: # marker jede minute
+        #     x_steps = 60
+        #     pass
+        # elif time_extend > 600. and time_extend <= 3600.: # marker alle 10 min
+        #     x_steps = 600
+        #     if m % 10 != 0:
+        #         first_h = h
+        #         first_m = m + (10 - m % 10)
+        #         first_s = (10 - m % 10) * 60
+        #         if first_m >= 60:
+        #             first_m -= 60
+        #             first_h += 1
+        #         if first_h >= 24:
+        #             first_h -= 24
+        # else: # marker alle halbe stunde
+        #     x_steps = 1800
+        #     if m % 30 != 0:
+        #         first_h = h
+        #         first_m = m + (30 - m % 30)
+        #         first_s = (30 - m % 30) * 60
+        #         if first_m >= 60:
+        #             first_m -= 60
+        #             first_h += 1
+        #         if first_h >= 24:
+        #             first_h -= 24
+        #
+        # possible_timestamps = np.arange(first_s, self.times[-1], x_steps)
+        # use_timestamps_s_origin = possible_timestamps[(possible_timestamps > self.main_ax.get_xlim()[0]) & (possible_timestamps < self.main_ax.get_xlim()[1])]
+        # use_timestamps = use_timestamps_s_origin / 60. + start_m
+        # use_timestamps[use_timestamps >= 3600.] -= 3600.
+        #
+        # x_ticks = ['%2.f:%2.f' %(x // 60, x % 60)  for x in use_timestamps]
+        # x_ticks = [x.replace(' ', '0') for x in x_ticks]
+        #
+        # self.main_ax.set_xticks(use_timestamps_s_origin)
+        # self.main_ax.set_xticklabels(x_ticks)
+        # plt.tight_layout()
+
+        # embed()
+        # quit()
 
         if self.f_error_ax:
             self.main_fig.delaxes(self.f_error_ax)
@@ -2398,6 +2483,18 @@ class Obs_tracker():
 
         self.main_fig.set_size_inches(55. / 2.54, 30. / 2.54)
         self.main_ax.set_position([.1, .1, .8, .6])
+        for handle in self.trace_handles:
+            handle[0].remove()
+        self.trace_handles = []
+
+        possible_identities = np.unique(self.ident_v[~np.isnan(self.ident_v)])
+        for ident in np.array(possible_identities):
+            c = np.random.rand(3)
+            h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]], self.fund_v[self.ident_v == ident],
+                                   marker='.', color=c)
+            self.trace_handles.append((h, ident))
+
+
         self.main_fig.canvas.draw()
 
     def plot_spectrum(self, part_spec = False):
@@ -2418,7 +2515,7 @@ class Obs_tracker():
             self.spec_img_handle = self.main_ax.imshow(decibel(self.part_spectra)[::-1],
                                                        extent=[limitations[0], limitations[1], min_freq, max_freq],
                                                        aspect='auto', alpha=0.7)
-            self.main_ax.set_xlabel('time [s]', fontsize=12)
+            self.main_ax.set_xlabel('time', fontsize=12)
             self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
             self.main_ax.tick_params(labelsize=10)
         else:
@@ -2430,7 +2527,7 @@ class Obs_tracker():
             if not self.auto:
                 self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
                                     aspect='auto', alpha=0.7)
-                self.main_ax.set_xlabel('time [s]', fontsize=12)
+                self.main_ax.set_xlabel('time', fontsize=12)
                 self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
                 self.main_ax.tick_params(labelsize=10)
 
@@ -2519,7 +2616,7 @@ class Obs_tracker():
         self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
         self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
 
-    def plot_traces(self, clear_traces = False, post_connect= False, post_cut=False, post_delete=False):
+    def plot_traces(self, clear_traces = False, post_connect= False, post_cut=False, post_delete=False, post_group_delete=False):
         """
         shows/updates/deletes all frequency traces of individually tracked fish in a plot.
 
@@ -2527,6 +2624,32 @@ class Obs_tracker():
         :param post_connect: (bool) refreshes/deletes single identity traces previously selected and stored in class variables.
         """
         # self.main_ax.imshow(10.0 * np.log10(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000], aspect='auto', alpha=0.7)
+        if post_group_delete:
+            handle_idents = np.array([x[1] for x in self.trace_handles])
+            effected_idents = np.unique(self.last_ident_v[self.active_indices])
+            mask = np.array([x in effected_idents for x in handle_idents], dtype=bool)
+            delete_handle_idx = np.arange(len(self.trace_handles))[mask]
+            delete_handle = np.array(self.trace_handles)[mask]
+
+            delete_afterwards = []
+
+            for dhi, dh in zip(delete_handle_idx, delete_handle):
+                dh[0].remove()
+                if len(self.ident_v[self.ident_v == dh[1]]) >= 1:
+                    c = np.random.rand(3)
+                    h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == dh[1]]], self.fund_v[self.ident_v == dh[1]], marker='.', color=c)
+                    self.trace_handles[dhi] = (h, dh[1])
+                else:
+                    delete_afterwards.append(dhi)
+
+            for i in reversed(sorted(delete_afterwards)):
+                self.trace_handles.pop(i)
+            # embed()
+            # quit()
+
+
+
+            self.active_indices = []
         if post_delete:
             handle_idents = np.array([x[1] for x in self.trace_handles])
             delete_handle_idx = np.arange(len(self.trace_handles))[handle_idents == self.active_ident0][0]
@@ -2701,6 +2824,48 @@ class Obs_tracker():
 
         ylims = self.main_ax.get_ylim()
         self.ps_ax.set_ylim([ylims[0], ylims[1]])
+
+    def get_clock_time(self):
+        time_extend = np.diff(self.main_ax.get_xlim())[0]
+        time_str = os.path.split(self.data_file)[0][-5:].replace('_', '').replace(':', '')
+        h = int(time_str[0:2])
+        m = int(time_str[2:])
+
+        start_m = h * 60 + m
+        first_s = 0
+
+        if time_extend <= 1200.:  # bis 20 min ... marker jede minute
+            x_steps = 60
+            pass
+        elif time_extend > 1200. and time_extend <= 2700.:  # bis 90 min ... marker alle 5 min
+            x_steps = 300
+            if m % 5 != 0:
+                first_s = (5 - m % 5) * 60
+        elif time_extend > 2700. and time_extend <= 5400.: #  bis 3h ... marker alle 10 min
+            x_steps = 600
+            if m % 10 != 0:
+                first_s = (10 - m % 10) * 60
+        elif time_extend > 5400. and time_extend <= 21600.: #  bis 6h ... marker alle 15 min
+            x_steps = 900
+            if m % 15 != 0:
+                first_s = (15 - m % 15) * 60
+        else:  # marker alle halbe stunde
+            x_steps = 3600
+            if m % 60 != 0:
+                first_s = (60 - m % 60) * 60
+
+
+        possible_timestamps = np.arange(first_s, self.times[-1], x_steps)
+        use_timestamps_s_origin = possible_timestamps[
+            (possible_timestamps > self.main_ax.get_xlim()[0]) & (possible_timestamps < self.main_ax.get_xlim()[1])]
+        use_timestamps = use_timestamps_s_origin / 60. + start_m
+        use_timestamps[use_timestamps >= 3600.] -= 3600.
+
+        x_ticks = ['%2.f:%2.f' % ((x // 60) % 24, x % 60) for x in use_timestamps]
+        x_ticks = [x.replace(' ', '0') for x in x_ticks]
+
+        self.main_ax.set_xticks(use_timestamps_s_origin)
+        self.main_ax.set_xticklabels(x_ticks)
 
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, auto = False, data_snippet_secs=15., verbose=0, **kwargs):
     """
