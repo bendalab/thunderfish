@@ -1569,6 +1569,17 @@ class Obs_tracker():
 
     def keypress(self, event):
         self.key_options()
+        if event.key == 'ctrl+s':
+            self.current_task = 'saving traces ... please wait'
+            self.key_options()
+            self.main_fig.canvas.draw()
+
+            self.save_traces()
+
+            self.current_task = None
+            self.key_options()
+            self.main_fig.canvas.draw()
+
         if event.key == 'ctrl+backspace':
             self.ident_v = self.last_ident_v
             self.plot_traces(clear_traces=True)
@@ -2664,7 +2675,7 @@ class Obs_tracker():
 
             for i in reversed(sorted(delete_afterwards)):
                 self.trace_handles.pop(i)
-                
+
             self.active_indices = []
 
         if post_delete:
