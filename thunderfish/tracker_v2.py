@@ -751,7 +751,7 @@ def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels
 
 
 def add_tracker_config(cfg, data_snippet_secs = 15., nffts_per_psd = 1, fresolution =.25, overlap_frac = .95,
-                       freq_tolerance = 5., rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=2.):
+                       freq_tolerance = 2., rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=2.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
 
@@ -1279,6 +1279,7 @@ class Obs_tracker():
             plt.rcParams['keymap.yscale'] = ''
             plt.rcParams['keymap.pan'] = ''
             plt.rcParams['keymap.home'] = ''
+            plt.rcParams['keymap.fullscreen'] = ''
 
             self.main_ax = self.main_fig.add_axes([0.1, 0.1, 0.8, 0.6])
             self.spec_img_handle = None
@@ -1657,6 +1658,9 @@ class Obs_tracker():
             self.current_task = self.c_tasks[0]
             self.c_tasks = np.roll(self.c_tasks, -1)
 
+        if event.key == 'f':
+            self.current_task = 'fish_hist'
+
         if event.key == 'ctrl+q':
             plt.close(self.main_fig)
             # self.main_fig.close()
@@ -1804,6 +1808,9 @@ class Obs_tracker():
                     self.current_task = 'update_hg'
 
         if event.key == 'enter':
+            if self.current_task == 'fish_hist':
+                self.fish_hist()
+
             if self.current_task == 'group_connect':
                 self.last_ident_v = np.copy(self.ident_v)
                 self.group_connect()
@@ -2333,6 +2340,28 @@ class Obs_tracker():
         # np.save(os.path.join(folder, 'f_error_dist.npy'), self.f_error_dist)
 
         np.save(os.path.join(folder, 'spec.npy'), self.tmp_spectra)
+
+    def fish_hist(self):
+        if not self.ps_ax:
+            self.main_ax.set_position([.1, .1, .5, .6])
+            self.ps_ax = self.main_fig.add_axes([.6, .1, .3, .6])
+            # self.ps_ax.set_yticks([])
+            self.ps_ax.yaxis.tick_right()
+            self.ps_ax.yaxis.set_label_position("right")
+            self.ps_ax.set_ylabel('frequency [Hz]', fontsize=12)
+            self.ps_ax.set_xlabel('rel. n', fontsize=12)
+
+        else:
+            self.ps_handle.remove()
+
+        fwi = self.fund_v[~np.isnan(self.ident_v)]
+        h, be = np.histogram(fwi, bins= np.arange(np.min(fwi), np.max(fwi)+1   ) )
+        centers = be[1:] - ((be[1] - be[0]) / 2.)
+        h = h / np.sum(h)
+
+        self.ps_handle, = self.ps_ax.plot(h, centers)
+
+        self.ps_ax.set_ylim([self.main_ax.get_ylim()[0], self.main_ax.get_ylim()[1]])
 
     def load_trace(self):
         folder = os.path.split(self.data_file)[0]
@@ -3001,6 +3030,7 @@ def main():
 
     # embed()
     # quit()
+    print('\nAnalysing %s' % datafile)
     fish_tracker(datafile, args.start_time * 60.0, args.end_time * 60.0, args.grid, args.auto, **t_kwargs)
 
 if __name__ == '__main__':
