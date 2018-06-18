@@ -983,7 +983,8 @@ def include_progress_bar(loop_v, loop_end, taskname ='', next_message=0.00):
 
 def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_idxs, start_time, end_time, fresolution = 0.5,
                                      overlap_frac=.9, nffts_per_psd= 2, comp_min_freq= 0., comp_max_freq = 2000., plot_harmonic_groups=False,
-                                     create_plotable_spectrogram=False, extract_funds_and_signature=True, noice_cancel = False, **kwargs):
+                                     create_plotable_spectrogram=False, extract_funds_and_signature=True,
+                                     create_fill_spec = False, noice_cancel = False, filename = None, **kwargs):
     fundamentals = []
     positions = []
     times = np.array([])
@@ -1010,16 +1011,26 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
     # create spectra plot ####
     get_spec_plot_matrix = False
 
+    if create_fill_spec:
+        first_run = True
+        pre_save_spectra = np.array([])
+
     while start_idx <= end_idx:
-        if create_plotable_spectrogram and not extract_funds_and_signature:
+        if create_fill_spec:
+            fill_spec_str = None
+            memmap = None
             next_message = include_progress_bar(start_idx - init_idx + data_snippet_idxs, end_idx - init_idx,
-                                                'get plotable spec', next_message)
-        elif not create_plotable_spectrogram and extract_funds_and_signature:
-            next_message = include_progress_bar(start_idx - init_idx + data_snippet_idxs, end_idx - init_idx,
-                                                'extract fundamentals', next_message)
+                                                'get refill spec', next_message)
         else:
-            next_message = include_progress_bar(start_idx - init_idx + data_snippet_idxs, end_idx - init_idx,
-                                                'extract funds and spec', next_message)
+            if create_plotable_spectrogram and not extract_funds_and_signature:
+                next_message = include_progress_bar(start_idx - init_idx + data_snippet_idxs, end_idx - init_idx,
+                                                    'get plotable spec', next_message)
+            elif not create_plotable_spectrogram and extract_funds_and_signature:
+                next_message = include_progress_bar(start_idx - init_idx + data_snippet_idxs, end_idx - init_idx,
+                                                    'extract fundamentals', next_message)
+            else:
+                next_message = include_progress_bar(start_idx - init_idx + data_snippet_idxs, end_idx - init_idx,
+                                                    'extract funds and spec', next_message)
 
         if start_idx >= end_idx - data_snippet_idxs:
             last_run = True
@@ -1034,6 +1045,10 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
             # pool = multiprocessing.Pool(core_count - 1)
 
         nfft = next_power_of_two(samplerate / fresolution)
+
+        if create_fill_spec:
+            fresolution = 0.5
+            overlap_frac=.8
 
         func = partial(spectrogram, samplerate=samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
 
@@ -1155,6 +1170,39 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
                 # embed()
                 # quit()
             pool.terminate()
+
+
+        if create_fill_spec:
+            # embed()
+            fill_spec_str = os.path.join(os.path.split(filename)[0], 'fill_spec.npy')
+            # fill_spec_str = os.path.join('/home/raab/analysis', 'fill_spec.npy')
+            # fill_spec_str2 = os.path.join(os.path.split(filename)[0], 'fill_spec2.npy')
+            if first_run:
+                # embed()
+                # quit()
+                first_run = False
+                # t0 = time.time()
+                fill_spec = np.memmap(fill_spec_str, dtype='float', mode='w+', shape=(len(comb_spectra), len(tmp_times)), order = 'F')
+                # print('create %.1f' % (time.time() - t0))
+                # t0 = time.time()
+
+                fill_spec[:, :] = comb_spectra
+                # mem1 = False
+            else:
+                if len(pre_save_spectra) == 0:
+                    pre_save_spectra = comb_spectra
+                else:
+                    pre_save_spectra = np.append(pre_save_spectra, comb_spectra, axis=1)
+                    # embed()
+                if np.shape(pre_save_spectra)[1] >= 500:
+                    old_len = np.shape(fill_spec)[1]
+                    # embed()
+                    fill_spec = np.memmap(fill_spec_str, dtype='float', mode='r+', shape=(np.shape(pre_save_spectra)[0], np.shape(pre_save_spectra)[1] + old_len), order='F')
+                    # embed()
+                    # quit()
+                    fill_spec[:, old_len:] = pre_save_spectra
+                    pre_save_spectra = np.array([])
+
         # print(len(fundamentals))
         # print(len(fundamentals))
         # print(fundamentals)
@@ -1169,14 +1217,29 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
     # print(len(signatures))
     # embed()
     # quit()
-    if create_plotable_spectrogram and not extract_funds_and_signature:
-        return tmp_spectra, times
+    if create_fill_spec:
+        # embed()
+        # quit()
+        # if mem1:
+        #     fill_spec = np.memmap(fill_spec_str, dtype='float', mode='w+', shape=(np.shape(fill_spec2)[0], np.shape(fill_spec2)[1]))
+        #     fill_spec[:, :] = fill_spec2
+        #
+        #     del fill_spec2
+        # # embed()
+        # # quit()
+        # os.remove(fill_spec_str2)
 
-    elif extract_funds_and_signature and not create_plotable_spectrogram:
-        return fundamentals, signatures, positions, times
-
+        np.save(os.path.join(os.path.split(filename)[0], 'fill_spec_shape.npy'), np.array(np.shape(fill_spec)))
+        return times, spec_freqs
     else:
-        return fundamentals, signatures, positions, times, tmp_spectra
+        if create_plotable_spectrogram and not extract_funds_and_signature:
+            return tmp_spectra, times
+
+        elif extract_funds_and_signature and not create_plotable_spectrogram:
+            return fundamentals, signatures, positions, times
+
+        else:
+            return fundamentals, signatures, positions, times, tmp_spectra
 
 
 def grid_config_update(cfg):
@@ -1192,11 +1255,12 @@ def grid_config_update(cfg):
 
 
 class Obs_tracker():
-    def __init__(self, data, samplerate, start_time, end_time, channels, data_snippet_idxs, data_file, auto, **kwargs):
+    def __init__(self, data, samplerate, start_time, end_time, channels, data_snippet_idxs, data_file, auto, fill_spec, **kwargs):
 
         # write input into self.
         self.data = data
         self.auto = auto
+        self.fill_spec = fill_spec
         self.data_file = data_file
         self.samplerate = samplerate
         self.start_time = start_time
@@ -1235,13 +1299,27 @@ class Obs_tracker():
 
         # task lists
         self.t_tasks = ['track_snippet', 'track_snippet_live', 'plot_tmp_identities', 'check_tracking']
-        self.c_tasks = ['cut_trace', 'connect_trace', 'group_connect', 'auto connect_traces']
+        self.c_tasks = ['cut_trace', 'connect_trace', 'group_connect', 'auto connect_traces', 'fill_trace']
         self.d_tasks = ['delete_trace', 'group_delete', 'delete_noise']
-        self.p_tasks = ['part_spec', 'show_powerspectum', 'hide_spectogram', 'show_spectogram']
+        self.p_tasks = ['part_spec', 'show_powerspectum', 'hide_spectogram', 'show_spectogram', 'part_spec_from_file']
         self.s_tasks = ['save_plot', 'save_traces']
 
         self.f_error_dist = None
         self.a_error_dist = None
+
+        if self.fill_spec:
+            snippet_start = self.start_time
+            snippet_end = self.end_time
+
+            fill_times, fill_freqs = get_spectrum_funds_amp_signature(self.data, self.samplerate, self.channels, self.data_snippet_idxs,
+                                             snippet_start, snippet_end, create_plotable_spectrogram=False,
+                                             extract_funds_and_signature=False, create_fill_spec=fill_spec,
+                                             filename=self.data_file, **self.kwargs)
+
+            np.save(os.path.join(os.path.split(self.data_file)[0], 'fill_times.npy'), fill_times)
+            np.save(os.path.join(os.path.split(self.data_file)[0], 'fill_freqs.npy'), fill_freqs)
+            print('finished')
+            quit()
 
         if self.auto:
             self.main_ax = None
@@ -1808,6 +1886,14 @@ class Obs_tracker():
                     self.current_task = 'update_hg'
 
         if event.key == 'enter':
+            if self.current_task == 'fill_trace':
+                if hasattr(self.part_spectra, '__len__'):
+                    self.fill_trace()
+
+
+            if self.current_task == 'part_spec_from_file':
+                self.plot_spectrum(part_spec_from_file=True)
+
             if self.current_task == 'fish_hist':
                 self.fish_hist()
 
@@ -2388,6 +2474,29 @@ class Obs_tracker():
 
             self.get_clock_time()
 
+    def fill_trace(self):
+        add_freqs = self.fill_freqs[self.part_f_lims][np.argmax(self.part_spectra, axis=0)]
+        i0 = np.argmin(np.abs(self.fill_times[self.part_t_lims][0]- self.times))
+        add_idx = np.arange(i0, i0 + 2*len(add_freqs), 2)
+        # embed()
+        # quit()
+
+        # self.main_ax.plot(self.times[add_idx], add_freqs)
+
+        self.fund_v = np.append(self.fund_v, add_freqs)
+        self.idx_v = np.append(self.idx_v, add_idx)
+        self.ident_v = np.append(self.ident_v, np.ones(len(add_idx)) * np.max(np.unique(self.ident_v[~np.isnan(self.ident_v)]))+1 )
+        self.sign_v = np.append(self.sign_v, np.full((len(add_idx), np.shape(self.sign_v)[1]), np.nan), axis= 0)
+
+        sorter = np.argsort(self.idx_v)
+
+        self.fund_v = self.fund_v[sorter]
+        self.ident_v = self.ident_v[sorter]
+        self.sign_v = self.sign_v[sorter]
+        self.idx_v = self.idx_v[sorter]
+
+        self.plot_traces(post_refill=True)
+
     def group_connect(self):
         active_identities = np.unique(self.ident_v[self.active_indices])
         target_ident = self.ident_v[self.active_indices][0]
@@ -2557,39 +2666,74 @@ class Obs_tracker():
 
         self.main_fig.canvas.draw()
 
-    def plot_spectrum(self, part_spec = False):
-        if part_spec:
+    def plot_spectrum(self, part_spec = False, part_spec_from_file=False):
+        if part_spec_from_file:
             limitations = self.main_ax.get_xlim()
             min_freq = self.main_ax.get_ylim()[0]
             max_freq = self.main_ax.get_ylim()[1]
 
-            self.part_spectra, self.part_times = get_spectrum_funds_amp_signature(
-                self.data, self.samplerate, self.channels, self.data_snippet_idxs, limitations[0], limitations[1],
-                comp_min_freq=min_freq, comp_max_freq=max_freq, create_plotable_spectrogram=True,
-                extract_funds_and_signature=False, **self.kwargs)
+            # if os.path.exists(os.path.join(os.path.split(self.data_file)[0], 'fill_spec.npy')):
+            if os.path.exists(os.path.join(os.path.split(self.data_file)[0], 'fill_freqs.npy')):
+                # embed()
+                # quit()
+                self.fill_spec_shape = np.load(os.path.join(os.path.split(self.data_file)[0], 'fill_spec_shape.npy'))
+                # ToDo: untill kraken is up load this from loacal harddrive...
+                self.fill_spec = np.memmap(os.path.join(os.path.split(self.data_file)[0], 'fill_spec.npy'), dtype='float', mode='r', shape=tuple(self.fill_spec_shape), order='F')
+                # self.fill_spec = np.memmap('/home/raab/analysis/fill_spec.npy', dtype='float', mode='r', shape=tuple(self.fill_spec_shape), order='F')
+                self.fill_freqs = np.load(os.path.join(os.path.split(self.data_file)[0], 'fill_freqs.npy'))
+                self.fill_times = np.load(os.path.join(os.path.split(self.data_file)[0], 'fill_times.npy'))
+                # embed()
+                # quit()
 
-                # self.main_fig.delaxes(self.main_ax)
-            self.spec_img_handle.remove()
+                self.spec_img_handle.remove()
 
-            # self.main_ax = self.main_fig.add_axes([.1, .1, .8, .6])
-            self.spec_img_handle = self.main_ax.imshow(decibel(self.part_spectra)[::-1],
-                                                       extent=[limitations[0], limitations[1], min_freq, max_freq],
-                                                       aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
-            self.main_ax.set_xlabel('time', fontsize=12)
-            self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
-            self.main_ax.tick_params(labelsize=10)
-        else:
-            if not hasattr(self.tmp_spectra, '__len__'):
-                self.tmp_spectra, self.times = get_spectrum_funds_amp_signature(
-                    self.data, self.samplerate, self.channels, self.data_snippet_idxs, self.start_time, self.end_time,
-                    create_plotable_spectrogram=True, extract_funds_and_signature=False,  **self.kwargs)
+                # f_lims = np.arange(len(self.fill_freqs)-1, -1, -1)[(self.fill_freqs >= min_freq) & (self.fill_freqs <= max_freq)]
+                self.part_f_lims = np.arange(len(self.fill_freqs))[(self.fill_freqs >= min_freq) & (self.fill_freqs <= max_freq)]
+                self.part_t_lims = np.arange(len(self.fill_times))[(self.fill_times >= limitations[0]) & (self.fill_times <= limitations[1])]
+                self.part_spectra = self.fill_spec[self.part_f_lims[0]:self.part_f_lims[-1]+1, self.part_t_lims[0]:self.part_t_lims[-1]+1]
 
-            if not self.auto:
-                self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
-                                    aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
+                self.spec_img_handle = self.main_ax.imshow(decibel(self.part_spectra)[::-1],
+                                                           extent=[limitations[0], limitations[1], min_freq, max_freq],
+                                                           aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
                 self.main_ax.set_xlabel('time', fontsize=12)
                 self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
                 self.main_ax.tick_params(labelsize=10)
+
+            else:
+                print('missing file')
+        else:
+            if part_spec:
+                limitations = self.main_ax.get_xlim()
+                min_freq = self.main_ax.get_ylim()[0]
+                max_freq = self.main_ax.get_ylim()[1]
+
+                self.part_spectra, self.part_times = get_spectrum_funds_amp_signature(
+                    self.data, self.samplerate, self.channels, self.data_snippet_idxs, limitations[0], limitations[1],
+                    comp_min_freq=min_freq, comp_max_freq=max_freq, create_plotable_spectrogram=True,
+                    extract_funds_and_signature=False, **self.kwargs)
+
+                    # self.main_fig.delaxes(self.main_ax)
+                self.spec_img_handle.remove()
+
+                # self.main_ax = self.main_fig.add_axes([.1, .1, .8, .6])
+                self.spec_img_handle = self.main_ax.imshow(decibel(self.part_spectra)[::-1],
+                                                           extent=[limitations[0], limitations[1], min_freq, max_freq],
+                                                           aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
+                self.main_ax.set_xlabel('time', fontsize=12)
+                self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
+                self.main_ax.tick_params(labelsize=10)
+            else:
+                if not hasattr(self.tmp_spectra, '__len__'):
+                    self.tmp_spectra, self.times = get_spectrum_funds_amp_signature(
+                        self.data, self.samplerate, self.channels, self.data_snippet_idxs, self.start_time, self.end_time,
+                        create_plotable_spectrogram=True, extract_funds_and_signature=False,  **self.kwargs)
+
+                if not self.auto:
+                    self.spec_img_handle = self.main_ax.imshow(decibel(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000],
+                                        aspect='auto', alpha=0.7, cmap='jet', interpolation='gaussian')
+                    self.main_ax.set_xlabel('time', fontsize=12)
+                    self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
+                    self.main_ax.tick_params(labelsize=10)
 
     def track_snippet(self):
         if hasattr(self.fund_v, '__len__'):
@@ -2676,7 +2820,7 @@ class Obs_tracker():
         self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
         self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
 
-    def plot_traces(self, clear_traces = False, post_connect= False, post_cut=False, post_delete=False, post_group_delete=False, post_group_connection=False):
+    def plot_traces(self, clear_traces = False, post_connect= False, post_cut=False, post_delete=False, post_group_delete=False, post_group_connection=False, post_refill=False):
         """
         shows/updates/deletes all frequency traces of individually tracked fish in a plot.
 
@@ -2684,6 +2828,13 @@ class Obs_tracker():
         :param post_connect: (bool) refreshes/deletes single identity traces previously selected and stored in class variables.
         """
         # self.main_ax.imshow(10.0 * np.log10(self.tmp_spectra)[::-1], extent=[self.start_time, self.end_time, 0, 2000], aspect='auto', alpha=0.7)
+
+        if post_refill:
+            new_ident = np.max(self.ident_v[~np.isnan(self.ident_v)])
+            c = np.random.rand(3)
+            h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == new_ident]],
+                                   self.fund_v[self.ident_v == new_ident], marker='.', color=c)
+            self.trace_handles.append((h, new_ident))
 
         if post_group_delete or post_group_connection:
             handle_idents = np.array([x[1] for x in self.trace_handles])
@@ -2739,6 +2890,7 @@ class Obs_tracker():
             joined_handle[0].remove()
 
             c = np.random.rand(3)
+            # sorter = np.argsort(self.times[self.idx_v[self.ident_v == self.active_ident0]])
             h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == self.active_ident0]], self.fund_v[self.ident_v == self.active_ident0], marker='.', color=c)
             self.trace_handles[np.arange(len(self.trace_handles))[handle_idents == self.active_ident0][0]] = (h, self.active_ident0)
             # self.trace_handles.append((h, self.active_ident0))
@@ -2924,7 +3076,7 @@ class Obs_tracker():
         self.main_ax.set_xticks(use_timestamps_s_origin)
         self.main_ax.set_xticklabels(x_ticks)
 
-def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, auto = False, data_snippet_secs=15., verbose=0, **kwargs):
+def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, auto = False, fill_spec = False, data_snippet_secs=15., verbose=0, **kwargs):
     """
     Performs the steps to analyse long-term recordings of wave-type weakly electric fish including frequency analysis,
     fish tracking and more.
@@ -2956,7 +3108,7 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, grid=False, auto = Fa
 
     data_snippet_idxs = int(data_snippet_secs * samplerate)
 
-    Obs_tracker(data, samplerate, start_time, end_time, channels, data_snippet_idxs, data_file, auto, **kwargs)
+    Obs_tracker(data, samplerate, start_time, end_time, channels, data_snippet_idxs, data_file, auto, fill_spec, **kwargs)
 
 
 def main():
@@ -2980,8 +3132,8 @@ def main():
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as png file')
     parser.add_argument('-a', dest='auto', action='store_true', help='automatically analyse data and save results')
     parser.add_argument('-n', dest='noice_cancel', action='store_true', help='cancsels noice by substracting mean of all electrodes from all electrodes')
-    parser.add_argument('-s', dest='save_fish', action='store_true',
-                        help='save fish EODs after first stage of sorting.')
+    parser.add_argument('-s', dest='fill_spec', action='store_true',
+                        help='compute whole spec--- CARE: big data requirement')
     parser.add_argument('-f', dest='plot_harmonic_groups', action='store_true', help='plot harmonic group detection')
     parser.add_argument('-t', dest='transect_data', action='store_true', help='adapt parameters for transect data')
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
@@ -3031,7 +3183,7 @@ def main():
     # embed()
     # quit()
     print('\nAnalysing %s' % datafile)
-    fish_tracker(datafile, args.start_time * 60.0, args.end_time * 60.0, args.grid, args.auto, **t_kwargs)
+    fish_tracker(datafile, args.start_time * 60.0, args.end_time * 60.0, args.grid, args.auto, args.fill_spec, **t_kwargs)
 
 if __name__ == '__main__':
     # how to execute this code properly
