@@ -1174,8 +1174,8 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
 
         if create_fill_spec:
             # embed()
-            fill_spec_str = os.path.join(os.path.split(filename)[0], 'fill_spec.npy')
-            # fill_spec_str = os.path.join('/home/raab/analysis', 'fill_spec.npy')
+            # fill_spec_str = os.path.join(os.path.split(filename)[0], 'fill_spec.npy')
+            fill_spec_str = os.path.join('/home/raab/analysis', 'fill_spec.npy')
             # fill_spec_str2 = os.path.join(os.path.split(filename)[0], 'fill_spec2.npy')
             if first_run:
                 # embed()
