@@ -1271,6 +1271,9 @@ class Obs_tracker():
         self.channels = channels
         self.data_snippet_idxs = data_snippet_idxs
         self.kwargs = kwargs
+        self.verbose = 0
+        # embed()
+        # quit()
 
         # primary tracking vectors
         self.fund_v = None
@@ -1299,7 +1302,7 @@ class Obs_tracker():
 
         # task lists
         self.t_tasks = ['track_snippet', 'track_snippet_live', 'plot_tmp_identities', 'check_tracking']
-        self.c_tasks = ['cut_trace', 'connect_trace', 'group_connect', 'auto connect_traces', 'fill_trace']
+        self.c_tasks = ['cut_trace', 'connect_trace', 'group_connect', 'auto connect_traces', 'fill_trace', 'group_reassign']
         self.d_tasks = ['delete_trace', 'group_delete', 'delete_noise']
         self.p_tasks = ['part_spec', 'show_powerspectum', 'hide_spectogram', 'show_spectogram', 'part_spec_from_file']
         self.s_tasks = ['save_plot', 'save_traces']
@@ -1744,6 +1747,14 @@ class Obs_tracker():
             # self.main_fig.close()
             return
 
+        if event.key == 'v':
+            self.verbose += 1
+            # print(self.verbose)
+            print('verbosity: %.0f' % self.verbose)
+        if event.key == 'ctrl+v':
+            self.verbose -= 1
+            print('verbosity: %.0f' % self.verbose)
+
         if event.key in 'q' and self.ps_ax:
             self.main_fig.delaxes(self.ps_ax)
             self.ps_ax = None
@@ -1890,7 +1901,6 @@ class Obs_tracker():
                 if hasattr(self.part_spectra, '__len__'):
                     self.fill_trace()
 
-
             if self.current_task == 'part_spec_from_file':
                 self.plot_spectrum(part_spec_from_file=True)
 
@@ -1902,6 +1912,12 @@ class Obs_tracker():
                 self.group_connect()
 
                 self.plot_traces(post_group_connection=True)
+
+            if self.current_task == 'group_reassign':
+                self.last_ident_v = np.copy(self.ident_v)
+                self.group_reassign()
+
+                self.plot_traces(post_group_reassign=True)
 
             if self.current_task == 'group_delete':
                 self.last_ident_v = np.copy(self.ident_v)
@@ -2209,8 +2225,8 @@ class Obs_tracker():
                     # self.active_vec_idx_handle, = self.main_ax.plot(self.time[self.idx_v[t_idx]], self.fund_v[self.idx_v == t_idx][f_idx], 'o', color='red', markersize=4)
                     self.active_vec_idx_handle, = self.main_ax.plot(self.times[t_idx], self.fund_v[self.active_vec_idx], 'o', color='red', markersize=4)
 
-            if self.current_task in ['connect_trace', 'delete_trace', 'zoom', 'cut_trace', 'group_delete', 'group_connect']:
-                if self.current_task in ['group_delete', 'group_connect']:
+            if self.current_task in ['connect_trace', 'delete_trace', 'zoom', 'cut_trace', 'group_delete', 'group_connect', 'group_reassign']:
+                if self.current_task in ['group_delete', 'group_connect', 'group_reassign']:
                     if self.active_indices_handle:
                         self.active_indices_handle.remove()
                         self.active_indices_handle = None
@@ -2290,7 +2306,7 @@ class Obs_tracker():
 
     def buttonrelease(self, event):
         if event.inaxes == self.main_ax:
-            if self.current_task in ['group_delete', 'group_connect']:
+            if self.current_task in ['group_delete', 'group_connect', 'group_reassign']:
                 if event.button == 1:
                     self.x = (self.x[0], event.xdata)
                     self.y = (self.y[0], event.ydata)
@@ -2496,6 +2512,23 @@ class Obs_tracker():
         self.idx_v = self.idx_v[sorter]
 
         self.plot_traces(post_refill=True)
+
+    def group_reassign(self):
+        target_ident = np.max(self.ident_v[~np.isnan(self.ident_v)]) + 1
+
+        active_indices_list = list(self.active_indices)
+
+        for i in reversed(range(len(active_indices_list))[1:]):
+            if self.idx_v[active_indices_list[i]] == self.idx_v[active_indices_list[i-1]]:
+                active_indices_list.pop(i)
+
+        self.active_indices = np.array(active_indices_list)
+
+
+        self.ident_v[self.active_indices] = target_ident
+
+        self.active_indices_handle.remove()
+        self.active_indices_handle = None
 
     def group_connect(self):
         active_identities = np.unique(self.ident_v[self.active_indices])
@@ -2820,7 +2853,7 @@ class Obs_tracker():
         self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
         self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
 
-    def plot_traces(self, clear_traces = False, post_connect= False, post_cut=False, post_delete=False, post_group_delete=False, post_group_connection=False, post_refill=False):
+    def plot_traces(self, clear_traces = False, post_connect= False, post_cut=False, post_delete=False, post_group_delete=False, post_group_connection=False, post_refill=False, post_group_reassign=False):
         """
         shows/updates/deletes all frequency traces of individually tracked fish in a plot.
 
@@ -2836,7 +2869,7 @@ class Obs_tracker():
                                    self.fund_v[self.ident_v == new_ident], marker='.', color=c)
             self.trace_handles.append((h, new_ident))
 
-        if post_group_delete or post_group_connection:
+        if post_group_delete or post_group_connection or post_group_reassign:
             handle_idents = np.array([x[1] for x in self.trace_handles])
             effected_idents = np.unique(self.last_ident_v[self.active_indices])
             mask = np.array([x in effected_idents for x in handle_idents], dtype=bool)
@@ -2855,6 +2888,13 @@ class Obs_tracker():
 
             for i in reversed(sorted(delete_afterwards)):
                 self.trace_handles.pop(i)
+
+            if post_group_reassign:
+                c = np.random.rand(3)
+                new_ident = np.max(np.unique(self.ident_v[~np.isnan(self.ident_v)]))
+                h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == new_ident]],
+                                       self.fund_v[self.ident_v == new_ident], marker='.', color=c)
+                self.trace_handles.append((h, new_ident))
 
             self.active_indices = []
 
@@ -2956,8 +2996,8 @@ class Obs_tracker():
         self.power = np.hstack(comb_spectra)
         self.freqs = all_c_freqs
 
-        groups, _, _, self.all_peakf, self.good_peakf, self.kwargs['low_threshold'], self.kwargs['high_threshold'], self.psd_baseline = harmonic_groups(all_c_freqs, self.power, **self.kwargs)
-
+        groups, _, _, self.all_peakf, self.good_peakf, self.kwargs['low_threshold'], self.kwargs['high_threshold'], self.psd_baseline = harmonic_groups(all_c_freqs, self.power, verbose=self.verbose, **self.kwargs)
+        self.verbose = 0
         # plot_power = 10.0 * np.log10(self.power)
         plot_power = decibel(self.power)
 
