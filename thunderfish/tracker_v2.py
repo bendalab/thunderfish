@@ -1723,6 +1723,12 @@ class Obs_tracker():
         if event.key in 'e':
             embed()
 
+        if event.key == 'ctrl+e':
+            for ident in np.unique(self.ident_v[~np.isnan(self.ident_v)]):
+                if len(self.ident_v[self.ident_v == ident]) <= 1000:
+                    self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]], self.fund_v[self.ident_v == ident], marker= 'o', markersize=10, alpha=0.3, color='red')
+            self.main_fig.canvas.draw()
+
         if event.key in 'd':
             self.current_task = self.d_tasks[0]
             self.d_tasks = np.roll(self.d_tasks, -1)
