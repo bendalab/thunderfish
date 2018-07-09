@@ -150,8 +150,8 @@ def main():
 
     colors = ['#BA2D22', '#53379B', '#F47F17', '#3673A4', '#AAB71B', '#DC143C', '#1E90FF', '#BA2D22', '#53379B', '#F47F17', '#3673A4', '#AAB71B', '#DC143C', '#1E90FF']
     ####################################################################################################################
-    # datafile = datafile[:6]
-    # shift = shift[:6]
+    datafile = datafile[-5:]
+    shift = shift[-5:]
 
     ###########################################################
     ### BEIDE ###
@@ -187,13 +187,13 @@ def main():
     ax.set_ylabel('rel. freqeuncy activity')
 
     unique_centers = np.unique(np.array(bin_freq_centers) % (24 * 60 * 60))
-
     day_std_p_f = [[[] for c in unique_centers] for f in fish_nr_in_rec]
 
     for fish_nr in range(len(fish_nr_in_rec)):
-        for bin_nr in range(len(bin_std[0])):
-            if not np.isnan(bin_std[fish_nr][bin_nr]):
+        for bin_nr in range(len(bin_std[fish_nr])):
+            if ~np.isnan(bin_std[fish_nr][bin_nr]):
                 day_std_p_f[fish_nr][int(bin_nr % len(unique_centers))].append(bin_std[fish_nr][bin_nr])
+
     for fish_nr in range(len(day_std_p_f)):
         fig, ax = plt.subplots(facecolor='white', figsize=(20/2.54, 12/2.54))
         ax.boxplot(day_std_p_f[fish_nr], sym='')
@@ -203,14 +203,26 @@ def main():
     # plt.show()
 
     day_std = [[] for c in unique_centers]
+    day_std_m = [[] for c in unique_centers]
+    day_std_f = [[] for c in unique_centers]
 
     for fish_nr in range(len(fish_nr_in_rec)):
         for bin_nr in range(len(bin_std[0])):
             if not np.isnan(bin_std[fish_nr][bin_nr]):
+                if fish_nr <= 5:
+                    day_std_m[int(bin_nr % len(unique_centers))].append(bin_std[fish_nr][bin_nr])
+                else:
+                    day_std_f[int(bin_nr % len(unique_centers))].append(bin_std[fish_nr][bin_nr])
                 day_std[int(bin_nr % len(unique_centers))].append(bin_std[fish_nr][bin_nr])
 
     fig, ax = plt.subplots()
     ax.boxplot(day_std, sym='')
+
+    fig, ax = plt.subplots()
+    ax.boxplot(day_std_m, sym='')
+
+    fig, ax = plt.subplots()
+    ax.boxplot(day_std_f, sym='')
     plt.show()
 
     ###########################################################
