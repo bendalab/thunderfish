@@ -150,8 +150,8 @@ def main():
 
     colors = ['#BA2D22', '#53379B', '#F47F17', '#3673A4', '#AAB71B', '#DC143C', '#1E90FF', '#BA2D22', '#53379B', '#F47F17', '#3673A4', '#AAB71B', '#DC143C', '#1E90FF']
     ####################################################################################################################
-    datafile = datafile[-5:]
-    shift = shift[-5:]
+    datafile = datafile[:6]
+    shift = shift[:6]
 
     ###########################################################
     ### BEIDE ###
@@ -206,13 +206,30 @@ def main():
     day_std_m = [[] for c in unique_centers]
     day_std_f = [[] for c in unique_centers]
 
+    mn = []
+    md = []
+    fn = []
+    fd = []
+    # embed()
+    # quit()
+
     for fish_nr in range(len(fish_nr_in_rec)):
         for bin_nr in range(len(bin_std[0])):
             if not np.isnan(bin_std[fish_nr][bin_nr]):
+
                 if fish_nr <= 5:
                     day_std_m[int(bin_nr % len(unique_centers))].append(bin_std[fish_nr][bin_nr])
+                    if unique_centers[int(bin_nr % len(unique_centers))] >= 110 * 60 and unique_centers[int(bin_nr % len(unique_centers))] < 110 * 60 + 12 * 60 * 60:
+                        mn.append(bin_std[fish_nr][bin_nr])
+                    else:
+                        md.append(bin_std[fish_nr][bin_nr])
                 else:
                     day_std_f[int(bin_nr % len(unique_centers))].append(bin_std[fish_nr][bin_nr])
+                    if unique_centers[int(bin_nr % len(unique_centers))] >= 110 * 60 and unique_centers[int(bin_nr % len(unique_centers))] < 110 * 60 + 12 * 60 * 60:
+                        fn.append(bin_std[fish_nr][bin_nr])
+                    else:
+                        fd.append(bin_std[fish_nr][bin_nr])
+
                 day_std[int(bin_nr % len(unique_centers))].append(bin_std[fish_nr][bin_nr])
 
     fig, ax = plt.subplots()
@@ -223,6 +240,10 @@ def main():
 
     fig, ax = plt.subplots()
     ax.boxplot(day_std_f, sym='')
+
+    fig, ax = plt.subplots()
+    ax.boxplot([md, fd, mn, fn], sym='')
+
     plt.show()
 
     ###########################################################
@@ -251,10 +272,6 @@ def main():
             electorde_nr_diff = np.diff(bin_poss[fish_nr][bin_nr])
             movement_activity = len(electorde_nr_diff[electorde_nr_diff > 0]) / len(electorde_nr_diff)
             activity_in_bin[fish_nr].append(movement_activity)
-
-
-    embed()
-    quit()
 
     fig2, ax2 = plt.subplots(facecolor='white', figsize=(20/2.54, 12/2.54))
     for fish_nr in range(len(activity_in_bin)):
