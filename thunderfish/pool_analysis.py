@@ -627,7 +627,7 @@ def main():
     ax.boxplot(all_day_activity,
                sym='')  ##schwimmaktivitaet von allen Fischen zusammen in einer Grafik von allen gegebenen Datenfiles(24h)
     ax.set_xlabel('Zeit [Stunden]')
-    ax.set_xticks(np.arange(4, len(day_std)+4, 4))
+    ax.set_xticks(np.arange(1, len(all_day_activity)+2, 2))
     ax.set_xticklabels(['14:00', '15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','24:00','01:00',
                         '02:00','03:00','04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00'],
                        rotation=70)
@@ -642,7 +642,7 @@ def main():
     fig, ax = plt.subplots(facecolor='white', figsize=(20 / 2.54, 12 / 2.54))
     ax.boxplot(all_male_activity, sym='')  ##
     ax.set_xlabel('Zeit [Stunden]')
-    ax.set_xticks(np.arange(4, len(day_std)+4, 4))
+    ax.set_xticks(np.arange(1, len(all_day_activity) + 2, 2))
     ax.set_xticklabels(['14:00', '15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','24:00','01:00',
                         '02:00','03:00','04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00'],
                        rotation=70)
@@ -657,7 +657,7 @@ def main():
     fig, ax = plt.subplots(facecolor='white', figsize=(20 / 2.54, 12 / 2.54))
     ax.boxplot(all_female_activity, sym='')  ##
     ax.set_xlabel('Zeit [Stunden]')
-    ax.set_xticks(np.arange(4, len(day_std)+4, 4))
+    ax.set_xticks(np.arange(1, len(all_day_activity) + 2, 2))
     ax.set_xticklabels(['14:00', '15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00','23:00','24:00','01:00',
                         '02:00','03:00','04:00','05:00','06:00','07:00','08:00','09:00','10:00','11:00','12:00','13:00'],
                        rotation=70)

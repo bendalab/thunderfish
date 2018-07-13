@@ -365,7 +365,9 @@ def main():
         ax[1].set_xlabel('day nr.')
         ax[1].set_ylabel('rel. ocupation')
         plt.tight_layout()
-        fig.savefig(saving_folder + 'hab_occupation_fish_%.0f.pdf' & fish_nr)
+        # embed()
+        # quit()
+        fig.savefig(saving_folder + 'hab_occupation_fish%.0f.pdf' % fish_nr)
         plt.close()
         # ax[0].set_ylim([0, 1])
         # ax[1].set_title('fish Nr. %.0f' % fish_nr)
@@ -432,7 +434,7 @@ def main():
 
         plt.legend()
         plt.tight_layout()
-        fig.savefig(saving_folder + 'df_in_%.0f.pdf' & hab_names[hab_nr])
+        fig.savefig(saving_folder + 'df_in_%s.pdf' % hab_names[hab_nr])
         plt.close()
 
 
