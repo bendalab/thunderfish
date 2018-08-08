@@ -15,6 +15,7 @@ plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, har
 
 from __future__ import print_function
 import numpy as np
+import scipy.signal as sig
 from .peakdetection import detect_peaks, peak_size_width, hist_threshold
 from .powerspectrum import decibel, power, plot_decibel_psd
 try:
@@ -612,7 +613,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 
     The standard deviation of the noise floor without peaks is estimated from
     the width of the histogram of the power spectrum at `hist_height` relative height.
-    The histogtram is computed in the third quarter of the power spectrum.
+    The histogtram is computed in the third quarter of the linearly detrended power spectrum.
 
     Parameters
     ----------
@@ -640,6 +641,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
     """
     n = len(psd_data)
     psd_data_seg = psd_data[n//2:n*3//4]
+    psd_data_seg = np.mean(psd_data_seg) + sig.detrend(psd_data_seg, type='linear')
     noise_std, center = hist_threshold(psd_data_seg, th_factor=1.0, nbins=nbins)
     low_threshold = noise_std * low_thresh_factor
     high_threshold = noise_std * high_thresh_factor
@@ -755,9 +757,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
         
         if verbose > 1:
             print('')
-            print('low_threshold=', low_threshold, center + low_threshold)
-            print('high_threshold=', high_threshold, center + high_threshold)
-            print('center=', center)
+            print('low_threshold =%g  center+low_threshold =%g' % (low_threshold, center + low_threshold))
+            print('high_threshold=%g  center+high_threshold=%g' % (high_threshold, center + high_threshold))
+            print('center=%g' % center)
 
     # detect peaks in decibel power spectrum:
     peaks, troughs = detect_peaks(log_psd, low_threshold)
@@ -902,7 +904,7 @@ def colors_markers():
     return colors, markers
 
 
-def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
+def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_freq=True,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
     Mark decibel power of fundamentals and their harmonics in a plot.
@@ -915,6 +917,8 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
             Lists of harmonic groups as returned by extract_fundamentals() and
             harmonic_groups() with the element [0, 0] of the harmonic groups being the fundamental frequency,
             and element[0, 1] being the corresponding power.
+    max_freq: float
+        If greater than zero only mark peaks below this frequency.
     max_groups: int
             If not zero plot only the max_groups most powerful groups.
     sort_by_freq: boolean
@@ -950,6 +954,9 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
         group = group_list[i]
         x = np.array([harmonic[0] for harmonic in group])
         y = np.array([harmonic[1] for harmonic in group])
+        if max_freq > 0.0:
+            y = y[x<=max_freq]
+            x = x[x<=max_freq]
         msize = 7.0 + 10.0 * (powers[i] / max_power) ** 0.25
         color_kwargs = {}
         if colors is not None:
@@ -1011,7 +1018,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
                 label='%3.0f Hz mains' % mains[0, 0])
     # mark harmonic groups:
     colors, markers = colors_markers()
-    plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
+    plot_harmonic_groups(ax, group_list, max_freq=max_freq, max_groups=0, sort_by_freq=True,
                          colors=colors, markers=markers, legend_rows=8,
                          loc='upper right')
     # plot power spectrum:

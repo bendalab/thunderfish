@@ -328,6 +328,7 @@ class ConfigFile:
         # load configuration files from higher directories:
         absfilepath = os.path.abspath(filepath)
         dirs = os.path.dirname(absfilepath).split(os.sep)
+        dirs[0] = os.sep
         dirs.append('')
         ml = len(dirs) - 1
         if ml > maxlevel:
