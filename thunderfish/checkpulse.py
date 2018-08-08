@@ -14,7 +14,7 @@ except ImportError:
     pass
 
 
-def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=0.1,
+def check_pulse_width(data, samplerate, th_factor=0.6, percentile=0.1,
                       pulse_thres=0.1, verbose=0, plot_data_func=None, **kwargs):
     """Detects if a fish is pulse- or wave-type based on the proportion of the time distance
     between a peak and its following trough, relative to the time between consecutive peaks.
@@ -26,7 +26,6 @@ def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=
     :param samplerate: (float). Sampling rate of the data in Hz
     :param percentile: (float between 0. and 50.). The inter-percentile range TODO
     :param th_factor: (float). The threshold for peak detection is the inter-percentile-range multiplied by this factor.
-    :param win_size: (float or None). Size of window in which a threshold value for etecting peaks and troughs is computed.
     :param pulse_thres: (float). a positive number setting the minimum distance between peaks and troughs
     :param verbose: (int). if > 1, print information in the command line.
     :param plot_data_func: Function for plotting the data with detected peaks and troughs, an inset and the distribution
@@ -73,8 +72,7 @@ def check_pulse_width(data, samplerate, win_size=0.5, th_factor=0.8, percentile=
         print('Analyzing Fish-Type...')
 
     # threshold for peak detection:
-    threshold = percentile_threshold(data, samplerate, win_size,
-                                     th_factor=th_factor, percentile=percentile)
+    threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = detect_peaks(data, threshold)
