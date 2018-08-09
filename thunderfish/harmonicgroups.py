@@ -814,13 +814,22 @@ def fundamental_freqs(group_list):
         of the fundamental frequencies.
     """
     if len(group_list) == 0:
-        fundamentals = np.array([])
-    elif hasattr(group_list[0][0][0], '__len__'):
+        return np.array([])
+
+    # check whether group_list is list of fishlists:
+    list_of_list = False
+    for groups in group_list:
+        for harmonic_group in groups:
+            if hasattr(harmonic_group, 'shape'):
+                list_of_list = True
+                break
+                
+    if list_of_list:
         fundamentals = []
         for groups in group_list:
             fundamentals.append(np.array([harmonic_group[0][0] for harmonic_group in groups]))
     else:
-        fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_list])
+        fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_list if len(harmonic_group) > 0])
     return fundamentals
 
 
