@@ -2,12 +2,16 @@
 Detecting and handling peaks and troughs in data arrays.
 
 detect_peaks(): peak and trough detection with a relative threshold.
-
 peak_size_width(): compute for each peak its size and width.
+
+threshold_crossings(): detect threshold crossings.
 
 trim(): make the list of peaks and troughs returned by detect_peaks() the same length.
 trim_to_peak(): ensure that the peak is first.
 trim_closest(): ensure that peaks minus troughs is smallest.
+
+merge_events(): Merge events if they are closer than a minimum distance.
+remove_events(): Remove events that are too short.
 
 std_threshold(): estimate detection threshold based on the standard deviation.
 hist_threshold(): esimate detection threshold based on a histogram of the data.
@@ -201,6 +205,54 @@ def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
     return peaks
     
 
+def threshold_crossings(data, threshold, time=None):
+    """
+    Detect crossings of a threshold with positive and negative slope.
+
+    Parameters
+    ----------
+    data: array
+        An 1-D array of input data where threshold crossings are detected.
+    threshold: float or array
+        A positive number or array of numbers setting the threshold
+        that needs to be crossed.
+        Note: threshold array is not supported right now!!!
+    time: array
+        The (optional) 1-D array with the time corresponding to the data values.
+    
+    Returns
+    -------
+    up_array: array
+        A list of thrreshold crossings with positive slope.
+    down_array: array
+        A list of thrreshold crossings with positive slope.
+    If time is `None` then these are arrays of the indices where the threshold crossings occur.
+    If time is given then these are arrays of the times where the threshold crossings occur.
+
+    Raises
+    ------
+    IndexError: If `data`, `time`, and `threshold` arrays differ in length.
+    """
+
+    thresh_array = True
+    thresh = 0.0
+    if np.isscalar(threshold):
+        thresh_array = False
+        thresh = threshold
+    elif len(data) != len(threshold):
+        raise IndexError('input arrays data and threshold must have same length!')
+    if time is not None and len(data) != len(time):
+        raise IndexError('input arrays time and data must have same length!')
+
+    if time is not None:
+        up_array = time[(data[1:]>threshold) & (data[:-1]<=threshold)]
+        down_array = time[(data[1:]<=threshold) & (data[:-1]>threshold)]
+    else:
+        up_array = np.nonzero((data[1:]>threshold) & (data[:-1]<=threshold))[0]
+        down_array = np.nonzero((data[1:]<=threshold) & (data[:-1]>threshold))[0]
+    return up_array, down_array
+
+
 def trim(peaks, troughs):
     """
     Trims the peaks and troughs arrays such that they have the same length.
@@ -298,6 +350,90 @@ def trim_closest(peaks, troughs):
     return peaks[pidx:pidx + nn], troughs[tidx:tidx + nn]
 
 
+def merge_events(onsets, offsets, min_distance):
+    """Merge events if they are closer than a minimum distance.
+
+    If the beginning of an event (onset, peak, or positive threshold crossing,
+    is too close to the end of the previous event (offset, trough, or negative
+    threshold crossing) the two events are merge into a single one that begins
+    with the first one and ends with the second one.
+    
+    Parameters
+    ----------
+    onsets: 1-D array
+        The onsets (peaks, or positive threshold crossings) of the events
+        as indices or times.
+    offsets: 1-D array
+        The offsets (troughs, or negative threshold crossings) of the events
+        as indices or times.
+    min_distance: int or float
+        The minimum distance between events. If the beginning of an event is separated
+        from the end of the previous event by less than this distance then the two events
+        are merged into one. If the event onsets and offsets are given in indices than
+        min_distance is also in indices. 
+
+    Returns
+    -------
+    merged_onsets: 1-D array
+        The onsets (peaks, or positive threshold crossings) of the merged events
+        as indices or times according to onsets.
+    merged_offsets: 1-D array
+        The offsets (troughs, or negative threshold crossings) of the merged events
+        as indices or times according to offsets.
+    """
+    onsets, offsets = trim_to_peak(onsets, offsets)
+    if len(onsets) == 0 or len(offsets) == 0:
+        return np.array([]), np.array([])
+    else:
+        diff = onsets[1:] - offsets[:-1]
+        indices = diff > min_distance
+        merged_onsets = onsets[np.hstack([True, indices])]
+        merged_offsets = offsets[np.hstack([indices, True])]
+        return merged_onsets, merged_offsets
+
+    
+def remove_events(onsets, offsets, min_duration):
+    """Remove events that are too short.
+
+    If the beginning of an event (onset, peak, or positive threshold crossing,
+    is too close to the end of the previous event (offset, trough, or negative
+    threshold crossing) the two events are merged into a single one that begins
+    with the first one and ends with the second one.
+    
+    Parameters
+    ----------
+    onsets: 1-D array
+        The onsets (peaks, or positive threshold crossings) of the events
+        as indices or times.
+    offsets: 1-D array
+        The offsets (troughs, or negative threshold crossings) of the events
+        as indices or times.
+    min_duration: int or float
+        The minimum duration of events. If the event offset minus the event onset
+        is of less than this duration then the the event is removed from the lists.
+        If the event onsets and offsets are given in indices than
+        min_duration is also in indices. 
+
+    Returns
+    -------
+    onsets: 1-D array
+        The onsets (peaks, or positive threshold crossings) of the events
+        with the short events removed as indices or times according to onsets.
+    offsets: 1-D array
+        The offsets (troughs, or negative threshold crossings) of the events
+        with the short events removed as indices or times according to offsets.
+    """
+    onsets, offsets = trim_to_peak(onsets, offsets)
+    if len(onsets) == 0 or len(offsets) == 0:
+        return np.array([]), np.array([])
+    else:
+        diff = offsets - onsets
+        indices = diff > min_duration
+        onsets = onsets[indices]
+        offsets = offsets[indices]
+        return onsets, offsets
+
+    
 def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
     """Esimates a threshold for detect_peaks() based on the standard deviation of the data.
 
@@ -808,6 +944,13 @@ if __name__ == "__main__":
     # plot peaks and troughs:
     plt.plot(time[peaks], data[peaks], '.r', ms=20)
     plt.plot(time[troughs], data[troughs], '.g', ms=20)
+
+    # detect threshold crossings:
+    onsets, offsets = threshold_crossings(data, 3.0)
+    onsets, offsets = merge_events(onsets, offsets, 25)
+    plt.plot(time, 3.0*np.ones(len(time)), 'k')
+    plt.plot(time[onsets], data[onsets], '.c', ms=20)
+    plt.plot(time[offsets], data[offsets], '.b', ms=20)
 
     plt.ylim(-0.5, 4.0)
     plt.show()
