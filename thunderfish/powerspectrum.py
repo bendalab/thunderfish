@@ -14,7 +14,7 @@ spectrogram():          Spectrogram of a given frequency resolution and overlap 
 """
 
 import numpy as np
-import scipy.signal as scps
+import scipy.signal as sig
 try:
     import matplotlib.mlab as mlab
 except ImportError:
@@ -259,6 +259,42 @@ def spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, wi
     spectrum, freqs, time = mlab.specgram(data, NFFT=nfft, Fs=samplerate, detrend=detrend, window=window,
                                           noverlap=noverlap, pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return spectrum, freqs, time
+
+
+def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16):
+    """Peak frequencies computed for each of the data snippets.
+
+    Parameters
+    ----------
+    onsets: array of ints
+        Array of indices indicating the onsets of the snippets in `data`.
+    offsets: array of ints
+        Array of indices indicating the offsets of the snippets in `data`.
+    data: 1-D array
+        Data array that contains the data snippets defined by `onsets` and `offsets`.
+    rate: float
+        Samplerate of data in Hertz.
+    freq_resolution: float
+        Desired frequency resolution of the computed power spectra in Hertz.
+    min_nfft: int
+        The smallest value of nfft to be used.
+
+    Returns
+    -------
+    freqs: array of floats
+        For each data snippet the frequency of the maximum power.
+    """
+    freqs = []
+    # for all events:
+    for i0, i1 in zip(onsets, offsets):
+        nfft, _ = nfft_noverlap(freq_resolution, rate, 0.5, min_nfft)
+        if nfft > i1 - i0 :
+            nfft = next_power_of_two((i1 - i0)/2)
+        f, Pxx = sig.welch(data[i0:i1], fs=rate, nperseg=nfft, noverlap=nfft//2, nfft=None)
+        ipeak = np.argmax(Pxx)
+        fpeak = f[np.argmax(Pxx)]
+        freqs.append(fpeak)
+    return np.array(freqs)
 
 
 if __name__ == '__main__':
