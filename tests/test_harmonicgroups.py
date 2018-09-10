@@ -29,6 +29,7 @@ def test_harmonic_groups():
     psd_data = ps.psd(data, samplerate, fresolution=df)
     groups = hg.harmonic_groups(psd_data[1], psd_data[0])[0]
     fundamentals = hg.fundamental_freqs(groups)
+    fdbs = hg.fundamental_freqs_and_db(groups)
 
     # check:
     assert_true(np.all(np.abs(eodfs-fundamentals) < df),

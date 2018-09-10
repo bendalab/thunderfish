@@ -40,19 +40,11 @@ def test_detect_peaks():
 
     assert_raises(ValueError, pd.detect_peaks, data, -1.0)
 
-    assert_raises(IndexError, pd.detect_peaks, data, threshold, time[:len(time) / 2])
-
     peaks, troughs = pd.detect_peaks(data, threshold)
     assert_true(np.all(peaks == peak_indices),
                 "detect_peaks(data, threshold) did not correctly detect peaks")
     assert_true(np.all(troughs == trough_indices),
                 "detect_peaks(data, threshold) did not correctly detect troughs")
-
-    peaks, troughs = pd.detect_peaks(data, threshold, time)
-    assert_true(np.all(peaks == peak_times),
-                "detect_peaks(data, threshold, time) did not correctly detect peaks")
-    assert_true(np.all(troughs == trough_times),
-                "detect_peaks(data, threshold, time) did not correctly detect troughs")
 
 
 def test_detect_dynamic_peaks():
@@ -125,6 +117,43 @@ def test_detect_dynamic_peaks():
                 "detect_dynamic_peaks(data, threshold, time, accept_peak_size_threshold) did not correctly detect troughs")
 
 
+def test_threshold_crossings():
+    # generate data:
+    time = np.arange(0.0, 10.0, 0.01)
+    data = np.zeros(time.shape)
+    pt_indices = np.random.randint(5, len(data) - 10, size=40)
+    pt_indices.sort()
+    while np.any(np.diff(pt_indices).min() < 5):
+        pt_indices = np.random.randint(5, len(data) - 10, size=40)
+        pt_indices.sort()
+    up_indices = pt_indices[0::2]
+    down_indices = pt_indices[1::2]
+    up = True
+    for i in range(len(pt_indices) - 1):
+        if up:
+            data[pt_indices[i]:pt_indices[i + 1]] = 1.0
+        else:
+            data[pt_indices[i]:pt_indices[i + 1]] = 0.0
+        up = not up
+    if up:
+        data[pt_indices[-1]:] = 1.0
+
+    threshold = 0.5
+    up, down = pd.threshold_crossings(data, threshold)
+    assert_true(np.all(up == up_indices-1),
+                "threshold_crossings(data, threshold) did not correctly detect up crossings")
+    assert_true(np.all(down == down_indices-1),
+                "threshold_crossings(data, threshold) did not correctly detect down crossings")
+
+    threshold = 0.1 + 0.8/10.0*time
+    assert_raises(IndexError, pd.threshold_crossings, data, threshold[1:])
+    up, down = pd.threshold_crossings(data, threshold)
+    assert_true(np.all(up == up_indices-1),
+                "threshold_crossings(data, threshold) did not correctly detect up crossings")
+    assert_true(np.all(down == down_indices-1),
+                "threshold_crossings(data, threshold) did not correctly detect down crossings")
+
+    
 def test_thresholds():
     # generate data:
     data = np.random.randn(10000)

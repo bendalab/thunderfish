@@ -4,7 +4,7 @@ Detecting and handling peaks and troughs in data arrays.
 detect_peaks(): peak and trough detection with a relative threshold.
 peak_size_width(): compute for each peak its size and width.
 
-threshold_crossings(): detect threshold crossings.
+threshold_crossings(): detect crossings of an absolute threshold.
 
 trim(): make the list of peaks and troughs returned by detect_peaks() the same length.
 trim_to_peak(): ensure that the peak is first.
@@ -27,7 +27,7 @@ accept_peak_size_threshold(): adapt the dection threshold to the size of the det
 import numpy as np
 
 
-def detect_peaks(data, threshold, time=None):
+def detect_peaks(data, threshold):
     """
     Detect peaks and troughs using a fixed, relative threshold according to
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
@@ -40,22 +40,18 @@ def detect_peaks(data, threshold, time=None):
     threshold: float or array
         A positive number or array of numbers setting the detection threshold,
         i.e. the minimum distance between peaks and troughs.
-    time: array
-        The (optional) 1-D array with the time corresponding to the data values.
     
     Returns
     -------
-    peak_array: array
-        A list of peaks.
-    trough_array: array
-        A list of troughs.
-    If time is `None` then these are arrays of the indices where the peaks/troughs occur.
-    If time is given then these are arrays of the times where the peaks/troughs occur.
+    peak_array: array of ints
+        A list of indices of detected peaks.
+    trough_array: array of ints
+        A list of indices of detected troughs.
 
     Raises
     ------
     ValueError: If `threshold <= 0`.
-    IndexError: If `data`, `time`, and `threshold` arrays differ in length.
+    IndexError: If `data` and `threshold` arrays differ in length.
     """
 
     thresh_array = True
@@ -67,8 +63,6 @@ def detect_peaks(data, threshold, time=None):
             raise ValueError('input argument threshold must be positive!')
     elif len(data) != len(threshold):
         raise IndexError('input arrays data and threshold must have same length!')
-    if time is not None and len(data) != len(time):
-        raise IndexError('input arrays time and data must have same length!')
 
     peaks_list = list()
     troughs_list = list()
@@ -97,11 +91,7 @@ def detect_peaks(data, threshold, time=None):
             # the maximum is a peak!
             elif max_value >= value + thresh:
                 # this is a peak:
-                if time is None:
-                    peaks_list.append(max_inx)
-                else:
-                    peaks_list.append(time[max_inx])
-
+                peaks_list.append(max_inx)
                 # change direction:
                 min_inx = index  # minimum element
                 min_value = value
@@ -115,11 +105,7 @@ def detect_peaks(data, threshold, time=None):
 
             elif value >= min_value + thresh:
                 # there was a trough:
-                if time is None:
-                    troughs_list.append(min_inx)
-                else:
-                    troughs_list.append(time[min_inx])
-
+                troughs_list.append(min_inx)
                 # change direction:
                 max_inx = index  # maximum element
                 max_value = value
@@ -205,7 +191,7 @@ def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
     return peaks
     
 
-def threshold_crossings(data, threshold, time=None):
+def threshold_crossings(data, threshold):
     """
     Detect crossings of a threshold with positive and negative slope.
 
@@ -214,42 +200,29 @@ def threshold_crossings(data, threshold, time=None):
     data: array
         An 1-D array of input data where threshold crossings are detected.
     threshold: float or array
-        A positive number or array of numbers setting the threshold
+        A number or array of numbers setting the threshold
         that needs to be crossed.
-        Note: threshold array is not supported right now!!!
-    time: array
-        The (optional) 1-D array with the time corresponding to the data values.
     
     Returns
     -------
-    up_array: array
-        A list of thrreshold crossings with positive slope.
-    down_array: array
-        A list of thrreshold crossings with positive slope.
-    If time is `None` then these are arrays of the indices where the threshold crossings occur.
-    If time is given then these are arrays of the times where the threshold crossings occur.
+    up_array: array of ints
+        A list of indices where the threshold is crossed with positive slope.
+    down_array: array of ints
+        A list of indices where the threshold is crossed with negative slope.
 
     Raises
     ------
-    IndexError: If `data`, `time`, and `threshold` arrays differ in length.
+    IndexError: If `data` and `threshold` arrays differ in length.
     """
 
-    thresh_array = True
-    thresh = 0.0
     if np.isscalar(threshold):
-        thresh_array = False
-        thresh = threshold
-    elif len(data) != len(threshold):
-        raise IndexError('input arrays data and threshold must have same length!')
-    if time is not None and len(data) != len(time):
-        raise IndexError('input arrays time and data must have same length!')
-
-    if time is not None:
-        up_array = time[(data[1:]>threshold) & (data[:-1]<=threshold)]
-        down_array = time[(data[1:]<=threshold) & (data[:-1]>threshold)]
-    else:
         up_array = np.nonzero((data[1:]>threshold) & (data[:-1]<=threshold))[0]
         down_array = np.nonzero((data[1:]<=threshold) & (data[:-1]>threshold))[0]
+    else:
+        if len(data) != len(threshold):
+            raise IndexError('input arrays data and threshold must have same length!')
+        up_array = np.nonzero((data[1:]>threshold[1:]) & (data[:-1]<=threshold[:-1]))[0]
+        down_array = np.nonzero((data[1:]<=threshold[1:]) & (data[:-1]>threshold[:-1]))[0]
     return up_array, down_array
 
 
@@ -912,7 +885,8 @@ if __name__ == "__main__":
     print("Checking peakdetection module ...")
     print('')
     # generate data:
-    time = np.arange(0.0, 10.0, 0.01)
+    dt = 0.001
+    time = np.arange(0.0, 10.0, dt)
     f = 2.0
     data = (0.5 * np.sin(2.0 * np.pi * f * time) + 0.5) ** 4.0
     data += -0.1 * time * (time - 10.0)
@@ -922,18 +896,8 @@ if __name__ == "__main__":
     plt.plot(time, data)
 
     print('')
-    print('check detect_peaks(data, 0.5, time)...')
-    peaks, troughs = detect_peaks(data, 0.5, time)
-    # print peaks:
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (
-        len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks))))
-    # print troughs:
-    print('detected %d troughs with period %g that differs from the real frequency by %g' % (
-        len(troughs), np.mean(np.diff(troughs)), f - 1.0 / np.mean(np.diff(troughs))))
-
-    print('')
-    print('check detect_peaks(data, 0.5)...')
-    peaks, troughs = detect_peaks(data, 0.5)
+    print('check detect_peaks(data, 1.0)...')
+    peaks, troughs = detect_peaks(data, 1.0)
     # print peaks:
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (
         len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks)) / np.mean(np.diff(time))))
@@ -947,7 +911,7 @@ if __name__ == "__main__":
 
     # detect threshold crossings:
     onsets, offsets = threshold_crossings(data, 3.0)
-    onsets, offsets = merge_events(onsets, offsets, 25)
+    onsets, offsets = merge_events(onsets, offsets, int(0.5/f/dt))
     plt.plot(time, 3.0*np.ones(len(time)), 'k')
     plt.plot(time[onsets], data[onsets], '.c', ms=20)
     plt.plot(time[offsets], data[offsets], '.b', ms=20)
