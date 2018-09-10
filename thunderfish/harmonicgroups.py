@@ -820,14 +820,15 @@ def fundamental_freqs(group_list):
     list_of_list = False
     for groups in group_list:
         for harmonic_group in groups:
-            if hasattr(harmonic_group, 'shape'):
+            if hasattr(harmonic_group, 'shape') and len(harmonic_group.shape) == 2:
                 list_of_list = True
                 break
                 
     if list_of_list:
         fundamentals = []
         for groups in group_list:
-            fundamentals.append(np.array([harmonic_group[0][0] for harmonic_group in groups]))
+            f = fundamental_freqs(groups)
+            fundamentals.append(f)
     else:
         fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_list if len(harmonic_group) > 0])
     return fundamentals
@@ -854,12 +855,20 @@ def fundamental_freqs_and_db(group_list):
     """
 
     if len(group_list) == 0:
-        eodf_db_matrix = np.array([])
-    elif hasattr(group_list[0][0][0], '__len__'):
+        return np.array([])
+
+    # check whether group_list is list of fishlists:
+    list_of_list = False
+    for groups in group_list:
+        for harmonic_group in groups:
+            if hasattr(harmonic_group, 'shape') and len(harmonic_group.shape) == 2:
+                list_of_list = True
+                break
+    
+    if list_of_list:
         eodf_db_matrix = []
         for groups in group_list:
-            f = [np.array([harmonic_group[0][0], harmonic_group[0][1]]) for harmonic_group in group_list]
-            f[:, 1] = decibel(f[:, 1])  # calculate decibel using 1 as reference power
+            f = fundamental_freqs_and_db(groups)
             eodf_db_matrix.append(f)
     else:
         eodf_db_matrix = np.array([np.array([harmonic_group[0][0], harmonic_group[0][1]])
