@@ -1,27 +1,34 @@
 """
-Detecting and handling peaks and troughs in data arrays.
+# Detecting and handling peaks and troughs in data arrays.
 
-detect_peaks(): peak and trough detection with a relative threshold.
-peak_size_width(): compute for each peak its size and width.
+## Peak detection
+- `detect_peaks()`: peak and trough detection with a relative threshold.
+- `peak_size_width()`: compute for each peak its size and width.
 
-threshold_crossings(): detect crossings of an absolute threshold.
+## Threshold crossings
+- `threshold_crossings()`: detect crossings of an absolute threshold.
 
-trim(): make the list of peaks and troughs returned by detect_peaks() the same length.
-trim_to_peak(): ensure that the peak is first.
-trim_closest(): ensure that peaks minus troughs is smallest.
+## Event manipulation
+- `trim()`: make the list of peaks and troughs the same length.
+- `trim_to_peak()`: ensure that the peak is first.
+- `trim_closest()`: ensure that peaks minus troughs is smallest.
 
-merge_events(): Merge events if they are closer than a minimum distance.
-remove_events(): Remove events that are too short.
+- `merge_events()`: Merge events if they are closer than a minimum distance.
+- `remove_events()`: Remove events that are too short.
+- `widen_events()`: Enlarge events on both sides without overlap.
 
-std_threshold(): estimate detection threshold based on the standard deviation.
-hist_threshold(): esimate detection threshold based on a histogram of the data.
-minmax_threshold(): estimate detection threshold based on maximum minus minimum value.
-percentile_threshold(): estimate detection threshold based on interpercentile range.
+## Threshold estimation
+- `std_threshold()`: estimate detection threshold based on the standard deviation.
+- `hist_threshold()`: esimate detection threshold based on a histogram of the data.
+- `minmax_threshold()`: estimate detection threshold based on maximum minus minimum value.
+- `percentile_threshold()`: estimate detection threshold based on interpercentile range.
 
-snippets(): cut out data snippets around a list of indices.
+## Snippets
+- `snippets(): cut out data snippets around a list of indices.
 
-detect_dynamic_peaks(): peak and trough detection with a dynamically adapted threshold.
-accept_peak_size_threshold(): adapt the dection threshold to the size of the detected peaks.
+## Peak detection with dynamic threshold:
+- `detect_dynamic_peaks()`: peak and trough detection with a dynamically adapted threshold.
+- `accept_peak_size_threshold()`: adapt the dection threshold to the size of the detected peaks.
 """
 
 import numpy as np
@@ -405,6 +412,53 @@ def remove_events(onsets, offsets, min_duration):
         onsets = onsets[indices]
         offsets = offsets[indices]
         return onsets, offsets
+
+
+def widen_events(onsets, offsets, max_time, duration):
+    """Enlarge events on both sides without overlap.
+    
+    Parameters
+    ----------
+    onsets: 1-D array
+        The onsets (peaks, or positive threshold crossings) of the events
+        as indices or times.
+    offsets: 1-D array
+        The offsets (troughs, or negative threshold crossings) of the events
+        as indices or times.
+    max_time: int or float
+        The maximum value for the end of the last event.
+        If the event onsets and offsets are given in indices than
+        max_time is the maximum possible index, i.e. the len of the
+        data array on which the events where detected.
+    duration: int or float
+        The number of indices or the time by which the events should be enlarged.
+        If the event onsets and offsets are given in indices than
+        duration is also in indices. 
+
+    Returns
+    -------
+    onsets: 1-D array
+        The onsets (peaks, or positive threshold crossings) of the enlarged events.
+    offsets: 1-D array
+        The offsets (troughs, or negative threshold crossings) of the enlarged events.
+    """
+    new_onsets = []
+    new_offsets = []
+    if len(onsets) > 0:
+        on_idx = onsets[0]
+        new_onsets.append( on_idx - duration if on_idx >= duration else 0 )
+    for off_idx, on_idx in zip(offsets[:-1], onsets[1:]):
+        if on_idx - off_idx < 2*duration:
+            mid_idx = (on_idx + off_idx)//2
+            new_offsets.append(mid_idx)
+            new_onsets.append(mid_idx)
+        else:
+            new_offsets.append(off_idx + duration)
+            new_onsets.append(on_idx - duration)
+    if len(offsets) > 0:
+        off_idx = offsets[-1]
+        new_offsets.append(off_idx + duration if off_idx + duration < max_time else max_time)
+    return new_onsets, new_offsets
 
     
 def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
