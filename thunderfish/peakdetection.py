@@ -14,7 +14,7 @@
 - `trim_closest()`: ensure that peaks minus troughs is smallest.
 
 - `merge_events()`: Merge events if they are closer than a minimum distance.
-- `remove_events()`: Remove events that are too short.
+- `remove_events()`: Remove events that are too short or too long.
 - `widen_events()`: Enlarge events on both sides without overlap.
 
 ## Threshold estimation
@@ -335,7 +335,7 @@ def merge_events(onsets, offsets, min_distance):
 
     If the beginning of an event (onset, peak, or positive threshold crossing,
     is too close to the end of the previous event (offset, trough, or negative
-    threshold crossing) the two events are merge into a single one that begins
+    threshold crossing) the two events are merged into a single one that begins
     with the first one and ends with the second one.
     
     Parameters
@@ -372,13 +372,13 @@ def merge_events(onsets, offsets, min_distance):
         return merged_onsets, merged_offsets
 
     
-def remove_events(onsets, offsets, min_duration):
-    """Remove events that are too short.
+def remove_events(onsets, offsets, min_duration, max_duration=None):
+    """Remove events that are too short or too long.
 
-    If the beginning of an event (onset, peak, or positive threshold crossing,
-    is too close to the end of the previous event (offset, trough, or negative
-    threshold crossing) the two events are merged into a single one that begins
-    with the first one and ends with the second one.
+    If the length of an event, i.e. `offset` (offset, trough, or negative
+    threshold crossing) minus `onset` (onset, peak, or positive threshold crossing),
+    is shorter than `min_duration` or longer than `max_duration`, then this event is
+    removed.
     
     Parameters
     ----------
@@ -388,34 +388,49 @@ def remove_events(onsets, offsets, min_duration):
     offsets: 1-D array
         The offsets (troughs, or negative threshold crossings) of the events
         as indices or times.
-    min_duration: int or float
+    min_duration: int, float, or None
         The minimum duration of events. If the event offset minus the event onset
-        is of less than this duration then the the event is removed from the lists.
+        is less than `min_duration`, then the event is removed from the lists.
         If the event onsets and offsets are given in indices than
-        min_duration is also in indices. 
+        `min_duration` is also in indices. If `None` then this test is skipped.
+    max_duration: int, float, or None
+        The maximum duration of events. If the event offset minus the event onset
+        is larger than `max_duration`, then the event is removed from the lists.
+        If the event onsets and offsets are given in indices than
+        `max_duration` is also in indices. If `None` then this test is skipped.
 
     Returns
     -------
     onsets: 1-D array
         The onsets (peaks, or positive threshold crossings) of the events
-        with the short events removed as indices or times according to onsets.
+        with too short and too long events removed as indices or times according to onsets.
     offsets: 1-D array
         The offsets (troughs, or negative threshold crossings) of the events
-        with the short events removed as indices or times according to offsets.
+        with too short and too long events removed as indices or times according to offsets.
     """
     onsets, offsets = trim_to_peak(onsets, offsets)
     if len(onsets) == 0 or len(offsets) == 0:
         return np.array([]), np.array([])
-    else:
+    elif min_duration is not None or max_duration is not None:
         diff = offsets - onsets
-        indices = diff > min_duration
+        if min_duration is not None and max_duration is not None:
+            indices = (diff > min_duration) & (diff < max_duration)
+        elif min_duration is not None:
+            indices = diff > min_duration
+        else:
+            indices = diff < max_duration
         onsets = onsets[indices]
         offsets = offsets[indices]
-        return onsets, offsets
+    return onsets, offsets
 
 
 def widen_events(onsets, offsets, max_time, duration):
     """Enlarge events on both sides without overlap.
+
+    Subtracts `duration` from the `onsets` and adds `duration` to the offsets.
+    If two succeeding events are separated by less than two times the `duration`,
+    then the offset of the previous event and the onset of the following event are
+    set at the center between the two events.
     
     Parameters
     ----------
