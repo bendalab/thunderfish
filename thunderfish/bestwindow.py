@@ -17,7 +17,7 @@ plot_best_window(): visualization of the algorithm used in best_window_indices()
 """
 
 import numpy as np
-from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
+from .eventdetection import percentile_threshold, detect_peaks, trim_to_peak
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -155,7 +155,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     dynamic threshold.  The threshold is computed in win_shift wide
     windows as thresh_ampl_fac times the interpercentile range at
     the percentile and 100.0-percentile percentile of the data
-    using the peakdetection.percentile_threshold() function.
+    using the eventdetection.percentile_threshold() function.
 
     Second, criteria for selecting the best window are computed for each
     window of width win_size shifted by win_shift trough the data. The
@@ -186,8 +186,8 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     :param single: (boolean). If true return only the single window with the smallest cost. If False return the largest window with the cost below the minimum cost plus tolerance.
     :param win_size: (float). Size of the best window in seconds. Choose it large enough for a minimum analysis.
     :param win_shift: (float). Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
-    :param percentile: (int). percentile parameter for the peakdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
-    :param th_factor: (float). th_factor parameter for the peakdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
+    :param percentile: (int). percentile parameter for the eventdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
+    :param th_factor: (float). th_factor parameter for the eventdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
     :param min_clip: (float). Minimum amplitude below which data are clipped.
     :param max_clip: (float). Maximum amplitude above which data are clipped.
     :param w_cv_interv: (float). Weight for the coefficient of variation of the intervals.
