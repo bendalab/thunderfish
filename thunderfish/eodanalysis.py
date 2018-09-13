@@ -5,7 +5,7 @@ eod_waveform(): calculates a mean EOD of a given dataset.
 """
 
 import numpy as np
-from .peakdetection import percentile_threshold, detect_peaks, snippets
+from .eventdetection import percentile_threshold, detect_peaks, snippets
 
 
 def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1, start=None, stop=None):
@@ -14,9 +14,9 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1, start=None, st
 
     :param data: (1-D array) the data to be analysed.
     :param samplerate: (float) samplerate of the data in Hertz.
-    :param percentile: (int). percentile parameter for the peakdetection.percentile_threshold() function used to
+    :param percentile: (int). percentile parameter for the eventdetection.percentile_threshold() function used to
     estimate thresholds for detecting EOD peaks in the data.
-    :param th_factor: (float). th_factor parameter for the peakdetection.percentile_threshold() function used to
+    :param th_factor: (float). th_factor parameter for the eventdetection.percentile_threshold() function used to
     estimate thresholds for detecting EOD peaks in the data.
     :param start: (float or None) start time of EOD snippets relative to peak.
     :param stop: (float or None) stop time of EOD snippets relative to peak.

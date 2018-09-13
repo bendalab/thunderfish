@@ -1,5 +1,5 @@
 """
-# Detecting and handling peaks and troughs in data arrays.
+# Detecting and handling peaks and troughs and threshold crossings in data arrays.
 
 ## Peak detection
 - `detect_peaks()`: peak and trough detection with a relative threshold.
@@ -951,7 +951,7 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
     
-    print("Checking peakdetection module ...")
+    print("Checking eventetection module ...")
     print('')
     # generate data:
     dt = 0.001

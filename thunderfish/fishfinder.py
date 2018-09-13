@@ -754,7 +754,7 @@ def main():
     with open_data(filepath, channel, 60.0, 10.0, verbose) as data:
         # plot:
         ## if len(data) < 10**8:
-        ##     # data[:].copy() makes bestwindow much faster (it's slow in peakdetection):
+        ##     # data[:].copy() makes bestwindow much faster (it's slow in eventdetection):
         ##     SignalPlot(data[:].copy(), data.samplerate, data.unit, filename, channel)
         ## else:
         SignalPlot(data, data.samplerate, data.unit, filename, channel, verbose, cfg)

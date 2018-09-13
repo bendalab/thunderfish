@@ -16,7 +16,7 @@ plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, har
 from __future__ import print_function
 import numpy as np
 import scipy.signal as sig
-from .peakdetection import detect_peaks, peak_size_width, hist_threshold
+from .eventdetection import detect_peaks, peak_size_width, hist_threshold
 from .powerspectrum import decibel, power, plot_decibel_psd
 try:
     import matplotlib.cm as cm

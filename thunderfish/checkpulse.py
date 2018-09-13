@@ -6,7 +6,7 @@ check_pulse_psd(): checks for puls_type fish based on its signature on the power
 """
 
 import numpy as np
-from .peakdetection import percentile_threshold, detect_peaks, trim_to_peak
+from .eventdetection import percentile_threshold, detect_peaks, trim_to_peak
 from .powerspectrum import decibel
 try:
     from matplotlib.patches import Rectangle
