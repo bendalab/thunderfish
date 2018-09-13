@@ -19,6 +19,7 @@ try:
     import matplotlib.mlab as mlab
 except ImportError:
     pass
+from .eventdetection import detect_peaks
 
 
 def next_power_of_two(n):
@@ -261,7 +262,7 @@ def spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, wi
     return spectrum, freqs, time
 
 
-def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16):
+def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16, thresh=None):
     """Peak frequencies computed for each of the data snippets.
 
     Parameters
@@ -278,6 +279,10 @@ def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16):
         Desired frequency resolution of the computed power spectra in Hertz.
     min_nfft: int
         The smallest value of nfft to be used.
+    thresh: None or float
+        If not None than this is the threshold required for the minimum hight of the peak
+        in the power spectrum. If the peak is too small than the peak frequency of
+        that snippet is set to NaN.
 
     Returns
     -------
@@ -291,8 +296,15 @@ def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16):
         if nfft > i1 - i0 :
             nfft = next_power_of_two((i1 - i0)/2)
         f, Pxx = sig.welch(data[i0:i1], fs=rate, nperseg=nfft, noverlap=nfft//2, nfft=None)
-        ipeak = np.argmax(Pxx)
-        fpeak = f[np.argmax(Pxx)]
+        if thresh is None:
+            fpeak = f[np.argmax(Pxx)]
+        else:
+            p, _ = detect_peaks(decibel(Pxx, None), thresh)
+            if len(p) > 0:
+                ipeak = np.argmax(Pxx[p])
+                fpeak = f[p[ipeak]]
+            else:
+                fpeak = float('NaN')
         freqs.append(fpeak)
     return np.array(freqs)
 
