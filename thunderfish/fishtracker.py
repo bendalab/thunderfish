@@ -2746,7 +2746,9 @@ class Obs_tracker():
             self.error_text = [None, None]
 
             # powerspectrum window and parameters
-            self.add_ax = None
+            # self.add_ax = None
+            self.add_ax = [None, [None, None, None], [None, None]]
+
             self.add_tmp_plothandel = []
             self.tmp_harmonics_plot = None
             self.all_peakf_dots = None
@@ -2754,9 +2756,9 @@ class Obs_tracker():
 
             self.active_harmonic = None
 
-            self.f_error_ax = None
-            self.a_error_ax = None
-            self.t_error_ax = None
+            # self.f_error_ax = None
+            # self.a_error_ax = None
+            # self.t_error_ax = None
 
             # get key options into plot
             self.text_handles_key = []
@@ -3410,9 +3412,9 @@ class Obs_tracker():
                 self.plot_error()
 
                 self.main_ax.set_position([.1, .1, .4, .6])
-                self.field_ax0 = self.main_fig.add_axes([.55, .225, .2, .3])
-                self.field_ax1 = self.main_fig.add_axes([.775, .05, .2, .3])
-                self.field_ax2 = self.main_fig.add_axes([.775, .4, .2, .3])
+                self.add_ax[1][0] = self.main_fig.add_axes([.55, .225, .2, .3])
+                self.add_ax[1][1] = self.main_fig.add_axes([.775, .05, .2, .3])
+                self.add_ax[1][2] = self.main_fig.add_axes([.775, .4, .2, .3])
                 self.main_fig.canvas.draw()
 
             if self.current_task == 'track_snippet':
@@ -3826,7 +3828,7 @@ class Obs_tracker():
 
                     if self.ioi_field[0] == None:
                         self.ioi_field[0] = self.active_idx0
-                        self.ioi_field_handle[0] = self.field_ax0.imshow(
+                        self.ioi_field_handle[0] = self.add_ax[1][0].imshow(
                             self.sign_v[self.ioi_field[0]].reshape(8, 8).transpose()[::-1], cmap='jet',
                             interpolation='gaussian')
                         self.ioi_field_marker[0], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[0]]],
@@ -3835,7 +3837,7 @@ class Obs_tracker():
 
                     elif self.ioi_field[1] == None:
                         self.ioi_field[1] = self.active_idx0
-                        self.ioi_field_handle[1] = self.field_ax1.imshow(
+                        self.ioi_field_handle[1] = self.add_ax[1][1].imshow(
                             self.sign_v[self.ioi_field[1]].reshape(8, 8).transpose()[::-1], cmap='jet',
                             interpolation='gaussian')
                         self.ioi_field_marker[1], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[1]]],
@@ -3861,17 +3863,17 @@ class Obs_tracker():
                                                                     error[0] * 2. / 3 + error[1] * 1. / 3),
                                                                 color='orange')
 
-                        self.ioi_a_error_line[0][0], = self.a_error_ax.plot([a_e, a_e], [0, rel_a_e], color='orange')
-                        self.ioi_a_error_line[0][1], = self.a_error_ax.plot([0, a_e], [rel_a_e, rel_a_e],
+                        self.ioi_a_error_line[0][0], = self.add_ax[2][1].plot([a_e, a_e], [0, rel_a_e], color='orange')
+                        self.ioi_a_error_line[0][1], = self.add_ax[2][1].plot([0, a_e], [rel_a_e, rel_a_e],
                                                                             color='orange')
 
-                        self.ioi_f_error_line[0][0], = self.f_error_ax.plot([f_e, f_e], [0, rel_f_e], color='orange')
-                        self.ioi_f_error_line[0][1], = self.f_error_ax.plot([0, f_e], [rel_f_e, rel_f_e],
+                        self.ioi_f_error_line[0][0], = self.add_ax[2][0].plot([f_e, f_e], [0, rel_f_e], color='orange')
+                        self.ioi_f_error_line[0][1], = self.add_ax[2][0].plot([0, f_e], [rel_f_e, rel_f_e],
                                                                             color='orange')
 
                     else:
                         self.ioi_field[2] = self.active_idx0
-                        self.ioi_field_handle[2] = self.field_ax2.imshow(
+                        self.ioi_field_handle[2] = self.addax[1][2].imshow(
                             self.sign_v[self.ioi_field[2]].reshape(8, 8).transpose()[::-1], cmap='jet',
                             interpolation='gaussian')
                         self.ioi_field_marker[2], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[2]]],
@@ -3896,12 +3898,12 @@ class Obs_tracker():
                                                                         self.times[self.idx_v[self.ioi_field[0]]]),
                                                                     error[0] * 2. / 3 + error[1] * 1. / 3), color='red')
 
-                        self.ioi_a_error_line[1][0], = self.a_error_ax.plot([a_e, a_e], [0, rel_a_e], color='red')
-                        self.ioi_a_error_line[1][1], = self.a_error_ax.plot([0, a_e], [rel_a_e, rel_a_e],
+                        self.ioi_a_error_line[1][0], = self.add_ax[2][1].plot([a_e, a_e], [0, rel_a_e], color='red')
+                        self.ioi_a_error_line[1][1], = self.add_ax[2][1].plot([0, a_e], [rel_a_e, rel_a_e],
                                                                             color='red')
 
-                        self.ioi_f_error_line[1][0], = self.f_error_ax.plot([f_e, f_e], [0, rel_f_e], color='red')
-                        self.ioi_f_error_line[1][1], = self.f_error_ax.plot([0, f_e], [rel_f_e, rel_f_e],
+                        self.ioi_f_error_line[1][0], = self.add_ax[2][0].plot([f_e, f_e], [0, rel_f_e], color='red')
+                        self.ioi_f_error_line[1][1], = self.add_ax[2][0].plot([0, f_e], [rel_f_e, rel_f_e],
                                                                             color='red')
 
             if self.current_task == 'delete_trace':
@@ -4850,15 +4852,15 @@ class Obs_tracker():
         # embed()
         # quit()
 
-        if self.f_error_ax:
-            self.main_fig.delaxes(self.f_error_ax)
-            self.f_error_ax = None
-        if self.a_error_ax:
-            self.main_fig.delaxes(self.a_error_ax)
-            self.a_error_ax = None
-        if self.t_error_ax:
-            self.main_fig.delaxes(self.t_error_ax)
-            self.t_error_ax = None
+        if self.add_ax[2][0]:
+            self.main_fig.delaxes(self.add_ax[2][0])
+            self.add_ax[2][0] = None
+        if self.add_ax[2][1]:
+            self.main_fig.delaxes(self.add_ax[2][1])
+            self.add_ax[2][1] = None
+        # if self.t_error_ax:
+        #     self.main_fig.delaxes(self.t_error_ax)
+        #     self.t_error_ax = None
 
         self.main_fig.set_size_inches(20. / 2.54, 12. / 2.54)
         self.main_fig.canvas.draw()
@@ -5035,25 +5037,25 @@ class Obs_tracker():
 
         self.main_ax.set_position([.1, .1, .6, .6])
         # n, h = np.histogram(self.f_error_dist, 5000)
-        self.f_error_ax = self.main_fig.add_axes([.4, .75, 0.15, 0.15])
+        self.add_ax[2][0] = self.main_fig.add_axes([.6, .75, 0.15, 0.15])
         # self.f_error_ax.plot(h[:-1] + (h[1]- h[0]) / 2., n, '.', color='cornflowerblue')
         # self.f_error_ax.plot(h[1:], np.cumsum(n) / np.sum(n), color='cornflowerblue', linewidth=2)
-        self.f_error_ax.plot(np.arange(0, 5, 0.02), boltzmann(np.arange(0, 5, 0.02), alpha=1, beta=0, x0=.25, dx=.15),
+        self.add_ax[2][0].plot(np.arange(0, 5, 0.02), boltzmann(np.arange(0, 5, 0.02), alpha=1, beta=0, x0=.25, dx=.15),
                              color='cornflowerblue', linewidth=2)
-        self.f_error_ax.set_xlabel('frequency error [Hz]', fontsize=12)
+        self.add_ax[2][0].set_xlabel('frequency error [Hz]', fontsize=12)
 
         n, h = np.histogram(self.a_error_dist, 5000)
-        self.a_error_ax = self.main_fig.add_axes([.6, .75, 0.15, 0.15])
+        self.add_ax[2][1] = self.main_fig.add_axes([.8, .75, 0.15, 0.15])
         # self.a_error_ax.plot(h[:-1] + (h[1]- h[0]) / 2., n, '.', color='green')
-        self.a_error_ax.plot(h[1:], np.cumsum(n) / np.sum(n), color='green', linewidth=2)
-        self.a_error_ax.set_xlabel('amplitude error [a.u.]', fontsize=12)
+        self.add_ax[2][1].plot(h[1:], np.cumsum(n) / np.sum(n), color='green', linewidth=2)
+        self.add_ax[2][1].set_xlabel('amplitude error [a.u.]', fontsize=12)
         # self.a_error_ax.set_ylabel('cumsum of error distribution', fontsize=12)
 
-        self.t_error_ax = self.main_fig.add_axes([.8, .75, 0.15, 0.15])
-        t = np.arange(0, 10, 0.0001)
-        f = (0.25 - 0.0) / (1. + np.exp(- (t - 4) / 0.85)) + 0.0
-        self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
-        self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
+        # self.t_error_ax = self.main_fig.add_axes([.8, .75, 0.15, 0.15])
+        # t = np.arange(0, 10, 0.0001)
+        # f = (0.25 - 0.0) / (1. + np.exp(- (t - 4) / 0.85)) + 0.0
+        # self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
+        # self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
 
     def plot_traces(self, clear_traces=False, post_connect=False, post_cut=False, post_delete=False,
                     post_group_delete=False, post_group_connection=False, post_refill=False, post_group_reassign=False):
@@ -5163,15 +5165,15 @@ class Obs_tracker():
         calculates the powerspectrum of single or multiple datasnippets recorded with single or multiple electrodes at a time.
         If multiple electrode recordings are analysed the shown powerspectrum is the sum of all calculated powerspectra.
         """
-        if self.f_error_ax:
-            self.main_fig.delaxes(self.f_error_ax)
-            self.f_error_ax = None
-        if self.a_error_ax:
-            self.main_fig.delaxes(self.a_error_ax)
-            self.a_error_ax = None
-        if self.t_error_ax:
-            self.main_fig.delaxes(self.t_error_ax)
-            self.t_error_ax = None
+        if self.add_ax[2][0]:
+            self.main_fig.delaxes(self.add_ax[2][0])
+            self.add_ax[2][0] = None
+        if self.add_ax[2][1]:
+            self.main_fig.delaxes(self.add_ax[2][1])
+            self.add_ax[2][1] = None
+        # if self.t_error_ax:
+        #     self.main_fig.delaxes(self.t_error_ax)
+        #     self.t_error_ax = None
 
         # nfft = next_power_of_two(self.samplerate / self.fresolution)
         nfft = next_power_of_two(self.samplerate / self.kwargs['fresolution'])
