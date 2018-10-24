@@ -26,8 +26,8 @@ from .csvmaker import write_csv
 
 
 def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_IPI, inter_eod_intervals,
-                raw_data, samplerate, idx0, idx1, filtered_fishlist, period, time_eod, mean_eod, std_eod, unit,
-                psd_data, output_folder, save_plot=False, show_plot=False):
+                raw_data, samplerate, idx0, idx1, fishlist, period, time_eod, mean_eod, std_eod, unit,
+                psd_data, max_freq=3000.0, output_folder='', save_plot=False, show_plot=False):
     """
     Creates an output plot for the Thunderfish program.
 
@@ -58,7 +58,7 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
         Index of the beginning of the analysis window in the dataset.
     idx1: float
         Index of the end of the analysis window in the dataset.
-    filtered_fishlist: array
+    fishlist: array
         Frequency and power of fundamental frequency/harmonics of several fish.
     period: float
         Mean EOD time difference.
@@ -89,19 +89,23 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     ax6 = fig.add_axes([0.575, 0.2, 0.4, 0.3])  # inter EOD histogram
 
     # count fish:
-    try:
-        dom_freq = \
-        filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][0]
-        fish_count = len(filtered_fishlist)
-    except IndexError:
-        dom_freq = 1. / period
-        fish_count = 1
+    fish_count = 0
+    dom_freq = -1.0
+    if len(fishlist) > 0:
+        try:
+            dom_freq = \
+            fishlist[np.argsort([fishlist[fish][0][1] for fish in range(len(fishlist))])[-1]][0][0]
+            fish_count = len(fishlist)
+        except IndexError:
+            dom_freq = 1. / period
+            fish_count = 1
     
     # plot title
     if not pulse_fish_width and not pulse_fish_psd:
         if fish_count > 1:
             ax1.text(-0.05, .75, '%s --- Recording of wavefish.' % base_name, fontsize=20, color='grey')
-        else:
+        elif fish_count == 1:
+
             ax1.text(-0.05, .75, '%s --- Recording of a wavefish.' % base_name, fontsize=20, color='grey')
     elif pulse_fish_width and pulse_fish_psd:
         ax1.text(-0.02, .65, '%s --- Recording of a pulsefish.' % base_name, fontsize=20, color='grey')
@@ -128,22 +132,23 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     # plot psd
     if not pulse_fish_width: # and not pulse_fish_psd:
         colors, markers = colors_markers()
-        plot_harmonic_groups(ax3, filtered_fishlist, max_freq=3000, max_groups=0, sort_by_freq=True,
+        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=0, sort_by_freq=True,
                              colors=colors, markers=markers, legend_rows=8,
                              frameon=False, bbox_to_anchor=(1.05, 1), loc='upper left')
-    plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=3000.0, color='blue')
+    plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq, color='blue')
     ax3.set_title('Powerspectrum (%.0f detected fish)' % fish_count)
 
     ##########
 
     # plot mean EOD
-    eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
-    if pulse_fish_width and pulse_fish_psd:
-        ax4.set_title('Mean EOD (%.0f EODs; Pulse frequency: ~%.1f Hz)' % (EOD_count, dom_freq), fontsize=14)
-        # No xlim needed for pulse-fish, because of defined start and end in eod_waveform function of eodanalysis.py
-    else:
-        ax4.set_title('Mean EOD (%.0f EODs; Dominant frequency: %.1f Hz)' % (EOD_count, dom_freq), fontsize=14)
-        ax4.set_xlim([-600 * period, 600 * period])
+    if dom_freq > 0.0:
+        eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
+        if pulse_fish_width and pulse_fish_psd:
+            ax4.set_title('Mean EOD (%.0f EODs; Pulse frequency: ~%.1f Hz)' % (EOD_count, dom_freq), fontsize=14)
+            # No xlim needed for pulse-fish, because of defined start and end in eod_waveform function of eodanalysis.py
+        else:
+            ax4.set_title('Mean EOD (%.0f EODs; Dominant frequency: %.1f Hz)' % (EOD_count, dom_freq), fontsize=14)
+            ax4.set_xlim([-600 * period, 600 * period])
     ###############
 
     # plot meta data
@@ -178,23 +183,24 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     ################
 
     # plot inter EOD interval histogram
-    tmp_period = 1000. / dom_freq
-    tmp_period = tmp_period - tmp_period % 0.05
-    inter_eod_intervals *= 1000.  # transform sec in msec
-    median_IPI *= 1000.  # tranform sec in msec
-    n, edges = np.histogram(inter_eod_intervals, bins=np.arange(tmp_period - 5., tmp_period + 5., 0.05))
+    if dom_freq > 0.0 :
+        tmp_period = 1000. / dom_freq
+        tmp_period = tmp_period - tmp_period % 0.05
+        inter_eod_intervals *= 1000.  # transform sec in msec
+        median_IPI *= 1000.  # tranform sec in msec
+        n, edges = np.histogram(inter_eod_intervals, bins=np.arange(tmp_period - 5., tmp_period + 5., 0.05))
 
-    ax6.bar(edges[:-1], n, edges[1] - edges[0] - 0.001)
-    ax6.plot([median_IPI, median_IPI], [0, max(n)], '--', color='red', lw=2, label='median %.2f ms' % median_IPI)
-    ax6.set_xlabel('inter EOD interval [ms]')
-    ax6.set_ylabel('n')
-    ax6.set_title('Inter EOD interval histogram', fontsize=14)
+        ax6.bar(edges[:-1], n, edges[1] - edges[0] - 0.001)
+        ax6.plot([median_IPI, median_IPI], [0, max(n)], '--', color='red', lw=2, label='median %.2f ms' % median_IPI)
+        ax6.set_xlabel('inter EOD interval [ms]')
+        ax6.set_ylabel('n')
+        ax6.set_title('Inter EOD interval histogram', fontsize=14)
 
-    max_IPI = np.ceil(np.max(inter_eod_intervals)+0.5)
-    if max_IPI/median_IPI < 1.2:
-        max_IPI = np.ceil(1.2*median_IPI)
-    ax6.set_xlim(0.0, max_IPI)
-    ax6.legend(loc='upper right', frameon=False)
+        max_IPI = np.ceil(np.max(inter_eod_intervals)+0.5)
+        if max_IPI/median_IPI < 1.2:
+            max_IPI = np.ceil(1.2*median_IPI)
+        ax6.set_xlim(0.0, max_IPI)
+        ax6.legend(loc='upper right', frameon=False)
 
     # cosmetics
     for ax in [ax2, ax3, ax4, ax6]:
@@ -255,6 +261,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         return 'empty data file %s' % filename
 
     # calculate best_window:
+    found_bestwindow = True
     min_clip = cfg.value('minClipAmplitude')
     max_clip = cfg.value('maxClipAmplitude')
     if min_clip == 0.0 or max_clip == 0.0:
@@ -264,8 +271,10 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                                                   min_clip=min_clip, max_clip=max_clip,
                                                   **best_window_args(cfg))
     except UserWarning as e:
-        print(str(e))
-        return ''
+        print('best_window: ' + str(e))
+        found_bestwindow = False
+        idx0 = 0
+        idx1 = len(raw_data)
     data = raw_data[idx0:idx1]
 
     # pulse-type fish?
@@ -310,7 +319,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                                                           stop=mean_eod_window)
 
     # write mean EOD
-    if save_csvs:
+    if save_csvs and found_bestwindow:
         header = ['time (ms)', 'mean', 'std']
         write_csv(os.path.join(output_folder, outfilename + '-mean_waveform.csv'), header,
                   np.column_stack((1000.0 * time, mean_eod, std_eod)))
@@ -328,7 +337,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     if save_plot or not save_csvs:
         output_plot(outfilename, pulse_fish_width, pulse_fish_psd, len(eod_times), median_IPI,
                     inter_eod_intervals, raw_data, samplerate, idx0, idx1, filtered_fishlist,
-                    period, time, mean_eod, std_eod, unit, psd_data, output_folder,
+                    period, time, mean_eod, std_eod, unit, psd_data, 2000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_csvs)
 
 

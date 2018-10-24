@@ -224,7 +224,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
 
     # too little data:
     if len(data) / samplerate <= win_size:
-        raise UserWarning('no best window found: not enough data')
+        raise UserWarning('not enough data')
 
     # threshold for peak detection:
     threshold = percentile_threshold(data, samplerate, win_shift,
@@ -233,7 +233,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     # detect large peaks and troughs:
     peak_idx, trough_idx = detect_peaks(data, threshold)
     if len(peak_idx) == 0 or len(trough_idx) == 0:
-        raise UserWarning('best_window(): no peaks or troughs detected')
+        raise UserWarning('no peaks or troughs detected')
 
     # compute cv of intervals, mean peak amplitude and its cv:
     invalid_cv = 1000.0

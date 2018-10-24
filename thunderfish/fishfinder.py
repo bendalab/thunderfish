@@ -212,6 +212,7 @@ class SignalPlot:
             t00 = 0
             t11 = w
         power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=noverlap, Fs=self.samplerate, detrend=ml.detrend_mean)
+        power = np.squeeze(power) # squeeze is necessary when nfft is to large with respect to the data
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
         h_kwargs = psd_peak_detection_args(self.cfg)
