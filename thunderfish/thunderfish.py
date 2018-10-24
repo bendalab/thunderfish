@@ -107,6 +107,9 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
         elif fish_count == 1:
 
             ax1.text(-0.05, .75, '%s --- Recording of a wavefish.' % base_name, fontsize=20, color='grey')
+        else:
+
+            ax1.text(-0.05, .75, base_name, fontsize=20, color='grey')
     elif pulse_fish_width and pulse_fish_psd:
         ax1.text(-0.02, .65, '%s --- Recording of a pulsefish.' % base_name, fontsize=20, color='grey')
     else:
