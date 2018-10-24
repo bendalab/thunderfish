@@ -560,22 +560,23 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
 
         for inx0 in range(0, len(data), win_size_indices):
             inx1 = inx0 + win_size_indices
-            hist, bins = np.histogram(data[inx0:inx1], nbins, density=True)
+            std, center = hist_threshold(data[inx0:inx1], samplerate=None, win_size=None,
+                                         th_factor=th_factor, nbins=nbins,
+                                         hist_height=hist_height)
+            threshold[inx0:inx1] = std
+            centers[inx0:inx1] = center
+        return threshold, centers
+    else:
+        if np.max(data) - np.min(data) < 1e-8:
+            hist, bins = np.histogram(data, nbins, density=False)
             inx = hist > np.max(hist) * hist_height
             lower = bins[0:-1][inx][0]
             upper = bins[1:][inx][-1]  # needs to return the next bin
             center = 0.5 * (lower + upper)
             std = 0.5 * (upper - lower)
-            threshold[inx0:inx1] = std * th_factor
-            centers[inx0:inx1] = center
-        return threshold, centers
-    else:
-        hist, bins = np.histogram(data, nbins, density=True)
-        inx = hist > np.max(hist) * hist_height
-        lower = bins[0:-1][inx][0]
-        upper = bins[1:][inx][-1]  # needs to return the next bin
-        center = 0.5 * (lower + upper)
-        std = 0.5 * (upper - lower)
+        else:
+            std = np.std(data)
+            center = np.mean(data)
         return std * th_factor, center
 
     

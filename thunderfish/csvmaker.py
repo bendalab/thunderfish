@@ -19,7 +19,7 @@ def write_csv(filename, csv_header, data_matrix, format_str='%.3f'):
     """
 
     # Check if header has same row length as data_matrix
-    if len(csv_header) != len(data_matrix[0]):
+    if len(data_matrix) > 0 and len(csv_header) != len(data_matrix[0]):
         raise ValueError('The length of the header does not match the length of the data matrix!')
 
     with open(filename, 'wb') as fin:
