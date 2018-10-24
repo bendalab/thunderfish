@@ -242,7 +242,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         else:
             print('write configuration to %s ...' % save_config)
             cfg.dump(save_config)
-        return ''
+        return None
 
     # check data file:
     if len(filename) == 0:
