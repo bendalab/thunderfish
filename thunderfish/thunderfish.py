@@ -307,7 +307,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         # analyse eod waveform:
         # TODO: add configuration parameter for eod_waveform()!
         mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6)
-        if save_csvs:
+        if save_csvs and found_bestwindow:
             # write csv file with main EODF and corresponding power in dB of detected fishes:
             csv_matrix = fundamental_freqs_and_db(filtered_fishlist)
             csv_name = os.path.join(output_folder, outfilename + '-wavefish_eodfs.csv')
