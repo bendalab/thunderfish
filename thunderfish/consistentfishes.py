@@ -3,13 +3,14 @@ Functions to compare fishlists created by the harmonicgroups module in order to 
 fishes present in all fishlists.
 
 consistent_fishes(): Compares a list of fishlists and builds a consistent fishlist.
+consistent_fishes_plot(): Visualize the algorithm of consisten_fishes().
 """
 
 import numpy as np
 from .harmonicgroups import fundamental_freqs
 
 
-def find_consistency(fundamentals, df_th=1.):
+def find_consistency(fundamentals, df_th=1.0):
     """
     Compares lists of floats to find these values consistent in every list. (with a certain threshold)
 
@@ -22,13 +23,22 @@ def find_consistency(fundamentals, df_th=1.):
     are returned.
 
 
-    :param fundamentals:    (2-D array) list of lists containing the fundamentals of a fishlist.
-                            fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
-    :param df_th:           (float) Frequency threshold for the comparison of different fishlists. If the fundamental
-                            frequencies of two fishes from different fishlists vary less than this threshold they are
-                            assigned as the same fish.
-    :return consistent_fundamentals: (1-D array) List containing all values that are available in all given lists.
-    :return index:          (1-D array) Indices of the values that are in every list relating to the fist list in fishlists.
+    Parameters
+    ----------
+    fundamentals: 2-D array
+        List of lists containing the fundamentals of a fishlist.
+        fundamentals = [ [f1, f1, ..., f1, f1], [f2, f2, ..., f2, f2], ..., [fn, fn, ..., fn, fn] ]
+    df_th: float
+        Frequency threshold for the comparison of different fishlists in Hertz. If the fundamental
+        frequencies of two fishes from different fishlists vary less than this threshold they are
+        assigned as the same fish.
+
+    Returns
+    -------
+    consistent_fundamentals: 1-D array
+        List containing all values that are available in all given lists.
+    index: 1-D array
+        Indices of the values that are in every list relating to the fist list in fishlists.
     """
     consistency_help = np.ones(len(fundamentals[0]), dtype=int)
 
@@ -43,22 +53,35 @@ def find_consistency(fundamentals, df_th=1.):
     return consistent_fundamentals, index
 
 
-def consistent_fishes(fishlists, verbose=0, plot_data_func=None, **kwargs):
+def consistent_fishes(fishlists, verbose=0, plot_data_func=None, df_th=1.0, **kwargs):
     """
     Compares several fishlists to create a fishlist only containing these fishes present in all these fishlists.
 
     Therefore several functions are used to first extract the fundamental frequencies of every fish in each fishlist,
     before comparing them and building a fishlist only containing these fishes present in all fishlists.
 
-    :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
-                            fishlists[fishlist][fish][harmonic][frequency, power]
-    :param plot_data_func:  (function) function (consistentfishesplot()) that is used to create a axis for later plotting containing a figure to
-                            visualice what the modul did.
-    :param verbose:         (int) when the value is 1 you get additional shell output.
-    :param **kwargs:        additional arguments that are passed to the plot_data_func().
-    :return filtered_fishlist:(3-D array) New fishlist with the same structure as a fishlist in fishlists only
-                            containing these fishes that are available in every fishlist in fishlists.
-                            fishlist[fish][harmonic][frequency, power]
+    Parameters
+    ----------
+    fishlists: 4-D array
+        List of fishlists with harmonics and each frequency and power.
+        fishlists[fishlist][fish][harmonic][frequency, power]
+    plot_data_func:
+        Function that visualizes what consistent_fishes() did.
+    verbose: int
+        When the value larger than one you get additional shell output.
+    df_th: float
+        Frequency threshold for the comparison of different fishlists in Hertz. If the fundamental
+        frequencies of two fishes from different fishlists vary less than this threshold they are
+        assigned as the same fish.
+    **kwargs: dict
+        Passed on to plot function.
+
+    Returns
+    -------
+    filtered_fishlist: 3-D array
+        New fishlist with the same structure as a fishlist in fishlists only
+        containing these fishes that are available in every fishlist in fishlists.
+        fishlist[fish][harmonic][frequency, power]
     """
     if verbose >= 1:
         print('Finding consistent fishes out of %d fishlists ...' % len(fishlists))
@@ -84,13 +107,19 @@ def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     """
     Creates an axis for plotting all lists and the consistent values marked with a bar.
 
-    :param filtered_fishlist: (3-D array) Contains power and frequency of these fishes that hve been detected in
-                            several powerspectra using different resolutions.
-    :param fishlists:       (4-D array or 3-D array) List of or single fishlists with harmonics and each frequency and power.
-                            fishlists[fishlist][fish][harmonic][frequency, power]
-                            fishlists[fish][harmonic][frequency, power]
-    :param ax:              (axis for plot) empty axis that is filled with content in the function.
-    :param fs:              (int) fontsize for the plot.
+    Parameter
+    ---------
+    filtered_fishlist: 3-D array
+        Contains power and frequency of these fishes that hve been detected in
+        several powerspectra using different resolutions.
+    fishlists: 4-D array or 3-D array
+        List of or single fishlists with harmonics and each frequency and power.
+        fishlists[fishlist][fish][harmonic][frequency, power]
+        fishlists[fish][harmonic][frequency, power]
+    ax: axis for plot
+        Empty axis that is filled with content in the function.
+    fs: int
+        Fontsize for the plot.
     """
     for list in np.arange(len(fishlists)):
         for fish in np.arange(len(fishlists[list])):
