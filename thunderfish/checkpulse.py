@@ -43,6 +43,7 @@ def check_pulse_width(data, samplerate, th_factor=0.6, percentile=0.1,
     :return pulse_fish: (bool). True if algorithm suggests a pulse-type fish.
     :return: peak_ratio: (float). Returns a float between 0. and 1. which gives the proportion of peak-2-trough,
                             from peak-2-peak time distance. (Wave-type fish should have larger values than pulse-type fish)
+    :return interval: (float). The mean inter-pulse-interval.
     """
 
     def ratio(peak_idx, trough_idx):
@@ -84,15 +85,17 @@ def check_pulse_width(data, samplerate, th_factor=0.6, percentile=0.1,
 
     pulse_fish = peak_ratio < pulse_thres
 
+    interval = np.mean(np.diff(peak_idx)/samplerate)
+
     if plot_data_func:
         plot_data_func(data, samplerate, peak_idx, trough_idx, threshold, pulse_thres,
                        pulse_fish, pr_pvt, pr_tvp, **kwargs)
 
     if verbose > 0:
         f_type = 'pulse' if pulse_fish else 'wave'
-        print('Fish-type is %s. r-value = %.3f' % (f_type, peak_ratio))
+        print('fish-type is %s. pulse-width-ratio is %.3f' % (f_type, peak_ratio))
         
-    return pulse_fish, peak_ratio
+    return pulse_fish, peak_ratio, interval
 
 
 def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=3000,
@@ -138,7 +141,7 @@ def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bins=125, max_freq=30
 
     pulse_fish = percentile_ratio > proportion_th
 
-    if verbose >= 1:
+    if verbose > 0:
         f_type = 'pulse' if pulse_fish else 'wave'
         print ('PSD-type is %s. proportion = %.3f' % (f_type, float(np.mean(proportions))))
 
