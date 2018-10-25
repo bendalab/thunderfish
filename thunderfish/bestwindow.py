@@ -1,19 +1,23 @@
-"""Functions needed for selecting the region within a recording with the
+"""
+# Best-window selection
+Functions needed for selecting the region within a recording with the
 most stable signal of largest amplitude that is not clipped.
 
-Main functions:
-clip_amplitudes(): estimated clipping amplitudes from the data.
-best_window_indices(): select start- and end-indices of the best window
-best_window_times(): select start end end-time of the best window
-best_window(): return data of the best window
+## Main functions:
+- `clip_amplitudes()`: estimated clipping amplitudes from the data.
+- `best_window_indices()`: select start- and end-indices of the best window
+- `best_window_times()`: select start end end-time of the best window
+- `best_window()`: return data of the best window
 
-add_clip_config(): add parameters for clip_amplitudes() to configuration.
-clip_args(): retrieve parameters for clip_amplitudes() from configuration.
-add_best_window_config(): add parameters for best_window() to configuration.
-best_window_args(): retrieve parameters for best_window*() from configuration.
+## Configuration parameter
+- `add_clip_config()`: add parameters for clip_amplitudes() to configuration.
+- `clip_args()`: retrieve parameters for clip_amplitudes() from configuration.
+- `add_best_window_config()`: add parameters for best_window() to configuration.
+- `best_window_args()`: retrieve parameters for best_window*() from configuration.
 
-plot_clipping(): visualization of the algorithm for detecting clipped amplitudes in clip_amplitudes().
-plot_best_window(): visualization of the algorithm used in best_window_indices().
+## Visualization of the algorithms
+- `plot_clipping()`: visualization of the algorithm for detecting clipped amplitudes in clip_amplitudes().
+- `plot_best_window()`: visualization of the algorithm used in best_window_indices().
 """
 
 import numpy as np
@@ -515,7 +519,7 @@ if __name__ == "__main__":
     # compute best window:
     print("call bestwindow() function...")
     best_window_indices(data, rate, single=False,
-                        win_size=1.0, win_shift=0.5, th_factor=0.8, percentile=0.1,
+                        win_size=4.0, win_shift=0.5, th_factor=0.8, percentile=0.1,
                         min_clip=min_clip, max_clip=max_clip,
                         w_cv_ampl=10.0, tolerance=0.5,
                         plot_data_func=plot_best_window, ax=ax)

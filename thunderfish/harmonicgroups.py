@@ -1,16 +1,33 @@
-"""Functions for extracting harmonic groups from a power spectrum.
+"""
+# Harmonic group detection
+Functions for extracting harmonic groups from a power spectrum.
 
+## Harmonic group extraction
 harmonic_groups(): detect peaks in a power spectrum and groups them
                    according to their harmonic structure.
 
-extract_fundamentals(): collect harmonic groups from lists of power spectrum peaks.
-threshold_estimate(): estimates thresholds for peak detection in a power spectrum.
+- `extract_fundamentals()`: collect harmonic groups from lists of power spectrum peaks.
+- `threshold_estimate()`: estimates thresholds for peak detection in a power spectrum.
 
-fundamental_freqs(): extract the fundamental frequencies from lists of harmonic groups
+## Handling of lists of harmonic groups
+- `fundamental_freqs()`: extract the fundamental frequencies from lists of harmonic groups
                      as returned by harmonic_groups().
-colors_markers(): Generate a list of colors and markers for plotting.
-plot_harmonic_groups(): Mark decibel power of fundamentals and their harmonics.
-plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
+- `fundamental_freqs_and_db()`:
+
+## Visualization
+- `colors_markers()`: Generate a list of colors and markers for plotting.
+- `plot_harmonic_groups()`: Mark decibel power of fundamentals and their harmonics.
+- `plot_psd_harmonic_groups()`: Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
+
+## Configuration parameter
+- `add_psd_peak_detection_config()`: add parameters for the detection of peaks in
+  power spectra to configuration.
+- `psd_peak_detection_args()`: retrieve parameters for the detection of peaks in
+  power spectra from configuration.
+- `add_harmonic_groups_config()`: add parameters for the detection of harmonic groups
+  to configuration.
+- `harmonic_groups_args()`: retrieve parameters for the detection of harmonic groups
+  from configuration.
 """
 
 from __future__ import print_function
@@ -836,7 +853,6 @@ def fundamental_freqs(group_list):
 
 
 def fundamental_freqs_and_db(group_list):
-
     """
     Extract the fundamental frequencies and their power in dB from lists of harmonic groups.
 
@@ -981,12 +997,13 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_
         if colors is not None:
             color_kwargs = {'color': colors[k%len(colors)]}
         if markers is None:
-            ax.plot(x, decibel(y), 'o', ms=msize, label='%.1f Hz' % group[0, 0], **color_kwargs)
+            ax.plot(x, decibel(y), 'o', ms=msize, label='%.1f Hz' % group[0, 0],
+                    clip_on=False, **color_kwargs)
         else:
             if k >= len(markers):
                 break
             ax.plot(x, decibel(y), linestyle='None', marker=markers[k], mec=None, mew=0.0,
-                    ms=msize, label='%.1f Hz' % group[0, 0], **color_kwargs)
+                    ms=msize, label='%.1f Hz' % group[0, 0], clip_on=False, **color_kwargs)
 
     # legend:
     if legend_rows > 0:
