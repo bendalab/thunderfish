@@ -1,42 +1,74 @@
 """
-Detects EODs in a given dataset and computes their mean waveform.
+Analysis of EOD waveforms.
 
-eod_waveform(): calculates a mean EOD of a given dataset.
+eod_waveform(): compute an averaged EOD waveform.
+eod_waveform_plot(): plot the averaged waveform with standard deviation.
 """
 
 import numpy as np
 from .eventdetection import percentile_threshold, detect_peaks, snippets
 
 
-def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1, start=None, stop=None):
-    """Detects EODs in the given data, extracts data snippets around each EOD and computes a mean waveform with standard
-    deviation.
+def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
+                 period=None, start=None, stop=None):
+    """Detect EODs in the given data, extract data snippets around each EOD,
+    and compute a mean waveform with standard deviation.
 
-    :param data: (1-D array) the data to be analysed.
-    :param samplerate: (float) samplerate of the data in Hertz.
-    :param percentile: (int). percentile parameter for the eventdetection.percentile_threshold() function used to
-    estimate thresholds for detecting EOD peaks in the data.
-    :param th_factor: (float). th_factor parameter for the eventdetection.percentile_threshold() function used to
-    estimate thresholds for detecting EOD peaks in the data.
-    :param start: (float or None) start time of EOD snippets relative to peak.
-    :param stop: (float or None) stop time of EOD snippets relative to peak.
-    :return mean_eod (1-D array) Average of the EOD snippets.
-    :return std_eod (1-D array) Standard deviation of the averaged snippets.
-    :return time (1-D array) Time axis for mean_eod and std_eod.
-    :return eod_times (1-D array) Times of EOD peaks in seconds.
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analysed.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    percentile: int
+        Percentile parameter for the eventdetection.percentile_threshold() function used to
+        estimate thresholds for detecting EOD peaks in the data.
+    th_factor: float
+        th_factor parameter for the eventdetection.percentile_threshold() function used to
+        estimate thresholds for detecting EOD peaks in the data.
+    period: float or None
+        Average waveforms with this period if the period from the peak detection
+        differs by more than 10%.
+    start: float or None
+        Start time of EOD snippets relative to peak.
+    stop: float or None
+        Stop time of EOD snippets relative to peak.
+    
+    Returns
+    -------
+    mean_eod: 1-D array
+        Average of the EOD snippets.
+    std_eod: 1-D array
+        Standard deviation of the averaged snippets.
+    time: 1-D array
+        Time axis for mean_eod and std_eod.
+    eod_times: 1-D array
+        Times of EOD peaks in seconds.
     """
     # threshold for peak detection:
     threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
 
     # detect peaks:
     eod_idx, _ = detect_peaks(data, threshold)
+    if len(eod_idx) == 0:
+        return np.array([]), np.array([]), np.array([]), np.array([])
 
-    # eod times:
+    # eod indices and times:
     eod_times = eod_idx / samplerate
+    if period is not None:
+        actual_period = np.mean(np.diff(eod_times))
+        if np.abs(period - actual_period)/period > 0.1:
+            anchor = eod_idx[len(eod_idx)//2]/samplerate
+            offset = anchor - (anchor//period)*period - 0.5*period
+            if offset < 0.0:
+                offset += period
+            eod_times = np.arange(offset, len(data)/samplerate, period)
+            eod_idx = np.asarray(eod_times * samplerate, dtype=int)
 
     # start and stop times:
     if start is None or stop is None:
-        period = np.mean(np.diff(eod_times))
+        if period is None:
+            period = np.mean(np.diff(eod_times))
         if start is None:
             start = -period
         if stop is None:
@@ -61,11 +93,18 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1, start=None, st
 def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.'):
     """Plot mean eod and its standard deviation.
 
-    :param time: (1-D array) Time of the mean EOD.
-    :param mean_eod: (1-D array) Mean EOD waveform.
-    :param std_eod: (1-D array) Sandard deviation of EOD waveform.
-    :param ax: (axis for plot).
-    :param unit: (string) Unit of the data.
+    Parameters
+    ----------
+    time: 1-D array
+        Time of the mean EOD.
+    mean_eod: 1-D array
+        Mean EOD waveform.
+    std_eod: 1-D array
+        Standard deviation of EOD waveform.
+    ax:
+        Axis for plot
+    unit: string
+        Unit of the data.
     """
     ax.plot(1000.0*time, mean_eod, lw=2, color='r')
     ax.fill_between(1000.0*time, mean_eod + std_eod, mean_eod - std_eod,
