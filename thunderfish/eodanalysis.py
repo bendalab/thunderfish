@@ -8,7 +8,7 @@ import numpy as np
 from .peakdetection import percentile_threshold, detect_peaks, snippets
 
 
-def eod_waveform(data, samplerate, th_factor=0.8, percentile=0.1, start=None, stop=None):
+def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1, start=None, stop=None):
     """Detects EODs in the given data, extracts data snippets around each EOD and computes a mean waveform with standard
     deviation.
 

@@ -728,8 +728,7 @@ def main():
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
-    add_best_window_config(cfg, win_size=4.0, w_cv_ampl=10.0)
-    cfg.set('bestWindowSize', 4.0)
+    add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
 
     # load configuration from working directory and data directories:
     filepath = args.file
@@ -741,7 +740,7 @@ def main():
         if ext != os.extsep + 'cfg':
             print('configuration file name must have .cfg as extension!')
         else:
-            print('write configuration to %s ...' % args.save_config)
+            print('write configuration file %s .' % args.save_config)
             cfg.dump(args.save_config)
         return
 

@@ -1,13 +1,12 @@
 """
-Functions to compare fishlists created by the harmonicgroups.py module in order to create a create a fishlist with only
-these fishes available in all fishlists.
+Functions to compare fishlists created by the harmonicgroups module in order to create a fishlist with
+fishes present in all fishlists.
 
 consistent_fishes(): Compares a list of fishlists and builds a consistent fishlist.
 """
 
 import numpy as np
 from .harmonicgroups import fundamental_freqs
-from .powerspectrum import decibel
 
 
 def find_consistency(fundamentals, df_th=1.):
@@ -44,6 +43,43 @@ def find_consistency(fundamentals, df_th=1.):
     return consistent_fundamentals, index
 
 
+def consistent_fishes(fishlists, verbose=0, plot_data_func=None, **kwargs):
+    """
+    Compares several fishlists to create a fishlist only containing these fishes present in all these fishlists.
+
+    Therefore several functions are used to first extract the fundamental frequencies of every fish in each fishlist,
+    before comparing them and building a fishlist only containing these fishes present in all fishlists.
+
+    :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
+                            fishlists[fishlist][fish][harmonic][frequency, power]
+    :param plot_data_func:  (function) function (consistentfishesplot()) that is used to create a axis for later plotting containing a figure to
+                            visualice what the modul did.
+    :param verbose:         (int) when the value is 1 you get additional shell output.
+    :param **kwargs:        additional arguments that are passed to the plot_data_func().
+    :return filtered_fishlist:(3-D array) New fishlist with the same structure as a fishlist in fishlists only
+                            containing these fishes that are available in every fishlist in fishlists.
+                            fishlist[fish][harmonic][frequency, power]
+    """
+    if verbose >= 1:
+        print('Finding consistent fishes out of %d fishlists ...' % len(fishlists))
+
+    fundamentals = fundamental_freqs(fishlists)
+    if len(fundamentals) == 0:
+        return []
+
+    consistent_fundamentals, index = find_consistency(fundamentals)
+
+    # creates a filtered fishlist only containing the data of the fishes consistent in several fishlists.
+    filtered_fishlist = []
+    for idx in index:
+        filtered_fishlist.append(fishlists[0][idx])
+
+    if plot_data_func:
+        plot_data_func(fishlists, filtered_fishlist, **kwargs)
+
+    return filtered_fishlist
+
+
 def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     """
     Creates an axis for plotting all lists and the consistent values marked with a bar.
@@ -72,60 +108,42 @@ def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
     ax.set_xlabel('list no.', fontsize=fs)
 
 
-def consistent_fishes(fishlists, verbose=0, plot_data_func=None, **kwargs):
-    """
-    Compares several fishlists to create a fishlist only containing these fishes present in all these fishlists.
-
-    Therefore several functions are used to first extract the fundamental frequencies of every fish in each fishlist,
-    before comparing them and building a fishlist only containing these fishes present in all fishlists.
-
-    :param fishlists:       (4-D array) List of fishlists with harmonics and each frequency and power.
-                            fishlists[fishlist][fish][harmonic][frequency, power]
-    :param plot_data_func:  (function) function (consistentfishesplot()) that is used to create a axis for later plotting containing a figure to
-                            visualice what the modul did.
-    :param verbose:         (int) when the value is 1 you get additional shell output.
-    :param **kwargs:        additional arguments that are passed to the plot_data_func().
-    :return filtered_fishlist:(3-D array) New fishlist with the same structure as a fishlist in fishlists only
-                            containing these fishes that are available in every fishlist in fishlists.
-                            fishlist[fish][harmonic][frequency, power]
-    """
-    if verbose >= 1:
-        print('Finding consistent fishes out of %0.f fishlists ...' % len(fishlists))
-
-    fundamentals = fundamental_freqs(fishlists)
-
-    consistent_fundamentals, index = find_consistency(fundamentals)
-
-    # creates a filtered fishlist only containing the data of the fishes consistent in several fishlists.
-    filtered_fishlist = []
-    for idx in index:
-        filtered_fishlist.append(fishlists[0][idx])
-
-    if plot_data_func:
-        plot_data_func(fishlists, filtered_fishlist, **kwargs)
-
-    return filtered_fishlist
-
-
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     
     print('Creating one fishlist containing only the fishes that are consistant in several fishlists.')
-    print('The input structur locks like this fishlists[list][fish][harmonic][frequency, power]')
+    print('The input structure looks like this:')
+    print('  fishlists[list][fish][harmonic][frequency, power]')
     print('')
     print('Usage:')
-    print('  python consistentfishes.py')
+    print('  python -m thunderfish.consistentfishes')
     print('')
 
     # example 4-D array containing of 4 fishlists all haveing 3 fishes with 1 harmonic with frequency and power
-    fishlists = [[np.array([np.array([350, 0])]), np.array([np.array([700.2, 0])]), np.array([np.array([1000, 0])])],
+    fishlists = [[np.array([np.array([350, 0])]), np.array([np.array([700.2, 0])]), np.array([np.array([1050, 0])])],
                  [np.array([np.array([350.1, 0])]), np.array([np.array([699.8, 0])]), np.array([np.array([250.2, 0])])],
                  [np.array([np.array([349.7, 0])]), np.array([np.array([700.4, 0])]),
-                  np.array([np.array([1000.2, 0])])],
+                  np.array([np.array([1050.2, 0])])],
                  [np.array([np.array([349.8, 0])]), np.array([np.array([700.5, 0])]),
-                  np.array([np.array([1000.3, 0])])]]
+                  np.array([np.array([1050.3, 0])])]]
     #
     
     fig, ax = plt.subplots()
     filtered_fishlist = consistent_fishes(fishlists, verbose=1, plot_data_func=consistent_fishes_plot, ax=ax, fs=12)
     plt.show()
+
+    # check almost empty fishlist:
+    fishlists = [[], [np.array([[349.8, 0], [700.5, 0], [1050.3, 0]])], []]
+    filtered_fishlist = consistent_fishes(fishlists, verbose=1)
+    print(filtered_fishlist)
+
+    # check empty fishlist:
+    fishlists = [[], []]
+    filtered_fishlist = consistent_fishes(fishlists, verbose=1)
+    print(filtered_fishlist)
+
+    # check really empty fishlist:
+    fishlists = []
+    filtered_fishlist = consistent_fishes(fishlists, verbose=1)
+    print(filtered_fishlist)
+    

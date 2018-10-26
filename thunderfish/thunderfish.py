@@ -88,9 +88,21 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     ax5 = fig.add_axes([0.575, 0.6, 0.4, 0.3])  # meta data
     ax6 = fig.add_axes([0.575, 0.2, 0.4, 0.3])  # inter EOD histogram
 
+    # count fish:
+    try:
+        dom_freq = \
+        filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][0]
+        fish_count = len(filtered_fishlist)
+    except IndexError:
+        dom_freq = 1. / period
+        fish_count = 1
+    
     # plot title
     if not pulse_fish_width and not pulse_fish_psd:
-        ax1.text(-0.05, .75, '%s --- Recording of a wavefish.' % base_name, fontsize=20, color='grey')
+        if fish_count > 1:
+            ax1.text(-0.05, .75, '%s --- Recording of wavefish.' % base_name, fontsize=20, color='grey')
+        else:
+            ax1.text(-0.05, .75, '%s --- Recording of a wavefish.' % base_name, fontsize=20, color='grey')
     elif pulse_fish_width and pulse_fish_psd:
         ax1.text(-0.02, .65, '%s --- Recording of a pulsefish.' % base_name, fontsize=20, color='grey')
     else:
@@ -114,19 +126,11 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     ############
 
     # plot psd
-    try:
-        dom_freq = \
-        filtered_fishlist[np.argsort([filtered_fishlist[fish][0][1] for fish in range(len(filtered_fishlist))])[-1]][0][0]
-        fish_count = len(filtered_fishlist)
-    except IndexError:
-        dom_freq = 1. / period
-        fish_count = 1
-
-    if not pulse_fish_width and not pulse_fish_psd:
+    if not pulse_fish_width: # and not pulse_fish_psd:
         colors, markers = colors_markers()
-        plot_harmonic_groups(ax3, filtered_fishlist, max_groups=0, sort_by_freq=True,
-                             colors=colors, markers=markers, legend_rows=4,
-                             frameon=False, bbox_to_anchor=(1.2, 1), loc='upper right')
+        plot_harmonic_groups(ax3, filtered_fishlist, max_freq=3000, max_groups=0, sort_by_freq=True,
+                             colors=colors, markers=markers, legend_rows=8,
+                             frameon=False, bbox_to_anchor=(1.05, 1), loc='upper left')
     plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=3000.0, color='blue')
     ax3.set_title('Powerspectrum (%.0f detected fish)' % fish_count)
 
@@ -186,9 +190,10 @@ def output_plot(base_name, pulse_fish_width, pulse_fish_psd, EOD_count, median_I
     ax6.set_ylabel('n')
     ax6.set_title('Inter EOD interval histogram', fontsize=14)
 
-    if max(inter_eod_intervals) - min(inter_eod_intervals) < 1.:
-        ax6.set_xlim([median_IPI - 0.5, median_IPI + 0.5])
-    # ax6.set_xlim([0, 20])
+    max_IPI = np.ceil(np.max(inter_eod_intervals)+0.5)
+    if max_IPI/median_IPI < 1.2:
+        max_IPI = np.ceil(1.2*median_IPI)
+    ax6.set_xlim(0.0, max_IPI)
     ax6.legend(loc='upper right', frameon=False)
 
     # cosmetics
@@ -282,9 +287,9 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     # find the psd_type:
     # TODO: add configuration parameter for check_pulse()!
     pulse_fish_psd, proportion = check_pulse_psd(psd_data[0][0], psd_data[0][1])
-
+    
     # filter the different fishlists to get a fishlist with consistent fishes:
-    if not pulse_fish_width and not pulse_fish_psd:
+    if not pulse_fish_width: # and not pulse_fish_psd:
         # TODO: add configuration parameter for consistent_fishes()!
         filtered_fishlist = consistent_fishes(fishlists)
         # analyse eod waveform:
@@ -301,7 +306,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         # analyse eod waveform:
         mean_eod_window = 0.002
         # TODO: add configuration parameter for eod_waveform()!
-        mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.6, start=-mean_eod_window,
+        mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate, th_factor=0.5, start=-mean_eod_window,
                                                           stop=mean_eod_window)
 
     # write mean EOD
@@ -358,8 +363,6 @@ def main():
                 cfgfile, args.save_config, verbose=verbose)
     if msg is not None:
         parser.error(msg)
-    else:
-        print('Thank you for using thunderfish!')
 
 
 if __name__ == '__main__':
