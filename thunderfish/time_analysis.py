@@ -476,7 +476,7 @@ def plot_presence_time(all_presence_time, all_vanish_time, all_presence_freq, da
 
     _, dmf_p = scp.mannwhitneyu(male_day_presence_t, female_day_presence_t)
     _, nmf_p = scp.mannwhitneyu(male_night_presence_t, female_night_presence_t)
-    print ('\n Presence duration:')
+    print('\n Presence duration:')
     print('Day - Night - all:     p=%.3f' % (dn_p * 5.))
     print('Day - Night - male:    p=%.3f' % (dnm_p * 5.))
     print('Day - Night - female:  p=%.3f' % (dnf_p * 5.))
@@ -1021,7 +1021,7 @@ def plot_clock_rise_counts(all_rise_clock_counts, all_m_rise_clock_counts, all_f
     r, p = scp.spearmanr(fish_counts, rise_rate)
 
     print('\n rise rate vs. fish count')
-    print ('a rise -- a #: p = %.3f; r = %.2f' % (p * 7., r))
+    print('a rise -- a #: p = %.3f; r = %.2f' % (p * 7., r))
     if p < 0.05:
         ax1.plot([xedges[0], xedges[-1]], interc + sl * np.array([xedges[0], xedges[-1]]), color='red')
         ax1.set_xlim([xedges[0], xedges[-1]])
@@ -1039,7 +1039,7 @@ def plot_clock_rise_counts(all_rise_clock_counts, all_m_rise_clock_counts, all_f
     sl, interc, r, p, _ = scp.linregress(male_counts, m_rise_rate)
     # r, p = scp.spearmanr(male_counts, male_r_counts / male_counts)
     r, p = scp.spearmanr(male_counts, m_rise_rate)
-    print ('m rise -- m #: p = %.3f; r = %.2f' % (p * 7., r))
+    print('m rise -- m #: p = %.3f; r = %.2f' % (p * 7., r))
     if p < 0.05:
         ax2.plot([xedges[0], xedges[-1]], interc + sl * np.array([xedges[0], xedges[-1]]), color='red')
         ax2.set_xlim([xedges[0], xedges[-1]])
@@ -1057,7 +1057,7 @@ def plot_clock_rise_counts(all_rise_clock_counts, all_m_rise_clock_counts, all_f
     sl, interc, r, p, _ = scp.linregress(female_counts, m_rise_rate)
     # r, p = scp.spearmanr(female_counts, male_r_counts / male_counts)
     r, p = scp.spearmanr(female_counts, m_rise_rate)
-    print ('m rise -- f #: p = %.3f; r = %.2f' % (p * 7., r))
+    print('m rise -- f #: p = %.3f; r = %.2f' % (p * 7., r))
     if p < 0.05:
         ax3.plot([xedges[0], xedges[-1]], interc + sl * np.array([xedges[0], xedges[-1]]), color='red')
         ax3.set_xlim([xedges[0], xedges[-1]])
@@ -1075,7 +1075,7 @@ def plot_clock_rise_counts(all_rise_clock_counts, all_m_rise_clock_counts, all_f
     sl, interc, r, p, _ = scp.linregress(fish_counts, m_rise_rate)
     # r, p = scp.spearmanr(fish_counts, male_r_counts / male_counts)
     r, p = scp.spearmanr(fish_counts, m_rise_rate)
-    print ('m rise -- a #: p = %.3f; r = %.2f' % (p * 7., r))
+    print('m rise -- a #: p = %.3f; r = %.2f' % (p * 7., r))
     if p < 0.05:
         ax4.plot([xedges[0], xedges[-1]], interc + sl * np.array([xedges[0], xedges[-1]]), color='red')
         ax4.set_xlim([xedges[0], xedges[-1]])
@@ -1093,7 +1093,7 @@ def plot_clock_rise_counts(all_rise_clock_counts, all_m_rise_clock_counts, all_f
     sl, interc, r, p, _ = scp.linregress(male_counts, f_rise_rate)
     # r, p = scp.spearmanr(male_counts, female_r_counts / female_counts)
     r, p = scp.spearmanr(male_counts, f_rise_rate)
-    print ('f rise -- m #: p = %.3f; r = %.2f' % (p * 7., r))
+    print('f rise -- m #: p = %.3f; r = %.2f' % (p * 7., r))
     if p < 0.05:
         ax5.plot([xedges[0], xedges[-1]], interc + sl * np.array([xedges[0], xedges[-1]]), color='red')
         ax5.set_xlim([xedges[0], xedges[-1]])
@@ -1111,7 +1111,7 @@ def plot_clock_rise_counts(all_rise_clock_counts, all_m_rise_clock_counts, all_f
     sl, interc, r, p, _ = scp.linregress(female_counts, f_rise_rate)
     # r, p = scp.spearmanr(female_counts, female_r_counts / female_counts)
     r, p = scp.spearmanr(female_counts, f_rise_rate)
-    print ('f rise -- f #: p = %.3f; r = %.2f' % (p * 7., r))
+    print('f rise -- f #: p = %.3f; r = %.2f' % (p * 7., r))
     if p < 0.05:
         ax6.plot([xedges[0], xedges[-1]], interc + sl * np.array([xedges[0], xedges[-1]]), color='red')
         ax6.set_xlim([xedges[0], xedges[-1]])
@@ -1129,7 +1129,7 @@ def plot_clock_rise_counts(all_rise_clock_counts, all_m_rise_clock_counts, all_f
     sl, interc, r, p, _ = scp.linregress(fish_counts, f_rise_rate)
     # r, p = scp.spearmanr(fish_counts, female_r_counts / female_counts)
     r, p = scp.spearmanr(fish_counts, f_rise_rate)
-    print ('f rise -- a #: p = %.3f; r = %.2f' % (p * 7., r))
+    print('f rise -- a #: p = %.3f; r = %.2f' % (p * 7., r))
     if p < 0.05:
         ax7.plot([xedges[0], xedges[-1]], interc + sl * np.array([xedges[0], xedges[-1]]), color='red')
         ax7.set_xlim([xedges[0], xedges[-1]])

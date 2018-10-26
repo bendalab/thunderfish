@@ -1,8 +1,11 @@
 """
-Analysis of EOD waveforms.
+# Analysis of EOD waveforms of weakly-electric fish.
 
-eod_waveform(): compute an averaged EOD waveform.
-eod_waveform_plot(): plot the averaged waveform with standard deviation.
+## Main functions
+- `eod_waveform()`: compute an averaged EOD waveform.
+
+## Visualization
+- `eod_waveform_plot()`: plot the averaged waveform with standard deviation.
 """
 
 import numpy as np
