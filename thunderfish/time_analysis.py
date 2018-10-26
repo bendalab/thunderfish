@@ -1830,7 +1830,7 @@ def main(file_path, hobo_path, show_fish_plot=False, show_combined_fishes=False,
         old_colors = False
 
     for enu, folder in enumerate(sorted(folders)):
-        print folder
+        print(folder)
         # load data
         dat_file = False
         fishes = False
