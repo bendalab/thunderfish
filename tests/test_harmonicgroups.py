@@ -30,14 +30,19 @@ def test_harmonic_groups():
     groups = hg.harmonic_groups(psd_data[1], psd_data[0])[0]
     fundamentals = hg.fundamental_freqs(groups)
     fdbs = hg.fundamental_freqs_and_db(groups)
-
     # check:
     assert_true(np.all(np.abs(eodfs-fundamentals) < df),
                 'harmonic_groups() did not correctly detect all fundamental frequencies')
 
-    fundamentals = hg.fundamental_freqs([groups])
-    fdbs = hg.fundamental_freqs_and_db([groups])
-
+    fundamentals = hg.fundamental_freqs([groups, [groups[1], groups[3]]])
+    fdbs = hg.fundamental_freqs_and_db([groups, [groups[1], groups[3]]])
     # check:
     assert_true(np.all(np.abs(eodfs-fundamentals[0]) < df),
                 'harmonic_groups() did not correctly detect all fundamental frequencies')
+
+    fundamentals = hg.fundamental_freqs([[groups, [groups[1], groups[3]]]])
+    fdbs = hg.fundamental_freqs_and_db([[groups, [groups[1], groups[3]]]])
+    # check:
+    assert_true(np.all(np.abs(eodfs-fundamentals[0][0]) < df),
+                'harmonic_groups() did not correctly detect all fundamental frequencies')
+    

@@ -3,15 +3,13 @@
 Functions for extracting harmonic groups from a power spectrum.
 
 ## Harmonic group extraction
-harmonic_groups(): detect peaks in a power spectrum and groups them
-                   according to their harmonic structure.
-
+- `harmonic_groups()`: detect peaks in a power spectrum and groups them
+                       according to their harmonic structure.
 - `extract_fundamentals()`: collect harmonic groups from lists of power spectrum peaks.
 - `threshold_estimate()`: estimates thresholds for peak detection in a power spectrum.
 
 ## Handling of lists of harmonic groups
-- `fundamental_freqs()`: extract the fundamental frequencies from lists of harmonic groups
-                     as returned by harmonic_groups().
+- `fundamental_freqs()`: extract the fundamental frequencies from lists of harmonic groups.
 - `fundamental_freqs_and_db()`:
 
 ## Visualization
@@ -820,78 +818,80 @@ def fundamental_freqs(group_list):
 
     Parameters
     ----------
-    group_list: list of 2-D arrays or list of list of 2-D arrays
-        Lists of harmonic groups as returned by extract_fundamentals() and
-        harmonic_groups() with the element [0][0] of the
+    group_list: list of 2-D arrays or list of (list of ...) list of 2-D arrays
+        Arbitrarily nested lists of harmonic groups as returned by extract_fundamentals()
+        and harmonic_groups() with the element [0, 0] of the
         harmonic groups being the fundamental frequency.
 
     Returns
     -------
-    fundamentals: 1-D array or list of 1-D array
+    fundamentals: 1-D array or list of (list of ...) 1-D array
         Single array or list of arrays (corresponding to the input group_list)
         of the fundamental frequencies.
     """
     if len(group_list) == 0:
         return np.array([])
 
-    # check whether group_list is list of fishlists:
-    list_of_list = False
-    for groups in group_list:
-        for harmonic_group in groups:
-            if len(np.shape(harmonic_group)) > 1:
-                list_of_list = True
-                break
-    if list_of_list:
+    # check whether group_list is list of harmonic groups:
+    list_of_groups = True
+    for group in group_list:
+        if not ( hasattr(group, 'shape') and len(np.shape(group)) == 2 ):
+            list_of_groups = False
+            break
+
+    if list_of_groups:
+        fundamentals = np.array([group[0, 0] for group in group_list if len(group) > 0])
+    else:
         fundamentals = []
         for groups in group_list:
             f = fundamental_freqs(groups)
             fundamentals.append(f)
-    else:
-        fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_list if len(harmonic_group) > 0])
     return fundamentals
 
 
-def fundamental_freqs_and_db(group_list):
+def fundamental_freqs_and_db(group_list, ref_power=1.0, min_power=1e-20):
     """
     Extract the fundamental frequencies and their power in dB from lists of harmonic groups.
 
     Parameters
     ----------
-    group_list: list of 2-D arrays or list of list of 2-D arrays
-            Lists of harmonic groups as returned by extract_fundamentals() and
-            harmonic_groups() with the element [0][0] of the harmonic groups
-            being the fundamental frequency,
-            and element[0][1] being the corresponding power.
+    group_list: list of 2-D arrays or list of (list of ...) list of 2-D arrays
+        Arbitrarily nested lists of harmonic groups as returned by extract_fundamentals()
+        and harmonic_groups() with the element [0, 0] of the
+        harmonic groups being the fundamental frequency.
+    ref_power: float
+        Reference power for computing decibel. If set to `None` the maximum power is used.
+    min_power: float
+        Power values smaller than `min_power` are set to `np.nan`.
 
     Returns
     -------
-    eodf_db_matrix: 2-D array or list of 2-D arrays
-        Matrix with fundamental frequencies in first column and
+    fundamentals: 2-D array or list of (list of ...) 2-D array
+        Single array or list of arrays (corresponding to the input group_list)
+        with fundamental frequencies in first column and
         corresponding power in dB in second column.
     """
 
     if len(group_list) == 0:
         return np.array([])
 
-    # check whether group_list is list of fishlists:
-    list_of_list = False
-    for groups in group_list:
-        for harmonic_group in groups:
-            if len(np.shape(harmonic_group)) > 1:
-                list_of_list = True
-                break
-    
-    if list_of_list:
-        eodf_db_matrix = []
+    # check whether group_list is list of harmonic groups:
+    list_of_groups = True
+    for group in group_list:
+        if not ( hasattr(group, 'shape') and len(np.shape(group)) == 2 ):
+            list_of_groups = False
+            break
+        
+    if list_of_groups:
+        fundamentals = np.array([np.array([group[0, 0], group[0, 1]])
+                            for group in group_list if len(group) > 0])
+        fundamentals[:, 1] = decibel(fundamentals[:, 1], ref_power, min_power)
+    else:
+        fundamentals = []
         for groups in group_list:
             f = fundamental_freqs_and_db(groups)
-            eodf_db_matrix.append(f)
-    else:
-        eodf_db_matrix = np.array([np.array([harmonic_group[0][0], harmonic_group[0][1]])
-                                   for harmonic_group in group_list])
-        eodf_db_matrix[:, 1] = decibel(eodf_db_matrix[:, 1])  # calculate decibel using 1 as reference power
-
-    return eodf_db_matrix
+            fundamentals.append(f)
+    return fundamentals
 
 
 def colors_markers():
