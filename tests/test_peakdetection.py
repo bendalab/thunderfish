@@ -106,7 +106,7 @@ def test_detect_dynamic_peaks():
     assert_raises(ValueError, pd.detect_dynamic_peaks, data, threshold, min_thresh, -1.0, time,
                                              pd.accept_peak_size_threshold)
 
-    assert_raises(IndexError, pd.detect_dynamic_peaks, data, threshold, min_thresh, 0.5, time[:len(time)//2)],
+    assert_raises(IndexError, pd.detect_dynamic_peaks, data, threshold, min_thresh, 0.5, time[:len(time)//2],
                                              pd.accept_peak_size_threshold)
 
     peaks, troughs = pd.detect_dynamic_peaks(data, threshold, min_thresh, 0.5, time,
