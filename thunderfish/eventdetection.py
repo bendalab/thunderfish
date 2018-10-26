@@ -1,5 +1,6 @@
 """
-# Detecting and handling peaks and troughs and threshold crossings in data arrays.
+# Event detection
+Detecting and handling peaks and troughs and threshold crossings in data arrays.
 
 ## Peak detection
 - `detect_peaks()`: peak and trough detection with a relative threshold.
