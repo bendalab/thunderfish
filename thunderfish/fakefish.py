@@ -280,7 +280,7 @@ def generate_pulsefish(frequency=100.0, samplerate=44100., duration=1., noise_st
     data = np.random.randn(len(time)) * noise_std
     period = 1.0/frequency
     jitter_std = period * jitter_cv
-    first_pulse = np.max(pulse_duration, 3.0*jitter_std)
+    first_pulse = np.max([pulse_duration, 3.0*jitter_std])
     pulse_times = np.arange(first_pulse, duration, period )
     pulse_times += np.random.randn(len(pulse_times)) * jitter_std
     pulse_indices = np.round(pulse_times * samplerate).astype(np.int)
