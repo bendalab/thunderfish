@@ -608,7 +608,7 @@ class Voronoi:
         nn = n
         if poisson:
             nn = np.random.poisson(n)
-        m = nn/2
+        m = nn//2
         if m < 5:
             m = 5
         # get bounding box:
@@ -636,7 +636,7 @@ class Voronoi:
             elif mode == 'bbox':
                 points = np.vstack((points, newpoints[np.all(newpoints<max_bound, axis=1),:]))
             else:
-                print('')            
+                print('')
                 print('Voronoi.random_points(): unknown value "%s" for the mode parameter:' % mode)
                 print('Use one of the following values:')
                 print('  bbox: Place points within rectangular bounding box.')
