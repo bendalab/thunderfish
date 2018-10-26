@@ -98,7 +98,7 @@ def test_detect_dynamic_peaks():
     assert_raises(ValueError, ed.detect_dynamic_peaks, data, threshold, min_thresh, -1.0, time,
                                              ed.accept_peak_size_threshold)
 
-    assert_raises(IndexError, ed.detect_dynamic_peaks, data, threshold, min_thresh, 0.5, time[:len(time) / 2],
+    assert_raises(IndexError, ed.detect_dynamic_peaks, data, threshold, min_thresh, 0.5, time[:len(time)//2],
                                              ed.accept_peak_size_threshold)
 
     peaks, troughs = ed.detect_dynamic_peaks(data, threshold, min_thresh, 0.5, time,

@@ -821,10 +821,9 @@ def fundamental_freqs(group_list):
     list_of_list = False
     for groups in group_list:
         for harmonic_group in groups:
-            if hasattr(harmonic_group, 'shape') and len(harmonic_group.shape) == 2:
+            if len(np.shape(harmonic_group)) > 1:
                 list_of_list = True
                 break
-                
     if list_of_list:
         fundamentals = []
         for groups in group_list:
@@ -862,7 +861,7 @@ def fundamental_freqs_and_db(group_list):
     list_of_list = False
     for groups in group_list:
         for harmonic_group in groups:
-            if hasattr(harmonic_group, 'shape') and len(harmonic_group.shape) == 2:
+            if len(np.shape(harmonic_group)) > 1:
                 list_of_list = True
                 break
     
