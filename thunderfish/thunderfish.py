@@ -19,7 +19,7 @@ from .dataloader import load_data
 from .bestwindow import clip_amplitudes, best_window_indices
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import plot_decibel_psd, multi_resolution_psd
-from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_db, colors_markers, plot_harmonic_groups
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform_plot, eod_waveform
 from .csvmaker import write_csv
@@ -322,7 +322,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     if save_csvs and found_bestwindow:
         if len(fishlist) > 0:
             # write csv file with main EODf and corresponding power in dB of detected fishes:
-            csv_matrix = fundamental_freqs_and_db(fishlist)
+            csv_matrix = fundamental_freqs_and_power(fishlist)
             csv_name = os.path.join(output_folder, outfilename + '-wavefish_eodfs.csv')
             header = ['fundamental frequency (Hz)', 'power (dB)']
             write_csv(csv_name, header, csv_matrix)

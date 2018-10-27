@@ -10,7 +10,7 @@ Functions for extracting harmonic groups from a power spectrum.
 
 ## Handling of lists of harmonic groups
 - `fundamental_freqs()`: extract the fundamental frequencies from lists of harmonic groups.
-- `fundamental_freqs_and_db()`:
+- `fundamental_freqs_and_power()`:
 
 ## Visualization
 - `colors_markers()`: Generate a list of colors and markers for plotting.
@@ -816,18 +816,21 @@ def fundamental_freqs(group_list):
     """
     Extract the fundamental frequencies from lists of harmonic groups.
 
+    The inner list of 2-D arrays of the input argument is transformed into
+    a 1-D array containig the fundamental frequencies extracted from the 2-D arrays.
+
     Parameters
     ----------
-    group_list: list of 2-D arrays or list of (list of ...) list of 2-D arrays
+    group_list: (list of (list of ...)) list of 2-D arrays
         Arbitrarily nested lists of harmonic groups as returned by extract_fundamentals()
         and harmonic_groups() with the element [0, 0] of the
         harmonic groups being the fundamental frequency.
 
     Returns
     -------
-    fundamentals: 1-D array or list of (list of ...) 1-D array
-        Single array or list of arrays (corresponding to the input group_list)
-        of the fundamental frequencies.
+    fundamentals: (list of (list of ...)) 1-D array
+        Nested list (corresponding to `group_list`) of 1-D arrays
+        with the fundamental frequencies extracted from the harmonic groups.
     """
     if len(group_list) == 0:
         return np.array([])
@@ -849,16 +852,28 @@ def fundamental_freqs(group_list):
     return fundamentals
 
 
-def fundamental_freqs_and_db(group_list, ref_power=1.0, min_power=1e-20):
+def fundamental_freqs_and_power(group_list, n_harmonics=1, power=False,
+                                ref_power=1.0, min_power=1e-20):
     """
     Extract the fundamental frequencies and their power in dB from lists of harmonic groups.
 
+    The inner list of 2-D arrays of the input argument is transformed
+    into a 2-D array containig for each fish (1st dimension) the
+    fundamental frequencies and powers extracted from the 2-D arrays.
+    
     Parameters
     ----------
-    group_list: list of 2-D arrays or list of (list of ...) list of 2-D arrays
+    group_list: (list of (list of ...)) list of 2-D arrays
         Arbitrarily nested lists of harmonic groups as returned by extract_fundamentals()
         and harmonic_groups() with the element [0, 0] of the
-        harmonic groups being the fundamental frequency.
+        harmonic groups being the fundamental frequency and the elements [:,1] being
+        the powers of each harmonics.
+    n_harmonics: int
+        For the power sum over the first `n_harmonmics` harmonics (including the
+        fundamental frequency). The default value of 1 returns the power of the
+        fundamental frequency only.
+    power: boolean
+        If `False` convert the power into decibel using the powerspectrum.decibel() function.
     ref_power: float
         Reference power for computing decibel. If set to `None` the maximum power is used.
     min_power: float
@@ -866,10 +881,10 @@ def fundamental_freqs_and_db(group_list, ref_power=1.0, min_power=1e-20):
 
     Returns
     -------
-    fundamentals: 2-D array or list of (list of ...) 2-D array
-        Single array or list of arrays (corresponding to the input group_list)
+    fundamentals: (list of (list of ...)) 2-D array
+        Nested list (corresponding to `group_list`) of 2-D arrays
         with fundamental frequencies in first column and
-        corresponding power in dB in second column.
+        corresponding power in second column.
     """
 
     if len(group_list) == 0:
@@ -883,13 +898,14 @@ def fundamental_freqs_and_db(group_list, ref_power=1.0, min_power=1e-20):
             break
         
     if list_of_groups:
-        fundamentals = np.array([np.array([group[0, 0], group[0, 1]])
+        fundamentals = np.array([[group[0, 0], np.sum(group[0:n_harmonics, 1])]
                             for group in group_list if len(group) > 0])
-        fundamentals[:, 1] = decibel(fundamentals[:, 1], ref_power, min_power)
+        if not power:
+            fundamentals[:, 1] = decibel(fundamentals[:, 1], ref_power, min_power)
     else:
         fundamentals = []
         for groups in group_list:
-            f = fundamental_freqs_and_db(groups)
+            f = fundamental_freqs_and_power(groups, ref_power, min_power)
             fundamentals.append(f)
     return fundamentals
 
