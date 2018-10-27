@@ -955,6 +955,7 @@ def colors_markers():
 
 
 def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_freq=True,
+                         power_n_harmonics=10, label_power=False,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
     Mark decibel power of fundamentals and their harmonics in a plot.
@@ -973,6 +974,10 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_
             If not zero plot only the max_groups most powerful groups.
     sort_by_freq: boolean
             If True sort legend by frequency, otherwise by power.
+    power_n_harmonics: int
+        Maximum number of harmonics over which the total power of the signal is computed.
+    label_power: boolean
+        If `True` put the power in decibel in addition to the frequency into the legend.
     colors: list of colors or None
             If not None list of colors for plotting each group
     markers: list of markers or None
@@ -987,7 +992,7 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_
         return
     
     # sort by power:
-    powers = np.array([np.sum(fish[:10, 1]) for fish in group_list])
+    powers = np.array([np.sum(fish[:power_n_harmonics, 1]) for fish in group_list])
     max_power = np.max(powers)
     idx_maxpower = np.argsort(powers)
     if max_groups > 0 and len(idx_maxpower > max_groups):
@@ -1011,14 +1016,17 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_
         color_kwargs = {}
         if colors is not None:
             color_kwargs = {'color': colors[k%len(colors)]}
+        label = '%6.1f Hz' % group[0, 0]
+        if label_power:
+            label += ' %6.1f dB' % decibel(np.array([np.sum(group[:power_n_harmonics, 1])]))[0]
         if markers is None:
-            ax.plot(x, decibel(y), 'o', ms=msize, label='%.1f Hz' % group[0, 0],
+            ax.plot(x, decibel(y), 'o', ms=msize, label=label,
                     clip_on=False, **color_kwargs)
         else:
             if k >= len(markers):
                 break
             ax.plot(x, decibel(y), linestyle='None', marker=markers[k], mec=None, mew=0.0,
-                    ms=msize, label='%.1f Hz' % group[0, 0], clip_on=False, **color_kwargs)
+                    ms=msize, label=label, clip_on=False, **color_kwargs)
 
     # legend:
     if legend_rows > 0:
@@ -1158,12 +1166,11 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac
             'Maximum fraction of filled in harmonics allowed (usefull values are smaller than 0.5)')
     cfg.add('maxDoubleUseHarmonics', max_double_use_harmonics, '', 'Maximum harmonics up to which double uses are penalized.')
     cfg.add('maxDoubleUseCount', max_double_use_count, '', 'Maximum overall double use count allowed.')
-    cfg.add('powerNHarmonics', power_n_harmonics, '', 'Compute total power over the first # harmonics.')
+    cfg.add('powerNHarmonics', power_n_harmonics, '', 'Compute total power over the first powerNHarmonics harmonics.')
     
     cfg.add_section('Acceptance of best harmonic groups:')
     cfg.add('minimumGroupSize', min_group_size, '',
 'Minimum required number of harmonics (inclusively fundamental) that are not filled in and are not used by other groups.')
-    # cfg['minimumGroupSize'][0] = 2 # panama
     cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
     cfg.add('maximumWorkingFrequency', max_work_freq, 'Hz',
