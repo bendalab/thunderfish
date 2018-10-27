@@ -27,7 +27,8 @@ from .csvmaker import write_csv
 
 def output_plot(base_name, pulse_fish, pulse_period, eod_count, median_IPI, inter_eod_intervals,
                 raw_data, samplerate, idx0, idx1, fishlist, wave_period, time_eod, mean_eod, std_eod, unit,
-                psd_data, max_freq=3000.0, output_folder='', save_plot=False, show_plot=False):
+                psd_data, power_n_harmonics, label_power, max_freq=3000.0,
+                output_folder='', save_plot=False, show_plot=False):
     """
     Creates an output plot for the Thunderfish program.
 
@@ -72,6 +73,10 @@ def output_plot(base_name, pulse_fish, pulse_period, eod_count, median_IPI, inte
         Unit of the trace and the mean EOD.
     psd_data: array
         Power spectrum of the analysed data for different frequency resolutions.
+    power_n_harmonics: int
+        Maximum number of harmonics over which the total power of the signal is computed.
+    label_power: boolean
+        If `True` put the power in decibel in addition to the frequency into the legend.
     output_folder: string
         Path indicating where output-files will be saved.
     save_plot: bool
@@ -128,9 +133,10 @@ def output_plot(base_name, pulse_fish, pulse_period, eod_count, median_IPI, inte
     # plot psd
     if len(fishlist) > 0:
         colors, markers = colors_markers()
-        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=0, sort_by_freq=True,
-                             colors=colors, markers=markers, legend_rows=8,
-                             frameon=False, bbox_to_anchor=(1.05, 1), loc='upper left',
+        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12, sort_by_freq=True,
+                             power_n_harmonics=power_n_harmonics, label_power=label_power,
+                             colors=colors, markers=markers, legend_rows=12,
+                             frameon=False, bbox_to_anchor=(1.0, 1.1), loc='upper left',
                              title='EOD frequencies')
     plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq, color='blue')
     ax3.set_title('Powerspectrum (%d detected wave-fish)' % len(fishlist), y=1.05)
@@ -197,7 +203,10 @@ def output_plot(base_name, pulse_fish, pulse_period, eod_count, median_IPI, inte
         max_IPI = np.ceil(np.max(inter_eod_intervals)+0.5)
         if max_IPI/median_IPI < 1.2:
             max_IPI = np.ceil(1.2*median_IPI)
-        #ax6.set_xlim(0.0, max_IPI)
+        min_IPI = np.floor(np.min(inter_eod_intervals)-0.5)
+        if min_IPI/median_IPI > 0.8:
+            min_IPI = np.floor(0.8*median_IPI)
+        ax6.set_xlim(min_IPI, max_IPI)
         ax6.legend(loc='upper right', frameon=False)
 
     # cosmetics
@@ -322,12 +331,12 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     if save_csvs and found_bestwindow:
         if len(fishlist) > 0:
             # write csv file with main EODf and corresponding power in dB of detected fishes:
-            csv_matrix = fundamental_freqs_and_power(fishlist)
+            csv_matrix = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
             csv_name = os.path.join(output_folder, outfilename + '-wavefish_eodfs.csv')
             header = ['fundamental frequency (Hz)', 'power (dB)']
             write_csv(csv_name, header, csv_matrix)
     #if pulse_fish:
-        # TODO: write frequency of pulse-fish in -pulsefish_eodfs.csv
+        # TODO: write frequency amd parameter of pulse-fish to -pulsefish_eodfs.csv
         
     # analyse eod waveform:
     mean_eod = []
@@ -370,7 +379,8 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     if save_plot or not save_csvs:
         output_plot(outfilename, pulse_fish, pulse_period, len(eod_times), median_IPI,
                     inter_eod_intervals, raw_data, samplerate, idx0, idx1, fishlist,
-                    wave_period, time, mean_eod, std_eod, unit, psd_data, 3000.0, output_folder,
+                    wave_period, time, mean_eod, std_eod, unit,
+                    psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_csvs)
 
 
