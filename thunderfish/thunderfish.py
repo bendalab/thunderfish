@@ -230,7 +230,8 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     cfg = ConfigFile()
     cfg.add_section('Power spectrum estimation:')
     cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
-    cfg.add('numberPSDs', 2, '', 'Number of power spectra computed with decreasing resolution.')
+    cfg.add('numberPSDWindows', 2, '', 'Number of windows on which power spectra are computed.')
+    cfg.add('numberPSDResolutions', 1, '', 'Number of power spectra computed within each window with decreasing resolution.')
     cfg.add('frequencyThreshold', 1.0, 'Hz', 'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
     # TODO: make this threshold dependent on frequency resolution!
     add_psd_peak_detection_config(cfg)
@@ -293,13 +294,19 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         check_pulse_width(data, samplerate, verbose=verbose,
                           **check_pulse_width_args(cfg))
     
-    # calculate powerspectra with different frequency resolutions:
+    # calculate powerspectra within sequential windows and different frequency resolutions:
+    numpsdwindows = cfg.value('numberPSDWindows')
+    numpsdresolutions = cfg.value('numberPSDResolutions')
     minfres = cfg.value('frequencyResolution')
-    numpsds = cfg.value('numberPSDs')
     fresolution=[minfres]
-    for i in range(1, numpsds):
+    for i in range(1, numpsdresolutions):
         fresolution.append(2*fresolution[-1])
-    psd_data = multi_resolution_psd(data, samplerate, fresolution=fresolution)
+    n_incr = len(data)//(numpsdwindows+1) # half overlapping
+    psd_data = []
+    for k in range(numpsdwindows):
+        mr_psd_data = multi_resolution_psd(data[k*n_incr:(k+2)*n_incr], samplerate,
+                                           fresolution=fresolution)
+        psd_data.extend(mr_psd_data)
     
     # find the fishes in the different powerspectra:
     fishlists = []
