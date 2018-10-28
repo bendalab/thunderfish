@@ -487,8 +487,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     power_n_harmonics: int
         Maximum number of harmonics over which the total power of the signal is computed.
     min_group_size: int
-        Minimum required number of harmonics that are not filled in and
-        are not part of other, so far detected,  harmonics groups.
+        Within min_group_size no harmonics are allowed to be filled in.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -548,10 +547,8 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
                 print('Nothing found for fmax=%.2fHz' % fmax)
             continue
 
-        # count number of harmonics which have been detected, are not fill-ins,
-        # and are not doubly used:
-        group_size = np.sum((harm_group[:, 1] > 0.0) & (harm_group[:, 4] < 2.0))
-        group_size_ok = (group_size >= min_group_size)
+        # within min_group_size we do not want fill ins:
+        group_size_ok = np.sum(harm_group[:min_group_size, 1] > 0.0) == min_group_size
 
         # check frequency range of fundamental:
         fundamental_ok = (harm_group[0, 0] >= min_freq and
@@ -573,7 +570,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
             if verbose > 0:
                 print('Discarded harmonic group: {:.2f}Hz p={:10.8f} g={:d} f={:} m={:}'.format(
                     harm_group[0, 0], np.sum(harm_group[:, 1]),
-                    group_size, fundamental_ok, mains_ok))
+                    group_size_ok, fundamental_ok, mains_ok))
 
     # do not save more than n harmonics:
     if max_harmonics > 0:
@@ -726,8 +723,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     power_n_harmonics: int
         Maximum number of harmonics over which the total power of the signal is computed.
     min_group_size: int
-        Minimum required number of harmonics that are not filled in and
-        are not part of other, so far detected,  harmonics groups.
+        Within min_group_size no harmonics are allowed to be filled in.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -1174,7 +1170,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac
     
     cfg.add_section('Acceptance of best harmonic groups:')
     cfg.add('minimumGroupSize', min_group_size, '',
-'Minimum required number of harmonics (inclusively fundamental) that are not filled in and are not used by other groups.')
+'The number of harmonics (inclusively fundamental) that are allowed do be filled in.')
     cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
     cfg.add('maximumWorkingFrequency', max_work_freq, 'Hz',
