@@ -30,8 +30,7 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
         th_factor parameter for the eventdetection.percentile_threshold() function used to
         estimate thresholds for detecting EOD peaks in the data.
     period: float or None
-        Average waveforms with this period if the period from the peak detection
-        differs by more than 10%.
+        Average waveforms with this period instead of peak times.
     start: float or None
         Start time of EOD snippets relative to peak.
     stop: float or None
@@ -59,23 +58,22 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
     # eod indices and times:
     eod_times = eod_idx / samplerate
     if period is not None:
-        actual_period = np.mean(np.diff(eod_times))
-        if np.abs(period - actual_period)/period > 0.1:
-            anchor = eod_idx[len(eod_idx)//2]/samplerate
-            offset = anchor - (anchor//period)*period - 0.5*period
-            if offset < 0.0:
-                offset += period
-            eod_times = np.arange(offset, len(data)/samplerate, period)
-            eod_idx = np.asarray(eod_times * samplerate, dtype=int)
+        anchor = eod_idx[len(eod_idx)//2]/samplerate
+        offset = anchor - (anchor//period)*period - 0.5*period
+        if offset < 0.0:
+            offset += period
+        eod_times = np.arange(offset, len(data)/samplerate, period)
+        eod_idx = np.asarray(eod_times * samplerate, dtype=int)
 
     # start and stop times:
     if start is None or stop is None:
-        if period is None:
-            period = np.mean(np.diff(eod_times))
+        tmp_period = period
+        if tmp_period is None:
+            tmp_period = np.mean(np.diff(eod_times))
         if start is None:
-            start = -period
+            start = -1.5*tmp_period
         if stop is None:
-            stop = period
+            stop = 1.5*tmp_period
     # start and stop indices:
     start_inx = int(start * samplerate)
     stop_inx = int(stop * samplerate)
@@ -89,6 +87,10 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
 
     # time axis:
     time = (np.arange(len(mean_eod)) + start_inx) / samplerate
+    if period is not None:
+        # move peak of waveform to zero:
+        offs = len(mean_eod)//4
+        time -= time[offs+np.argmax(mean_eod[offs:3*offs])]
 
     return mean_eod, std_eod, time, eod_times
 

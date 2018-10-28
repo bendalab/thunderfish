@@ -111,7 +111,7 @@ def output_plot(base_name, pulse_fish, pulse_period, eod_count, median_IPI, inte
         ax1.text(0.0, .72, '%s     Recording of %s.' % (base_name, pulsetitle+wavetitle),
                  fontsize=22)
         
-    ax1.text(1.0, .77, 'ThunderFish by BendaLab', fontsize=16, ha='right')
+    ax1.text(1.0, .77, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
     ax1.text(1.0, .5, 'Version %s' % __version__, fontsize=16, ha='right')
     ax1.set_frame_on(False)
     ax1.get_xaxis().set_visible(False)
@@ -147,11 +147,11 @@ def output_plot(base_name, pulse_fish, pulse_period, eod_count, median_IPI, inte
     if len(mean_eod) > 0:
         eod_waveform_plot(time_eod, mean_eod, std_eod, ax4, unit=unit)
         if pulse_fish:
-            ax4.set_title('Average EOD of pulsefish (n=%d EODs, frequency: %.1f Hz)' % (eod_count, 1.0/pulse_period), fontsize=14)
+            ax4.set_title('Average EOD of pulsefish (n=%d EODs, frequency: %.1f Hz)' % (eod_count, 1.0/pulse_period), fontsize=14, y=1.05)
             # No xlim needed for pulse-fish, because of defined start and end in eod_waveform function of eodanalysis.py
         else:
-            ax4.set_title('Average EOD of dominant wavefish (n=%d EODs, frequency: %.1f Hz)' % (eod_count, 1.0/wave_period), fontsize=14)
-            ax4.set_xlim([-600 * wave_period, 600 * wave_period])
+            ax4.set_title('Average EOD of dominant wavefish (n=%d EODs, frequency: %.1f Hz)' % (eod_count, 1.0/wave_period), fontsize=14, y=1.05)
+            ax4.set_xlim([-750 * wave_period, 750 * wave_period])
             
     ###############
 
@@ -198,7 +198,7 @@ def output_plot(base_name, pulse_fish, pulse_period, eod_count, median_IPI, inte
         ax6.plot([median_IPI, median_IPI], [0, max(n)], '--', color='red', lw=2, label='median %.2f ms' % median_IPI)
         ax6.set_xlabel('inter EOD interval [ms]')
         ax6.set_ylabel('n')
-        ax6.set_title('Inter EOD interval histogram', fontsize=14)
+        ax6.set_title('Inter EOD interval histogram', fontsize=14, y=1.05)
 
         max_IPI = np.ceil(np.max(inter_eod_intervals)+0.5)
         if max_IPI/median_IPI < 1.2:
