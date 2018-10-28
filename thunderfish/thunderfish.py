@@ -309,14 +309,27 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         psd_data.extend(mr_psd_data)
     
     # find the fishes in the different powerspectra:
+    h_kwargs = psd_peak_detection_args(cfg)
+    h_kwargs.update(harmonic_groups_args(cfg))
     fishlists = []
-    for i in range(len(psd_data)):
-        h_kwargs = psd_peak_detection_args(cfg)
-        h_kwargs.update(harmonic_groups_args(cfg))
-        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], verbose-1, **h_kwargs)[0]
+    for i, psd in enumerate(psd_data):
+        fishlist = harmonic_groups(psd[1], psd[0], verbose-1, **h_kwargs)[0]
+        if verbose > 0:
+            print('fundamental frequencies detected in power spectrum of window %d at resolution %d:'
+                  % (i//numpsdresolutions, i%numpsdresolutions))
+            if len(fishlist) > 0:
+                print('  ' + ' '.join(['%.1f' % freq[0, 0] for freq in fishlist]))
+            else:
+                print('  none')
         fishlists.append(fishlist)
     # filter the different fishlists to get a fishlist with consistent fishes:
     filtered_fishlist = consistent_fishes(fishlists, df_th=cfg.value('frequencyThreshold'))
+    if verbose > 0:
+        if len(filtered_fishlist) > 0:
+            print('fundamental frequencies consistent in all power spectra:')
+            print('  ' + ' '.join(['%.1f' % freq[0, 0] for freq in filtered_fishlist]))
+        else:
+            print('no fundamental frequencies are consistent in all power spectra')
 
     # remove multiples of pulse fish frequency from fishlist:
     if pulse_fish:
