@@ -293,7 +293,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     pulse_fish, pta_value, pulse_period = \
         check_pulse_width(data, samplerate, verbose=verbose,
                           **check_pulse_width_args(cfg))
-    
+
     # calculate powerspectra within sequential windows and different frequency resolutions:
     numpsdwindows = cfg.value('numberPSDWindows')
     numpsdresolutions = cfg.value('numberPSDResolutions')
@@ -313,7 +313,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     for i in range(len(psd_data)):
         h_kwargs = psd_peak_detection_args(cfg)
         h_kwargs.update(harmonic_groups_args(cfg))
-        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], verbose, **h_kwargs)[0]
+        fishlist = harmonic_groups(psd_data[i][1], psd_data[i][0], verbose-1, **h_kwargs)[0]
         fishlists.append(fishlist)
     # filter the different fishlists to get a fishlist with consistent fishes:
     filtered_fishlist = consistent_fishes(fishlists, df_th=cfg.value('frequencyThreshold'))
@@ -327,8 +327,12 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             # TODO: make the threshold a parameter!
             if np.abs(eodf-pulse_eodf) > 2.0:
                 fishlist.append(fish)
+            else:
+                if verbose > 0:
+                    print('removed frequency %.1f Hz, because it is multiple of pulsefish %.1f' % (eodf, pulse_eodf))
     else:
         fishlist = filtered_fishlist
+
     # period of dominant fish:
     wave_period = -1.0
     if len(fishlist)>0:
@@ -384,6 +388,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             std_IPI = np.std(inter_eod_intervals, ddof=1)
 
     if save_plot or not save_csvs:
+        if not found_bestwindow:
+            pulsefish = False
+            inter_eod_intervals = []
+            fishlist = []
+            mean_eod = []
         output_plot(outfilename, pulse_fish, pulse_period, len(eod_times), median_IPI,
                     inter_eod_intervals, raw_data, samplerate, idx0, idx1, fishlist,
                     wave_period, time, mean_eod, std_eod, unit,

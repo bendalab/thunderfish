@@ -483,7 +483,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     max_double_use_count: int
         Maximum number of harmonic groups a single peak can be part of.
     max_fill_ratio: float
-        Maximum allowed fraction of filled in frequencies..
+        Maximum allowed fraction of filled in frequencies.
     power_n_harmonics: int
         Maximum number of harmonics over which the total power of the signal is computed.
     min_group_size: int
@@ -656,8 +656,9 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
     """
     n = len(psd_data)
     psd_data_seg = psd_data[n//2:n*3//4]
+    psd_data_seg = psd_data_seg[~np.isnan(psd_data_seg)]
     psd_data_seg = np.mean(psd_data_seg) + \
-      sig.detrend(psd_data_seg[~np.isnan(psd_data_seg)], type='linear')
+      sig.detrend(psd_data_seg, type='linear')
     noise_std, center = hist_threshold(psd_data_seg, th_factor=1.0, nbins=nbins)
     low_threshold = noise_std * low_thresh_factor
     high_threshold = noise_std * high_thresh_factor
@@ -767,10 +768,13 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     # thresholds:
     center = np.NaN
     if low_threshold <= 0.0 or high_threshold <= 0.0:
-        low_threshold, high_threshold, center = threshold_estimate(log_psd, low_thresh_factor,
-                                                                   high_thresh_factor,
-                                                                   thresh_bins)
-        
+        low_th, high_th, center = threshold_estimate(log_psd, low_thresh_factor,
+                                                     high_thresh_factor,
+                                                     thresh_bins)
+        if low_threshold <= 0.0:
+            low_threshold = low_th
+        if high_threshold <= 0.0:
+            high_threshold = high_th
         if verbose > 1:
             print('')
             print('low_threshold =%g  center+low_threshold =%g' % (low_threshold, center + low_threshold))

@@ -102,11 +102,12 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     ```
     decibel = 10 * log10(power/ref_power)
     ```
+    Power values smaller than `min_power` are set to `np.nan`.
 
     Parameters
     ----------
-    power: array
-        Power values of the power spectrum or spectrogram.
+    power: float or array
+        Power values, for example from a power spectrum or spectrogram.
     ref_power: float
         Reference power for computing decibel. If set to `None` the maximum power is used.
     min_power: float
@@ -115,13 +116,16 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     Returns
     -------
     decibel_psd: array
-        Power values in decibel.
+        Power values in decibel relative to `ref_power`.
     """
+    if hasattr(power, '__len__'):
+        decibel_psd = power.copy()
+    else:
+        decibel_psd = np.array([power])
     if ref_power is None:
-        ref_power = np.max(power)
-    decibel_psd = power.copy()
-    decibel_psd[power < min_power] = np.nan
-    decibel_psd[power >= min_power] = 10.0 * np.log10(decibel_psd[power >= min_power]/ref_power)
+        ref_power = np.max(decibel_psd)
+    decibel_psd[power <= min_power] = np.nan
+    decibel_psd[power > min_power] = 10.0 * np.log10(decibel_psd[power > min_power]/ref_power)
     return decibel_psd
 
 
