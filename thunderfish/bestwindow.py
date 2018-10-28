@@ -148,7 +148,7 @@ def clip_args(cfg, rate):
 
 
 def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                        th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
+                        th_factor=0.8, percentile=10.0, min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
     """ Detect the best window of the data to be analyzed. The data have
@@ -190,7 +190,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     :param single: (boolean). If true return only the single window with the smallest cost. If False return the largest window with the cost below the minimum cost plus tolerance.
     :param win_size: (float). Size of the best window in seconds. Choose it large enough for a minimum analysis.
     :param win_shift: (float). Time shift in seconds between windows. Should be smaller or equal to win_size and not smaller than about one tenth of win_shift.
-    :param percentile: (int). percentile parameter for the eventdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
+    :param percentile: (float). percentile parameter for the eventdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
     :param th_factor: (float). th_factor parameter for the eventdetection.percentile_threshold() function used to estimate thresholds for detecting peaks in the data.
     :param min_clip: (float). Minimum amplitude below which data are clipped.
     :param max_clip: (float). Maximum amplitude above which data are clipped.
@@ -328,7 +328,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
 
 
 def best_window_times(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                      th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
+                      th_factor=0.8, percentile=10.0, min_clip=-np.inf, max_clip=np.inf,
                       w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                       plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
@@ -348,7 +348,7 @@ def best_window_times(data, samplerate, single=True, win_size=1., win_shift=0.1,
 
 
 def best_window(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
+                th_factor=0.8, percentile=10.0, min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                 plot_data_func=None, **kwargs):
     """Finds the window within data with the best data. See best_window_indices() for details.
@@ -420,7 +420,7 @@ def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
 
     
 def add_best_window_config(cfg, single=True, win_size=1., win_shift=0.1,
-                           th_factor=0.8, percentile=0.1,
+                           th_factor=0.8, percentile=10.0,
                            min_clip=-np.inf, max_clip=np.inf,
                            w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
                            tolerance=0.5):
@@ -519,7 +519,7 @@ if __name__ == "__main__":
     # compute best window:
     print("call bestwindow() function...")
     best_window_indices(data, rate, single=False,
-                        win_size=4.0, win_shift=0.5, th_factor=0.8, percentile=0.1,
+                        win_size=4.0, win_shift=0.5, th_factor=0.8, percentile=10.0,
                         min_clip=min_clip, max_clip=max_clip,
                         w_cv_ampl=10.0, tolerance=0.5,
                         plot_data_func=plot_best_window, ax=ax)

@@ -41,7 +41,7 @@ except ImportError:
 
 
 def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, max_freq=2000.0,
-                         freq_tol_fac=0.7, max_divisor=4, max_upper_fill=1,
+                         freq_tol_fac=1.0, max_divisor=4, max_upper_fill=1,
                          max_double_use_harmonics=8, max_double_use_count=1,
                          max_fill_ratio=0.25, power_n_harmonics=10, **kwargs):
     """Find all the harmonics belonging to the largest peak in a list of frequency peaks.
@@ -446,12 +446,12 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
     return freqs, more_freqs, group, best_fzero_harmonics, fmax
 
 
-def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=0.7,
+def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=1.0,
                          mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                          max_divisor=4, max_upper_fill=1,
                          max_double_use_harmonics=8, max_double_use_count=1,
                          max_fill_ratio=0.25, power_n_harmonics=10,
-                         min_group_size=3, max_harmonics=0, max_groups=0, **kwargs):
+                         min_group_size=4, max_harmonics=0, max_groups=0, **kwargs):
     """Extract fundamental frequencies from power-spectrum peaks.
                          
     Parameters
@@ -665,11 +665,11 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
                     thresh_bins=100, low_thresh_factor=6.0, high_thresh_factor=10.0,
                     max_peak_width_fac=10.0, min_peak_width=1.0,
-                    freq_tol_fac=0.7, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
+                    freq_tol_fac=1.0, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                     max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
                     max_double_use_harmonics=8, max_double_use_count=1,
                     max_fill_ratio=0.25, power_n_harmonics=10,
-                    min_group_size=3, max_harmonics=0, max_groups=0, **kwargs):
+                    min_group_size=4, max_harmonics=0, max_groups=0, **kwargs):
     """Detect peaks in power spectrum and extract fundamentals of harmonic groups.
 
     Parameters
@@ -1140,10 +1140,10 @@ def psd_peak_detection_args(cfg):
                     'min_peak_width': 'minPeakWidth'})
 
 
-def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac=0.7,
+def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac=1.0,
                                max_upper_fill=1, max_fill_ratio=0.25,
                                max_double_use_harmonics=8, max_double_use_count=1,
-                               power_n_harmonics=10, min_group_size=3,
+                               power_n_harmonics=10, min_group_size=4,
                                min_freq=20.0, max_freq=2000.0, max_work_freq=4000.0,
                                max_harmonics=0, max_groups=0):
     """ Add parameter needed for detection of harmonic groups as

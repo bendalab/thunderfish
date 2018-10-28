@@ -47,22 +47,19 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
     eod_times: 1-D array
         Times of EOD peaks in seconds.
     """
-    # threshold for peak detection:
-    threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
+    if period is None:
+        # threshold for peak detection:
+        threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
 
-    # detect peaks:
-    eod_idx, _ = detect_peaks(data, threshold)
-    if len(eod_idx) == 0:
-        return np.array([]), np.array([]), np.array([]), np.array([])
+        # detect peaks:
+        eod_idx, _ = detect_peaks(data, threshold)
+        if len(eod_idx) == 0:
+            return np.array([]), np.array([]), np.array([]), np.array([])
 
-    # eod indices and times:
-    eod_times = eod_idx / samplerate
-    if period is not None:
-        anchor = eod_idx[len(eod_idx)//2]/samplerate
-        offset = anchor - (anchor//period)*period - 0.5*period
-        if offset < 0.0:
-            offset += period
-        eod_times = np.arange(offset, len(data)/samplerate, period)
+        # eod indices and times:
+        eod_times = eod_idx / samplerate
+    else:
+        eod_times = np.arange(0.0, len(data)/samplerate, period)
         eod_idx = np.asarray(eod_times * samplerate, dtype=int)
 
     # start and stop times:
