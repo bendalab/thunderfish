@@ -568,7 +568,10 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
             centers[inx0:inx1] = center
         return threshold, centers
     else:
-        if np.max(data) - np.min(data) < 1e-8:
+        maxd = np.max(data)
+        mind = np.min(data)
+        contrast = np.abs((maxd - mind)/(maxd + mind))
+        if contrast > 1e-8:
             hist, bins = np.histogram(data, nbins, density=False)
             inx = hist > np.max(hist) * hist_height
             lower = bins[0:-1][inx][0]
@@ -576,6 +579,7 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
             center = 0.5 * (lower + upper)
             std = 0.5 * (upper - lower)
         else:
+            print('std')
             std = np.std(data)
             center = np.mean(data)
         return std * th_factor, center
