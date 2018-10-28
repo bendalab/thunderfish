@@ -579,7 +579,6 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
             center = 0.5 * (lower + upper)
             std = 0.5 * (upper - lower)
         else:
-            print('std')
             std = np.std(data)
             center = np.mean(data)
         return std * th_factor, center
