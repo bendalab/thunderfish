@@ -630,7 +630,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
         return (np.max(data) - np.min(data)) * th_factor
 
 
-def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, percentile=0.1):
+def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, percentile=10.0):
     """Esimate a threshold for detect_peaks() based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
@@ -657,7 +657,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, pe
         Sampling rate of the data in Hz.
     win_size: float or None
         Size of window in which a threshold value is computed.
-    percentile: int
+    percentile: float
         The interpercentile range is computed at percentile and 100.0-percentile.
     th_factor: float
         Factor by which the inter-percentile range of the data is multiplied to set the threshold.

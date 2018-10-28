@@ -28,17 +28,20 @@ except ImportError:
     pass
 
 
-def check_pulse_width(data, samplerate, th_factor=0.6, percentile=0.1,
+def check_pulse_width(data, samplerate, th_factor=0.6, percentile=10.0,
                       pulse_thresh=0.1, verbose=0, plot_data_func=None, **kwargs):
     """Detects if a fish is pulse- or wave-type based on the proportion of the time distance
     between a peak and its following trough, relative to the time between consecutive peaks.
 
+
+    Parameters
+    ----------
     data: 1-D array
          The data to be analyzed (Usually the best window already).
     samplerate: float
          Sampling rate of the data in Hertz.
     percentile: float
-         The inter-percentile range.
+         The interpercentile range is computed at percentile and 100.0-percentile.
     th_factor: float
          The threshold for peak detection is the inter-percentile-range
          multiplied by this factor.
@@ -107,6 +110,8 @@ def check_pulse_width(data, samplerate, th_factor=0.6, percentile=0.1,
 
     # threshold for peak detection:
     threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
+    if verbose > 0:
+        print('check_pulse_width: threshold for pulse detection is %g' % threshold)
     
     # detect large peaks and troughs:
     peak_idx, trough_idx = detect_peaks(data, threshold)
@@ -336,7 +341,7 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
     ax.set_ylabel('Power [dB]', fontsize=fs)
 
 
-def add_check_pulse_width_config(cfg, th_factor=0.6, percentile=0.1, pulse_thresh=0.1):
+def add_check_pulse_width_config(cfg, th_factor=0.6, percentile=10.0, pulse_thresh=0.1):
     """ Add parameter needed for check_pulse_width() as
     a new section to a configuration.
 
