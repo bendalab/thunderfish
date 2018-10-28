@@ -268,7 +268,10 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         return 'invalid channel %d' % channel
 
     # load data:
-    raw_data, samplerate, unit = load_data(filename, channel, verbose=verbose)
+    try:
+        raw_data, samplerate, unit = load_data(filename, channel, verbose=verbose)
+    except IOError as e:
+        return 'failed to open file %s: %s' % (filename, str(e))
     if len(raw_data) == 0:
         return 'empty data file %s' % filename
 
@@ -340,11 +343,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             eodf = fish[0,0]
             n = np.round(eodf*pulse_period)
             pulse_eodf = n/pulse_period
-            if verbose > 1:
+            if verbose > 0:
                 print('check wavefish at %.1f Hz versus %d-th harmonic of pulse frequency %.1f Hz at resolution of %.1f Hz'
-                      % (eodf, n, pulse_eodf, n*deltaf))
+                      % (eodf, n, pulse_eodf, 0.5*n*deltaf))
             # TODO: make the threshold a parameter!
-            if np.abs(eodf-pulse_eodf) > n*deltaf:
+            if np.abs(eodf-pulse_eodf) > 0.5*n*deltaf:
                 fishlist.append(fish)
             else:
                 if verbose > 0:
