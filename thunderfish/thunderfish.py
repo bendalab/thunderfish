@@ -303,9 +303,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         fresolution.append(2*fresolution[-1])
     n_incr = len(data)//(numpsdwindows+1) # half overlapping
     psd_data = []
+    deltaf = minfres
     for k in range(numpsdwindows):
         mr_psd_data = multi_resolution_psd(data[k*n_incr:(k+2)*n_incr], samplerate,
                                            fresolution=fresolution)
+        deltaf = mr_psd_data[0][1][1] - mr_psd_data[0][1][0]
         psd_data.extend(mr_psd_data)
     
     # find the fishes in the different powerspectra:
@@ -336,9 +338,13 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         fishlist = []
         for fish in filtered_fishlist:
             eodf = fish[0,0]
-            pulse_eodf = np.round(eodf*pulse_period)/pulse_period
+            n = np.round(eodf*pulse_period)
+            pulse_eodf = n/pulse_period
+            if verbose > 1:
+                print('check wavefish at %.1f Hz versus %d-th harmonic of pulse frequency %.1f Hz at resolution of %.1f Hz'
+                      % (eodf, n, pulse_eodf, n*deltaf))
             # TODO: make the threshold a parameter!
-            if np.abs(eodf-pulse_eodf) > 2.0:
+            if np.abs(eodf-pulse_eodf) > n*deltaf:
                 fishlist.append(fish)
             else:
                 if verbose > 0:
