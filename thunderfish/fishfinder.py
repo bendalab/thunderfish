@@ -38,9 +38,9 @@ class SignalPlot:
         self.fmin = 0.0
         self.fmax = 0.0
         self.decibel = True
-        self.fresolution = self.cfg['frequencyResolution'][0]
+        self.fresolution = self.cfg.value('frequencyResolution')
         self.deltaf = 1.0
-        self.mains_freq = self.cfg['mainsFreq'][0]
+        self.mains_freq = self.cfg.value('mainsFreq')
         self.power_label = None
         self.all_peaks_artis = None
         self.good_peaks_artist = None
@@ -49,15 +49,15 @@ class SignalPlot:
         self.peak_artists = []
         self.legend = True
         self.legendhandle = None
-        self.help = self.cfg['displayHelp'][0]
+        self.help = self.cfg.value('displayHelp')
         self.helptext = []
         self.allpeaks = []
         self.fishlist = []
         self.mains = []
         self.peak_specmarker = []
         self.peak_annotation = []
-        self.min_clip = self.cfg['minClipAmplitude'][0]
-        self.max_clip = self.cfg['maxClipAmplitude'][0]
+        self.min_clip = self.cfg.value('minClipAmplitude')
+        self.max_clip = self.cfg.value('maxClipAmplitude')
         self.colorrange, self.markerrange = colors_markers()
 
         # audio output:
@@ -155,15 +155,15 @@ class SignalPlot:
         # annotation:
         fwidth = self.fmax - self.fmin
         pl = []
-        if self.cfg['labelFrequency'][0]:
+        if self.cfg.value('labelFrequency'):
             pl.append(r'$f=${:.1f} Hz'.format(peak[0]))
-        if self.cfg['labelHarmonic'][0] and harmonics >= 0:
+        if self.cfg.value('labelHarmonic') and harmonics >= 0:
             pl.append(r'$h=${:d}'.format(harmonics))
-        if self.cfg['labelPower'][0]:
+        if self.cfg.value('labelPower'):
             pl.append(r'$p=${:g}'.format(peak[1]))
-        if self.cfg['labelWidth'][0]:
+        if self.cfg.value('labelWidth'):
             pl.append(r'$\Delta f=${:.2f} Hz'.format(peak[3]))
-        if self.cfg['labelDoubleUse'][0]:
+        if self.cfg.value('labelDoubleUse'):
             pl.append(r'dc={:.0f}'.format(peak[4]))
         self.peak_annotation.append(self.axp.annotate('\n'.join(pl), xy=(peak[0], peak[1]),
                                                       xytext=(peak[0] + 0.03 * fwidth, peak[1]),
@@ -194,14 +194,11 @@ class SignalPlot:
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
-        nfft = int(np.round(2 ** (np.floor(np.log(self.samplerate / self.fresolution) / np.log(2.0)) + 1.0)))
-        if nfft < 16:
-            nfft = 16
         nfft, noverlap = nfft_noverlap(self.fresolution, self.samplerate, 0.5, 16)
         t00 = t0
         t11 = t1
         w = t11 - t00
-        minw = nfft * (self.cfg['minPSDAverages'][0] + 1) // 2
+        minw = nfft * (self.cfg.value('minPSDAverages') + 1) // 2
         if t11 - t00 < minw:
             w = minw
             t11 = t00 + w
@@ -257,8 +254,8 @@ class SignalPlot:
             tws = '%.3gs' % (tw)
         a = 2 * w // nfft - 1  # number of ffts
         m = ''
-        if self.cfg['mainsFreq'][0] > 0.0:
-            m = ', mains=%.0fHz' % self.cfg['mainsFreq'][0]
+        if self.cfg.value('mainsFreq') > 0.0:
+            m = ', mains=%.0fHz' % self.cfg.value('mainsFreq')
         if self.power_frequency_label == None:
             self.power_frequency_label = self.axp.set_xlabel(
                 r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(nfft, dfs, tws, a, m))
@@ -324,7 +321,7 @@ class SignalPlot:
             fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)], power[fpeakinx], linestyle='None',
                                         marker='.', color='k', ms=10, mec=None, mew=0.0, zorder=2)
             self.peak_artists.append(fishpoints)
-            labels.append('%3.0f Hz mains' % self.cfg['mainsFreq'][0])
+            labels.append('%3.0f Hz mains' % self.cfg.value('mainsFreq'))
         ncol = (len(labels)-1) // 8 + 1
         self.legendhandle = self.axs.legend(self.peak_artists[:len(labels)], labels, loc='upper right', ncol=ncol)
         self.legenddict = dict()
@@ -370,6 +367,7 @@ class SignalPlot:
                 if idx1 > 0:
                     self.toffset = idx0 / self.samplerate
                     self.twindow = (idx1 - idx0) / self.samplerate
+                    self.twindow *= 2.0/(self.cfg.value('numberPSDWindows')+1.0)
                     self.update_plots()
             except UserWarning as e:
                 if self.verbose > 0:
@@ -504,26 +502,26 @@ class SignalPlot:
             self.decibel = not self.decibel
             self.update_plots()
         elif event.key in 'm':
-            if self.cfg['mainsFreq'][0] == 0.0:
-                self.cfg['mainsFreq'][0] = self.mains_freq
+            if self.cfg.value('mainsFreq') == 0.0:
+                self.cfg.set('mainsFreq', self.mains_freq)
             else:
-                self.cfg['mainsFreq'][0] = 0.0
+                self.cfg.set('mainsFreq', 0.0)
             self.update_plots()
         elif event.key in 't':
-            t_diff = self.cfg['highThresholdFactor'][0] - self.cfg['lowThresholdFactor'][0]
-            self.cfg['lowThresholdFactor'][0] -= 0.1
-            if self.cfg['lowThresholdFactor'][0] < 0.1:
-                self.cfg['lowThresholdFactor'][0] = 0.1
-            self.cfg['highThresholdFactor'][0] = self.cfg['lowThresholdFactor'][0] + t_diff
-            print('lowThresholdFactor =', self.cfg['lowThresholdFactor'][0])
+            t_diff = self.cfg.value('highThresholdFactor') - self.cfg.value('lowThresholdFactor')
+            self.cfg.set('lowThresholdFactor', self.cfg.value('lowThresholdFactor') - 0.1)
+            if self.cfg.value('lowThresholdFactor') < 0.1:
+                self.cfg.set('lowThresholdFactor', 0.1)
+            self.cfg.set('highThresholdFactor', self.cfg.value('lowThresholdFactor') + t_diff)
+            print('lowThresholdFactor =', self.cfg.value('lowThresholdFactor'))
             self.update_plots()
         elif event.key in 'T':
-            t_diff = self.cfg['highThresholdFactor'][0] - self.cfg['lowThresholdFactor'][0]
-            self.cfg['lowThresholdFactor'][0] += 0.1
-            if self.cfg['lowThresholdFactor'][0] > 20.0:
-                self.cfg['lowThresholdFactor'][0] = 20.0
-            self.cfg['highThresholdFactor'][0] = self.cfg['lowThresholdFactor'][0] + t_diff
-            print('lowThresholdFactor =', self.cfg['lowThresholdFactor'][0])
+            t_diff = self.cfg.value('highThresholdFactor') - self.cfg.value('lowThresholdFactor')
+            self.cfg.set('lowThresholdFactor', self.cfg.value('lowThresholdFactor') + 0.1)
+            if self.cfg.value('lowThresholdFactor') > 20.0:
+                self.cfg.set('lowThresholdFactor', 20.0)
+            self.cfg.set('highThresholdFactor', self.cfg.value('lowThresholdFactor') + t_diff)
+            print('lowThresholdFactor =', self.cfg.value('lowThresholdFactor'))
             self.update_plots()
         elif event.key == 'escape':
             self.remove_peak_annotation()
@@ -717,6 +715,7 @@ def main():
     cfg.add_section('Power spectrum estimation:')
     cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
     cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
+    cfg.add('numberPSDWindows', 1, '', 'Number of windows on which power spectra are computed.')
 
     cfg.add_section('Items to display:')
     cfg.add('displayHelp', False, '', 'Display help on key bindings')

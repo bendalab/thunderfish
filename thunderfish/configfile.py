@@ -219,7 +219,7 @@ class ConfigFile:
             differs = False
             if hasattr(v, '__len__') and (not isinstance(v, str)):
                 val = v[0]
-                if len(v) > 1:
+                if len(v) > 1 and len(v[1]) > 0:
                     unit = ' ' + v[1]
                 if len(v) > 2:
                     comment = v[2]
