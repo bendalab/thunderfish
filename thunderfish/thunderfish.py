@@ -229,7 +229,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     # configuration options:
     cfg = ConfigFile()
     cfg.add_section('Power spectrum estimation:')
-    cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
+    cfg.add('frequencyResolution', 0.2, 'Hz', 'Frequency resolution of the power spectrum.')
     cfg.add('numberPSDWindows', 2, '', 'Number of windows on which power spectra are computed.')
     cfg.add('numberPSDResolutions', 1, '', 'Number of power spectra computed within each window with decreasing resolution.')
     cfg.add('frequencyThreshold', 1.0, 'Hz', 'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
