@@ -83,30 +83,28 @@ def check_pulse_width(data, samplerate, th_factor=0.6, percentile=10.0,
     def ratio(peak_idx, trough_idx):
         """ Calculates (peak-trough) / (peak-peak)
 
-        :return: peak-ratio (float). The median of (peak-trough) / (peak-peak)
-        :return: r_tr (array). The distribution of (peak-trough) / (peak-peak)
+        Returns
+        -------
+
+        peak-ratio: float
+            The median of (peak-trough) / (peak-peak)
+        r_tr: array
+            The distribution of (peak-trough) / (peak-peak)
         """
         peaks, troughs = trim_to_peak(peak_idx, trough_idx)
         if len(peaks) < 2:
             return 1.0, np.array([])
 
-        # get times of peaks and troughs, pk_times need to be floats!
-        pk_times = peaks / float(samplerate)  # Actually there is no need to divide by samplerate.
-        tr_times = troughs / float(samplerate)  # Time differences can be calculated using indices only.
-
-        pk_2_pk = np.diff(pk_times)
-        pk_2_tr = (tr_times - pk_times)[:-1]
+        pk_2_pk = np.diff(peaks).astype(np.float)
+        pk_2_tr = (troughs - peaks)[:-1].astype(np.float)
 
         # get the proportion of peak-2-trough, from peak-2-peak time distance
         r_tr = pk_2_tr / pk_2_pk
-        r_tr[r_tr > 0.5] = 1 - r_tr[r_tr > 0.5]  # fix for cases where trough of eod comes before peak
+        r_tr[r_tr > 0.5] = 1.0 - r_tr[r_tr > 0.5]  # fix for cases where trough of eod comes before peak
 
         peak_ratio = np.median(r_tr)
 
         return peak_ratio, r_tr
-
-    if verbose > 1:
-        print('Analyzing Fish-Type...')
 
     # threshold for peak detection:
     threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
@@ -134,7 +132,7 @@ def check_pulse_width(data, samplerate, th_factor=0.6, percentile=10.0,
 
     if verbose > 0:
         f_type = 'pulse' if pulse_fish else 'wave'
-        print('fish-type is %s. pulse-width-ratio is %.3f' % (f_type, peak_ratio))
+        print('  fish-type is %s. pulse-width-ratio is %.3f' % (f_type, peak_ratio))
         
     return pulse_fish, peak_ratio, interval
 
