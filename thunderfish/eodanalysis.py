@@ -38,12 +38,9 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
     
     Returns
     -------
-    mean_eod: 1-D array
-        Average of the EOD snippets.
-    std_eod: 1-D array
-        Standard deviation of the averaged snippets.
-    time: 1-D array
-        Time axis for mean_eod and std_eod.
+    mean_eod: 2-D array
+        Average of the EOD snippets. First column is time in seconds,
+        second column the mean eod, third column the standard deviation
     eod_times: 1-D array
         Times of EOD peaks in seconds.
     """
@@ -78,21 +75,23 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
     # extract snippets:
     eod_snippets = snippets(data, eod_idx, start_inx, stop_inx)
 
-    # mean and std of snippets:    
-    mean_eod = np.mean(eod_snippets, axis=0)
-    std_eod = np.std(eod_snippets, axis=0, ddof=1)
+    # mean and std of snippets:
+    mean_eod = np.zeros((len(eod_snippets[0]), 3))
+    mean_eod[:,1] = np.mean(eod_snippets, axis=0)
+    mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
 
     # time axis:
     time = (np.arange(len(mean_eod)) + start_inx) / samplerate
     if period is not None:
         # move peak of waveform to zero:
-        offs = len(mean_eod)//4
-        time -= time[offs+np.argmax(mean_eod[offs:3*offs])]
+        offs = len(mean_eod[:,1])//4
+        time -= time[offs+np.argmax(mean_eod[offs:3*offs,1])]
+    mean_eod[:,0] = time
+    
+    return mean_eod, eod_times
 
-    return mean_eod, std_eod, time, eod_times
 
-
-def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.'):
+def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.', **kwargs):
     """Plot mean eod and its standard deviation.
 
     Parameters
@@ -107,8 +106,16 @@ def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.'):
         Axis for plot
     unit: string
         Unit of the data.
+    kwargs: dict
+        Arguments passed on to the plot command for the mean eod.
     """
-    ax.plot(1000.0*time, mean_eod, lw=2, color='r')
+    if not 'lw' in kwargs:
+        kwargs['lw'] = 2
+    if not 'color' in kwargs:
+        kwargs['color'] = 'r'
+    ax.autoscale(True)
+    ax.plot(1000.0*time, mean_eod, **kwargs)
+    ax.autoscale(False)
     ax.fill_between(1000.0*time, mean_eod + std_eod, mean_eod - std_eod,
                     color='grey', alpha=0.3)
     ax.set_xlabel('Time [msec]')
