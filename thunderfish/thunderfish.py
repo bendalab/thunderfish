@@ -320,7 +320,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         if len(fishlist) > 0:
             # write csv file with main EODf and corresponding power in dB of detected fishes:
             csv_matrix = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
-            csv_name = os.path.join(output_folder, outfilename + '-wavefish_eodfs.csv')
+            csv_name = os.path.join(output_folder, outfilename + '-wavefish-eodfs.csv')
             header = ['fundamental frequency (Hz)', 'power (dB)']
             write_csv(csv_name, header, csv_matrix)
     #if pulse_fish:
@@ -374,12 +374,12 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         mean_eods = []
         inter_eod_intervals = []
 
-    for mean_eod in mean_eods:
-        # write mean EOD
-        if save_csvs and found_bestwindow:
+    # write eod waveforms:
+    if save_csvs and found_bestwindow:
+        for i, mean_eod in enumerate(mean_eods):
             header = ['time (s)', 'mean', 'std']
-            write_csv(os.path.join(output_folder, outfilename + '-mean_waveform.csv'), header,
-                      mean_eod)
+            write_csv(os.path.join(output_folder, outfilename + '-waveform-%d.csv' % i),
+                      header, mean_eod)
 
     if save_plot or not save_csvs:
         output_plot(outfilename, pulse_fish,
