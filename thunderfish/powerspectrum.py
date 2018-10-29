@@ -119,14 +119,19 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
         Power values in decibel relative to `ref_power`.
     """
     if hasattr(power, '__len__'):
+        tmp_power = power
         decibel_psd = power.copy()
     else:
+        tmp_power = np.array([power])
         decibel_psd = np.array([power])
     if ref_power is None:
         ref_power = np.max(decibel_psd)
-    decibel_psd[power <= min_power] = np.nan
-    decibel_psd[power > min_power] = 10.0 * np.log10(decibel_psd[power > min_power]/ref_power)
-    return decibel_psd
+    decibel_psd[tmp_power <= min_power] = np.nan
+    decibel_psd[tmp_power > min_power] = 10.0 * np.log10(decibel_psd[tmp_power > min_power]/ref_power)
+    if hasattr(power, '__len__'):
+        return decibel_psd
+    else:
+        return decibel_psd[0]
 
 
 def power(decibel, ref_power=1.0):
