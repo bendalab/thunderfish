@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def write_csv(filename, csv_header, data_matrix, format_str='%.3f'):
+def write_csv(filename, csv_header, data_matrix, format_str='%.6g'):
 
     """
     Write matrix to csv-file.
