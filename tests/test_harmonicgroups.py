@@ -18,11 +18,11 @@ def test_harmonic_groups():
                                  amplitudes=[1.0, 0.7, 0.2, 0.1],
                                  phases=[0.0, 0.0, 0.0, 0.0])
     fish3 = ff.generate_wavefish(eodfs[2], samplerate, duration=8.0, noise_std=0.0,
-                                 amplitudes=[10.0, 5.0, 1.0],
-                                 phases=[0.0, 0.0, 0.0])
+                                 amplitudes=[10.0, 5.0, 1.0, 0.1],
+                                 phases=[0.0, 0.0, 0.0, 0.0])
     fish4 = ff.generate_wavefish(eodfs[3], samplerate, duration=8.0, noise_std=0.0,
-                                 amplitudes=[6.0, 3.0, 1.0],
-                                 phases=[0.0, 0.0, 0.0])
+                                 amplitudes=[6.0, 3.0, 1.0, 0.1],
+                                 phases=[0.0, 0.0, 0.0, 0.0])
     data = fish1 + fish2 + fish3 + fish4
 
     # analyse:
