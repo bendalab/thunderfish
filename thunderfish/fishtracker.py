@@ -785,6 +785,7 @@ def freq_tracking_v4(fundamentals, signatures, times, freq_tolerance, n_channels
     idx_v = np.array(idx_v, dtype=int)
     sign_v = np.array(sign_v)
 
+    original_sign_v = sign_v
     if np.shape(sign_v)[1] > 2:
         sign_v = (sign_v - np.min(sign_v, axis=1).reshape(len(sign_v), 1)) / (
                     np.max(sign_v, axis=1).reshape(len(sign_v), 1) - np.min(sign_v, axis=1).reshape(len(sign_v), 1))
@@ -1413,7 +1414,7 @@ def freq_tracking_v4(fundamentals, signatures, times, freq_tolerance, n_channels
     # embed()
     # quit()
 
-    return fund_v, ident_v, idx_v, sign_v, a_error_distribution, f_error_distribution, idx_of_origin_v
+    return fund_v, ident_v, idx_v, sign_v, a_error_distribution, f_error_distribution, idx_of_origin_v, original_sign_v
 
 
 # def freq_tracking_v3(fundamentals, signatures, times, freq_tolerance, n_channels, return_tmp_idenities=False,
@@ -2599,7 +2600,21 @@ class Obs_tracker():
         if self.end_time < 0.0:
             self.end_time = len(self.data) / self.samplerate
 
-        self.channels = channels
+        # embed()
+        # quit()
+        self.channels = np.array(channels, dtype=int)
+        if len(channels) == 64:
+            self.grid_prop = (8, 8)
+        elif len(channels) == 8:
+            self.grid_prop = (4, 2)
+        elif len(channels) == 16:
+            self.grid_prop = (4, 4)
+        elif len(channels) == 1:
+            self.grid_prop = (1, 1)
+        else:
+            pass
+        # embed()
+        # quit()
         self.data_snippet_idxs = data_snippet_idxs
         self.kwargs = kwargs
         self.verbose = 0
@@ -2612,6 +2627,7 @@ class Obs_tracker():
         self.last_ident_v = None
         self.idx_v = None
         self.sign_v = None
+        self.original_sign_v = None
         self.f_error_dist = None
         self.a_error_dist = None
 
@@ -2623,6 +2639,7 @@ class Obs_tracker():
         self.tmp_spectra = None # ToDo: rename... what is this ?
         self.part_spectra = None #  ToDO: rename... what is this ?
         self.spec_shift = 0
+        self.ps_handle = None
 
         self.current_task = None
         self.current_idx = None
@@ -2705,6 +2722,21 @@ class Obs_tracker():
             plt.rcParams['keymap.fullscreen'] = ''
 
             self.main_ax = self.main_fig.add_axes([0.1, 0.1, 0.8, 0.6])
+            self.add_ax = [None, [None, None, None], [None, None]] # [extra plot, [field plots, ...], [error plots]]
+            self.add_ax[0] = self.main_fig.add_axes([.6, .1, .3, .6])
+            self.add_ax[0].set_visible(False)
+            self.add_ax[1][0] = self.main_fig.add_axes([.55, .225, .2, .3])
+            self.add_ax[1][0].set_visible(False)
+            self.add_ax[1][1] = self.main_fig.add_axes([.775, .05, .2, .3])
+            self.add_ax[1][1].set_visible(False)
+            self.add_ax[1][2] = self.main_fig.add_axes([.775, .4, .2, .3])
+            self.add_ax[1][2].set_visible(False)
+            self.add_ax[2][0] = self.main_fig.add_axes([.6, .75, 0.15, 0.15])
+            self.add_ax[2][0].set_visible(False)
+            self.add_ax[2][1] = self.main_fig.add_axes([.8, .75, 0.15, 0.15])
+            self.add_ax[2][1].set_visible(False)
+
+
             self.spec_img_handle = None
 
             self.tmp_plothandel_main = None  # red line
@@ -2713,17 +2745,6 @@ class Obs_tracker():
             self.tmp_trace_handels = []
 
             self.life_trace_handles = []
-
-            # self.active_fundamental0_0 = None
-            # self.active_fundamental0_1 = None
-            # self.active_fundamental0_0_handle = None
-            # self.active_fundamental0_1_handle = None
-            #
-            # self.active_fundamental1_0 = None
-            # self.active_fundamental1_1 = None
-            # self.active_fundamental1_0_handle = None
-            # self.active_fundamental1_1_handle = None
-            # self.plot_spectrum()
 
             self.active_idx0 = None
             self.active_idx_handle0 = None
@@ -2748,7 +2769,7 @@ class Obs_tracker():
 
             # powerspectrum window and parameters
             # self.add_ax = None
-            self.add_ax = [None, [None, None, None], [None, None]]
+            # self.add_ax = [None, [None, None, None], [None, None]]
 
             self.add_tmp_plothandel = []
             self.tmp_harmonics_plot = None
@@ -2829,75 +2850,78 @@ class Obs_tracker():
             self.text_handles_effect.append(t1)
 
         if self.add_ax[0]:
-            if self.current_task == 'part_spec' or self.current_task == 'track_snippet':
-                pass
-            else:
-                t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
-                t1 = self.main_fig.text(0.35, 0.85,
-                                        '%.2f dB; rel. dB th for good Peaks' % (self.kwargs['high_threshold']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+            # if self.current_task == 'part_spec' or self.current_task == 'track_snippet':
+            #     pass
+            if self.current_task in  ['track_snippet', 'track_snippet_show', 'track_snippet_live', 'show_powerspectum', 'update_hg']:
+                if hasattr(self.fundamentals, '__len__'):
+                    pass
+                else:
+                    t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
+                    t1 = self.main_fig.text(0.35, 0.85,
+                                            '%.2f dB; rel. dB th for good Peaks' % (self.kwargs['high_threshold']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
-                t1 = self.main_fig.text(0.35, 0.825,
-                                        '%.2f dB; rel. dB th for all Peaks' % (self.kwargs['low_threshold']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
+                    t1 = self.main_fig.text(0.35, 0.825,
+                                            '%.2f dB; rel. dB th for all Peaks' % (self.kwargs['low_threshold']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
-                t1 = self.main_fig.text(0.35, 0.8, '%.2f; low th fac' % (self.kwargs['low_thresh_factor']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
+                    t1 = self.main_fig.text(0.35, 0.8, '%.2f; low th fac' % (self.kwargs['low_thresh_factor']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.3, 0.775, '(ctrl+)4:')
-                t1 = self.main_fig.text(0.35, 0.775, '%.2f; high th fac' % (self.kwargs['high_thresh_factor']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.3, 0.775, '(ctrl+)4:')
+                    t1 = self.main_fig.text(0.35, 0.775, '%.2f; high th fac' % (self.kwargs['high_thresh_factor']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.3, 0.75, '(ctrl+)5:')
-                t1 = self.main_fig.text(0.35, 0.75, '%.2f dB; min Peak width' % (self.kwargs['min_peak_width']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.3, 0.75, '(ctrl+)5:')
+                    t1 = self.main_fig.text(0.35, 0.75, '%.2f dB; min Peak width' % (self.kwargs['min_peak_width']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.3, 0.725, '(ctrl+)6:')
-                t1 = self.main_fig.text(0.35, 0.725,
-                                        '%.2f X fresolution; max Peak width' % (self.kwargs['max_peak_width_fac']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.3, 0.725, '(ctrl+)6:')
+                    t1 = self.main_fig.text(0.35, 0.725,
+                                            '%.2f X fresolution; max Peak width' % (self.kwargs['max_peak_width_fac']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.5, 0.85, '(ctrl+)7:')
-                t1 = self.main_fig.text(0.55, 0.85, '%.0f; min group size' % (self.kwargs['min_group_size']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.5, 0.85, '(ctrl+)7:')
+                    t1 = self.main_fig.text(0.55, 0.85, '%.0f; min group size' % (self.kwargs['min_group_size']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.5, 0.825, '(ctrl+)8:')
-                t1 = self.main_fig.text(0.55, 0.825,
-                                        '%.1f; * fresolution = max dif of harmonics' % (self.kwargs['freq_tol_fac']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.5, 0.825, '(ctrl+)8:')
+                    t1 = self.main_fig.text(0.55, 0.825,
+                                            '%.1f; * fresolution = max dif of harmonics' % (self.kwargs['freq_tol_fac']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.5, 0.8, '(ctrl+)9:')
-                t1 = self.main_fig.text(0.55, 0.8,
-                                        '%.0f; max divisor to check subharmonics' % (self.kwargs['max_divisor']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.5, 0.8, '(ctrl+)9:')
+                    t1 = self.main_fig.text(0.55, 0.8,
+                                            '%.0f; max divisor to check subharmonics' % (self.kwargs['max_divisor']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.5, 0.775, '(ctrl+)0:')
-                t1 = self.main_fig.text(0.55, 0.775, '%.0f; max freqs to fill in' % (self.kwargs['max_upper_fill']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.5, 0.775, '(ctrl+)0:')
+                    t1 = self.main_fig.text(0.55, 0.775, '%.0f; max freqs to fill in' % (self.kwargs['max_upper_fill']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.5, 0.75, '(ctrl+)+:')
-                t1 = self.main_fig.text(0.55, 0.75, '%.0f; 1 group max double used peaks' % (
-                self.kwargs['max_double_use_harmonics']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.5, 0.75, '(ctrl+)+:')
+                    t1 = self.main_fig.text(0.55, 0.75, '%.0f; 1 group max double used peaks' % (
+                    self.kwargs['max_double_use_harmonics']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
-                t = self.main_fig.text(0.5, 0.725, '(ctrl+)#:')
-                t1 = self.main_fig.text(0.55, 0.725,
-                                        '%.0f; 1 Peak part of n groups' % (self.kwargs['max_double_use_count']))
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
+                    t = self.main_fig.text(0.5, 0.725, '(ctrl+)#:')
+                    t1 = self.main_fig.text(0.55, 0.725,
+                                            '%.0f; 1 Peak part of n groups' % (self.kwargs['max_double_use_count']))
+                    self.text_handles_key.append(t)
+                    self.text_handles_effect.append(t1)
 
         if self.current_task == 'part_spec':
             t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
@@ -3017,6 +3041,11 @@ class Obs_tracker():
 
     def keypress(self, event):
         self.key_options()
+        # self.main_ax.set_position([.1, .1, .8, .6])
+        # self.add_ax[1][0].set_visible(False)
+        # self.add_ax[1][1].set_visible(False)
+        # self.add_ax[1][2].set_visible(False)
+
 
         if event.key == 'm':
             self.current_task = 'method_figure'
@@ -3109,6 +3138,25 @@ class Obs_tracker():
         if event.key in 'p':
             self.current_task = self.p_tasks[0]
             self.p_tasks = np.roll(self.p_tasks, -1)
+            if self.current_task == 'show_fields':
+                self.main_ax.set_position([.1, .1, .4, .6])
+                self.add_ax[0].set_visible(False)
+                self.add_ax[1][0].set_visible(True)
+                self.add_ax[1][1].set_visible(True)
+                self.add_ax[1][2].set_visible(True)
+            elif self.current_task == 'show_powerspectum':
+                self.main_ax.set_position([.1, .1, .6, .6])
+                self.add_ax[0].set_visible(True)
+                self.add_ax[1][0].set_visible(False)
+                self.add_ax[1][1].set_visible(False)
+                self.add_ax[1][2].set_visible(False)
+            else:
+                self.main_ax.set_position([.1, .1, .8, .6])
+                self.add_ax[0].set_visible(False)
+                self.add_ax[1][0].set_visible(False)
+                self.add_ax[1][1].set_visible(False)
+                self.add_ax[1][2].set_visible(False)
+
 
         if event.key == 'ctrl+t':
             self.current_task = self.t_tasks[0]
@@ -3134,13 +3182,17 @@ class Obs_tracker():
             self.verbose -= 1
             print('verbosity: %.0f' % self.verbose)
 
-        if event.key in 'q' and self.add_ax:
-            self.main_fig.delaxes(self.add_ax)
-            self.add_ax = None
+        if event.key in 'q' and self.add_ax[0]:
+            # self.main_fig.delaxes(self.add_ax)
+            # self.add_ax = None
+            self.main_ax.set_position([.1, .1, .8, .6])
+            self.add_ax[0].set_visible(False)
+            self.add_ax[1][0].set_visible(False)
+            self.add_ax[1][1].set_visible(False)
+            self.add_ax[1][2].set_visible(False)
             self.add_tmp_plothandel = []
             self.all_peakf_dots = None
             self.good_peakf_dots = None
-            self.main_ax.set_position([.1, .1, .8, .6])
             if hasattr(self.a_error_dist, '__len__') and hasattr(self.f_error_dist, '__len__'):
                 self.plot_error()
 
@@ -3176,10 +3228,10 @@ class Obs_tracker():
                     self.kwargs['fresolution'] += 0.05
 
             if event.key == '2':
-                self.kwargs['overlap_frac'] -= 0.05
+                self.kwargs['overlap_frac'] -= 0.01
 
             if event.key == 'ctrl+2':
-                self.kwargs['overlap_frac'] += 0.05
+                self.kwargs['overlap_frac'] += 0.01
 
             if event.key == '3':
                 self.kwargs['nffts_per_psd'] -= 1
@@ -3337,6 +3389,12 @@ class Obs_tracker():
                     self.main_ax.set_ylabel('frequency [Hz]', fontsize=12)
 
             if self.current_task == 'delete_noise':
+                self.main_ax.set_position([.1, .1, .6, .6])
+                self.add_ax[0].set_visible(True)
+                self.add_ax[1][0].set_visible(False)
+                self.add_ax[1][1].set_visible(False)
+                self.add_ax[1][2].set_visible(False)
+
                 if self.active_indices_handle:
                     self.last_ident_v = np.copy(self.ident_v)
                     self.ident_v[self.active_indices] = np.nan
@@ -3351,17 +3409,17 @@ class Obs_tracker():
                     (self.times[self.idx_v] >= min_x) & (self.times[self.idx_v] < max_x) & (self.fund_v >= min_y) & (
                                 self.fund_v < max_y)]
                 self.iois = self.iois[~np.isnan(self.ident_v[self.iois])]
-                self.min_max = np.max(self.sign_v[self.iois], axis=1) - np.min(self.sign_v[self.iois], axis=1)
+                self.min_max = np.max(self.original_sign_v[self.iois], axis=1) - np.min(self.original_sign_v[self.iois], axis=1)
 
-                if self.add_ax:
-                    self.main_fig.delaxes(self.add_ax)
-                    self.add_ax = None
+                if self.add_ax[0]:
+                    # self.main_fig.delaxes(self.add_ax)
+                    # self.add_ax = None
                     self.add_tmp_plothandel = []
                     self.all_peakf_dots = None
                     self.good_peakf_dots = None
-                    self.main_ax.set_position([.1, .1, .8, .6])
-                self.main_ax.set_position([.1, .1, .5, .6])
-                self.add_ax = self.main_fig.add_axes([.6, .1, .3, .6])
+                    # self.main_ax.set_position([.1, .1, .8, .6])
+                # self.main_ax.set_position([.1, .1, .5, .6])
+                # self.add_ax[0] = self.main_fig.add_axes([.6, .1, .3, .6])
                 # self.ps_ax.set_yticks([])
                 self.add_ax[0].yaxis.tick_right()
                 self.add_ax[0].yaxis.set_label_position("right")
@@ -3399,8 +3457,9 @@ class Obs_tracker():
 
             if self.current_task == 'show_powerspectum':
                 if self.tmp_plothandel_main and self.ioi:
-                    self.current_task = None
+                    # self.current_task = None
                     self.plot_ps()
+
                 else:
                     print('\nmissing data')
 
@@ -3467,59 +3526,18 @@ class Obs_tracker():
                 self.current_task = None
                 self.plot_spectrum(part_spec=True)
 
-            # if self.current_task == 'plot_tmp_identities':
-            #
-            #     if self.active_idx0 and hasattr(self.f_error_dist, '__len__') and hasattr(self.a_error_dist,
-            #                                                                                  '__len__'):
-            #         # tmp_fund_v, tmp_ident_v, tmp_idx_v = \
-            #         # freq_tracking_v2(self.fundamentals, self.signatures, self.positions, self.times,
-            #         #                  self.kwargs['freq_tolerance'], n_channels=len(self.channels),
-            #         #                  return_tmp_idenities=True, ioi_fti = self.active_vec_idx,
-            #         #                  a_error_distribution=self.a_error_dist, f_error_distribution=self.f_error_dist)
-            #         tmp_fund_v, tmp_ident_v, tmp_idx_v = \
-            #             freq_tracking_v3(self.fundamentals, self.signatures, self.times,
-            #                              self.kwargs['freq_tolerance'], n_channels=len(self.channels),
-            #                              return_tmp_idenities=True, ioi_fti=self.active_idx0,
-            #                              a_error_distribution=self.a_error_dist, f_error_distribution=self.f_error_dist)
-            #
-            #         for handle in self.tmp_trace_handels:
-            #             handle.remove()
-            #         self.tmp_trace_handels = []
-            #         possible_identities = np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)])
-            #         # embed()
-            #         # quit()
-            #         for ident in np.array(possible_identities):
-            #             c = np.random.rand(3)
-            #             h, = self.main_ax.plot(self.times[tmp_idx_v[tmp_ident_v == ident]],
-            #                                    tmp_fund_v[tmp_ident_v == ident], marker='o', color=c, linewidth=3,
-            #                                    markersize=5)
-            #             self.tmp_trace_handels.append(h)
-
         self.key_options()
         self.main_fig.canvas.draw()
         # plt.show()
 
     def buttonpress(self, event):
         if event.button == 2:
-            self.main_ax.set_position([.1, .1, .4, .6])
-            for i in range(len(self.ioi_field_handle)):
-                if self.ioi_field_handle[i]:
-                    self.ioi_field_handle[i].remove()
-                    self.ioi_field_handle[i] = None
-                    self.add_ax[1][i].remove()
-                    self.add_ax[1][i] = None
-            self
-
 
             self.ioi_field = [None, None, None]
             for m in self.ioi_field_marker:
                 if m != None:
                     m.remove()
             self.ioi_field_marker = [None, None, None]
-
-            # for im in self.ioi_field_handle:
-            #     im.remove()
-            # self.ioi_field_handle = [None, None, None]
 
             for i in range(len(self.ioi_a_error_line)):
                 for j in range(len(self.ioi_a_error_line[i])):
@@ -3730,11 +3748,12 @@ class Obs_tracker():
 
                 self.x = (event.xdata, 0)
                 self.y = (event.ydata, 0)
+                # embed()
                 if self.current_task == 'show_fields':
                     self.main_ax.set_position([.1, .1, .4, .6])
-                    self.add_ax[1][0] = self.main_fig.add_axes([.55, .225, .2, .3])
-                    self.add_ax[1][1] = self.main_fig.add_axes([.775, .05, .2, .3])
-                    self.add_ax[1][2] = self.main_fig.add_axes([.775, .4, .2, .3])
+                    # self.add_ax[1][0] = self.main_fig.add_axes([.55, .225, .2, .3])
+                    # self.add_ax[1][1] = self.main_fig.add_axes([.775, .05, .2, .3])
+                    # self.add_ax[1][2] = self.main_fig.add_axes([.775, .4, .2, .3])
                     self.main_fig.canvas.draw()
 
             if self.current_task == 'cut_trace':
@@ -3751,7 +3770,7 @@ class Obs_tracker():
                                                                  self.fund_v[current_idx], 'o', color='red',
                                                                  markersize=4)
 
-        if self.add_ax and event.inaxes == self.add_ax:
+        if self.add_ax[0] and event.inaxes == self.add_ax:
             if self.current_task == 'delete_noise':
                 if event.button == 1:
                     x = event.xdata
@@ -3815,222 +3834,224 @@ class Obs_tracker():
         self.main_fig.canvas.draw()
 
     def buttonrelease(self, event):
-        if event.inaxes == self.main_ax:
-            if self.current_task in ['group_delete', 'group_connect', 'group_reassign']:
-                if event.button == 1:
-                    self.x = (self.x[0], event.xdata)
-                    self.y = (self.y[0], event.ydata)
-
-                    self.active_indices = np.arange(len(self.fund_v))[
-                        (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
-                                self.times[self.idx_v] >= np.min(self.x)) & (self.times[self.idx_v] < np.max(self.x))]
-                    self.active_indices = self.active_indices[~np.isnan(self.ident_v[self.active_indices])]
-
-                    self.active_indices_handle, = self.main_ax.plot(self.times[self.idx_v[self.active_indices]],
-                                                                    self.fund_v[self.active_indices], 'o',
-                                                                    color='orange')
-
-            if self.current_task == 'show_fields':
-                if event.button == 1:
-                    self.x = (self.x[0], event.xdata)
-                    self.y = (self.y[0], event.ydata)
-                    self.active_idx0 = np.arange(len(self.fund_v))[
-                        (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
-                                self.times[self.idx_v] >= np.min(self.x)) & (
-                                self.times[self.idx_v] < np.max(self.x))]
-                    if len(self.active_idx0) > 0:
-                        self.active_idx0 = self.active_idx0[~np.isnan(self.ident_v[self.active_idx0])][0]
-                    else:
-                        self.active_idx0 = None
-
-                    if self.ioi_field[0] == None:
-                        self.ioi_field[0] = self.active_idx0
-                        self.ioi_field_handle[0] = self.add_ax[1][0].imshow(
-                            self.sign_v[self.ioi_field[0]].reshape(8, 8).transpose()[::-1], cmap='jet',
-                            interpolation='gaussian')
-                        self.ioi_field_marker[0], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[0]]],
-                                                                      self.fund_v[self.ioi_field[0]], marker='o',
-                                                                      color='green', markersize=5)
-
-                    elif self.ioi_field[1] == None:
-                        self.ioi_field[1] = self.active_idx0
-                        self.ioi_field_handle[1] = self.add_ax[1][1].imshow(
-                            self.sign_v[self.ioi_field[1]].reshape(8, 8).transpose()[::-1], cmap='jet',
-                            interpolation='gaussian')
-                        self.ioi_field_marker[1], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[1]]],
-                                                                      self.fund_v[self.ioi_field[1]], marker='o',
-                                                                      color='orange', markersize=5)
-                        if self.a_error_dist and self.f_error_dist:
-                            a_e = np.sqrt(np.sum((self.sign_v[self.ioi_field[0]] - self.sign_v[self.ioi_field[1]]) ** 2))
-                            f_e = np.abs(self.fund_v[self.ioi_field[0]] - self.fund_v[self.ioi_field[1]])
-
-                            rel_a_e = len(self.a_error_dist[self.a_error_dist <= a_e]) / len(self.a_error_dist)
-                            # rel_f_e = len(self.f_error_dist[self.f_error_dist <= f_e]) / len(self.f_error_dist)
-                            # rel_f_e = boltzmann(f_e, alpha=1, beta=0, x0=2.5, dx=.6)
-                            rel_f_e = boltzmann(f_e, alpha=1, beta=0, x0=.25, dx=.15)
-
-                            error = estimate_error(a_e, f_e, np.abs(
-                                self.times[self.idx_v[self.ioi_field[1]]] - self.times[self.idx_v[self.ioi_field[0]]]),
-                                                   self.a_error_dist, self.f_error_dist)
-                            self.error_text[0] = self.main_fig.text(.55, .1,
-                                                                    'a_error: %.2f; f_error: %.2f; t_error: %.2f (%.1f s) \ntotal_error: %.2f' % (
-                                                                        error[0], error[1], error[2], np.abs(
-                                                                            self.times[self.idx_v[self.ioi_field[1]]] -
-                                                                            self.times[self.idx_v[self.ioi_field[0]]]),
-                                                                        error[0] * 2. / 3 + error[1] * 1. / 3),
-                                                                    color='orange')
-
-                            self.ioi_a_error_line[0][0], = self.add_ax[2][1].plot([a_e, a_e], [0, rel_a_e], color='orange')
-                            self.ioi_a_error_line[0][1], = self.add_ax[2][1].plot([0, a_e], [rel_a_e, rel_a_e],
-                                                                                color='orange')
-
-                            self.ioi_f_error_line[0][0], = self.add_ax[2][0].plot([f_e, f_e], [0, rel_f_e], color='orange')
-                            self.ioi_f_error_line[0][1], = self.add_ax[2][0].plot([0, f_e], [rel_f_e, rel_f_e],
-                                                                                color='orange')
-
-                    else:
-                        self.ioi_field[2] = self.active_idx0
-                        self.ioi_field_handle[2] = self.add_ax[1][2].imshow(
-                            self.sign_v[self.ioi_field[2]].reshape(8, 8).transpose()[::-1], cmap='jet',
-                            interpolation='gaussian')
-                        self.ioi_field_marker[2], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[2]]],
-                                                                      self.fund_v[self.ioi_field[2]], marker='o',
-                                                                      color='red',
-                                                                      markersize=5)
-
-                        if self.a_error_dist and self.f_error_dist:
-                            a_e = np.sqrt(np.sum((self.sign_v[self.ioi_field[0]] - self.sign_v[self.ioi_field[2]]) ** 2))
-                            f_e = np.abs(self.fund_v[self.ioi_field[0]] - self.fund_v[self.ioi_field[2]])
-
-                            rel_a_e = len(self.a_error_dist[self.a_error_dist <= a_e]) / len(self.a_error_dist)
-                            # rel_f_e = len(self.f_error_dist[self.f_error_dist <= f_e]) / len(self.f_error_dist)
-                            rel_f_e = boltzmann(f_e, alpha=1, beta=0, x0=.25, dx=.15)
-
-                            error = estimate_error(a_e, f_e, np.abs(
-                                self.times[self.idx_v[self.ioi_field[2]]] - self.times[self.idx_v[self.ioi_field[0]]]),
-                                                   self.a_error_dist, self.f_error_dist)
-                            self.error_text[1] = self.main_fig.text(.55, .55,
-                                                                    'a_error: %.2f; f_error: %.2f; t_error: %.2f (%.1f s) \ntotal_error: %.2f' % (
-                                                                        error[0], error[1], error[2], np.abs(
-                                                                            self.times[self.idx_v[self.ioi_field[2]]] -
-                                                                            self.times[self.idx_v[self.ioi_field[0]]]),
-                                                                        error[0] * 2. / 3 + error[1] * 1. / 3), color='red')
-
-                            self.ioi_a_error_line[1][0], = self.add_ax[2][1].plot([a_e, a_e], [0, rel_a_e], color='red')
-                            self.ioi_a_error_line[1][1], = self.add_ax[2][1].plot([0, a_e], [rel_a_e, rel_a_e],
-                                                                                color='red')
-
-                            self.ioi_f_error_line[1][0], = self.add_ax[2][0].plot([f_e, f_e], [0, rel_f_e], color='red')
-                            self.ioi_f_error_line[1][1], = self.add_ax[2][0].plot([0, f_e], [rel_f_e, rel_f_e],
-                                                                                color='red')
-
-            if self.current_task == 'delete_trace':
-                if event.button == 1:
-                    self.x = (self.x[0], event.xdata)
-                    self.y = (self.y[0], event.ydata)
-
-                    self.active_idx0 = np.arange(len(self.fund_v))[
-                        (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
-                                    self.times[self.idx_v] >= np.min(self.x)) & (
-                                    self.times[self.idx_v] < np.max(self.x))]
-                    if len(self.active_idx0) > 0:
-                        self.active_idx0 = self.active_idx0[~np.isnan(self.ident_v[self.active_idx0])][0]
-                    else:
-                        self.active_idx0 = None
-
-                    self.active_ident0 = self.ident_v[self.active_idx0]
-
-                    if self.active_ident_handle0:
-                        self.active_ident_handle0.remove()
-
-                    self.active_ident_handle0, = self.main_ax.plot(
-                        self.times[self.idx_v[self.ident_v == self.active_ident0]],
-                        self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
-
-            if self.current_task == 'cut_trace':
-                if event.button == 1:
-                    self.x = (self.x[0], event.xdata)
-                    self.y = (self.y[0], event.ydata)
-
-                    self.active_idx0 = np.arange(len(self.fund_v))[
-                        (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
-                                    self.times[self.idx_v] >= np.min(self.x)) & (
-                                    self.times[self.idx_v] < np.max(self.x))]
-                    if len(self.active_idx0) > 0:
-                        self.active_idx0 = self.active_idx0[~np.isnan(self.ident_v[self.active_idx0])][0]
-                    else:
-                        self.active_idx0 = None
-
-                    self.active_ident0 = self.ident_v[self.active_idx0]
-
-                    if self.active_ident_handle0:
-                        self.active_ident_handle0.remove()
-
-                    self.active_ident_handle0, = self.main_ax.plot(
-                        self.times[self.idx_v[self.ident_v == self.active_ident0]],
-                        self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
-
-            if self.current_task == 'connect_trace':
-                if event.button == 1:
-                    self.x = (self.x[0], event.xdata)
-                    self.y = (self.y[0], event.ydata)
-
-                    self.active_idx0 = np.arange(len(self.fund_v))[
-                        (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
-                                self.times[self.idx_v] >= np.min(self.x)) & (self.times[self.idx_v] < np.max(self.x))]
-                    if len(self.active_idx0) > 0:
-                        self.active_idx0 = self.active_idx0[~np.isnan(self.ident_v[self.active_idx0])][0]
-                    else:
-                        self.active_idx0 = None
-
-                    self.active_ident0 = self.ident_v[self.active_idx0]
-
-                    if self.active_ident_handle0:
-                        self.active_ident_handle0.remove()
-
-                    self.active_ident_handle0, = self.main_ax.plot(
-                        self.times[self.idx_v[self.ident_v == self.active_ident0]],
-                        self.fund_v[self.ident_v == self.active_ident0], color='green', alpha=0.7, linewidth=4)
-
-                if event.button == 3:
-                    self.x = (self.x[0], event.xdata)
-                    self.y = (self.y[0], event.ydata)
-
-                    if self.active_ident0:
-                        self.active_idx1 = np.arange(len(self.fund_v))[(self.fund_v >= np.min(self.y)) &
-                                                                       (self.fund_v < np.max(self.y)) &
-                                                                       (self.times[self.idx_v] >= np.min(self.x)) &
-                                                                       (self.times[self.idx_v] < np.max(self.x)) &
-                                                                       (self.ident_v != self.active_ident0)]
-                        if len(self.active_idx1) > 0:
-                            self.active_idx1 = self.active_idx1[~np.isnan(self.ident_v[self.active_idx1])][
-                                0]
-                        else:
-                            self.active_idx1 = None
-
-                        self.active_ident1 = self.ident_v[self.active_idx1]
-
-                        if self.active_ident_handle1:
-                            self.active_ident_handle1.remove()
-
-                        self.active_ident_handle1, = self.main_ax.plot(
-                            self.times[self.idx_v[self.ident_v == self.active_ident1]],
-                            self.fund_v[self.ident_v == self.active_ident1], color='red', alpha=0.7, linewidth=4)
-
-            if self.current_task == 'zoom':
-                self.last_xy_lims = [self.main_ax.get_xlim(), self.main_ax.get_ylim()]
-
+        # if event.inaxes == self.main_ax:
+        if self.current_task in ['group_delete', 'group_connect', 'group_reassign']:
+            if event.button == 1:
                 self.x = (self.x[0], event.xdata)
                 self.y = (self.y[0], event.ydata)
 
-                if event.button == 1:
-                    self.main_ax.set_xlim(np.array(self.x)[np.argsort(self.x)])
+                self.active_indices = np.arange(len(self.fund_v))[
+                    (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
+                            self.times[self.idx_v] >= np.min(self.x)) & (self.times[self.idx_v] < np.max(self.x))]
+                self.active_indices = self.active_indices[~np.isnan(self.ident_v[self.active_indices])]
 
-                self.main_ax.set_ylim(np.array(self.y)[np.argsort(self.y)])
-                if self.add_ax[0]:
-                    self.add_ax[0].set_ylim(np.array(self.y)[np.argsort(self.y)])
+                self.active_indices_handle, = self.main_ax.plot(self.times[self.idx_v[self.active_indices]],
+                                                                self.fund_v[self.active_indices], 'o',
+                                                                color='orange')
 
-                self.get_clock_time()
+        if self.current_task == 'show_fields':
+            if event.button == 1:
+                self.x = (self.x[0], event.xdata)
+                self.y = (self.y[0], event.ydata)
+                self.active_idx0 = np.arange(len(self.fund_v))[
+                    (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
+                            self.times[self.idx_v] >= np.min(self.x)) & (
+                            self.times[self.idx_v] < np.max(self.x))]
+                if len(self.active_idx0) > 0:
+                    self.active_idx0 = self.active_idx0[~np.isnan(self.ident_v[self.active_idx0])][0]
+                else:
+                    self.active_idx0 = None
+
+                if self.ioi_field[0] == None:
+                    self.ioi_field[0] = self.active_idx0
+                    self.ioi_field_handle[0] = self.add_ax[1][0].imshow(
+                        self.sign_v[self.ioi_field[0]].reshape(self.grid_prop).transpose()[::-1], cmap='jet',
+                        interpolation='gaussian')
+                    self.ioi_field_marker[0], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[0]]],
+                                                                  self.fund_v[self.ioi_field[0]], marker='o',
+                                                                  color='green', markersize=5)
+
+                elif self.ioi_field[1] == None:
+                    self.ioi_field[1] = self.active_idx0
+                    self.ioi_field_handle[1] = self.add_ax[1][1].imshow(
+                        self.sign_v[self.ioi_field[1]].reshape(self.grid_prop).transpose()[::-1], cmap='jet',
+                        interpolation='gaussian')
+                    self.ioi_field_marker[1], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[1]]],
+                                                                  self.fund_v[self.ioi_field[1]], marker='o',
+                                                                  color='orange', markersize=5)
+                    if hasattr(self.a_error_dist, '__len__') and hasattr(self.f_error_dist, '__len__'):
+                        a_e = np.sqrt(np.sum((self.sign_v[self.ioi_field[0]] - self.sign_v[self.ioi_field[1]]) ** 2))
+                        f_e = np.abs(self.fund_v[self.ioi_field[0]] - self.fund_v[self.ioi_field[1]])
+
+                        rel_a_e = len(self.a_error_dist[self.a_error_dist <= a_e]) / len(self.a_error_dist)
+                        # rel_f_e = len(self.f_error_dist[self.f_error_dist <= f_e]) / len(self.f_error_dist)
+                        # rel_f_e = boltzmann(f_e, alpha=1, beta=0, x0=2.5, dx=.6)
+                        rel_f_e = boltzmann(f_e, alpha=1, beta=0, x0=.25, dx=.15)
+
+                        error = estimate_error(a_e, f_e, np.abs(
+                            self.times[self.idx_v[self.ioi_field[1]]] - self.times[self.idx_v[self.ioi_field[0]]]),
+                                               self.a_error_dist, self.f_error_dist)
+                        self.error_text[0] = self.main_fig.text(.55, .1,
+                                                                'a_error: %.2f; f_error: %.2f; t_error: %.2f (%.1f s) \ntotal_error: %.2f' % (
+                                                                    error[0], error[1], error[2], np.abs(
+                                                                        self.times[self.idx_v[self.ioi_field[1]]] -
+                                                                        self.times[self.idx_v[self.ioi_field[0]]]),
+                                                                    error[0] * 2. / 3 + error[1] * 1. / 3),
+                                                                color='orange')
+
+                        self.ioi_a_error_line[0][0], = self.add_ax[2][1].plot([a_e, a_e], [0, rel_a_e], color='orange')
+                        self.ioi_a_error_line[0][1], = self.add_ax[2][1].plot([0, a_e], [rel_a_e, rel_a_e],
+                                                                            color='orange')
+
+                        self.ioi_f_error_line[0][0], = self.add_ax[2][0].plot([f_e, f_e], [0, rel_f_e], color='orange')
+                        self.ioi_f_error_line[0][1], = self.add_ax[2][0].plot([0, f_e], [rel_f_e, rel_f_e],
+                                                                            color='orange')
+
+                else:
+                    self.ioi_field[2] = self.active_idx0
+                    self.ioi_field_handle[2] = self.add_ax[1][2].imshow(
+                        self.sign_v[self.ioi_field[2]].reshape(self.grid_prop).transpose()[::-1], cmap='jet',
+                        interpolation='gaussian')
+                    self.ioi_field_marker[2], = self.main_ax.plot(self.times[self.idx_v[self.ioi_field[2]]],
+                                                                  self.fund_v[self.ioi_field[2]], marker='o',
+                                                                  color='red',
+                                                                  markersize=5)
+
+                    if hasattr(self.a_error_dist, '__len__') and hasattr(self.f_error_dist, '__len__'):
+                        a_e = np.sqrt(np.sum((self.sign_v[self.ioi_field[0]] - self.sign_v[self.ioi_field[2]]) ** 2))
+                        f_e = np.abs(self.fund_v[self.ioi_field[0]] - self.fund_v[self.ioi_field[2]])
+
+                        rel_a_e = len(self.a_error_dist[self.a_error_dist <= a_e]) / len(self.a_error_dist)
+                        # rel_f_e = len(self.f_error_dist[self.f_error_dist <= f_e]) / len(self.f_error_dist)
+                        rel_f_e = boltzmann(f_e, alpha=1, beta=0, x0=.25, dx=.15)
+
+                        error = estimate_error(a_e, f_e, np.abs(
+                            self.times[self.idx_v[self.ioi_field[2]]] - self.times[self.idx_v[self.ioi_field[0]]]),
+                                               self.a_error_dist, self.f_error_dist)
+                        self.error_text[1] = self.main_fig.text(.55, .55,
+                                                                'a_error: %.2f; f_error: %.2f; t_error: %.2f (%.1f s) \ntotal_error: %.2f' % (
+                                                                    error[0], error[1], error[2], np.abs(
+                                                                        self.times[self.idx_v[self.ioi_field[2]]] -
+                                                                        self.times[self.idx_v[self.ioi_field[0]]]),
+                                                                    error[0] * 2. / 3 + error[1] * 1. / 3), color='red')
+
+                        self.ioi_a_error_line[1][0], = self.add_ax[2][1].plot([a_e, a_e], [0, rel_a_e], color='red')
+                        self.ioi_a_error_line[1][1], = self.add_ax[2][1].plot([0, a_e], [rel_a_e, rel_a_e],
+                                                                            color='red')
+
+                        self.ioi_f_error_line[1][0], = self.add_ax[2][0].plot([f_e, f_e], [0, rel_f_e], color='red')
+                        self.ioi_f_error_line[1][1], = self.add_ax[2][0].plot([0, f_e], [rel_f_e, rel_f_e],
+                                                                            color='red')
+
+        if self.current_task == 'delete_trace':
+            if event.button == 1:
+                self.x = (self.x[0], event.xdata)
+                self.y = (self.y[0], event.ydata)
+
+                self.active_idx0 = np.arange(len(self.fund_v))[
+                    (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
+                                self.times[self.idx_v] >= np.min(self.x)) & (
+                                self.times[self.idx_v] < np.max(self.x))]
+                if len(self.active_idx0) > 0:
+                    self.active_idx0 = self.active_idx0[~np.isnan(self.ident_v[self.active_idx0])][0]
+                else:
+                    self.active_idx0 = None
+
+                self.active_ident0 = self.ident_v[self.active_idx0]
+
+                if self.active_ident_handle0:
+                    self.active_ident_handle0.remove()
+
+                self.active_ident_handle0, = self.main_ax.plot(
+                    self.times[self.idx_v[self.ident_v == self.active_ident0]],
+                    self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
+
+        if self.current_task == 'cut_trace':
+            if event.button == 1:
+                self.x = (self.x[0], event.xdata)
+                self.y = (self.y[0], event.ydata)
+
+                self.active_idx0 = np.arange(len(self.fund_v))[
+                    (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
+                                self.times[self.idx_v] >= np.min(self.x)) & (
+                                self.times[self.idx_v] < np.max(self.x))]
+                if len(self.active_idx0) > 0:
+                    self.active_idx0 = self.active_idx0[~np.isnan(self.ident_v[self.active_idx0])][0]
+                else:
+                    self.active_idx0 = None
+
+                self.active_ident0 = self.ident_v[self.active_idx0]
+
+                if self.active_ident_handle0:
+                    self.active_ident_handle0.remove()
+
+                self.active_ident_handle0, = self.main_ax.plot(
+                    self.times[self.idx_v[self.ident_v == self.active_ident0]],
+                    self.fund_v[self.ident_v == self.active_ident0], color='orange', alpha=0.7, linewidth=4)
+
+        if self.current_task == 'connect_trace':
+            if event.button == 1:
+                self.x = (self.x[0], event.xdata)
+                self.y = (self.y[0], event.ydata)
+
+                self.active_idx0 = np.arange(len(self.fund_v))[
+                    (self.fund_v >= np.min(self.y)) & (self.fund_v < np.max(self.y)) & (
+                            self.times[self.idx_v] >= np.min(self.x)) & (self.times[self.idx_v] < np.max(self.x))]
+                if len(self.active_idx0) > 0:
+                    self.active_idx0 = self.active_idx0[~np.isnan(self.ident_v[self.active_idx0])][0]
+                else:
+                    self.active_idx0 = None
+
+                self.active_ident0 = self.ident_v[self.active_idx0]
+
+                if self.active_ident_handle0:
+                    self.active_ident_handle0.remove()
+
+                self.active_ident_handle0, = self.main_ax.plot(
+                    self.times[self.idx_v[self.ident_v == self.active_ident0]],
+                    self.fund_v[self.ident_v == self.active_ident0], color='green', alpha=0.7, linewidth=4)
+
+            if event.button == 3:
+                self.x = (self.x[0], event.xdata)
+                self.y = (self.y[0], event.ydata)
+
+                if self.active_ident0:
+                    self.active_idx1 = np.arange(len(self.fund_v))[(self.fund_v >= np.min(self.y)) &
+                                                                   (self.fund_v < np.max(self.y)) &
+                                                                   (self.times[self.idx_v] >= np.min(self.x)) &
+                                                                   (self.times[self.idx_v] < np.max(self.x)) &
+                                                                   (self.ident_v != self.active_ident0)]
+                    if len(self.active_idx1) > 0:
+                        self.active_idx1 = self.active_idx1[~np.isnan(self.ident_v[self.active_idx1])][
+                            0]
+                    else:
+                        self.active_idx1 = None
+
+                    self.active_ident1 = self.ident_v[self.active_idx1]
+
+                    if self.active_ident_handle1:
+                        self.active_ident_handle1.remove()
+
+                    self.active_ident_handle1, = self.main_ax.plot(
+                        self.times[self.idx_v[self.ident_v == self.active_ident1]],
+                        self.fund_v[self.ident_v == self.active_ident1], color='red', alpha=0.7, linewidth=4)
+
+        if self.current_task == 'zoom':
+            self.last_xy_lims = [self.main_ax.get_xlim(), self.main_ax.get_ylim()]
+
+            self.x = (self.x[0], event.xdata)
+            self.y = (self.y[0], event.ydata)
+
+            if event.button == 1:
+                self.main_ax.set_xlim(np.array(self.x)[np.argsort(self.x)])
+
+            self.main_ax.set_ylim(np.array(self.y)[np.argsort(self.y)])
+            if self.add_ax[0]:
+                self.add_ax[0].set_ylim(np.array(self.y)[np.argsort(self.y)])
+
+            # embed()
+            self.get_clock_time()
+            # embed()
 
         self.key_options()
         self.main_fig.canvas.draw()
@@ -4543,14 +4564,14 @@ class Obs_tracker():
             dsig0 = np.abs(self.sign_v[self.ioi_field[0]] - self.sign_v[self.ioi_field[1]])
             dsig1 = np.abs(self.sign_v[self.ioi_field[0]] - self.sign_v[self.ioi_field[2]])
 
-            cax = ax1.imshow(self.sign_v[self.ioi_field[0]].reshape(8, 8).transpose()[::-1], cmap='jet',
+            cax = ax1.imshow(self.sign_v[self.ioi_field[0]].reshape(self.grid_prop).transpose()[::-1], cmap='jet',
                              interpolation='gaussian', vmin=0, vmax=1)
-            ax2.imshow(self.sign_v[self.ioi_field[1]].reshape(8, 8).transpose()[::-1], cmap='jet',
+            ax2.imshow(self.sign_v[self.ioi_field[1]].reshape(self.grid_prop).transpose()[::-1], cmap='jet',
                        interpolation='gaussian', vmin=0, vmax=1)
-            ax22.imshow(dsig0.reshape(8, 8).transpose()[::-1], cmap='jet', interpolation='gaussian', vmin=0, vmax=1)
-            ax3.imshow(self.sign_v[self.ioi_field[2]].reshape(8, 8).transpose()[::-1], cmap='jet',
+            ax22.imshow(dsig0.reshape(self.grid_prop).transpose()[::-1], cmap='jet', interpolation='gaussian', vmin=0, vmax=1)
+            ax3.imshow(self.sign_v[self.ioi_field[2]].reshape(self.grid_prop).transpose()[::-1], cmap='jet',
                        interpolation='gaussian', vmin=0, vmax=1)
-            ax33.imshow(dsig1.reshape(8, 8).transpose()[::-1], cmap='jet', interpolation='gaussian', vmin=0, vmax=1)
+            ax33.imshow(dsig1.reshape(self.grid_prop).transpose()[::-1], cmap='jet', interpolation='gaussian', vmin=0, vmax=1)
             for ax in [ax1, ax2, ax3, ax22, ax33]:
                 e0 = np.hstack([np.arange(8) for i in range(8)])
                 e1 = np.hstack([np.ones(8) * i for i in range(8)])
@@ -4870,12 +4891,12 @@ class Obs_tracker():
         # embed()
         # quit()
 
-        if self.add_ax[2][0]:
-            self.main_fig.delaxes(self.add_ax[2][0])
-            self.add_ax[2][0] = None
-        if self.add_ax[2][1]:
-            self.main_fig.delaxes(self.add_ax[2][1])
-            self.add_ax[2][1] = None
+        # if self.add_ax[2][0]:
+        #     self.main_fig.delaxes(self.add_ax[2][0])
+        #     self.add_ax[2][0] = None
+        # if self.add_ax[2][1]:
+        #     self.main_fig.delaxes(self.add_ax[2][1])
+        #     self.add_ax[2][1] = None
         # if self.t_error_ax:
         #     self.main_fig.delaxes(self.t_error_ax)
         #     self.t_error_ax = None
@@ -4942,6 +4963,7 @@ class Obs_tracker():
 
             else:
                 print('missing file')
+
         else:
             if part_spec:
                 limitations = self.main_ax.get_xlim()
@@ -5036,7 +5058,7 @@ class Obs_tracker():
             else:
                 freq_lims = (400, 1200)
 
-            self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v = \
+            self.fund_v, self.ident_v, self.idx_v, self.sign_v, self.a_error_dist, self.f_error_dist, self.idx_of_origin_v, self.original_sign_v = \
                 freq_tracking_v4(np.array(self.fundamentals), np.array(self.signatures),
                                  self.times[mask], self.kwargs['freq_tolerance'], n_channels=len(self.channels),
                                  freq_lims=freq_lims, fig=self.main_fig, ax=self.main_ax)
@@ -5046,34 +5068,25 @@ class Obs_tracker():
             self.plot_traces(clear_traces=True)
 
     def plot_error(self):
-        if self.add_ax[0]:
-            self.main_fig.delaxes(self.add_ax[0])
-            self.add_ax[0] = None
-            self.add_tmp_plothandel = []
-            self.all_peakf_dots = None
-            self.good_peakf_dots = None
+        # if self.add_ax[0]:
+            # self.main_fig.delaxes(self.add_ax[0])
+            # self.add_ax[0] = None
+            # self.add_tmp_plothandel = []
+            # self.all_peakf_dots = None
+            # self.good_peakf_dots = None
 
-        self.main_ax.set_position([.1, .1, .6, .6])
-        # n, h = np.histogram(self.f_error_dist, 5000)
-        self.add_ax[2][0] = self.main_fig.add_axes([.6, .75, 0.15, 0.15])
-        # self.f_error_ax.plot(h[:-1] + (h[1]- h[0]) / 2., n, '.', color='cornflowerblue')
-        # self.f_error_ax.plot(h[1:], np.cumsum(n) / np.sum(n), color='cornflowerblue', linewidth=2)
+        # self.add_ax[2][0] = self.main_fig.add_axes([.6, .75, 0.15, 0.15])
         self.add_ax[2][0].plot(np.arange(0, 5, 0.02), boltzmann(np.arange(0, 5, 0.02), alpha=1, beta=0, x0=.25, dx=.15),
                              color='cornflowerblue', linewidth=2)
         self.add_ax[2][0].set_xlabel('frequency error [Hz]', fontsize=12)
 
         n, h = np.histogram(self.a_error_dist, 5000)
-        self.add_ax[2][1] = self.main_fig.add_axes([.8, .75, 0.15, 0.15])
-        # self.a_error_ax.plot(h[:-1] + (h[1]- h[0]) / 2., n, '.', color='green')
+        # self.add_ax[2][1] = self.main_fig.add_axes([.8, .75, 0.15, 0.15])
         self.add_ax[2][1].plot(h[1:], np.cumsum(n) / np.sum(n), color='green', linewidth=2)
         self.add_ax[2][1].set_xlabel('amplitude error [a.u.]', fontsize=12)
-        # self.a_error_ax.set_ylabel('cumsum of error distribution', fontsize=12)
+        self.add_ax[2][0].set_visible(True)
+        self.add_ax[2][1].set_visible(True)
 
-        # self.t_error_ax = self.main_fig.add_axes([.8, .75, 0.15, 0.15])
-        # t = np.arange(0, 10, 0.0001)
-        # f = (0.25 - 0.0) / (1. + np.exp(- (t - 4) / 0.85)) + 0.0
-        # self.t_error_ax.plot(t, f, color='orange', linewidth=2)  # fucking hard coded
-        # self.t_error_ax.set_xlabel('time error [s]', fontsize=12)
 
     def plot_traces(self, clear_traces=False, post_connect=False, post_cut=False, post_delete=False,
                     post_group_delete=False, post_group_connection=False, post_refill=False, post_group_reassign=False):
@@ -5183,12 +5196,13 @@ class Obs_tracker():
         calculates the powerspectrum of single or multiple datasnippets recorded with single or multiple electrodes at a time.
         If multiple electrode recordings are analysed the shown powerspectrum is the sum of all calculated powerspectra.
         """
-        if self.add_ax[2][0]:
-            self.main_fig.delaxes(self.add_ax[2][0])
-            self.add_ax[2][0] = None
-        if self.add_ax[2][1]:
-            self.main_fig.delaxes(self.add_ax[2][1])
-            self.add_ax[2][1] = None
+
+        # if self.add_ax[2][0]:
+        #     self.main_fig.delaxes(self.add_ax[2][0])
+        #     self.add_ax[2][0] = None
+        # if self.add_ax[2][1]:
+        #     self.main_fig.delaxes(self.add_ax[2][1])
+        #     self.add_ax[2][1] = None
         # if self.t_error_ax:
         #     self.main_fig.delaxes(self.t_error_ax)
         #     self.t_error_ax = None
@@ -5201,24 +5215,24 @@ class Obs_tracker():
         all_c_spectra = []
         all_c_freqs = None
 
-        if self.kwargs['noice_cancel']:
-            denoiced_data = np.array([self.data[data_idx0: data_idx1, channel] for channel in self.channels])
-            # print(denoiced_data.shape)
-            mean_data = np.mean(denoiced_data, axis=0)
-            # mean_data.shape = (len(mean_data), 1)
-            denoiced_data -= mean_data
+        # if self.kwargs['noice_cancel']:
+        #     denoiced_data = np.array([self.data[data_idx0: data_idx1, channel] for channel in self.channels])
+        #     # print(denoiced_data.shape)
+        #     mean_data = np.mean(denoiced_data, axis=0)
+        #     # mean_data.shape = (len(mean_data), 1)
+        #     denoiced_data -= mean_data
 
         for channel in self.channels:
             # c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
             #                                           fresolution = self.fresolution, overlap_frac = self.overlap_frac)
-            if self.kwargs['noice_cancel']:
-                c_spectrum, c_freqs, c_time = spectrogram(denoiced_data[channel], self.samplerate,
-                                                          fresolution=self.kwargs['fresolution'],
-                                                          overlap_frac=self.kwargs['overlap_frac'])
-            else:
-                c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
-                                                          fresolution=self.kwargs['fresolution'],
-                                                          overlap_frac=self.kwargs['overlap_frac'])
+            # if self.kwargs['noice_cancel']:
+            #     c_spectrum, c_freqs, c_time = spectrogram(denoiced_data[channel], self.samplerate,
+            #                                               fresolution=self.kwargs['fresolution'],
+            #                                               overlap_frac=self.kwargs['overlap_frac'])
+            # else:
+            c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
+                                                      fresolution=self.kwargs['fresolution'],
+                                                      overlap_frac=self.kwargs['overlap_frac'])
             if not hasattr(all_c_freqs, '__len__'):
                 all_c_freqs = c_freqs
             all_c_spectra.append(c_spectrum)
@@ -5234,9 +5248,9 @@ class Obs_tracker():
         # plot_power = 10.0 * np.log10(self.power)
         plot_power = decibel(self.power)
 
-        if not self.add_ax:
-            self.main_ax.set_position([.1, .1, .5, .6])
-            self.add_ax = self.main_fig.add_axes([.6, .1, .3, .6])
+        if not self.ps_handle:
+            # self.main_ax.set_position([.1, .1, .5, .6])
+            # self.add_ax = self.main_fig.add_axes([.6, .1, .3, .6])
             # self.ps_ax.set_yticks([])
             self.add_ax[0].yaxis.tick_right()
             self.add_ax[0].yaxis.set_label_position("right")
@@ -5447,7 +5461,7 @@ def main():
     # configuration options:
     cfg = ConfigFile()
     add_psd_peak_detection_config(cfg)
-    add_harmonic_groups_config(cfg)
+    add_harmonic_groups_config(cfg, mains_freq=50)
     add_tracker_config(cfg)
 
     # load configuration from working directory and data directories:
@@ -5470,9 +5484,18 @@ def main():
 
     t_kwargs = grid_config_update(t_kwargs)
 
+    if True:
+        t_kwargs['low_thresh_factor'] = 18.
+        t_kwargs['high_thresh_factor'] = 20.
+        t_kwargs['fresolution'] = 1.5
+        t_kwargs['overlap_frac'] = .85
+
+
+
     if args.transect_data:
         t_kwargs['low_thresh_factor'] = 6.
         t_kwargs['high_thresh_factor'] = 8.
+        # args.transect_data = False
 
     print('\nAnalysing %s' % datafile)
     if datafile.endswith('.mat'):
