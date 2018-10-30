@@ -18,18 +18,31 @@ def test_harmonic_groups():
                                  amplitudes=[1.0, 0.7, 0.2, 0.1],
                                  phases=[0.0, 0.0, 0.0, 0.0])
     fish3 = ff.generate_wavefish(eodfs[2], samplerate, duration=8.0, noise_std=0.0,
-                                 amplitudes=[10.0, 5.0, 1.0],
-                                 phases=[0.0, 0.0, 0.0])
+                                 amplitudes=[10.0, 5.0, 1.0, 0.1],
+                                 phases=[0.0, 0.0, 0.0, 0.0])
     fish4 = ff.generate_wavefish(eodfs[3], samplerate, duration=8.0, noise_std=0.0,
-                                 amplitudes=[6.0, 3.0, 1.0],
-                                 phases=[0.0, 0.0, 0.0])
+                                 amplitudes=[6.0, 3.0, 1.0, 0.1],
+                                 phases=[0.0, 0.0, 0.0, 0.0])
     data = fish1 + fish2 + fish3 + fish4
 
     # analyse:
     psd_data = ps.psd(data, samplerate, fresolution=df)
     groups = hg.harmonic_groups(psd_data[1], psd_data[0])[0]
     fundamentals = hg.fundamental_freqs(groups)
-
+    fdbs = hg.fundamental_freqs_and_power(groups)
     # check:
     assert_true(np.all(np.abs(eodfs-fundamentals) < df),
                 'harmonic_groups() did not correctly detect all fundamental frequencies')
+
+    fundamentals = hg.fundamental_freqs([groups, [groups[1], groups[3]]])
+    fdbs = hg.fundamental_freqs_and_power([groups, [groups[1], groups[3]]], 3)
+    # check:
+    assert_true(np.all(np.abs(eodfs-fundamentals[0]) < df),
+                'harmonic_groups() did not correctly detect all fundamental frequencies')
+
+    fundamentals = hg.fundamental_freqs([[groups, [groups[1], groups[3]]]])
+    fdbs = hg.fundamental_freqs_and_power([[groups, [groups[1], groups[3]]]], 10, True)
+    # check:
+    assert_true(np.all(np.abs(eodfs-fundamentals[0][0]) < df),
+                'harmonic_groups() did not correctly detect all fundamental frequencies')
+    

@@ -14,11 +14,12 @@ spectrogram():          Spectrogram of a given frequency resolution and overlap 
 """
 
 import numpy as np
-import scipy.signal as scps
+import scipy.signal as sig
 try:
     import matplotlib.mlab as mlab
 except ImportError:
     pass
+from .eventdetection import detect_peaks
 
 
 def next_power_of_two(n):
@@ -101,11 +102,12 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     ```
     decibel = 10 * log10(power/ref_power)
     ```
+    Power values smaller than `min_power` are set to `np.nan`.
 
     Parameters
     ----------
-    power: array
-        Power values of the power spectrum or spectrogram.
+    power: float or array
+        Power values, for example from a power spectrum or spectrogram.
     ref_power: float
         Reference power for computing decibel. If set to `None` the maximum power is used.
     min_power: float
@@ -114,14 +116,22 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     Returns
     -------
     decibel_psd: array
-        Power values in decibel.
+        Power values in decibel relative to `ref_power`.
     """
+    if hasattr(power, '__len__'):
+        tmp_power = power
+        decibel_psd = power.copy()
+    else:
+        tmp_power = np.array([power])
+        decibel_psd = np.array([power])
     if ref_power is None:
-        ref_power = np.max(power)
-    decibel_psd = power.copy()
-    decibel_psd[power < min_power] = np.nan
-    decibel_psd[power >= min_power] = 10.0 * np.log10(decibel_psd[power >= min_power]/ref_power)
-    return decibel_psd
+        ref_power = np.max(decibel_psd)
+    decibel_psd[tmp_power <= min_power] = np.nan
+    decibel_psd[tmp_power > min_power] = 10.0 * np.log10(decibel_psd[tmp_power > min_power]/ref_power)
+    if hasattr(power, '__len__'):
+        return decibel_psd
+    else:
+        return decibel_psd[0]
 
 
 def power(decibel, ref_power=1.0):
@@ -259,6 +269,53 @@ def spectrogram(data, samplerate, fresolution=0.5, detrend=mlab.detrend_none, wi
     spectrum, freqs, time = mlab.specgram(data, NFFT=nfft, Fs=samplerate, detrend=detrend, window=window,
                                           noverlap=noverlap, pad_to=pad_to, sides=sides, scale_by_freq=scale_by_freq)
     return spectrum, freqs, time
+
+
+def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16, thresh=None):
+    """Peak frequencies computed for each of the data snippets.
+
+    Parameters
+    ----------
+    onsets: array of ints
+        Array of indices indicating the onsets of the snippets in `data`.
+    offsets: array of ints
+        Array of indices indicating the offsets of the snippets in `data`.
+    data: 1-D array
+        Data array that contains the data snippets defined by `onsets` and `offsets`.
+    rate: float
+        Samplerate of data in Hertz.
+    freq_resolution: float
+        Desired frequency resolution of the computed power spectra in Hertz.
+    min_nfft: int
+        The smallest value of nfft to be used.
+    thresh: None or float
+        If not None than this is the threshold required for the minimum hight of the peak
+        in the power spectrum. If the peak is too small than the peak frequency of
+        that snippet is set to NaN.
+
+    Returns
+    -------
+    freqs: array of floats
+        For each data snippet the frequency of the maximum power.
+    """
+    freqs = []
+    # for all events:
+    for i0, i1 in zip(onsets, offsets):
+        nfft, _ = nfft_noverlap(freq_resolution, rate, 0.5, min_nfft)
+        if nfft > i1 - i0 :
+            nfft = next_power_of_two((i1 - i0)/2)
+        f, Pxx = sig.welch(data[i0:i1], fs=rate, nperseg=nfft, noverlap=nfft//2, nfft=None)
+        if thresh is None:
+            fpeak = f[np.argmax(Pxx)]
+        else:
+            p, _ = detect_peaks(decibel(Pxx, None), thresh)
+            if len(p) > 0:
+                ipeak = np.argmax(Pxx[p])
+                fpeak = f[p[ipeak]]
+            else:
+                fpeak = float('NaN')
+        freqs.append(fpeak)
+    return np.array(freqs)
 
 
 if __name__ == '__main__':
