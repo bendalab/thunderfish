@@ -3,12 +3,14 @@
 
 ## Main functions
 - `eod_waveform()`: compute an averaged EOD waveform.
+- `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 
 ## Visualization
 - `eod_waveform_plot()`: plot the averaged waveform with standard deviation.
 """
 
 import numpy as np
+from scipy.optimize import curve_fit
 from .eventdetection import percentile_threshold, detect_peaks, snippets
 
 
@@ -81,17 +83,101 @@ def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
     mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
 
     # time axis:
-    time = (np.arange(len(mean_eod)) + start_inx) / samplerate
-    if period is not None:
-        # move peak of waveform to zero:
-        offs = len(mean_eod[:,1])//4
-        time -= time[offs+np.argmax(mean_eod[offs:3*offs,1])]
-    mean_eod[:,0] = time
+    mean_eod[:,0] = (np.arange(len(mean_eod)) + start_inx) / samplerate
     
     return mean_eod, eod_times
 
 
-def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.', **kwargs):
+def sinewaves(t, freq, delay, ampl, *ap):
+    """
+    Parameters
+    ----------
+    t: float or array
+        Time.
+    freq: float
+        Fundamental frequency.
+    delay: float
+        Shift of sinewaves in time.
+    ampl: float
+        Amplitude of the sinewave with the fundamental frequency.
+    *ap: list of floats
+        The relative amplitudes and phases of the harmonics.
+        
+    Returns
+    -------
+    x: float or array
+        The Fourier series evaluated at times `t`.
+    """
+    tt = t - delay
+    omega = 2.0*np.pi*freq
+    x = np.sin(omega*tt)
+    for k, (a, p) in enumerate(zip(ap[0:-1:2], ap[1::2])):
+        x += a*np.sin((k+2)*omega*tt+p)
+    return ampl*x
+
+
+def analyze_wave(eod, freq, props={}, n_harm=6):
+    """
+    Analyze the EOD waveform of a wave-type fish.
+    
+    Parameters
+    ----------
+    eod: 2-D array
+        The eod waveform. First column is time in seconds, second column the eod waveform.
+        Further columns are optional but not used.
+    freq: float
+        The frequency of the EOD.
+    props: dict
+        Dictionary with properties of the analyzed EOD waveform.
+    n_harm: int
+        Maximum number of harmonics used for the fit.
+    
+    Returns
+    -------
+    meod: 2-D array
+        The eod waveform. First column is time in seconds, second column the eod waveform.
+        Further columns are kept from the input `eod`. And a column is added with the
+        fit of the fourier series to the waveform.
+    """
+    # storage:
+    meod = np.zeros((eod.shape[0], eod.shape[1]+1))
+    meod[:,:-1] = eod
+    
+    # subtract mean:
+    meod[:,1] -= np.mean(meod[:,1])
+
+    # flip:
+    if -np.min(meod[:,1]) > np.max(meod[:,1]):
+        meod[:,1] = -meod[:,1]
+    
+    # move peak of waveform to zero:
+    offs = len(meod[:,1])//4
+    meod[:,0] -= meod[offs+np.argmax(meod[offs:3*offs,1]),0]
+
+    # fit sine wave:
+    ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
+    params = [freq, -0.25/freq, ampl]
+    for i in range(1, n_harm):
+        params.extend([1.0/(i+1), 0.0])
+    popt, pcov = curve_fit(sinewaves, meod[:,0], meod[:,1], params)
+    for i in range(1, n_harm):
+        if popt[1+i*2] < 0.0:
+            popt[1+i*2] *= -1.0
+            popt[2+i*2] += np.pi
+        popt[2+i*2] %= 2.0*np.pi
+    meod[:,-1] = sinewaves(meod[:,0], *popt)
+
+    # store results:
+    mprops = dict(props)
+    mprops['amplitude'] = popt[2]
+    for i in range(1, n_harm):
+        mprops['frac%d' % i] = popt[1+i*2]
+        mprops['phase%d' % i] = popt[1+i*2]
+    
+    return meod, mprops
+
+
+def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, ax, unit='a.u.', **kwargs):
     """Plot mean eod and its standard deviation.
 
     Parameters
@@ -102,6 +188,8 @@ def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.', **kwargs):
         Mean EOD waveform.
     std_eod: 1-D array
         Standard deviation of EOD waveform.
+    fit_eod: 1-D array
+        Fit of the EOD waveform.
     ax:
         Axis for plot
     unit: string
@@ -109,15 +197,29 @@ def eod_waveform_plot(time, mean_eod, std_eod, ax, unit='a.u.', **kwargs):
     kwargs: dict
         Arguments passed on to the plot command for the mean eod.
     """
-    if not 'lw' in kwargs:
-        kwargs['lw'] = 2
-    if not 'color' in kwargs:
-        kwargs['color'] = 'r'
+    fkwargs = {}
+    if 'flw' in kwargs:
+        fkwargs['lw'] = kwargs['flw']
+        del kwargs['flw']
+    else:
+        fkwargs['lw'] = 6
+    if 'fcolor' in kwargs:
+        fkwargs['color'] = kwargs['fcolor']
+        del kwargs['fcolor']
+    else:
+        fkwargs['color'] = 'steelblue'
     ax.autoscale(True)
-    ax.plot(1000.0*time, mean_eod, **kwargs)
+    if len(fit_eod)>0:
+        ax.plot(1000.0*time, fit_eod, zorder=2, **fkwargs)
+    ckwargs = dict(kwargs)
+    if not 'lw' in ckwargs:
+        ckwargs['lw'] = 2
+    if not 'color' in ckwargs:
+        ckwargs['color'] = 'r'
+    ax.plot(1000.0*time, mean_eod, zorder=3, **ckwargs)
     ax.autoscale(False)
     ax.fill_between(1000.0*time, mean_eod + std_eod, mean_eod - std_eod,
-                    color='grey', alpha=0.3)
+                    color='grey', alpha=0.3, zorder=1)
     ax.set_xlabel('Time [msec]')
     ax.set_ylabel('Amplitude [%s]' % unit)
 

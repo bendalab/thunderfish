@@ -21,7 +21,7 @@ from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_p
 from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
-from .eodanalysis import eod_waveform_plot, eod_waveform
+from .eodanalysis import eod_waveform, analyze_wave, eod_waveform_plot
 from .csvmaker import write_csv
 
 
@@ -135,7 +135,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
     # plot mean EOD
     eodaxes = [ax4, ax5]
     for axeod, mean_eod, props in zip(eodaxes[:2], mean_eods[:2], eod_props[0:2]):
-        eod_waveform_plot(mean_eod[:,0], mean_eod[:,1], mean_eod[:,2], axeod, unit=unit)
+        eod_waveform_plot(mean_eod[:,0], mean_eod[:,1], mean_eod[:,2], mean_eod[:,3],
+                          axeod, unit=unit)
         axeod.set_title('Average EOD of %.1f Hz %sfish (n=%d EODs)'
                         % (props['EODf'], props['type'], props['n']), fontsize=14, y=1.05)
         if props['type'] == 'wave':
@@ -361,11 +362,12 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
                          period=1.0/fish[0,0])
-        mean_eods.append(mean_eod)
         eod_props.append({'type': 'wave',
                           'n': len(eod_times),
                           'EODf': fish[0,0],
                           'power': decibel(np.sum(fish[:,1]))})
+        mean_eod, eod_props[-1] = analyze_wave(mean_eod, fish[0,0], eod_props[-1])
+        mean_eods.append(mean_eod)
         
     if not found_bestwindow:
         pulsefish = False
