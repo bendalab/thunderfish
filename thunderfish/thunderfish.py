@@ -13,10 +13,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .version import __version__
 from .configfile import ConfigFile
-from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
-from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
 from .dataloader import load_data
+from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
 from .bestwindow import clip_amplitudes, best_window_indices
+from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
@@ -364,13 +364,23 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
                          period=1.0/fish[0,0])
-        eod_props.append({'type': 'wave',
-                          'n': len(eod_times),
-                          'EODf': fish[0,0],
-                          'power': decibel(np.sum(fish[:,1]))})
-        mean_eod, eod_props[-1], sdata = analyze_wave(mean_eod, fish[0,0], eod_props[-1])
-        mean_eods.append(mean_eod)
-        spec_data.append(sdata)
+        props = {'type': 'wave',
+                 'n': len(eod_times),
+                 'EODf': fish[0,0],
+                 'power': decibel(np.sum(fish[:,1]))}
+        mean_eod, props, sdata = analyze_wave(mean_eod, fish[0,0], props)
+        # only add good waveforms:
+        if (idx > 0 or clipped < 0.01) and sdata[1,2] < 2.0 and sdata[2,2] < 0.2 and props['rmserror'] < 0.05:
+            eod_props.append(props)
+            mean_eods.append(mean_eod)
+            spec_data.append(sdata)
+            if verbose > 0:
+                print('%d take waveform of %6.1fHz fish: clipped=%4.2f ampl1=%4.2f ampl2=%4.2f ampl3=%4.2f rmserror=%4.3f'
+                      % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], sdata[3,2], props['rmserror']))
+        else:
+            if verbose > 0:
+                print('%d skip waveform of %.1fHz fish: clipped=%4.2f ampl1=%.2f ampl2=%.2f rmserror=%.3f'
+                      % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], props['rmserror']))
         
     if not found_bestwindow:
         pulsefish = False
