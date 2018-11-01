@@ -139,13 +139,21 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
         Further columns are kept from the input `eod`. And a column is added with the
         fit of the fourier series to the waveform.
     props: dict
-        The `props` dictionary with added properties of the analyzed EOD waveform.
+        The `props` dictionary with added properties of the analyzed EOD waveform:
+        - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
+        - amplitude: amplitude factor of the Fourier fit.
+        - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
+          the p-p amplitude. If larger than 0.05 the data are bad.
     spec_data: 2-D array of floats
         First column is the index of the harmonics, second column its frequency,
         third column its relative amplitude, and fourth column the phase shift
-        relative to the fundamental. Rows are the harmonics,
-        first row is the fundamental frequency with index 0, amplitude of one, and
-        phase shift of zero.
+        relative to the fundamental.
+        Rows are the harmonics, first row is the fundamental frequency with index 0,
+        amplitude of one, and phase shift of zero.
+        If the amplitude of the first harmonic (spec-data[1,3]) is larger than 2,
+        or the amplitude if the second harmonic (spec-data[2,3]) is larger than 0.2,
+        then the EOD waveform has the wrong waveform and
+        should not be used for further analysis.
     """
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
@@ -169,20 +177,29 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
         params.extend([1.0/(i+1), 0.0])
     popt, pcov = curve_fit(sinewaves, meod[:,0], meod[:,1], params)
     for i in range(1, n_harm):
+        # make all amplitudes positive:
         if popt[1+i*2] < 0.0:
             popt[1+i*2] *= -1.0
             popt[2+i*2] += np.pi
+        # all phases in the range 0 to 2 pi:
         popt[2+i*2] %= 2.0*np.pi
-        if popt[2+i*2] > np.pi:
+        # all phases except of 2nd harmonic in the range -pi to pi:
+        if popt[2+i*2] > np.pi and i != 2:
             popt[2+i*2] -= 2.0*np.pi
     meod[:,-1] = sinewaves(meod[:,0], *popt)
 
+    # fit error:
+    ppampl = np.max(meod[:,3]) - np.min(meod[:,3])
+    rmserror = np.sqrt(np.mean((meod[:,1] - meod[:,3])**2.0))/ppampl
+
     # store results:
+    props['p-p-amplitude'] = ppampl
     props['amplitude'] = popt[2]
+    props['rmserror'] = rmserror
     spec_data = np.zeros((n_harm, 4))
-    spec_data[0, :] = [1.0, freq, 1.0, 0.0]
+    spec_data[0, :] = [0.0, freq, 1.0, 0.0]
     for i in range(1, n_harm):
-        spec_data[i, :] = [i+1, (i+1)*freq, popt[1+i*2], popt[1+i*2]]
+        spec_data[i, :] = [i, (i+1)*freq, popt[1+i*2], popt[2+i*2]]
     
     return meod, props, spec_data
 
