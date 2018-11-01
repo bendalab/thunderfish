@@ -330,6 +330,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     # analyse eod waveform:
     eod_props = []
     mean_eods = []
+    spec_data = []
     inter_eod_intervals = []
     if pulse_fish:
         mean_eod_window = 0.002
@@ -339,6 +340,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
                          start=-mean_eod_window, stop=mean_eod_window)
         mean_eods.append(mean_eod)
+        spec_data.append([])
         eod_props.append({'type': 'pulse',
                           'n': len(eod_times),
                           'EODf': 1.0/pulse_period,
@@ -366,8 +368,9 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                           'n': len(eod_times),
                           'EODf': fish[0,0],
                           'power': decibel(np.sum(fish[:,1]))})
-        mean_eod, eod_props[-1] = analyze_wave(mean_eod, fish[0,0], eod_props[-1])
+        mean_eod, eod_props[-1], sdata = analyze_wave(mean_eod, fish[0,0], eod_props[-1])
         mean_eods.append(mean_eod)
+        spec_data.append(sdata)
         
     if not found_bestwindow:
         pulsefish = False
@@ -378,10 +381,13 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
 
     # write eod waveforms:
     if save_csvs and found_bestwindow:
-        for i, mean_eod in enumerate(mean_eods):
-            header = ['time (s)', 'mean', 'std']
+        for i, (mean_eod, sdata) in enumerate(zip(mean_eods, spec_data)):
+            header = ['time (s)', 'mean', 'std', 'fit']
             write_csv(os.path.join(output_folder, outfilename + '-waveform-%d.csv' % i),
                       header, mean_eod)
+            header = ['harmonics', 'frequency (Hz)', 'amplitude', 'phase']
+            write_csv(os.path.join(output_folder, outfilename + '-spectrum-%d.csv' % i),
+                      header, sdata)
 
     if save_plot or not save_csvs:
         output_plot(outfilename, pulse_fish,

@@ -134,10 +134,18 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
     
     Returns
     -------
-    meod: 2-D array
+    meod: 2-D array of floats
         The eod waveform. First column is time in seconds, second column the eod waveform.
         Further columns are kept from the input `eod`. And a column is added with the
         fit of the fourier series to the waveform.
+    props: dict
+        The `props` dictionary with added properties of the analyzed EOD waveform.
+    spec_data: 2-D array of floats
+        First column is the index of the harmonics, second column its frequency,
+        third column its relative amplitude, and fourth column the phase shift
+        relative to the fundamental. Rows are the harmonics,
+        first row is the fundamental frequency with index 0, amplitude of one, and
+        phase shift of zero.
     """
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
@@ -165,16 +173,18 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
             popt[1+i*2] *= -1.0
             popt[2+i*2] += np.pi
         popt[2+i*2] %= 2.0*np.pi
+        if popt[2+i*2] > np.pi:
+            popt[2+i*2] -= 2.0*np.pi
     meod[:,-1] = sinewaves(meod[:,0], *popt)
 
     # store results:
-    mprops = dict(props)
-    mprops['amplitude'] = popt[2]
+    props['amplitude'] = popt[2]
+    spec_data = np.zeros((n_harm, 4))
+    spec_data[0, :] = [1.0, freq, 1.0, 0.0]
     for i in range(1, n_harm):
-        mprops['frac%d' % i] = popt[1+i*2]
-        mprops['phase%d' % i] = popt[1+i*2]
+        spec_data[i, :] = [i+1, (i+1)*freq, popt[1+i*2], popt[1+i*2]]
     
-    return meod, mprops
+    return meod, props, spec_data
 
 
 def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, ax, unit='a.u.', **kwargs):
