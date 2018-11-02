@@ -27,7 +27,7 @@ from .csvmaker import write_csv
 
 
 def output_plot(base_name, pulse_fish, inter_eod_intervals,
-                raw_data, samplerate, idx0, idx1, fishlist, mean_eods, eod_props,
+                raw_data, samplerate, idx0, idx1, fishlist, mean_eods, eod_props, peak_data,
                 unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
                 output_folder='', save_plot=False, show_plot=False):
     """
@@ -60,6 +60,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
         Mean trace for the mean EOD plot.
     eod_props: list of dict
         Properties for each waveform in mean_eods.
+    peak_data: list of 2_D arrays
+        For each pulsefish a list of peak properties (index, time, and amplitude).
     unit: string
         Unit of the trace and the mean EOD.
     psd_data: array
@@ -137,7 +139,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
     usedax4 = False
     usedax5 = False
     eodaxes = [ax4, ax5]
-    for axeod, mean_eod, props in zip(eodaxes[:2], mean_eods[:2], eod_props[0:2]):
+    for axeod, mean_eod, props, peaks in zip(eodaxes[:2], mean_eods[:2], eod_props[0:2], peak_data[0:2]):
         if axeod is ax4:
             usedax4 = True
         if axeod is ax5:
@@ -146,7 +148,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
         if mean_eod.shape[1] > 3:
             fit_eod = mean_eod[:,3]
         eod_waveform_plot(mean_eod[:,0], mean_eod[:,1], mean_eod[:,2], fit_eod,
-                          axeod, unit=unit)
+                          peaks, axeod, unit=unit)
         axeod.set_title('Average EOD of %.1f Hz %sfish (n=%d EODs)'
                         % (props['EODf'], props['type'], props['n']), fontsize=14, y=1.05)
         if props['type'] == 'wave':
@@ -357,6 +359,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     eod_props = []
     mean_eods = []
     spec_data = []
+    peak_data = []
     inter_eod_intervals = []
     if pulse_fish:
         mean_eod_window = 0.002
@@ -365,9 +368,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
                          start=-mean_eod_window, stop=mean_eod_window)
-        mean_eod, props, inter_eod_intervals = analyze_pulse(mean_eod, eod_times)
+        mean_eod, props, peaks, inter_eod_intervals = analyze_pulse(mean_eod, eod_times)
+        # TODO: add config parameter to analyze_pulse
         mean_eods.append(mean_eod)
         spec_data.append([])
+        peak_data.append(peaks)
         eod_props.append(props)
 
     # analyse EOD waveform of all wavefish:
@@ -390,6 +395,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             eod_props.append(props)
             mean_eods.append(mean_eod)
             spec_data.append(sdata)
+            peak_data.append([])
             if verbose > 0:
                 print('%d take waveform of %6.1fHz fish: clipped=%4.2f ampl1=%4.2f ampl2=%4.2f ampl3=%4.2f rmserror=%4.3f'
                       % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], sdata[3,2], props['rmserror']))
@@ -407,20 +413,27 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
 
     # write eod waveforms:
     if save_csvs and found_bestwindow:
-        for i, (mean_eod, sdata) in enumerate(zip(mean_eods, spec_data)):
-            header = ['time (s)', 'mean', 'std', 'fit']
+        for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
+            header = ['time (s)', 'mean', 'std']
+            if mean_eod.shape[1] > 3:
+                header.append('fit')
             write_csv(os.path.join(output_folder, outfilename + '-waveform-%d.csv' % i),
                       header, mean_eod)
-            header = ['harmonics', 'frequency (Hz)', 'amplitude', 'phase']
-            if sdata.shape[1] > 4:
-                header.append('dataampl')
-            write_csv(os.path.join(output_folder, outfilename + '-spectrum-%d.csv' % i),
-                      header, sdata)
+            if len(sdata)>0:
+                header = ['harmonics', 'frequency (Hz)', 'amplitude', 'phase']
+                if sdata.shape[1] > 4:
+                    header.append('dataampl')
+                write_csv(os.path.join(output_folder, outfilename + '-spectrum-%d.csv' % i),
+                          header, sdata)
+            if len(pdata)>0:
+                header = ['P', 'time (ms)', 'amplitude', 'relaampl']
+                write_csv(os.path.join(output_folder, outfilename + '-peaks-%d.csv' % i),
+                          header, pdata)
 
     if save_plot or not save_csvs:
         output_plot(outfilename, pulse_fish,
                     inter_eod_intervals, raw_data, samplerate, idx0, idx1, fishlist,
-                    mean_eods, eod_props, unit,
+                    mean_eods, eod_props, peak_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_csvs)
 

@@ -226,7 +226,7 @@ def analyze_wave(eod, freq, n_harm=6):
     return meod, props, spec_data
 
 
-def analyze_pulse(eod, eod_times, percentile=1):
+def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -237,6 +237,8 @@ def analyze_pulse(eod, eod_times, percentile=1):
         Further columns are optional but not used.
     eod_times: 1-D array
         List of times of detected EOD peaks.
+    thresh_fac: float
+        Set the threshold for peak detection to the maximum pulse amplitude times this factor.
     percentile: float
         Remove extreme values of the inter-pulse intervals when computing interval statistics.
         All intervals below the `percentile` and above the `100-percentile` percentile
@@ -260,6 +262,11 @@ def analyze_pulse(eod, eod_times, percentile=1):
           of extrem interval values.
         - stdinterval: the standard deviation of the intervals between pulses
           after removal of extrem interval values.
+    peaks: 2-D array
+        For each peak and trough of the EOD waveform (first index) the
+        peak index (1 is P1, i.e. the largest positive peak),
+        time relative to largest positive peak, amplitude,
+        and amplitude normalized to largest postive peak.
     intervals: 1-D array
         List of inter-EOD intervals with extreme values removed.
     """
@@ -268,19 +275,49 @@ def analyze_pulse(eod, eod_times, percentile=1):
     meod = np.zeros(eod.shape)
     meod[:,:] = eod
     
-    # subtract mean:
-    meod[:,1] -= np.mean(meod[:,1])
+    # subtract mean at the ends of the snippet:
+    n = len(meod)//20
+    meod[:,1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:,1]))
 
-    # flip:
-    #if -np.min(meod[:,1]) > np.max(meod[:,1]):
-    #    meod[:,1] = -meod[:,1]
-    
+    # largest positive and negative peak:
+    max_idx = np.argmax(meod[:,1])
+    max_ampl = np.abs(meod[max_idx,1])
+    min_idx = np.argmin(meod[:,1])
+    min_ampl = np.abs(meod[min_idx,1])
+    amplitude = np.max((max_ampl, min_ampl))
+    if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
+        # two major peaks:
+        if min_idx < max_idx:
+            # flip:
+            meod[:,1] = -meod[:,1]
+            peak_idx = min_idx
+            min_idx = max_idx
+            max_idx = peak_idx
+    elif min_ampl > 0.2*amplitude:
+        # flip:
+        meod[:,1] = -meod[:,1]
+        peak_idx = min_idx
+        min_idx = max_idx
+        max_idx = peak_idx
+    max_ampl = np.abs(meod[max_idx,1])
+    min_ampl = np.abs(meod[min_idx,1])
+                
     # move peak of waveform to zero:
-    offs = len(meod[:,1])//4
-    meod[:,0] -= meod[offs+np.argmax(meod[offs:3*offs,1]),0]
+    meod[:,0] -= meod[max_idx,0]
 
     # amplitude:
-    ppampl = np.max(meod[:,1]) - np.min(meod[:,1])
+    ppampl = max_ampl + min_ampl
+
+    # find smaller peaks:
+    peak_idx, trough_idx = detect_peaks(meod[:,1], max_ampl*thresh_fac)
+    peak_list = np.sort(np.concatenate((peak_idx, trough_idx)))
+    p1i = np.nonzero(peak_list == max_idx)[0][0]
+    offs = 0 if p1i <= 2 else p1i - 2
+
+    # store:
+    peaks = np.zeros((len(peak_list)-offs,4))
+    for i, pi in enumerate(peak_list[offs:]):
+        peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl]
 
     # analyze pulse timing:
     inter_pulse_intervals = np.diff(eod_times)
@@ -303,10 +340,10 @@ def analyze_pulse(eod, eod_times, percentile=1):
         props['meaninterval'] = np.mean(intervals)
         props['stdinterval'] = np.std(intervals, ddof=1)
     
-    return meod, props, intervals
+    return meod, props, peaks, intervals
 
 
-def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, ax, unit='a.u.', **kwargs):
+def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, peaks, ax, unit='a.u.', **kwargs):
     """Plot mean eod and its standard deviation.
 
     Parameters
@@ -317,8 +354,10 @@ def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, ax, unit='a.u.', **kwarg
         Mean EOD waveform.
     std_eod: 1-D array
         Standard deviation of EOD waveform.
-    fit_eod: 1-D array
+    fit_eod: 1-D array or None
         Fit of the EOD waveform.
+    peaks: 2_D arrays or None
+        List of peak properties (index, time, and amplitude) of a EOD pulse.
     ax:
         Axis for plot
     unit: string
@@ -349,6 +388,19 @@ def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, ax, unit='a.u.', **kwarg
     ax.autoscale(False)
     ax.fill_between(1000.0*time, mean_eod + std_eod, mean_eod - std_eod,
                     color='grey', alpha=0.3, zorder=1)
+    if peaks is not None and len(peaks)>0:
+        maxa = np.max(peaks[:,2])
+        for p in peaks:
+            ax.scatter(1000.0*p[1], p[2], s=80,
+                       c=ckwargs['color'], edgecolors=ckwargs['color'])
+            label = 'P%d' % p[0]
+            if p[0] != 1:
+                label += '(%.0f%% @ %.0fus)' % (100.0*p[3], 1.0e6*p[1])
+            va = 'bottom' if p[2] > 0.0 else 'top'
+            if p[1] >= 0.0:
+                ax.text(1000.0*p[1]+0.1, p[2]+np.sign(p[2])*0.05*maxa, label, ha='left', va=va)
+            else:
+                ax.text(1000.0*p[1]-0.1, p[2]+np.sign(p[2])*0.05*maxa, label, ha='right', va=va)
     ax.set_xlabel('Time [msec]')
     ax.set_ylabel('Amplitude [%s]' % unit)
 
