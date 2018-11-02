@@ -200,7 +200,12 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     add_clip_config(cfg)
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
     add_check_pulse_width_config(cfg)
-
+    cfg.add_section('Waveform selection:')
+    cfg.add('maximumClippedFraction', 0.01, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
+    cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the ampltude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
+    cfg.add('maximumSecondHarmonicAmplitude', 0.2, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
+    cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+    
     # load configuration from working directory and data directories:
     cfg.load_files(cfgfile, filename, 3, verbose)
 
@@ -357,7 +362,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     # analyse EOD waveform of all wavefish:
     powers = np.array([np.sum(fish[:cfg.value('powerNHarmonics'), 1])
                        for fish in fishlist])
-    for idx in np.argsort(-powers):
+    for k, idx in enumerate(np.argsort(-powers)):
         fish = fishlist[idx]
         mean_eod, eod_times = \
             eod_waveform(data, samplerate,
@@ -369,8 +374,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                  'EODf': fish[0,0],
                  'power': decibel(np.sum(fish[:,1]))}
         mean_eod, props, sdata = analyze_wave(mean_eod, fish[0,0], props)
-        # only add good waveforms:
-        if (idx > 0 or clipped < 0.01) and sdata[1,2] < 2.0 and sdata[2,2] < 0.2 and props['rmserror'] < 0.05:
+        # add good waveforms only:
+        if (k > 0 or clipped < cfg.value('maximumClippedFraction')) and \
+            sdata[1,2] < cfg.value('maximumFirstHarmonicAmplitude') and \
+            sdata[2,2] < cfg.value('maximumSecondHarmonicAmplitude') and \
+            props['rmserror'] < cfg.value('maximumRMSError'):
             eod_props.append(props)
             mean_eods.append(mean_eod)
             spec_data.append(sdata)
