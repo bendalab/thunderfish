@@ -12,6 +12,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from .eventdetection import percentile_threshold, detect_peaks, snippets
+from .powerspectrum import decibel
 
 
 def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
@@ -116,7 +117,7 @@ def sinewaves(t, freq, delay, ampl, *ap):
     return ampl*x
 
 
-def analyze_wave(eod, freq, props={}, n_harm=6):
+def analyze_wave(eod, freq, n_harm=6):
     """
     Analyze the EOD waveform of a wave-type fish.
     
@@ -125,10 +126,9 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
     eod: 2-D array
         The eod waveform. First column is time in seconds, second column the eod waveform.
         Further columns are optional but not used.
-    freq: float
-        The frequency of the EOD.
-    props: dict
-        Dictionary with properties of the analyzed EOD waveform.
+    freq: float or 2-D array
+        The frequency of the EOD or the list of harmonics (rows)
+        with frequency and peak height (columns) as returned from `harmonic_groups()`.
     n_harm: int
         Maximum number of harmonics used for the fit.
     
@@ -139,15 +139,22 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
         Further columns are kept from the input `eod`. And a column is added with the
         fit of the fourier series to the waveform.
     props: dict
-        The `props` dictionary with added properties of the analyzed EOD waveform:
+        A dictionary with properties of the analyzed EOD waveform.
+        - type: set to 'wave'.
+        - EODf: is set to the EOD fundamental frequency.
         - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
         - amplitude: amplitude factor of the Fourier fit.
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than 0.05 the data are bad.
+        - power: if `freq` is list of harmonics then `power` is set to the summed power
+          of all harmonics and transformed to decibel.
     spec_data: 2-D array of floats
         First column is the index of the harmonics, second column its frequency,
         third column its relative amplitude, and fourth column the phase shift
         relative to the fundamental.
+        If `freq` is a list of harmonics, a fith column is added to `spec_data` that
+        contains the sqaure rooted powers of the harmonics
+        normalized to the one ofthe fundamental.
         Rows are the harmonics, first row is the fundamental frequency with index 0,
         amplitude of one, and phase shift of zero.
         If the amplitude of the first harmonic (spec-data[1,3]) is larger than 2,
@@ -155,6 +162,10 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
         then the EOD waveform has the wrong waveform and
         should not be used for further analysis.
     """
+    freq0 = freq
+    if hasattr(freq, 'shape'):
+        freq0 = freq[0][0]
+        
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:-1] = eod
@@ -172,7 +183,7 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
 
     # fit sine wave:
     ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
-    params = [freq, -0.25/freq, ampl]
+    params = [freq0, -0.25/freq0, ampl]
     for i in range(1, n_harm):
         params.extend([1.0/(i+1), 0.0])
     popt, pcov = curve_fit(sinewaves, meod[:,0], meod[:,1], params)
@@ -193,15 +204,106 @@ def analyze_wave(eod, freq, props={}, n_harm=6):
     rmserror = np.sqrt(np.mean((meod[:,1] - meod[:,3])**2.0))/ppampl
 
     # store results:
+    props = {}
+    props['type'] = 'wave'
+    props['EODf'] = freq0
     props['p-p-amplitude'] = ppampl
     props['amplitude'] = popt[2]
     props['rmserror'] = rmserror
-    spec_data = np.zeros((n_harm, 4))
-    spec_data[0, :] = [0.0, freq, 1.0, 0.0]
+    ncols = 4
+    if hasattr(freq, 'shape'):
+        spec_data = np.zeros((n_harm, 5))
+        ampls = np.sqrt(freq[:n_harm, 1])
+        ampls /= ampls[0]
+        spec_data[:len(ampls),4] = ampls
+        props['power'] = decibel(np.sum(freq[:,1]))
+    else:
+        spec_data = np.zeros((n_harm, 4))
+    spec_data[0,:4] = [0.0, freq0, 1.0, 0.0]
     for i in range(1, n_harm):
-        spec_data[i, :] = [i, (i+1)*freq, popt[1+i*2], popt[2+i*2]]
+        spec_data[i,:4] = [i, (i+1)*freq0, popt[1+i*2], popt[2+i*2]]
     
     return meod, props, spec_data
+
+
+def analyze_pulse(eod, eod_times, percentile=1):
+    """
+    Analyze the EOD waveform of a pulse-type fish.
+    
+    Parameters
+    ----------
+    eod: 2-D array
+        The eod waveform. First column is time in seconds, second column the eod waveform.
+        Further columns are optional but not used.
+    eod_times: 1-D array
+        List of times of detected EOD peaks.
+    percentile: float
+        Remove extreme values of the inter-pulse intervals when computing interval statistics.
+        All intervals below the `percentile` and above the `100-percentile` percentile
+        are ignored. `percentile` is given in percent.
+    
+    Returns
+    -------
+    meod: 2-D array of floats
+        The eod waveform. First column is time in seconds, second column the eod waveform.
+        Further columns are kept from the input `eod`.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform.
+        - type: set to 'pulse'.
+        - EODf: the inverse of the mean interval between `eod_times`.
+        - period: the mean interval between `eod_times`.
+        - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
+        - n: number of pulses analyzed.
+        - medianinterval: the median interval between pulses after removal
+          of extrem interval values.
+        - meaninterval: the mean interval between pulses after removal
+          of extrem interval values.
+        - stdinterval: the standard deviation of the intervals between pulses
+          after removal of extrem interval values.
+    intervals: 1-D array
+        List of inter-EOD intervals with extreme values removed.
+    """
+        
+    # storage:
+    meod = np.zeros(eod.shape)
+    meod[:,:] = eod
+    
+    # subtract mean:
+    meod[:,1] -= np.mean(meod[:,1])
+
+    # flip:
+    #if -np.min(meod[:,1]) > np.max(meod[:,1]):
+    #    meod[:,1] = -meod[:,1]
+    
+    # move peak of waveform to zero:
+    offs = len(meod[:,1])//4
+    meod[:,0] -= meod[offs+np.argmax(meod[offs:3*offs,1]),0]
+
+    # amplitude:
+    ppampl = np.max(meod[:,1]) - np.min(meod[:,1])
+
+    # analyze pulse timing:
+    inter_pulse_intervals = np.diff(eod_times)
+    period = np.mean(inter_pulse_intervals)
+    
+    # store properties:
+    props = {}
+    props['type'] = 'pulse'
+    props['EODf'] = 1.0/period
+    props['period'] = period
+    props['p-p-amplitude'] = ppampl
+    props['n'] = len(eod_times)
+
+    # analyze central intervals:    
+    lower, upper = np.percentile(inter_pulse_intervals, [percentile, 100.0-percentile])
+    intervals = inter_pulse_intervals[(inter_pulse_intervals > lower) &
+                                      (inter_pulse_intervals < upper)]
+    if len(intervals) > 2:
+        props['medianinterval'] = np.median(intervals)
+        props['meaninterval'] = np.mean(intervals)
+        props['stdinterval'] = np.std(intervals, ddof=1)
+    
+    return meod, props, intervals
 
 
 def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, ax, unit='a.u.', **kwargs):
@@ -236,7 +338,7 @@ def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, ax, unit='a.u.', **kwarg
     else:
         fkwargs['color'] = 'steelblue'
     ax.autoscale(True)
-    if len(fit_eod)>0:
+    if fit_eod is not None and len(fit_eod)>0:
         ax.plot(1000.0*time, fit_eod, zorder=2, **fkwargs)
     ckwargs = dict(kwargs)
     if not 'lw' in ckwargs:

@@ -10,6 +10,7 @@ import sys
 import os
 import argparse
 import numpy as np
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from .version import __version__
 from .configfile import ConfigFile
@@ -18,10 +19,10 @@ from .bestwindow import add_clip_config, add_best_window_config, clip_args, best
 from .bestwindow import clip_amplitudes, best_window_indices
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
-from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
+from .powerspectrum import plot_decibel_psd, multi_resolution_psd
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
-from .eodanalysis import eod_waveform, analyze_wave, eod_waveform_plot
+from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse, eod_waveform_plot
 from .csvmaker import write_csv
 
 
@@ -133,9 +134,18 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
     ##########
 
     # plot mean EOD
+    usedax4 = False
+    usedax5 = False
     eodaxes = [ax4, ax5]
     for axeod, mean_eod, props in zip(eodaxes[:2], mean_eods[:2], eod_props[0:2]):
-        eod_waveform_plot(mean_eod[:,0], mean_eod[:,1], mean_eod[:,2], mean_eod[:,3],
+        if axeod is ax4:
+            usedax4 = True
+        if axeod is ax5:
+            usedax5 = True
+        fit_eod = []
+        if mean_eod.shape[1] > 3:
+            fit_eod = mean_eod[:,3]
+        eod_waveform_plot(mean_eod[:,0], mean_eod[:,1], mean_eod[:,2], fit_eod,
                           axeod, unit=unit)
         axeod.set_title('Average EOD of %.1f Hz %sfish (n=%d EODs)'
                         % (props['EODf'], props['type'], props['n']), fontsize=14, y=1.05)
@@ -149,17 +159,20 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
 
     # plot inter EOD interval histogram
     if len(inter_eod_intervals)>2:
+        usedax5 = True
         tmp_period = 1000. * np.mean(inter_eod_intervals)
         tmp_period = tmp_period - tmp_period % 0.05
         inter_eod_intervals *= 1000.  # transform sec in msec
         median_IPI = 1000. * eod_props[0]['medianinterval']
+        mean_IPI = 1000. * eod_props[0]['meaninterval']
+        std_IPI = 1000. * eod_props[0]['stdinterval']
         n, edges = np.histogram(inter_eod_intervals, bins=np.arange(tmp_period - 5., tmp_period + 5., 0.05))
 
         ax5.bar(edges[:-1], n, edges[1] - edges[0] - 0.001)
-        ax5.plot([median_IPI, median_IPI], [0, np.max(n)], '--', color='red', lw=2, label='median %.2f ms' % median_IPI)
+        median_line, = ax5.plot([median_IPI, median_IPI], [0, np.max(n)], '--', color='red', lw=2, label='median %.2f ms' % median_IPI)
         ax5.set_xlabel('inter EOD interval [ms]')
         ax5.set_ylabel('n')
-        ax5.set_title('Inter EOD interval histogram', fontsize=14, y=1.05)
+        ax5.set_title('Inter-EOD-interval histogram', fontsize=14, y=1.05)
 
         max_IPI = np.ceil(np.max(inter_eod_intervals)+0.5)
         if max_IPI/median_IPI < 1.2:
@@ -168,7 +181,11 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
         if min_IPI/median_IPI > 0.8:
             min_IPI = np.floor(0.8*median_IPI)
         ax5.set_xlim(min_IPI, max_IPI)
-        ax5.legend(loc='upper right', frameon=False)
+        nopatch = mpatches.Patch(color='white', alpha=0.0)
+        ax5.legend([median_line, nopatch],
+                   ['median %.2f ms' % median_IPI,
+                    '(%.2f +/- %.2f ms)' % (mean_IPI, std_IPI)],
+                    loc='upper right', frameon=False)
 
     # cosmetics
     for ax in [ax2, ax3, ax4, ax5]:
@@ -176,6 +193,10 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
         ax.spines['right'].set_visible(False)
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
+    if not usedax4:
+        ax4.set_visible(False)
+    if not usedax5:
+        ax5.set_visible(False)
 
     # save figure as pdf
     if save_plot:
@@ -344,20 +365,10 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
                          start=-mean_eod_window, stop=mean_eod_window)
+        mean_eod, props, inter_eod_intervals = analyze_pulse(mean_eod, eod_times)
         mean_eods.append(mean_eod)
         spec_data.append([])
-        eod_props.append({'type': 'pulse',
-                          'n': len(eod_times),
-                          'EODf': 1.0/pulse_period,
-                          'period': pulse_period})
-        # analyze inter-pulse intervals:
-        inter_pulse_intervals = np.diff(eod_times)  # in sec
-        lower_perc, upper_perc = np.percentile(inter_pulse_intervals, [1, 100 - 1])
-        inter_eod_intervals = inter_pulse_intervals[(inter_pulse_intervals > lower_perc) &
-                                                   (inter_pulse_intervals < upper_perc)]
-        if len(inter_eod_intervals) > 2:
-            eod_props[-1]['medianinterval'] = np.median(inter_eod_intervals)
-            eod_props[-1]['stdinterval'] = np.std(inter_eod_intervals, ddof=1)
+        eod_props.append(props)
 
     # analyse EOD waveform of all wavefish:
     powers = np.array([np.sum(fish[:cfg.value('powerNHarmonics'), 1])
@@ -369,11 +380,8 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
                          period=1.0/fish[0,0])
-        props = {'type': 'wave',
-                 'n': len(eod_times),
-                 'EODf': fish[0,0],
-                 'power': decibel(np.sum(fish[:,1]))}
-        mean_eod, props, sdata = analyze_wave(mean_eod, fish[0,0], props)
+        mean_eod, props, sdata = analyze_wave(mean_eod, fish)
+        props['n'] = len(eod_times)
         # add good waveforms only:
         if (k > 0 or clipped < cfg.value('maximumClippedFraction')) and \
             sdata[1,2] < cfg.value('maximumFirstHarmonicAmplitude') and \
@@ -404,6 +412,8 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             write_csv(os.path.join(output_folder, outfilename + '-waveform-%d.csv' % i),
                       header, mean_eod)
             header = ['harmonics', 'frequency (Hz)', 'amplitude', 'phase']
+            if sdata.shape[1] > 4:
+                header.append('dataampl')
             write_csv(os.path.join(output_folder, outfilename + '-spectrum-%d.csv' % i),
                       header, sdata)
 
