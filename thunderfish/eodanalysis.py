@@ -310,9 +310,13 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
 
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], max_ampl*thresh_fac)
-    peak_list = np.sort(np.concatenate((peak_idx, trough_idx)))
-    p1i = np.nonzero(peak_list == max_idx)[0][0]
-    offs = 0 if p1i <= 2 else p1i - 2
+    peak_l = np.sort(np.concatenate((peak_idx, trough_idx)))
+    # remove mutliple peaks:
+    peak_list = [prange[np.argmax(np.abs(meod[prange,1]))]
+                 for prange in np.split(peak_l, np.where(np.diff(meod[peak_l,1]>0.0)!=0)[0]+1)]
+    # find P1:
+    p1i = np.where(peak_list == max_idx)[0][0]
+    offs = 0 #if p1i <= 2 else p1i - 2
 
     # store:
     peaks = np.zeros((len(peak_list)-offs,4))
