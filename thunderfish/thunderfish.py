@@ -149,6 +149,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
             fit_eod = mean_eod[:,3]
         eod_waveform_plot(mean_eod[:,0], mean_eod[:,1], mean_eod[:,2], fit_eod,
                           peaks, axeod, unit=unit)
+        if props['flipped']:
+            axeod.text(0.03, 0.03, 'flipped', transform = axeod.transAxes, va='bottom')
         axeod.set_title('Average EOD of %.1f Hz %sfish (n=%d EODs)'
                         % (props['EODf'], props['type'], props['n']), fontsize=14, y=1.05)
         if props['type'] == 'wave':
