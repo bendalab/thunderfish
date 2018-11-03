@@ -174,8 +174,10 @@ def analyze_wave(eod, freq, n_harm=6):
     meod[:,1] -= np.mean(meod[:,1])
 
     # flip:
+    flipped = False
     if -np.min(meod[:,1]) > np.max(meod[:,1]):
         meod[:,1] = -meod[:,1]
+        flipped = True
     
     # move peak of waveform to zero:
     offs = len(meod[:,1])//4
@@ -208,6 +210,7 @@ def analyze_wave(eod, freq, n_harm=6):
     props['type'] = 'wave'
     props['EODf'] = freq0
     props['p-p-amplitude'] = ppampl
+    props['flipped'] = flipped
     props['amplitude'] = popt[2]
     props['rmserror'] = rmserror
     ncols = 4
@@ -280,6 +283,7 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
     meod[:,1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:,1]))
 
     # largest positive and negative peak:
+    flipped = False
     max_idx = np.argmax(meod[:,1])
     max_ampl = np.abs(meod[max_idx,1])
     min_idx = np.argmin(meod[:,1])
@@ -293,12 +297,14 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
             peak_idx = min_idx
             min_idx = max_idx
             max_idx = peak_idx
+            flipped = True
     elif min_ampl > 0.2*amplitude:
         # flip:
         meod[:,1] = -meod[:,1]
         peak_idx = min_idx
         min_idx = max_idx
         max_idx = peak_idx
+        flipped = True
     max_ampl = np.abs(meod[max_idx,1])
     min_ampl = np.abs(meod[min_idx,1])
                 
@@ -333,6 +339,7 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
     props['EODf'] = 1.0/period
     props['period'] = period
     props['p-p-amplitude'] = ppampl
+    props['flipped'] = flipped
     props['n'] = len(eod_times)
 
     # analyze central intervals:    
