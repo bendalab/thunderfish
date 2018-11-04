@@ -143,6 +143,7 @@ def analyze_wave(eod, freq, n_harm=6):
         - type: set to 'wave'.
         - EODf: is set to the EOD fundamental frequency.
         - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
+        - flipped: True if the waveform was flipped.
         - amplitude: amplitude factor of the Fourier fit.
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than 0.05 the data are bad.
@@ -257,7 +258,10 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
         - type: set to 'pulse'.
         - EODf: the inverse of the mean interval between `eod_times`.
         - period: the mean interval between `eod_times`.
+        - max-amplitude: the amplitude of the largest positive peak (P1).
+        - min-amplitude: the amplitude of the largest negative peak (P1).
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
+        - flipped: True if the waveform was flipped.
         - n: number of pulses analyzed.
         - medianinterval: the median interval between pulses after removal
           of extrem interval values.
@@ -322,7 +326,7 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
                  for prange in np.split(peak_l, np.where(np.diff(meod[peak_l,1]>0.0)!=0)[0]+1)]
     # find P1:
     p1i = np.where(peak_list == max_idx)[0][0]
-    offs = 0 #if p1i <= 2 else p1i - 2
+    offs = 0 if p1i <= 2 else p1i - 2
 
     # store:
     peaks = np.zeros((len(peak_list)-offs,4))
@@ -338,6 +342,8 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
     props['type'] = 'pulse'
     props['EODf'] = 1.0/period
     props['period'] = period
+    props['max-amplitude'] = max_ampl
+    props['min-amplitude'] = min_ampl
     props['p-p-amplitude'] = ppampl
     props['flipped'] = flipped
     props['n'] = len(eod_times)
@@ -354,21 +360,22 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
     return meod, props, peaks, intervals
 
 
-def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, peaks, ax, unit='a.u.', **kwargs):
+def eod_waveform_plot(eod_waveform, peaks, props, ax, unit='a.u.', **kwargs):
     """Plot mean eod and its standard deviation.
 
     Parameters
     ----------
-    time: 1-D array
-        Time of the mean EOD.
-    mean_eod: 1-D array
-        Mean EOD waveform.
-    std_eod: 1-D array
-        Standard deviation of EOD waveform.
-    fit_eod: 1-D array or None
-        Fit of the EOD waveform.
+    eod_waveform: 2-D array
+        EOD waveform. First column is time in seconds,
+        second column the (mean) eod waveform. The optional third column is the
+        standard deviation and the optional fourth column is a fit on the waveform.
     peaks: 2_D arrays or None
         List of peak properties (index, time, and amplitude) of a EOD pulse.
+    props: dict or None
+        The `props` returned by `analyze_wave()` or `analyze_pulse()`. Used to
+        annotate the plot with wave- or pulse type, EODf, ampltitude,
+        mark the waveform as flipped, and to set the range for the x-axis in case
+        of wavefish. 
     ax:
         Axis for plot
     unit: string
@@ -376,6 +383,7 @@ def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, peaks, ax, unit='a.u.', 
     kwargs: dict
         Arguments passed on to the plot command for the mean eod.
     """
+    # plot parameter for fit:
     fkwargs = {}
     if 'flw' in kwargs:
         fkwargs['lw'] = kwargs['flw']
@@ -387,23 +395,32 @@ def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, peaks, ax, unit='a.u.', 
         del kwargs['fcolor']
     else:
         fkwargs['color'] = 'steelblue'
+    # plot parameter for mean eod waveform:
+    mkwargs = dict(kwargs)
+    if not 'lw' in mkwargs:
+        mkwargs['lw'] = 2
+    if not 'color' in mkwargs:
+        mkwargs['color'] = 'r'
+    # plot fit:
     ax.autoscale(True)
-    if fit_eod is not None and len(fit_eod)>0:
-        ax.plot(1000.0*time, fit_eod, zorder=2, **fkwargs)
-    ckwargs = dict(kwargs)
-    if not 'lw' in ckwargs:
-        ckwargs['lw'] = 2
-    if not 'color' in ckwargs:
-        ckwargs['color'] = 'r'
-    ax.plot(1000.0*time, mean_eod, zorder=3, **ckwargs)
+    time = 1000.0 * eod_waveform[:,0]
+    if eod_waveform.shape[1] > 3:
+        ax.plot(time, eod_waveform[:,3], zorder=2, **fkwargs)
+    # plot waveform:
+    mean_eod = eod_waveform[:,1]
+    ax.plot(time, mean_eod, zorder=3, **mkwargs)
+    # plot standard deviation:
     ax.autoscale(False)
-    ax.fill_between(1000.0*time, mean_eod + std_eod, mean_eod - std_eod,
-                    color='grey', alpha=0.3, zorder=1)
+    if eod_waveform.shape[1] > 2:
+        std_eod = eod_waveform[:,2]
+    ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
+                    color='grey', alpha=0.2, zorder=1)
+    # annotate peaks:
     if peaks is not None and len(peaks)>0:
         maxa = np.max(peaks[:,2])
         for p in peaks:
             ax.scatter(1000.0*p[1], p[2], s=80,
-                       c=ckwargs['color'], edgecolors=ckwargs['color'])
+                       c=mkwargs['color'], edgecolors=mkwargs['color'])
             label = 'P%d' % p[0]
             if p[0] != 1:
                 label += '(%.0f%% @ %.0fus)' % (100.0*p[3], 1.0e6*p[1])
@@ -412,6 +429,22 @@ def eod_waveform_plot(time, mean_eod, std_eod, fit_eod, peaks, ax, unit='a.u.', 
                 ax.text(1000.0*p[1]+0.1, p[2]+np.sign(p[2])*0.05*maxa, label, ha='left', va=va)
             else:
                 ax.text(1000.0*p[1]-0.1, p[2]+np.sign(p[2])*0.05*maxa, label, ha='right', va=va)
+    if props is not None:
+        label = ''
+        if 'type' in props:
+            label += '%s-type fish\n' % props['type']
+        if 'EODf' in props:
+            label += 'EODf = %.1f Hz\n' % props['EODf']
+        if 'p-p-amplitude' in props:
+            label += 'p-p amplitude = %.3g %s\n' % (props['p-p-amplitude'], unit)
+        if 'n' in props:
+            label += 'n = %d EODs\n' % props['n']
+        if props['flipped']:
+            label += 'flipped\n'
+        ax.text(0.03, 0.97, label, transform = ax.transAxes, va='top')
+        if 'type' in props and props['type'] == 'wave':
+            lim = 750.0/props['EODf']
+            ax.set_xlim([-lim, +lim])
     ax.set_xlabel('Time [msec]')
     ax.set_ylabel('Amplitude [%s]' % unit)
 
@@ -432,17 +465,17 @@ if __name__ == '__main__':
     # data:
     if len(sys.argv) <= 1:
         samplerate = 44100.0
-        data = generate_biphasic_pulses(80.0, samplerate, 4.0, noise_std=0.05)
+        data = generate_biphasic_pulses(80.0, samplerate, 5.0, noise_std=0.02)
         unit = 'mV'
     else:
         rawdata, samplerate, unit = load_data(sys.argv[1], 0)
         data, _ = best_window(rawdata, samplerate)
 
     # analyse EOD:
-    mean_eod, std_eod, time, eod_times = eod_waveform(data, samplerate,
-                                                      start=-0.002, stop=0.002)
+    mean_eod, eod_times = eod_waveform(data, samplerate, start=-0.002, stop=0.002)
+    mean_eod, props, peaks, inter_eod_intervals = analyze_pulse(mean_eod, eod_times)
 
     # plot:
     fig, ax = plt.subplots()
-    eod_waveform_plot(time, mean_eod, std_eod, ax, unit=unit)
+    eod_waveform_plot(mean_eod, peaks, props, ax, unit=unit)
     plt.show()

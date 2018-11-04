@@ -119,7 +119,6 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
     ax2.set_xlim(time[0], time[-1])
     ax2.set_xlabel('Time [sec]')
     ax2.set_ylabel('Amplitude [a.u.]')
-    #ax2.legend(bbox_to_anchor=(1.15, 1), frameon=False)
     ############
 
     # plot psd
@@ -144,19 +143,13 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
             usedax4 = True
         if axeod is ax5:
             usedax5 = True
-        fit_eod = []
-        if mean_eod.shape[1] > 3:
-            fit_eod = mean_eod[:,3]
-        eod_waveform_plot(mean_eod[:,0], mean_eod[:,1], mean_eod[:,2], fit_eod,
-                          peaks, axeod, unit=unit)
-        if props['flipped']:
-            axeod.text(0.03, 0.03, 'flipped', transform = axeod.transAxes, va='bottom')
-        axeod.set_title('Average EOD of %.1f Hz %sfish (n=%d EODs)'
-                        % (props['EODf'], props['type'], props['n']), fontsize=14, y=1.05)
-        if props['type'] == 'wave':
-            lim = 750.0/props['EODf']
-            axeod.set_xlim([-lim, +lim])
-        else:
+        pulse = True if props['type'] == 'pulse' else False
+        axeod.set_title('Average EOD of %.1f Hz %sfish'
+                        % (props['EODf'], props['type']), fontsize=14, y=1.05)
+        del props['type']
+        del props['EODf']
+        eod_waveform_plot(mean_eod, peaks, props, axeod, unit=unit)
+        if pulse:
             break
 
     ################
