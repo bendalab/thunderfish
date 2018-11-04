@@ -180,7 +180,7 @@ def clip_args(cfg, rate):
 
 
 def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                        th_factor=0.8, percentile=10.0, min_clip=-np.inf, max_clip=np.inf,
+                        th_factor=0.8, percentile=1.0, min_clip=-np.inf, max_clip=np.inf,
                         w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                         plot_data_func=None, **kwargs):
     """Find the window within data most suitable for subsequent analysis.
@@ -393,7 +393,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
 
 
 def best_window_times(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                      th_factor=0.8, percentile=10.0, min_clip=-np.inf, max_clip=np.inf,
+                      th_factor=0.8, percentile=1.0, min_clip=-np.inf, max_clip=np.inf,
                       w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                       plot_data_func=None, **kwargs):
     """Find the window within data most suitable for subsequent analysis.
@@ -419,7 +419,7 @@ def best_window_times(data, samplerate, single=True, win_size=1., win_shift=0.1,
 
 
 def best_window(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                th_factor=0.8, percentile=10.0, min_clip=-np.inf, max_clip=np.inf,
+                th_factor=0.8, percentile=1.0, min_clip=-np.inf, max_clip=np.inf,
                 w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
                 plot_data_func=None, **kwargs):
     """Find the window within data most suitable for subsequent analysis.
@@ -498,7 +498,7 @@ def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
 
     
 def add_best_window_config(cfg, single=True, win_size=1., win_shift=0.1,
-                           th_factor=0.8, percentile=10.0,
+                           th_factor=0.8, percentile=1.0,
                            min_clip=-np.inf, max_clip=np.inf,
                            w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
                            tolerance=0.5):
@@ -604,8 +604,8 @@ if __name__ == "__main__":
 
     # compute best window:
     print("call bestwindow() function...")
-    best_window_indices(data, rate, single=False,
-                        win_size=4.0, win_shift=0.5, th_factor=0.8, percentile=10.0,
+    best_window_indices(data, rate, single=True,
+                        win_size=4.0, win_shift=0.5, th_factor=0.8, percentile=1.0,
                         min_clip=min_clip, max_clip=max_clip,
                         w_cv_ampl=10.0, tolerance=0.5,
                         plot_data_func=plot_best_window, ax=ax)

@@ -15,7 +15,7 @@ from .eventdetection import percentile_threshold, detect_peaks, snippets
 from .powerspectrum import decibel
 
 
-def eod_waveform(data, samplerate, th_factor=0.6, percentile=0.1,
+def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
                  period=None, start=None, stop=None):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard deviation.
@@ -230,7 +230,7 @@ def analyze_wave(eod, freq, n_harm=6):
     return meod, props, spec_data
 
 
-def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1):
+def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1.0):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
