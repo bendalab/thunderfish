@@ -478,14 +478,18 @@ def widen_events(onsets, offsets, max_time, duration):
 
     
 def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
-    """Esimates a threshold for detect_peaks() based on the standard deviation of the data.
+    """Esimates a threshold for `detect_peaks()` based on the standard deviation of the data.
 
-    The threshold is computed as the standard deviation of the data multiplied with th_factor.
+    The threshold is computed as the standard deviation of the data
+    multiplied with `th_factor`.
 
-    If samplerate and win_size is given, then the threshold is computed for
-    each non-overlapping window of duration win_size separately.
+    In case of Gaussian distributed data, setting `th_factor=2.0` (two standard deviations)
+    captures 68% of the data, `th_factor=4.0` captures 95%, and `th_factor=6.0` 99.7%.
+
+    If `samplerate` and `win_size` is given, then the threshold is computed for
+    each non-overlapping window of duration `win_size` separately.
     In this case the returned threshold is an array of the same size as data.
-    Without a samplerate and win_size a single threshold value determined from
+    Without a `samplerate` and `win_size` a single threshold value determined from
     the whole data array is returned.
 
     Parameters
@@ -520,13 +524,16 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
     
 def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
                    nbins=100, hist_height=1.0/np.sqrt(np.e)):
-    """Esimate a threshold for detect_peaks() based on a histogram of the data.
+    """Esimate a threshold for `detect_peaks()` based on a histogram of the data.
 
-    The standard deviation of the data is estimated from the
-    width of the histogram of the data at hist_height relative height.
+    The standard deviation of the data is estimated from half the
+    width of the histogram of the data at `hist_height` relative height.
+    This estimates the data's standard deviation by ignoring tails of the distribution.
 
-    If samplerate and win_size is given, then the threshold is computed for
-    each non-overlapping window of duration win_size separately.
+    However, you need enough data to robustly estimate the histogram.
+
+    If `samplerate` and `win_size` is given, then the threshold is computed for
+    each non-overlapping window of duration `win_size` separately.
     In this case the returned threshold is an array of the same size as data.
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
@@ -585,13 +592,13 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
 
     
 def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
-    """Esimate a threshold for detect_peaks() based on minimum and maximum values of the data.
+    """Esimate a threshold for `detect_peaks()` based on minimum and maximum values of the data.
 
     The threshold is computed as the difference between maximum and
-    minimum value of the data multiplied with th_factor.
+    minimum value of the data multiplied with `th_factor`.
 
-    If samplerate and win_size is given, then the threshold is computed for
-    each non-overlapping window of duration win_size separately.
+    If `samplerate` and `win_size` is given, then the threshold is computed for
+    each non-overlapping window of duration `win_size` separately.
     In this case the returned threshold is an array of the same size as data.
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
@@ -619,10 +626,8 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
 
         for inx0 in range(0, len(data), win_size_indices):
             inx1 = inx0 + win_size_indices
-
             window_min = np.min(data[inx0:inx1])
             window_max = np.max(data[inx0:inx1])
-
             threshold[inx0:inx1] = (window_max - window_min) * th_factor
         return threshold
 
@@ -630,21 +635,34 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
         return (np.max(data) - np.min(data)) * th_factor
 
 
-def percentile_threshold(data, samplerate=None, win_size=None, th_factor=0.8, percentile=1.0):
-    """Esimate a threshold for detect_peaks() based on an inter-percentile range of the data.
+def percentile_threshold(data, samplerate=None, win_size=None, th_factor=1.0, percentile=1.0):
+    """Esimate a threshold for `detect_peaks()` based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
     100.0-percentile percentiles of the data multiplied with
     th_factor.
 
-    For very small values of percentile the estimated threshold
-    approaches the one returned by minmax_threshold() (for same values
-    of th_factor). For percentile=16.0 and Gaussian distributed data,
+    For very small values of `percentile` the estimated threshold
+    approaches the one returned by `minmax_threshold()` (for same values
+    of `th_factor`). For `percentile=16.0` and Gaussian distributed data,
     the returned theshold is twice the one returned by std_threshold()
-    (two times the standard deviation).
+    or `hist_threshold()`, i.e. twice the standard deviation.
 
-    If samplerate and win_size is given, then the threshold is computed for
-    each non-overlapping window of duration win_size separately.
+    If you have knowledge about how many data points are in the tails of
+    the distribution, then this method is preferred over
+    `hist_threhsold()`. For example, if you expect peaks that you want
+    to detect using `detect_peaks()` at an average rate of 10Hz and
+    these peaks are about 1ms wide, then you have a 1ms peak per 100ms
+    period, i.e. the peaks make up 1% of the distribution. So you might
+    want to set `percentile=1.0`. If you set it lower, then you might
+    choose `th_factor` slightly smaller than one to capture also smaller
+    peaks. Setting `percentile` slightly higher might not change the
+    estimated threshold too much, since you start incorporating the
+    noise floor with a large density, but you may want to set
+    `th_factor` larger than one to reduce false detections.
+
+    If `samplerate` and `win_size` is given, then the threshold is computed for
+    each non-overlapping window of duration `win_size` separately.
     In this case the returned threshold is an array of the same size as data.
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.

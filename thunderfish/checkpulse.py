@@ -28,7 +28,7 @@ except ImportError:
     pass
 
 
-def check_pulse_width(data, samplerate, th_factor=2.0, percentile=25.0,
+def check_pulse_width(data, samplerate, th_factor=0.8, percentile=1.0,
                       pulse_thresh=0.1, verbose=0, plot_data_func=None, **kwargs):
     """Detects if a fish is pulse- or wave-type based on the proportion of the time distance
     between a peak and its following trough, relative to the time between consecutive peaks.
@@ -339,7 +339,7 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
     ax.set_ylabel('Power [dB]', fontsize=fs)
 
 
-def add_check_pulse_width_config(cfg, th_factor=2.0, percentile=25.0, pulse_thresh=0.1):
+def add_check_pulse_width_config(cfg, th_factor=0.8, percentile=1.0, pulse_thresh=0.1):
     """ Add parameter needed for check_pulse_width() as
     a new section to a configuration.
 
