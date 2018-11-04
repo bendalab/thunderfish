@@ -143,13 +143,20 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
             usedax4 = True
         if axeod is ax5:
             usedax5 = True
-        pulse = True if props['type'] == 'pulse' else False
-        axeod.set_title('Average EOD of %.1f Hz %sfish'
-                        % (props['EODf'], props['type']), fontsize=14, y=1.05)
-        del props['type']
-        del props['EODf']
-        eod_waveform_plot(mean_eod, peaks, props, axeod, unit=unit)
-        if pulse:
+        axeod.set_title('Average EOD of {EODf:.1f} Hz {type}-type fish'.format(**props),
+                        fontsize=14, y=1.05)
+        if unit == 'a.u.':
+            unit = ''
+        eod_waveform_plot(mean_eod, peaks, axeod, unit)
+        props['unit'] = unit
+        label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
+        if props['flipped']:
+            label += 'flipped\n'
+        axeod.text(0.03, 0.97, label, transform = axeod.transAxes, va='top')
+        if props['type'] == 'wave':
+            lim = 750.0/props['EODf']
+            axeod.set_xlim([-lim, +lim])
+        else:
             break
 
     ################
