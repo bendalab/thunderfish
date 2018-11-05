@@ -4480,7 +4480,7 @@ def main():
     t_kwargs = grid_config_update(t_kwargs)
 
     if True:
-        t_kwargs['low_thresh_factor'] = 18.
+        t_kwargs['low_thresh_factor'] = 15.
         t_kwargs['high_thresh_factor'] = 20.
         t_kwargs['fresolution'] = 1.5
         t_kwargs['overlap_frac'] = .85
