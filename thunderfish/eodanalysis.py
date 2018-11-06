@@ -12,7 +12,7 @@
 import numpy as np
 from scipy.optimize import curve_fit
 from .eventdetection import percentile_threshold, detect_peaks, snippets
-from .powerspectrum import decibel
+from .powerspectrum import psd, nfft_noverlap, decibel
 
 
 def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
@@ -230,7 +230,7 @@ def analyze_wave(eod, freq, n_harm=6):
     return meod, props, spec_data
 
 
-def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1.0):
+def analyze_pulse(eod, eod_times, thresh_fac=0.01, fresolution=1.0, percentile=1.0):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -243,6 +243,8 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1.0):
         List of times of detected EOD peaks.
     thresh_fac: float
         Set the threshold for peak detection to the maximum pulse amplitude times this factor.
+    fresolution: float
+        The frequency resolution of the power spectrum of the single pulse.
     percentile: float
         Remove extreme values of the inter-pulse intervals when computing interval statistics.
         All intervals below the `percentile` and above the `100-percentile` percentile
@@ -274,6 +276,9 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1.0):
         peak index (1 is P1, i.e. the largest positive peak),
         time relative to largest positive peak, amplitude,
         and amplitude normalized to largest postive peak.
+    power: 2-D array
+        The power spectrum of a single pulse. First column are the frequencies,
+        second column the power in decibel scaled to the pulse rate.
     intervals: 1-D array
         List of inter-EOD intervals with extreme values removed.
     """
@@ -336,6 +341,19 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1.0):
     # analyze pulse timing:
     inter_pulse_intervals = np.diff(eod_times)
     period = np.mean(inter_pulse_intervals)
+
+    # power spectrum of single pulse:
+    samplerate = 1.0/(meod[1,0]-meod[0,0])
+    nfft, _ = nfft_noverlap(fresolution, samplerate)
+    n = len(meod)//4
+    nn = np.max([nfft, 2*n])
+    data = np.zeros(nn)
+    data[nn//2-n:nn//2+n] = meod[max_idx-n:max_idx+n,1]
+    power, freqs = psd(data, samplerate, fresolution)
+    # store and scale:
+    dbpower = np.zeros((len(freqs), 2))
+    dbpower[:,0] = freqs
+    dbpower[:,1] = decibel(power/period/period)
     
     # store properties:
     props = {}
@@ -357,7 +375,7 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, percentile=1.0):
         props['meaninterval'] = np.mean(intervals)
         props['stdinterval'] = np.std(intervals, ddof=1)
     
-    return meod, props, peaks, intervals
+    return meod, props, peaks, dbpower, intervals
 
 
 def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
