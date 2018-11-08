@@ -230,7 +230,8 @@ def analyze_wave(eod, freq, n_harm=6):
     return meod, props, spec_data
 
 
-def analyze_pulse(eod, eod_times, thresh_fac=0.01, fresolution=1.0, percentile=1.0):
+def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
+                  fresolution=1.0, percentile=1.0):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -243,6 +244,8 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, fresolution=1.0, percentile=1
         List of times of detected EOD peaks.
     thresh_fac: float
         Set the threshold for peak detection to the maximum pulse amplitude times this factor.
+    min_dist: float
+        Minimum distance between peak and troughs of the pulse.
     fresolution: float
         The frequency resolution of the power spectrum of the single pulse.
     percentile: float
@@ -278,7 +281,7 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, fresolution=1.0, percentile=1
         and amplitude normalized to largest postive peak.
     power: 2-D array
         The power spectrum of a single pulse. First column are the frequencies,
-        second column the power in decibel scaled to the pulse rate.
+        second column the power.
     intervals: 1-D array
         List of inter-EOD intervals with extreme values removed.
     """
@@ -326,9 +329,12 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, fresolution=1.0, percentile=1
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], max_ampl*thresh_fac)
     peak_l = np.sort(np.concatenate((peak_idx, trough_idx)))
-    # remove mutliple peaks:
-    peak_list = [prange[np.argmax(np.abs(meod[prange,1]))]
-                 for prange in np.split(peak_l, np.where(np.diff(meod[peak_l,1]>0.0)!=0)[0]+1)]
+    # remove mutliple peaks that do not oszillate around zero:
+    peak_list = np.array([prange[np.argmax(np.abs(meod[prange,1]))]
+                 for prange in np.split(peak_l, np.where(np.diff(meod[peak_l,1]>0.0)!=0)[0]+1)])
+    # remove multiple peaks that are too close and too small:
+    ridx = [(k, k+1) for k in np.where((np.diff(meod[peak_list,0]) < min_dist) & (meod[peak_list[:-1],1]<0.1))]
+    peak_list = np.delete(peak_list, ridx)
     # find P1:
     p1i = np.where(peak_list == max_idx)[0][0]
     offs = 0 if p1i <= 2 else p1i - 2
@@ -350,10 +356,9 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, fresolution=1.0, percentile=1
     data = np.zeros(nn)
     data[nn//2-n:nn//2+n] = meod[max_idx-n:max_idx+n,1]
     power, freqs = psd(data, samplerate, fresolution)
-    # store and scale:
-    dbpower = np.zeros((len(freqs), 2))
-    dbpower[:,0] = freqs
-    dbpower[:,1] = decibel(power/period/period)
+    ppower = np.zeros((len(freqs), 2))
+    ppower[:,0] = freqs
+    ppower[:,1] = power
     
     # store properties:
     props = {}
@@ -375,7 +380,7 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, fresolution=1.0, percentile=1
         props['meaninterval'] = np.mean(intervals)
         props['stdinterval'] = np.std(intervals, ddof=1)
     
-    return meod, props, peaks, dbpower, intervals
+    return meod, props, peaks, ppower, intervals
 
 
 def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
