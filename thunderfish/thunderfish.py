@@ -19,7 +19,7 @@ from .bestwindow import add_clip_config, add_best_window_config, clip_args, best
 from .bestwindow import clip_amplitudes, best_window_indices
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
-from .powerspectrum import plot_decibel_psd, multi_resolution_psd
+from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse, eod_waveform_plot
@@ -125,6 +125,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
     ############
 
     # plot psd
+    if len(spec_data) > 0 and len(spec_data[0]) > 0.0:
+        ax3.plot(spec_data[0][:,0], decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]), 'k', lw=1, alpha=0.2)
     if len(fishlist) > 0:
         colors, markers = colors_markers()
         plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12, sort_by_freq=True,
@@ -133,7 +135,6 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
                              frameon=False, bbox_to_anchor=(1.0, 1.1), loc='upper left',
                              title='EOD frequencies')
     plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq, color='blue')
-    #ax3.plot(spec_data[0][:,0], spec_data[0][:,1], 'r', lw=2)
     ax3.set_title('Powerspectrum (%d detected wave-fish)' % len(fishlist), y=1.05)
 
     ##########
@@ -165,12 +166,13 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
 
     ################
 
-    if not usedax5 and eod_props[0]['type'] == 'pulse':
+    if not usedax5 and len(eod_props) > 0 and eod_props[0]['type'] == 'pulse':
         usedax5 = True
-        smax = np.max(spec_data[0][:,1])
-        ax5.plot(spec_data[0][:,0], spec_data[0][:,1] - smax, 'b', lw=3)
-        ax5.set_xscale('log')
+        db = decibel(spec_data[0][:,1])
+        smax = np.nanmax(db)
+        ax5.plot(spec_data[0][:,0], db - smax, 'b', lw=3)
         ax5.set_xlim(1.0, 10000.0)
+        ax5.set_xscale('log')
         ax5.set_ylim(-60.0, 1.0)
         ax5.set_xlabel('Frequency [Hz]')
         ax5.set_ylabel('Power [dB]')
@@ -244,7 +246,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     cfg.add_section('Waveform selection:')
     cfg.add('maximumClippedFraction', 0.01, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
     cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the ampltude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
-    cfg.add('maximumSecondHarmonicAmplitude', 0.2, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
+    cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
     cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
     
     # load configuration from working directory and data directories:
@@ -335,50 +337,23 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                 print('  none')
         fishlists.append(fishlist)
     # filter the different fishlists to get a fishlist with consistent fishes:
-    filtered_fishlist = consistent_fishes(fishlists, df_th=cfg.value('frequencyThreshold'))
+    fishlist = consistent_fishes(fishlists, df_th=cfg.value('frequencyThreshold'))
     if verbose > 0:
-        if len(filtered_fishlist) > 0:
+        if len(fishlist) > 0:
             print('fundamental frequencies consistent in all power spectra:')
-            print('  ' + ' '.join(['%.1f' % freq[0, 0] for freq in filtered_fishlist]))
+            print('  ' + ' '.join(['%.1f' % freq[0, 0] for freq in fishlist]))
         else:
             print('no fundamental frequencies are consistent in all power spectra')
 
-    # remove multiples of pulse fish frequency from fishlist:
-    if pulse_fish:
-        fishlist = []
-        for fish in filtered_fishlist:
-            eodf = fish[0,0]
-            n = np.round(eodf*pulse_period)
-            pulse_eodf = n/pulse_period
-            if verbose > 0:
-                print('check wavefish at %.1f Hz versus %d-th harmonic of pulse frequency %.1f Hz at resolution of %.1f Hz'
-                      % (eodf, n, pulse_eodf, 0.5*n*deltaf))
-            # TODO: make the threshold a parameter!
-            if np.abs(eodf-pulse_eodf) > 0.5*n*deltaf:
-                fishlist.append(fish)
-            else:
-                if verbose > 0:
-                    print('removed frequency %.1f Hz, because it is multiple of pulsefish %.1f' % (eodf, pulse_eodf))
-    else:
-        fishlist = filtered_fishlist
-
-    # save fish frequencies and amplitudes:
-    if save_csvs and found_bestwindow:
-        if len(fishlist) > 0:
-            # write csv file with main EODf and corresponding power in dB of detected fishes:
-            csv_matrix = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
-            csv_name = os.path.join(output_folder, outfilename + '-wavefish-eodfs.csv')
-            header = ['fundamental frequency (Hz)', 'power (dB)']
-            write_csv(csv_name, header, csv_matrix)
-    #if pulse_fish:
-        # TODO: write frequency amd parameter of pulse-fish to -pulsefish_eodfs.csv
-        
-    # analyse eod waveform:
+    # analysis results:
     eod_props = []
     mean_eods = []
     spec_data = []
     peak_data = []
-    inter_eod_intervals = []
+    intervals = []
+    power_thresh = []
+    
+    # analyse eod waveform of pulse-fish:
     if pulse_fish:
         mean_eod_window = 0.002
         mean_eod, eod_times = \
@@ -386,13 +361,26 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
                          start=-mean_eod_window, stop=mean_eod_window)
-        mean_eod, props, peaks, power, inter_eod_intervals = analyze_pulse(mean_eod, eod_times,
-                                                                    fresolution=minfres)
+        mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times,
+                                                                 fresolution=minfres)
         # TODO: add config parameter to analyze_pulse
         mean_eods.append(mean_eod)
         spec_data.append(power)
         peak_data.append(peaks)
         eod_props.append(props)
+        power_thresh = np.zeros(power.shape)
+        power_thresh[:,0] = power[:,0]
+        power_thresh[:,1] = 5.0*props['EODf']**2.0 * power[:,1]
+
+    if len(power_thresh) > 0:
+        n = len(fishlist)
+        for k, fish in enumerate(reversed(fishlist)):
+            df = power_thresh[1,0] - power_thresh[0,0]
+            hfrac = float(np.sum(fish[:,1] < power_thresh[np.array(fish[:,0]//df, dtype=int),1]))/float(len(fish[:,1]))
+            if hfrac >= 0.5:
+                fishlist.pop(n-1-k)
+                if verbose > 0:
+                    print('removed frequency %.1f Hz, because %.0f%% of the harmonics where below pulsefish threshold' % (fish[0,0], 100.0*hfrac))        
 
     # analyse EOD waveform of all wavefish:
     powers = np.array([np.sum(fish[:cfg.value('powerNHarmonics'), 1])
@@ -428,10 +416,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         fishlist = []
         eod_props = []
         mean_eods = []
-        inter_eod_intervals = []
+        intervals = []
 
-    # write eod waveforms:
+    # write results to files:
     if save_csvs and found_bestwindow:
+        # eod waveforms:
         for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
             header = ['time (s)', 'mean', 'std']
             if mean_eod.shape[1] > 3:
@@ -440,7 +429,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                       header, mean_eod)
             if len(sdata)>0:
                 if sdata.shape[1] == 2:
-                    header = ['frequency (Hz)', 'power (dB)']
+                    header = ['frequency (Hz)', 'power']
                 else:
                     header = ['harmonics', 'frequency (Hz)', 'amplitude', 'phase']
                     if sdata.shape[1] > 4:
@@ -451,10 +440,17 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                 header = ['P', 'time (ms)', 'amplitude', 'relaampl']
                 write_csv(os.path.join(output_folder, outfilename + '-peaks-%d.csv' % i),
                           header, pdata)
+        # wavefish frequencies and amplitudes:
+        if len(fishlist) > 0:
+            # write csv file with main EODf and corresponding power in dB of detected fishes:
+            csv_matrix = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
+            csv_name = os.path.join(output_folder, outfilename + '-wavefish-eodfs.csv')
+            header = ['fundamental frequency (Hz)', 'power (dB)']
+            write_csv(csv_name, header, csv_matrix)
 
     if save_plot or not save_csvs:
         output_plot(outfilename, pulse_fish,
-                    inter_eod_intervals, raw_data, samplerate, idx0, idx1, fishlist,
+                    intervals, raw_data, samplerate, idx0, idx1, fishlist,
                     mean_eods, eod_props, peak_data, spec_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_csvs)
