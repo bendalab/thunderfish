@@ -82,11 +82,11 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
     """
 
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
-    ax1 = fig.add_axes([0.02, 0.9, 0.96, 0.1])  # title
-    ax2 = fig.add_axes([0.075, 0.05, 0.9, 0.1]) # whole trace
-    ax3 = fig.add_axes([0.075, 0.6, 0.7, 0.3])  # psd
-    ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])  # mean eod
-    ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])  # inter EOD histogram
+    ax1 = fig.add_axes([0.02, 0.9, 0.96, 0.1])   # title
+    ax2 = fig.add_axes([0.075, 0.06, 0.9, 0.09]) # whole trace
+    ax3 = fig.add_axes([0.075, 0.6, 0.7, 0.3])   # psd
+    ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])   # mean eod
+    ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pusle spectrum
     
     # plot title
     wavetitle = ""
@@ -168,12 +168,23 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
 
     if not usedax5 and len(eod_props) > 0 and eod_props[0]['type'] == 'pulse':
         usedax5 = True
+        box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='black', alpha=0.1)
+        ax5.add_patch(box)
+        att = eod_props[0]['lowfreqattenuation50']
+        ax5.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom')
+        box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='black', alpha=0.1)
+        ax5.add_patch(box)
+        att = eod_props[0]['lowfreqattenuation5']
+        ax5.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom')
         db = decibel(spec_data[0][:,1])
         smax = np.nanmax(db)
         ax5.plot(spec_data[0][:,0], db - smax, 'b', lw=3)
+        peakfreq = eod_props[0]['peakfrequency']
+        ax5.scatter([peakfreq], [0.0], c='b', edgecolors='b', s=80)
+        ax5.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom')
         ax5.set_xlim(1.0, 10000.0)
         ax5.set_xscale('log')
-        ax5.set_ylim(-60.0, 1.0)
+        ax5.set_ylim(-60.0, 2.0)
         ax5.set_xlabel('Frequency [Hz]')
         ax5.set_ylabel('Power [dB]')
         ax5.set_title('Single-pulse spectrum', fontsize=14, y=1.05)
