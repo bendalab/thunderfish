@@ -333,7 +333,8 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
     peak_list = np.array([prange[np.argmax(np.abs(meod[prange,1]))]
                  for prange in np.split(peak_l, np.where(np.diff(meod[peak_l,1]>0.0)!=0)[0]+1)])
     # remove multiple peaks that are too close and too small:
-    ridx = [(k, k+1) for k in np.where((np.diff(meod[peak_list,0]) < min_dist) & (meod[peak_list[:-1],1]<0.1))]
+    ridx = [(k, k+1) for k in np.where(np.diff(meod[peak_list,0]) < min_dist)]
+    #  & (meod[peak_list[:-1],1]<0.1)
     peak_list = np.delete(peak_list, ridx)
     # find P1:
     p1i = np.where(peak_list == max_idx)[0][0]
@@ -368,6 +369,9 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
     props['max-amplitude'] = max_ampl
     props['min-amplitude'] = min_ampl
     props['p-p-amplitude'] = ppampl
+    props['peakfrequency'] = freqs[np.argmax(power)]
+    props['lowfreqattenuation5'] = decibel(np.mean(power[freqs<5.0])/np.max(power))
+    props['lowfreqattenuation50'] = decibel(np.mean(power[freqs<50.0])/np.max(power))
     props['flipped'] = flipped
     props['n'] = len(eod_times)
 
@@ -427,16 +431,20 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
     if peaks is not None and len(peaks)>0:
         maxa = np.max(peaks[:,2])
         for p in peaks:
-            ax.scatter(1000.0*p[1], p[2], s=80,
+            ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False,
                        c=mkwargs['color'], edgecolors=mkwargs['color'])
             label = 'P%d' % p[0]
             if p[0] != 1:
                 label += '(%.0f%% @ %.0fus)' % (100.0*p[3], 1.0e6*p[1])
             va = 'bottom' if p[2] > 0.0 else 'top'
+            y = np.sign(p[2])*0.02*maxa
+            if p[0] == 1 or p[0] == 2:
+                va = 'bottom'
+                y = 0.0
             if p[1] >= 0.0:
-                ax.text(1000.0*p[1]+0.1, p[2]+np.sign(p[2])*0.05*maxa, label, ha='left', va=va)
+                ax.text(1000.0*p[1]+0.1, p[2]+y, label, ha='left', va=va)
             else:
-                ax.text(1000.0*p[1]-0.1, p[2]+np.sign(p[2])*0.05*maxa, label, ha='right', va=va)
+                ax.text(1000.0*p[1]-0.1, p[2]+y, label, ha='right', va=va)
     ax.set_xlabel('Time [msec]')
     if unit is not None and len(unit)>0:
         ax.set_ylabel('Amplitude [%s]' % unit)
