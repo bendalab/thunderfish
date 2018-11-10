@@ -16,7 +16,7 @@ from .version import __version__
 from .configfile import ConfigFile
 from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
-from .bestwindow import clip_amplitudes, best_window_indices
+from .bestwindow import clip_amplitudes, best_window_indices, plot_best_window
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
@@ -240,7 +240,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
 
 
 def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
-                output_folder='.', cfgfile='', save_config='', verbose=0):
+                output_folder='.', show_bestwindow=False, cfgfile='',
+                save_config='', verbose=0):
     # configuration options:
     cfg = ConfigFile()
     cfg.add_section('Power spectrum estimation:')
@@ -301,6 +302,17 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     max_clip = cfg.value('maxClipAmplitude')
     if min_clip == 0.0 or max_clip == 0.0:
         min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
+    if show_bestwindow:
+        fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
+        try:
+            best_window_indices(raw_data, samplerate,
+                                min_clip=min_clip, max_clip=max_clip,
+                                plot_data_func=plot_best_window, ax=ax,
+                                **best_window_args(cfg))
+            plt.show()
+        except UserWarning as e:
+            print('best_window: ' + str(e))
+        return
     try:
         idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
                                                   min_clip=min_clip, max_clip=max_clip,
@@ -487,6 +499,7 @@ def main():
                         help='save analysis results as csv-files')
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
                         help="path where to store results and figures")
+    parser.add_argument('-b', dest='show_bestwindow', action='store_true', help='show the cost function of the best window algorith,')
     args = parser.parse_args()
 
     # set verbosity level from command line:
@@ -494,8 +507,9 @@ def main():
     if args.verbose != None:
         verbose = args.verbose
 
-    msg = thunderfish(args.file, args.channel, args.save_csvs, args.save_plot, args.output_folder,
-                cfgfile, args.save_config, verbose=verbose)
+    msg = thunderfish(args.file, args.channel, args.save_csvs, args.save_plot,
+                      args.output_folder, args.show_bestwindow, cfgfile,
+                      args.save_config, verbose=verbose)
     if msg is not None:
         parser.error(msg)
 
