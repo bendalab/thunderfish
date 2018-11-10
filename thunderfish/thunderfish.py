@@ -10,7 +10,6 @@ import sys
 import os
 import argparse
 import numpy as np
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from .version import __version__
 from .configfile import ConfigFile
@@ -22,7 +21,8 @@ from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_p
 from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
-from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse, eod_waveform_plot
+from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
+from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot
 from .csvmaker import write_csv
 
 
@@ -126,7 +126,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
 
     # plot psd
     if len(spec_data) > 0 and len(spec_data[0]) > 0.0:
-        ax3.plot(spec_data[0][:,0], decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]), 'k', lw=1, alpha=0.2)
+        ax3.plot(spec_data[0][:,0], decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]), '#CCCCCC', lw=1)
     if len(fishlist) > 0:
         colors, markers = colors_markers()
         plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12, sort_by_freq=True,
@@ -168,27 +168,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
 
     if not usedax5 and len(eod_props) > 0 and eod_props[0]['type'] == 'pulse':
         usedax5 = True
-        box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='black', alpha=0.1)
-        ax5.add_patch(box)
-        att = eod_props[0]['lowfreqattenuation50']
-        ax5.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom')
-        box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='black', alpha=0.1)
-        ax5.add_patch(box)
-        att = eod_props[0]['lowfreqattenuation5']
-        ax5.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom')
-        db = decibel(spec_data[0][:,1])
-        smax = np.nanmax(db)
-        ax5.plot(spec_data[0][:,0], db - smax, 'b', lw=3)
-        peakfreq = eod_props[0]['peakfrequency']
-        ax5.scatter([peakfreq], [0.0], c='b', edgecolors='b', s=80)
-        ax5.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom')
-        ax5.set_xlim(1.0, 10000.0)
-        ax5.set_xscale('log')
-        ax5.set_ylim(-60.0, 2.0)
-        ax5.set_xlabel('Frequency [Hz]')
-        ax5.set_ylabel('Power [dB]')
-        ax5.set_title('Single-pulse spectrum', fontsize=14, y=1.05)
-        
+        pulse_spectrum_plot(spec_data[0], eod_props[0], ax5)
 
     ## # plot inter EOD interval histogram
     ## if len(inter_eod_intervals)>2:
