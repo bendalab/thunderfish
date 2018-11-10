@@ -6,11 +6,14 @@
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 
 ## Visualization
-- `eod_waveform_plot()`: plot the averaged waveform with standard deviation.
+- `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard deviation.
+- `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse.
 """
 
 import numpy as np
 from scipy.optimize import curve_fit
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets
 from .powerspectrum import psd, nfft_noverlap, decibel
 
@@ -360,6 +363,10 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
     ppower = np.zeros((len(freqs), 2))
     ppower[:,0] = freqs
     ppower[:,1] = power
+    maxpower = np.max(power)
+    att5 = decibel(np.mean(power[freqs<5.0])/maxpower)
+    att50 = decibel(np.mean(power[freqs<50.0])/maxpower)
+    lowcutoff = freqs[decibel(power/maxpower) > 0.5*att5][0]
     
     # store properties:
     props = {}
@@ -370,8 +377,9 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
     props['min-amplitude'] = min_ampl
     props['p-p-amplitude'] = ppampl
     props['peakfrequency'] = freqs[np.argmax(power)]
-    props['lowfreqattenuation5'] = decibel(np.mean(power[freqs<5.0])/np.max(power))
-    props['lowfreqattenuation50'] = decibel(np.mean(power[freqs<50.0])/np.max(power))
+    props['lowfreqattenuation5'] = att5
+    props['lowfreqattenuation50'] = att50
+    props['powerlowcutoff'] = lowcutoff
     props['flipped'] = flipped
     props['n'] = len(eod_times)
 
@@ -389,7 +397,7 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
 
 def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
                       mkwargs={'lw': 2, 'color': 'red'},
-                      skwargs={'alpha': 0.2, 'color': 'grey'},
+                      skwargs={'color': '#CCCCCC'},
                       fkwargs={'lw': 6, 'color': 'steelblue'}):
     """Plot mean eod and its standard deviation.
 
@@ -403,7 +411,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
         List of peak properties (index, time, and amplitude) of a EOD pulse
         as returned by `analyze_pulse()`.
     ax:
-        Axis for plot
+        Axis for plot.
     unit: string
         Optional unit of the data used for y-label.
     mkwargs: dict
@@ -452,6 +460,51 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
         ax.set_ylabel('Amplitude')
 
 
+
+def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
+    """Plot and annotate spectrum of single pulse.
+
+    Parameters
+    ----------
+    power: 2-D array
+        The power spectrum of a single pulse as returned by `analyze_pulse()`.
+        First column are the frequencies, second column the power.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform as
+        returned by `analyze_pulse()`.
+    ax:
+        Axis for plot.
+    color:
+        Color for line and points of spectrum.
+    lw: float
+        Linewidth for spectrum.
+    markersize: float
+        Size of points on spectrum.
+    """
+    box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='#DDDDDD')
+    ax.add_patch(box)
+    att = props['lowfreqattenuation50']
+    ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom')
+    box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='#CCCCCC')
+    ax.add_patch(box)
+    att = props['lowfreqattenuation5']
+    ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom')
+    lowcutoff = props['powerlowcutoff']
+    ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB')
+    ax.text(0.8*lowcutoff, 0.5*att+1.0, '%.0f Hz' % lowcutoff, ha='right', va='bottom')
+    db = decibel(power[:,1])
+    smax = np.nanmax(db)
+    ax.plot(power[:,0], db - smax, color, lw=lw)
+    peakfreq = props['peakfrequency']
+    ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize)
+    ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom')
+    ax.set_xlim(1.0, 10000.0)
+    ax.set_xscale('log')
+    ax.set_ylim(-60.0, 2.0)
+    ax.set_xlabel('Frequency [Hz]')
+    ax.set_ylabel('Power [dB]')
+
+        
 if __name__ == '__main__':
     import sys
     import matplotlib.pyplot as plt
