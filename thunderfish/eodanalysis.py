@@ -441,9 +441,9 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
         for p in peaks:
             ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False,
                        c=mkwargs['color'], edgecolors=mkwargs['color'])
-            label = 'P%d' % p[0]
+            label = u'P%d' % p[0]
             if p[0] != 1:
-                label += '(%.0f%% @ %.0fus)' % (100.0*p[3], 1.0e6*p[1])
+                label += u'(%.0f%% @ %.0f\u00b5s)' % (100.0*p[3], 1.0e6*p[1])
             va = 'bottom' if p[2] > 0.0 else 'top'
             y = np.sign(p[2])*0.02*maxa
             if p[0] == 1 or p[0] == 2:

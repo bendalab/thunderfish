@@ -169,6 +169,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
     if not usedax5 and len(eod_props) > 0 and eod_props[0]['type'] == 'pulse':
         usedax5 = True
         pulse_spectrum_plot(spec_data[0], eod_props[0], ax5)
+        ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
 
     ## # plot inter EOD interval histogram
     ## if len(inter_eod_intervals)>2:
