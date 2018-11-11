@@ -325,8 +325,25 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
     # amplitude:
     ppampl = max_ampl + min_ampl
 
+    # threshold for peak detection:
+    n = len(meod[:,1])*3//8
+    thl_max = 0.0
+    thl_min = 0.0
+    if max_idx - n > 10:
+        thl_max = np.max(meod[:max_idx-n,1])
+        thl_min = np.min(meod[:max_idx-n,1])
+    thr_max = 0.0
+    thr_min = 0.0
+    if len(meod[:,1]) - max_idx + n > 10:
+        thr_max = np.max(meod[len(meod[:,1]) - max_idx + n:,1])
+        thr_min = np.min(meod[len(meod[:,1]) - max_idx + n:,1])
+    min_thresh = 1.2*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
+    threshold = max_ampl*thresh_fac
+    if threshold < min_thresh:
+        threshold = min_thresh
+    
     # find smaller peaks:
-    peak_idx, trough_idx = detect_peaks(meod[:,1], max_ampl*thresh_fac)
+    peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
     peak_l = np.sort(np.concatenate((peak_idx, trough_idx)))
     # remove mutliple peaks that do not oszillate around zero:
     peak_list = np.array([prange[np.argmax(np.abs(meod[prange,1]))]
