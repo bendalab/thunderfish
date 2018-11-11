@@ -78,7 +78,7 @@ def detect_peaks(data, threshold):
     troughs_list = []
 
     # initialize:
-    dir = 0
+    direction = 0
     min_inx = 0
     max_inx = 0
     min_value = data[0]
@@ -91,7 +91,7 @@ def detect_peaks(data, threshold):
             thresh = threshold[index]
 
         # rising?
-        if dir > 0:
+        if direction > 0:
             if value > max_value:
                 # update maximum element:
                 max_inx = index
@@ -102,13 +102,13 @@ def detect_peaks(data, threshold):
             elif value <= max_value - thresh:
                 peaks_list.append(max_inx)
                 # change direction:
-                dir = -1
+                direction = -1
                 # store minimum element:
                 min_inx = index
                 min_value = value
 
         # falling?
-        elif dir < 0:
+        elif direction < 0:
             if value < min_value:
                 # update minimum element:
                 min_inx = index
@@ -119,7 +119,7 @@ def detect_peaks(data, threshold):
             elif value >= min_value + thresh:
                 troughs_list.append(min_inx)
                 # change direction:
-                dir = +1
+                direction = +1
                 # store maximum element:
                 max_inx = index
                 max_value = value
@@ -127,9 +127,9 @@ def detect_peaks(data, threshold):
         # don't know direction yet:
         else:
             if value <= max_value - thresh:
-                dir = -1  # falling
+                direction = -1  # falling
             elif value >= min_value + thresh:
-                dir = 1  # rising
+                direction = 1  # rising
                 
             if value > max_value:
                 # update maximum element:
@@ -143,6 +143,53 @@ def detect_peaks(data, threshold):
     return np.asarray(peaks_list), np.asarray(troughs_list)
 
 
+def detect_peaks_fast(data, threshold):
+    """Experimental. Try to make algorithm faster.
+
+    Yeah, this is more than three times as fast as detect_peaks() with the for loops!
+    """
+
+    peaks_list = []
+    troughs_list = []
+
+    # initialize:
+    max_value = np.maximum.accumulate(data)
+    min_value = np.minimum.accumulate(data)
+    falling_idx = np.where(data <= max_value - threshold)[0]
+    raising_idx = np.where(data >= min_value + threshold)[0]
+    direction = 1
+    if len(falling_idx) > 0 and (len(raising_idx) == 0 or falling_idx[0] < raising_idx[0]):
+        direction = -1
+        index = falling_idx[0]
+    else:
+        index = raising_idx[0]
+    # find peaks and troughs:
+    while index < len(data):
+        if direction > 0:
+            max_value = np.maximum.accumulate(data[index:])
+            idx = np.argmax(data[index:] <= max_value - threshold)
+            if data[index+idx] <= max_value[idx] - threshold:
+                indices = np.where(max_value[:idx] != max_value[idx])[0]
+                if len(indices) > 0:
+                    index += indices[-1] + 1
+                    peaks_list.append(index)
+                    direction = -1
+                    continue
+        else:
+            min_value = np.minimum.accumulate(data[index:])
+            idx = np.argmax(data[index:] >= min_value + threshold)
+            if data[index+idx] >= min_value[idx] + threshold:
+                indices = np.where(min_value[:idx] != min_value[idx])[0]
+                if len(indices) > 0:
+                    index += indices[-1] + 1
+                    troughs_list.append(index)
+                    direction = +1
+                    continue
+        break
+
+    return np.asarray(peaks_list), np.asarray(troughs_list)
+
+    
 def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
     """
     Compute for each peak its size and width.
@@ -827,7 +874,7 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
     troughs_list = list()
 
     # initialize:
-    dir = 0
+    direction = 0
     min_inx = 0
     max_inx = 0
     min_value = data[0]
@@ -846,7 +893,7 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
             threshold += (min_thresh - threshold) * (time[idx + 1] - time[idx]) / tau
 
         # rising?
-        if dir > 0:
+        if direction > 0:
             # if the new value is bigger than the old maximum: set it as new maximum:
             if value > max_value:
                 max_inx = index  # maximum element
@@ -877,10 +924,10 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
                 # change direction:
                 min_inx = index  # minimum element
                 min_value = value
-                dir = -1
+                direction = -1
 
         # falling?
-        elif dir < 0:
+        elif direction < 0:
             if value < min_value:
                 min_inx = index  # minimum element
                 min_value = value
@@ -910,14 +957,14 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
                 # change direction:
                 max_inx = index  # maximum element
                 max_value = value
-                dir = 1
+                direction = 1
 
         # don't know direction yet:
         else:
             if max_value >= value + threshold:
-                dir = -1  # falling
+                direction = -1  # falling
             elif value >= min_value + threshold:
-                dir = 1  # rising
+                direction = 1  # rising
 
             if max_value < value:
                 max_inx = index  # maximum element
@@ -996,6 +1043,11 @@ if __name__ == "__main__":
     print('')
     print('check detect_peaks(data, 1.0)...')
     peaks, troughs = detect_peaks(data, 1.0)
+    print(peaks)
+    print(troughs)
+    p, t = detect_peaks_fast(data, 1.0)
+    print(p)
+    print(t)
     # print peaks:
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (
         len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks)) / np.mean(np.diff(time))))
@@ -1016,3 +1068,17 @@ if __name__ == "__main__":
 
     plt.ylim(-0.5, 4.0)
     plt.show()
+
+    # check the faster algorithm:
+    import timeit
+    def wrapper(func, *args, **kwargs):
+        def wrapped():
+            return func(*args, **kwargs)
+        return wrapped
+    wrapped = wrapper(detect_peaks, data, 1.0)
+    t1 = timeit.timeit(wrapped, number=200)
+    print(t1)
+    wrapped = wrapper(detect_peaks_fast, data, 1.0)
+    t2 = timeit.timeit(wrapped, number=200)
+    print(t2)
+    print('new algorithm takes %.0f%% of old algorithm' % (100.0*t2/t1))
