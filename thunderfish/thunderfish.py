@@ -147,7 +147,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
             usedax5 = True
         axeod.set_title('Average EOD of {EODf:.1f} Hz {type}-type fish'.format(**props),
                         fontsize=14, y=1.05)
-        if unit == 'a.u.':
+        if len(unit) == 0 or unit == 'a.u.':
             unit = ''
         eod_waveform_plot(mean_eod, peaks, axeod, unit)
         props['unit'] = unit

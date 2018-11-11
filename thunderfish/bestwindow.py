@@ -189,7 +189,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     First, large peaks and troughs of the data are detected.  Peaks and
     troughs have to be separated in amplitude by at least the value of a
     dynamic threshold.  The threshold is computed in `win_shift` wide
-    windows as `thresh_ampl_fac` times the interpercentile range at
+    windows as `th_factor` times the interpercentile range at
     the `percentile`-th and 100.0-`percentile`-th percentile of the data
     using the `eventdetection.percentile_threshold()` function.
 
@@ -534,7 +534,7 @@ def plot_best_data(data, samplerate, unit, idx0, idx1, clipped, ax,
     ax.text(time[(idx0+idx1)//2], 0.0, label, ha='center', va='center')
     ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [sec]')
-    if unit == 'a.u.':
+    if len(unit) == 0 or unit == 'a.u.':
         ax.set_ylabel('Amplitude')
     else:
         ax.set_ylabel('Amplitude [%s]' % unit)
