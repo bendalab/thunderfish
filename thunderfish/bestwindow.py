@@ -179,9 +179,9 @@ def clip_args(cfg, rate):
     return a
 
 
-def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                        th_factor=0.8, percentile=1.0, min_clip=-np.inf, max_clip=np.inf,
-                        w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
+def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.5,
+                        th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
+                        w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.2,
                         plot_data_func=None, **kwargs):
     """Find the window within data most suitable for subsequent analysis.
     
@@ -307,7 +307,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     # compute cv of intervals, mean peak amplitude and its cv:
     invalid_cv = 1000.0
     win_size_indices = int(win_size * samplerate)
-    win_start_inxs = np.arange(0, len(data) - win_size_indices, int(win_shift * samplerate))
+    win_start_inxs = np.arange(0, len(data) - win_size_indices, int(0.5*win_shift*samplerate))
     cv_interv = np.zeros(len(win_start_inxs))
     mean_ampl = np.zeros(len(win_start_inxs))
     cv_ampl = np.zeros(len(win_start_inxs))
@@ -385,16 +385,16 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
     clipped = np.mean(clipped_frac[win_idx0:win_idx1])
 
     if plot_data_func:
-        plot_data_func(data, samplerate, peak_idx, trough_idx, idx0, idx1,
+        plot_data_func(data, samplerate, threshold, peak_idx, trough_idx, idx0, idx1,
                        win_start_inxs / samplerate, cv_interv, mean_ampl, cv_ampl, clipped_frac,
                        cost, thresh, win_idx0, win_idx1, **kwargs)
 
     return idx0, idx1, clipped
 
 
-def best_window_times(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                      th_factor=0.8, percentile=1.0, min_clip=-np.inf, max_clip=np.inf,
-                      w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
+def best_window_times(data, samplerate, single=True, win_size=1., win_shift=0.5,
+                      th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
+                      w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.2,
                       plot_data_func=None, **kwargs):
     """Find the window within data most suitable for subsequent analysis.
 
@@ -418,9 +418,9 @@ def best_window_times(data, samplerate, single=True, win_size=1., win_shift=0.1,
     return start_inx / samplerate, end_inx / samplerate, clipped
 
 
-def best_window(data, samplerate, single=True, win_size=1., win_shift=0.1,
-                th_factor=0.8, percentile=1.0, min_clip=-np.inf, max_clip=np.inf,
-                w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.5,
+def best_window(data, samplerate, single=True, win_size=1., win_shift=0.5,
+                th_factor=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
+                w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.2,
                 plot_data_func=None, **kwargs):
     """Find the window within data most suitable for subsequent analysis.
 
@@ -442,7 +442,7 @@ def best_window(data, samplerate, single=True, win_size=1., win_shift=0.1,
     return data[start_inx:end_inx], clipped
 
 
-def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
+def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
                      win_times, cv_interv, mean_ampl, cv_ampl, clipped_frac,
                      cost, thresh, win_idx0, win_idx1, ax):
     """Visualize the cost function of used for finding the best window for analysis.
@@ -451,13 +451,14 @@ def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
     """
     # raw data:
     time = np.arange(0.0, len(data)) / rate
-    ax[0].plot(time, data, lw=3)
+    ax[0].plot(time, data, 'b', lw=3)
     if np.mean(clipped_frac[win_idx0:win_idx1]) > 0.01:
         ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='magenta', lw=3)
     else:
         ax[0].plot(time[idx0:idx1], data[idx0:idx1], color='grey', lw=3)
     ax[0].plot(time[peak_idx], data[peak_idx], 'o', mfc='red', ms=6)
     ax[0].plot(time[trough_idx], data[trough_idx], 'o', mfc='green', ms=6)
+    ax[0].plot(time, threshold, '#CCCCCC', lw=2)
     up_lim = np.max(data) * 1.05
     down_lim = np.min(data) * .95
     ax[0].set_ylim((down_lim, up_lim))
@@ -497,11 +498,11 @@ def plot_best_window(data, rate, peak_idx, trough_idx, idx0, idx1,
     ax[4].set_xlabel('Time [sec]')
 
     
-def add_best_window_config(cfg, single=True, win_size=1., win_shift=0.1,
-                           th_factor=0.8, percentile=1.0,
+def add_best_window_config(cfg, single=True, win_size=1., win_shift=0.5,
+                           th_factor=0.8, percentile=0.1,
                            min_clip=-np.inf, max_clip=np.inf,
                            w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
-                           tolerance=0.5):
+                           tolerance=0.2):
     """ Add parameter needed for the best_window() functions as
     a new section to a configuration dictionary.
 
@@ -514,11 +515,11 @@ def add_best_window_config(cfg, single=True, win_size=1., win_shift=0.1,
     """
 
     cfg.add_section('Best window detection:')
-    cfg.add('bestWindowSize', win_size, 's', 'Size of the best window.')
+    cfg.add('bestWindowSize', win_size, 's', 'Size of the best window. This should be much larger than the expected period of the signal.')
     cfg.add('bestWindowShift', win_shift, 's',
-            'Increment for shifting the analysis windows trough the data.')
+            'Increment for shifting the analysis windows trough the data. Should be larger than the expected period of the signal.')
     cfg.add('bestWindowThresholdPercentile', percentile, '%',
-            'Percentile for estimating interpercentile range.')
+            'Percentile for estimating interpercentile range. Should be smaller than the duty cycle of the periodic signal.')
     cfg.add('bestWindowThresholdFactor', th_factor, '',
             'Threshold for detecting peaks is interperecntile range of the data times this factor.')
     cfg.add('weightCVInterval', w_cv_interv, '',
@@ -605,7 +606,7 @@ if __name__ == "__main__":
     # compute best window:
     print("call bestwindow() function...")
     best_window_indices(data, rate, single=True,
-                        win_size=4.0, win_shift=0.5, th_factor=0.8, percentile=1.0,
+                        win_size=4.0, win_shift=0.5, th_factor=0.8, percentile=0.1,
                         min_clip=min_clip, max_clip=max_clip,
                         w_cv_ampl=10.0, tolerance=0.5,
                         plot_data_func=plot_best_window, ax=ax)

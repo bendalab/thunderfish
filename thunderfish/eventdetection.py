@@ -48,6 +48,8 @@ def detect_peaks(data, threshold):
     threshold: float or array
         A positive number or array of numbers setting the detection threshold,
         i.e. the minimum distance between peaks and troughs.
+        In case of an array make sure that the threshold does not change faster
+        than the expected intervals between peaks and troughs.
     
     Returns
     -------
@@ -72,8 +74,8 @@ def detect_peaks(data, threshold):
     elif len(data) != len(threshold):
         raise IndexError('input arrays data and threshold must have same length!')
 
-    peaks_list = list()
-    troughs_list = list()
+    peaks_list = []
+    troughs_list = []
 
     # initialize:
     dir = 0
@@ -90,48 +92,52 @@ def detect_peaks(data, threshold):
 
         # rising?
         if dir > 0:
-            # if the new value is bigger than the old maximum: set it as new maximum:
             if value > max_value:
-                max_inx = index  # maximum element
+                # update maximum element:
+                max_inx = index
                 max_value = value
-
-            # otherwise, if the new value is falling below the maximum value minus the threshold:
+            # otherwise, if the new value is falling below
+            # the maximum value minus the threshold:
             # the maximum is a peak!
-            elif max_value >= value + thresh:
-                # this is a peak:
+            elif value <= max_value - thresh:
                 peaks_list.append(max_inx)
                 # change direction:
-                min_inx = index  # minimum element
-                min_value = value
                 dir = -1
+                # store minimum element:
+                min_inx = index
+                min_value = value
 
         # falling?
         elif dir < 0:
             if value < min_value:
-                min_inx = index  # minimum element
+                # update minimum element:
+                min_inx = index
                 min_value = value
-
+            # otherwise, if the new value is rising above
+            # the minimum value plus the threshold:
+            # the minimum is a trough!
             elif value >= min_value + thresh:
-                # there was a trough:
                 troughs_list.append(min_inx)
                 # change direction:
-                max_inx = index  # maximum element
+                dir = +1
+                # store maximum element:
+                max_inx = index
                 max_value = value
-                dir = 1
 
         # don't know direction yet:
         else:
-            if max_value >= value + thresh:
+            if value <= max_value - thresh:
                 dir = -1  # falling
             elif value >= min_value + thresh:
                 dir = 1  # rising
-
-            if max_value < value:
-                max_inx = index  # maximum element
+                
+            if value > max_value:
+                # update maximum element:
+                max_inx = index
                 max_value = value
-
             elif value < min_value:
-                min_inx = index  # minimum element
+                # update minimum element:
+                min_inx = index
                 min_value = value
 
     return np.asarray(peaks_list), np.asarray(troughs_list)
@@ -487,7 +493,7 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
     captures 68% of the data, `th_factor=4.0` captures 95%, and `th_factor=6.0` 99.7%.
 
     If `samplerate` and `win_size` is given, then the threshold is computed for
-    each non-overlapping window of duration `win_size` separately.
+    each half-overlapping window of duration `win_size` separately.
     In this case the returned threshold is an array of the same size as data.
     Without a `samplerate` and `win_size` a single threshold value determined from
     the whole data array is returned.
@@ -513,7 +519,7 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
         threshold = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
 
-        for inx0 in range(0, len(data), win_size_indices):
+        for inx0 in range(0, len(data), win_size_indices//2):
             inx1 = inx0 + win_size_indices
             std = np.std(data[inx0:inx1], ddof=1)
             threshold[inx0:inx1] = std * th_factor
@@ -533,7 +539,7 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
     However, you need enough data to robustly estimate the histogram.
 
     If `samplerate` and `win_size` is given, then the threshold is computed for
-    each non-overlapping window of duration `win_size` separately.
+    each half-overlapping window of duration `win_size` separately.
     In this case the returned threshold is an array of the same size as data.
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
@@ -566,7 +572,7 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
         centers = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
 
-        for inx0 in range(0, len(data), win_size_indices):
+        for inx0 in range(0, len(data), win_size_indices//2):
             inx1 = inx0 + win_size_indices
             std, center = hist_threshold(data[inx0:inx1], samplerate=None, win_size=None,
                                          th_factor=th_factor, nbins=nbins,
@@ -598,7 +604,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
     minimum value of the data multiplied with `th_factor`.
 
     If `samplerate` and `win_size` is given, then the threshold is computed for
-    each non-overlapping window of duration `win_size` separately.
+    each half-overlapping window of duration `win_size` separately.
     In this case the returned threshold is an array of the same size as data.
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
@@ -624,7 +630,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
         threshold = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
 
-        for inx0 in range(0, len(data), win_size_indices):
+        for inx0 in range(0, len(data), win_size_indices//2):
             inx1 = inx0 + win_size_indices
             window_min = np.min(data[inx0:inx1])
             window_max = np.max(data[inx0:inx1])
@@ -653,16 +659,16 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=1.0, pe
     `hist_threhsold()`. For example, if you expect peaks that you want
     to detect using `detect_peaks()` at an average rate of 10Hz and
     these peaks are about 1ms wide, then you have a 1ms peak per 100ms
-    period, i.e. the peaks make up 1% of the distribution. So you might
-    want to set `percentile=1.0`. If you set it lower, then you might
-    choose `th_factor` slightly smaller than one to capture also smaller
-    peaks. Setting `percentile` slightly higher might not change the
-    estimated threshold too much, since you start incorporating the
+    period, i.e. the peaks make up 1% of the distribution. So you should
+    set `percentile=1.0` or lower. For much lower percentile values, you
+    might choose `th_factor` slightly smaller than one to capture also
+    smaller peaks. Setting `percentile` slightly higher might not change
+    the estimated threshold too much, since you start incorporating the
     noise floor with a large density, but you may want to set
     `th_factor` larger than one to reduce false detections.
 
     If `samplerate` and `win_size` is given, then the threshold is computed for
-    each non-overlapping window of duration `win_size` separately.
+    each half-overlapping window of duration `win_size` separately.
     In this case the returned threshold is an array of the same size as data.
     Without a samplerate and win_size a single threshold value determined from
     the whole data array is returned.
@@ -689,7 +695,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=1.0, pe
         threshold = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
 
-        for inx0 in range(0, len(data), win_size_indices):
+        for inx0 in range(0, len(data), win_size_indices//2):
             inx1 = inx0 + win_size_indices
             threshold[inx0:inx1] = np.squeeze(np.abs(np.diff(
                 np.percentile(data[inx0:inx1], [100.0 - percentile, percentile])))) * th_factor
