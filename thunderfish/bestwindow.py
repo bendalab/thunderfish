@@ -18,6 +18,7 @@ most stable signal of largest amplitude that is not clipped.
 ## Visualization of the algorithms
 - `plot_clipping()`: visualization of the algorithm for detecting clipped amplitudes in clip_amplitudes().
 - `plot_best_window()`: visualization of the algorithm used in best_window_indices().
+- `plot_best_data()`: plot the data and the selected best window.
 """
 
 import numpy as np
@@ -344,7 +345,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
             cv_ampl[i] = invalid_cv
 
     # check:
-    if len(mean_ampl[mean_ampl > 0.0]) < 0.0:
+    if len(mean_ampl[mean_ampl >= 0.0]) < 0:
         raise UserWarning('no finite amplitudes detected')
     if len(cv_interv[cv_interv < invalid_cv]) <= 0:
         raise UserWarning('no valid interval cv detected')
@@ -497,7 +498,48 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
     ax[4].set_ylabel('Cost')
     ax[4].set_xlabel('Time [sec]')
 
-    
+
+def plot_best_data(data, samplerate, unit, idx0, idx1, clipped, ax,
+                   data_color='blue', window_color='red'):
+    """Plot the data and mark the best window.
+
+    Parameters
+    ----------
+    data: 1-D array
+        The full data trace.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        The unit of the data.
+    idx0: int
+        Start index of the best window.
+    idx1: int
+        Stop index of the best window.
+    clipped: float
+        Fraction of clipped peaks.
+    ax:
+        Axis for plotting.
+    data_color:
+        Color used for plotting the data trace.
+    window_color:
+        Color used for plotting the selected best window.
+    """
+    time = np.arange(len(data)) / samplerate
+    ax.plot(time[:idx0], data[:idx0], color=data_color)
+    ax.plot(time[idx1:], data[idx1:], color=data_color)
+    ax.plot(time[idx0:idx1], data[idx0:idx1], color=window_color)
+    label = 'analysis\nwindow'
+    if clipped > 0.0:
+        label += '\n%.0f%% clipped' % (100.0*clipped)
+    ax.text(time[(idx0+idx1)//2], 0.0, label, ha='center', va='center')
+    ax.set_xlim(time[0], time[-1])
+    ax.set_xlabel('Time [sec]')
+    if unit == 'a.u.':
+        ax.set_ylabel('Amplitude')
+    else:
+        ax.set_ylabel('Amplitude [%s]' % unit)
+
+        
 def add_best_window_config(cfg, single=True, win_size=1., win_shift=0.5,
                            th_factor=0.8, percentile=0.1,
                            min_clip=-np.inf, max_clip=np.inf,
