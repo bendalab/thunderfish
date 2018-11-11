@@ -538,22 +538,25 @@ if __name__ == '__main__':
     # data:
     if len(sys.argv) <= 1:
         samplerate = 44100.0
-        data = generate_biphasic_pulses(80.0, samplerate, 5.0, noise_std=0.02)
+        data = generate_biphasic_pulses(200.0, samplerate, 5.0, noise_std=0.02)
         unit = 'mV'
     else:
         rawdata, samplerate, unit = load_data(sys.argv[1], 0)
         data, _ = best_window(rawdata, samplerate)
 
     # analyse EOD:
-    mean_eod, eod_times = eod_waveform(data, samplerate, start=-0.002, stop=0.002)
-    mean_eod, props, peaks, inter_eod_intervals = analyze_pulse(mean_eod, eod_times)
+    mean_eod, eod_times = eod_waveform(data, samplerate)
+    mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times)
 
     # plot:
-    fig, ax = plt.subplots()
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 2, 1)
     eod_waveform_plot(mean_eod, peaks, ax, unit=unit)
     props['unit'] = unit
     label = '{type}-type fish\nEODf = {EODf:.1f} Hz\np-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
     if props['flipped']:
         label += 'flipped\n'
-    plt.text(0.03, 0.97, label, transform = ax.transAxes, va='top')
+    ax.text(0.03, 0.97, label, transform = ax.transAxes, va='top')
+    ax = fig.add_subplot(1, 2, 2)
+    pulse_spectrum_plot(power, props, ax)
     plt.show()
