@@ -344,7 +344,7 @@ def best_window_indices(data, samplerate, single=True, win_size=1., win_shift=0.
             cv_ampl[i] = invalid_cv
 
     # check:
-    if len(mean_ampl[mean_ampl > 0.0]) <= 0:
+    if len(mean_ampl[mean_ampl > 0.0]) < 0.0:
         raise UserWarning('no finite amplitudes detected')
     if len(cv_interv[cv_interv < invalid_cv]) <= 0:
         raise UserWarning('no valid interval cv detected')
