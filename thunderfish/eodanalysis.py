@@ -19,7 +19,7 @@ from .powerspectrum import psd, nfft_noverlap, decibel
 
 
 def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
-                 period=None, start=None, stop=None):
+                 win_fac=2.0, min_win=0.01, period=None):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard deviation.
 
@@ -35,12 +35,12 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
     th_factor: float
         th_factor parameter for the eventdetection.percentile_threshold() function used to
         estimate thresholds for detecting EOD peaks in the data.
+    win_fac: float
+        The snippet size is the period times `win_fac`.
+    min_win: float
+        The minimum size of the snippets.
     period: float or None
         Average waveforms with this period instead of peak times.
-    start: float or None
-        Start time of EOD snippets relative to peak.
-    stop: float or None
-        Stop time of EOD snippets relative to peak.
     
     Returns
     -------
@@ -65,21 +65,17 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
         eod_times = np.arange(0.0, len(data)/samplerate, period)
         eod_idx = np.asarray(eod_times * samplerate, dtype=int)
 
-    # start and stop times:
-    if start is None or stop is None:
-        tmp_period = period
-        if tmp_period is None:
-            tmp_period = np.mean(np.diff(eod_times))
-        if start is None:
-            start = -1.5*tmp_period
-        if stop is None:
-            stop = 1.5*tmp_period
-    # start and stop indices:
-    start_inx = int(start * samplerate)
-    stop_inx = int(stop * samplerate)
+    # window size:
+    tmp_period = period
+    if tmp_period is None:
+        tmp_period = np.mean(np.diff(eod_times))
+    win = 0.5*win_fac*tmp_period
+    if 2*win < min_win:
+        win = 0.5*min_win
+    win_inx = int(win * samplerate)
 
     # extract snippets:
-    eod_snippets = snippets(data, eod_idx, start_inx, stop_inx)
+    eod_snippets = snippets(data, eod_idx, -win_inx, win_inx)
 
     # mean and std of snippets:
     mean_eod = np.zeros((len(eod_snippets[0]), 3))
@@ -87,7 +83,7 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
     mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
 
     # time axis:
-    mean_eod[:,0] = (np.arange(len(mean_eod)) + start_inx) / samplerate
+    mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / samplerate
     
     return mean_eod, eod_times
 
@@ -443,16 +439,20 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
                        c=mkwargs['color'], edgecolors=mkwargs['color'])
             label = u'P%d' % p[0]
             if p[0] != 1:
-                label += u'(%.0f%% @ %.0f\u00b5s)' % (100.0*p[3], 1.0e6*p[1])
+                if p[1] < 0.001:
+                    label += u'(%.0f%% @ %.0f\u00b5s)' % (100.0*p[3], 1.0e6*p[1])
+                else:
+                    label += u'(%.0f%% @ %.3gms)' % (100.0*p[3], 1.0e3*p[1])
             va = 'bottom' if p[2] > 0.0 else 'top'
             y = np.sign(p[2])*0.02*maxa
             if p[0] == 1 or p[0] == 2:
                 va = 'bottom'
                 y = 0.0
+            dx = 0.05*time[-1]
             if p[1] >= 0.0:
-                ax.text(1000.0*p[1]+0.1, p[2]+y, label, ha='left', va=va)
+                ax.text(1000.0*p[1]+dx, p[2]+y, label, ha='left', va=va)
             else:
-                ax.text(1000.0*p[1]-0.1, p[2]+y, label, ha='right', va=va)
+                ax.text(1000.0*p[1]-dx, p[2]+y, label, ha='right', va=va)
     ax.set_xlabel('Time [msec]')
     if unit is not None and len(unit)>0:
         ax.set_ylabel('Amplitude [%s]' % unit)
@@ -491,7 +491,7 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
     ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom')
     lowcutoff = props['powerlowcutoff']
     ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB')
-    ax.text(0.8*lowcutoff, 0.5*att+1.0, '%.0f Hz' % lowcutoff, ha='right', va='bottom')
+    ax.text(1.2*lowcutoff, 0.5*att-1.0, '%.0f Hz' % lowcutoff, ha='left', va='top')
     db = decibel(power[:,1])
     smax = np.nanmax(db)
     ax.plot(power[:,0], db - smax, color, lw=lw)

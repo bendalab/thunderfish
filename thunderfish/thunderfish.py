@@ -359,12 +359,11 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     
     # analyse eod waveform of pulse-fish:
     if pulse_fish:
-        mean_eod_window = 0.002
         mean_eod, eod_times = \
             eod_waveform(data, samplerate,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
-                         start=-mean_eod_window, stop=mean_eod_window)
+                         win_fac=0.05, min_win=0.004)
         mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times,
                                                                  fresolution=minfres)
         # TODO: add config parameter to analyze_pulse
@@ -395,7 +394,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             eod_waveform(data, samplerate,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
-                         period=1.0/fish[0,0])
+                         win_fac=3.0, min_win=0.0, period=1.0/fish[0,0])
         mean_eod, props, sdata = analyze_wave(mean_eod, fish)
         props['n'] = len(eod_times)
         # add good waveforms only:
