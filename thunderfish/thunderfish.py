@@ -15,7 +15,7 @@ from .version import __version__
 from .configfile import ConfigFile
 from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
-from .bestwindow import clip_amplitudes, best_window_indices, plot_best_window
+from .bestwindow import clip_amplitudes, best_window_indices, plot_best_window, plot_best_data
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
@@ -26,8 +26,8 @@ from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot
 from .csvmaker import write_csv
 
 
-def output_plot(base_name, pulse_fish, inter_eod_intervals,
-                raw_data, samplerate, idx0, idx1, fishlist, mean_eods, eod_props, peak_data,
+def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate, idx0, idx1,
+                clipped, fishlist, mean_eods, eod_props, peak_data,
                 spec_data, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
                 output_folder='', save_plot=False, show_plot=False):
     """
@@ -54,6 +54,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
         Index of the beginning of the analysis window in the dataset.
     idx1: float
         Index of the end of the analysis window in the dataset.
+    clipped: float
+        Fraction of clipped amplitudes.
     fishlist: array
         Frequency and power of fundamental frequency/harmonics of several fish.
     mean_eods: list of 2-D arrays with time, mean and std.
@@ -111,17 +113,12 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals,
     ax1.set_frame_on(False)
     ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_visible(False)
+
     ############
 
     # plot trace
-    time = np.arange(len(raw_data)) / samplerate
-    ax2.plot(time[:idx0], raw_data[:idx0], color='blue')
-    ax2.plot(time[idx1:], raw_data[idx1:], color='blue')
-    ax2.plot(time[idx0:idx1], raw_data[idx0:idx1], color='red', label='analysis\nwindow')
-    ax2.text(time[(idx0+idx1)//2], 0.0, 'analysis\nwindow', ha='center', va='center')
-    ax2.set_xlim(time[0], time[-1])
-    ax2.set_xlabel('Time [sec]')
-    ax2.set_ylabel('Amplitude [a.u.]')
+    plot_best_data(raw_data, samplerate, unit, idx0, idx1, clipped, ax2)
+    
     ############
 
     # plot psd
@@ -453,7 +450,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
 
     if save_plot or not save_csvs:
         output_plot(outfilename, pulse_fish,
-                    intervals, raw_data, samplerate, idx0, idx1, fishlist,
+                    intervals, raw_data, samplerate, idx0, idx1, clipped, fishlist,
                     mean_eods, eod_props, peak_data, spec_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_csvs)
