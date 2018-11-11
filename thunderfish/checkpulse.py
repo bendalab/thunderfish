@@ -272,7 +272,7 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     # Cosmetics
     ax[0].set_title('Raw-data with peak detection', fontsize=fs + 2)
     ax[0].set_xlabel('Time [sec]', fontsize=fs)
-    ax[0].set_ylabel('Amplitude [a.u.]', fontsize=fs)
+    ax[0].set_ylabel('Amplitude', fontsize=fs)
     ax[0].tick_params(axis='both', which='major', labelsize=fs - 2)
 
     # Second Plot: Window inset
@@ -282,7 +282,7 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     f_type = 'pulse' if pulse_fish else 'wave'
     ax[1].set_title('Inset of plot above. Suggested fish-type is %s' % f_type, fontsize=fs + 2)
     ax[1].set_xlabel('Time [sec]', fontsize=fs)
-    ax[1].set_ylabel('Amplitude [a.u.]', fontsize=fs)
+    ax[1].set_ylabel('Amplitude', fontsize=fs)
     ax[1].tick_params(axis='both', which='major', labelsize=fs - 2)
     ax[1].legend(frameon=False, loc='best')
 
