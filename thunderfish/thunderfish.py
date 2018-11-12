@@ -360,7 +360,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             eod_waveform(data, samplerate,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
-                         win_fac=0.05, min_win=0.004)
+                         win_fac=0.1, min_win=0.004)
         mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times,
                                                                  fresolution=minfres)
         # TODO: add config parameter to analyze_pulse
