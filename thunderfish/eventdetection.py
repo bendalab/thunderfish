@@ -140,7 +140,7 @@ def detect_peaks(data, threshold):
                 min_inx = index
                 min_value = value
 
-    return np.asarray(peaks_list), np.asarray(troughs_list)
+    return np.asarray(peaks_list, dtype=np.int), np.asarray(troughs_list, dtype=np.int)
 
 
 def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):

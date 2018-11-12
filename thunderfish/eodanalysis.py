@@ -334,9 +334,9 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
         thl_min = np.min(meod[:max_idx-n,1])
     thr_max = 0.0
     thr_min = 0.0
-    if len(meod[:,1]) - max_idx + n > 10:
-        thr_max = np.max(meod[len(meod[:,1]) - max_idx + n:,1])
-        thr_min = np.min(meod[len(meod[:,1]) - max_idx + n:,1])
+    if len(meod[:,1]) - (max_idx + n) > 10:
+        thr_max = np.max(meod[max_idx + n:,1])
+        thr_min = np.min(meod[max_idx + n:,1])
     min_thresh = 1.2*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
     threshold = max_ampl*thresh_fac
     if threshold < min_thresh:
