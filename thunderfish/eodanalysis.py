@@ -461,7 +461,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
         ax.plot(time, eod_waveform[:,3], zorder=3, **fkwargs)
     # plot waveform:
     mean_eod = eod_waveform[:,1]
-    ax.plot(time, mean_eod, zorder=4, **mkwargs)
+    ax.plot(time, mean_eod, zorder=5, **mkwargs)
     # plot standard deviation:
     if eod_waveform.shape[1] > 2:
         ax.autoscale(False)
@@ -472,7 +472,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
     if peaks is not None and len(peaks)>0:
         maxa = np.max(peaks[:,2])
         for p in peaks:
-            ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False, zorder=4,
+            ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False, zorder=4, alpha=0.4,
                        c=mkwargs['color'], edgecolors=mkwargs['color'])
             label = u'P%d' % p[0]
             if p[0] != 1:
@@ -490,9 +490,11 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
                 y = 0.0
             dx = 0.05*time[-1]
             if p[1] >= 0.0:
-                ax.text(1000.0*p[1]+dx, p[2]+y, label, ha='left', va=va)
+                ax.text(1000.0*p[1]+dx, p[2]+y, label, ha='left', va=va,
+                        zorder=10)
             else:
-                ax.text(1000.0*p[1]-dx, p[2]+y, label, ha='right', va=va)
+                ax.text(1000.0*p[1]-dx, p[2]+y, label, ha='right', va=va,
+                        zorder=10)
     ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [msec]')
     if unit is not None and len(unit)>0:
@@ -522,23 +524,26 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
     markersize: float
         Size of points on spectrum.
     """
-    box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='#DDDDDD')
+    box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='#DDDDDD',
+                             zorder=1)
     ax.add_patch(box)
     att = props['lowfreqattenuation50']
-    ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom')
-    box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='#CCCCCC')
+    ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom', zorder=10)
+    box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='#CCCCCC',
+                             zorder=2)
     ax.add_patch(box)
     att = props['lowfreqattenuation5']
-    ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom')
+    ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom', zorder=10)
     lowcutoff = props['powerlowcutoff']
-    ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB')
-    ax.text(1.2*lowcutoff, 0.5*att-1.0, '%.0f Hz' % lowcutoff, ha='left', va='top')
+    ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB',
+            zorder=3)
+    ax.text(1.2*lowcutoff, 0.5*att-1.0, '%.0f Hz' % lowcutoff, ha='left', va='top', zorder=10)
     db = decibel(power[:,1])
     smax = np.nanmax(db)
-    ax.plot(power[:,0], db - smax, color, lw=lw)
+    ax.plot(power[:,0], db - smax, color, lw=lw, zorder=4)
     peakfreq = props['peakfrequency']
-    ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize)
-    ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom')
+    ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize, alpha=0.4, zorder=5)
+    ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom', zorder=10)
     ax.set_xlim(1.0, 10000.0)
     ax.set_xscale('log')
     ax.set_ylim(-60.0, 2.0)
