@@ -154,7 +154,10 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
         label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
         if props['flipped']:
             label += 'flipped\n'
-        axeod.text(0.03, 0.97, label, transform = axeod.transAxes, va='top')
+        if -mean_eod[0,0] < mean_eod[-1,0]:
+            axeod.text(0.97, 0.97, label, transform = axeod.transAxes, va='top', ha='right')
+        else:
+            axeod.text(0.03, 0.97, label, transform = axeod.transAxes, va='top')
         if props['type'] == 'wave':
             lim = 750.0/props['EODf']
             axeod.set_xlim([-lim, +lim])
@@ -360,8 +363,9 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
             eod_waveform(data, samplerate,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
-                         win_fac=0.1, min_win=0.004)
+                         win_fac=0.8, min_win=0.004)
         mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times,
+                                                                 min_win=0.004,
                                                                  fresolution=minfres)
         # TODO: add config parameter to analyze_pulse
         mean_eods.append(mean_eod)
