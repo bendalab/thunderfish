@@ -154,7 +154,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
         label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
         if props['flipped']:
             label += 'flipped\n'
-        if -mean_eod[0,0] < mean_eod[-1,0]:
+        if -mean_eod[0,0] < 0.6*mean_eod[-1,0]:
             axeod.text(0.97, 0.97, label, transform = axeod.transAxes, va='top', ha='right')
         else:
             axeod.text(0.03, 0.97, label, transform = axeod.transAxes, va='top')
