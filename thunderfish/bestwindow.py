@@ -538,6 +538,7 @@ def plot_best_data(data, samplerate, unit, idx0, idx1, clipped, ax,
         ax.set_ylabel('Amplitude')
     else:
         ax.set_ylabel('Amplitude [%s]' % unit)
+    ax.locator_params('y', nbins=3)
 
         
 def add_best_window_config(cfg, single=True, win_size=1., win_shift=0.5,

@@ -229,7 +229,8 @@ def analyze_wave(eod, freq, n_harm=6):
     return meod, props, spec_data
 
 
-def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
+def analyze_pulse(eod, eod_times, min_win=0.001,
+                  thresh_fac=0.01, min_dist=50.0e-6,
                   fresolution=1.0, percentile=1.0):
     """
     Analyze the EOD waveform of a pulse-type fish.
@@ -241,6 +242,8 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
         Further columns are optional but not used.
     eod_times: 1-D array
         List of times of detected EOD peaks.
+    min_win: float
+        The minimum size of cut-out EOD waveform.
     thresh_fac: float
         Set the threshold for peak detection to the maximum pulse amplitude times this factor.
     min_dist: float
@@ -326,28 +329,40 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
     ppampl = max_ampl + min_ampl
 
     # threshold for peak detection:
-    n = len(meod[:,1])*3//8
-    thl_max = 0.0
-    thl_min = 0.0
-    if max_idx - n > 10:
-        thl_max = np.max(meod[:max_idx-n,1])
-        thl_min = np.min(meod[:max_idx-n,1])
-    thr_max = 0.0
-    thr_min = 0.0
-    if len(meod[:,1]) - (max_idx + n) > 10:
-        thr_max = np.max(meod[max_idx + n:,1])
-        thr_min = np.min(meod[max_idx + n:,1])
-    min_thresh = 1.2*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
+    n = len(meod[:,1])//10
+    thl_max = np.max(meod[:n,1])
+    thl_min = np.min(meod[:n,1])
+    thr_max = np.max(meod[-n:,1])
+    thr_min = np.min(meod[-n:,1])
+    min_thresh = 1.5*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
     threshold = max_ampl*thresh_fac
     if threshold < min_thresh:
         threshold = min_thresh
+
+    # cut out relevant signal:
+    lidx = np.argmax(np.abs(meod[:,1])>threshold)
+    ridx = len(meod) - np.argmax(np.abs(meod[::-1,1])>threshold)
+    width = ridx - lidx
+    dt = meod[1,0] - meod[0,0]
+    if width*dt < min_win:
+        width = int(np.round(min_win/dt))
+    lidx -= width//2
+    if lidx < 0:
+        lidx = 0
+    ridx += width//2
+    if ridx >= len(meod):
+        ridx = len(meod)
+    meod = meod[lidx:ridx,:]
+    max_idx -= lidx
+    min_idx -= lidx
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
     peak_l = np.sort(np.concatenate((peak_idx, trough_idx)))
     # remove mutliple peaks that do not oszillate around zero:
-    peak_list = np.array([prange[np.argmax(np.abs(meod[prange,1]))]
-                 for prange in np.split(peak_l, np.where(np.diff(meod[peak_l,1]>0.0)!=0)[0]+1)])
+#    peak_list = np.array([prange[np.argmax(np.abs(meod[prange,1]))]
+#                 for prange in np.split(peak_l, np.where(np.diff(meod[peak_l,1]>0.0)!=0)[0]+1)])
+    peak_list = peak_l
     # remove multiple peaks that are too close and too small:
     ridx = [(k, k+1) for k in np.where(np.diff(meod[peak_list,0]) < min_dist)]
     #  & (meod[peak_list[:-1],1]<0.1)
@@ -411,7 +426,8 @@ def analyze_pulse(eod, eod_times, thresh_fac=0.01, min_dist=50.0e-6,
 def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
                       mkwargs={'lw': 2, 'color': 'red'},
                       skwargs={'color': '#CCCCCC'},
-                      fkwargs={'lw': 6, 'color': 'steelblue'}):
+                      fkwargs={'lw': 6, 'color': 'steelblue'},
+                      zkwargs={'lw': 1, 'color': '#AAAAAA'}):
     """Plot mean eod and its standard deviation.
 
     Parameters
@@ -433,15 +449,19 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
         Arguments passed on to the fill_between command for the standard deviation of the eod.
     fkwargs: dict
         Arguments passed on to the plot command for the fitted eod.
+    zkwargs: dict
+        Arguments passed on to the plot command for the zero line.
     """
     ax.autoscale(True)
     time = 1000.0 * eod_waveform[:,0]
+    # plot zero line:
+    ax.plot([time[0], time[-1]], [0.0, 0.0], zorder=2, **zkwargs)
     # plot fit:
     if eod_waveform.shape[1] > 3:
-        ax.plot(time, eod_waveform[:,3], zorder=2, **fkwargs)
+        ax.plot(time, eod_waveform[:,3], zorder=3, **fkwargs)
     # plot waveform:
     mean_eod = eod_waveform[:,1]
-    ax.plot(time, mean_eod, zorder=3, **mkwargs)
+    ax.plot(time, mean_eod, zorder=5, **mkwargs)
     # plot standard deviation:
     if eod_waveform.shape[1] > 2:
         ax.autoscale(False)
@@ -452,7 +472,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
     if peaks is not None and len(peaks)>0:
         maxa = np.max(peaks[:,2])
         for p in peaks:
-            ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False,
+            ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False, zorder=4, alpha=0.4,
                        c=mkwargs['color'], edgecolors=mkwargs['color'])
             label = u'P%d' % p[0]
             if p[0] != 1:
@@ -460,16 +480,22 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
                     label += u'(%.0f%% @ %.0f\u00b5s)' % (100.0*p[3], 1.0e6*p[1])
                 else:
                     label += u'(%.0f%% @ %.3gms)' % (100.0*p[3], 1.0e3*p[1])
-            va = 'bottom' if p[2] > 0.0 else 'top'
-            y = np.sign(p[2])*0.02*maxa
+            va = 'bottom'
+            y = 0.02*maxa
+            if p[0] % 2 == 0:
+                va = 'top'
+                y = -y
             if p[0] == 1 or p[0] == 2:
                 va = 'bottom'
                 y = 0.0
             dx = 0.05*time[-1]
             if p[1] >= 0.0:
-                ax.text(1000.0*p[1]+dx, p[2]+y, label, ha='left', va=va)
+                ax.text(1000.0*p[1]+dx, p[2]+y, label, ha='left', va=va,
+                        zorder=10)
             else:
-                ax.text(1000.0*p[1]-dx, p[2]+y, label, ha='right', va=va)
+                ax.text(1000.0*p[1]-dx, p[2]+y, label, ha='right', va=va,
+                        zorder=10)
+    ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [msec]')
     if unit is not None and len(unit)>0:
         ax.set_ylabel('Amplitude [%s]' % unit)
@@ -498,23 +524,26 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
     markersize: float
         Size of points on spectrum.
     """
-    box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='#DDDDDD')
+    box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='#DDDDDD',
+                             zorder=1)
     ax.add_patch(box)
     att = props['lowfreqattenuation50']
-    ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom')
-    box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='#CCCCCC')
+    ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom', zorder=10)
+    box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='#CCCCCC',
+                             zorder=2)
     ax.add_patch(box)
     att = props['lowfreqattenuation5']
-    ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom')
+    ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom', zorder=10)
     lowcutoff = props['powerlowcutoff']
-    ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB')
-    ax.text(1.2*lowcutoff, 0.5*att-1.0, '%.0f Hz' % lowcutoff, ha='left', va='top')
+    ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB',
+            zorder=3)
+    ax.text(1.2*lowcutoff, 0.5*att-1.0, '%.0f Hz' % lowcutoff, ha='left', va='top', zorder=10)
     db = decibel(power[:,1])
     smax = np.nanmax(db)
-    ax.plot(power[:,0], db - smax, color, lw=lw)
+    ax.plot(power[:,0], db - smax, color, lw=lw, zorder=4)
     peakfreq = props['peakfrequency']
-    ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize)
-    ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom')
+    ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize, alpha=0.4, zorder=5)
+    ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom', zorder=10)
     ax.set_xlim(1.0, 10000.0)
     ax.set_xscale('log')
     ax.set_ylim(-60.0, 2.0)
