@@ -62,9 +62,6 @@ class SignalPlot:
 
         # audio output:
         self.audio = PlayAudio()
-
-        # audio saving
-        #self.save_audio()
         
         # set key bindings:
         plt.rcParams['keymap.fullscreen'] = 'ctrl+f'
