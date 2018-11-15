@@ -219,7 +219,7 @@ class ConfigFile:
             differs = False
             if hasattr(v, '__len__') and (not isinstance(v, str)):
                 val = v[0]
-                if len(v) > 1:
+                if len(v) > 1 and len(v[1]) > 0:
                     unit = ' ' + v[1]
                 if len(v) > 2:
                     comment = v[2]
@@ -328,6 +328,7 @@ class ConfigFile:
         # load configuration files from higher directories:
         absfilepath = os.path.abspath(filepath)
         dirs = os.path.dirname(absfilepath).split(os.sep)
+        dirs[0] = os.sep
         dirs.append('')
         ml = len(dirs) - 1
         if ml > maxlevel:

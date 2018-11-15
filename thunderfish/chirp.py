@@ -9,7 +9,7 @@ chirp_detection(): extracts chirp times with help of given spectrogram and fishl
 import numpy as np
 from .harmonicgroups import harmonic_groups
 from .powerspectrum import spectrogram
-from .peakdetection import std_threshold, detect_peaks, trim_to_peak
+from .eventdetection import std_threshold, detect_peaks, trim_to_peak
 try:
     # TODO remove plt usage from algorithms!
     import matplotlib.pyplot as plt
@@ -102,7 +102,7 @@ def chirp_detection(spectrum, freqs, time, fishlist=None, fundamentals=None, min
         # calculate the slope by calculating the difference in the power
         power_diff = np.diff(power)
 
-        # peakdetection in the power_diff to detect drops in power indicating chrips
+        # peak detection in the power_diff to detect drops in power indicating chrips
         threshold = std_threshold(power_diff)
         peaks, troughs = detect_peaks(power_diff, threshold)
         troughs, peaks = trim_to_peak(troughs, peaks) # reversed troughs and peaks in output and input to get trim_to_troughs

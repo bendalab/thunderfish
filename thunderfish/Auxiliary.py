@@ -4,7 +4,7 @@ import sys
 import os
 import numpy as np
 import wave
-from scipy.signal import butter, filtfil
+from scipy.signal import butter, filtfilt
 try:
     import matplotlib.pyplot as plt
 except ImportError:
