@@ -1,12 +1,14 @@
-sudo: false
-
-virtualenv:
-    system_site_packages: true
+sudo: required
+dist: trusty
 
 language: python
 
-python:
-  - 2.7
+matrix:
+    include:
+        - python: "3.6"
+          os: linux
+        - python: "2.7"
+          os: linux
 
 addons:
   apt:

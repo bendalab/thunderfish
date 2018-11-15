@@ -2,7 +2,7 @@ from .version import __version__
 
 __all__ = ['dataloader',
            'configfile',
-           'peakdetection',
+           'eventdetection',
            'bestwindow',
            'powerspectrum',
            'harmonicgroups',

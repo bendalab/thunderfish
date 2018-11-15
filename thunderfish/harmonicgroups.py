@@ -1,21 +1,37 @@
-"""Functions for extracting harmonic groups from a power spectrum.
+"""
+# Harmonic group detection
+Functions for extracting harmonic groups from a power spectrum.
 
-harmonic_groups(): detect peaks in a power spectrum and groups them
-                   according to their harmonic structure.
+## Harmonic group extraction
+- `harmonic_groups()`: detect peaks in a power spectrum and groups them
+                       according to their harmonic structure.
+- `extract_fundamentals()`: collect harmonic groups from lists of power spectrum peaks.
+- `threshold_estimate()`: estimates thresholds for peak detection in a power spectrum.
 
-extract_fundamentals(): collect harmonic groups from lists of power spectrum peaks.
-threshold_estimate(): estimates thresholds for peak detection in a power spectrum.
+## Handling of lists of harmonic groups
+- `fundamental_freqs()`: extract the fundamental frequencies from lists of harmonic groups.
+- `fundamental_freqs_and_power()`:
 
-fundamental_freqs(): extract the fundamental frequencies from lists of harmonic groups
-                     as returned by harmonic_groups().
-colors_markers(): Generate a list of colors and markers for plotting.
-plot_harmonic_groups(): Mark decibel power of fundamentals and their harmonics.
-plot_psd_harmonic_groups(): Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
+## Visualization
+- `colors_markers()`: Generate a list of colors and markers for plotting.
+- `plot_harmonic_groups()`: Mark decibel power of fundamentals and their harmonics.
+- `plot_psd_harmonic_groups()`: Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
+
+## Configuration parameter
+- `add_psd_peak_detection_config()`: add parameters for the detection of peaks in
+  power spectra to configuration.
+- `psd_peak_detection_args()`: retrieve parameters for the detection of peaks in
+  power spectra from configuration.
+- `add_harmonic_groups_config()`: add parameters for the detection of harmonic groups
+  to configuration.
+- `harmonic_groups_args()`: retrieve parameters for the detection of harmonic groups
+  from configuration.
 """
 
 from __future__ import print_function
 import numpy as np
-from .peakdetection import detect_peaks, peak_size_width, hist_threshold
+import scipy.signal as sig
+from .eventdetection import detect_peaks, peak_size_width, hist_threshold
 from .powerspectrum import decibel, power, plot_decibel_psd
 try:
     import matplotlib.cm as cm
@@ -25,7 +41,7 @@ except ImportError:
 
 
 def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, max_freq=2000.0,
-                         freq_tol_fac=0.7, max_divisor=4, max_upper_fill=1,
+                         freq_tol_fac=1.0, max_divisor=4, max_upper_fill=1,
                          max_double_use_harmonics=8, max_double_use_count=1,
                          max_fill_ratio=0.25, power_n_harmonics=10, **kwargs):
     """Find all the harmonics belonging to the largest peak in a list of frequency peaks.
@@ -430,12 +446,12 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
     return freqs, more_freqs, group, best_fzero_harmonics, fmax
 
 
-def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=0.7,
+def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=1.0,
                          mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                          max_divisor=4, max_upper_fill=1,
                          max_double_use_harmonics=8, max_double_use_count=1,
                          max_fill_ratio=0.25, power_n_harmonics=10,
-                         min_group_size=3, max_harmonics=0, max_groups=0, **kwargs):
+                         min_group_size=4, max_harmonics=0, max_groups=0, **kwargs):
     """Extract fundamental frequencies from power-spectrum peaks.
                          
     Parameters
@@ -467,12 +483,11 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     max_double_use_count: int
         Maximum number of harmonic groups a single peak can be part of.
     max_fill_ratio: float
-        Maximum allowed fraction of filled in frequencies..
+        Maximum allowed fraction of filled in frequencies.
     power_n_harmonics: int
         Maximum number of harmonics over which the total power of the signal is computed.
     min_group_size: int
-        Minimum required number of harmonics that are not filled in and
-        are not part of other, so far detected,  harmonics groups.
+        Within min_group_size no harmonics are allowed to be filled in.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -532,10 +547,8 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
                 print('Nothing found for fmax=%.2fHz' % fmax)
             continue
 
-        # count number of harmonics which have been detected, are not fill-ins,
-        # and are not doubly used:
-        group_size = np.sum((harm_group[:, 1] > 0.0) & (harm_group[:, 4] < 2.0))
-        group_size_ok = (group_size >= min_group_size)
+        # within min_group_size we do not want fill ins:
+        group_size_ok = np.sum(harm_group[:min_group_size, 1] > 0.0) == min_group_size
 
         # check frequency range of fundamental:
         fundamental_ok = (harm_group[0, 0] >= min_freq and
@@ -557,7 +570,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
             if verbose > 0:
                 print('Discarded harmonic group: {:.2f}Hz p={:10.8f} g={:d} f={:} m={:}'.format(
                     harm_group[0, 0], np.sum(harm_group[:, 1]),
-                    group_size, fundamental_ok, mains_ok))
+                    group_size_ok, fundamental_ok, mains_ok))
 
     # do not save more than n harmonics:
     if max_harmonics > 0:
@@ -612,7 +625,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 
     The standard deviation of the noise floor without peaks is estimated from
     the width of the histogram of the power spectrum at `hist_height` relative height.
-    The histogtram is computed in the third quarter of the power spectrum.
+    The histogtram is computed in the third quarter of the linearly detrended power spectrum.
 
     Parameters
     ----------
@@ -640,6 +653,9 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
     """
     n = len(psd_data)
     psd_data_seg = psd_data[n//2:n*3//4]
+    psd_data_seg = psd_data_seg[~np.isnan(psd_data_seg)]
+    psd_data_seg = np.mean(psd_data_seg) + \
+      sig.detrend(psd_data_seg, type='linear')
     noise_std, center = hist_threshold(psd_data_seg, th_factor=1.0, nbins=nbins)
     low_threshold = noise_std * low_thresh_factor
     high_threshold = noise_std * high_thresh_factor
@@ -649,11 +665,11 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
                     thresh_bins=100, low_thresh_factor=6.0, high_thresh_factor=10.0,
                     max_peak_width_fac=10.0, min_peak_width=1.0,
-                    freq_tol_fac=0.7, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
+                    freq_tol_fac=1.0, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                     max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
                     max_double_use_harmonics=8, max_double_use_count=1,
                     max_fill_ratio=0.25, power_n_harmonics=10,
-                    min_group_size=3, max_harmonics=0, max_groups=0, **kwargs):
+                    min_group_size=4, max_harmonics=0, max_groups=0, **kwargs):
     """Detect peaks in power spectrum and extract fundamentals of harmonic groups.
 
     Parameters
@@ -707,8 +723,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     power_n_harmonics: int
         Maximum number of harmonics over which the total power of the signal is computed.
     min_group_size: int
-        Minimum required number of harmonics that are not filled in and
-        are not part of other, so far detected,  harmonics groups.
+        Within min_group_size no harmonics are allowed to be filled in.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -749,15 +764,18 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     # thresholds:
     center = np.NaN
     if low_threshold <= 0.0 or high_threshold <= 0.0:
-        low_threshold, high_threshold, center = threshold_estimate(log_psd, low_thresh_factor,
-                                                                   high_thresh_factor,
-                                                                   thresh_bins)
-        
+        low_th, high_th, center = threshold_estimate(log_psd, low_thresh_factor,
+                                                     high_thresh_factor,
+                                                     thresh_bins)
+        if low_threshold <= 0.0:
+            low_threshold = low_th
+        if high_threshold <= 0.0:
+            high_threshold = high_th
         if verbose > 1:
             print('')
-            print('low_threshold=', low_threshold, center + low_threshold)
-            print('high_threshold=', high_threshold, center + high_threshold)
-            print('center=', center)
+            print('low_threshold =%g  center+low_threshold =%g' % (low_threshold, center + low_threshold))
+            print('high_threshold=%g  center+high_threshold=%g' % (high_threshold, center + high_threshold))
+            print('center=%g' % center)
 
     # detect peaks in decibel power spectrum:
     peaks, troughs = detect_peaks(log_psd, low_threshold)
@@ -798,64 +816,99 @@ def fundamental_freqs(group_list):
     """
     Extract the fundamental frequencies from lists of harmonic groups.
 
+    The inner list of 2-D arrays of the input argument is transformed into
+    a 1-D array containig the fundamental frequencies extracted from the 2-D arrays.
+
     Parameters
     ----------
-    group_list: list of 2-D arrays or list of list of 2-D arrays
-        Lists of harmonic groups as returned by extract_fundamentals() and
-        harmonic_groups() with the element [0][0] of the
+    group_list: (list of (list of ...)) list of 2-D arrays
+        Arbitrarily nested lists of harmonic groups as returned by extract_fundamentals()
+        and harmonic_groups() with the element [0, 0] of the
         harmonic groups being the fundamental frequency.
 
     Returns
     -------
-    fundamentals: 1-D array or list of 1-D array
-        Single array or list of arrays (corresponding to the input group_list)
-        of the fundamental frequencies.
+    fundamentals: (list of (list of ...)) 1-D array
+        Nested list (corresponding to `group_list`) of 1-D arrays
+        with the fundamental frequencies extracted from the harmonic groups.
     """
     if len(group_list) == 0:
-        fundamentals = np.array([])
-    elif hasattr(group_list[0][0][0], '__len__'):
+        return np.array([])
+
+    # check whether group_list is list of harmonic groups:
+    list_of_groups = True
+    for group in group_list:
+        if not ( hasattr(group, 'shape') and len(np.shape(group)) == 2 ):
+            list_of_groups = False
+            break
+
+    if list_of_groups:
+        fundamentals = np.array([group[0, 0] for group in group_list if len(group) > 0])
+    else:
         fundamentals = []
         for groups in group_list:
-            fundamentals.append(np.array([harmonic_group[0][0] for harmonic_group in groups]))
-    else:
-        fundamentals = np.array([harmonic_group[0][0] for harmonic_group in group_list])
+            f = fundamental_freqs(groups)
+            fundamentals.append(f)
     return fundamentals
 
 
-def fundamental_freqs_and_db(group_list):
-
+def fundamental_freqs_and_power(group_list, n_harmonics=1, power=False,
+                                ref_power=1.0, min_power=1e-20):
     """
     Extract the fundamental frequencies and their power in dB from lists of harmonic groups.
 
+    The inner list of 2-D arrays of the input argument is transformed
+    into a 2-D array containig for each fish (1st dimension) the
+    fundamental frequencies and powers extracted from the 2-D arrays.
+    
     Parameters
     ----------
-    group_list: list of 2-D arrays or list of list of 2-D arrays
-            Lists of harmonic groups as returned by extract_fundamentals() and
-            harmonic_groups() with the element [0][0] of the harmonic groups
-            being the fundamental frequency,
-            and element[0][1] being the corresponding power.
+    group_list: (list of (list of ...)) list of 2-D arrays
+        Arbitrarily nested lists of harmonic groups as returned by extract_fundamentals()
+        and harmonic_groups() with the element [0, 0] of the
+        harmonic groups being the fundamental frequency and the elements [:,1] being
+        the powers of each harmonics.
+    n_harmonics: int
+        For the power sum over the first `n_harmonmics` harmonics (including the
+        fundamental frequency). The default value of 1 returns the power of the
+        fundamental frequency only.
+    power: boolean
+        If `False` convert the power into decibel using the powerspectrum.decibel() function.
+    ref_power: float
+        Reference power for computing decibel. If set to `None` the maximum power is used.
+    min_power: float
+        Power values smaller than `min_power` are set to `np.nan`.
 
     Returns
     -------
-    eodf_db_matrix: 2-D array or list of 2-D arrays
-        Matrix with fundamental frequencies in first column and
-        corresponding power in dB in second column.
+    fundamentals: (list of (list of ...)) 2-D array
+        Nested list (corresponding to `group_list`) of 2-D arrays
+        with fundamental frequencies in first column and
+        corresponding power in second column.
     """
 
     if len(group_list) == 0:
-        eodf_db_matrix = np.array([])
-    elif hasattr(group_list[0][0][0], '__len__'):
-        eodf_db_matrix = []
-        for groups in group_list:
-            f = [np.array([harmonic_group[0][0], harmonic_group[0][1]]) for harmonic_group in group_list]
-            f[:, 1] = decibel(f[:, 1])  # calculate decibel using 1 as reference power
-            eodf_db_matrix.append(f)
-    else:
-        eodf_db_matrix = np.array([np.array([harmonic_group[0][0], harmonic_group[0][1]])
-                                   for harmonic_group in group_list])
-        eodf_db_matrix[:, 1] = decibel(eodf_db_matrix[:, 1])  # calculate decibel using 1 as reference power
+        return np.array([])
 
-    return eodf_db_matrix
+    # check whether group_list is list of harmonic groups:
+    list_of_groups = True
+    for group in group_list:
+        if not ( hasattr(group, 'shape') and len(np.shape(group)) == 2 ):
+            list_of_groups = False
+            break
+        
+    if list_of_groups:
+        fundamentals = np.array([[group[0, 0], np.sum(group[0:n_harmonics, 1])]
+                            for group in group_list if len(group) > 0])
+        if not power:
+            fundamentals[:, 1] = decibel(fundamentals[:, 1], ref_power, min_power)
+    else:
+        fundamentals = []
+        for groups in group_list:
+            f = fundamental_freqs_and_power(groups, n_harmonics, power,
+                                            ref_power, min_power)
+            fundamentals.append(f)
+    return fundamentals
 
 
 def colors_markers():
@@ -902,7 +955,8 @@ def colors_markers():
     return colors, markers
 
 
-def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
+def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_freq=True,
+                         power_n_harmonics=10, label_power=False,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
     Mark decibel power of fundamentals and their harmonics in a plot.
@@ -915,10 +969,16 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
             Lists of harmonic groups as returned by extract_fundamentals() and
             harmonic_groups() with the element [0, 0] of the harmonic groups being the fundamental frequency,
             and element[0, 1] being the corresponding power.
+    max_freq: float
+        If greater than zero only mark peaks below this frequency.
     max_groups: int
             If not zero plot only the max_groups most powerful groups.
     sort_by_freq: boolean
             If True sort legend by frequency, otherwise by power.
+    power_n_harmonics: int
+        Maximum number of harmonics over which the total power of the signal is computed.
+    label_power: boolean
+        If `True` put the power in decibel in addition to the frequency into the legend.
     colors: list of colors or None
             If not None list of colors for plotting each group
     markers: list of markers or None
@@ -933,7 +993,7 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
         return
     
     # sort by power:
-    powers = np.array([np.sum(fish[:10, 1]) for fish in group_list])
+    powers = np.array([np.sum(fish[:power_n_harmonics, 1]) for fish in group_list])
     max_power = np.max(powers)
     idx_maxpower = np.argsort(powers)
     if max_groups > 0 and len(idx_maxpower > max_groups):
@@ -950,17 +1010,24 @@ def plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
         group = group_list[i]
         x = np.array([harmonic[0] for harmonic in group])
         y = np.array([harmonic[1] for harmonic in group])
+        if max_freq > 0.0:
+            y = y[x<=max_freq]
+            x = x[x<=max_freq]
         msize = 7.0 + 10.0 * (powers[i] / max_power) ** 0.25
         color_kwargs = {}
         if colors is not None:
             color_kwargs = {'color': colors[k%len(colors)]}
+        label = '%6.1f Hz' % group[0, 0]
+        if label_power:
+            label += ' %6.1f dB' % decibel(np.array([np.sum(group[:power_n_harmonics, 1])]))[0]
         if markers is None:
-            ax.plot(x, decibel(y), 'o', ms=msize, label='%.1f Hz' % group[0, 0], **color_kwargs)
+            ax.plot(x, decibel(y), 'o', ms=msize, label=label,
+                    clip_on=False, **color_kwargs)
         else:
             if k >= len(markers):
                 break
             ax.plot(x, decibel(y), linestyle='None', marker=markers[k], mec=None, mew=0.0,
-                    ms=msize, label='%.1f Hz' % group[0, 0], **color_kwargs)
+                    ms=msize, label=label, clip_on=False, **color_kwargs)
 
     # legend:
     if legend_rows > 0:
@@ -1011,7 +1078,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
                 label='%3.0f Hz mains' % mains[0, 0])
     # mark harmonic groups:
     colors, markers = colors_markers()
-    plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
+    plot_harmonic_groups(ax, group_list, max_freq=max_freq, max_groups=0, sort_by_freq=True,
                          colors=colors, markers=markers, legend_rows=8,
                          loc='upper right')
     # plot power spectrum:
@@ -1074,10 +1141,10 @@ def psd_peak_detection_args(cfg):
                     'min_peak_width': 'minPeakWidth'})
 
 
-def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac=0.7,
+def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac=1.0,
                                max_upper_fill=1, max_fill_ratio=0.25,
                                max_double_use_harmonics=8, max_double_use_count=1,
-                               power_n_harmonics=10, min_group_size=3,
+                               power_n_harmonics=10, min_group_size=4,
                                min_freq=20.0, max_freq=2000.0, max_work_freq=4000.0,
                                max_harmonics=0, max_groups=0):
     """ Add parameter needed for detection of harmonic groups as
@@ -1100,12 +1167,11 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac
             'Maximum fraction of filled in harmonics allowed (usefull values are smaller than 0.5)')
     cfg.add('maxDoubleUseHarmonics', max_double_use_harmonics, '', 'Maximum harmonics up to which double uses are penalized.')
     cfg.add('maxDoubleUseCount', max_double_use_count, '', 'Maximum overall double use count allowed.')
-    cfg.add('powerNHarmonics', power_n_harmonics, '', 'Compute total power over the first # harmonics.')
+    cfg.add('powerNHarmonics', power_n_harmonics, '', 'Compute total power over the first powerNHarmonics harmonics.')
     
     cfg.add_section('Acceptance of best harmonic groups:')
     cfg.add('minimumGroupSize', min_group_size, '',
-'Minimum required number of harmonics (inclusively fundamental) that are not filled in and are not used by other groups.')
-    # cfg['minimumGroupSize'][0] = 2 # panama
+'The number of harmonics (inclusively fundamental) that are allowed do be filled in.')
     cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
     cfg.add('maximumWorkingFrequency', max_work_freq, 'Hz',
