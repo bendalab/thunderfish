@@ -5,7 +5,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
-from audioio import PlayAudio, fade
+from audioio import PlayAudio, fade, write_audio
 from .version import __version__
 from .configfile import ConfigFile
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
@@ -63,6 +63,9 @@ class SignalPlot:
         # audio output:
         self.audio = PlayAudio()
 
+        # audio saving
+        #self.save_audio()
+        
         # set key bindings:
         plt.rcParams['keymap.fullscreen'] = 'ctrl+f'
         plt.rcParams['keymap.pan'] = 'ctrl+m'
@@ -97,9 +100,11 @@ class SignalPlot:
         self.helptext.append(ht)
         ht = self.axt.text(0.98, 0.65, 's: save figure', ha='right', transform=self.axt.transAxes)
         self.helptext.append(ht)
-        ht = self.axt.text(0.98, 0.75, 'q: quit', ha='right', transform=self.axt.transAxes)
+        ht = self.axt.text(0.98, 0.75, 'S: save audiosegment', ha='right', transform=self.axt.transAxes)
         self.helptext.append(ht)
-        ht = self.axt.text(0.98, 0.85, 'h: toggle this help', ha='right', transform=self.axt.transAxes)
+        ht = self.axt.text(0.98, 0.85, 'q: quit', ha='right', transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.95, 'h: toggle this help', ha='right', transform=self.axt.transAxes)
         self.helptext.append(ht)
         self.axt.set_xticklabels([])
         # spectrogram:
@@ -320,7 +325,9 @@ class SignalPlot:
         if len(self.mains) > 0:
             fpeaks = self.mains[:, 0]
             fpeakinx = [np.round(fp / self.deltaf) for fp in fpeaks if fp < freqs[-1]]
-            fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)], power[fpeakinx], linestyle='None',
+            fpeakinx = np.array(fpeakinx,dtype=int)
+            fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)],
+                                        power[fpeakinx], linestyle='None',
                                         marker='.', color='k', ms=10, mec=None, mew=0.0, zorder=2)
             self.peak_artists.append(fishpoints)
             labels.append('%3.0f Hz mains' % self.cfg['mainsFreq'][0])
@@ -560,6 +567,8 @@ class SignalPlot:
             self.play_tone('a5')
         elif event.key in '9' :
             self.play_tone('c6')
+        elif event.key in 'S':
+            self.save_segment()
 
     def buttonpress( self, event ) :
         # print('mouse pressed', event.button, event.key, event.step)
@@ -669,6 +678,25 @@ class SignalPlot:
         fade(playdata, self.samplerate, 0.1)
         self.audio.play(playdata, self.samplerate, blocking=False)
 
+    def save_segment(self):
+        t0s = int(np.round(self.toffset))
+        t1s = int(np.round(self.toffset + self.twindow))
+        t0 = int(np.round(self.toffset * self.samplerate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        savedata = 1.0 * self.data[t0:t1]
+        #filename = self.filename.replace(".WAV", "")
+        filename = self.filename.split('.')[0]
+        figfile = '{name}-{time0:.4g}s-{time1:.4g}s-snippet.WAV'.format(
+                name=filename, time0=t0s, time1 = t1s)
+        write_audio(figfile, savedata, self.data.samplerate)
+        print('saved segment to: ' , figfile)
+
+
+
+
+
+
+        
     def play_all(self):
         self.audio.play(self.data[:], self.samplerate, blocking=False)
         
