@@ -319,8 +319,7 @@ class SignalPlot:
                 labels.append('%4.0f Hz' % fpeaks[0])
         if len(self.mains) > 0:
             fpeaks = self.mains[:, 0]
-            fpeakinx = [np.round(fp / self.deltaf) for fp in fpeaks if fp < freqs[-1]]
-            fpeakinx = np.array(fpeakinx,dtype=int)
+            fpeakinx = np.array([np.round(fp / self.deltaf) for fp in fpeaks if fp < freqs[-1]], dtype=np.int)
             fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)],
                                         power[fpeakinx], linestyle='None',
                                         marker='.', color='k', ms=10, mec=None, mew=0.0, zorder=2)
