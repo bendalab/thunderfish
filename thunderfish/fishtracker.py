@@ -2546,7 +2546,7 @@ class Obs_tracker():
                     self.connect_trace()
 
             if self.current_task == 'cut_trace':
-                if self.active_ident0 and self.active_idx0:
+                if self.active_ident0 != None and self.active_idx0:
                     self.last_ident_v = np.copy(self.ident_v)
                     self.cut_trace()
 
@@ -4480,12 +4480,11 @@ def main():
     t_kwargs = grid_config_update(t_kwargs)
 
     if True:
-        t_kwargs['low_thresh_factor'] = 15.
-        t_kwargs['high_thresh_factor'] = 20.
+        t_kwargs['low_thresh_factor'] = 12.
+        t_kwargs['high_thresh_factor'] = 15.
+        t_kwargs['min_group_size'] = 1
         t_kwargs['fresolution'] = 1.5
         t_kwargs['overlap_frac'] = .85
-
-
 
     if args.transect_data:
         t_kwargs['low_thresh_factor'] = 6.
