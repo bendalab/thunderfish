@@ -679,18 +679,11 @@ class SignalPlot:
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
         savedata = 1.0 * self.data[t0:t1]
-        #filename = self.filename.replace(".WAV", "")
         filename = self.filename.split('.')[0]
-        figfile = '{name}-{time0:.4g}s-{time1:.4g}s-snippet.WAV'.format(
+        segmentfilename = '{name}-{time0:.4g}s-{time1:.4g}s.wav'.format(
                 name=filename, time0=t0s, time1 = t1s)
-        write_audio(figfile, savedata, self.data.samplerate)
-        print('saved segment to: ' , figfile)
-
-
-
-
-
-
+        write_audio(segmentfilename, savedata, self.data.samplerate)
+        print('saved segment to: ' , segmentfilename)
         
     def play_all(self):
         self.audio.play(self.data[:], self.samplerate, blocking=False)
