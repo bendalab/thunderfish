@@ -1,5 +1,7 @@
 from nose.tools import assert_true, assert_equal, assert_almost_equal
+import os
 import numpy as np
+import matplotlib.pyplot as plt
 import thunderfish.bestwindow as bw
 
 
@@ -22,7 +24,7 @@ def test_best_window():
     # compute best window:
     print("call bestwindow() function...")
     idx0, idx1, clipped = bw.best_window_indices(data, rate, single=False,
-                                                 win_size=1.0, win_shift=0.1, thresh_ampl_fac=2.0,
+                                                 win_size=1.0, win_shift=0.1,
                                                  min_clip=-clip, max_clip=clip,
                                                  w_cv_ampl=10.0, tolerance=0.5)
 
@@ -40,3 +42,23 @@ def test_best_window():
                 'clip_amplitudes() failed to detect minimum clip amplitude')
     assert_true(max_clip >= 0.8 * clip and max_clip <= clip,
                 'clip_amplitudes() failed to detect maximum clip amplitude')
+
+    # plotting 1:
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    bw.plot_best_data(data, rate, 'a.u.', idx0, idx1, clipped, ax)
+    fig.savefig('bestwindow.png')
+    assert_true(os.path.exists('bestwindow.png'), 'plotting failed')
+    os.remove('bestwindow.png')
+
+    # plotting 2:
+    fig, ax = plt.subplots(5, sharex=True)
+    bw.best_window_indices(data, rate, single=False,
+                           win_size=1.0, win_shift=0.1,
+                           min_clip=-clip, max_clip=clip,
+                           w_cv_ampl=10.0, tolerance=0.5,
+                           plot_data_func=bw.plot_best_window, ax=ax)
+    fig.savefig('bestdata.png')
+    assert_true(os.path.exists('bestdata.png'), 'plotting failed')
+    os.remove('bestdata.png')
+    

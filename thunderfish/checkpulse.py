@@ -28,7 +28,7 @@ except ImportError:
     pass
 
 
-def check_pulse_width(data, samplerate, th_factor=2.0, percentile=25.0,
+def check_pulse_width(data, samplerate, th_factor=0.8, percentile=1.0,
                       pulse_thresh=0.1, verbose=0, plot_data_func=None, **kwargs):
     """Detects if a fish is pulse- or wave-type based on the proportion of the time distance
     between a peak and its following trough, relative to the time between consecutive peaks.
@@ -272,7 +272,7 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     # Cosmetics
     ax[0].set_title('Raw-data with peak detection', fontsize=fs + 2)
     ax[0].set_xlabel('Time [sec]', fontsize=fs)
-    ax[0].set_ylabel('Amplitude [a.u.]', fontsize=fs)
+    ax[0].set_ylabel('Amplitude', fontsize=fs)
     ax[0].tick_params(axis='both', which='major', labelsize=fs - 2)
 
     # Second Plot: Window inset
@@ -282,7 +282,7 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
     f_type = 'pulse' if pulse_fish else 'wave'
     ax[1].set_title('Inset of plot above. Suggested fish-type is %s' % f_type, fontsize=fs + 2)
     ax[1].set_xlabel('Time [sec]', fontsize=fs)
-    ax[1].set_ylabel('Amplitude [a.u.]', fontsize=fs)
+    ax[1].set_ylabel('Amplitude', fontsize=fs)
     ax[1].tick_params(axis='both', which='major', labelsize=fs - 2)
     ax[1].legend(frameon=False, loc='best')
 
@@ -339,7 +339,7 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
     ax.set_ylabel('Power [dB]', fontsize=fs)
 
 
-def add_check_pulse_width_config(cfg, th_factor=2.0, percentile=25.0, pulse_thresh=0.1):
+def add_check_pulse_width_config(cfg, th_factor=0.8, percentile=1.0, pulse_thresh=0.1):
     """ Add parameter needed for check_pulse_width() as
     a new section to a configuration.
 

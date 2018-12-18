@@ -492,7 +492,7 @@ def main():
         for row in ax:
             for c_ax in row:
                 c_ax.set_xlabel('Time [sec]')
-                c_ax.set_ylabel('Amplitude [a.u.]')
+                c_ax.set_ylabel('Amplitude')
 
         plt.tight_layout()
 
