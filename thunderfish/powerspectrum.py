@@ -38,7 +38,7 @@ def next_power_of_two(n):
     return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))
 
 
-def nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=16):
+def nfft_noverlap(freq_resolution, samplerate, overlap_frac=0.5, min_nfft=16):
     """The required number of points for an FFT to achieve a minimum frequency resolution
     and the number of overlapping data points.
 
