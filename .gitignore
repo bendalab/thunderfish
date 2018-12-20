@@ -5,4 +5,5 @@
 *.pdf
 *.txt
 .coverage
+__pycache__
 *~

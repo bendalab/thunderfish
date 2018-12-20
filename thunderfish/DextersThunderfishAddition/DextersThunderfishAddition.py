@@ -124,6 +124,7 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
     """
     unchanged = False
     counter = 0
+    event_indices = np.arange(0,len(event_locations)+1,1)
     while unchanged == False:# and counter<=200:
        x_diffs = np.diff(event_locations)
        events_delete = np.zeros(len(event_locations))
@@ -135,14 +136,14 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
                    events_delete[i+1] = 1
        event_heights = event_heights[events_delete!=1]
        event_locations = event_locations[events_delete!=1]
-       event_indices = np.where(events_delete != 1)[0]
+       event_indices = event_indices[np.where(events_delete!=1)[0]]
        if np.count_nonzero(events_delete)==0:
            unchanged = True
        counter += 1
        if counter > 2000:
+           print('Warning: unusual many discarding steps needed, unusually dense events')
            pass
-           #print('Warning: unusual many discarding steps needed, unusually dense
-                 #events')
+    print(event_indices)
     return event_indices, event_locations, event_heights
 def crosscorrelation(sig, data):
     autocorr = signal.fftconvolve(data, sig[::-1],  mode='valid')
@@ -155,9 +156,8 @@ def interpol(data, kind):
 def cut_snippets(data,event_locations,cut_width,int_met="linear",int_fact=10,max_offset = 1.5):
     snippets = []
     cut_width = [-cut_width, cut_width]
-    print(cut_width[1])
     alignwidth = int(np.ceil((max_offset) * int_fact))
-    for pos in event_locations.view('int'):
+    for pos in event_locations.astype('int'):
         snippets.append(data[pos+cut_width[0]:pos+cut_width[1]])
  #   scaled_snips = np.empty_like(snippets)
  #   for i, snip in enumerate(snippets):
@@ -165,7 +165,6 @@ def cut_snippets(data,event_locations,cut_width,int_met="linear",int_fact=10,max
  #       #plt.plot(snip)
  #       scaled_snips[i] = snip * 1/heights[i]
  #       #plt.plot(scaledsnips[i])
- #   #plt.show()
     ipoled_snips = np.empty((len(snippets), (cut_width[1]-cut_width[0])*int_fact-int_fact))
     for i, snip in enumerate(snippets):
        if len(snip) < ((cut_width[1]-cut_width[0])):
@@ -184,13 +183,12 @@ def cut_snippets(data,event_locations,cut_width,int_met="linear",int_fact=10,max
        ipoled_snips[i] = interpoled_snip
     mean = np.mean(ipoled_snips, axis = 0)
     aligned_snips = np.empty((len(snippets), (cut_width[1]-cut_width[0])* int_fact-(2*alignwidth)-int_fact))
+
     for i, interpoled_snip in enumerate(ipoled_snips):
         cc = crosscorrelation(interpoled_snip[alignwidth:-alignwidth], mean)
         #cc = crosscorrelation(interpoled_snip[15 + 10*-cut_width[0]-10*7:-15+ -10*cut_width[1]+ 31], mean[10*-cut_width[0]-10*7:-10*cut_width[1]+31])
         offset = -alignwidth + np.argmax(cc)
         aligned_snip = interpoled_snip[alignwidth-offset:-alignwidth-offset] if offset != -alignwidth else interpoled_snip[2*alignwidth:]
-        #plt.plot(interpoled_snip)
         if len(aligned_snip[~np.isnan(aligned_snip)])>0:
             aligned_snips[i] = aligned_snip
-    #plt.show()
     return snippets, aligned_snips
