@@ -365,6 +365,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                             pca = PCA()
                             pc_comp= pca.fit_transform(M)
                             return pc_comp
+                       print(aligned_snips)
                        # calculates principal components
                        pcs = pc_refactor(aligned_snips)
                        #print('dbscan')
@@ -396,7 +397,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
 
                        peaks = dbscan_refactor(pcs, peaks, order, 0.4, minpeaks, False, olddatalen)
 
-                       #plotPCclasses(peaks.list, datx)
+                       plotPCclasses_ref(peaks, datx)
                        olddatalen = len(datx)
                        num = 1
                        #classlist = np.vectorize(lambda peak: peak.pccl, otypes=[object])(peaks.list)
@@ -1621,7 +1622,7 @@ def cut_snippets(data, peaklist, rnge):
        intsnipheight   = np.max(interpoled_snip) - np.min(interpoled_snip)
        if intsnipheight == 0:
            intsnipheight = 1
-       interpoled_snip = (interpoled_snip - max(interpoled_snip))* 1/intsnipheight 
+       interpoled_snip = (interpoled_snip - max(interpoled_snip))* 1/intsnipheight
        standardized[i] = interpoled_snip
     #print('2')
     mean = np.mean(standardized, axis = 0)
@@ -1852,9 +1853,10 @@ def noisediscard(peaklist, tsh_n, ultimate_threshold):
     return detected_noise
 
 
-def plotPCclasses(peaks, data):
+def plotPCclasses_ref(peaks, data):
     plt.plot(range(len(data)),data, color = 'black')
-    classlist = np.vectorize(lambda peak: peak.pccl, otypes=[object])(peaks)
+    print(peaks)
+    classlist = np.array(peaks[3],dtype = 'int')
     cmap = plt.get_cmap('jet')
     colors =cmap(np.linspace(0, 1.0, 3000)) #len(np.unique(classlist))))
     np.random.seed(22)
@@ -1870,25 +1872,25 @@ def plotPCclasses(peaks, data):
         #count = Counter(classlist)
       #  #print('longest class: ',  count.most_common()[0])
     for num, color in zip(np.unique(classlist), colors):
-        if num == -1 : 
+        if num == -1 :
             color = 'black'
-        peaksofclass = peaks[:][classlist == num]
+        peaksofclass = peaks[:,classlist == num]
         #xpred = linreg_pattern(peaksofclass[0:3])
         #for p in peaksofclass[0:3]:
         #            #print(p.x)
         ##print(xpred, peaksofclass[3].x)            
-                
         #if len(peaksofclass) > 1000:
         #    plt.plot(xarray(peaksofclass), yarray(peaksofclass), '.', color = 'red',   ms =20)
         #else:
         print(num)
-        plt.plot(xarray(peaksofclass), yarray(peaksofclass), '.', color = color,   ms =20)
-        plt.scatter(xarray(peaksofclass), heightarray(peaksofclass))
+        plt.plot(peaksofclass[0], peaksofclass[1], '.', color = color,   ms =20)
+        #plt.scatter(peaks[0], peaks[2])
    # for p in peaks:
    #     plt.text(p.x, p.y, p.num)
     #plt.show()
 
-   #  plt.show()
+    print('show pcclasses')
+    plt.show()
     plt.close()
     
 def plotampwalkclasses_refactored(peaks, data):
