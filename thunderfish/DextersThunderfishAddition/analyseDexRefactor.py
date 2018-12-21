@@ -75,8 +75,8 @@ channel = 0
 #timegiven = False
 
 def main():         #  analyse_dex.py filename save plot new  (optional starttime endtime [sec])
-  #  home = os.path.expanduser('~')
-  #  os.chdir(home)
+    home = os.path.expanduser('~')
+    os.chdir(home)
     # defaults for optional arguments
     timegiven = False
     plot_steps = False
@@ -100,6 +100,15 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
     maxwidth = 50 #10
     ultimate_threshold = thresh+0.01
     filename = path_leaf(filepath) 
+
+    proceed = input('Currently operates in home directory. If given a pulsefish recording filename.WAV, then a folder filename/ will be created in the home directory and all relevant files will be stored there. continue? [y/n]').lower()
+    if proceed == 'n':
+     quit()
+    elif proceed == 'y':
+        pass
+    #do something
+    elif proceed != 'y':
+         quit()
 
     ### ##  ask user before overwriting
    # if save == 1:
@@ -173,9 +182,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                # efficiency bottlenecks
                bottletime = []
                bottletime.append(time.time())  #0
-
                datx = data[idx*nblock:(idx+1)*nblock]
-
                ### ## smoothing of the timeseries and calculating autocorrelation - not used
                #from scipy.signal import butter, lfilter
                #datx = savgol_filter(datx, 11, 7)
@@ -194,7 +201,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                #plt.show()
                #x = savgol_filter(x, 11, 7)
 
-               # ---------- analysis -----------
+               # ---------- analysis --------------------------------------------------------------------------
                # step1: detect peaks in timeseries
                pk, tr = detect_peaks(datx, thresh)
                troughs = tr
@@ -367,7 +374,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                             return pc_comp
                        print(aligned_snips)
                        # calculates principal components
-                       pcs = pc_refactor(aligned_snips)
+                       pcs = dta.pc(aligned_snips)#pc_refactor(aligned_snips)
                        #print('dbscan')
 
                        # clusters the features(principal components) using dbscan algorithm. clusterclasses are saved into the peak-object as Peak.pccl
@@ -395,7 +402,8 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                            peaks = np.append(peaks,[labels], axis = 0)
                            return peaks
 
-                       peaks = dbscan_refactor(pcs, peaks, order, 0.4, minpeaks, False, olddatalen)
+                       peaks = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, olddatalen, method = 'DBSCAN')
+                       #peaks = dbscan_refactor(pcs, peaks, order, 0.4, minpeaks, False, olddatalen)
 
                        plotPCclasses_ref(peaks, datx)
                        olddatalen = len(datx)
@@ -410,7 +418,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                        fish.animate(amount = idx, dexextra = progressstr)
 
                        # classifies the peaks using the data from the clustered classes and a simple amplitude-walk which classifies peaks as different classes if their amplitude is too far from any other classes' last three peaks
-                       peaks, peaklist = ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
+                       peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist, thresh) # classification by amplitude
                        # print(peaks.classlist)
                        print(peaks)
                        bottletime.append(time.time())       #9
