@@ -64,11 +64,9 @@ from IPython import embed
 deltat = 30.0  # seconds of buffer size
 thresh = 0.04 # minimal threshold for peakdetection
 peakwidth = 20 # width of a peak and minimal distance between two EODs
-
 # basic parameters for thunderfish.dataloader.open_data
 verbose = 0
 channel = 0
-
 # timeinterval to analyze other than the whole recording
 #starttime = 0
 #endtime = 0
@@ -80,11 +78,8 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
     # defaults for optional arguments
     timegiven = False
     plot_steps = False
-
     # parse command line arguments - filepath, save, plot, new (, starttime,
-    #                                                               endtime)
     filepath = sys.argv[1]
-    #thresh =  0.05
     save = int(sys.argv[2])
     plot_steps = int(sys.argv[3])
     new = int(sys.argv[4])
@@ -93,14 +88,12 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
         starttime = int(sys.argv[5])
         endtime = int(sys.argv[6])
         #print(starttime, endtime)
-  #  plot_steps = 1
     peaks = np.array([])
     troughs = np.array([])
     cutsize = 20
     maxwidth = 50 #10
     ultimate_threshold = thresh+0.01
-    filename = path_leaf(filepath) 
-
+    filename = path_leaf(filepath)
     proceed = input('Currently operates in home directory. If given a pulsefish recording filename.WAV, then a folder filename/ will be created in the home directory and all relevant files will be stored there. continue? [y/n]').lower()
     if proceed == 'n':
      quit()
@@ -109,42 +102,22 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
     #do something
     elif proceed != 'y':
          quit()
-
-    ### ##  ask user before overwriting
-   # if save == 1:
-   #     proceed = input('Really want to save data and possibly overwrite existing? [y/n]').lower()
-   #     if proceed == 'n':
-   #         quit()
-   #     elif proceed == 'y':
-   #         printcat file | while read line
-   # do
-       #do something
-   # done('continuing')
-   #     elif proceed != 'y':
-   #         quit()
     datasavepath = filename[:-4]
     print(datasavepath)
     eods_len = 0
-
-    ### ## starting analysis if it is wished or the analyzed EODs-file is not available in the working directory 
+    ### ## starting analysis
     if new == 1 or not os.path.exists(filename[:-4]+"/eods5_"+filename[:-3]+"npy"):
-
         ### ##  import data
         with open_data(filepath, channel, deltat, 0.0, verbose) as data:
-
            if save == 1 or save == 0:
-              # datasavepath = filename[:-4]+"/"+filename
                if not os.path.exists(datasavepath):
                    os.makedirs(datasavepath)
                    copy2(filepath, datasavepath)
            samplerate = data.samplerate
-
            ### ## split datalength into smaller blocks
            nblock = int(deltat*data.samplerate)
            if timegiven == True:
-               #print(starttime, samplerate)
                parttime1 = starttime*samplerate
-               # parttime1 = samplerate * 10270
                parttime2 = endtime*samplerate
                data = data[parttime1:parttime2]
            if len(data)%nblock != 0:
@@ -152,7 +125,6 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
            else:
                blockamount = len(data)//nblock
            bigblock = []
-
            ### ## output first (0%) progress bar
            print('blockamount: ' , blockamount)
            progress = 0
@@ -162,346 +134,90 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
            startblock = 0
            ## iterating through the blocks, detecting peaks in each block
            for idx in range(startblock, blockamount):
-
                ### ## print progress
                if progress < (idx*100 //blockamount):
-                   #print(progress, '%' , end = " ", flush = True)
                    progress = (idx*100)//blockamount
-                    #     print('.' , end = '')
                progressstr = 'Partstatus: '+ str(0) + ' '*2 + ' % (' + '0' + ' '*4+ '/' + '?'+' '*4+ '), Filestatus:'
                fish.animate(amount = idx, dexextra = progressstr)
                progressstr = 'Partstatus: '+ 'Part ' + '0'+ '/''5'+' Filestatus:'
                fish.animate(amount = idx, dexextra = progressstr)
-
-               ### ## take debugging times, not used right now
-               time1 = time.time()
-               #print('took ', time1-time0, 's')
-               time0 = time1
-
-               # time measurement of parts of the algorithm to find time
-               # efficiency bottlenecks
-               bottletime = []
-               bottletime.append(time.time())  #0
                datx = data[idx*nblock:(idx+1)*nblock]
-               ### ## smoothing of the timeseries and calculating autocorrelation - not used
-               #from scipy.signal import butter, lfilter
-               #datx = savgol_filter(datx, 11, 7)
-               #fs = samplerate # 1 ns -> 1 GHz
-               #cutoff = samplerate/10 # 10 MHz
-               #B, A = butter(5, cutoff / (fs / 3), btype='low') # 1st order Butterworth low-pass
-               #datx = lfilter(B, A, datx, axis=0)
-               #plt.plot(datx)
-               #plt.show()
-               #sig = data[-320000:-1]
-               #autocorr = signal.fftconvolve(sig, sig, mode='full')
-               #plt.plot(autocorr)
-               #plt.show()
-               #f, Pxx_den = signal.periodogram(sig, samplerate)
-               #plt.plot(Pxx_den)
-               #plt.show()
-               #x = savgol_filter(x, 11, 7)
-
                # ---------- analysis --------------------------------------------------------------------------
                # step1: detect peaks in timeseries
                pk, tr = detect_peaks(datx, thresh)
                troughs = tr
-               bottletime.append(time.time())       #1
                # continue with analysis only if multiple peaks are detected
                if len(pk) > 2:
-                   def makepeaklist_refactor(pk,tr,data):
-                   ### ## create 'peaks' with x,y and height and discard peaks that seem to be no EODs based on their width and simple features like - no minimum close to the maximum.
-                       # decide whether a peak or a through is detected first
-                       pkfirst = int((min(pk[0],tr[0])<tr[0]))
-                       peaks_x = pk
-                       peaks_y = datx[pk]
-                       peaks_h = np.zeros(len(pk))
-                       peaks_real = np.ones(len(pk))
-                       for ind,(pk_x, pk_y, pk_h, pk_r) in enumerate(np.nditer([peaks_x, peaks_y, peaks_h, peaks_real], op_flags=[["readwrite"],['readwrite'],['readwrite'],['readwrite']])):
-                           left_tr_ind = ind - pkfirst
-                           right_tr_ind = left_tr_ind + 1
-                           try:
-                               ltr_x = tr[left_tr_ind]
-                               ltr_y = datx[ltr_x]
-                               rtr_x = tr[right_tr_ind]
-                               rtr_y = datx[rtr_x]
-                           except:
-                               pass
-                           if left_tr_ind >= 0 and right_tr_ind < len(tr):
-                                  # ltr_x = tr[left_tr_ind]
-                                  # ltr_y = datx[ltr_x]
-                                  # rtr_x = tr[right_tr_ind]
-                                  # rtr_y = datx[rtr_x]
-                                   if min((pk_x - ltr_x),(rtr_x -pk_x)) > peakwidth:
-                                       pk_r[...] = False
-                                   elif max((pk_x - ltr_x),(rtr_x -pk_x)) <= peakwidth:
-                                       pk_h[...] = pk_y - min(ltr_y, rtr_y)
-                                   else:
-                                       if (pk_x-ltr_x)<(rtr_x-pk_x):
-                                            pk_h[...] = pk_y-ltr_y 
-                                       else:
-                                           pk_h[...] = pk_y -rtr_y
-                           elif left_tr_ind == -1:
-                               if rtr_x-pk_x > peakwidth:
-                                   pk_r[...] = False
-                               else:
-                                   pk_h[...] = pk_y- rtr_y
-                           elif right_tr_ind == len(tr):
-                               if pk_x-ltr_x > peakwidth:
-                                   pk_r[...] = False
-                               else:
-                                   pk_h[...] = pk_y-ltr_y
-                       peaks = np.array([peaks_x, peaks_y, peaks_h], dtype = np.float)[:,peaks_real!=0]
-                       return peaks
                    peaks = dta.makeeventlist(pk,tr,datx,peakwidth)
-                   #plt.plot(data[0:32000])
-                   #for ik in peaks.list[0:400]:
-                   #    plt.scatter(i.x, i.height)
-                   #plt.show()
-                   bottletime.append(time.time())       #2
-                   def discardnearbypeaks_refactor(peaks, peakwidth):
-                   ### ## discard peaks that are close to each other, as a EOD mostly has more than one maximum and only one of the maxima is considered to be the EOD/EODlocation
-                       unchanged = False
-                       while unchanged == False:
-                           x_diffs = np.diff(peaks[0])
-                           peaks_heights = peaks[2]
-                           peaks_delete = np.zeros(len(peaks[0]))
-                           for i, diff in enumerate(x_diffs):
-                               if diff < peakwidth:
-                                   if peaks_heights[i+1] > peaks_heights[i] :
-                                       peaks_delete[i] = 1
-                                   else:
-                                       peaks_delete[i+1] = 1
-                           peaks = peaks[:,peaks_delete!=1]
-                           if np.count_nonzero(peaks_delete)==0:
-                               unchanged = True
-                       return peaks
+                   #dta.plot_events_on_data(peaks, datx)
                    peakindices, peakx, peakh = dta.discardnearbyevents(peaks[0],peaks[1],peakwidth)
                    peaks = peaks[:,peakindices]
-#                   plt.plot(datx)
-#                   plt.scatter(peaks[0],peaks[1])
-#                   plt.show()
-#                   ### ## tries to calculate the noiselevel in the current recording part. Might actually not do anything at all, because the ultimate_threshold might be larger eitherway. some recordings have some exploitable data below this threshold, but most don't. And the rate of errors just gets too big for such small peaks. 
-#                   if len(peaks.list) > 2:
-#                       tsh_n = calc_tsh_noise(peaks.list, datx)
-                   bottletime.append(time.time())       #5
-                  # if len(peaks.list) > 2:
-                  #     noisediscard(peaks, ultimate_threshold, ultimate_threshold)
-                   bottletime.append(time.time())       #6
                    progressstr = 'Partstatus: '+ 'Part ' + '1'+ '/''5'+' Filestatus:'
                    fish.animate(amount = idx, dexextra = progressstr)
                    if len(peaks) > 0:
-                       bottletime.append(time.time())       #7
                        ### ## connects the current part with the one that came before, to allow for a continuous analysis
                        if idx >= startblock+1:
                            peaklist = connect_blocks(peaklist)
                        else:
                            peaklist = Peaklist([])
-                       bottletime.append(time.time())       #8
-                       #print('\n ')
-                       #print('cut_snips, with ' ,len(peaks.list), 'peaks')
-                       # cuts snippets from the data time series around the peaks, interpolates them and aligns them
-                       def cut_snippets_refactor(data, peaks, rnge):
-                           snippets = []
-                           positions = np.array(peaks[0],dtype=np.int)
-                           heights = peaks[2]
-                           intfact = 10
-                           alignrange = 1.5
-                           alignwidth = int(np.ceil(alignrange * intfact) )
-                           for pos in positions:
-                               snippets.append(data[(pos+rnge[0]):(pos+rnge[1])])
-                           scaled_snips = np.empty_like(snippets)
-                           for i, snip in enumerate(snippets):
-                               top = -rnge[0]
-                               #plt.plot(snip)
-                               scaled_snips[i] = snip * 1/heights[i] 
-                               #plt.plot(scaledsnips[i])
-                           #plt.show()
-                           aligned_snips = np.empty((len(snippets), (rnge[1]-rnge[0])*
-                                                     intfact-(2*alignwidth)-intfact))
-                           ipoled_snips = np.empty((len(snippets), (rnge[1]-rnge[0])*intfact-intfact))
-
-                           for i, snip in enumerate(scaled_snips):
-                              if len(snip) < ((rnge[1]-rnge[0])):
-                                   if i == 0:
-                                       snip = np.concatenate([np.zeros([((rnge[1]-rnge[0]) - len(snip))]),np.array(snip)])
-                                   if i == len(scaledsnips):
-                                       snip = np.concatenate([snip, np.zeros([((rnge[1]-rnge[0])-len(snip))])])
-                                   else:
-                                       snip = np.zeros([(rnge[1]-rnge[0])]) 
-                              interpolation = interpol(snip, 'cubic') #if len(snip) > 0 else np.zeros([(rnge[1]-rnge[0]-1)*intfact ])
-                              interpoled_snip = interpolation(np.arange(0, len(snip)-1, 1/intfact))
-                              intsnipheight   = np.max(interpoled_snip) - np.min(interpoled_snip)
-                              if intsnipheight == 0:
-                                  intsnipheight = 1
-                              interpoled_snip = (interpoled_snip - max(interpoled_snip))* 1/intsnipheight 
-                              ipoled_snips[i] = interpoled_snip
-
-                           mean = np.mean(ipoled_snips, axis = 0)
-                           meantop = np.argmax(mean)
-                           #plt.plot(mean)
-                           #plt.show()
-                           #plt.plot(mean[10*-rnge[0]-10*5:-10*rnge[1]+21])
-                           #plt.show()
-                           for i, interpoled_snip in enumerate(ipoled_snips):
-                               cc = crosscorrelation(interpoled_snip[alignwidth:-alignwidth], mean)
-                               #cc = crosscorrelation(interpoled_snip[15 + 10*-rnge[0]-10*7:-15+ -10*rnge[1]+ 31], mean[10*-rnge[0]-10*7:-10*rnge[1]+31])
-                               offset = -15 + np.argmax(cc)
-                               interpoled_snip = interpoled_snip[15-offset:-15-offset] if offset != -15 else interpoled_snip[30:]
-                               #plt.plot(interpoled_snip)
-                               if len(interpoled_snip[~np.isnan(interpoled_snip)])>0:
-                                   aligned_snips[i] = interpoled_snip
-                           #plt.show()
-                           return snippets, aligned_snips
                        snips, aligned_snips = dta.cut_snippets(datx,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
-                      # snips, scaledsnips = cut_snippets(datx, peaks.list, [-15,15])
-                       #wpf = wpfeats(scaledsnips)
-                       #print(wpf[0])
-                       #print('pc')
                        progressstr = 'Partstatus: '+ 'Part ' + '2'+ '/''5'+' Filestatus:'
                        fish.animate(amount = idx, dexextra = progressstr)
-                       #print('len ', len(scaledsnips))
-                       #print(scaledsnips)
-                       def pc_refactor(cutsnippets):
-                           # (observations, features) matrix
-                            M = np.empty([len(cutsnippets), len(cutsnippets[0])])
-                            for i, snip in enumerate(cutsnippets):
-                                M[i] = snip[:]
-                            from sklearn.preprocessing import StandardScaler
-                            from sklearn.decomposition import PCA
-                            #StandardScaler().fit_transform(M)
-                            pca = PCA()
-                            pc_comp= pca.fit_transform(M)
-                            return pc_comp
-                       print(aligned_snips)
                        # calculates principal components
                        pcs = dta.pc(aligned_snips)#pc_refactor(aligned_snips)
                        #print('dbscan')
-
                        # clusters the features(principal components) using dbscan algorithm. clusterclasses are saved into the peak-object as Peak.pccl
                        order = 5
                        minpeaks = 3 if deltat < 2 else 10
-                       def dbscan_refactor(pcs, peaks, order, eps, min_samples, takekm, olddatalen):
-                           # pcs (samples, features)
-                           # X (samples, features)
-                           from sklearn.cluster import DBSCAN
-                           from sklearn import metrics
-                           from mpl_toolkits.mplot3d import Axes3D
-                           from sklearn.cluster import AgglomerativeClustering
-                           try:
-                               X = pcs[:,:order]
-                           except:
-                               X = pcs[:,order]
-                           # #############################################################################
-                           # Compute DBSCAN
-                           db = DBSCAN(eps, min_samples).fit(X)
-                           from sklearn.cluster import KMeans
-                           core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
-                           core_samples_mask[db.core_sample_indices_] = True
-                           labels = db.labels_                                                                                      ##### TODO ######     --- irgendwo Indexfehler oder so, last change - pcs richtige DImension
-                           #peaks = np.array([np.append(peaks[:,i],labels[i]) for i in range(len(peaks[0]))])
-                           peaks = np.append(peaks,[labels], axis = 0)
-                           return peaks
-
                        peaks = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, olddatalen, method = 'DBSCAN')
-                       #peaks = dbscan_refactor(pcs, peaks, order, 0.4, minpeaks, False, olddatalen)
-
-                       #plotPCclasses_ref(peaks, datx)
+                       
+                       #dta.plot_events_on_data(peaks, datx)
                        olddatalen = len(datx)
                        num = 1
-                       #classlist = np.vectorize(lambda peak: peak.pccl, otypes=[object])(peaks.list)
-                       #snips, scaledsnips = cut_snippets(datx, peaks.list[classlist == num], [-15,5])
-                       #pcs2 = pc(scaledsnips, peaks.list[classlist==num])
-                       #pcs2 = wpfeats(scaledsnips)
-                       #dbscan(pcs2, peaks.list[classlist == num],4, 0.15, 15, False)
-                       #print('Classify')
                        progressstr = 'Partstatus: '+ 'Part ' + '3'+ '/''5'+' Filestatus:'
                        fish.animate(amount = idx, dexextra = progressstr)
-
                        # classifies the peaks using the data from the clustered classes and a simple amplitude-walk which classifies peaks as different classes if their amplitude is too far from any other classes' last three peaks
                        peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist, thresh) # classification by amplitude
-                       # print(peaks.classlist)
-                       print(peaks)
-                       bottletime.append(time.time())       #9
-                       join_count=0
+                       #join_count=0
                      #  while True and joincc(peaklist, peaks) == True and join_count < 200:
                      #        join_count += 1
                      #        continue
-                       # print(peaks.classlist)
-                       bottletime.append(time.time())       #10
-
                        # discards all classes that contain less than mincl EODs
-                       mincl = 6   # >=1
-                       peaks = smallclassdiscard(peaks, mincl)
-                       bottletime.append(time.time())       #11
-
-                       # discards peaks, that are too wide compared to their
-                       # inter spike intervals and seem to be wavesfish signals
-                       # actually... works in some cases
+                       minlen = 6   # >=1
+                       peaks = dta.discard_short_classes(peaks, minlen)
                        if len(peaks[0]) > 0:
-                           peaks = discardwaves_refactor(peaks, datx)
-
+                           peaks = dta.discard_wave_pulses(peaks, datx)
                        # plots the data part and its detected and classified peaks
                        if plot_steps == True:
-                           plotampwalkclasses_refactored(peaks, datx)
+                           dta.plot_events_on_data(peaks, datx)
                            pass
-
                    # map the analyzed EODs of the buffer part to the whole
                    # recording
                    worldpeaks = np.copy(peaks)
-                   bottletime.append(time.time())       #13
                    # change peaks location in the buffered part to the location relative to the
                    idx = 1
                    # peaklocations relative to whole recording 
                    worldpeaks[0] = worldpeaks[0] + (idx*nblock)
                    peaklist.len = idx*nblock
-#                   for p in worldpeaks:
-#                        = idx*nblock + p.x
-                   bottletime.append(time.time())       #14
-                   bottletime.append(time.time())       #15
-                   # extract the relevant information from each peakobject of
-                   # the buffered part and rearrange it as numpy array for
-                   # computational efficienty
-                   #x  = xarray(thisblock)
-                   #y  = yarray(thisblock)
-                   #h  = heightarray(thisblock)
-                   #cllist = clarray(thisblock)
-                   #bottletime.append(time.time())       #16
-                   #thisblock_eods = np.array([x,y,h, cllist])
-                   #bottletime.append(time.time())       #17
-                   #bottletime.append(time.time())       #18
-                   #thisblockeods_len = len(thisblock_eods[0,:])
                    thisblock_eods = np.delete(peaks,3,0)
                    thisblockeods_len = len(thisblock_eods[0])
                    progressstr = 'Partstatus: '+ 'Part ' + '4'+ '/''5'+' Filestatus:'
                    fish.animate(amount = idx, dexextra = progressstr)
-
                    # save the peaks of the current buffered part to a numpy-memmap on the disk
                    if thisblockeods_len> 0 and save == 1 or save == 0:
                        if idx == 0:
                                eods = np.memmap(datasavepath+"/eods_"+filename[:-3]+"npmmp", dtype='float64', mode='w+', shape=(4,thisblockeods_len), order = 'F')
-                           #                    fp = np.memmap(filepath[:len(filename)]+"eods_"+filename[:-3]+"npy", dtype='float32', mode='w+', shape=(4,len(thisblock_eods[0,:])))
                        dtypesize = 8#4 #float32 is 32bit = >4< bytes long  ---changed to float64 -> 8bit
                        eods = np.memmap(datasavepath+"/eods_"+filename[:-3]+"npmmp", dtype='float64', mode='r+', offset = dtypesize*eods_len*4, shape=(4,thisblockeods_len), order = 'F')
                        eods[:] = thisblock_eods
                        eods_len += thisblockeods_len
-                       bottletime.append(time.time())       #19
-                       #classes.extend(np.unique(cllist))
-
                    # to clean the plt buffer...
                    plt.close()
-
                    # get and print the measured times of the algorithm parts for the
                    # current buffer
-                   bottletime.append(time.time())#20
-                   time_a= bottletime[0]
-                   for i, times in enumerate(bottletime):
-                       #print('times: ' ,i, times-time_a)
-                       time_a=times
-
                    progressstr = 'Partstatus: '+ 'Part ' + '5'+ '/''5'+' Filestatus:'
                    fish.animate(amount = idx, dexextra = progressstr)
                  #  plt.show()
-
         # after the last buffered part has finished, save the memory mapped
         # numpy file of the detected and classified EODs to a .npy file to the
         # disk
@@ -1327,7 +1043,6 @@ def joincc(peaklist,peaks):
    #              #print('oh')
 
 def discardwaves_refactor(peaks, data):
-
      deleteclasses = []
      for cl in np.unique(peaks[3]):
          peaksofclass = peaks[:,peaks[3] == cl]
@@ -1884,13 +1599,6 @@ def plotPCclasses_ref(peaks, data):
         if num == -1 :
             color = 'black'
         peaksofclass = peaks[:,classlist == num]
-        #xpred = linreg_pattern(peaksofclass[0:3])
-        #for p in peaksofclass[0:3]:
-        #            #print(p.x)
-        ##print(xpred, peaksofclass[3].x)            
-        #if len(peaksofclass) > 1000:
-        #    plt.plot(xarray(peaksofclass), yarray(peaksofclass), '.', color = 'red',   ms =20)
-        #else:
         print(num)
         plt.plot(peaksofclass[0], peaksofclass[1], '.', color = color,   ms =20)
         #plt.scatter(peaks[0], peaks[2])
