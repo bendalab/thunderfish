@@ -535,3 +535,303 @@ def ampwalkclassify3_refactor(peaks,peaklist, thresh):
     peaks = np.append(peaks,classes[None,:], axis = 0)
     return peaks, peaklist
 
+def discard_wave_pulses(peaks, data):
+     '''
+        discards events from a pulse_event list which are unusally wide (wider than a tenth of the inter pulse interval), which indicates a wave-type EOD instead of a pulse type
+
+        returns: "peaks"
+     '''
+     deleteclasses = []
+     for cl in np.unique(peaks[3]):
+         peaksofclass = peaks[:,peaks[3] == cl]
+         isi = np.diff(peaksofclass[0])
+         isi_mean = np.mean(isi)
+         widepeaks = 0
+         isi_tenth_area = lambda x, isi:np.arange(np.floor(x-0.1*isi),np.ceil(x+0.1*isi),1, dtype = np.int)
+         for p in peaksofclass.T:
+             data = np.array(data)
+             try:
+                 for dp_around in data[isi_tenth_area(p[0],isi_mean)]:
+                    if dp_around <= p[1]-p[2]:
+                       break
+             except IndexError:
+                 pass
+         else:
+             widepeaks+=1
+         if widepeaks > len(peaksofclass)*0.5:
+             deleteclasses.append(cl)
+     for cl in deleteclasses:
+            peaks = peaks[:,peaks[3]!=cl]
+     return peaks
+
+
+def plot_events_on_data(peaks, data):
+    '''
+        plots the detected events onto the data timeseries. If the events are classified, the classes are plotted in different colors and the class -1 (not belonging to a cluster) is plotted in black
+    '''
+    plt.plot(range(len(data)),data, color = 'black')
+    if len(peaks) > 3:
+        classlist = np.array(peaks[3],dtype=np.int)
+        cmap = plt.get_cmap('jet')
+        colors =cmap(np.linspace(0, 1.0, 3000)) #len(np.unique(classlist))))
+        np.random.seed(22)
+        np.random.shuffle(colors)
+        colors = [colors[cl] for cl in np.unique(classlist)]
+        for cl, color in zip(np.unique(classlist), colors):
+            if cl == -1:
+                color = 'black'
+            peaksofclass = peaks[:,classlist == cl]
+            plt.plot(peaksofclass[0],peaksofclass[1], '.', color = color,   ms =20)
+            plt.scatter(peaksofclass[0], peaksofclass[2])
+    else:
+        plt.scatter(peaks[0],peaks[1], color = 'red')
+    plt.show()
+    plt.close()
+
+
+def discard_short_classes(events, minlen):
+    classlist = events[3]
+    smallclasses = [cl for cl in np.unique(classlist) if len(classlist[classlist
+                                                                     == cl]) <
+                 minlen]
+    delete = np.zeros(len(classlist))
+    for cl in smallclasses:
+        delete[classlist == cl] == 1
+        events = events[:,delete != 1]
+    return events
+
+
+def analyze_data(path_to_data, path_to_save_results, save = 'n', plot = 'y', new = 'y', starttime = '0', endtime = '0'):
+    #    Script to detect and classify EODs in recordings of weakly electric pulse
+    #    fish, Dexter Früh, 2018
+    # #    it is suggested to save the recording in
+    #       workingdirectory/recording/recording.WAV
+
+    #    results will be saved in workingdirectory/recording/
+    #
+    #    input:
+    #      -  [Recorded Timeseries] recording.WAV
+    #    outputs(optional):
+    #      -  [Detected and Classified EODs]
+    #            (Numpy Array with Shape (Number of EODs, 4 (Attributes of EODs)),
+    #            with the EOD-Attributes
+    #               -   x-location of the EOD
+    #                       (time/x-coordinate/datapoint in recording)
+    #               -   y-location of the EOD
+    #                       (Amplitude of the positive peak of the pulse-EOD)
+    #               -   height of the EOD(largest distance between peak and through in the EOD)
+    #               -   class of the EOD
+    #           eods_recording.npy
+    #      -   [plots of the results of each analyse step for each
+    #               analysepart (timeinterval of length = deltat) of the recording]
+    #
+    #    required command line arguments at function call
+    #        - save  : if True, save the results to a numpy file (possibly
+    #                                                          overwrite existing)
+    #        - plot  : if True, plot results in each analysestep
+    #        - new   : if True, do a new analysis of the recording, even if there
+    #                       is an existing analyzed .npy file with the right name.
+    #
+    #    call with:
+    #    python3 scriptname.py save plot new (starttime endtime[sec] for only
+    #                                                       partial analysis)
+    #
+    #   other parameters are behind imports and some hardcoded at the relevant
+    #       codestep
+    import sys
+    import numpy as np
+    import copy
+    from scipy.stats import gmean
+    from scipy import stats
+    from scipy import signal
+    from scipy import optimize
+    import matplotlib
+    from fish import ProgressFish
+    import matplotlib.pyplot as plt
+    from thunderfish.dataloader import open_data
+    from thunderfish.peakdetection import detect_peaks
+    from scipy.interpolate import interp1d
+    from scipy.signal import savgol_filter
+    from collections import deque
+    import ntpath
+    import nixio as nix
+    import time
+    import os
+    from shutil import copy2
+    from ownDataStructures import Peak, Tr, Peaklist
+    import DextersThunderfishAddition as dta
+    from IPython import embed
+    # parameters for the analysis
+
+    deltat = 30.0  # seconds of buffer size
+    thresh = 0.04 # minimal threshold for peakdetection
+    peakwidth = 20 # width of a peak and minimal distance between two EODs
+    # basic parameters for thunderfish.dataloader.open_data
+    verbose = 0
+    channel = 0
+    # timeinterval to analyze other than the whole recording
+    #starttime = 0
+    #endtime = 0
+    #timegiven = False
+
+    def main():         #  analyse_dex.py filename save plot new  (optional starttime endtime [sec])
+        home = os.path.expanduser('~')
+        os.chdir(home)
+        # defaults for optional arguments
+        timegiven = False
+        plot_steps = False
+        # parse command line arguments - filepath, save, plot, new (, starttime,
+        filepath = sys.argv[1]
+        if endtime != '0':
+            timegiven = True
+        peaks = np.array([])
+        troughs = np.array([])
+        cutsize = 20
+        maxwidth = 50 #10
+        ultimate_threshold = thresh+0.01
+        filename = path_leaf(filepath)
+        proceed = input('Currently operates in home directory. If given a pulsefish recording filename.WAV, then a folder filename/ will be created in the home directory and all relevant files will be stored there. continue? [y/n]').lower()
+        if proceed == 'n':
+         quit()
+        elif proceed == 'y':
+            pass
+        #do something
+        elif proceed != 'y':
+             quit()
+        datasavepath = filename[:-4]
+        print(datasavepath)
+        eods_len = 0
+        ### ## starting analysis
+        if new == 1 or not os.path.exists(filename[:-4]+"/eods5_"+filename[:-3]+"npy"):
+            ### ##  import data
+            with open_data(filepath, channel, deltat, 0.0, verbose) as data:
+               if save == 1 or save == 0:
+                   if not os.path.exists(datasavepath):
+                       os.makedirs(datasavepath)
+                       copy2(filepath, datasavepath)
+               samplerate = data.samplerate
+               ### ## split datalength into smaller blocks
+               nblock = int(deltat*data.samplerate)
+               if timegiven == True:
+                   parttime1 = starttime*samplerate
+                   parttime2 = endtime*samplerate
+                   data = data[parttime1:parttime2]
+               if len(data)%nblock != 0:
+                   blockamount = len(data)//nblock + 1
+               else:
+                   blockamount = len(data)//nblock
+               bigblock = []
+               ### ## output first (0%) progress bar
+               print('blockamount: ' , blockamount)
+               progress = 0
+               print(progress, '%' , end = " ", flush = True)
+               fish = ProgressFish(total = blockamount)
+               olddatalen = 0
+               startblock = 0
+               ## iterating through the blocks, detecting peaks in each block
+               for idx in range(startblock, blockamount):
+                   ### ## print progress
+                   if progress < (idx*100 //blockamount):
+                       progress = (idx*100)//blockamount
+                   progressstr = 'Partstatus: '+ str(0) + ' '*2 + ' % (' + '0' + ' '*4+ '/' + '?'+' '*4+ '), Filestatus:'
+                   fish.animate(amount = idx, dexextra = progressstr)
+                   progressstr = 'Partstatus: '+ 'Part ' + '0'+ '/''5'+' Filestatus:'
+                   fish.animate(amount = idx, dexextra = progressstr)
+                   datx = data[idx*nblock:(idx+1)*nblock]
+                   # ---------- analysis --------------------------------------------------------------------------
+                   # step1: detect peaks in timeseries
+                   pk, tr = detect_peaks(datx, thresh)
+                   troughs = tr
+                   # continue with analysis only if multiple peaks are detected
+                   if len(pk) > 2:
+                       peaks = dta.makeeventlist(pk,tr,datx,peakwidth)
+                       #dta.plot_events_on_data(peaks, datx)
+                       peakindices, peakx, peakh = dta.discardnearbyevents(peaks[0],peaks[1],peakwidth)
+                       peaks = peaks[:,peakindices]
+                       progressstr = 'Partstatus: '+ 'Part ' + '1'+ '/''5'+' Filestatus:'
+                       fish.animate(amount = idx, dexextra = progressstr)
+                       if len(peaks) > 0:
+                           ### ## connects the current part with the one that came before, to allow for a continuous analysis
+                           if idx >= startblock+1:
+                               peaklist = connect_blocks(peaklist)
+                           else:
+                               peaklist = Peaklist([])
+                           snips, aligned_snips = dta.cut_snippets(datx,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
+                           progressstr = 'Partstatus: '+ 'Part ' + '2'+ '/''5'+' Filestatus:'
+                           fish.animate(amount = idx, dexextra = progressstr)
+                           # calculates principal components
+                           pcs = dta.pc(aligned_snips)#pc_refactor(aligned_snips)
+                           #print('dbscan')
+                           # clusters the features(principal components) using dbscan algorithm. clusterclasses are saved into the peak-object as Peak.pccl
+                           order = 5
+                           minpeaks = 3 if deltat < 2 else 10
+                           peaks = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, olddatalen, method = 'DBSCAN')
+                           
+                           #dta.plot_events_on_data(peaks, datx)
+                           olddatalen = len(datx)
+                           num = 1
+                           progressstr = 'Partstatus: '+ 'Part ' + '3'+ '/''5'+' Filestatus:'
+                           fish.animate(amount = idx, dexextra = progressstr)
+                           # classifies the peaks using the data from the clustered classes and a simple amplitude-walk which classifies peaks as different classes if their amplitude is too far from any other classes' last three peaks
+                           peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist, thresh) # classification by amplitude
+                           #join_count=0
+                         #  while True and joincc(peaklist, peaks) == True and join_count < 200:
+                         #        join_count += 1
+                         #        continue
+                           # discards all classes that contain less than mincl EODs
+                           minlen = 6   # >=1
+                           peaks = dta.discard_short_classes(peaks, minlen)
+                           if len(peaks[0]) > 0:
+                               peaks = dta.discard_wave_pulses(peaks, datx)
+                           # plots the data part and its detected and classified peaks
+                           if plot_steps == True:
+                               dta.plot_events_on_data(peaks, datx)
+                               pass
+                       # map the analyzed EODs of the buffer part to the whole
+                       # recording
+                       worldpeaks = np.copy(peaks)
+                       # change peaks location in the buffered part to the location relative to the
+                       idx = 1
+                       # peaklocations relative to whole recording 
+                       worldpeaks[0] = worldpeaks[0] + (idx*nblock)
+                       peaklist.len = idx*nblock
+                       thisblock_eods = np.delete(peaks,3,0)
+                       thisblockeods_len = len(thisblock_eods[0])
+                       progressstr = 'Partstatus: '+ 'Part ' + '4'+ '/''5'+' Filestatus:'
+                       fish.animate(amount = idx, dexextra = progressstr)
+                       # save the peaks of the current buffered part to a numpy-memmap on the disk
+                       if thisblockeods_len> 0 and save == 1 or save == 0:
+                           if idx == 0:
+                                   eods = np.memmap(datasavepath+"/eods_"+filename[:-3]+"npmmp", dtype='float64', mode='w+', shape=(4,thisblockeods_len), order = 'F')
+                           dtypesize = 8#4 #float32 is 32bit = >4< bytes long  ---changed to float64 -> 8bit
+                           eods = np.memmap(datasavepath+"/eods_"+filename[:-3]+"npmmp", dtype='float64', mode='r+', offset = dtypesize*eods_len*4, shape=(4,thisblockeods_len), order = 'F')
+                           eods[:] = thisblock_eods
+                           eods_len += thisblockeods_len
+                       # to clean the plt buffer...
+                       plt.close()
+                       # get and print the measured times of the algorithm parts for the
+                       # current buffer
+                       progressstr = 'Partstatus: '+ 'Part ' + '5'+ '/''5'+' Filestatus:'
+                       fish.animate(amount = idx, dexextra = progressstr)
+                     #  plt.show()
+            # after the last buffered part has finished, save the memory mapped
+            # numpy file of the detected and classified EODs to a .npy file to the
+            # disk
+            eods = np.memmap(datasavepath+"/eods_"+filename[:-3]+"npmmp", dtype='float64', mode='r+', shape=(4,eods_len), order = 'F')
+            print('before final saving: print unique eodcl: ' , np.unique(eods[3]))
+            if save == 1:
+               # #print('eods', eods[3])
+               path = filename[:-4]+"/"
+               if not os.path.exists(path):
+                   os.makedirs(path)
+               if eods_len > 0:
+                   print('Saved!')
+                   np.save(filename[:-4]+"/eods8_"+filename[:-3]+"npy", eods)
+               else:
+                   #np.save(filename[:-4]+"/eods5_"+filename[:-3]+"npy", thisblock_eods)
+                   print('not saved')
+
+        else: # if there already has been a certain existing result file and 'new' was set to False
+            print('already analyzed')
+
+
