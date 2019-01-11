@@ -276,7 +276,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         return 'failed to open file %s: %s' % (filename, str(e))
     if len(raw_data) == 0:
         return 'empty data file %s' % filename
-
+    
     # calculate best_window:
     found_bestwindow = True
     min_clip = cfg.value('minClipAmplitude')
@@ -426,22 +426,22 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     if save_csvs and found_bestwindow:
         # eod waveforms:
         for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
-            header = ['time (s)', 'mean', 'std']
+            header = ['time (s)', 'mean (%s)' % unit, 'std (%s)' % unit]
             if mean_eod.shape[1] > 3:
-                header.append('fit')
+                header.append('fit (%s)' % unit)
             write_csv(os.path.join(output_folder, outfilename + '-waveform-%d.csv' % i),
                       header, mean_eod)
             if len(sdata)>0:
                 if sdata.shape[1] == 2:
                     header = ['frequency (Hz)', 'power']
                 else:
-                    header = ['harmonics', 'frequency (Hz)', 'amplitude', 'phase']
+                    header = ['harmonics', 'frequency (Hz)', 'relampl', 'phase (rad)']
                     if sdata.shape[1] > 4:
-                        header.append('dataampl')
+                        header.append('amplitude (%s)' % unit)
                 write_csv(os.path.join(output_folder, outfilename + '-spectrum-%d.csv' % i),
                           header, sdata)
             if len(pdata)>0:
-                header = ['P', 'time (ms)', 'amplitude', 'relaampl']
+                header = ['P', 'time (s)', 'amplitude (%s)' % unit, 'relampl']
                 write_csv(os.path.join(output_folder, outfilename + '-peaks-%d.csv' % i),
                           header, pdata)
         # wavefish frequencies and amplitudes:
@@ -480,7 +480,7 @@ def main():
                         help='save analysis results as csv-files')
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
                         help="path where to store results and figures")
-    parser.add_argument('-b', dest='show_bestwindow', action='store_true', help='show the cost function of the best window algorith,')
+    parser.add_argument('-b', dest='show_bestwindow', action='store_true', help='show the cost function of the best window algorith')
     args = parser.parse_args()
 
     # set verbosity level from command line:
