@@ -1,16 +1,22 @@
 """
 Functions for loading time-series data from files.
 
+```
 data, samplingrate, unit = load_data('data/file.wav')
+```
 Loads the whole time-series from the file as a numpy array of floats.
 
+```
 data = DataLoader('data/file.wav', 0, 60.0)
+```
 or
+```
 with open_data('data/file.wav', 0, 60.0) as data:
-Create an DataLoader object that loads chuncks of 60 seconds long data on demand.
+```
+Create an `DataLoader` object that loads chuncks of 60 seconds long data on demand.
 data can be used like a read-only numpy array of floats.
 
-relacs_metadata() reads key-value pairs from relacs *.dat file headers.
+`relacs_metadata()` reads key-value pairs from relacs *.dat file headers.
 """
 
 import os
@@ -660,61 +666,65 @@ class DataLoader(aio.AudioLoader):
     """
     Buffered reading of time-series data for random access of the data in the file.
     This allows for reading very large data files that do not fit into memory.
-    An DataLoader instance can be used like a huge read-only numpy array, i.e.
-
-        data = DataLoader('path/to/data/file.dat')
-        x = data[10000:20000,0]
-
+    An `DataLoader` instance can be used like a huge read-only numpy array, i.e.
+    ```
+    data = DataLoader('path/to/data/file.dat')
+    x = data[10000:20000,0]
+    ```
     The first index specifies the frame, the second one the channel.
 
-    DataLoader first determines the format of the data file and then opens
+    `DataLoader` first determines the format of the data file and then opens
     the file (first line). It then reads data from the file
     as necessary for the requested data (second line).
 
     Supported file formats are relacs trace*.raw files (www.relacs.net),
-    fishgrid traces-*.raw files, and audio files via aduioio.AudioLoader.
+    fishgrid traces-*.raw files, and audio files via `audioio.AudioLoader`.
 
     Reading sequentially through the file is always possible. If previous data
     are requested, then the file is read from the beginning. This might slow down access
-    to previous data considerably. Use the backsize argument to the open functions to
+    to previous data considerably. Use the `backsize` argument to the open functions to
     make sure some data are loaded before the requested frame. Then a subsequent access
     to the data within backsize seconds before that frame can still be handled without
     the need to reread the file from the beginning.
 
     Usage:
-
-        import thunderfish.dataloader as dl
-        with dl.open_data(filepath, -1, 60.0, 10.0) as data:
-            # do something with the content of the file:
-            x = data[0:10000, 0]
-            y = data[10000:20000, 0]
-            z = x + y
-
-    Normal open and close:
-
-        data = dl.DataLoader(filepath, 0, 60.0)
-        x = data[:]  # read the whole file
-        data.close()
-        
-    that is the same as:
-
-        data = dl.DataLoader()
-        data.open(filepath, 0, 60.0)
+    ------
+    ```
+    import thunderfish.dataloader as dl
+    with dl.open_data(filepath, -1, 60.0, 10.0) as data:
+        # do something with the content of the file:
+        x = data[0:10000, 0]
+        y = data[10000:20000, 0]
+        z = x + y
+    ```
     
+    Normal open and close:
+    ```
+    data = dl.DataLoader(filepath, 0, 60.0)
+    x = data[:]  # read the whole file
+    data.close()
+    ```    
+    that is the same as:
+    ```
+    data = dl.DataLoader()
+    data.open(filepath, 0, 60.0)
+    ```
 
     Member variables:
-      samplerate (float): the sampling rate of the data in seconds.
-      channels (int): the number of channels that are read in.
-      channel (int): the channel of which the trace is returned.
-                     If negative, all channels are returned.
-      frames (int): the number of frames in the file.
-      shape (tuple): frames and channels of the data.
+    -----------------
+    samplerate (float): the sampling rate of the data in Hertz.
+    channels (int): the number of channels that are read in.
+    channel (int): the channel of which the trace is returned.
+                   If negative, all channels are returned.
+    frames (int): the number of frames in the file.
+    shape (tuple): number of frames and channels of the data.
 
     Some member functions:
-      len(): the number of frames
-      open(): open a data file.
-      open_*(): open a data file of a specific format.
-      close(): close the file.
+    ----------------------
+    len(): the number of frames
+    open(): open a data file.
+    open_*(): open a data file of a specific format.
+    close(): close the file.
     """
 
     def __init__(self, filepath=None, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
