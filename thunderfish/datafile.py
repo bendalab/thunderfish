@@ -3,6 +3,7 @@
 class DataFile for reading and writing of data tables.
 """
 
+import sys
 import math as m
 
 
@@ -141,6 +142,17 @@ class DataFile:
         self.indices = None
 
     def add_section(self, label):
+        """
+        Add a new section to the table header.
+
+        Each column of the table has a header label. Columns can be
+        grouped into sections. Sections can be nested arbitrarily.
+
+        Parameters
+        ----------
+        label: string
+            The name of the section.
+        """
         if self.addcol >= len(self.data):
             self.header.append([label])
             self.units.append('')
@@ -156,6 +168,19 @@ class DataFile:
         return self.addcol
         
     def add_column(self, label, unit, formats):
+        """
+        Add a new column to the table header.
+
+        Parameters
+        ----------
+        label: string
+            The name of the column.
+        unit: string
+            The unit of the column contents.
+        formats: string
+            The C-style format string used for printing out the column content, e.g.
+            '%g', '%.2f', '%s', etc.
+        """
         if self.addcol >= len(self.data):
             self.header.append([label])
             self.formats.append(formats)
@@ -171,65 +196,206 @@ class DataFile:
         return self.addcol-1
 
     def section(self, column, level):
+        """
+        The section name of a specified column.
+
+        Parameters
+        ----------
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+        level: int
+            The level of the section to be returned. The column label itself is level=0.
+
+        Returns
+        -------
+        name: string
+            The name of the section at the specified level containing the column.
+        """
         column = self.col(column)
         return self.header[column][level]
     
     def set_section(self, label, column, level):
+        """
+        Set a section name.
+
+        Parameters
+        ----------
+        label: string
+            The new name to be used for the section.
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+        level: int
+            The level of the section to be set. The column label itself is level=0.
+        """
         column = self.col(column)
         self.header[column][level] = label
         return column
 
     def label(self, column):
+        """
+        The column name.
+
+        Parameters
+        ----------
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+
+        Returns
+        -------
+        name: string
+            The column label.
+        """
         column = self.col(column)
         return self.header[column][0]
 
     def set_label(self, label, column):
+        """
+        Set the column name.
+
+        Parameters
+        ----------
+        label: string
+            The new name to be used for the column.
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+        """        
         column = self.col(column)
         self.header[column][0] = label
         return column
 
     def unit(self, column):
+        """
+        The unit of the column.
+
+        Parameters
+        ----------
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+
+        Returns
+        -------
+        unit: string
+            The unit.
+        """
         column = self.col(column)
         return self.unit[column]
 
     def set_unit(self, unit, column):
+        """
+        The unit of the column.
+
+        Parameters
+        ----------
+        unit: string
+            The new unit to be used for the column.
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+        """
         column = self.col(column)
         self.units[column] = unit
         return column
 
     def format(self, column):
+        """
+        The format string of the column.
+
+        Parameters
+        ----------
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+
+        Returns
+        -------
+        format: string
+            The format string.
+        """
         column = self.col(column)
         return self.format[column]
 
     def set_format(self, format, column):
+        """
+        The format string of the column.
+
+        Parameters
+        ----------
+        format: string
+            The new format string to be used for the column.
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+        """
         column = self.col(column)
         self.formats[column] = format
         return column
 
     def columns(self):
+        """
+        The number of columns.
+        
+        Returns
+        -------
+        columns: int
+            The number of columns contained in the table.
+        """
         return len(self.header)
 
     def rows(self):
+        """
+        The number of rows.
+        
+        Returns
+        -------
+        rows: int
+            The number of rows contained in the table.
+        """
         return max(map(len, self.data))
         
     def __len__(self):
+        """
+        The number of columns (!)
+        
+        Returns
+        -------
+        columns: int
+            The number of columns contained in the table.
+        """
         return self.columns()
 
     def __iter__(self):
+        """
+        Initialize iteration over data columns.
+        """
         self.iter_counter = -1
         return self
 
     def __next__(self):
+        """
+        Return next data column.
+        """
         self.iter_counter += 1
         if self.iter_counter >= self.columns():
             raise StopIteration
         else:
             return self.data[self.iter_counter]
 
-    def next(self):  # python 2
+    def next(self):
+        """
+        Return next data column.
+        (python2 syntax)
+        """
         return self.__next__()
 
     def __getitem__(self, key):
+        """
+        Data elements specified by slice.
+        """
         if type(key) is tuple:
             index = key[0]
         else:
@@ -253,6 +419,26 @@ class DataFile:
         return None
 
     def key_value(self, col, row, missing='-'):
+        """
+        A data element returned as a key-value pair.
+
+        Parameters
+        ----------
+        col: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+        row: int
+            Specifies the row from which the data element should be retrieved.
+        missing: string
+            String indicating non-existing data elements.
+
+        Returns
+        -------
+        s: string
+            A string composed of the header label of the column, an '=' character,
+            a textual representation of the data element according to the format
+            of the column, followed by the unit of the column.
+        """
         col = self.col(col)
         if col is None:
             return ''
@@ -264,6 +450,9 @@ class DataFile:
         return self.header[col][0] + '=' + v
 
     def _find_col(self, ss, si, minns, maxns, c0, strict=True):
+        """
+        Helper function for finding column indices from textual column specifications.
+        """
         if si >= len(ss):
             return None, None, None, None
         ns0 = 0
@@ -291,7 +480,23 @@ class DataFile:
         return None, c0, ns0, si
 
     def find_col(self, column):
-        # column: int or str or None
+        """
+        Find the start and end index of a column specification.
+        
+        Parameters
+        ----------
+        column: None, int, or string
+            A specification of a column.
+            See self.col() for more information on how to specify a column.
+
+        Returns
+        -------
+        c0: int or None
+            A valid column index or None that is specified by `column`.
+        c1: int or None
+            A valid column index or None of the column following the range specified
+            by `column`.
+        """
         if column is None:
             return None, None
         if not isinstance(column, int) and column.isdigit():
@@ -316,14 +521,53 @@ class DataFile:
         return c0, c1
     
     def col(self, column):
+        """
+        The index of a column.
+        
+        Parameters
+        ----------
+        column: None, int, or string
+            A specification of a column.
+            - None: no column is specified
+            - int: the index of the column (first column is zero), e.g. `col(2)`.
+            - a string representing an integer is converted into the column index,
+              e.g. `col('2')`
+            - a string specifying a column by its header.
+              Header names of descending hierarchy are separated by '>'.
+
+        Returns
+        -------
+        index: int or None
+            A valid column index or None.
+        """
         c0, c1 = self.find_col(column)
         return c0
 
     def exist(self, column):
-        # column: int or str or None
+        """
+        Check for existence of a column. 
+
+        Parameters
+        ----------
+        column: None, int, or string
+            The column to be checked.
+            See self.col() for more information on how to specify a column.
+        """
         return self.col(column) is not None
 
     def add_value(self, val, column=None):
+        """
+        Add a single data element to the table.
+
+        Parameters
+        ----------
+        val: float, int, string, etc.
+            Data value to be appended to a column.
+        column: None, int, or string
+            The column to which the data element should be appended.
+            If None, append to the current column.
+            See self.col() for more information on how to specify a column.
+        """
         column = self.col(column)
         if column is None:
             column = self.setcol
@@ -332,23 +576,50 @@ class DataFile:
         self.shape = (self.columns(), self.rows())
 
     def add_data(self, data, column=None):
+        """
+        Add a list of data elements to the table.
+
+        Parameters
+        ----------
+        data: list of float, int, string, etc.
+            Data values to be added to the table.
+        column: None, int, or string
+            The column to which the first data element should be appended.
+            If None, append to the current column.
+            See self.col() for more information on how to specify a column.
+            The remaining data elements will be added to the subsequent columns.
+        """
         for val in data:
             self.add_value(val, column)
             column = None
 
     def set_column(self, column):
+        """
+        Set the column where to add data.
+
+        Parameters
+        ----------
+        column: int or string
+            The column to which data elements should be appended.
+            See self.col() for more information on how to specify a column.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
+        """
         col = self.col(column)
         if col is None:
-            print('column ' + column + ' not found')
+            raise IndexError('column ' + column + ' not found or invalid')
         self.setcol = col
         return col
 
     def fill_data(self):
+        """
+        Fill up all columns with missing data to have the same number of data elements.
+        """
         # maximum rows:
-        r = 0
-        for c in range(len(self.data)):
-            if r < len(self.data[c]):
-                r = len(self.data[c])
+        r = rows()
         # fill up:
         for c in range(len(self.data)):
             while len(self.data[c]) < r:
@@ -357,16 +628,42 @@ class DataFile:
         self.shape = (self.columns(), self.rows())
 
     def hide(self, column):
+        """
+        Hide a column or a range of columns.
+
+        Hidden columns will not be printed out by the write() function.
+
+        Parameters
+        ----------
+        column: int or string
+            The column to be hidden.
+            See self.col() for more information on how to specify a column.
+        """
         c0, c1 = self.find_col(column)
         if c0 is not None:
             for c in range(c0, c1):
                 self.hidden[c] = True
 
     def hide_all(self):
+        """
+        Hide all columns.
+
+        Hidden columns will not be printed out by the write() function.
+        """
         for c in range(len(self.hidden)):
             self.hidden[c] = True
 
     def hide_empty_columns(self, missing='-'):
+        """
+        Hide all columns that do not contain data.
+
+        Hidden columns will not be printed out by the write() function.
+
+        Parameters
+        ----------
+        missing: string
+            String indicating missing data.
+        """
         for c in range(len(self.data)):
             # check for empty column:
             isempty = True
@@ -383,12 +680,31 @@ class DataFile:
                 self.hidden[c] = True
 
     def show(self, column):
+        """
+        Show a column or a range of columns.
+
+        Undoes hiding of a column.
+
+        Parameters
+        ----------
+        column: int or string
+            The column to be shown.
+            See self.col() for more information on how to specify a column.
+        """
         c0, c1 = self.find_col(column)
         if c0 is not None:
             for c in range(c0, c1):
                 self.hidden[c] = False
 
     def adjust_columns(self, missing='-'):
+        """
+        Adjust the format of each column to the maximum width of its data elements.
+
+        Parameters
+        ----------
+        missing: string
+            String indicating missing data.
+        """
         for c, f in enumerate(self.formats):
             w = 0
             # extract width from format:
@@ -419,6 +735,19 @@ class DataFile:
             self.formats[c] = f
                 
     def sort(self, columns):
+        """
+        Sort the table rows.
+
+        Generate an index list for the rows that is used by write() when writing the table.
+        This only affects the output via the write() function, the data elements are
+        not rearranged.
+
+        Parameters
+        ----------
+        columns: int or string or list of int or string
+            A column specifier or a list of column specifiers of the columns
+            to be sorted.
+        """
         if type(columns) is not list and type(columns) is not tuple:
             columns = [ columns ]
         if len(columns) == 0:
@@ -435,7 +764,19 @@ class DataFile:
                 continue
             self.indices = sorted(self.indices, key=self.data[c].__getitem__, reverse=rev)
 
-    def write_keys(self, sep='>', space=None):
+    def write_column_specs(self, df=sys.stdout, sep='>', space=None):
+        """
+        Write list of specifications of each section and column header.
+
+        Parameters
+        ----------
+        df: stream
+            Stream where to write the column specifications.
+        sep: string
+            Separate section specifiers by this string.
+        space: string
+            Replace all spaces in the output by this string.
+        """
         fh = self.nsecs * ['']
         for hl in self.header:
             fh[0:len(hl)] = hl
@@ -444,18 +785,55 @@ class DataFile:
                 line = sep.join(reversed(fh[n0:]))
                 if space is not None:
                     line = line.replace(' ', space)
-                print(line)
+                df.write(line + '\n')
 
     def index2aa(self, n, a='a'):
-        # inspired by https://stackoverflow.com/a/37604105
+        """
+        Convert an integer into an alphabetical representation.
+
+        The integer number is converted into 'a', 'b', 'c', ..., 'z',
+        'aa', 'ab', 'ac', ..., 'az', 'ba', 'bb', ...
+        
+        Inspired by https://stackoverflow.com/a/37604105
+
+        Parameters
+        ----------
+        n: int
+            An integer to be converted into alphabetical representation.
+        a: string ('a' or 'A')
+            Use upper or lower case characters.
+
+        Returns
+        -------
+        ns: string
+            Alphabetical represtnation of an integer.
+        """
         d, m = divmod(n, 26)
         bm = chr(ord(a)+m)
         return index2aa(d-1, a) + bm if d else bm
 
-    def write(self, df, table_format='dat', units="row", number_cols=None, missing='-'):
-        # table_format: "dat", "ascii", "rtai", "csv", "md", "html", "tex"
-        # units: "row", "header" or "none"
-        # number_cols: add row with colum numbers ('num', 'index') or letters ('aa' or 'AA')
+    def write(self, df=sys.stdout, table_format='dat',
+              units="row", number_cols=None, missing='-'):
+        """
+        Write the table into a stream.
+
+        Parameters
+        ----------
+        df: stream
+            Stream to be used for writing.
+        table_format: string
+            The format to be used for output.
+            One of "dat", "ascii", "rtai", "csv", "md", "html", "tex".
+        units: string
+            - "row": write an extra row to the table header specifying the units of the columns.
+            - "header": add the units to the column headers.
+            - "none": do not specify the units.
+        number_cols: string or None
+            If not None, add a row that specifies the colum indices ('index' starting with 0),
+            column number ('num' starting with 1), or column letters ('aa' or 'AA').
+        missing: string
+            Indicate missing data by this string.
+        """
         format_width = True
         begin_str = ''
         end_str = ''
@@ -824,7 +1202,6 @@ class IndentStream(object):
 
         
 if __name__ == "__main__":
-    import sys
     print("Checking datafile module ...")
     print('')
 
@@ -860,4 +1237,7 @@ if __name__ == "__main__":
     print('data columns: %d' % df.columns())
     print('data rows: %d' % df.rows())
     print('data shape: (%d, %d)' % (df.shape[0],df.shape[1]))
+    print('')
+    print('column specifications:')
+    df.write_column_specs()
         
