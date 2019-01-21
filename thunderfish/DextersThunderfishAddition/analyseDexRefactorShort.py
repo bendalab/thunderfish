@@ -94,7 +94,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
     maxwidth = 50 #10
     ultimate_threshold = thresh+0.01
     filename = path_leaf(filepath)
-    proceed = input('Currently operates in home directory. If given a pulsefish recording filename.WAV, then a folder filename/ will be created in the home directory and all relevant files will be stored there. continue? [y/n]').lower()
+    proceed = input('Currently operates in home directory. If given a pulsefish recording filename.WAV, then a folder filename/ will be created in the home directory and all relevant files will be stored there. continue? [y/n] ').lower()
     if proceed == 'n':
      quit()
     elif proceed == 'y':
@@ -156,28 +156,35 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                    fish.animate(amount = idx, dexextra = progressstr)
                    if len(peaks) > 0:
                        ### ## connects the current part with the one that came before, to allow for a continuous analysis
-                       if idx >= startblock+1:
-                           peaklist = connect_blocks(peaklist)
+                       if idx > startblock:
+                           print('peaklist.len: ',peaklist.len)
+                           peaklist = dta.connect_blocks(peaklist)
+                           print(peaklist.len, peaklist.classesnearbyx)
                        else:
                            peaklist = Peaklist([])
-                       snips, aligned_snips = dta.cut_snippets(datx,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
+                       aligned_snips = dta.cut_snippets(datx,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
                        progressstr = 'Partstatus: '+ 'Part ' + '2'+ '/''5'+' Filestatus:'
                        fish.animate(amount = idx, dexextra = progressstr)
                        # calculates principal components
                        pcs = dta.pc(aligned_snips)#pc_refactor(aligned_snips)
                        #print('dbscan')
-                       # clusters the features(principal components) using dbscan algorithm. clusterclasses are saved into the peak-object as Peak.pccl
                        order = 5
                        minpeaks = 3 if deltat < 2 else 10
-                       peaks = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, olddatalen, method = 'DBSCAN')
-                       
+                       labels = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, olddatalen, method = 'DBSCAN')
+                       #print('peaks before align', peaks)
+                       peaks = np.append(peaks,[labels], axis = 0)
                        #dta.plot_events_on_data(peaks, datx)
                        olddatalen = len(datx)
                        num = 1
                        progressstr = 'Partstatus: '+ 'Part ' + '3'+ '/''5'+' Filestatus:'
                        fish.animate(amount = idx, dexextra = progressstr)
                        # classifies the peaks using the data from the clustered classes and a simple amplitude-walk which classifies peaks as different classes if their amplitude is too far from any other classes' last three peaks
-                       peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist, thresh) # classification by amplitude
+                       #peaks[3]=[-1]*len(peaks[3])
+                       if idx > startblock:
+                         dta.alignclusterlabels(labels, peaklist, peaks,data=datx)
+                       print(peaklist.classesnearby)
+                       peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
+                       print(peaklist.classesnearby)
                        #join_count=0
                      #  while True and joincc(peaklist, peaks) == True and join_count < 200:
                      #        join_count += 1
@@ -195,10 +202,9 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                    # recording
                    worldpeaks = np.copy(peaks)
                    # change peaks location in the buffered part to the location relative to the
-                   idx = 1
+                   peaklist.len = nblock
                    # peaklocations relative to whole recording 
                    worldpeaks[0] = worldpeaks[0] + (idx*nblock)
-                   peaklist.len = idx*nblock
                    thisblock_eods = np.delete(peaks,3,0)
                    thisblockeods_len = len(thisblock_eods[0])
                    progressstr = 'Partstatus: '+ 'Part ' + '4'+ '/''5'+' Filestatus:'
@@ -721,18 +727,19 @@ def dbscan(pcs, peaks, order, eps, min_samples, takekm, olddatalen):
 
 def ampwalkclassify3_refactor(peaks,peaklist):                          # final classificator
     classamount = peaklist.classamount
-    # for i in range(start, len(peaks)-start):
     lastofclass = peaklist.lastofclass        # dict of a lists of the last few heightvalues of a class, f.E ((1,[0.7,0.68,0.71]), (5, [0.2, 0.21, 0.21]))
     lastofclassx = peaklist.lastofclassx      # dict of a list of the last few x-values of a class
     a=0
     elem = 0
     thresholder = []
     comperr = 1
-    classesnearby = peaklist.classesnearby     # list of the classes of the last n peaks (currently 12)  f.E:[1,2,1,2,1,3,2,1,...]
+    classesnearby = peaklist.classesnearby     # list of the classes of the last n peaks f.E:[1,2,1,2,1,3,2,1,...]
     classesnearbyx = peaklist.classesnearbyx   # list of the x-values of the last n peaks,               f.E:[13300, 13460, 13587, 13690, 13701, ...]
     classesnearbypccl = peaklist.classesnearbypccl # list of the pc-classified classes of the last n peaks
     classes = np.zeros((len(peaks[0])))
-    pcclasses = peaks[3]
+    if len(peaks) >3:
+        pcclasses = peaks[3]
+        print('ERROOR')
     positions = peaks[0]
     heights = peaks[1]
 
@@ -776,7 +783,6 @@ def ampwalkclassify3_refactor(peaks,peaklist):                          # final 
         if 32000 > 20*meanisi> 6000:
             maxdistance = 20*meanisi
             #print(meanisi, maxdistance , 'maxdistance ----------------------------------------------------------------------------------------------')
-
         time2 = time.time()
         awc_btime.append(time2-time1) #0
         cl = 0  # 'No class'
@@ -789,7 +795,6 @@ def ampwalkclassify3_refactor(peaks,peaklist):                          # final 
        #         factor = 1.2
        #     else:
        #         factor = 1.6
-
         for i in clnrby:
             #print('cl: ', i)
           #  if classesnearbypccl[classesnearby.index(i)] == -1:
@@ -797,12 +802,12 @@ def ampwalkclassify3_refactor(peaks,peaklist):                          # final 
           #  else: factor = 1.6
             classmean = np.mean(lastofclass[i])
             logerror = np.abs(np.log2(heights[peaknum])-np.log2(classmean)) 
-            abserror = np.abs(heights[peaknum]-classmean) 
-            logthresh = np.log2(factor) 
+            abserror = np.abs(heights[peaknum]-classmean)
+            logthresh = np.log2(factor)
             #ä#print(np.std(lastofclass[i])) absthresh = 0.5*classmean #  #print('test log', np.abs(np.log2(np.array([0.4,0.5,1,1.5,2,2.4]))-np.log2(np.array([1,1,1,1,1,1]))) ) #   abs(classmean*0.5)
             #relerror = error 
             relerror = logerror
-            relabserror = abserror/thresh
+            #relabserror = abserror/thresh
            # if 1140 < p.num < 1150:
            #     print(p.num)
            #     print('for classes at one peak: classmean, height, abserror, thresh',
@@ -853,7 +858,6 @@ def ampwalkclassify3_refactor(peaks,peaklist):                          # final 
                 cl = classamount+1
                 #print('existingclasses: ', classamount) 
                 classamount = cl
-                
                 #print('newclass: ----------------------------------------------------------------', cl)
                 lastofclass[cl] = deque()
                 lastofclassx[cl] = deque()
@@ -924,29 +928,6 @@ def ampwalkclassify3_refactor(peaks,peaklist):                          # final 
                 classesnearby.append(cl)
                 classesnearbyx.append(positions[peaknum])
                 classesnearbypccl.append(pcclasses[peaknum])
-           #     #print('classesnearby after a peak', classesnearby)
-  #     for clnum, cls in enumerate(classesnearby): ## deleting almost identical classes (< % difference in amplitude)
-  #         if cls == False:
-  #             continue
-  #         if True:
-  #             continue
-  #         compare = np.mean(lastofclass[cls])
-  #         for i in classesnearby[clnum:-1]:
-  #             if i== False:
-  #                 continue
-  #             if i != cls and abs(compare - np.mean(lastofclass[i])) < compare*0.01:   ## 
-  #              #   #print(compare)
-  #              #   #print( np.mean(np.vectorize(lambda peak: peak.height)(lastofclass[i])))
-  #                 clindex = classesnearby.index(cls)
-  #                 classesnearby[clindex] = False
-  #                 classesnearbyx[clindex] = False
-  #                 del lastofclass[cls]
-  #                 del lastofclassx[cls]
-  #                # cl = holdlastcl
-  #                # if cl == cls:
-  #                     
-  #                     
-  #                 #print('combinedsomeclasses that were similar', cl, cls)
         time2 = time.time()
   #      awc_btime.append(time2-time1) #2
   #      classesnearby = [cls for cls in classesnearby if cls != False] 
@@ -1028,7 +1009,7 @@ def joincc(peaklist,peaks):
           #  #print('cl, connect', cl, connect[cl])
             peaklist.classesnearby[peaklist.classesnearby.index(cl)] = connect[cl]
             peaklist.lastofclass[connect[cl]]=peaklist.lastofclass[cl]
-            peaklist.lastofclassx[connect[cl]]= peaklist.lastofclassx[cl] 
+            peaklist.lastofclassx[connect[cl]]= peaklist.lastofclassx[cl]
     peaklist.classlist = peaks[4]
     return joinedsome
    # for poc in peaksofclass:  
@@ -1341,7 +1322,7 @@ def cut_snippets(data, peaklist, rnge):
             else:
     #            print('this')
                 snip = np.zeros([(rnge[1]-rnge[0])]) 
-       interpoled_snip = interpol(snip)(np.arange(0, len(snip)-1, 1/intfact)) if len(snip) > 0 else np.zeros([(rnge[1]-rnge[0]-1)*intfact ]) #interpolfactor 10
+       interpoled_snip = dta.interpol(snip, 'cubic')(np.arange(0, len(snip)-1, 1/intfact)) if len(snip) > 0 else np.zeros([(rnge[1]-rnge[0]-1)*intfact ]) #interpolfactor 10
        
        intsnipheight   = np.max(interpoled_snip) - np.min(interpoled_snip)
        if intsnipheight == 0:
@@ -1358,7 +1339,7 @@ def cut_snippets(data, peaklist, rnge):
     for i, snip in enumerate(standardized):
         #plt.show()
         interpoled_snip = snip #standardized[i]
-        cc = crosscorrelation(interpoled_snip[15:-15], mean)
+        cc = dta.crosscorrelation(interpoled_snip[15:-15], mean)
         #cc = crosscorrelation(interpoled_snip[15 + 10*-rnge[0]-10*7:-15+ -10*rnge[1]+ 31], mean[10*-rnge[0]-10*7:-10*rnge[1]+31])
         #plt.plot(interpoled_snip[15 + 10*-rnge[0]-10*7:-15+ -10*rnge[1]+ 31]) 
         #top = np.argmax(interpoled_snip)
@@ -1375,6 +1356,38 @@ def cut_snippets(data, peaklist, rnge):
     return snippets, alignedsnips
 
 
+#def alignclusterlabels(labels, peaklist, peaks, olddatalen):
+#    overlapamount = len(peaks[:,peaks[0]<30000])
+#    if overlapamount == 0:
+#        return None
+#    overlappeaks = copy.deepcopy(peaks[:overlapamount])
+#    if len(peaks) > 3:
+#        print('wieso hat peaks eine pcclklasse?')
+#    overlappeaks = np.append(overlappeaks,[labels], axis = 0)
+#    overlap_peaklist = connect_blocks(old_peaklist)
+#    overlap_peaklist.classesnearbypccl = [-1]*len(overlap_peaklist.classesnearbypccl)
+#    classified_overlap = dta.ampwalkclassify3_refactor(overlappeaks,overlap_peaklist)
+#    
+#    labeltranslator = {}
+#    for cl in np.unique(classified_overlap[3]):
+#        if len(labeltranslator) <= len(np.unique(labels)):
+#            labelindex = np.where(classified_overlap[3] == cl)[0]
+#            label = labels[labelindex]
+#            labelindex = labelindex[np.where(label == stats.mode(label)[0])[0][0]]
+#            newlabel = labels[labelindex]
+#            try:
+#                oldlabel = old_peaklist.classesnearbypccl[::-1][old_peaklist.classesnearby[::-1].index(cl)]
+#            except:
+#                oldlabel = -2
+#            try:
+#                labeltranslator[oldlabel]
+#            except KeyError:
+#                labeltranslator[oldlabel] = newlabel
+#    for lbl in peaks.classesnearbypccl:
+#        try: labeltranslator[lbl]
+#        except KeyError: labeltranslator[lbl] = lbl
+#    old_peaklist.classesnearbypccl = [labeltranslator[lbl] for lbl in old_peaklist.classesnearbypccl]
+##    print(labeltranslator)
 
 def fit(templ, peak):
         fit = np.sum(np.square(templ.cut - peak.cut))
@@ -1872,16 +1885,15 @@ def gettime(x, samplerate, starttime):
         h = h+starth
         return "%d:%02d:%02d" % (h, m, s)
 
-def connect_blocks(oldblock):
-    newblock = Peaklist([])
-    newblock.lastofclass    = oldblock.lastofclass
-    newblock.lastofclassx    = oldblock.lastofclassx
-    newblock.classesnearby  = oldblock.classesnearby
-    newblock.classesnearbypccl  = oldblock.classesnearbypccl
-    newblock.classesnearbyx = [clnearbyx - oldblock.len for clnearbyx in oldblock.classesnearbyx]
-    newblock.classamount = oldblock.classamount
-    return newblock
-   ##print('classesnearbyx! old, new ' , oldblock_len,oldblock.classesnearbyx , newblock.classesnearbyx)
+#def connect_blocks(oldblock):
+#    newblock = Peaklist([])
+#    newblock.lastofclass    = oldblock.lastofclass
+#    newblock.lastofclassx    = oldblock.lastofclassx
+#    newblock.classesnearby  = oldblock.classesnearby
+#    newblock.classesnearbypccl  = oldblock.classesnearbypccl
+#    newblock.classesnearbyx = [clnearbyx - oldblock.len for clnearbyx in oldblock.classesnearbyx]
+#    return newblock
+#   ##print('classesnearbyx! old, new ' , oldblock_len,oldblock.classesnearbyx , newblock.classesnearbyx)
 
 if __name__ == '__main__':
     main()

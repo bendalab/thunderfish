@@ -292,6 +292,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                    if len(peaks) > 0:
                        bottletime.append(time.time())       #7
                        ### ## connects the current part with the one that came before, to allow for a continuous analysis
+                       print('peaklist.len: ',peaklist.len)
                        if idx >= startblock+1:
                            peaklist = connect_blocks(peaklist)
                        else:
@@ -443,7 +444,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                        # plots the data part and its detected and classified peaks
                        if plot_steps == True:
                            plotampwalkclasses_refactored(peaks, datx)
-                           pass
+                           #pass
 
                    # map the analyzed EODs of the buffer part to the whole
                    # recording
@@ -453,7 +454,7 @@ def main():         #  analyse_dex.py filename save plot new  (optional starttim
                    idx = 1
                    # peaklocations relative to whole recording 
                    worldpeaks[0] = worldpeaks[0] + (idx*nblock)
-                   peaklist.len = idx*nblock
+                   peaklist.len = nblock
 #                   for p in worldpeaks:
 #                        = idx*nblock + p.x
                    bottletime.append(time.time())       #14
