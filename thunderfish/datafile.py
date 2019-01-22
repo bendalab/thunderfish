@@ -5,6 +5,7 @@ class DataFile for reading and writing of data tables.
 
 import sys
 import math as m
+import numpy as np
 
 
 class DataFile:
@@ -129,7 +130,7 @@ class DataFile:
     extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'ms', 'html': 'html', 'tex': 'tex'}
     column_numbering = ['num', 'index', 'aa', 'AA']
 
-    def __init__(self):
+    def __init__(self, filename=None):
         self.data = []
         self.shape = (0, 0)
         self.header = []
@@ -140,6 +141,9 @@ class DataFile:
         self.setcol = 0
         self.addcol = 0
         self.indices = None
+        if filename is not None:
+            with open(filename, 'r') as sf:
+                self.load(sf)
 
     def add_section(self, label):
         """
@@ -1114,7 +1118,9 @@ class DataFile:
         if table_format[0] == 'h':
             df.write('</thead>\n<tbody>\n')
         # data:
-        if self.indices is None or len(self.indices) != len(self.data[0]):
+        if len(self.data) == 0:
+            self.indices = []
+        elif self.indices is None or len(self.indices) != len(self.data[0]):
             self.indices = range(len(self.data[0]))
         for i, k in enumerate(self.indices):
             first = True
@@ -1169,6 +1175,180 @@ class DataFile:
                 df.write(header_end.replace(' ', '-'))
         # end table:
         df.write(end_str)
+
+    def _read_line(self, line, sep):
+        cols = line.strip().split(sep)
+        if len(cols[0]) == 0:
+            cols = cols[1:]
+        if len(cols) > 0 and len(cols[-1]) == 0:
+            cols = cols[:-1]
+        for k, c in enumerate(cols):
+            cols[k] = c.strip()
+        return cols
+
+    def _col_format(self, line, sep, post, alld, numc, fixed, strf, missing):
+        """
+        Helper function for adding data and analysing format.
+        """
+        cols = self._read_line(line, sep)
+        for k, c in enumerate(cols):
+            c = c.strip()
+            try:
+                v = float(c)
+                vc = c.split('.')
+                ad = len(vc[0])
+                if len(vc) == 2:
+                    if numc[k] and post[k] != len(vc[1]):
+                        fixed[k] = False
+                    if post[k] < len(vc[1]):
+                        post[k] = len(vc[1])
+                    ad += len(vc[1])
+                if alld[k] < ad:
+                    alld[k] = ad
+                numc[k] = True
+            except ValueError:
+                if c == missing:
+                    v = float('NaN')
+                else:
+                    strf[k] = True
+                    if alld[k] < len(c):
+                        alld[k] = len(c)
+                    v = c
+            self.add_value(v, k)
+                
+
+    def load(self, sf, table_format='dat',
+              units="row", number_cols=None, missing='-'):
+        """
+        Load data from file stream. 
+        """
+        # read inital lines of file:
+        key = []
+        data = []
+        target = data
+        comment = False
+        table_format='dat'        
+        for line in sf:
+            if len(line.strip()) > 0:
+                if line[0] == '#':
+                    comment = True
+                    table_format='dat'        
+                    target = key
+                elif comment:
+                    target = data
+                if line[0:3] == 'RTH':
+                    target = key
+                    table_format='rtai'        
+                elif line[0:3] == 'RTD':
+                    target = data
+                if (line[0:3] == '|--' or line[0:3] == '|:-') and \
+                   (line[-3:] == '--|' or line[-3:] == '-:|'):
+                    if len(data) == 0 and len(key) == 0:
+                        table_format='ascii'
+                        target = key
+                        continue
+                    elif len(key) == 0:
+                        table_format='md'
+                        key = data
+                        data = []
+                        target = data
+                        continue
+                    elif len(data) == 0:
+                        target = data
+                        continue
+                    else:
+                        break
+                target.append(line)
+            else:
+                break
+            if len(data) > 5:
+                break
+        # find column separator of data:
+        col_seps = ['|', ',', '&', None]
+        colstd = np.zeros(len(col_seps))
+        colnum = np.zeros(len(col_seps), dtype=int)
+        for k, sep in enumerate(col_seps):
+            cols = []
+            for line in data:
+                cs = line.strip().split(sep)
+                if len(cs[0]) == 0:
+                    cs = cs[1:]
+                if len(cs) > 0 and len(cs[-1]) == 0:
+                    cs = cs[:-1]
+                cols.append(len(cs))
+            colstd[k] = np.std(cols)
+            colnum[k] = np.median(cols)
+        if np.max(colnum) < 2:
+            sep = None
+            columns = 1
+        else:
+            ci = np.where(np.array(colnum)>1.5)[0]
+            ci = ci[np.argmin(colstd[ci])]
+            sep = col_seps[ci]
+            colnum = int(colnum[ci])
+        # read key:
+        if table_format == 'dat':
+            for i, line in enumerate(key):
+                key[i] = line.lstrip('#')
+        kr = len(key)-1
+        cols = self._read_line(key[kr], sep)
+        # check for key with column indices:
+        numrow = True
+        try:
+            pv = int(cols[0])
+            for c in cols[1:]:
+                v = int(c)
+                if v != pv+1:
+                    numrow = False
+                    break
+                pv = v
+        except ValueError:
+            numrow = False
+        if numrow:
+            kr -= 1
+            cols = self._read_line(key[kr], sep)
+        # check for unit line:
+        units = None
+        ur = kr
+        if kr > 0:
+            kr -= 1
+            cols0 = self._read_line(key[kr], sep)
+            if len(cols0) == len(cols):
+                units = cols
+                cols = cols0
+        if units is None:
+            labels = []
+            units = []
+            for c in cols:
+                lu = c.split('/')
+                if len(lu) == 2:
+                    labels.append(lu[0].strip())
+                    units.append(lu[1].strip())
+                else:
+                    labels = cols
+        else:
+            labels = cols
+        for k in range(colnum):
+            self.add_column(labels[k], units[k], '%g')
+        # read data:
+        post = np.zeros(colnum)
+        alld = np.zeros(colnum)
+        numc = [False] * colnum
+        fixed = [True] * colnum
+        strf = [False] * colnum
+        for line in data:
+            self._col_format(line, sep, post, alld, numc, fixed, strf, missing)
+        # read remaining data:
+        for line in sf:
+            self._col_format(line, sep, post, alld, numc, fixed, strf, missing)
+        # set formats:
+        for k, c in enumerate(alld):
+            if strf[k]:
+                self.set_format('%%-%ds' % alld[k], k)
+            elif fixed[k]:
+                self.set_format('%%%d.%df' % (alld[k]+1, post[k]), k)
+            else:
+                self.set_format('%%.%dg' % alld[k], k)
 
         
 class IndentStream(object):
@@ -1226,6 +1406,7 @@ if __name__ == "__main__":
     df.add_value(67.89)
     df.add_value(345)
     df.adjust_columns()
+    # write out in all formats:
     for tf in DataFile.formats:
         print('    - `%s`: %s' % (tf, DataFile.descriptions[tf]))
         print('      ```')
@@ -1233,6 +1414,7 @@ if __name__ == "__main__":
         df.write(iout, table_format=tf)
         print('      ```')
         print('')
+    # some infos about the data:
     print('data len: %d' % len(df))
     print('data columns: %d' % df.columns())
     print('data rows: %d' % df.rows())
@@ -1240,4 +1422,12 @@ if __name__ == "__main__":
     print('')
     print('column specifications:')
     df.write_column_specs()
+    # write and read:
+    tf = 'md'
+    filename = 'test.' + DataFile.extensions[tf]
+    with open(filename, 'w') as ff:
+        df.write(ff, table_format=tf)
+    df.write(sys.stdout, table_format=tf)
+    sf = DataFile(filename)
+    sf.write(sys.stdout, table_format='dat')
         
