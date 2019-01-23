@@ -1229,7 +1229,8 @@ class DataFile:
         comment = False
         table_format='dat'        
         for line in sf:
-            if len(line.strip()) > 0:
+            line = line.rstrip()
+            if len(line) > 0:
                 if line[0] == '#':
                     comment = True
                     table_format='dat'        
@@ -1238,11 +1239,15 @@ class DataFile:
                     target = data
                 if line[0:3] == 'RTH':
                     target = key
-                    table_format='rtai'        
+                    line = line[3:]
+                    table_format='rtai'
                 elif line[0:3] == 'RTD':
                     target = data
+                    line = line[3:]
+                    table_format='rtai'        
                 if (line[0:3] == '|--' or line[0:3] == '|:-') and \
                    (line[-3:] == '--|' or line[-3:] == '-:|'):
+                    print 'detected separator'
                     if len(data) == 0 and len(key) == 0:
                         table_format='ascii'
                         target = key
@@ -1287,7 +1292,10 @@ class DataFile:
             sep = col_seps[ci]
             colnum = int(colnum[ci])
         # read key:
-        if table_format == 'dat':
+        if sep == ',' and len(key) == 0:
+            table_format == 'csv'
+            key = [data.pop(0)]
+        elif table_format == 'dat':
             for i, line in enumerate(key):
                 key[i] = line.lstrip('#')
         kr = len(key)-1
@@ -1423,11 +1431,12 @@ if __name__ == "__main__":
     print('column specifications:')
     df.write_column_specs()
     # write and read:
-    tf = 'md'
+    tf = 'dat'
     filename = 'test.' + DataFile.extensions[tf]
     with open(filename, 'w') as ff:
         df.write(ff, table_format=tf)
     df.write(sys.stdout, table_format=tf)
     sf = DataFile(filename)
+    #sf.adjust_columns()
     sf.write(sys.stdout, table_format='dat')
         
