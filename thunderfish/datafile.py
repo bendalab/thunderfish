@@ -1247,7 +1247,6 @@ class DataFile:
                     table_format='rtai'        
                 if (line[0:3] == '|--' or line[0:3] == '|:-') and \
                    (line[-3:] == '--|' or line[-3:] == '-:|'):
-                    print 'detected separator'
                     if len(data) == 0 and len(key) == 0:
                         table_format='ascii'
                         target = key
@@ -1329,11 +1328,13 @@ class DataFile:
             units = []
             for c in cols:
                 lu = c.split('/')
-                if len(lu) == 2:
+                if len(lu) >= 2:
                     labels.append(lu[0].strip())
-                    units.append(lu[1].strip())
+                    #units.append(lu[1].strip())
+                    units.append('/'.join(lu[1:]).strip())
                 else:
-                    labels = cols
+                    labels.append(c)
+                    units.append('')
         else:
             labels = cols
         for k in range(colnum):
@@ -1399,7 +1400,7 @@ if __name__ == "__main__":
     df.add_column("size", "m", "%.2f")
     df.add_column("weight", "kg", "%.0f")
     df.add_section("reaction")
-    df.add_column("delay", "ms", "%.1f")
+    df.add_column("speed", "m/s", "%.1f")
     df.add_column("jitter", "mm", "%.0f")
     df.add_value(2.34, 0)
     df.add_value(122.8)
