@@ -171,7 +171,7 @@ class DataFile:
         self.shape = (self.columns(), self.rows())
         return self.addcol
         
-    def add_column(self, label, unit, formats):
+    def add_column(self, label, unit, formats, value=None):
         """
         Add a new column to the table header.
 
@@ -184,6 +184,8 @@ class DataFile:
         formats: string
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
+        val: None, float, int, string, etc.
+            If not None, data value to be set as the first data element of the new column.
         """
         if self.addcol >= len(self.data):
             self.header.append([label])
@@ -195,6 +197,8 @@ class DataFile:
             self.header[self.addcol] = [label] + self.header[self.addcol]
             self.units[self.addcol] = unit
             self.formats[self.addcol] = formats
+        if value is not None:
+            self.data[-1].append(value)
         self.addcol = len(self.data)
         self.shape = (self.columns(), self.rows())
         return self.addcol-1
@@ -321,7 +325,7 @@ class DataFile:
             The format string.
         """
         column = self.col(column)
-        return self.format[column]
+        return self.formats[column]
 
     def set_format(self, format, column):
         """
@@ -582,6 +586,8 @@ class DataFile:
     def add_data(self, data, column=None):
         """
         Add a list of data elements to the table.
+
+        The data values are appended to successive columns, starting at `column`.
 
         Parameters
         ----------
@@ -1186,7 +1192,7 @@ class DataFile:
             cols[k] = c.strip()
         return cols
 
-    def _col_format(self, line, sep, post, alld, numc, fixed, strf, missing):
+    def _col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
         """
         Helper function for adding data and analysing format.
         """
@@ -1195,14 +1201,24 @@ class DataFile:
             c = c.strip()
             try:
                 v = float(c)
-                vc = c.split('.')
-                ad = len(vc[0])
+                ad = 0
+                ve = c.split('e')
+                if len(ve) <= 1:
+                    exped[k] = False
+                else:
+                    ad = len(ve[1])+1
+                vc = ve[0].split('.')
+                ad += len(vc[0])
+                prec = len(vc[0].lstrip('-').lstrip('+').lstrip('0')) 
                 if len(vc) == 2:
                     if numc[k] and post[k] != len(vc[1]):
                         fixed[k] = False
                     if post[k] < len(vc[1]):
                         post[k] = len(vc[1])
-                    ad += len(vc[1])
+                    ad += len(vc[1])+1
+                    prec += len(vc[1].rstrip('0'))
+                if precd[k] < prec:
+                    precd[k] = prec
                 if alld[k] < ad:
                     alld[k] = ad
                 numc[k] = True
@@ -1330,7 +1346,6 @@ class DataFile:
                 lu = c.split('/')
                 if len(lu) >= 2:
                     labels.append(lu[0].strip())
-                    #units.append(lu[1].strip())
                     units.append('/'.join(lu[1:]).strip())
                 else:
                     labels.append(c)
@@ -1341,23 +1356,33 @@ class DataFile:
             self.add_column(labels[k], units[k], '%g')
         # read data:
         post = np.zeros(colnum)
+        precd = np.zeros(colnum)
         alld = np.zeros(colnum)
         numc = [False] * colnum
+        exped = [True] * colnum
         fixed = [True] * colnum
         strf = [False] * colnum
         for line in data:
-            self._col_format(line, sep, post, alld, numc, fixed, strf, missing)
+            self._col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
         # read remaining data:
         for line in sf:
-            self._col_format(line, sep, post, alld, numc, fixed, strf, missing)
+            line = line.rstrip()
+            if (line[0:3] == '|--' or line[0:3] == '|:-') and \
+                (line[-3:] == '--|' or line[-3:] == '-:|'):
+                return
+            if line[0:3] == 'RTD':
+                line = line[3:]
+            self._col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
         # set formats:
         for k, c in enumerate(alld):
             if strf[k]:
                 self.set_format('%%-%ds' % alld[k], k)
+            elif exped[k]:
+                self.set_format('%%%d.%de' % (alld[k], post[k]), k)
             elif fixed[k]:
-                self.set_format('%%%d.%df' % (alld[k]+1, post[k]), k)
+                self.set_format('%%%d.%df' % (alld[k], post[k]), k)
             else:
-                self.set_format('%%.%dg' % alld[k], k)
+                self.set_format('%%%d.%dg' % (alld[k], precd[k]), k)
 
         
 class IndentStream(object):
@@ -1391,29 +1416,24 @@ class IndentStream(object):
 
         
 if __name__ == "__main__":
+    import os
+    
     print("Checking datafile module ...")
     print('')
 
     # setup a table:
     df = DataFile()
     df.add_section("info")
-    df.add_column("size", "m", "%.2f")
-    df.add_column("weight", "kg", "%.0f")
+    df.add_column("size", "m", "%.2f", 2.34)
+    df.add_column("weight", "kg", "%.0f", 122.8)
     df.add_section("reaction")
-    df.add_column("speed", "m/s", "%.1f")
-    df.add_column("jitter", "mm", "%.0f")
-    df.add_value(2.34, 0)
-    df.add_value(122.8)
-    df.add_value(98.7)
-    df.add_value(23)
-    df.add_value(56.7, 0)
-    df.add_value(float('NaN'))
-    df.add_value(54.3)
-    df.add_value(45)
-    df.add_value(8.9, 0)
-    df.add_value(43.21)
-    df.add_value(67.89)
-    df.add_value(345)
+    df.add_column("speed", "m/s", "%.3g", 98.7)
+    df.add_column("jitter", "mm", "%.0f", 23)
+    df.add_column("size", "g", "%.2e", 1.234)
+    df.add_data((56.7, float('NaN'), 0.543, 45, 1.235e2), 0)
+    df.add_data((8.9, 43.21, 6789.1, 3405, 1.235e-4), 0)
+    for k in range(5):
+        df.add_data(0.5*(1.0+k)*np.random.randn(5)+10.+k, 0)
     df.adjust_columns()
     # write out in all formats:
     for tf in DataFile.formats:
@@ -1431,13 +1451,22 @@ if __name__ == "__main__":
     print('')
     print('column specifications:')
     df.write_column_specs()
+    print('')
     # write and read:
-    tf = 'dat'
-    filename = 'test.' + DataFile.extensions[tf]
-    with open(filename, 'w') as ff:
-        df.write(ff, table_format=tf)
-    df.write(sys.stdout, table_format=tf)
-    sf = DataFile(filename)
-    #sf.adjust_columns()
-    sf.write(sys.stdout, table_format='dat')
+    for tf in DataFile.formats[:-2]:
+        ts = '%s: %s' % (tf, DataFile.descriptions[tf])
+        print(ts)
+        print('-'*len(ts))
+        filename = 'test.' + DataFile.extensions[tf]
+        with open(filename, 'w') as ff:
+            df.write(ff, table_format=tf)
+        print('original table:')
+        df.write(sys.stdout, table_format=tf)
+        print('')
+        print('read in table:')
+        sf = DataFile(filename)
+        sf.adjust_columns()
+        sf.write(sys.stdout, table_format=tf)
+        os.remove(filename)
+        print('')
         
