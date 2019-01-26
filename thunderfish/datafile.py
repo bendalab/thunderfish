@@ -65,6 +65,21 @@ class DataFile:
       | 56.70 |   3457 |  54.3 |     45 |
       |  8.90 |     43 |  67.9 |    345 |
       ```
+      
+    - `tex`: latex tabular
+      ```
+      \begin{tabular}{rrrr}
+        \hline
+        \multicolumn{2}{l}{info} & \multicolumn{2}{l}{reaction} \\
+        \multicolumn{1}{l}{size} & \multicolumn{1}{l}{weight} & \multicolumn{1}{l}{delay} & \multicolumn{1}{l}{jitter} \\
+        \multicolumn{1}{l}{m} & \multicolumn{1}{l}{kg} & \multicolumn{1}{l}{ms} & \multicolumn{1}{l}{mm} \\
+        \hline
+        2.34 & 123 & 98.7 & 23 \\
+        56.70 & 3457 & 54.3 & 45 \\
+        8.90 & 43 & 67.9 & 345 \\
+        \hline
+      \end{tabular}
+      ```
 
     - `html`: html
       ```
@@ -108,27 +123,12 @@ class DataFile:
         </tr>
       </tbody>
       </table>
-      ```
-
-    - `tex`: latex tabular
-      ```
-      \begin{tabular}{rrrr}
-        \hline
-        \multicolumn{2}{l}{info} & \multicolumn{2}{l}{reaction} \\
-        \multicolumn{1}{l}{size} & \multicolumn{1}{l}{weight} & \multicolumn{1}{l}{delay} & \multicolumn{1}{l}{jitter} \\
-        \multicolumn{1}{l}{m} & \multicolumn{1}{l}{kg} & \multicolumn{1}{l}{ms} & \multicolumn{1}{l}{mm} \\
-        \hline
-        2.34 & 123 & 98.7 & 23 \\
-        56.70 & 3457 & 54.3 & 45 \\
-        8.90 & 43 & 67.9 & 345 \\
-        \hline
-      \end{tabular}
-      ```
+      ```      
     """
     
-    formats = ['dat', 'ascii', 'csv', 'rtai', 'md', 'html', 'tex']
-    descriptions = {'dat': 'data text file', 'ascii': 'ascii-art table', 'csv': 'comma separated values', 'rtai': 'rtai-style table', 'md': 'markdown', 'html': 'html', 'tex': 'latex tabular'}
-    extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'ms', 'html': 'html', 'tex': 'tex'}
+    formats = ['dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html']
+    descriptions = {'dat': 'data text file', 'ascii': 'ascii-art table', 'csv': 'comma separated values', 'rtai': 'rtai-style table', 'md': 'markdown', 'tex': 'latex tabular', 'html': 'html markup'}
+    extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'ms', 'tex': 'tex', 'html': 'html'}
     column_numbering = ['num', 'index', 'aa', 'AA']
 
     def __init__(self, filename=None):
@@ -1159,6 +1159,9 @@ class DataFile:
         df.write(end_str)
 
     def _read_line(self, line, sep):
+        """
+        Helper function for parsing a data line.
+        """
         if sep is None:
             cols = [m.group(0) for m in re.finditer(r'\S+', line.strip())]
         else:
@@ -1168,15 +1171,33 @@ class DataFile:
             cols[k] = c.strip()
         return cols
 
-    def _read_key_line(self, line, sep):
+    def _read_key_line(self, line, sep, table_format):
+        """
+        Helper function for parsing a key line.
+        """
         if sep is None:
             cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(r'\S+', line.strip())])
         else:
             seps = r'[^\s'+re.escape(sep)+']+'
             cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(seps, line.strip())])
         colss = []
-        for k, c in enumerate(cols):
-            colss.append(c.strip())
+        if table_format == 'tex':
+            indices = []
+            i = 0
+            for c in cols:
+                if 'multicolumn' in c:
+                    fields = c.split('{')
+                    n = int(fields[1].strip().rstrip('}').rstrip())
+                    colss.append(fields[3].strip().rstrip('}').rstrip())
+                    indices.append(i)
+                    i += n
+                else:
+                    colss.append(c.strip())
+                    indices.append(i)
+                    i += 1
+        else:
+            for c in cols:
+                colss.append(c.strip())
         return colss, indices
 
     def _col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
@@ -1234,6 +1255,18 @@ class DataFile:
         for line in sf:
             line = line.rstrip()
             if len(line) > 0:
+                if r'\begin{tabular' in line:
+                    table_format='tex'
+                    target = key
+                    continue
+                if table_format == 'tex':
+                    if r'\end{tabular' in line:
+                        break
+                    if r'\hline' in line:
+                        if len(key) > 0:
+                            target = data
+                        continue
+                    line = line.rstrip(r'\\')
                 if line[0] == '#':
                     comment = True
                     table_format='dat'        
@@ -1300,7 +1333,7 @@ class DataFile:
             key = [data.pop(0)]
         # read key:
         kr = len(key)-1
-        cols, indices = self._read_key_line(key[kr], sep)
+        cols, indices = self._read_key_line(key[kr], sep, table_format)
         # check for key with column indices:
         numrow = True
         try:
@@ -1324,12 +1357,12 @@ class DataFile:
                 numrow = False
         if numrow:
             kr -= 1
-            cols, indices = self._read_key_line(key[kr], sep)
+            cols, indices = self._read_key_line(key[kr], sep, table_format)
         # check for unit line:
         units = None
         if kr > 0:
             kr -= 1
-            cols0, indices0 = self._read_key_line(key[kr], sep)
+            cols0, indices0 = self._read_key_line(key[kr], sep, table_format)
             if len(cols0) == len(cols):
                 units = cols
                 cols = cols0
@@ -1353,7 +1386,7 @@ class DataFile:
         # read in sections:
         while kr > 0:
             kr -= 1
-            sec_cols, sec_indices = self._read_key_line(key[kr], sep)
+            sec_cols, sec_indices = self._read_key_line(key[kr], sep, table_format)
             for sec_label, sec_inx in zip(sec_cols, sec_indices):
                 col_inx = indices.index(sec_inx)
                 self.header[col_inx].append(sec_label)
@@ -1372,6 +1405,10 @@ class DataFile:
         # read remaining data:
         for line in sf:
             line = line.rstrip()
+            if table_format == 'tex':
+                if r'\end{tabular' in line or r'\hline' in line:
+                    break
+                line = line.rstrip(r'\\')
             if (line[0:3] == '|--' or line[0:3] == '|:-') and \
                 (line[-3:] == '--|' or line[-3:] == '-:|'):
                 break
@@ -1519,8 +1556,7 @@ if __name__ == "__main__":
     print('')
     # write and read:
     number_cols=None
-    for tf in DataFile.formats[:-2]:
-    #for tf in DataFile.formats[0:1]:
+    for tf in DataFile.formats[:-1]:
         ts = '%s: %s' % (tf, DataFile.descriptions[tf])
         print(ts)
         print('-'*len(ts))
