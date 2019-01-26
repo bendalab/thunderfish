@@ -1537,6 +1537,7 @@ if __name__ == "__main__":
     for k in range(5):
         df.add_data(0.5*(1.0+k)*np.random.randn(5)+10.+k, 0)
     df.adjust_columns()
+    
     # write out in all formats:
     for tf in DataFile.formats:
         print('    - `%s`: %s' % (tf, DataFile.descriptions[tf]))
@@ -1545,6 +1546,7 @@ if __name__ == "__main__":
         df.write(iout, table_format=tf)
         print('      ```')
         print('')
+        
     # some infos about the data:
     print('data len: %d' % len(df))
     print('data columns: %d' % df.columns())
@@ -1554,37 +1556,3 @@ if __name__ == "__main__":
     print('column specifications:')
     df.write_column_specs()
     print('')
-    # write and read:
-    number_cols=None
-    for tf in DataFile.formats[:-1]:
-        ts = '%s: %s' % (tf, DataFile.descriptions[tf])
-        print(ts)
-        print('-'*len(ts))
-        orgfilename = 'test.' + DataFile.extensions[tf]
-        with open(orgfilename, 'w') as ff:
-            df.write(ff, table_format=tf, number_cols=number_cols)
-        sf = DataFile(orgfilename)
-        sf.adjust_columns()
-        filename = 'test-read.' + DataFile.extensions[tf]
-        with open(filename, 'w') as ff:
-            sf.write(ff, table_format=tf, number_cols=number_cols)
-        with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
-            for k, (line1, line2) in enumerate(zip(f1, f2)):
-                if line1 != line2:
-                    print('files differ!')
-                    print('original table:')
-                    df.write(sys.stdout, table_format=tf, number_cols=number_cols)
-                    print('')
-                    print('read in table:')
-                    sf.write(sys.stdout, table_format=tf, number_cols=number_cols)
-                    print('')
-                    print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.strip(), line2.strip()))
-                    break
-            else:
-                print('read in table:')
-                sf.write(sys.stdout, table_format=tf, number_cols=number_cols)
-                print('')
-                print('files match!')
-        print('')
-        os.remove(orgfilename)
-        os.remove(filename)
