@@ -4,6 +4,7 @@ class DataFile for reading and writing of data tables.
 """
 
 import sys
+import re
 import math as m
 import numpy as np
 
@@ -1158,14 +1159,25 @@ class DataFile:
         df.write(end_str)
 
     def _read_line(self, line, sep):
-        cols = line.strip().split(sep)
-        if len(cols[0]) == 0:
-            cols = cols[1:]
-        if len(cols) > 0 and len(cols[-1]) == 0:
-            cols = cols[:-1]
+        if sep is None:
+            cols = [m.group(0) for m in re.finditer(r'\S+', line.strip())]
+        else:
+            seps = r'[^\s'+re.escape(sep)+']+'
+            cols = [m.group(0) for m in re.finditer(seps, line.strip())]
         for k, c in enumerate(cols):
             cols[k] = c.strip()
         return cols
+
+    def _read_key_line(self, line, sep):
+        if sep is None:
+            cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(r'\S+', line.strip())])
+        else:
+            seps = r'[^\s'+re.escape(sep)+']+'
+            cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(seps, line.strip())])
+        colss = []
+        for k, c in enumerate(cols):
+            colss.append(c.strip())
+        return colss, indices
 
     def _col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
         """
@@ -1282,12 +1294,13 @@ class DataFile:
             ci = ci[np.argmin(colstd[ci])]
             sep = col_seps[ci]
             colnum = int(colnum[ci])
-        # read key:
+        # fix key:
         if sep == ',' and len(key) == 0:
             table_format == 'csv'
             key = [data.pop(0)]
+        # read key:
         kr = len(key)-1
-        cols = self._read_line(key[kr], sep)
+        cols, indices = self._read_key_line(key[kr], sep)
         # check for key with column indices:
         numrow = True
         try:
@@ -1311,16 +1324,17 @@ class DataFile:
                 numrow = False
         if numrow:
             kr -= 1
-            cols = self._read_line(key[kr], sep)
+            cols, indices = self._read_key_line(key[kr], sep)
         # check for unit line:
         units = None
-        ur = kr
         if kr > 0:
             kr -= 1
-            cols0 = self._read_line(key[kr], sep)
+            cols0, indices0 = self._read_key_line(key[kr], sep)
             if len(cols0) == len(cols):
                 units = cols
                 cols = cols0
+                indices = indices0
+        # units may be part of the label:
         if units is None:
             labels = []
             units = []
@@ -1336,6 +1350,15 @@ class DataFile:
             labels = cols
         for k in range(colnum):
             self.add_column(labels[k], units[k], '%g')
+        # read in sections:
+        while kr > 0:
+            kr -= 1
+            sec_cols, sec_indices = self._read_key_line(key[kr], sep)
+            for sec_label, sec_inx in zip(sec_cols, sec_indices):
+                col_inx = indices.index(sec_inx)
+                self.header[col_inx].append(sec_label)
+                if self.nsecs < len(self.header[col_inx])-1:
+                    self.nsecs = len(self.header[col_inx])-1
         # read data:
         post = np.zeros(colnum)
         precd = np.zeros(colnum)
@@ -1464,6 +1487,7 @@ if __name__ == "__main__":
 
     # setup a table:
     df = DataFile()
+    df.add_section("data")
     df.add_section("info")
     df.add_column("size", "m", "%.2f", 2.34)
     df.add_column("weight", "kg", "%.0f", 122.8)
@@ -1521,6 +1545,9 @@ if __name__ == "__main__":
                     print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.strip(), line2.strip()))
                     break
             else:
+                print('read in table:')
+                sf.write(sys.stdout, table_format=tf, number_cols=number_cols)
+                print('')
                 print('files match!')
         print('')
         os.remove(orgfilename)
