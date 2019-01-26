@@ -797,31 +797,6 @@ class DataFile:
                     line = line.replace(' ', space)
                 df.write(line + '\n')
 
-    def index2aa(self, n, a='a'):
-        """
-        Convert an integer into an alphabetical representation.
-
-        The integer number is converted into 'a', 'b', 'c', ..., 'z',
-        'aa', 'ab', 'ac', ..., 'az', 'ba', 'bb', ...
-        
-        Inspired by https://stackoverflow.com/a/37604105
-
-        Parameters
-        ----------
-        n: int
-            An integer to be converted into alphabetical representation.
-        a: string ('a' or 'A')
-            Use upper or lower case characters.
-
-        Returns
-        -------
-        ns: string
-            Alphabetical represtnation of an integer.
-        """
-        d, m = divmod(n, 26)
-        bm = chr(ord(a)+m)
-        return index2aa(d-1, a) + bm if d else bm
-
     def write(self, df=sys.stdout, table_format='dat',
               units="row", number_cols=None, missing='-'):
         """
@@ -1070,9 +1045,9 @@ class DataFile:
                 i = c
                 if number_cols == 'num':
                     i = c+1
-                aa = self.index2aa(c, 'a')
+                aa = index2aa(c, 'a')
                 if number_cols == 'AA':
-                    aa = self.index2aa(c, 'A')
+                    aa = index2aa(c, 'A')
                 if table_format[0] == 't':
                     if number_cols == 'num' or number_cols == 'index':
                         df.write('\\multicolumn{1}{l}{%d}' % i)
@@ -1251,6 +1226,7 @@ class DataFile:
                     comment = True
                     table_format='dat'        
                     target = key
+                    line = line.lstrip('#')
                 elif comment:
                     target = data
                 if line[0:3] == 'RTH':
@@ -1310,9 +1286,6 @@ class DataFile:
         if sep == ',' and len(key) == 0:
             table_format == 'csv'
             key = [data.pop(0)]
-        elif table_format == 'dat':
-            for i, line in enumerate(key):
-                key[i] = line.lstrip('#')
         kr = len(key)-1
         cols = self._read_line(key[kr], sep)
         # check for key with column indices:
@@ -1326,7 +1299,16 @@ class DataFile:
                     break
                 pv = v
         except ValueError:
-            numrow = False
+            try:
+                pv = aa2index(cols[0])
+                for c in cols[1:]:
+                    v = aa2index(c)
+                    if v != pv+1:
+                        numrow = False
+                        break
+                    pv = v
+            except ValueError:
+                numrow = False
         if numrow:
             kr -= 1
             cols = self._read_line(key[kr], sep)
@@ -1369,12 +1351,12 @@ class DataFile:
             line = line.rstrip()
             if (line[0:3] == '|--' or line[0:3] == '|:-') and \
                 (line[-3:] == '--|' or line[-3:] == '-:|'):
-                return
+                break
             if line[0:3] == 'RTD':
                 line = line[3:]
             self._col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
         # set formats:
-        for k, c in enumerate(alld):
+        for k in range(len(alld)):
             if strf[k]:
                 self.set_format('%%-%ds' % alld[k], k)
             elif exped[k]:
@@ -1383,6 +1365,65 @@ class DataFile:
                 self.set_format('%%%d.%df' % (alld[k], post[k]), k)
             else:
                 self.set_format('%%%d.%dg' % (alld[k], precd[k]), k)
+
+
+def index2aa(n, a='a'):
+    """
+    Convert an integer into an alphabetical representation.
+
+    The integer number is converted into 'a', 'b', 'c', ..., 'z',
+    'aa', 'ab', 'ac', ..., 'az', 'ba', 'bb', ...
+
+    Inspired by https://stackoverflow.com/a/37604105
+
+    Parameters
+    ----------
+    n: int
+        An integer to be converted into alphabetical representation.
+    a: string ('a' or 'A')
+        Use upper or lower case characters.
+
+    Returns
+    -------
+    ns: string
+        Alphabetical represtnation of an integer.
+    """
+    d, m = divmod(n, 26)
+    bm = chr(ord(a)+m)
+    return index2aa(d-1, a) + bm if d else bm
+
+
+def aa2index(s):
+    """
+    Convert an alphabetical representation to an index.
+
+    The alphabetical representation 'a', 'b', 'c', ..., 'z',
+    'aa', 'ab', 'ac', ..., 'az', 'ba', 'bb', ...
+    is converted to an index starting with 0.
+
+    Parameters
+    ----------
+    s: string
+        Alphabetical representation of an index.
+
+    Returns
+    -------
+    index: int
+        The corresponding index.
+
+    Raises
+    ------
+    ValueError:
+        Invalid character in input string.
+    """
+    index = 0
+    maxc = ord('z') - ord('a') + 1
+    for c in s.lower():
+        index *= maxc
+        if ord(c) < ord('a') or ord(c) > ord('z'):
+            raise ValueError('invalid character "%s" in string.' % c)
+        index += ord(c) - ord('a') + 1
+    return index-1
 
         
 class IndentStream(object):
@@ -1453,20 +1494,34 @@ if __name__ == "__main__":
     df.write_column_specs()
     print('')
     # write and read:
+    number_cols=None
     for tf in DataFile.formats[:-2]:
+    #for tf in DataFile.formats[0:1]:
         ts = '%s: %s' % (tf, DataFile.descriptions[tf])
         print(ts)
         print('-'*len(ts))
-        filename = 'test.' + DataFile.extensions[tf]
-        with open(filename, 'w') as ff:
-            df.write(ff, table_format=tf)
-        print('original table:')
-        df.write(sys.stdout, table_format=tf)
-        print('')
-        print('read in table:')
-        sf = DataFile(filename)
+        orgfilename = 'test.' + DataFile.extensions[tf]
+        with open(orgfilename, 'w') as ff:
+            df.write(ff, table_format=tf, number_cols=number_cols)
+        sf = DataFile(orgfilename)
         sf.adjust_columns()
-        sf.write(sys.stdout, table_format=tf)
-        os.remove(filename)
+        filename = 'test-read.' + DataFile.extensions[tf]
+        with open(filename, 'w') as ff:
+            sf.write(ff, table_format=tf, number_cols=number_cols)
+        with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
+            for k, (line1, line2) in enumerate(zip(f1, f2)):
+                if line1 != line2:
+                    print('files differ!')
+                    print('original table:')
+                    df.write(sys.stdout, table_format=tf, number_cols=number_cols)
+                    print('')
+                    print('read in table:')
+                    sf.write(sys.stdout, table_format=tf, number_cols=number_cols)
+                    print('')
+                    print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.strip(), line2.strip()))
+                    break
+            else:
+                print('files match!')
         print('')
-        
+        os.remove(orgfilename)
+        os.remove(filename)
