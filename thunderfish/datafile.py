@@ -375,9 +375,9 @@ class DataFile:
             Full specification of the column by all its section names and its header name.
         """
         c = self.column_index(column)
-        fh = self.header[c]
-        for l in range(len(self.header[c]), self.nsecs+1):
-            fh.append(self.section(c, l)[0])
+        fh = [self.header[c][0]]
+        for l in range(self.nsecs):
+            fh.append(self.section(c, l+1)[0])
         return '>'.join(reversed(fh))
 
     def column_head(self, column):
@@ -401,6 +401,27 @@ class DataFile:
         """
         column = self.column_index(column)
         return self.header[column][0], self.units[column], self.formats[column]
+
+    def table_header(self):
+        """
+        The header of the table without content.
+
+        Return
+        ------
+        data: DataFile
+            A DataFile object with the same header.
+        """
+        data = DataFile()
+        sec_indices = [-1] * self.nsecs
+        for c in range(self.columns()):
+            data.add_column(*self.column_head(c))
+            for l in range(self.nsecs):
+                s, i = self.section(c, l+1)
+                if i != sec_indices[l]:
+                    data.header[-1].append(s)
+                    sec_indices[l] = i
+        data.nsecs = self.nsecs
+        return data
         
     def __len__(self):
         """
@@ -781,6 +802,85 @@ class DataFile:
         self.setcol = 0
         self.shape = (self.rows(), self.columns())
 
+    def clear(self):
+        """
+        Clear content of the table but keep header.
+        """
+        for c in range(len(self.data)):
+            self.data[c] = []
+        self.setcol = 0
+        self.shape = (self.rows(), self.columns())
+
+    def describe(self):
+        """
+        Descriptive statistics of each column.
+        """
+        ds = DataFile()
+        if self.nsecs > 0:
+            ds.add_section('statistics')
+            for l in range(1,self.nsecs):
+                ds.add_section('-')
+            ds.add_column('-', '-', '%-10s')
+        else:
+            ds.add_column('statistics', '-', '%-10s')
+        ds.header.extend(self.header)
+        ds.units.extend(self.units)
+        ds.formats.extend(self.formats)
+        ds.nsecs = self.nsecs
+        ds.hidden = [False] * ds.columns()
+        for c in range(self.columns()):
+            ds.data.append([])
+        ds.add_value('mean', 0)
+        ds.add_value('std', 0)
+        ds.add_value('min', 0)
+        ds.add_value('quartile1', 0)
+        ds.add_value('median', 0)
+        ds.add_value('quartile3', 0)
+        ds.add_value('max', 0)
+        ds.add_value('count', 0)
+        for c in range(self.columns()):
+            ds.add_value(np.nanmean(self.data[c]), c+1)
+            ds.add_value(np.nanstd(self.data[c]), c+1)
+            ds.add_value(np.nanmin(self.data[c]), c+1)
+            q1, m, q3 = np.percentile(self.data[c], [25., 50., 75.])
+            ds.add_value(q1, c+1)
+            ds.add_value(m, c+1)
+            ds.add_value(q3, c+1)
+            ds.add_value(np.nanmax(self.data[c]), c+1)
+            ds.add_value(np.count_nonzero(~np.isnan(self.data[c])), c+1)
+        ds.shape = (ds.rows(), ds.columns())
+        return ds
+                
+    def sort(self, columns):
+        """
+        Sort the table rows.
+
+        Generate an index list for the rows that is used by write() when writing the table.
+        This only affects the output via the write() function, the data elements are
+        not rearranged.
+
+        Parameters
+        ----------
+        columns: int or string or list of int or string
+            A column specifier or a list of column specifiers of the columns
+            to be sorted.
+        """
+        if type(columns) is not list and type(columns) is not tuple:
+            columns = [ columns ]
+        if len(columns) == 0:
+            return
+        self.indices = range(len(self.data[0]))
+        for col in reversed(columns):
+            rev = False
+            if len(col) > 0 and col[0] in '^!':
+                rev = True
+                col = col[1:]
+            c = self.column_index(col)
+            if c is None:
+                print('sort column ' + col + ' not found')
+                continue
+            self.indices = sorted(self.indices, key=self.data[c].__getitem__, reverse=rev)
+
     def hide(self, column):
         """
         Hide a column or a range of columns.
@@ -887,36 +987,6 @@ class DataFile:
             # set width of format string:
             f = f[:i0] + str(w) + f[i1:]
             self.formats[c] = f
-                
-    def sort(self, columns):
-        """
-        Sort the table rows.
-
-        Generate an index list for the rows that is used by write() when writing the table.
-        This only affects the output via the write() function, the data elements are
-        not rearranged.
-
-        Parameters
-        ----------
-        columns: int or string or list of int or string
-            A column specifier or a list of column specifiers of the columns
-            to be sorted.
-        """
-        if type(columns) is not list and type(columns) is not tuple:
-            columns = [ columns ]
-        if len(columns) == 0:
-            return
-        self.indices = range(len(self.data[0]))
-        for col in reversed(columns):
-            rev = False
-            if len(col) > 0 and col[0] in '^!':
-                rev = True
-                col = col[1:]
-            c = self.column_index(col)
-            if c is None:
-                print('sort column ' + col + ' not found')
-                continue
-            self.indices = sorted(self.indices, key=self.data[c].__getitem__, reverse=rev)
 
     def write(self, df=sys.stdout, table_format='dat',
               units="row", number_cols=None, missing='-'):
@@ -1702,3 +1772,9 @@ if __name__ == "__main__":
     # single row:    
     print(df[2,:])
     print(df.row(2))
+
+    # table header:
+    print(df.table_header())
+
+    # statistics
+    print(df.describe())
