@@ -173,7 +173,7 @@ class DataFile:
         if self.nsecs < len(self.header[self.addcol]):
             self.nsecs = len(self.header[self.addcol])
         self.addcol = len(self.data)-1
-        self.shape = (self.columns(), self.rows())
+        self.shape = (self.rows(), self.columns())
         return self.addcol
         
     def add_column(self, label, unit, formats, value=None):
@@ -205,7 +205,7 @@ class DataFile:
         if value is not None:
             self.data[-1].append(value)
         self.addcol = len(self.data)
-        self.shape = (self.columns(), self.rows())
+        self.shape = (self.rows(), self.columns())
         return self.addcol-1
 
     def section(self, column, level):
@@ -359,9 +359,30 @@ class DataFile:
         self.formats[column] = format
         return column
 
+    def column_spec(self, column):
+        """
+        Full specification of a column.
+
+        Parameters
+        ----------
+        column: int or string
+            Specifies the column.
+            See self.column_index() for more information on how to specify a column.
+
+        Returns
+        -------
+        s: string
+            Full specification of the column by all its section names and its header name.
+        """
+        c = self.column_index(column)
+        fh = self.header[c]
+        for l in range(len(self.header[c]), self.nsecs+1):
+            fh.append(self.section(c, l)[0])
+        return '>'.join(reversed(fh))
+
     def column_head(self, column):
         """
-        The column name, unit, and format.
+        The name, unit, and format of a column.
 
         Parameters
         ----------
@@ -380,6 +401,28 @@ class DataFile:
         """
         column = self.column_index(column)
         return self.header[column][0], self.units[column], self.formats[column]
+        
+    def __len__(self):
+        """
+        The number of rows.
+        
+        Returns
+        -------
+        rows: int
+            The number of rows contained in the table.
+        """
+        return self.rows()
+
+    def rows(self):
+        """
+        The number of rows.
+        
+        Returns
+        -------
+        rows: int
+            The number of rows contained in the table.
+        """
+        return max(map(len, self.data))
 
     def columns(self):
         """
@@ -392,55 +435,60 @@ class DataFile:
         """
         return len(self.header)
 
-    def rows(self):
-        """
-        The number of rows.
-        
-        Returns
-        -------
-        rows: int
-            The number of rows contained in the table.
-        """
-        return max(map(len, self.data))
-        
-    def __len__(self):
-        """
-        The number of columns (!)
-        
-        Returns
-        -------
-        columns: int
-            The number of columns contained in the table.
-        """
-        return self.columns()
-
     def __iter__(self):
         """
-        Initialize iteration over data columns.
+        Initialize iteration over data rows.
         """
         self.iter_counter = -1
         return self
 
     def __next__(self):
         """
-        Return next data column as an numpy array.
+        Return next row as a list.
         """
         self.iter_counter += 1
-        if self.iter_counter >= self.columns():
+        if self.iter_counter >= self.rows():
             raise StopIteration
         else:
-            return np.asarray(self.data[self.iter_counter])
+            return [coldata[self.iter_counter] for coldata in self.data]
 
     def next(self):
         """
-        Return next data column.
+        Return next data row.
         (python2 syntax)
         """
         return self.__next__()
 
+    def row(self, index):
+        """
+        A single row of the table.
+
+        Parameters
+        ----------
+        index: int
+            The index of the row to be returned.
+
+        Return
+        ------
+        data: DataFile
+            A DataFile object with a single row.
+        """
+        data = DataFile()
+        sec_indices = [-1] * self.nsecs
+        for c in range(self.columns()):
+            data.add_column(*self.column_head(c))
+            for l in range(self.nsecs):
+                s, i = self.section(c, l+1)
+                if i != sec_indices[l]:
+                    data.header[-1].append(s)
+                    sec_indices[l] = i
+            data.data[-1] = [self.data[c][index]]
+        data.nsecs = self.nsecs
+        return data
+
     def col(self, column):
         """
-        The data elements of a column.
+        A single column of the table.
 
         Parameters
         ----------
@@ -450,10 +498,15 @@ class DataFile:
 
         Return
         ------
-        data: array
-            The data of the specified column as a numpy array.
+        table: DataFile
+            A DataFile object with a single column.
         """
-        return np.asarray(self.data[self.column_index(column)])
+        data = DataFile()
+        c = self.column_index(column)
+        data.add_column(*self.column_head(c))
+        data.data = [self.data[c]]
+        data.nsecs = 0
+        return data
 
     def __getitem__(self, key):
         """
@@ -469,8 +522,7 @@ class DataFile:
         -------
         data:
             - A single data value if a single row and a single column is specified.
-            - A numpy array if a single column is specified.
-            - A list of data elements if a single row is specified.
+            - A list of data elements if a single row or a single column is specified.
             - A DataFile object for multiple rows and columns.
         """
         if type(key) is not tuple:
@@ -506,6 +558,17 @@ class DataFile:
                 return data
             else:
                 return [self.data[i][rows] for i in cols]
+
+    def array(self):
+        """
+        The table data as an numpy array.
+
+        Return
+        ------
+        data: ndarray
+            The data content of the entire table as a 2D numpy array (rows first).
+        """
+        return np.array(self.data).T
 
     def key_value(self, row, col, missing='-'):
         """
@@ -662,7 +725,7 @@ class DataFile:
             column = self.setcol
         self.data[column].append(val)
         self.setcol = column+1
-        self.shape = (self.columns(), self.rows())
+        self.shape = (self.rows(), self.columns())
 
     def add_data(self, data, column=None):
         """
@@ -716,7 +779,7 @@ class DataFile:
             while len(self.data[c]) < r:
                 self.data[c].append(float('NaN'))
         self.setcol = 0
-        self.shape = (self.columns(), self.rows())
+        self.shape = (self.rows(), self.columns())
 
     def hide(self, column):
         """
@@ -854,29 +917,6 @@ class DataFile:
                 print('sort column ' + col + ' not found')
                 continue
             self.indices = sorted(self.indices, key=self.data[c].__getitem__, reverse=rev)
-
-    def write_column_specs(self, df=sys.stdout, sep='>', space=None):
-        """
-        Write list of specifications of each section and column header.
-
-        Parameters
-        ----------
-        df: stream
-            Stream where to write the column specifications.
-        sep: string
-            Separate section specifiers by this string.
-        space: string
-            Replace all spaces in the output by this string.
-        """
-        fh = self.nsecs * ['']
-        for hl in self.header:
-            fh[0:len(hl)] = hl
-            for n in range(len(hl)):
-                n0 = len(hl)-n-1
-                line = sep.join(reversed(fh[n0:]))
-                if space is not None:
-                    line = line.replace(' ', space)
-                df.write(line + '\n')
 
     def write(self, df=sys.stdout, table_format='dat',
               units="row", number_cols=None, missing='-'):
@@ -1634,18 +1674,31 @@ if __name__ == "__main__":
         
     # some infos about the data:
     print('data len: %d' % len(df))
-    print('data columns: %d' % df.columns())
     print('data rows: %d' % df.rows())
+    print('data columns: %d' % df.columns())
     print('data shape: (%d, %d)' % (df.shape[0],df.shape[1]))
     print('')
     print('column specifications:')
-    df.write_column_specs()
+    for c in range(df.columns()):
+        print(df.column_spec(c))
     print('')
 
     # data access:
     df.write(sys.stdout, table_format='dat')
     print('')
-    #print( df[2:,'weight':'reaction>size'])
-    print( df[2:5,['size','jitter']])
-    
-        
+    #print(df[2:,'weight':'reaction>size'])
+    print(df[2:5,['size','jitter']])
+    print(df[2:5,['size','jitter']].array())
+
+    # iterate over rows:
+    for a in df:
+        print a
+    print('')
+
+    # single column:    
+    print(df[:,'size'])
+    print(df.col('size'))
+
+    # single row:    
+    print(df[2,:])
+    print(df.row(2))
