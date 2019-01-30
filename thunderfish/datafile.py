@@ -580,6 +580,51 @@ class DataFile:
             else:
                 return [self.data[i][rows] for i in cols]
 
+    def __setitem__(self, key, value):
+        """
+        Assign values to data elements specified by slice.
+
+        Paarameters
+        -----------
+        key:
+            First key specifies row, (optional) second one the column.
+            Columns can be specified by index or name, see column_index() for details.
+        value: DataFile, list, ndarray, float, ...
+            Value(s) used to assing to the table elements as specified by `key`.
+        """
+        if type(key) is not tuple:
+            rows = key
+            cols = range(self.columns())
+        else:
+            rows = key[0]
+            cols = key[1]
+        if isinstance(cols, slice):
+            start = self.column_index(cols.start)
+            stop = self.column_index(cols.stop)
+            cols = slice(start, stop, cols.step)
+            cols = range(self.columns())[cols]
+        elif type(cols) is list or type(cols) is tuple or type(cols) is np.ndarray:
+            cols = [self.column_index(inx) for inx in cols]
+        else:
+            cols = [self.column_index(cols)]
+        if isinstance(value, DataFile):
+            if hasattr(self.data[cols[0]][rows], '__len__'):
+                for k, c in enumerate(cols):
+                    self.data[c][rows] = value.data[k]
+            else:
+                for k, c in enumerate(cols):
+                    self.data[c][rows] = value.data[k][0]
+        else:
+            if len(cols) == 1:
+                self.data[cols[0]][rows] = value
+            else:
+                if hasattr(self.data[0][rows], '__len__'):
+                    for k, c in enumerate(cols):
+                        self.data[c][rows] = value[:,k]
+                else:
+                    for k, c in enumerate(cols):
+                        self.data[c][rows] = value[k]
+
     def array(self):
         """
         The table data as an numpy array.
@@ -811,7 +856,7 @@ class DataFile:
         self.setcol = 0
         self.shape = (self.rows(), self.columns())
 
-    def describe(self):
+    def statistics(self):
         """
         Descriptive statistics of each column.
         """
@@ -1754,7 +1799,7 @@ if __name__ == "__main__":
     print('')
 
     # data access:
-    df.write(sys.stdout, table_format='dat')
+    print(df)
     print('')
     #print(df[2:,'weight':'reaction>size'])
     print(df[2:5,['size','jitter']])
@@ -1777,4 +1822,17 @@ if __name__ == "__main__":
     print(df.table_header())
 
     # statistics
-    print(df.describe())
+    print(df.statistics())
+
+    # assignment:
+    print(df)
+    df[2,3] = 100.0
+    df[3:7,'size'] = 3.05+0.1*np.arange(4)
+    df[1,:4] = 10.02+2.0*np.arange(4)
+    df[3:7,['weight', 'jitter']] = 30.0*(np.ones((4,2))+np.arange(2))
+    print(df)
+    df[2,3] = df[3,2]
+    df[:,'size'] = df.col('weight')
+    df[6,:] = df.row(7)
+    df[3:7,['speed', 'reaction>jitter']] = df[0:4,['size','speed']]
+    print(df)
