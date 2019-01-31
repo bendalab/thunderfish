@@ -761,7 +761,7 @@ class DataFile:
         c0, c1 = self.find_col(column)
         return c0
 
-    def exist(self, column):
+    def __contains__(self, column):
         """
         Check for existence of a column. 
 
@@ -770,6 +770,11 @@ class DataFile:
         column: None, int, or string
             The column to be checked.
             See self.column_index() for more information on how to specify a column.
+
+        Returns
+        -------
+        contains: bool
+            True if `column` specifies an existing column key.
         """
         return self.column_index(column) is not None
 
@@ -1807,7 +1812,7 @@ if __name__ == "__main__":
 
     # iterate over rows:
     for a in df:
-        print a
+        print(a)
     print('')
 
     # single column:    
@@ -1836,3 +1841,8 @@ if __name__ == "__main__":
     df[6,:] = df.row(7)
     df[3:7,['speed', 'reaction>jitter']] = df[0:4,['size','speed']]
     print(df)
+
+    # contains:
+    print('jitter' in df)
+    print('velocity' in df)
+    print('reaction>size' in df)
