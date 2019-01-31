@@ -148,7 +148,6 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
        if counter > 2000:
            print('Warning: unusual many discarding steps needed, unusually dense events')
            pass
-    print(event_indices)
     return event_indices, event_locations, event_heights
 def crosscorrelation(sig, data):
     'returns crosscorrelation of two arrays, the first array should have a length equal to or smaller than the second array.'
@@ -358,11 +357,9 @@ def alignclusterlabels(labels, peaklist, peaks, data='test'):
     overlappeaks = copy.deepcopy(peaks[:,:overlapamount])
     overlap_peaklist = copy.deepcopy(old_peaklist)
   #  overlappeaks = np.append(overlappeaks,[labels], axis = 0)
-    #print(overlappeaks[3])
     overlappeaks[3]=[-1]*len(overlappeaks[0])
     #overlap_peaklist = connect_blocks(old_peaklist)
     overlap_peaklist.classesnearbypccl = [-1]*len(overlap_peaklist.classesnearbypccl)
-    #print(overlappeaks[3])
     classified_overlap = ampwalkclassify3_refactor(overlappeaks,overlap_peaklist)[0]
     #plot_events_on_data(classified_overlap,data)
     labeltranslator = {}
@@ -370,9 +367,6 @@ def alignclusterlabels(labels, peaklist, peaks, data='test'):
         if len(labeltranslator) <= len(np.unique(labels)):
             labelindex = np.where(classified_overlap[4] == cl)[0]
             label = labels[labelindex]
-            print('labelindex', labelindex)
-            print('label', label)
-            print('lindex(np.where label==stats...)', labelindex[np.where(label==stats.mode(label)[0])])
             labelindex = labelindex[np.where(label == stats.mode(label)[0])[0][0]]
             newlabel = labels[labelindex] #waveform label belonging to the class cl in the new block
             try:
@@ -385,14 +379,10 @@ def alignclusterlabels(labels, peaklist, peaks, data='test'):
                 labeltranslator[oldlabel]
             except KeyError:
                 labeltranslator[oldlabel] = newlabel
-    print(labeltranslator)
     for lbl in old_peaklist.classesnearbypccl:
         try: labeltranslator[lbl]
         except KeyError: labeltranslator[lbl] = lbl
-    print(labeltranslator)
-    print(peaklist.classesnearbypccl)
     peaklist.classesnearbypccl = [labeltranslator[lbl] for lbl in peaklist.classesnearbypccl]
-    print(peaklist.classesnearbypccl)
 
 def ampwalkclassify3_refactor(peaks,peaklist):
     """
@@ -444,18 +434,15 @@ def ampwalkclassify3_refactor(peaks,peaklist):
         time1 = time.time()
         for i, cl in enumerate(classesnearby):
             if  (positions[peaknum] - classesnearbyx[i]) > maxdistance:
-    #            print('peaknum: ',peaknum,'pop ', cl, ' , x: ', classesnearbyx[i], 'current: ', positions[peaknum])
                 classesnearby.pop(i)
                 classesnearbyx.pop(i)
                 classesnearbypccl.pop(i)
         lastofclassisis = []
         for i in classesnearby:
-          #  print(i, classesnearby)
             lastofclassisis.append(np.median(np.diff(lastofclassx[i])))
         meanisi = np.mean(lastofclassisis)
         if 32000 > 20*meanisi> 6000:
             maxdistance = 20*meanisi
-            #print(meanisi, maxdistance , 'maxdistance ----------------------------------------------------------------------------------------------')
         cl = 0  # 'No class'
         comperr = 1
         clnrby = np.unique(classesnearby)
@@ -467,7 +454,6 @@ def ampwalkclassify3_refactor(peaks,peaklist):
             logthresh = np.log2(factor)
             #relerror = error 
             relerror = logerror
-            print(peaknum, classesnearbypccl[classesnearby.index(i)],pcclasses[peaknum], ' and ', classmean, heights[peaknum],logerror, logthresh )
             
             if classesnearbypccl[classesnearby.index(i)] == pcclasses[peaknum] or pcclasses[peaknum] == -1:# or  
               if logerror < logthresh:     ## SameClass-Condition
@@ -480,7 +466,6 @@ def ampwalkclassify3_refactor(peaks,peaklist):
         time1 = time.time()
         if pcclasses[peaknum] != -1:
             if cl != 0 :
-                #print(cl)
                 if len(lastofclass[cl]) >= 3:
                     lastofclass[cl].popleft()
                 if len(lastofclassx[cl]) >= 3:
@@ -490,10 +475,7 @@ def ampwalkclassify3_refactor(peaks,peaklist):
                 classes[peaknum] = cl
             else:                                    # Add new class
                 cl = classamount+1
-                #print('existingclasses: ', classamount) 
                 classamount = cl
-                
-                #print('newclass: ----------------------------------------------------------------', cl)
                 lastofclass[cl] = deque()
                 lastofclassx[cl] = deque()
                 lastofclass[cl].append(heights[peaknum])
@@ -502,12 +484,10 @@ def ampwalkclassify3_refactor(peaks,peaklist):
                 classesnearby.append(cl)
                 classesnearbyx.append(positions[peaknum])
                 classesnearbypccl.append(pcclasses[peaknum])
-            ##print('tatsaechlich: ', cl)         
             if len(classesnearby) >= 12: #kacke implementiert? 
                 minind = classesnearbyx.index(min(classesnearbyx))
                 del lastofclass[classesnearby[minind]]
                 del lastofclassx[classesnearby[minind]]
-                #print(classesnearby[minind], 'del')
                 classesnearby.pop(minind)
                 classesnearbyx.pop(minind)
                 classesnearbypccl.pop(minind)
@@ -520,7 +500,6 @@ def ampwalkclassify3_refactor(peaks,peaklist):
             try:
                 ind=classesnearby.index(cl)
                 classesnearbyx[ind] = positions[peaknum]
-            #    #print(ind ,' --------------------------------------here -----------------------------')
             except ValueError:
                 classesnearby.append(cl)
                 classesnearbyx.append(positions[peaknum])
@@ -530,9 +509,7 @@ def ampwalkclassify3_refactor(peaks,peaklist):
                 classes[peaknum] = cl
             else:
                 cl = classamount+1
-                #print('existingclasses: ', classamount) 
                 classamount = cl
-                #print('newclass: ', cl)
                 lastofclass[cl] = deque()
                 lastofclassx[cl] = deque()
                 lastofclass[cl].append(heights[peaknum])
@@ -545,7 +522,6 @@ def ampwalkclassify3_refactor(peaks,peaklist):
                 minind = classesnearbyx.index(min(classesnearbyx))
                 del lastofclass[classesnearby[minind]]
                 del lastofclassx[classesnearby[minind]]
-                #print(classesnearby[minind], 'del')
                 classesnearby.pop(minind)
                 classesnearbyx.pop(minind)
                 classesnearbypccl.pop(minind)
@@ -558,39 +534,10 @@ def ampwalkclassify3_refactor(peaks,peaklist):
             try:
                 ind=classesnearby.index(cl)
                 classesnearbyx[ind] = positions[peaknum]
-            #    #print(ind ,' --------------------------------------here -----------------------------')
             except ValueError:
                 classesnearby.append(cl)
                 classesnearbyx.append(positions[peaknum])
                 classesnearbypccl.append(pcclasses[peaknum])
-        print(cl)
-           #     #print('classesnearby after a peak', classesnearby)
-  #     for clnum, cls in enumerate(classesnearby): ## deleting almost identical classes (< % difference in amplitude)
-  #         if cls == False:
-  #             continue
-  #         if True:
-  #             continue
-  #         compare = np.mean(lastofclass[cls])
-  #         for i in classesnearby[clnum:-1]:
-  #             if i== False:
-  #                 continue
-  #             if i != cls and abs(compare - np.mean(lastofclass[i])) < compare*0.01:   ## 
-  #              #   #print(compare)
-  #              #   #print( np.mean(np.vectorize(lambda peak: peak.height)(lastofclass[i])))
-  #                 clindex = classesnearby.index(cls)
-  #                 classesnearby[clindex] = False
-  #                 classesnearbyx[clindex] = False
-  #                 del lastofclass[cls]
-  #                 del lastofclassx[cls]
-  #                # cl = holdlastcl
-  #                # if cl == cls:
-  #                 #print('combinedsomeclasses that were similar', cl, cls)
-
-        time2 = time.time()
-  #      classesnearby = [cls for cls in classesnearby if cls != False] 
-  #      classesnearbyx = [clx for clx in classesnearbyx if clx != False]
-  # 
-  # 
     peaklist.lastofclass = lastofclass
     peaklist.lastofclassx = lastofclassx
     peaklist.classesnearby = classesnearby
@@ -614,7 +561,6 @@ def discard_wave_pulses(peaks, data):
          isi_tenth_area = lambda x, isi : np.arange(np.floor(x-0.1*isi),np.ceil(x+0.1*isi),1, dtype = np.int)
          for p in peaksofclass.T:
              data = np.array(data)
-             print(p[0],isi_mean)
              try:
                  for dp_around in data[isi_tenth_area(p[0],isi_mean)]:
                     if dp_around <= p[1]-p[2]:
@@ -629,14 +575,15 @@ def discard_wave_pulses(peaks, data):
             peaks = peaks[:,peaks[3]!=cl]
      return peaks
 
-
 def plot_events_on_data(peaks, data):
     '''
         plots the detected events onto the data timeseries. If the events are classified, the classes are plotted in different colors and the class -1 (not belonging to a cluster) is plotted in black
     '''
     plt.plot(range(len(data)),data, color = 'black')
-    if len(peaks) > 3:
-        classlist = np.array(peaks[4],dtype=np.int)
+    if len(peaks)>3:
+        classlist =  np.array(peaks[3],dtype=np.int)
+        if len(peaks) > 4:
+            classlist = np.array(peaks[4],dtype=np.int)
         cmap = plt.get_cmap('jet')
         colors =cmap(np.linspace(0, 1.0, 3000)) #len(np.unique(classlist))))
         np.random.seed(22)
@@ -652,7 +599,6 @@ def plot_events_on_data(peaks, data):
         plt.scatter(peaks[0],peaks[1], color = 'red')
     plt.show()
     plt.close()
-
 
 def discard_short_classes(events, minlen):
     ''' 
@@ -672,10 +618,10 @@ def path_leaf(path):
     ntpath.basename("a/b/c")
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
-def save_EOD_events_to_npmmp(EOD_Events,eods_len,idx,datasavepath,mmpname='eods.npmmp'):
+def save_EOD_events_to_npmmp(EOD_Events,eods_len,startblock,datasavepath,mmpname='eods.npmmp'):
     n_EOD_Events = len(EOD_Events[0])
     savepath = datasavepath+"/"+mmpname
-    if idx == 0:#IF PATH NOT EXISTS
+    if startblock:
                 eods = np.memmap(savepath,
                                  dtype='float64', mode='w+',
                                  shape=(4,n_EOD_Events), order = 'F')
@@ -685,16 +631,212 @@ def save_EOD_events_to_npmmp(EOD_Events,eods_len,idx,datasavepath,mmpname='eods.
                          'float64', mode='r+', offset = dtypesize*eods_len*4,
                          shape=(4,n_EOD_Events), order = 'F')
     eods[:] = EOD_Events
+def discard_small_EODs(EOD_Events, ultimate_threshold):
+    return EOD_Events[:,np.where(EOD_Events[2]>ultimate_threshold)]
+    return np.where(EOD_Events[2]>ultimate_threshold)
 
-def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
+def analyze_pulse_data(filepath,absolutepath=True, deltat=30, thresh=0.04, starttime = 0, endtime = 0, savepath = False,save=False, npmmp = False, plot_steps=False, plot_result=False):
+    '''
+    analyzes timeseries of a pulse fish EOD recording
+
+    Parameters
+    ----------
+    filepath: WAV-file with the recorded timeseries
+
+    deltat: int, optional
+        time for a single analysisblock (recommended less than a minute, due to principal component clustering on the EOD-waveforms)
+
+    thresh: float, optional
+        minimum threshold for the peakdetection (if computing frequencies recommended a tiny bit lower than the wished threshold, and instead discard the EOD below the wished threshold after computing the frequencies for each EOD.)
+
+    starttime: int or, str of int, optional
+        time into the data from where to start the analysis, seconds.
+
+    endtime: int or str of int, optional
+        time into the data where to end the analysis, seconds, larger than starttime.
+
+    savepath = Boolean or str, optional
+        path to where to save results and intermediate result, only needed if save or npmmp is True.
+        string to specify a relative path to the directory where results and intermediate results will bed
+        or False to use preset savepath, which is ~/filepath/
+        or True to specify savepath as input when the script is running
+
+    save: Boolean, optional
+        True to save the results into a npy file at the savepath
+
+    npmmp: Boolean, optional
+        True to save intermediate results into a npmmp at the savepath, only recommended in case of memory overflow
+
+    plot_steps: Boolean, optional
+        True to plot the results of each analysis block
+
+    plot_results: Boolean, optional
+        True to plot the results of the final analysis. Not recommended for long recordings due to %TODO
+
+    Returns
+    -------
+    eods: numpy array
+        2D numpy array. first axis: attributes of an EOD (x (datapoints), y (recorded voltage), height (difference from maximum to minimum), class), second axis: EODs in chronological order.
+    '''
+    import sys
+    import numpy as np
+    import copy
+    from scipy.stats import gmean
+    from scipy import stats
+    from scipy import signal
+    from scipy import optimize
+    import matplotlib
+    from fish import ProgressFish
+    import matplotlib.pyplot as plt
+    from thunderfish.dataloader import open_data
+    from thunderfish.peakdetection import detect_peaks
+    from scipy.interpolate import interp1d
+    from scipy.signal import savgol_filter
+    from collections import deque
+    import ntpath
+    import nixio as nix
+    import time
+    import os
+    from shutil import copy2
+    from ownDataStructures import Peak, Tr, Peaklist
+    import DextersThunderfishAddition as dta
+    from IPython import embed
+    # parameters for the analysis
+    thresh = 0.04 # minimal threshold for peakdetection
+    peakwidth = 20 # width of a peak and minimal distance between two EODs
+    # basic parameters for thunderfish.dataloader.open_data
+    verbose = 0
+    channel = 0
+    ultimate_threshold = thresh+0.01
+    startblock = 0
+    # timeinterval to analyze other than the whole recording
+    #starttime = 0
+    #endtime = 0
+    #timegiven =  0
+    home = os.path.expanduser('~')
+    if absolutepath:
+        filepath = home+ '/'+ filepath
+    #os.chdir(home)
+    #save = int(save)
+    #plot_steps = int(plot_steps)
+    starttime = int(starttime)
+    endtime = int(endtime)
+    timegiven = False
+    if endtime > starttime>=0:
+        timegiven = True
+    peaks = np.array([])
+    troughs = np.array([])
+    filename = path_leaf(filepath)
+    eods_len = 0
+    if savepath==False:
+        datasavepath = home+'/'+filename[:-4]
+    elif savepath==True:
+        datasavepath = input('With the option npmmp enabled, a numpy memmap will be saved to: ').lower()
+    else: datasavepath=savepath
+
+    if save and (os.path.exists(datasavepath+"/eods8_"+filename[:-3]+"npy") or os.path.exists(datasavepath+"/eods5_"+filename[:-3]+"npy")):
+        print('there already exists an analyzed file, aborting. Change the code if you don\'t want to abort')
+        quit()
+    if npmmp:
+        #proceed = input('With the option npmmp enabled, a numpy memmap will be saved to ' + datasavepath + '. continue? [y/n] ').lower()
+        proceed = 'y'
+        if proceed != 'y':
+             quit()
+    # starting analysis
+    with open_data(filepath, channel, deltat, 0.0, verbose) as data:
+
+        samplerate = data.samplerate
+
+        # selected time interval
+        if timegiven == True:
+            parttime1 = starttime*samplerate
+            parttime2 = endtime*samplerate
+            data = data[parttime1:parttime2]
+
+        #split data into blocks
+        nblock = int(deltat*samplerate)
+        if len(data)%nblock != 0:
+            blockamount = len(data)//nblock + 1
+        else:
+            blockamount = len(data)//nblock
+        print('blockamount: ' , blockamount)
+        progress = 0
+        print(progress, '%' , flush = True, end = " ")
+        fish = ProgressFish(total = blockamount)
+        for idx in range(0, blockamount):
+            blockdata = data[idx*nblock:(idx+1)*nblock]
+            if progress < (idx*100 //blockamount):
+                progress = (idx*100)//blockamount
+            progressstr = ' Filestatus: '
+            fish.animate(amount = idx, dexextra = progressstr)
+            pk, tr = detect_peaks(blockdata, thresh)
+            troughs = tr
+            if len(pk) > 3:
+                peaks = dta.makeeventlist(pk,tr,blockdata,peakwidth)
+                peakindices, peakx, peakh = dta.discardnearbyevents(peaks[0],peaks[1],peakwidth)
+                peaks = peaks[:,peakindices]
+                if len(peaks) > 0:
+                    if idx > startblock:
+                        peaklist = dta.connect_blocks(peaklist)
+                    else:
+                        peaklist = Peaklist([])
+                    aligned_snips = dta.cut_snippets(blockdata,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
+                    pcs = dta.pc(aligned_snips)#pc_refactor(aligned_snips)
+                    order = 5
+                    minpeaks = 3 if deltat < 2 else 10
+                    labels = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, method = 'DBSCAN')
+                    peaks = np.append(peaks,[labels], axis = 0)
+                    #dta.plot_events_on_data(peaks, blockdata)
+                    num = 1
+                    if idx > startblock:
+                      dta.alignclusterlabels(labels, peaklist, peaks,data=blockdata)
+                    peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
+                    minlen = 6
+                    peaks = dta.discard_short_classes(peaks, minlen)
+                    if len(peaks[0]) > 0:
+                        peaks = dta.discard_wave_pulses(peaks, blockdata)
+                    if plot_steps == True:
+                        dta.plot_events_on_data(peaks, blockdata)
+                        pass
+                    peaklist.len = nblock
+                    worldpeaks = np.copy(peaks)
+                    worldpeaks[0] = worldpeaks[0] + (idx*nblock)
+                    thisblock_eods = np.delete(worldpeaks,3,0)
+                    if npmmp:
+                        if idx == startblock:
+                            if not os.path.exists(datasavepath):
+                                os.makedirs(datasavepath)
+                            mmpname = "eods_"+filename[:-3]+"npmmp"
+                        # save the peaks of the current buffered part to a numpy-memmap on the disk
+                        save_EOD_events_to_npmmp(thisblock_eods,eods_len,idx==startblock,datasavepath,mmpname)
+                        eods_len += len(thisblock_eods[0])
+                    else:
+                        if idx > 0:
+                            all_eods = np.concatenate((all_eods,thisblock_eods),axis = 1)
+                        else:
+                            all_eods = thisblock_eods
+    #dta.plot_events_on_data(all_eods,data)
+    print('returnes analyzed EODS. Calculate frequencies using all of these but discard the data from the EODS within the lowest few percent of amplitude')
+    if npmmp:
+        all_eods = np.memmap(datasavepath+'/'+mmpname, dtype='float64', mode='r+', shape=(4,eods_len), order = 'F')
+    if save == 1:
+       path = filename[:-4]+"/"
+       if not os.path.exists(path):
+           os.makedirs(path)
+       if eods_len > 0:
+           np.save(datasavepath+"/eods8_"+filename[:-3]+"npy", all_eods)
+           print('Saved!')
+       else:
+           print('not saved')
+    return all_eods
+
+def analyze_long_pulse_data_file(filepath,save=0,plot_steps=0,new=1,starttime = 0, endtime = 0):
     """
     analyzes timeseries of a pulse fish EOD recording
     """
     #    Script to detect and classify EODs in recordings of weakly electric pulse
     #    fish, Dexter Früh, 2018
-    # #    it is suggested to save the recording in
-    #       workingdirectory/recording/recording.WAV
-
+    #
     #    results will be saved in workingdirectory/recording/
     #
     #    input:
@@ -720,12 +862,6 @@ def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
     #        - new   : if True, do a new analysis of the recording, even if there
     #                       is an existing analyzed .npy file with the right name.
     #
-    #    call with:
-        #    python3 scriptname.py save plot new (starttime endtime[sec] for only
-        #                                                       partial analysis)
-        #
-        #   other parameters are behind imports and some hardcoded at the relevant
-        #       codestep
     import sys
     import numpy as np
     import copy
@@ -757,8 +893,6 @@ def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
     # basic parameters for thunderfish.dataloader.open_data
     verbose = 0
     channel = 0
-    cutsize = 20
-    maxwidth = 50 #10
     ultimate_threshold = thresh+0.01
     startblock = 0
     # timeinterval to analyze other than the whole recording
@@ -767,6 +901,11 @@ def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
     #timegiven =  0
     home = os.path.expanduser('~')
     os.chdir(home)
+    new = int(sys.argv[4])
+    save = int(sys.argv[2])
+    plot = int(sys.argv[3])
+    starttime = int(starttime)
+    endtime = int(endtime)
     timegiven = False
     if endtime > starttime>=0:
         timegiven = True
@@ -790,15 +929,11 @@ def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
             if proceed == 'y':
                 copy2(filepath,datasavepath)
         # import data
-        print('test')
         with open_data(filepath, channel, deltat, 0.0, verbose) as data:
-            print('test')
             samplerate = data.samplerate
             nblock = int(deltat*data.samplerate)
-            bigblock = []
 
             # selected time interval
-            print(timegiven)
             if timegiven == True:
                 parttime1 = starttime*samplerate
                 parttime2 = endtime*samplerate
@@ -813,22 +948,17 @@ def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
             # progress bar
             print('blockamount: ' , blockamount)
             progress = 0
-            #print(progress, '%' , end = "", flush = True)
             print(progress, '%' , flush = True, end = " ")
             fish = ProgressFish(total = blockamount)
 
             # blockwise analysis 
             for idx in range(0, blockamount):
                 blockdata = data[idx*nblock:(idx+1)*nblock]
-
                 # progressbar
                 if progress < (idx*100 //blockamount):
                     progress = (idx*100)//blockamount
-                progressstr = 'dexextra: '+ 'Part ' + '0'+ '/''5'+' Filestatus:'
+                progressstr = ' Filestatus: '
                 fish.animate(amount = idx, dexextra = progressstr)
-             #   fish.animate(amount = idx, dexextra = progressstr)
-
-
 #---analysis-----------------------------------------------------------------------
                 # step1: detect peaks in timeseries
                 pk, tr = detect_peaks(blockdata, thresh)
@@ -838,7 +968,6 @@ def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
                     peaks = dta.makeeventlist(pk,tr,blockdata,peakwidth)
 
                     #dta.plot_events_on_data(peaks, blockdata)
-
                     peakindices, peakx, peakh = dta.discardnearbyevents(peaks[0],peaks[1],peakwidth)
                     peaks = peaks[:,peakindices]
 
@@ -848,31 +977,17 @@ def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
                             peaklist = dta.connect_blocks(peaklist)
                         else:
                             peaklist = Peaklist([])
-
                         aligned_snips = dta.cut_snippets(blockdata,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
-
-                        # calculates principal components
                         pcs = dta.pc(aligned_snips)#pc_refactor(aligned_snips)
-                        #print('dbscan')
                         order = 5
                         minpeaks = 3 if deltat < 2 else 10
                         labels = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, method = 'DBSCAN')
-                        #print('peaks before align', peaks)
                         peaks = np.append(peaks,[labels], axis = 0)
                         #dta.plot_events_on_data(peaks, blockdata)
                         num = 1
-                        # classifies the peaks using the data from the clustered classes and a simple amplitude-walk which classifies peaks as different classes if their amplitude is too far from any other classes' last three peaks
-                        #peaks[3]=[-1]*len(peaks[3])
                         if idx > startblock:
                           dta.alignclusterlabels(labels, peaklist, peaks,data=blockdata)
-                        print(peaklist.classesnearby)
                         peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
-                        print(peaklist.classesnearby)
-                        #join_count=0
-                      #  while True and joincc(peaklist, peaks) == True and join_count < 200:
-                      #        join_count += 1
-                      #        continue
-                        # discards all classes that contain less than mincl EODs
                         minlen = 6   # >=1
                         peaks = dta.discard_short_classes(peaks, minlen)
                         if len(peaks[0]) > 0:
@@ -881,60 +996,59 @@ def analyze_pulse_data(filepath,save,plot_steps,new,starttime = 0, endtime = 0):
                         if plot_steps == True:
                             dta.plot_events_on_data(peaks, blockdata)
                             pass
-                    # map the analyzed EODs of the buffer part to the whole
-                    # recording
                     worldpeaks = np.copy(peaks)
                     # change peaks location in the buffered part to the location relative to the
                     peaklist.len = nblock
                     # peaklocations relative to whole recording 
                     worldpeaks[0] = worldpeaks[0] + (idx*nblock)
                     thisblock_eods = np.delete(peaks,3,0)
-                    #thisblockeods_len = len(thisblock_eods[0])
-                    mmpname = "eods_"+filename[:-3]+"npmmp"
                     # save the peaks of the current buffered part to a numpy-memmap on the disk
-                    save_EOD_events_to_npmmp(thisblock_eods,eods_len,idx,datasavepath,mmpname)
-        #            if idx == 0:
-        #                        eods = np.memmap(datasavepath+"/eods_"+filename[:-3]+
-        #                                         "npmmp", dtype='float64', mode='w+',
-        #                                         shape=(4,thisblockeods_len), order = 'F')
-        #            dtypesize = 8#4 #float32 is 32bit = >4< bytes long  ---changed to float64 -> 8bit
-        #            eods = np.memmap(datasavepath+"/eods_"+filename[:-3]+"npmmp", dtype=
-        #                             'float64', mode='r+', offset = dtypesize*eods_len*4,
-        #                             shape=(4,thisblockeods_len), order = 'F')
-        #            eods[:] = thisblock_eods
+                    mmpname = "eods_"+filename[:-3]+"npmmp"
+                    save_EOD_events_to_npmmp(thisblock_eods,eods_len,idx==startblock,datasavepath,mmpname)
                     eods_len += len(thisblock_eods[0])
         # after the last buffered part has finished, save the memory mapped
         # numpy file of the detected and classified EODs to a .npy file to the
         # disk
         eods = np.memmap(datasavepath+"/eods_"+filename[:-3]+"npmmp", dtype='float64', mode='r+', shape=(4,eods_len), order = 'F')
-        print('before final saving: print unique eodcl: ' , np.unique(eods[3]))
         if save == 1:
-           # #print('eods', eods[3])
-           path = filename[:-4]+"/"
+           path = datasavepath+"/"
            if not os.path.exists(path):
                os.makedirs(path)
            if eods_len > 0:
                print('Saved!')
-               np.save(filename[:-4]+"/eods8_"+filename[:-3]+"npy", eods)
+               np.save(datasavepath+"/eods8_"+datasavepath+"npy", eods)
            else:
                #np.save(filename[:-4]+"/eods5_"+filename[:-3]+"npy", thisblock_eods)
 
                print('not saved')
     else: # if there already has been a certain existing result file and 'new' was set to False
         print('already analyzed')
-        return eods
+    print('returnes analyzed EODS. Calculate frequencies using all of these but discard the data from the EODS within the lowest few percent of amplitude')
+    return eods
 
 def main():
-    if len(sys.argv[:])<=5:
-        filepath = sys.argv[1]
-        save = int(sys.argv[2])
-        plot = int(sys.argv[3])
-        new = int(sys.argv[4])
-        analyze_pulse_data(filepath,save,plot,new)
-    else:
-        starttime = sys.argv[5]
-        endtime = sys.argv[6]
-        analyze_pulse_data(filepath,save,plot,new,starttime,endtime)
+   # if len(sys.argv[:])<5:
+   #     print('arguments missing. required: filepath to .WAV and whether to save results, plot each step and start a new analysis as 1 (True) or 0 (False) each')
+   # elif len(sys.argv[:])>5:
+   #     starttime = int(sys.argv[5])
+   #     endtime = int(sys.argv[6])
+
+   # #eods = analyze_pulse_data(sys.argv[1],starttime=0,endtime =50,save = 0, new = 1, plot_steps=0)
+   # #eods = analyze_pulse_data(sys.argv[1],starttime=0,endtime =50,save = 0, npmmp= True, plot_steps=0)
+   # #eods = analyze_pulse_data(sys.argv[1],save = 0, npmmp= True, plot_steps=0)
+    print(sys.argv[1]) 
+    eods = analyze_pulse_data(sys.argv[1],save = True, npmmp= True)
+    print(eods)
+#
+#    colors = plt.get_cmap('jet')(np.linspace(0, 1.0, np.unique(eods[3])[-1]+1)) #len(np.unique(classlist))))
+#    np.random.seed(22)
+#    np.random.shuffle(colors)
+#    colors = [colors[int(cl)] for cl in eods[3]]
+#
+#    plt.scatter(eods[0], eods[1], color = colors)
+#    plt.show()
+#
+    #analyze_long_pulse_data_file(*sys.argv[1:])
 
 if __name__ == '__main__':
     main()
