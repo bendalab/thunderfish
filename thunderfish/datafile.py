@@ -15,8 +15,14 @@ else:
 
 class DataFile:
     """
-    Reading and writing of data tables with a reach table header and additional metadata
-    from and to various file formats.
+    Tables of data with a rich header.
+
+    Indexing
+    --------
+    With the [] operator: rows first, columns second
+    len() returns number of rows.
+
+    But: iterating over the table goes over columns!
 
     File formats for writing
     ------------------------
@@ -380,6 +386,12 @@ class DataFile:
             fh.append(self.section(c, l+1)[0])
         return '>'.join(reversed(fh))
 
+    def keys(self):
+        """
+        List of unique column keys for all available columns.
+        """
+        return [self.column_spec(c) for c in range(self.columns())]
+
     def column_head(self, column):
         """
         The name, unit, and format of a column.
@@ -409,7 +421,7 @@ class DataFile:
         Return
         ------
         data: DataFile
-            A DataFile object with the same header.
+            A DataFile object with the same header but empty data.
         """
         data = DataFile()
         sec_indices = [-1] * self.nsecs
@@ -458,24 +470,24 @@ class DataFile:
 
     def __iter__(self):
         """
-        Initialize iteration over data rows.
+        Initialize iteration over data columns.
         """
         self.iter_counter = -1
         return self
 
     def __next__(self):
         """
-        Return next row as a list.
+        Return next column as a list.
         """
         self.iter_counter += 1
-        if self.iter_counter >= self.rows():
+        if self.iter_counter >= self.columns():
             raise StopIteration
         else:
-            return [coldata[self.iter_counter] for coldata in self.data]
+            return self.data[self.iter_counter]
 
     def next(self):
         """
-        Return next data row.
+        Return next data columns.
         (python2 syntax)
         """
         return self.__next__()
@@ -529,6 +541,27 @@ class DataFile:
         data.nsecs = 0
         return data
 
+    def __setupkey(self, key):
+        """
+        Helper function that turns a key into row and column indices.
+        """
+        if type(key) is not tuple:
+            rows = key
+            cols = range(self.columns())
+        else:
+            rows = key[0]
+            cols = key[1]
+        if isinstance(cols, slice):
+            start = self.column_index(cols.start)
+            stop = self.column_index(cols.stop)
+            cols = slice(start, stop, cols.step)
+            cols = range(self.columns())[cols]
+        elif type(cols) is list or type(cols) is tuple or type(cols) is np.ndarray:
+            cols = [self.column_index(inx) for inx in cols]
+        else:
+            cols = [self.column_index(cols)]
+        return rows, cols
+
     def __getitem__(self, key):
         """
         Data elements specified by slice.
@@ -546,21 +579,7 @@ class DataFile:
             - A list of data elements if a single row or a single column is specified.
             - A DataFile object for multiple rows and columns.
         """
-        if type(key) is not tuple:
-            rows = key
-            cols = range(self.columns())
-        else:
-            rows = key[0]
-            cols = key[1]
-        if isinstance(cols, slice):
-            start = self.column_index(cols.start)
-            stop = self.column_index(cols.stop)
-            cols = slice(start, stop, cols.step)
-            cols = range(self.columns())[cols]
-        elif type(cols) is list or type(cols) is tuple or type(cols) is np.ndarray:
-            cols = [self.column_index(inx) for inx in cols]
-        else:
-            cols = [self.column_index(cols)]
+        rows, cols = self.__setupkey(key)
         if len(cols) == 1:
             return self.data[cols[0]][rows]
         else:
@@ -592,21 +611,7 @@ class DataFile:
         value: DataFile, list, ndarray, float, ...
             Value(s) used to assing to the table elements as specified by `key`.
         """
-        if type(key) is not tuple:
-            rows = key
-            cols = range(self.columns())
-        else:
-            rows = key[0]
-            cols = key[1]
-        if isinstance(cols, slice):
-            start = self.column_index(cols.start)
-            stop = self.column_index(cols.stop)
-            cols = slice(start, stop, cols.step)
-            cols = range(self.columns())[cols]
-        elif type(cols) is list or type(cols) is tuple or type(cols) is np.ndarray:
-            cols = [self.column_index(inx) for inx in cols]
-        else:
-            cols = [self.column_index(cols)]
+        rows, cols = self.__setupkey(key)
         if isinstance(value, DataFile):
             if hasattr(self.data[cols[0]][rows], '__len__'):
                 for k, c in enumerate(cols):
@@ -640,21 +645,7 @@ class DataFile:
             Otherwise only data values in the specified rows are removed and the columns
             are filled up with missing values.
         """
-        if type(key) is not tuple:
-            rows = key
-            cols = range(self.columns())
-        else:
-            rows = key[0]
-            cols = key[1]
-        if isinstance(cols, slice):
-            start = self.column_index(cols.start)
-            stop = self.column_index(cols.stop)
-            cols = slice(start, stop, cols.step)
-            cols = range(self.columns())[cols]
-        elif type(cols) is list or type(cols) is tuple or type(cols) is np.ndarray:
-            cols = [self.column_index(inx) for inx in cols]
-        else:
-            cols = [self.column_index(cols)]
+        rows, cols = self.__setupkey(key)
         if hasattr(self.data[cols[0]][rows], '__len__') and \
            len(self.data[cols[0]][rows]) == len(self.data[cols[0]]) :
            # delete whole columns:
@@ -1857,6 +1848,7 @@ if __name__ == "__main__":
     print('column specifications:')
     for c in range(df.columns()):
         print(df.column_spec(c))
+    print(df.keys())
     print('')
 
     # data access:
@@ -1865,8 +1857,9 @@ if __name__ == "__main__":
     #print(df[2:,'weight':'reaction>size'])
     print(df[2:5,['size','jitter']])
     print(df[2:5,['size','jitter']].array())
+    print('')
 
-    # iterate over rows:
+    # iterate over columns:
     for a in df:
         print(a)
     print('')
