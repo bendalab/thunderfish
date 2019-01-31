@@ -392,6 +392,18 @@ class DataFile:
         """
         return [self.column_spec(c) for c in range(self.columns())]
 
+    def values(self):
+        """
+        List of column data corresponding to keys().
+        """
+        return self.data
+
+    def items(self):
+        """
+        List of tuples with unique column specifications and the corresponding data.
+        """
+        return [(self.column_spec(c), self.data[c]) for c in range(self.columns())]
+
     def column_head(self, column):
         """
         The name, unit, and format of a column.
