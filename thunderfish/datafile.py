@@ -533,7 +533,7 @@ class DataFile:
         """
         Data elements specified by slice.
 
-        Paarameters
+        Parameters
         -----------
         key:
             First key specifies row, (optional) second one the column.
@@ -584,7 +584,7 @@ class DataFile:
         """
         Assign values to data elements specified by slice.
 
-        Paarameters
+        Parameters
         -----------
         key:
             First key specifies row, (optional) second one the column.
@@ -624,6 +624,62 @@ class DataFile:
                 else:
                     for k, c in enumerate(cols):
                         self.data[c][rows] = value[k]
+
+    def __delitem__(self, key):
+        """
+        Delete data elements or whole columns.
+
+        Parameters
+        -----------
+        key:
+            First key specifies row, (optional) second one the column.
+            Columns can be specified by index or name, see column_index() for details.
+            If all rows are selected, then the specified columns are removed from the table.
+            Otherwise only data values are removed.
+            If all columns are selected than entire rows of data values are removed.
+            Otherwise only data values in the specified rows are removed and the columns
+            are filled up with missing values.
+        """
+        if type(key) is not tuple:
+            rows = key
+            cols = range(self.columns())
+        else:
+            rows = key[0]
+            cols = key[1]
+        if isinstance(cols, slice):
+            start = self.column_index(cols.start)
+            stop = self.column_index(cols.stop)
+            cols = slice(start, stop, cols.step)
+            cols = range(self.columns())[cols]
+        elif type(cols) is list or type(cols) is tuple or type(cols) is np.ndarray:
+            cols = [self.column_index(inx) for inx in cols]
+        else:
+            cols = [self.column_index(cols)]
+        if hasattr(self.data[cols[0]][rows], '__len__') and \
+           len(self.data[cols[0]][rows]) == len(self.data[cols[0]]) :
+           # delete whole columns:
+            for c in cols:
+                if c+1 < len(self.header):
+                    self.header[c+1].extend(self.header[c][len(self.header[c+1]):])
+                del self.header[c]
+                del self.units[c]
+                del self.formats[c]
+                del self.hidden[c]
+                del self.data[c]
+            if self.setcol > len(self.data):
+                self.setcol = len(self.data)
+            self.shape = (self.rows(), self.columns())
+        else:
+            if len(cols) == len(self.header):
+                # delete whole row:
+                for c in cols:
+                    del self.data[c][rows]
+                self.shape = (self.rows(), self.columns())
+            else:
+                # delete part of a row:
+                for c in cols:
+                    del self.data[c][rows]
+                    self.data[c].extend([float('NaN')]*(self.rows()-len(self.data[c])))
 
     def array(self):
         """
@@ -844,10 +900,10 @@ class DataFile:
         Fill up all columns with missing data to have the same number of data elements.
         """
         # maximum rows:
-        r = rows()
+        maxr = self.rows()
         # fill up:
         for c in range(len(self.data)):
-            while len(self.data[c]) < r:
+            while len(self.data[c]) < maxr:
                 self.data[c].append(float('NaN'))
         self.setcol = 0
         self.shape = (self.rows(), self.columns())
@@ -1771,7 +1827,7 @@ if __name__ == "__main__":
     df = DataFile()
     df.add_section("data")
     df.add_section("info")
-    df.add_column("size", "m", "%.2f", 2.34)
+    df.add_column("size", "m", "%6.2f", 2.34)
     df.add_column("weight", "kg", "%.0f", 122.8)
     df.add_section("reaction")
     df.add_column("speed", "m/s", "%.3g", 98.7)
@@ -1842,6 +1898,12 @@ if __name__ == "__main__":
     df[3:7,['speed', 'reaction>jitter']] = df[0:4,['size','speed']]
     print(df)
 
+    # delete:
+    del df[3:6, 'weight']
+    del df[3:5,:]
+    del df[:,'speed']
+    print(df)
+    
     # contains:
     print('jitter' in df)
     print('velocity' in df)
