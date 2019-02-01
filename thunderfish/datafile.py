@@ -19,10 +19,12 @@ class DataFile:
 
     Indexing
     --------
-    With the [] operator: rows first, columns second
-    len() returns number of rows.
+    The DataFile is a mapping of keys (the column headers)
+    to values (the column data).
+    Iterating over the table goes over columns.
 
-    But: iterating over the table goes over columns!
+    The only exception is the [] operator that treats the table as a
+    2D-array: rows first, columns second.
 
     File formats for writing
     ------------------------
@@ -155,60 +157,79 @@ class DataFile:
             with open(filename, 'r') as sf:
                 self.load(sf)
 
-    def add_section(self, label):
+    def append_section(self, label):
         """
-        Add a new section to the table header.
+        Add sections to the table header.
 
         Each column of the table has a header label. Columns can be
         grouped into sections. Sections can be nested arbitrarily.
 
         Parameters
         ----------
-        label: string
-            The name of the section.
+        label: string or list of string
+            The name(s) of the section(s).
         """
         if self.addcol >= len(self.data):
-            self.header.append([label])
+            if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+                self.header.append(list(reversed(label)))
+            else:
+                self.header.append([label])
             self.units.append('')
             self.formats.append('')
             self.hidden.append(False)
             self.data.append([])
         else:
-            self.header[self.addcol] = [label] + self.header[self.addcol]
+            if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+                self.header[self.addcol] = list(reversed(label)) + self.header[self.addcol]
+            else:
+                self.header[self.addcol] = [label] + self.header[self.addcol]
         if self.nsecs < len(self.header[self.addcol]):
             self.nsecs = len(self.header[self.addcol])
         self.addcol = len(self.data)-1
         self.shape = (self.rows(), self.columns())
         return self.addcol
         
-    def add_column(self, label, unit, formats, value=None):
+    def append(self, label, unit, formats, value=None):
         """
-        Add a new column to the table header.
+        Append column to the table.
 
         Parameters
         ----------
-        label: string
-            The name of the column.
+        label: string or list of string
+            Optional section titles and the name of the column.
         unit: string
             The unit of the column contents.
         formats: string
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
-        val: None, float, int, string, etc.
-            If not None, data value to be set as the first data element of the new column.
+        val: None, float, int, string, etc. or list thereof
+            If not None, data for the column.
         """
         if self.addcol >= len(self.data):
-            self.header.append([label])
+            if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+                self.header.append(list(reversed(label)))
+            else:
+                self.header.append([label])
             self.formats.append(formats)
             self.units.append(unit)
             self.hidden.append(False)
             self.data.append([])
+            if self.nsecs < len(self.header[-1])-1:
+                self.nsecs = len(self.header[-1])-1
         else:
-            self.header[self.addcol] = [label] + self.header[self.addcol]
+            if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+                self.header[self.addcol] = list(reversed(label)) + self.header[self.addcol]
+            else:
+                self.header[self.addcol] = [label] + self.header[self.addcol]
             self.units[self.addcol] = unit
             self.formats[self.addcol] = formats
+            if self.nsecs < len(self.header[self.addcol])-1:
+                self.nsecs = len(self.header[self.addcol])-1
         if value is not None:
-            self.data[-1].append(value)
+            if type(value) is list or type(value) is tuple or type(value) is np.ndarray:
+                self.data[-1].extend(value)
+            else:
+                self.data[-1].append(value)
         self.addcol = len(self.data)
         self.shape = (self.rows(), self.columns())
         return self.addcol-1
@@ -437,7 +458,7 @@ class DataFile:
         data = DataFile()
         sec_indices = [-1] * self.nsecs
         for c in range(self.columns()):
-            data.add_column(*self.column_head(c))
+            data.append(*self.column_head(c))
             for l in range(self.nsecs):
                 s, i = self.section(c, l+1)
                 if i != sec_indices[l]:
@@ -448,28 +469,6 @@ class DataFile:
         
     def __len__(self):
         """
-        The number of rows.
-        
-        Returns
-        -------
-        rows: int
-            The number of rows contained in the table.
-        """
-        return self.rows()
-
-    def rows(self):
-        """
-        The number of rows.
-        
-        Returns
-        -------
-        rows: int
-            The number of rows contained in the table.
-        """
-        return max(map(len, self.data))
-
-    def columns(self):
-        """
         The number of columns.
         
         Returns
@@ -477,7 +476,7 @@ class DataFile:
         columns: int
             The number of columns contained in the table.
         """
-        return len(self.header)
+        return self.columns()
 
     def __iter__(self):
         """
@@ -503,32 +502,27 @@ class DataFile:
         """
         return self.__next__()
 
-    def row(self, index):
+    def columns(self):
         """
-        A single row of the table.
-
-        Parameters
-        ----------
-        index: int
-            The index of the row to be returned.
-
-        Return
-        ------
-        data: DataFile
-            A DataFile object with a single row.
+        The number of columns.
+        
+        Returns
+        -------
+        columns: int
+            The number of columns contained in the table.
         """
-        data = DataFile()
-        sec_indices = [-1] * self.nsecs
-        for c in range(self.columns()):
-            data.add_column(*self.column_head(c))
-            for l in range(self.nsecs):
-                s, i = self.section(c, l+1)
-                if i != sec_indices[l]:
-                    data.header[-1].append(s)
-                    sec_indices[l] = i
-            data.data[-1] = [self.data[c][index]]
-        data.nsecs = self.nsecs
-        return data
+        return len(self.header)
+
+    def rows(self):
+        """
+        The number of rows.
+        
+        Returns
+        -------
+        rows: int
+            The number of rows contained in the table.
+        """
+        return max(map(len, self.data))
 
     def col(self, column):
         """
@@ -547,9 +541,36 @@ class DataFile:
         """
         data = DataFile()
         c = self.index(column)
-        data.add_column(*self.column_head(c))
+        data.append(*self.column_head(c))
         data.data = [self.data[c]]
         data.nsecs = 0
+        return data
+
+    def row(self, index):
+        """
+        A single row of the table.
+
+        Parameters
+        ----------
+        index: int
+            The index of the row to be returned.
+
+        Return
+        ------
+        data: DataFile
+            A DataFile object with a single row.
+        """
+        data = DataFile()
+        sec_indices = [-1] * self.nsecs
+        for c in range(self.columns()):
+            data.append(*self.column_head(c))
+            for l in range(self.nsecs):
+                s, i = self.section(c, l+1)
+                if i != sec_indices[l]:
+                    data.header[-1].append(s)
+                    sec_indices[l] = i
+            data.data[-1] = [self.data[c][index]]
+        data.nsecs = self.nsecs
         return data
 
     def __setupkey(self, key):
@@ -598,7 +619,7 @@ class DataFile:
                 data = DataFile()
                 sec_indices = [-1] * self.nsecs
                 for c in cols:
-                    data.add_column(*self.column_head(c))
+                    data.append(*self.column_head(c))
                     for l in range(self.nsecs):
                         s, i = self.section(c, l+1)
                         if i != sec_indices[l]:
@@ -862,45 +883,45 @@ class DataFile:
         """
         return self.index(column) is not None
 
-    def add_value(self, val, column=None):
+    def append_data(self, value, column=None):
         """
-        Add a single data element to a specific column of the table.
+        Append data elements to successive table columns.
 
         Parameters
         ----------
-        val: float, int, string, etc.
-            Data value to be appended to a column.
+        value: float, int, string, etc. or list thereof or list of list thereof
+            Data values to be appended to a column.
+            - A single value is simply appened to the specified column of the table.
+            - A 1D-list of values is appended to successive columns of the table
+              starting with the specified columns.
+            - The columns of a 2D-list of values (second index) are appended
+              to successive columns of the table starting with the specified columns.
         column: None, int, or string
-            The column to which the data element should be appended.
+            The first column to which the data should be appended.
             If None, append to the current column.
             See self.index() for more information on how to specify a column.
         """
         column = self.index(column)
         if column is None:
             column = self.setcol
-        self.data[column].append(val)
-        self.setcol = column+1
+        if type(value) is list or type(value) is tuple or type(value) is np.ndarray:
+            if type(value[0]) is list or type(value[0]) is tuple or type(value[0]) is np.ndarray:
+                # 2D list, rows first:
+                for row in value:
+                    for i, val in enumerate(row):
+                        self.data[column+i].append(val)
+                self.setcol = column + len(value[0])
+            else:
+                # 1D list:
+                for val in value:
+                    self.data[column].append(val)
+                    column += 1
+                self.setcol = column
+        else:
+            # single value:
+            self.data[column].append(value)
+            self.setcol = column+1
         self.shape = (self.rows(), self.columns())
-
-    def add_data(self, data, column=None):
-        """
-        Add a list of data elements to the table.
-
-        The data values are appended to successive columns, starting at `column`.
-
-        Parameters
-        ----------
-        data: list of float, int, string, etc.
-            Data values to be added to the table.
-        column: None, int, or string
-            The column to which the first data element should be appended.
-            If None, append to the current column.
-            See self.index() for more information on how to specify a column.
-            The remaining data elements will be added to the subsequent columns.
-        """
-        for val in data:
-            self.add_value(val, column)
-            column = None
 
     def set_column(self, column):
         """
@@ -951,12 +972,12 @@ class DataFile:
         """
         ds = DataFile()
         if self.nsecs > 0:
-            ds.add_section('statistics')
+            ds.append_section('statistics')
             for l in range(1,self.nsecs):
-                ds.add_section('-')
-            ds.add_column('-', '-', '%-10s')
+                ds.append_section('-')
+            ds.append('-', '-', '%-10s')
         else:
-            ds.add_column('statistics', '-', '%-10s')
+            ds.append('statistics', '-', '%-10s')
         ds.header.extend(self.header)
         ds.units.extend(self.units)
         ds.formats.extend(self.formats)
@@ -964,24 +985,24 @@ class DataFile:
         ds.hidden = [False] * ds.columns()
         for c in range(self.columns()):
             ds.data.append([])
-        ds.add_value('mean', 0)
-        ds.add_value('std', 0)
-        ds.add_value('min', 0)
-        ds.add_value('quartile1', 0)
-        ds.add_value('median', 0)
-        ds.add_value('quartile3', 0)
-        ds.add_value('max', 0)
-        ds.add_value('count', 0)
+        ds.append_data('mean', 0)
+        ds.append_data('std', 0)
+        ds.append_data('min', 0)
+        ds.append_data('quartile1', 0)
+        ds.append_data('median', 0)
+        ds.append_data('quartile3', 0)
+        ds.append_data('max', 0)
+        ds.append_data('count', 0)
         for c in range(self.columns()):
-            ds.add_value(np.nanmean(self.data[c]), c+1)
-            ds.add_value(np.nanstd(self.data[c]), c+1)
-            ds.add_value(np.nanmin(self.data[c]), c+1)
+            ds.append_data(np.nanmean(self.data[c]), c+1)
+            ds.append_data(np.nanstd(self.data[c]), c+1)
+            ds.append_data(np.nanmin(self.data[c]), c+1)
             q1, m, q3 = np.percentile(self.data[c], [25., 50., 75.])
-            ds.add_value(q1, c+1)
-            ds.add_value(m, c+1)
-            ds.add_value(q3, c+1)
-            ds.add_value(np.nanmax(self.data[c]), c+1)
-            ds.add_value(np.count_nonzero(~np.isnan(self.data[c])), c+1)
+            ds.append_data(q1, c+1)
+            ds.append_data(m, c+1)
+            ds.append_data(q3, c+1)
+            ds.append_data(np.nanmax(self.data[c]), c+1)
+            ds.append_data(np.count_nonzero(~np.isnan(self.data[c])), c+1)
         ds.shape = (ds.rows(), ds.columns())
         return ds
                 
@@ -1571,7 +1592,7 @@ class DataFile:
                     if alld[k] < len(c):
                         alld[k] = len(c)
                     v = c
-            self.add_value(v, k)
+            self.append_data(v, k)
                 
 
     def load(self, sf, table_format='dat',
@@ -1715,7 +1736,7 @@ class DataFile:
         else:
             labels = cols
         for k in range(colnum):
-            self.add_column(labels[k], units[k], '%g')
+            self.append(labels[k], units[k], '%g')
         # read in sections:
         while kr > 0:
             kr -= 1
@@ -1857,18 +1878,16 @@ if __name__ == "__main__":
 
     # setup a table:
     df = DataFile()
-    df.add_section("data")
-    df.add_section("info")
-    df.add_column("size", "m", "%6.2f", 2.34)
-    df.add_column("weight", "kg", "%.0f", 122.8)
-    df.add_section("reaction")
-    df.add_column("speed", "m/s", "%.3g", 98.7)
-    df.add_column("jitter", "mm", "%.1f", 23)
-    df.add_column("size", "g", "%.2e", 1.234)
-    df.add_data((56.7, float('NaN'), 0.543, 45, 1.235e2), 0)
-    df.add_data((8.9, 43.21, 6789.1, 3405, 1.235e-4), 0)
-    for k in range(5):
-        df.add_data(0.5*(1.0+k)*np.random.randn(5)+10.+k, 0)
+    df.append(["data", "info", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    df.append("weight", "kg", "%.0f", 122.8)
+    df.append_section("reaction")
+    df.append("speed", "m/s", "%.3g", 98.7)
+    df.append("jitter", "mm", "%.1f", 23)
+    df.append("size", "g", "%.2e", 1.234)
+    df.append_data((float('NaN'), 0.543, 45, 1.235e2), 1)
+    df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1)
+    a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
+    df.append_data(a.T, 0)
     df[3:6,'weight'] = [11.0]*3
     df.adjust_columns()
     
