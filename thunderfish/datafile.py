@@ -151,7 +151,6 @@ class DataFile:
         self.hidden = []
         self.setcol = 0
         self.addcol = 0
-        self.indices = None
         if filename is not None:
             with open(filename, 'r') as sf:
                 self.load(sf)
@@ -779,7 +778,7 @@ class DataFile:
         if not isinstance(column, int) and column.isdigit():
             column = int(column)
         if isinstance(column, int):
-            if column >= 0 and column < len(self.formats):
+            if column >= 0 and column < len(self.header):
                 return column, column+1
             else:
                 return None, None
@@ -960,35 +959,43 @@ class DataFile:
         ds.shape = (ds.rows(), ds.columns())
         return ds
                 
-    def sort(self, columns):
+    def sort(self, columns, reverse=False):
         """
-        Sort the table rows.
-
-        Generate an index list for the rows that is used by write() when writing the table.
-        This only affects the output via the write() function, the data elements are
-        not rearranged.
+        Sort the table rows in place.
 
         Parameters
         ----------
         columns: int or string or list of int or string
             A column specifier or a list of column specifiers of the columns
             to be sorted.
+        reverse: boolean
+            If `True` sort in descending order.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
+        # fix columns:
         if type(columns) is not list and type(columns) is not tuple:
             columns = [ columns ]
         if len(columns) == 0:
             return
-        self.indices = range(len(self.data[0]))
-        for col in reversed(columns):
-            rev = False
-            if len(col) > 0 and col[0] in '^!':
-                rev = True
-                col = col[1:]
+        cols = []
+        for col in columns:
             c = self.column_index(col)
             if c is None:
-                print('sort column ' + col + ' not found')
+                raise IndexError('sort column ' + col + ' not found')
                 continue
-            self.indices = sorted(self.indices, key=self.data[c].__getitem__, reverse=rev)
+            cols.append(c)
+        # get sorted row indices:
+        row_inx = range(self.rows())
+        row_inx = sorted(row_inx, key=lambda x : [float('-inf') if self.data[c][x] is np.nan \
+                         or self.data[c][x] != self.data[c][x] \
+                         else self.data[c][x] for c in cols], reverse=reverse)
+        # sort table according to indices:
+        for c in range(self.columns()):
+            self.data[c] = [self.data[c][r] for r in row_inx]
 
     def hide(self, column):
         """
@@ -1399,14 +1406,10 @@ class DataFile:
         if table_format[0] == 'h':
             df.write('</thead>\n<tbody>\n')
         # data:
-        if len(self.data) == 0:
-            self.indices = []
-        elif self.indices is None or len(self.indices) != len(self.data[0]):
-            self.indices = range(len(self.data[0]))
-        for i, k in enumerate(self.indices):
+        for k in range(self.rows()):
             first = True
             if table_format[0] == 'h':
-                eo = "even" if i % 2 == 1 else "odd"
+                eo = "even" if k % 2 == 1 else "odd"
                 df.write('  <tr class"%s">\n    <td' % eo)
             else:
                 df.write(data_start)
@@ -1834,12 +1837,13 @@ if __name__ == "__main__":
     df.add_column("weight", "kg", "%.0f", 122.8)
     df.add_section("reaction")
     df.add_column("speed", "m/s", "%.3g", 98.7)
-    df.add_column("jitter", "mm", "%.0f", 23)
+    df.add_column("jitter", "mm", "%.1f", 23)
     df.add_column("size", "g", "%.2e", 1.234)
     df.add_data((56.7, float('NaN'), 0.543, 45, 1.235e2), 0)
     df.add_data((8.9, 43.21, 6789.1, 3405, 1.235e-4), 0)
     for k in range(5):
         df.add_data(0.5*(1.0+k)*np.random.randn(5)+10.+k, 0)
+    df[3:6,'weight'] = [11.0]*3
     df.adjust_columns()
     
     # write out in all formats:
@@ -1860,8 +1864,19 @@ if __name__ == "__main__":
     print('column specifications:')
     for c in range(df.columns()):
         print(df.column_spec(c))
+    print('keys:')
     print(df.keys())
+    print('values:')
+    print(df.values())
+    print('items:')
+    print(df.items())
     print('')
+
+    # sorting:
+    print(df)
+    df.sort(['weight', 'jitter'], reverse=False)
+    print(df)
+    exit()
 
     # data access:
     print(df)
@@ -1913,3 +1928,4 @@ if __name__ == "__main__":
     print('jitter' in df)
     print('velocity' in df)
     print('reaction>size' in df)
+    
