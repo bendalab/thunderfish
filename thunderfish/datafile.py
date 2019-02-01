@@ -221,7 +221,7 @@ class DataFile:
         ----------
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         level: int
             The level of the section to be returned. The column label itself is level=0.
 
@@ -239,7 +239,7 @@ class DataFile:
         """
         if level < 0 or level > self.nsecs:
             raise IndexError
-        column = self.column_index(column)
+        column = self.index(column)
         while len(self.header[column]) <= level:
             column -= 1
         return self.header[column][level], column
@@ -254,11 +254,11 @@ class DataFile:
             The new name to be used for the section.
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         level: int
             The level of the section to be set. The column label itself is level=0.
         """
-        column = self.column_index(column)
+        column = self.index(column)
         self.header[column][level] = label
         return column
 
@@ -270,14 +270,14 @@ class DataFile:
         ----------
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Returns
         -------
         name: string
             The column label.
         """
-        column = self.column_index(column)
+        column = self.index(column)
         return self.header[column][0]
 
     def set_label(self, label, column):
@@ -290,9 +290,9 @@ class DataFile:
             The new name to be used for the column.
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         """        
-        column = self.column_index(column)
+        column = self.index(column)
         self.header[column][0] = label
         return column
 
@@ -304,14 +304,14 @@ class DataFile:
         ----------
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Returns
         -------
         unit: string
             The unit.
         """
-        column = self.column_index(column)
+        column = self.index(column)
         return self.units[column]
 
     def set_unit(self, unit, column):
@@ -324,9 +324,9 @@ class DataFile:
             The new unit to be used for the column.
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         """
-        column = self.column_index(column)
+        column = self.index(column)
         self.units[column] = unit
         return column
 
@@ -338,14 +338,14 @@ class DataFile:
         ----------
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Returns
         -------
         format: string
             The format string.
         """
-        column = self.column_index(column)
+        column = self.index(column)
         return self.formats[column]
 
     def set_format(self, format, column):
@@ -358,9 +358,9 @@ class DataFile:
             The new format string to be used for the column.
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         """
-        column = self.column_index(column)
+        column = self.index(column)
         self.formats[column] = format
         return column
 
@@ -372,14 +372,14 @@ class DataFile:
         ----------
         column: int or string
             Specifies the column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Returns
         -------
         s: string
             Full specification of the column by all its section names and its header name.
         """
-        c = self.column_index(column)
+        c = self.index(column)
         fh = [self.header[c][0]]
         for l in range(self.nsecs):
             fh.append(self.section(c, l+1)[0])
@@ -411,7 +411,7 @@ class DataFile:
         ----------
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Returns
         -------
@@ -422,7 +422,7 @@ class DataFile:
         format: string
             The format string.
         """
-        column = self.column_index(column)
+        column = self.index(column)
         return self.header[column][0], self.units[column], self.formats[column]
 
     def table_header(self):
@@ -538,7 +538,7 @@ class DataFile:
         ----------
         column: None, int, or string
             The column to be returned.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Return
         ------
@@ -546,7 +546,7 @@ class DataFile:
             A DataFile object with a single column.
         """
         data = DataFile()
-        c = self.column_index(column)
+        c = self.index(column)
         data.add_column(*self.column_head(c))
         data.data = [self.data[c]]
         data.nsecs = 0
@@ -563,14 +563,14 @@ class DataFile:
             rows = key[0]
             cols = key[1]
         if isinstance(cols, slice):
-            start = self.column_index(cols.start)
-            stop = self.column_index(cols.stop)
+            start = self.index(cols.start)
+            stop = self.index(cols.stop)
             cols = slice(start, stop, cols.step)
             cols = range(self.columns())[cols]
         elif type(cols) is list or type(cols) is tuple or type(cols) is np.ndarray:
-            cols = [self.column_index(inx) for inx in cols]
+            cols = [self.index(inx) for inx in cols]
         else:
-            cols = [self.column_index(cols)]
+            cols = [self.index(cols)]
         return rows, cols
 
     def __getitem__(self, key):
@@ -581,7 +581,7 @@ class DataFile:
         -----------
         key:
             First key specifies row, (optional) second one the column.
-            Columns can be specified by index or name, see column_index() for details.
+            Columns can be specified by index or name, see index() for details.
 
         Returns
         -------
@@ -618,7 +618,7 @@ class DataFile:
         -----------
         key:
             First key specifies row, (optional) second one the column.
-            Columns can be specified by index or name, see column_index() for details.
+            Columns can be specified by index or name, see index() for details.
         value: DataFile, list, ndarray, float, ...
             Value(s) used to assing to the table elements as specified by `key`.
         """
@@ -649,7 +649,7 @@ class DataFile:
         -----------
         key:
             First key specifies row, (optional) second one the column.
-            Columns can be specified by index or name, see column_index() for details.
+            Columns can be specified by index or name, see index() for details.
             If all rows are selected, then the specified columns are removed from the table.
             Otherwise only data values are removed.
             If all columns are selected than entire rows of data values are removed.
@@ -659,18 +659,8 @@ class DataFile:
         rows, cols = self.__setupkey(key)
         if hasattr(self.data[cols[0]][rows], '__len__') and \
            len(self.data[cols[0]][rows]) == len(self.data[cols[0]]) :
-           # delete whole columns:
-            for c in cols:
-                if c+1 < len(self.header):
-                    self.header[c+1].extend(self.header[c][len(self.header[c+1]):])
-                del self.header[c]
-                del self.units[c]
-                del self.formats[c]
-                del self.hidden[c]
-                del self.data[c]
-            if self.setcol > len(self.data):
-                self.setcol = len(self.data)
-            self.shape = (self.rows(), self.columns())
+            # delete whole columns:
+            self.remove(cols)
         else:
             if len(cols) == len(self.header):
                 # delete whole row:
@@ -682,6 +672,42 @@ class DataFile:
                 for c in cols:
                     del self.data[c][rows]
                     self.data[c].extend([float('NaN')]*(self.rows()-len(self.data[c])))
+
+    def remove(self, columns):
+        """
+        Remove columns from the table.
+
+        Parameters
+        -----------
+        columns: int or string or list of int or string
+            Columns can be specified by index or name, see index() for details.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
+        """
+        # fix columns:
+        if type(columns) is not list and type(columns) is not tuple:
+            columns = [ columns ]
+        if len(columns) == 0:
+            return
+        # remove:
+        for col in columns:
+            c = self.index(col)
+            if c is None:
+                raise IndexError('canot remove non existing column ' + col)
+                continue
+            if c+1 < len(self.header):
+                self.header[c+1].extend(self.header[c][len(self.header[c+1]):])
+            del self.header[c]
+            del self.units[c]
+            del self.formats[c]
+            del self.hidden[c]
+            del self.data[c]
+        if self.setcol > len(self.data):
+            self.setcol = len(self.data)
+        self.shape = (self.rows(), self.columns())
 
     def array(self):
         """
@@ -704,7 +730,7 @@ class DataFile:
             Specifies the row from which the data element should be retrieved.
         col: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         missing: string
             String indicating non-existing data elements.
 
@@ -715,7 +741,7 @@ class DataFile:
             a textual representation of the data element according to the format
             of the column, followed by the unit of the column.
         """
-        col = self.column_index(col)
+        col = self.index(col)
         if col is None:
             return ''
         if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
@@ -725,7 +751,7 @@ class DataFile:
             v = (self.formats[col] % self.data[col][row]) + u
         return self.header[col][0] + '=' + v
 
-    def _find_col(self, ss, si, minns, maxns, c0, strict=True):
+    def __find_col(self, ss, si, minns, maxns, c0, strict=True):
         """
         Helper function for finding column indices from textual column specifications.
         """
@@ -763,7 +789,7 @@ class DataFile:
         ----------
         column: None, int, or string
             A specification of a column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Returns
         -------
@@ -791,12 +817,12 @@ class DataFile:
             si0 += 1
         if maxns < 0:
             maxns = 0
-        c0, c1, ns, si = self._find_col(ss, si0, 0, maxns, 0, True)
+        c0, c1, ns, si = self.__find_col(ss, si0, 0, maxns, 0, True)
         if c0 is None and c1 is not None:
-            c0, c1, ns, si = self._find_col(ss, si, ns, maxns, c1, False)
+            c0, c1, ns, si = self.__find_col(ss, si, ns, maxns, c1, False)
         return c0, c1
     
-    def column_index(self, column):
+    def index(self, column):
         """
         The index of a column.
         
@@ -805,9 +831,9 @@ class DataFile:
         column: None, int, or string
             A specification of a column.
             - None: no column is specified
-            - int: the index of the column (first column is zero), e.g. `column_index(2)`.
+            - int: the index of the column (first column is zero), e.g. `index(2)`.
             - a string representing an integer is converted into the column index,
-              e.g. `column_index('2')`
+              e.g. `index('2')`
             - a string specifying a column by its header.
               Header names of descending hierarchy are separated by '>'.
 
@@ -827,14 +853,14 @@ class DataFile:
         ----------
         column: None, int, or string
             The column to be checked.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Returns
         -------
         contains: bool
             True if `column` specifies an existing column key.
         """
-        return self.column_index(column) is not None
+        return self.index(column) is not None
 
     def add_value(self, val, column=None):
         """
@@ -847,9 +873,9 @@ class DataFile:
         column: None, int, or string
             The column to which the data element should be appended.
             If None, append to the current column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         """
-        column = self.column_index(column)
+        column = self.index(column)
         if column is None:
             column = self.setcol
         self.data[column].append(val)
@@ -869,7 +895,7 @@ class DataFile:
         column: None, int, or string
             The column to which the first data element should be appended.
             If None, append to the current column.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
             The remaining data elements will be added to the subsequent columns.
         """
         for val in data:
@@ -884,14 +910,14 @@ class DataFile:
         ----------
         column: int or string
             The column to which data elements should be appended.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
 
         Raises
         ------
         IndexError:
             If an invalid column was specified.
         """
-        col = self.column_index(column)
+        col = self.index(column)
         if col is None:
             raise IndexError('column ' + column + ' not found or invalid')
         self.setcol = col
@@ -983,7 +1009,7 @@ class DataFile:
             return
         cols = []
         for col in columns:
-            c = self.column_index(col)
+            c = self.index(col)
             if c is None:
                 raise IndexError('sort column ' + col + ' not found')
                 continue
@@ -1007,7 +1033,7 @@ class DataFile:
         ----------
         column: int or string
             The column to be hidden.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         """
         c0, c1 = self.find_col(column)
         if c0 is not None:
@@ -1059,7 +1085,7 @@ class DataFile:
         ----------
         column: int or string
             The column to be shown.
-            See self.column_index() for more information on how to specify a column.
+            See self.index() for more information on how to specify a column.
         """
         c0, c1 = self.find_col(column)
         if c0 is not None:
@@ -1465,7 +1491,7 @@ class DataFile:
         self.write(stream, table_format='dat')
         return stream.getvalue()
 
-    def _read_line(self, line, sep):
+    def __read_line(self, line, sep):
         """
         Helper function for parsing a data line.
         """
@@ -1478,7 +1504,7 @@ class DataFile:
             cols[k] = c.strip()
         return cols
 
-    def _read_key_line(self, line, sep, table_format):
+    def __read_key_line(self, line, sep, table_format):
         """
         Helper function for parsing a key line.
         """
@@ -1507,11 +1533,11 @@ class DataFile:
                 colss.append(c.strip())
         return colss, indices
 
-    def _col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
+    def __col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
         """
         Helper function for adding data and analysing format.
         """
-        cols = self._read_line(line, sep)
+        cols = self.__read_line(line, sep)
         for k, c in enumerate(cols):
             c = c.strip()
             try:
@@ -1640,7 +1666,7 @@ class DataFile:
             key = [data.pop(0)]
         # read key:
         kr = len(key)-1
-        cols, indices = self._read_key_line(key[kr], sep, table_format)
+        cols, indices = self.__read_key_line(key[kr], sep, table_format)
         # check for key with column indices:
         numrow = True
         try:
@@ -1664,12 +1690,12 @@ class DataFile:
                 numrow = False
         if numrow:
             kr -= 1
-            cols, indices = self._read_key_line(key[kr], sep, table_format)
+            cols, indices = self.__read_key_line(key[kr], sep, table_format)
         # check for unit line:
         units = None
         if kr > 0:
             kr -= 1
-            cols0, indices0 = self._read_key_line(key[kr], sep, table_format)
+            cols0, indices0 = self.__read_key_line(key[kr], sep, table_format)
             if len(cols0) == len(cols):
                 units = cols
                 cols = cols0
@@ -1693,7 +1719,7 @@ class DataFile:
         # read in sections:
         while kr > 0:
             kr -= 1
-            sec_cols, sec_indices = self._read_key_line(key[kr], sep, table_format)
+            sec_cols, sec_indices = self.__read_key_line(key[kr], sep, table_format)
             for sec_label, sec_inx in zip(sec_cols, sec_indices):
                 col_inx = indices.index(sec_inx)
                 self.header[col_inx].append(sec_label)
@@ -1708,7 +1734,7 @@ class DataFile:
         fixed = [True] * colnum
         strf = [False] * colnum
         for line in data:
-            self._col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
+            self.__col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
         # read remaining data:
         for line in sf:
             line = line.rstrip()
@@ -1721,7 +1747,7 @@ class DataFile:
                 break
             if line[0:3] == 'RTD':
                 line = line[3:]
-            self._col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
+            self.__col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
         # set formats:
         for k in range(len(alld)):
             if strf[k]:
@@ -1876,7 +1902,6 @@ if __name__ == "__main__":
     print(df)
     df.sort(['weight', 'jitter'], reverse=False)
     print(df)
-    exit()
 
     # data access:
     print(df)
@@ -1922,6 +1947,8 @@ if __name__ == "__main__":
     del df[3:6, 'weight']
     del df[3:5,:]
     del df[:,'speed']
+    print(df)
+    df.remove('weight')
     print(df)
     
     # contains:
