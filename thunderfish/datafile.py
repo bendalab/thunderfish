@@ -1182,24 +1182,28 @@ class DataFile:
             for c in range(c0, c1):
                 self.hidden[c] = False
 
-    def adjust_columns(self, missing='-'):
+    def adjust_columns(self, shrink=True, missing='-'):
         """
         Adjust the format of each column to the maximum width of its data elements.
 
         Parameters
         ----------
+        shrink: boolean
+            If `True` disregard width specified by the format strings,
+            such that columns can become also narrower.
         missing: string
             String indicating missing data.
         """
         for c, f in enumerate(self.formats):
             w = 0
-            # extract width from format:
+            # position of width specification:
             i0 = 1
             if f[1] == '-' :
                 i0 = 2
             i1 = f.find('.')
-            if len(f[i0:i1]) > 0:
-                w = int(f[i0:i1])
+            if not shrink:
+                if len(f[i0:i1]) > 0:
+                    w = int(f[i0:i1])
             # adapt width to header:
             for l in range(len(self.header[c])):
                 if c+1 >= len(self.header) or l < len(self.header[c+1]):
@@ -1211,11 +1215,12 @@ class DataFile:
                     if w < len(v):
                         w = len(v)
             else:
+                fs = f[:i0] + str(0) + f[i1:]
                 for v in self.data[c]:
                     if isinstance(v, float) and m.isnan(v):
                         s = missing
                     else:
-                        s = f % v
+                        s = fs % v
                     if w < len(s):
                         w = len(s)
             # set width of format string:
@@ -2051,4 +2056,6 @@ if __name__ == "__main__":
     df.insert(1, "s.d.", "m", "%7.3f", np.random.randn(df.rows()))
     df.adjust_columns()
     print(df)
+
+    print(df[2, 1:1])
     
