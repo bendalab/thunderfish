@@ -168,6 +168,11 @@ class DataFile:
         ----------
         label: string or list of string
             The name(s) of the section(s).
+
+        Returns
+        -------
+        index: int
+            The column index where the section was appended.
         """
         if self.addcol >= len(self.data):
             if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
@@ -204,6 +209,11 @@ class DataFile:
             '%g', '%.2f', '%s', etc.
         val: None, float, int, string, etc. or list thereof
             If not None, data for the column.
+
+        Returns
+        -------
+        index: int
+            The index of the new column.
         """
         if self.addcol >= len(self.data):
             if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
@@ -233,6 +243,59 @@ class DataFile:
         self.addcol = len(self.data)
         self.shape = (self.rows(), self.columns())
         return self.addcol-1
+        
+    def insert(self, column, label, unit, formats, value=None):
+        """
+        Insert a table column at a given position.
+
+        Parameters
+        ----------
+        columns int or string
+            Column before which to insert the new column.
+            Column can be specified by index or name, see index() for details.
+        label: string or list of string
+            Optional section titles and the name of the column.
+        unit: string
+            The unit of the column contents.
+        formats: string
+            The C-style format string used for printing out the column content, e.g.
+            '%g', '%.2f', '%s', etc.
+        val: None, float, int, string, etc. or list thereof
+            If not None, data for the column.
+
+        Returns
+        -------
+        index: int
+            The index of the inserted column.
+            
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
+        """
+        col = self.index(column)
+        if col is None:
+            if type(column) is int:
+                column = '%d' % column
+            raise IndexError('Cannot insert before non-existing column ' + column)
+        if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+            self.header.insert(col, list(reversed(label)))
+        else:
+            self.header.insert(col, [label])
+        self.formats.insert(col, formats)
+        self.units.insert(col, unit)
+        self.hidden.insert(col, False)
+        self.data.insert(col, [])
+        if self.nsecs < len(self.header[col])-1:
+            self.nsecs = len(self.header[col])-1
+        if value is not None:
+            if type(value) is list or type(value) is tuple or type(value) is np.ndarray:
+                self.data[col].extend(value)
+            else:
+                self.data[col].append(value)
+        self.addcol = len(self.data)
+        self.shape = (self.rows(), self.columns())
+        return col
 
     def section(self, column, level):
         """
@@ -259,7 +322,7 @@ class DataFile:
             If `level` exceeds the maximum possible level.
         """
         if level < 0 or level > self.nsecs:
-            raise IndexError
+            raise IndexError('Invalid section level')
         column = self.index(column)
         while len(self.header[column]) <= level:
             column -= 1
@@ -717,7 +780,9 @@ class DataFile:
         for col in columns:
             c = self.index(col)
             if c is None:
-                raise IndexError('canot remove non existing column ' + col)
+                if type(col) is int:
+                    col = '%d' % col
+                raise IndexError('Cannot remove non-existing column ' + col)
                 continue
             if c+1 < len(self.header):
                 self.header[c+1].extend(self.header[c][len(self.header[c+1]):])
@@ -940,6 +1005,8 @@ class DataFile:
         """
         col = self.index(column)
         if col is None:
+            if type(column) is int:
+                column = '%d' % column
             raise IndexError('column ' + column + ' not found or invalid')
         self.setcol = col
         return col
@@ -1032,6 +1099,8 @@ class DataFile:
         for col in columns:
             c = self.index(col)
             if c is None:
+                if type(col) is int:
+                    col = '%d' % col
                 raise IndexError('sort column ' + col + ' not found')
                 continue
             cols.append(c)
@@ -1132,8 +1201,10 @@ class DataFile:
             if len(f[i0:i1]) > 0:
                 w = int(f[i0:i1])
             # adapt width to header:
-            if w < len(self.header[c][0]):
-                w = len(self.header[c][0])
+            for l in range(len(self.header[c])):
+                if c+1 >= len(self.header) or l < len(self.header[c+1]):
+                    if w < len(self.header[c][l]):
+                        w = len(self.header[c][l])
             # adapt width to data:
             if f[-1] == 's':
                 for v in self.data[c]:
@@ -1884,10 +1955,11 @@ if __name__ == "__main__":
     df.append("speed", "m/s", "%.3g", 98.7)
     df.append("jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
-    df.append_data((float('NaN'), 0.543, 45, 1.235e2), 1)
-    df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1)
+    df.append_data(float('NaN'), 1)  # single value
+    df.append_data((0.543, 45, 1.235e2)) # remaining row
+    df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
     a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
-    df.append_data(a.T, 0)
+    df.append_data(a.T, 0) # rest of table
     df[3:6,'weight'] = [11.0]*3
     df.adjust_columns()
     
@@ -1974,4 +2046,9 @@ if __name__ == "__main__":
     print('jitter' in df)
     print('velocity' in df)
     print('reaction>size' in df)
+
+    # insert:
+    df.insert(1, "s.d.", "m", "%7.3f", np.random.randn(df.rows()))
+    df.adjust_columns()
+    print(df)
     
