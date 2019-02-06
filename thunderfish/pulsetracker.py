@@ -1,31 +1,28 @@
+"""
+by Dexter Frueh
+"""
+
 import sys
 import numpy as np
 import copy
-#from scipy.stats import gmainan
 from scipy import stats
 from scipy import signal
 from scipy import optimize
 import matplotlib
-from fish import ProgressFish
+#from fish import ProgressFish
 import matplotlib.pyplot as plt
-#from thunderfish.dataloader import open_data
-#from thunderfish.peakdetection import detect_main
+from thunderfish.dataloader import open_data
+from thunderfish.eventdetection import detect_peaks
 from scipy.interpolate import interp1d
-from scipy.signal import savgol_filter
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import DBSCAN
-#from sklearn import metrics
-#from mpl_toolkits.mplot3d import Axes3D
 from sklearn.cluster import AgglomerativeClustering
 from collections import deque
 import ntpath
-import nixio as nix
 import time
 import os
 from shutil import copy2
-from ownDataStructures import Peak, Tr, Peaklist
-from IPython import embed
 
 def makeeventlist(main_event_positions,side_event_positions,data,event_width=20):
     """
@@ -98,6 +95,7 @@ def makeeventlist(main_event_positions,side_event_positions,data,event_width=20)
     # generate return array and discard all events that are not marked as real
     EOD_events = np.array([main_x, main_y, main_h], dtype = np.float)[:,main_real==1]
     return EOD_events
+
 def discardnearbyevents(event_locations, event_heights, min_distance):
     """
     Given a number of events with given location and heights, returns a selection
@@ -149,11 +147,13 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
            print('Warning: unusual many discarding steps needed, unusually dense events')
            pass
     return event_indices, event_locations, event_heights
+
 def crosscorrelation(sig, data):
     'returns crosscorrelation of two arrays, the first array should have a length equal to or smaller than the second array.'
     return signal.fftconvolve(data, sig[::-1],  mode='valid')
+
 def interpol(data, kind):
-    '''
+    """
     interpolates the given data using scipy interpolation python package
 
     Parameters
@@ -167,13 +167,14 @@ def interpol(data, kind):
     -------
     interpolation: function
 
-    '''
+    """
     width = len(data)
     x = np.linspace(0, width-1, num = width, endpoint = True)
-    return interp1d(x, data[0:width], kind , assume_sorted=True)
+    #return interp1d(x, data[0:width], kind, assume_sorted=True)
+    return interp1d(x, data[0:width], kind)
 
 def interpolated_array(data, kind, int_fact):
-    '''
+    """
     returns an interpolated array of the given dataarray.
 
     Parameters
@@ -190,11 +191,11 @@ def interpolated_array(data, kind, int_fact):
     -------
     interpolated array: array
 
-    '''
+    """
     return interpol(data,kind)(np.arange(0, len(data)-1, 1/int_fact))
 
 def cut_snippets(data,event_locations,cut_width,int_met="linear",int_fact=10,max_offset = 1.5): 
-    '''
+    """
     cuts intervals from a data array, interpolates and aligns them and returns them in a list
 
     Parameters
@@ -221,7 +222,7 @@ s
     aligned_snips: twodimensional nparray
         the processed intervals (interval#,intervallen)
 
-    '''
+    """
     snippets = []
     cut_width = [-cut_width, cut_width]
     alignwidth = int(np.ceil((max_offset) * int_fact))
@@ -330,11 +331,23 @@ def cluster_events(features, events, order, eps, min_samples, takekm, method='DB
     events = np.append(events,[labels], axis = 0)
     return events
 
+class Peaklist(object):
+    def __init__(self, peaklist):
+        self.list = peaklist
+        self.lastofclass = {}
+        self.lastofclassx = {}
+        self.classesnearby = []
+        self.classesnearbyx = []
+        self.classesnearbypccl = []
+        self.classlist = []
+        self.classamount = 0
+        self.shapes = {}
+
 def connect_blocks(oldblock):
-    '''
+    """
         used to connect blocks.
         transfers data from the previous analysis block to the current block
-    '''
+    """
     newblock = Peaklist([])
     newblock.lastofclass    = oldblock.lastofclass
     newblock.lastofclassx    = oldblock.lastofclassx
@@ -346,10 +359,10 @@ def connect_blocks(oldblock):
     return newblock
 
 def alignclusterlabels(labels, peaklist, peaks, data='test'):
-    '''
+    """
         used to connect blocks.
         changes the labels of clusters in the current block to fit with the labels of the previous block
-    '''
+    """
     overlapamount = len(peaks[:,peaks[0]<30000])
     if overlapamount == 0:
         return None
@@ -549,9 +562,9 @@ def ampwalkclassify3_refactor(peaks,peaklist):
     return peaks, peaklist
 
 def discard_wave_pulses(peaks, data):
-     '''
+     """
         discards events from a pulse_event list which are unusally wide (wider than a tenth of the inter pulse interval), which indicates a wave-type EOD instead of a pulse type
-     '''
+     """
      deleteclasses = []
      for cl in np.unique(peaks[3]):
          peaksofclass = peaks[:,peaks[3] == cl]
@@ -576,9 +589,9 @@ def discard_wave_pulses(peaks, data):
      return peaks
 
 def plot_events_on_data(peaks, data):
-    '''
+    """
         plots the detected events onto the data timeseries. If the events are classified, the classes are plotted in different colors and the class -1 (not belonging to a cluster) is plotted in black
-    '''
+    """
     plt.plot(range(len(data)),data, color = 'black')
     if len(peaks)>3:
         classlist =  np.array(peaks[3],dtype=np.int)
@@ -601,9 +614,9 @@ def plot_events_on_data(peaks, data):
     plt.close()
 
 def discard_short_classes(events, minlen):
-    ''' 
+    """ 
         returns all events despite events which are in classes with less than minlen members
-    '''
+    """
     classlist = events[3]
     smallclasses = [cl for cl in np.unique(classlist) if len(classlist[classlist
                                                                      == cl]) <
@@ -618,6 +631,7 @@ def path_leaf(path):
     ntpath.basename("a/b/c")
     head, tail = ntpath.split(path)
     return tail or ntpath.basename(head)
+
 def save_EOD_events_to_npmmp(EOD_Events,eods_len,startblock,datasavepath,mmpname='eods.npmmp'):
     n_EOD_Events = len(EOD_Events[0])
     savepath = datasavepath+"/"+mmpname
@@ -631,12 +645,13 @@ def save_EOD_events_to_npmmp(EOD_Events,eods_len,startblock,datasavepath,mmpname
                          'float64', mode='r+', offset = dtypesize*eods_len*4,
                          shape=(4,n_EOD_Events), order = 'F')
     eods[:] = EOD_Events
+    
 def discard_small_EODs(EOD_Events, ultimate_threshold):
     return EOD_Events[:,np.where(EOD_Events[2]>ultimate_threshold)]
     return np.where(EOD_Events[2]>ultimate_threshold)
 
-def analyze_pulse_data(filepath,absolutepath=True, deltat=30, thresh=0.04, starttime = 0, endtime = 0, savepath = False,save=False, npmmp = False, plot_steps=False, plot_result=False):
-    '''
+def analyze_pulse_data(filepath, deltat=30, thresh=0.04, starttime = 0, endtime = 0, savepath = False,save=False, npmmp = False, plot_steps=False, plot_result=False):
+    """
     analyzes timeseries of a pulse fish EOD recording
 
     Parameters
@@ -677,30 +692,8 @@ def analyze_pulse_data(filepath,absolutepath=True, deltat=30, thresh=0.04, start
     -------
     eods: numpy array
         2D numpy array. first axis: attributes of an EOD (x (datapoints), y (recorded voltage), height (difference from maximum to minimum), class), second axis: EODs in chronological order.
-    '''
-    import sys
-    import numpy as np
-    import copy
-    from scipy.stats import gmean
-    from scipy import stats
-    from scipy import signal
-    from scipy import optimize
-    import matplotlib
-    from fish import ProgressFish
-    import matplotlib.pyplot as plt
-    from thunderfish.dataloader import open_data
-    from thunderfish.peakdetection import detect_peaks
-    from scipy.interpolate import interp1d
-    from scipy.signal import savgol_filter
-    from collections import deque
-    import ntpath
-    import nixio as nix
-    import time
-    import os
-    from shutil import copy2
-    from ownDataStructures import Peak, Tr, Peaklist
-    import DextersThunderfishAddition as dta
-    from IPython import embed
+    """
+    
     # parameters for the analysis
     thresh = 0.04 # minimal threshold for peakdetection
     peakwidth = 20 # width of a peak and minimal distance between two EODs
@@ -713,10 +706,6 @@ def analyze_pulse_data(filepath,absolutepath=True, deltat=30, thresh=0.04, start
     #starttime = 0
     #endtime = 0
     #timegiven =  0
-    home = os.path.expanduser('~')
-    if absolutepath:
-        filepath = home+ '/'+ filepath
-    #os.chdir(home)
     #save = int(save)
     #plot_steps = int(plot_steps)
     starttime = int(starttime)
@@ -729,7 +718,7 @@ def analyze_pulse_data(filepath,absolutepath=True, deltat=30, thresh=0.04, start
     filename = path_leaf(filepath)
     eods_len = 0
     if savepath==False:
-        datasavepath = home+'/'+filename[:-4]
+        datasavepath = filename[:-4]
     elif savepath==True:
         datasavepath = input('With the option npmmp enabled, a numpy memmap will be saved to: ').lower()
     else: datasavepath=savepath
@@ -762,41 +751,42 @@ def analyze_pulse_data(filepath,absolutepath=True, deltat=30, thresh=0.04, start
         print('blockamount: ' , blockamount)
         progress = 0
         print(progress, '%' , flush = True, end = " ")
-        fish = ProgressFish(total = blockamount)
+        #fish = ProgressFish(total = blockamount)
         for idx in range(0, blockamount):
             blockdata = data[idx*nblock:(idx+1)*nblock]
             if progress < (idx*100 //blockamount):
                 progress = (idx*100)//blockamount
             progressstr = ' Filestatus: '
-            fish.animate(amount = idx, dexextra = progressstr)
+            #fish.animate(amount = idx, dexextra = progressstr)
             pk, tr = detect_peaks(blockdata, thresh)
             troughs = tr
             if len(pk) > 3:
-                peaks = dta.makeeventlist(pk,tr,blockdata,peakwidth)
-                peakindices, peakx, peakh = dta.discardnearbyevents(peaks[0],peaks[1],peakwidth)
+                peaks = makeeventlist(pk,tr,blockdata,peakwidth)
+                peakindices, peakx, peakh = discardnearbyevents(peaks[0],peaks[1],peakwidth)
                 peaks = peaks[:,peakindices]
                 if len(peaks) > 0:
                     if idx > startblock:
-                        peaklist = dta.connect_blocks(peaklist)
+                        peaklist = connect_blocks(peaklist)
                     else:
                         peaklist = Peaklist([])
-                    aligned_snips = dta.cut_snippets(blockdata,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
-                    pcs = dta.pc(aligned_snips)#pc_refactor(aligned_snips)
+                    aligned_snips = cut_snippets(blockdata,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
+                    print(aligned_snips.shape)
+                    pcs = pc(aligned_snips)#pc_refactor(aligned_snips)
                     order = 5
                     minpeaks = 3 if deltat < 2 else 10
-                    labels = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, method = 'DBSCAN')
+                    labels = cluster_events(pcs, peaks, order, 0.4, minpeaks, False, method = 'DBSCAN')
                     peaks = np.append(peaks,[labels], axis = 0)
-                    #dta.plot_events_on_data(peaks, blockdata)
+                    #plot_events_on_data(peaks, blockdata)
                     num = 1
                     if idx > startblock:
-                      dta.alignclusterlabels(labels, peaklist, peaks,data=blockdata)
-                    peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
+                      alignclusterlabels(labels, peaklist, peaks,data=blockdata)
+                    peaks, peaklist = ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
                     minlen = 6
-                    peaks = dta.discard_short_classes(peaks, minlen)
+                    peaks = discard_short_classes(peaks, minlen)
                     if len(peaks[0]) > 0:
-                        peaks = dta.discard_wave_pulses(peaks, blockdata)
+                        peaks = discard_wave_pulses(peaks, blockdata)
                     if plot_steps == True:
-                        dta.plot_events_on_data(peaks, blockdata)
+                        plot_events_on_data(peaks, blockdata)
                         pass
                     peaklist.len = nblock
                     worldpeaks = np.copy(peaks)
@@ -815,7 +805,7 @@ def analyze_pulse_data(filepath,absolutepath=True, deltat=30, thresh=0.04, start
                             all_eods = np.concatenate((all_eods,thisblock_eods),axis = 1)
                         else:
                             all_eods = thisblock_eods
-    #dta.plot_events_on_data(all_eods,data)
+    #plot_events_on_data(all_eods,data)
     print('returnes analyzed EODS. Calculate frequencies using all of these but discard the data from the EODS within the lowest few percent of amplitude')
     if npmmp:
         all_eods = np.memmap(datasavepath+'/'+mmpname, dtype='float64', mode='r+', shape=(4,eods_len), order = 'F')
@@ -862,31 +852,8 @@ def analyze_long_pulse_data_file(filepath,save=0,plot_steps=0,new=1,starttime = 
     #        - new   : if True, do a new analysis of the recording, even if there
     #                       is an existing analyzed .npy file with the right name.
     #
-    import sys
-    import numpy as np
-    import copy
-    from scipy.stats import gmean
-    from scipy import stats
-    from scipy import signal
-    from scipy import optimize
-    import matplotlib
-    from fish import ProgressFish
-    import matplotlib.pyplot as plt
-    from thunderfish.dataloader import open_data
-    from thunderfish.peakdetection import detect_peaks
-    from scipy.interpolate import interp1d
-    from scipy.signal import savgol_filter
-    from collections import deque
-    import ntpath
-    import nixio as nix
-    import time
-    import os
-    from shutil import copy2
-    from ownDataStructures import Peak, Tr, Peaklist
-    import DextersThunderfishAddition as dta
-    from IPython import embed
+    
     # parameters for the analysis
-
     deltat = 30.0  # seconds of buffer size
     thresh = 0.04 # minimal threshold for peakdetection
     peakwidth = 20 # width of a peak and minimal distance between two EODs
@@ -949,7 +916,7 @@ def analyze_long_pulse_data_file(filepath,save=0,plot_steps=0,new=1,starttime = 
             print('blockamount: ' , blockamount)
             progress = 0
             print(progress, '%' , flush = True, end = " ")
-            fish = ProgressFish(total = blockamount)
+            #fish = ProgressFish(total = blockamount)
 
             # blockwise analysis 
             for idx in range(0, blockamount):
@@ -958,43 +925,43 @@ def analyze_long_pulse_data_file(filepath,save=0,plot_steps=0,new=1,starttime = 
                 if progress < (idx*100 //blockamount):
                     progress = (idx*100)//blockamount
                 progressstr = ' Filestatus: '
-                fish.animate(amount = idx, dexextra = progressstr)
+                #fish.animate(amount = idx, dexextra = progressstr)
 #---analysis-----------------------------------------------------------------------
                 # step1: detect peaks in timeseries
                 pk, tr = detect_peaks(blockdata, thresh)
                 troughs = tr
                 # continue with analysis only if multiple peaks are detected
                 if len(pk) > 3:
-                    peaks = dta.makeeventlist(pk,tr,blockdata,peakwidth)
+                    peaks = makeeventlist(pk,tr,blockdata,peakwidth)
 
-                    #dta.plot_events_on_data(peaks, blockdata)
-                    peakindices, peakx, peakh = dta.discardnearbyevents(peaks[0],peaks[1],peakwidth)
+                    #plot_events_on_data(peaks, blockdata)
+                    peakindices, peakx, peakh = discardnearbyevents(peaks[0],peaks[1],peakwidth)
                     peaks = peaks[:,peakindices]
 
                     if len(peaks) > 0:
                         # used to connect the results of the current block with the previous
                         if idx > startblock:
-                            peaklist = dta.connect_blocks(peaklist)
+                            peaklist = connect_blocks(peaklist)
                         else:
                             peaklist = Peaklist([])
-                        aligned_snips = dta.cut_snippets(blockdata,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
-                        pcs = dta.pc(aligned_snips)#pc_refactor(aligned_snips)
+                        aligned_snips = cut_snippets(blockdata,peaks[0], 15, int_met = "cubic", int_fact = 10,max_offset = 1.5)
+                        pcs = pc(aligned_snips)#pc_refactor(aligned_snips)
                         order = 5
                         minpeaks = 3 if deltat < 2 else 10
-                        labels = dta.cluster_events(pcs, peaks, order, 0.4, minpeaks, False, method = 'DBSCAN')
+                        labels = cluster_events(pcs, peaks, order, 0.4, minpeaks, False, method = 'DBSCAN')
                         peaks = np.append(peaks,[labels], axis = 0)
-                        #dta.plot_events_on_data(peaks, blockdata)
+                        #plot_events_on_data(peaks, blockdata)
                         num = 1
                         if idx > startblock:
-                          dta.alignclusterlabels(labels, peaklist, peaks,data=blockdata)
-                        peaks, peaklist = dta.ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
+                          alignclusterlabels(labels, peaklist, peaks,data=blockdata)
+                        peaks, peaklist = ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
                         minlen = 6   # >=1
-                        peaks = dta.discard_short_classes(peaks, minlen)
+                        peaks = discard_short_classes(peaks, minlen)
                         if len(peaks[0]) > 0:
-                            peaks = dta.discard_wave_pulses(peaks, blockdata)
+                            peaks = discard_wave_pulses(peaks, blockdata)
                         # plots the data part and its detected and classified peaks
                         if plot_steps == True:
-                            dta.plot_events_on_data(peaks, blockdata)
+                            plot_events_on_data(peaks, blockdata)
                             pass
                     worldpeaks = np.copy(peaks)
                     # change peaks location in the buffered part to the location relative to the
@@ -1033,11 +1000,11 @@ def main():
    #     starttime = int(sys.argv[5])
    #     endtime = int(sys.argv[6])
 
-   # #eods = analyze_pulse_data(sys.argv[1],starttime=0,endtime =50,save = 0, new = 1, plot_steps=0)
-   # #eods = analyze_pulse_data(sys.argv[1],starttime=0,endtime =50,save = 0, npmmp= True, plot_steps=0)
-   # #eods = analyze_pulse_data(sys.argv[1],save = 0, npmmp= True, plot_steps=0)
+   # #eods = analyze_pulse_data(sys.argv[1], starttime=0, endtime=50, save=0, new=1, plot_steps=0)
+   # #eods = analyze_pulse_data(sys.argv[1], starttime=0, endtime=50, save=0, npmmp=True, plot_steps=0)
+   # #eods = analyze_pulse_data(sys.argv[1], save=0, npmmp=True, plot_steps=0)
     print(sys.argv[1]) 
-    eods = analyze_pulse_data(sys.argv[1],save = True, npmmp= True)
+    eods = analyze_pulse_data(sys.argv[1], save=True, npmmp=True)
     print(eods)
 #
 #    colors = plt.get_cmap('jet')(np.linspace(0, 1.0, np.unique(eods[3])[-1]+1)) #len(np.unique(classlist))))
