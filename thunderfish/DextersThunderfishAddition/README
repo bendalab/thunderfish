@@ -1,0 +1,21 @@
+leticia_filedata.txt -- long files with filename, date and day/night and time - missing some files
+allfiles.txt -- all long files, but without details
+
+
+
+### analyse_pulse_data with the .WAV file as input produces:
+eods5_70914L01_F15_1742.npy -- numpy array with results from analyze_pulse_data
+
+### this eodsfile can be fed to analyzeEods_lowpass.py to analyze the frequencies and amplitudes and produce the plots over the length of the full recordings... 
+
+
+70914L01_F15_1742_freqs2_lp.npy -- computed frequencies, meaned over seconds/half seconds
+70914L01_F15_1742_amps2_lp.npy -- computed amplitudes, averaged over seconds/...
+-- Numpy 2d-arrays, first axis : different fish classes, second axis: timesteps (seconds/half_seconds)
+
+70914L01_F15_1742_AmpFreq7_lp.pdf -- pdf with plotted EOD-amplitudes and frequencies, no classes plotted, highest number is latest version, lp = lowpass smoothing
+
+foraging_ ... npz file with status far, near, on,  each np.nan for not this status and 1 if it has the status at a given timestep, same time resolution as freqs / amps - files 
+
+ontimes, other files - outdated
+
