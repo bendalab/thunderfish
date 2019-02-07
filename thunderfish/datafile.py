@@ -2043,19 +2043,18 @@ if __name__ == "__main__":
     del df[3:6, 'weight']
     del df[3:5,:]
     del df[:,'speed']
+    df.adjust_columns()
     print(df)
     df.remove('weight')
+    df.adjust_columns()
+    print(df)
+
+    # insert:
+    df.insert(1, "s.d.", "m", "%7.3f", np.random.randn(df.rows()))
+    df.adjust_columns()
     print(df)
     
     # contains:
     print('jitter' in df)
     print('velocity' in df)
     print('reaction>size' in df)
-
-    # insert:
-    df.insert(1, "s.d.", "m", "%7.3f", np.random.randn(df.rows()))
-    df.adjust_columns()
-    print(df)
-
-    print(df[2, 1:1])
-    
