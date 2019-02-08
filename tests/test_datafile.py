@@ -36,31 +36,33 @@ def test_properties():
 
 def test_write_load():
     df = setup_table()
-    for number_cols in [None, 'index', 'num', 'aa', 'AA']:
-        for tf in dfl.DataFile.formats[:-1]:
-            orgfilename = 'test.' + dfl.DataFile.extensions[tf]
-            with open(orgfilename, 'w') as ff:
-                df.write(ff, table_format=tf, number_cols=number_cols)
-            sf = dfl.DataFile(orgfilename)
-            sf.adjust_columns()
-            filename = 'test-read.' + dfl.DataFile.extensions[tf]
-            with open(filename, 'w') as ff:
-                sf.write(ff, table_format=tf, number_cols=number_cols)
-            with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
-                for k, (line1, line2) in enumerate(zip(f1, f2)):
-                    if line1 != line2:
-                        print('%s: %s' % (tf, dfl.DataFile.descriptions[tf]))
-                        print('files differ!')
-                        print('original table:')
-                        df.write(sys.stdout, table_format=tf, number_cols=number_cols)
-                        print('')
-                        print('read in table:')
-                        sf.write(sys.stdout, table_format=tf, number_cols=number_cols)
-                        print('')
-                        print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.rstrip('\n'), line2.rstrip('\n')))
-                    assert_equal(line1, line2, 'files differ')
-            os.remove(orgfilename)
-            os.remove(filename)
+    #for units in ['auto', 'row', 'header', 'none']:
+    for units in ['auto']:
+        for number_cols in [None, 'index', 'num', 'aa', 'AA']:
+            for tf in dfl.DataFile.formats[:-1]:
+                orgfilename = 'test.' + dfl.DataFile.extensions[tf]
+                with open(orgfilename, 'w') as ff:
+                    df.write(ff, table_format=tf, number_cols=number_cols, units=units)
+                sf = dfl.DataFile(orgfilename)
+                sf.adjust_columns()
+                filename = 'test-read.' + dfl.DataFile.extensions[tf]
+                with open(filename, 'w') as ff:
+                    sf.write(ff, table_format=tf, number_cols=number_cols)
+                with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
+                    for k, (line1, line2) in enumerate(zip(f1, f2)):
+                        if line1 != line2:
+                            print('%s: %s' % (tf, dfl.DataFile.descriptions[tf]))
+                            print('files differ!')
+                            print('original table:')
+                            df.write(sys.stdout, table_format=tf, number_cols=number_cols)
+                            print('')
+                            print('read in table:')
+                            sf.write(sys.stdout, table_format=tf, number_cols=number_cols)
+                            print('')
+                            print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.rstrip('\n'), line2.rstrip('\n')))
+                        assert_equal(line1, line2, 'files differ')
+                os.remove(orgfilename)
+                os.remove(filename)
 
 def test_read_access():
     df = setup_table()
