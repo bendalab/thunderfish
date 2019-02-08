@@ -1228,7 +1228,7 @@ class DataFile:
             self.formats[c] = f
 
     def write(self, df=sys.stdout, table_format='dat',
-              units="row", number_cols=None, missing='-'):
+              units="auto", number_cols=None, missing='-'):
         """
         Write the table into a stream.
 
@@ -1240,6 +1240,7 @@ class DataFile:
             The format to be used for output.
             One of "dat", "ascii", "rtai", "csv", "md", "html", "tex".
         units: string
+            - "auto": use default of the specified `table_format`.
             - "row": write an extra row to the table header specifying the units of the columns.
             - "header": add the units to the column headers.
             - "none": do not specify the units.
@@ -1296,7 +1297,7 @@ class DataFile:
         elif table_format[0] == 'c':
             # csv according to http://www.ietf.org/rfc/rfc4180.txt :
             number_cols=None
-            if units == "row":
+            if units == "auto":
                 units = "header"
             format_width = False
             header_start=''
@@ -1312,7 +1313,7 @@ class DataFile:
             bottom_line = False
         elif table_format[0] == 'm':
             number_cols=None
-            if units == "row":
+            if units == "auto":
                 units = "header"
             format_width = True
             header_start='| '
@@ -1356,6 +1357,8 @@ class DataFile:
             top_line = True
             header_line = True
             bottom_line = True
+        if units == "auto":
+            units = "row"
 
         # begin table:
         df.write(begin_str)
@@ -1973,7 +1976,7 @@ if __name__ == "__main__":
         print('    - `%s`: %s' % (tf, DataFile.descriptions[tf]))
         print('      ```')
         iout = IndentStream(sys.stdout, 4+2)
-        df.write(iout, table_format=tf)
+        df.write(iout, table_format=tf, units='auto')
         print('      ```')
         print('')
         
