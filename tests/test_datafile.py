@@ -36,30 +36,35 @@ def test_properties():
 def test_write_load():
     df = setup_table()
     for units in ['auto', 'none', 'row', 'header']:
-        for number_cols in [None, 'index', 'num', 'aa', 'AA']:
-            for tf in dfl.DataFile.formats[:-1]:
-                orgfilename = 'tabletest.' + dfl.DataFile.extensions[tf]
-                with open(orgfilename, 'w') as ff:
-                    df.write(ff, table_format=tf, number_cols=number_cols, units=units)
-                sf = dfl.DataFile(orgfilename)
-                filename = 'tabletest-read.' + dfl.DataFile.extensions[tf]
-                with open(filename, 'w') as ff:
-                    sf.write(ff, table_format=tf, number_cols=number_cols, units=units)
-                with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
-                    for k, (line1, line2) in enumerate(zip(f1, f2)):
-                        if line1 != line2:
-                            print('%s: %s' % (tf, dfl.DataFile.descriptions[tf]))
-                            print('files differ!')
-                            print('original table:')
-                            df.write(sys.stdout, table_format=tf, number_cols=number_cols, units=units)
-                            print('')
-                            print('read in table:')
-                            sf.write(sys.stdout, table_format=tf, number_cols=number_cols, units=units)
-                            print('')
-                            print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.rstrip('\n'), line2.rstrip('\n')))
-                        assert_equal(line1, line2, 'files differ')
-                os.remove(orgfilename)
-                os.remove(filename)
+        for number_cols in [None, 'none', 'index', 'num', 'aa', 'AA']:
+            for delimiter in [None, ';', '| ']:
+                for tf in dfl.DataFile.formats[:-1]:
+                    orgfilename = 'tabletest.' + dfl.DataFile.extensions[tf]
+                    with open(orgfilename, 'w') as ff:
+                        df.write(ff, table_format=tf, number_cols=number_cols, units=units,
+                                 delimiter=delimiter)
+                    sf = dfl.DataFile(orgfilename)
+                    filename = 'tabletest-read.' + dfl.DataFile.extensions[tf]
+                    with open(filename, 'w') as ff:
+                        sf.write(ff, table_format=tf, number_cols=number_cols, units=units,
+                                 delimiter=delimiter)
+                    with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
+                        for k, (line1, line2) in enumerate(zip(f1, f2)):
+                            if line1 != line2:
+                                print('%s: %s' % (tf, dfl.DataFile.descriptions[tf]))
+                                print('files differ!')
+                                print('original table:')
+                                df.write(sys.stdout, table_format=tf, number_cols=number_cols,
+                                         units=units, delimiter=delimiter)
+                                print('')
+                                print('read in table:')
+                                sf.write(sys.stdout, table_format=tf, number_cols=number_cols,
+                                         units=units, delimiter=delimiter)
+                                print('')
+                                print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.rstrip('\n'), line2.rstrip('\n')))
+                            assert_equal(line1, line2, 'files differ')
+                    os.remove(orgfilename)
+                    os.remove(filename)
 
 def test_read_access():
     df = setup_table()
