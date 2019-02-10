@@ -887,9 +887,9 @@ class DataFile:
         """
         if column is None:
             return None, None
-        if not isinstance(column, int) and column.isdigit():
+        if not isinstance(column, (int, np.integer)) and column.isdigit():
             column = int(column)
-        if isinstance(column, int):
+        if isinstance(column, (int, np.integer)):
             if column >= 0 and column < len(self.header):
                 return column, column+1
             else:
@@ -1182,53 +1182,8 @@ class DataFile:
             for c in range(c0, c1):
                 self.hidden[c] = False
 
-    def adjust_columns(self, shrink=True, missing='-'):
-        """
-        Adjust the format of each column to the maximum width of its data elements.
-
-        Parameters
-        ----------
-        shrink: boolean
-            If `True` disregard width specified by the format strings,
-            such that columns can become also narrower.
-        missing: string
-            String indicating missing data.
-        """
-        for c, f in enumerate(self.formats):
-            w = 0
-            # position of width specification:
-            i0 = 1
-            if f[1] == '-' :
-                i0 = 2
-            i1 = f.find('.')
-            if not shrink:
-                if len(f[i0:i1]) > 0:
-                    w = int(f[i0:i1])
-            # adapt width to header:
-            for l in range(len(self.header[c])):
-                if c+1 >= len(self.header) or l < len(self.header[c+1]):
-                    if w < len(self.header[c][l]):
-                        w = len(self.header[c][l])
-            # adapt width to data:
-            if f[-1] == 's':
-                for v in self.data[c]:
-                    if w < len(v):
-                        w = len(v)
-            else:
-                fs = f[:i0] + str(0) + f[i1:]
-                for v in self.data[c]:
-                    if isinstance(v, float) and m.isnan(v):
-                        s = missing
-                    else:
-                        s = fs % v
-                    if w < len(s):
-                        w = len(s)
-            # set width of format string:
-            f = f[:i0] + str(w) + f[i1:]
-            self.formats[c] = f
-
     def write(self, df=sys.stdout, table_format='dat',
-              units="auto", number_cols=None, missing='-'):
+              units='auto', number_cols=None, missing='-', shrink=True):
         """
         Write the table into a stream.
 
@@ -1249,6 +1204,9 @@ class DataFile:
             column number ('num' starting with 1), or column letters ('aa' or 'AA').
         missing: string
             Indicate missing data by this string.
+        shrink: boolean
+            If `True` disregard width specified by the format strings,
+            such that columns can become narrower.
         """
         format_width = True
         begin_str = ''
@@ -1370,17 +1328,56 @@ class DataFile:
                 else:
                     df.write('r')
             df.write('}\n')
-        # retrieve column widths:
+        # retrieve column formats and widths:
         widths = []
-        for f in self.formats:
+        formats = []
+        for c, f in enumerate(self.formats):
+            w = 0
+            # position of width specification:
             i0 = 1
             if f[1] == '-' :
                 i0 = 2
             i1 = f.find('.')
-            if len(f[i0:i1]) > 0:
-                widths.append(int(f[i0:i1]))
+            if not shrink:
+                if len(f[i0:i1]) > 0:
+                    w = int(f[i0:i1])
+            # adapt width to header:
+            for l in range(len(self.header[c])):
+                if c+1 >= len(self.header) or l < len(self.header[c+1]):
+                    hw = len(self.header[c][l])
+                    if l == 0 and units == 'header':
+                        hw += 1 + len(self.units[c])
+                    if w < hw:
+                        w = hw
+            # adapt width to data:
+            if f[-1] == 's':
+                for v in self.data[c][:100]:
+                    if w < len(v):
+                        w = len(v)
+                if len(self.data[c]) >= 200:
+                    for v in self.data[c][-100:]:
+                        if w < len(v):
+                            w = len(v)
             else:
-                widths.append(1)
+                fs = f[:i0] + str(0) + f[i1:]
+                for v in self.data[c][:100]:
+                    if isinstance(v, float) and m.isnan(v):
+                        s = missing
+                    else:
+                        s = fs % v
+                    if w < len(s):
+                        w = len(s)
+                if len(self.data[c]) >= 200:
+                    for v in self.data[c][-100:]:
+                        if isinstance(v, float) and m.isnan(v):
+                            s = missing
+                        else:
+                            s = fs % v
+                        if w < len(s):
+                            w = len(s)
+            # set width of format string:
+            widths.append(w)
+            formats.append(f[:i0] + str(w) + f[i1:])
         # top line:
         if top_line:
             if table_format[0] == 't':
@@ -1421,6 +1418,9 @@ class DataFile:
                             continue
                         sw += len(header_sep) + widths[k]
                         columns += 1
+                    else:
+                        if len(header_end.strip()) == 0:
+                            sw = 0  # last entry needs no width
                     if columns == 0:
                         continue
                     if not first:
@@ -1508,7 +1508,7 @@ class DataFile:
                     if self.hidden[c]:
                         continue
                     w = widths[c]+2
-                    if self.formats[c][1] == '-':
+                    if formats[c][1] == '-':
                         df.write(w*'-' + '|')
                     else:
                         df.write((w-1)*'-' + ':|')
@@ -1539,7 +1539,7 @@ class DataFile:
                 df.write('  <tr class"%s">\n    <td' % eo)
             else:
                 df.write(data_start)
-            for c, f in enumerate(self.formats):
+            for c, f in enumerate(formats):
                 if self.hidden[c]:
                     continue
                 if not first:
@@ -1591,10 +1591,12 @@ class DataFile:
         self.write(stream, table_format='dat')
         return stream.getvalue()
 
-    def __read_line(self, line, sep):
+    def __col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
         """
-        Helper function for parsing a data line.
+        Helper function for adding data and analysing format.
         """
+        # read line:
+        cols = []
         if sep is None:
             cols = [m.group(0) for m in re.finditer(r'\S+', line.strip())]
         else:
@@ -1602,42 +1604,7 @@ class DataFile:
             cols = [m.group(0) for m in re.finditer(seps, line.strip())]
         for k, c in enumerate(cols):
             cols[k] = c.strip()
-        return cols
-
-    def __read_key_line(self, line, sep, table_format):
-        """
-        Helper function for parsing a key line.
-        """
-        if sep is None:
-            cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(r'\S+', line.strip())])
-        else:
-            seps = r'[^\s'+re.escape(sep)+']+'
-            cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(seps, line.strip())])
-        colss = []
-        if table_format == 'tex':
-            indices = []
-            i = 0
-            for c in cols:
-                if 'multicolumn' in c:
-                    fields = c.split('{')
-                    n = int(fields[1].strip().rstrip('}').rstrip())
-                    colss.append(fields[3].strip().rstrip('}').rstrip())
-                    indices.append(i)
-                    i += n
-                else:
-                    colss.append(c.strip())
-                    indices.append(i)
-                    i += 1
-        else:
-            for c in cols:
-                colss.append(c.strip())
-        return colss, indices
-
-    def __col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
-        """
-        Helper function for adding data and analysing format.
-        """
-        cols = self.__read_line(line, sep)
+        # read columns:
         for k, c in enumerate(cols):
             c = c.strip()
             try:
@@ -1679,6 +1646,33 @@ class DataFile:
         """
         Load data from file stream. 
         """
+
+        def read_key_line(line, sep, table_format):
+            if sep is None:
+                cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(r'\S+', line.strip())])
+            else:
+                seps = r'[^\s'+re.escape(sep)+']+'
+                cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(seps, line.strip())])
+            colss = []
+            if table_format == 'tex':
+                indices = []
+                i = 0
+                for c in cols:
+                    if 'multicolumn' in c:
+                        fields = c.split('{')
+                        n = int(fields[1].strip().rstrip('}').rstrip())
+                        colss.append(fields[3].strip().rstrip('}').rstrip())
+                        indices.append(i)
+                        i += n
+                    else:
+                        colss.append(c.strip())
+                        indices.append(i)
+                        i += 1
+            else:
+                for c in cols:
+                    colss.append(c.strip())
+            return colss, indices
+
         # read inital lines of file:
         key = []
         data = []
@@ -1762,65 +1756,88 @@ class DataFile:
             colnum = int(colnum[ci])
         # fix key:
         if sep == ',' and len(key) == 0:
-            table_format == 'csv'
-            key = [data.pop(0)]
+            table_format = 'csv'
         # read key:
-        kr = len(key)-1
-        cols, indices = self.__read_key_line(key[kr], sep, table_format)
-        # check for key with column indices:
-        numrow = True
-        try:
-            pv = int(cols[0])
-            for c in cols[1:]:
-                v = int(c)
-                if v != pv+1:
-                    numrow = False
+        key_cols = []
+        key_indices = []
+        for line in key:
+            cols, indices = read_key_line(line, sep, table_format)
+            key_cols.append(cols)
+            key_indices.append(indices)
+        if len(key_cols) == 0 and table_format == 'csv':
+            # no obviously marked table key:
+            key_num = 0
+            for line in data:
+                cols, indices = read_key_line(line, sep, table_format)
+                numbers = 0
+                for c in cols:
+                    try:
+                        v = float(c)
+                        numbers += 1
+                    except ValueError:
+                        pass
+                if numbers == 0:
+                    key_cols.append(cols)
+                    key_indices.append(indices)
+                    key_num += 1
+                else:
                     break
-                pv = v
-        except ValueError:
+            data = data[key_num:]
+        kr = len(key_cols)-1
+        # check for key with column indices:
+        if kr >= 0:
+            cols = key_cols[kr]
+            numrow = True
             try:
-                pv = aa2index(cols[0])
+                pv = int(cols[0])
                 for c in cols[1:]:
-                    v = aa2index(c)
+                    v = int(c)
                     if v != pv+1:
                         numrow = False
                         break
                     pv = v
             except ValueError:
-                numrow = False
-        if numrow:
-            kr -= 1
-            cols, indices = self.__read_key_line(key[kr], sep, table_format)
+                try:
+                    pv = aa2index(cols[0])
+                    for c in cols[1:]:
+                        v = aa2index(c)
+                        if v != pv+1:
+                            numrow = False
+                            break
+                        pv = v
+                except ValueError:
+                    numrow = False
+            if numrow:
+                kr -= 1
         # check for unit line:
         units = None
-        if kr > 0:
+        if kr > 0 and len(key_cols[kr]) == len(key_cols[kr-1]):
+            units = key_cols[kr]
             kr -= 1
-            cols0, indices0 = self.__read_key_line(key[kr], sep, table_format)
-            if len(cols0) == len(cols):
-                units = cols
-                cols = cols0
-                indices = indices0
-        # units may be part of the label:
-        if units is None:
-            labels = []
-            units = []
-            for c in cols:
-                lu = c.split('/')
-                if len(lu) >= 2:
-                    labels.append(lu[0].strip())
-                    units.append('/'.join(lu[1:]).strip())
-                else:
-                    labels.append(c)
-                    units.append('')
-        else:
-            labels = cols
-        for k in range(colnum):
-            self.append(labels[k], units[k], '%g')
+        # column labels:
+        if kr >= 0:
+            if units is None:
+                # units may be part of the label:
+                labels = []
+                units = []
+                for c in key_cols[kr]:
+                    lu = c.split('/')
+                    if len(lu) >= 2:
+                        labels.append(lu[0].strip())
+                        units.append('/'.join(lu[1:]).strip())
+                    else:
+                        labels.append(c)
+                        units.append('')
+            else:
+                labels = key_cols[kr]
+            indices = key_indices[kr]
+            # init table columns:
+            for k in range(colnum):
+                self.append(labels[k], units[k], '%g')
         # read in sections:
         while kr > 0:
             kr -= 1
-            sec_cols, sec_indices = self.__read_key_line(key[kr], sep, table_format)
-            for sec_label, sec_inx in zip(sec_cols, sec_indices):
+            for sec_label, sec_inx in zip(key_cols[kr], key_indices[kr]):
                 col_inx = indices.index(sec_inx)
                 self.header[col_inx].append(sec_label)
                 if self.nsecs < len(self.header[col_inx])-1:
@@ -1969,7 +1986,6 @@ if __name__ == "__main__":
     a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
     df.append_data(a.T, 0) # rest of table
     df[3:6,'weight'] = [11.0]*3
-    df.adjust_columns()
     
     # write out in all formats:
     for tf in DataFile.formats:
@@ -2046,15 +2062,12 @@ if __name__ == "__main__":
     del df[3:6, 'weight']
     del df[3:5,:]
     del df[:,'speed']
-    df.adjust_columns()
     print(df)
     df.remove('weight')
-    df.adjust_columns()
     print(df)
 
     # insert:
     df.insert(1, "s.d.", "m", "%7.3f", np.random.randn(df.rows()))
-    df.adjust_columns()
     print(df)
     
     # contains:
