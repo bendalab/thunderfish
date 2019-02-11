@@ -175,7 +175,7 @@ class DataFile:
             The column index where the section was appended.
         """
         if self.addcol >= len(self.data):
-            if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+            if isinstance(label, (list, tuple, np.ndarray)):
                 self.header.append(list(reversed(label)))
             else:
                 self.header.append([label])
@@ -184,7 +184,7 @@ class DataFile:
             self.hidden.append(False)
             self.data.append([])
         else:
-            if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+            if isinstance(label, (list, tuple, np.ndarray)):
                 self.header[self.addcol] = list(reversed(label)) + self.header[self.addcol]
             else:
                 self.header[self.addcol] = [label] + self.header[self.addcol]
@@ -216,7 +216,7 @@ class DataFile:
             The index of the new column.
         """
         if self.addcol >= len(self.data):
-            if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+            if isinstance(label, (list, tuple, np.ndarray)):
                 self.header.append(list(reversed(label)))
             else:
                 self.header.append([label])
@@ -227,7 +227,7 @@ class DataFile:
             if self.nsecs < len(self.header[-1])-1:
                 self.nsecs = len(self.header[-1])-1
         else:
-            if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+            if isinstance(label, (list, tuple, np.ndarray)):
                 self.header[self.addcol] = list(reversed(label)) + self.header[self.addcol]
             else:
                 self.header[self.addcol] = [label] + self.header[self.addcol]
@@ -236,7 +236,7 @@ class DataFile:
             if self.nsecs < len(self.header[self.addcol])-1:
                 self.nsecs = len(self.header[self.addcol])-1
         if value is not None:
-            if type(value) is list or type(value) is tuple or type(value) is np.ndarray:
+            if isinstance(value, (list, tuple, np.ndarray)):
                 self.data[-1].extend(value)
             else:
                 self.data[-1].append(value)
@@ -275,10 +275,10 @@ class DataFile:
         """
         col = self.index(column)
         if col is None:
-            if type(column) is int:
+            if isinstance(column, (int, np.integer)):
                 column = '%d' % column
             raise IndexError('Cannot insert before non-existing column ' + column)
-        if type(label) is list or type(label) is tuple or type(label) is np.ndarray:
+        if isinstance(label, (list, tuple, np.ndarray)):
             self.header.insert(col, list(reversed(label)))
         else:
             self.header.insert(col, [label])
@@ -289,7 +289,7 @@ class DataFile:
         if self.nsecs < len(self.header[col])-1:
             self.nsecs = len(self.header[col])-1
         if value is not None:
-            if type(value) is list or type(value) is tuple or type(value) is np.ndarray:
+            if isinstance(value, (list, tuple, np.ndarray)):
                 self.data[col].extend(value)
             else:
                 self.data[col].append(value)
@@ -651,7 +651,7 @@ class DataFile:
             stop = self.index(cols.stop)
             cols = slice(start, stop, cols.step)
             cols = range(self.columns())[cols]
-        elif type(cols) is list or type(cols) is tuple or type(cols) is np.ndarray:
+        elif isinstance(cols, (list, tuple, np.ndarray)):
             cols = [self.index(inx) for inx in cols]
         else:
             cols = [self.index(cols)]
@@ -772,7 +772,7 @@ class DataFile:
             If an invalid column was specified.
         """
         # fix columns:
-        if type(columns) is not list and type(columns) is not tuple:
+        if not isinstance(columns, (list, tuple, np.ndarray)):
             columns = [ columns ]
         if len(columns) == 0:
             return
@@ -780,7 +780,7 @@ class DataFile:
         for col in columns:
             c = self.index(col)
             if c is None:
-                if type(col) is int:
+                if isinstance(col, (int, np.integer)):
                     col = '%d' % col
                 raise IndexError('Cannot remove non-existing column ' + col)
                 continue
@@ -969,8 +969,8 @@ class DataFile:
         column = self.index(column)
         if column is None:
             column = self.setcol
-        if type(value) is list or type(value) is tuple or type(value) is np.ndarray:
-            if type(value[0]) is list or type(value[0]) is tuple or type(value[0]) is np.ndarray:
+        if isinstance(value, (list, tuple, np.ndarray)):
+            if isinstance(value[0], (list, tuple, np.ndarray)):
                 # 2D list, rows first:
                 for row in value:
                     for i, val in enumerate(row):
@@ -1005,7 +1005,7 @@ class DataFile:
         """
         col = self.index(column)
         if col is None:
-            if type(column) is int:
+            if isinstance(column, (int, np.integer)):
                 column = '%d' % column
             raise IndexError('column ' + column + ' not found or invalid')
         self.setcol = col
@@ -1091,7 +1091,7 @@ class DataFile:
             If an invalid column was specified.
         """
         # fix columns:
-        if type(columns) is not list and type(columns) is not tuple:
+        if not isinstance(columns, (list, tuple, np.ndarray)):
             columns = [ columns ]
         if len(columns) == 0:
             return
@@ -1099,7 +1099,7 @@ class DataFile:
         for col in columns:
             c = self.index(col)
             if c is None:
-                if type(col) is int:
+                if isinstance(col, (int, np.integer)):
                     col = '%d' % col
                 raise IndexError('sort column ' + col + ' not found')
                 continue
@@ -1367,30 +1367,18 @@ class DataFile:
                         w = hw
             # adapt width to data:
             if f[-1] == 's':
-                for v in self.data[c][:100]:
+                for v in self.data[c]:
                     if w < len(v):
                         w = len(v)
-                if len(self.data[c]) >= 200:
-                    for v in self.data[c][-100:]:
-                        if w < len(v):
-                            w = len(v)
             else:
                 fs = f[:i0] + str(0) + f[i1:]
-                for v in self.data[c][:100]:
+                for v in self.data[c]:
                     if isinstance(v, float) and m.isnan(v):
                         s = missing
                     else:
                         s = fs % v
                     if w < len(s):
                         w = len(s)
-                if len(self.data[c]) >= 200:
-                    for v in self.data[c][-100:]:
-                        if isinstance(v, float) and m.isnan(v):
-                            s = missing
-                        else:
-                            s = fs % v
-                        if w < len(s):
-                            w = len(s)
             # set width of format string:
             widths.append(w)
             formats.append(f[:i0] + str(w) + f[i1:])
@@ -1750,7 +1738,7 @@ class DataFile:
             if len(data) > 5:
                 break
         # find column separator of data and number of columns:
-        col_seps = ['|', ',', ';', ':', '&', None]
+        col_seps = ['|', ',', ';', ':', '\t', '&', None]
         colstd = np.zeros(len(col_seps))
         colnum = np.zeros(len(col_seps), dtype=int)
         for k, sep in enumerate(col_seps):
@@ -1766,14 +1754,14 @@ class DataFile:
             colnum[k] = np.median(cols)
         if np.max(colnum) < 2:
             sep = None
-            columns = 1
+            colnum = 1
         else:
             ci = np.where(np.array(colnum)>1.5)[0]
             ci = ci[np.argmin(colstd[ci])]
             sep = col_seps[ci]
             colnum = int(colnum[ci])
         # fix key:
-        if len(key) == 0 and (sep == ',' or sep == ';' or sep == ':'):
+        if len(key) == 0 and sep is not None and sep in ',;:\t':
             table_format = 'csv'
         # read key:
         key_cols = []
@@ -2010,11 +1998,9 @@ if __name__ == "__main__":
         print('    - `%s`: %s' % (tf, DataFile.descriptions[tf]))
         print('      ```')
         iout = IndentStream(sys.stdout, 4+2)
-        df.write(iout, table_format=tf, units='auto', number_cols='AA', delimiter='| ')
+        df.write(iout, table_format=tf, units='auto', number_cols=None, delimiter=None)
         print('      ```')
         print('')
-
-    exit()
         
     # some infos about the data:
     print('data len: %d' % len(df))
