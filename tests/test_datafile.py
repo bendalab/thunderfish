@@ -37,7 +37,7 @@ def test_write_load():
     df = setup_table()
     for units in ['auto', 'none', 'row', 'header']:
         for number_cols in [None, 'none', 'index', 'num', 'aa', 'AA']:
-            for delimiter in [None, ';', '| ']:
+            for delimiter in [None, ';', '| ', '\t']:
                 for tf in dfl.DataFile.formats[:-1]:
                     orgfilename = 'tabletest.' + dfl.DataFile.extensions[tf]
                     with open(orgfilename, 'w') as ff:
