@@ -1183,7 +1183,7 @@ class DataFile:
                 self.hidden[c] = False
 
     def write(self, df=sys.stdout, table_format='dat', units='auto', number_cols=None,
-              missing='-', shrink=True, delimiter=None, format_width=None):
+              missing='-', shrink=True, delimiter=None, format_width=None, sections=None):
         """
         Write the table into a stream.
 
@@ -1218,6 +1218,9 @@ class DataFile:
             - `True`: set width of column formats to make them align.
             - `False`: set width of column formats to 0 - no unnecessary spaces.
             - None: Use default of the selected `table_format`.
+        sections: None or int
+            Number of section levels to be printed.
+            If `None` use default of selected `table_format`.
         """
         if table_format[0] == 'd':
             format_width = True
@@ -1237,6 +1240,8 @@ class DataFile:
             if delimiter is not None:
                 header_sep = delimiter
                 data_sep = delimiter
+            if sections is None:
+                sections = 1000
         elif table_format[0] == 'a':
             format_width = True
             begin_str = ''
@@ -1255,6 +1260,8 @@ class DataFile:
             if delimiter is not None:
                 header_sep = delimiter
                 data_sep = delimiter
+            if sections is None:
+                sections = 1000
         elif table_format[0] == 'c':
             # csv according to http://www.ietf.org/rfc/rfc4180.txt :
             number_cols=None
@@ -1278,6 +1285,8 @@ class DataFile:
             if delimiter is not None:
                 header_sep = delimiter
                 data_sep = delimiter
+            if sections is None:
+                sections = 0
         elif table_format[0] == 'r':
             format_width = True
             begin_str = ''
@@ -1293,11 +1302,12 @@ class DataFile:
             top_line = False
             header_line = False
             bottom_line = False
+            if sections is None:
+                sections = 1000
         elif table_format[0] == 'm':
             if units == "auto":
                 units = "header"
-            if format_width is None:
-                format_width = True
+            format_width = True
             begin_str = ''
             end_str = ''
             header_start='| '
@@ -1311,6 +1321,8 @@ class DataFile:
             top_line = False
             header_line = True
             bottom_line = False
+            if sections is None:
+                sections = 0
         elif table_format[0] == 'h':
             format_width = False
             begin_str = '<table>\n<thead>\n'
@@ -1326,6 +1338,8 @@ class DataFile:
             top_line = False
             header_line = False
             bottom_line = False
+            if sections is None:
+                sections = 1000
         elif table_format[0] == 't':
             if format_width is None:
                 format_width = False
@@ -1342,6 +1356,8 @@ class DataFile:
             top_line = True
             header_line = True
             bottom_line = True
+            if sections is None:
+                sections = 1000
         else:
             if format_width is None:
                 format_width = True
@@ -1358,6 +1374,8 @@ class DataFile:
             top_line = False
             header_line = False
             bottom_line = False
+            if sections is None:
+                sections = 1000
         if units == 'auto':
             units = 'row'
 
@@ -1427,12 +1445,13 @@ class DataFile:
                     df.write(w*'-')
                 df.write(header_end.replace(' ', '-'))
         # section and column headers:
-        nsec0 = 0
-        if table_format[0] in 'cm':
-            nsec0 = self.nsecs
+        nsec0 = self.nsecs-sections
+        if nsec0 < 0:
+            nsec0 = 0
         for ns in range(nsec0, self.nsecs+1):
             nsec = self.nsecs-ns
             first = True
+            last = False
             df.write(header_start)
             for c in range(len(self.header)):
                 if nsec < len(self.header[c]):
@@ -1450,6 +1469,7 @@ class DataFile:
                         sw += len(header_sep) + widths[k]
                         columns += 1
                     else:
+                        last = True
                         if len(header_end.strip()) == 0:
                             sw = 0  # last entry needs no width
                     if columns == 0:
@@ -1457,7 +1477,9 @@ class DataFile:
                     if not first:
                         df.write(header_sep)
                     first = False
-                    if table_format[0] == 'h':
+                    if table_format[0] == 'c':
+                        sw -= len(header_sep)*(columns-1)
+                    elif table_format[0] == 'h':
                         if columns>1:
                             df.write(' colspan="%d"' % columns)
                     elif table_format[0] == 't':
@@ -1472,7 +1494,10 @@ class DataFile:
                         df.write(f % hs)
                     else:
                         df.write(hs)
-                    if table_format[0] == 't':
+                    if table_format[0] == 'c':
+                        if not last:
+                            df.write(header_sep*(columns-1))
+                    elif table_format[0] == 't':
                         df.write('}')
             df.write(header_end)
         # units:
@@ -1619,7 +1644,7 @@ class DataFile:
 
     def __str__(self):
         stream = StringIO()
-        self.write(stream, table_format='dat')
+        self.write(stream, table_format='out')
         return stream.getvalue()
 
     def __col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
@@ -1680,6 +1705,9 @@ class DataFile:
         def read_key_line(line, sep, table_format):
             if sep is None:
                 cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(r'\S+', line.strip())])
+            elif table_format == 'csv':
+                cols, indices = zip(*[(c.strip(), i) for i, c in enumerate(line.strip().split(sep)) if len(c.strip()) > 0])
+                return cols, indices
             else:
                 seps = r'[^\s'+re.escape(sep)+']+'
                 cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(seps, line.strip())])
@@ -1770,7 +1798,10 @@ class DataFile:
         colnum = np.zeros(len(col_seps), dtype=int)
         for k, sep in enumerate(col_seps):
             cols = []
-            for line in data:
+            s = 5 if len(data) >= 8 else len(data) - 3
+            if s < 0:
+                s = 0
+            for line in data[s:]:
                 cs = line.strip().split(sep)
                 if len(cs[0]) == 0:
                     cs = cs[1:]
@@ -1788,7 +1819,7 @@ class DataFile:
             sep = col_seps[ci]
             colnum = int(colnum[ci])
         # fix key:
-        if len(key) == 0 and sep is not None and sep in ',;:\t':
+        if len(key) == 0 and sep is not None and sep in ',;:\t|':
             table_format = 'csv'
         # read key:
         key_cols = []
@@ -2019,10 +2050,6 @@ if __name__ == "__main__":
     a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
     df.append_data(a.T, 0) # rest of table
     df[3:6,'weight'] = [11.0]*3
-
-    df.write(sys.stdout, table_format='csv', units='row', number_cols=None,
-             delimiter=None, format_width=True)
-    exit()
     
     # write out in all formats:
     for tf in DataFile.formats:
