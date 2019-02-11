@@ -1607,7 +1607,8 @@ class DataFile:
                     else:
                         df.write(' align="right"')
                 df.write(data_close)
-                if isinstance(self.data[c][k], float) and m.isnan(self.data[c][k]):
+                if k >= len(self.data[c]) or \
+                   (isinstance(self.data[c][k], float) and m.isnan(self.data[c][k])):
                     if format_width:
                         if f[1] == '-':
                             fn = '%%-%ds' % widths[c]
