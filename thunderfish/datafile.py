@@ -1182,8 +1182,8 @@ class DataFile:
             for c in range(c0, c1):
                 self.hidden[c] = False
 
-    def write(self, df=sys.stdout, table_format='dat',
-              units='auto', number_cols=None, missing='-', shrink=True, delimiter=None):
+    def write(self, df=sys.stdout, table_format='dat', units='auto', number_cols=None,
+              missing='-', shrink=True, delimiter=None, format_width=None):
         """
         Write the table into a stream.
 
@@ -1193,12 +1193,12 @@ class DataFile:
             Stream to be used for writing.
         table_format: string
             The format to be used for output.
-            One of "dat", "ascii", "rtai", "csv", "md", "html", "tex".
+            One of 'out', 'dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html'.
         units: string
-            - "auto": use default of the specified `table_format`.
-            - "row": write an extra row to the table header specifying the units of the columns.
-            - "header": add the units to the column headers.
-            - "none": do not specify the units.
+            - 'auto': use default of the specified `table_format`.
+            - 'row': write an extra row to the table header specifying the units of the columns.
+            - 'header': add the units to the column headers.
+            - 'none': do not specify the units.
         number_cols: string or None
             Add a row specifying the column index:
             - 'index': indices are integers, first column is 0.
@@ -1214,22 +1214,26 @@ class DataFile:
         delimiter: string
             String or character separating columns, if supported by the `table_format`.
             If None use the default for the specified `table_format`.
+        format_width: boolean
+            - `True`: set width of column formats to make them align.
+            - `False`: set width of column formats to 0 - no unnecessary spaces.
+            - None: Use default of the selected `table_format`.
         """
-        format_width = True
-        begin_str = ''
-        end_str = ''
-        header_start = '# '
-        header_sep = '  '
-        header_close = ''
-        header_end = '\n'
-        data_start = '  '
-        data_sep = '  '
-        data_close = ''
-        data_end = '\n'
-        top_line = False
-        header_line = False
-        bottom_line = False
         if table_format[0] == 'd':
+            format_width = True
+            begin_str = ''
+            end_str = ''
+            header_start = '# '
+            header_sep = '  '
+            header_close = ''
+            header_end = '\n'
+            data_start = '  '
+            data_sep = '  '
+            data_close = ''
+            data_end = '\n'
+            top_line = False
+            header_line = False
+            bottom_line = False
             if delimiter is not None:
                 header_sep = delimiter
                 data_sep = delimiter
@@ -1251,6 +1255,29 @@ class DataFile:
             if delimiter is not None:
                 header_sep = delimiter
                 data_sep = delimiter
+        elif table_format[0] == 'c':
+            # csv according to http://www.ietf.org/rfc/rfc4180.txt :
+            number_cols=None
+            if units == "auto":
+                units = "header"
+            if format_width is None:
+                format_width = False
+            begin_str = ''
+            end_str = ''
+            header_start=''
+            header_sep = ','
+            header_close = ''
+            header_end='\n'
+            data_start=''
+            data_sep = ','
+            data_close = ''
+            data_end='\n'
+            top_line = False
+            header_line = False
+            bottom_line = False
+            if delimiter is not None:
+                header_sep = delimiter
+                data_sep = delimiter
         elif table_format[0] == 'r':
             format_width = True
             begin_str = ''
@@ -1266,30 +1293,13 @@ class DataFile:
             top_line = False
             header_line = False
             bottom_line = False
-        elif table_format[0] == 'c':
-            # csv according to http://www.ietf.org/rfc/rfc4180.txt :
-            number_cols=None
-            if units == "auto":
-                units = "header"
-            format_width = False
-            header_start=''
-            header_sep = ','
-            header_close = ''
-            header_end='\n'
-            data_start=''
-            data_sep = ','
-            data_close = ''
-            data_end='\n'
-            top_line = False
-            header_line = False
-            bottom_line = False
-            if delimiter is not None:
-                header_sep = delimiter
-                data_sep = delimiter
         elif table_format[0] == 'm':
             if units == "auto":
                 units = "header"
-            format_width = True
+            if format_width is None:
+                format_width = True
+            begin_str = ''
+            end_str = ''
             header_start='| '
             header_sep = ' | '
             header_close = ''
@@ -1317,7 +1327,8 @@ class DataFile:
             header_line = False
             bottom_line = False
         elif table_format[0] == 't':
-            format_width = False
+            if format_width is None:
+                format_width = False
             begin_str = '\\begin{tabular}'
             end_str = '\\end{tabular}\n'
             header_start='  '
@@ -1331,8 +1342,24 @@ class DataFile:
             top_line = True
             header_line = True
             bottom_line = True
-        if units == "auto":
-            units = "row"
+        else:
+            if format_width is None:
+                format_width = True
+            begin_str = ''
+            end_str = ''
+            header_start = ''
+            header_sep = ' '
+            header_close = ''
+            header_end = '\n'
+            data_start = ''
+            data_sep = ' '
+            data_close = ''
+            data_end = '\n'
+            top_line = False
+            header_line = False
+            bottom_line = False
+        if units == 'auto':
+            units = 'row'
 
         # begin table:
         df.write(begin_str)
@@ -1440,7 +1467,7 @@ class DataFile:
                     if nsec == 0 and units == "header":
                         if units and self.units[c] != '1':
                             hs += '/' + self.units[c]
-                    if format_width:
+                    if format_width and not table_format[0] in 'th':
                         f = '%%-%ds' % sw
                         df.write(f % hs)
                     else:
@@ -1462,7 +1489,7 @@ class DataFile:
                 if table_format[0] == 't':
                     df.write('\\multicolumn{1}{l}{%s}' % self.units[c])
                 else:
-                    if format_width:
+                    if format_width and not table_format[0] in 'h':
                         f = '%%-%ds' % widths[c]
                         df.write(f % self.units[c])
                     else:
@@ -1992,6 +2019,10 @@ if __name__ == "__main__":
     a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
     df.append_data(a.T, 0) # rest of table
     df[3:6,'weight'] = [11.0]*3
+
+    df.write(sys.stdout, table_format='csv', units='row', number_cols=None,
+             delimiter=None, format_width=True)
+    exit()
     
     # write out in all formats:
     for tf in DataFile.formats:
