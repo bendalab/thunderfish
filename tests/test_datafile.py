@@ -6,9 +6,9 @@ import thunderfish.datafile as dfl
 
 def setup_table():
     df = dfl.DataFile()
-    df.append(["data", "info", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    df.append(["data", "partialinformationes", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
     df.append("weight", "kg", "%.0f", 122.8)
-    df.append_section("reaction")
+    df.append_section("completereaction")
     df.append("speed", "m/s", "%.3g", 98.7)
     df.append("jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
