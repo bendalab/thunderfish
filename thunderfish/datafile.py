@@ -15,7 +15,7 @@ else:
 
 class DataFile:
     """
-    Tables of data with a rich header.
+    Tables of data with a rich hierarchical header with units and formats.
 
     Indexing
     --------
@@ -1391,7 +1391,7 @@ class DataFile:
             df.write('}\n')
         # retrieve column formats and widths:
         widths = []
-        formats = []
+        widths_pos = []
         for c, f in enumerate(self.formats):
             w = 0
             # position of width specification:
@@ -1402,14 +1402,13 @@ class DataFile:
             if not shrink:
                 if len(f[i0:i1]) > 0:
                     w = int(f[i0:i1])
-            # adapt width to header:
-            for l in range(len(self.header[c])):
-                if c+1 >= len(self.header) or l < len(self.header[c+1]):
-                    hw = len(self.header[c][l])
-                    if l == 0 and units == 'header':
-                        hw += 1 + len(self.units[c])
-                    if w < hw:
-                        w = hw
+            widths_pos.append((i0, i1))
+            # adapt width to header label:
+            hw = len(self.header[c][0])
+            if units == 'header':
+                hw += 1 + len(self.units[c])
+            if w < hw:
+                w = hw
             # adapt width to data:
             if f[-1] == 's':
                 for v in self.data[c]:
@@ -1424,9 +1423,30 @@ class DataFile:
                         s = fs % v
                     if w < len(s):
                         w = len(s)
-            # set width of format string:
             widths.append(w)
-            formats.append(f[:i0] + str(w) + f[i1:])
+        # adapt width to sections:
+        sec_indices = [0] * self.nsecs
+        sec_widths = [0] * self.nsecs
+        for c in range(len(self.header)):
+            w = widths[c]
+            for l in range(min(self.nsecs, sections)):
+                if 1+l < len(self.header[c]):
+                    if c > 0 and len(self.header[sec_indices[l]][1+l]) > sec_widths[l]:
+                        dw = len(self.header[sec_indices[l]][1+l]) - sec_widths[l]
+                        nc = c - sec_indices[l]
+                        ddw = np.zeros(nc, dtype=int) + dw // nc
+                        ddw[:dw % nc] += 1
+                        for k in range(nc):
+                            widths[sec_indices[l]+k] += ddw[k]
+                    sec_widths[l] = 0
+                    sec_indices[l] = c
+                if sec_widths[l] > 0:
+                    sec_widths[l] += len(header_sep)
+                sec_widths[l] += w
+        # set width of format string:
+        formats = []
+        for c, (f, w) in enumerate(zip(self.formats, widths)):
+            formats.append(f[:widths_pos[c][0]] + str(w) + f[widths_pos[c][1]:])
         # top line:
         if top_line:
             if table_format[0] == 't':
@@ -2039,9 +2059,9 @@ if __name__ == "__main__":
 
     # setup a table:
     df = DataFile()
-    df.append(["data", "info", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    df.append(["data", "partial information", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
     df.append("weight", "kg", "%.0f", 122.8)
-    df.append_section("reaction")
+    df.append_section("complete reaction")
     df.append("speed", "m/s", "%.3g", 98.7)
     df.append("jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
@@ -2057,7 +2077,7 @@ if __name__ == "__main__":
         print('    - `%s`: %s' % (tf, DataFile.descriptions[tf]))
         print('      ```')
         iout = IndentStream(sys.stdout, 4+2)
-        df.write(iout, table_format=tf, units='auto', number_cols=None, delimiter=None)
+        df.write(iout, table_format=tf, units='auto', number_cols=None, delimiter=None, sections=None)
         print('      ```')
         print('')
         
