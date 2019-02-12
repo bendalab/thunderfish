@@ -1364,11 +1364,11 @@ class DataFile:
             begin_str = ''
             end_str = ''
             header_start = ''
-            header_sep = ' '
+            header_sep = '  '
             header_close = ''
             header_end = '\n'
             data_start = ''
-            data_sep = ' '
+            data_sep = '  '
             data_close = ''
             data_end = '\n'
             top_line = False
@@ -1800,7 +1800,7 @@ class DataFile:
         for k, sep in enumerate(col_seps):
             cols = []
             s = 5 if len(data) >= 8 else len(data) - 3
-            if s < 0:
+            if s < 0 or len(key) > 0:
                 s = 0
             for line in data[s:]:
                 cs = line.strip().split(sep)
