@@ -1725,12 +1725,12 @@ class DataFile:
 
         def read_key_line(line, sep, table_format):
             if sep is None:
-                cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(r'\S+', line.strip())])
+                cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(r'( ?[\S]+)+(?=[ ][ ]+|\Z)', line.strip())])
             elif table_format == 'csv':
                 cols, indices = zip(*[(c.strip(), i) for i, c in enumerate(line.strip().split(sep)) if len(c.strip()) > 0])
                 return cols, indices
             else:
-                seps = r'[^\s'+re.escape(sep)+']+'
+                seps = r'[^'+re.escape(sep)+']+'
                 cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(seps, line.strip())])
             colss = []
             indicess = []
@@ -1748,11 +1748,14 @@ class DataFile:
                         indicess.append(i)
                         i += 1
             else:
-                for c, i in zip(cols, indices):
+                for k, (c, i) in enumerate(zip(cols, indices)):
+                    if k == 0:
+                        c = c.lstrip('|')
+                    if k == len(cols)-1:
+                        c = c.rstrip('|')
                     cs = c.strip()
-                    if cs not in '|':
-                        colss.append(cs)
-                        indicess.append(i)
+                    colss.append(cs)
+                    indicess.append(i)
             return colss, indicess
 
         # read inital lines of file:
@@ -2060,10 +2063,10 @@ if __name__ == "__main__":
     # setup a table:
     df = DataFile()
     df.append(["data", "partial information", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
-    df.append("weight", "kg", "%.0f", 122.8)
+    df.append("full weight", "kg", "%.0f", 122.8)
     df.append_section("complete reaction")
     df.append("speed", "m/s", "%.3g", 98.7)
-    df.append("jitter", "mm", "%.1f", 23)
+    df.append("median jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
     df.append_data(float('NaN'), 1)  # single value
     df.append_data((0.543, 45, 1.235e2)) # remaining row

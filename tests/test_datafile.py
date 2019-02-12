@@ -6,11 +6,11 @@ import thunderfish.datafile as dfl
 
 def setup_table():
     df = dfl.DataFile()
-    df.append(["data", "partialinformationes", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
-    df.append("weight", "kg", "%.0f", 122.8)
-    df.append_section("completereaction")
+    df.append(["data", "partial informationes", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    df.append("full weight", "kg", "%.0f", 122.8)
+    df.append_section("complete reaction")
     df.append("speed", "m/s", "%.3g", 98.7)
-    df.append("jitter", "mm", "%.1f", 23)
+    df.append("median jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
     df.append_data(float('NaN'), 1)  # single value
     df.append_data((0.543, 45, 1.235e2)) # remaining row
