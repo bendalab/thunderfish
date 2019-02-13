@@ -837,36 +837,6 @@ class DataFile:
             v = (self.formats[col] % self.data[col][row]) + u
         return self.header[col][0] + '=' + v
 
-    def __find_col(self, ss, si, minns, maxns, c0, strict=True):
-        """
-        Helper function for finding column indices from textual column specifications.
-        """
-        if si >= len(ss):
-            return None, None, None, None
-        ns0 = 0
-        for ns in range(minns, maxns+1):
-            nsec = maxns-ns
-            if ss[si] == '':
-                si += 1
-                continue
-            for c in range(c0, len(self.header)):
-                if nsec < len(self.header[c]) and \
-                    ( ( strict and self.header[c][nsec] == ss[si] ) or
-                      ( not strict and ss[si] in self.header[c][nsec] ) ):
-                    ns0 = ns
-                    c0 = c
-                    si += 1
-                    if si >= len(ss):
-                        c1 = len(self.header)
-                        for c in range(c0+1, len(self.header)):
-                            if nsec < len(self.header[c]):
-                                c1 = c
-                                break
-                        return c0, c1, ns0, None
-                    elif nsec > 0:
-                        break
-        return None, c0, ns0, si
-
     def find_col(self, column):
         """
         Find the start and end index of a column specification.
@@ -885,6 +855,34 @@ class DataFile:
             A valid column index or None of the column following the range specified
             by `column`.
         """
+
+        def find_column_indices(ss, si, minns, maxns, c0, strict=True):
+            if si >= len(ss):
+                return None, None, None, None
+            ns0 = 0
+            for ns in range(minns, maxns+1):
+                nsec = maxns-ns
+                if ss[si] == '':
+                    si += 1
+                    continue
+                for c in range(c0, len(self.header)):
+                    if nsec < len(self.header[c]) and \
+                        ( ( strict and self.header[c][nsec] == ss[si] ) or
+                          ( not strict and ss[si] in self.header[c][nsec] ) ):
+                        ns0 = ns
+                        c0 = c
+                        si += 1
+                        if si >= len(ss):
+                            c1 = len(self.header)
+                            for c in range(c0+1, len(self.header)):
+                                if nsec < len(self.header[c]):
+                                    c1 = c
+                                    break
+                            return c0, c1, ns0, None
+                        elif nsec > 0:
+                            break
+            return None, c0, ns0, si
+
         if column is None:
             return None, None
         if not isinstance(column, (int, np.integer)) and column.isdigit():
@@ -903,9 +901,9 @@ class DataFile:
             si0 += 1
         if maxns < 0:
             maxns = 0
-        c0, c1, ns, si = self.__find_col(ss, si0, 0, maxns, 0, True)
+        c0, c1, ns, si = find_column_indices(ss, si0, 0, maxns, 0, True)
         if c0 is None and c1 is not None:
-            c0, c1, ns, si = self.__find_col(ss, si, ns, maxns, c1, False)
+            c0, c1, ns, si = find_column_indices(ss, si, ns, maxns, c1, False)
         return c0, c1
     
     def index(self, column):
@@ -1667,54 +1665,6 @@ class DataFile:
         stream = StringIO()
         self.write(stream, table_format='out')
         return stream.getvalue()
-
-    def __col_format(self, line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
-        """
-        Helper function for adding data and analysing format.
-        """
-        # read line:
-        cols = []
-        if sep is None:
-            cols = [m.group(0) for m in re.finditer(r'\S+', line.strip())]
-        else:
-            seps = r'[^\s'+re.escape(sep)+']+'
-            cols = [m.group(0).strip() for m in re.finditer(seps, line.strip())]
-        cols = [c for c in cols if c not in '|']
-        # read columns:
-        for k, c in enumerate(cols):
-            c = c.strip()
-            try:
-                v = float(c)
-                ad = 0
-                ve = c.split('e')
-                if len(ve) <= 1:
-                    exped[k] = False
-                else:
-                    ad = len(ve[1])+1
-                vc = ve[0].split('.')
-                ad += len(vc[0])
-                prec = len(vc[0].lstrip('-').lstrip('+').lstrip('0')) 
-                if len(vc) == 2:
-                    if numc[k] and post[k] != len(vc[1]):
-                        fixed[k] = False
-                    if post[k] < len(vc[1]):
-                        post[k] = len(vc[1])
-                    ad += len(vc[1])+1
-                    prec += len(vc[1].rstrip('0'))
-                if precd[k] < prec:
-                    precd[k] = prec
-                if alld[k] < ad:
-                    alld[k] = ad
-                numc[k] = True
-            except ValueError:
-                if c == missing:
-                    v = float('NaN')
-                else:
-                    strf[k] = True
-                    if alld[k] < len(c):
-                        alld[k] = len(c)
-                    v = c
-            self.append_data(v, k)
                 
 
     def load(self, sf, table_format='dat',
@@ -1757,6 +1707,51 @@ class DataFile:
                     colss.append(cs)
                     indicess.append(i)
             return colss, indicess
+
+        def read_data_line(line, sep, post, precd, alld, numc, exped, fixed, strf, missing):
+            # read line:
+            cols = []
+            if sep is None:
+                cols = [m.group(0) for m in re.finditer(r'\S+', line.strip())]
+            else:
+                seps = r'[^\s'+re.escape(sep)+']+'
+                cols = [m.group(0).strip() for m in re.finditer(seps, line.strip())]
+            cols = [c for c in cols if c not in '|']
+            # read columns:
+            for k, c in enumerate(cols):
+                c = c.strip()
+                try:
+                    v = float(c)
+                    ad = 0
+                    ve = c.split('e')
+                    if len(ve) <= 1:
+                        exped[k] = False
+                    else:
+                        ad = len(ve[1])+1
+                    vc = ve[0].split('.')
+                    ad += len(vc[0])
+                    prec = len(vc[0].lstrip('-').lstrip('+').lstrip('0')) 
+                    if len(vc) == 2:
+                        if numc[k] and post[k] != len(vc[1]):
+                            fixed[k] = False
+                        if post[k] < len(vc[1]):
+                            post[k] = len(vc[1])
+                        ad += len(vc[1])+1
+                        prec += len(vc[1].rstrip('0'))
+                    if precd[k] < prec:
+                        precd[k] = prec
+                    if alld[k] < ad:
+                        alld[k] = ad
+                    numc[k] = True
+                except ValueError:
+                    if c == missing:
+                        v = float('NaN')
+                    else:
+                        strf[k] = True
+                        if alld[k] < len(c):
+                            alld[k] = len(c)
+                        v = c
+                self.append_data(v, k)
 
         # read inital lines of file:
         key = []
@@ -1939,7 +1934,7 @@ class DataFile:
         fixed = [True] * colnum
         strf = [False] * colnum
         for line in data:
-            self.__col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
+            read_data_line(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
         # read remaining data:
         for line in sf:
             line = line.rstrip()
@@ -1952,7 +1947,7 @@ class DataFile:
                 break
             if line[0:3] == 'RTD':
                 line = line[3:]
-            self.__col_format(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
+            read_data_line(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
         # set formats:
         for k in range(len(alld)):
             if strf[k]:
