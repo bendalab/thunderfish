@@ -156,8 +156,7 @@ class DataFile:
         self.setcol = 0
         self.addcol = 0
         if filename is not None:
-            with open(filename, 'r') as sf:
-                self.load(sf)
+            self.load(filename)
 
     def append_section(self, label):
         """
@@ -1239,10 +1238,8 @@ class DataFile:
                 fh += '.' + self.extensions[table_format]
             fh = open(fh, 'w')
             own_file = True
-
         if table_format is None:
             table_format = 'dat'
-            
         # set style:        
         if table_format[0] == 'd':
             format_width = True
@@ -1682,10 +1679,8 @@ class DataFile:
                     w = widths[c]
                     fh.write(w*'-')
                 fh.write(header_end.replace(' ', '-'))
-                
         # end table:
         fh.write(end_str)
-        
         # close file:
         if own_file:
             fh.close()
@@ -1697,9 +1692,18 @@ class DataFile:
         return stream.getvalue()
                 
 
-    def load(self, sf, missing='-'):
+    def load(self, fh, missing='-'):
         """
-        Load data from file stream. 
+        Load table from file.
+
+        File type and properties are automatically inferred.
+
+        Parameters
+        ----------
+        fh: filename or stream
+            If not a stream, the file with name `fh` is opened for reading.
+        missing: string
+            Missing data are indicated by this string.
         """
 
         def read_key_line(line, sep, table_format):
@@ -1782,13 +1786,18 @@ class DataFile:
                         v = c
                 self.append_data(v, k)
 
+        # open file:
+        own_file = False
+        if not hasattr(fh, 'readline'):
+            fh = open(fh, 'r')
+            own_file = True
         # read inital lines of file:
         key = []
         data = []
         target = data
         comment = False
         table_format='dat'        
-        for line in sf:
+        for line in fh:
             line = line.rstrip()
             if len(line) > 0:
                 if r'\begin{tabular' in line:
@@ -1965,7 +1974,7 @@ class DataFile:
         for line in data:
             read_data_line(line, sep, post, precd, alld, numc, exped, fixed, strf, missing)
         # read remaining data:
-        for line in sf:
+        for line in fh:
             line = line.rstrip()
             if table_format == 'tex':
                 if r'\end{tabular' in line or r'\hline' in line:
@@ -1987,6 +1996,9 @@ class DataFile:
                 self.set_format('%%%d.%df' % (alld[k], post[k]), k)
             else:
                 self.set_format('%%%d.%dg' % (alld[k], precd[k]), k)
+        # close file:
+        if own_file:
+            fh.close()
 
 
 def index2aa(n, a='a'):
