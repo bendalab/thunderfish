@@ -22,7 +22,7 @@ def setup_table():
 
 def test_write():
     df = setup_table()
-    for units in ['auto', 'none', 'row', 'header']:
+    for units in [None, 'none', 'row', 'header']:
         for number_cols in [None, 'index', 'num', 'aa', 'AA']:
             for tf in dfl.DataFile.formats:
                 df.write(table_format=tf, number_cols=number_cols)
@@ -36,7 +36,7 @@ def test_properties():
 
 def test_write_load():
     df = setup_table()
-    for units in ['auto', 'none', 'row', 'header']:
+    for units in [None, 'none', 'row', 'header']:
         for number_cols in [None, 'none', 'index', 'num', 'aa', 'AA']:
             for delimiter in [None, ';', '| ', '\t']:
                 for format_width in [None, True, False]:

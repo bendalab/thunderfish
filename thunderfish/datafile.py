@@ -1180,7 +1180,7 @@ class DataFile:
             for c in range(c0, c1):
                 self.hidden[c] = False
 
-    def write(self, df=sys.stdout, table_format='dat', units='auto', number_cols=None,
+    def write(self, df=sys.stdout, table_format='dat', units=None, number_cols=None,
               missing='-', shrink=True, delimiter=None, format_width=None, sections=None):
         """
         Write the table into a stream.
@@ -1192,8 +1192,8 @@ class DataFile:
         table_format: string
             The format to be used for output.
             One of 'out', 'dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html'.
-        units: string
-            - 'auto': use default of the specified `table_format`.
+        units: None or string
+            - None: use default of the specified `table_format`.
             - 'row': write an extra row to the table header specifying the units of the columns.
             - 'header': add the units to the column headers.
             - 'none': do not specify the units.
@@ -1263,8 +1263,8 @@ class DataFile:
         elif table_format[0] == 'c':
             # csv according to http://www.ietf.org/rfc/rfc4180.txt :
             number_cols=None
-            if units == "auto":
-                units = "header"
+            if units is None:
+                units = 'header'
             if format_width is None:
                 format_width = False
             begin_str = ''
@@ -1303,8 +1303,8 @@ class DataFile:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 'm':
-            if units == "auto":
-                units = "header"
+            if units is None:
+                units = 'header'
             format_width = True
             begin_str = ''
             end_str = ''
@@ -1374,7 +1374,7 @@ class DataFile:
             bottom_line = False
             if sections is None:
                 sections = 1000
-        if units == 'auto':
+        if units is None:
             units = 'row'
 
         # begin table:
@@ -1504,7 +1504,7 @@ class DataFile:
                         df.write('\\multicolumn{%d}{l}{' % columns)
                     df.write(header_close)
                     hs = self.header[c][nsec]
-                    if nsec == 0 and units == "header":
+                    if nsec == 0 and units == 'header':
                         if units and self.units[c] != '1':
                             hs += '/' + self.units[c]
                     if format_width and not table_format[0] in 'th':
@@ -1519,7 +1519,7 @@ class DataFile:
                         df.write('}')
             df.write(header_end)
         # units:
-        if units == "row":
+        if units == 'row':
             first = True
             df.write(header_start)
             for c in range(len(self.header)):
@@ -1566,7 +1566,7 @@ class DataFile:
                             f = '%%%dd' % widths[c]
                             df.write(f % i)
                         else:
-                            df.write("%d" % i)
+                            df.write('%d' % i)
                     else:
                         if format_width:
                             f = '%%-%ds' % widths[c]
@@ -1609,8 +1609,8 @@ class DataFile:
         for k in range(self.rows()):
             first = True
             if table_format[0] == 'h':
-                eo = "even" if k % 2 == 1 else "odd"
-                df.write('  <tr class"%s">\n    <td' % eo)
+                eo = 'even' if k % 2 == 1 else 'odd'
+                df.write('  <tr class "%s">\n    <td' % eo)
             else:
                 df.write(data_start)
             for c, f in enumerate(formats):
@@ -1667,8 +1667,7 @@ class DataFile:
         return stream.getvalue()
                 
 
-    def load(self, sf, table_format='dat',
-              units="row", number_cols=None, missing='-'):
+    def load(self, sf, missing='-'):
         """
         Load data from file stream. 
         """
@@ -2075,7 +2074,7 @@ if __name__ == "__main__":
         print('    - `%s`: %s' % (tf, DataFile.descriptions[tf]))
         print('      ```')
         iout = IndentStream(sys.stdout, 4+2)
-        df.write(iout, table_format=tf, units='auto', number_cols=None, delimiter=None, sections=None)
+        df.write(iout, table_format=tf, units=None, number_cols=None, delimiter=None, sections=None)
         print('      ```')
         print('')
         
