@@ -1,6 +1,5 @@
 """
-# Data file
-class DataFile for reading and writing of data tables.
+class TableData for reading and writing of data tables.
 """
 
 import sys
@@ -14,13 +13,13 @@ else:
     from io import StringIO
     
 
-class DataFile:
+class TableData:
     """
     Tables of data with a rich hierarchical header with units and formats.
 
     Indexing
     --------
-    The DataFile is a mapping of keys (the column headers)
+    The TableData is a mapping of keys (the column headers)
     to values (the column data).
     Iterating over the table goes over columns.
 
@@ -516,10 +515,10 @@ class DataFile:
 
         Return
         ------
-        data: DataFile
-            A DataFile object with the same header but empty data.
+        data: TableData
+            A TableData object with the same header but empty data.
         """
-        data = DataFile()
+        data = TableData()
         sec_indices = [-1] * self.nsecs
         for c in range(self.columns()):
             data.append(*self.column_head(c))
@@ -600,10 +599,10 @@ class DataFile:
 
         Return
         ------
-        table: DataFile
-            A DataFile object with a single column.
+        table: TableData
+            A TableData object with a single column.
         """
-        data = DataFile()
+        data = TableData()
         c = self.index(column)
         data.append(*self.column_head(c))
         data.data = [self.data[c]]
@@ -621,10 +620,10 @@ class DataFile:
 
         Return
         ------
-        data: DataFile
-            A DataFile object with a single row.
+        data: TableData
+            A TableData object with a single row.
         """
-        data = DataFile()
+        data = TableData()
         sec_indices = [-1] * self.nsecs
         for c in range(self.columns()):
             data.append(*self.column_head(c))
@@ -673,14 +672,14 @@ class DataFile:
         data:
             - A single data value if a single row and a single column is specified.
             - A list of data elements if a single row or a single column is specified.
-            - A DataFile object for multiple rows and columns.
+            - A TableData object for multiple rows and columns.
         """
         rows, cols = self.__setupkey(key)
         if len(cols) == 1:
             return self.data[cols[0]][rows]
         else:
             if hasattr(self.data[0][rows], '__len__'):
-                data = DataFile()
+                data = TableData()
                 sec_indices = [-1] * self.nsecs
                 for c in cols:
                     data.append(*self.column_head(c))
@@ -704,11 +703,11 @@ class DataFile:
         key:
             First key specifies row, (optional) second one the column.
             Columns can be specified by index or name, see index() for details.
-        value: DataFile, list, ndarray, float, ...
+        value: TableData, list, ndarray, float, ...
             Value(s) used to assing to the table elements as specified by `key`.
         """
         rows, cols = self.__setupkey(key)
-        if isinstance(value, DataFile):
+        if isinstance(value, TableData):
             if hasattr(self.data[cols[0]][rows], '__len__'):
                 for k, c in enumerate(cols):
                     self.data[c][rows] = value.data[k]
@@ -1036,7 +1035,7 @@ class DataFile:
         """
         Descriptive statistics of each column.
         """
-        ds = DataFile()
+        ds = TableData()
         if self.nsecs > 0:
             ds.append_section('statistics')
             for l in range(1,self.nsecs):
@@ -2097,7 +2096,7 @@ if __name__ == "__main__":
     print('')
 
     # setup a table:
-    df = DataFile()
+    df = TableData()
     df.append(["data", "partial information", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
     df.append("full weight", "kg", "%.0f", 122.8)
     df.append_section("complete reaction")
@@ -2112,8 +2111,8 @@ if __name__ == "__main__":
     df[3:6,'weight'] = [11.0]*3
     
     # write out in all formats:
-    for tf in DataFile.formats:
-        print('    - `%s`: %s' % (tf, DataFile.descriptions[tf]))
+    for tf in TableData.formats:
+        print('    - `%s`: %s' % (tf, TableData.descriptions[tf]))
         print('      ```')
         iout = IndentStream(sys.stdout, 4+2)
         df.write(iout, table_format=tf, units=None, number_cols=None, delimiter=None, sections=None)
