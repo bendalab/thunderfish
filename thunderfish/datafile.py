@@ -4,6 +4,7 @@ class DataFile for reading and writing of data tables.
 """
 
 import sys
+import os
 import re
 import math as m
 import numpy as np
@@ -140,7 +141,8 @@ class DataFile:
     
     formats = ['dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html']
     descriptions = {'dat': 'data text file', 'ascii': 'ascii-art table', 'csv': 'comma separated values', 'rtai': 'rtai-style table', 'md': 'markdown', 'tex': 'latex tabular', 'html': 'html markup'}
-    extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'ms', 'tex': 'tex', 'html': 'html'}
+    extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'md', 'tex': 'tex', 'html': 'html'}
+    ext_formats = {'dat': 'dat', 'DAT': 'dat', 'txt': 'dat', 'TXT': 'dat', 'csv': 'csv', 'CSV': 'csv', 'md': 'md', 'MD': 'md', 'tex': 'tex', 'TEX': 'tex', 'html': 'html', 'HTML': 'html'}
     column_numbering = ['num', 'index', 'aa', 'AA']
 
     def __init__(self, filename=None):
@@ -1180,18 +1182,23 @@ class DataFile:
             for c in range(c0, c1):
                 self.hidden[c] = False
 
-    def write(self, df=sys.stdout, table_format='dat', units=None, number_cols=None,
+    def write(self, fh=sys.stdout, table_format=None, units=None, number_cols=None,
               missing='-', shrink=True, delimiter=None, format_width=None, sections=None):
         """
         Write the table into a stream.
 
         Parameters
         ----------
-        df: stream
-            Stream to be used for writing.
-        table_format: string
+        fh: filename or stream
+            If not a stream, the file with name `fh` is opened.
+            If `fh` does not have an extension,
+            the `table_format` is appended as an extension.
+            Otherwise `fh` is used as a stream for writing.
+        table_format: None or string
             The format to be used for output.
             One of 'out', 'dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html'.
+            If None then the format is set to the extension of the filename given by `fh`.
+            If `fh` is a stream the format is set to 'dat'.
         units: None or string
             - None: use default of the specified `table_format`.
             - 'row': write an extra row to the table header specifying the units of the columns.
@@ -1220,6 +1227,23 @@ class DataFile:
             Number of section levels to be printed.
             If `None` use default of selected `table_format`.
         """
+
+        # open file:
+        own_file = False
+        if not hasattr(fh, 'write'):
+            _, ext = os.path.splitext(fh)
+            if table_format is None:
+                if len(ext) > 1:
+                    table_format = self.ext_formats[ext[1:]]
+            elif len(ext) == 0:
+                fh += '.' + self.extensions[table_format]
+            fh = open(fh, 'w')
+            own_file = True
+
+        if table_format is None:
+            table_format = 'dat'
+            
+        # set style:        
         if table_format[0] == 'd':
             format_width = True
             begin_str = ''
@@ -1378,15 +1402,15 @@ class DataFile:
             units = 'row'
 
         # begin table:
-        df.write(begin_str)
+        fh.write(begin_str)
         if table_format[0] == 't':
-            df.write('{')
+            fh.write('{')
             for f in self.formats:
                 if f[1] == '-':
-                    df.write('l')
+                    fh.write('l')
                 else:
-                    df.write('r')
-            df.write('}\n')
+                    fh.write('r')
+            fh.write('}\n')
         # retrieve column formats and widths:
         widths = []
         widths_pos = []
@@ -1448,20 +1472,20 @@ class DataFile:
         # top line:
         if top_line:
             if table_format[0] == 't':
-                df.write('  \\hline\n')
+                fh.write('  \\hline\n')
             else:
                 first = True
-                df.write(header_start.replace(' ', '-'))
+                fh.write(header_start.replace(' ', '-'))
                 for c in range(len(self.header)):
                     if self.hidden[c]:
                         continue
                     if not first:
-                        df.write('-'*len(header_sep))
+                        fh.write('-'*len(header_sep))
                     first = False
-                    df.write(header_close)
+                    fh.write(header_close)
                     w = widths[c]
-                    df.write(w*'-')
-                df.write(header_end.replace(' ', '-'))
+                    fh.write(w*'-')
+                fh.write(header_end.replace(' ', '-'))
         # section and column headers:
         nsec0 = self.nsecs-sections
         if nsec0 < 0:
@@ -1470,7 +1494,7 @@ class DataFile:
             nsec = self.nsecs-ns
             first = True
             last = False
-            df.write(header_start)
+            fh.write(header_start)
             for c in range(len(self.header)):
                 if nsec < len(self.header[c]):
                     # section width and column count:
@@ -1493,62 +1517,62 @@ class DataFile:
                     if columns == 0:
                         continue
                     if not first:
-                        df.write(header_sep)
+                        fh.write(header_sep)
                     first = False
                     if table_format[0] == 'c':
                         sw -= len(header_sep)*(columns-1)
                     elif table_format[0] == 'h':
                         if columns>1:
-                            df.write(' colspan="%d"' % columns)
+                            fh.write(' colspan="%d"' % columns)
                     elif table_format[0] == 't':
-                        df.write('\\multicolumn{%d}{l}{' % columns)
-                    df.write(header_close)
+                        fh.write('\\multicolumn{%d}{l}{' % columns)
+                    fh.write(header_close)
                     hs = self.header[c][nsec]
                     if nsec == 0 and units == 'header':
                         if units and self.units[c] != '1':
                             hs += '/' + self.units[c]
                     if format_width and not table_format[0] in 'th':
                         f = '%%-%ds' % sw
-                        df.write(f % hs)
+                        fh.write(f % hs)
                     else:
-                        df.write(hs)
+                        fh.write(hs)
                     if table_format[0] == 'c':
                         if not last:
-                            df.write(header_sep*(columns-1))
+                            fh.write(header_sep*(columns-1))
                     elif table_format[0] == 't':
-                        df.write('}')
-            df.write(header_end)
+                        fh.write('}')
+            fh.write(header_end)
         # units:
         if units == 'row':
             first = True
-            df.write(header_start)
+            fh.write(header_start)
             for c in range(len(self.header)):
                 if self.hidden[c]:
                     continue
                 if not first:
-                    df.write(header_sep)
+                    fh.write(header_sep)
                 first = False
-                df.write(header_close)
+                fh.write(header_close)
                 if table_format[0] == 't':
-                    df.write('\\multicolumn{1}{l}{%s}' % self.units[c])
+                    fh.write('\\multicolumn{1}{l}{%s}' % self.units[c])
                 else:
                     if format_width and not table_format[0] in 'h':
                         f = '%%-%ds' % widths[c]
-                        df.write(f % self.units[c])
+                        fh.write(f % self.units[c])
                     else:
-                        df.write(self.units[c])
-            df.write(header_end)
+                        fh.write(self.units[c])
+            fh.write(header_end)
         # column numbers:
         if number_cols is not None and number_cols not in 'none':
             first = True
-            df.write(header_start)
+            fh.write(header_start)
             for c in range(len(self.header)):
                 if self.hidden[c]:
                     continue
                 if not first:
-                    df.write(header_sep)
+                    fh.write(header_sep)
                 first = False
-                df.write(header_close)
+                fh.write(header_close)
                 i = c
                 if number_cols == 'num':
                     i = c+1
@@ -1557,74 +1581,74 @@ class DataFile:
                     aa = index2aa(c, 'A')
                 if table_format[0] == 't':
                     if number_cols == 'num' or number_cols == 'index':
-                        df.write('\\multicolumn{1}{l}{%d}' % i)
+                        fh.write('\\multicolumn{1}{l}{%d}' % i)
                     else:
-                        df.write('\\multicolumn{1}{l}{%s}' % aa)
+                        fh.write('\\multicolumn{1}{l}{%s}' % aa)
                 else:
                     if number_cols == 'num' or number_cols == 'index':
                         if format_width:
                             f = '%%%dd' % widths[c]
-                            df.write(f % i)
+                            fh.write(f % i)
                         else:
-                            df.write('%d' % i)
+                            fh.write('%d' % i)
                     else:
                         if format_width:
                             f = '%%-%ds' % widths[c]
-                            df.write(f % aa)
+                            fh.write(f % aa)
                         else:
-                            df.write(aa)
-            df.write(header_end)
+                            fh.write(aa)
+            fh.write(header_end)
         # header line:
         if header_line:
             if table_format[0] == 'm':
-                df.write('|')
+                fh.write('|')
                 for c in range(len(self.header)):
                     if self.hidden[c]:
                         continue
                     w = widths[c]+2
                     if formats[c][1] == '-':
-                        df.write(w*'-' + '|')
+                        fh.write(w*'-' + '|')
                     else:
-                        df.write((w-1)*'-' + ':|')
-                df.write('\n')
+                        fh.write((w-1)*'-' + ':|')
+                fh.write('\n')
             elif table_format[0] == 't':
-                df.write('  \\hline\n')
+                fh.write('  \\hline\n')
             else:
                 first = True
-                df.write(header_start.replace(' ', '-'))
+                fh.write(header_start.replace(' ', '-'))
                 for c in range(len(self.header)):
                     if self.hidden[c]:
                         continue
                     if not first:
-                        df.write(header_sep.replace(' ', '-'))
+                        fh.write(header_sep.replace(' ', '-'))
                     first = False
-                    df.write(header_close)
+                    fh.write(header_close)
                     w = widths[c]
-                    df.write(w*'-')
-                df.write(header_end.replace(' ', '-'))
+                    fh.write(w*'-')
+                fh.write(header_end.replace(' ', '-'))
         # start table data:
         if table_format[0] == 'h':
-            df.write('</thead>\n<tbody>\n')
+            fh.write('</thead>\n<tbody>\n')
         # data:
         for k in range(self.rows()):
             first = True
             if table_format[0] == 'h':
                 eo = 'even' if k % 2 == 1 else 'odd'
-                df.write('  <tr class "%s">\n    <td' % eo)
+                fh.write('  <tr class "%s">\n    <td' % eo)
             else:
-                df.write(data_start)
+                fh.write(data_start)
             for c, f in enumerate(formats):
                 if self.hidden[c]:
                     continue
                 if not first:
-                    df.write(data_sep)
+                    fh.write(data_sep)
                 first = False
                 if table_format[0] == 'h':
                     if f[1] == '-':
-                        df.write(' align="left"')
+                        fh.write(' align="left"')
                     else:
-                        df.write(' align="right"')
-                df.write(data_close)
+                        fh.write(' align="right"')
+                fh.write(data_close)
                 if k >= len(self.data[c]) or \
                    (isinstance(self.data[c][k], float) and m.isnan(self.data[c][k])):
                     if format_width:
@@ -1632,35 +1656,41 @@ class DataFile:
                             fn = '%%-%ds' % widths[c]
                         else:
                             fn = '%%%ds' % widths[c]
-                        df.write(fn % missing)
+                        fh.write(fn % missing)
                     else:
-                        df.write(missing)
+                        fh.write(missing)
                 else:
                     ds = f % self.data[c][k]
                     if not format_width:
                         ds = ds.strip()
-                    df.write(ds)
-            df.write(data_end)
+                    fh.write(ds)
+            fh.write(data_end)
         # bottom line:
         if bottom_line:
             if table_format[0] == 't':
-                df.write('  \\hline\n')
+                fh.write('  \\hline\n')
             else:
                 first = True
-                df.write(header_start.replace(' ', '-'))
+                fh.write(header_start.replace(' ', '-'))
                 for c in range(len(self.header)):
                     if self.hidden[c]:
                         continue
                     if not first:
-                        df.write('-'*len(header_sep))
+                        fh.write('-'*len(header_sep))
                     first = False
-                    df.write(header_close)
+                    fh.write(header_close)
                     w = widths[c]
-                    df.write(w*'-')
-                df.write(header_end.replace(' ', '-'))
+                    fh.write(w*'-')
+                fh.write(header_end.replace(' ', '-'))
+                
         # end table:
-        df.write(end_str)
+        fh.write(end_str)
+        
+        # close file:
+        if own_file:
+            fh.close()
 
+            
     def __str__(self):
         stream = StringIO()
         self.write(stream, table_format='out')
