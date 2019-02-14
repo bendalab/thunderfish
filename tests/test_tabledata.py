@@ -2,10 +2,10 @@ from nose.tools import assert_true, assert_equal, assert_almost_equal, assert_ra
 import os
 import sys
 import numpy as np
-import thunderfish.datafile as dfl
+import thunderfish.tabledata as td
 
 def setup_table():
-    df = dfl.DataFile()
+    df = td.TableData()
     df.append(["data", "partial informationes", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
     df.append("full weight", "kg", "%.0f", 122.8)
     df.append_section("complete reaction")
@@ -24,7 +24,7 @@ def test_write():
     df = setup_table()
     for units in [None, 'none', 'row', 'header']:
         for number_cols in [None, 'index', 'num', 'aa', 'AA']:
-            for tf in dfl.DataFile.formats:
+            for tf in td.TableData.formats:
                 df.write(table_format=tf, number_cols=number_cols)
 
 def test_properties():
@@ -41,20 +41,20 @@ def test_write_load():
             for delimiter in [None, ';', '| ', '\t']:
                 for format_width in [None, True, False]:
                     for sections in [None, 0, 1, 2]:
-                        for tf in dfl.DataFile.formats[:-1]:
-                            orgfilename = 'tabletest.' + dfl.DataFile.extensions[tf]
+                        for tf in td.TableData.formats[:-1]:
+                            orgfilename = 'tabletest.' + td.TableData.extensions[tf]
                             df.write(orgfilename, table_format=tf, number_cols=number_cols,
                                      units=units, delimiter=delimiter,
                                      format_width=format_width, sections=sections)
-                            sf = dfl.DataFile(orgfilename)
-                            filename = 'tabletest-read.' + dfl.DataFile.extensions[tf]
+                            sf = td.TableData(orgfilename)
+                            filename = 'tabletest-read.' + td.TableData.extensions[tf]
                             sf.write(filename, table_format=tf, number_cols=number_cols,
                                      units=units, delimiter=delimiter,
                                      format_width=format_width, sections=sections)
                             with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
                                 for k, (line1, line2) in enumerate(zip(f1, f2)):
                                     if line1 != line2:
-                                        print('%s: %s' % (tf, dfl.DataFile.descriptions[tf]))
+                                        print('%s: %s' % (tf, td.TableData.descriptions[tf]))
                                         print('files differ!')
                                         print('original table:')
                                         df.write(table_format=tf, number_cols=number_cols,
