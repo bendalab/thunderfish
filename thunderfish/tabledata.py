@@ -15,7 +15,7 @@ else:
 
 class TableData:
     """
-    Tables of data with a rich hierarchical header with units and formats.
+    Tables of data with a rich hierarchical header including units and formats.
 
     Indexing
     --------
@@ -144,7 +144,25 @@ class TableData:
     ext_formats = {'dat': 'dat', 'DAT': 'dat', 'txt': 'dat', 'TXT': 'dat', 'csv': 'csv', 'CSV': 'csv', 'md': 'md', 'MD': 'md', 'tex': 'tex', 'TEX': 'tex', 'html': 'html', 'HTML': 'html'}
     column_numbering = ['num', 'index', 'aa', 'AA']
 
-    def __init__(self, filename=None):
+    def __init__(self, data=None, header=None, units=None, formats=None):
+        """
+        Initialize a TableData from data or a file.
+
+        Parameters
+        ----------
+        data:
+            - a filename: load table from file with name `data`.
+            - a stream/file handle: load table from that stream.
+            - 1-D or 2-D array of data: the data of the table.
+              Requires als a specified `header`.
+        header: list of string
+            Header labels for each columns.
+        units: list of string, optional
+            Unit strings for each columns.
+        formats: string or list of string, optional
+            Format strings for each column. If only a single format string is
+            given, then all columns are initialized with this format string.
+        """
         self.data = []
         self.shape = (0, 0)
         self.header = []
@@ -154,8 +172,30 @@ class TableData:
         self.hidden = []
         self.setcol = 0
         self.addcol = 0
-        if filename is not None:
-            self.load(filename)
+        if header is not None:
+            if units is None:
+                units = ['']*len(header)
+            if formats is None:
+                formats = ['%g']*len(header)
+            elif not isinstance(formats, (list, tuple, np.ndarray)):
+                formats = [formats]*len(header)
+            for h, u, f in zip(header, units, formats):
+                self.append(h, u, f)            
+        if data is not None:
+            if isinstance(data, TableData):
+                pass
+            elif isinstance(data, (list, tuple, np.ndarray)):
+                if isinstance(data[0], (list, tuple, np.ndarray)):
+                    # 2D list, rows first:
+                    for row in data:
+                        for c, val in enumerate(row):
+                            self.data[c].append(val)
+                else:
+                    # 1D list:
+                    for c, val in enumerate(data):
+                        self.data[c].append(val)
+            else:
+                self.load(data)
 
     def append_section(self, label):
         """
@@ -194,7 +234,7 @@ class TableData:
         self.shape = (self.rows(), self.columns())
         return self.addcol
         
-    def append(self, label, unit, formats, value=None):
+    def append(self, label, unit, formats=None, value=None):
         """
         Append column to the table.
 
@@ -204,9 +244,10 @@ class TableData:
             Optional section titles and the name of the column.
         unit: string
             The unit of the column contents.
-        formats: string
+        formats: None or string
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
+            If None, the format is set to '%g'.
         val: None, float, int, string, etc. or list thereof
             If not None, data for the column.
 
@@ -220,7 +261,7 @@ class TableData:
                 self.header.append(list(reversed(label)))
             else:
                 self.header.append([label])
-            self.formats.append(formats)
+            self.formats.append(formats or '%g')
             self.units.append(unit)
             self.hidden.append(False)
             self.data.append([])
@@ -232,7 +273,7 @@ class TableData:
             else:
                 self.header[self.addcol] = [label] + self.header[self.addcol]
             self.units[self.addcol] = unit
-            self.formats[self.addcol] = formats
+            self.formats[self.addcol] = formats or '%g'
             if self.nsecs < len(self.header[self.addcol])-1:
                 self.nsecs = len(self.header[self.addcol])-1
         if value is not None:
@@ -244,7 +285,7 @@ class TableData:
         self.shape = (self.rows(), self.columns())
         return self.addcol-1
         
-    def insert(self, column, label, unit, formats, value=None):
+    def insert(self, column, label, unit, formats=None, value=None):
         """
         Insert a table column at a given position.
 
@@ -257,9 +298,10 @@ class TableData:
             Optional section titles and the name of the column.
         unit: string
             The unit of the column contents.
-        formats: string
+        formats: None or string
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
+            If None, the format is set to '%g'.
         val: None, float, int, string, etc. or list thereof
             If not None, data for the column.
 
@@ -282,7 +324,7 @@ class TableData:
             self.header.insert(col, list(reversed(label)))
         else:
             self.header.insert(col, [label])
-        self.formats.insert(col, formats)
+        self.formats.insert(col, formats or '%g')
         self.units.insert(col, unit)
         self.hidden.insert(col, False)
         self.data.insert(col, [])
@@ -348,7 +390,7 @@ class TableData:
 
     def label(self, column):
         """
-        The column name.
+        The name of a column.
 
         Parameters
         ----------
@@ -366,7 +408,7 @@ class TableData:
 
     def set_label(self, label, column):
         """
-        Set the column name.
+        Set the name of a column.
 
         Parameters
         ----------
@@ -382,7 +424,7 @@ class TableData:
 
     def unit(self, column):
         """
-        The unit of the column.
+        The unit of a column.
 
         Parameters
         ----------
@@ -400,7 +442,7 @@ class TableData:
 
     def set_unit(self, unit, column):
         """
-        The unit of the column.
+        Set the unit of a column.
 
         Parameters
         ----------
@@ -413,6 +455,18 @@ class TableData:
         column = self.index(column)
         self.units[column] = unit
         return column
+
+    def set_units(self, units):
+        """
+        Set the units of all columns.
+
+        Parameters
+        ----------
+        units: list of string
+            The new units to be used.
+        """
+        for c, u in enumerate(units):
+            self.units[c] = u
 
     def format(self, column):
         """
@@ -434,7 +488,7 @@ class TableData:
 
     def set_format(self, format, column):
         """
-        The format string of the column.
+        Set the format string of a column.
 
         Parameters
         ----------
@@ -447,6 +501,24 @@ class TableData:
         column = self.index(column)
         self.formats[column] = format
         return column
+
+    def set_formats(self, formats):
+        """
+        Set the format strings of all columns.
+
+        Parameters
+        ----------
+        formats: string or list of string
+            The new format strings to be used.
+            If only a single format is specified,
+            then all columns get the same format.
+        """
+        if isinstance(formats, (list, tuple, np.ndarray)):
+            for c, f in enumerate(formats):
+                self.formats[c] = f or '%g'
+        else:
+            for c in range(len(formats)):
+                self.formats[c] = formats or '%g'
 
     def column_spec(self, column):
         """
@@ -1785,6 +1857,16 @@ class TableData:
                         v = c
                 self.append_data(v, k)
 
+        # initialize:
+        self.data = []
+        self.shape = (0, 0)
+        self.header = []
+        self.nsecs = 0
+        self.units = []
+        self.formats = []
+        self.hidden = []
+        self.setcol = 0
+        self.addcol = 0
         # open file:
         own_file = False
         if not hasattr(fh, 'readline'):
@@ -2197,3 +2279,10 @@ if __name__ == "__main__":
     print('jitter' in df)
     print('velocity' in df)
     print('reaction>size' in df)
+
+    df.write('test.dat')
+
+    print
+    #tf = TableData(np.random.randn(3,2), header=['aaa', 'bbb'], units=['m', 's'], formats='%.2f')
+    tf = TableData('test.dat')
+    print tf
