@@ -1516,7 +1516,7 @@ class TableData:
             units = 'row'
         have_units = False
         for u in self.units:
-            if u:
+            if u and u != '1' and u != '-':
                 have_units = True
                 break
         if not have_units:
@@ -1547,7 +1547,8 @@ class TableData:
             widths_pos.append((i0, i1))
             # adapt width to header label:
             hw = len(self.header[c][0])
-            if units == 'header' and self.units[c]:
+            if units == 'header' and self.units[c] and\
+               self.units[c] != '1' and self.units[c] != '-':
                 hw += 1 + len(self.units[c])
             if w < hw:
                 w = hw
@@ -1649,7 +1650,7 @@ class TableData:
                     fh.write(header_close)
                     hs = self.header[c][nsec]
                     if nsec == 0 and units == 'header':
-                        if self.units[c] and self.units[c] != '1':
+                        if self.units[c] and self.units[c] != '1' and self.units[c] != '-':
                             hs += '/' + self.units[c]
                     if format_width and not table_format[0] in 'th':
                         f = '%%-%ds' % sw
