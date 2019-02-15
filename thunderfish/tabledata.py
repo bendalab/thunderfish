@@ -156,9 +156,9 @@ class TableData:
             - 1-D or 2-D array of data: the data of the table.
               Requires als a specified `header`.
         header: list of string
-            Header labels for each columns.
+            Header labels for each column.
         units: list of string, optional
-            Unit strings for each columns.
+            Unit strings for each column.
         formats: string or list of string, optional
             Format strings for each column. If only a single format string is
             given, then all columns are initialized with this format string.
@@ -183,7 +183,20 @@ class TableData:
                 self.append(h, u, f)            
         if data is not None:
             if isinstance(data, TableData):
-                pass
+                self.shape = data.shape
+                self.nsecs = data.nsecs
+                self.setcol = data.setcol
+                self.addcol = data.addcol
+                for c in range(data.columns()):
+                    self.header.append([])
+                    for h in data.header[c]:
+                        self.header[c].append(h)
+                    self.units.append(data.units[c])
+                    self.formats.append(data.formats[c])
+                    self.hidden.append(data.hidden[c])
+                    self.data.append([])
+                    for d in data.data[c]:
+                        self.data[c].append(d)
             elif isinstance(data, (list, tuple, np.ndarray)):
                 if isinstance(data[0], (list, tuple, np.ndarray)):
                     # 2D list, rows first:
@@ -196,43 +209,6 @@ class TableData:
                         self.data[c].append(val)
             else:
                 self.load(data)
-
-    def append_section(self, label):
-        """
-        Add sections to the table header.
-
-        Each column of the table has a header label. Columns can be
-        grouped into sections. Sections can be nested arbitrarily.
-
-        Parameters
-        ----------
-        label: string or list of string
-            The name(s) of the section(s).
-
-        Returns
-        -------
-        index: int
-            The column index where the section was appended.
-        """
-        if self.addcol >= len(self.data):
-            if isinstance(label, (list, tuple, np.ndarray)):
-                self.header.append(list(reversed(label)))
-            else:
-                self.header.append([label])
-            self.units.append('')
-            self.formats.append('')
-            self.hidden.append(False)
-            self.data.append([])
-        else:
-            if isinstance(label, (list, tuple, np.ndarray)):
-                self.header[self.addcol] = list(reversed(label)) + self.header[self.addcol]
-            else:
-                self.header[self.addcol] = [label] + self.header[self.addcol]
-        if self.nsecs < len(self.header[self.addcol]):
-            self.nsecs = len(self.header[self.addcol])
-        self.addcol = len(self.data)-1
-        self.shape = (self.rows(), self.columns())
-        return self.addcol
         
     def append(self, label, unit, formats=None, value=None):
         """
@@ -387,6 +363,75 @@ class TableData:
         column = self.index(column)
         self.header[column][level] = label
         return column
+
+    def append_section(self, label):
+        """
+        Add sections to the table header.
+
+        Each column of the table has a header label. Columns can be
+        grouped into sections. Sections can be nested arbitrarily.
+
+        Parameters
+        ----------
+        label: string or list of string
+            The name(s) of the section(s).
+
+        Returns
+        -------
+        index: int
+            The column index where the section was appended.
+        """
+        if self.addcol >= len(self.data):
+            if isinstance(label, (list, tuple, np.ndarray)):
+                self.header.append(list(reversed(label)))
+            else:
+                self.header.append([label])
+            self.units.append('')
+            self.formats.append('')
+            self.hidden.append(False)
+            self.data.append([])
+        else:
+            if isinstance(label, (list, tuple, np.ndarray)):
+                self.header[self.addcol] = list(reversed(label)) + self.header[self.addcol]
+            else:
+                self.header[self.addcol] = [label] + self.header[self.addcol]
+        if self.nsecs < len(self.header[self.addcol]):
+            self.nsecs = len(self.header[self.addcol])
+        self.addcol = len(self.data)-1
+        self.shape = (self.rows(), self.columns())
+        return self.addcol
+        
+    def insert_section(self, column, section):
+        """
+        Insert a section at a given position of the table header.
+
+        Parameters
+        ----------
+        columns int or string
+            Column before which to insert the new section.
+            Column can be specified by index or name, see index() for details.
+        section: string
+            The name of the section.
+
+        Returns
+        -------
+        index: int
+            The index of the column where the section was inserted.
+            
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
+        """
+        col = self.index(column)
+        if col is None:
+            if isinstance(column, (int, np.integer)):
+                column = '%d' % column
+            raise IndexError('Cannot insert at non-existing column ' + column)
+        self.header[col].append(section)
+        if self.nsecs < len(self.header[col])-1:
+            self.nsecs = len(self.header[col])-1
+        return col
 
     def label(self, column):
         """
@@ -2280,9 +2325,12 @@ if __name__ == "__main__":
     print('velocity' in df)
     print('reaction>size' in df)
 
-    df.write('test.dat')
 
-    print
-    #tf = TableData(np.random.randn(3,2), header=['aaa', 'bbb'], units=['m', 's'], formats='%.2f')
-    tf = TableData('test.dat')
-    print tf
+    print('')
+    #df.write('test.dat')
+    tf = TableData(np.random.randn(4,3), header=['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')
+    #tf = TableData(df)
+    print(tf)
+    tf.insert_section('aaa', 'AAA')
+    tf.insert_section('ccc', 'CCC')
+    print(tf)
