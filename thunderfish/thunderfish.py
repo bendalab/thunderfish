@@ -432,7 +432,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_pl
             if mean_eod.shape[1] > 3:
                 td.append('fit', unit, '%.5f', mean_eod[:,3])
             td.write(os.path.join(output_folder, outfilename + '-waveform-%d' % i),
-                     table_format=file_format)
+                     table_format=file_format, format_width=True, units='row')
             del td
             # power spectrum:
             if len(sdata)>0:
@@ -446,7 +446,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_pl
                     if sdata.shape[1] > 4:
                         td.append('amplitude', unit, '%.5f', sdata[:,4])
                 td.write(os.path.join(output_folder, outfilename + '-spectrum-%d' % i),
-                         table_format=file_format)
+                         table_format=file_format, format_width=True, units='row')
                 del td
             # peaks:
             if len(pdata)>0:
@@ -454,14 +454,14 @@ def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_pl
                                ['P', 'time', 'amplitude', 'relampl'],
                                ['-', 'ms', unit, '%'], ['%.0f', '%.3f', '%.5f', '%.1f'])
                 td.write(os.path.join(output_folder, outfilename + '-peaks-%d' % i),
-                         table_format=file_format)
+                         table_format=file_format, format_width=True, units='row')
                 del td
         # wavefish frequencies and amplitudes:
         if len(fishlist) > 0:
             eoddata = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
             td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%.3f'])
             td.write(os.path.join(output_folder, outfilename + '-wavefish-eodfs'),
-                     table_format=file_format)
+                     table_format=file_format, format_width=True, units='row')
             del td
 
     if save_plot or not save_data:
