@@ -15,7 +15,7 @@ else:
 
 class TableData:
     """
-    Tables of data with a rich hierarchical header including units and formats.
+    Table of data with a rich hierarchical header including units and formats.
 
     Indexing
     --------
@@ -891,7 +891,7 @@ class TableData:
         # fix columns:
         if not isinstance(columns, (list, tuple, np.ndarray)):
             columns = [ columns ]
-        if len(columns) == 0:
+        if not columns:
             return
         # remove:
         for col in columns:
@@ -1208,7 +1208,7 @@ class TableData:
         # fix columns:
         if not isinstance(columns, (list, tuple, np.ndarray)):
             columns = [ columns ]
-        if len(columns) == 0:
+        if not columns:
             return
         cols = []
         for col in columns:
@@ -1350,7 +1350,7 @@ class TableData:
             if table_format is None:
                 if len(ext) > 1:
                     table_format = self.ext_formats[ext[1:]]
-            elif len(ext) == 0:
+            elif not ext:
                 fh += '.' + self.extensions[table_format]
             fh = open(fh, 'w')
             own_file = True
@@ -1511,9 +1511,16 @@ class TableData:
             bottom_line = False
             if sections is None:
                 sections = 1000
+        # check units:
         if units is None:
             units = 'row'
-
+        have_units = False
+        for u in self.units:
+            if u:
+                have_units = True
+                break
+        if not have_units:
+            units = 'none'
         # begin table:
         fh.write(begin_str)
         if table_format[0] == 't':
@@ -1535,12 +1542,12 @@ class TableData:
                 i0 = 2
             i1 = f.find('.')
             if not shrink:
-                if len(f[i0:i1]) > 0:
+                if f[i0:i1]:
                     w = int(f[i0:i1])
             widths_pos.append((i0, i1))
             # adapt width to header label:
             hw = len(self.header[c][0])
-            if units == 'header':
+            if units == 'header' and self.units[c]:
                 hw += 1 + len(self.units[c])
             if w < hw:
                 w = hw
@@ -1642,7 +1649,7 @@ class TableData:
                     fh.write(header_close)
                     hs = self.header[c][nsec]
                     if nsec == 0 and units == 'header':
-                        if units and self.units[c] != '1':
+                        if self.units[c] and self.units[c] != '1':
                             hs += '/' + self.units[c]
                     if format_width and not table_format[0] in 'th':
                         f = '%%-%ds' % sw
@@ -1826,7 +1833,7 @@ class TableData:
             if sep is None:
                 cols, indices = zip(*[(m.group(0), m.start()) for m in re.finditer(r'( ?[\S]+)+(?=[ ][ ]+|\Z)', line.strip())])
             elif table_format == 'csv':
-                cols, indices = zip(*[(c.strip(), i) for i, c in enumerate(line.strip().split(sep)) if len(c.strip()) > 0])
+                cols, indices = zip(*[(c.strip(), i) for i, c in enumerate(line.strip().split(sep)) if c.strip()])
                 return cols, indices
             else:
                 seps = r'[^'+re.escape(sep)+']+'
@@ -1925,7 +1932,7 @@ class TableData:
         table_format='dat'        
         for line in fh:
             line = line.rstrip()
-            if len(line) > 0:
+            if line:
                 if r'\begin{tabular' in line:
                     table_format='tex'
                     target = key
@@ -1934,7 +1941,7 @@ class TableData:
                     if r'\end{tabular' in line:
                         break
                     if r'\hline' in line:
-                        if len(key) > 0:
+                        if key:
                             target = data
                         continue
                     line = line.rstrip(r'\\')
@@ -1955,17 +1962,17 @@ class TableData:
                     table_format='rtai'        
                 if (line[0:3] == '|--' or line[0:3] == '|:-') and \
                    (line[-3:] == '--|' or line[-3:] == '-:|'):
-                    if len(data) == 0 and len(key) == 0:
+                    if not data and not key:
                         table_format='ascii'
                         target = key
                         continue
-                    elif len(key) == 0:
+                    elif not key:
                         table_format='md'
                         key = data
                         data = []
                         target = data
                         continue
-                    elif len(data) == 0:
+                    elif not data:
                         target = data
                         continue
                     else:
@@ -1982,13 +1989,13 @@ class TableData:
         for k, sep in enumerate(col_seps):
             cols = []
             s = 5 if len(data) >= 8 else len(data) - 3
-            if s < 0 or len(key) > 0:
+            if s < 0 or key:
                 s = 0
             for line in data[s:]:
                 cs = line.strip().split(sep)
-                if len(cs[0]) == 0:
+                if not cs[0]:
                     cs = cs[1:]
-                if len(cs) > 0 and len(cs[-1]) == 0:
+                if cs and not cs[-1]:
                     cs = cs[:-1]
                 cols.append(len(cs))
             colstd[k] = np.std(cols)
@@ -2002,7 +2009,7 @@ class TableData:
             sep = col_seps[ci]
             colnum = int(colnum[ci])
         # fix key:
-        if len(key) == 0 and sep is not None and sep in ',;:\t|':
+        if not key and sep is not None and sep in ',;:\t|':
             table_format = 'csv'
         # read key:
         key_cols = []
@@ -2011,7 +2018,7 @@ class TableData:
             cols, indices = read_key_line(line, sep, table_format)
             key_cols.append(cols)
             key_indices.append(indices)
-        if len(key_cols) == 0:
+        if not key_cols:
             # no obviously marked table key:
             key_num = 0
             for line in data:
@@ -2127,6 +2134,37 @@ class TableData:
             fh.close()
 
 
+def write(fh, data, header, units=None, formats=None, table_format=None,
+          unitstyle=None, number_cols=None, missing='-', shrink=True,
+          delimiter=None, format_width=None, sections=None):
+    """
+    Construct table and write to file.
+
+    Parameters
+    ----------
+    fh: filename or stream
+        If not a stream, the file with name `fh` is opened.
+        If `fh` does not have an extension,
+        the `table_format` is appended as an extension.
+        Otherwise `fh` is used as a stream for writing.
+    data: 1-D or 2-D array of data
+          The data of the table.
+    header: list of string
+        Header labels for each column.
+    units: list of string, optional
+        Unit strings for each column.
+    formats: string or list of string, optional
+        Format strings for each column. If only a single format string is
+        given, then all columns are initialized with this format string.
+
+    See TableData.write() for a description of all other parameters.
+    """
+    td = TableData(data, header, units, formats)
+    td.write(fh, table_format=table_format, units=unitstyle, number_cols=number_cols,
+             missing=missing, shrink=shrink, delimiter=delimiter,
+             format_width=format_width, sections=sections)
+
+    
 def index2aa(n, a='a'):
     """
     Convert an integer into an alphabetical representation.
@@ -2199,7 +2237,7 @@ class IndentStream(object):
         return getattr(self.stream, attr_name)
 
     def write(self, data):
-        if len(data) == 0:
+        if not data:
             return
         if self.pending:
             self.stream.write(' '*self.indent)
@@ -2334,3 +2372,6 @@ if __name__ == "__main__":
     tf.insert_section('aaa', 'AAA')
     tf.insert_section('ccc', 'CCC')
     print(tf)
+
+    write(sys.stdout, np.random.randn(4,3), ['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')
+    
