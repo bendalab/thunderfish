@@ -1073,9 +1073,9 @@ class TableData:
             Data values to be appended to a column.
             - A single value is simply appened to the specified column of the table.
             - A 1D-list of values is appended to successive columns of the table
-              starting with the specified columns.
+              starting with the specified column.
             - The columns of a 2D-list of values (second index) are appended
-              to successive columns of the table starting with the specified columns.
+              to successive columns of the table starting with the specified column.
         column: None, int, or string
             The first column to which the data should be appended.
             If None, append to the current column.
