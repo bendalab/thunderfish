@@ -23,7 +23,7 @@ from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_dete
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot
-from .csvmaker import write_csv
+from .tabledata import TableData
 
 
 def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate, idx0, idx1,
@@ -220,7 +220,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
     plt.close()
 
 
-def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
+def thunderfish(filename, channel=0, save_data=False, save_plot=False,
                 output_folder='.', show_bestwindow=False, cfgfile='',
                 save_config='', verbose=0):
     # configuration options:
@@ -260,7 +260,7 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         return 'you need to specify a file containing some data'
 
     # create output folder
-    if save_csvs or save_plot:
+    if save_data or save_plot:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
     outfilename = os.path.splitext(os.path.basename(filename))[0]
@@ -423,41 +423,53 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
         intervals = []
 
     # write results to files:
-    if save_csvs and found_bestwindow:
-        # eod waveforms:
+    if save_data and found_bestwindow:
+        # for each fish:
         for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
-            header = ['time (s)', 'mean (%s)' % unit, 'std (%s)' % unit]
+            # mean waveform:
+            td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'std'],
+                           ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
             if mean_eod.shape[1] > 3:
-                header.append('fit (%s)' % unit)
-            write_csv(os.path.join(output_folder, outfilename + '-waveform-%d.csv' % i),
-                      header, mean_eod)
+                td.append('fit', unit, '%.5f', mean_eod[:,3])
+            td.write(os.path.join(output_folder, outfilename + '-waveform-%d' % i),
+                     table_format='dat')
+            del td
+            # power spectrum:
             if len(sdata)>0:
                 if sdata.shape[1] == 2:
-                    header = ['frequency (Hz)', 'power']
+                    td = TableData(sdata[:,:2], ['frequency', 'power'],
+                                   ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
                 else:
-                    header = ['harmonics', 'frequency (Hz)', 'relampl', 'phase (rad)']
+                    td = TableData(sdata[:,:4]*[1.0, 1.0, 100.0, 1.0],
+                                   ['harmonics', 'frequency', 'relampl', 'phase'],
+                                   ['-', 'Hz', '%', 'rad'], ['%.0f', '%.2f', '%.1f', '%.3f'])
                     if sdata.shape[1] > 4:
-                        header.append('amplitude (%s)' % unit)
-                write_csv(os.path.join(output_folder, outfilename + '-spectrum-%d.csv' % i),
-                          header, sdata)
+                        td.append('amplitude', unit, '%.5f', sdata[:,4])
+                td.write(os.path.join(output_folder, outfilename + '-spectrum-%d' % i),
+                         table_format='dat')
+                del td
+            # peaks:
             if len(pdata)>0:
-                header = ['P', 'time (s)', 'amplitude (%s)' % unit, 'relampl']
-                write_csv(os.path.join(output_folder, outfilename + '-peaks-%d.csv' % i),
-                          header, pdata)
+                td = TableData(pdata[:,:4]*[1.0, 1000.0, 1.0, 100.0],
+                               ['P', 'time', 'amplitude', 'relampl'],
+                               ['-', 'ms', unit, '%'], ['%.0f', '%.3f', '%.5f', '%.1f'])
+                td.write(os.path.join(output_folder, outfilename + '-peaks-%d' % i),
+                         table_format='dat')
+                del td
         # wavefish frequencies and amplitudes:
         if len(fishlist) > 0:
-            # write csv file with main EODf and corresponding power in dB of detected fishes:
-            csv_matrix = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
-            csv_name = os.path.join(output_folder, outfilename + '-wavefish-eodfs.csv')
-            header = ['fundamental frequency (Hz)', 'power (dB)']
-            write_csv(csv_name, header, csv_matrix)
+            eoddata = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
+            td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%.3f'])
+            td.write(os.path.join(output_folder, outfilename + '-wavefish-eodfs'),
+                     table_format='dat')
+            del td
 
-    if save_plot or not save_csvs:
+    if save_plot or not save_data:
         output_plot(outfilename, pulse_fish,
                     intervals, raw_data, samplerate, idx0, idx1, clipped, fishlist,
                     mean_eods, eod_props, peak_data, spec_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
-                    save_plot=save_plot, show_plot=not save_csvs)
+                    save_plot=save_plot, show_plot=not save_data)
 
 
 def main():
@@ -476,8 +488,8 @@ def main():
     parser.add_argument('file', nargs='?', default='', type=str, help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be analyzed')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
-    parser.add_argument('-s', dest='save_csvs', action='store_true',
-                        help='save analysis results as csv-files')
+    parser.add_argument('-s', dest='save_data', action='store_true',
+                        help='save analysis results to files')
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
                         help="path where to store results and figures")
     parser.add_argument('-b', dest='show_bestwindow', action='store_true', help='show the cost function of the best window algorith')
@@ -488,7 +500,7 @@ def main():
     if args.verbose != None:
         verbose = args.verbose
 
-    msg = thunderfish(args.file, args.channel, args.save_csvs, args.save_plot,
+    msg = thunderfish(args.file, args.channel, args.save_data, args.save_plot,
                       args.output_folder, args.show_bestwindow, cfgfile,
                       args.save_config, verbose=verbose)
     if msg is not None:
