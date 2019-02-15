@@ -4,6 +4,7 @@
 ## Main functions
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
+- `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
 
 ## Visualization
 - `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard deviation.
