@@ -47,6 +47,36 @@ class TableData:
     - `set_format()`: set the format string of a column.
     - `set_formats()`: set the format strings of all columns.
 
+    For example:
+    ```
+    df = TableData()
+    # first column with section names and 3 data values:
+    df.append(["data", "partial information", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    # next columns with single data values:
+    df.append("full weight", "kg", "%.0f", 122.8)
+    df.append_section("complete reaction")
+    df.append("speed", "m/s", "%.3g", 98.7)
+    df.append("median jitter", "mm", "%.1f", 23)
+    df.append("size", "g", "%.2e", 1.234)
+    # add a missing value to the second column:
+    df.append_data(float('NaN'), 1)
+    # fill up the remaining columns of the row:
+    df.append_data((0.543, 45, 1.235e2))
+    # append data to the next row:
+    df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
+    print df
+    ```
+    results in
+    ```
+    data
+    partial information  complete reaction
+    size    full weight  speed     median jitter  size
+    m       kg           m/s       mm             g       
+      2.34          123      98.7           23.0  1.23e+00
+     56.70            -     0.543           45.0  1.24e+02
+      8.90           43  6.79e+03         3405.0  1.23e-04
+    ```
+    
     ## Table columns
 
     Columns can be specified by an index or by the name of a column. In
@@ -60,9 +90,15 @@ class TableData:
     - `column_head()`: the name, unit, and format of a column.
     - `table_header()`: the header of the table without content.
 
-    ## Iterating trough columns
+    For example:
+    ```
+    df.index('complete reaction>size)   # returns 4
+    'speed' in df                       # is True
+    ```
 
-    A table can be thought of a dictionary with the colomn names as the
+    ## Iterating over columns
+
+    A table behaves like an ordered dictionary with the colomn names as the
     keys and the data of a column as the values.
     Iterating over the table goes over columns.
     
@@ -71,9 +107,61 @@ class TableData:
     - `items()`: list of tuples with unique column specifications and the corresponding data.
     - `__len__()`: the number of columns.
     - `__iter__()`: initialize iteration over data columns.
-    - `__next__()`: return next column as a list.
-    - `key_value()`: a data element returned as a key-value pair.
+    - `__next__()`: return data of next column as a list.
     - `data`: the table data as a list over columns each containing a list of data elements.
+
+    For example:
+    ```
+    print('data len: %d' % len(df))
+    print('data rows: %d' % df.rows())
+    print('data columns: %d' % df.columns())
+    print('data shape: (%d, %d)' % (df.shape[0],df.shape[1]))
+    print('')
+    print('column specifications:')
+    for c in range(df.columns()):
+        print(df.column_spec(c))
+    print('keys():')
+    for c, k in enumerate(df.keys()):
+        print('%d: %s' % (c, k))
+    print('values():')
+    for c, v in enumerate(df.values()):
+        print(v)
+    print('iterating over the table:')
+    for v in df:
+        print(v)
+    ```
+    results in
+    ```
+    data len: 5
+    data rows: 3
+    data columns: 5
+    data shape: (3, 5)
+
+    column specifications:
+    data>partial information>size
+    data>partial information>full weight
+    data>complete reaction>speed
+    data>complete reaction>median jitter
+    data>complete reaction>size
+    keys():
+    0: data>partial information>size
+    1: data>partial information>full weight
+    2: data>complete reaction>speed
+    3: data>complete reaction>median jitter
+    4: data>complete reaction>size
+    values():
+    [2.34, 56.7, 8.9]
+    [122.8, nan, 43.21]
+    [98.7, 0.543, 6789.1]
+    [23, 45, 3405]
+    [1.234, 123.5, 0.0001235]
+    iterating over the table:
+    [2.34, 56.7, 8.9]
+    [122.8, nan, 43.21]
+    [98.7, 0.543, 6789.1]
+    [23, 45, 3405]
+    [1.234, 123.5, 0.0001235]
+    ```
 
     ## Access the data
 
@@ -94,9 +182,44 @@ class TableData:
     - `set_column()`: set the column where to add data.
     - `fill_data()`: fill up all columns with missing data.
     - `clear()`: clear content of the table but keep header.
+    - `key_value()`: a data element returned as a key-value pair.
     
     - `sort()`: sort the table rows in place.
     - `statistics()`: descriptive statistics of each column.
+
+    For example:
+    ```
+    # single column:    
+    df[:,'size']   # data of 'size' column
+    df.col('size') # table with the single column 'size'
+
+    # single row:    
+    df[2,:]    # data of the third row
+    df.row(2)  # table with data of only the third row
+
+    # slices:
+    df[2:5,['size','jitter']]          # sub table
+    df[2:5,['size','jitter']].array()  # numpy array with data only
+
+    # sort and statistics:
+    df.sort(['weight', 'jitter'])
+    df.statistics()
+    ```
+    statistics() returns a table with standard descriptive statistics:
+    ```
+    statistics  data
+    -           partial information  complete reaction
+    -           size    full weight  speed     median jitter  size
+    -           m       kg           m/s       mm             g       
+    mean         22.65           83   2.3e+03         1157.7  4.16e+01
+    std          24.23           40  3.18e+03         1589.1  5.79e+01
+    min           2.34           43     0.543           23.0  1.23e-04
+    quartile1     5.62           83      49.6           34.0  6.17e-01
+    median        8.90          123      98.7           45.0  1.23e+00
+    quartile3    32.80            -  3.44e+03         1725.0  6.24e+01
+    max          56.70          123  6.79e+03         3405.0  1.24e+02
+    count         3.00            2         3            3.0  3.00e+00
+    ```
 
     ## Write and load tables
 
@@ -117,6 +240,8 @@ class TableData:
     - descriptions: dictionary with descriptions of the supported file formats.
     - extensions: dictionary with default filename extensions for each of the file formats.
     - ext_formats: dictionary mapping filename extensions to file formats.
+
+    See documentation of the write() function for examples of the supported file formats.
     """
     
     formats = ['dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html']
@@ -795,7 +920,7 @@ class TableData:
 
     def __next__(self):
         """
-        Return next column as a list.
+        Return data of next column as a list.
         """
         self.iter_counter += 1
         if self.iter_counter >= self.columns():
@@ -809,37 +934,6 @@ class TableData:
         (python2 syntax)
         """
         return self.__next__()
-
-    def key_value(self, row, col, missing='-'):
-        """
-        A data element returned as a key-value pair.
-
-        Parameters
-        ----------
-        row: int
-            Specifies the row from which the data element should be retrieved.
-        col: None, int, or string
-            A specification of a column.
-            See self.index() for more information on how to specify a column.
-        missing: string
-            String indicating non-existing data elements.
-
-        Returns
-        -------
-        s: string
-            A string composed of the header label of the column, an '=' character,
-            a textual representation of the data element according to the format
-            of the column, followed by the unit of the column.
-        """
-        col = self.index(col)
-        if col is None:
-            return ''
-        if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
-            v = missing
-        else:
-            u = self.units[col] if self.units[col] != '1' else ''
-            v = (self.formats[col] % self.data[col][row]) + u
-        return self.header[col][0] + '=' + v
 
     def rows(self):
         """
@@ -1208,6 +1302,37 @@ class TableData:
             ds.append_data(np.count_nonzero(~np.isnan(self.data[c])), c+1)
         ds.shape = (ds.rows(), ds.columns())
         return ds
+
+    def key_value(self, row, col, missing='-'):
+        """
+        A data element returned as a key-value pair.
+
+        Parameters
+        ----------
+        row: int
+            Specifies the row from which the data element should be retrieved.
+        col: None, int, or string
+            A specification of a column.
+            See self.index() for more information on how to specify a column.
+        missing: string
+            String indicating non-existing data elements.
+
+        Returns
+        -------
+        s: string
+            A string composed of the header label of the column, an '=' character,
+            a textual representation of the data element according to the format
+            of the column, followed by the unit of the column.
+        """
+        col = self.index(col)
+        if col is None:
+            return ''
+        if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
+            v = missing
+        else:
+            u = self.units[col] if self.units[col] != '1' else ''
+            v = (self.formats[col] % self.data[col][row]) + u
+        return self.header[col][0] + '=' + v
 
     def hide(self, column):
         """
@@ -2391,13 +2516,17 @@ if __name__ == "__main__":
     print('column specifications:')
     for c in range(df.columns()):
         print(df.column_spec(c))
-    print('keys:')
-    print(df.keys())
-    print('values:')
-    print(df.values())
-    print('items:')
+    print('keys():')
+    for c, k in enumerate(df.keys()):
+        print('%d: %s' % (c, k))
+    print('values():')
+    for c, v in enumerate(df.values()):
+        print(v)
+    print('items():')
     print(df.items())
-    print('')
+    print('iterating over the table:')
+    for v in df:
+        print(v)
 
     # sorting:
     print(df)
@@ -2410,11 +2539,6 @@ if __name__ == "__main__":
     #print(df[2:,'weight':'reaction>size'])
     print(df[2:5,['size','jitter']])
     print(df[2:5,['size','jitter']].array())
-    print('')
-
-    # iterate over columns:
-    for a in df:
-        print(a)
     print('')
 
     # single column:    
@@ -2445,6 +2569,7 @@ if __name__ == "__main__":
     print(df)
 
     # delete:
+    print('\ndelete:')
     del df[3:6, 'weight']
     del df[3:5,:]
     del df[:,'speed']
