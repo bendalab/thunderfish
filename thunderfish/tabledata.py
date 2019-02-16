@@ -1,5 +1,13 @@
 """
-class TableData for reading and writing of data tables.
+# tabledata module
+
+Provides `class TableData` for tables with a rich hierarchical header
+including units and formats.
+
+## helper functions
+- `write()`: shortcut for constructing and writing a TableData.
+- `index2aa()`: convert an integer into an alphabetical representation.
+- `aa2index()`: convert an alphabetical representation to an index.
 """
 
 import sys
@@ -15,127 +23,100 @@ else:
 
 class TableData:
     """
-    Table of data with a rich hierarchical header including units and formats.
-
-    Indexing
-    --------
-    The TableData is a mapping of keys (the column headers)
-    to values (the column data).
-    Iterating over the table goes over columns.
-
-    The only exception is the [] operator that treats the table as a
-    2D-array: rows first, columns second.
-
-    File formats for writing
-    ------------------------
-    - `dat`: data text file
-      ```
-      # info           reaction     
-      # size   weight  delay  jitter
-      # m      kg      ms     mm    
-         2.34     123   98.7      23
-        56.70    3457   54.3      45
-         8.90      43   67.9     345
-      ```
-
-    - `ascii`: ascii-art table
-      ```
-      |---------------------------------|
-      | info           | reaction       |
-      | size  | weight | delay | jitter |
-      | m     | kg     | ms    | mm     |
-      |-------|--------|-------|--------|
-      |  2.34 |    123 |  98.7 |     23 |
-      | 56.70 |   3457 |  54.3 |     45 |
-      |  8.90 |     43 |  67.9 |    345 |
-      |---------------------------------|
-      ```
-
-    - `csv`: comma separated values
-      ```
-      size/m,weight/kg,delay/ms,jitter/mm
-      2.34,123,98.7,23
-      56.70,3457,54.3,45
-      8.90,43,67.9,345
-      ```
-
-    - `rtai`: rtai-style table
-      ```
-      RTH| info         | reaction     
-      RTH| size | weight| delay| jitter
-      RTH| m    | kg    | ms   | mm    
-      RTD|  2.34|    123|  98.7|     23
-      RTD| 56.70|   3457|  54.3|     45
-      RTD|  8.90|     43|  67.9|    345
-      ```
-
-    - `md`: markdown
-      ```
-      | size/m | weight/kg | delay/ms | jitter/mm |
-      |------:|-------:|------:|-------:|
-      |  2.34 |    123 |  98.7 |     23 |
-      | 56.70 |   3457 |  54.3 |     45 |
-      |  8.90 |     43 |  67.9 |    345 |
-      ```
+    Table with a rich hierarchical header including units and formats.
       
-    - `tex`: latex tabular
-      ```
-      \begin{tabular}{rrrr}
-        \hline
-        \multicolumn{2}{l}{info} & \multicolumn{2}{l}{reaction} \\
-        \multicolumn{1}{l}{size} & \multicolumn{1}{l}{weight} & \multicolumn{1}{l}{delay} & \multicolumn{1}{l}{jitter} \\
-        \multicolumn{1}{l}{m} & \multicolumn{1}{l}{kg} & \multicolumn{1}{l}{ms} & \multicolumn{1}{l}{mm} \\
-        \hline
-        2.34 & 123 & 98.7 & 23 \\
-        56.70 & 3457 & 54.3 & 45 \\
-        8.90 & 43 & 67.9 & 345 \\
-        \hline
-      \end{tabular}
-      ```
+    ## Manipulate table header
 
-    - `html`: html
-      ```
-      <table>
-      <thead>
-        <tr class="header">
-          <th align="left" colspan="2">info</th>
-          <th align="left" colspan="2">reaction</th>
-        </tr>
-        <tr class="header">
-          <th align="left">size</th>
-          <th align="left">weight</th>
-          <th align="left">delay</th>
-          <th align="left">jitter</th>
-        </tr>
-        <tr class="header">
-          <th align="left">m</th>
-          <th align="left">kg</th>
-          <th align="left">ms</th>
-          <th align="left">mm</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr class"odd">
-          <td align="right">2.34</td>
-          <td align="right">123</td>
-          <td align="right">98.7</td>
-          <td align="right">23</td>
-        </tr>
-        <tr class"even">
-          <td align="right">56.70</td>
-          <td align="right">3457</td>
-          <td align="right">54.3</td>
-          <td align="right">45</td>
-        </tr>
-        <tr class"odd">
-          <td align="right">8.90</td>
-          <td align="right">43</td>
-          <td align="right">67.9</td>
-          <td align="right">345</td>
-        </tr>
-      </tbody>
-      </table>
-      ```      
+    Each column of the table has a label (the name of the column), a
+    unit, and a format specifier. Sections group several columns.
+
+    - `__init__()`: initialize a TableData from data or a file.
+    - `append()`: append column to the table.
+    - `insert()`: insert a table column at a given position.
+    - `remove()`: remove columns from the table.
+    - `section()`: the section name of a specified column.
+    - `set_section()`: set a section name.
+    - `append_section()`: add sections to the table header.
+    - `insert_section()`: insert a section at a given position of the table header.
+    - `label()`: the name of a column.
+    - `set_label()`: set the name of a column.
+    - `unit()`: the unit of a column.
+    - `set_unit()`: set the unit of a column.
+    - `set_units()`: set the units of all columns.
+    - `format()`: the format string of the column.
+    - `set_format()`: set the format string of a column.
+    - `set_formats()`: set the format strings of all columns.
+
+    ## Table columns
+
+    Columns can be specified by an index or by the name of a column. In
+    table headers with sections the colum can be specified by the
+    section names and the column name separated by '>'.
+    
+    - `index()`: the index of a column.
+    - `__contains__()`: check for existence of a column.
+    - `find_col()`: find the start and end index of a column specification.
+    - `column_spec()`: full specification of a column with all its section names.
+    - `column_head()`: the name, unit, and format of a column.
+    - `table_header()`: the header of the table without content.
+
+    ## Iterating trough columns
+
+    A table can be thought of a dictionary with the colomn names as the
+    keys and the data of a column as the values.
+    Iterating over the table goes over columns.
+    
+    - `keys()`: list of unique column keys for all available columns.
+    - `values()`: list of column data corresponding to keys().
+    - `items()`: list of tuples with unique column specifications and the corresponding data.
+    - `__len__()`: the number of columns.
+    - `__iter__()`: initialize iteration over data columns.
+    - `__next__()`: return next column as a list.
+    - `key_value()`: a data element returned as a key-value pair.
+    - `data`: the table data as a list over columns each containing a list of data elements.
+
+    ## Access the data
+
+    In contrast to the iterator functions the [] operator treats the table as a
+    2D-array where the first index indicates the row and the second index the column.
+    Columns can be specified as indices or strings.
+    
+    - `rows()`: the number of rows.
+    - `columns()`: the number of columns.
+    - shape: number of rows and columns.
+    - `row()`: a single row of the table.
+    - `col()`: a single column of the table.
+    - `__getitem__()`: data elements specified by slice.
+    - `__setitem__()`: assign values to data elements specified by slice.
+    - `__delitem__()`: delete data elements or whole columns.
+    - `array()`: the table data as a numpy array.
+    - `append_data()`: append data elements to successive table columns.
+    - `set_column()`: set the column where to add data.
+    - `fill_data()`: fill up all columns with missing data.
+    - `clear()`: clear content of the table but keep header.
+    
+    - `sort()`: sort the table rows in place.
+    - `statistics()`: descriptive statistics of each column.
+
+    ## Write and load tables
+
+    Table data can be written to a variety of text-based formats
+    including comma separated values, latex and html files.  Which
+    columns are written can be controlled by the hide() and shw()
+    functions. TableData can loaded from all the written file formats
+    (except html).
+    
+    - `hide()`: hide a column or a range of columns.
+    - `hide_all()`: hide all columns.
+    - `hide_empty_columns()`: hide all columns that do not contain data.
+    - `show()`: show a column or a range of columns.
+    - `write()`: write the table to a file or stream.
+    - `__str__()`: write table to a string.
+    - `load()`: load table from file or stream.
+    - formats: list of supported file formats for writing.
+    - descriptions: dictionary with descriptions of the supported file formats.
+    - extensions: dictionary with default filename extensions for each of the file formats.
+    - ext_formats: dictionary mapping filename extensions to file formats.
     """
     
     formats = ['dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html']
@@ -314,6 +295,44 @@ class TableData:
         self.addcol = len(self.data)
         self.shape = (self.rows(), self.columns())
         return col
+
+    def remove(self, columns):
+        """
+        Remove columns from the table.
+
+        Parameters
+        -----------
+        columns: int or string or list of int or string
+            Columns can be specified by index or name, see index() for details.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
+        """
+        # fix columns:
+        if not isinstance(columns, (list, tuple, np.ndarray)):
+            columns = [ columns ]
+        if not columns:
+            return
+        # remove:
+        for col in columns:
+            c = self.index(col)
+            if c is None:
+                if isinstance(col, (int, np.integer)):
+                    col = '%d' % col
+                raise IndexError('Cannot remove non-existing column ' + col)
+                continue
+            if c+1 < len(self.header):
+                self.header[c+1].extend(self.header[c][len(self.header[c+1]):])
+            del self.header[c]
+            del self.units[c]
+            del self.formats[c]
+            del self.hidden[c]
+            del self.data[c]
+        if self.setcol > len(self.data):
+            self.setcol = len(self.data)
+        self.shape = (self.rows(), self.columns())
 
     def section(self, column, level):
         """
@@ -565,44 +584,26 @@ class TableData:
             for c in range(len(formats)):
                 self.formats[c] = formats or '%g'
 
-    def column_spec(self, column):
+    def table_header(self):
         """
-        Full specification of a column.
+        The header of the table without content.
 
-        Parameters
-        ----------
-        column: int or string
-            Specifies the column.
-            See self.index() for more information on how to specify a column.
-
-        Returns
-        -------
-        s: string
-            Full specification of the column by all its section names and its header name.
+        Return
+        ------
+        data: TableData
+            A TableData object with the same header but empty data.
         """
-        c = self.index(column)
-        fh = [self.header[c][0]]
-        for l in range(self.nsecs):
-            fh.append(self.section(c, l+1)[0])
-        return '>'.join(reversed(fh))
-
-    def keys(self):
-        """
-        List of unique column keys for all available columns.
-        """
-        return [self.column_spec(c) for c in range(self.columns())]
-
-    def values(self):
-        """
-        List of column data corresponding to keys().
-        """
-        return self.data
-
-    def items(self):
-        """
-        List of tuples with unique column specifications and the corresponding data.
-        """
-        return [(self.column_spec(c), self.data[c]) for c in range(self.columns())]
+        data = TableData()
+        sec_indices = [-1] * self.nsecs
+        for c in range(self.columns()):
+            data.append(*self.column_head(c))
+            for l in range(self.nsecs):
+                s, i = self.section(c, l+1)
+                if i != sec_indices[l]:
+                    data.header[-1].append(s)
+                    sec_indices[l] = i
+        data.nsecs = self.nsecs
+        return data
 
     def column_head(self, column):
         """
@@ -626,26 +627,153 @@ class TableData:
         column = self.index(column)
         return self.header[column][0], self.units[column], self.formats[column]
 
-    def table_header(self):
+    def column_spec(self, column):
         """
-        The header of the table without content.
+        Full specification of a column with all its section names.
 
-        Return
-        ------
-        data: TableData
-            A TableData object with the same header but empty data.
+        Parameters
+        ----------
+        column: int or string
+            Specifies the column.
+            See self.index() for more information on how to specify a column.
+
+        Returns
+        -------
+        s: string
+            Full specification of the column by all its section names and its header name.
         """
-        data = TableData()
-        sec_indices = [-1] * self.nsecs
-        for c in range(self.columns()):
-            data.append(*self.column_head(c))
-            for l in range(self.nsecs):
-                s, i = self.section(c, l+1)
-                if i != sec_indices[l]:
-                    data.header[-1].append(s)
-                    sec_indices[l] = i
-        data.nsecs = self.nsecs
-        return data
+        c = self.index(column)
+        fh = [self.header[c][0]]
+        for l in range(self.nsecs):
+            fh.append(self.section(c, l+1)[0])
+        return '>'.join(reversed(fh))
+    
+    def find_col(self, column):
+        """
+        Find the start and end index of a column specification.
+        
+        Parameters
+        ----------
+        column: None, int, or string
+            A specification of a column.
+            See self.index() for more information on how to specify a column.
+
+        Returns
+        -------
+        c0: int or None
+            A valid column index or None that is specified by `column`.
+        c1: int or None
+            A valid column index or None of the column following the range specified
+            by `column`.
+        """
+
+        def find_column_indices(ss, si, minns, maxns, c0, strict=True):
+            if si >= len(ss):
+                return None, None, None, None
+            ns0 = 0
+            for ns in range(minns, maxns+1):
+                nsec = maxns-ns
+                if ss[si] == '':
+                    si += 1
+                    continue
+                for c in range(c0, len(self.header)):
+                    if nsec < len(self.header[c]) and \
+                        ( ( strict and self.header[c][nsec] == ss[si] ) or
+                          ( not strict and ss[si] in self.header[c][nsec] ) ):
+                        ns0 = ns
+                        c0 = c
+                        si += 1
+                        if si >= len(ss):
+                            c1 = len(self.header)
+                            for c in range(c0+1, len(self.header)):
+                                if nsec < len(self.header[c]):
+                                    c1 = c
+                                    break
+                            return c0, c1, ns0, None
+                        elif nsec > 0:
+                            break
+            return None, c0, ns0, si
+
+        if column is None:
+            return None, None
+        if not isinstance(column, (int, np.integer)) and column.isdigit():
+            column = int(column)
+        if isinstance(column, (int, np.integer)):
+            if column >= 0 and column < len(self.header):
+                return column, column+1
+            else:
+                return None, None
+        # find column by header:
+        ss = column.rstrip('>').split('>')
+        maxns = self.nsecs
+        si0 = 0
+        while si0 < len(ss) and ss[si0] == '':
+            maxns -= 1
+            si0 += 1
+        if maxns < 0:
+            maxns = 0
+        c0, c1, ns, si = find_column_indices(ss, si0, 0, maxns, 0, True)
+        if c0 is None and c1 is not None:
+            c0, c1, ns, si = find_column_indices(ss, si, ns, maxns, c1, False)
+        return c0, c1
+
+    def index(self, column):
+        """
+        The index of a column.
+        
+        Parameters
+        ----------
+        column: None, int, or string
+            A specification of a column.
+            - None: no column is specified
+            - int: the index of the column (first column is zero), e.g. `index(2)`.
+            - a string representing an integer is converted into the column index,
+              e.g. `index('2')`
+            - a string specifying a column by its header.
+              Header names of descending hierarchy are separated by '>'.
+
+        Returns
+        -------
+        index: int or None
+            A valid column index or None.
+        """
+        c0, c1 = self.find_col(column)
+        return c0
+
+    def __contains__(self, column):
+        """
+        Check for existence of a column. 
+
+        Parameters
+        ----------
+        column: None, int, or string
+            The column to be checked.
+            See self.index() for more information on how to specify a column.
+
+        Returns
+        -------
+        contains: bool
+            True if `column` specifies an existing column key.
+        """
+        return self.index(column) is not None
+
+    def keys(self):
+        """
+        List of unique column keys for all available columns.
+        """
+        return [self.column_spec(c) for c in range(self.columns())]
+
+    def values(self):
+        """
+        List of column data corresponding to keys().
+        """
+        return self.data
+
+    def items(self):
+        """
+        List of tuples with unique column specifications and the corresponding data.
+        """
+        return [(self.column_spec(c), self.data[c]) for c in range(self.columns())]
         
     def __len__(self):
         """
@@ -682,16 +810,36 @@ class TableData:
         """
         return self.__next__()
 
-    def columns(self):
+    def key_value(self, row, col, missing='-'):
         """
-        The number of columns.
-        
+        A data element returned as a key-value pair.
+
+        Parameters
+        ----------
+        row: int
+            Specifies the row from which the data element should be retrieved.
+        col: None, int, or string
+            A specification of a column.
+            See self.index() for more information on how to specify a column.
+        missing: string
+            String indicating non-existing data elements.
+
         Returns
         -------
-        columns: int
-            The number of columns contained in the table.
+        s: string
+            A string composed of the header label of the column, an '=' character,
+            a textual representation of the data element according to the format
+            of the column, followed by the unit of the column.
         """
-        return len(self.header)
+        col = self.index(col)
+        if col is None:
+            return ''
+        if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
+            v = missing
+        else:
+            u = self.units[col] if self.units[col] != '1' else ''
+            v = (self.formats[col] % self.data[col][row]) + u
+        return self.header[col][0] + '=' + v
 
     def rows(self):
         """
@@ -703,28 +851,17 @@ class TableData:
             The number of rows contained in the table.
         """
         return max(map(len, self.data))
-
-    def col(self, column):
+    
+    def columns(self):
         """
-        A single column of the table.
-
-        Parameters
-        ----------
-        column: None, int, or string
-            The column to be returned.
-            See self.index() for more information on how to specify a column.
-
-        Return
-        ------
-        table: TableData
-            A TableData object with a single column.
+        The number of columns.
+        
+        Returns
+        -------
+        columns: int
+            The number of columns contained in the table.
         """
-        data = TableData()
-        c = self.index(column)
-        data.append(*self.column_head(c))
-        data.data = [self.data[c]]
-        data.nsecs = 0
-        return data
+        return len(self.header)
 
     def row(self, index):
         """
@@ -751,6 +888,28 @@ class TableData:
                     sec_indices[l] = i
             data.data[-1] = [self.data[c][index]]
         data.nsecs = self.nsecs
+        return data
+
+    def col(self, column):
+        """
+        A single column of the table.
+
+        Parameters
+        ----------
+        column: None, int, or string
+            The column to be returned.
+            See self.index() for more information on how to specify a column.
+
+        Return
+        ------
+        table: TableData
+            A TableData object with a single column.
+        """
+        data = TableData()
+        c = self.index(column)
+        data.append(*self.column_head(c))
+        data.data = [self.data[c]]
+        data.nsecs = 0
         return data
 
     def __setupkey(self, key):
@@ -874,47 +1033,9 @@ class TableData:
                     del self.data[c][rows]
                     self.data[c].extend([float('NaN')]*(self.rows()-len(self.data[c])))
 
-    def remove(self, columns):
-        """
-        Remove columns from the table.
-
-        Parameters
-        -----------
-        columns: int or string or list of int or string
-            Columns can be specified by index or name, see index() for details.
-
-        Raises
-        ------
-        IndexError:
-            If an invalid column was specified.
-        """
-        # fix columns:
-        if not isinstance(columns, (list, tuple, np.ndarray)):
-            columns = [ columns ]
-        if not columns:
-            return
-        # remove:
-        for col in columns:
-            c = self.index(col)
-            if c is None:
-                if isinstance(col, (int, np.integer)):
-                    col = '%d' % col
-                raise IndexError('Cannot remove non-existing column ' + col)
-                continue
-            if c+1 < len(self.header):
-                self.header[c+1].extend(self.header[c][len(self.header[c+1]):])
-            del self.header[c]
-            del self.units[c]
-            del self.formats[c]
-            del self.hidden[c]
-            del self.data[c]
-        if self.setcol > len(self.data):
-            self.setcol = len(self.data)
-        self.shape = (self.rows(), self.columns())
-
     def array(self):
         """
-        The table data as an numpy array.
+        The table data as a numpy array.
 
         Return
         ------
@@ -922,146 +1043,6 @@ class TableData:
             The data content of the entire table as a 2D numpy array (rows first).
         """
         return np.array(self.data).T
-
-    def key_value(self, row, col, missing='-'):
-        """
-        A data element returned as a key-value pair.
-
-        Parameters
-        ----------
-        row: int
-            Specifies the row from which the data element should be retrieved.
-        col: None, int, or string
-            A specification of a column.
-            See self.index() for more information on how to specify a column.
-        missing: string
-            String indicating non-existing data elements.
-
-        Returns
-        -------
-        s: string
-            A string composed of the header label of the column, an '=' character,
-            a textual representation of the data element according to the format
-            of the column, followed by the unit of the column.
-        """
-        col = self.index(col)
-        if col is None:
-            return ''
-        if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
-            v = missing
-        else:
-            u = self.units[col] if self.units[col] != '1' else ''
-            v = (self.formats[col] % self.data[col][row]) + u
-        return self.header[col][0] + '=' + v
-
-    def find_col(self, column):
-        """
-        Find the start and end index of a column specification.
-        
-        Parameters
-        ----------
-        column: None, int, or string
-            A specification of a column.
-            See self.index() for more information on how to specify a column.
-
-        Returns
-        -------
-        c0: int or None
-            A valid column index or None that is specified by `column`.
-        c1: int or None
-            A valid column index or None of the column following the range specified
-            by `column`.
-        """
-
-        def find_column_indices(ss, si, minns, maxns, c0, strict=True):
-            if si >= len(ss):
-                return None, None, None, None
-            ns0 = 0
-            for ns in range(minns, maxns+1):
-                nsec = maxns-ns
-                if ss[si] == '':
-                    si += 1
-                    continue
-                for c in range(c0, len(self.header)):
-                    if nsec < len(self.header[c]) and \
-                        ( ( strict and self.header[c][nsec] == ss[si] ) or
-                          ( not strict and ss[si] in self.header[c][nsec] ) ):
-                        ns0 = ns
-                        c0 = c
-                        si += 1
-                        if si >= len(ss):
-                            c1 = len(self.header)
-                            for c in range(c0+1, len(self.header)):
-                                if nsec < len(self.header[c]):
-                                    c1 = c
-                                    break
-                            return c0, c1, ns0, None
-                        elif nsec > 0:
-                            break
-            return None, c0, ns0, si
-
-        if column is None:
-            return None, None
-        if not isinstance(column, (int, np.integer)) and column.isdigit():
-            column = int(column)
-        if isinstance(column, (int, np.integer)):
-            if column >= 0 and column < len(self.header):
-                return column, column+1
-            else:
-                return None, None
-        # find column by header:
-        ss = column.rstrip('>').split('>')
-        maxns = self.nsecs
-        si0 = 0
-        while si0 < len(ss) and ss[si0] == '':
-            maxns -= 1
-            si0 += 1
-        if maxns < 0:
-            maxns = 0
-        c0, c1, ns, si = find_column_indices(ss, si0, 0, maxns, 0, True)
-        if c0 is None and c1 is not None:
-            c0, c1, ns, si = find_column_indices(ss, si, ns, maxns, c1, False)
-        return c0, c1
-    
-    def index(self, column):
-        """
-        The index of a column.
-        
-        Parameters
-        ----------
-        column: None, int, or string
-            A specification of a column.
-            - None: no column is specified
-            - int: the index of the column (first column is zero), e.g. `index(2)`.
-            - a string representing an integer is converted into the column index,
-              e.g. `index('2')`
-            - a string specifying a column by its header.
-              Header names of descending hierarchy are separated by '>'.
-
-        Returns
-        -------
-        index: int or None
-            A valid column index or None.
-        """
-        c0, c1 = self.find_col(column)
-        return c0
-
-    def __contains__(self, column):
-        """
-        Check for existence of a column. 
-
-        Parameters
-        ----------
-        column: None, int, or string
-            The column to be checked.
-            See self.index() for more information on how to specify a column.
-
-        Returns
-        -------
-        contains: bool
-            True if `column` specifies an existing column key.
-        """
-        return self.index(column) is not None
 
     def append_data(self, value, column=None):
         """
@@ -1147,46 +1128,6 @@ class TableData:
             self.data[c] = []
         self.setcol = 0
         self.shape = (self.rows(), self.columns())
-
-    def statistics(self):
-        """
-        Descriptive statistics of each column.
-        """
-        ds = TableData()
-        if self.nsecs > 0:
-            ds.append_section('statistics')
-            for l in range(1,self.nsecs):
-                ds.append_section('-')
-            ds.append('-', '-', '%-10s')
-        else:
-            ds.append('statistics', '-', '%-10s')
-        ds.header.extend(self.header)
-        ds.units.extend(self.units)
-        ds.formats.extend(self.formats)
-        ds.nsecs = self.nsecs
-        ds.hidden = [False] * ds.columns()
-        for c in range(self.columns()):
-            ds.data.append([])
-        ds.append_data('mean', 0)
-        ds.append_data('std', 0)
-        ds.append_data('min', 0)
-        ds.append_data('quartile1', 0)
-        ds.append_data('median', 0)
-        ds.append_data('quartile3', 0)
-        ds.append_data('max', 0)
-        ds.append_data('count', 0)
-        for c in range(self.columns()):
-            ds.append_data(np.nanmean(self.data[c]), c+1)
-            ds.append_data(np.nanstd(self.data[c]), c+1)
-            ds.append_data(np.nanmin(self.data[c]), c+1)
-            q1, m, q3 = np.percentile(self.data[c], [25., 50., 75.])
-            ds.append_data(q1, c+1)
-            ds.append_data(m, c+1)
-            ds.append_data(q3, c+1)
-            ds.append_data(np.nanmax(self.data[c]), c+1)
-            ds.append_data(np.count_nonzero(~np.isnan(self.data[c])), c+1)
-        ds.shape = (ds.rows(), ds.columns())
-        return ds
                 
     def sort(self, columns, reverse=False):
         """
@@ -1227,6 +1168,46 @@ class TableData:
         # sort table according to indices:
         for c in range(self.columns()):
             self.data[c] = [self.data[c][r] for r in row_inx]
+
+    def statistics(self):
+        """
+        Descriptive statistics of each column.
+        """
+        ds = TableData()
+        if self.nsecs > 0:
+            ds.append_section('statistics')
+            for l in range(1,self.nsecs):
+                ds.append_section('-')
+            ds.append('-', '-', '%-10s')
+        else:
+            ds.append('statistics', '-', '%-10s')
+        ds.header.extend(self.header)
+        ds.units.extend(self.units)
+        ds.formats.extend(self.formats)
+        ds.nsecs = self.nsecs
+        ds.hidden = [False] * ds.columns()
+        for c in range(self.columns()):
+            ds.data.append([])
+        ds.append_data('mean', 0)
+        ds.append_data('std', 0)
+        ds.append_data('min', 0)
+        ds.append_data('quartile1', 0)
+        ds.append_data('median', 0)
+        ds.append_data('quartile3', 0)
+        ds.append_data('max', 0)
+        ds.append_data('count', 0)
+        for c in range(self.columns()):
+            ds.append_data(np.nanmean(self.data[c]), c+1)
+            ds.append_data(np.nanstd(self.data[c]), c+1)
+            ds.append_data(np.nanmin(self.data[c]), c+1)
+            q1, m, q3 = np.percentile(self.data[c], [25., 50., 75.])
+            ds.append_data(q1, c+1)
+            ds.append_data(m, c+1)
+            ds.append_data(q3, c+1)
+            ds.append_data(np.nanmax(self.data[c]), c+1)
+            ds.append_data(np.count_nonzero(~np.isnan(self.data[c])), c+1)
+        ds.shape = (ds.rows(), ds.columns())
+        return ds
 
     def hide(self, column):
         """
@@ -1300,7 +1281,7 @@ class TableData:
     def write(self, fh=sys.stdout, table_format=None, units=None, number_cols=None,
               missing='-', shrink=True, delimiter=None, format_width=None, sections=None):
         """
-        Write the table into a stream.
+        Write the table to a file or stream.
 
         Parameters
         ----------
@@ -1326,6 +1307,7 @@ class TableData:
             - 'aa': use 'a', 'b', 'c', ..., 'z', 'aa', 'ab', ... for indexing
             - 'aa': use 'A', 'B', 'C', ..., 'Z', 'AA', 'AB', ... for indexing
             - None or 'none': do not add a row with column indices
+            TableData.column_numbering is a list with the supported styles.
         missing: string
             Indicate missing data by this string.
         shrink: boolean
@@ -1341,6 +1323,118 @@ class TableData:
         sections: None or int
             Number of section levels to be printed.
             If `None` use default of selected `table_format`.
+
+        Supported file formats
+        ----------------------
+        
+        - `dat`: data text file
+          ```
+          # info           reaction     
+          # size   weight  delay  jitter
+          # m      kg      ms     mm    
+             2.34     123   98.7      23
+            56.70    3457   54.3      45
+             8.90      43   67.9     345
+          ```
+
+        - `ascii`: ascii-art table
+          ```
+          |---------------------------------|
+          | info           | reaction       |
+          | size  | weight | delay | jitter |
+          | m     | kg     | ms    | mm     |
+          |-------|--------|-------|--------|
+          |  2.34 |    123 |  98.7 |     23 |
+          | 56.70 |   3457 |  54.3 |     45 |
+          |  8.90 |     43 |  67.9 |    345 |
+          |---------------------------------|
+          ```
+
+        - `csv`: comma separated values
+          ```
+          size/m,weight/kg,delay/ms,jitter/mm
+          2.34,123,98.7,23
+          56.70,3457,54.3,45
+          8.90,43,67.9,345
+          ```
+
+        - `rtai`: rtai-style table
+          ```
+          RTH| info         | reaction     
+          RTH| size | weight| delay| jitter
+          RTH| m    | kg    | ms   | mm    
+          RTD|  2.34|    123|  98.7|     23
+          RTD| 56.70|   3457|  54.3|     45
+          RTD|  8.90|     43|  67.9|    345
+          ```
+
+        - `md`: markdown
+          ```
+          | size/m | weight/kg | delay/ms | jitter/mm |
+          |------:|-------:|------:|-------:|
+          |  2.34 |    123 |  98.7 |     23 |
+          | 56.70 |   3457 |  54.3 |     45 |
+          |  8.90 |     43 |  67.9 |    345 |
+          ```
+
+        - `tex`: latex tabular
+          ```
+          \begin{tabular}{rrrr}
+            \hline
+            \multicolumn{2}{l}{info} & \multicolumn{2}{l}{reaction} \\
+            \multicolumn{1}{l}{size} & \multicolumn{1}{l}{weight} & \multicolumn{1}{l}{delay} & \multicolumn{1}{l}{jitter} \\
+            \multicolumn{1}{l}{m} & \multicolumn{1}{l}{kg} & \multicolumn{1}{l}{ms} & \multicolumn{1}{l}{mm} \\
+            \hline
+            2.34 & 123 & 98.7 & 23 \\
+            56.70 & 3457 & 54.3 & 45 \\
+            8.90 & 43 & 67.9 & 345 \\
+            \hline
+          \end{tabular}
+          ```
+
+        - `html`: html
+          ```
+          <table>
+          <thead>
+            <tr class="header">
+              <th align="left" colspan="2">info</th>
+              <th align="left" colspan="2">reaction</th>
+            </tr>
+            <tr class="header">
+              <th align="left">size</th>
+              <th align="left">weight</th>
+              <th align="left">delay</th>
+              <th align="left">jitter</th>
+            </tr>
+            <tr class="header">
+              <th align="left">m</th>
+              <th align="left">kg</th>
+              <th align="left">ms</th>
+              <th align="left">mm</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class"odd">
+              <td align="right">2.34</td>
+              <td align="right">123</td>
+              <td align="right">98.7</td>
+              <td align="right">23</td>
+            </tr>
+            <tr class"even">
+              <td align="right">56.70</td>
+              <td align="right">3457</td>
+              <td align="right">54.3</td>
+              <td align="right">45</td>
+            </tr>
+            <tr class"odd">
+              <td align="right">8.90</td>
+              <td align="right">43</td>
+              <td align="right">67.9</td>
+              <td align="right">345</td>
+            </tr>
+          </tbody>
+          </table>
+          ```
         """
 
         # open file:
@@ -1811,6 +1905,9 @@ class TableData:
 
             
     def __str__(self):
+        """
+        Write table to a string.
+        """
         stream = StringIO()
         self.write(stream, table_format='out')
         return stream.getvalue()
@@ -1818,7 +1915,7 @@ class TableData:
 
     def load(self, fh, missing='-'):
         """
-        Load table from file.
+        Load table from file or stream.
 
         File type and properties are automatically inferred.
 
