@@ -112,11 +112,6 @@ class TableData:
 
     For example:
     ```
-    print('data len: %d' % len(df))
-    print('data rows: %d' % df.rows())
-    print('data columns: %d' % df.columns())
-    print('data shape: (%d, %d)' % (df.shape[0],df.shape[1]))
-    print('')
     print('column specifications:')
     for c in range(df.columns()):
         print(df.column_spec(c))
@@ -132,11 +127,6 @@ class TableData:
     ```
     results in
     ```
-    data len: 5
-    data rows: 3
-    data columns: 5
-    data shape: (3, 5)
-
     column specifications:
     data>partial information>size
     data>partial information>full weight
@@ -171,7 +161,7 @@ class TableData:
     
     - `rows()`: the number of rows.
     - `columns()`: the number of columns.
-    - shape: number of rows and columns.
+    - `shape`: number of rows and columns.
     - `row()`: a single row of the table.
     - `col()`: a single column of the table.
     - `__getitem__()`: data elements specified by slice.
@@ -200,6 +190,12 @@ class TableData:
     # slices:
     df[2:5,['size','jitter']]          # sub table
     df[2:5,['size','jitter']].array()  # numpy array with data only
+
+    # delete:
+    del df[3:6, 'weight']  # delete rows 3-6 from column 'weight'
+    del df[3:5,:]          # delete rows 3-5 completeley
+    del df[:,'speed']      # remove column 'speed' from table
+    df.remove('weight')    # remove column 'weigth' from table
 
     # sort and statistics:
     df.sort(['weight', 'jitter'])
@@ -1107,8 +1103,7 @@ class TableData:
             If all rows are selected, then the specified columns are removed from the table.
             Otherwise only data values are removed.
             If all columns are selected than entire rows of data values are removed.
-            Otherwise only data values in the specified rows are removed and the columns
-            are filled up with missing values.
+            Otherwise only data values in the specified rows are removed.
         """
         rows, cols = self.__setupkey(key)
         if hasattr(self.data[cols[0]][rows], '__len__') and \
@@ -1125,7 +1120,6 @@ class TableData:
                 # delete part of a row:
                 for c in cols:
                     del self.data[c][rows]
-                    self.data[c].extend([float('NaN')]*(self.rows()-len(self.data[c])))
 
     def array(self):
         """
@@ -2597,4 +2591,3 @@ if __name__ == "__main__":
     print(tf)
 
     write(sys.stdout, np.random.randn(4,3), ['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')
-    

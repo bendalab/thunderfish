@@ -4,7 +4,7 @@ import sys
 import numpy as np
 import thunderfish.tabledata as td
 
-def setup_table():
+def setup_table(nanvalue=True):
     df = td.TableData()
     df.append(["data", "partial informationes", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
     df.append("full weight", "kg", "%.0f", 122.8)
@@ -12,7 +12,10 @@ def setup_table():
     df.append("speed", "m/s", "%.3g", 98.7)
     df.append("median jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
-    df.append_data(float('NaN'), 1)  # single value
+    if nanvalue:
+        df.append_data(float('NaN'), 1)  # single value
+    else:
+        df.append_data(27.56, 1)  # single value
     df.append_data((0.543, 45, 1.235e2)) # remaining row
     df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
     a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
@@ -33,6 +36,19 @@ def test_properties():
     assert_equal(df.columns(), 5, 'columns() failed %d' % df.columns())
     assert_equal(df.rows(), 8, 'rows() failed %d' % df.rows())
     assert_equal(df.shape, (8, 5), 'shape failed %d %d' % df.shape)
+
+def test_columns():
+    df = setup_table(False)
+    for c, k in enumerate(df.keys()):
+        assert_equal(c, df.index(k), 'index %s is not %d' % (k, c))
+        assert_true(k in df, 'key %s not found in table' % k)
+    for c in range(df.columns()):
+        k = df.column_spec(c)
+        assert_equal(c, df.index(k), 'index %s is not %d' % (k, c))
+    for dc, vc in zip(df.data, df.values()):
+        assert_true(np.all(dc == vc), 'data and value columns differ')
+    for k, v in df.items():
+        assert_true(np.all(df.col(k).array()[:,0] == v), 'data and value for column %s differ' % k)
 
 def test_write_load():
     df = setup_table()
