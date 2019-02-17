@@ -175,7 +175,8 @@ class ConfigFile:
         """
         a = {}
         for dest, src in mapping.items():
-            a[dest] = self.value(src)
+            if src in self.cfg:
+                a[dest] = self.value(src)
         return a
 
     
