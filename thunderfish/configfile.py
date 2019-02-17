@@ -27,13 +27,14 @@ class ConfigFile:
 
     
     def __init__(self, orig=None):
-        if orig is None:
-            self.cfg = OrderedDict()
-            self.sections = dict()
-            self.new_section = None
-        else:
-            self.cfg = orig.cfg
-            self.sections = orig.sections
+        self.cfg = OrderedDict()
+        self.sections = dict()
+        self.new_section = None
+        if not orig is None:
+            for k, v in orig.cfg.items():
+                self.cfg[k] = list(v)
+            for k, v in orig.sections.items():
+                self.sections[k] = v
             self.new_section = None
 
             
