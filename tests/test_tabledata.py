@@ -25,10 +25,10 @@ def setup_table(nanvalue=True):
 
 def test_write():
     df = setup_table()
-    for units in [None, 'none', 'row', 'header']:
-        for number_cols in [None, 'index', 'num', 'aa', 'AA']:
+    for unitstyle in [None, 'none', 'row', 'header']:
+        for column_numbers in [None, 'index', 'num', 'aa', 'AA']:
             for tf in td.TableData.formats:
-                df.write(table_format=tf, number_cols=number_cols)
+                df.write(table_format=tf, column_numbers=column_numbers)
 
 def test_properties():
     df = setup_table()
@@ -138,20 +138,20 @@ def test_sort():
     
 def test_write_load():
     df = setup_table()
-    for units in [None, 'none', 'row', 'header']:
-        for number_cols in [None, 'none', 'index', 'num', 'aa', 'AA']:
+    for unitstyle in [None, 'none', 'row', 'header']:
+        for column_numbers in [None, 'none', 'index', 'num', 'aa', 'AA']:
             for delimiter in [None, ';', '| ', '\t']:
                 for format_width in [None, True, False]:
                     for sections in [None, 0, 1, 2]:
                         for tf in td.TableData.formats[:-1]:
                             orgfilename = 'tabletest.' + td.TableData.extensions[tf]
-                            df.write(orgfilename, table_format=tf, number_cols=number_cols,
-                                     units=units, delimiter=delimiter,
+                            df.write(orgfilename, table_format=tf, column_numbers=column_numbers,
+                                     unitstyle=unitstyle, delimiter=delimiter,
                                      format_width=format_width, sections=sections)
                             sf = td.TableData(orgfilename)
                             filename = 'tabletest-read.' + td.TableData.extensions[tf]
-                            sf.write(filename, table_format=tf, number_cols=number_cols,
-                                     units=units, delimiter=delimiter,
+                            sf.write(filename, table_format=tf, column_numbers=column_numbers,
+                                     unitstyle=unitstyle, delimiter=delimiter,
                                      format_width=format_width, sections=sections)
                             with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
                                 for k, (line1, line2) in enumerate(zip(f1, f2)):
@@ -159,13 +159,13 @@ def test_write_load():
                                         print('%s: %s' % (tf, td.TableData.descriptions[tf]))
                                         print('files differ!')
                                         print('original table:')
-                                        df.write(table_format=tf, number_cols=number_cols,
-                                                 units=units, delimiter=delimiter,
+                                        df.write(table_format=tf, column_numbers=column_numbers,
+                                                 unitstyle=unitstyle, delimiter=delimiter,
                                                  format_width=format_width, sections=sections)
                                         print('')
                                         print('read in table:')
-                                        sf.write(table_format=tf, number_cols=number_cols,
-                                                 units=units, delimiter=delimiter,
+                                        sf.write(table_format=tf, column_numbers=column_numbers,
+                                                 unitstyle=unitstyle, delimiter=delimiter,
                                                  format_width=format_width, sections=sections)
                                         print('')
                                         print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.rstrip('\n'), line2.rstrip('\n')))
