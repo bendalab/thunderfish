@@ -241,8 +241,11 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
     cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the ampltude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
     cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
     cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
-    add_write_table_config(cfg, table_format='dat', unitstyle='row', format_width=True)
-    # XXX remove column numbers, sections, missing
+    add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True)
+    del cfg['fileColumnNumbers']
+    del cfg['fileSections']
+    del cfg['fileShrinkColumnWidth']
+    del cfg['fileMissing']
     
     # load configuration from working directory and data directories:
     cfg.load_files(cfgfile, filename, 3, verbose)
