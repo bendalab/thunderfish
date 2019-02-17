@@ -23,7 +23,7 @@ from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_dete
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot
-from .tabledata import TableData
+from .tabledata import TableData, add_write_table_config, write_table_args
 
 
 def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate, idx0, idx1,
@@ -220,7 +220,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
     plt.close()
 
 
-def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_plot=False,
+def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_plot=False,
                 output_folder='.', show_bestwindow=False, cfgfile='',
                 save_config='', verbose=0):
     # configuration options:
@@ -241,6 +241,8 @@ def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_pl
     cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the ampltude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
     cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
     cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+    add_write_table_config(cfg, table_format='dat', unitstyle='row', format_width=True)
+    # XXX remove column numbers, sections, missing
     
     # load configuration from working directory and data directories:
     cfg.load_files(cfgfile, filename, 3, verbose)
@@ -268,6 +270,10 @@ def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_pl
     # check channel:
     if channel < 0:
         return 'invalid channel %d' % channel
+
+    # set file format:
+    if file_format != 'auto':
+        cfg.set('fileFormat', file_format)
 
     # load data:
     try:
@@ -432,7 +438,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_pl
             if mean_eod.shape[1] > 3:
                 td.append('fit', unit, '%.5f', mean_eod[:,3])
             td.write(os.path.join(output_folder, outfilename + '-waveform-%d' % i),
-                     table_format=file_format, format_width=True, units='row')
+                     **write_table_args(cfg))
             del td
             # power spectrum:
             if len(sdata)>0:
@@ -446,7 +452,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_pl
                     if sdata.shape[1] > 4:
                         td.append('amplitude', unit, '%.5f', sdata[:,4])
                 td.write(os.path.join(output_folder, outfilename + '-spectrum-%d' % i),
-                         table_format=file_format, format_width=True, units='row')
+                         **write_table_args(cfg))
                 del td
             # peaks:
             if len(pdata)>0:
@@ -454,14 +460,14 @@ def thunderfish(filename, channel=0, save_data=False, file_format='dat', save_pl
                                ['P', 'time', 'amplitude', 'relampl'],
                                ['-', 'ms', unit, '%'], ['%.0f', '%.3f', '%.5f', '%.1f'])
                 td.write(os.path.join(output_folder, outfilename + '-peaks-%d' % i),
-                         table_format=file_format, format_width=True, units='row')
+                         **write_table_args(cfg))
                 del td
         # wavefish frequencies and amplitudes:
         if len(fishlist) > 0:
             eoddata = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
             td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%.3f'])
             td.write(os.path.join(output_folder, outfilename + '-wavefish-eodfs'),
-                     table_format=file_format, format_width=True, units='row')
+                     **write_table_args(cfg))
             del td
 
     if save_plot or not save_data:
@@ -490,8 +496,8 @@ def main():
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
     parser.add_argument('-s', dest='save_data', action='store_true',
                         help='save analysis results to files')
-    parser.add_argument('-f', dest='format', default='dat', type=str,
-                        help='file format used for saving analysis results (dat, ascii, csv, md, tex, html), defaults to "dat"')
+    parser.add_argument('-f', dest='format', default='auto', type=str,
+                        help='file format used for saving analysis results (dat, ascii, csv, md, tex, html), defaults to the format found in the configuration file or "dat"')
     parser.add_argument('-o', dest='output_folder', default=".", type=str,
                         help="path where to store results and figures")
     parser.add_argument('-b', dest='show_bestwindow', action='store_true', help='show the cost function of the best window algorithm')
@@ -502,7 +508,7 @@ def main():
     if args.verbose != None:
         verbose = args.verbose
 
-    if not args.format in TableData.formats:
+    if not args.format in TableData.formats and args.format != 'auto':
         parser.error('invalid file format %s' % args.format)
 
     msg = thunderfish(args.file, args.channel, args.save_data, args.format, args.save_plot,

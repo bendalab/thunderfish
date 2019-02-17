@@ -8,6 +8,10 @@ including units and formats.
 - `write()`: shortcut for constructing and writing a TableData.
 - `index2aa()`: convert an integer into an alphabetical representation.
 - `aa2index()`: convert an alphabetical representation to an index.
+
+## Configuration parameter
+- `add_write_table_config()`: add parameter specifying how to write a table to a file as a new section to a configuration.
+- `write_table_args()`: translates a configuration to the respective parameter names for writing a table to a file.
 """
 
 import sys
@@ -258,7 +262,6 @@ class TableData:
     descriptions = {'dat': 'data text file', 'ascii': 'ascii-art table', 'csv': 'comma separated values', 'rtai': 'rtai-style table', 'md': 'markdown', 'tex': 'latex tabular', 'html': 'html markup'}
     extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'md', 'tex': 'tex', 'html': 'html'}
     ext_formats = {'dat': 'dat', 'DAT': 'dat', 'txt': 'dat', 'TXT': 'dat', 'csv': 'csv', 'CSV': 'csv', 'md': 'md', 'MD': 'md', 'tex': 'tex', 'TEX': 'tex', 'html': 'html', 'HTML': 'html'}
-    column_numbering = ['num', 'index', 'aa', 'AA']
 
     def __init__(self, data=None, header=None, units=None, formats=None):
         """
@@ -1440,8 +1443,9 @@ class TableData:
             for c in range(c0, c1):
                 self.hidden[c] = False
 
-    def write(self, fh=sys.stdout, table_format=None, units=None, number_cols=None,
-              missing='-', shrink=True, delimiter=None, format_width=None, sections=None):
+    def write(self, fh=sys.stdout, table_format=None, delimiter=None,
+              unitstyle=None, column_numbers=None, sections=None,
+              format_width=None, shrink_width=True, missing='-'):
         """
         Write the table to a file or stream.
 
@@ -1455,14 +1459,17 @@ class TableData:
         table_format: None or string
             The format to be used for output.
             One of 'out', 'dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html'.
-            If None then the format is set to the extension of the filename given by `fh`.
+            If None or 'auto' then the format is set to the extension of the filename given by `fh`.
             If `fh` is a stream the format is set to 'dat'.
-        units: None or string
-            - None: use default of the specified `table_format`.
+        delimiter: string
+            String or character separating columns, if supported by the `table_format`.
+            If None or 'auto' use the default for the specified `table_format`.
+        unitstyle: None or string
+            - None or 'auto': use default of the specified `table_format`.
             - 'row': write an extra row to the table header specifying the units of the columns.
             - 'header': add the units to the column headers.
             - 'none': do not specify the units.
-        number_cols: string or None
+        column_numbers: string or None
             Add a row specifying the column index:
             - 'index': indices are integers, first column is 0.
             - 'num': indices are integers, first column is 1.
@@ -1470,21 +1477,18 @@ class TableData:
             - 'aa': use 'A', 'B', 'C', ..., 'Z', 'AA', 'AB', ... for indexing
             - None or 'none': do not add a row with column indices
             TableData.column_numbering is a list with the supported styles.
-        missing: string
-            Indicate missing data by this string.
-        shrink: boolean
-            If `True` disregard width specified by the format strings,
-            such that columns can become narrower.
-        delimiter: string
-            String or character separating columns, if supported by the `table_format`.
-            If None use the default for the specified `table_format`.
+        sections: None or int
+            Number of section levels to be printed.
+            If `None` or 'auto' use default of selected `table_format`.
         format_width: boolean
             - `True`: set width of column formats to make them align.
             - `False`: set width of column formats to 0 - no unnecessary spaces.
-            - None: Use default of the selected `table_format`.
-        sections: None or int
-            Number of section levels to be printed.
-            If `None` use default of selected `table_format`.
+            - None or 'auto': Use default of the selected `table_format`.
+        shrink_width: boolean
+            If `True` disregard width specified by the format strings,
+            such that columns can become narrower.
+        missing: string
+            Indicate missing data by this string.
 
         Supported file formats
         ----------------------
@@ -1598,7 +1602,19 @@ class TableData:
           </table>
           ```
         """
-
+        # fix parameter:
+        if table_format == 'auto':
+            table_format =None
+        if delimiter == 'auto':
+            delimiter=None
+        if unitstyle == 'auto':
+            unitstyle=None
+        if column_numbers == 'none':
+            column_numbers=None
+        if sections == 'auto':
+            sections=None
+        if format_width == 'auto':
+            format_width=None
         # open file:
         own_file = False
         if not hasattr(fh, 'write'):
@@ -1655,9 +1671,9 @@ class TableData:
                 sections = 1000
         elif table_format[0] == 'c':
             # csv according to http://www.ietf.org/rfc/rfc4180.txt :
-            number_cols=None
-            if units is None:
-                units = 'header'
+            column_numbers=None
+            if unitstyle is None:
+                unitstyle = 'header'
             if format_width is None:
                 format_width = False
             begin_str = ''
@@ -1696,8 +1712,8 @@ class TableData:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 'm':
-            if units is None:
-                units = 'header'
+            if unitstyle is None:
+                unitstyle = 'header'
             format_width = True
             begin_str = ''
             end_str = ''
@@ -1768,15 +1784,15 @@ class TableData:
             if sections is None:
                 sections = 1000
         # check units:
-        if units is None:
-            units = 'row'
+        if unitstyle is None:
+            unitstyle = 'row'
         have_units = False
         for u in self.units:
             if u and u != '1' and u != '-':
                 have_units = True
                 break
         if not have_units:
-            units = 'none'
+            unitstyle = 'none'
         # begin table:
         fh.write(begin_str)
         if table_format[0] == 't':
@@ -1797,13 +1813,13 @@ class TableData:
             if f[1] == '-' :
                 i0 = 2
             i1 = f.find('.')
-            if not shrink:
+            if not shrink_width:
                 if f[i0:i1]:
                     w = int(f[i0:i1])
             widths_pos.append((i0, i1))
             # adapt width to header label:
             hw = len(self.header[c][0])
-            if units == 'header' and self.units[c] and\
+            if unitstyle == 'header' and self.units[c] and\
                self.units[c] != '1' and self.units[c] != '-':
                 hw += 1 + len(self.units[c])
             if w < hw:
@@ -1912,7 +1928,7 @@ class TableData:
                         fh.write('\\multicolumn{%d}{l}{' % columns)
                     fh.write(header_close)
                     hs = self.header[c][nsec]
-                    if nsec == 0 and units == 'header':
+                    if nsec == 0 and unitstyle == 'header':
                         if self.units[c] and self.units[c] != '1' and self.units[c] != '-':
                             hs += '/' + self.units[c]
                     if format_width and not table_format[0] in 'th':
@@ -1927,7 +1943,7 @@ class TableData:
                         fh.write('}')
             fh.write(header_end)
         # units:
-        if units == 'row':
+        if unitstyle == 'row':
             first = True
             fh.write(header_start)
             for c in range(len(self.header)):
@@ -1947,7 +1963,7 @@ class TableData:
                         fh.write(self.units[c])
             fh.write(header_end)
         # column numbers:
-        if number_cols is not None and number_cols not in 'none':
+        if column_numbers is not None:
             first = True
             fh.write(header_start)
             for c in range(len(self.header)):
@@ -1958,18 +1974,18 @@ class TableData:
                 first = False
                 fh.write(header_close)
                 i = c
-                if number_cols == 'num':
+                if column_numbers == 'num':
                     i = c+1
                 aa = index2aa(c, 'a')
-                if number_cols == 'AA':
+                if column_numbers == 'AA':
                     aa = index2aa(c, 'A')
                 if table_format[0] == 't':
-                    if number_cols == 'num' or number_cols == 'index':
+                    if column_numbers == 'num' or column_numbers == 'index':
                         fh.write('\\multicolumn{1}{l}{%d}' % i)
                     else:
                         fh.write('\\multicolumn{1}{l}{%s}' % aa)
                 else:
-                    if number_cols == 'num' or number_cols == 'index':
+                    if column_numbers == 'num' or column_numbers == 'index':
                         if format_width:
                             f = '%%%dd' % widths[c]
                             fh.write(f % i)
@@ -2401,9 +2417,9 @@ class TableData:
             fh.close()
 
 
-def write(fh, data, header, units=None, formats=None, table_format=None,
-          unitstyle=None, number_cols=None, missing='-', shrink=True,
-          delimiter=None, format_width=None, sections=None):
+def write(fh, data, header, units=None, formats=None, table_format=None, delimiter=None,
+              unitstyle=None, column_numbers=None, sections=None,
+              format_width=None, shrink_width=True, missing='-'):
     """
     Construct table and write to file.
 
@@ -2433,11 +2449,59 @@ def write(fh, data, header, units=None, formats=None, table_format=None,
     ```
     """
     td = TableData(data, header, units, formats)
-    td.write(fh, table_format=table_format, units=unitstyle, number_cols=number_cols,
-             missing=missing, shrink=shrink, delimiter=delimiter,
+    td.write(fh, table_format=table_format, units=unitstyle, column_numbers=column_numbers,
+             missing=missing, shrink_width=shrink_width, delimiter=delimiter,
              format_width=format_width, sections=sections)
 
     
+def add_write_table_config(cfg, table_format=None, delimiter=None,
+                           unitstyle=None, column_numbers=None, sections=None,
+                           format_width=None, shrink_width=True, missing='-'):
+    """ Add parameter specifying how to write a table to a file as a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+    """
+
+    cfg.add_section('File format for storing analysis results:')
+    cfg.add('fileFormat', table_format or 'auto', '', 'Default file format used to store analysis results.\nOne of %s.' % ', '.join(TableData.formats))
+    cfg.add('fileDelimiter', delimiter or 'auto', '', 'String used to separate columns or "auto".')
+    cfg.add('fileUnitStyle', unitstyle or 'auto', '', 'Add units as extra row ("row"), add units to header label ("header"), do not print out units ("none"), or "auto".')
+    cfg.add('fileColumnNumbers', column_numbers or 'none', '', 'Add line with column indices ("index", "num", "aa", "AA", or "none")')
+    cfg.add('fileSections', sections or 'auto', '', 'Maximum number of section levels or "auto"')
+    cfg.add('fileColumnWidth', format_width or 'auto', '', 'If True, write all data of a column using the same width, if False write the data without any white space, or "auto".')
+    cfg.add('fileShrinkColumnWidth', shrink_width, '', 'Allow to make columns narrower than specified by the corresponding format strings.')
+    cfg.add('fileMissing', missing, '', 'String used to indicate missing data values.')
+
+
+def write_table_args(cfg):
+    """ Translates a configuration to the respective parameter names for writing a table to a file.
+    
+    The return value can then be passed as key-word arguments to TableData.write().
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `TableData.write` function
+        and their values as supplied by `cfg`.
+    """
+
+    return cfg.map({'table_format': 'fileFormat',
+                    'delimiter': 'fileDelimiter',
+                    'unitstyle': 'fileUnitStyle',
+                    'column_numbers': 'fileColumnNumbers',
+                    'sections': 'fileSections',
+                    'format_width': 'fileColumnWidth',
+                    'shrink_width': 'fileShrinkColumnWidth',
+                    'missing': 'fileMissing'})
+                  
 def index2aa(n, a='a'):
     """
     Convert an integer into an alphabetical representation.
@@ -2553,7 +2617,7 @@ if __name__ == "__main__":
         print('    - `%s`: %s' % (tf, TableData.descriptions[tf]))
         print('      ```')
         iout = IndentStream(sys.stdout, 4+2)
-        df.write(iout, table_format=tf, units=None, number_cols=None, delimiter=None, sections=None)
+        df.write(iout, table_format=tf, units=None, column_numbers=None, delimiter=None, sections=None)
         print('      ```')
         print('')
         
