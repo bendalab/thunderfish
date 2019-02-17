@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_equal, assert_almost_equal, assert_raises
+from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 import os
 import sys
 import numpy as np
@@ -6,7 +6,7 @@ import thunderfish.tabledata as td
 
 def setup_table(nanvalue=True):
     df = td.TableData()
-    df.append(["data", "partial informationes", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    df.append(["data", "partial informations", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
     df.append("full weight", "kg", "%.0f", 122.8)
     df.append_section("complete reaction")
     df.append("speed", "m/s", "%.3g", 98.7)
@@ -39,17 +39,103 @@ def test_properties():
 
 def test_columns():
     df = setup_table(False)
+    units = ['m', 'kg', 'm/s', 'mm', 'g']
+    formats = ['%6.2f', '%.0f', '%.3g', '%.1f', '%.2e']
+    sec1 = [('partial informations', 0), ('partial informations', 0), ('complete reaction', 2), ('complete reaction', 2), ('complete reaction', 2)]
     for c, k in enumerate(df.keys()):
         assert_equal(c, df.index(k), 'index %s is not %d' % (k, c))
         assert_true(k in df, 'key %s not found in table' % k)
+        assert_false(('xx'+k) in df, 'key %s found in table' % k)
+        assert_false((k+'xx') in df, 'key %s found in table' % k)
     for c in range(df.columns()):
         k = df.column_spec(c)
         assert_equal(c, df.index(k), 'index %s is not %d' % (k, c))
+        assert_equal(units[c], df.unit(c), 'unit of column %d is not %s' % (c, units[c]))
+        assert_equal(formats[c], df.format(c), 'unit of column %d is not %s' % (c, formats[c]))
+    for c, (s1, c1) in enumerate(sec1):
+        ds, cs = df.section(c, 1)
+        assert_equal(s1, ds, 'section level 1 name of column %d is not %s' % (c, s1))
+        assert_equal(c1, cs, 'section level 1 index of column %d is not %d' % (c, c1))
+        ds, cs = df.section(c, 2)
+        s2 = 'data'
+        c2 = 0
+        assert_equal(s2, ds, 'section level 2 name of column %d is not %s' % (c, s2))
+        assert_equal(c2, cs, 'section level 2 index of column %d is not %d' % (c, c2))
+    for c in range(df.columns()):
+        l = 'aaa%d' % c
+        df.set_label(l, c)
+        assert_equal(df.label(c), l, 'label of column %d is not %s' % (c, l))
+        df.set_unit('km/h', c)
+        assert_equal(df.unit(c), 'km/h', 'unit of column %d is not km/h' % c)
+        df.set_format('%g', c)
+        assert_equal(df.format(c), '%g', 'format of column %d is not %%g' % c)
+    df.set_units(list(reversed(units)))
+    df.set_formats(list(reversed(formats)))
+    for c, (u, f) in enumerate(zip(reversed(units), reversed(formats))):
+        assert_equal(df.unit(c), u, 'unit of column %d is not %s' % (c, u))
+        assert_equal(df.format(c), f, 'format of column %d is not %s' % (c, f))
     for dc, vc in zip(df.data, df.values()):
         assert_true(np.all(dc == vc), 'data and value columns differ')
     for k, v in df.items():
         assert_true(np.all(df.col(k).array()[:,0] == v), 'data and value for column %s differ' % k)
 
+def test_removal():
+    for i in range(20):
+        df = setup_table()
+        for k in reversed(range(df.columns())):
+            c = np.random.randint(df.columns())
+            df.remove(c)
+            assert_equal(df.columns(), k, 'after removal of column len should be %d' % k)
+    for i in range(20):
+        df = setup_table()
+        for k in reversed(range(df.columns())):
+            c = np.random.randint(df.columns())
+            del df[:,c]
+            assert_equal(df.columns(), k, 'after removal of column len should be %d' % k)
+    for i in range(20):
+        df = setup_table()
+        for k in reversed(range(df.rows())):
+            r = np.random.randint(df.rows())
+            del df[r,:]
+            assert_equal(df.rows(), k, 'after removal of row len should be %d' % k)
+
+def test_insertion():
+    for i in range(20):
+        df = setup_table()
+        nc = df.columns()
+        for k in range(1,10):
+            c = np.random.randint(df.columns())
+            df.insert(c, 'aaa', 'm', '%g')
+            assert_equal(df.columns(), nc+k, 'after insertion of column len should be %d' % (nc+k))
+            assert_equal(df.label(c), 'aaa', 'label of inserted column should be %s' % 'aaa')
+            assert_equal(df.unit(c), 'm', 'label of inserted column should be %s' % 'm')
+            assert_equal(df.format(c), '%g', 'label of inserted column should be %s' % '%g')
+
+def test_fill():
+    df = setup_table()
+    df.clear_data()
+    for c in range(df.columns()):
+        df.append_data_column(np.random.randn(2+c), c)
+    for c in range(df.columns()):
+        assert_equal(len(df.data[c]), 2+c, 'column should have %d data elements' % (2+c))
+    df.fill_data()
+    for c in range(df.columns()):
+        assert_equal(len(df.data[c]), df.rows(), 'column should have %d data elements' % df.rows())
+
+def test_statistics():
+    df = setup_table()
+    st = df.statistics()
+    assert_equal(st.rows(), 8, 'statistics should have 8 rows')
+    assert_equal(st.columns(), df.columns()+1, 'statistics should have %d columns' % (df.columns()+1))
+    
+def test_sort():
+    df = setup_table(False)
+    for c in range(df.columns()):
+        df.sort(c)
+        assert_true(np.all(np.diff(df.data[c])>=0), 'values in columns %d are not sorted' % c)
+        df.sort(c, reverse=True)
+        assert_true(np.all(np.diff(df.data[c])<=0), 'values in columns %d are not sorted' % c)
+    
 def test_write_load():
     df = setup_table()
     for units in [None, 'none', 'row', 'header']:
@@ -89,7 +175,7 @@ def test_write_load():
 
 def test_read_access():
     df = setup_table()
-    df.clear()
+    df.clear_data()
     data = np.random.randn(10, df.columns())
     df.append_data(data)
     n = 1000
@@ -132,7 +218,7 @@ def test_read_access():
 
 def test_write_access():
     df = setup_table()
-    df.clear()
+    df.clear_data()
     data = np.random.randn(10, df.columns())
     df.append_data(data)
     n = 1000
@@ -167,3 +253,44 @@ def test_write_access():
         df[r0:r1,c0:c1] = v
         assert_true(np.array_equal(df[r0:r1,c0:c1].array(), v), 'slicing of rows and columns failed')
 
+def test_hide_show():
+    filename = 'tabletest.dat'
+    df = setup_table()
+    for c in range(df.columns()):
+        df.hide(c)
+        df.write(filename)
+        sf = td.TableData(filename)
+        assert_equal(sf.columns(), df.columns()-1, 'wrong number of columns written')
+        df.show(c)
+        df.write(filename)
+        sf = td.TableData(filename)
+        assert_equal(sf.columns(), df.columns(), 'wrong number of columns written')
+    for c in range(df.columns()):
+        df = setup_table()
+        df.data[c] = []
+        df.hide_empty_columns()
+        df.write(filename)
+        sf = td.TableData(filename)
+        assert_equal(sf.columns(), df.columns()-1, 'wrong number of columns written')
+        df.show(c)
+        df.write(filename)
+        sf = td.TableData(filename)
+        assert_equal(sf.columns(), df.columns(), 'wrong number of columns written')
+        df.data[c] = [float('nan')] * df.rows()
+        df.hide_empty_columns()
+        df.write(filename)
+        sf = td.TableData(filename)
+        assert_equal(sf.columns(), df.columns()-1, 'wrong number of columns written')
+        df.show(c)
+        df.write(filename)
+        sf = td.TableData(filename)
+        assert_equal(sf.columns(), df.columns(), 'wrong number of columns written')
+    df = setup_table()
+    df.hide_all()
+    for c in range(df.columns()):
+        df.show(c)
+        df.write(filename)
+        sf = td.TableData(filename)
+        assert_equal(sf.columns(), 1, 'wrong number of columns written')
+        df.hide(c)
+    os.remove(filename)

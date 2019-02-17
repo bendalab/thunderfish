@@ -28,7 +28,7 @@ class TableData:
     ## Manipulate table header
 
     Each column of the table has a label (the name of the column), a
-    unit, and a format specifier. Sections group several columns.
+    unit, and a format specifier. Sections group columns into a hierarchy.
 
     - `__init__()`: initialize a TableData from data or a file.
     - `append()`: append column to the table.
@@ -49,6 +49,20 @@ class TableData:
 
     For example:
     ```
+    tf = TableData(np.random.randn(4,3), header=['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')    
+    ```
+    results in
+    ```
+    aaa    bbb    ccc
+    m      s      g    
+     1.45   0.01   0.16
+    -0.74  -0.58  -1.34
+    -2.06   0.08   1.47
+    -0.43   0.60   1.38
+   ```
+
+    A more elaborate way to construct a table is:
+    ```
     df = TableData()
     # first column with section names and 3 data values:
     df.append(["data", "partial information", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
@@ -64,7 +78,6 @@ class TableData:
     df.append_data((0.543, 45, 1.235e2))
     # append data to the next row:
     df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
-    print df
     ```
     results in
     ```
@@ -168,10 +181,11 @@ class TableData:
     - `__setitem__()`: assign values to data elements specified by slice.
     - `__delitem__()`: delete data elements or whole columns.
     - `array()`: the table data as a numpy array.
-    - `append_data()`: append data elements to successive table columns.
+    - `append_data()`: append data elements to successive columns.
+    - `append_data_column()`: append data elements to a column.
     - `set_column()`: set the column where to add data.
     - `fill_data()`: fill up all columns with missing data.
-    - `clear()`: clear content of the table but keep header.
+    - `clear_data()`: clear content of the table but keep header.
     - `key_value()`: a data element returned as a key-value pair.
     
     - `sort()`: sort the table rows in place.
@@ -940,7 +954,7 @@ class TableData:
         rows: int
             The number of rows contained in the table.
         """
-        return max(map(len, self.data))
+        return max(map(len, self.data)) if self.data else 0
     
     def columns(self):
         """
@@ -1132,14 +1146,16 @@ class TableData:
         """
         return np.array(self.data).T
 
-    def append_data(self, value, column=None):
+    def append_data(self, data, column=None):
         """
-        Append data elements to successive table columns.
+        Append data elements to successive columns.
+
+        The current column is set behid the added columns.
 
         Parameters
         ----------
-        value: float, int, string, etc. or list thereof or list of list thereof
-            Data values to be appended to a column.
+        data: float, int, string, etc. or list thereof or list of list thereof
+            Data values to be appended to successive column.
             - A single value is simply appened to the specified column of the table.
             - A 1D-list of values is appended to successive columns of the table
               starting with the specified column.
@@ -1153,22 +1169,49 @@ class TableData:
         column = self.index(column)
         if column is None:
             column = self.setcol
-        if isinstance(value, (list, tuple, np.ndarray)):
-            if isinstance(value[0], (list, tuple, np.ndarray)):
+        if isinstance(data, (list, tuple, np.ndarray)):
+            if isinstance(data[0], (list, tuple, np.ndarray)):
                 # 2D list, rows first:
-                for row in value:
+                for row in data:
                     for i, val in enumerate(row):
                         self.data[column+i].append(val)
-                self.setcol = column + len(value[0])
+                self.setcol = column + len(data[0])
             else:
                 # 1D list:
-                for val in value:
+                for val in data:
                     self.data[column].append(val)
                     column += 1
                 self.setcol = column
         else:
             # single value:
-            self.data[column].append(value)
+            self.data[column].append(data)
+            self.setcol = column+1
+        self.shape = (self.rows(), self.columns())
+
+    def append_data_column(self, data, column=None):
+        """
+        Append data elements to a column.
+
+        The current column is incremented by one.
+
+        Parameters
+        ----------
+        data: float, int, string, etc. or list thereof
+            Data values to be appended to a column.
+        column: None, int, or string
+            The column to which the data should be appended.
+            If None, append to the current column.
+            See self.index() for more information on how to specify a column.
+        """
+        column = self.index(column)
+        if column is None:
+            column = self.setcol
+        if isinstance(data, (list, tuple, np.ndarray)):
+            self.data[column].extend(data)
+            column += 1
+            self.setcol = column
+        else:
+            self.data[column].append(data)
             self.setcol = column+1
         self.shape = (self.rows(), self.columns())
 
@@ -1208,7 +1251,7 @@ class TableData:
         self.setcol = 0
         self.shape = (self.rows(), self.columns())
 
-    def clear(self):
+    def clear_data(self):
         """
         Clear content of the table but keep header.
         """
@@ -1783,22 +1826,29 @@ class TableData:
         # adapt width to sections:
         sec_indices = [0] * self.nsecs
         sec_widths = [0] * self.nsecs
+        sec_columns = [0] * self.nsecs
         for c in range(len(self.header)):
             w = widths[c]
             for l in range(min(self.nsecs, sections)):
                 if 1+l < len(self.header[c]):
-                    if c > 0 and len(self.header[sec_indices[l]][1+l]) > sec_widths[l]:
+                    if c > 0 and sec_columns[l] > 0 and \
+                       len(self.header[sec_indices[l]][1+l]) > sec_widths[l]:
                         dw = len(self.header[sec_indices[l]][1+l]) - sec_widths[l]
-                        nc = c - sec_indices[l]
+                        nc = sec_columns[l]
                         ddw = np.zeros(nc, dtype=int) + dw // nc
                         ddw[:dw % nc] += 1
-                        for k in range(nc):
-                            widths[sec_indices[l]+k] += ddw[k]
+                        wk = 0
+                        for ck in range(sec_indices[l], c):
+                            if not self.hidden[ck]:
+                                widths[ck] += ddw[wk]
+                                wk += 1
                     sec_widths[l] = 0
                     sec_indices[l] = c
-                if sec_widths[l] > 0:
-                    sec_widths[l] += len(header_sep)
-                sec_widths[l] += w
+                if not self.hidden[c]:
+                    if sec_widths[l] > 0:
+                        sec_widths[l] += len(header_sep)
+                    sec_widths[l] += w
+                    sec_columns[l] += 1
         # set width of format string:
         formats = []
         for c, (f, w) in enumerate(zip(self.formats, widths)):
@@ -2375,6 +2425,12 @@ def write(fh, data, header, units=None, formats=None, table_format=None,
         given, then all columns are initialized with this format string.
 
     See TableData.write() for a description of all other parameters.
+
+    Example
+    -------
+    ```
+    write(sys.stdout, np.random.randn(4,3), ['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')
+    ```
     """
     td = TableData(data, header, units, formats)
     td.write(fh, table_format=table_format, units=unitstyle, number_cols=number_cols,
@@ -2501,93 +2557,3 @@ if __name__ == "__main__":
         print('      ```')
         print('')
         
-    # some infos about the data:
-    print('data len: %d' % len(df))
-    print('data rows: %d' % df.rows())
-    print('data columns: %d' % df.columns())
-    print('data shape: (%d, %d)' % (df.shape[0],df.shape[1]))
-    print('')
-    print('column specifications:')
-    for c in range(df.columns()):
-        print(df.column_spec(c))
-    print('keys():')
-    for c, k in enumerate(df.keys()):
-        print('%d: %s' % (c, k))
-    print('values():')
-    for c, v in enumerate(df.values()):
-        print(v)
-    print('items():')
-    print(df.items())
-    print('iterating over the table:')
-    for v in df:
-        print(v)
-
-    # sorting:
-    print(df)
-    df.sort(['weight', 'jitter'], reverse=False)
-    print(df)
-
-    # data access:
-    print(df)
-    print('')
-    #print(df[2:,'weight':'reaction>size'])
-    print(df[2:5,['size','jitter']])
-    print(df[2:5,['size','jitter']].array())
-    print('')
-
-    # single column:    
-    print(df[:,'size'])
-    print(df.col('size'))
-
-    # single row:    
-    print(df[2,:])
-    print(df.row(2))
-
-    # table header:
-    print(df.table_header())
-
-    # statistics
-    print(df.statistics())
-
-    # assignment:
-    print(df)
-    df[2,3] = 100.0
-    df[3:7,'size'] = 3.05+0.1*np.arange(4)
-    df[1,:4] = 10.02+2.0*np.arange(4)
-    df[3:7,['weight', 'jitter']] = 30.0*(np.ones((4,2))+np.arange(2))
-    print(df)
-    df[2,3] = df[3,2]
-    df[:,'size'] = df.col('weight')
-    df[6,:] = df.row(7)
-    df[3:7,['speed', 'reaction>jitter']] = df[0:4,['size','speed']]
-    print(df)
-
-    # delete:
-    print('\ndelete:')
-    del df[3:6, 'weight']
-    del df[3:5,:]
-    del df[:,'speed']
-    print(df)
-    df.remove('weight')
-    print(df)
-
-    # insert:
-    df.insert(1, "s.d.", "m", "%7.3f", np.random.randn(df.rows()))
-    print(df)
-    
-    # contains:
-    print('jitter' in df)
-    print('velocity' in df)
-    print('reaction>size' in df)
-
-
-    print('')
-    #df.write('test.dat')
-    tf = TableData(np.random.randn(4,3), header=['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')
-    #tf = TableData(df)
-    print(tf)
-    tf.insert_section('aaa', 'AAA')
-    tf.insert_section('ccc', 'CCC')
-    print(tf)
-
-    write(sys.stdout, np.random.randn(4,3), ['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')
