@@ -2617,7 +2617,7 @@ if __name__ == "__main__":
         print('    - `%s`: %s' % (tf, TableData.descriptions[tf]))
         print('      ```')
         iout = IndentStream(sys.stdout, 4+2)
-        df.write(iout, table_format=tf, units=None, column_numbers=None, delimiter=None, sections=None)
+        df.write(iout, table_format=tf)
         print('      ```')
         print('')
         
