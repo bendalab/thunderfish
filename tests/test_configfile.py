@@ -1,8 +1,6 @@
 from nose.tools import assert_equal, assert_not_equal
-from copy import deepcopy
 import thunderfish.configfile as cf
 import thunderfish.bestwindow as bw
-from collections import OrderedDict
 import os
 
 
@@ -15,11 +13,11 @@ def test_config_file():
     cfgdifffile = 'testdiff.cfg'
 
     # manipulate some values:
-    cfg2 = deepcopy(cfg)
+    cfg2 = cf.ConfigFile(cfg)
     cfg2.set('bestWindowSize', 100.0)
     cfg2.set('weightCVAmplitude', 20.0)
     cfg2.set('clipBins', 300)
-    cfg3 = deepcopy(cfg2)
+    cfg3 = cf.ConfigFile(cfg2)
 
     # write configurations to files:
     cfg.dump(cfgfile, 'header', maxline=50)
