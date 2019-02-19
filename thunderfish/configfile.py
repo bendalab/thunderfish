@@ -27,13 +27,14 @@ class ConfigFile:
 
     
     def __init__(self, orig=None):
-        if orig is None:
-            self.cfg = OrderedDict()
-            self.sections = dict()
-            self.new_section = None
-        else:
-            self.cfg = orig.cfg
-            self.sections = orig.sections
+        self.cfg = OrderedDict()
+        self.sections = dict()
+        self.new_section = None
+        if not orig is None:
+            for k, v in orig.cfg.items():
+                self.cfg[k] = list(v)
+            for k, v in orig.sections.items():
+                self.sections[k] = v
             self.new_section = None
 
             
@@ -125,9 +126,35 @@ class ConfigFile:
             Key of the configuration parameter.
         value: any type
             The new value.
+
+        Raises
+        ------
+        IndexError:
+            If key does not exist.
         """
+        if not key in self.cfg:
+            raise IndexError('Key %s does not exist' % key)
         self.cfg[key][0] = value
 
+
+    def __delitem__(self, key):
+        """
+        Remove an entry from the configuration.
+
+        Parameters
+        ----------
+        key: string
+            Key of the configuration parameter to be removed.
+        """
+        if key in self.sections:
+            sec = self.sections.pop(key)
+            keys = list(self.cfg.keys())
+            inx = keys.index(key)+1
+            if inx < len(keys):
+                next_key = keys[inx]
+                if not next_key in self.sections:
+                    self.sections[next_key] = sec
+        del self.cfg[key]
         
     def map(self, mapping):
         """Map the values of the configuration onto new names.
@@ -149,7 +176,8 @@ class ConfigFile:
         """
         a = {}
         for dest, src in mapping.items():
-            a[dest] = self.value(src)
+            if src in self.cfg:
+                a[dest] = self.value(src)
         return a
 
     
@@ -198,8 +226,10 @@ class ConfigFile:
                     stream.write('\n')
 
         # write header:
-        if comments and header != None:
+        First = True
+        if comments and not header is None:
             write_comment(stream, header, maxline, '##')
+            First = False
         # get length of longest key:
         maxkey = 0
         for key in self.cfg.keys():
@@ -234,9 +264,11 @@ class ConfigFile:
 
             # write out section
             if len(section) > 0:
-                stream.write('\n\n')
+                if not First:
+                    stream.write('\n\n')
                 write_comment(stream, section, maxline, '##')
                 section = ''
+                First = False
             
             # write key-value pair:
             if comments :
@@ -244,6 +276,7 @@ class ConfigFile:
                 write_comment(stream, comment, maxline, '#')
             stream.write('{key:<{width}s}: {val}{unit:s}\n'.format(
                 key=key, width=maxkey, val=val, unit=unit))
+            First = False
 
 
     def dump(self, filename, header=None, diff_only=False, maxline=60, comments=True):
@@ -339,3 +372,24 @@ class ConfigFile:
                 if verbose > 0:
                     print('load configuration %s' % path)
                 self.load(path)
+
+                        
+if __name__ == "__main__":
+    import sys
+    
+    print("Checking configfile module ...")
+    print('')
+
+    cfg = ConfigFile()
+    cfg.add_section('Power spectrum:')
+    cfg.add('nfft', 256, '', 'Number of data poinst for fourier transform.')
+    cfg.add('windows', 4, '', 'Number of windows on which power spectra are computed.')
+    cfg.add_section('Peaks:')
+    cfg.add('threshold', 20.0, 'dB', 'Threshold for peak detection.')
+    cfg.add('deltaf', 10.0, 'Hz', 'Minimum distance between peaks.')
+    cfg.write(sys.stdout)
+    print('')
+
+    del cfg['nfft']
+    del cfg['windows']
+    cfg.write(sys.stdout)
