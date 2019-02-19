@@ -122,7 +122,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
     ############
 
     # plot psd
-    if len(spec_data) > 0 and len(spec_data[0]) > 0.0:
+    if len(spec_data) > 0 and len(spec_data[0]) > 0 and \
+       len(eod_props) > 0 and 'EODf' in eod_props[0]:
         ax3.plot(spec_data[0][:,0], decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]), '#CCCCCC', lw=1)
     if len(fishlist) > 0:
         colors, markers = colors_markers()
@@ -263,7 +264,8 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
     if save_csvs or save_plot:
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
-    outfilename = os.path.splitext(os.path.basename(filename))[0]
+    basefilename = os.path.basename(filename)
+    outfilename = os.path.splitext(basefilename)[0]
 
     # check channel:
     if channel < 0:
@@ -292,18 +294,20 @@ def thunderfish(filename, channel=0, save_csvs=False, save_plot=False,
                                 **best_window_args(cfg))
             plt.show()
         except UserWarning as e:
-            print('best_window: ' + str(e))
+            print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
         return
     try:
         idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
                                                   min_clip=min_clip, max_clip=max_clip,
                                                   **best_window_args(cfg))
+        data = raw_data[idx0:idx1]
     except UserWarning as e:
-        print('best_window: ' + str(e))
+        print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
         found_bestwindow = False
         idx0 = 0
-        idx1 = len(raw_data)
-    data = raw_data[idx0:idx1]
+        idx1 = 0
+        clipped = 0.0
+        data = raw_data
 
     # pulse-type fish?
     pulse_fish, pta_value, pulse_period = \
