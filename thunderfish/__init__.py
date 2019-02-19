@@ -1,7 +1,7 @@
 from .version import __version__
 
 __all__ = ['dataloader',
-           'datafile',
+           'tabledata',
            'configfile',
            'eventdetection',
            'bestwindow',
