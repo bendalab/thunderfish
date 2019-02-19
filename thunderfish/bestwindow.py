@@ -527,11 +527,12 @@ def plot_best_data(data, samplerate, unit, idx0, idx1, clipped, ax,
     time = np.arange(len(data)) / samplerate
     ax.plot(time[:idx0], data[:idx0], color=data_color)
     ax.plot(time[idx1:], data[idx1:], color=data_color)
-    ax.plot(time[idx0:idx1], data[idx0:idx1], color=window_color)
-    label = 'analysis\nwindow'
-    if clipped > 0.0:
-        label += '\n%.0f%% clipped' % (100.0*clipped)
-    ax.text(time[(idx0+idx1)//2], 0.0, label, ha='center', va='center')
+    if idx1 > idx0:
+        ax.plot(time[idx0:idx1], data[idx0:idx1], color=window_color)
+        label = 'analysis\nwindow'
+        if clipped > 0.0:
+            label += '\n%.0f%% clipped' % (100.0*clipped)
+        ax.text(time[(idx0+idx1)//2], 0.0, label, ha='center', va='center')
     ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [sec]')
     if len(unit) == 0 or unit == 'a.u.':
