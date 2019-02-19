@@ -24,6 +24,7 @@ from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot
 from .tabledata import TableData, add_write_table_config, write_table_args
+from audioio import play, fade
 
 
 def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate, idx0, idx1,
@@ -83,13 +84,25 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
         If True (and saveplot=False) it will show the plot without saving.
     """
 
+    def keypress(event):
+        if event.key in 'pP':
+            if idx1 > idx0:
+                playdata = 1.0 * raw_data[idx0:idx1]
+            else:
+                playdata = 1.0 * raw_data[:]
+            fade(playdata, samplerate, 0.1)
+            play(playdata, samplerate, blocking=False)
+
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
     ax1 = fig.add_axes([0.02, 0.9, 0.96, 0.1])   # title
     ax2 = fig.add_axes([0.075, 0.06, 0.9, 0.09]) # whole trace
     ax3 = fig.add_axes([0.075, 0.6, 0.7, 0.3])   # psd
     ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])   # mean eod
     ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pusle spectrum
-                
+
+    if show_plot:
+        fig.canvas.mpl_connect('key_press_event', keypress)
+                    
     # plot title
     wavetitle = ""
     if len(fishlist) == 1:
@@ -483,8 +496,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                     mean_eods, eod_props, peak_data, spec_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_data)
-
-
+    
 def main():
     # config file name:
     cfgfile = __package__ + '.cfg'
@@ -492,7 +504,7 @@ def main():
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Analyze EOD waveforms of weakly electric fish.',
-        epilog='by Benda-Lab (2015-2018)')
+        epilog='by Benda-Lab (2015-2019)')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
