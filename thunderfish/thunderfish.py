@@ -509,15 +509,15 @@ def main():
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
                         type=str, metavar='CFGFILE',
-                        help='save configuration to file cfgfile, defaults to {0}'.format(cfgfile))
-    parser.add_argument('file', nargs='?', default='', type=str, help='name of the file with the time series data')
+                        help='save configuration to file CFGFILE after reading all configuration files (defaults to {0})'.format(cfgfile))
+    parser.add_argument('file', nargs='*', default='', type=str, help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be analyzed')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
     parser.add_argument('-s', dest='save_data', action='store_true',
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
-                        help='file format used for saving analysis results (dat, ascii, csv, md, tex, html), defaults to the format found in the configuration file or "dat"')
-    parser.add_argument('-o', dest='output_folder', default=".", type=str,
+                        help='file format used for saving analysis results, one of dat, ascii, csv, md, tex, html (defaults to the format specified in the configuration file or "dat")')
+    parser.add_argument('-o', dest='outpath', default=".", type=str,
                         help="path where to store results and figures")
     parser.add_argument('-b', dest='show_bestwindow', action='store_true', help='show the cost function of the best window algorithm')
     args = parser.parse_args()
@@ -532,9 +532,17 @@ def main():
     if not args.format in TableData.formats and args.format != 'auto':
         parser.error('invalid file format %s' % args.format)
 
-    msg = thunderfish(args.file, args.channel, args.save_data, args.format, args.save_plot,
-                      args.output_folder, args.show_bestwindow, cfgfile,
-                      args.save_config, verbose=verbose)
+    if args.save_config:
+        msg = thunderfish('', cfgfile=cfgfile, save_config=args.save_config,
+                          verbose=verbose)
+    elif len(args.file) == 0:
+        parser.error('you need to specify at least one file for the analysis')
+    else:
+        for file in args.file:
+            msg = thunderfish(file, args.channel, args.save_data, args.format, args.save_plot,
+                              args.outpath, args.show_bestwindow, cfgfile,
+                              args.save_config, verbose=verbose)
+
     if msg is not None:
         parser.error(msg)
 
