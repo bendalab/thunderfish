@@ -89,7 +89,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
     ax3 = fig.add_axes([0.075, 0.6, 0.7, 0.3])   # psd
     ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])   # mean eod
     ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pusle spectrum
-    
+                
     # plot title
     wavetitle = ""
     if len(fishlist) == 1:
@@ -491,6 +491,8 @@ def main():
     verbose = 0
     if args.verbose != None:
         verbose = args.verbose
+
+    plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
 
     msg = thunderfish(args.file, args.channel, args.save_csvs, args.save_plot,
                       args.output_folder, args.show_bestwindow, cfgfile,
