@@ -1,7 +1,7 @@
 """
 # Analysis of EOD waveforms of weakly-electric fish.
 
-## Main functions
+## EOD analysis
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
@@ -30,16 +30,16 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
         The data to be analysed.
     samplerate: float
         Sampling rate of the data in Hertz.
-    percentile: int
-        Percentile parameter for the eventdetection.percentile_threshold() function used to
-        estimate thresholds for detecting EOD peaks in the data.
+    percentile: float
+        Percentile parameter in percent for the eventdetection.percentile_threshold() function
+        used to estimate thresholds for detecting EOD peaks in the data.
     th_factor: float
         th_factor parameter for the eventdetection.percentile_threshold() function used to
         estimate thresholds for detecting EOD peaks in the data.
     win_fac: float
         The snippet size is the period times `win_fac`.
     min_win: float
-        The minimum size of the snippets.
+        The minimum size of the snippets in seconds.
     period: float or None
         Average waveforms with this period instead of peak times.
     
@@ -197,9 +197,6 @@ def analyze_wave(eod, freq, n_harm=6):
             popt[2+i*2] += np.pi
         # all phases in the range 0 to 2 pi:
         popt[2+i*2] %= 2.0*np.pi
-        # all phases except of 2nd harmonic in the range -pi to pi:
-        if popt[2+i*2] > np.pi and i != 2:
-            popt[2+i*2] -= 2.0*np.pi
     meod[:,-1] = sinewaves(meod[:,0], *popt)
 
     # fit error:
@@ -267,8 +264,13 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
         - EODf: the inverse of the mean interval between `eod_times`.
         - period: the mean interval between `eod_times`.
         - max-amplitude: the amplitude of the largest positive peak (P1).
-        - min-amplitude: the amplitude of the largest negative peak (P1).
+        - min-amplitude: the amplitude of the largest negative peak (P2).
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
+        - tstart: time in seconds where the pulse starts,
+          i.e. crosses the threshold for the first time.
+        - tend: time in seconds where the pulse ends,
+          i.e. crosses the threshold for the last time.
+        - width: total width of the pulse in seconds (tend-tstart).
         - flipped: True if the waveform was flipped.
         - n: number of pulses analyzed.
         - medianinterval: the median interval between pulses after removal
@@ -278,10 +280,11 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
         - stdinterval: the standard deviation of the intervals between pulses
           after removal of extrem interval values.
     peaks: 2-D array
-        For each peak and trough of the EOD waveform (first index) the
-        peak index (1 is P1, i.e. the largest positive peak),
+        For each peak and trough (rows) of the EOD waveform
+        5 columns: the peak index (1 is P1, i.e. the largest positive peak),
         time relative to largest positive peak, amplitude,
-        and amplitude normalized to largest postive peak.
+        amplitude normalized to largest postive peak,
+        and width of peak/trough at half height.
     power: 2-D array
         The power spectrum of a single pulse. First column are the frequencies,
         second column the power.
@@ -343,6 +346,8 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     # cut out relevant signal:
     lidx = np.argmax(np.abs(meod[:,1])>threshold)
     ridx = len(meod) - np.argmax(np.abs(meod[::-1,1])>threshold)
+    t0 = meod[lidx,0]
+    t1 = meod[ridx,0]
     width = ridx - lidx
     dt = meod[1,0] - meod[0,0]
     if width*dt < min_win:
@@ -371,11 +376,28 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     # find P1:
     p1i = np.where(peak_list == max_idx)[0][0]
     offs = 0 if p1i <= 2 else p1i - 2
+    peak_list = peak_list[offs:]
 
-    # store:
-    peaks = np.zeros((len(peak_list)-offs,4))
-    for i, pi in enumerate(peak_list[offs:]):
-        peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl]
+    # compute peak width and store:
+    peaks = np.zeros((len(peak_list), 5))
+    for i, pi in enumerate(peak_list):
+        li = peak_list[i-1] if i-1 >= 0 else 0
+        ri = peak_list[i+1] if i+1 < len(peak_list) else len(meod)-1
+        if (i+1-p1i+offs)%2 == 1:
+            low = max(meod[li,1], meod[ri,1])
+            thresh = 0.5*(low + meod[pi,1])
+            inx = li + np.argmax(meod[li:ri,1] > thresh)
+            ti0 = np.interp(thresh, meod[inx-1:inx+1,1], meod[inx-1:inx+1,0])
+            inx = ri - np.argmax(meod[ri:li:-1,1] > thresh)
+            ti1 = np.interp(thresh, meod[inx+1:inx-1:-1,1], meod[inx+1:inx-1:-1,0])
+        else:
+            high = min(meod[li,1], meod[ri,1])
+            thresh = 0.5*(high + meod[pi,1])
+            inx = li + np.argmax(meod[li:ri,1] < thresh)
+            ti0 = np.interp(thresh, meod[inx:inx-2:-1,1], meod[inx:inx-2:-1,0])
+            inx = ri - np.argmax(meod[ri:li:-1,1] < thresh)
+            ti1 = np.interp(thresh, meod[inx:inx+2,1], meod[inx:inx+2,0])
+        peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, ti1-ti0]
 
     # analyze pulse timing:
     inter_pulse_intervals = np.diff(eod_times)
@@ -405,6 +427,9 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     props['max-amplitude'] = max_ampl
     props['min-amplitude'] = min_ampl
     props['p-p-amplitude'] = ppampl
+    props['tstart'] = t0
+    props['tend'] = t1
+    props['width'] = t1-t0
     props['peakfrequency'] = freqs[np.argmax(power)]
     props['lowfreqattenuation5'] = att5
     props['lowfreqattenuation50'] = att50

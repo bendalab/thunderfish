@@ -478,9 +478,10 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                 del td
             # peaks:
             if len(pdata)>0:
-                td = TableData(pdata[:,:4]*[1.0, 1000.0, 1.0, 100.0],
-                               ['P', 'time', 'amplitude', 'relampl'],
-                               ['-', 'ms', unit, '%'], ['%.0f', '%.3f', '%.5f', '%.1f'])
+                td = TableData(pdata[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
+                               ['P', 'time', 'amplitude', 'relampl', 'width'],
+                               ['-', 'ms', unit, '%', 'ms'],
+                               ['%.0f', '%.3f', '%.5f', '%.1f', '%.3f'])
                 td.write(os.path.join(output_folder, outfilename + '-peaks-%d' % i),
                          **write_table_args(cfg))
                 del td
