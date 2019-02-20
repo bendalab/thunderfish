@@ -559,7 +559,7 @@ def add_best_window_config(cfg, expand=False, win_size=1., win_shift=0.5,
     """
 
     cfg.add_section('Best window detection:')
-    cfg.add('bestWindowSize', win_size, 's', 'Size of the best window. This should be much larger than the expected period of the signal.')
+    cfg.add('bestWindowSize', win_size, 's', 'Size of the best window. This should be much larger than the expected period of the signal. If 0 select the whole time series.')
     cfg.add('bestWindowShift', win_shift, 's',
             'Increment for shifting the analysis windows trough the data. Should be larger than the expected period of the signal.')
     cfg.add('bestWindowThresholdPercentile', percentile, '%',
