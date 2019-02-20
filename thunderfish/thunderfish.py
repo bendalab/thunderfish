@@ -298,7 +298,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
         raw_data, samplerate, unit = load_data(filename, channel, verbose=verbose)
     except IOError as e:
         return 'failed to open file %s: %s' % (filename, str(e))
-    if len(raw_data) == 0:
+    if len(raw_data) <= 1:
         return 'empty data file %s' % filename
     
     # calculate best_window:
@@ -319,24 +319,19 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
         return
     if cfg.value('bestWindowSize') <= 0.0:
-        found_bestwindow = True
+        cfg.set('bestWindowSize', (len(raw_data)-1)/samplerate)
+    try:
+        idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
+                                                  min_clip=min_clip, max_clip=max_clip,
+                                                  **best_window_args(cfg))
+        data = raw_data[idx0:idx1]
+    except UserWarning as e:
+        print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
+        found_bestwindow = False
         idx0 = 0
-        idx1 = len(raw_data)
+        idx1 = 0
         clipped = 0.0
         data = raw_data
-    else:
-        try:
-            idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
-                                                      min_clip=min_clip, max_clip=max_clip,
-                                                      **best_window_args(cfg))
-            data = raw_data[idx0:idx1]
-        except UserWarning as e:
-            print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
-            found_bestwindow = False
-            idx0 = 0
-            idx1 = 0
-            clipped = 0.0
-            data = raw_data
 
     # pulse-type fish?
     pulse_fish, pta_value, pulse_period = \
