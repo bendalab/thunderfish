@@ -364,6 +364,8 @@ class SignalPlot:
                 self.min_clip, self.max_clip = clip_amplitudes(
                     self.data, **clip_args(self.cfg, self.samplerate))
             try:
+                if self.cfg.value('bestWindowSize') <= 0.0:
+                    self.cfg.set('bestWindowSize', (len(self.data)-1)/self.samplerate)
                 idx0, idx1, clipped = best_window_indices(
                     self.data, self.samplerate, min_clip=self.min_clip,
                     max_clip=self.max_clip, **best_window_args(self.cfg))
