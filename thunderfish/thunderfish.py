@@ -163,7 +163,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
                         fontsize=14, y=1.05)
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
-        eod_waveform_plot(mean_eod, peaks, axeod, unit)
+        tau = props['tau'] if 'tau' in props else None
+        eod_waveform_plot(mean_eod, peaks, axeod, unit, tau=tau)
         props['unit'] = unit
         label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
         if props['flipped']:

@@ -664,7 +664,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 
 def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
                     thresh_bins=100, low_thresh_factor=6.0, high_thresh_factor=10.0,
-                    max_peak_width_fac=10.0, min_peak_width=1.0,
+                    max_peak_width_fac=20.0, min_peak_width=1.0,
                     freq_tol_fac=1.0, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
                     max_work_freq=4000.0, max_divisor=4, max_upper_fill=1,
                     max_double_use_harmonics=8, max_double_use_count=1,
@@ -1088,7 +1088,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
                                   thresh_bins=100,
                                   low_thresh_factor=6.0, high_thresh_factor=10.0,
-                                  max_peak_width_fac=10.0, min_peak_width=1.0):
+                                  max_peak_width_fac=20.0, min_peak_width=1.0):
     """ Add parameter needed for detection of peaks in power spectrum used by
     harmonic_groups() as a new section to a configuration.
 
