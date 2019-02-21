@@ -530,14 +530,14 @@ def widen_events(onsets, offsets, max_time, duration):
     return new_onsets, new_offsets
 
     
-def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
+def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
     """Esimates a threshold for `detect_peaks()` based on the standard deviation of the data.
 
     The threshold is computed as the standard deviation of the data
-    multiplied with `th_factor`.
+    multiplied with `thresh_fac`.
 
-    In case of Gaussian distributed data, setting `th_factor=2.0` (two standard deviations)
-    captures 68% of the data, `th_factor=4.0` captures 95%, and `th_factor=6.0` 99.7%.
+    In case of Gaussian distributed data, setting `thresh_fac=2.0` (two standard deviations)
+    captures 68% of the data, `thresh_fac=4.0` captures 95%, and `thresh_fac=6.0` 99.7%.
 
     If `samplerate` and `win_size` is given, then the threshold is computed for
     each half-overlapping window of duration `win_size` separately.
@@ -553,7 +553,7 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
         Sampling rate of the data in Hz.
     win_size: float or None
         Size of window in which a threshold value is computed.
-    th_factor: float
+    thresh_fac: float
         Factor by which the standard deviation is multiplied to set the threshold.
 
     Returns
@@ -569,13 +569,13 @@ def std_threshold(data, samplerate=None, win_size=None, th_factor=5.):
         for inx0 in range(0, len(data), win_size_indices//2):
             inx1 = inx0 + win_size_indices
             std = np.std(data[inx0:inx1], ddof=1)
-            threshold[inx0:inx1] = std * th_factor
+            threshold[inx0:inx1] = std * thresh_fac
         return threshold
     else:
-        return np.std(data, ddof=1) * th_factor
+        return np.std(data, ddof=1) * thresh_fac
 
     
-def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
+def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
                    nbins=100, hist_height=1.0/np.sqrt(np.e)):
     """Esimate a threshold for `detect_peaks()` based on a histogram of the data.
 
@@ -599,7 +599,7 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
         Sampling rate of the data in Hz.
     win_size: float or None
         Size of window in which a threshold value is computed in sec.
-    th_factor: float
+    thresh_fac: float
         Factor by which the width of the histogram is multiplied to set the threshold.
     nbins: int or list of floats
         Number of bins or the bins for computing the histogram.
@@ -622,7 +622,7 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
         for inx0 in range(0, len(data), win_size_indices//2):
             inx1 = inx0 + win_size_indices
             std, center = hist_threshold(data[inx0:inx1], samplerate=None, win_size=None,
-                                         th_factor=th_factor, nbins=nbins,
+                                         thresh_fac=thresh_fac, nbins=nbins,
                                          hist_height=hist_height)
             threshold[inx0:inx1] = std
             centers[inx0:inx1] = center
@@ -641,14 +641,14 @@ def hist_threshold(data, samplerate=None, win_size=None, th_factor=5.,
         else:
             std = np.std(data)
             center = np.mean(data)
-        return std * th_factor, center
+        return std * thresh_fac, center
 
     
-def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
+def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
     """Esimate a threshold for `detect_peaks()` based on minimum and maximum values of the data.
 
     The threshold is computed as the difference between maximum and
-    minimum value of the data multiplied with `th_factor`.
+    minimum value of the data multiplied with `thresh_fac`.
 
     If `samplerate` and `win_size` is given, then the threshold is computed for
     each half-overlapping window of duration `win_size` separately.
@@ -664,7 +664,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
         Sampling rate of the data in Hz.
     win_size: float or None
         Size of window in which a threshold value is computed.
-    th_factor: float
+    thresh_fac: float
         Factor by which the difference between minimum and maximum data value
         is multiplied to set the threshold.
 
@@ -681,23 +681,23 @@ def minmax_threshold(data, samplerate=None, win_size=None, th_factor=0.8):
             inx1 = inx0 + win_size_indices
             window_min = np.min(data[inx0:inx1])
             window_max = np.max(data[inx0:inx1])
-            threshold[inx0:inx1] = (window_max - window_min) * th_factor
+            threshold[inx0:inx1] = (window_max - window_min) * thresh_fac
         return threshold
 
     else:
-        return (np.max(data) - np.min(data)) * th_factor
+        return (np.max(data) - np.min(data)) * thresh_fac
 
 
-def percentile_threshold(data, samplerate=None, win_size=None, th_factor=1.0, percentile=1.0):
+def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, percentile=1.0):
     """Esimate a threshold for `detect_peaks()` based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
     100.0-percentile percentiles of the data multiplied with
-    th_factor.
+    thresh_fac.
 
     For very small values of `percentile` the estimated threshold
     approaches the one returned by `minmax_threshold()` (for same values
-    of `th_factor`). For `percentile=16.0` and Gaussian distributed data,
+    of `thresh_fac`). For `percentile=16.0` and Gaussian distributed data,
     the returned theshold is twice the one returned by std_threshold()
     or `hist_threshold()`, i.e. twice the standard deviation.
 
@@ -708,11 +708,11 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=1.0, pe
     these peaks are about 1ms wide, then you have a 1ms peak per 100ms
     period, i.e. the peaks make up 1% of the distribution. So you should
     set `percentile=1.0` or lower. For much lower percentile values, you
-    might choose `th_factor` slightly smaller than one to capture also
+    might choose `thresh_fac` slightly smaller than one to capture also
     smaller peaks. Setting `percentile` slightly higher might not change
     the estimated threshold too much, since you start incorporating the
     noise floor with a large density, but you may want to set
-    `th_factor` larger than one to reduce false detections.
+    `thresh_fac` larger than one to reduce false detections.
 
     If `samplerate` and `win_size` is given, then the threshold is computed for
     each half-overlapping window of duration `win_size` separately.
@@ -730,7 +730,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=1.0, pe
         Size of window in which a threshold value is computed.
     percentile: float
         The interpercentile range is computed at percentile and 100.0-percentile.
-    th_factor: float
+    thresh_fac: float
         Factor by which the inter-percentile range of the data is multiplied to set the threshold.
 
     Returns
@@ -745,11 +745,11 @@ def percentile_threshold(data, samplerate=None, win_size=None, th_factor=1.0, pe
         for inx0 in range(0, len(data), win_size_indices//2):
             inx1 = inx0 + win_size_indices
             threshold[inx0:inx1] = np.squeeze(np.abs(np.diff(
-                np.percentile(data[inx0:inx1], [100.0 - percentile, percentile])))) * th_factor
+                np.percentile(data[inx0:inx1], [100.0 - percentile, percentile])))) * thresh_fac
         return threshold
     else:
         return np.squeeze(np.abs(np.diff(
-            np.percentile(data, [100.0 - percentile, percentile])))) * th_factor
+            np.percentile(data, [100.0 - percentile, percentile])))) * thresh_fac
 
 
 def snippets(data, indices, start=-10, stop=10):

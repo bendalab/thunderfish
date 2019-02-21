@@ -157,15 +157,15 @@ def test_threshold_crossings():
 def test_thresholds():
     # generate data:
     data = np.random.randn(10000)
-    std_th = ed.std_threshold(data, th_factor=1.0)
-    prc_th = ed.percentile_threshold(data, th_factor=1.0, percentile=16.0)
+    std_th = ed.std_threshold(data, thresh_fac=1.0)
+    prc_th = ed.percentile_threshold(data, thresh_fac=1.0, percentile=16.0)
     assert_almost_equal(std_th, 1.0, 1, 'std_threshold %g esimate failed' % std_th)
     assert_true(np.abs(prc_th-2.0) < 0.1, 'percentile_threshold %g esimate failed' % prc_th)
     time = np.arange(0.0, 10.0, 0.01)
     data = np.sin(2.0*np.pi*21.7*time)
-    mm_th = ed.minmax_threshold(data, th_factor=1.0)
+    mm_th = ed.minmax_threshold(data, thresh_fac=1.0)
     assert_almost_equal(mm_th, 2.0, 2, 'minmax_threshold %g esimate failed' % mm_th)
-    prc_th = ed.percentile_threshold(data, th_factor=1.0, percentile=0.1)
+    prc_th = ed.percentile_threshold(data, thresh_fac=1.0, percentile=0.1)
     assert_true(np.abs(prc_th-2.0) < 0.1, 'percentile_threshold %g esimate failed' % prc_th)
 
 

@@ -656,7 +656,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
     psd_data_seg = psd_data_seg[~np.isnan(psd_data_seg)]
     psd_data_seg = np.mean(psd_data_seg) + \
       sig.detrend(psd_data_seg, type='linear')
-    noise_std, center = hist_threshold(psd_data_seg, th_factor=1.0, nbins=nbins)
+    noise_std, center = hist_threshold(psd_data_seg, thresh_fac=1.0, nbins=nbins)
     low_threshold = noise_std * low_thresh_factor
     high_threshold = noise_std * high_thresh_factor
     return low_threshold, high_threshold, center

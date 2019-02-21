@@ -23,6 +23,8 @@ from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_dete
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot
+from .eodanalysis import add_eod_analysis_config, eod_waveform_args
+from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .tabledata import TableData, add_write_table_config, write_table_args
 from audioio import play, fade
 
@@ -250,10 +252,12 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
     add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
-    add_check_pulse_width_config(cfg)
+    add_eod_analysis_config(cfg, min_pulse_win=0.004)
+    del cfg['eodSnippetFac']
+    del cfg['eodMinSnippet']
     cfg.add_section('Waveform selection:')
     cfg.add('maximumClippedFraction', 0.01, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
-    cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the ampltude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
+    cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
     cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
     cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
     add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
@@ -388,16 +392,15 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
     power_thresh = []
     
     # analyse eod waveform of pulse-fish:
-    max_eods = 100
+    max_eods = cfg.value('eodMaxEODs')
     if pulse_fish:
         mean_eod, eod_times = \
             eod_waveform(data, samplerate,
-                         percentile=cfg.value('pulseWidthPercentile'),
-                         th_factor=cfg.value('pulseWidthThresholdFactor'),
-                         win_fac=0.8, min_win=0.004, max_eods=max_eods)
+                         win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
+                         **eod_waveform_args(cfg))
         mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times,
-                                                                 min_win=0.004,
-                                                                 fresolution=minfres)
+                                                                 fresolution=minfres,
+                                                                 **analyze_pulse_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods else max_eods
         # TODO: add config parameter to analyze_pulse
         mean_eods.append(mean_eod)
@@ -425,10 +428,9 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
         fish = fishlist[idx]
         mean_eod, eod_times = \
             eod_waveform(data, samplerate,
-                         percentile=cfg.value('pulseWidthPercentile'),
-                         th_factor=cfg.value('pulseWidthThresholdFactor'),
-                         win_fac=3.0, min_win=0.0, max_eods=max_eods, period=1.0/fish[0,0])
-        mean_eod, props, sdata = analyze_wave(mean_eod, fish)
+                         win_fac=3.0, min_win=0.0, period=1.0/fish[0,0],
+                         **eod_waveform_args(cfg))
+        mean_eod, props, sdata = analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods else max_eods
         # add good waveforms only:
         if (k > 0 or clipped < cfg.value('maximumClippedFraction')) and \

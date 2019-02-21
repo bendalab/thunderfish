@@ -23,7 +23,7 @@ def test_best_window():
 
     # compute best window:
     print("call bestwindow() function...")
-    idx0, idx1, clipped = bw.best_window_indices(data, rate, single=False,
+    idx0, idx1, clipped = bw.best_window_indices(data, rate, expand=False,
                                                  win_size=1.0, win_shift=0.1,
                                                  min_clip=-clip, max_clip=clip,
                                                  w_cv_ampl=10.0, tolerance=0.5)
@@ -53,7 +53,7 @@ def test_best_window():
 
     # plotting 2:
     fig, ax = plt.subplots(5, sharex=True)
-    bw.best_window_indices(data, rate, single=False,
+    bw.best_window_indices(data, rate, expand=False,
                            win_size=1.0, win_shift=0.1,
                            min_clip=-clip, max_clip=clip,
                            w_cv_ampl=10.0, tolerance=0.5,
