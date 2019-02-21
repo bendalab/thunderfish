@@ -22,7 +22,7 @@ from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
-from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot
+from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot, wave_spectrum_plot
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .tabledata import TableData, add_write_table_config, write_table_args
@@ -100,7 +100,9 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
     ax2 = fig.add_axes([0.075, 0.06, 0.9, 0.09]) # whole trace
     ax3 = fig.add_axes([0.075, 0.6, 0.7, 0.3])   # psd
     ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])   # mean eod
-    ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pusle spectrum
+    ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pulse spectrum
+    ax6 = fig.add_axes([0.575, 0.36, 0.4, 0.14]) # amplitude spectrum
+    ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
 
     if show_plot:
         fig.canvas.mpl_connect('key_press_event', keypress)
@@ -183,10 +185,20 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
 
     ################
 
-    if not usedax5 and len(eod_props) > 0 and eod_props[0]['type'] == 'pulse':
+    ax5.set_visible(True)
+    ax6.set_visible(False)
+    ax7.set_visible(False)
+    if not usedax5 and len(eod_props) > 0:
         usedax5 = True
-        pulse_spectrum_plot(spec_data[0], eod_props[0], ax5)
-        ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
+        if  eod_props[0]['type'] == 'pulse':
+            pulse_spectrum_plot(spec_data[0], eod_props[0], ax5)
+            ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
+        else:
+            ax5.set_visible(False)
+            ax6.set_visible(True)
+            ax7.set_visible(True)
+            wave_spectrum_plot(spec_data[0], eod_props[0], ax6, ax7, unit)
+            ax6.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
 
     ## # plot inter EOD interval histogram
     ## if len(inter_eod_intervals)>2:
@@ -219,7 +231,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
     ##                 loc='upper right', frameon=False)
 
     # cosmetics
-    for ax in [ax2, ax3, ax4, ax5]:
+    for ax in [ax2, ax3, ax4, ax5, ax6, ax7]:
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.get_xaxis().tick_bottom()
