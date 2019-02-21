@@ -79,6 +79,23 @@ class ConfigFile:
         """
         self.new_section = description
 
+
+    def __contains__(self, key):
+        """
+        Check for existence of a configuration parameter. 
+
+        Parameters
+        ----------
+        key: string
+            The name of the configuration parameter to be checked for.
+
+        Returns
+        -------
+        contains: bool
+            True if `key` specifies an existing configuration parameter.
+        """
+        return key in self.cfg
+
         
     def __getitem__(self, key):
         """Returns the list [value, unit, description]

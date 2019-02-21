@@ -28,7 +28,7 @@ except ImportError:
     pass
 
 
-def check_pulse_width(data, samplerate, th_factor=0.8, percentile=1.0,
+def check_pulse_width(data, samplerate, thresh_fac=0.8, percentile=1.0,
                       pulse_thresh=0.1, verbose=0, plot_data_func=None, **kwargs):
     """Detects if a fish is pulse- or wave-type based on the proportion of the time distance
     between a peak and its following trough, relative to the time between consecutive peaks.
@@ -42,7 +42,7 @@ def check_pulse_width(data, samplerate, th_factor=0.8, percentile=1.0,
          Sampling rate of the data in Hertz.
     percentile: float
          The interpercentile range is computed at percentile and 100.0-percentile.
-    th_factor: float
+    thresh_fac: float
          The threshold for peak detection is the inter-percentile-range
          multiplied by this factor.
     pulse_thresh: float
@@ -107,7 +107,7 @@ def check_pulse_width(data, samplerate, th_factor=0.8, percentile=1.0,
         return peak_ratio, r_tr
 
     # threshold for peak detection:
-    threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
+    threshold = percentile_threshold(data, thresh_fac=thresh_fac, percentile=percentile)
     if verbose > 0:
         print('check_pulse_width: threshold for pulse detection is %g' % threshold)
     
@@ -339,7 +339,7 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
     ax.set_ylabel('Power [dB]', fontsize=fs)
 
 
-def add_check_pulse_width_config(cfg, th_factor=0.8, percentile=1.0, pulse_thresh=0.1):
+def add_check_pulse_width_config(cfg, thresh_fac=0.8, percentile=1.0, pulse_thresh=0.1):
     """ Add parameter needed for check_pulse_width() as
     a new section to a configuration.
 
@@ -352,7 +352,7 @@ def add_check_pulse_width_config(cfg, th_factor=0.8, percentile=1.0, pulse_thres
 
     cfg.add_section('Check pulse widths:')
     cfg.add('pulseWidthPercentile', percentile, '%', 'The variance of the data is measured as the interpercentile range.')
-    cfg.add('pulseWidthThresholdFactor', th_factor, '', 'The threshold for peak detection is this factor multiplied with the interpercentile range.')
+    cfg.add('pulseWidthThresholdFactor', thresh_fac, '', 'The threshold for peak detection is this factor multiplied with the interpercentile range.')
     cfg.add('pulseWidthThresholdRatio', pulse_thresh, '', 'A pulsefish is detected if the width of the pulses relative to the intervals is smaller than this threshold.')
 
 
@@ -372,7 +372,7 @@ def check_pulse_width_args(cfg):
         Dictionary with names of arguments of the check_pulse_width() function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'th_factor': 'pulseWidthThresholdFactor',
+    a = cfg.map({'thresh_fac': 'pulseWidthThresholdFactor',
                  'percentile': 'pulseWidthPercentile',
                  'pulse_thresh': 'pulseWidthThresholdRatio'})
     return a

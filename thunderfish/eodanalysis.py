@@ -13,6 +13,12 @@
 ## Fit functions
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
 - `exp_decay()`: expontenial decay.
+
+## Configuration parameter
+- `add_eod_analysis_config()': add parameters for EOD analysis functions to configuration.
+- `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
+- `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
+- `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 """
 
 import numpy as np
@@ -23,7 +29,7 @@ from .eventdetection import percentile_threshold, detect_peaks, snippets
 from .powerspectrum import psd, nfft_noverlap, decibel
 
 
-def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
+def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0,
                  win_fac=2.0, min_win=0.01, max_eods=None, period=None):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard deviation.
@@ -37,8 +43,8 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
     percentile: float
         Percentile parameter in percent for the eventdetection.percentile_threshold() function
         used to estimate thresholds for detecting EOD peaks in the data.
-    th_factor: float
-        th_factor parameter for the eventdetection.percentile_threshold() function used to
+    thresh_fac: float
+        thresh_fac parameter for the eventdetection.percentile_threshold() function used to
         estimate thresholds for detecting EOD peaks in the data.
     win_fac: float
         The snippet size is the period times `win_fac`.
@@ -59,7 +65,7 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
     """
     if period is None:
         # threshold for peak detection:
-        threshold = percentile_threshold(data, th_factor=th_factor, percentile=percentile)
+        threshold = percentile_threshold(data, thresh_fac=thresh_fac, percentile=percentile)
 
         # detect peaks:
         eod_idx, _ = detect_peaks(data, threshold)
@@ -298,10 +304,10 @@ def double_exp_decay(t, tau1, ampl1, tau2, ampl2, offs):
     return offs + ampl1*np.exp(-t/tau1) + ampl2*np.exp(-t/tau2)
 
 
-def analyze_pulse(eod, eod_times, min_win=0.001,
-                  thresh_fac=0.01, min_dist=50.0e-6,
+def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
+                  peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac = 0.5, fit_frac = 0.5,
-                  fresolution=1.0, percentile=1.0):
+                  fresolution=1.0, pulse_percentile=1.0):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -313,9 +319,9 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
         Further columns are optional but not used.
     eod_times: 1-D array
         List of times of detected EOD peaks.
-    min_win: float
+    min_pulse_win: float
         The minimum size of cut-out EOD waveform.
-    thresh_fac: float
+    peak_thresh_fac: float
         Set the threshold for peak detection to the maximum pulse amplitude times this factor.
     min_dist: float
         Minimum distance between peak and troughs of the pulse.
@@ -326,10 +332,10 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
         waveform falls below this fraction of the peak's height (0-1).
     fresolution: float
         The frequency resolution of the power spectrum of the single pulse.
-    percentile: float
+    pulse_percentile: float
         Remove extreme values of the inter-pulse intervals when computing interval statistics.
-        All intervals below the `percentile` and above the `100-percentile` percentile
-        are ignored. `percentile` is given in percent.
+        All intervals below the `pulse_percentile` and above the `100-pulse_percentile`
+        percentile are ignored. `pulse_percentile` is given in percent.
     
     Returns
     -------
@@ -420,7 +426,7 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
     min_thresh = 1.5*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
-    threshold = max_ampl*thresh_fac
+    threshold = max_ampl*peak_thresh_fac
     if threshold < min_thresh:
         threshold = min_thresh
 
@@ -431,8 +437,8 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     t1 = meod[ridx,0]
     width = ridx - lidx
     dt = meod[1,0] - meod[0,0]
-    if width*dt < min_win:
-        width = int(np.round(min_win/dt))
+    if width*dt < min_pulse_win:
+        width = int(np.round(min_pulse_win/dt))
     lidx -= width//2
     if lidx < 0:
         lidx = 0
@@ -541,7 +547,8 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     props['n'] = len(eod_times)
 
     # analyze central intervals:    
-    lower, upper = np.percentile(inter_pulse_intervals, [percentile, 100.0-percentile])
+    lower, upper = np.percentile(inter_pulse_intervals, [pulse_percentile,
+                                                         100.0-pulse_percentile])
     intervals = inter_pulse_intervals[(inter_pulse_intervals > lower) &
                                       (inter_pulse_intervals < upper)]
     if len(intervals) > 2:
@@ -602,9 +609,9 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
     # annotate fit:
     if not tau is None and eod_waveform.shape[1] > 3:
         if tau < 0.001:
-            label = 'tau=%.0f\u00b5s' % (1.e6*tau)
+            label = u'\u03c4=%.0f\u00b5s' % (1.e6*tau)
         else:
-            label = 'tau=%.2fms' % (1.e3*tau)
+            label = u'\u03c4=%.2fms' % (1.e3*tau)
         inx = np.argmin(np.isnan(eod_waveform[:,3]))
         x = eod_waveform[inx,0] + tau
         y = 0.7*eod_waveform[inx,3]
@@ -691,7 +698,112 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
     ax.set_xlabel('Frequency [Hz]')
     ax.set_ylabel('Power [dB]')
 
+
+def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
+                            win_fac=2.0, min_win=0.01, max_eods=None,
+                            n_harm=20, min_pulse_win=0.001, peak_thresh_fac=0.01,
+                            min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
+                            pulse_percentile=1.0):
+    """ Add all parameters needed for the eod analysis functions as
+    a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
         
+    See eod_waveform(), analyze_wave(), and analyze_pulse() for details on
+    the remaining arguments.
+    """
+    cfg.add_section('EOD analysis:')
+    if not 'pulseWidthPercentile' in cfg:
+        cfg.add('pulseWidthPercentile', percentile, '%', 'The variance of the data is measured as the interpercentile range.')
+    if not 'pulseWidthThresholdFactor' in cfg:
+        cfg.add('pulseWidthThresholdFactor', thresh_fac, '', 'The threshold for detection of EOD peaks is this factor multiplied with the interpercentile range of the data.')
+    cfg.add('eodSnippetFac', win_fac, '', 'The duration of EOD snippets is the EOD period times this factor.')
+    cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
+    cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
+    cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
+    cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
+    cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks in pulse-type EODs as a fraction of the pulse amplitude.')
+    cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
+    cfg.add('eodPulseWidthFraction', width_frac, '', 'The width of a pulse is measured at this fraction of the pulse height.')
+    cfg.add('eodExponentialFitFraction', fit_frac, '', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
+    cfg.add('eodIntervalPercentile', pulse_percentile, '%', 'Remove extreme values of the inter-pulse intervals outside the specified interpercentile range when computing interval statistics.')
+
+
+def eod_waveform_args(cfg):
+    """ Translates a configuration to the
+    respective parameter names of the function eod_waveform().
+    
+    The return value can then be passed as key-word arguments to this function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the eod_waveform() function
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map({'thresh_fac': 'pulseWidthThresholdFactor',
+                 'percentile': 'pulseWidthPercentile',
+                 'win_fac': 'eodSnippetFac',
+                 'min_win': 'eodMinSnippet',
+                 'max_eods': 'eodMaxEODs'})
+    return a
+
+
+def analyze_wave_args(cfg):
+    """ Translates a configuration to the
+    respective parameter names of the function analyze_wave().
+    
+    The return value can then be passed as key-word arguments to this function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the analyze_wave() function
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map({'n_harm': 'eodHarmonics'})
+    return a
+
+
+def analyze_pulse_args(cfg):
+    """ Translates a configuration to the
+    respective parameter names of the function analyze_pulse().
+    
+    The return value can then be passed as key-word arguments to this function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the analyze_pulse() function
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map({'min_pulse_win': 'eodMinPulseSnippet',
+                 'peak_thresh_fac': 'eodPeakThresholdFactor',
+                 'min_dist': 'eodMinimumDistance',
+                 'width_frac': 'eodPulseWidthFraction',
+                 'fit_frac': 'eodExponentialFitFraction',
+                 'pulse_percentile': 'eodIntervalPercentile'})
+    return a
+
+
 if __name__ == '__main__':
     import sys
     import matplotlib.pyplot as plt
