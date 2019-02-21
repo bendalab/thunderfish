@@ -89,8 +89,12 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
     return mean_eod, eod_times
 
 
-def sinewaves(t, freq, delay, ampl, *ap):
+def fourier_series(t, freq, delay, ampl, *ap):
     """
+    Fourier series of sine waves with amplitudes and phases.
+
+    x = ampl sin(2 pi freq (t-delay) + ampl sum_{k=0}^n ap[2*i]*sin(2 pi (k+2) freq (t-delay) + ap[2*i+1])
+    
     Parameters
     ----------
     t: float or array
@@ -102,7 +106,7 @@ def sinewaves(t, freq, delay, ampl, *ap):
     ampl: float
         Amplitude of the sinewave with the fundamental frequency.
     *ap: list of floats
-        The relative amplitudes and phases of the harmonics.
+        The relative amplitudes and phases (in rad) of the harmonics.
         
     Returns
     -------
@@ -117,7 +121,7 @@ def sinewaves(t, freq, delay, ampl, *ap):
     return ampl*x
 
 
-def analyze_wave(eod, freq, n_harm=6):
+def analyze_wave(eod, freq, n_harm=20):
     """
     Analyze the EOD waveform of a wave-type fish.
     
@@ -189,7 +193,7 @@ def analyze_wave(eod, freq, n_harm=6):
     params = [freq0, -0.25/freq0, ampl]
     for i in range(1, n_harm):
         params.extend([1.0/(i+1), 0.0])
-    popt, pcov = curve_fit(sinewaves, meod[:,0], meod[:,1], params)
+    popt, pcov = curve_fit(fourier_series, meod[:,0], meod[:,1], params)
     for i in range(1, n_harm):
         # make all amplitudes positive:
         if popt[1+i*2] < 0.0:
@@ -197,7 +201,7 @@ def analyze_wave(eod, freq, n_harm=6):
             popt[2+i*2] += np.pi
         # all phases in the range 0 to 2 pi:
         popt[2+i*2] %= 2.0*np.pi
-    meod[:,-1] = sinewaves(meod[:,0], *popt)
+    meod[:,-1] = fourier_series(meod[:,0], *popt)
 
     # fit error:
     ppampl = np.max(meod[:,3]) - np.min(meod[:,3])
