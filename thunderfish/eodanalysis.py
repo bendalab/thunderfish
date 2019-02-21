@@ -24,7 +24,7 @@ from .powerspectrum import psd, nfft_noverlap, decibel
 
 
 def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
-                 win_fac=2.0, min_win=0.01, period=None):
+                 win_fac=2.0, min_win=0.01, max_eods=None, period=None):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard deviation.
 
@@ -44,6 +44,8 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
         The snippet size is the period times `win_fac`.
     min_win: float
         The minimum size of the snippets in seconds.
+    max_eods: int or None
+        Maximum number of EODs to be used for averaging.
     period: float or None
         Average waveforms with this period instead of peak times.
     
@@ -80,6 +82,8 @@ def eod_waveform(data, samplerate, th_factor=0.8, percentile=1.0,
     win_inx = int(win * samplerate)
 
     # extract snippets:
+    if max_eods and max_eods > 0 and len(eod_idx) > max_eods:
+        eod_idx = eod_idx[:max_eods]
     eod_snippets = snippets(data, eod_idx, -win_inx, win_inx)
 
     # mean and std of snippets:
