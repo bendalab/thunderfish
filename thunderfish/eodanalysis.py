@@ -9,6 +9,10 @@
 ## Visualization
 - `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard deviation.
 - `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse.
+
+## Fit functions
+- `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
+- `exp_decay()`: expontenial decay.
 """
 
 import numpy as np
@@ -93,7 +97,7 @@ def fourier_series(t, freq, delay, ampl, *ap):
     """
     Fourier series of sine waves with amplitudes and phases.
 
-    x = ampl sin(2 pi freq (t-delay) + ampl sum_{k=0}^n ap[2*i]*sin(2 pi (k+2) freq (t-delay) + ap[2*i+1])
+    x(t) = ampl sin(2 pi freq (t-delay) + ampl sum_{k=0}^n ap[2*i]*sin(2 pi (k+2) freq (t-delay) + ap[2*i+1])
     
     Parameters
     ----------
@@ -234,8 +238,65 @@ def analyze_wave(eod, freq, n_harm=20):
     return meod, props, spec_data
 
 
+def exp_decay(t, tau, ampl, offs):
+    """
+    Expontenial decay.
+
+    x(t) = ampl*exp(-t/tau) + offs
+
+    Parameters
+    ----------
+    t: float or array
+        Time.
+    tau: float
+        Time constant of exponential decay.
+    ampl: float
+        Amplitude of exponential decay, i.e. initial value minus steady-state value.
+    offs: float
+        Steady-state value.
+    
+    Returns
+    -------
+    x: float or array
+        The exponential decay evaluated at times `t`.
+    
+    """
+    return offs + ampl*np.exp(-t/tau)
+
+
+def double_exp_decay(t, tau1, ampl1, tau2, ampl2, offs):
+    """
+    Double expontenial decay.
+
+    x(t) = ampl1*exp(-t/tau1) + ampl2*exp(-t/tau2) + offs
+
+    Parameters
+    ----------
+    t: float or array
+        Time.
+    tau1: float
+        Time constant of first exponential decay.
+    ampl1: float
+        Amplitude of first exponential decay, i.e. its initial value minus steady-state value.
+    tau2: float
+        Time constant of second exponential decay.
+    ampl2: float
+        Amplitude of second exponential decay.
+    offs: float
+        Steady-state value.
+    
+    Returns
+    -------
+    x: float or array
+        The exponential decay evaluated at times `t`.
+    
+    """
+    return offs + ampl1*np.exp(-t/tau1) + ampl2*np.exp(-t/tau2)
+
+
 def analyze_pulse(eod, eod_times, min_win=0.001,
                   thresh_fac=0.01, min_dist=50.0e-6,
+                  width_frac = 0.5, fit_frac = 0.5,
                   fresolution=1.0, percentile=1.0):
     """
     Analyze the EOD waveform of a pulse-type fish.
@@ -243,7 +304,8 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     Parameters
     ----------
     eod: 2-D array
-        The eod waveform. First column is time in seconds, second column the eod waveform.
+        The eod waveform. First column is time in seconds,
+        second column the eod waveform.
         Further columns are optional but not used.
     eod_times: 1-D array
         List of times of detected EOD peaks.
@@ -253,6 +315,11 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
         Set the threshold for peak detection to the maximum pulse amplitude times this factor.
     min_dist: float
         Minimum distance between peak and troughs of the pulse.
+    width_frac: float
+        The width of a peak is measured at this fraction of a peak's height (0-1).
+    fit_frac: float or None
+        An exponential is fitted to the tail of the last peak/trough starting where the
+        waveform falls below this fraction of the peak's height (0-1).
     fresolution: float
         The frequency resolution of the power spectrum of the single pulse.
     percentile: float
@@ -263,8 +330,10 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     Returns
     -------
     meod: 2-D array of floats
-        The eod waveform. First column is time in seconds, second column the eod waveform.
+        The eod waveform. First column is time in seconds,
+        second column the eod waveform.
         Further columns are kept from the input `eod`.
+        As a last column the fit to the tail of the last peak is appended.
     props: dict
         A dictionary with properties of the analyzed EOD waveform.
         - type: set to 'pulse'.
@@ -300,8 +369,9 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     """
         
     # storage:
-    meod = np.zeros(eod.shape)
-    meod[:,:] = eod
+    meod = np.zeros((eod.shape[0], eod.shape[1]+1))
+    meod[:,:eod.shape[1]] = eod
+    meod[:,-1] = float('nan')
     
     # subtract mean at the ends of the snippet:
     n = len(meod)//20
@@ -391,24 +461,41 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
         li = peak_list[i-1] if i-1 >= 0 else 0
         ri = peak_list[i+1] if i+1 < len(peak_list) else len(meod)-1
         if (i+1-p1i+offs)%2 == 1:
-            low = max(meod[li,1], meod[ri,1])
-            thresh = 0.5*(low + meod[pi,1])
+            base = max(meod[li,1], meod[ri,1])
+            thresh = base*(1.0-width_frac) + meod[pi,1]*width_frac
             inx = li + np.argmax(meod[li:ri,1] > thresh)
             ti0 = np.interp(thresh, meod[inx-1:inx+1,1], meod[inx-1:inx+1,0])
             inx = ri - np.argmax(meod[ri:li:-1,1] > thresh)
             ti1 = np.interp(thresh, meod[inx+1:inx-1:-1,1], meod[inx+1:inx-1:-1,0])
         else:
-            high = min(meod[li,1], meod[ri,1])
-            thresh = 0.5*(high + meod[pi,1])
+            base = min(meod[li,1], meod[ri,1])
+            thresh = base*(1.0-width_frac) + meod[pi,1]*width_frac
             inx = li + np.argmax(meod[li:ri,1] < thresh)
             ti0 = np.interp(thresh, meod[inx:inx-2:-1,1], meod[inx:inx-2:-1,0])
             inx = ri - np.argmax(meod[ri:li:-1,1] < thresh)
             ti1 = np.interp(thresh, meod[inx:inx+2,1], meod[inx:inx+2,0])
         peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, ti1-ti0]
 
-    # analyze pulse timing:
-    inter_pulse_intervals = np.diff(eod_times)
-    period = np.mean(inter_pulse_intervals)
+    # fit exponential to last peak/trough:
+    if not fit_frac is None:
+        pi = peak_list[-1]
+        thresh = meod[-1,1]*(1.0-fit_frac) + meod[pi,1]*fit_frac
+        sign = 1.0 if meod[pi,1] > meod[-1,1] else -1.0
+        inx = pi + np.argmax(sign*meod[pi:,1] < sign*thresh)
+        tau = 0.2*(meod[-1,0]-meod[inx,0])
+        params = [tau, (meod[inx,1]-meod[-1,1])*np.exp(-meod[inx,0]/tau), meod[-1,1]]
+        popt, pcov = curve_fit(exp_decay, meod[inx:,0], meod[inx:,1], params)
+        tau = popt[0]
+        meod[inx:,-1] = exp_decay(meod[inx:,0], *popt)
+        ## tau = 0.1*(meod[-1,0]-meod[inx,0])
+        ## ampl1 = 0.5*(meod[inx,1]-meod[-1,1])*np.exp(-meod[inx,0]/tau)
+        ## ampl2 = 0.5*(meod[inx,1]-meod[-1,1])*np.exp(-meod[inx,0]/tau/10.0)
+        ## params = [tau, ampl1, 10.0*tau, ampl2, meod[-1,1]]
+        ## popt, pcov = curve_fit(double_exp_decay, meod[inx:,0], meod[inx:,1], params)
+        ## tau = popt[0]
+        ## tau2 = popt[2]
+        ## print(tau*1e6, tau2*1e6)
+        ## meod[inx:,-1] = double_exp_decay(meod[inx:,0], *popt)
 
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
@@ -425,6 +512,10 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     att5 = decibel(np.mean(power[freqs<5.0])/maxpower)
     att50 = decibel(np.mean(power[freqs<50.0])/maxpower)
     lowcutoff = freqs[decibel(power/maxpower) > 0.5*att5][0]
+
+    # analyze pulse timing:
+    inter_pulse_intervals = np.diff(eod_times)
+    period = np.mean(inter_pulse_intervals)
     
     # store properties:
     props = {}
@@ -437,6 +528,7 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0
+    props['tau'] = tau
     props['peakfrequency'] = freqs[np.argmax(power)]
     props['lowfreqattenuation5'] = att5
     props['lowfreqattenuation50'] = att50
@@ -456,19 +548,19 @@ def analyze_pulse(eod, eod_times, min_win=0.001,
     return meod, props, peaks, ppower, intervals
 
 
-def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
+def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
                       mkwargs={'lw': 2, 'color': 'red'},
                       skwargs={'color': '#CCCCCC'},
                       fkwargs={'lw': 6, 'color': 'steelblue'},
                       zkwargs={'lw': 1, 'color': '#AAAAAA'}):
-    """Plot mean eod and its standard deviation.
+    """Plot mean EOD, its standard deviation, and an optional fit to the EOD.
 
     Parameters
     ----------
     eod_waveform: 2-D array
         EOD waveform. First column is time in seconds,
         second column the (mean) eod waveform. The optional third column is the
-        standard deviation and the optional fourth column is a fit on the waveform.
+        standard deviation, and the optional fourth column is a fit on the waveform.
     peaks: 2_D arrays or None
         List of peak properties (index, time, and amplitude) of a EOD pulse
         as returned by `analyze_pulse()`.
@@ -476,12 +568,14 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
         Axis for plot.
     unit: string
         Optional unit of the data used for y-label.
+    tau: float
+        Optional time constant of a fit.
     mkwargs: dict
-        Arguments passed on to the plot command for the mean eod.
+        Arguments passed on to the plot command for the mean EOD.
     skwargs: dict
-        Arguments passed on to the fill_between command for the standard deviation of the eod.
+        Arguments passed on to the fill_between command for the standard deviation of the EOD.
     fkwargs: dict
-        Arguments passed on to the plot command for the fitted eod.
+        Arguments passed on to the plot command for the fitted EOD.
     zkwargs: dict
         Arguments passed on to the plot command for the zero line.
     """
@@ -501,6 +595,16 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
         std_eod = eod_waveform[:,2]
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=1, **skwargs)
+    # annotate fit:
+    if not tau is None and eod_waveform.shape[1] > 3:
+        if tau < 0.001:
+            label = 'tau=%.0f\u00b5s' % (1.e6*tau)
+        else:
+            label = 'tau=%.2fms' % (1.e3*tau)
+        inx = np.argmin(np.isnan(eod_waveform[:,3]))
+        x = eod_waveform[inx,0] + tau
+        y = 0.7*eod_waveform[inx,3]
+        ax.text(1000.0*x, y, label, ha='left', va='top', zorder=10)
     # annotate peaks:
     if peaks is not None and len(peaks)>0:
         maxa = np.max(peaks[:,2])
@@ -512,7 +616,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None,
                 if p[1] < 0.001:
                     label += u'(%.0f%% @ %.0f\u00b5s)' % (100.0*p[3], 1.0e6*p[1])
                 else:
-                    label += u'(%.0f%% @ %.3gms)' % (100.0*p[3], 1.0e3*p[1])
+                    label += u'(%.0f%% @ %.2gms)' % (100.0*p[3], 1.0e3*p[1])
             va = 'bottom'
             y = 0.02*maxa
             if p[0] % 2 == 0:
