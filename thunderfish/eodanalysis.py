@@ -155,16 +155,16 @@ def analyze_wave(eod, freq, n_harm=20):
           of all harmonics and transformed to decibel.
     spec_data: 2-D array of floats
         First column is the index of the harmonics, second column its frequency,
-        third column its relative amplitude, and fourth column the phase shift
-        relative to the fundamental.
-        If `freq` is a list of harmonics, a fith column is added to `spec_data` that
-        contains the sqaure rooted powers of the harmonics
-        normalized to the one ofthe fundamental.
+        third column its amplitude, fourth column its amplitude relative to the fundamental,
+        and fifth column the phase shift relative to the fundamental.
+        If `freq` is a list of harmonics, a sixth and a seventh column is added to `spec_data`
+        that contain the powers of the harmonics from the original power spectrum of the
+        raw data, and the powers normalized to the one of the fundamental.
         Rows are the harmonics, first row is the fundamental frequency with index 0,
-        amplitude of one, and phase shift of zero.
-        If the amplitude of the first harmonic (spec-data[1,3]) is larger than 2,
-        or the amplitude if the second harmonic (spec-data[2,3]) is larger than 0.2,
-        then the EOD waveform has the wrong waveform and
+        relative amplitude of one, and phase shift of zero.
+        If the relative amplitude of the first harmonic (spec-data[1,3]) is larger than 2,
+        or the relative amplitude of the second harmonic (spec-data[2,3]) is larger than 0.2,
+        then this probably is not a proper EOD waveform and
         should not be used for further analysis.
     """
     freq0 = freq
@@ -194,13 +194,16 @@ def analyze_wave(eod, freq, n_harm=20):
     for i in range(1, n_harm):
         params.extend([1.0/(i+1), 0.0])
     popt, pcov = curve_fit(fourier_series, meod[:,0], meod[:,1], params)
+    ampl = popt[2]
     for i in range(1, n_harm):
         # make all amplitudes positive:
         if popt[1+i*2] < 0.0:
             popt[1+i*2] *= -1.0
             popt[2+i*2] += np.pi
-        # all phases in the range 0 to 2 pi:
+        # all phases in the range -pi to pi:
         popt[2+i*2] %= 2.0*np.pi
+        if popt[2+i*2] > np.pi:
+            popt[2+i*2] -= 2.0*np.pi
     meod[:,-1] = fourier_series(meod[:,0], *popt)
 
     # fit error:
@@ -213,20 +216,20 @@ def analyze_wave(eod, freq, n_harm=20):
     props['EODf'] = freq0
     props['p-p-amplitude'] = ppampl
     props['flipped'] = flipped
-    props['amplitude'] = popt[2]
+    props['amplitude'] = ampl
     props['rmserror'] = rmserror
     ncols = 4
     if hasattr(freq, 'shape'):
-        spec_data = np.zeros((n_harm, 5))
-        ampls = np.sqrt(freq[:n_harm, 1])
-        ampls /= ampls[0]
-        spec_data[:len(ampls),4] = ampls
+        spec_data = np.zeros((n_harm, 7))
+        powers = freq[:n_harm, 1]
+        spec_data[:len(powers), 5] = powers
+        spec_data[:len(powers), 6] = powers/powers[0]
         props['power'] = decibel(np.sum(freq[:,1]))
     else:
-        spec_data = np.zeros((n_harm, 4))
-    spec_data[0,:4] = [0.0, freq0, 1.0, 0.0]
+        spec_data = np.zeros((n_harm, 5))
+    spec_data[0,:5] = [0.0, freq0, ampl, 1.0, 0.0]
     for i in range(1, n_harm):
-        spec_data[i,:4] = [i, (i+1)*freq0, popt[1+i*2], popt[2+i*2]]
+        spec_data[i,:5] = [i, (i+1)*freq0, ampl*popt[1+i*2], popt[1+i*2], popt[2+i*2]]
     
     return meod, props, spec_data
 

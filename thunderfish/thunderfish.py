@@ -255,11 +255,8 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
     cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the ampltude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
     cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
     cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
-    add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True)
-    del cfg['fileColumnNumbers']
-    del cfg['fileSections']
-    del cfg['fileShrinkColumnWidth']
-    del cfg['fileMissing']
+    add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
+                           shrink_width=False)
     
     # load configuration from working directory and data directories:
     cfg.load_files(cfgfile, filename, 3, verbose)
@@ -271,6 +268,10 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             print('configuration file name must have .cfg as extension!')
         else:
             print('write configuration to %s ...' % save_config)
+            del cfg['fileColumnNumbers']
+            del cfg['fileSections']
+            del cfg['fileShrinkColumnWidth']
+            del cfg['fileMissing']
             cfg.dump(save_config)
         return None
 
@@ -467,14 +468,18 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                 if sdata.shape[1] == 2:
                     td = TableData(sdata[:,:2], ['frequency', 'power'],
                                    ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
+                    td.write(os.path.join(output_folder, outfilename + '-powerspectrum-%d' % i),
+                             **write_table_args(cfg))
                 else:
-                    td = TableData(sdata[:,:4]*[1.0, 1.0, 100.0, 1.0],
-                                   ['harmonics', 'frequency', 'relampl', 'phase'],
-                                   ['-', 'Hz', '%', 'rad'], ['%.0f', '%.2f', '%.1f', '%.3f'])
-                    if sdata.shape[1] > 4:
-                        td.append('amplitude', unit, '%.5f', sdata[:,4])
-                td.write(os.path.join(output_folder, outfilename + '-spectrum-%d' % i),
-                         **write_table_args(cfg))
+                    td = TableData(sdata[:,:5]*[1.0, 1.0, 1.0, 100.0, 1.0],
+                                   ['harmonics', 'frequency', 'amplitude', 'relampl', 'phase'],
+                                   ['-', 'Hz', unit, '%', 'rad'],
+                                   ['%.0f', '%.2f', '%.6f', '%8.3f', '%8.4f'])
+                    if sdata.shape[1] > 6:
+                        td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
+                        td.append('relpower', '%', '%9.4f', 100.0*sdata[:,6])
+                    td.write(os.path.join(output_folder, outfilename + '-spectrum-%d' % i),
+                             **write_table_args(cfg))
                 del td
             # peaks:
             if len(pdata)>0:
@@ -488,7 +493,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
         # wavefish frequencies and amplitudes:
         if len(fishlist) > 0:
             eoddata = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
-            td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%.3f'])
+            td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%8.3f'])
             td.write(os.path.join(output_folder, outfilename + '-wavefish-eodfs'),
                      **write_table_args(cfg))
             del td
