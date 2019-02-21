@@ -241,8 +241,8 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
     # configuration options:
     cfg = ConfigFile()
     cfg.add_section('Power spectrum estimation:')
-    cfg.add('frequencyResolution', 0.2, 'Hz', 'Frequency resolution of the power spectrum.')
-    cfg.add('numberPSDWindows', 2, '', 'Number of windows on which power spectra are computed.')
+    cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
+    cfg.add('numberPSDWindows', 1, '', 'Number of windows on which power spectra are computed.')
     cfg.add('numberPSDResolutions', 1, '', 'Number of power spectra computed within each window with decreasing resolution.')
     cfg.add('frequencyThreshold', 1.0, 'Hz', 'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
     # TODO: make this threshold dependent on frequency resolution!
@@ -388,15 +388,17 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
     power_thresh = []
     
     # analyse eod waveform of pulse-fish:
+    max_eods = 100
     if pulse_fish:
         mean_eod, eod_times = \
             eod_waveform(data, samplerate,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
-                         win_fac=0.8, min_win=0.004)
+                         win_fac=0.8, min_win=0.004, max_eods=max_eods)
         mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times,
                                                                  min_win=0.004,
                                                                  fresolution=minfres)
+        props['n'] = len(eod_times) if len(eod_times) < max_eods else max_eods
         # TODO: add config parameter to analyze_pulse
         mean_eods.append(mean_eod)
         spec_data.append(power)
@@ -425,9 +427,9 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             eod_waveform(data, samplerate,
                          percentile=cfg.value('pulseWidthPercentile'),
                          th_factor=cfg.value('pulseWidthThresholdFactor'),
-                         win_fac=3.0, min_win=0.0, period=1.0/fish[0,0])
+                         win_fac=3.0, min_win=0.0, max_eods=max_eods, period=1.0/fish[0,0])
         mean_eod, props, sdata = analyze_wave(mean_eod, fish)
-        props['n'] = len(eod_times)
+        props['n'] = len(eod_times) if len(eod_times) < max_eods else max_eods
         # add good waveforms only:
         if (k > 0 or clipped < cfg.value('maximumClippedFraction')) and \
             sdata[1,2] < cfg.value('maximumFirstHarmonicAmplitude') and \
