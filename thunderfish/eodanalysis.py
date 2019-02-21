@@ -8,7 +8,8 @@
 
 ## Visualization
 - `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard deviation.
-- `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse.
+- `wave_spectrum_plot()`: plot and annotate spectrum of wave-type EODs.
+- `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse-type EOD.
 
 ## Fit functions
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
@@ -645,15 +646,67 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
                         zorder=10)
     ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [msec]')
-    if unit is not None and len(unit)>0:
+    if unit:
         ax.set_ylabel('Amplitude [%s]' % unit)
     else:
         ax.set_ylabel('Amplitude')
 
 
+def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, markersize=12):
+    """Plot and annotate spectrum of wave-type EOD.
+
+    Parameters
+    ----------
+    spec: 2-D array
+        The amplitude spectrum of a single pulse as returned by `analyze_wave()`.
+        First column is the index of the harmonics, second column its frequency,
+        third column its amplitude, fourth column its amplitude relative to the fundamental,
+        and fifth column the phase shift relative to the fundamental.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform as
+        returned by `analyze_wave()`.
+    axa:
+        Axis for amplitude plot.
+    axa:
+        Axis for phase plot.
+    unit: string
+        Optional unit of the data used for y-label.
+    color:
+        Color for line and points of spectrum.
+    lw: float
+        Linewidth for spectrum.
+    markersize: float
+        Size of points on spectrum.
+    """
+    n = 9
+    # amplitudes:
+    markers, stemlines, baseline = axa.stem(spec[:n,0], spec[:n,2])
+    plt.setp(markers, color=color, markersize=markersize, clip_on=False)
+    plt.setp(stemlines, color=color, lw=lw)
+    axa.set_xlim(-0.5, n-0.5)
+    axa.set_xticks(np.arange(0, n, 1))
+    axa.set_xticklabels([])
+    if unit:
+        axa.set_ylabel('Amplitude [%s]' % unit)
+    else:
+        axa.set_ylabel('Amplitude')
+    # phases:
+    phases = spec[:,4]
+    phases[phases<0.0] = phases[phases<0.0] + 2.0*np.pi
+    markers, stemlines, baseline = axp.stem(spec[:n,0], phases[:n])
+    plt.setp(markers, color=color, markersize=markersize, clip_on=False)
+    plt.setp(stemlines, color=color, lw=lw)
+    axp.set_xlim(-0.5, n-0.5)
+    axp.set_xticks(np.arange(0, n, 1))
+    axp.set_ylim(0, 2.0*np.pi)
+    axp.set_yticks([0, np.pi, 2.0*np.pi])
+    axp.set_yticklabels([u'0', u'\u03c0', u'2\u03c0'])
+    axp.set_xlabel('Harmonics')
+    axp.set_ylabel('Phase')
+
 
 def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
-    """Plot and annotate spectrum of single pulse.
+    """Plot and annotate spectrum of single pulse-type EOD.
 
     Parameters
     ----------
