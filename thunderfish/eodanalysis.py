@@ -670,7 +670,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
         ax.set_ylabel('Amplitude')
 
 
-def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, markersize=12):
+def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, markersize=10):
     """Plot and annotate spectrum of wave-type EOD.
 
     Parameters
@@ -701,7 +701,7 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     markers, stemlines, baseline = axa.stem(spec[:n,0], spec[:n,2])
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
     plt.setp(stemlines, color=color, lw=lw)
-    axa.set_xlim(-0.5, n-0.5)
+    axa.set_xlim(-1.0, n-0.5)
     axa.set_xticks(np.arange(0, n, 1))
     axa.tick_params('x', direction='out')
     if unit:
@@ -714,7 +714,7 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     markers, stemlines, baseline = axp.stem(spec[:n,0], phases[:n])
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
     plt.setp(stemlines, color=color, lw=lw)
-    axp.set_xlim(-0.5, n-0.5)
+    axp.set_xlim(-1.0, n-0.5)
     axp.set_xticks(np.arange(0, n, 1))
     axp.tick_params('x', direction='out')
     axp.set_ylim(0, 2.0*np.pi)
