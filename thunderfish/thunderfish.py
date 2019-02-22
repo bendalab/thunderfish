@@ -199,6 +199,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
             ax7.set_visible(True)
             wave_spectrum_plot(spec_data[0], eod_props[0], ax6, ax7, unit)
             ax6.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
+            ax6.set_xticklabels([])
 
     ## # plot inter EOD interval histogram
     ## if len(inter_eod_intervals)>2:
