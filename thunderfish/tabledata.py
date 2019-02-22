@@ -329,7 +329,7 @@ class TableData:
             else:
                 self.load(data)
         
-    def append(self, label, unit, formats=None, value=None):
+    def append(self, label, unit, formats=None, value=None, key=None):
         """
         Append column to the table.
 
@@ -343,8 +343,12 @@ class TableData:
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
             If None, the format is set to '%g'.
-        val: None, float, int, string, etc. or list thereof
+        val: None, float, int, string, etc. or list thereof, or list of dict
             If not None, data for the column.
+        key: None or key of a dictionary
+            If not None and `value` is a list of dictionaries,
+            extract from each dictionary in the list the value specified
+            by `key` and assign the resulting list as data to the column.
 
         Returns
         -------
@@ -373,6 +377,8 @@ class TableData:
                 self.nsecs = len(self.header[self.addcol])-1
         if value is not None:
             if isinstance(value, (list, tuple, np.ndarray)):
+                if key and value and isinstance(value[0], dict):
+                    value = [d[key] for d in value]
                 self.data[-1].extend(value)
             else:
                 self.data[-1].append(value)
@@ -1054,12 +1060,15 @@ class TableData:
         -------
         data:
             - A single data value if a single row and a single column is specified.
-            - A list of data elements if a single row or a single column is specified.
+            - An array of data elements if a single row or a single column is specified.
             - A TableData object for multiple rows and columns.
         """
         rows, cols = self.__setupkey(key)
         if len(cols) == 1:
-            return self.data[cols[0]][rows]
+            if hasattr(self.data[cols[0]][rows], '__len__'):
+                return np.asarray(self.data[cols[0]][rows])
+            else:
+                return self.data[cols[0]][rows]
         else:
             if hasattr(self.data[0][rows], '__len__'):
                 data = TableData()
@@ -1075,7 +1084,7 @@ class TableData:
                 data.nsecs = self.nsecs
                 return data
             else:
-                return [self.data[i][rows] for i in cols]
+                return mp.asarray([self.data[i][rows] for i in cols])
 
     def __setitem__(self, key, value):
         """
@@ -2620,4 +2629,3 @@ if __name__ == "__main__":
         df.write(iout, table_format=tf)
         print('      ```')
         print('')
-        
