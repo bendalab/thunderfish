@@ -16,8 +16,8 @@ waveform and are separated in time.
 
 The thunderfish package provides the following software:
 
-- *fishfinder*: View your EOD recording and detect fish and their EOD frequency
-- *thunderfish*: Automatically detect and analyze all fish present in an EOD recording and generate a summary plot and data tables
+- *fishfinder*: View EOD recordings and detect fish and their EOD frequency on the fly.
+- *thunderfish*: Automatically detect and analyze all fish present in an EOD recording and generate a summary plot and data tables. [Read documentation](doc/thunderfish.md).
 
 
 ## Algorithms
