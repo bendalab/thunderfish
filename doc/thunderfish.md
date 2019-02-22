@@ -48,7 +48,7 @@ In the plot you can press
 
 ## Output files
 
-With the `-s` switch analyzis results are saved to files.
+With the `-s` switch analysis results are saved to files.
 
 Output files are placed in the current working directory if no path is
 specified via the `-o` switch. If the path specified via `-o` does not
