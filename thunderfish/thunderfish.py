@@ -287,7 +287,6 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
         else:
             print('write configuration to %s ...' % save_config)
             del cfg['fileColumnNumbers']
-            del cfg['fileSections']
             del cfg['fileShrinkColumnWidth']
             del cfg['fileMissing']
             cfg.dump(save_config)
@@ -508,18 +507,60 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                 td.write(os.path.join(output_folder, outfilename + '-pulsepeaks-%d' % i),
                          **write_table_args(cfg))
                 del td
-        # wavefish frequencies and amplitudes:
-        if len(fishlist) > 0:
+        # fish properties:
+        wave_props = []
+        pulse_props = []
+        for props in eod_props:
+            if 'type' in props:
+                if props['type'] == 'wave':
+                    wave_props.append(props)
+                else:
+                    pulse_props.append(props)
+        if fishlist:
             eoddata = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
             td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%8.3f'])
-            td.append('p-p-amplitude', unit, '%.3f', eod_props, 'p-p-amplitude')
-            if 'rmvaraince' in eod_props[0]:
-                td.append('noise', '%', '%.2f', eod_props, 'rmvariance')
+            td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
+            if 'rmvariance' in wave_props[0]:
+                td.append('noise', '%', '%.2f', wave_props, 'rmvariance')
                 td[:,'noise'] *= 100.0
-            td.append('rmserror', '%', '%.2f', eod_props, 'rmserror')
+            td.append('rmserror', '%', '%.2f', wave_props, 'rmserror')
             td[:,'rmserror'] *= 100.0
-            td.append('n', '', '%.0d', eod_props, 'n')
+            td.append('n', '', '%.0d', wave_props, 'n')
             td.write(os.path.join(output_folder, outfilename + '-wavefish'),
+                     **write_table_args(cfg))
+            del td
+        if pulse_props:
+            td = TableData()
+            td.append_section('waveform')
+            td.append('EODf', 'Hz', '%.2f', pulse_props, 'EODf')
+            td.append('period', 'ms', '%.2f', pulse_props, 'period')
+            td[:,'period'] *= 1000.0
+            td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
+            td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
+            td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
+            td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart')
+            td[:,'tstart'] *= 1000.0
+            td.append('tend', 'ms', '%.3f', pulse_props, 'tend')
+            td[:,'tend'] *= 1000.0
+            td.append('width', 'ms', '%.3f', pulse_props, 'width')
+            td[:,'width'] *= 1000.0
+            td.append('tau1', 'ms', '%.3f', pulse_props, 'tau1')
+            td[:,'tau1'] *= 1000.0
+            td.append('n', '', '%.0d', pulse_props, 'n')
+            td.append_section('power spectrum')
+            td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
+            td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
+            td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
+            td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
+            td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
+            td.append_section('interval statistics')
+            td.append('median', 'ms', '%.2f', pulse_props, 'medianinterval')
+            td[:,'median'] *= 1000.0
+            td.append('mean', 'ms', '%.2f', pulse_props, 'meaninterval')
+            td[:,'mean'] *= 1000.0
+            td.append('std', 'ms', '%.2f', pulse_props, 'stdinterval')
+            td[:,'std'] *= 1000.0
+            td.write(os.path.join(output_folder, outfilename + '-pulsefish'),
                      **write_table_args(cfg))
             del td
 

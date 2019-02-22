@@ -364,6 +364,15 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - tend: time in seconds where the pulse ends,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
+        - tau1: time constant of exponential decay of pulse tail in seconds.
+        - peakfrequency: frequency at peak power of the single pulse spectrum in Hertz.
+        - peakpower: peak power of the single pulse spectrum in decibel.
+        - lowfreqattenuation5: how much the average power below 5 Hz is attenuated
+          relative to the peak power in decibel.
+        - lowfreqattenuation50: how much the average power below 5 Hz is attenuated
+          relative to the peak power in decibel.
+        - powerlowcutoff: frequency at which the power reached half of the peak power
+          relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
         - n: number of pulses analyzed.
         - medianinterval: the median interval between pulses after removal
@@ -545,8 +554,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0
-    props['tau'] = tau
+    props['tau1'] = tau
     props['peakfrequency'] = freqs[np.argmax(power)]
+    props['peakpower'] = decibel(maxpower)
     props['lowfreqattenuation5'] = att5
     props['lowfreqattenuation50'] = att50
     props['powerlowcutoff'] = lowcutoff
