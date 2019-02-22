@@ -685,7 +685,7 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     plt.setp(stemlines, color=color, lw=lw)
     axa.set_xlim(-0.5, n-0.5)
     axa.set_xticks(np.arange(0, n, 1))
-    axa.set_xticklabels([])
+    axa.tick_params('x', direction='out')
     if unit:
         axa.set_ylabel('Amplitude [%s]' % unit)
     else:
@@ -698,6 +698,7 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     plt.setp(stemlines, color=color, lw=lw)
     axp.set_xlim(-0.5, n-0.5)
     axp.set_xticks(np.arange(0, n, 1))
+    axp.tick_params('x', direction='out')
     axp.set_ylim(0, 2.0*np.pi)
     axp.set_yticks([0, np.pi, 2.0*np.pi])
     axp.set_yticklabels([u'0', u'\u03c0', u'2\u03c0'])
