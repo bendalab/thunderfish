@@ -90,13 +90,15 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0,
 
     # extract snippets:
     if max_eods and max_eods > 0 and len(eod_idx) > max_eods:
-        eod_idx = eod_idx[:max_eods]
+        dn = (len(eod_idx) - max_eods)//2
+        eod_idx = eod_idx[dn:dn+max_eods]
     eod_snippets = snippets(data, eod_idx, -win_inx, win_inx)
 
     # mean and std of snippets:
     mean_eod = np.zeros((len(eod_snippets[0]), 3))
     mean_eod[:,1] = np.mean(eod_snippets, axis=0)
-    mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
+    if len(eod_snippets) > 1:
+        mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
 
     # time axis:
     mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / samplerate
