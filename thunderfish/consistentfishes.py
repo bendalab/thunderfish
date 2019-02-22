@@ -1,5 +1,5 @@
 """
-Functions to compare fishlists created by the harmonicgroups module in order to create a fishlist with
+Compare fishlists created by the harmonicgroups module in order to create a fishlist with
 fishes present in all fishlists.
 
 consistent_fishes(): Compares a list of fishlists and builds a consistent fishlist.

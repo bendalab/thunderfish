@@ -1,5 +1,5 @@
 """
-Generate artificial waveforms of weakly electric fish.
+Generate artificial EOD waveforms.
 
 The two main functions are
 

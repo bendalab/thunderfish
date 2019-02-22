@@ -1,7 +1,6 @@
 """
 # Check for pulse-type weakly electric fish
-Functions for checking whether a pulse-type or a wave-type weakly electric fish
-is present in a recording.
+Check whether a pulse-type or a wave-type weakly electric fish is present in a recording.
 
 # Main functions
 - `check_pulse_width()`: checks for a pulse-type fish based on the width of detected peaks.
