@@ -11,7 +11,7 @@ import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from .version import __version__
+from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
@@ -478,7 +478,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                            ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
             if mean_eod.shape[1] > 3:
                 td.append('fit', unit, '%.5f', mean_eod[:,3])
-            td.write(os.path.join(output_folder, outfilename + '-waveform-%d' % i),
+            td.write(os.path.join(output_folder, outfilename + '-eodwaveform-%d' % i),
                      **write_table_args(cfg))
             del td
             # power spectrum:
@@ -486,7 +486,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                 if sdata.shape[1] == 2:
                     td = TableData(sdata[:,:2], ['frequency', 'power'],
                                    ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
-                    td.write(os.path.join(output_folder, outfilename + '-powerspectrum-%d' % i),
+                    td.write(os.path.join(output_folder, outfilename + '-pulsespectrum-%d' % i),
                              **write_table_args(cfg))
                 else:
                     td = TableData(sdata[:,:5]*[1.0, 1.0, 1.0, 100.0, 1.0],
@@ -496,7 +496,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                     if sdata.shape[1] > 6:
                         td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
                         td.append('relpower', '%', '%9.4f', 100.0*sdata[:,6])
-                    td.write(os.path.join(output_folder, outfilename + '-spectrum-%d' % i),
+                    td.write(os.path.join(output_folder, outfilename + '-wavespectrum-%d' % i),
                              **write_table_args(cfg))
                 del td
             # peaks:
@@ -505,14 +505,21 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                                ['P', 'time', 'amplitude', 'relampl', 'width'],
                                ['-', 'ms', unit, '%', 'ms'],
                                ['%.0f', '%.3f', '%.5f', '%.1f', '%.3f'])
-                td.write(os.path.join(output_folder, outfilename + '-peaks-%d' % i),
+                td.write(os.path.join(output_folder, outfilename + '-pulsepeaks-%d' % i),
                          **write_table_args(cfg))
                 del td
         # wavefish frequencies and amplitudes:
         if len(fishlist) > 0:
             eoddata = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
             td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%8.3f'])
-            td.write(os.path.join(output_folder, outfilename + '-wavefish-eodfs'),
+            td.append('p-p-amplitude', unit, '%.3f', eod_props, 'p-p-amplitude')
+            if 'rmvaraince' in eod_props[0]:
+                td.append('noise', '%', '%.2f', eod_props, 'rmvariance')
+                td[:,'noise'] *= 100.0
+            td.append('rmserror', '%', '%.2f', eod_props, 'rmserror')
+            td[:,'rmserror'] *= 100.0
+            td.append('n', '', '%.0d', eod_props, 'n')
+            td.write(os.path.join(output_folder, outfilename + '-wavefish'),
                      **write_table_args(cfg))
             del td
 
@@ -530,7 +537,7 @@ def main():
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Analyze EOD waveforms of weakly electric fish.',
-        epilog='by Benda-Lab (2015-2019)')
+        epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,

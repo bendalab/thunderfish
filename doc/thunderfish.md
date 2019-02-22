@@ -60,17 +60,19 @@ The fish detected in the recordings are numbered, starting with 0 (N).
 The file extension depends on the chosen file format (EXT).
 
 
-### RECORDING-waveform-N.EXT
+### RECORDING-eodwaveform-N.EXT
 
 For each fish the average waveform with standard deviation.
 
-| time    | mean     | std     | fit      |
-|--------:|---------:|--------:|---------:|
-| -18.390 | -0.31223 | 0.00106 | -0.31173 |
-| -18.367 | -0.31129 | 0.00094 | -0.31082 |
-| -18.345 | -0.31036 | 0.00106 | -0.30994 |
-| -18.322 | -0.30924 | 0.00111 | -0.30908 |
-| -18.299 | -0.30814 | 0.00103 | -0.30822 |
+| time/ms | mean/a.u. | std/a.u. | fit/a.u. |
+|--------:|----------:|---------:|---------:|
+|  -1.701 |  -0.27500 |  0.01269 | -0.27253 |
+|  -1.678 |  -0.23612 |  0.01258 | -0.23345 |
+|  -1.655 |  -0.19632 |  0.01294 | -0.19375 |
+|  -1.633 |  -0.15507 |  0.01369 | -0.15251 |
+|  -1.610 |  -0.10935 |  0.01536 | -0.10720 |
+|  -1.587 |  -0.05924 |  0.01713 | -0.05684 |
+|  -1.565 |  -0.00366 |  0.01885 | -0.00124 |
 
 The columns contain:
 1. The time in milliseconds.
@@ -80,17 +82,17 @@ The columns contain:
    a Fourier series, for pulse fish it is an exponential fit to the tail of the last peak.
 
 
-### RECORDING-spectrum-N.EXT
+### RECORDING-wavespectrum-N.EXT
 
 The parameter of the Fourier series fitted to the waveform of a wave-type fish.
 
-| harmonics | frequency | amplitude | relampl  | phase    | power       | relpower  |
-|----------:|----------:|----------:|---------:|---------:|------------:|----------:|
-|         0 |     76.61 |  0.556175 |  100.000 |   0.0000 |  2.7460e-01 |  100.0000 |
-|         1 |    153.23 |  0.239355 |   43.036 |  -1.9342 |  4.5127e-02 |   16.4339 |
-|         2 |    229.84 |  0.028035 |    5.041 |  -1.8851 |  7.6312e-04 |    0.2779 |
-|         3 |    306.45 |  0.064939 |   11.676 |  -2.8247 |  4.0351e-03 |    1.4694 |
-|         4 |    383.07 |  0.013518 |    2.430 |   2.1898 |  1.3847e-04 |    0.0504 |
+| harmonics | frequency/Hz | amplitude/a.u. | relampl/% | phase/rad | power/a.u.^2/Hz | relpower/% |
+|----------:|-------------:|---------------:|----------:|----------:|----------------:|-----------:|
+|         0 |       728.09 |       0.326238 |   100.000 |    0.0000 |      1.0302e-01 |   100.0000 |
+|         1 |      1456.18 |       0.221786 |    67.983 |   -0.7173 |      4.4380e-02 |    43.0785 |
+|         2 |      2184.27 |       0.032462 |     9.950 |   -1.9980 |      8.5350e-04 |     0.8285 |
+|         3 |      2912.37 |       0.037329 |    11.442 |    2.3485 |      9.9695e-04 |     0.9677 |
+|         4 |      3640.46 |       0.020644 |     6.328 |    2.9600 |      2.6696e-04 |     0.2591 |
 
 The columns contain:
 1. The index of the harmonics. The first one with index 0 is the fundamental frequency.
@@ -102,32 +104,60 @@ The columns contain:
 7. The power spectral desnity of the harmonics relative to the power of the fundamental in percent.
 
 
-### RECORDING-powerspectrum-N.EXT
+### RECORDING-wavefish.EXT
+
+The fundamental EOD frequency and and other properties of each
+wavetype fish detected in the recording.
+
+| EODf/Hz | power/dB | p-p-amplitude/a.u. | noise/%  | rmserror/% | n    |
+|--------:|---------:|-------------------:|---------:|-----------:|-----:|
+|   91.03 |  -22.615 |              0.305 |    28.37 |       0.18 | 4445 |
+|  142.33 |  -60.274 |              0.213 |    46.44 |       0.07 |  729 |
+|  172.69 |  -48.334 |              0.105 |   110.09 |       0.13 | 1582 |
+|  197.66 |  -26.918 |              0.038 |   315.74 |       0.08 | 5334 |
+|  261.47 |  -62.351 |              0.052 |   231.60 |       0.07 | 4667 |
+|  348.63 |  -63.843 |              0.040 |   299.59 |       0.14 | 4348 |
+|  543.46 |  -37.559 |              0.020 |   612.68 |       0.39 | 4749 |
+|  555.59 |  -20.378 |              0.021 |   587.69 |       0.75 | 5210 |
+|  567.63 |  -49.081 |              0.021 |   582.43 |       0.15 | 5901 |
+
+The columns contain:
+1. The EOD frequency in Hertz.
+2. The power of this EOD in decibel.
+3. The peak-to-peak amplitude in the units of the input data.
+4. The root-mean-variance of the averaged EOD waveform relative to the
+   peak-to_peak amplitude in percent.
+5. The root-mean-squared difference betwenn the averaged EOD waveform and 
+   the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
+6. The number of EODs used for computing the averaged EOD waveform.
+
+
+### RECORDING-pulsespectrum-N.EXT
 
 The power spectrum of a single EOD pulse of a pulse-type fish:
 
-| frequency | power      |
-|----------:|-----------:|
-|      0.00 | 4.7648e-10 |
-|      0.34 | 9.5307e-10 |
-|      0.67 | 9.5336e-10 |
-|      1.01 | 9.5386e-10 |
-|      1.35 | 9.5455e-10 |
-|      1.68 | 9.5544e-10 |
+| frequency/Hz | power/a.u.^2/Hz |
+|-------------:|----------------:|
+|         0.00 |      4.5771e-10 |
+|         0.34 |      9.1552e-10 |
+|         0.67 |      9.1582e-10 |
+|         1.01 |      9.1632e-10 |
+|         1.35 |      9.1703e-10 |
+|         1.68 |      9.1793e-10 |
 
 The columns contain:
 1. The frequency in Hertz.
 2. The power spectral density.
 
 
-### RECORDING-peaks-N.EXT
+### RECORDING-pulsepeaks-N.EXT
 
 Properties of peaks and troughs of a pulse-type fish's EOD.
 
-| P | time  | amplitude | relampl | width |
-|--:|------:|----------:|--------:|------:|
-| 1 | 0.000 |   0.78412 |   100.0 | 0.333 |
-| 2 | 0.385 |  -0.85923 |  -109.6 | 0.248 |
+| P | time/ms | amplitude/a.u. | relampl/% | width/ms |
+|--:|--------:|---------------:|----------:|---------:|
+| 1 |   0.000 |        0.78342 |     100.0 |    0.334 |
+| 2 |   0.385 |       -0.85865 |    -109.6 |    0.248 |
 
 The columns contain:
 1. The name of the peak/trough. Peaks and troughs are numbered sequentially. P1 is the 
@@ -136,21 +166,3 @@ The columns contain:
 3. The amplitude of the peak/trough in the unit of the input data.
 4. The amplitude of the peak/trough relative to the amplitude of P1.
 5. The width of the peak/trough at half height in milliseconds. 
-
-
-### RECORDING-wavefish-eodfs.EXT
-
-The fundamental EOD frequency and its power for each wavetype fish detected in the recording.
-
-| EODf   | power    |
-|-------:|---------:|
-|  91.02 |  -22.584 |
-| 172.73 |  -46.826 |
-| 197.66 |  -23.576 |
-| 543.46 |  -37.562 |
-| 555.59 |  -20.043 |
-| 567.63 |  -47.607 |
-
-The columns contain:
-1. The EOD frequency in Hertz.
-2. The power of this EOD in decibel.

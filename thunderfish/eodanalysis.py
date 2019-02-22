@@ -143,7 +143,8 @@ def analyze_wave(eod, freq, n_harm=20):
     Parameters
     ----------
     eod: 2-D array
-        The eod waveform. First column is time in seconds, second column the eod waveform.
+        The eod waveform. First column is time in seconds, second column the EOD waveform,
+        third column, if present, is the standarad deviation of the EOD waveform,
         Further columns are optional but not used.
     freq: float or 2-D array
         The frequency of the EOD or the list of harmonics (rows)
@@ -164,6 +165,8 @@ def analyze_wave(eod, freq, n_harm=20):
         - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
         - flipped: True if the waveform was flipped.
         - amplitude: amplitude factor of the Fourier fit.
+        - rmvaraince: root-mean variance of the averaged EOD waveform relative to
+          the p-p amplitude (only if a standard deviation is given in `eod`).
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than 0.05 the data are bad.
         - power: if `freq` is list of harmonics then `power` is set to the summed power
@@ -221,8 +224,9 @@ def analyze_wave(eod, freq, n_harm=20):
             popt[2+i*2] -= 2.0*np.pi
     meod[:,-1] = fourier_series(meod[:,0], *popt)
 
-    # fit error:
+    # variance and fit error:
     ppampl = np.max(meod[:,3]) - np.min(meod[:,3])
+    rmvariance = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
     rmserror = np.sqrt(np.mean((meod[:,1] - meod[:,3])**2.0))/ppampl
 
     # store results:
@@ -233,6 +237,8 @@ def analyze_wave(eod, freq, n_harm=20):
     props['flipped'] = flipped
     props['amplitude'] = ampl
     props['rmserror'] = rmserror
+    if rmvariance:
+        props['rmvariance'] = rmvariance
     ncols = 4
     if hasattr(freq, 'shape'):
         spec_data = np.zeros((n_harm, 7))
