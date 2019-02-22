@@ -80,7 +80,7 @@ The columns contain:
    a Fourier series, for pulse fish it is an exponential fit to the tail of the last peak.
 
 
-### RECORDING-sepctrum-N.EXT
+### RECORDING-spectrum-N.EXT
 
 The parameter of the Fourier series fitted to the waveform of a wave-type fish.
 
