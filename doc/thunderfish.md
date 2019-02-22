@@ -65,7 +65,6 @@ The file extension depends on the chosen file format (EXT).
 For each fish the average waveform with standard deviation.
 
 | time    | mean     | std     | fit      |
-| ms      | a.u.     | a.u.    | a.u.     |
 |--------:|---------:|--------:|---------:|
 | -18.390 | -0.31223 | 0.00106 | -0.31173 |
 | -18.367 | -0.31129 | 0.00094 | -0.31082 |
@@ -86,7 +85,6 @@ The columns contain:
 The parameter of the Fourier series fitted to the waveform of a wave-type fish.
 
 | harmonics | frequency | amplitude | relampl  | phase    | power       | relpower  |
-| -         | Hz        | a.u.      | %        | rad      | a.u.^2/Hz   | %         |
 |----------:|----------:|----------:|---------:|---------:|------------:|----------:|
 |         0 |     76.61 |  0.556175 |  100.000 |   0.0000 |  2.7460e-01 |  100.0000 |
 |         1 |    153.23 |  0.239355 |   43.036 |  -1.9342 |  4.5127e-02 |   16.4339 |
@@ -109,7 +107,6 @@ The columns contain:
 The power spectrum of a single EOD pulse of a pulse-type fish:
 
 | frequency | power      |
-| Hz        | a.u.^2/Hz  |
 |----------:|-----------:|
 |      0.00 | 4.7648e-10 |
 |      0.34 | 9.5307e-10 |
@@ -128,7 +125,6 @@ The columns contain:
 Properties of peaks and troughs of a pulse-type fish's EOD.
 
 | P | time  | amplitude | relampl | width |
-| - | ms    | a.u.      | %       | ms    |
 |--:|------:|----------:|--------:|------:|
 | 1 | 0.000 |   0.78412 |   100.0 | 0.333 |
 | 2 | 0.385 |  -0.85923 |  -109.6 | 0.248 |
@@ -147,7 +143,6 @@ The columns contain:
 The fundamental EOD frequency and its power for each wavetype fish detected in the recording.
 
 | EODf   | power    |
-| Hz     | dB       |
 |-------:|---------:|
 |  91.02 |  -22.584 |
 | 172.73 |  -46.826 |
