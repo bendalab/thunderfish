@@ -1712,7 +1712,7 @@ class TableData:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 'm':
-            if unitstyle is None or unitstyle = 'row':
+            if unitstyle is None or unitstyle == 'row':
                 unitstyle = 'header'
             format_width = True
             begin_str = ''
