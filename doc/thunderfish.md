@@ -172,9 +172,9 @@ The columns contain:
 
 Properties of each pulse-type fish detected in the recording.
 
-| EODf/Hz | period/ms | max-ampl/a.u. | min-ampl/a.u. | p-p-amplitude/a.u. | tstart/ms | tend/ms | width/ms | tau1/ms | n 
-|--------:|----------:|--------------:|--------------:|-------------------:|----------:|--------:|---------:|--------:|---
-|   30.71 |     32.57 |         0.783 |         0.859 |              1.642 |    -0.499 |   1.134 |    1.633 |   0.121 | 10
+| EODf/Hz | period/ms | max-ampl/a.u. | min-ampl/a.u. | p-p-amplitude/a.u. | tstart/ms | tend/ms | width/ms | tau1/ms | n  | peakpower/dB | peakfreq/Hz | poweratt5/dB | poweratt50/dB | lowcutoff/Hz | median/ms | mean/ms | std/ms |
+|--------:|----------:|--------------:|--------------:|-------------------:|----------:|--------:|---------:|--------:|---:|-------------:|------------:|-------------:|--------------:|-------------:|----------:|--------:|-------:|
+|   30.71 |     32.57 |         0.783 |         0.859 |              1.642 |    -0.499 |   1.134 |    1.633 |   0.121 | 10 |       -66.30 |      899.35 |       -24.20 |        -21.54 |       125.50 |     32.56 |   32.57 |   0.08 |
 
 The columns contain:
 1. The EOD frequency in Hertz.
