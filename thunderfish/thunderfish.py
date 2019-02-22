@@ -413,7 +413,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
         mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times,
                                                                  fresolution=minfres,
                                                                  **analyze_pulse_args(cfg))
-        props['n'] = len(eod_times) if len(eod_times) < max_eods else max_eods
+        props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         # TODO: add config parameter to analyze_pulse
         mean_eods.append(mean_eod)
         spec_data.append(power)
@@ -443,7 +443,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                          win_fac=3.0, min_win=0.0, period=1.0/fish[0,0],
                          **eod_waveform_args(cfg))
         mean_eod, props, sdata = analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
-        props['n'] = len(eod_times) if len(eod_times) < max_eods else max_eods
+        props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         # add good waveforms only:
         if (k > 0 or clipped < cfg.value('maximumClippedFraction')) and \
             sdata[1,2] < cfg.value('maximumFirstHarmonicAmplitude') and \
