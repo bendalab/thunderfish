@@ -491,10 +491,10 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                     td = TableData(sdata[:,:5]*[1.0, 1.0, 1.0, 100.0, 1.0],
                                    ['harmonics', 'frequency', 'amplitude', 'relampl', 'phase'],
                                    ['-', 'Hz', unit, '%', 'rad'],
-                                   ['%.0f', '%.2f', '%.6f', '%8.3f', '%8.4f'])
+                                   ['%.0f', '%.2f', '%.5f', '%10.2f', '%8.4f'])
                     if sdata.shape[1] > 6:
                         td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
-                        td.append('relpower', '%', '%9.4f', 100.0*sdata[:,6])
+                        td.append('relpower', '%', '%11.2f', 100.0*sdata[:,6])
                     td.write(os.path.join(output_folder, outfilename + '-wavespectrum-%d' % i),
                              **write_table_args(cfg))
                 del td
@@ -503,7 +503,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                 td = TableData(pdata[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
                                ['P', 'time', 'amplitude', 'relampl', 'width'],
                                ['-', 'ms', unit, '%', 'ms'],
-                               ['%.0f', '%.3f', '%.5f', '%.1f', '%.3f'])
+                               ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
                 td.write(os.path.join(output_folder, outfilename + '-pulsepeaks-%d' % i),
                          **write_table_args(cfg))
                 del td
