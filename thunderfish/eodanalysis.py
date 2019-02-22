@@ -1,5 +1,5 @@
 """
-# Analysis of EOD waveforms of weakly-electric fish.
+# Analysis of EOD waveform properties.
 
 ## EOD analysis
 - `eod_waveform()`: compute an averaged EOD waveform.

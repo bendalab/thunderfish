@@ -1,6 +1,6 @@
 """
 # Harmonic group detection
-Functions for extracting harmonic groups from a power spectrum.
+Extracting harmonic groups from a power spectrum.
 
 ## Harmonic group extraction
 - `harmonic_groups()`: detect peaks in a power spectrum and groups them

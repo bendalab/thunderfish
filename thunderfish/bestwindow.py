@@ -1,7 +1,6 @@
 """
 # Best-window selection
-Functions needed for selecting the region within a recording with the
-most stable signal of largest amplitude that is not clipped.
+Select the region within a recording with the most stable signal of largest amplitude that is not clipped.
 
 ## Main functions:
 - `clip_amplitudes()`: estimated clipping amplitudes from the data.
