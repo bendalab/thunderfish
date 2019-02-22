@@ -11,7 +11,7 @@ import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from .version import __version__
+from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
@@ -167,10 +167,11 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
                         fontsize=14, y=1.05)
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
-        tau = props['tau'] if 'tau' in props else None
+        tau = props['tau1'] if 'tau1' in props else None
         eod_waveform_plot(mean_eod, peaks, axeod, unit, tau=tau)
         props['unit'] = unit
-        label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
+        props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
+        label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} {eods}\n'.format(**props)
         if props['flipped']:
             label += 'flipped\n'
         if -mean_eod[0,0] < 0.6*mean_eod[-1,0]:
@@ -199,6 +200,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
             ax7.set_visible(True)
             wave_spectrum_plot(spec_data[0], eod_props[0], ax6, ax7, unit)
             ax6.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
+            ax6.set_xticklabels([])
 
     ## # plot inter EOD interval histogram
     ## if len(inter_eod_intervals)>2:
@@ -286,7 +288,6 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
         else:
             print('write configuration to %s ...' % save_config)
             del cfg['fileColumnNumbers']
-            del cfg['fileSections']
             del cfg['fileShrinkColumnWidth']
             del cfg['fileMissing']
             cfg.dump(save_config)
@@ -477,7 +478,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                            ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
             if mean_eod.shape[1] > 3:
                 td.append('fit', unit, '%.5f', mean_eod[:,3])
-            td.write(os.path.join(output_folder, outfilename + '-waveform-%d' % i),
+            td.write(os.path.join(output_folder, outfilename + '-eodwaveform-%d' % i),
                      **write_table_args(cfg))
             del td
             # power spectrum:
@@ -485,17 +486,17 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                 if sdata.shape[1] == 2:
                     td = TableData(sdata[:,:2], ['frequency', 'power'],
                                    ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
-                    td.write(os.path.join(output_folder, outfilename + '-powerspectrum-%d' % i),
+                    td.write(os.path.join(output_folder, outfilename + '-pulsespectrum-%d' % i),
                              **write_table_args(cfg))
                 else:
                     td = TableData(sdata[:,:5]*[1.0, 1.0, 1.0, 100.0, 1.0],
                                    ['harmonics', 'frequency', 'amplitude', 'relampl', 'phase'],
                                    ['-', 'Hz', unit, '%', 'rad'],
-                                   ['%.0f', '%.2f', '%.6f', '%8.3f', '%8.4f'])
+                                   ['%.0f', '%.2f', '%.5f', '%10.2f', '%8.4f'])
                     if sdata.shape[1] > 6:
                         td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
-                        td.append('relpower', '%', '%9.4f', 100.0*sdata[:,6])
-                    td.write(os.path.join(output_folder, outfilename + '-spectrum-%d' % i),
+                        td.append('relpower', '%', '%11.2f', 100.0*sdata[:,6])
+                    td.write(os.path.join(output_folder, outfilename + '-wavespectrum-%d' % i),
                              **write_table_args(cfg))
                 del td
             # peaks:
@@ -503,15 +504,64 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                 td = TableData(pdata[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
                                ['P', 'time', 'amplitude', 'relampl', 'width'],
                                ['-', 'ms', unit, '%', 'ms'],
-                               ['%.0f', '%.3f', '%.5f', '%.1f', '%.3f'])
-                td.write(os.path.join(output_folder, outfilename + '-peaks-%d' % i),
+                               ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
+                td.write(os.path.join(output_folder, outfilename + '-pulsepeaks-%d' % i),
                          **write_table_args(cfg))
                 del td
-        # wavefish frequencies and amplitudes:
-        if len(fishlist) > 0:
+        # fish properties:
+        wave_props = []
+        pulse_props = []
+        for props in eod_props:
+            if 'type' in props:
+                if props['type'] == 'wave':
+                    wave_props.append(props)
+                else:
+                    pulse_props.append(props)
+        if fishlist:
             eoddata = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
             td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%8.3f'])
-            td.write(os.path.join(output_folder, outfilename + '-wavefish-eodfs'),
+            td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
+            if 'rmvariance' in wave_props[0]:
+                td.append('noise', '%', '%.2f', wave_props, 'rmvariance')
+                td[:,'noise'] *= 100.0
+            td.append('rmserror', '%', '%.2f', wave_props, 'rmserror')
+            td[:,'rmserror'] *= 100.0
+            td.append('n', '', '%.0d', wave_props, 'n')
+            td.write(os.path.join(output_folder, outfilename + '-wavefish'),
+                     **write_table_args(cfg))
+            del td
+        if pulse_props:
+            td = TableData()
+            td.append_section('waveform')
+            td.append('EODf', 'Hz', '%.2f', pulse_props, 'EODf')
+            td.append('period', 'ms', '%.2f', pulse_props, 'period')
+            td[:,'period'] *= 1000.0
+            td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
+            td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
+            td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
+            td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart')
+            td[:,'tstart'] *= 1000.0
+            td.append('tend', 'ms', '%.3f', pulse_props, 'tend')
+            td[:,'tend'] *= 1000.0
+            td.append('width', 'ms', '%.3f', pulse_props, 'width')
+            td[:,'width'] *= 1000.0
+            td.append('tau1', 'ms', '%.3f', pulse_props, 'tau1')
+            td[:,'tau1'] *= 1000.0
+            td.append('n', '', '%.0d', pulse_props, 'n')
+            td.append_section('power spectrum')
+            td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
+            td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
+            td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
+            td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
+            td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
+            td.append_section('interval statistics')
+            td.append('median', 'ms', '%.2f', pulse_props, 'medianinterval')
+            td[:,'median'] *= 1000.0
+            td.append('mean', 'ms', '%.2f', pulse_props, 'meaninterval')
+            td[:,'mean'] *= 1000.0
+            td.append('std', 'ms', '%.2f', pulse_props, 'stdinterval')
+            td[:,'std'] *= 1000.0
+            td.write(os.path.join(output_folder, outfilename + '-pulsefish'),
                      **write_table_args(cfg))
             del td
 
@@ -529,7 +579,7 @@ def main():
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Analyze EOD waveforms of weakly electric fish.',
-        epilog='by Benda-Lab (2015-2019)')
+        epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,

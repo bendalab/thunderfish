@@ -90,13 +90,15 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0,
 
     # extract snippets:
     if max_eods and max_eods > 0 and len(eod_idx) > max_eods:
-        eod_idx = eod_idx[:max_eods]
+        dn = (len(eod_idx) - max_eods)//2
+        eod_idx = eod_idx[dn:dn+max_eods]
     eod_snippets = snippets(data, eod_idx, -win_inx, win_inx)
 
     # mean and std of snippets:
     mean_eod = np.zeros((len(eod_snippets[0]), 3))
     mean_eod[:,1] = np.mean(eod_snippets, axis=0)
-    mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
+    if len(eod_snippets) > 1:
+        mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
 
     # time axis:
     mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / samplerate
@@ -143,7 +145,8 @@ def analyze_wave(eod, freq, n_harm=20):
     Parameters
     ----------
     eod: 2-D array
-        The eod waveform. First column is time in seconds, second column the eod waveform.
+        The eod waveform. First column is time in seconds, second column the EOD waveform,
+        third column, if present, is the standarad deviation of the EOD waveform,
         Further columns are optional but not used.
     freq: float or 2-D array
         The frequency of the EOD or the list of harmonics (rows)
@@ -164,6 +167,8 @@ def analyze_wave(eod, freq, n_harm=20):
         - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
         - flipped: True if the waveform was flipped.
         - amplitude: amplitude factor of the Fourier fit.
+        - rmvaraince: root-mean variance of the averaged EOD waveform relative to
+          the p-p amplitude (only if a standard deviation is given in `eod`).
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than 0.05 the data are bad.
         - power: if `freq` is list of harmonics then `power` is set to the summed power
@@ -221,8 +226,9 @@ def analyze_wave(eod, freq, n_harm=20):
             popt[2+i*2] -= 2.0*np.pi
     meod[:,-1] = fourier_series(meod[:,0], *popt)
 
-    # fit error:
+    # variance and fit error:
     ppampl = np.max(meod[:,3]) - np.min(meod[:,3])
+    rmvariance = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
     rmserror = np.sqrt(np.mean((meod[:,1] - meod[:,3])**2.0))/ppampl
 
     # store results:
@@ -233,6 +239,8 @@ def analyze_wave(eod, freq, n_harm=20):
     props['flipped'] = flipped
     props['amplitude'] = ampl
     props['rmserror'] = rmserror
+    if rmvariance:
+        props['rmvariance'] = rmvariance
     ncols = 4
     if hasattr(freq, 'shape'):
         spec_data = np.zeros((n_harm, 7))
@@ -358,6 +366,15 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - tend: time in seconds where the pulse ends,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
+        - tau1: time constant of exponential decay of pulse tail in seconds.
+        - peakfrequency: frequency at peak power of the single pulse spectrum in Hertz.
+        - peakpower: peak power of the single pulse spectrum in decibel.
+        - lowfreqattenuation5: how much the average power below 5 Hz is attenuated
+          relative to the peak power in decibel.
+        - lowfreqattenuation50: how much the average power below 5 Hz is attenuated
+          relative to the peak power in decibel.
+        - powerlowcutoff: frequency at which the power reached half of the peak power
+          relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
         - n: number of pulses analyzed.
         - medianinterval: the median interval between pulses after removal
@@ -539,8 +556,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0
-    props['tau'] = tau
+    props['tau1'] = tau
     props['peakfrequency'] = freqs[np.argmax(power)]
+    props['peakpower'] = decibel(maxpower)
     props['lowfreqattenuation5'] = att5
     props['lowfreqattenuation50'] = att50
     props['powerlowcutoff'] = lowcutoff
@@ -652,7 +670,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
         ax.set_ylabel('Amplitude')
 
 
-def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, markersize=12):
+def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, markersize=10):
     """Plot and annotate spectrum of wave-type EOD.
 
     Parameters
@@ -683,9 +701,9 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     markers, stemlines, baseline = axa.stem(spec[:n,0], spec[:n,2])
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
     plt.setp(stemlines, color=color, lw=lw)
-    axa.set_xlim(-0.5, n-0.5)
+    axa.set_xlim(-1.0, n-0.5)
     axa.set_xticks(np.arange(0, n, 1))
-    axa.set_xticklabels([])
+    axa.tick_params('x', direction='out')
     if unit:
         axa.set_ylabel('Amplitude [%s]' % unit)
     else:
@@ -696,8 +714,9 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     markers, stemlines, baseline = axp.stem(spec[:n,0], phases[:n])
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
     plt.setp(stemlines, color=color, lw=lw)
-    axp.set_xlim(-0.5, n-0.5)
+    axp.set_xlim(-1.0, n-0.5)
     axp.set_xticks(np.arange(0, n, 1))
+    axp.tick_params('x', direction='out')
     axp.set_ylim(0, 2.0*np.pi)
     axp.set_yticks([0, np.pi, 2.0*np.pi])
     axp.set_yticklabels([u'0', u'\u03c0', u'2\u03c0'])
