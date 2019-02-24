@@ -138,7 +138,7 @@ def fourier_series(t, freq, delay, ampl, *ap):
     return ampl*x
 
 
-def analyze_wave(eod, freq, n_harm=20):
+def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     """
     Analyze the EOD waveform of a wave-type fish.
     
@@ -153,6 +153,8 @@ def analyze_wave(eod, freq, n_harm=20):
         with frequency and peak height (columns) as returned from `harmonic_groups()`.
     n_harm: int
         Maximum number of harmonics used for the fit.
+    power_n_harmonics: int
+        Sum over the first `power_n_harmonics` harmonics for computing the total power.
     
     Returns
     -------
@@ -247,7 +249,7 @@ def analyze_wave(eod, freq, n_harm=20):
         powers = freq[:n_harm, 1]
         spec_data[:len(powers), 5] = powers
         spec_data[:len(powers), 6] = powers/powers[0]
-        props['power'] = decibel(np.sum(freq[:,1]))
+        props['power'] = decibel(np.sum(freq[:power_n_harmonics,1]))
     else:
         spec_data = np.zeros((n_harm, 5))
     spec_data[0,:5] = [0.0, freq0, ampl, 1.0, 0.0]
@@ -574,6 +576,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         props['medianinterval'] = np.median(intervals)
         props['meaninterval'] = np.mean(intervals)
         props['stdinterval'] = np.std(intervals, ddof=1)
+        props['nintervals'] = len(intervals)
     
     return meod, props, peaks, ppower, intervals
 
@@ -846,7 +849,8 @@ def analyze_wave_args(cfg):
         Dictionary with names of arguments of the analyze_wave() function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'n_harm': 'eodHarmonics'})
+    a = cfg.map({'n_harm': 'eodHarmonics',
+                 'power_n_harmonics': 'powerNHarmonics'})
     return a
 
 

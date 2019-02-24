@@ -398,6 +398,8 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
 
     # analysis results:
     eod_props = []
+    wave_props = []
+    pulse_props = []
     mean_eods = []
     spec_data = []
     peak_data = []
@@ -415,11 +417,13 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                                                                  fresolution=minfres,
                                                                  **analyze_pulse_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
+        props['index'] = len(eod_props)
         # TODO: add config parameter to analyze_pulse
         mean_eods.append(mean_eod)
         spec_data.append(power)
         peak_data.append(peaks)
         eod_props.append(props)
+        pulse_props.append(props)
         power_thresh = np.zeros(power.shape)
         power_thresh[:,0] = power[:,0]
         power_thresh[:,1] = 5.0*props['EODf']**2.0 * power[:,1]
@@ -445,12 +449,14 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                          **eod_waveform_args(cfg))
         mean_eod, props, sdata = analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
+        props['index'] = len(eod_props)
         # add good waveforms only:
         if (k > 0 or clipped < cfg.value('maximumClippedFraction')) and \
             sdata[1,2] < cfg.value('maximumFirstHarmonicAmplitude') and \
             sdata[2,2] < cfg.value('maximumSecondHarmonicAmplitude') and \
             props['rmserror'] < cfg.value('maximumRMSError'):
             eod_props.append(props)
+            wave_props.append(props)
             mean_eods.append(mean_eod)
             spec_data.append(sdata)
             peak_data.append([])
@@ -466,6 +472,8 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
         pulsefish = False
         fishlist = []
         eod_props = []
+        wave_props = []
+        pulse_props = []
         mean_eods = []
         intervals = []
 
@@ -491,7 +499,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                 else:
                     td = TableData(sdata[:,:5]*[1.0, 1.0, 1.0, 100.0, 1.0],
                                    ['harmonics', 'frequency', 'amplitude', 'relampl', 'phase'],
-                                   ['-', 'Hz', unit, '%', 'rad'],
+                                   ['', 'Hz', unit, '%', 'rad'],
                                    ['%.0f', '%.2f', '%.5f', '%10.2f', '%8.4f'])
                     if sdata.shape[1] > 6:
                         td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
@@ -503,38 +511,33 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             if len(pdata)>0:
                 td = TableData(pdata[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
                                ['P', 'time', 'amplitude', 'relampl', 'width'],
-                               ['-', 'ms', unit, '%', 'ms'],
+                               ['', 'ms', unit, '%', 'ms'],
                                ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
                 td.write(os.path.join(output_folder, outfilename + '-pulsepeaks-%d' % i),
                          **write_table_args(cfg))
                 del td
         # fish properties:
-        wave_props = []
-        pulse_props = []
-        for props in eod_props:
-            if 'type' in props:
-                if props['type'] == 'wave':
-                    wave_props.append(props)
-                else:
-                    pulse_props.append(props)
-        if fishlist:
-            eoddata = fundamental_freqs_and_power(fishlist, cfg.value('powerNHarmonics'))
-            td = TableData(eoddata, ['EODf', 'power'], ['Hz', 'dB'], ['%.2f', '%8.3f'])
+        if wave_props:
+            td = TableData()
+            td.append('index', '', '%d', wave_props, 'index')
+            td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
+            td.append('power', 'dB', '%7.2f', wave_props, 'power')
             td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
             if 'rmvariance' in wave_props[0]:
-                td.append('noise', '%', '%.2f', wave_props, 'rmvariance')
+                td.append('noise', '%', '%.1f', wave_props, 'rmvariance')
                 td[:,'noise'] *= 100.0
             td.append('rmserror', '%', '%.2f', wave_props, 'rmserror')
             td[:,'rmserror'] *= 100.0
-            td.append('n', '', '%.0d', wave_props, 'n')
+            td.append('n', '', '%5d', wave_props, 'n')
             td.write(os.path.join(output_folder, outfilename + '-wavefish'),
                      **write_table_args(cfg))
             del td
         if pulse_props:
             td = TableData()
             td.append_section('waveform')
-            td.append('EODf', 'Hz', '%.2f', pulse_props, 'EODf')
-            td.append('period', 'ms', '%.2f', pulse_props, 'period')
+            td.append('index', '', '%d', pulse_props, 'index')
+            td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')
+            td.append('period', 'ms', '%7.2f', pulse_props, 'period')
             td[:,'period'] *= 1000.0
             td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
             td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
@@ -554,13 +557,14 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
             td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
             td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
-            td.append_section('interval statistics')
-            td.append('median', 'ms', '%.2f', pulse_props, 'medianinterval')
+            td.append_section('inter-pulse interval statistics')
+            td.append('medianipi', 'ms', '%.2f', pulse_props, 'medianinterval')
             td[:,'median'] *= 1000.0
-            td.append('mean', 'ms', '%.2f', pulse_props, 'meaninterval')
+            td.append('meanipi', 'ms', '%.2f', pulse_props, 'meaninterval')
             td[:,'mean'] *= 1000.0
-            td.append('std', 'ms', '%.2f', pulse_props, 'stdinterval')
+            td.append('stdipi', 'ms', '%.2f', pulse_props, 'stdinterval')
             td[:,'std'] *= 1000.0
+            td.append('nipi', '', '%d', pulse_props, 'nintervals')
             td.write(os.path.join(output_folder, outfilename + '-pulsefish'),
                      **write_table_args(cfg))
             del td
