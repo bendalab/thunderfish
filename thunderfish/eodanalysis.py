@@ -26,7 +26,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-from .eventdetection import percentile_threshold, detect_peaks, snippets
+from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from .powerspectrum import psd, nfft_noverlap, decibel
 
 
@@ -471,40 +471,30 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
-    peak_l = np.sort(np.concatenate((peak_idx, trough_idx)))
-    # remove mutliple peaks that do not oszillate around zero:
-#    peak_list = np.array([prange[np.argmax(np.abs(meod[prange,1]))]
-#                 for prange in np.split(peak_l, np.where(np.diff(meod[peak_l,1]>0.0)!=0)[0]+1)])
-    peak_list = peak_l
-    # remove multiple peaks that are too close and too small:
+    # and their width:
+    peak_widths = peak_width(meod[:,0], meod[:,1], peak_idx, trough_idx,
+                             peak_frac=width_frac, base='max')
+    trough_widths = peak_width(meod[:,0], -meod[:,1], trough_idx, peak_idx,
+                               peak_frac=width_frac, base='max')
+    # combine peaks and troughs:
+    pt_idx = np.concatenate((peak_idx, trough_idx))
+    pt_widths = np.concatenate((peak_widths, trough_widths))
+    pts_idx = np.argsort(pt_idx)
+    peak_list = pt_idx[pts_idx]
+    width_list = pt_widths[pts_idx]
+    # remove multiple peaks that are too close:
     ridx = [(k, k+1) for k in np.where(np.diff(meod[peak_list,0]) < min_dist)]
-    #  & (meod[peak_list[:-1],1]<0.1)
     peak_list = np.delete(peak_list, ridx)
+    width_list = np.delete(width_list, ridx)
     # find P1:
     p1i = np.where(peak_list == max_idx)[0][0]
     offs = 0 if p1i <= 2 else p1i - 2
     peak_list = peak_list[offs:]
-
-    # compute peak width and store:
+    width_list = width_list[offs:]
+    # store peaks:
     peaks = np.zeros((len(peak_list), 5))
     for i, pi in enumerate(peak_list):
-        li = peak_list[i-1] if i-1 >= 0 else 0
-        ri = peak_list[i+1] if i+1 < len(peak_list) else len(meod)-1
-        if (i+1-p1i+offs)%2 == 1:
-            base = max(meod[li,1], meod[ri,1])
-            thresh = base*(1.0-width_frac) + meod[pi,1]*width_frac
-            inx = li + np.argmax(meod[li:ri,1] > thresh)
-            ti0 = np.interp(thresh, meod[inx-1:inx+1,1], meod[inx-1:inx+1,0])
-            inx = ri - np.argmax(meod[ri:li:-1,1] > thresh)
-            ti1 = np.interp(thresh, meod[inx+1:inx-1:-1,1], meod[inx+1:inx-1:-1,0])
-        else:
-            base = min(meod[li,1], meod[ri,1])
-            thresh = base*(1.0-width_frac) + meod[pi,1]*width_frac
-            inx = li + np.argmax(meod[li:ri,1] < thresh)
-            ti0 = np.interp(thresh, meod[inx:inx-2:-1,1], meod[inx:inx-2:-1,0])
-            inx = ri - np.argmax(meod[ri:li:-1,1] < thresh)
-            ti1 = np.interp(thresh, meod[inx:inx+2,1], meod[inx:inx+2,0])
-        peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, ti1-ti0]
+        peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i]]
 
     # fit exponential to last peak/trough:
     if not fit_frac is None:

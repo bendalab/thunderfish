@@ -111,7 +111,7 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     ref_power: float
         Reference power for computing decibel. If set to `None` the maximum power is used.
     min_power: float
-        Power values smaller than `min_power` are set to `np.nan`.
+        Power values smaller than `min_power` are set to `-inf`.
 
     Returns
     -------
@@ -126,7 +126,7 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
         decibel_psd = np.array([power])
     if ref_power is None:
         ref_power = np.max(decibel_psd)
-    decibel_psd[tmp_power <= min_power] = np.nan
+    decibel_psd[tmp_power <= min_power] = float('-inf')
     decibel_psd[tmp_power > min_power] = 10.0 * np.log10(decibel_psd[tmp_power > min_power]/ref_power)
     if hasattr(power, '__len__'):
         return decibel_psd
