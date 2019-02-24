@@ -1962,14 +1962,17 @@ class TableData:
                     fh.write(header_sep)
                 first = False
                 fh.write(header_close)
+                unit = self.units[c]
+                if not unit:
+                    unit = '-'
                 if table_format[0] == 't':
-                    fh.write('\\multicolumn{1}{l}{%s}' % self.units[c])
+                    fh.write('\\multicolumn{1}{l}{%s}' % unit)
                 else:
                     if format_width and not table_format[0] in 'h':
                         f = '%%-%ds' % widths[c]
-                        fh.write(f % self.units[c])
+                        fh.write(f % unit)
                     else:
-                        fh.write(self.units[c])
+                        fh.write(unit)
             fh.write(header_end)
         # column numbers:
         if column_numbers is not None:
