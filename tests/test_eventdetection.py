@@ -320,7 +320,7 @@ def test_peak_width_algorithm():
             width = ti1 - ti0
             assert_true(width>0.0, 'width should be larger than zero')
             widths.append(width)
-        edwidths = ed.peak_width(time, data, pix, tix, peak_frac)
+        edwidths = ed.peak_width(time, data, pix, tix, peak_frac, 'max')
         assert_true(np.all(widths == edwidths), 'widths should be the same')
         
                 

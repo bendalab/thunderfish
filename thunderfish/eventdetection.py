@@ -190,7 +190,8 @@ def detect_peaks_fast(data, threshold):
     return np.asarray(peaks_list), np.asarray(troughs_list)
 
     
-def peak_width(time, data, peak_indices, trough_indices, peak_frac=0.5):
+def peak_width(time, data, peak_indices, trough_indices,
+               peak_frac=0.5, base='max'):
     """
     Width of each peak.
 
@@ -209,14 +210,40 @@ def peak_width(time, data, peak_indices, trough_indices, peak_frac=0.5):
         Indices of corresponding troughs.
     peak_frac: float
         Fraction of peak height where its width is measured.
+    base: string
+        Height and width of peak is measured relative to
+        - 'left': trough to the left
+        - 'right': trough to the right
+        - 'min': the minimum of the two troughs to the left and to the right
+        - 'max': the maximum of the two troughs to the left and to the right
+        - 'mean': mean of the throughs to the left and to the rigth
+        - 'closest': trough that is closest to peak
     
     Returns 
     -------
     widths: array
         Width at `peak_frac` height of each peak.
+
+    Raises
+    ------
+    ValueError:
+        If an invalid value is passed to `base`.
     """
+    def left_base(data, left_inx, right_inx, peak_inx):
+        return data[left_inx] 
+    def right_base(data, left_inx, right_inx, peak_inx):
+        return data[right_inx] 
+    def min_base(data, left_inx, right_inx, peak_inx):
+        return min(data[left_inx], data[right_inx])
+    def max_base(data, left_inx, right_inx, peak_inx):
+        return max(data[left_inx], data[right_inx])
+    def mean_base(data, left_inx, right_inx, peak_inx):
+        return np.mean((data[left_inx], data[right_inx]))
+    def closest_base(data, left_inx, right_inx, peak_inx):
+        return data[left_inx] if peak_inx-left_inx <= right_inx-peak_inx else data[right_inx]
+    
     widths = np.zeros(len(peak_indices))
-    if not peak_indices:
+    if len(peak_indices) == 0:
         return widths
     # we need a trough before and after each peak:
     peak_inx = np.asarray(peak_indices, dtype=int)
@@ -225,12 +252,28 @@ def peak_width(time, data, peak_indices, trough_indices, peak_frac=0.5):
          trough_inx = np.hstack((0, trough_inx))
     if peak_inx[-1] > trough_inx[-1]:
          trough_inx = np.hstack((trough_inx, len(data)-1))
+    # base for size of peaks:
+    base_func = closest_base
+    if base == 'left':
+        base_func = left_base
+    elif base == 'right':
+        base_func = right_base
+    elif base == 'min':
+        base_func = min_base
+    elif base == 'max':
+        base_func = max_base
+    elif base == 'mean':
+        base_func = mean_base
+    elif base == 'closest':
+        base_func = closest_base
+    else:
+        raise ValueError('Invalid value for base (%s)' % base)
     # width of peaks:
     for j in range(len(peak_inx)):
         li = trough_inx[j]
         ri = trough_inx[j+1]
-        base = max(data[li], data[ri])
-        thresh = base*(1.0-peak_frac) + data[peak_inx[j]]*peak_frac
+        baseval = base_func(data, li, ri, peak_inx[j])
+        thresh = baseval*(1.0-peak_frac) + data[peak_inx[j]]*peak_frac
         inx = li + np.argmax(data[li:ri] > thresh)
         ti0 = np.interp(thresh, data[inx-1:inx+1], time[inx-1:inx+1])
         inx = ri - np.argmax(data[ri:li:-1] > thresh)
@@ -239,7 +282,8 @@ def peak_width(time, data, peak_indices, trough_indices, peak_frac=0.5):
     return widths
     
     
-def peak_size_width(time, data, peak_indices, trough_indices, peak_frac=0.75):
+def peak_size_width(time, data, peak_indices, trough_indices,
+                    peak_frac=0.75, base='closest'):
     """
     Compute for each peak its size and width.
 
@@ -255,6 +299,14 @@ def peak_size_width(time, data, peak_indices, trough_indices, peak_frac=0.75):
         Indices of the troughs.
     peak_frac: float
         Fraction of peak height where its width is measured.
+    base: string
+        Height and width of peak is measured relative to
+        - 'left': trough to the left
+        - 'right': trough to the right
+        - 'min': the minimum of the two troughs to the left and to the right
+        - 'max': the maximum of the two troughs to the left and to the right
+        - 'mean': mean of the throughs to the left and to the rigth
+        - 'closest': trough that is closest to peak
     
     Returns 
     -------
@@ -263,7 +315,25 @@ def peak_size_width(time, data, peak_indices, trough_indices, peak_frac=0.75):
         time, height (value of data at the peak),
         size (peak height minus height of closest trough),
         width (at `peak_frac` size), 0.0 (count) of the peak. See peak_width().
+
+    Raises
+    ------
+    ValueError:
+        If an invalid value is passed to `base`.
     """
+    def left_base(data, left_inx, right_inx, peak_inx):
+        return data[left_inx] 
+    def right_base(data, left_inx, right_inx, peak_inx):
+        return data[right_inx] 
+    def min_base(data, left_inx, right_inx, peak_inx):
+        return min(data[left_inx], data[right_inx])
+    def max_base(data, left_inx, right_inx, peak_inx):
+        return max(data[left_inx], data[right_inx])
+    def mean_base(data, left_inx, right_inx, peak_inx):
+        return np.mean((data[left_inx], data[right_inx]))
+    def closest_base(data, left_inx, right_inx, peak_inx):
+        return data[left_inx] if peak_inx-left_inx <= right_inx-peak_inx else data[right_inx]
+    
     peaks = np.zeros((len(peak_indices), 5))
     if len(peak_indices) == 0:
         return peaks
@@ -278,15 +348,33 @@ def peak_size_width(time, data, peak_indices, trough_indices, peak_frac=0.75):
          trough_inx = np.hstack((0, trough_inx))
     if peak_inx[-1] > trough_inx[-1]:
          trough_inx = np.hstack((trough_inx, len(data)-1))
-    # size of peaks:
-    offs = 0
-    if np.mean(peak_inx - trough_inx[:-1]) < np.mean(peak_inx - trough_inx[1:]):
-        peaks[:, 2] = data[peak_inx] - data[trough_inx[:-1]]
+    # base for size of peaks:
+    base_func = closest_base
+    if base == 'left':
+        base_func = left_base
+    elif base == 'right':
+        base_func = right_base
+    elif base == 'min':
+        base_func = min_base
+    elif base == 'max':
+        base_func = max_base
+    elif base == 'mean':
+        base_func = mean_base
+    elif base == 'closest':
+        base_func = closest_base
     else:
-        peaks[:, 2] = data[peak_inx] - data[trough_inx[1:]]
-        offs = 1
-    # width of peaks:
-    peaks[:, 3] = peak_widhts(time, data, peak_indices, trough_indices, peak_frac)
+        raise ValueError('Invalid value for base (%s)' % base)
+    # size and width of peaks:
+    for j in range(len(peak_inx)):
+        li = trough_inx[j]
+        ri = trough_inx[j+1]
+        baseval = base_func(data, li, ri, peak_inx[j])
+        thresh = baseval*(1.0-peak_frac) + data[peak_inx[j]]*peak_frac
+        inx = li + np.argmax(data[li:ri] > thresh)
+        ti0 = np.interp(thresh, data[inx-1:inx+1], time[inx-1:inx+1])
+        inx = ri - np.argmax(data[ri:li:-1] > thresh)
+        ti1 = np.interp(thresh, data[inx+1:inx-1:-1], time[inx+1:inx-1:-1])
+        peaks[j, 3] = ti1 - ti0
     return peaks
     
 
