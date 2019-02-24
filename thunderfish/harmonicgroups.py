@@ -779,7 +779,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
 
     # detect peaks in decibel power spectrum:
     peaks, troughs = detect_peaks(log_psd, low_threshold)
-    all_freqs = peak_size_width(psd_freqs, log_psd, peaks, troughs)
+    all_freqs = peak_size_width(psd_freqs, log_psd, peaks, troughs, 0.75)
 
     if len(all_freqs) == 0:
         return [], [], [], np.zeros((0, 5)), [], low_threshold, high_threshold, center

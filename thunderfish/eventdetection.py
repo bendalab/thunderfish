@@ -1,6 +1,6 @@
 """
 # Event detection
-Detecting and handling peaks and troughs and threshold crossings in data arrays.
+Detecting and handling peaks and troughs as well as threshold crossings in data arrays.
 
 ## Peak detection
 - `detect_peaks()`: peak and trough detection with a relative threshold.
@@ -190,7 +190,56 @@ def detect_peaks_fast(data, threshold):
     return np.asarray(peaks_list), np.asarray(troughs_list)
 
     
-def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
+def peak_width(time, data, peak_indices, trough_indices, peak_frac=0.5):
+    """
+    Width of each peak.
+
+    Peak width is computed from interpolated threshold crossings at
+    `peak_frac` hieght of each peak.
+
+    Parameters
+    ----------
+    time: array
+        Time, must not be `None`.
+    data: array
+        The data with the peaks.
+    peak_indices: array
+        Indices of the peaks.
+    trough_indices: array
+        Indices of corresponding troughs.
+    peak_frac: float
+        Fraction of peak height where its width is measured.
+    
+    Returns 
+    -------
+    widths: array
+        Width at `peak_frac` height of each peak.
+    """
+    widths = np.zeros(len(peak_indices))
+    if not peak_indices:
+        return widths
+    # we need a trough before and after each peak:
+    peak_inx = np.asarray(peak_indices, dtype=int)
+    trough_inx = np.asarray(trough_indices, dtype=int)
+    if len(trough_inx) == 0 or peak_inx[0] < trough_inx[0]:
+         trough_inx = np.hstack((0, trough_inx))
+    if peak_inx[-1] > trough_inx[-1]:
+         trough_inx = np.hstack((trough_inx, len(data)-1))
+    # width of peaks:
+    for j in range(len(peak_inx)):
+        li = trough_inx[j]
+        ri = trough_inx[j+1]
+        base = max(data[li], data[ri])
+        thresh = base*(1.0-peak_frac) + data[peak_inx[j]]*peak_frac
+        inx = li + np.argmax(data[li:ri] > thresh)
+        ti0 = np.interp(thresh, data[inx-1:inx+1], time[inx-1:inx+1])
+        inx = ri - np.argmax(data[ri:li:-1] > thresh)
+        ti1 = np.interp(thresh, data[inx+1:inx-1:-1], time[inx+1:inx-1:-1])
+        widths[j] = ti1 - ti0
+    return widths
+    
+    
+def peak_size_width(time, data, peak_indices, trough_indices, peak_frac=0.75):
     """
     Compute for each peak its size and width.
 
@@ -204,7 +253,7 @@ def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
         Indices of the peaks.
     trough_indices: array
         Indices of the troughs.
-    pfac: float
+    peak_frac: float
         Fraction of peak height where its width is measured.
     
     Returns 
@@ -213,7 +262,7 @@ def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
         First dimension is the peak index. Second dimension is
         time, height (value of data at the peak),
         size (peak height minus height of closest trough),
-        width (at `pfac` size), 0.0 (count) of the peak.
+        width (at `peak_frac` size), 0.0 (count) of the peak. See peak_width().
     """
     peaks = np.zeros((len(peak_indices), 5))
     if len(peak_indices) == 0:
@@ -237,18 +286,7 @@ def peak_size_width(time, data, peak_indices, trough_indices, pfac=0.75):
         peaks[:, 2] = data[peak_inx] - data[trough_inx[1:]]
         offs = 1
     # width of peaks:
-    for j in range(len(peak_inx)):
-        wthresh = data[trough_inx[j+offs]] + pfac * peaks[j, 2]
-        width = 0.0
-        for k in range(peak_inx[j], trough_inx[j], -1):
-            if data[k] < wthresh:
-                break
-            width += time[k+1] - time[k]
-        for k in range(peak_inx[j], trough_inx[j+1]):
-            if data[k] < wthresh:
-                break
-            width += time[k] - time[k-1]
-        peaks[j, 3] = width
+    peaks[:, 3] = peak_widhts(time, data, peak_indices, trough_indices, peak_frac)
     return peaks
     
 
