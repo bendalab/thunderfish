@@ -34,7 +34,7 @@ Look into the modules for more information.
 
 ### Basic data analysis
 
-- *eventdetection.py*: Detecting and handling peaks and troughs and threshold crossings in data arrays.
+- *eventdetection.py*: Detecting and handling peaks and troughs as well as threshold crossings in data arrays.
 - *powerspectrum.py*: Compute and plot powerspectra and spectrograms for a given minimum frequency resolution.
 - *voronoi.py*: Analysis of Voronoi diagrams based on scipy.spatial.
 

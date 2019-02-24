@@ -271,3 +271,56 @@ def test_trim_closest():
     p_inx, t_inx = ed.trim_closest(np.array([]), np.array([]))
     assert_equal(len(p_inx), 0, "trim_closest([], []) failed on peaks")
     assert_equal(len(t_inx), 0, "trim_closest([], []) failed on troughs")
+
+    
+def test_peak_width_algorithm():
+    time = np.arange(-10.0, 10.0, 0.1)
+    for i in range(1000):
+        m = -3.0 + 6.0*np.random.rand()
+        sd = 0.2 + 3.0*np.random.rand()
+        peak_frac = 0.1+0.8*np.random.rand()
+        data = np.exp(-0.5*((time-m)/sd)**2.0) - 0.2*np.exp(-0.5*((time-m)/5.0/sd)**2.0)
+        pix, tix = ed.detect_peaks(data, 0.1)
+        assert_equal(len(pix), 1, 'only a single peak should be detected')
+        assert_true(len(tix) <= 2, 'less than three troughs should be detected')
+        # we need a trough before and after each peak:
+        peak_inx = np.asarray(pix, dtype=int)
+        trough_inx = np.asarray(tix, dtype=int)
+        if len(trough_inx) == 0 or peak_inx[0] < trough_inx[0]:
+             trough_inx = np.hstack((0, trough_inx))
+        if peak_inx[-1] > trough_inx[-1]:
+             trough_inx = np.hstack((trough_inx, len(data)-1))
+        assert_equal(len(trough_inx), 2, 'we need two troughs around the peak')
+        # width of peaks:
+        widths = []
+        for j in range(len(peak_inx)):
+            li = trough_inx[j]
+            ri = trough_inx[j+1]
+            base = max(data[li], data[ri])
+            thresh = base*(1.0-peak_frac) + data[peak_inx[j]]*peak_frac
+            assert_true(base < data[peak_inx[j]], 'base should be smaller than peak')
+            assert_true(thresh < data[peak_inx[j]], 'threshold should be smaller than peak')
+            assert_true(base < thresh, 'base should be smaller than threshold')
+            inx0 = li + np.argmax(data[li:ri] > thresh)
+            assert_true(inx0 <= peak_inx[j], 'left index should be smaller than peak index')
+            assert_true(thresh >= data[inx0-1], 'thresh should be larger than inx0-1')
+            assert_true(thresh <= data[inx0], 'thresh should be smaller than inx0-1')
+            ti0 = np.interp(thresh, data[inx0-1:inx0+1], time[inx0-1:inx0+1])
+            assert_true(ti0>=time[inx0-1], 'left time should be larger than inx0-1')
+            assert_true(ti0<=time[inx0], 'left time should be smaller than inx0')
+            assert_almost_equal((thresh-data[inx0-1])/(data[inx0]-data[inx0-1]), (ti0-time[inx0-1])/(time[inx0]-time[inx0-1]), 5, 'left thresh fraction should equal time fraction')
+            inx1 = ri - np.argmax(data[ri:li:-1] > thresh)
+            assert_true(inx1 >= peak_inx[j], 'right index should be larger than peak index')
+            assert_true(thresh >= data[inx1+1], 'thresh should be larger than inx1+1')
+            assert_true(thresh <= data[inx1], 'thresh should be smaller than inx1')
+            ti1 = np.interp(thresh, data[inx1+1:inx1-1:-1], time[inx1+1:inx1-1:-1])
+            assert_true(ti1>=time[inx1], 'right time should be larger than inx1')
+            assert_true(ti1<=time[inx1+1], 'rigth time should be smaller than inx1+1')
+            assert_almost_equal((thresh-data[inx1])/(data[inx1+1]-data[inx1]), (ti1-time[inx1])/(time[inx1+1]-time[inx1]), 5, 'right thresh fraction should equal time fraction')
+            width = ti1 - ti0
+            assert_true(width>0.0, 'width should be larger than zero')
+            widths.append(width)
+        edwidths = ed.peak_width(time, data, pix, tix, peak_frac)
+        assert_true(np.all(widths == edwidths), 'widths should be the same')
+        
+                
