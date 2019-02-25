@@ -409,7 +409,7 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">tstart</th>
     <th align="left">tend</th>
     <th align="left">width</th>
-    <th align="left">tau1</th>
+    <th align="left">tau</th>
     <th align="left">n</th>
     <th align="left">peakpower</th>
     <th align="left">peakfreq</th>
