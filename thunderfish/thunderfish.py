@@ -167,7 +167,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
                         fontsize=14, y=1.05)
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
-        tau = props['tau1'] if 'tau1' in props else None
+        tau = props['tau'] if 'tau' in props else None
         eod_waveform_plot(mean_eod, peaks, axeod, unit, tau=tau)
         props['unit'] = unit
         props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
@@ -548,8 +548,8 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             td[:,'tend'] *= 1000.0
             td.append('width', 'ms', '%.3f', pulse_props, 'width')
             td[:,'width'] *= 1000.0
-            td.append('tau1', 'ms', '%.3f', pulse_props, 'tau1')
-            td[:,'tau1'] *= 1000.0
+            td.append('tau', 'ms', '%.3f', pulse_props, 'tau')
+            td[:,'tau'] *= 1000.0
             td.append('n', '', '%.0d', pulse_props, 'n')
             td.append_section('power spectrum')
             td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')

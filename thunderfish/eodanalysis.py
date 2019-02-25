@@ -285,36 +285,6 @@ def exp_decay(t, tau, ampl, offs):
     return offs + ampl*np.exp(-t/tau)
 
 
-def double_exp_decay(t, tau1, ampl1, tau2, ampl2, offs):
-    """
-    Double expontenial decay.
-
-    x(t) = ampl1*exp(-t/tau1) + ampl2*exp(-t/tau2) + offs
-
-    Parameters
-    ----------
-    t: float or array
-        Time.
-    tau1: float
-        Time constant of first exponential decay.
-    ampl1: float
-        Amplitude of first exponential decay, i.e. its initial value minus steady-state value.
-    tau2: float
-        Time constant of second exponential decay.
-    ampl2: float
-        Amplitude of second exponential decay.
-    offs: float
-        Steady-state value.
-    
-    Returns
-    -------
-    x: float or array
-        The exponential decay evaluated at times `t`.
-    
-    """
-    return offs + ampl1*np.exp(-t/tau1) + ampl2*np.exp(-t/tau2)
-
-
 def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac = 0.5, fit_frac = 0.5,
@@ -368,7 +338,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - tend: time in seconds where the pulse ends,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
-        - tau1: time constant of exponential decay of pulse tail in seconds.
+        - tau: time constant of exponential decay of pulse tail in seconds.
         - peakfrequency: frequency at peak power of the single pulse spectrum in Hertz.
         - peakpower: peak power of the single pulse spectrum in decibel.
         - lowfreqattenuation5: how much the average power below 5 Hz is attenuated
@@ -455,19 +425,23 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     ridx = len(meod) - np.argmax(np.abs(meod[::-1,1])>threshold)
     t0 = meod[lidx,0]
     t1 = meod[ridx,0]
-    width = ridx - lidx
+    width = t1 - t0
+    if width < min_pulse_win:
+        width = min_pulse_win
     dt = meod[1,0] - meod[0,0]
-    if width*dt < min_pulse_win:
-        width = int(np.round(min_pulse_win/dt))
-    lidx -= width//2
-    if lidx < 0:
-        lidx = 0
-    ridx += width//2
-    if ridx >= len(meod):
-        ridx = len(meod)
-    meod = meod[lidx:ridx,:]
-    max_idx -= lidx
-    min_idx -= lidx
+    width_idx = int(np.round(width/dt))
+    # expand width:
+    leidx = lidx - width_idx//2
+    if leidx < 0:
+        leidx = 0
+    reidx = ridx + width_idx//2
+    if reidx >= len(meod):
+        reidx = len(meod)
+    meod = meod[leidx:reidx,:]
+    lidx -= leidx
+    ridx -= leidx
+    max_idx -= leidx
+    min_idx -= leidx
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
@@ -483,9 +457,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     peak_list = pt_idx[pts_idx]
     width_list = pt_widths[pts_idx]
     # remove multiple peaks that are too close:
-    ridx = [(k, k+1) for k in np.where(np.diff(meod[peak_list,0]) < min_dist)]
-    peak_list = np.delete(peak_list, ridx)
-    width_list = np.delete(width_list, ridx)
+    rmidx = [(k, k+1) for k in np.where(np.diff(meod[peak_list,0]) < min_dist)]
+    peak_list = np.delete(peak_list, rmidx)
+    width_list = np.delete(width_list, rmidx)
     # find P1:
     p1i = np.where(peak_list == max_idx)[0][0]
     offs = 0 if p1i <= 2 else p1i - 2
@@ -498,24 +472,20 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
 
     # fit exponential to last peak/trough:
     if not fit_frac is None:
+        if ridx >= len(meod)-1:
+            ridx = len(meod)-1
         pi = peak_list[-1]
-        thresh = meod[-1,1]*(1.0-fit_frac) + meod[pi,1]*fit_frac
-        sign = 1.0 if meod[pi,1] > meod[-1,1] else -1.0
-        inx = pi + np.argmax(sign*meod[pi:,1] < sign*thresh)
-        tau = 0.2*(meod[-1,0]-meod[inx,0])
-        params = [tau, (meod[inx,1]-meod[-1,1])*np.exp(-meod[inx,0]/tau), meod[-1,1]]
-        popt, pcov = curve_fit(exp_decay, meod[inx:,0], meod[inx:,1], params)
+        sign = 1.0 if meod[pi,1] > meod[ridx,1] else -1.0
+        thresh = meod[ridx,1]*(1.0-fit_frac) + meod[pi,1]*fit_frac
+        inx = pi + np.argmax(sign*meod[pi:ridx,1] < sign*thresh)
+        thresh = meod[ridx,1]*(1.0-np.exp(-1.0)) + meod[inx,1]*np.exp(-1.0)
+        tau_inx = np.argmax(sign*meod[inx:ridx,1] < sign*thresh)
+        tau = meod[inx+tau_inx,0]-meod[inx,0]
+        rridx = ridx if inx + 6*tau_inx > len(meod) else inx + 6*tau_inx
+        params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
+        popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], params)
         tau = popt[0]
-        meod[inx:,-1] = exp_decay(meod[inx:,0], *popt)
-        ## tau = 0.1*(meod[-1,0]-meod[inx,0])
-        ## ampl1 = 0.5*(meod[inx,1]-meod[-1,1])*np.exp(-meod[inx,0]/tau)
-        ## ampl2 = 0.5*(meod[inx,1]-meod[-1,1])*np.exp(-meod[inx,0]/tau/10.0)
-        ## params = [tau, ampl1, 10.0*tau, ampl2, meod[-1,1]]
-        ## popt, pcov = curve_fit(double_exp_decay, meod[inx:,0], meod[inx:,1], params)
-        ## tau = popt[0]
-        ## tau2 = popt[2]
-        ## print(tau*1e6, tau2*1e6)
-        ## meod[inx:,-1] = double_exp_decay(meod[inx:,0], *popt)
+        meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
@@ -548,7 +518,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0
-    props['tau1'] = tau
+    props['tau'] = tau
     props['peakfrequency'] = freqs[np.argmax(power)]
     props['peakpower'] = decibel(maxpower)
     props['lowfreqattenuation5'] = att5
