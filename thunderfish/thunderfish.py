@@ -150,7 +150,10 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
                              frameon=False, bbox_to_anchor=(1.0, 1.1), loc='upper left',
                              title='EOD frequencies')
     plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq, color='blue')
-    ax3.set_title('Powerspectrum (%d detected wave-fish)' % len(fishlist), y=1.05)
+    label = 'Powerspectrum'
+    if len(fishlist) > 0:
+        label += ' (%d detected wave-fish)' % len(fishlist)
+    ax3.set_title(label, y=1.05)
 
     ##########
 
@@ -163,7 +166,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
             usedax4 = True
         if axeod is ax5:
             usedax5 = True
-        axeod.set_title('Average EOD of {EODf:.1f} Hz {type}-type fish'.format(**props),
+        axeod.set_title('{EODf:.1f} Hz {type}-type fish: averaged EOD'.format(**props),
                         fontsize=14, y=1.05)
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
@@ -418,14 +421,15 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                                                                  **analyze_pulse_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)
-        mean_eods.append(mean_eod)
-        spec_data.append(power)
-        peak_data.append(peaks)
-        eod_props.append(props)
-        pulse_props.append(props)
         power_thresh = np.zeros(power.shape)
         power_thresh[:,0] = power[:,0]
         power_thresh[:,1] = 5.0*props['EODf']**2.0 * power[:,1]
+        if clipped < cfg.value('maximumClippedFraction'):
+            mean_eods.append(mean_eod)
+            spec_data.append(power)
+            peak_data.append(peaks)
+            eod_props.append(props)
+            pulse_props.append(props)
 
     if len(power_thresh) > 0:
         n = len(fishlist)
@@ -581,7 +585,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             del td
 
     if save_plot or not save_data:
-        output_plot(outfilename, pulse_fish,
+        output_plot(outfilename, len(pulse_props)>0,
                     intervals, raw_data, samplerate, idx0, idx1, clipped, fishlist,
                     mean_eods, eod_props, peak_data, spec_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
