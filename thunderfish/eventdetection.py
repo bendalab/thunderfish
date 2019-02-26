@@ -275,9 +275,15 @@ def peak_width(time, data, peak_indices, trough_indices,
         baseval = base_func(data, li, ri, peak_inx[j])
         thresh = baseval*(1.0-peak_frac) + data[peak_inx[j]]*peak_frac
         inx = li + np.argmax(data[li:ri] > thresh)
-        ti0 = np.interp(thresh, data[inx-1:inx+1], time[inx-1:inx+1])
+        if inx > 0:
+            ti0 = np.interp(thresh, data[inx-1:inx+1], time[inx-1:inx+1])
+        else:
+            ti0 = time[0]
         inx = ri - np.argmax(data[ri:li:-1] > thresh)
-        ti1 = np.interp(thresh, data[inx+1:inx-1:-1], time[inx+1:inx-1:-1])
+        if inx+1 < len(data):
+            ti1 = np.interp(thresh, data[inx+1:inx-1:-1], time[inx+1:inx-1:-1])
+        else:
+            ti1 = time[-1]
         widths[j] = ti1 - ti0
     return widths
     
@@ -371,9 +377,15 @@ def peak_size_width(time, data, peak_indices, trough_indices,
         baseval = base_func(data, li, ri, pi)
         thresh = baseval*(1.0-peak_frac) + data[pi]*peak_frac
         inx = li + np.argmax(data[li:ri] > thresh)
-        ti0 = np.interp(thresh, data[inx-1:inx+1], time[inx-1:inx+1])
+        if inx > 0:
+            ti0 = np.interp(thresh, data[inx-1:inx+1], time[inx-1:inx+1])
+        else:
+            ti0 = time[0]
         inx = ri - np.argmax(data[ri:li:-1] > thresh)
-        ti1 = np.interp(thresh, data[inx+1:inx-1:-1], time[inx+1:inx-1:-1])
+        if inx+1 < len(data):
+            ti1 = np.interp(thresh, data[inx+1:inx-1:-1], time[inx+1:inx-1:-1])
+        else:
+            ti1 = time[-1]
         peaks[j, 2] = data[pi] - baseval
         peaks[j, 3] = ti1 - ti0
     return peaks
