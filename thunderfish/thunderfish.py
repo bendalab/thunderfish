@@ -476,6 +476,10 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
         mean_eods = []
         intervals = []
 
+    # warning message in case no fish has been found:
+    if found_bestwindow and not eod_props :
+        print(basefilename + ': no fish found.')
+
     # write results to files:
     if save_data and found_bestwindow:
         # for each fish:
