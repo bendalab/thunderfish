@@ -653,7 +653,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
     """
     n = len(psd_data)
     psd_data_seg = psd_data[n//2:n*3//4]
-    psd_data_seg = psd_data_seg[~np.isnan(psd_data_seg)]
+    psd_data_seg = psd_data_seg[~np.isinf(psd_data_seg)]
     psd_data_seg = np.mean(psd_data_seg) + \
       sig.detrend(psd_data_seg, type='linear')
     noise_std, center = hist_threshold(psd_data_seg, thresh_fac=1.0, nbins=nbins)
