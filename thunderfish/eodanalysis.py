@@ -518,6 +518,14 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0
+    for pulse in peaks:
+        if pulse[0] == 1:
+            props['P1width'] = pulse[4]
+        elif pulse[0] == 2:
+            props['P2time'] = pulse[1]
+            props['relP2ampl'] = pulse[3]
+            props['P2width'] = pulse[4]
+            break
     props['tau'] = tau
     props['peakfrequency'] = freqs[np.argmax(power)]
     props['peakpower'] = decibel(maxpower)

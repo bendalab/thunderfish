@@ -378,7 +378,7 @@ class TableData:
         if value is not None:
             if isinstance(value, (list, tuple, np.ndarray)):
                 if key and value and isinstance(value[0], dict):
-                    value = [d[key] for d in value]
+                    value = [d[key] if key in d else float('nan') for d in value]
                 self.data[-1].extend(value)
             else:
                 self.data[-1].append(value)

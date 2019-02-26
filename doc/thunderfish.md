@@ -395,7 +395,7 @@ Properties of each pulse-type fish detected in the recording.
 <table>
 <thead>
   <tr>
-    <th align="left" colspan="11">waveform</th>
+    <th align="left" colspan="15">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
     <th align="left" colspan="4">inter-pulse interval statistics</th>
   </tr>
@@ -409,10 +409,14 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">tstart</th>
     <th align="left">tend</th>
     <th align="left">width</th>
+    <th align="left">P1width</th>
+    <th align="left">P2time</th>
+    <th align="left">relP2ampl</th>
+    <th align="left">P2width</th>
     <th align="left">tau</th>
     <th align="left">n</th>
-    <th align="left">peakpower</th>
     <th align="left">peakfreq</th>
+    <th align="left">peakpower</th>
     <th align="left">poweratt5</th>
     <th align="left">poweratt50</th>
     <th align="left">lowcutoff</th>
@@ -432,9 +436,13 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">ms</th>
     <th align="left">ms</th>
     <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">%</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
     <th align="left">-</th>
-    <th align="left">dB</th>
     <th align="left">Hz</th>
+    <th align="left">dB</th>
     <th align="left">dB</th>
     <th align="left">dB</th>
     <th align="left">Hz</th>
@@ -455,10 +463,14 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">-0.272</td>
     <td align="right">0.839</td>
     <td align="right">1.111</td>
-    <td align="right">0.123</td>
+    <td align="right">0.333</td>
+    <td align="right">0.385</td>
+    <td align="right">-109.60</td>
+    <td align="right">0.248</td>
+    <td align="right">0.125</td>
     <td align="right">100</td>
-    <td align="right">-66.30</td>
     <td align="right">896.32</td>
+    <td align="right">-66.30</td>
     <td align="right">-24.02</td>
     <td align="right">-21.46</td>
     <td align="right">127.18</td>
@@ -475,19 +487,23 @@ The columns contain:
 2. EOD frequency in Hertz.
 3. Period between two pulses (1/EODf) in milliseconds.
 4. Amplitude of the largest peak (P1 peak) in the units of the input data.
-5. Amplitude of the larges trough in the units of the input data.
+5. Amplitude of the largest trough in the units of the input data.
 6. Peak-to-peak amplitude in the units of the input data.
 7. Time where the pulse starts relative to P1 in milliseconds.
 8. Time where the pulse ends relative to P1 in milliseconds.
-9. Total width of the pulse on milliseconds.
-10. Time constant of the exponential decay of the tail of the pulse in milliseconds.
-11. Number of EODs used for computing the averaged EOD waveform.
-12. Peak power of the single pulse spectrum in decibel.
-13. Frequency at the peak power of the single pulse spectrum in Hertz.
-14. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-15. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-16. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
-17. Median inter-pulse interval after removal of outlier intervals in milliseconds.
-18. Mean inter-pulse interval after removal of outlier intervals in milliseconds.
-19. Standard deviation of inter-pulse intervals after removal of outlier intervals in milliseconds.
-20. Number of inter-pulse intervals after removal of outlier intervals.
+9. Total width of the pulse in milliseconds.
+10. Width of the P1 peak in milliseconds.
+11. Time of P2 trough relative to P1 in milliseconds.
+12. P2 amplitude relative to the P1 amplitude in percent.
+13. Width of the P2 trough in milliseconds.
+14. Time constant of the exponential decay of the tail of the pulse in milliseconds.
+15. Number of EODs used for computing the averaged EOD waveform.
+17. Frequency at the peak power of the single pulse spectrum in Hertz.
+16. Peak power of the single pulse spectrum in decibel.
+18. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+19. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+20. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+21. Median inter-pulse interval after removal of outlier intervals in milliseconds.
+22. Mean inter-pulse interval after removal of outlier intervals in milliseconds.
+23. Standard deviation of inter-pulse intervals after removal of outlier intervals in milliseconds.
+24. Number of inter-pulse intervals after removal of outlier intervals.

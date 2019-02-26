@@ -548,12 +548,20 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             td[:,'tend'] *= 1000.0
             td.append('width', 'ms', '%.3f', pulse_props, 'width')
             td[:,'width'] *= 1000.0
+            td.append('P1width', 'ms', '%.3f', pulse_props, 'P1width')
+            td[:,'P1width'] *= 1000.0
+            td.append('P2time', 'ms', '%.3f', pulse_props, 'P2time')
+            td[:,'P2time'] *= 1000.0
+            td.append('relP2ampl', '%', '%.2f', pulse_props, 'relP2ampl')
+            td[:,'relP2ampl'] *= 100.0
+            td.append('P2width', 'ms', '%.3f', pulse_props, 'P2width')
+            td[:,'P2width'] *= 1000.0
             td.append('tau', 'ms', '%.3f', pulse_props, 'tau')
             td[:,'tau'] *= 1000.0
             td.append('n', '', '%.0d', pulse_props, 'n')
             td.append_section('power spectrum')
-            td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
             td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
+            td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
             td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
             td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
             td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
@@ -575,7 +583,8 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                     mean_eods, eod_props, peak_data, spec_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_data)
-    
+
+
 def main():
     # config file name:
     cfgfile = __package__ + '.cfg'
