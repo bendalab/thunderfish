@@ -365,15 +365,16 @@ def peak_size_width(time, data, peak_indices, trough_indices,
     else:
         raise ValueError('Invalid value for base (%s)' % base)
     # size and width of peaks:
-    for j in range(len(peak_inx)):
+    for j, pi in enumerate(peak_inx):
         li = trough_inx[j]
         ri = trough_inx[j+1]
-        baseval = base_func(data, li, ri, peak_inx[j])
-        thresh = baseval*(1.0-peak_frac) + data[peak_inx[j]]*peak_frac
+        baseval = base_func(data, li, ri, pi)
+        thresh = baseval*(1.0-peak_frac) + data[pi]*peak_frac
         inx = li + np.argmax(data[li:ri] > thresh)
         ti0 = np.interp(thresh, data[inx-1:inx+1], time[inx-1:inx+1])
         inx = ri - np.argmax(data[ri:li:-1] > thresh)
         ti1 = np.interp(thresh, data[inx+1:inx-1:-1], time[inx+1:inx-1:-1])
+        peaks[j, 2] = data[pi] - baseval
         peaks[j, 3] = ti1 - ti0
     return peaks
     
