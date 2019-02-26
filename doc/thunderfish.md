@@ -56,6 +56,7 @@ Whenever you run thunderfish it searches for configuration files in
 1. the current working directory 
 2. the directory of each input file
 3. the parent directories of each input file, up to three levels up.
+
 Best practice is to move the configuration file at the root of the file tree
 where data files of a recording session are stored.
 
@@ -75,10 +76,10 @@ do not need to touch at all. Here is a list of the few that matter:
 
 - `frequencyResolution`: this sets the nnft parameter for computing
   the power spectrum such to achieve the requested resolution in
-  frequency. The longer your recording the smaller you can set the
-  resultion.
+  frequency. The longer your analysis window the smaller you can set the
+  resultion (not smaller then the inverse analysis window).
 
-- `numberPSDWindows`: If larger than one than only fish that a re
+- `numberPSDWindows`: If larger than one then only fish that are
   present in all windows are reported. If you have very stationary data 
   (from a restrained fish, not from a fishfinder) set this to one.
 
@@ -99,15 +100,15 @@ do not need to touch at all. Here is a list of the few that matter:
 
 - `eodMaxEODs`: the average waveform is estimated by averaging over at
   maximum this number of EODs. If wavefish change their frequency then
-  you do not want to set this number too high (10 to 100 is enough
+  you do not want to set this number too high (10 to 100 is enough for
   reducing noise). If you have several fish on your recording then
   this number needs to be high (1000) to average away the other fish.
   Set it to zero in order to use all EODs in the data segement
   selected for analysis.
 
--`eodExponentialFitFraction`: An exponential is fitted to the tail of
- the last peak/trough of EODs of pulse-type fish. This number (between
- 0 and 1) controls how much of tail is used for the fit.
+- `eodExponentialFitFraction`: An exponential is fitted to the tail of
+  the last peak/trough of EODs of pulse-type fish. This number
+  (between 0 and 1) controls how much of the tail is used for the fit.
 
 - `fileFormat`: sets the default file format to be used for storing
   the analysis results.
