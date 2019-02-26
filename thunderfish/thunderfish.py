@@ -418,7 +418,6 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
                                                                  **analyze_pulse_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)
-        # TODO: add config parameter to analyze_pulse
         mean_eods.append(mean_eod)
         spec_data.append(power)
         peak_data.append(peaks)
@@ -461,12 +460,12 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             spec_data.append(sdata)
             peak_data.append([])
             if verbose > 0:
-                print('%d take waveform of %6.1fHz fish: clipped=%4.2f ampl1=%4.2f ampl2=%4.2f ampl3=%4.2f rmserror=%4.3f'
-                      % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], sdata[3,2], props['rmserror']))
+                print('%d take waveform of %6.1fHz fish: clipped=%4.2f ampl1=%6.4f ampl2=%6.4f ampl3=%6.4f rmserror=%.2f%%'
+                      % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], sdata[3,2], 100.0*props['rmserror']))
         else:
             if verbose > 0:
-                print('%d skip waveform of %.1fHz fish: clipped=%4.2f ampl1=%.2f ampl2=%.2f rmserror=%.3f'
-                      % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], props['rmserror']))
+                print('%d skip waveform of %.1fHz fish: clipped=%4.2f ampl1=%6.4f ampl2=%6.4f rmserror=%.2f%%'
+                      % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], 100.0*props['rmserror']))
         
     if not found_bestwindow:
         pulsefish = False
