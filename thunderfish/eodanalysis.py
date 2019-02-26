@@ -415,14 +415,14 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     thl_min = np.min(meod[:n,1])
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
-    min_thresh = 1.5*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
+    min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
     threshold = max_ampl*peak_thresh_fac
     if threshold < min_thresh:
         threshold = min_thresh
 
     # cut out relevant signal:
-    lidx = np.argmax(np.abs(meod[:,1])>threshold)
-    ridx = len(meod) - np.argmax(np.abs(meod[::-1,1])>threshold)
+    lidx = np.argmax(np.abs(meod[:,1])>0.5*threshold)
+    ridx = len(meod) - np.argmax(np.abs(meod[::-1,1])>0.5*threshold)
     t0 = meod[lidx,0]
     t1 = meod[ridx,0]
     width = t1 - t0
@@ -471,19 +471,26 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i]]
 
     # fit exponential to last peak/trough:
+    tau = None
     if not fit_frac is None:
+        pi = peak_list[-1]
         if ridx >= len(meod)-1:
             ridx = len(meod)-1
-        pi = peak_list[-1]
         sign = 1.0 if meod[pi,1] > meod[ridx,1] else -1.0
         thresh = meod[ridx,1]*(1.0-fit_frac) + meod[pi,1]*fit_frac
         inx = pi + np.argmax(sign*meod[pi:ridx,1] < sign*thresh)
         thresh = meod[ridx,1]*(1.0-np.exp(-1.0)) + meod[inx,1]*np.exp(-1.0)
         tau_inx = np.argmax(sign*meod[inx:ridx,1] < sign*thresh)
+        if tau_inx < 2:
+            tau_inx = 2
         tau = meod[inx+tau_inx,0]-meod[inx,0]
-        rridx = ridx if inx + 6*tau_inx > len(meod) else inx + 6*tau_inx
+        rridx = len(meod)-1 if inx + 6*tau_inx >= len(meod) else inx + 6*tau_inx
         params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
         popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], params)
+        if popt[0] > 1.2*tau:
+            tau_inx = int(np.round(popt[0]/dt))
+            rridx = len(meod)-1 if inx + 6*tau_inx >= len(meod) else inx + 6*tau_inx
+            popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], popt)
         tau = popt[0]
         meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
@@ -526,7 +533,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
             props['relP2ampl'] = pulse[3]
             props['P2width'] = pulse[4]
             break
-    props['tau'] = tau
+    if tau:
+        props['tau'] = tau
     props['peakfrequency'] = freqs[np.argmax(power)]
     props['peakpower'] = decibel(maxpower)
     props['lowfreqattenuation5'] = att5
