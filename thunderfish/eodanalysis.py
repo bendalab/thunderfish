@@ -613,7 +613,11 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
         inx = np.argmin(np.isnan(eod_waveform[:,3]))
         x = eod_waveform[inx,0] + tau
         y = 0.7*eod_waveform[inx,3]
-        ax.text(1000.0*x, y, label, ha='left', va='top', zorder=10)
+        maxa = np.max(np.abs(mean_eod))
+        if np.abs(y) < 0.07*maxa:
+            y = -0.07*maxa*np.sign(y)
+        va = 'bottom' if y > 0.0 else 'top'
+        ax.text(1000.0*x, y, label, ha='left', va=va, zorder=10)
     # annotate peaks:
     if peaks is not None and len(peaks)>0:
         maxa = np.max(peaks[:,2])
