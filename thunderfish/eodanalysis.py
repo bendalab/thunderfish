@@ -467,12 +467,15 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         pts_idx = np.argsort(pt_idx)
         peak_list = pt_idx[pts_idx]
         width_list = pt_widths[pts_idx]
-        # remove multiple peaks that are too close:
-        rmidx = [(k, k+1) for k in np.where(np.diff(meod[peak_list,0]) < min_dist)]
+        # remove multiple peaks that are too close: XXX replace by Dexters function that keeps the maximum peak
+        rmidx = [(k, k+1) for k in np.where(np.diff(meod[peak_list,0]) < min_dist)[0]]
+        # flatten and keep maximum peak:
+        rmidx = np.unique([k for kk in rmidx for k in kk if peak_list[k] != max_idx])
+        # delete:
         peak_list = np.delete(peak_list, rmidx)
         width_list = np.delete(width_list, rmidx)
         # find P1:
-        p1i = np.where(peak_list == max_idx)[0][0]
+        p1i = np.argmax(peak_list == max_idx)
         offs = 0 if p1i <= 2 else p1i - 2
         peak_list = peak_list[offs:]
         width_list = width_list[offs:]
