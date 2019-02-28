@@ -386,7 +386,8 @@ def peak_size_width(time, data, peak_indices, trough_indices,
             ti1 = np.interp(thresh, data[inx+1:inx-1:-1], time[inx+1:inx-1:-1])
         else:
             ti1 = time[-1]
-        peaks[j, 2] = data[pi] - baseval
+        if np.any(np.isfinite((data[pi], baseval))):
+            peaks[j, 2] = data[pi] - baseval
         peaks[j, 3] = ti1 - ti0
     return peaks
     
