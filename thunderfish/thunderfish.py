@@ -634,9 +634,12 @@ def main():
         parser.error('you need to specify at least one file for the analysis')
     else:
         for file in args.file:
-            msg = thunderfish(file, args.channel, args.save_data, args.format, args.save_plot,
-                              args.outpath, args.show_bestwindow, cfgfile,
-                              args.save_config, verbose=verbose)
+            if verbose > 0:
+                print('analyze recording %s ...' % file)
+            msg = thunderfish(file, args.channel, args.save_data, args.format,
+                              args.save_plot, args.outpath,
+                              args.show_bestwindow, cfgfile,
+                              args.save_config, verbose=verbose-1)
 
     if msg is not None:
         parser.error(msg)
