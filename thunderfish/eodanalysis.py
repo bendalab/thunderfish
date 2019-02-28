@@ -22,6 +22,7 @@
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 """
 
+from warnings import warn
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
@@ -210,12 +211,19 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     offs = len(meod[:,1])//4
     meod[:,0] -= meod[offs+np.argmax(meod[offs:3*offs,1]),0]
 
-    # fit sine wave:
+    # fit fourier series:
     ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
-    params = [freq0, -0.25/freq0, ampl]
-    for i in range(1, n_harm):
-        params.extend([1.0/(i+1), 0.0])
-    popt, pcov = curve_fit(fourier_series, meod[:,0], meod[:,1], params)
+    while n_harm > 1:
+        params = [freq0, -0.25/freq0, ampl]
+        for i in range(1, n_harm):
+            params.extend([1.0/(i+1), 0.0])
+        try:
+            popt, pcov = curve_fit(fourier_series, meod[:,0], meod[:,1],
+                                   params, maxfev=2000)
+            break
+        except RuntimeError:
+            warn('%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics' % (freq0, n_harm))
+            n_harm //= 2
     ampl = popt[2]
     for i in range(1, n_harm):
         # make all amplitudes positive:
