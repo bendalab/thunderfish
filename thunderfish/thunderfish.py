@@ -408,6 +408,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
     peak_data = []
     intervals = []
     power_thresh = []
+    skip_reason = []
     
     # analyse eod waveform of pulse-fish:
     max_eods = cfg.value('eodMaxEODs')
@@ -430,6 +431,15 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             peak_data.append(peaks)
             eod_props.append(props)
             pulse_props.append(props)
+            if verbose > 0:
+                print('take %6.1fHz pulse fish: clipped=%3.0f%%' %
+                      (100.0*props['EODf'], clipped))
+        else:
+            skip_reason += ['pulse fish clipped']
+            if verbose > 0:
+                print('skip %6.1fHz pulse fish: clipped=%3.0f%% (%3.0f%%)' %
+                      (props['EODf'],
+                       100.0*clipped, 100.0*cfg.value('maximumClippedFraction')))
 
     if len(power_thresh) > 0:
         n = len(fishlist)
@@ -464,12 +474,23 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             spec_data.append(sdata)
             peak_data.append([])
             if verbose > 0:
-                print('%d take waveform of %6.1fHz fish: clipped=%4.2f ampl1=%6.4f ampl2=%6.4f ampl3=%6.4f rmserror=%.2f%%'
-                      % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], sdata[3,2], 100.0*props['rmserror']))
+                print('%d take waveform of %6.1fHz fish: clipped=%3.0f%% ampl1=%6.4f ampl2=%6.4f rmserror=%6.2f%%'
+                      % (idx, fish[0,0], 100.0*clipped, sdata[1,2], sdata[2,2],
+                         100.0*props['rmserror']))
         else:
+            if k == 0 and clipped >= cfg.value('maximumClippedFraction'):
+                skip_reason += ['wavefish clipped']
+            if sdata[1,2] >= cfg.value('maximumFirstHarmonicAmplitude') or \
+               sdata[2,2] >= cfg.value('maximumSecondHarmonicAmplitude') or \
+               props['rmserror'] >= cfg.value('maximumRMSError'):
+                skip_reason += ['wavefish distorted']
             if verbose > 0:
-                print('%d skip waveform of %.1fHz fish: clipped=%4.2f ampl1=%6.4f ampl2=%6.4f rmserror=%.2f%%'
-                      % (idx, fish[0,0], clipped, sdata[1,2], sdata[2,2], 100.0*props['rmserror']))
+                print('%d skip waveform of %.1fHz fish: clipped=%3.0f%% (%3.0f%%) ampl1=%6.4f (%6.4f) ampl2=%6.4f (%6.4f) rmserror=%6.2f%% (%6.2f%%)'
+                      % (idx, fish[0,0],
+                         100.0*clipped, 100.0*cfg.value('maximumClippedFraction'),
+                         sdata[1,2], cfg.value('maximumFirstHarmonicAmplitude'),
+                         sdata[2,2], cfg.value('maximumSecondHarmonicAmplitude'),
+                         100.0*props['rmserror'], 100.0*cfg.value('maximumRMSError')))
         
     if not found_bestwindow:
         pulsefish = False
@@ -482,7 +503,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
 
     # warning message in case no fish has been found:
     if found_bestwindow and not eod_props :
-        print(basefilename + ': no fish found.')
+        print(basefilename + ': no fish found: %s' % (', '.join(skip_reason)))
 
     # write results to files:
     if save_data and found_bestwindow:
