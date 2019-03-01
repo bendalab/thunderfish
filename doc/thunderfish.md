@@ -90,13 +90,20 @@ do not need to touch at all. Here is a list of the few that matter:
   wavefish are detected, and before you start fiddling around with the
   threshold factors.
 
-- `mainsFreq`: Set it to the frequency of your mains power supply.
+- `mainsFreq`: Set it to the frequency of your mains power supply
+  or to zero if you have hum-free recordings.
+
+- `maxGroups`: Set to 1 if you know that only a single fish is in your
+  recording.
 
 - `bestWindowSize`: How much of the data should be used for analysis.
   If you have stationary data (from a restrained fish, not from a
   fishfinder) you may want to use the full recording by setting this
   to zero. Otherwise thunderfish searches for the most stationary data
   segment of the requested length.
+
+- `pulseWidthPercentile`: If low frequency pulse fish are missed then
+  reduce this number.
 
 - `eodMaxEODs`: the average waveform is estimated by averaging over at
   maximum this number of EODs. If wavefish change their frequency then
