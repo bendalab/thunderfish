@@ -22,7 +22,6 @@
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 """
 
-from warnings import warn
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
@@ -189,7 +188,12 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
         or the relative amplitude of the second harmonic (spec-data[2,3]) is larger than 0.2,
         then this probably is not a proper EOD waveform and
         should not be used for further analysis.
+    error_str: string
+        If fitting of the fourier series failed,
+        this is reported in this string.
     """
+    error_str = ''
+    
     freq0 = freq
     if hasattr(freq, 'shape'):
         freq0 = freq[0][0]
@@ -222,7 +226,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
                                    params, maxfev=2000)
             break
         except RuntimeError:
-            warn('%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics' % (freq0, n_harm))
+            error_str = '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics.' % (freq0, n_harm)
             n_harm //= 2
     ampl = popt[2]
     for i in range(1, n_harm):
@@ -264,7 +268,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     for i in range(1, n_harm):
         spec_data[i,:5] = [i, (i+1)*freq0, ampl*popt[1+i*2], popt[1+i*2], popt[2+i*2]]
     
-    return meod, props, spec_data
+    return meod, props, spec_data, error_str
 
 
 def exp_decay(t, tau, ampl, offs):

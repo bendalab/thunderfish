@@ -460,7 +460,10 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             eod_waveform(data, samplerate,
                          win_fac=3.0, min_win=0.0, period=1.0/fish[0,0],
                          **eod_waveform_args(cfg))
-        mean_eod, props, sdata = analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
+        mean_eod, props, sdata, error_str = \
+            analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
+        if error_str:
+            print(basefilename + ': ' + error_str)
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)
         # add good waveforms only:
