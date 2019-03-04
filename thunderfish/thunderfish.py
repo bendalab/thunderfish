@@ -29,6 +29,64 @@ from .tabledata import TableData, add_write_table_config, write_table_args
 from audioio import play, fade
 
 
+def configuration(config_file, save_config=False, file_name='', verbose=0):
+    """
+    Assemble, save, and load configuration parameter for thunderfish.
+
+    Parameters
+    ----------
+    config_file: string
+        Name of the configuration file to be loaded.
+    save_config: boolean
+        If True write the configuration file to the current working directory
+        after loading existing configuration files.
+    file_name: string
+        Data file to be analyzed. Config files will be loaded from this path
+        and up to three levels up.
+    verbose: int
+        Print out information about loaded configuration files if greater than zero.
+
+    Returns
+    -------
+    cfg: ConfigFile
+        Configuration parameters.
+    """
+    cfg = ConfigFile()
+    cfg.add_section('Power spectrum estimation:')
+    cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
+    cfg.add('numberPSDWindows', 1, '', 'Number of windows on which power spectra are computed.')
+    cfg.add('numberPSDResolutions', 1, '', 'Number of power spectra computed within each window with decreasing resolution.')
+    cfg.add('frequencyThreshold', 1.0, 'Hz', 'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
+    # TODO: make this threshold dependent on frequency resolution!
+    add_psd_peak_detection_config(cfg)
+    add_harmonic_groups_config(cfg)
+    add_clip_config(cfg)
+    add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
+    add_eod_analysis_config(cfg, min_pulse_win=0.004)
+    del cfg['eodSnippetFac']
+    del cfg['eodMinSnippet']
+    cfg.add_section('Waveform selection:')
+    cfg.add('maximumClippedFraction', 0.01, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
+    cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
+    cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
+    cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+    add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
+                           shrink_width=False)
+    
+    # load configuration from working directory and data directories:
+    cfg.load_files(config_file, file_name, 3, verbose)
+
+    # save configuration:
+    if save_config:
+        print('write configuration to %s ...' % config_file)
+        del cfg['fileColumnNumbers']
+        del cfg['fileShrinkColumnWidth']
+        del cfg['fileMissing']
+        cfg.dump(config_file)
+            
+    return cfg
+
+
 def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate, idx0, idx1,
                 clipped, fishlist, mean_eods, eod_props, peak_data,
                 spec_data, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
@@ -254,48 +312,8 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
     plt.close()
 
 
-def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_plot=False,
-                output_folder='.', show_bestwindow=False, cfgfile='',
-                save_config='', verbose=0):
-    # configuration options:
-    cfg = ConfigFile()
-    cfg.add_section('Power spectrum estimation:')
-    cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
-    cfg.add('numberPSDWindows', 1, '', 'Number of windows on which power spectra are computed.')
-    cfg.add('numberPSDResolutions', 1, '', 'Number of power spectra computed within each window with decreasing resolution.')
-    cfg.add('frequencyThreshold', 1.0, 'Hz', 'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
-    # TODO: make this threshold dependent on frequency resolution!
-    add_psd_peak_detection_config(cfg)
-    add_harmonic_groups_config(cfg)
-    add_clip_config(cfg)
-    add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
-    add_eod_analysis_config(cfg, min_pulse_win=0.004)
-    del cfg['eodSnippetFac']
-    del cfg['eodMinSnippet']
-    cfg.add_section('Waveform selection:')
-    cfg.add('maximumClippedFraction', 0.01, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
-    cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
-    cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
-    cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
-    add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
-                           shrink_width=False)
-    
-    # load configuration from working directory and data directories:
-    cfg.load_files(cfgfile, filename, 3, verbose)
-
-    # save configuration:
-    if len(save_config) > 0:
-        ext = os.path.splitext(save_config)[1]
-        if ext != os.extsep + 'cfg':
-            print('configuration file name must have .cfg as extension!')
-        else:
-            print('write configuration to %s ...' % save_config)
-            del cfg['fileColumnNumbers']
-            del cfg['fileShrinkColumnWidth']
-            del cfg['fileMissing']
-            cfg.dump(save_config)
-        return None
-
+def thunderfish(filename, cfg, channel=0, save_data=False, file_format='auto', save_plot=False,
+                output_folder='.', show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -339,7 +357,7 @@ def thunderfish(filename, channel=0, save_data=False, file_format='auto', save_p
             plt.show()
         except UserWarning as e:
             print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
-        return
+        return None
     if cfg.value('bestWindowSize') <= 0.0:
         cfg.set('bestWindowSize', (len(raw_data)-1)/samplerate)
     try:
@@ -626,9 +644,8 @@ def main():
         epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
-    parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
-                        type=str, metavar='CFGFILE',
-                        help='save configuration to file CFGFILE after reading all configuration files (defaults to {0})'.format(cfgfile))
+    parser.add_argument('-c', dest='save_config', action='store_true',
+                        help='save configuration to file {0} after reading all configuration files.'.format(cfgfile))
     parser.add_argument('file', nargs='*', default='', type=str, help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be analyzed')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
@@ -646,27 +663,32 @@ def main():
     if args.verbose != None:
         verbose = args.verbose
 
+    # interactive plot:
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
 
+    # check output file format:
     if not args.format in TableData.formats and args.format != 'auto':
         parser.error('invalid file format %s' % args.format)
 
+    # configuration:
     if args.save_config:
-        msg = thunderfish('', cfgfile=cfgfile, save_config=args.save_config,
-                          verbose=verbose)
+        file_name = args.file[0] if len(args.file) else ''
+        configuration(cfgfile, args.save_config, file_name, verbose)
     elif len(args.file) == 0:
         parser.error('you need to specify at least one file for the analysis')
     else:
+        # analyze data files:
+        cfg = configuration(cfgfile, False, args.file[0], verbose-1)
         for file in args.file:
             if verbose > 0:
+                if verbose > 1:
+                    print('='*60)
                 print('analyze recording %s ...' % file)
-            msg = thunderfish(file, args.channel, args.save_data, args.format,
+            msg = thunderfish(file, cfg, args.channel, args.save_data, args.format,
                               args.save_plot, args.outpath,
-                              args.show_bestwindow, cfgfile,
-                              args.save_config, verbose=verbose-1)
-
-    if msg is not None:
-        parser.error(msg)
+                              args.show_bestwindow, verbose=verbose-1)
+            if msg:
+                parser.error(msg)
 
 
 if __name__ == '__main__':
