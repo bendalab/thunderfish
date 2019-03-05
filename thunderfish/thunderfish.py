@@ -6,8 +6,6 @@ python3 -m thunderfish.thunderfish audiofile.wav   or
 python -m thunderfish.thunderfish audiofile.wav
 """
 
-import time
-
 import sys
 import os
 import argparse
@@ -662,9 +660,9 @@ def main():
         description='Analyze EOD waveforms of weakly electric fish.',
         epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
     parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('-v', action='count', dest='verbose', help='verbosity level')
+    parser.add_argument('-v', action='count', dest='verbose', help='verbosity level. Increase by specifying -v multiple times, or like -vvv.')
     parser.add_argument('-c', dest='save_config', action='store_true',
-                        help='save configuration to file {0} after reading all configuration files.'.format(cfgfile))
+                        help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('file', nargs='*', default='', type=str, help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be analyzed')
     parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
@@ -672,8 +670,10 @@ def main():
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         help='file format used for saving analysis results, one of dat, ascii, csv, md, tex, html (defaults to the format specified in the configuration file or "dat")')
+    parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
+                        help='number of jobs run in parallel. Without argument use number of CPUs.')
     parser.add_argument('-o', dest='outpath', default=".", type=str,
-                        help="path where to store results and figures")
+                        help="Path where to store results and figures.")
     parser.add_argument('-b', dest='show_bestwindow', action='store_true', help='show the cost function of the best window algorithm')
     args = parser.parse_args()
 
@@ -698,27 +698,20 @@ def main():
     else:
         # analyze data files:
         cfg = configuration(cfgfile, False, args.file[0], verbose-1)
-        if (args.save_data or args.save_plot) and len(args.file) > 1:
-            global pool_args
-            pool_args = (cfg, args.channel, args.save_data, args.format,
-                         args.save_plot, args.outpath,
-                         args.show_bestwindow, verbose-1)
-            cpus = cpu_count()
+        global pool_args
+        pool_args = (cfg, args.channel, args.save_data, args.format,
+                     args.save_plot, args.outpath,
+                     args.show_bestwindow, verbose-1)
+        if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
+            cpus = cpu_count() if args.jobs == 0 else args.jobs
+            if verbose > 1:
+                print('run on %d cpus' % cpus)
             p = Pool(cpus)
             p.map(run_thunderfish, args.file)
         else:
-            for file in args.file:
-                if verbose > 0:
-                    if verbose > 1:
-                        print('='*60)
-                    print('analyze recording %s ...' % file)
-                msg = thunderfish(file, cfg, args.channel, args.save_data, args.format,
-                                  args.save_plot, args.outpath,
-                                  args.show_bestwindow, verbose=verbose-1)
-                if msg:
-                    parser.error(msg)
+            list(map(run_thunderfish, args.file))
 
 
 if __name__ == '__main__':
-    #freeze_support()  # needed by multiprocessing for some weired windows stuff
+    freeze_support()  # needed by multiprocessing for some weired windows stuff
     main()
