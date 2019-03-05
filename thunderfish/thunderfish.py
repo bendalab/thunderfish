@@ -6,11 +6,14 @@ python3 -m thunderfish.thunderfish audiofile.wav   or
 python -m thunderfish.thunderfish audiofile.wav
 """
 
+import time
+
 import sys
 import os
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from multiprocessing import Pool, freeze_support, cpu_count
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import load_data
@@ -325,21 +328,21 @@ def thunderfish(filename, cfg, channel=0, save_data=False, file_format='auto', s
     basefilename = os.path.basename(filename)
     outfilename = os.path.splitext(basefilename)[0]
 
-    # check channel:
-    if channel < 0:
-        return 'invalid channel %d' % channel
-
     # set file format:
     if file_format != 'auto':
         cfg.set('fileFormat', file_format)
+
+    # check channel:
+    if channel < 0:
+        return '%s: invalid channel %d' % (basefilename, channel)
 
     # load data:
     try:
         raw_data, samplerate, unit = load_data(filename, channel, verbose=verbose)
     except IOError as e:
-        return 'failed to open file %s: %s' % (filename, str(e))
+        return '%s: failed to open file: %s' % (basefilename, str(e))
     if len(raw_data) <= 1:
-        return 'empty data file %s' % filename
+        return '%s: empty data file' % basefilename
     
     # calculate best_window:
     found_bestwindow = True
@@ -634,6 +637,22 @@ def thunderfish(filename, cfg, channel=0, save_data=False, file_format='auto', s
                     save_plot=save_plot, show_plot=not save_data)
 
 
+pool_args = None
+
+def run_thunderfish(file):
+    """
+    Helper function for mutlithreading Pool().map().
+    """
+    verbose = pool_args[-1]+1
+    if verbose > 0:
+        if verbose > 1:
+            print('='*60)
+        print('analyze recording %s ...' % file)
+    msg = thunderfish(file, *pool_args)
+    if msg:
+        print(msg)
+
+
 def main():
     # config file name:
     cfgfile = __package__ + '.cfg'
@@ -679,17 +698,27 @@ def main():
     else:
         # analyze data files:
         cfg = configuration(cfgfile, False, args.file[0], verbose-1)
-        for file in args.file:
-            if verbose > 0:
-                if verbose > 1:
-                    print('='*60)
-                print('analyze recording %s ...' % file)
-            msg = thunderfish(file, cfg, args.channel, args.save_data, args.format,
-                              args.save_plot, args.outpath,
-                              args.show_bestwindow, verbose=verbose-1)
-            if msg:
-                parser.error(msg)
+        if (args.save_data or args.save_plot) and len(args.file) > 1:
+            global pool_args
+            pool_args = (cfg, args.channel, args.save_data, args.format,
+                         args.save_plot, args.outpath,
+                         args.show_bestwindow, verbose-1)
+            cpus = cpu_count()
+            p = Pool(cpus)
+            p.map(run_thunderfish, args.file)
+        else:
+            for file in args.file:
+                if verbose > 0:
+                    if verbose > 1:
+                        print('='*60)
+                    print('analyze recording %s ...' % file)
+                msg = thunderfish(file, cfg, args.channel, args.save_data, args.format,
+                                  args.save_plot, args.outpath,
+                                  args.show_bestwindow, verbose=verbose-1)
+                if msg:
+                    parser.error(msg)
 
 
 if __name__ == '__main__':
+    #freeze_support()  # needed by multiprocessing for some weired windows stuff
     main()
