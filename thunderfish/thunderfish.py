@@ -313,7 +313,7 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
     plt.close()
 
 
-def thunderfish(filename, cfg, channel=0, save_data=False, file_format='auto', save_plot=False,
+def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                 output_folder='.', show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
@@ -326,10 +326,6 @@ def thunderfish(filename, cfg, channel=0, save_data=False, file_format='auto', s
     basefilename = os.path.basename(filename)
     outfilename = os.path.splitext(basefilename)[0]
 
-    # set file format:
-    if file_format != 'auto':
-        cfg.set('fileFormat', file_format)
-
     # check channel:
     if channel < 0:
         return '%s: invalid channel %d' % (basefilename, channel)
@@ -341,30 +337,40 @@ def thunderfish(filename, cfg, channel=0, save_data=False, file_format='auto', s
         return '%s: failed to open file: %s' % (basefilename, str(e))
     if len(raw_data) <= 1:
         return '%s: empty data file' % basefilename
-    
+        
     # calculate best_window:
     found_bestwindow = True
     min_clip = cfg.value('minClipAmplitude')
     max_clip = cfg.value('maxClipAmplitude')
     if min_clip == 0.0 or max_clip == 0.0:
         min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
+    # best window size parameter:
+    bwa = best_window_args(cfg)
+    if 'win_size' in bwa:
+        del bwa['win_size']
+    best_window_size = cfg.value('bestWindowSize')
+    if best_window_size <= 0.0:
+        best_window_size = (len(raw_data)-1)/samplerate
+    # show cost function:
     if show_bestwindow:
         fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
         try:
             best_window_indices(raw_data, samplerate,
                                 min_clip=min_clip, max_clip=max_clip,
+                                win_size=best_window_size,
                                 plot_data_func=plot_best_window, ax=ax,
-                                **best_window_args(cfg))
+                                **bwa)
             plt.show()
         except UserWarning as e:
             print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
         return None
-    if cfg.value('bestWindowSize') <= 0.0:
-        cfg.set('bestWindowSize', (len(raw_data)-1)/samplerate)
+    # find best window:
     try:
         idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
-                                                  min_clip=min_clip, max_clip=max_clip,
-                                                  **best_window_args(cfg))
+                                                  min_clip=min_clip,
+                                                  max_clip=max_clip,
+                                                  win_size=best_window_size,
+                                                  **bwa)
         data = raw_data[idx0:idx1]
     except UserWarning as e:
         print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
@@ -525,7 +531,11 @@ def thunderfish(filename, cfg, channel=0, save_data=False, file_format='auto', s
 
     # warning message in case no fish has been found:
     if found_bestwindow and not eod_props :
-        print(basefilename + ': no fish found: %s' % (', '.join(skip_reason)))
+        msg = ', '.join(skip_reason)
+        if msg:
+            print(basefilename + ': no fish found: %s' % msg)
+        else:
+            print(basefilename + ': no fish found.')
 
     # write results to files:
     if save_data and found_bestwindow:
@@ -698,8 +708,10 @@ def main():
     else:
         # analyze data files:
         cfg = configuration(cfgfile, False, args.file[0], verbose-1)
+        if args.format != 'auto':
+            cfg.set('fileFormat', args.format)
         global pool_args
-        pool_args = (cfg, args.channel, args.save_data, args.format,
+        pool_args = (cfg, args.channel, args.save_data,
                      args.save_plot, args.outpath,
                      args.show_bestwindow, verbose-1)
         if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:

@@ -293,7 +293,8 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
 
     # too little data:
     if len(data) / samplerate <= win_size:
-        raise UserWarning('not enough data')
+        raise UserWarning('not enough data (data=%gs, win=%gs)' %
+                          (len(data) / samplerate, win_size))
 
     # threshold for peak detection:
     threshold = percentile_threshold(data, samplerate, win_shift,
