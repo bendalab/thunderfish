@@ -671,26 +671,42 @@ def main():
     cfgfile = __package__ + '.cfg'
 
     # command line arguments:
-    parser = argparse.ArgumentParser(
+    parser = argparse.ArgumentParser(add_help=False,
         description='Analyze EOD waveforms of weakly electric fish.',
         epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
+    parser.add_argument('-h', '--help', action='store_true', help='show this help message and exit')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', help='verbosity level. Increase by specifying -v multiple times, or like -vvv.')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
-    parser.add_argument('file', nargs='*', default='', type=str, help='name of the file with the time series data')
-    parser.add_argument('channel', nargs='?', default=0, type=int, help='channel to be analyzed')
-    parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
+    parser.add_argument('--channel', default=0, type=int, help='channel to be analyzed. Default is to use first channel.')
+    parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
+                        help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-s', dest='save_data', action='store_true',
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         help='file format used for saving analysis results, one of dat, ascii, csv, md, tex, html (defaults to the format specified in the configuration file or "dat")')
-    parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
-                        help='number of jobs run in parallel. Without argument use number of CPUs.')
+    parser.add_argument('-p', dest='save_plot', action='store_true', help='save output plot as pdf file')
     parser.add_argument('-o', dest='outpath', default=".", type=str,
                         help="Path where to store results and figures.")
     parser.add_argument('-b', dest='show_bestwindow', action='store_true', help='show the cost function of the best window algorithm')
+    parser.add_argument('file', nargs='*', default='', type=str, help='name of the file with the time series data')
     args = parser.parse_args()
+
+    # help:
+    if args.help:
+        parser.print_help()
+        print('')
+        print('examples:')
+        print('- analyze a single file interactively:')
+        print('  > thunderfish data.wav')
+        print('- analyze many files automatically and save analysis results and plot to files:')
+        print('  > thunderfish -s -p *.wav')
+        print('- analyze many files automatically, use all CPUs, and write files to "results/":')
+        print('  > thunderfish -j -s -p -o results/ *.wav')
+        print('- write configuration file:')
+        print('  > thunderfish -c')
+        parser.exit()
 
     # set verbosity level from command line:
     verbose = 0

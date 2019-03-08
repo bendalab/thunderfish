@@ -1,5 +1,5 @@
 """
-Analysis of Voronoi diagrams based on scipy.spatial.
+Analye Voronoi diagrams based on scipy.spatial.
 
 class Voronoi: Compute and analyse Voronoi diagrams.
 """
