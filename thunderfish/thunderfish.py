@@ -27,7 +27,7 @@ from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot, wave_spectrum_p
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .tabledata import TableData, add_write_table_config, write_table_args
-from audioio import play, fade
+from audioio import unwrap, play, fade
 
 
 def configuration(config_file, save_config=False, file_name='', verbose=0):
@@ -62,6 +62,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
+    cfg.add('unwrapData', False, '', 'Unwrap scrambled wav-file data.')
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
     add_eod_analysis_config(cfg, min_pulse_win=0.004)
     del cfg['eodSnippetFac']
@@ -344,6 +345,10 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
     max_clip = cfg.value('maxClipAmplitude')
     if min_clip == 0.0 or max_clip == 0.0:
         min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
+    if cfg.value('unwrapData'):
+        raw_data = unwrap(raw_data)
+        min_clip = -2.0
+        max_clip = 2.0
     # best window size parameter:
     bwa = best_window_args(cfg)
     if 'win_size' in bwa:
