@@ -329,7 +329,7 @@ class TableData:
             else:
                 self.load(data)
         
-    def append(self, label, unit, formats=None, value=None, key=None):
+    def append(self, label, unit, formats=None, value=None, key=None, fac=None):
         """
         Append column to the table.
 
@@ -349,6 +349,8 @@ class TableData:
             If not None and `value` is a list of dictionaries,
             extract from each dictionary in the list the value specified
             by `key` and assign the resulting list as data to the column.
+        fac: float
+            If not None, multiply the dta values by this number.
 
         Returns
         -------
@@ -382,6 +384,9 @@ class TableData:
                 self.data[-1].extend(value)
             else:
                 self.data[-1].append(value)
+        if fac:
+            for k in range(len(self.data[-1])):
+                self.data[-1][k] *= fac
         self.addcol = len(self.data)
         self.shape = (self.rows(), self.columns())
         return self.addcol-1

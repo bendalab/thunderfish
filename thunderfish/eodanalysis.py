@@ -300,7 +300,7 @@ def exp_decay(t, tau, ampl, offs):
 def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac = 0.5, fit_frac = 0.5,
-                  fresolution=1.0, pulse_percentile=1.0):
+                  fresolution=1.0):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -325,10 +325,6 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         waveform falls below this fraction of the peak's height (0-1).
     fresolution: float
         The frequency resolution of the power spectrum of the single pulse.
-    pulse_percentile: float
-        Remove extreme values of the inter-pulse intervals when computing interval statistics.
-        All intervals below the `pulse_percentile` and above the `100-pulse_percentile`
-        percentile are ignored. `pulse_percentile` is given in percent.
     
     Returns
     -------
@@ -361,12 +357,6 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
           relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
         - n: number of pulses analyzed.
-        - medianinterval: the median interval between pulses after removal
-          of extrem interval values.
-        - meaninterval: the mean interval between pulses after removal
-          of extrem interval values.
-        - stdinterval: the standard deviation of the intervals between pulses
-          after removal of extrem interval values.
     peaks: 2-D array
         For each peak and trough (rows) of the EOD waveform
         5 columns: the peak index (1 is P1, i.e. the largest positive peak),
@@ -376,8 +366,6 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     power: 2-D array
         The power spectrum of a single pulse. First column are the frequencies,
         second column the power.
-    intervals: 1-D array
-        List of inter-EOD intervals with extreme values removed.
     """
         
     # storage:
@@ -542,14 +530,6 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0
-    for pulse in peaks:
-        if pulse[0] == 1:
-            props['P1width'] = pulse[4]
-        elif pulse[0] == 2:
-            props['P2time'] = pulse[1]
-            props['relP2ampl'] = pulse[3]
-            props['P2width'] = pulse[4]
-            break
     if tau:
         props['tau'] = tau
     props['peakfrequency'] = freqs[np.argmax(power)]
@@ -559,19 +539,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['powerlowcutoff'] = lowcutoff
     props['flipped'] = flipped
     props['n'] = len(eod_times)
-
-    # analyze central intervals:    
-    lower, upper = np.percentile(inter_pulse_intervals, [pulse_percentile,
-                                                         100.0-pulse_percentile])
-    intervals = inter_pulse_intervals[(inter_pulse_intervals > lower) &
-                                      (inter_pulse_intervals < upper)]
-    if len(intervals) > 2:
-        props['medianinterval'] = np.median(intervals)
-        props['meaninterval'] = np.mean(intervals)
-        props['stdinterval'] = np.std(intervals, ddof=1)
-        props['nintervals'] = len(intervals)
     
-    return meod, props, peaks, ppower, intervals
+    return meod, props, peaks, ppower
 
 
 def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
@@ -801,7 +770,6 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
     cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
     cfg.add('eodPulseWidthFraction', width_frac, '', 'The width of a pulse is measured at this fraction of the pulse height.')
     cfg.add('eodExponentialFitFraction', fit_frac, '', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
-    cfg.add('eodIntervalPercentile', pulse_percentile, '%', 'Remove extreme values of the inter-pulse intervals outside the specified interpercentile range when computing interval statistics.')
 
 
 def eod_waveform_args(cfg):
@@ -872,8 +840,7 @@ def analyze_pulse_args(cfg):
                  'peak_thresh_fac': 'eodPeakThresholdFactor',
                  'min_dist': 'eodMinimumDistance',
                  'width_frac': 'eodPulseWidthFraction',
-                 'fit_frac': 'eodExponentialFitFraction',
-                 'pulse_percentile': 'eodIntervalPercentile'})
+                 'fit_frac': 'eodExponentialFitFraction'})
     return a
 
 

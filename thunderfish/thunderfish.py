@@ -89,7 +89,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     return cfg
 
 
-def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate, idx0, idx1,
+def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
                 clipped, fishlist, mean_eods, eod_props, peak_data,
                 spec_data, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
                 output_folder='', save_plot=False, show_plot=False):
@@ -107,8 +107,6 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
         Basename of audio_file.
     pulse_fish: bool
         True if a pulse-fish has been detected by analysis of the EODs.
-    inter_eod_intervals: array
-        Time difference from one to another detected EOD.
     raw_data: array
         Dataset.
     samplerate: float
@@ -265,36 +263,6 @@ def output_plot(base_name, pulse_fish, inter_eod_intervals, raw_data, samplerate
             ax6.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
             ax6.set_xticklabels([])
 
-    ## # plot inter EOD interval histogram
-    ## if len(inter_eod_intervals)>2:
-    ##     usedax5 = True
-    ##     tmp_period = 1000. * np.mean(inter_eod_intervals)
-    ##     tmp_period = tmp_period - tmp_period % 0.05
-    ##     inter_eod_intervals *= 1000.  # transform sec in msec
-    ##     median_IPI = 1000. * eod_props[0]['medianinterval']
-    ##     mean_IPI = 1000. * eod_props[0]['meaninterval']
-    ##     std_IPI = 1000. * eod_props[0]['stdinterval']
-    ##     n, edges = np.histogram(inter_eod_intervals, bins=np.arange(tmp_period - 5., tmp_period + 5., 0.05))
-
-    ##     ax5.bar(edges[:-1], n, edges[1] - edges[0] - 0.001)
-    ##     median_line, = ax5.plot([median_IPI, median_IPI], [0, np.max(n)], '--', color='red', lw=2, label='median %.2f ms' % median_IPI)
-    ##     ax5.set_xlabel('inter EOD interval [ms]')
-    ##     ax5.set_ylabel('n')
-    ##     ax5.set_title('Inter-EOD-interval histogram', fontsize=14, y=1.05)
-
-    ##     max_IPI = np.ceil(np.max(inter_eod_intervals)+0.5)
-    ##     if max_IPI/median_IPI < 1.2:
-    ##         max_IPI = np.ceil(1.2*median_IPI)
-    ##     min_IPI = np.floor(np.min(inter_eod_intervals)-0.5)
-    ##     if min_IPI/median_IPI > 0.8:
-    ##         min_IPI = np.floor(0.8*median_IPI)
-    ##     ax5.set_xlim(min_IPI, max_IPI)
-    ##     nopatch = mpatches.Patch(color='white', alpha=0.0)
-    ##     ax5.legend([median_line, nopatch],
-    ##                ['median %.2f ms' % median_IPI,
-    ##                 '(%.2f +/- %.2f ms)' % (mean_IPI, std_IPI)],
-    ##                 loc='upper right', frameon=False)
-
     # cosmetics
     for ax in [ax2, ax3, ax4, ax5, ax6, ax7]:
         ax.spines['top'].set_visible(False)
@@ -436,7 +404,6 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
     mean_eods = []
     spec_data = []
     peak_data = []
-    intervals = []
     power_thresh = []
     skip_reason = []
     
@@ -447,9 +414,9 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             eod_waveform(data, samplerate,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
                          **eod_waveform_args(cfg))
-        mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times,
-                                                                 fresolution=minfres,
-                                                                 **analyze_pulse_args(cfg))
+        mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times,
+                                                      fresolution=minfres,
+                                                      **analyze_pulse_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)
         power_thresh = np.zeros(power.shape)
@@ -532,7 +499,6 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         wave_props = []
         pulse_props = []
         mean_eods = []
-        intervals = []
 
     # warning message in case no fish has been found:
     if found_bestwindow and not eod_props :
@@ -589,10 +555,8 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             td.append('power', 'dB', '%7.2f', wave_props, 'power')
             td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
             if 'rmvariance' in wave_props[0]:
-                td.append('noise', '%', '%.1f', wave_props, 'rmvariance')
-                td[:,'noise'] *= 100.0
-            td.append('rmserror', '%', '%.2f', wave_props, 'rmserror')
-            td[:,'rmserror'] *= 100.0
+                td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
+            td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
             td.append('n', '', '%5d', wave_props, 'n')
             td.write(os.path.join(output_folder, outfilename + '-wavefish'),
                      **write_table_args(cfg))
@@ -602,27 +566,14 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             td.append_section('waveform')
             td.append('index', '', '%d', pulse_props, 'index')
             td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')
-            td.append('period', 'ms', '%7.2f', pulse_props, 'period')
-            td[:,'period'] *= 1000.0
+            td.append('period', 'ms', '%7.2f', pulse_props, 'period', 1000.0)
             td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
             td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
             td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
-            td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart')
-            td[:,'tstart'] *= 1000.0
-            td.append('tend', 'ms', '%.3f', pulse_props, 'tend')
-            td[:,'tend'] *= 1000.0
-            td.append('width', 'ms', '%.3f', pulse_props, 'width')
-            td[:,'width'] *= 1000.0
-            td.append('P1width', 'ms', '%.3f', pulse_props, 'P1width')
-            td[:,'P1width'] *= 1000.0
-            td.append('P2time', 'ms', '%.3f', pulse_props, 'P2time')
-            td[:,'P2time'] *= 1000.0
-            td.append('relP2ampl', '%', '%.2f', pulse_props, 'relP2ampl')
-            td[:,'relP2ampl'] *= 100.0
-            td.append('P2width', 'ms', '%.3f', pulse_props, 'P2width')
-            td[:,'P2width'] *= 1000.0
-            td.append('tau', 'ms', '%.3f', pulse_props, 'tau')
-            td[:,'tau'] *= 1000.0
+            td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
+            td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
+            td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
+            td.append('tau', 'ms', '%.3f', pulse_props, 'tau', 1000.0)
             td.append('n', '', '%.0d', pulse_props, 'n')
             td.append_section('power spectrum')
             td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
@@ -630,21 +581,13 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
             td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
             td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
-            td.append_section('inter-pulse interval statistics')
-            td.append('medianipi', 'ms', '%.2f', pulse_props, 'medianinterval')
-            td[:,'median'] *= 1000.0
-            td.append('meanipi', 'ms', '%.2f', pulse_props, 'meaninterval')
-            td[:,'mean'] *= 1000.0
-            td.append('stdipi', 'ms', '%.2f', pulse_props, 'stdinterval')
-            td[:,'std'] *= 1000.0
-            td.append('nipi', '', '%d', pulse_props, 'nintervals')
             td.write(os.path.join(output_folder, outfilename + '-pulsefish'),
                      **write_table_args(cfg))
             del td
 
     if save_plot or not save_data:
         output_plot(outfilename, len(pulse_props)>0,
-                    intervals, raw_data, samplerate, idx0, idx1, clipped, fishlist,
+                    raw_data, samplerate, idx0, idx1, clipped, fishlist,
                     mean_eods, eod_props, peak_data, spec_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_data)
