@@ -1,6 +1,6 @@
 # thunderfish
 
-Automatically detect and analyze all fish present in an EOD recording
+Automatically detect and analyze all fish present in an EOD recording,
 and generate a summary plot and data tables.
 
 
@@ -11,32 +11,44 @@ thunderfish --help
 ```
 returns
 ```
-usage: thunderfish [-h] [--version] [-v] [-c [CFGFILE]] [-p] [-s] [-f FORMAT]
-                   [-o OUTPATH] [-b]
-                   [file [file ...]] [channel]
+usage: thunderfish [-h] [--version] [-v] [-c] [--channel CHANNEL] [-j [JOBS]]
+                   [-s] [-f FORMAT] [-p] [-o OUTPATH] [-b]
+                   [file [file ...]]
 
 Analyze EOD waveforms of weakly electric fish.
 
 positional arguments:
-  file                  name of the file with the time series data
-  channel               channel to be analyzed
+  file               name of the file with the time series data
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --version             show program's version number and exit
-  -v                    verbosity level
-  -c [CFGFILE], --save-config [CFGFILE]
-                        save configuration to file CFGFILE after reading all
-                        configuration files (defaults to thunderfish.cfg)
-  -p                    save output plot as pdf file
-  -s                    save analysis results to files
-  -f FORMAT             file format used for saving analysis results, one of
-                        dat, ascii, csv, md, tex, html (defaults to the format
-                        specified in the configuration file or "dat")
-  -o OUTPATH            path where to store results and figures
-  -b                    show the cost function of the best window algorithm
+  -h, --help         show this help message and exit
+  --version          show program's version number and exit
+  -v                 verbosity level. Increase by specifying -v multiple
+                     times, or like -vvv.
+  -c                 save configuration to file thunderfish.cfg after reading
+                     all configuration files
+  --channel CHANNEL  channel to be analyzed. Default is to use first channel.
+  -j [JOBS]          number of jobs run in parallel. Without argument use all
+                     CPU cores.
+  -s                 save analysis results to files
+  -f FORMAT          file format used for saving analysis results, one of dat,
+                     ascii, csv, md, tex, html (defaults to the format
+                     specified in the configuration file or "dat")
+  -p                 save output plot as pdf file
+  -o OUTPATH         Path where to store results and figures.
+  -b                 show the cost function of the best window algorithm
 
-by Benda-Lab (2015-2019)
+version 1.7 by Benda-Lab (2015-2019)
+
+examples:
+- analyze a single file interactively:
+  > thunderfish data.wav
+- analyze many files automatically and save analysis results and plot to files:
+  > thunderfish -s -p *.wav
+- analyze many files automatically, use all CPUs, and write files to "results/":
+  > thunderfish -j -s -p -o results/ *.wav
+- write configuration file:
+  > thunderfish -c
 ```
 
 
@@ -60,9 +72,9 @@ Whenever you run thunderfish it searches for configuration files in
 Best practice is to move the configuration file at the root of the file tree
 where data files of a recording session are stored.
 
-Use the `-v` switch to see which configuration files are loaded:
+Use the `-vv` switch to see which configuration files are loaded:
 ```
-thunderfish -v data.wav
+thunderfish -vv data.wav
 ```
 
 Open the configuration file in your favourite editor and edit the settings.
@@ -126,6 +138,8 @@ do not need to touch at all. Here is a list of the few that matter:
 In the plot you can press
 - `q`: Close the plot and show the next one or quit.
 - `p`: Play the analyzed section of the reording on the default audio device.
+- `o`: Switch on zoom mode. You can draw a rectangle with the mouse to zoom in.
+- `Backspace`: Zoom back. 
 
 
 ## Output files
@@ -136,15 +150,23 @@ Output files are placed in the current working directory if no path is
 specified via the `-o` switch. If the path specified via `-o` does not
 exist it is created.
 
-The following sections list and describe the files that are generated.
+The following files are generated:
+- `RECORDING-eodwaveform-N.EXT`: averaged EOD waveform
+- `RECORDING-wavefish.EXT`: list of all detected wave-type fish
+- `RECORDING-wavespectrum-N.EXT`: for each wave-type fish the Fourier spectrum
+- `RECORDING-pulsefish.EXT`: list of all detected pulse-type fish
+- `RECORDING-pulsepeaks-N.EXT`: for each pulse-type fish properties of peaks and troughs
+- `RECORDING-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a singel pulse
+
 The filenames are composed of the basename of the input file (RECORDING).
 The fish detected in the recordings are numbered, starting with 0 (N).
 The file extension depends on the chosen file format (EXT).
+The following sections describe the content of the generated files.
 
 
 ### RECORDING-eodwaveform-N.EXT
 
-For each fish the average waveform with standard deviation.
+For each fish the average waveform with standard deviation and fit.
 
 <table>
 <thead>
@@ -201,90 +223,6 @@ The columns contain:
 3. Corresponding standard deviation.
 4. A fit to the averaged waveform. In case of a wave fish this is
    a Fourier series, for pulse fish it is an exponential fit to the tail of the last peak.
-
-
-### RECORDING-wavespectrum-N.EXT
-
-The parameter of the Fourier series fitted to the waveform of a wave-type fish.
-
-<table>
-<thead>
-  <tr>
-    <th align="left">harmonics</th>
-    <th align="left">frequency</th>
-    <th align="left">amplitude</th>
-    <th align="left">relampl</th>
-    <th align="left">phase</th>
-    <th align="left">power</th>
-    <th align="left">relpower</th>
-  </tr>
-  <tr>
-    <th align="left">-</th>
-    <th align="left">Hz</th>
-    <th align="left">a.u.</th>
-    <th align="left">%</th>
-    <th align="left">rad</th>
-    <th align="left">a.u.^2/Hz</th>
-    <th align="left">%</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td align="right">0</td>
-    <td align="right">728.09</td>
-    <td align="right">0.32634</td>
-    <td align="right">100.00</td>
-    <td align="right">0.0000</td>
-    <td align="right">1.0530e-01</td>
-    <td align="right">100.00</td>
-  </tr>
-  <tr>
-    <td align="right">1</td>
-    <td align="right">1456.18</td>
-    <td align="right">0.22179</td>
-    <td align="right">67.96</td>
-    <td align="right">-0.7157</td>
-    <td align="right">4.8310e-02</td>
-    <td align="right">45.88</td>
-  </tr>
-  <tr>
-    <td align="right">2</td>
-    <td align="right">2184.27</td>
-    <td align="right">0.03244</td>
-    <td align="right">9.94</td>
-    <td align="right">-1.9988</td>
-    <td align="right">1.0239e-03</td>
-    <td align="right">0.97</td>
-  </tr>
-  <tr>
-    <td align="right">3</td>
-    <td align="right">2912.37</td>
-    <td align="right">0.03715</td>
-    <td align="right">11.38</td>
-    <td align="right">2.3472</td>
-    <td align="right">1.3243e-03</td>
-    <td align="right">1.26</td>
-  </tr>
-  <tr>
-    <td align="right">4</td>
-    <td align="right">3640.46</td>
-    <td align="right">0.02056</td>
-    <td align="right">6.30</td>
-    <td align="right">2.9606</td>
-    <td align="right">3.9391e-04</td>
-    <td align="right">0.37</td>
-  </tr>
-</tbody>
-</table>
-
-The columns contain:
-1. Index of the harmonics. The first one with index 0 is the fundamental frequency.
-2. Frequency of the harmonics in Hertz.
-3. Amplitude of each harmonics obtained by fitting a Fourier series to the data in the unit of the input data.
-4. Amplitude of each harmonics relative to the amplitude of the fundamental in percent.
-5. Phase of each harmonics obtained by fitting a Fourier series to the data in radians ranging from 0 to 2 pi.
-6. Power spectral density of the harmonics from the original power spectrum of the data.
-7. Power spectral density of the harmonics relative to the power of the fundamental in percent.
 
 
 ### RECORDING-wavefish.EXT
@@ -369,105 +307,93 @@ The columns contain:
 4. Peak-to-peak amplitude in the units of the input data.
 5. Root-mean-variance of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-6. Root-mean-squared difference betwenn the averaged EOD waveform and 
+6. Root-mean-squared difference between the averaged EOD waveform and 
    the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
 7. Number of EODs used for computing the averaged EOD waveform.
 
 
-### RECORDING-pulsespectrum-N.EXT
+### RECORDING-wavespectrum-N.EXT
 
-The power spectrum of a single EOD pulse of a pulse-type fish:
+The parameter of the Fourier series fitted to the waveform of a wave-type fish.
 
 <table>
 <thead>
   <tr>
+    <th align="left">harmonics</th>
     <th align="left">frequency</th>
-    <th align="left">power</th>
-  </tr>
-  <tr>
-    <th align="left">Hz</th>
-    <th align="left">a.u.^2/Hz</th>
-  </tr>
-</thead>
-<tbody>
-  <tr>
-    <td align="right">0.00</td>
-    <td align="right">4.7637e-10</td>
-  </tr>
-  <tr>
-    <td align="right">0.34</td>
-    <td align="right">9.5284e-10</td>
-  </tr>
-  <tr>
-    <td align="right">0.67</td>
-    <td align="right">9.5314e-10</td>
-  </tr>
-  <tr>
-    <td align="right">1.01</td>
-    <td align="right">9.5363e-10</td>
-  </tr>
-  <tr>
-    <td align="right">1.35</td>
-    <td align="right">9.5432e-10</td>
-  </tr>
-  <tr>
-    <td align="right">1.68</td>
-    <td align="right">9.5522e-10</td>
-  </tr>
-</tbody>
-</table>
-
-The columns contain:
-1. Frequency in Hertz.
-2. Power spectral density.
-
-
-### RECORDING-pulsepeaks-N.EXT
-
-Properties of peaks and troughs of a pulse-type fish's EOD.
-
-<table>
-<thead>
-  <tr>
-    <th align="left">P</th>
-    <th align="left">time</th>
     <th align="left">amplitude</th>
     <th align="left">relampl</th>
-    <th align="left">width</th>
+    <th align="left">phase</th>
+    <th align="left">power</th>
+    <th align="left">relpower</th>
   </tr>
   <tr>
     <th align="left">-</th>
-    <th align="left">ms</th>
+    <th align="left">Hz</th>
     <th align="left">a.u.</th>
     <th align="left">%</th>
-    <th align="left">ms</th>
+    <th align="left">rad</th>
+    <th align="left">a.u.^2/Hz</th>
+    <th align="left">%</th>
   </tr>
 </thead>
 <tbody>
   <tr>
-    <td align="right">1</td>
-    <td align="right">0.000</td>
-    <td align="right">0.78409</td>
+    <td align="right">0</td>
+    <td align="right">728.09</td>
+    <td align="right">0.32634</td>
     <td align="right">100.00</td>
-    <td align="right">0.333</td>
+    <td align="right">0.0000</td>
+    <td align="right">1.0530e-01</td>
+    <td align="right">100.00</td>
+  </tr>
+  <tr>
+    <td align="right">1</td>
+    <td align="right">1456.18</td>
+    <td align="right">0.22179</td>
+    <td align="right">67.96</td>
+    <td align="right">-0.7157</td>
+    <td align="right">4.8310e-02</td>
+    <td align="right">45.88</td>
   </tr>
   <tr>
     <td align="right">2</td>
-    <td align="right">0.385</td>
-    <td align="right">-0.85939</td>
-    <td align="right">-109.60</td>
-    <td align="right">0.248</td>
+    <td align="right">2184.27</td>
+    <td align="right">0.03244</td>
+    <td align="right">9.94</td>
+    <td align="right">-1.9988</td>
+    <td align="right">1.0239e-03</td>
+    <td align="right">0.97</td>
+  </tr>
+  <tr>
+    <td align="right">3</td>
+    <td align="right">2912.37</td>
+    <td align="right">0.03715</td>
+    <td align="right">11.38</td>
+    <td align="right">2.3472</td>
+    <td align="right">1.3243e-03</td>
+    <td align="right">1.26</td>
+  </tr>
+  <tr>
+    <td align="right">4</td>
+    <td align="right">3640.46</td>
+    <td align="right">0.02056</td>
+    <td align="right">6.30</td>
+    <td align="right">2.9606</td>
+    <td align="right">3.9391e-04</td>
+    <td align="right">0.37</td>
   </tr>
 </tbody>
 </table>
 
 The columns contain:
-1. Name of the peak/trough. Peaks and troughs are numbered sequentially. P1 is the 
-   largest peak with positive amplitude.
-2. Time of the peak/trough relative to P1 in milliseconds.
-3. Amplitude of the peak/trough in the unit of the input data.
-4. Amplitude of the peak/trough relative to the amplitude of P1.
-5. Width of the peak/trough at half height in milliseconds. 
+1. Index of the harmonics. The first one with index 0 is the fundamental frequency.
+2. Frequency of the harmonics in Hertz.
+3. Amplitude of each harmonics obtained by fitting a Fourier series to the data in the unit of the input data.
+4. Amplitude of each harmonics relative to the amplitude of the fundamental in percent.
+5. Phase of each harmonics obtained by fitting a Fourier series to the data in radians ranging from 0 to 2 pi.
+6. Power spectral density of the harmonics from the original power spectrum of the data.
+7. Power spectral density of the harmonics relative to the power of the fundamental in percent.
 
 
 ### RECORDING-pulsefish.EXT
@@ -589,3 +515,100 @@ The columns contain:
 22. Mean inter-pulse interval after removal of outlier intervals in milliseconds.
 23. Standard deviation of inter-pulse intervals after removal of outlier intervals in milliseconds.
 24. Number of inter-pulse intervals after removal of outlier intervals.
+
+
+### RECORDING-pulsepeaks-N.EXT
+
+Properties of peaks and troughs of a pulse-type fish's EOD.
+
+<table>
+<thead>
+  <tr>
+    <th align="left">P</th>
+    <th align="left">time</th>
+    <th align="left">amplitude</th>
+    <th align="left">relampl</th>
+    <th align="left">width</th>
+  </tr>
+  <tr>
+    <th align="left">-</th>
+    <th align="left">ms</th>
+    <th align="left">a.u.</th>
+    <th align="left">%</th>
+    <th align="left">ms</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td align="right">1</td>
+    <td align="right">0.000</td>
+    <td align="right">0.78409</td>
+    <td align="right">100.00</td>
+    <td align="right">0.333</td>
+  </tr>
+  <tr>
+    <td align="right">2</td>
+    <td align="right">0.385</td>
+    <td align="right">-0.85939</td>
+    <td align="right">-109.60</td>
+    <td align="right">0.248</td>
+  </tr>
+</tbody>
+</table>
+
+The columns contain:
+1. Name of the peak/trough. Peaks and troughs are numbered sequentially. P1 is the 
+   largest peak with positive amplitude.
+2. Time of the peak/trough relative to P1 in milliseconds.
+3. Amplitude of the peak/trough in the unit of the input data.
+4. Amplitude of the peak/trough relative to the amplitude of P1.
+5. Width of the peak/trough at half height in milliseconds. 
+
+
+### RECORDING-pulsespectrum-N.EXT
+
+The power spectrum of a single EOD pulse of a pulse-type fish:
+
+<table>
+<thead>
+  <tr>
+    <th align="left">frequency</th>
+    <th align="left">power</th>
+  </tr>
+  <tr>
+    <th align="left">Hz</th>
+    <th align="left">a.u.^2/Hz</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td align="right">0.00</td>
+    <td align="right">4.7637e-10</td>
+  </tr>
+  <tr>
+    <td align="right">0.34</td>
+    <td align="right">9.5284e-10</td>
+  </tr>
+  <tr>
+    <td align="right">0.67</td>
+    <td align="right">9.5314e-10</td>
+  </tr>
+  <tr>
+    <td align="right">1.01</td>
+    <td align="right">9.5363e-10</td>
+  </tr>
+  <tr>
+    <td align="right">1.35</td>
+    <td align="right">9.5432e-10</td>
+  </tr>
+  <tr>
+    <td align="right">1.68</td>
+    <td align="right">9.5522e-10</td>
+  </tr>
+</tbody>
+</table>
+
+The columns contain:
+1. Frequency in Hertz.
+2. Power spectral density.
+

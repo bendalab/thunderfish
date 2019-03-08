@@ -1,5 +1,5 @@
 """
-# Analysis of EOD waveform properties.
+# Analyse EOD waveforms.
 
 ## EOD analysis
 - `eod_waveform()`: compute an averaged EOD waveform.
