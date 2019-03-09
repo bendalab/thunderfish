@@ -248,6 +248,7 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
 
     ################
 
+    # plot spectra:
     ax5.set_visible(True)
     ax6.set_visible(False)
     ax7.set_visible(False)
@@ -264,6 +265,24 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
             ax6.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
             ax6.set_xticklabels([])
 
+    ################
+
+    # plot data trace in case no fish was found:
+    if not usedax4:
+        ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
+        ax4.set_position([0.075, 0.2, 0.9, 0.3])
+        width = 0.1
+        widx = int(width*samplerate)
+        i0 = (idx0+idx1)//2 - widx//2
+        i1 = (idx0+idx1)//2 + widx//2
+        time = np.arange(i0, i1)/samplerate
+        ax4.plot(time, raw_data[i0:i1])
+        ax4.set_xlim(time[0], time[-1])
+        ax4.set_xlabel('Time [sec]')
+        ax4.set_ylabel('Amplitude')
+        ax4.set_title('Recording', fontsize=14, y=1.05)
+        usedax4 = True
+            
     # cosmetics
     for ax in [ax2, ax3, ax4, ax5, ax6, ax7]:
         ax.spines['top'].set_visible(False)
