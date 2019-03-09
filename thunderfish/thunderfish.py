@@ -289,10 +289,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
 
-    # create output folder
-    if save_data or save_plot:
-        if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
+    # file names:
     basefilename = os.path.basename(filename)
     outfilename = os.path.splitext(basefilename)[0]
 
@@ -679,6 +676,13 @@ def main():
         cfg = configuration(cfgfile, False, args.file[0], verbose-1)
         if args.format != 'auto':
             cfg.set('fileFormat', args.format)
+        # create output folder
+        if args.save_data or args.save_plot:
+            if not os.path.exists(args.outpath):
+                if verbose > 1:
+                    print('mkdri %s' % args.outpath)
+                os.makedirs(args.outpath)
+        # run on pool:
         global pool_args
         pool_args = (cfg, args.channel, args.save_data,
                      args.save_plot, args.outpath,
