@@ -3,6 +3,7 @@
 
 ## EOD analysis
 - `eod_waveform()`: compute an averaged EOD waveform.
+- `unfilter()`: apply inverse low-pass filter on data.
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
 
@@ -104,6 +105,49 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0,
     mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / samplerate
     
     return mean_eod, eod_times
+
+
+def unfilter(data, samplerate, tau=1.0, cutoff=None):
+    """
+    Apply inverse high-pass filter on data.
+
+    Either the timeconstant `tau` or the cutoff frequency `cutoff` of the
+    high-pass filter need to be specified.
+
+    Assumes high-pass filter
+    \[ \tau \dot y = -y + \tau \dot x \]
+    has been applied on the original data $x$. To recover $x$
+    the ODE
+    \[ \tau \dot x = y + \tau \dot y \]
+    is applied on the filtered data $y$.
+
+    Parameters:
+    -----------
+    data: ndarray
+        High-pass filtered original data.
+    samplerate: float
+        Sampling rate of `data` in Hertz.
+    tau: float
+        Time-constant of the high-pass filter in seconds.
+    cutoff: float
+        Cutoff frequency of the high-passfilter. Overwrites `tau` if specified.
+
+    Returns:
+    --------
+    data: ndarray
+        Recovered original data.
+    """
+    if cutoff:
+        tau = 0.5/np.pi/cutoff
+    fac = tau*samplerate
+    d0 = data[0]
+    x = d0
+    for k in range(len(data)):
+        d1 = data[k]
+        x += (d1 - d0) + d0/fac
+        data[k] = x
+        d0 = d1
+    return data
 
 
 def fourier_series(t, freq, delay, ampl, *ap):
