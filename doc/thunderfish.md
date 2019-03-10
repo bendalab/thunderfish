@@ -1,7 +1,14 @@
 # thunderfish
 
-Automatically detect and analyze all fish present in an EOD recording,
-and generate a summary plot and data tables.
+Automatically detect and analyze all fish present in an EOD recording.
+
+## Authors
+
+The [Neuroethology-lab](https://uni-tuebingen.de/en/faculties/faculty-of-science/departments/biology/institutes/neurobiology/lehrbereiche/neuroethology/) at the Institute of Neuroscience at the University of T&uuml;bingen:
+1. Jan Benda
+2. J&ouml;rg Henninger
+3. Juan Sehuanes
+4. Till Raab
 
 
 ## Command line arguments
