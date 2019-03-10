@@ -23,7 +23,8 @@ from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, unfilter, analyze_wave, analyze_pulse
-from .eodanalysis import eod_waveform_plot, pulse_spectrum_plot, wave_spectrum_plot
+from .eodanalysis import eod_recording_plot, eod_waveform_plot
+from .eodanalysis import pulse_spectrum_plot, wave_spectrum_plot
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .tabledata import TableData, add_write_table_config, write_table_args
@@ -223,8 +224,8 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
             usedax4 = True
         if axeod is ax5:
             usedax5 = True
-        axeod.text(-0.1, 1.06, '{EODf:.1f} Hz {type}-type fish'.format(**props), transform = axeod.transAxes, fontsize=14)
-        axeod.text(0.5, 1.06, 'Averaged EOD', transform = axeod.transAxes, fontsize=14, ha='center')
+        axeod.text(-0.1, 1.08, '{EODf:.1f} Hz {type}-type fish'.format(**props), transform = axeod.transAxes, fontsize=14)
+        axeod.text(0.5, 1.08, 'Averaged EOD', transform = axeod.transAxes, fontsize=14, ha='center')
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
         tau = props['tau'] if 'tau' in props else None
@@ -269,15 +270,8 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
     if not usedax4:
         ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
         ax4.set_position([0.075, 0.2, 0.9, 0.3])
-        width = 0.1
-        widx = int(width*samplerate)
-        i0 = (idx0+idx1)//2 - widx//2
-        i1 = (idx0+idx1)//2 + widx//2
-        time = np.arange(i0, i1)/samplerate
-        ax4.plot(time, raw_data[i0:i1])
-        ax4.set_xlim(time[0], time[-1])
-        ax4.set_xlabel('Time [sec]')
-        ax4.set_ylabel('Amplitude')
+        #eod_recording_plot(raw_data[idx0:idx1], samplerate, ax4, 0.1, unit, idx0/samplerate)
+        eod_recording_plot(raw_data[idx0:idx1], samplerate, ax4, 0.1, unit)
         ax4.set_title('Recording', fontsize=14, y=1.05)
         usedax4 = True
             
