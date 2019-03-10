@@ -393,6 +393,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
         - tau: time constant of exponential decay of pulse tail in seconds.
+        - firstpeak: index of the first peak in the pulse (i.e. -1 for P-1)
+        - lastpeak: index of the last peak in the pulse (i.e. 3 for P3)
         - peakfrequency: frequency at peak power of the single pulse spectrum in Hertz.
         - peakpower: peak power of the single pulse spectrum in decibel.
         - lowfreqattenuation5: how much the average power below 5 Hz is attenuated
@@ -578,6 +580,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['width'] = t1-t0
     if tau:
         props['tau'] = tau
+    props['firstpeak'] = peaks[0, 0]
+    props['lastpeak'] = peaks[-1, 0]
     props['peakfrequency'] = freqs[np.argmax(power)]
     props['peakpower'] = decibel(maxpower)
     props['lowfreqattenuation5'] = att5
@@ -615,13 +619,13 @@ def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
     i0 = len(data)//2 - widx2
     i0 = (i0//widx2)*widx2
     i1 = i0 + 2*widx2
-    time = np.arange(i0, i1)/samplerate + toffs
+    time = np.arange(len(data))/samplerate + toffs
     tunit = 'sec'
-    if np.abs(time[0]) < 1.0 and np.abs(time[-1]) < 1.0:
+    if np.abs(time[i0]) < 1.0 and np.abs(time[i1]) < 1.0:
         time *= 1000.0
         tunit = 'ms'
-    ax.plot(time, data[i0:i1], **kwargs)
-    ax.set_xlim(time[0], time[-1])
+    ax.plot(time, data, **kwargs)
+    ax.set_xlim(time[i0], time[i1])
     ax.set_xlabel('Time [%s]' % tunit)
     ymin = np.min(data[i0:i1])
     ymax = np.max(data[i0:i1])
