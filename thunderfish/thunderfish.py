@@ -91,7 +91,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     return cfg
 
 
-def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
+def output_plot(base_name, raw_data, samplerate, idx0, idx1,
                 clipped, fishlist, mean_eods, eod_props, peak_data,
                 spec_data, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
                 output_folder='', save_plot=False, show_plot=False):
@@ -107,8 +107,6 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
     ----------
     base_name: string
         Basename of audio_file.
-    pulse_fish: bool
-        True if a pulse-fish has been detected by analysis of the EODs.
     raw_data: array
         Dataset.
     samplerate: float
@@ -167,17 +165,26 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
 
     if show_plot:
         fig.canvas.mpl_connect('key_press_event', keypress)
+
+    # count number of detected fish types:
+    nwave = 0
+    npulse = 0
+    for props in eod_props:
+        if props['type'] == 'pulse':
+            npulse += 1
+        elif props['type'] == 'wave':
+            nwave += 1
                     
     # plot title
     wavetitle = ""
-    if len(fishlist) > 0:
-        wavetitle = "%d wave-type fish" % len(fishlist)
+    if nwave > 0:
+        wavetitle = "%d wave-type fish" % nwave
     pulsetitle = ""
-    if pulse_fish:
-        pulsetitle = "1 pulse-type fish"
-    if len(wavetitle)==0 and len(pulsetitle)==0:
+    if npulse > 0:
+        pulsetitle = "%d pulse-type fish" % npulse
+    if npulse==0 and nwave==0:
         ax1.text(0.0, .72, '%s     - no fish detected -' % base_name, fontsize=22)
-    elif len(wavetitle)>0 and len(pulsetitle)>0:
+    elif npulse>0 and nwave>0:
         ax1.text(0.0, .72, '%s     %s and %s' % (base_name, pulsetitle, wavetitle),
                  fontsize=22)
     else:
@@ -290,7 +297,8 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
 
     # plot data trace in case no fish was found:
     if not usedax4:
-        ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
+        if len(fishlist) < 2:
+            ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
         ax4.set_position([0.075, 0.2, 0.9, 0.3])
         eod_recording_plot(raw_data[idx0:idx1], samplerate, ax4, 0.1, unit, idx0/samplerate)
         ax4.set_title('Recording', fontsize=14, y=1.05)
@@ -608,6 +616,8 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
             td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
             td.append('tau', 'ms', '%.3f', pulse_props, 'tau', 1000.0)
+            td.append('firstpeak', '', '%.0d', pulse_props, 'firstpeak')
+            td.append('lastpeak', '', '%.0d', pulse_props, 'lastpeak')
             td.append('n', '', '%.0d', pulse_props, 'n')
             td.append_section('power spectrum')
             td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
@@ -620,8 +630,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             del td
 
     if save_plot or not save_data:
-        output_plot(outfilename, len(pulse_props)>0,
-                    raw_data, samplerate, idx0, idx1, clipped, fishlist,
+        output_plot(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
                     mean_eods, eod_props, peak_data, spec_data, unit,
                     psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
                     save_plot=save_plot, show_plot=not save_data)

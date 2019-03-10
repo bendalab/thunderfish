@@ -410,7 +410,7 @@ Properties of each pulse-type fish detected in the recording.
 <table>
 <thead>
   <tr>
-    <th align="left" colspan="11">waveform</th>
+    <th align="left" colspan="13">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
   </tr>
   <tr>
@@ -424,6 +424,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">tend</th>
     <th align="left">width</th>
     <th align="left">tau</th>
+    <th align="left">firstpeak</th>
+    <th align="left">lastpeak</th>
     <th align="left">n</th>
     <th align="left">peakfreq</th>
     <th align="left">peakpower</th>
@@ -443,6 +445,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">ms</th>
     <th align="left">ms</th>
     <th align="left">-</th>
+    <th align="left">-</th>
+    <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">dB</th>
     <th align="left">dB</th>
@@ -455,19 +459,21 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">0</td>
     <td align="right">30.68</td>
     <td align="right">32.60</td>
-    <td align="right">0.784</td>
-    <td align="right">0.859</td>
-    <td align="right">1.643</td>
-    <td align="right">-0.317</td>
-    <td align="right">0.907</td>
-    <td align="right">1.224</td>
+    <td align="right">0.797</td>
+    <td align="right">0.838</td>
+    <td align="right">1.635</td>
+    <td align="right">-0.295</td>
+    <td align="right">0.884</td>
+    <td align="right">1.179</td>
     <td align="right">0.125</td>
+    <td align="right">1</td>
+    <td align="right">2</td>
     <td align="right">100</td>
-    <td align="right">896.99</td>
-    <td align="right">-66.30</td>
-    <td align="right">-24.06</td>
-    <td align="right">-21.48</td>
-    <td align="right">126.84</td>
+    <td align="right">895.65</td>
+    <td align="right">-66.31</td>
+    <td align="right">-19.88</td>
+    <td align="right">-18.68</td>
+    <td align="right">162.17</td>
   </tr>
 </tbody>
 </table>
@@ -483,12 +489,14 @@ The columns contain:
 8. Time where the pulse ends relative to P1 in milliseconds.
 9. Total width of the pulse in milliseconds.
 10. Time constant of the exponential decay of the tail of the pulse in milliseconds.
-11. Number of EODs used for computing the averaged EOD waveform.
-12. Frequency at the peak power of the single pulse spectrum in Hertz.
-13. Peak power of the single pulse spectrum in decibel.
-14. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-15. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-16. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+11. Index of the first peak in the pulse (i.e. -1 for P-1)
+12. Index of the last peak in the pulse (i.e. 3 for P3)
+13. Number of EODs used for computing the averaged EOD waveform.
+14. Frequency at the peak power of the single pulse spectrum in Hertz.
+15. Peak power of the single pulse spectrum in decibel.
+16. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+17. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+18. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
 ### RECORDING-pulsepeaks-N.EXT
