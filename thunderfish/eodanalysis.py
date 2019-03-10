@@ -247,8 +247,9 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:-1] = eod
     
-    # subtract mean:
-    meod[:,1] -= np.mean(meod[:,1])
+    # subtract mean of exactly one period:
+    seg = (meod[:,0]>-1.0/freq0) & (meod[:,0]<1.0/freq0)
+    meod[:,1] -= np.mean(meod[seg,1])
 
     # flip:
     flipped = False
@@ -267,7 +268,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
         for i in range(1, n_harm):
             params.extend([1.0/(i+1), 0.0])
         try:
-            popt, pcov = curve_fit(fourier_series, meod[:,0], meod[:,1],
+            popt, pcov = curve_fit(fourier_series, meod[seg,0], meod[seg,1],
                                    params, maxfev=2000)
             break
         except RuntimeError:
@@ -286,9 +287,9 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     meod[:,-1] = fourier_series(meod[:,0], *popt)
 
     # variance and fit error:
-    ppampl = np.max(meod[:,3]) - np.min(meod[:,3])
-    rmvariance = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
-    rmserror = np.sqrt(np.mean((meod[:,1] - meod[:,3])**2.0))/ppampl
+    ppampl = np.max(meod[seg,3]) - np.min(meod[seg,3])
+    rmvariance = np.sqrt(np.mean(meod[seg,2]**2.0))/ppampl if eod.shape[1] > 2 else None
+    rmserror = np.sqrt(np.mean((meod[seg,1] - meod[seg,3])**2.0))/ppampl
 
     # store results:
     props = {}
