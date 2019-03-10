@@ -168,20 +168,18 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
                     
     # plot title
     wavetitle = ""
-    if len(fishlist) == 1:
-        wavetitle = "a wavefish"
-    elif len(fishlist) > 1:
-        wavetitle = "%d wavefish" % len(fishlist)
+    if len(fishlist) > 0:
+        wavetitle = "%d wave-type fish" % len(fishlist)
     pulsetitle = ""
     if pulse_fish:
-        pulsetitle = "a pulsefish"
+        pulsetitle = "1 pulse-type fish"
     if len(wavetitle)==0 and len(pulsetitle)==0:
-        ax1.text(0.0, .72, '%s     Recording - no fish.' % base_name, fontsize=22)
+        ax1.text(0.0, .72, '%s     - no fish detected -' % base_name, fontsize=22)
     elif len(wavetitle)>0 and len(pulsetitle)>0:
-        ax1.text(0.0, .72, '%s     Recording of %s and %s.' % (base_name, pulsetitle, wavetitle),
+        ax1.text(0.0, .72, '%s     %s and %s' % (base_name, pulsetitle, wavetitle),
                  fontsize=22)
     else:
-        ax1.text(0.0, .72, '%s     Recording of %s.' % (base_name, pulsetitle+wavetitle),
+        ax1.text(0.0, .72, '%s     %s' % (base_name, pulsetitle+wavetitle),
                  fontsize=22)
         
     ax1.text(1.0, .77, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
@@ -211,7 +209,7 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
     plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq, color='blue')
     label = 'Powerspectrum'
     if len(fishlist) > 0:
-        label += ' (%d detected wave-fish)' % len(fishlist)
+        label += ' (%d wave-type fish)' % len(fishlist)
     ax3.set_title(label, y=1.05)
 
     ##########
@@ -225,8 +223,8 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
             usedax4 = True
         if axeod is ax5:
             usedax5 = True
-        axeod.set_title('{EODf:.1f} Hz {type}-type fish: averaged EOD'.format(**props),
-                        fontsize=14, y=1.05)
+        axeod.text(-0.1, 1.06, '{EODf:.1f} Hz {type}-type fish'.format(**props), transform = axeod.transAxes, fontsize=14)
+        axeod.text(0.5, 1.06, 'Averaged EOD', transform = axeod.transAxes, fontsize=14, ha='center')
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
         tau = props['tau'] if 'tau' in props else None
