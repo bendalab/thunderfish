@@ -8,6 +8,7 @@
 - `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
 
 ## Visualization
+- `eod_recording_plot()`: plot a zoomed in range of the recorded trace.
 - `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard deviation.
 - `wave_spectrum_plot()`: plot and annotate spectrum of wave-type EODs.
 - `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse-type EOD.
@@ -587,12 +588,49 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     return meod, props, peaks, ppower
 
 
+def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0):
+    """
+    Plot a zoomed in range of the recorded trace.
+
+    Parameters
+    ----------
+    data: 1D ndarray
+        Recorded data.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    ax:
+        Axis for plot.
+    width: float
+        Width of data segment to be plotted in seconds.
+    unit: string
+        Optional unit of the data used for y-label.
+    toffs: float
+        Time of first data value in seconds.
+    """
+    widx = int(width*samplerate)
+    i0 = len(data)//2 - widx//2
+    i1 = len(data)//2 + widx//2
+    time = np.arange(i0, i1)/samplerate + toffs
+    tunit = 'sec'
+    if np.abs(time[0]) < 1.0 and np.abs(time[-1]) < 1.0:
+        time *= 1000.0
+        tunit = 'ms'
+    ax.plot(time, data[i0:i1])
+    ax.set_xlim(time[0], time[-1])
+    ax.set_xlabel('Time [%s]' % tunit)
+    if unit:
+        ax.set_ylabel('Amplitude [%s]' % unit)
+    else:
+        ax.set_ylabel('Amplitude')
+
+
 def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
                       mkwargs={'lw': 2, 'color': 'red'},
                       skwargs={'color': '#CCCCCC'},
                       fkwargs={'lw': 6, 'color': 'steelblue'},
                       zkwargs={'lw': 1, 'color': '#AAAAAA'}):
-    """Plot mean EOD, its standard deviation, and an optional fit to the EOD.
+    """
+    Plot mean EOD, its standard deviation, and an optional fit to the EOD.
 
     Parameters
     ----------
