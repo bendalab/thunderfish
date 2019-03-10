@@ -163,6 +163,7 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
     ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pulse spectrum
     ax6 = fig.add_axes([0.575, 0.36, 0.4, 0.14]) # amplitude spectrum
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
+    ax8 = fig.add_axes([0.575, 0.6, 0.4, 0.3])   # recording xoom-in
 
     if show_plot:
         fig.canvas.mpl_connect('key_press_event', keypress)
@@ -201,17 +202,38 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
        len(eod_props) > 0 and 'EODf' in eod_props[0]:
         ax3.plot(spec_data[0][:,0], decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]), '#CCCCCC', lw=1)
     if len(fishlist) > 0:
+        if len(fishlist) == 1:
+            title = None
+            bbox = (1.0, 1.0)
+            loc = 'upper right'
+        else:
+            title = '%d EOD frequencies' % len(fishlist)
+            bbox = (1.0, 1.1)
+            loc = 'upper left'
         colors, markers = colors_markers()
         plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12, sort_by_freq=True,
                              power_n_harmonics=power_n_harmonics, label_power=label_power,
                              colors=colors, markers=markers, legend_rows=12,
-                             frameon=False, bbox_to_anchor=(1.0, 1.1), loc='upper left',
-                             title='EOD frequencies')
+                             frameon=False, bbox_to_anchor=bbox, loc=loc,
+                             title=title)
     plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq, color='blue')
-    label = 'Powerspectrum'
-    if len(fishlist) > 0:
-        label += ' (%d wave-type fish)' % len(fishlist)
-    ax3.set_title(label, y=1.05)
+    ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
+    
+    ############
+
+    # plot recording
+    if len(eod_props) == 1:
+        ax3.set_position([0.075, 0.6, 0.4, 0.3])
+        width = 0.1
+        if eod_props[0]['type'] == 'wave':
+            width = 10.0/eod_props[0]['EODf']
+        else:
+            width = 2.0/eod_props[0]['EODf']
+        width = (1+width//0.005)*0.005
+        eod_recording_plot(raw_data[idx0:idx1], samplerate, ax8, width, unit, idx0/samplerate)
+        ax8.set_title('Recording', fontsize=14, y=1.05)
+    else:
+        ax8.set_visible(False)        
 
     ##########
 
@@ -275,7 +297,7 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
         usedax4 = True
             
     # cosmetics
-    for ax in [ax2, ax3, ax4, ax5, ax6, ax7]:
+    for ax in [ax2, ax3, ax4, ax5, ax6, ax7, ax8]:
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         ax.get_xaxis().tick_bottom()

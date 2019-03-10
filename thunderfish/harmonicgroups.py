@@ -1032,9 +1032,9 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_
     # legend:
     if legend_rows > 0:
         ncol = (len(idx)-1) // legend_rows + 1
-        ax.legend(numpoints=1, ncol=ncol, **kwargs)
+        leg = ax.legend(numpoints=1, ncol=ncol, **kwargs)
     else:
-        ax.legend(numpoints=1, **kwargs)
+        leg = ax.legend(numpoints=1, **kwargs)
 
 
 def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_freqs=None, good_freqs=None,

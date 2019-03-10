@@ -588,7 +588,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     return meod, props, peaks, ppower
 
 
-def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0):
+def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
+                       kwargs={'lw': 2, 'color': 'red'}):
     """
     Plot a zoomed in range of the recorded trace.
 
@@ -606,22 +607,29 @@ def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0):
         Optional unit of the data used for y-label.
     toffs: float
         Time of first data value in seconds.
+    kwargs: dict
+        Arguments passed on to the plot command for the recorded trace.
     """
-    widx = int(width*samplerate)
-    i0 = len(data)//2 - widx//2
-    i1 = len(data)//2 + widx//2
+    widx2 = int(width*samplerate)/2
+    i0 = len(data)//2 - widx2
+    i0 = (i0//widx2)*widx2
+    i1 = i0 + 2*widx2
     time = np.arange(i0, i1)/samplerate + toffs
     tunit = 'sec'
     if np.abs(time[0]) < 1.0 and np.abs(time[-1]) < 1.0:
         time *= 1000.0
         tunit = 'ms'
-    ax.plot(time, data[i0:i1])
+    ax.plot(time, data[i0:i1], **kwargs)
     ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [%s]' % tunit)
-    if unit:
-        ax.set_ylabel('Amplitude [%s]' % unit)
-    else:
+    ymin = np.min(data[i0:i1])
+    ymax = np.max(data[i0:i1])
+    dy = ymax - ymin
+    ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
+    if len(unit) == 0 or unit == 'a.u.':
         ax.set_ylabel('Amplitude')
+    else:
+        ax.set_ylabel('Amplitude [%s]' % unit)
 
 
 def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
