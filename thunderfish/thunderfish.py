@@ -163,7 +163,7 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
     ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pulse spectrum
     ax6 = fig.add_axes([0.575, 0.36, 0.4, 0.14]) # amplitude spectrum
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
-    ax8 = fig.add_axes([0.575, 0.6, 0.4, 0.3])   # recording xoom-in
+    ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording xoom-in
 
     if show_plot:
         fig.canvas.mpl_connect('key_press_event', keypress)
@@ -223,12 +223,12 @@ def output_plot(base_name, pulse_fish, raw_data, samplerate, idx0, idx1,
 
     # plot recording
     if len(eod_props) == 1:
-        ax3.set_position([0.075, 0.6, 0.4, 0.3])
+        ax3.set_position([0.575, 0.6, 0.4, 0.3])
         width = 0.1
         if eod_props[0]['type'] == 'wave':
-            width = 10.0/eod_props[0]['EODf']
+            width = 5.0/eod_props[0]['EODf']
         else:
-            width = 2.0/eod_props[0]['EODf']
+            width = 3.0/eod_props[0]['EODf']
         width = (1+width//0.005)*0.005
         eod_recording_plot(raw_data[idx0:idx1], samplerate, ax8, width, unit, idx0/samplerate)
         ax8.set_title('Recording', fontsize=14, y=1.05)
