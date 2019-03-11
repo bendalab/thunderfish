@@ -246,12 +246,9 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:-1] = eod
-    
-    # subtract mean of exactly one period:
-    seg = (meod[:,0]>-1.0/freq0) & (meod[:,0]<1.0/freq0)
-    meod[:,1] -= np.mean(meod[seg,1])
 
     # flip:
+    meod[:,1] -= np.mean(meod[:,1])
     flipped = False
     if -np.min(meod[:,1]) > np.max(meod[:,1]):
         meod[:,1] = -meod[:,1]
@@ -260,6 +257,10 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     # move peak of waveform to zero:
     offs = len(meod[:,1])//4
     meod[:,0] -= meod[offs+np.argmax(meod[offs:3*offs,1]),0]
+    
+    # subtract mean of exactly two periods:
+    seg = (meod[:,0]>-1.0/freq0) & (meod[:,0]<=1.0/freq0)
+    meod[:,1] -= np.mean(meod[seg,1])
 
     # fit fourier series:
     ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
@@ -287,9 +288,9 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     meod[:,-1] = fourier_series(meod[:,0], *popt)
 
     # variance and fit error:
-    ppampl = np.max(meod[seg,3]) - np.min(meod[seg,3])
+    ppampl = np.max(meod[seg,1]) - np.min(meod[seg,1])
     rmvariance = np.sqrt(np.mean(meod[seg,2]**2.0))/ppampl if eod.shape[1] > 2 else None
-    rmserror = np.sqrt(np.mean((meod[seg,1] - meod[seg,3])**2.0))/ppampl
+    rmserror = np.sqrt(np.mean((meod[seg,1] - meod[seg,-1])**2.0))/ppampl
 
     # store results:
     props = {}
@@ -470,7 +471,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
 
     # cut out relevant signal:
     lidx = np.argmax(np.abs(meod[:,1])>0.5*threshold)
-    ridx = len(meod) - np.argmax(np.abs(meod[::-1,1])>0.5*threshold)
+    ridx = len(meod) - 1 - np.argmax(np.abs(meod[::-1,1])>0.5*threshold)
     t0 = meod[lidx,0]
     t1 = meod[ridx,0]
     width = t1 - t0
@@ -580,8 +581,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['width'] = t1-t0
     if tau:
         props['tau'] = tau
-    props['firstpeak'] = peaks[0, 0]
-    props['lastpeak'] = peaks[-1, 0]
+    props['firstpeak'] = peaks[0, 0] if len(peaks) > 0 else 1
+    props['lastpeak'] = peaks[-1, 0] if len(peaks) > 0 else 1
     props['peakfrequency'] = freqs[np.argmax(power)]
     props['peakpower'] = decibel(maxpower)
     props['lowfreqattenuation5'] = att5

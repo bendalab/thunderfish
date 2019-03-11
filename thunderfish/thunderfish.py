@@ -521,11 +521,11 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                          100.0*props['rmserror']))
         else:
             if k == 0 and clipped >= cfg.value('maximumClippedFraction'):
-                skip_reason += ['wavefish clipped']
+                skip_reason += ['%.1fHz wavefish clipped' % props['EODf']]
             if sdata[1,2] >= cfg.value('maximumFirstHarmonicAmplitude') or \
                sdata[2,2] >= cfg.value('maximumSecondHarmonicAmplitude') or \
                props['rmserror'] >= cfg.value('maximumRMSError'):
-                skip_reason += ['wavefish distorted']
+                skip_reason += ['%.1fHz wavefish distorted' % props['EODf']]
             if verbose > 0:
                 print('%d skip waveform of %.1fHz fish: clipped=%3.0f%% (%3.0f%%) ampl1=%6.4f (%6.4f) ampl2=%6.4f (%6.4f) rmserror=%6.2f%% (%6.2f%%)'
                       % (idx, fish[0,0],
