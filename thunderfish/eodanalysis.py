@@ -237,6 +237,11 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     error_str: string
         If fitting of the fourier series failed,
         this is reported in this string.
+
+    Raises
+    ------
+    IndexError:
+        EOD data is less than one period long.
     """
     error_str = ''
     
@@ -256,12 +261,27 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
         flipped = True
     
     # move peak of waveform to zero:
-    offs = len(meod[:,1])//4
-    meod[:,0] -= meod[offs+np.argmax(meod[offs:3*offs,1]),0]
+    offs = len(meod)//4
+    maxinx = offs+np.argmax(meod[offs:3*offs,1])
+    meod[:,0] -= meod[maxinx,0]
     
-    # subtract mean of exactly two periods:
-    seg = (meod[:,0]>-1.0/freq0) & (meod[:,0]<=1.0/freq0)
-    meod[:,1] -= np.mean(meod[seg,1])
+    # indices of exactly one or two periods:
+    pinx = int(np.ceil(1.0/freq0/(meod[1,0]-meod[0,0])))
+    if len(meod) < pinx:
+        raise IndexError('data need to contain at least one EOD period')
+    if len(meod) >= 2*pinx:
+        i0 = maxinx - pinx if maxinx >= pinx else 0
+        i1 = i0 + 2*pinx
+        if i1 > len(meod):
+            i1 = len(meod)
+            i0 = i1 - 2*pinx
+    else:
+        pinx //= 2
+        i0 = maxinx - pinx if maxinx >= pinx else 0
+        i1 = i0 + 2*pinx
+
+    # subtract mean:
+    meod[:,1] -= np.mean(meod[i0:i1,1])
 
     # fit fourier series:
     ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
@@ -270,7 +290,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
         for i in range(1, n_harm):
             params.extend([1.0/(i+1), 0.0])
         try:
-            popt, pcov = curve_fit(fourier_series, meod[seg,0], meod[seg,1],
+            popt, pcov = curve_fit(fourier_series, meod[i0:i1,0], meod[i0:i1,1],
                                    params, maxfev=2000)
             break
         except RuntimeError:
@@ -289,9 +309,9 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     meod[:,-1] = fourier_series(meod[:,0], *popt)
 
     # variance and fit error:
-    ppampl = np.max(meod[seg,1]) - np.min(meod[seg,1])
-    rmvariance = np.sqrt(np.mean(meod[seg,2]**2.0))/ppampl if eod.shape[1] > 2 else None
-    rmserror = np.sqrt(np.mean((meod[seg,1] - meod[seg,-1])**2.0))/ppampl
+    ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
+    rmvariance = np.sqrt(np.mean(meod[i0:i1,2]**2.0))/ppampl if eod.shape[1] > 2 else None
+    rmserror = np.sqrt(np.mean((meod[i0:i1,1] - meod[i0:i1,-1])**2.0))/ppampl
 
     # store results:
     props = {}
