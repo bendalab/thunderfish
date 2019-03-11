@@ -141,6 +141,7 @@ def unfilter(data, samplerate, tau=1.0, cutoff=None):
     if cutoff:
         tau = 0.5/np.pi/cutoff
     fac = tau*samplerate
+    data -= np.mean(data)
     d0 = data[0]
     x = d0
     for k in range(len(data)):
