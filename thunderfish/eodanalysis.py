@@ -184,7 +184,7 @@ def fourier_series(t, freq, delay, ampl, *ap):
     return ampl*x
 
 
-def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
+def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave=False):
     """
     Analyze the EOD waveform of a wave-type fish.
     
@@ -201,6 +201,9 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
         Maximum number of harmonics used for the fit.
     power_n_harmonics: int
         Sum over the first `power_n_harmonics` harmonics for computing the total power.
+        If 0 sum over all harmonics.
+    flip_wave: bool
+        If True flip waveform such that the larger extremum is positive.
     
     Returns
     -------
@@ -253,10 +256,14 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:-1] = eod
 
-    # flip:
-    meod[:,1] -= np.mean(meod[:,1])
+    # subtract mean and flip:
+    pinx = int(np.ceil(1.0/freq0/(meod[1,0]-meod[0,0])))
+    maxn = (len(meod)//pinx)*pinx
+    if maxn < pinx: maxn = len(meod)
+    offs = (len(meod) - maxn)//2
+    meod[:,1] -= np.mean(meod[offs:offs+pinx,1])
     flipped = False
-    if -np.min(meod[:,1]) > np.max(meod[:,1]):
+    if flip_wave and -np.min(meod[:,1]) > np.max(meod[:,1]):
         meod[:,1] = -meod[:,1]
         flipped = True
     
@@ -265,8 +272,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
     maxinx = offs+np.argmax(meod[offs:3*offs,1])
     meod[:,0] -= meod[maxinx,0]
     
-    # indices of exactly one or two periods:
-    pinx = int(np.ceil(1.0/freq0/(meod[1,0]-meod[0,0])))
+    # indices of exactly one or two periods around peak:
     if len(meod) < pinx:
         raise IndexError('data need to contain at least one EOD period')
     if len(meod) >= 2*pinx:
@@ -329,7 +335,8 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000):
         powers = freq[:n_harm, 1]
         spec_data[:len(powers), 5] = powers
         spec_data[:len(powers), 6] = powers/powers[0]
-        props['power'] = decibel(np.sum(freq[:power_n_harmonics,1]))
+        pnh = power_n_harmonics if power_n_harmonics > 0 else len(freq) 
+        props['power'] = decibel(np.sum(freq[:pnh,1]))
     else:
         spec_data = np.zeros((n_harm, 5))
     spec_data[0,:5] = [0.0, freq0, ampl, 1.0, 0.0]
@@ -368,7 +375,7 @@ def exp_decay(t, tau, ampl, offs):
 def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac = 0.5, fit_frac = 0.5,
-                  fresolution=1.0):
+                  fresolution=1.0, flip_pulse=False):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -393,6 +400,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         waveform falls below this fraction of the peak's height (0-1).
     fresolution: float
         The frequency resolution of the power spectrum of the single pulse.
+    flip_pulse: bool
+        If True flip waveform such that the first large extremum is positive.
     
     Returns
     -------
@@ -456,14 +465,14 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     amplitude = np.max((max_ampl, min_ampl))
     if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
         # two major peaks:
-        if min_idx < max_idx:
+        if flip_pulse and min_idx < max_idx:
             # flip:
             meod[:,1] = -meod[:,1]
             peak_idx = min_idx
             min_idx = max_idx
             max_idx = peak_idx
             flipped = True
-    elif min_ampl > 0.2*amplitude:
+    elif flip_pulse and min_ampl > 0.2*amplitude:
         # flip:
         meod[:,1] = -meod[:,1]
         peak_idx = min_idx
@@ -859,6 +868,7 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
 
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
                             win_fac=2.0, min_win=0.01, max_eods=None,
+                            flip_wave=False, flip_pulse=False,
                             n_harm=20, min_pulse_win=0.001, peak_thresh_fac=0.01,
                             min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
                             pulse_percentile=1.0):
@@ -881,6 +891,8 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
     cfg.add('eodSnippetFac', win_fac, '', 'The duration of EOD snippets is the EOD period times this factor.')
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
+    cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave-type fish to make largest extremum positive.')
+    cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse-type fish to make the first large peak positive.')
     cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
     cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
     cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks in pulse-type EODs as a fraction of the pulse amplitude.')
@@ -932,7 +944,8 @@ def analyze_wave_args(cfg):
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'n_harm': 'eodHarmonics',
-                 'power_n_harmonics': 'powerNHarmonics'})
+                 'power_n_harmonics': 'powerNHarmonics',
+                 'flip_wave': 'flipWaveEOD'})
     return a
 
 
@@ -957,7 +970,8 @@ def analyze_pulse_args(cfg):
                  'peak_thresh_fac': 'eodPeakThresholdFactor',
                  'min_dist': 'eodMinimumDistance',
                  'width_frac': 'eodPulseWidthFraction',
-                 'fit_frac': 'eodExponentialFitFraction'})
+                 'fit_frac': 'eodExponentialFitFraction',
+                 'flip_pulse': 'flipPulseEOD'})
     return a
 
 
