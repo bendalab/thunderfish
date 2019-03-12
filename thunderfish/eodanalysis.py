@@ -556,7 +556,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
             peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i]]
 
         # fit exponential to last peak/trough:
-        if not fit_frac is None:
+        if fit_frac:
             pi = peak_list[-1]
             if ridx >= len(meod)-1:
                 ridx = len(meod)-1
