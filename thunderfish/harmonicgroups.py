@@ -318,7 +318,8 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
             continue
 
         # ratio of total fill-ins too large:
-        if float(fill_ins) / float(len(newmoregroup)) > max_fill_ratio:
+        if len(newmoregroup) == 0 or \
+           float(fill_ins) / float(len(newmoregroup)) > max_fill_ratio:
             if verbose > 1:
                 print('discarded group because of too many fill ins! %d from %d (%g)' %
                       (fill_ins, len(newmoregroup), float(fill_ins) / float(len(newmoregroup))), newmoregroup)
