@@ -1089,7 +1089,7 @@ class TableData:
                 data.nsecs = self.nsecs
                 return data
             else:
-                return mp.asarray([self.data[i][rows] for i in cols])
+                return np.asarray([self.data[i][rows] for i in cols])
 
     def __setitem__(self, key, value):
         """
