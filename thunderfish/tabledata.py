@@ -2507,14 +2507,19 @@ def write_table_args(cfg):
         and their values as supplied by `cfg`.
     """
 
-    return cfg.map({'table_format': 'fileFormat',
-                    'delimiter': 'fileDelimiter',
-                    'unitstyle': 'fileUnitStyle',
-                    'column_numbers': 'fileColumnNumbers',
-                    'sections': 'fileSections',
-                    'format_width': 'fileColumnWidth',
-                    'shrink_width': 'fileShrinkColumnWidth',
-                    'missing': 'fileMissing'})
+    d = cfg.map({'table_format': 'fileFormat',
+                 'delimiter': 'fileDelimiter',
+                 'unitstyle': 'fileUnitStyle',
+                 'column_numbers': 'fileColumnNumbers',
+                 'sections': 'fileSections',
+                 'format_width': 'fileColumnWidth',
+                 'shrink_width': 'fileShrinkColumnWidth',
+                 'missing': 'fileMissing'})
+    if 'sections' in d:
+        if d['sections'] != 'auto':
+            d['sections'] = int(d['sections'])
+    return d
+
                   
 def index2aa(n, a='a'):
     """

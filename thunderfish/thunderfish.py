@@ -674,7 +674,8 @@ def main():
     parser.add_argument('-s', dest='save_data', action='store_true',
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
-                        help='file format used for saving analysis results, one of dat, ascii, csv, md, tex, html (defaults to the format specified in the configuration file or "dat")')
+                        choices=TableData.formats,
+                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat")')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot as pdf file')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
@@ -707,10 +708,6 @@ def main():
 
     # interactive plot:
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
-
-    # check output file format:
-    if not args.format in TableData.formats and args.format != 'auto':
-        parser.error('invalid file format %s' % args.format)
 
     # configuration:
     if args.save_config:
