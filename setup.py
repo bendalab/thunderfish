@@ -10,6 +10,7 @@ setup(name='thunderfish',
         'console_scripts': [
             'thunderfish = thunderfish.thunderfish:main',
             'fishfinder = thunderfish.fishfinder:main',
+            'collectfish = thunderfish.collectfish:main',
             'tracker = thunderfish.tracker_v2:main',
         ]},
       description='Algorithms and scripts for analyzing recordings of e-fish electric fields.',

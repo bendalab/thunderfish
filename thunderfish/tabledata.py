@@ -1075,6 +1075,7 @@ class TableData:
             else:
                 return self.data[cols[0]][rows]
         else:
+            # XXX problem if data element is string !!!
             if hasattr(self.data[0][rows], '__len__'):
                 data = TableData()
                 sec_indices = [-1] * self.nsecs
