@@ -177,6 +177,8 @@ def main():
                         help='add properties of first N harmonics of wave-type EODs to the table')
     parser.add_argument('-r', dest='remove_cols', action='append', default=[], metavar='COLUMN',
                         help='columns to be removed from output table')
+    parser.add_argument('-s', dest='statistics', action='store_true',
+                        help='also write table with statistics')
     parser.add_argument('-o', dest='out_path', metavar='PATH', default='.', type=str,
                         help='path where to store summary tables')
     parser.add_argument('-f', dest='format', default=None, type=str,
@@ -198,6 +200,7 @@ def main():
     args = parser.parse_args(ca)
     table_type = args.table_type
     remove_cols = args.remove_cols
+    statistics = args.statistics
     out_path = args.out_path
     data_format = args.format
     # create output folder:
@@ -220,11 +223,17 @@ def main():
             if rc in pulse_table:
                 pulse_table.remove(rc)
         pulse_table.write(os.path.join(out_path, 'pulsefish'), data_format)
+        if statistics:
+            s = pulse_table.statistics()
+            s.write(os.path.join(out_path, 'pulsefish-statistics'), data_format)
     if wave_table and (not table_type or table_type == 'wave'):
         for rc in remove_cols:
             if rc in wave_table:
                 wave_table.remove(rc)
         wave_table.write(os.path.join(out_path, 'wavefish'), data_format)
+        if statistics:
+            s = wave_table.statistics()
+            s.write(os.path.join(out_path, 'wavefish-statistics'), data_format)
 
 
 if __name__ == '__main__':
