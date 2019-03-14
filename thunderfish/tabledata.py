@@ -1330,13 +1330,6 @@ class TableData:
             ds.append('-', '-', '%-10s')
         else:
             ds.append('statistics', '-', '%-10s')
-        ds.header.extend(self.header)
-        ds.units.extend(self.units)
-        ds.formats.extend(self.formats)
-        ds.nsecs = self.nsecs
-        ds.hidden = [False] * ds.columns()
-        for c in range(self.columns()):
-            ds.data.append([])
         ds.append_data('mean', 0)
         ds.append_data('std', 0)
         ds.append_data('min', 0)
@@ -1345,16 +1338,25 @@ class TableData:
         ds.append_data('quartile3', 0)
         ds.append_data('max', 0)
         ds.append_data('count', 0)
+        dc = 1
         for c in range(self.columns()):
-            ds.append_data(np.nanmean(self.data[c]), c+1)
-            ds.append_data(np.nanstd(self.data[c]), c+1)
-            ds.append_data(np.nanmin(self.data[c]), c+1)
-            q1, m, q3 = np.percentile(self.data[c], [25., 50., 75.])
-            ds.append_data(q1, c+1)
-            ds.append_data(m, c+1)
-            ds.append_data(q3, c+1)
-            ds.append_data(np.nanmax(self.data[c]), c+1)
-            ds.append_data(np.count_nonzero(~np.isnan(self.data[c])), c+1)
+            if len(self.data[c]) > 0 and isinstance(self.data[c][0], (float, int)):
+                ds.header.append(self.header[c])
+                ds.units.append(self.units[c])
+                ds.formats.append(self.formats[c])
+                ds.hidden.append(False)
+                ds.data.append([])
+                ds.append_data(np.nanmean(self.data[c]), dc)
+                ds.append_data(np.nanstd(self.data[c]), dc)
+                ds.append_data(np.nanmin(self.data[c]), dc)
+                q1, m, q3 = np.percentile(self.data[c], [25., 50., 75.])
+                ds.append_data(q1, dc)
+                ds.append_data(m, dc)
+                ds.append_data(q3, dc)
+                ds.append_data(np.nanmax(self.data[c]), dc)
+                ds.append_data(np.count_nonzero(~np.isnan(self.data[c])), dc)
+                dc += 1
+        ds.nsecs = self.nsecs
         ds.shape = (ds.rows(), ds.columns())
         return ds
 
@@ -1863,6 +1865,7 @@ class TableData:
             for l in range(min(self.nsecs, sections)):
                 if 1+l < len(self.header[c]):
                     if c > 0 and sec_columns[l] > 0 and \
+                       1+l < len(self.header[sec_indices[l]]) and \
                        len(self.header[sec_indices[l]][1+l]) > sec_widths[l]:
                         dw = len(self.header[sec_indices[l]][1+l]) - sec_widths[l]
                         nc = sec_columns[l]
