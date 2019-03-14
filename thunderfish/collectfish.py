@@ -68,9 +68,9 @@ def collect_fish(files, insert_file=True, append_file=False,
             df = TableData(data)
             df.clear_data()
             if insert_file:
+                df.insert(0, 'file', '', '%-s')
                 for s in range(data.nsecs):
                     df.insert_section(0, 'recording')
-                df.insert(0, 'recording', '', '%-s')
             if fish_type == 'wave':
                 if harmonics is not None:
                     wave_spec = TableData(base_path + '-wavespectrum-0' + file_ext)
@@ -98,7 +98,7 @@ def collect_fish(files, insert_file=True, append_file=False,
             if append_file:
                 for s in range(data.nsecs):
                     df.append_section('recording')
-                df.append('recording', '', '%-s')
+                df.append('file', '', '%-s')
             if fish_type == 'wave':
                 wave_table = df
             else:
