@@ -111,22 +111,25 @@ def collect_fish(files, insert_file=True, append_file=False,
                 table.append_data(recording, data_col)
                 data_col += 1
             table.append_data(data[r,:], data_col)
+            idx = r
+            if 'index' in data:
+                idx = data[r,'index']
             if peaks0 is not None and fish_type == 'pulse':
-                pulse_peaks = TableData(base_path + '-pulsepeaks-%d'%r + file_ext)
+                pulse_peaks = TableData(base_path + '-pulsepeaks-%d'%idx + file_ext)
                 for p in range(peaks0, peaks1+1):
-                    for r in range(pulse_peaks.rows()):
-                        if pulse_peaks[r,'P'] == p:
+                    for pr in range(pulse_peaks.rows()):
+                        if pulse_peaks[pr,'P'] == p:
                             break
                     else:
                         continue
                     if p != 1:
-                        table.append_data(pulse_peaks[r,'time'], 'P%dtime' % p)
-                    table.append_data(pulse_peaks[r,'amplitude'], 'P%dampl' % p)
+                        table.append_data(pulse_peaks[pr,'time'], 'P%dtime' % p)
+                    table.append_data(pulse_peaks[pr,'amplitude'], 'P%dampl' % p)
                     if p != 1:
-                        table.append_data(pulse_peaks[r,'relampl'], 'P%drelampl' % p)
-                    table.append_data(pulse_peaks[r,'width'], 'P%dwidth' % p)
+                        table.append_data(pulse_peaks[pr,'relampl'], 'P%drelampl' % p)
+                    table.append_data(pulse_peaks[pr,'width'], 'P%dwidth' % p)
             elif harmonics is not None and fish_type == 'wave':
-                wave_spec = TableData(base_path + '-wavespectrum-%d'%r + file_ext)
+                wave_spec = TableData(base_path + '-wavespectrum-%d'%idx + file_ext)
                 for h in range(harmonics+1):
                     table.append_data(wave_spec[h,'amplitude'])
                     if h > 0:
@@ -134,6 +137,7 @@ def collect_fish(files, insert_file=True, append_file=False,
                         table.append_data(wave_spec[h,'phase'])
             if append_file:
                 table.append_data(recording)
+            table.fill_data()
     return wave_table, pulse_table
 
     
