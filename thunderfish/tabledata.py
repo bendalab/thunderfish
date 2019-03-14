@@ -1341,20 +1341,34 @@ class TableData:
         dc = 1
         for c in range(self.columns()):
             if len(self.data[c]) > 0 and isinstance(self.data[c][0], (float, int)):
+                ds.hidden.append(False)
                 ds.header.append(self.header[c])
                 ds.units.append(self.units[c])
-                ds.formats.append(self.formats[c])
-                ds.hidden.append(False)
+                # integer data still make floating point statistics:
+                if isinstance(self.data[c][0], float):
+                    f = self.formats[c]
+                    i0 = f.find('.')
+                    if i0 > 0:
+                        p = int(f[i0+1:-1])
+                        if p <= 0:
+                            f = '%.1f'
+                    ds.formats.append(f)
+                else:
+                    ds.formats.append('%.1f')
+                # remove nans:
+                data = np.asarray(self.data[c], np.float)
+                data = data[np.isfinite(data)]
+                # compute statistics:
                 ds.data.append([])
-                ds.append_data(np.nanmean(self.data[c]), dc)
-                ds.append_data(np.nanstd(self.data[c]), dc)
-                ds.append_data(np.nanmin(self.data[c]), dc)
-                q1, m, q3 = np.percentile(self.data[c], [25., 50., 75.])
+                ds.append_data(np.mean(data), dc)
+                ds.append_data(np.std(data), dc)
+                ds.append_data(np.min(data), dc)
+                q1, m, q3 = np.percentile(data, [25., 50., 75.])
                 ds.append_data(q1, dc)
                 ds.append_data(m, dc)
                 ds.append_data(q3, dc)
-                ds.append_data(np.nanmax(self.data[c]), dc)
-                ds.append_data(np.count_nonzero(~np.isnan(self.data[c])), dc)
+                ds.append_data(np.max(data), dc)
+                ds.append_data(len(data), dc)
                 dc += 1
         ds.nsecs = self.nsecs
         ds.shape = (ds.rows(), ds.columns())
