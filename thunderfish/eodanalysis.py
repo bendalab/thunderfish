@@ -184,7 +184,7 @@ def fourier_series(t, freq, delay, ampl, *ap):
     return ampl*x
 
 
-def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave=False):
+def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none'):
     """
     Analyze the EOD waveform of a wave-type fish.
     
@@ -202,8 +202,10 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave=False):
     power_n_harmonics: int
         Sum over the first `power_n_harmonics` harmonics for computing the total power.
         If 0 sum over all harmonics.
-    flip_wave: bool
-        If True flip waveform such that the larger extremum is positive.
+    flip_wave: 'auto', 'none', 'flip'
+        - 'auto' flip waveform such that the larger extremum is positive.
+        - 'flip' flip waveform.
+        - 'none' do not flip waveform.
     
     Returns
     -------
@@ -263,7 +265,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave=False):
     offs = (len(meod) - maxn)//2
     meod[:,1] -= np.mean(meod[offs:offs+pinx,1])
     flipped = False
-    if flip_wave and -np.min(meod[:,1]) > np.max(meod[:,1]):
+    if flip_wave == 'flip' or (flip_wave == 'auto' and -np.min(meod[:,1]) > np.max(meod[:,1])):
         meod[:,1] = -meod[:,1]
         flipped = True
     
@@ -375,7 +377,7 @@ def exp_decay(t, tau, ampl, offs):
 def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac = 0.5, fit_frac = 0.5,
-                  fresolution=1.0, flip_pulse=False):
+                  fresolution=1.0, flip_pulse='none'):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -400,8 +402,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         waveform falls below this fraction of the peak's height (0-1).
     fresolution: float
         The frequency resolution of the power spectrum of the single pulse.
-    flip_pulse: bool
-        If True flip waveform such that the first large extremum is positive.
+    flip_pulse: 'auto', 'none', 'flip'
+        - 'auto' flip waveform such that the first large extremum is positive.
+        - 'flip' flip waveform.
+        - 'none' do not flip waveform.
     
     Returns
     -------
@@ -465,14 +469,14 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     amplitude = np.max((max_ampl, min_ampl))
     if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
         # two major peaks:
-        if flip_pulse and min_idx < max_idx:
+        if flip_pulse == 'flip' or (flip_pulse == 'auto' and min_idx < max_idx):
             # flip:
             meod[:,1] = -meod[:,1]
             peak_idx = min_idx
             min_idx = max_idx
             max_idx = peak_idx
             flipped = True
-    elif flip_pulse and min_ampl > 0.2*amplitude:
+    elif flip_pulse == 'flip' or (flip_pulse == 'auto' and min_ampl > 0.2*amplitude):
         # flip:
         meod[:,1] = -meod[:,1]
         peak_idx = min_idx
@@ -868,7 +872,7 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
 
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
                             win_fac=2.0, min_win=0.01, max_eods=None,
-                            flip_wave=False, flip_pulse=False,
+                            flip_wave='none', flip_pulse='none',
                             n_harm=20, min_pulse_win=0.001, peak_thresh_fac=0.01,
                             min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
                             pulse_percentile=1.0):
