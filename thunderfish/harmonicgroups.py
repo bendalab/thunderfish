@@ -1214,24 +1214,32 @@ def harmonic_groups_args(cfg):
 
 
 if __name__ == "__main__":
+    import sys
     import matplotlib.pyplot as plt
     from .fakefish import generate_wavefish
     from .powerspectrum import psd
 
     print("Checking harmonicgroups module ...")
-    
-    # generate data:
-    samplerate = 44100.0
-    eodfs = [123.0, 321.0, 666.0, 668.0]
-    fish1 = generate_wavefish(eodfs[0], samplerate, duration=8.0, noise_std=0.01,
-                              amplitudes=[1.0, 0.5, 0.2, 0.1, 0.05], phases=[0.0, 0.0, 0.0, 0.0, 0.0])
-    fish2 = generate_wavefish(eodfs[1], samplerate, duration=8.0, noise_std=0.01,
-                              amplitudes=[1.0, 0.7, 0.2, 0.1], phases=[0.0, 0.0, 0.0, 0.0])
-    fish3 = generate_wavefish(eodfs[2], samplerate, duration=8.0, noise_std=0.01,
-                              amplitudes=[10.0, 5.0, 1.0], phases=[0.0, 0.0, 0.0])
-    fish4 = generate_wavefish(eodfs[3], samplerate, duration=8.0, noise_std=0.01,
-                              amplitudes=[6.0, 3.0, 1.0], phases=[0.0, 0.0, 0.0])
-    data = fish1 + fish2 + fish3 + fish4
+
+    if len(sys.argv) < 2:
+        # generate data:
+        title = 'simulation'
+        samplerate = 44100.0
+        eodfs = [123.0, 321.0, 666.0, 668.0]
+        fish1 = generate_wavefish(eodfs[0], samplerate, duration=8.0, noise_std=0.01,
+                                  amplitudes=[1.0, 0.5, 0.2, 0.1, 0.05], phases=[0.0, 0.0, 0.0, 0.0, 0.0])
+        fish2 = generate_wavefish(eodfs[1], samplerate, duration=8.0, noise_std=0.01,
+                                  amplitudes=[1.0, 0.7, 0.2, 0.1], phases=[0.0, 0.0, 0.0, 0.0])
+        fish3 = generate_wavefish(eodfs[2], samplerate, duration=8.0, noise_std=0.01,
+                                  amplitudes=[10.0, 5.0, 1.0], phases=[0.0, 0.0, 0.0])
+        fish4 = generate_wavefish(eodfs[3], samplerate, duration=8.0, noise_std=0.01,
+                                  amplitudes=[6.0, 3.0, 1.0], phases=[0.0, 0.0, 0.0])
+        data = fish1 + fish2 + fish3 + fish4
+    else:
+        from .dataloader import load_data
+        print("load %s ..." % sys.argv[1])
+        data, samplerate, unit = load_data(sys.argv[1], 0)
+        title = sys.argv[1]
 
     # analyse:
     psd_data = psd(data, samplerate, fresolution=0.5)
@@ -1242,5 +1250,6 @@ if __name__ == "__main__":
     ax = fig.add_subplot(1, 1, 1)
     plot_psd_harmonic_groups(ax, psd_data[1], psd_data[0], groups, mains, all_freqs, good_freqs,
                              max_freq=3000.0)
+    ax.set_title(title)
     plt.show()
     
