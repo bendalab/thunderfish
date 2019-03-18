@@ -265,7 +265,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     offs = (len(meod) - maxn)//2
     meod[:,1] -= np.mean(meod[offs:offs+pinx,1])
     flipped = False
-    if flip_wave == 'flip' or (flip_wave == 'auto' and -np.min(meod[:,1]) > np.max(meod[:,1])):
+    if 'flip' in flip_wave or ('auto' in flip_wave and -np.min(meod[:,1]) > np.max(meod[:,1])):
         meod[:,1] = -meod[:,1]
         flipped = True
     
@@ -469,14 +469,14 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     amplitude = np.max((max_ampl, min_ampl))
     if max_ampl > 0.2*amplitude and min_ampl > 0.2*amplitude:
         # two major peaks:
-        if flip_pulse == 'flip' or (flip_pulse == 'auto' and min_idx < max_idx):
+        if 'flip' in flip_pulse or ('auto' in flip_pulse and min_idx < max_idx):
             # flip:
             meod[:,1] = -meod[:,1]
             peak_idx = min_idx
             min_idx = max_idx
             max_idx = peak_idx
             flipped = True
-    elif flip_pulse == 'flip' or (flip_pulse == 'auto' and min_ampl > 0.2*amplitude):
+    elif 'flip' in flip_pulse or ('auto' in flip_pulse and min_ampl > 0.2*amplitude):
         # flip:
         meod[:,1] = -meod[:,1]
         peak_idx = min_idx
