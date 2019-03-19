@@ -25,6 +25,7 @@ def collect_fish(files, insert_file=True, append_file=False,
         Insert the basename of the recording file as the first column.
     append_file: boolean
         Add the basename of the recording file as the last column.
+        Overwrites `insert_file`.
     max_fish: int
         Maximum number of fish to be taken, if 0 take all.
     harmonics: int
@@ -45,7 +46,7 @@ def collect_fish(files, insert_file=True, append_file=False,
         Summary table for all pulse-type fish.
     """
     if append_file and insert_file:
-        append_file = False
+        insert_file = False
     # load data:    
     wave_table = None
     pulse_table = None
@@ -169,8 +170,8 @@ def main():
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-t', dest='table_type', default=None, choices=['wave', 'pulse'],
                         help='wave-type or pulse-type fish')
-    parser.add_argument('-i', dest='insert_file', action='store_true',
-                        help='insert the file name in the first column')
+    # parser.add_argument('-i', dest='insert_file', action='store_true',
+    #                     help='insert the file name in the first column')
     parser.add_argument('-a', dest='append_file', action='store_true',
                         help='append the file name as the last column')
     parser.add_argument('-m', dest='max_fish', type=int, metavar='N',
@@ -212,7 +213,7 @@ def main():
     if not os.path.exists(out_path):
         os.makedirs(out_path)
     # collect files:
-    wave_table, pulse_table = collect_fish(args.file, args.insert_file, args.append_file,
+    wave_table, pulse_table = collect_fish(args.file, True, args.append_file,
                                            args.max_fish, args.harmonics,
                                            args.pulse_peaks[0],  args.pulse_peaks[1])
     # output format:
