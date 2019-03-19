@@ -148,7 +148,7 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
             # IS THE CURRENT FREQUENCY AN INTEGRAL MULTIPLE OF FZERO?
             # divide the frequency-to-be-checked by fzero
             # to get the multiplication factor between freq and fzero
-            n = np.round(freqs[j, 0] / fzero)
+            n = int(np.round(freqs[j, 0] / fzero))
             if n == 0:
                 if verbose > 2:
                     print('discarded: n == 0')
@@ -168,13 +168,13 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
             # two succeeding frequencies should also differ by
             # fzero plus/minus twice! the tolerance:
             if len(newgroup) > 0:
-                nn = np.round((freqs[j, 0] - freqs[newgroup[-1], 0]) / fzero)
+                nn = int(np.round((freqs[j, 0] - freqs[newgroup[-1], 0]) / fzero))
                 if nn == 0:
                     # the current frequency is the same harmonic as the previous one
                     # print(divisor, j, freqs[j,0], freqs[newgroup[-1],0])
                     if len(newgroup) > 1:
                         # check whether the current frequency is fzero apart from the previous harmonics:
-                        nn = np.round((freqs[j, 0] - freqs[newgroup[-2], 0]) / fzero)
+                        nn = int(np.round((freqs[j, 0] - freqs[newgroup[-2], 0]) / fzero))
                         nnd = np.abs(((freqs[j, 0] - freqs[newgroup[-2], 0]) / nn) - fzero)
                         if nnd > 2.0 * freqtol:
                             if verbose > 2:
@@ -234,7 +234,7 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
             # IS FREQUENCY A AN INTEGRAL MULTIPLE OF FREQUENCY B?
             # divide the frequency-to-be-checked with fzero:
             # what is the multiplication factor between freq and fzero?
-            n = np.round(more_freqs[j, 0] / fzero)
+            n = int(np.round(more_freqs[j, 0] / fzero))
             if n == 0:
                 if verbose > 3:
                     print('discarded: n == 0')
@@ -254,14 +254,14 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
 
             # two succeeding frequencies should also differ by fzero plus/minus tolerance:
             if len(newmoregroup) > 0:
-                nn = np.round((more_freqs[j, 0] - more_freqs[newmoregroup[-1], 0]) / fzero)
+                nn = int(np.round((more_freqs[j, 0] - more_freqs[newmoregroup[-1], 0]) / fzero))
                 if nn == 0:
                     # the current frequency is close to the same harmonic as the previous one
                     # print(n, newmoregroup[-1], ( more_freqs[j,0] - more_freqs[newmoregroup[-1],0] )/fzero)
                     # print(divisor, j, n, more_freqs[j,0], more_freqs[newmoregroup[-1],0], more_freqs[newmoregroup[-2],0], newmoregroup[-2])
                     if len(newmoregroup) > 1 and newmoregroup[-2] >= 0:
                         # check whether the current frequency is fzero apart from the previous harmonics:
-                        nn = np.round((more_freqs[j, 0] - more_freqs[newmoregroup[-2], 0]) / fzero)
+                        nn = int(np.round((more_freqs[j, 0] - more_freqs[newmoregroup[-2], 0]) / fzero))
                         nnd = np.abs(((more_freqs[j, 0] - more_freqs[newmoregroup[-2], 0]) / nn) - fzero)
                         if nnd > 2.0 * freqtol:
                             if verbose > 3:
@@ -519,7 +519,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     if mains_freq > 0.0:
         pfreqtol = 1.0  # 1 Hz tolerance
         for inx in reversed(range(len(good_freqs))):
-            n = np.round(good_freqs[inx, 0] / mains_freq)
+            n = int(np.round(good_freqs[inx, 0] / mains_freq))
             nd = np.abs(good_freqs[inx, 0] - n * mains_freq)
             if nd <= pfreqtol:
                 if verbose > 1:
@@ -612,7 +612,7 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     if mains_freq > 0.0:
         pfreqtol = 1.0
         for inx in range(len(all_freqs)):
-            n = np.round(all_freqs[inx, 0] / mains_freq)
+            n = int(np.round(all_freqs[inx, 0] / mains_freq))
             nd = np.abs(all_freqs[inx, 0] - n * mains_freq)
             if nd <= pfreqtol:
                 mains_list.append(all_freqs[inx, 0:2])
@@ -1073,7 +1073,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
     # mark mains frequencies:
     if mains is not None and len(mains) > 0:
         fpeaks = mains[:, 0]
-        fpeakinx = [np.round(fp/(psd_freqs[1]-psd_freqs[0])) for fp in fpeaks if fp < psd_freqs[-1]]
+        fpeakinx = [int(np.round(fp/(psd_freqs[1]-psd_freqs[0]))) for fp in fpeaks if fp < psd_freqs[-1]]
         ax.plot(fpeaks[:len(fpeakinx)], decibel(psd[fpeakinx]), linestyle='None',
                 marker='.', color='k', ms=10, mec=None, mew=0.0,
                 label='%3.0f Hz mains' % mains[0, 0])
