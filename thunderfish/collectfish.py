@@ -10,7 +10,7 @@ from .tabledata import TableData
 
 
 def collect_fish(files, insert_file=True, append_file=False,
-                 harmonics=None, peaks0=None, peaks1=None):
+                 max_fish=0, harmonics=None, peaks0=None, peaks1=None):
     """
     Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
 
@@ -25,6 +25,8 @@ def collect_fish(files, insert_file=True, append_file=False,
         Insert the basename of the recording file as the first column.
     append_file: boolean
         Add the basename of the recording file as the last column.
+    max_fish: int
+        Maximum number of fish to be taken, if 0 take all.
     harmonics: int
         Number of harmonic to be added to the wave-type fish table (amplitude, relampl, phase).
         This data is read in from the corresponding *-wavespectrum-*.* files.
@@ -105,7 +107,8 @@ def collect_fish(files, insert_file=True, append_file=False,
                 pulse_table = df
             table = wave_table if fish_type == 'wave' else pulse_table
         # fill table:
-        for r in range(data.rows()):
+        n = data.rows() if not max_fish or max_fish > data.rows() else max_fish
+        for r in range(n):
             data_col = 0
             if insert_file:
                 table.append_data(recording, data_col)
@@ -170,6 +173,8 @@ def main():
                         help='insert the file name in the first column')
     parser.add_argument('-a', dest='append_file', action='store_true',
                         help='append the file name as the last column')
+    parser.add_argument('-m', dest='max_fish', type=int, metavar='N',
+                        help='maximum number of fish to be taken from each recording')
     parser.add_argument('-p', dest='pulse_peaks', type=rangestr,
                         default=(None, None), metavar='N:M',
                         help='add properties of peak PN to PM of pulse-type EODs to the table')
@@ -208,7 +213,7 @@ def main():
         os.makedirs(out_path)
     # collect files:
     wave_table, pulse_table = collect_fish(args.file, args.insert_file, args.append_file,
-                                           args.harmonics,
+                                           args.max_fish, args.harmonics,
                                            args.pulse_peaks[0],  args.pulse_peaks[1])
     # output format:
     if not data_format:
