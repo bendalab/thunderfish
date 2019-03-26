@@ -38,19 +38,13 @@ class Explorer(object):
         else:
             self.data = data
             self.labels = labels
-        self.press = False
-        self.move = False
-        self.event_axes = None
-        self.event_xdata = None
-        self.event_ydata = None
+        plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
-        plt.rcParams['keymap.back'] = 'backspace'
-        plt.rcParams['keymap.forward'] = 'v'        
+        plt.rcParams['keymap.back'] = ''
+        plt.rcParams['keymap.forward'] = ''        
+        plt.rcParams['keymap.zoom'] = ''        
         self.fig = plt.figure(facecolor='white')
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
-        self.fig.canvas.mpl_connect('button_press_event', self.on_press)
-        self.fig.canvas.mpl_connect('button_release_event', self.on_release)
-        self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
         self.fig.canvas.mpl_connect('resize_event', self.on_resize)
         self.xborder = 60.0  # pixel for ylabels
         self.yborder = 50.0  # pixel for xlabels
@@ -69,6 +63,8 @@ class Explorer(object):
         self.corrartists = []
         self.corrselect = []
         self.mark_data = []
+        self.select_zooms = False
+        self.zoom_stack = []
         self.plot_correlations()
         self.zoomon = False
         self.zoom_size = np.array([0.4, 0.4])
@@ -114,14 +110,11 @@ class Explorer(object):
                 self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
                 try:
                     selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
-                                                         minspanx=5, minspany=5,
-                                                         spancoords='pixels',
-                                                         button=1, state_modifier_keys=dict(move='', clear='', square='', center=''))
+                                                         useblit=True, button=1,
+                                                         state_modifier_keys=dict(move='', clear='', square='', center=''))
                 except TypeError:
                     selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
-                                                         minspanx=5, minspany=5,
-                                                         spancoords='pixels',
-                                                         button=1)
+                                                         useblit=True, button=1)
                 yax = ax
                 self.corrax.append(ax)
                 self.corrindices.append([c, r])
@@ -144,6 +137,7 @@ class Explorer(object):
         self.corrax.append(ax)
         self.corrindices.append([c, r])
         self.corrartists.append(a)
+        self.corrselect.append(None)
                 
     def fix_scatter_plot(self, ax, data, label, axis):
         pass
@@ -170,7 +164,7 @@ class Explorer(object):
             self.corrax[-1].set_position([pos[0][0], pos[0][1],
                                           self.zoom_size[0], self.zoom_size[1]])
 
-    def update_selection(self, ax, key, xmin, xmax, ymin, ymax):
+    def update_selection(self, ax, key, x0, x1, y0, y1):
         if not key in ['shift', 'control']:
             self.mark_data = []
         try:
@@ -178,14 +172,14 @@ class Explorer(object):
             # from scatter plots:
             c, r = self.corrindices[axi]
             for ind, (x, y) in enumerate(zip(self.data[:,c], self.data[:,r])):
-                if x >= xmin and x <= xmax and y >= ymin and y <= ymax:
+                if x >= x0 and x <= x1 and y >= y0 and y <= y1:
                     self.mark_data.append(ind)
         except ValueError:
             try:
                 r = self.histax.index(ax)
                 # from histogram:
                 for ind, x in enumerate(self.data[:,r]):
-                    if x >= xmin and x <= xmax:
+                    if x >= x0 and x <= x1:
                         self.mark_data.append(ind)
             except ValueError:
                 return
@@ -240,6 +234,14 @@ class Explorer(object):
                 self.zoomon = False
                 self.corrax[-1].set_visible(False)
                 self.fig.canvas.draw()
+            elif event.key in 'oz':
+                self.select_zooms = not self.select_zooms
+            elif event.key in 'backspace':
+                if len(self.zoom_stack) > 0:
+                    ax, xmin, xmax, ymin, ymax = self.zoom_stack.pop()
+                    ax.set_xlim(xmin, xmax)
+                    ax.set_ylim(ymin, ymax)
+                    self.fig.canvas.draw()
             elif event.key in '+=':
                 self.pick_radius *= 1.5
             elif event.key in '-':
@@ -300,56 +302,42 @@ class Explorer(object):
                                                facecolor='white', edgecolor='none',
                                                alpha=0.8, zorder=-5)
             self.corrax[-1].add_patch(self.zoom_back)
+            if self.corrselect[-1] is not None:
+                del self.corrselect[-1]
+            try:
+                selector = widgets.RectangleSelector(self.corrax[-1], self.on_select,
+                                                     drawtype='box', useblit=True, button=1,
+                                                     state_modifier_keys=dict(move='', clear='', square='', center=''))
+            except TypeError:
+                selector = widgets.RectangleSelector(self.corrax[-1], self.on_select,
+                                                     drawtype='box', useblit=True, button=1)
+            self.corrselect[-1] = selector
             self.fig.canvas.draw()
 
-    def on_press(self, event):
-        self.press = True
-        self.move = False
-        self.event_xdata = event.xdata
-        self.event_ydata = event.ydata
-        self.event_axes = event.inaxes
-
-    def on_motion(self, event):
-        if self.press and not self.move:
-            self.move = True
-            self.press = False
-    
-    def on_release(self, event):
-        do_plot = False
-        if event.inaxes:
-            self.event_axes = event.inaxes
-        if self.event_axes is None:
-            return
-        if self.press and not self.move:
-            xmin, xmax = self.event_axes.get_xlim()
-            ymin, ymax = self.event_axes.get_ylim()
-            dx = self.pick_radius*(xmax-xmin)
-            dy = self.pick_radius*(ymax-ymin)
-            xmin = event.xdata - dx
-            ymin = event.ydata - dy
-            xmax = event.xdata + dx
-            ymax = event.ydata + dy
-            do_plot = True
-        elif not self.press and self.move:
-            xmin = min(self.event_xdata, event.xdata)
-            xmax = max(self.event_xdata, event.xdata)
-            ymin = min(self.event_ydata, event.ydata)
-            ymax = max(self.event_ydata, event.ydata)
-            #do_plot = True
-        if do_plot:
-            self.update_selection(self.event_axes, event.key, xmin, xmax, ymin, ymax)
-        self.move = False
-        self.press = False
-
     def on_select(self, eclick, erelease):
-        xmin = min(eclick.xdata, erelease.xdata)
-        xmax = max(eclick.xdata, erelease.xdata)
-        ymin = min(eclick.ydata, erelease.ydata)
-        ymax = max(eclick.ydata, erelease.ydata)
+        x0 = min(eclick.xdata, erelease.xdata)
+        x1 = max(eclick.xdata, erelease.xdata)
+        y0 = min(eclick.ydata, erelease.ydata)
+        y1 = max(eclick.ydata, erelease.ydata)
         ax = erelease.inaxes
         if ax is None:
             ax = eclick.inaxes
-        self.update_selection(ax, erelease.key, xmin, xmax, ymin, ymax)
+        xmin, xmax = ax.get_xlim()
+        ymin, ymax = ax.get_ylim()
+        dx = 0.02*(xmax-xmin)
+        dy = 0.02*(ymax-ymin)
+        if x1 - x0 < dx and y1 - y0 < dy:
+            dx = self.pick_radius*(xmax-xmin)
+            dy = self.pick_radius*(ymax-ymin)
+            x0 = erelease.xdata - dx
+            x1 = erelease.xdata + dx
+            y0 = erelease.ydata - dy
+            y1 = erelease.ydata + dy
+        elif self.select_zooms:
+            self.zoom_stack.append((ax, xmin, xmax, ymin, ymax))
+            ax.set_xlim(x0, x1)
+            ax.set_ylim(y0, y1)
+        self.update_selection(ax, erelease.key, x0, x1, y0, y1)
 
     def on_resize(self, event):
         n = self.data.shape[1]
@@ -474,9 +462,11 @@ def main():
         print('shift + left click     add data points to selection')
         print('')
         print('key shortcuts:')
-        print('c, C                   cycle color map trough data columns')
+        print('o, z                   toogle zoom mode')
+        print('backspace              zoom back')
         print('+, -                   increase, decrease pick radius')
         print('0                      reset pick radius')
+        print('c, C                   cycle color map trough data columns')
         print('left, right, up, down  move enlarged scatter plot')
         print('escape                 close enlarged scatter plot')
         parser.exit()
