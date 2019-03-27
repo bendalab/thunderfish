@@ -301,7 +301,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
             popt, pcov = curve_fit(fourier_series, meod[i0:i1,0], meod[i0:i1,1],
                                    params, maxfev=2000)
             break
-        except RuntimeError:
+        except (RuntimeError, TypeError):
             error_str = '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics.' % (freq0, n_harm)
             n_harm //= 2
     ampl = popt[2]
