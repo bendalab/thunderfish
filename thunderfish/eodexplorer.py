@@ -63,6 +63,7 @@ class Explorer(object):
         self.corrindices = []
         self.corrartists = []
         self.corrselect = []
+        self.scatter = True
         self.mark_data = []
         self.select_zooms = False
         self.zoom_stack = []
@@ -77,15 +78,25 @@ class Explorer(object):
         self.fix_detailed_plot(self.dax, [0])
         plt.show()
         
-    def plot_hist(self, ax, c):
+    def plot_hist(self, ax, c, zoomax):
         ax.clear()
         ax.hist(self.data[:,c], self.hist_nbins)
         ax.set_xlabel(self.labels[c])
-        if c == 0 or not ax in self.histax:
+        if zoomax:
             ax.set_ylabel('count')
         else:
-            plt.setp(ax.get_yticklabels(), visible=False)
+            if c == 0:
+                ax.set_ylabel('count')
+            else:
+                plt.setp(ax.get_yticklabels(), visible=False)
         self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+        if zoomax:
+            bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
+            self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
+                                               transform=None, clip_on=False,
+                                               facecolor='white', edgecolor='none',
+                                               alpha=0.8, zorder=-5)
+            ax.add_patch(self.zoom_back)
         
     def plot_histograms(self):
         n = self.data.shape[1]
@@ -94,8 +105,47 @@ class Explorer(object):
         for r in range(n):
             ax = self.fig.add_subplot(n, n, (n-1)*n+r+1, sharey=yax)
             self.histax.append(ax)
-            self.plot_hist(ax, r)
+            self.plot_hist(ax, r, False)
             yax = ax
+            
+    def plot_scatter(self, ax, c, r, zoomax):
+        ax.clear()
+        if self.scatter:
+            ax.scatter(self.data[:,c], self.data[:,r], c=self.data_colors,
+                       s=50, edgecolors='none', zorder=10)
+        else:
+            self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+            self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
+            axrange = [ax.get_xlim(), ax.get_ylim()]
+            ax.hist2d(self.data[:,c], self.data[:,r], self.hist_nbins, range=axrange)
+        a = ax.scatter(self.data[self.mark_data[0],c], self.data[self.mark_data[0],r],
+                       c=self.data_colors[0], s=80, zorder=11)
+        if zoomax:
+            ax.set_xlabel(self.labels[c])
+            ax.set_ylabel(self.labels[r])
+        else:
+            plt.setp(ax.get_xticklabels(), visible=False)
+            if c == 0:
+                ax.set_ylabel(self.labels[r])
+            else:
+                plt.setp(ax.get_yticklabels(), visible=False)
+        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+        self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
+        if zoomax:
+            bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
+            self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
+                                               transform=None, clip_on=False,
+                                               facecolor='white', edgecolor='none',
+                                               alpha=0.8, zorder=-5)
+            ax.add_patch(self.zoom_back)
+        try:
+            selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
+                                                 useblit=True, button=1,
+                                                 state_modifier_keys=dict(move='', clear='', square='', center=''))
+        except TypeError:
+            selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
+                                                 useblit=True, button=1)
+        return a, selector
 
     def plot_correlations(self):
         self.mark_data = [0]
@@ -104,29 +154,12 @@ class Explorer(object):
             yax = None
             for c in range(r):
                 ax = self.fig.add_subplot(n, n, (r-1)*n+c+1, sharex=self.histax[c], sharey=yax)
-                ax.scatter(self.data[:,c], self.data[:,r], c=self.data_colors,
-                           s=50, edgecolors='none')
-                a = ax.scatter(self.data[self.mark_data[0],c], self.data[self.mark_data[0],r],
-                               c=self.data_colors[0], s=80)
-                plt.setp(ax.get_xticklabels(), visible=False)
-                if c == 0:
-                    ax.set_ylabel(self.labels[r])
-                else:
-                    plt.setp(ax.get_yticklabels(), visible=False)
-                self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
-                self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
-                try:
-                    selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
-                                                         useblit=True, button=1,
-                                                         state_modifier_keys=dict(move='', clear='', square='', center=''))
-                except TypeError:
-                    selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
-                                                         useblit=True, button=1)
-                yax = ax
+                a, selector = self.plot_scatter(ax, c, r, False)
                 self.corrax.append(ax)
                 self.corrindices.append([c, r])
                 self.corrartists.append(a)
                 self.corrselect.append(selector)
+                yax = ax
 
     def plot_zoomed_correlations(self):
         ax = self.fig.add_axes([0.5, 0.9, 0.05, 0.05])
@@ -289,9 +322,21 @@ class Explorer(object):
                 elif self.hist_nbins >= 15:
                     self.hist_nbins = (self.hist_nbins*2)//3
                 for c, ax in enumerate(self.histax):
-                    self.plot_hist(ax, c)
+                    self.plot_hist(ax, c, False)
                 if self.corrindices[-1][1] >= self.data.shape[1]:
-                    self.plot_hist(self.corrax[-1], self.corrindices[-1][0])
+                    self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
+                if not self.scatter:
+                    for ax, (c, r) in zip(self.corrax[:-1], self.corrindices[:-1]):
+                        self.plot_scatter(ax, c, r, False)
+                self.fig.canvas.draw()
+            elif event.key in 'h':
+                self.scatter = not self.scatter
+                for ax, (c, r) in zip(self.corrax[:-1], self.corrindices[:-1]):
+                    if r < self.data.shape[1]:
+                        self.plot_scatter(ax, c, r, False)
+                if self.corrindices[-1][1] < self.data.shape[1]:
+                    self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
+                                      self.corrindices[-1][1], True)
                 self.fig.canvas.draw()
         if plot_zoom:
             self.corrax[-1].clear()
@@ -300,27 +345,10 @@ class Explorer(object):
             self.set_zoom_pos(self.fig.get_window_extent().width,
                               self.fig.get_window_extent().height)
             if self.corrindices[-1][1] < self.data.shape[1]:
-                self.corrax[-1].scatter(self.data[:,self.corrindices[-1][0]],
-                                        self.data[:,self.corrindices[-1][1]],
-                                        c=self.data_colors, s=50, edgecolors='none', zorder=10)
-                self.corrartists[-1] = self.corrax[-1].scatter(
-                                        self.data[self.mark_data,self.corrindices[-1][0]],
-                                        self.data[self.mark_data,self.corrindices[-1][1]],
-                                        c=self.data_colors[self.mark_data], s=80, zorder=11)
-                self.corrax[-1].set_xlabel(self.labels[self.corrindices[-1][0]])
-                self.corrax[-1].set_ylabel(self.labels[self.corrindices[-1][1]])
-                self.fix_scatter_plot(self.corrax[-1], self.data[:,self.corrindices[-1][0]],
-                                      self.labels[self.corrindices[-1][0]], 'x')
-                self.fix_scatter_plot(self.corrax[-1], self.data[:,self.corrindices[-1][1]],
-                                      self.labels[self.corrindices[-1][1]], 'y')
+                a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
+                                                self.corrindices[-1][1], True)
             else:
-                self.plot_hist(self.corrax[-1], self.corrindices[-1][0])
-            bbox = self.corrax[-1].get_tightbbox(self.fig.canvas.get_renderer())
-            self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
-                                               transform=None, clip_on=False,
-                                               facecolor='white', edgecolor='none',
-                                               alpha=0.8, zorder=-5)
-            self.corrax[-1].add_patch(self.zoom_back)
+                self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
             if self.corrselect[-1] is not None:
                 del self.corrselect[-1]
             try:
