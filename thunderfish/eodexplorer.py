@@ -133,11 +133,12 @@ class Explorer(object):
         self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
         if zoomax:
             bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
-            self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
-                                               transform=None, clip_on=False,
-                                               facecolor='white', edgecolor='none',
-                                               alpha=0.8, zorder=-5)
-            ax.add_patch(self.zoom_back)
+            if bbox is not None:
+                self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
+                                                   transform=None, clip_on=False,
+                                                   facecolor='white', edgecolor='none',
+                                                   alpha=0.8, zorder=-5)
+                ax.add_patch(self.zoom_back)
         try:
             selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
                                                  useblit=True, button=1,
