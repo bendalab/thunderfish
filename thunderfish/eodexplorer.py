@@ -57,6 +57,7 @@ class Explorer(object):
         self.color_index = -1
         self.detailed_data = detailed_data
         self.histax = []
+        self.hist_nbins = 30
         self.plot_histograms()
         self.corrax = []
         self.corrindices = []
@@ -76,19 +77,25 @@ class Explorer(object):
         self.fix_detailed_plot(self.dax, [0])
         plt.show()
         
+    def plot_hist(self, ax, c):
+        ax.clear()
+        ax.hist(self.data[:,c], self.hist_nbins)
+        ax.set_xlabel(self.labels[c])
+        if c == 0 or not ax in self.histax:
+            ax.set_ylabel('count')
+        else:
+            plt.setp(ax.get_yticklabels(), visible=False)
+        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+        
     def plot_histograms(self):
         n = self.data.shape[1]
+        yax = None
         self.histax = []
         for r in range(n):
-            ax = self.fig.add_subplot(n, n, (n-1)*n+r+1)
-            ax.hist(self.data[:,r], 30)
-            ax.set_xlabel(self.labels[r])
-            if r == 0:
-                ax.set_ylabel('count')
-            else:
-                ax.set_yticklabels([])
-            self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'x')
+            ax = self.fig.add_subplot(n, n, (n-1)*n+r+1, sharey=yax)
             self.histax.append(ax)
+            self.plot_hist(ax, r)
+            yax = ax
 
     def plot_correlations(self):
         self.mark_data = [0]
@@ -276,6 +283,16 @@ class Explorer(object):
                 for l, c in zip(self.dax.lines, self.data_colors[self.mark_data]):
                     l.set_color(c)
                 self.fig.canvas.draw()
+            elif event.key in 'nN':
+                if event.key in 'N':
+                    self.hist_nbins = (self.hist_nbins*3)//2
+                elif self.hist_nbins >= 15:
+                    self.hist_nbins = (self.hist_nbins*2)//3
+                for c, ax in enumerate(self.histax):
+                    self.plot_hist(ax, c)
+                if self.corrindices[-1][1] >= self.data.shape[1]:
+                    self.plot_hist(self.corrax[-1], self.corrindices[-1][0])
+                self.fig.canvas.draw()
         if plot_zoom:
             self.corrax[-1].clear()
             self.corrax[-1].set_visible(True)
@@ -297,11 +314,7 @@ class Explorer(object):
                 self.fix_scatter_plot(self.corrax[-1], self.data[:,self.corrindices[-1][1]],
                                       self.labels[self.corrindices[-1][1]], 'y')
             else:
-                self.corrax[-1].hist(self.data[:,self.corrindices[-1][0]], 30)
-                self.corrax[-1].set_xlabel(self.labels[self.corrindices[-1][0]])
-                self.corrax[-1].set_ylabel('count')
-                self.fix_scatter_plot(self.corrax[-1], self.data[:,self.corrindices[-1][0]],
-                                      self.labels[self.corrindices[-1][0]], 'x')
+                self.plot_hist(self.corrax[-1], self.corrindices[-1][0])
             bbox = self.corrax[-1].get_tightbbox(self.fig.canvas.get_renderer())
             self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
                                                transform=None, clip_on=False,
@@ -472,6 +485,7 @@ def main():
         print('backspace              zoom back')
         print('+, -                   increase, decrease pick radius')
         print('0                      reset pick radius')
+        print('n, N                   decrease, increase number of bins of histograms')
         print('c, C                   cycle color map trough data columns')
         print('left, right, up, down  show and move enlarged scatter plot')
         print('escape                 close enlarged scatter plot')
