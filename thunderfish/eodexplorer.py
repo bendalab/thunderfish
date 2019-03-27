@@ -173,14 +173,20 @@ class Explorer(object):
             c, r = self.corrindices[axi]
             for ind, (x, y) in enumerate(zip(self.data[:,c], self.data[:,r])):
                 if x >= x0 and x <= x1 and y >= y0 and y <= y1:
-                    self.mark_data.append(ind)
+                    if ind in self.mark_data:
+                        self.mark_data.remove(ind)
+                    else:
+                        self.mark_data.append(ind)
         except ValueError:
             try:
                 r = self.histax.index(ax)
                 # from histogram:
                 for ind, x in enumerate(self.data[:,r]):
                     if x >= x0 and x <= x1:
-                        self.mark_data.append(ind)
+                        if ind in self.mark_data:
+                            self.mark_data.remove(ind)
+                        else:
+                            self.mark_data.append(ind)
             except ValueError:
                 return
         # update scatter plots:
@@ -236,7 +242,7 @@ class Explorer(object):
                 self.fig.canvas.draw()
             elif event.key in 'oz':
                 self.select_zooms = not self.select_zooms
-            elif event.key in 'backspace':
+            elif event.key == 'backspace':
                 if len(self.zoom_stack) > 0:
                     ax, xmin, xmax, ymin, ymax = self.zoom_stack.pop()
                     ax.set_xlim(xmin, xmax)
@@ -467,7 +473,7 @@ def main():
         print('+, -                   increase, decrease pick radius')
         print('0                      reset pick radius')
         print('c, C                   cycle color map trough data columns')
-        print('left, right, up, down  move enlarged scatter plot')
+        print('left, right, up, down  show and move enlarged scatter plot')
         print('escape                 close enlarged scatter plot')
         parser.exit()
         
