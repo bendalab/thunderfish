@@ -300,7 +300,8 @@ def output_plot(base_name, raw_data, samplerate, idx0, idx1,
         if len(fishlist) < 2:
             ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
         ax4.set_position([0.075, 0.2, 0.9, 0.3])
-        eod_recording_plot(raw_data[idx0:idx1], samplerate, ax4, 0.1, unit, idx0/samplerate)
+        rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
+        eod_recording_plot(rdata, samplerate, ax4, 0.1, unit, idx0/samplerate)
         ax4.set_title('Recording', fontsize=14, y=1.05)
         usedax4 = True
             

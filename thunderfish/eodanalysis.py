@@ -654,6 +654,10 @@ def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
     i0 = len(data)//2 - widx2
     i0 = (i0//widx2)*widx2
     i1 = i0 + 2*widx2
+    if i0 < 0:
+        i0 = 0
+    if i1 >= len(data):
+        i1 = len(data)
     time = np.arange(len(data))/samplerate + toffs
     tunit = 'sec'
     if np.abs(time[i0]) < 1.0 and np.abs(time[i1]) < 1.0:
