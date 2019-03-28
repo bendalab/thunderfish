@@ -74,9 +74,9 @@ class Explorer(object):
         self.zoom_back = None
         self.plot_zoomed_correlations()
         self.dax = self.fig.add_subplot(2, 3, 3)
-        self.dax.plot(self.detailed_data[0][:,0], self.detailed_data[0][:,1],
-                      c=self.data_colors[0], lw=3)
-        self.fix_detailed_plot(self.dax, [0])
+        self.dax.text(0.5, 0.5, 'Click to plot details', transform = self.dax.transAxes,
+                      ha='center', va='center')
+        self.fix_detailed_plot(self.dax, self.mark_data)
         plt.show()
         
     def plot_hist(self, ax, c, zoomax):
@@ -165,7 +165,6 @@ class Explorer(object):
         return a, selector
 
     def plot_correlations(self):
-        self.mark_data = [0]
         n = self.data.shape[1]
         for r in range(1, n):
             yax = None
@@ -523,7 +522,7 @@ def main():
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-d', dest='data_cols', action='append', default=[], metavar='COLUMN',
-                        help='data columns to be analyzed')
+                        help='data columns to be analyzed (overwrites default columns)')
     parser.add_argument('+d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be appended for analysis')
     parser.add_argument('-c', dest='color_col', default='EODf', type=str, metavar='COLUMN',
@@ -542,7 +541,8 @@ def main():
         print('')
         print('mouse:')
         print('left click             select data points')
-        print('shift + left click     add data points to selection')
+        print('left and drag          rectangular selection of data points')
+        print('shift + left click     add/remove data points to/from selection')
         print('')
         print('key shortcuts:')
         print('o, z                   toogle zoom mode')
@@ -550,6 +550,7 @@ def main():
         print('+, -                   increase, decrease pick radius')
         print('0                      reset pick radius')
         print('n, N                   decrease, increase number of bins of histograms')
+        print('h                      toggle between 2D histogram and scatter plot')
         print('c, C                   cycle color map trough data columns')
         print('left, right, up, down  show and move enlarged scatter plot')
         print('escape                 close enlarged scatter plot')
