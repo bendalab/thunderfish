@@ -1,5 +1,5 @@
 """
-# Explore EODs of many fish.
+# View and explore properties of EOD waveforms.
 """
 
 import os
@@ -57,6 +57,7 @@ class Explorer(object):
         self.color_index = -1
         self.detailed_data = detailed_data
         self.histax = []
+        self.histselect = []
         self.hist_nbins = 30
         self.plot_histograms()
         self.corrax = []
@@ -90,13 +91,22 @@ class Explorer(object):
             else:
                 plt.setp(ax.get_yticklabels(), visible=False)
         self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+        try:
+            selector = widgets.RectangleSelector(ax, self.on_select,
+                                                 drawtype='box', useblit=True, button=1,
+                                                 state_modifier_keys=dict(move='', clear='', square='', center=''))
+        except TypeError:
+            selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
+                                                 useblit=True, button=1)
         if zoomax:
             bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
-            self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
-                                               transform=None, clip_on=False,
-                                               facecolor='white', edgecolor='none',
-                                               alpha=0.8, zorder=-5)
-            ax.add_patch(self.zoom_back)
+            if bbox is not None: # XXX Why ?
+                self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
+                                                   transform=None, clip_on=False,
+                                                   facecolor='white', edgecolor='none',
+                                                   alpha=0.8, zorder=-5)
+                ax.add_patch(self.zoom_back)
+        return selector
         
     def plot_histograms(self):
         n = self.data.shape[1]
@@ -104,8 +114,9 @@ class Explorer(object):
         self.histax = []
         for r in range(n):
             ax = self.fig.add_subplot(n, n, (n-1)*n+r+1, sharey=yax)
+            selector = self.plot_hist(ax, r, False)
             self.histax.append(ax)
-            self.plot_hist(ax, r, False)
+            self.histselect.append(selector)
             yax = ax
             
     def plot_scatter(self, ax, c, r, zoomax):
@@ -118,8 +129,8 @@ class Explorer(object):
             self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
             axrange = [ax.get_xlim(), ax.get_ylim()]
             ax.hist2d(self.data[:,c], self.data[:,r], self.hist_nbins, range=axrange)
-        a = ax.scatter(self.data[self.mark_data[0],c], self.data[self.mark_data[0],r],
-                       c=self.data_colors[0], s=80, zorder=11)
+        a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
+                       c=self.data_colors[self.mark_data], s=80, zorder=11)
         if zoomax:
             ax.set_xlabel(self.labels[c])
             ax.set_ylabel(self.labels[r])
@@ -212,12 +223,22 @@ class Explorer(object):
             axi = self.corrax.index(ax)
             # from scatter plots:
             c, r = self.corrindices[axi]
-            for ind, (x, y) in enumerate(zip(self.data[:,c], self.data[:,r])):
-                if x >= x0 and x <= x1 and y >= y0 and y <= y1:
-                    if ind in self.mark_data:
-                        self.mark_data.remove(ind)
-                    else:
-                        self.mark_data.append(ind)
+            if r < self.data.shape[1]:
+                # from scatter:
+                for ind, (x, y) in enumerate(zip(self.data[:,c], self.data[:,r])):
+                    if x >= x0 and x <= x1 and y >= y0 and y <= y1:
+                        if ind in self.mark_data:
+                            self.mark_data.remove(ind)
+                        else:
+                            self.mark_data.append(ind)
+            else:
+                # from histogram:
+                for ind, x in enumerate(self.data[:,c]):
+                    if x >= x0 and x <= x1:
+                        if ind in self.mark_data:
+                            self.mark_data.remove(ind)
+                        else:
+                            self.mark_data.append(ind)
         except ValueError:
             try:
                 r = self.histax.index(ax)
@@ -232,9 +253,10 @@ class Explorer(object):
                 return
         # update scatter plots:
         for artist, (c, r) in zip(self.corrartists, self.corrindices):
-            artist.set_offsets(list(zip(self.data[self.mark_data,c],
-                                        self.data[self.mark_data,r])))
-            artist.set_facecolors(self.data_colors[self.mark_data])
+            if artist is not None:
+                artist.set_offsets(list(zip(self.data[self.mark_data,c],
+                                            self.data[self.mark_data,r])))
+                artist.set_facecolors(self.data_colors[self.mark_data])
         # detailed plot:
         self.dax.clear()
         for idx in self.mark_data:
@@ -311,9 +333,11 @@ class Explorer(object):
                     colors = color_range(self.data, self.color_index)
                     self.data_colors = self.color_map(colors)
                 for ax in self.corrax:
-                    ax.collections[0].set_facecolors(self.data_colors)
+                    if len(ax.collections) > 0:
+                        ax.collections[0].set_facecolors(self.data_colors)
                 for a in self.corrartists:
-                    a.set_facecolors(self.data_colors[self.mark_data])
+                    if a is not None:
+                        a.set_facecolors(self.data_colors[self.mark_data])
                 for l, c in zip(self.dax.lines, self.data_colors[self.mark_data]):
                     l.set_color(c)
                 self.fig.canvas.draw()
@@ -323,9 +347,11 @@ class Explorer(object):
                 elif self.hist_nbins >= 15:
                     self.hist_nbins = (self.hist_nbins*2)//3
                 for c, ax in enumerate(self.histax):
-                    self.plot_hist(ax, c, False)
+                    selector = self.plot_hist(ax, c, False)
+                    self.histselect[c] = selector
                 if self.corrindices[-1][1] >= self.data.shape[1]:
-                    self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
+                    selector = self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
+                    self.histselect[self.corrindices[-1][0]] = selector
                 if not self.scatter:
                     for ax, (c, r) in zip(self.corrax[:-1], self.corrindices[:-1]):
                         self.plot_scatter(ax, c, r, False)
@@ -348,17 +374,10 @@ class Explorer(object):
             if self.corrindices[-1][1] < self.data.shape[1]:
                 a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
                                                 self.corrindices[-1][1], True)
+                self.corrartists[-1] = a
             else:
-                self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
-            if self.corrselect[-1] is not None:
-                del self.corrselect[-1]
-            try:
-                selector = widgets.RectangleSelector(self.corrax[-1], self.on_select,
-                                                     drawtype='box', useblit=True, button=1,
-                                                     state_modifier_keys=dict(move='', clear='', square='', center=''))
-            except TypeError:
-                selector = widgets.RectangleSelector(self.corrax[-1], self.on_select,
-                                                     drawtype='box', useblit=True, button=1)
+                selector = self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
+                self.corrartists[-1] = None
             self.corrselect[-1] = selector
             self.fig.canvas.draw()
 
