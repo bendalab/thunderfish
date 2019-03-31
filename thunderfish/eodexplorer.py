@@ -6,6 +6,7 @@ import os
 import sys
 import argparse
 import numpy as np
+from sklearn import decomposition
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.widgets as widgets
@@ -28,16 +29,28 @@ class Explorer(object):
     
     def __init__(self, data, labels, colors, color_map, detailed_data):
         if isinstance(data, TableData):
-            self.data = data.array()
+            self.raw_data = data.array()
             if labels is None:
-                self.labels = []
+                self.raw_labels = []
                 for c in range(len(data)):
-                    self.labels.append('%s [%s]' % (data.label(c), data.unit(c)))
+                    self.raw_labels.append('%s [%s]' % (data.label(c), data.unit(c)))
             else:
-                self.labels = labels
+                self.raw_labels = labels
         else:
-            self.data = data
-            self.labels = labels
+            self.raw_data = data
+            self.raw_labels = labels
+        pca = decomposition.PCA()
+        pca.fit(self.raw_data)
+        self.pca_data = pca.transform(self.raw_data)
+        self.pca_labels = [('PCA%d=%.1f%%' if v > 0.01 else 'PCA%d=%.2f%%') % (k+1, 100.0*v)
+                           for k, v in enumerate(pca.explained_variance_ratio_)]
+        self.show_pca = False
+        if self.show_pca:
+            self.data = self.pca_data
+            self.labels = self.pca_labels
+        else:
+            self.data = self.raw_data
+            self.labels = self.raw_labels
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
         plt.rcParams['keymap.back'] = ''
@@ -355,7 +368,8 @@ class Explorer(object):
                     self.histselect[c] = selector
                 if self.corrindices[-1][1] >= self.data.shape[1]:
                     selector = self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
-                    self.histselect[self.corrindices[-1][0]] = selector
+                    self.corrartists[-1] = None
+                    self.corrselect[-1] = selector
                 elif not self.scatter:
                     a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
                                                     self.corrindices[-1][1], True)
@@ -370,14 +384,38 @@ class Explorer(object):
             elif event.key in 'h':
                 self.scatter = not self.scatter
                 for idx, (c, r) in enumerate(self.corrindices[:-1]):
-                    if r < self.data.shape[1]:
-                        a, selector = self.plot_scatter(self.corrax[idx], c, r, False)
-                        self.corrartists[idx] = a
-                        self.corrselect[idx] = selector
+                    a, selector = self.plot_scatter(self.corrax[idx], c, r, False)
+                    self.corrartists[idx] = a
+                    self.corrselect[idx] = selector
                 if self.corrindices[-1][1] < self.data.shape[1]:
                     a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
                                                     self.corrindices[-1][1], True)
                     self.corrartists[-1] = a
+                    self.corrselect[-1] = selector
+                self.fig.canvas.draw()
+            elif event.key in 'p':
+                self.show_pca = not self.show_pca
+                if self.show_pca:
+                    self.data = self.pca_data
+                    self.labels = self.pca_labels
+                else:
+                    self.data = self.raw_data
+                    self.labels = self.raw_labels
+                for idx, (c, r) in enumerate(self.corrindices[:-1]):
+                    a, selector = self.plot_scatter(self.corrax[idx], c, r, False)
+                    self.corrartists[idx] = a
+                    self.corrselect[idx] = selector
+                for c, ax in enumerate(self.histax):
+                    selector = self.plot_hist(ax, c, False)
+                    self.histselect[c] = selector
+                if self.corrindices[-1][1] < self.data.shape[1]:
+                    a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
+                                                    self.corrindices[-1][1], True)
+                    self.corrartists[-1] = a
+                    self.corrselect[-1] = selector
+                else:
+                    selector = self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
+                    self.corrartists[-1] = None
                     self.corrselect[-1] = selector
                 self.fig.canvas.draw()
         if plot_zoom:
@@ -524,7 +562,7 @@ def main():
     parser.add_argument('-d', dest='data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be analyzed (overwrites default columns)')
     parser.add_argument('+d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
-                        help='data columns to be appended for analysis')
+                        help='data columns to be appended or removed (if already listed) for analysis')
     parser.add_argument('-c', dest='color_col', default='EODf', type=str, metavar='COLUMN',
                         help='data column to be used for color code or "row"')
     parser.add_argument('-m', dest='color_map', default='jet', type=str, metavar='CMAP',
@@ -545,7 +583,8 @@ def main():
         print('shift + left click     add/remove data points to/from selection')
         print('')
         print('key shortcuts:')
-        print('o, z                   toogle zoom mode')
+        print('p                      toggle between data columns and PCA axis')
+        print('o, z                   toggle zoom mode on or off')
         print('backspace              zoom back')
         print('+, -                   increase, decrease pick radius')
         print('0                      reset pick radius')
@@ -604,6 +643,8 @@ def main():
     for c in add_data_cols:
         if data.index(c) is None:
             parser.error('"%s" is not a valid data column' % c)
+        elif c in data_cols:
+            data_cols.remove(c)
         else:
             data_cols.append(c)
 
