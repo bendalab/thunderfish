@@ -63,7 +63,6 @@ class Explorer(object):
         self.yborder = 50.0  # pixel for xlabels
         self.spacing = 10.0  # pixel between plots
         self.pick_radius = 0.05
-        self.histax = []
         self.color_map = plt.get_cmap(color_map)
         self.data_colors = self.color_map(colors)
         self.default_colors = colors
@@ -91,6 +90,7 @@ class Explorer(object):
         self.dax.text(0.5, 0.5, 'Click to plot details', transform = self.dax.transAxes,
                       ha='center', va='center')
         self.fix_detailed_plot(self.dax, self.mark_data)
+        self.show_maxcols = self.data.shape[1]
         plt.show()
         
     def plot_hist(self, ax, zoomax):
@@ -352,6 +352,14 @@ class Explorer(object):
                     self.pick_radius /= 1.5
             elif event.key in '0':
                 self.pick_radius = 0.05
+            elif event.key in '<>':
+                if event.key == '<' and self.show_maxcols > 2:
+                    self.show_maxcols -= 1
+                elif event.key == '>' and self.show_maxcols < self.raw_data.shape[1]:
+                    self.show_maxcols += 1
+                self.set_layout(self.fig.get_window_extent().width,
+                                self.fig.get_window_extent().height)
+                self.fig.canvas.draw()
             elif event.key in 'cC':
                 if event.key in 'c':
                     self.color_index -= 1
@@ -451,28 +459,38 @@ class Explorer(object):
             ax.set_ylim(y0, y1)
         self.update_selection(ax, erelease.key, x0, x1, y0, y1)
 
-    def on_resize(self, event):
-        n = self.data.shape[1]
-        xoffs = self.xborder/event.width
-        yoffs = self.yborder/event.height
-        dx = (1.0-xoffs)/n
-        dy = (1.0-yoffs)/n
-        xs = self.spacing/event.width
-        ys = self.spacing/event.height
+    def set_layout(self, width, height):
+        xoffs = self.xborder/width
+        yoffs = self.yborder/height
+        dx = (1.0-xoffs)/self.show_maxcols
+        dy = (1.0-yoffs)/self.show_maxcols
+        xs = self.spacing/width
+        ys = self.spacing/height
         xw = dx - xs
         yw = dy - ys
         for c, ax in enumerate(self.histax):
-            ax.set_position([xoffs+c*dx, yoffs, xw, yw])
+            if c < self.show_maxcols:
+                ax.set_position([xoffs+c*dx, yoffs, xw, yw])
+                ax.set_visible(True)
+            else:
+                ax.set_visible(False)
         for ax, (c, r) in zip(self.corrax[:-1], self.corrindices[:-1]):
-            ax.set_position([xoffs+c*dx, yoffs+(n-r)*dy, xw, yw])
-        self.set_zoom_pos(event.width, event.height)
+            if r < self.show_maxcols:
+                ax.set_position([xoffs+c*dx, yoffs+(self.show_maxcols-r)*dy, xw, yw])
+                ax.set_visible(True)
+            else:
+                ax.set_visible(False)
+        self.set_zoom_pos(width, height)
         if self.zoom_back is not None:  # XXX Why is it sometimes None????
             bbox = self.corrax[-1].get_tightbbox(self.fig.canvas.get_renderer())
             if bbox is not None:
                 self.zoom_back.set_bounds(bbox.x0, bbox.y0, bbox.width, bbox.height)
-        x0 = xoffs+(n//2+1)*dx
-        y0 = yoffs+(n//2+1)*dy
-        self.dax.set_position([x0, y0, 1.0-x0-xs, 1.0-y0-3*ys])
+        x0 = xoffs+(self.show_maxcols//2+1)*dx
+        y0 = yoffs+(self.show_maxcols//2+1)*dy
+        self.dax.set_position([x0, y0, 1.0-x0-xs, 1.0-y0-3*ys])        
+
+    def on_resize(self, event):
+        self.set_layout(event.width, event.height)
 
             
 class EODExplorer(Explorer):
