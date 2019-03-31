@@ -70,6 +70,7 @@ class Explorer(object):
         self.color_index = -1
         self.detailed_data = detailed_data
         self.histax = []
+        self.histindices = []
         self.histselect = []
         self.hist_nbins = 30
         self.plot_histograms()
@@ -92,7 +93,15 @@ class Explorer(object):
         self.fix_detailed_plot(self.dax, self.mark_data)
         plt.show()
         
-    def plot_hist(self, ax, c, zoomax):
+    def plot_hist(self, ax, zoomax):
+        try:
+            idx = self.histax.index(ax)
+            c = self.histindices[idx]
+            in_hist = True
+        except ValueError:
+            idx = self.corrax.index(ax)
+            c = self.corrindices[-1][0]
+            in_hist = False
         ax.clear()
         ax.hist(self.data[:,c], self.hist_nbins)
         ax.set_xlabel(self.labels[c])
@@ -111,6 +120,11 @@ class Explorer(object):
         except TypeError:
             selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
                                                  useblit=True, button=1)
+        if in_hist:
+            self.histselect[idx] = selector
+        else:
+            self.corrselect[idx] = selector
+            self.corrartists[idx] = None
         if zoomax:
             bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
             if bbox is not None: # XXX Why ?
@@ -119,7 +133,6 @@ class Explorer(object):
                                                    facecolor='white', edgecolor='none',
                                                    alpha=0.8, zorder=-5)
                 ax.add_patch(self.zoom_back)
-        return selector
         
     def plot_histograms(self):
         n = self.data.shape[1]
@@ -127,12 +140,15 @@ class Explorer(object):
         self.histax = []
         for r in range(n):
             ax = self.fig.add_subplot(n, n, (n-1)*n+r+1, sharey=yax)
-            selector = self.plot_hist(ax, r, False)
             self.histax.append(ax)
-            self.histselect.append(selector)
+            self.histindices.append(r)
+            self.histselect.append(None)
+            self.plot_hist(ax, False)
             yax = ax
             
-    def plot_scatter(self, ax, c, r, zoomax):
+    def plot_scatter(self, ax, zoomax):
+        idx = self.corrax.index(ax)
+        c, r = self.corrindices[idx]
         ax.clear()
         if self.scatter:
             ax.scatter(self.data[:,c], self.data[:,r], c=self.data_colors,
@@ -149,6 +165,7 @@ class Explorer(object):
                       cmap=plt.get_cmap('Greys'))
         a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
                        c=self.data_colors[self.mark_data], s=80, zorder=11)
+        self.corrartists[idx] = a
         if zoomax:
             ax.set_xlabel(self.labels[c])
             ax.set_ylabel(self.labels[r])
@@ -175,7 +192,7 @@ class Explorer(object):
         except TypeError:
             selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
                                                  useblit=True, button=1)
-        return a, selector
+        self.corrselect[idx] = selector
 
     def plot_correlations(self):
         n = self.data.shape[1]
@@ -183,11 +200,11 @@ class Explorer(object):
             yax = None
             for c in range(r):
                 ax = self.fig.add_subplot(n, n, (r-1)*n+c+1, sharex=self.histax[c], sharey=yax)
-                a, selector = self.plot_scatter(ax, c, r, False)
                 self.corrax.append(ax)
                 self.corrindices.append([c, r])
-                self.corrartists.append(a)
-                self.corrselect.append(selector)
+                self.corrartists.append(None)
+                self.corrselect.append(None)
+                self.plot_scatter(ax, False)
                 yax = ax
 
     def plot_zoomed_correlations(self):
@@ -363,35 +380,22 @@ class Explorer(object):
                     self.hist_nbins = (self.hist_nbins*3)//2
                 elif self.hist_nbins >= 15:
                     self.hist_nbins = (self.hist_nbins*2)//3
-                for c, ax in enumerate(self.histax):
-                    selector = self.plot_hist(ax, c, False)
-                    self.histselect[c] = selector
+                for ax in self.histax:
+                    self.plot_hist(ax, False)
                 if self.corrindices[-1][1] >= self.data.shape[1]:
-                    selector = self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
-                    self.corrartists[-1] = None
-                    self.corrselect[-1] = selector
+                    self.plot_hist(self.corrax[-1], True)
                 elif not self.scatter:
-                    a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
-                                                    self.corrindices[-1][1], True)
-                    self.corrartists[-1] = a
-                    self.corrselect[-1] = selector
+                    self.plot_scatter(self.corrax[-1], True)
                 if not self.scatter:
-                    for idx, (c, r) in enumerate(self.corrindices[:-1]):
-                        a, selector = self.plot_scatter(self.corrax[idx], c, r, False)
-                        self.corrartists[idx] = a
-                        self.corrselect[idx] = selector
+                    for ax in self.corrax[:-1]:
+                        self.plot_scatter(ax, False)
                 self.fig.canvas.draw()
             elif event.key in 'h':
                 self.scatter = not self.scatter
-                for idx, (c, r) in enumerate(self.corrindices[:-1]):
-                    a, selector = self.plot_scatter(self.corrax[idx], c, r, False)
-                    self.corrartists[idx] = a
-                    self.corrselect[idx] = selector
+                for ax in self.corrax[:-1]:
+                    self.plot_scatter(ax, False)
                 if self.corrindices[-1][1] < self.data.shape[1]:
-                    a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
-                                                    self.corrindices[-1][1], True)
-                    self.corrartists[-1] = a
-                    self.corrselect[-1] = selector
+                    self.plot_scatter(self.corrax[-1], True)
                 self.fig.canvas.draw()
             elif event.key in 'p':
                 self.show_pca = not self.show_pca
@@ -401,22 +405,14 @@ class Explorer(object):
                 else:
                     self.data = self.raw_data
                     self.labels = self.raw_labels
-                for idx, (c, r) in enumerate(self.corrindices[:-1]):
-                    a, selector = self.plot_scatter(self.corrax[idx], c, r, False)
-                    self.corrartists[idx] = a
-                    self.corrselect[idx] = selector
-                for c, ax in enumerate(self.histax):
-                    selector = self.plot_hist(ax, c, False)
-                    self.histselect[c] = selector
+                for ax in self.corrax[:-1]:
+                    self.plot_scatter(ax, False)
+                for ax in self.histax:
+                    self.plot_hist(ax, False)
                 if self.corrindices[-1][1] < self.data.shape[1]:
-                    a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
-                                                    self.corrindices[-1][1], True)
-                    self.corrartists[-1] = a
-                    self.corrselect[-1] = selector
+                    self.plot_scatter(self.corrax[-1], True)
                 else:
-                    selector = self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
-                    self.corrartists[-1] = None
-                    self.corrselect[-1] = selector
+                    self.plot_hist(self.corrax[-1], True)
                 self.fig.canvas.draw()
         if plot_zoom:
             self.corrax[-1].clear()
@@ -425,13 +421,9 @@ class Explorer(object):
             self.set_zoom_pos(self.fig.get_window_extent().width,
                               self.fig.get_window_extent().height)
             if self.corrindices[-1][1] < self.data.shape[1]:
-                a, selector = self.plot_scatter(self.corrax[-1], self.corrindices[-1][0],
-                                                self.corrindices[-1][1], True)
-                self.corrartists[-1] = a
+                self.plot_scatter(self.corrax[-1], True)
             else:
-                selector = self.plot_hist(self.corrax[-1], self.corrindices[-1][0], True)
-                self.corrartists[-1] = None
-            self.corrselect[-1] = selector
+                self.plot_hist(self.corrax[-1], True)
             self.fig.canvas.draw()
 
     def on_select(self, eclick, erelease):
