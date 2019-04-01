@@ -474,12 +474,14 @@ class Explorer(object):
                 ax.set_visible(True)
             else:
                 ax.set_visible(False)
+                ax.set_position([0.99, 0.01, 0.01, 0.01])
         for ax, (c, r) in zip(self.corrax[:-1], self.corrindices[:-1]):
             if r < self.show_maxcols:
                 ax.set_position([xoffs+c*dx, yoffs+(self.show_maxcols-r)*dy, xw, yw])
                 ax.set_visible(True)
             else:
                 ax.set_visible(False)
+                ax.set_position([0.99, 0.01, 0.01, 0.01])
         self.set_zoom_pos(width, height)
         if self.zoom_back is not None:  # XXX Why is it sometimes None????
             bbox = self.corrax[-1].get_tightbbox(self.fig.canvas.get_renderer())
