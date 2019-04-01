@@ -82,14 +82,14 @@ class Explorer(object):
         self.select_zooms = False
         self.zoom_stack = []
         self.plot_correlations()
-        self.zoomon = False
-        self.zoom_size = np.array([0.4, 0.4])
-        self.zoom_back = None
-        self.plot_zoomed_correlations()
         self.dax = self.fig.add_subplot(2, 3, 3)
         self.dax.text(0.5, 0.5, 'Click to plot details', transform = self.dax.transAxes,
                       ha='center', va='center')
         self.fix_detailed_plot(self.dax, self.mark_data)
+        self.zoomon = False
+        self.zoom_size = np.array([0.5, 0.5])
+        self.zoom_back = None
+        self.plot_zoomed_correlations()
         self.show_maxcols = self.data.shape[1]
         plt.show()
         
@@ -314,20 +314,26 @@ class Explorer(object):
                     else:
                         plot_zoom = False
                 elif event.key == 'right':
-                    if self.corrindices[-1][0] < self.corrindices[-1][1]-1:
+                    if self.corrindices[-1][0] < self.corrindices[-1][1]-1 and \
+                       self.corrindices[-1][0] < self.show_maxcols-1:
                         self.corrindices[-1][0] += 1
                     else:
                         plot_zoom = False
                 elif event.key == 'up':
                     if self.corrindices[-1][1] > 1:
-                        self.corrindices[-1][1] -= 1
+                        if self.corrindices[-1][1] >= self.data.shape[1]:
+                            self.corrindices[-1][1] = self.show_maxcols-1
+                        else:
+                            self.corrindices[-1][1] -= 1
                         if self.corrindices[-1][0] >= self.corrindices[-1][1]:
                             self.corrindices[-1][0] = self.corrindices[-1][1]-1
                     else:
                         plot_zoom = False
                 elif event.key == 'down':
-                    if self.corrindices[-1][1] < self.data.shape[1]:
+                    if self.corrindices[-1][1] < self.show_maxcols:
                         self.corrindices[-1][1] += 1
+                        if self.corrindices[-1][1] >= self.show_maxcols:
+                            self.corrindices[-1][1] = self.data.shape[1]
                     else:
                         plot_zoom = False
         else:
@@ -357,6 +363,16 @@ class Explorer(object):
                     self.show_maxcols -= 1
                 elif event.key == '>' and self.show_maxcols < self.raw_data.shape[1]:
                     self.show_maxcols += 1
+                if self.corrindices[-1][1] < self.data.shape[1]:
+                    if self.corrindices[-1][1] >= self.show_maxcols:
+                        self.corrindices[-1][1] = self.show_maxcols-1
+                    if self.corrindices[-1][0] >= self.corrindices[-1][1]:
+                        self.corrindices[-1][0] = self.corrindices[-1][1]-1
+                    self.plot_scatter(self.corrax[-1], True)
+                else:
+                    if self.corrindices[-1][0] >= self.show_maxcols:
+                        self.corrindices[-1][0] = self.show_maxcols-1
+                        self.plot_hist(self.corrax[-1], True)
                 self.set_layout(self.fig.get_window_extent().width,
                                 self.fig.get_window_extent().height)
                 self.fig.canvas.draw()
@@ -487,8 +503,11 @@ class Explorer(object):
             bbox = self.corrax[-1].get_tightbbox(self.fig.canvas.get_renderer())
             if bbox is not None:
                 self.zoom_back.set_bounds(bbox.x0, bbox.y0, bbox.width, bbox.height)
-        x0 = xoffs+(self.show_maxcols//2+1)*dx
-        y0 = yoffs+(self.show_maxcols//2+1)*dy
+        x0 = xoffs+((self.show_maxcols+1)//2)*dx
+        y0 = yoffs+((self.show_maxcols+1)//2)*dy
+        if self.show_maxcols%2 == 0:
+            x0 += xoffs
+            y0 += yoffs
         self.dax.set_position([x0, y0, 1.0-x0-xs, 1.0-y0-3*ys])        
 
     def on_resize(self, event):
