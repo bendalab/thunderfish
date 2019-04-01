@@ -15,16 +15,6 @@ from .version import __version__, __year__
 from .tabledata import TableData
 
 
-def color_range(data, color_col=None):
-    if color_col is None or color_col < 0:
-        colors = np.arange(len(data))/float(len(data))
-    else:
-        cmin = np.min(data[:,color_col])
-        cmax = np.max(data[:,color_col])
-        colors = (data[:,color_col] - cmin)/(cmax - cmin)
-    return colors
-
-
 class Explorer(object):
     
     def __init__(self, data, labels, colors, color_map, detailed_data):
@@ -64,7 +54,11 @@ class Explorer(object):
         self.spacing = 10.0  # pixel between plots
         self.pick_radius = 0.05
         self.color_map = plt.get_cmap(color_map)
-        self.data_colors = self.color_map(colors)
+        self.color_values = colors
+        self.data_colors = self.color_map(self.color_values)
+        self.color_label = ''
+        self.color_vmin = None
+        self.color_vmax = None
         self.default_colors = colors
         self.color_index = -1
         self.detailed_data = detailed_data
@@ -77,6 +71,7 @@ class Explorer(object):
         self.corrindices = []
         self.corrartists = []
         self.corrselect = []
+        self.cbax = None
         self.scatter = True
         self.mark_data = []
         self.select_zooms = False
@@ -146,13 +141,17 @@ class Explorer(object):
             self.plot_hist(ax, False)
             yax = ax
             
-    def plot_scatter(self, ax, zoomax):
+    def plot_scatter(self, ax, zoomax, cax=None):
         idx = self.corrax.index(ax)
         c, r = self.corrindices[idx]
         ax.clear()
         if self.scatter:
-            ax.scatter(self.data[:,c], self.data[:,r], c=self.data_colors,
-                       s=50, edgecolors='none', zorder=10)
+            a = ax.scatter(self.data[:,c], self.data[:,r], c=self.color_values,
+                           cmap=self.color_map, vmin=self.color_vmin, vmax=self.color_vmax,
+                           s=50, edgecolors='none', zorder=10)
+            if cax is not None:
+                self.fig.colorbar(a, cax=cax)
+                cax.set_ylabel(self.color_label)
         else:
             if zoomax:
                 rax = self.corrax[self.corrindices.index([c, r])]
@@ -195,6 +194,8 @@ class Explorer(object):
         self.corrselect[idx] = selector
 
     def plot_correlations(self):
+        self.cbax = self.fig.add_axes([0.5, 0.5, 0.1, 0.5])
+        cbax = self.cbax
         n = self.data.shape[1]
         for r in range(1, n):
             yax = None
@@ -204,8 +205,9 @@ class Explorer(object):
                 self.corrindices.append([c, r])
                 self.corrartists.append(None)
                 self.corrselect.append(None)
-                self.plot_scatter(ax, False)
+                self.plot_scatter(ax, False, cbax)
                 yax = ax
+                cbax = None
 
     def plot_zoomed_correlations(self):
         ax = self.fig.add_axes([0.5, 0.9, 0.05, 0.05])
@@ -215,7 +217,8 @@ class Explorer(object):
         r = 1
         ax.scatter(self.data[:,c], self.data[:,r], c=self.data_colors,
                    s=50, edgecolors='none')
-        a = ax.scatter(self.data[0,c], self.data[0,r], c=self.data_colors[0], s=80)
+        a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
+                       c=self.data_colors[self.mark_data], s=80)
         ax.set_xlabel(self.labels[c])
         ax.set_ylabel(self.labels[r])
         self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
@@ -226,6 +229,11 @@ class Explorer(object):
         self.corrselect.append(None)
                 
     def fix_scatter_plot(self, ax, data, label, axis):
+        """
+        axis: str
+          x, y: set xlim or ylim of ax
+          c: return vmin and vmax
+        """
         pass
 
     def fix_detailed_plot(self, ax, indices):
@@ -386,10 +394,18 @@ class Explorer(object):
                     if self.color_index >= self.data.shape[1]:
                         self.color_index = -1
                 if self.color_index == -1:
-                    self.data_colors = self.color_map(self.default_colors)
+                    self.color_values = self.default_colors
+                    self.color_label = ''
+                    self.color_vmin = None
+                    self.color_vmax = None
                 else:
-                    colors = color_range(self.data, self.color_index)
-                    self.data_colors = self.color_map(colors)
+                    self.color_values = self.data[:,self.color_index]
+                    self.color_label = self.labels[self.color_index]
+                    self.color_vmin, self.color_vmax = \
+                      self.fix_scatter_plot(None, self.color_values, self.color_label, 'c')
+                cmin = np.min(self.color_values)
+                cmax = np.max(self.color_values)
+                self.data_colors = self.color_map((self.color_values - cmin)/(cmax - cmin))
                 for ax in self.corrax:
                     if len(ax.collections) > 0:
                         ax.collections[0].set_facecolors(self.data_colors)
@@ -398,6 +414,8 @@ class Explorer(object):
                         a.set_facecolors(self.data_colors[self.mark_data])
                 for l, c in zip(self.dax.lines, self.data_colors[self.mark_data]):
                     l.set_color(c)
+                self.plot_scatter(self.corrax[0], False, self.cbax)
+                # update colormap tics and labels!!
                 self.fig.canvas.draw()
             elif event.key in 'nN':
                 if event.key in 'N':
@@ -498,6 +516,7 @@ class Explorer(object):
             else:
                 ax.set_visible(False)
                 ax.set_position([0.99, 0.01, 0.01, 0.01])
+        self.cbax.set_position([xoffs+dx, yoffs+(self.show_maxcols-1)*dy, 0.3*xoffs, yw])
         self.set_zoom_pos(width, height)
         if self.zoom_back is not None:  # XXX Why is it sometimes None????
             bbox = self.corrax[-1].get_tightbbox(self.fig.canvas.get_renderer())
@@ -526,18 +545,25 @@ class EODExplorer(Explorer):
             if np.all(data >= 0.0):
                 if axis == 'x':
                     ax.set_xlim(left=0.0)
-                else:
+                elif axis == 'y':
                     ax.set_ylim(bottom=0.0)
+                elif axis == 'c':
+                    return 0.0, np.max(data)
             else:
                 if axis == 'x':
                     ax.set_xlim(right=0.0)
-                else:
+                elif axis == 'y':
                     ax.set_ylim(top=0.0)
+                elif axis == 'c':
+                    return np.min(data), 0.0
         elif 'phase' in label:
             if axis == 'x':
                 ax.set_xlim(-np.pi, np.pi)
-            else:
+            elif axis == 'y':
                 ax.set_ylim(-np.pi, np.pi)
+            elif axis == 'c':
+                return -np.pi, np.pi
+        return None, None
 
     def fix_detailed_plot(self, ax, indices):
         if len(indices) > 0 and indices[-1] < len(self.eod_metadata):
@@ -683,7 +709,10 @@ def main():
     color_idx = data.index(color_col)
     if color_idx is None and not color_col in ['row', 'cluster']:
         parser.error('"%s" is not a valid column for color code' % color_col)
-    colors = color_range(data, color_idx)
+    if color_idx is None:
+        colors = np.arange(len(data))
+    else:
+        colors = data[:,color_idx]
 
     # load metadata:
     eod_metadata = []
