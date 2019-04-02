@@ -29,18 +29,23 @@ class Explorer(object):
         else:
             self.raw_data = data
             self.raw_labels = labels
+        self.data_maxcols = self.raw_data.shape[1]
+        self.pca_maxcols = None
         pca = decomposition.PCA()
         pca.fit(self.raw_data)
+        self.pca_variance = pca.explained_variance_ratio_
         self.pca_data = pca.transform(self.raw_data)
         self.pca_labels = [('PCA%d=%.1f%%' if v > 0.01 else 'PCA%d=%.2f%%') % (k+1, 100.0*v)
-                           for k, v in enumerate(pca.explained_variance_ratio_)]
+                           for k, v in enumerate(self.pca_variance)]
         self.show_pca = False
         if self.show_pca:
             self.data = self.pca_data
             self.labels = self.pca_labels
+            self.show_maxcols = self.pca_maxcols
         else:
             self.data = self.raw_data
             self.labels = self.raw_labels
+            self.show_maxcols = self.data_maxcols
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
         plt.rcParams['keymap.back'] = ''
@@ -89,7 +94,6 @@ class Explorer(object):
         self.zoom_size = np.array([0.5, 0.5])
         self.zoom_back = None
         self.plot_zoomed_correlations()
-        self.show_maxcols = self.data.shape[1]
         plt.show()
         
     def plot_hist(self, ax, zoomax):
@@ -472,11 +476,19 @@ class Explorer(object):
             elif event.key in 'p':
                 self.show_pca = not self.show_pca
                 if self.show_pca:
+                    self.data_maxcols = self.show_maxcols
                     self.data = self.pca_data
                     self.labels = self.pca_labels
+                    if self.pca_maxcols is None:
+                        self.pca_maxcols = np.argmax(self.pca_variance < 0.0001)
+                        if self.pca_maxcols < 2:
+                            self.pca_maxcols = 2
+                    self.show_maxcols = self.pca_maxcols
                 else:
+                    self.pca_maxcols = self.show_maxcols
                     self.data = self.raw_data
                     self.labels = self.raw_labels
+                    self.show_maxcols = self.data_maxcols
                 self.zoom_stack = []
                 # need to reset data limits:
                 for ax in self.histax + self.corrax[:-1]:
@@ -487,6 +499,16 @@ class Explorer(object):
                     self.plot_hist(ax, False)
                 for ax in self.corrax[:-1]:
                     self.plot_scatter(ax, False)
+                if self.corrindices[-1][1] < self.data.shape[1]:
+                    if self.corrindices[-1][1] >= self.show_maxcols:
+                        self.corrindices[-1][1] = self.show_maxcols-1
+                    if self.corrindices[-1][0] >= self.corrindices[-1][1]:
+                        self.corrindices[-1][0] = self.corrindices[-1][1]-1
+                else:
+                    if self.corrindices[-1][0] >= self.show_maxcols:
+                        self.corrindices[-1][0] = self.show_maxcols-1
+                self.set_layout(self.fig.get_window_extent().width,
+                                self.fig.get_window_extent().height)
                 if self.corrindices[-1][1] < self.data.shape[1]:
                     self.plot_scatter(self.corrax[-1], True)
                 else:
