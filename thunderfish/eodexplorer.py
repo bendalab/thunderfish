@@ -116,6 +116,8 @@ class Explorer(object):
             c = self.corrindices[-1][0]
             in_hist = False
         ax.clear()
+        ax.relim()
+        ax.autoscale(True)
         ax.hist(self.data[:,c], self.hist_nbins)
         ax.set_xlabel(self.labels[c])
         if zoomax:
@@ -163,6 +165,8 @@ class Explorer(object):
         idx = self.corrax.index(ax)
         c, r = self.corrindices[idx]
         ax.clear()
+        ax.relim()
+        ax.autoscale(True)
         if self.scatter:
             a = ax.scatter(self.data[:,c], self.data[:,r], c=self.color_values,
                            cmap=self.color_map, vmin=self.color_vmin, vmax=self.color_vmax,
@@ -390,19 +394,7 @@ class Explorer(object):
                     self.show_maxcols -= 1
                 elif event.key == '>' and self.show_maxcols < self.raw_data.shape[1]:
                     self.show_maxcols += 1
-                if self.corrindices[-1][1] < self.data.shape[1]:
-                    if self.corrindices[-1][1] >= self.show_maxcols:
-                        self.corrindices[-1][1] = self.show_maxcols-1
-                    if self.corrindices[-1][0] >= self.corrindices[-1][1]:
-                        self.corrindices[-1][0] = self.corrindices[-1][1]-1
-                    self.plot_scatter(self.corrax[-1], True)
-                else:
-                    if self.corrindices[-1][0] >= self.show_maxcols:
-                        self.corrindices[-1][0] = self.show_maxcols-1
-                        self.plot_hist(self.corrax[-1], True)
-                self.set_layout(self.fig.get_window_extent().width,
-                                self.fig.get_window_extent().height)
-                self.fig.canvas.draw()
+                self.update_layout()
             elif event.key in 'cC':
                 if event.key in 'c':
                     self.color_index -= 1
@@ -482,33 +474,11 @@ class Explorer(object):
                     self.labels = self.raw_labels
                     self.show_maxcols = self.data_maxcols
                 self.zoom_stack = []
-                # need to reset data limits:
-                for ax in self.histax + self.corrax[:-1]:
-                    ax.clear()
-                    ax.relim()
-                    ax.autoscale(True)
-                # plot new data:
                 for ax in self.histax:
                     self.plot_hist(ax, False)
                 for ax in self.corrax[:-1]:
                     self.plot_scatter(ax, False)
-                # update layout:
-                if self.corrindices[-1][1] < self.data.shape[1]:
-                    if self.corrindices[-1][1] >= self.show_maxcols:
-                        self.corrindices[-1][1] = self.show_maxcols-1
-                    if self.corrindices[-1][0] >= self.corrindices[-1][1]:
-                        self.corrindices[-1][0] = self.corrindices[-1][1]-1
-                else:
-                    if self.corrindices[-1][0] >= self.show_maxcols:
-                        self.corrindices[-1][0] = self.show_maxcols-1
-                self.set_layout(self.fig.get_window_extent().width,
-                                self.fig.get_window_extent().height)
-                # update zoomed plot:
-                if self.corrindices[-1][1] < self.data.shape[1]:
-                    self.plot_scatter(self.corrax[-1], True)
-                else:
-                    self.plot_hist(self.corrax[-1], True)
-                self.fig.canvas.draw()
+                self.update_layout()
         if plot_zoom:
             self.corrax[-1].clear()
             self.corrax[-1].set_visible(True)
@@ -580,7 +550,22 @@ class Explorer(object):
         if self.show_maxcols%2 == 0:
             x0 += xoffs
             y0 += yoffs
-        self.dax.set_position([x0, y0, 1.0-x0-xs, 1.0-y0-3*ys])        
+        self.dax.set_position([x0, y0, 1.0-x0-xs, 1.0-y0-3*ys])
+
+    def update_layout(self):
+        if self.corrindices[-1][1] < self.data.shape[1]:
+            if self.corrindices[-1][1] >= self.show_maxcols:
+                self.corrindices[-1][1] = self.show_maxcols-1
+            if self.corrindices[-1][0] >= self.corrindices[-1][1]:
+                self.corrindices[-1][0] = self.corrindices[-1][1]-1
+            self.plot_scatter(self.corrax[-1], True)
+        else:
+            if self.corrindices[-1][0] >= self.show_maxcols:
+                self.corrindices[-1][0] = self.show_maxcols-1
+                self.plot_hist(self.corrax[-1], True)
+        self.set_layout(self.fig.get_window_extent().width,
+                        self.fig.get_window_extent().height)
+        self.fig.canvas.draw()
 
     def on_resize(self, event):
         self.set_layout(event.width, event.height)
