@@ -55,7 +55,9 @@ class Explorer(object):
         self.pick_radius = 0.05
         self.color_map = plt.get_cmap(color_map)
         self.color_values = colors
-        self.data_colors = self.color_map(self.color_values)
+        cmin = np.min(self.color_values)
+        cmax = np.max(self.color_values)
+        self.data_colors = self.color_map((self.color_values - cmin)/(cmax - cmin))
         self.color_label = ''
         self.color_vmin = None
         self.color_vmax = None
@@ -122,7 +124,7 @@ class Explorer(object):
             self.corrartists[idx] = None
         if zoomax:
             bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
-            if bbox is not None: # XXX Why ?
+            if bbox is not None:
                 self.zoom_back = patches.Rectangle((bbox.x0, bbox.y0), bbox.width, bbox.height,
                                                    transform=None, clip_on=False,
                                                    facecolor='white', edgecolor='none',
@@ -192,13 +194,39 @@ class Explorer(object):
             selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
                                                  useblit=True, button=1)
         self.corrselect[idx] = selector
+            
+    def plot_scatter_min(self, ax):
+        idx = self.corrax.index(ax)
+        c, r = self.corrindices[idx]
+        ax.clear()
+        if self.scatter:
+            a = ax.scatter(self.data[:,c], self.data[:,r], c=self.color_values,
+                           cmap=self.color_map, vmin=self.color_vmin, vmax=self.color_vmax,
+                           s=50, edgecolors='none', zorder=10)
+        else:
+            self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+            self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
+            rax = ax
+            axrange = [rax.get_xlim(), rax.get_ylim()]
+            ax.hist2d(self.data[:,c], self.data[:,r], self.hist_nbins, range=axrange,
+                      cmap=plt.get_cmap('Greys'))
+        a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
+                       c=self.data_colors[self.mark_data], s=80, zorder=11)
+        self.corrartists[idx] = a
+        plt.setp(ax.get_xticklabels(), visible=False)
+        if c == 0:
+            ax.set_ylabel(self.labels[r])
+        else:
+            plt.setp(ax.get_yticklabels(), visible=False)
+        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+        self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
 
     def plot_correlations(self):
         self.cbax = self.fig.add_axes([0.5, 0.5, 0.1, 0.5])
         cbax = self.cbax
         n = self.data.shape[1]
         for r in range(1, n):
-            yax = None # self.histax[r] # does not work
+            yax = None
             for c in range(r):
                 ax = self.fig.add_subplot(n, n, (r-1)*n+c+1, sharex=self.histax[c], sharey=yax)
                 self.corrax.append(ax)
@@ -415,7 +443,6 @@ class Explorer(object):
                 for l, c in zip(self.dax.lines, self.data_colors[self.mark_data]):
                     l.set_color(c)
                 self.plot_scatter(self.corrax[0], False, self.cbax)
-                # update colormap tics and labels!!
                 self.fig.canvas.draw()
             elif event.key in 'nN':
                 if event.key in 'N':
@@ -447,19 +474,16 @@ class Explorer(object):
                 else:
                     self.data = self.raw_data
                     self.labels = self.raw_labels
+                self.zoom_stack = []
+                # need to reset data limits:
+                for ax in self.histax + self.corrax[:-1]:
+                    ax.clear()
+                    ax.relim()
+                    ax.autoscale(True)
                 for ax in self.histax:
                     self.plot_hist(ax, False)
                 for ax in self.corrax[:-1]:
                     self.plot_scatter(ax, False)
-                # XXX Need to fix axis again!
-                # shouldn't we connect scatter yax with hist x-ax?
-                ## for ax, (c, r) in zip(self.corrax[:-1], self.corrindices[:-1]):
-                ##     ax.relim()
-                ##     #self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
-                ##     #self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
-                ## for ax, c in zip(self.histax, self.histindices):
-                ##     ax.relim()
-                ##     #self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
                 if self.corrindices[-1][1] < self.data.shape[1]:
                     self.plot_scatter(self.corrax[-1], True)
                 else:
@@ -550,8 +574,6 @@ class EODExplorer(Explorer):
         Explorer.__init__(self, data, labels, colors, color_map, eod_data)
 
     def fix_scatter_plot(self, ax, data, label, axis):
-        if axis in 'xy':
-            ax.autoscale(True, axis, False)
         if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
             if np.all(data >= 0.0):
                 if axis == 'x':
