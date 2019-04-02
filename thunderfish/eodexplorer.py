@@ -17,7 +17,8 @@ from .tabledata import TableData
 
 class Explorer(object):
     
-    def __init__(self, data, labels, colors, color_map, detailed_data, detailed_name):
+    def __init__(self, data, labels, colors, color_label, color_map,
+                 detailed_data, detailed_name):
         if isinstance(data, TableData):
             self.raw_data = data.array()
             if labels is None:
@@ -59,15 +60,23 @@ class Explorer(object):
         self.spacing = 10.0  # pixel between plots
         self.pick_radius = 0.05
         self.color_map = plt.get_cmap(color_map)
-        self.color_values = colors
+        if isinstance(colors, int):
+            self.extra_colors = None
+            self.extra_color_label = None
+            self.color_values = self.raw_data[:,colors]
+            self.color_index = colors
+            self.color_label = self.labels[colors]
+        else:
+            self.extra_colors = colors
+            self.extra_color_label = color_label
+            self.color_values = colors
+            self.color_index = -1
+            self.color_label = color_label
         cmin = np.min(self.color_values)
         cmax = np.max(self.color_values)
         self.data_colors = self.color_map((self.color_values - cmin)/(cmax - cmin))
-        self.color_label = ''
         self.color_vmin = None
         self.color_vmax = None
-        self.default_colors = colors
-        self.color_index = -1
         self.detailed_data = detailed_data
         self.detailed_name = detailed_name
         self.histax = []
@@ -200,32 +209,6 @@ class Explorer(object):
             selector = widgets.RectangleSelector(ax, self.on_select, drawtype='box',
                                                  useblit=True, button=1)
         self.corrselect[idx] = selector
-            
-    def plot_scatter_min(self, ax):
-        idx = self.corrax.index(ax)
-        c, r = self.corrindices[idx]
-        ax.clear()
-        if self.scatter:
-            a = ax.scatter(self.data[:,c], self.data[:,r], c=self.color_values,
-                           cmap=self.color_map, vmin=self.color_vmin, vmax=self.color_vmax,
-                           s=50, edgecolors='none', zorder=10)
-        else:
-            self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
-            self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
-            rax = ax
-            axrange = [rax.get_xlim(), rax.get_ylim()]
-            ax.hist2d(self.data[:,c], self.data[:,r], self.hist_nbins, range=axrange,
-                      cmap=plt.get_cmap('Greys'))
-        a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
-                       c=self.data_colors[self.mark_data], s=80, zorder=11)
-        self.corrartists[idx] = a
-        plt.setp(ax.get_xticklabels(), visible=False)
-        if c == 0:
-            ax.set_ylabel(self.labels[r])
-        else:
-            plt.setp(ax.get_yticklabels(), visible=False)
-        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
-        self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
 
     def plot_correlations(self):
         self.cbax = self.fig.add_axes([0.5, 0.5, 0.1, 0.5])
@@ -422,22 +405,31 @@ class Explorer(object):
             elif event.key in 'cC':
                 if event.key in 'c':
                     self.color_index -= 1
-                    if self.color_index < -1:
+                    if self.color_index < -2:
                         self.color_index = self.data.shape[1] - 1
+                    if self.color_index == -1 and self.extra_colors is None:
+                        self.color_index -= 1
+                        if self.color_index < -2:
+                            self.color_index = self.data.shape[1] - 1
                 else:
                     self.color_index += 1
                     if self.color_index >= self.data.shape[1]:
-                        self.color_index = -1
-                if self.color_index == -1:
-                    self.color_values = self.default_colors
-                    self.color_label = ''
-                    self.color_vmin = None
-                    self.color_vmax = None
+                        self.color_index = -2
+                    if self.color_index == -1 and self.extra_colors is None:
+                        self.color_index += 1
+                        if self.color_index >= self.data.shape[1]:
+                            self.color_index = -2
+                if self.color_index == -2:
+                    self.color_values = np.arange(self.data.shape[0], dtype=np.float)
+                    self.color_label = 'index'
+                elif self.color_index == -1:
+                    self.color_values = self.extra_colors
+                    self.color_label = self.extra_color_label
                 else:
                     self.color_values = self.data[:,self.color_index]
                     self.color_label = self.labels[self.color_index]
-                    self.color_vmin, self.color_vmax = \
-                      self.fix_scatter_plot(None, self.color_values, self.color_label, 'c')
+                self.color_vmin, self.color_vmax = \
+                  self.fix_scatter_plot(None, self.color_values, self.color_label, 'c')
                 cmin = np.min(self.color_values)
                 cmax = np.max(self.color_values)
                 self.data_colors = self.color_map((self.color_values - cmin)/(cmax - cmin))
@@ -495,10 +487,12 @@ class Explorer(object):
                     ax.clear()
                     ax.relim()
                     ax.autoscale(True)
+                # plot new data:
                 for ax in self.histax:
                     self.plot_hist(ax, False)
                 for ax in self.corrax[:-1]:
                     self.plot_scatter(ax, False)
+                # update layout:
                 if self.corrindices[-1][1] < self.data.shape[1]:
                     if self.corrindices[-1][1] >= self.show_maxcols:
                         self.corrindices[-1][1] = self.show_maxcols-1
@@ -509,6 +503,7 @@ class Explorer(object):
                         self.corrindices[-1][0] = self.show_maxcols-1
                 self.set_layout(self.fig.get_window_extent().width,
                                 self.fig.get_window_extent().height)
+                # update zoomed plot:
                 if self.corrindices[-1][1] < self.data.shape[1]:
                     self.plot_scatter(self.corrax[-1], True)
                 else:
@@ -593,11 +588,11 @@ class Explorer(object):
             
 class EODExplorer(Explorer):
     
-    def __init__(self, data, labels, colors, color_map, wave_fish,
+    def __init__(self, data, labels, colors, color_label, color_map, wave_fish,
                  eod_data, eod_name, eod_metadata):
         self.wave_fish = wave_fish
         self.eod_metadata = eod_metadata
-        Explorer.__init__(self, data, labels, colors, color_map, eod_data, eod_name)
+        Explorer.__init__(self, data, labels, colors, color_label, color_map, eod_data, eod_name)
 
     def fix_scatter_plot(self, ax, data, label, axis):
         if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
@@ -747,31 +742,38 @@ def main():
     # data columns:
     if len(data_cols) == 0:
         if wave_fish:
-            data_cols = ['EODf', 'relampl1', 'phase1', 'relampl2', 'phase2']
+            data_cols = ['EODf', 'relampl1', 'phase1', 'relampl2', 'phase2', 'relampl3', 'phase3']
         else:
             data_cols = ['EODf', 'P1width', 'P2relampl', 'P2time', 'P2width', 'tau', 'peakfreq', 'poweratt5']
-    else:
-        for c in data_cols:
-            if data.index(c) is None:
-                parser.error('"%s" is not a valid data column' % c)
+    for k, c in enumerate(data_cols):
+        idx = data.index(c)
+        if idx is None:
+            parser.error('"%s" is not a valid data column' % c)
+        else:
+            data_cols[k] = idx
 
     # additional data columns:
     for c in add_data_cols:
-        if data.index(c) is None:
+        idx = data.index(c)
+        if idx is None:
             parser.error('"%s" is not a valid data column' % c)
-        elif c in data_cols:
-            data_cols.remove(c)
+        elif idx in data_cols:
+            data_cols.remove(idx)
         else:
-            data_cols.append(c)
+            data_cols.append(idx)
 
     # color code:
-    color_idx = data.index(color_col)
-    if color_idx is None and not color_col in ['row', 'cluster']:
+    colors = data.index(color_col)
+    colorlabel = None
+    if colors is None and color_col != 'row':
         parser.error('"%s" is not a valid column for color code' % color_col)
-    if color_idx is None:
-        colors = np.arange(len(data))
+    if colors is None:
+        colors = -1
+    elif colors in data_cols:
+        colors = data_cols.index(colors)
     else:
-        colors = data[:,color_idx]
+        colorlabel = '%s [%s]' % (data.label(colors), data.unit(colors))
+        colors = data[:,colors]
 
     # load metadata:
     eod_metadata = []
@@ -793,7 +795,7 @@ def main():
     data = data[:,data_cols]
 
     # explore:
-    eodexp = EODExplorer(data, None, colors, color_map, wave_fish,
+    eodexp = EODExplorer(data, None, colors, colorlabel, color_map, wave_fish,
                          eod_data, 'EOD waveforms', eod_metadata)
 
 
