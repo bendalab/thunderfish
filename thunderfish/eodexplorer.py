@@ -198,7 +198,7 @@ class Explorer(object):
         cbax = self.cbax
         n = self.data.shape[1]
         for r in range(1, n):
-            yax = None
+            yax = None # self.histax[r] # does not work
             for c in range(r):
                 ax = self.fig.add_subplot(n, n, (r-1)*n+c+1, sharex=self.histax[c], sharey=yax)
                 self.corrax.append(ax)
@@ -447,11 +447,19 @@ class Explorer(object):
                 else:
                     self.data = self.raw_data
                     self.labels = self.raw_labels
-                for ax in self.corrax[:-1]:
-                    self.plot_scatter(ax, False)
                 for ax in self.histax:
                     self.plot_hist(ax, False)
+                for ax in self.corrax[:-1]:
+                    self.plot_scatter(ax, False)
                 # XXX Need to fix axis again!
+                # shouldn't we connect scatter yax with hist x-ax?
+                ## for ax, (c, r) in zip(self.corrax[:-1], self.corrindices[:-1]):
+                ##     ax.relim()
+                ##     #self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+                ##     #self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
+                ## for ax, c in zip(self.histax, self.histindices):
+                ##     ax.relim()
+                ##     #self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
                 if self.corrindices[-1][1] < self.data.shape[1]:
                     self.plot_scatter(self.corrax[-1], True)
                 else:
