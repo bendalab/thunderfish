@@ -77,6 +77,7 @@ class Explorer(object):
         self.data_colors = self.color_map((self.color_values - cmin)/(cmax - cmin))
         self.color_vmin = None
         self.color_vmax = None
+        self.color_ticks = None
         self.detailed_data = detailed_data
         self.detailed_name = detailed_name
         self.histax = []
@@ -167,7 +168,7 @@ class Explorer(object):
                            cmap=self.color_map, vmin=self.color_vmin, vmax=self.color_vmax,
                            s=50, edgecolors='none', zorder=10)
             if cax is not None:
-                self.fig.colorbar(a, cax=cax)
+                self.fig.colorbar(a, cax=cax, ticks=self.color_ticks)
                 cax.set_ylabel(self.color_label)
         else:
             if zoomax:
@@ -249,7 +250,7 @@ class Explorer(object):
         """
         axis: str
           x, y: set xlim or ylim of ax
-          c: return vmin and vmax
+          c: return vmin, vmax, and ticks
         """
         pass
 
@@ -428,11 +429,9 @@ class Explorer(object):
                 else:
                     self.color_values = self.data[:,self.color_index]
                     self.color_label = self.labels[self.color_index]
-                self.color_vmin, self.color_vmax = \
-                  self.fix_scatter_plot(None, self.color_values, self.color_label, 'c')
-                cmin = np.min(self.color_values)
-                cmax = np.max(self.color_values)
-                self.data_colors = self.color_map((self.color_values - cmin)/(cmax - cmin))
+                self.color_vmin, self.color_vmax, self.color_ticks = \
+                  self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
+                self.data_colors = self.color_map((self.color_values - self.color_vmin)/(self.color_vmax - self.color_vmin))
                 for ax in self.corrax:
                     if len(ax.collections) > 0:
                         ax.collections[0].set_facecolors(self.data_colors)
@@ -442,6 +441,7 @@ class Explorer(object):
                 for l, c in zip(self.dax.lines, self.data_colors[self.mark_data]):
                     l.set_color(c)
                 self.plot_scatter(self.corrax[0], False, self.cbax)
+                self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
                 self.fig.canvas.draw()
             elif event.key in 'nN':
                 if event.key in 'N':
@@ -602,22 +602,27 @@ class EODExplorer(Explorer):
                 elif axis == 'y':
                     ax.set_ylim(0.0, None)
                 elif axis == 'c':
-                    return 0.0, np.max(data)
+                    return 0.0, np.max(data), None
             else:
                 if axis == 'x':
                     ax.set_xlim(None, 0.0)
                 elif axis == 'y':
                     ax.set_ylim(None, 0.0)
                 elif axis == 'c':
-                    return np.min(data), 0.0
+                    return np.min(data), 0.0, None
         elif 'phase' in label:
             if axis == 'x':
                 ax.set_xlim(-np.pi, np.pi)
+                ax.set_xticks(np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi))
+                ax.set_xticklabels([u'-\u03c0', u'-\u03c0/2', '0', u'\u03c0/2', u'\u03c0'])
             elif axis == 'y':
                 ax.set_ylim(-np.pi, np.pi)
+                ax.set_yticks(np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi))
+                ax.set_yticklabels([u'-\u03c0', u'-\u03c0/2', '0', u'\u03c0/2', u'\u03c0'])
             elif axis == 'c':
-                return -np.pi, np.pi
-        return None, None
+                ax.set_yticklabels([u'-\u03c0', u'-\u03c0/2', '0', u'\u03c0/2', u'\u03c0'])
+                return -np.pi, np.pi, np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi)
+        return np.min(data), np.max(data), None
 
     def fix_detailed_plot(self, ax, indices):
         if len(indices) > 0 and indices[-1] < len(self.eod_metadata):
@@ -690,7 +695,7 @@ def main():
         print('')
         print('mouse:')
         print('left click             select data points')
-        print('left and drag          rectangular selection of data points')
+        print('left and drag          rectangular selection and zoom of data points')
         print('shift + left click     add/remove data points to/from selection')
         print('')
         print('key shortcuts:')
