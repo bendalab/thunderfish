@@ -58,7 +58,7 @@ class Explorer(object):
         self.xborder = 60.0  # pixel for ylabels
         self.yborder = 50.0  # pixel for xlabels
         self.spacing = 10.0  # pixel between plots
-        self.pick_radius = 0.05
+        self.pick_radius = 4.0
         self.color_map = plt.get_cmap(color_map)
         if isinstance(colors, int):
             self.extra_colors = None
@@ -385,10 +385,10 @@ class Explorer(object):
             elif event.key in '+=':
                 self.pick_radius *= 1.5
             elif event.key in '-':
-                if self.pick_radius > 0.001:
+                if self.pick_radius > 5.0:
                     self.pick_radius /= 1.5
             elif event.key in '0':
-                self.pick_radius = 0.05
+                self.pick_radius = 4.0
             elif event.key in ['pageup', 'pagedown', '<', '>']:
                 if event.key in ['pageup', '<'] and self.show_maxcols > 2:
                     self.show_maxcols -= 1
@@ -504,8 +504,12 @@ class Explorer(object):
         dx = 0.02*(xmax-xmin)
         dy = 0.02*(ymax-ymin)
         if x1 - x0 < dx and y1 - y0 < dy:
-            dx = self.pick_radius*(xmax-xmin)
-            dy = self.pick_radius*(ymax-ymin)
+            bbox = ax.get_window_extent().transformed(self.fig.dpi_scale_trans.inverted())
+            width, height = bbox.width, bbox.height
+            width *= self.fig.dpi
+            height *= self.fig.dpi
+            dx = self.pick_radius*(xmax-xmin)/width
+            dy = self.pick_radius*(ymax-ymin)/height
             x0 = erelease.xdata - dx
             x1 = erelease.xdata + dx
             y0 = erelease.ydata - dy
