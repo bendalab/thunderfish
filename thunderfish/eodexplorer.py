@@ -125,7 +125,7 @@ class Explorer(object):
                     lbs.append(l)
             dd = TableData(header=lbs)
         dd.set_formats('%.3f')
-        dd.insert(0, 'PCA', '', '%d')
+        dd.insert(0, ['PCA'] + ['-']*dd.nsecs, '', '%d')
         for k, comp in enumerate(self.pca_components):
             dd.append_data(k+1, 0)
             dd.append_data(comp)
