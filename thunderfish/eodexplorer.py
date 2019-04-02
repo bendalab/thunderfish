@@ -17,8 +17,7 @@ from .tabledata import TableData
 
 class Explorer(object):
     
-    def __init__(self, data, labels, colors, color_label, color_map,
-                 detailed_data, detailed_name):
+    def __init__(self, data, labels, colors, color_label, color_map, detailed_data):
         if isinstance(data, TableData):
             self.raw_data = data.array()
             if labels is None:
@@ -79,7 +78,6 @@ class Explorer(object):
         self.color_vmax = None
         self.color_ticks = None
         self.detailed_data = detailed_data
-        self.detailed_name = detailed_name
         self.histax = []
         self.histindices = []
         self.histselect = []
@@ -96,9 +94,6 @@ class Explorer(object):
         self.zoom_stack = []
         self.plot_correlations()
         self.dax = self.fig.add_subplot(2, 3, 3)
-        self.dax.text(0.5, 0.5, 'Click to plot %s' % self.detailed_name,
-                      transform = self.dax.transAxes,
-                      ha='center', va='center')
         self.fix_detailed_plot(self.dax, self.mark_data)
         self.zoomon = False
         self.zoom_size = np.array([0.5, 0.5])
@@ -327,10 +322,6 @@ class Explorer(object):
             if idx < len(self.detailed_data):
                 self.dax.plot(self.detailed_data[idx][:,0], self.detailed_data[idx][:,1],
                             c=self.data_colors[idx], lw=3)
-        if len(self.mark_data) == 0:
-            self.dax.text(0.5, 0.5, 'Click to plot %s' % self.detailed_name,
-                          transform = self.dax.transAxes,
-                          ha='center', va='center')
         self.fix_detailed_plot(self.dax, self.mark_data)
         self.fig.canvas.draw()
         
@@ -578,10 +569,10 @@ class Explorer(object):
 class EODExplorer(Explorer):
     
     def __init__(self, data, labels, colors, color_label, color_map, wave_fish,
-                 eod_data, eod_name, eod_metadata):
+                 eod_data, eod_metadata):
         self.wave_fish = wave_fish
         self.eod_metadata = eod_metadata
-        Explorer.__init__(self, data, labels, colors, color_label, color_map, eod_data, eod_name)
+        Explorer.__init__(self, data, labels, colors, color_label, color_map, eod_data)
 
     def fix_scatter_plot(self, ax, data, label, axis):
         if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
@@ -614,12 +605,22 @@ class EODExplorer(Explorer):
         return np.min(data), np.max(data), None
 
     def fix_detailed_plot(self, ax, indices):
-        if len(indices) > 0 and indices[-1] < len(self.eod_metadata):
-            ax.set_title(self.eod_metadata[indices[-1]]['file'])
-            if len(indices) > 1:
-                ax.text(-0.6, 0.8, 'n=%d' % len(indices))
-            else:
-                ax.text(-0.6, 0.8, '%.1fHz' % self.eod_metadata[indices[-1]]['EODf'])
+        if len(indices) == 0:
+            self.dax.text(0.5, 0.5, 'Click to plot EOD waveforms',
+                          transform = self.dax.transAxes,
+                          ha='center', va='center')
+        elif len(indices) == 1:
+            ax.set_title(self.eod_metadata[indices[0]]['file'])
+            ax.text(0.05, 0.85, '%.1fHz' % self.eod_metadata[indices[0]]['EODf'], transform = self.dax.transAxes)
+        else:
+            ax.set_title('%d EOD waveforms selected' % len(indices))
+            for k in range(min(7, len(indices))):
+                ax.text(0.05, 0.85-k*0.1, '%6.1fHz: %s' % \
+                         (self.eod_metadata[indices[-1-k]]['EODf'],
+                          self.eod_metadata[indices[-1-k]]['file']),
+                        transform = self.dax.transAxes)
+            if len(indices) > 7:
+                ax.text(0.05, 0.85-7*0.1, '. . .', transform = self.dax.transAxes)
         if self.wave_fish:
             ax.set_xlim(-0.7, 0.7)
             ax.set_xlabel('Time [1/EODf]')
@@ -792,7 +793,7 @@ def main():
 
     # explore:
     eodexp = EODExplorer(data, None, colors, colorlabel, color_map, wave_fish,
-                         eod_data, 'EOD waveforms', eod_metadata)
+                         eod_data, eod_metadata)
 
 
 if __name__ == '__main__':
