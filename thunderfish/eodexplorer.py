@@ -34,6 +34,8 @@ class Explorer(object):
         pca = decomposition.PCA()
         pca.fit(self.raw_data)
         self.pca_variance = pca.explained_variance_ratio_
+        if np.abs(np.min(pca.components_)) > np.max(pca.components_):
+            pca.components_ *= -1.0
         self.pca_data = pca.transform(self.raw_data)
         self.pca_labels = [('PCA%d=%.1f%%' if v > 0.01 else 'PCA%d=%.2f%%') % (k+1, 100.0*v)
                            for k, v in enumerate(self.pca_variance)]
