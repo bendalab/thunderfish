@@ -37,13 +37,13 @@ class Explorer(object):
         if np.abs(np.min(pca.components_)) > np.max(pca.components_):
             pca.components_ *= -1.0
         self.pca_data = pca.transform(self.raw_data)
-        self.pca_labels = [('PCA%d=%.1f%%' if v > 0.01 else 'PCA%d=%.2f%%') % (k+1, 100.0*v)
+        self.pca_labels = [('PCA%d (%.1f%%)' if v > 0.01 else 'PCA%d (%.2f%%)') % (k+1, 100.0*v)
                            for k, v in enumerate(self.pca_variance)]
         self.pca_components = pca.components_
         if save_pca is not None:
             self.save_pca(save_pca, data, labels)
             return
-        print('PCA coefficients:')
+        print('PCA components:')
         self.save_pca(None, data, labels)
         print('')
         self.show_pca = False
@@ -71,24 +71,23 @@ class Explorer(object):
         self.spacing = 10.0  # pixel between plots
         self.pick_radius = 4.0
         self.color_map = plt.get_cmap(color_map)
+        self.extra_colors = None
+        self.extra_color_label = None
+        self.color_values = None
+        self.color_index = None
+        self.color_label = None
         if isinstance(colors, int):
-            self.extra_colors = None
-            self.extra_color_label = None
-            self.color_values = self.raw_data[:,colors]
             self.color_index = colors
-            self.color_label = self.labels[colors]
         else:
             self.extra_colors = colors
             self.extra_color_label = color_label
-            self.color_values = colors
             self.color_index = -1
-            self.color_label = color_label
-        cmin = np.min(self.color_values)
-        cmax = np.max(self.color_values)
-        self.data_colors = self.color_map((self.color_values - cmin)/(cmax - cmin))
+        self.data_colors = None
         self.color_vmin = None
         self.color_vmax = None
         self.color_ticks = None
+        self.cbax = None
+        self.set_color_column()
         self.detailed_data = detailed_data
         self.histax = []
         self.histindices = []
@@ -99,7 +98,6 @@ class Explorer(object):
         self.corrindices = []
         self.corrartists = []
         self.corrselect = []
-        self.cbax = None
         self.scatter = True
         self.mark_data = []
         self.select_zooms = False
@@ -136,7 +134,21 @@ class Explorer(object):
         else:
             pca_file = file_name + 'pca.dat'
             dd.write(pca_file, unitstyle='none')
-        
+
+    def set_color_column(self):
+        if self.color_index == -2:
+            self.color_values = np.arange(self.data.shape[0], dtype=np.float)
+            self.color_label = 'index'
+        elif self.color_index == -1:
+            self.color_values = self.extra_colors
+            self.color_label = self.extra_color_label
+        else:
+            self.color_values = self.data[:,self.color_index]
+            self.color_label = self.labels[self.color_index]
+        self.color_vmin, self.color_vmax, self.color_ticks = \
+          self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
+        self.data_colors = self.color_map((self.color_values - self.color_vmin)/(self.color_vmax - self.color_vmin))
+                    
     def plot_hist(self, ax, zoomax):
         try:
             idx = self.histax.index(ax)
@@ -205,6 +217,8 @@ class Explorer(object):
             if cax is not None:
                 self.fig.colorbar(a, cax=cax, ticks=self.color_ticks)
                 cax.set_ylabel(self.color_label)
+                self.color_vmin, self.color_vmax, self.color_ticks = \
+                  self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
         else:
             if zoomax:
                 rax = self.corrax[self.corrindices.index([c, r])]
@@ -443,18 +457,7 @@ class Explorer(object):
                         self.color_index += 1
                         if self.color_index >= self.data.shape[1]:
                             self.color_index = -2
-                if self.color_index == -2:
-                    self.color_values = np.arange(self.data.shape[0], dtype=np.float)
-                    self.color_label = 'index'
-                elif self.color_index == -1:
-                    self.color_values = self.extra_colors
-                    self.color_label = self.extra_color_label
-                else:
-                    self.color_values = self.data[:,self.color_index]
-                    self.color_label = self.labels[self.color_index]
-                self.color_vmin, self.color_vmax, self.color_ticks = \
-                  self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
-                self.data_colors = self.color_map((self.color_values - self.color_vmin)/(self.color_vmax - self.color_vmin))
+                self.set_color_column()
                 for ax in self.corrax:
                     if len(ax.collections) > 0:
                         ax.collections[0].set_facecolors(self.data_colors)
@@ -649,13 +652,17 @@ class EODExplorer(Explorer):
                 ax.set_yticks(np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi))
                 ax.set_yticklabels([u'-\u03c0', u'-\u03c0/2', '0', u'\u03c0/2', u'\u03c0'])
             elif axis == 'c':
-                ax.set_yticklabels([u'-\u03c0', u'-\u03c0/2', '0', u'\u03c0/2', u'\u03c0'])
+                if ax is not None:
+                    ax.set_yticklabels([u'-\u03c0', u'-\u03c0/2', '0', u'\u03c0/2', u'\u03c0'])
                 return -np.pi, np.pi, np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi)
         return np.min(data), np.max(data), None
 
     def fix_detailed_plot(self, ax, indices):
         if len(indices) == 0:
             self.dax.text(0.5, 0.5, 'Click to plot EOD waveforms',
+                          transform = self.dax.transAxes,
+                          ha='center', va='center')
+            self.dax.text(0.5, 0.3, 'n = %d' % len(self.raw_data),
                           transform = self.dax.transAxes,
                           ha='center', va='center')
         elif len(indices) == 1:
@@ -723,9 +730,9 @@ def main():
     parser.add_argument('+d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be appended or removed (if already listed) for analysis')
     parser.add_argument('-s', dest='save_pca', action='store_true',
-                        help='save PCA data and exit')
+                        help='save PCA components and exit')
     parser.add_argument('-c', dest='color_col', default='EODf', type=str, metavar='COLUMN',
-                        help='data column to be used for color code or "row"')
+                        help='data column to be used for color code or "index"')
     parser.add_argument('-m', dest='color_map', default='jet', type=str, metavar='CMAP',
                         help='name of color map')
     parser.add_argument('-p', dest='data_path', default='.', type=str, metavar='PATH',
@@ -778,11 +785,6 @@ def main():
     wave_fish = 'wave' in file_name
     data = TableData(file_name)
 
-    if list_columns:
-        for c in data.keys():
-            print(c)
-        parser.exit()
-
     # add cluster column (experimental):
     if wave_fish:
         # wavefish cluster:
@@ -793,12 +795,15 @@ def main():
         cluster[data[:,'phase1'] > 0] = 3
         data.append('cluster', '', '%d', cluster)
 
-    # data columns:
+
+    # default columns:
     if len(data_cols) == 0:
         if wave_fish:
             data_cols = ['EODf', 'relampl1', 'phase1', 'relampl2', 'phase2', 'relampl3', 'phase3']
         else:
             data_cols = ['EODf', 'P1width', 'P2relampl', 'P2time', 'P2width', 'tau', 'peakfreq', 'poweratt5']
+            
+    # data columns:
     for k, c in enumerate(data_cols):
         idx = data.index(c)
         if idx is None:
@@ -817,17 +822,29 @@ def main():
             data_cols.append(idx)
 
     # color code:
-    colors = data.index(color_col)
+    color_idx = data.index(color_col)
+    colors = None
     colorlabel = None
-    if colors is None and color_col != 'row':
+    if color_idx is None and color_col != 'index':
         parser.error('"%s" is not a valid column for color code' % color_col)
-    if colors is None:
-        colors = -1
-    elif colors in data_cols:
-        colors = data_cols.index(colors)
+    if color_idx is None:
+        colors = -2
+    elif color_idx in data_cols:
+        colors = data_cols.index(color_idx)
     else:
-        colorlabel = '%s [%s]' % (data.label(colors), data.unit(colors))
-        colors = data[:,colors]
+        colorlabel = '%s [%s]' % (data.label(color_idx), data.unit(color_idx))
+        colors = data[:,color_idx]
+
+    # list columns:
+    if list_columns:
+        for k, c in enumerate(data.keys()):
+            s = [' '] * 3
+            if k in data_cols:
+                s[1] = '*'
+            if k == color_idx:
+                s[0] = 'C'
+            print(''.join(s) + c)
+        parser.exit()
 
     # load metadata:
     eod_metadata = []
