@@ -389,10 +389,10 @@ class Explorer(object):
                     self.pick_radius /= 1.5
             elif event.key in '0':
                 self.pick_radius = 0.05
-            elif event.key in '<>':
-                if event.key == '<' and self.show_maxcols > 2:
+            elif event.key in ['pageup', 'pagedown', '<', '>']:
+                if event.key in ['pageup', '<'] and self.show_maxcols > 2:
                     self.show_maxcols -= 1
-                elif event.key == '>' and self.show_maxcols < self.raw_data.shape[1]:
+                elif event.key in ['pagedown', '>'] and self.show_maxcols < self.raw_data.shape[1]:
                     self.show_maxcols += 1
                 self.update_layout()
             elif event.key in 'cC':
@@ -685,12 +685,14 @@ def main():
         print('')
         print('key shortcuts:')
         print('p                      toggle between data columns and PCA axis')
+        print('<, pageup              decrease number of displayed data columns/PCA axis')
+        print('>, pagedown            increase number of displayed data columns/PCA axis')
         print('o, z                   toggle zoom mode on or off')
         print('backspace              zoom back')
         print('+, -                   increase, decrease pick radius')
         print('0                      reset pick radius')
         print('n, N                   decrease, increase number of bins of histograms')
-        print('h                      toggle between 2D histogram and scatter plot')
+        print('h                      toggle between scatter plot and 2D histogram')
         print('c, C                   cycle color map trough data columns')
         print('left, right, up, down  show and move enlarged scatter plot')
         print('escape                 close enlarged scatter plot')
