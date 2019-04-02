@@ -17,7 +17,7 @@ from .tabledata import TableData
 
 class Explorer(object):
     
-    def __init__(self, data, labels, colors, color_map, detailed_data):
+    def __init__(self, data, labels, colors, color_map, detailed_data, detailed_name):
         if isinstance(data, TableData):
             self.raw_data = data.array()
             if labels is None:
@@ -64,6 +64,7 @@ class Explorer(object):
         self.default_colors = colors
         self.color_index = -1
         self.detailed_data = detailed_data
+        self.detailed_name = detailed_name
         self.histax = []
         self.histindices = []
         self.histselect = []
@@ -80,7 +81,8 @@ class Explorer(object):
         self.zoom_stack = []
         self.plot_correlations()
         self.dax = self.fig.add_subplot(2, 3, 3)
-        self.dax.text(0.5, 0.5, 'Click to plot details', transform = self.dax.transAxes,
+        self.dax.text(0.5, 0.5, 'Click to plot %s' % self.detailed_name,
+                      transform = self.dax.transAxes,
                       ha='center', va='center')
         self.fix_detailed_plot(self.dax, self.mark_data)
         self.zoomon = False
@@ -334,7 +336,8 @@ class Explorer(object):
                 self.dax.plot(self.detailed_data[idx][:,0], self.detailed_data[idx][:,1],
                             c=self.data_colors[idx], lw=3)
         if len(self.mark_data) == 0:
-            self.dax.text(0.5, 0.5, 'Click to plot details', transform = self.dax.transAxes,
+            self.dax.text(0.5, 0.5, 'Click to plot %s' % self.detailed_name,
+                          transform = self.dax.transAxes,
                           ha='center', va='center')
         self.fix_detailed_plot(self.dax, self.mark_data)
         self.fig.canvas.draw()
@@ -568,10 +571,11 @@ class Explorer(object):
             
 class EODExplorer(Explorer):
     
-    def __init__(self, data, labels, colors, color_map, wave_fish, eod_data, eod_metadata):
+    def __init__(self, data, labels, colors, color_map, wave_fish,
+                 eod_data, eod_name, eod_metadata):
         self.wave_fish = wave_fish
         self.eod_metadata = eod_metadata
-        Explorer.__init__(self, data, labels, colors, color_map, eod_data)
+        Explorer.__init__(self, data, labels, colors, color_map, eod_data, eod_name)
 
     def fix_scatter_plot(self, ax, data, label, axis):
         if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
@@ -767,7 +771,8 @@ def main():
     data = data[:,data_cols]
 
     # explore:
-    eodexp = EODExplorer(data, None, colors, color_map, wave_fish, eod_data, eod_metadata)
+    eodexp = EODExplorer(data, None, colors, color_map, wave_fish,
+                         eod_data, 'EOD waveforms', eod_metadata)
 
 
 if __name__ == '__main__':
