@@ -451,6 +451,7 @@ class Explorer(object):
                     self.plot_scatter(ax, False)
                 for ax in self.histax:
                     self.plot_hist(ax, False)
+                # XXX Need to fix axis again!
                 if self.corrindices[-1][1] < self.data.shape[1]:
                     self.plot_scatter(self.corrax[-1], True)
                 else:
@@ -541,19 +542,21 @@ class EODExplorer(Explorer):
         Explorer.__init__(self, data, labels, colors, color_map, eod_data)
 
     def fix_scatter_plot(self, ax, data, label, axis):
-        if any(l in label for l in ['ampl', 'width', 'tau']):
+        if axis in 'xy':
+            ax.autoscale(True, axis, False)
+        if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
             if np.all(data >= 0.0):
                 if axis == 'x':
-                    ax.set_xlim(left=0.0)
+                    ax.set_xlim(0.0, None)
                 elif axis == 'y':
-                    ax.set_ylim(bottom=0.0)
+                    ax.set_ylim(0.0, None)
                 elif axis == 'c':
                     return 0.0, np.max(data)
             else:
                 if axis == 'x':
-                    ax.set_xlim(right=0.0)
+                    ax.set_xlim(None, 0.0)
                 elif axis == 'y':
-                    ax.set_ylim(top=0.0)
+                    ax.set_ylim(None, 0.0)
                 elif axis == 'c':
                     return np.min(data), 0.0
         elif 'phase' in label:
