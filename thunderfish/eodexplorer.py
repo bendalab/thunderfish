@@ -1,5 +1,5 @@
 """
-# View and explore properties of EOD waveforms.
+View and explore properties of EOD waveforms.
 """
 
 import os
@@ -17,7 +17,7 @@ from .tabledata import TableData
 
 class Explorer(object):
     
-    def __init__(self, data, labels, colors, color_label, color_map, detailed_data):
+    def __init__(self, data, labels, save_pca, colors, color_label, color_map, detailed_data):
         if isinstance(data, TableData):
             self.raw_data = data.array()
             if labels is None:
@@ -37,6 +37,13 @@ class Explorer(object):
         self.pca_data = pca.transform(self.raw_data)
         self.pca_labels = [('PCA%d=%.1f%%' if v > 0.01 else 'PCA%d=%.2f%%') % (k+1, 100.0*v)
                            for k, v in enumerate(self.pca_variance)]
+        self.pca_components = pca.components_
+        if save_pca is not None:
+            self.save_pca(save_pca, data, labels)
+            return
+        print('PCA coefficients:')
+        self.save_pca(None, data, labels)
+        print('')
         self.show_pca = False
         if self.show_pca:
             self.data = self.pca_data
@@ -51,6 +58,9 @@ class Explorer(object):
         plt.rcParams['keymap.back'] = ''
         plt.rcParams['keymap.forward'] = ''        
         plt.rcParams['keymap.zoom'] = ''        
+        plt.rcParams['keymap.pan'] = ''        
+        plt.rcParams['keymap.xscale'] = ''        
+        plt.rcParams['keymap.yscale'] = ''        
         self.fig = plt.figure(facecolor='white')
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
         self.fig.canvas.mpl_connect('resize_event', self.on_resize)
@@ -100,6 +110,30 @@ class Explorer(object):
         self.zoom_back = None
         self.plot_zoomed_correlations()
         plt.show()
+
+    def save_pca(self, file_name, data, labels=None):
+        if isinstance(data, TableData):
+            dd = data.table_header()
+        else:
+            lbs = []
+            for l in labels:
+                if '[' in l:
+                    lbs.append(l.split('[')[0].strip())
+                elif '/' in l:
+                    lbs.append(l.split('/')[0].strip())
+                else:
+                    lbs.append(l)
+            dd = TableData(header=lbs)
+        dd.set_formats('%.3f')
+        dd.insert(0, 'PCA', '', '%d')
+        for k, comp in enumerate(self.pca_components):
+            dd.append_data(k+1, 0)
+            dd.append_data(comp)
+        if file_name is None:
+            dd.write(unitstyle='none')
+        else:
+            pca_file = file_name + 'pca.dat'
+            dd.write(pca_file, unitstyle='none')
         
     def plot_hist(self, ax, zoomax):
         try:
@@ -255,6 +289,10 @@ class Explorer(object):
 
     def fix_detailed_plot(self, ax, indices):
         pass
+    
+    def list_selection(self, indices):
+        for i in indices:
+            print(i)
 
     def set_zoom_pos(self, width, height):
         if self.zoomon:
@@ -470,6 +508,10 @@ class Explorer(object):
                 for ax in self.corrax[:-1]:
                     self.plot_scatter(ax, False)
                 self.update_layout()
+            elif event.key in 'l':
+                if len(self.mark_data) > 0:
+                    print('selected:')
+                    self.list_selection(self.mark_data)
         if plot_zoom:
             self.corrax[-1].clear()
             self.corrax[-1].set_visible(True)
@@ -568,11 +610,16 @@ class Explorer(object):
             
 class EODExplorer(Explorer):
     
-    def __init__(self, data, labels, colors, color_label, color_map, wave_fish,
-                 eod_data, eod_metadata):
+    def __init__(self, data, labels, save_pca, colors, color_label, color_map,
+                 wave_fish, eod_data, eod_metadata):
         self.wave_fish = wave_fish
         self.eod_metadata = eod_metadata
-        Explorer.__init__(self, data, labels, colors, color_label, color_map, eod_data)
+        if not save_pca:
+            save_pca = None
+        else:
+            save_pca = 'wavefish-' if wave_fish else 'pulsefish-'
+        Explorer.__init__(self, data, labels, save_pca, colors, color_label, color_map,
+                          eod_data)
 
     def fix_scatter_plot(self, ax, data, label, axis):
         if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
@@ -630,6 +677,10 @@ class EODExplorer(Explorer):
             ax.set_xlabel('Time [ms]')
             ax.set_ylim(-1.5, 1.0)
         ax.set_ylabel('Amplitude')
+    
+    def list_selection(self, indices):
+        for i in indices:
+            print(self.eod_metadata[i]['file'])
 
 
 wave_fish = True
@@ -669,6 +720,8 @@ def main():
                         help='data columns to be analyzed (overwrites default columns)')
     parser.add_argument('+d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be appended or removed (if already listed) for analysis')
+    parser.add_argument('-s', dest='save_pca', action='store_true',
+                        help='save PCA data and exit')
     parser.add_argument('-c', dest='color_col', default='EODf', type=str, metavar='COLUMN',
                         help='data column to be used for color code or "row"')
     parser.add_argument('-m', dest='color_map', default='jet', type=str, metavar='CMAP',
@@ -689,6 +742,7 @@ def main():
         print('shift + left click     add/remove data points to/from selection')
         print('')
         print('key shortcuts:')
+        print('l                      list selected EOD waveforms on console')
         print('p                      toggle between data columns and PCA axis')
         print('<, pageup              decrease number of displayed data columns/PCA axis')
         print('>, pagedown            increase number of displayed data columns/PCA axis')
@@ -709,6 +763,7 @@ def main():
     file_name = args.file
     data_cols = args.data_cols
     add_data_cols = args.add_data_cols
+    save_pca = args.save_pca
     color_col = args.color_col
     color_map = args.color_map
     data_path = args.data_path
@@ -792,8 +847,8 @@ def main():
     data = data[:,data_cols]
 
     # explore:
-    eodexp = EODExplorer(data, None, colors, colorlabel, color_map, wave_fish,
-                         eod_data, eod_metadata)
+    eodexp = EODExplorer(data, None, save_pca, colors, colorlabel, color_map,
+                         wave_fish, eod_data, eod_metadata)
 
 
 if __name__ == '__main__':
