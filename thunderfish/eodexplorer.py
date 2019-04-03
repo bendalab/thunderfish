@@ -34,8 +34,9 @@ class Explorer(object):
         pca = decomposition.PCA()
         pca.fit(self.raw_data)
         self.pca_variance = pca.explained_variance_ratio_
-        if np.abs(np.min(pca.components_)) > np.max(pca.components_):
-            pca.components_ *= -1.0
+        for k in range(len(pca.components_)):
+            if np.abs(np.min(pca.components_[k])) > np.max(pca.components_[k]):
+                pca.components_[k] *= -1.0
         self.pca_data = pca.transform(self.raw_data)
         self.pca_labels = [('PCA%d (%.1f%%)' if v > 0.01 else 'PCA%d (%.2f%%)') % (k+1, 100.0*v)
                            for k, v in enumerate(self.pca_variance)]
@@ -45,7 +46,6 @@ class Explorer(object):
             return
         print('PCA components:')
         self.save_pca(None, data, labels)
-        print('')
         self.show_pca = False
         if self.show_pca:
             self.data = self.pca_data
@@ -126,8 +126,10 @@ class Explorer(object):
             dd = TableData(header=lbs)
         dd.set_formats('%.3f')
         dd.insert(0, ['PCA'] + ['-']*dd.nsecs, '', '%d')
+        dd.insert(1, 'variance', '%', '%.3f')
         for k, comp in enumerate(self.pca_components):
             dd.append_data(k+1, 0)
+            dd.append_data(100.0*self.pca_variance[k])
             dd.append_data(comp)
         if file_name is None:
             dd.write(unitstyle='none')
@@ -515,6 +517,7 @@ class Explorer(object):
                 self.update_layout()
             elif event.key in 'l':
                 if len(self.mark_data) > 0:
+                    print('')
                     print('selected:')
                     self.list_selection(self.mark_data)
         if plot_zoom:
