@@ -1070,13 +1070,12 @@ class TableData:
         """
         rows, cols = self.__setupkey(key)
         if len(cols) == 1:
-            if hasattr(self.data[cols[0]][rows], '__len__'):
+            if isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)):
                 return np.asarray(self.data[cols[0]][rows])
             else:
                 return self.data[cols[0]][rows]
         else:
-            # XXX problem if data element is string !!!
-            if hasattr(self.data[0][rows], '__len__'):
+            if isinstance(self.data[0][rows], (list, tuple, np.ndarray)):
                 data = TableData()
                 sec_indices = [-1] * self.nsecs
                 for c in cols:
@@ -1106,7 +1105,7 @@ class TableData:
         """
         rows, cols = self.__setupkey(key)
         if isinstance(value, TableData):
-            if hasattr(self.data[cols[0]][rows], '__len__'):
+            if isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)):
                 for k, c in enumerate(cols):
                     self.data[c][rows] = value.data[k]
             else:
@@ -1116,7 +1115,7 @@ class TableData:
             if len(cols) == 1:
                 self.data[cols[0]][rows] = value
             else:
-                if hasattr(self.data[0][rows], '__len__'):
+                if isinstance(self.data[0][rows], (list, tuple, np.ndarray)):
                     for k, c in enumerate(cols):
                         self.data[c][rows] = value[:,k]
                 else:
@@ -1138,7 +1137,7 @@ class TableData:
             Otherwise only data values in the specified rows are removed.
         """
         rows, cols = self.__setupkey(key)
-        if hasattr(self.data[cols[0]][rows], '__len__') and \
+        if isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)) and \
            len(self.data[cols[0]][rows]) == len(self.data[cols[0]]) :
             # delete whole columns:
             self.remove(cols)

@@ -9,7 +9,7 @@ from .version import __version__, __year__
 from .tabledata import TableData
 
 
-def collect_fish(files, insert_file=True, append_file=False,
+def collect_fish(files, insert_file=True, append_file=False, simplify_file=False,
                  max_fish=0, harmonics=None, peaks0=None, peaks1=None):
     """
     Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
@@ -26,6 +26,8 @@ def collect_fish(files, insert_file=True, append_file=False,
     append_file: boolean
         Add the basename of the recording file as the last column.
         Overwrites `insert_file`.
+    simplify_file: boolean
+        Remove initial common directories from input files.
     max_fish: int
         Maximum number of fish to be taken, if 0 take all.
     harmonics: int
@@ -50,6 +52,7 @@ def collect_fish(files, insert_file=True, append_file=False,
     # load data:    
     wave_table = None
     pulse_table = None
+    file_pathes = []
     for file_name in files:
         # file name:
         table = None
@@ -62,7 +65,8 @@ def collect_fish(files, insert_file=True, append_file=False,
             fish_type = 'wave'
         else:
             continue
-        recording = os.path.basename(base_path)
+        recording = base_path
+        file_pathes.append(os.path.normpath(recording).split(os.path.sep))
         # data:
         data = TableData(file_name)
         table = wave_table if fish_type == 'wave' else pulse_table
@@ -138,6 +142,22 @@ def collect_fish(files, insert_file=True, append_file=False,
             if append_file:
                 table.append_data(recording)
             table.fill_data()
+    # simplify pathes:
+    if simplify_file and len(file_pathes) > 1:
+        fp0 = file_pathes[0]
+        for fi in range(len(fp0)):
+            is_same = True
+            for fp in file_pathes[1:]:
+                if fi >= len(fp) or fp[fi] != fp0[fi]:
+                    is_same = False
+                    break
+            if not is_same:
+                break
+        for table in wave_table, pulse_table:
+            for k in range(table.rows()):
+                idx = table.index('file')
+                fps = os.path.normpath(table[k,idx]).split(os.path.sep)
+                table[k,idx] = os.path.sep.join(fps[fi:])
     return wave_table, pulse_table
 
     
@@ -166,10 +186,10 @@ def main():
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-t', dest='table_type', default=None, choices=['wave', 'pulse'],
                         help='wave-type or pulse-type fish')
-    # parser.add_argument('-i', dest='insert_file', action='store_true',
-    #                     help='insert the file name in the first column')
     parser.add_argument('-a', dest='append_file', action='store_true',
                         help='append the file name as the last column')
+    parser.add_argument('-c', dest='simplify_file', action='store_true',
+                        help='remove initial common directories from input files')
     parser.add_argument('-m', dest='max_fish', type=int, metavar='N',
                         help='maximum number of fish to be taken from each recording')
     parser.add_argument('-p', dest='pulse_peaks', type=rangestr,
@@ -210,6 +230,7 @@ def main():
         os.makedirs(out_path)
     # collect files:
     wave_table, pulse_table = collect_fish(args.file, True, args.append_file,
+                                           args.simplify_file,
                                            args.max_fish, args.harmonics,
                                            args.pulse_peaks[0],  args.pulse_peaks[1])
     # output format:
