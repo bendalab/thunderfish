@@ -65,6 +65,8 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             fish_type = 'wave'
         else:
             continue
+        if base_path.startswith('./'):
+            base_path = base_path[2:]
         recording = base_path
         file_pathes.append(os.path.normpath(recording).split(os.path.sep))
         # data:
