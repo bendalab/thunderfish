@@ -794,7 +794,7 @@ def freq_tracking_v4(fundamentals, signatures, times, freq_tolerance, n_channels
 
     idx_comp_range = int(np.floor(dps * 10.))  # maximum compare range backwards for amplitude signature comparison
     low_freq_th = 400.  # min. frequency tracked
-    high_freq_th = 1050.  # max. frequency tracked
+    high_freq_th = 1200.  # max. frequency tracked
 
     error_cube = []  # [fundamental_list_idx, freqs_to_assign, target_freqs]
     i0_m = []
@@ -1726,6 +1726,9 @@ class Obs_tracker():
         # quit()
 
         # primary tracking vectors
+        self.id_tag = None
+        self.validate_active = False
+
         self.fund_v = None
         self.ident_v = None
         self.last_ident_v = None
@@ -2144,12 +2147,15 @@ class Obs_tracker():
         #         self.text_handles_effect.append(t1)
 
     def keypress(self, event):
+        # print(event.key)
+
         self.key_options()
         # self.main_ax.set_position([.1, .1, .8, .6])
         # self.add_ax[1][0].set_visible(False)
         # self.add_ax[1][1].set_visible(False)
         # self.add_ax[1][2].set_visible(False)
-
+        if event.key == 'v':
+            self.current_task = 'validate_traces'
 
         if event.key == 'm':
             self.current_task = 'method_figure'
@@ -2278,7 +2284,7 @@ class Obs_tracker():
             # self.main_fig.close()
             return
 
-        if event.key == 'v':
+        if event.key == 'ctrl+v':
             self.verbose += 1
             # print(self.verbose)
             print('verbosity: %.0f' % self.verbose)
@@ -2438,7 +2444,65 @@ class Obs_tracker():
                     self.kwargs['max_double_use_count'] += 1.
                     self.current_task = 'update_hg'
 
+        if event.key == ' ':
+            if self.current_task == 'validate_traces':
+                if len(self.active_indices) > 0:
+                    active_ids = np.unique(self.ident_v[self.active_indices])
+
+                    sorted_p_handles = np.array(self.trace_handles)[np.argsort(np.array(self.trace_handles)[:, 1])][:, 0]
+                    sorted_id =        np.array(self.trace_handles)[np.argsort(np.array(self.trace_handles)[:, 1])][:, 1]
+
+                    mask = [x in active_ids for x in sorted_id]
+                    id_idx = np.arange(len(sorted_id))[mask]
+
+                    for i in id_idx:
+                        # embed()
+                        # quit()
+                        try:
+                            if self.id_tag[np.arange(len(self.id_tag))[self.id_tag[:, 0] == sorted_id[i]][0], 1] == 0:
+                                self.id_tag[np.arange(len(self.id_tag))[self.id_tag[:, 0] == sorted_id[i]][0], 1] = 1
+                                sorted_p_handles[i].set_color('white')
+                            else:
+                                self.id_tag[np.arange(len(self.id_tag))[self.id_tag[:, 0] == sorted_id[i]][0], 1] = 0
+                                sorted_p_handles[i].set_color(np.random.rand(3))
+                        except:
+                            print('error')
+                            embed()
+                            quit()
+                        # self.id_tag[self.id_tag[:, 0] == sorted_id[i]][1] = 1
+
+                    self.active_indices_handle.remove()
+                    self.active_indices_handle = None
+
         if event.key == 'enter':
+            if self.current_task == 'validate_traces':
+                if self.validate_active == False:
+                    self.validate_active = True
+
+                    if not hasattr(self.id_tag, '__len__'):
+                        self.id_tag = np.zeros((len(self.trace_handles), 2))
+                        self.id_tag[:, 0] = np.array(self.trace_handles)[:, 1]
+
+                    sorted_p_handles = np.array(self.trace_handles)[np.argsort(np.array(self.trace_handles)[:, 1])][:, 0]
+
+                    for i in range(len(self.trace_handles)):
+                        # try:
+                        if self.id_tag[np.argsort(self.id_tag[:, 0])][i][1]:
+                            sorted_p_handles[i].set_color('white')
+                            # np.array(self.trace_handles)[np.argsort(np.array(self.trace_handles)[:, 1])][i][0].set_color('white')
+                        # else:
+                        #     sorted_p_handles[i].set_color('k')
+                            # np.array(self.trace_handles)[np.argsort(np.array(self.trace_handles)[:, 1])][i][0].set_color('k')
+                else:
+                    self.validate_active = False
+                    for i in range(len(self.trace_handles)):
+                        self.trace_handles[i][0].set_color(np.random.rand(3))
+
+                # embed()
+                # quit()
+                # self.trace_handles.append((h, new_ident))
+                # ToDo: change colors based on id_tag
+
             if self.current_task == 'method_figure':
                 self.method_figure()
 
@@ -2730,9 +2794,9 @@ class Obs_tracker():
 
 
             if self.current_task in ['connect_trace', 'delete_trace', 'zoom', 'cut_trace', 'group_delete',
-                                     'group_connect', 'group_reassign', 'track_snippet_show', 'show_fields']:
+                                     'group_connect', 'group_reassign', 'track_snippet_show', 'show_fields', 'validate_traces']:
 
-                if self.current_task in ['group_delete', 'group_connect', 'group_reassign']:
+                if self.current_task in ['group_delete', 'group_connect', 'group_reassign', 'validate_traces']:
                     if self.active_indices_handle:
                         self.active_indices_handle.remove()
                         self.active_indices_handle = None
@@ -2826,7 +2890,7 @@ class Obs_tracker():
 
     def buttonrelease(self, event):
         if event.inaxes == self.main_ax:
-            if self.current_task in ['group_delete', 'group_connect', 'group_reassign']:
+            if self.current_task in ['group_delete', 'group_connect', 'group_reassign', 'validate_traces']:
                 if event.button == 1:
                     self.x = (self.x[0], event.xdata)
                     self.y = (self.y[0], event.ydata)
@@ -3645,8 +3709,11 @@ class Obs_tracker():
 
     def save_traces(self):
         folder = os.path.split(self.data_file)[0]
+        if hasattr(self.id_tag, '__len__'):
+            np.save(os.path.join(folder, 'id_tag.npy'), self.id_tag)
+
         np.save(os.path.join(folder, 'fund_v.npy'), self.fund_v)
-        np.save(os.path.join(folder, 'sign_v.npy'), self.sign_v)
+        np.save(os.path.join(folder, 'sign_v.npy'), self.original_sign_v)
         np.save(os.path.join(folder, 'idx_v.npy'), self.idx_v)
         np.save(os.path.join(folder, 'ident_v.npy'), self.ident_v)
         np.save(os.path.join(folder, 'times.npy'), self.times)
@@ -3680,6 +3747,9 @@ class Obs_tracker():
 
     def load_trace(self):
         folder = os.path.split(self.data_file)[0]
+        if os.path.exists(os.path.join(folder, 'id_tag.npy')):
+            self.id_tag = np.load(os.path.join(folder, 'id_tag.npy'))
+
         if os.path.exists(os.path.join(folder, 'fund_v.npy')):
             self.fund_v = np.load(os.path.join(folder, 'fund_v.npy'))
             self.sign_v = np.load(os.path.join(folder, 'sign_v.npy'))
@@ -4103,6 +4173,7 @@ class Obs_tracker():
         if post_group_delete or post_group_connection or post_group_reassign:
             handle_idents = np.array([x[1] for x in self.trace_handles])
             effected_idents = np.unique(self.last_ident_v[self.active_indices])
+
             mask = np.array([x in effected_idents for x in handle_idents], dtype=bool)
             delete_handle_idx = np.arange(len(self.trace_handles))[mask]
             delete_handle = np.array(self.trace_handles)[mask]
@@ -4121,12 +4192,26 @@ class Obs_tracker():
             for i in reversed(sorted(delete_afterwards)):
                 self.trace_handles.pop(i)
 
+            # delete_afterwards = np.array(delete_afterwards, dtype = int)
+            # delete_id = np.array(np.array(self.trace_handles)[delete_afterwards, 1], dtype=int)
+
+            if hasattr(self.id_tag, '__len__'):
+                # embed()
+                # quit()
+                help_mask = [x in np.array(self.trace_handles)[:, 1] for x in self.id_tag[:, 0]]
+                mask = np.arange(len(self.id_tag))[help_mask]
+                self.id_tag = self.id_tag[mask]
+
             if post_group_reassign:
                 c = np.random.rand(3)
                 new_ident = np.max(np.unique(self.ident_v[~np.isnan(self.ident_v)]))
                 h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == new_ident]],
                                        self.fund_v[self.ident_v == new_ident], marker='.', color=c)
                 self.trace_handles.append((h, new_ident))
+                if hasattr(self.id_tag, '__len__'):
+                    list_id_tag = list(self.id_tag)
+                    list_id_tag.append([new_ident, 0])
+                    self.id_tag = np.array(list_id_tag)
 
             self.active_indices = []
 
@@ -4137,6 +4222,10 @@ class Obs_tracker():
             delete_handle[0].remove()
 
             self.trace_handles.pop(delete_handle_idx)
+            if hasattr(self.id_tag, '__len__'):
+                help_mask = [x in np.array(self.trace_handles)[:, 1] for x in self.id_tag[:, 0]]
+                mask = np.arange(len(self.id_tag))[help_mask]
+                self.id_tag = self.id_tag[mask]
 
         if post_cut:
             handle_idents = np.array([x[1] for x in self.trace_handles])
@@ -4154,6 +4243,11 @@ class Obs_tracker():
             h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == new_ident]],
                                    self.fund_v[self.ident_v == new_ident], marker='.', color=c)
             self.trace_handles.append((h, new_ident))
+
+            if hasattr(self.id_tag, '__len__'):
+                list_id_tag = list(self.id_tag)
+                list_id_tag.append([new_ident, 0])
+                self.id_tag = np.array(list_id_tag)
 
         if post_connect:
             handle_idents = np.array([x[1] for x in self.trace_handles])
@@ -4174,6 +4268,11 @@ class Obs_tracker():
 
             self.trace_handles.pop(np.arange(len(self.trace_handles))[handle_idents == self.active_ident1][0])
 
+            if hasattr(self.id_tag, '__len__'):
+                help_mask = [x in np.array(self.trace_handles)[:, 1] for x in self.id_tag[:, 0]]
+                mask = np.arange(len(self.id_tag))[help_mask]
+                self.id_tag = self.id_tag[mask]
+
         if clear_traces:
             for handle in self.trace_handles:
                 handle[0].remove()
@@ -4185,6 +4284,20 @@ class Obs_tracker():
                 h, = self.main_ax.plot(self.times[self.idx_v[self.ident_v == ident]],
                                        self.fund_v[self.ident_v == ident], marker='.', color=c)
                 self.trace_handles.append((h, ident))
+
+        if hasattr(self.id_tag, '__len__'):
+            if len(self.id_tag) != len(self.trace_handles):
+                print('error in length of one array')
+                embed()
+                quit()
+            # embed()
+            # quit()
+            a = self.id_tag[:, 0]
+            b = np.array(np.array(self.trace_handles)[:, 1], dtype=int)
+            if np.sum(np.array(sorted(a)) - np.array(sorted(b))) != 0:
+                print('wrong ident cleared ?! ')
+                embed()
+                quit()
 
     def plot_ps(self):
         """
