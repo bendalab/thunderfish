@@ -618,16 +618,16 @@ class Explorer(object):
             
 class EODExplorer(Explorer):
     
-    def __init__(self, data, labels, save_pca, colors, color_label, color_map,
-                 wave_fish, eod_data, eod_metadata):
+    def __init__(self, data, data_cols, save_pca, colors, color_label, color_map,
+                 wave_fish, eod_data):
         self.wave_fish = wave_fish
-        self.eod_metadata = eod_metadata
+        self.eoddata = data
         if not save_pca:
             save_pca = None
         else:
             save_pca = 'wavefish-' if wave_fish else 'pulsefish-'
-        Explorer.__init__(self, data, labels, save_pca, colors, color_label, color_map,
-                          eod_data)
+        Explorer.__init__(self, data[:,data_cols], None, save_pca,
+                          colors, color_label, color_map, eod_data)
 
     def fix_scatter_plot(self, ax, data, label, axis):
         if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
@@ -669,17 +669,17 @@ class EODExplorer(Explorer):
                           transform = self.dax.transAxes,
                           ha='center', va='center')
         elif len(indices) == 1:
-            ax.set_title(self.eod_metadata[indices[0]]['file'])
-            ax.text(0.05, 0.85, '%.1fHz' % self.eod_metadata[indices[0]]['EODf'], transform = self.dax.transAxes)
+            ax.set_title(self.eoddata[indices[0],'file'])
+            ax.text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'], transform = self.dax.transAxes)
         else:
             ax.set_title('%d EOD waveforms selected' % len(indices))
-            for k in range(min(7, len(indices))):
-                ax.text(0.05, 0.85-k*0.1, '%6.1fHz: %s' % \
-                         (self.eod_metadata[indices[-1-k]]['EODf'],
-                          self.eod_metadata[indices[-1-k]]['file']),
-                        transform = self.dax.transAxes)
-            if len(indices) > 7:
-                ax.text(0.05, 0.85-7*0.1, '. . .', transform = self.dax.transAxes)
+            # for k in range(min(7, len(indices))):
+            #     ax.text(0.05, 0.85-k*0.1, '%6.1fHz: %s' % \
+            #              (self.eoddata[indices[-1-k],'EODf'],
+            #               self.eoddata[indices[-1-k],'file']),
+            #             transform = self.dax.transAxes)
+            # if len(indices) > 7:
+            #     ax.text(0.05, 0.85-7*0.1, '. . .', transform = self.dax.transAxes)
         if self.wave_fish:
             ax.set_xlim(-0.7, 0.7)
             ax.set_xlabel('Time [1/EODf]')
@@ -692,8 +692,21 @@ class EODExplorer(Explorer):
     
     def list_selection(self, indices):
         for i in indices:
-            print(self.eod_metadata[i]['file'])
-
+            print(self.eoddata[i,'file'])
+        if len(indices) == 1:
+            # write eoddata line on terminal:
+            keylen = 0
+            keys = []
+            values = []
+            for c in range(self.eoddata.columns()):
+                k, v = self.eoddata.key_value(indices[0], c)
+                keys.append(k)
+                values.append(v)
+                if keylen < len(k):
+                    keylen = len(k)
+            for k, v in zip(keys, values):
+                fs = '%%-%ds: %%s' % keylen
+                print(fs % (k, v.strip()))
 
 wave_fish = True
 data = None
@@ -849,14 +862,6 @@ def main():
             print(''.join(s) + c)
         parser.exit()
 
-    # load metadata:
-    eod_metadata = []
-    for idx in range(data.rows()):
-        eodf = data[idx,'EODf']
-        file_name = data[idx,'file']
-        file_index = data[idx,'index'] if 'index' in data else 0
-        eod_metadata.append({'EODf': eodf, 'file': file_name, 'index': file_index})
-
     # load waveforms:
     if jobs is not None:
         cpus = cpu_count() if jobs == 0 else jobs
@@ -866,11 +871,9 @@ def main():
     else:
         eod_data = list(map(load_waveform, range(data.rows())))
 
-    data = data[:,data_cols]
-
     # explore:
-    eodexp = EODExplorer(data, None, save_pca, colors, colorlabel, color_map,
-                         wave_fish, eod_data, eod_metadata)
+    eodexp = EODExplorer(data, data_cols, save_pca, colors, colorlabel, color_map,
+                         wave_fish, eod_data)
 
 
 if __name__ == '__main__':
