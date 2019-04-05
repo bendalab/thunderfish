@@ -510,9 +510,9 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         props['index'] = len(eod_props)
         # add good waveforms only:
         if (k > 0 or clipped < cfg.value('maximumClippedFraction')) and \
-            sdata[1,2] < cfg.value('maximumFirstHarmonicAmplitude') and \
-            sdata[2,2] < cfg.value('maximumSecondHarmonicAmplitude') and \
-            sdata[3,2] < cfg.value('maximumThirdHarmonicAmplitude') and \
+            sdata[1,3] < cfg.value('maximumFirstHarmonicAmplitude') and \
+            sdata[2,3] < cfg.value('maximumSecondHarmonicAmplitude') and \
+            sdata[3,3] < cfg.value('maximumThirdHarmonicAmplitude') and \
             props['rmserror'] < cfg.value('maximumRMSError'):
             eod_props.append(props)
             wave_props.append(props)
@@ -526,18 +526,18 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         else:
             if k == 0 and clipped >= cfg.value('maximumClippedFraction'):
                 skip_reason += ['%.1fHz wavefish clipped' % props['EODf']]
-            if sdata[1,2] >= cfg.value('maximumFirstHarmonicAmplitude') or \
-               sdata[2,2] >= cfg.value('maximumSecondHarmonicAmplitude') or \
-               sdata[3,2] >= cfg.value('maximumThirdHarmonicAmplitude') or \
+            if sdata[1,3] >= cfg.value('maximumFirstHarmonicAmplitude') or \
+               sdata[2,3] >= cfg.value('maximumSecondHarmonicAmplitude') or \
+               sdata[3,3] >= cfg.value('maximumThirdHarmonicAmplitude') or \
                props['rmserror'] >= cfg.value('maximumRMSError'):
                 skip_reason += ['%.1fHz wavefish distorted' % props['EODf']]
             if verbose > 0:
                 print('%d skip waveform of %.1fHz fish: clipped=%3.0f%% (%3.0f%%), ampl1=%5.1f%% (%5.1f%%), ampl2=%5.1f%% (%5.1f%%), ampl3=%5.1f%% (%5.1f%%), rmserror=%6.2f%% (%6.2f%%)'
                       % (idx, fish[0,0],
                          100.0*clipped, 100.0*cfg.value('maximumClippedFraction'),
-                         100.0*sdata[1,2], 100.0*cfg.value('maximumFirstHarmonicAmplitude'),
-                         100.0*sdata[2,2], 100.0*cfg.value('maximumSecondHarmonicAmplitude'),
-                         100.0*sdata[3,2], 100.0*cfg.value('maximumThirdHarmonicAmplitude'),
+                         100.0*sdata[1,3], 100.0*cfg.value('maximumFirstHarmonicAmplitude'),
+                         100.0*sdata[2,3], 100.0*cfg.value('maximumSecondHarmonicAmplitude'),
+                         100.0*sdata[3,3], 100.0*cfg.value('maximumThirdHarmonicAmplitude'),
                          100.0*props['rmserror'], 100.0*cfg.value('maximumRMSError')))
         
     if not found_bestwindow:

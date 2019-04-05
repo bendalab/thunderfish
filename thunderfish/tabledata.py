@@ -170,7 +170,7 @@ class TableData:
     [1.234, 123.5, 0.0001235]
     ```
 
-    ## Access the data
+    ## Accessing data
 
     In contrast to the iterator functions the [] operator treats the table as a
     2D-array where the first index indicates the row and the second index the column.
@@ -1389,9 +1389,10 @@ class TableData:
 
         Returns
         -------
-        s: string
-            A string composed of the header label of the column, an '=' character,
-            a textual representation of the data element according to the format
+        key: string
+            Header label of the column
+        value: string
+            A textual representation of the data element according to the format
             of the column, followed by the unit of the column.
         """
         col = self.index(col)
@@ -1400,9 +1401,11 @@ class TableData:
         if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
             v = missing
         else:
-            u = self.units[col] if self.units[col] != '1' else ''
+            u = ''
+            if not self.units[col] in '1-' and self.units[col] != 'a.u.':
+                u = self.units[col] 
             v = (self.formats[col] % self.data[col][row]) + u
-        return self.header[col][0] + '=' + v
+        return self.header[col][0], v
 
     def hide(self, column):
         """
