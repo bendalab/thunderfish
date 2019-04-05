@@ -74,6 +74,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     cfg.add('maximumClippedFraction', 0.01, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
     cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
     cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
+    cfg.add('maximumThirdHarmonicAmplitude', 0.5, '', 'Skip waveform of wave-type fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental.')
     cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
     add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
                            shrink_width=False)
@@ -511,6 +512,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         if (k > 0 or clipped < cfg.value('maximumClippedFraction')) and \
             sdata[1,2] < cfg.value('maximumFirstHarmonicAmplitude') and \
             sdata[2,2] < cfg.value('maximumSecondHarmonicAmplitude') and \
+            sdata[3,2] < cfg.value('maximumThirdHarmonicAmplitude') and \
             props['rmserror'] < cfg.value('maximumRMSError'):
             eod_props.append(props)
             wave_props.append(props)
@@ -526,14 +528,16 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                 skip_reason += ['%.1fHz wavefish clipped' % props['EODf']]
             if sdata[1,2] >= cfg.value('maximumFirstHarmonicAmplitude') or \
                sdata[2,2] >= cfg.value('maximumSecondHarmonicAmplitude') or \
+               sdata[3,2] >= cfg.value('maximumThirdHarmonicAmplitude') or \
                props['rmserror'] >= cfg.value('maximumRMSError'):
                 skip_reason += ['%.1fHz wavefish distorted' % props['EODf']]
             if verbose > 0:
-                print('%d skip waveform of %.1fHz fish: clipped=%3.0f%% (%3.0f%%) ampl1=%6.4f (%6.4f) ampl2=%6.4f (%6.4f) rmserror=%6.2f%% (%6.2f%%)'
+                print('%d skip waveform of %.1fHz fish: clipped=%3.0f%% (%3.0f%%), ampl1=%5.1f%% (%5.1f%%), ampl2=%5.1f%% (%5.1f%%), ampl3=%5.1f%% (%5.1f%%), rmserror=%6.2f%% (%6.2f%%)'
                       % (idx, fish[0,0],
                          100.0*clipped, 100.0*cfg.value('maximumClippedFraction'),
-                         sdata[1,2], cfg.value('maximumFirstHarmonicAmplitude'),
-                         sdata[2,2], cfg.value('maximumSecondHarmonicAmplitude'),
+                         100.0*sdata[1,2], 100.0*cfg.value('maximumFirstHarmonicAmplitude'),
+                         100.0*sdata[2,2], 100.0*cfg.value('maximumSecondHarmonicAmplitude'),
+                         100.0*sdata[3,2], 100.0*cfg.value('maximumThirdHarmonicAmplitude'),
                          100.0*props['rmserror'], 100.0*cfg.value('maximumRMSError')))
         
     if not found_bestwindow:
