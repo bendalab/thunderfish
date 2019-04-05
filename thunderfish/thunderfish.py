@@ -552,83 +552,105 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             print(basefilename + ': no fish found.')
 
     # write results to files:
-    if save_data and found_bestwindow:
-        # for each fish:
-        for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
-            # mean waveform:
-            td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'std'],
-                           ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
-            if mean_eod.shape[1] > 3:
-                td.append('fit', unit, '%.5f', mean_eod[:,3])
-            td.write(os.path.join(output_folder, outfilename + '-eodwaveform-%d' % i),
-                     **write_table_args(cfg))
-            del td
-            # power spectrum:
-            if len(sdata)>0:
-                if sdata.shape[1] == 2:
-                    td = TableData(sdata[:,:2], ['frequency', 'power'],
-                                   ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
-                    td.write(os.path.join(output_folder, outfilename + '-pulsespectrum-%d' % i),
-                             **write_table_args(cfg))
-                else:
-                    td = TableData(sdata[:,:5]*[1.0, 1.0, 1.0, 100.0, 1.0],
-                                   ['harmonics', 'frequency', 'amplitude', 'relampl', 'phase'],
-                                   ['', 'Hz', unit, '%', 'rad'],
-                                   ['%.0f', '%.2f', '%.5f', '%10.2f', '%8.4f'])
-                    if sdata.shape[1] > 6:
-                        td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
-                        td.append('relpower', '%', '%11.2f', 100.0*sdata[:,6])
-                    td.write(os.path.join(output_folder, outfilename + '-wavespectrum-%d' % i),
-                             **write_table_args(cfg))
+    if save_data:
+        fext = TableData.extensions[cfg.value('fileFormat')]
+        # remove all files from previous runs of thunderfish:
+        for fn in os.listdir(output_folder):
+            if fn.startswith(outfilename + '-') and \
+               fn.endswith(fext):
+                fp = os.path.join(output_folder, fn)
+                os.remove(fp)
+                if verbose > 0:
+                    print('removed file %s' % fp)
+        if found_bestwindow:
+            # for each fish:
+            for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
+                # mean waveform:
+                td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'std'],
+                               ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
+                if mean_eod.shape[1] > 3:
+                    td.append('fit', unit, '%.5f', mean_eod[:,3])
+                fp = os.path.join(output_folder, outfilename + '-eodwaveform-%d' % i)
+                td.write(fp, **write_table_args(cfg))
+                if verbose > 0:
+                    print('wrote file %s.%s' % (fp, fext))
                 del td
-            # peaks:
-            if len(pdata)>0:
-                td = TableData(pdata[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
-                               ['P', 'time', 'amplitude', 'relampl', 'width'],
-                               ['', 'ms', unit, '%', 'ms'],
-                               ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
-                td.write(os.path.join(output_folder, outfilename + '-pulsepeaks-%d' % i),
-                         **write_table_args(cfg))
+                # power spectrum:
+                if len(sdata)>0:
+                    if sdata.shape[1] == 2:
+                        td = TableData(sdata[:,:2], ['frequency', 'power'],
+                                       ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
+                        fp = os.path.join(output_folder, outfilename + '-pulsespectrum-%d' % i)
+                        td.write(fp, **write_table_args(cfg))
+                        if verbose > 0:
+                            print('wrote file %s.%s' % (fp, fext))
+                    else:
+                        td = TableData(sdata[:,:5]*[1.0, 1.0, 1.0, 100.0, 1.0],
+                                       ['harmonics', 'frequency', 'amplitude', 'relampl', 'phase'],
+                                       ['', 'Hz', unit, '%', 'rad'],
+                                       ['%.0f', '%.2f', '%.5f', '%10.2f', '%8.4f'])
+                        if sdata.shape[1] > 6:
+                            td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
+                            td.append('relpower', '%', '%11.2f', 100.0*sdata[:,6])
+                        fp = os.path.join(output_folder, outfilename + '-wavespectrum-%d' % i)
+                        td.write(fp, **write_table_args(cfg))
+                        if verbose > 0:
+                            print('wrote file %s.%s' % (fp, fext))
+                    del td
+                # peaks:
+                if len(pdata)>0:
+                    td = TableData(pdata[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
+                                   ['P', 'time', 'amplitude', 'relampl', 'width'],
+                                   ['', 'ms', unit, '%', 'ms'],
+                                   ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
+                    fp = os.path.join(output_folder, outfilename + '-pulsepeaks-%d' % i)
+                    td.write(fp, **write_table_args(cfg))
+                    if verbose > 0:
+                        print('wrote file %s.%s' % (fp, fext))
+                    del td
+            # fish properties:
+            if wave_props:
+                td = TableData()
+                td.append('index', '', '%d', wave_props, 'index')
+                td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
+                td.append('power', 'dB', '%7.2f', wave_props, 'power')
+                td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
+                if 'rmvariance' in wave_props[0]:
+                    td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
+                td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
+                td.append('n', '', '%5d', wave_props, 'n')
+                fp = os.path.join(output_folder, outfilename + '-wavefish')
+                td.write(gp, **write_table_args(cfg))
+                if verbose > 0:
+                    print('wrote file %s.%s' % (fp, fext))
                 del td
-        # fish properties:
-        if wave_props:
-            td = TableData()
-            td.append('index', '', '%d', wave_props, 'index')
-            td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
-            td.append('power', 'dB', '%7.2f', wave_props, 'power')
-            td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
-            if 'rmvariance' in wave_props[0]:
-                td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
-            td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
-            td.append('n', '', '%5d', wave_props, 'n')
-            td.write(os.path.join(output_folder, outfilename + '-wavefish'),
-                     **write_table_args(cfg))
-            del td
-        if pulse_props:
-            td = TableData()
-            td.append_section('waveform')
-            td.append('index', '', '%d', pulse_props, 'index')
-            td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')
-            td.append('period', 'ms', '%7.2f', pulse_props, 'period', 1000.0)
-            td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
-            td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
-            td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
-            td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
-            td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
-            td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
-            td.append('tau', 'ms', '%.3f', pulse_props, 'tau', 1000.0)
-            td.append('firstpeak', '', '%d', pulse_props, 'firstpeak')
-            td.append('lastpeak', '', '%d', pulse_props, 'lastpeak')
-            td.append('n', '', '%d', pulse_props, 'n')
-            td.append_section('power spectrum')
-            td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
-            td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
-            td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
-            td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
-            td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
-            td.write(os.path.join(output_folder, outfilename + '-pulsefish'),
-                     **write_table_args(cfg))
-            del td
+            if pulse_props:
+                td = TableData()
+                td.append_section('waveform')
+                td.append('index', '', '%d', pulse_props, 'index')
+                td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')
+                td.append('period', 'ms', '%7.2f', pulse_props, 'period', 1000.0)
+                td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
+                td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
+                td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
+                td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
+                td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
+                td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
+                td.append('tau', 'ms', '%.3f', pulse_props, 'tau', 1000.0)
+                td.append('firstpeak', '', '%d', pulse_props, 'firstpeak')
+                td.append('lastpeak', '', '%d', pulse_props, 'lastpeak')
+                td.append('n', '', '%d', pulse_props, 'n')
+                td.append_section('power spectrum')
+                td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
+                td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
+                td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
+                td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
+                td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
+                fp = os.path.join(output_folder, outfilename + '-pulsefish')
+                td.write(fp, **write_table_args(cfg))
+                if verbose > 0:
+                    print('wrote file %s.%s' % (fp, fext))
+                del td
 
     if save_plot or not save_data:
         output_plot(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
