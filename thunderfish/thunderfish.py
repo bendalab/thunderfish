@@ -8,6 +8,7 @@ python -m thunderfish.thunderfish audiofile.wav
 
 import sys
 import os
+import glob
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
@@ -325,26 +326,26 @@ def output_plot(base_name, raw_data, samplerate, idx0, idx1,
 
 
 def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
-                output_folder='.', show_bestwindow=False, verbose=0):
+                output_folder='.', keep_path=False, show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
 
     # file names:
-    basefilename = os.path.basename(filename)
-    outfilename = os.path.splitext(basefilename)[0]
+    fn = filename if keep_path else os.path.basename(filename)
+    outfilename = os.path.splitext(fn)[0]
 
     # check channel:
     if channel < 0:
-        return '%s: invalid channel %d' % (basefilename, channel)
+        return '%s: invalid channel %d' % (filename, channel)
 
     # load data:
     try:
         raw_data, samplerate, unit = load_data(filename, channel, verbose=verbose)
     except IOError as e:
-        return '%s: failed to open file: %s' % (basefilename, str(e))
+        return '%s: failed to open file: %s' % (filename, str(e))
     if len(raw_data) <= 1:
-        return '%s: empty data file' % basefilename
+        return '%s: empty data file' % filename
         
     # calculate best_window:
     found_bestwindow = True
@@ -374,7 +375,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                                 **bwa)
             plt.show()
         except UserWarning as e:
-            print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
+            print(filename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
         return None
     # find best window:
     try:
@@ -385,7 +386,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                                                   **bwa)
         data = raw_data[idx0:idx1]
     except UserWarning as e:
-        print(basefilename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
+        print(filename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
         found_bestwindow = False
         idx0 = 0
         idx1 = 0
@@ -503,7 +504,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         mean_eod, props, sdata, error_str = \
             analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
         if error_str:
-            print(basefilename + ': ' + error_str)
+            print(filename + ': ' + error_str)
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)
         # add good waveforms only:
@@ -547,22 +548,26 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
     if found_bestwindow and not eod_props :
         msg = ', '.join(skip_reason)
         if msg:
-            print(basefilename + ': no fish found: %s' % msg)
+            print(filename + ': no fish found: %s' % msg)
         else:
-            print(basefilename + ': no fish found.')
+            print(filename + ': no fish found.')
 
     # write results to files:
     if save_data:
         fext = TableData.extensions[cfg.value('fileFormat')]
         # remove all files from previous runs of thunderfish:
-        for fn in os.listdir(output_folder):
-            if fn.startswith(outfilename + '-') and \
-               fn.endswith(fext):
-                fp = os.path.join(output_folder, fn)
-                os.remove(fp)
-                if verbose > 0:
-                    print('removed file %s' % fp)
+        for fn in glob.glob(os.path.join(output_folder, '%s-*.%s' % (outfilename, fext))):
+            os.remove(fn)
+            if verbose > 0:
+                print('removed file %s' % fn)
         if found_bestwindow:
+            output_basename = os.path.join(output_folder, outfilename)
+            if keep_path:
+                outpath = os.path.dirname(output_basename)
+                if not os.path.exists(outpath):
+                    if verbose > 0:
+                        print('mkdir %s' % outpath)
+                    os.makedirs(outpath)
             # for each fish:
             for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
                 # mean waveform:
@@ -570,7 +575,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                                ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
                 if mean_eod.shape[1] > 3:
                     td.append('fit', unit, '%.5f', mean_eod[:,3])
-                fp = os.path.join(output_folder, outfilename + '-eodwaveform-%d' % i)
+                fp = output_basename + '-eodwaveform-%d' % i
                 td.write(fp, **write_table_args(cfg))
                 if verbose > 0:
                     print('wrote file %s.%s' % (fp, fext))
@@ -580,7 +585,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                     if sdata.shape[1] == 2:
                         td = TableData(sdata[:,:2], ['frequency', 'power'],
                                        ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
-                        fp = os.path.join(output_folder, outfilename + '-pulsespectrum-%d' % i)
+                        fp = output_basename + '-pulsespectrum-%d' % i
                         td.write(fp, **write_table_args(cfg))
                         if verbose > 0:
                             print('wrote file %s.%s' % (fp, fext))
@@ -592,7 +597,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                         if sdata.shape[1] > 6:
                             td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
                             td.append('relpower', '%', '%11.2f', 100.0*sdata[:,6])
-                        fp = os.path.join(output_folder, outfilename + '-wavespectrum-%d' % i)
+                        fp = output_basename + '-wavespectrum-%d' % i
                         td.write(fp, **write_table_args(cfg))
                         if verbose > 0:
                             print('wrote file %s.%s' % (fp, fext))
@@ -603,7 +608,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                                    ['P', 'time', 'amplitude', 'relampl', 'width'],
                                    ['', 'ms', unit, '%', 'ms'],
                                    ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
-                    fp = os.path.join(output_folder, outfilename + '-pulsepeaks-%d' % i)
+                    fp = output_basename + '-pulsepeaks-%d' % i
                     td.write(fp, **write_table_args(cfg))
                     if verbose > 0:
                         print('wrote file %s.%s' % (fp, fext))
@@ -619,8 +624,8 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                     td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
                 td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
                 td.append('n', '', '%5d', wave_props, 'n')
-                fp = os.path.join(output_folder, outfilename + '-wavefish')
-                td.write(gp, **write_table_args(cfg))
+                fp = output_basename + '-wavefish'
+                td.write(fp, **write_table_args(cfg))
                 if verbose > 0:
                     print('wrote file %s.%s' % (fp, fext))
                 del td
@@ -646,7 +651,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                 td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
                 td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
                 td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
-                fp = os.path.join(output_folder, outfilename + '-pulsefish')
+                fp = output_basename + '-pulsefish'
                 td.write(fp, **write_table_args(cfg))
                 if verbose > 0:
                     print('wrote file %s.%s' % (fp, fext))
@@ -701,6 +706,8 @@ def main():
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat")')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot as pdf file')
+    parser.add_argument('-k', dest='keep_path', action='store_true',
+                        help='keep path of input file when saving analysis files')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures')
     parser.add_argument('-b', dest='show_bestwindow', action='store_true',
@@ -714,12 +721,14 @@ def main():
         parser.print_help()
         print('')
         print('examples:')
-        print('- analyze a single file interactively:')
+        print('- analyze the single file data.wav interactively:')
         print('  > thunderfish data.wav')
-        print('- analyze many files automatically and save analysis results and plot to files:')
+        print('- automatically analyze all wav files in the current working directory and save analysis results and plot to files:')
         print('  > thunderfish -s -p *.wav')
-        print('- analyze many files automatically, use all CPUs, and write files to "results/":')
+        print('- analyze all wav files in the river1/ directory, use all CPUs, and write files directly to "results/":')
         print('  > thunderfish -j -s -p -o results/ *.wav')
+        print('- analyze all wav files in the river1/ directory and write files to "results/river1/":')
+        print('  > thunderfish -s -p -o results/ -k river1/*.wav')
         print('- write configuration file:')
         print('  > thunderfish -c')
         parser.exit()
@@ -752,7 +761,7 @@ def main():
         # run on pool:
         global pool_args
         pool_args = (cfg, args.channel, args.save_data,
-                     args.save_plot, args.outpath,
+                     args.save_plot, args.outpath, args.keep_path,
                      args.show_bestwindow, verbose-1)
         if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
             cpus = cpu_count() if args.jobs == 0 else args.jobs
