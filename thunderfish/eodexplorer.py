@@ -66,6 +66,7 @@ class Explorer(object):
         self.fig = plt.figure(facecolor='white')
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
         self.fig.canvas.mpl_connect('resize_event', self.on_resize)
+        self.fig.canvas.mpl_connect('pick_event', self.on_pick)
         self.xborder = 60.0  # pixel for ylabels
         self.yborder = 50.0  # pixel for xlabels
         self.spacing = 10.0  # pixel between plots
@@ -331,7 +332,7 @@ class Explorer(object):
             self.corrax[-1].set_position([pos[0][0], pos[0][1],
                                           self.zoom_size[0], self.zoom_size[1]])
 
-    def update_selection(self, ax, key, x0, x1, y0, y1):
+    def make_selection(self, ax, key, x0, x1, y0, y1):
         if not key in ['shift', 'control']:
             self.mark_data = []
         try:
@@ -366,6 +367,8 @@ class Explorer(object):
                             self.mark_data.append(ind)
             except ValueError:
                 return
+            
+    def update_selection(self):
         # update scatter plots:
         for artist, (c, r) in zip(self.corrartists, self.corrindices):
             if artist is not None:
@@ -377,7 +380,7 @@ class Explorer(object):
         for idx in self.mark_data:
             if idx < len(self.detailed_data):
                 self.dax.plot(self.detailed_data[idx][:,0], self.detailed_data[idx][:,1],
-                            c=self.data_colors[idx], lw=3)
+                              c=self.data_colors[idx], lw=3, picker=5)
         self.fix_detailed_plot(self.dax, self.mark_data)
         self.fig.canvas.draw()
         
@@ -559,8 +562,15 @@ class Explorer(object):
             self.zoom_stack.append((ax, xmin, xmax, ymin, ymax))
             ax.set_xlim(x0, x1)
             ax.set_ylim(y0, y1)
-        self.update_selection(ax, erelease.key, x0, x1, y0, y1)
+        self.make_selection(ax, erelease.key, x0, x1, y0, y1)
+        self.update_selection()
 
+    def on_pick(self, event):
+        for k, l in enumerate(self.dax.lines):
+            if l is event.artist:
+                self.mark_data = [self.mark_data[k]]
+        self.update_selection()
+            
     def set_layout(self, width, height):
         xoffs = self.xborder/width
         yoffs = self.yborder/height
