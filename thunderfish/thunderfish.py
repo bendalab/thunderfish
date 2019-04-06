@@ -17,7 +17,7 @@ from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
-from .bestwindow import clip_amplitudes, best_window_indices, plot_best_window, plot_best_data
+from .bestwindow import find_best_window, plot_best_data
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
@@ -29,7 +29,7 @@ from .eodanalysis import pulse_spectrum_plot, wave_spectrum_plot
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .tabledata import TableData, add_write_table_config, write_table_args
-from audioio import unwrap, play, fade
+from audioio import play, fade
 
 
 def configuration(config_file, save_config=False, file_name='', verbose=0):
@@ -347,52 +347,14 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         return '%s: failed to open file: %s' % (filename, str(e))
     if len(raw_data) <= 1:
         return '%s: empty data file' % filename
-        
-    # calculate best_window:
-    found_bestwindow = True
-    min_clip = cfg.value('minClipAmplitude')
-    max_clip = cfg.value('maxClipAmplitude')
-    if min_clip == 0.0 or max_clip == 0.0:
-        min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
-    if cfg.value('unwrapData'):
-        raw_data = unwrap(raw_data)
-        min_clip = -2.0
-        max_clip = 2.0
-    # best window size parameter:
-    bwa = best_window_args(cfg)
-    if 'win_size' in bwa:
-        del bwa['win_size']
-    best_window_size = cfg.value('bestWindowSize')
-    if best_window_size <= 0.0:
-        best_window_size = (len(raw_data)-1)/samplerate
-    # show cost function:
+
+    # best_window:
+    data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg, show_bestwindow)
     if show_bestwindow:
-        fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
-        try:
-            best_window_indices(raw_data, samplerate,
-                                min_clip=min_clip, max_clip=max_clip,
-                                win_size=best_window_size,
-                                plot_data_func=plot_best_window, ax=ax,
-                                **bwa)
-            plt.show()
-        except UserWarning as e:
-            print(filename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
         return None
-    # find best window:
-    try:
-        idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
-                                                  min_clip=min_clip,
-                                                  max_clip=max_clip,
-                                                  win_size=best_window_size,
-                                                  **bwa)
-        data = raw_data[idx0:idx1]
-    except UserWarning as e:
+    found_bestwindow = idx1 > 0
+    if not found_bestwindow:
         print(filename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
-        found_bestwindow = False
-        idx0 = 0
-        idx1 = 0
-        clipped = 0.0
-        data = raw_data
 
     # pulse-type fish?
     pulse_fish, pta_value, pulse_period = \
