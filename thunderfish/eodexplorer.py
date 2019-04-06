@@ -570,6 +570,12 @@ class Explorer(object):
             if l is event.artist:
                 self.mark_data = [self.mark_data[k]]
         self.update_selection()
+        # if event.mouseevent.dblclick:
+        #     fig, ax = plt.subplots(1)
+        #     x = np.linspace(0.0, 10.0, 400)
+        #     ax.plot(x, np.sin(x))
+        #     ax.set_title('Experimental')
+        #     plt.show(block=False)
             
     def set_layout(self, width, height):
         xoffs = self.xborder/width
