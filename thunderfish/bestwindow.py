@@ -18,10 +18,14 @@ Select the region within a recording with the most stable signal of largest ampl
 - `plot_clipping()`: visualization of the algorithm for detecting clipped amplitudes in clip_amplitudes().
 - `plot_best_window()`: visualization of the algorithm used in best_window_indices().
 - `plot_best_data()`: plot the data and the selected best window.
+
+## Convinience function
+- `find_best_window()`: set clipping amplitudes and find best window.
 """
 
 import numpy as np
 from .eventdetection import percentile_threshold, detect_peaks, trim_to_peak
+from audioio import unwrap
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -603,6 +607,64 @@ def best_window_args(cfg):
                     'w_cv_ampl': 'weightCVAmplitude',
                     'tolerance': 'bestWindowTolerance',
                     'expand': 'expandBestWindow'})
+
+        
+def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
+    """
+    Set clipping amplitudes and find best window.
+
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analyzed.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    cfg: ConfigFile
+        Configuration for clipping and best window.
+    show_bestwindow: boolean
+        If true show a plot with the best window cost functions.
+    """
+    found_bestwindow = True
+    min_clip = cfg.value('minClipAmplitude')
+    max_clip = cfg.value('maxClipAmplitude')
+    if min_clip == 0.0 or max_clip == 0.0:
+        min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
+    if cfg.value('unwrapData'):
+        raw_data = unwrap(raw_data)
+        min_clip = -2.0
+        max_clip = 2.0
+    # best window size parameter:
+    bwa = best_window_args(cfg)
+    if 'win_size' in bwa:
+        del bwa['win_size']
+    best_window_size = cfg.value('bestWindowSize')
+    if best_window_size <= 0.0:
+        best_window_size = (len(raw_data)-1)/samplerate
+    # show cost function:
+    if show_bestwindow:
+        fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
+        try:
+            best_window_indices(raw_data, samplerate,
+                                min_clip=min_clip, max_clip=max_clip,
+                                win_size=best_window_size,
+                                plot_data_func=plot_best_window, ax=ax,
+                                **bwa)
+            plt.show()
+        except UserWarning as e:
+            found_bestwindow = False
+    else:
+        try:
+            idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
+                                                      min_clip=min_clip,
+                                                      max_clip=max_clip,
+                                                      win_size=best_window_size,
+                                                      **bwa)
+        except UserWarning as e:
+            found_bestwindow = False
+    if found_bestwindow:
+        return raw_data[idx0:idx1], idx0, idx1, clipped
+    else:
+        return raw_data, 0, 0, 0.0
 
 
 if __name__ == "__main__":
