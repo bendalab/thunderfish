@@ -790,8 +790,8 @@ def main():
                         help='list all available data columns and exit')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
-    parser.add_argument('-D', dest='default_cols', default='all', type=str,
-                        choices=['all', 'noise', 'none'],
+    parser.add_argument('-D', dest='column_groups', default=[], type=str, action='append',
+                        choices=['all', 'noise', 'timing', 'none'],
                         help='default list of columns')
     parser.add_argument('-d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be appended or removed (if already listed) for analysis')
@@ -838,7 +838,7 @@ def main():
     list_columns = args.list_columns
     jobs = args.jobs
     file_name = args.file
-    default_cols = args.default_cols
+    column_groups = args.column_groups
     add_data_cols = args.add_data_cols
     save_pca = args.save_pca
     color_col = args.color_col
@@ -864,35 +864,37 @@ def main():
         cluster[data[:,'phase1'] > 0] = 3
         data.append('cluster', '', '%d', cluster)
 
-
     # default columns:
-    if default_cols == 'none':
-        data_cols = []
-    elif wave_fish:
-        if default_cols == 'noise':
-            data_cols = ['EODf', 'p-p-amplitude', 'power', 'noise', 'rmserror']
-        else:
-            data_cols = ['EODf']
-            for k in range(1, 20):
-                if not ('relampl%d' % k) in data:
-                    break
-                data_cols.append('relampl%d' % k)
-                data_cols.append('phase%d' % k)
-    else:
-        if default_cols == 'none':
+    data_cols = ['EODf']
+    if len(column_groups) == 0:
+        column_groups = ['all']
+    for group in column_groups:
+        if group == 'none':
             data_cols = []
-        elif default_cols == 'noise':
-            data_cols = ['EODf', 'p-p-amplitude', 'noise']
+        elif wave_fish:
+            if group == 'noise':
+                data_cols.extend(['p-p-amplitude', 'power', 'noise', 'rmserror'])
+            elif group == 'timing':
+                data_cols.extend(['peakwidth', 'troughwidth', 'leftpeak', 'rightpeak',
+                                  'lefttrough', 'righttrough', 'p-p-distance'])
+            else:
+                for k in range(1, 20):
+                    if not ('relampl%d' % k) in data:
+                        break
+                    data_cols.append('relampl%d' % k)
+                    data_cols.append('phase%d' % k)
         else:
-            data_cols = ['EODf']
-            for k in range(-2, 10):
-                if ('P%drelampl' % k) in data:
-                    data_cols.append('P%drelampl' % k)
-                if ('P%dtime' % k) in data:
-                    data_cols.append('P%dtime' % k)
-                if ('P%dwidth' % k) in data:
-                    data_cols.append('P%dwidth' % k)
-            data_cols.extend(['tau', 'peakfreq', 'poweratt5'])
+            if group == 'noise':
+                data_cols.extend(['p-p-amplitude', 'noise'])
+            else:
+                for k in range(-2, 10):
+                    if ('P%drelampl' % k) in data:
+                        data_cols.append('P%drelampl' % k)
+                    if ('P%dtime' % k) in data:
+                        data_cols.append('P%dtime' % k)
+                    if ('P%dwidth' % k) in data:
+                        data_cols.append('P%dwidth' % k)
+                data_cols.extend(['tau', 'peakfreq', 'poweratt5'])
 
     # additional data columns:
     for c in add_data_cols:
