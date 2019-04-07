@@ -426,65 +426,65 @@ The parameter of the Fourier series fitted to the waveform of a wave-type fish.
     <th align="left">frequency</th>
     <th align="left">amplitude</th>
     <th align="left">relampl</th>
+    <th align="left">relpower</th>
     <th align="left">phase</th>
     <th align="left">power</th>
-    <th align="left">relpower</th>
   </tr>
   <tr>
     <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">a.u.</th>
     <th align="left">%</th>
+    <th align="left">dB</th>
     <th align="left">rad</th>
     <th align="left">a.u.^2/Hz</th>
-    <th align="left">%</th>
   </tr>
 </thead>
 <tbody>
   <tr>
     <td align="right">0</td>
-    <td align="right">728.09</td>
-    <td align="right">0.32634</td>
+    <td align="right">728.16</td>
+    <td align="right">0.32610</td>
     <td align="right">100.00</td>
+    <td align="right">0.00</td>
     <td align="right">0.0000</td>
-    <td align="right">1.0530e-01</td>
-    <td align="right">100.00</td>
+    <td align="right">1.0137e-01</td>
   </tr>
   <tr>
     <td align="right">1</td>
-    <td align="right">1456.18</td>
-    <td align="right">0.22179</td>
-    <td align="right">67.96</td>
-    <td align="right">-0.7157</td>
-    <td align="right">4.8310e-02</td>
-    <td align="right">45.88</td>
+    <td align="right">1456.32</td>
+    <td align="right">0.22146</td>
+    <td align="right">67.91</td>
+    <td align="right">-3.36</td>
+    <td align="right">2.4706</td>
+    <td align="right">4.1881e-02</td>
   </tr>
   <tr>
     <td align="right">2</td>
-    <td align="right">2184.27</td>
-    <td align="right">0.03244</td>
-    <td align="right">9.94</td>
-    <td align="right">-1.9988</td>
-    <td align="right">1.0239e-03</td>
-    <td align="right">0.97</td>
+    <td align="right">2184.48</td>
+    <td align="right">0.03215</td>
+    <td align="right">9.86</td>
+    <td align="right">-20.12</td>
+    <td align="right">-1.9333</td>
+    <td align="right">7.6623e-04</td>
   </tr>
   <tr>
     <td align="right">3</td>
-    <td align="right">2912.37</td>
-    <td align="right">0.03715</td>
-    <td align="right">11.38</td>
-    <td align="right">2.3472</td>
-    <td align="right">1.3243e-03</td>
-    <td align="right">1.26</td>
+    <td align="right">2912.63</td>
+    <td align="right">0.03733</td>
+    <td align="right">11.45</td>
+    <td align="right">-18.83</td>
+    <td align="right">-0.6807</td>
+    <td align="right">8.6311e-04</td>
   </tr>
   <tr>
     <td align="right">4</td>
-    <td align="right">3640.46</td>
-    <td align="right">0.02056</td>
-    <td align="right">6.30</td>
-    <td align="right">2.9606</td>
-    <td align="right">3.9391e-04</td>
-    <td align="right">0.37</td>
+    <td align="right">3640.79</td>
+    <td align="right">0.02039</td>
+    <td align="right">6.25</td>
+    <td align="right">-24.08</td>
+    <td align="right">3.0997</td>
+    <td align="right">2.3089e-04</td>
   </tr>
 </tbody>
 </table>
@@ -494,9 +494,9 @@ The columns contain:
 2. Frequency of the harmonics in Hertz.
 3. Amplitude of each harmonics obtained by fitting a Fourier series to the data in the unit of the input data.
 4. Amplitude of each harmonics relative to the amplitude of the fundamental in percent.
-5. Phase of each harmonics obtained by fitting a Fourier series to the data in radians ranging from 0 to 2 pi.
-6. Power spectral density of the harmonics from the original power spectrum of the data.
-7. Power spectral density of the harmonics relative to the power of the fundamental in percent.
+5. Power of each harmonics relative to fundamental in decibel.
+6. Phase of each harmonics obtained by fitting a Fourier series to the data in radians ranging from 0 to 2 pi.
+7. Power spectral density of the harmonics from the original power spectrum of the data.
 
 
 ### RECORDING-pulsefish.EXT

@@ -232,17 +232,17 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
         - lefttrough: time from negative zero crossing to trough.
         - righttrough: time from trough to positive zero crossing.
         - p-p-distance: time between peak and trough.
-        - power: if `freq` is list of harmonics then `power` is set to the summed power
-          of all harmonics and transformed to decibel.
+        - power: summed power of all harmonics in decibel relative to one.
     spec_data: 2-D array of floats
         First column is the index of the harmonics, second column its frequency,
         third column its amplitude, fourth column its amplitude relative to the fundamental,
-        and fifth column the phase shift relative to the fundamental.
-        If `freq` is a list of harmonics, a sixth and a seventh column is added to `spec_data`
-        that contain the powers of the harmonics from the original power spectrum of the
-        raw data, and the powers normalized to the one of the fundamental.
+        fifth column is power of harmonics relative to fundamental in decibel,
+        and sixth column the phase shift relative to the fundamental.
+        If `freq` is a list of harmonics, a seventh column is added to `spec_data`
+        that contains the powers of the harmonics from the original power spectrum of the
+        raw data.
         Rows are the harmonics, first row is the fundamental frequency with index 0,
-        relative amplitude of one, and phase shift of zero.
+        relative amplitude of one, relative power of 0dB, and phase shift of zero.
         If the relative amplitude of the first harmonic (spec-data[1,3]) is larger than 2,
         or the relative amplitude of the second harmonic (spec-data[2,3]) is larger than 0.2,
         then this probably is not a proper EOD waveform and
@@ -367,15 +367,15 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     if hasattr(freq, 'shape'):
         spec_data = np.zeros((n_harm, 7))
         powers = freq[:n_harm, 1]
-        spec_data[:len(powers), 5] = powers
-        spec_data[:len(powers), 6] = powers/powers[0]
-        pnh = power_n_harmonics if power_n_harmonics > 0 else len(freq) 
-        props['power'] = decibel(np.sum(freq[:pnh,1]))
+        spec_data[:len(powers), 6] = powers
     else:
-        spec_data = np.zeros((n_harm, 5))
-    spec_data[0,:5] = [0.0, freq0, ampl, 1.0, 0.0]
+        spec_data = np.zeros((n_harm, 6))
+    spec_data[0,:6] = [0.0, freq0, ampl, 1.0, 0.0, 0.0]
     for i in range(1, n_harm):
-        spec_data[i,:5] = [i, (i+1)*freq0, ampl*popt[1+i*2], popt[1+i*2], popt[2+i*2]]
+        spec_data[i,:6] = [i, (i+1)*freq0, ampl*popt[1+i*2], popt[1+i*2],
+                           decibel(popt[1+i*2]**2.0), popt[2+i*2]]
+    pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
+    props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
     
     return meod, props, spec_data, error_str
 
@@ -819,7 +819,8 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
         The amplitude spectrum of a single pulse as returned by `analyze_wave()`.
         First column is the index of the harmonics, second column its frequency,
         third column its amplitude, fourth column its amplitude relative to the fundamental,
-        and fifth column the phase shift relative to the fundamental.
+        fifth column is power of harmonics relative to fundamental in decibel,
+        and sixth column the phase shift relative to the fundamental.
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_wave()`.
@@ -849,7 +850,7 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     else:
         axa.set_ylabel('Amplitude')
     # phases:
-    phases = spec[:,4]
+    phases = spec[:,5]
     phases[phases<0.0] = phases[phases<0.0] + 2.0*np.pi
     markers, stemlines, baseline = axp.stem(spec[:n,0], phases[:n])
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
