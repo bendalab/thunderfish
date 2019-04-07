@@ -870,7 +870,7 @@ def main():
         data_cols = []
     elif wave_fish:
         if default_cols == 'noise':
-            data_cols = ['EODf', 'power', 'noise', 'rmserror']
+            data_cols = ['EODf', 'p-p-amplitude', 'power', 'noise', 'rmserror']
         else:
             data_cols = ['EODf']
             for k in range(1, 20):
@@ -882,7 +882,7 @@ def main():
         if default_cols == 'none':
             data_cols = []
         elif default_cols == 'noise':
-            data_cols = ['EODf', 'p-p-amplitude', 'noise'] # XXX noise is missing!
+            data_cols = ['EODf', 'p-p-amplitude', 'noise']
         else:
             data_cols = ['EODf']
             for k in range(-2, 10):
