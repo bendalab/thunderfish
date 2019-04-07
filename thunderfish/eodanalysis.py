@@ -29,6 +29,7 @@ from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
+from .eventdetection import threshold_crossings, threshold_crossing_times
 from .powerspectrum import psd, nfft_noverlap, decibel
 
 
@@ -224,6 +225,13 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
           the p-p amplitude (only if a standard deviation is given in `eod`).
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than 0.05 the data are bad.
+        - peakwidth: width of the peak at the averaged amplitude.
+        - troughwidth: width of the trough at the averaged amplitude.
+        - leftpeak: time from positive zero crossing to peak.
+        - rightpeak: time from peak to negative zero crossing.
+        - lefttrough: time from negative zero crossing to trough.
+        - righttrough: time from trough to positive zero crossing.
+        - p-p-distance: time between peak and trough.
         - power: if `freq` is list of harmonics then `power` is set to the summed power
           of all harmonics and transformed to decibel.
     spec_data: 2-D array of floats
@@ -259,7 +267,8 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     meod[:,:-1] = eod
 
     # subtract mean and flip:
-    pinx = int(np.ceil(1.0/freq0/(meod[1,0]-meod[0,0])))
+    period = 1.0/freq0
+    pinx = int(np.ceil(period/(meod[1,0]-meod[0,0])))
     maxn = (len(meod)//pinx)*pinx
     if maxn < pinx: maxn = len(meod)
     offs = (len(meod) - maxn)//2
@@ -291,6 +300,23 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     # subtract mean:
     meod[:,1] -= np.mean(meod[i0:i1,1])
 
+    # zero crossings:
+    ui, di = threshold_crossings(meod[:,1], 0.0)
+    ut, dt = threshold_crossing_times(meod[:,0], meod[:,1], 0.0, ui, di)
+    uidx = np.argmax(ui>i0)
+    didx = np.argmax(di>ui[uidx])
+    up_time = ut[uidx]
+    down_time = dt[didx]
+    peak_width = down_time - up_time
+    trough_width = period - peak_width
+    peak_time = 0.0
+    trough_time = meod[maxinx+np.argmin(meod[maxinx:maxinx+pinx,1]),0]
+    phase1 = peak_time - up_time
+    phase2 = down_time - peak_time
+    phase3 = trough_time - down_time
+    phase4 = up_time + period - trough_time
+    distance = trough_time - peak_time
+    
     # fit fourier series:
     ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
     while n_harm > 1:
@@ -331,7 +357,13 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     props['rmserror'] = rmserror
     if rmvariance:
         props['rmvariance'] = rmvariance
-    ncols = 4
+    props['peakwidth'] = peak_width
+    props['troughwidth'] = trough_width
+    props['leftpeak'] = phase1
+    props['rightpeak'] = phase2
+    props['lefttrough'] = phase3
+    props['righttrough'] = phase4
+    props['p-p-distance'] = distance
     if hasattr(freq, 'shape'):
         spec_data = np.zeros((n_harm, 7))
         powers = freq[:n_harm, 1]
