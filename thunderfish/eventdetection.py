@@ -4,10 +4,12 @@ Detect and handle peaks and troughs as well as threshold crossings in data array
 
 ## Peak detection
 - `detect_peaks()`: peak and trough detection with a relative threshold.
+- `peak_width()`: compute width of each peak.
 - `peak_size_width()`: compute for each peak its size and width.
 
 ## Threshold crossings
 - `threshold_crossings()`: detect crossings of an absolute threshold.
+- `threshold_crossing_times()`: compute times of threshold crossings by linear interpolation.
 
 ## Event manipulation
 - `trim()`: make the list of peaks and troughs the same length.
@@ -406,9 +408,9 @@ def threshold_crossings(data, threshold):
     
     Returns
     -------
-    up_array: array of ints
+    up_indices: array of ints
         A list of indices where the threshold is crossed with positive slope.
-    down_array: array of ints
+    down_indices: array of ints
         A list of indices where the threshold is crossed with negative slope.
 
     Raises
@@ -417,14 +419,45 @@ def threshold_crossings(data, threshold):
     """
 
     if np.isscalar(threshold):
-        up_array = np.nonzero((data[1:]>threshold) & (data[:-1]<=threshold))[0]
-        down_array = np.nonzero((data[1:]<=threshold) & (data[:-1]>threshold))[0]
+        up_indices = np.nonzero((data[1:]>threshold) & (data[:-1]<=threshold))[0]
+        down_indices = np.nonzero((data[1:]<=threshold) & (data[:-1]>threshold))[0]
     else:
         if len(data) != len(threshold):
             raise IndexError('input arrays data and threshold must have same length!')
-        up_array = np.nonzero((data[1:]>threshold[1:]) & (data[:-1]<=threshold[:-1]))[0]
-        down_array = np.nonzero((data[1:]<=threshold[1:]) & (data[:-1]>threshold[:-1]))[0]
-    return up_array, down_array
+        up_indices = np.nonzero((data[1:]>threshold[1:]) & (data[:-1]<=threshold[:-1]))[0]
+        down_indices = np.nonzero((data[1:]<=threshold[1:]) & (data[:-1]>threshold[:-1]))[0]
+    return up_indices, down_indices
+
+    
+def threshold_crossing_times(time, data, threshold, up_indices, down_indices):
+    """
+    Compute times of threshold crossings by linear interpolation.
+
+    Parameters
+    ----------
+    time: array
+        Time, must not be `None`.
+    data: array
+        The data.
+    up_indices: array of ints
+        A list of indices where the threshold is crossed with positive slope.
+    down_indices: array of ints
+        A list of indices where the threshold is crossed with negative slope.
+    
+    Returns 
+    -------
+    up_times: array of floats
+        Interpolated times where the threshold is crossed with positive slope.
+    down_times: array of floats
+        Interpolated times where the threshold is crossed with negative slope.
+    """
+    up_times = np.zeros(len(up_indices))
+    for k, inx in enumerate(up_indices):
+        up_times[k] = np.interp(threshold, data[inx:inx+2], time[inx:inx+2])
+    down_times = np.zeros(len(down_indices))
+    for k, inx in enumerate(down_indices):
+        down_times[k] = np.interp(-threshold, -data[inx:inx+2], time[inx:inx+2])
+    return up_times, down_times
 
 
 def trim(peaks, troughs):

@@ -220,7 +220,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
         - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
         - flipped: True if the waveform was flipped.
         - amplitude: amplitude factor of the Fourier fit.
-        - rmvaraince: root-mean variance of the averaged EOD waveform relative to
+        - rmvariance: root-mean variance of the averaged EOD waveform relative to
           the p-p amplitude (only if a standard deviation is given in `eod`).
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than 0.05 the data are bad.
@@ -422,6 +422,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - max-amplitude: the amplitude of the largest positive peak (P1).
         - min-amplitude: the amplitude of the largest negative peak (P2).
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
+        - rmvariance: root-mean variance of the averaged EOD waveform relative to
+          the p-p amplitude (only if a standard deviation is given in `eod`).
         - tstart: time in seconds where the pulse starts,
           i.e. crosses the threshold for the first time.
         - tend: time in seconds where the pulse ends,
@@ -489,9 +491,6 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     # move peak of waveform to zero:
     meod[:,0] -= meod[max_idx,0]
 
-    # amplitude:
-    ppampl = max_ampl + min_ampl
-
     # threshold for peak detection:
     n = len(meod[:,1])//10
     thl_max = np.max(meod[:n,1])
@@ -527,6 +526,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     min_idx -= leidx
     tau = None
     peaks = []
+
+    # amplitude and variance:
+    ppampl = max_ampl + min_ampl
+    rmvariance = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
@@ -610,6 +613,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['max-amplitude'] = max_ampl
     props['min-amplitude'] = min_ampl
     props['p-p-amplitude'] = ppampl
+    if rmvariance:
+        props['rmvariance'] = rmvariance
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0

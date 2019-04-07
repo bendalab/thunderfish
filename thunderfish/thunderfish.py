@@ -582,6 +582,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             # fish properties:
             if wave_props:
                 td = TableData()
+                td.append_section('waveform')
                 td.append('index', '', '%d', wave_props, 'index')
                 td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
                 td.append('power', 'dB', '%7.2f', wave_props, 'power')
@@ -604,6 +605,8 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                 td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
                 td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
                 td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
+                if 'rmvariance' in pulse_props[0]:
+                    td.append('noise', '%', '%.1f', pulse_props, 'rmvariance', 100.0)
                 td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
                 td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
                 td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
