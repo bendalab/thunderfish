@@ -88,6 +88,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                                       wave_spec.format('amplitude'))
                         if h > 0:
                             df.append('relampl%d' % h, '%', '%.2f')
+                            df.append('relpower%d' % h, '%', '%.2f')
                             df.append('phase%d' % h, 'rad', '%.3f')
             else:
                 if peaks0 is not None:
@@ -140,6 +141,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     table.append_data(wave_spec[h,'amplitude'])
                     if h > 0:
                         table.append_data(wave_spec[h,'relampl'])
+                        table.append_data(wave_spec[h,'relpower'])
                         table.append_data(wave_spec[h,'phase'])
             if append_file:
                 table.append_data(recording)
