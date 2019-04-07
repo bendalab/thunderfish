@@ -482,9 +482,9 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             spec_data.append(sdata)
             peak_data.append([])
             if verbose > 0:
-                print('%d take waveform of %6.1fHz fish: clipped=%3.0f%% ampl1=%6.4f ampl2=%6.4f rmserror=%6.2f%%'
-                      % (idx, fish[0,0], 100.0*clipped, sdata[1,2], sdata[2,2],
-                         100.0*props['rmserror']))
+                print('%d take waveform of %6.1fHz fish: clipped=%3.0f%%, ampl1=%5.1f%%, ampl2=%5.1f%%, ampl3=%5.1f%%, rmserror=%6.2f%%'
+                      % (idx, fish[0,0], 100.0*clipped, 100.0*sdata[1,3], 100.0*sdata[2,3],
+                         100.0*sdata[3,3], 100.0*props['rmserror']))
         else:
             if k == 0 and clipped >= cfg.value('maximumClippedFraction'):
                 skip_reason += ['%.1fHz wavefish clipped' % props['EODf']]
@@ -494,7 +494,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                props['rmserror'] >= cfg.value('maximumRMSError'):
                 skip_reason += ['%.1fHz wavefish distorted' % props['EODf']]
             if verbose > 0:
-                print('%d skip waveform of %.1fHz fish: clipped=%3.0f%% (%3.0f%%), ampl1=%5.1f%% (%5.1f%%), ampl2=%5.1f%% (%5.1f%%), ampl3=%5.1f%% (%5.1f%%), rmserror=%6.2f%% (%6.2f%%)'
+                print('%d skip waveform of %6.1fHz fish: clipped=%3.0f%% (%3.0f%%), ampl1=%5.1f%% (%5.1f%%), ampl2=%5.1f%% (%5.1f%%), ampl3=%5.1f%% (%5.1f%%), rmserror=%6.2f%% (%6.2f%%)'
                       % (idx, fish[0,0],
                          100.0*clipped, 100.0*cfg.value('maximumClippedFraction'),
                          100.0*sdata[1,3], 100.0*cfg.value('maximumFirstHarmonicAmplitude'),
@@ -556,13 +556,12 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                         if verbose > 0:
                             print('wrote file %s.%s' % (fp, fext))
                     else:
-                        td = TableData(sdata[:,:5]*[1.0, 1.0, 1.0, 100.0, 1.0],
-                                       ['harmonics', 'frequency', 'amplitude', 'relampl', 'phase'],
-                                       ['', 'Hz', unit, '%', 'rad'],
-                                       ['%.0f', '%.2f', '%.5f', '%10.2f', '%8.4f'])
+                        td = TableData(sdata[:,:6]*[1.0, 1.0, 1.0, 100.0, 1.0, 1.0],
+                                       ['harmonics', 'frequency', 'amplitude', 'relampl', 'relpower', 'phase'],
+                                       ['', 'Hz', unit, '%', 'dB', 'rad'],
+                                       ['%.0f', '%.2f', '%.5f', '%10.2f', '%6.2f', '%8.4f'])
                         if sdata.shape[1] > 6:
-                            td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,5])
-                            td.append('relpower', '%', '%11.2f', 100.0*sdata[:,6])
+                            td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,6])
                         fp = output_basename + '-wavespectrum-%d' % i
                         td.write(fp, **write_table_args(cfg))
                         if verbose > 0:
