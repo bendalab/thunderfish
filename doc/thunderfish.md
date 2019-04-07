@@ -292,6 +292,10 @@ wave-type fish detected in the recording.
 <table>
 <thead>
   <tr>
+    <th align="left" colspan="7">waveform</th>
+    <th align="left" colspan="7">timing</th>
+  </tr>
+  <tr>
     <th align="left">index</th>
     <th align="left">EODf</th>
     <th align="left">power</th>
@@ -299,6 +303,13 @@ wave-type fish detected in the recording.
     <th align="left">noise</th>
     <th align="left">rmserror</th>
     <th align="left">n</th>
+    <th align="left">peakwidth</th>
+    <th align="left">troughwidth</th>
+    <th align="left">leftpeak</th>
+    <th align="left">rightpeak</th>
+    <th align="left">lefttrough</th>
+    <th align="left">righttrough</th>
+    <th align="left">p-p-distance</th>
   </tr>
   <tr>
     <th align="left">-</th>
@@ -308,53 +319,79 @@ wave-type fish detected in the recording.
     <th align="left">%</th>
     <th align="left">%</th>
     <th align="left">-</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
+    <th align="left">ms</th>
   </tr>
 </thead>
 <tbody>
   <tr>
     <td align="right">0</td>
-    <td align="right">555.59</td>
-    <td align="right">-20.04</td>
-    <td align="right">0.242</td>
-    <td align="right">42.9</td>
-    <td align="right">0.07</td>
-    <td align="right">4445</td>
+    <td align="right">580.08</td>
+    <td align="right">-21.92</td>
+    <td align="right">0.171</td>
+    <td align="right">32.1</td>
+    <td align="right">0.49</td>
+    <td align="right">4641</td>
+    <td align="right">1.196</td>
+    <td align="right">0.528</td>
+    <td align="right">1.050</td>
+    <td align="right">0.146</td>
+    <td align="right">0.198</td>
+    <td align="right">0.330</td>
+    <td align="right">0.344</td>
   </tr>
   <tr>
     <td align="right">1</td>
-    <td align="right">91.02</td>
-    <td align="right">-22.58</td>
-    <td align="right">0.213</td>
-    <td align="right">50.3</td>
-    <td align="right">0.10</td>
-    <td align="right">729</td>
+    <td align="right">111.08</td>
+    <td align="right">-33.99</td>
+    <td align="right">0.079</td>
+    <td align="right">90.9</td>
+    <td align="right">0.29</td>
+    <td align="right">889</td>
+    <td align="right">4.900</td>
+    <td align="right">4.102</td>
+    <td align="right">3.710</td>
+    <td align="right">1.190</td>
+    <td align="right">1.841</td>
+    <td align="right">2.261</td>
+    <td align="right">3.031</td>
   </tr>
   <tr>
     <td align="right">2</td>
-    <td align="right">197.66</td>
-    <td align="right">-23.58</td>
-    <td align="right">0.131</td>
-    <td align="right">91.0</td>
-    <td align="right">0.14</td>
-    <td align="right">1582</td>
+    <td align="right">133.06</td>
+    <td align="right">-36.45</td>
+    <td align="right">0.035</td>
+    <td align="right">208.2</td>
+    <td align="right">0.31</td>
+    <td align="right">1065</td>
+    <td align="right">3.414</td>
+    <td align="right">4.101</td>
+    <td align="right">1.544</td>
+    <td align="right">1.870</td>
+    <td align="right">3.036</td>
+    <td align="right">1.065</td>
+    <td align="right">4.906</td>
   </tr>
   <tr>
     <td align="right">3</td>
-    <td align="right">666.75</td>
-    <td align="right">-31.42</td>
-    <td align="right">0.039</td>
-    <td align="right">322.7</td>
-    <td align="right">0.05</td>
-    <td align="right">5334</td>
-  </tr>
-  <tr>
-    <td align="right">4</td>
-    <td align="right">583.25</td>
-    <td align="right">-32.32</td>
-    <td align="right">0.049</td>
-    <td align="right">258.9</td>
-    <td align="right">0.19</td>
-    <td align="right">4667</td>
+    <td align="right">608.64</td>
+    <td align="right">-44.31</td>
+    <td align="right">0.015</td>
+    <td align="right">502.3</td>
+    <td align="right">0.36</td>
+    <td align="right">4870</td>
+    <td align="right">1.131</td>
+    <td align="right">0.512</td>
+    <td align="right">0.864</td>
+    <td align="right">0.267</td>
+    <td align="right">0.171</td>
+    <td align="right">0.341</td>
+    <td align="right">0.438</td>
   </tr>
 </tbody>
 </table>
@@ -369,6 +406,13 @@ The columns contain:
 6. Root-mean-squared difference between the averaged EOD waveform and 
    the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
 7. Number of EODs used for computing the averaged EOD waveform.
+8. Width of the peak at the averaged amplitude.
+9. Width of the trough at the averaged amplitude.
+10. Time from positive zero crossing to peak.
+11. Time from peak to negative zero crossing.
+12. Time from negative zero crossing to trough.
+13. Time from trough to positive zero crossing.
+14. Time between peak and trough.
 
 
 ### RECORDING-wavespectrum-N.EXT
@@ -462,7 +506,7 @@ Properties of each pulse-type fish detected in the recording.
 <table>
 <thead>
   <tr>
-    <th align="left" colspan="13">waveform</th>
+    <th align="left" colspan="14">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
   </tr>
   <tr>
@@ -472,6 +516,7 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">max-ampl</th>
     <th align="left">min-ampl</th>
     <th align="left">p-p-amplitude</th>
+    <th align="left">noise</th>
     <th align="left">tstart</th>
     <th align="left">tend</th>
     <th align="left">width</th>
@@ -492,6 +537,7 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">a.u.</th>
     <th align="left">a.u.</th>
     <th align="left">a.u.</th>
+    <th align="left">%</th>
     <th align="left">ms</th>
     <th align="left">ms</th>
     <th align="left">ms</th>
@@ -509,23 +555,24 @@ Properties of each pulse-type fish detected in the recording.
 <tbody>
   <tr>
     <td align="right">0</td>
-    <td align="right">30.68</td>
-    <td align="right">32.60</td>
+    <td align="right">30.72</td>
+    <td align="right">32.55</td>
     <td align="right">0.797</td>
     <td align="right">0.838</td>
     <td align="right">1.635</td>
+    <td align="right">0.7</td>
     <td align="right">-0.295</td>
     <td align="right">0.884</td>
     <td align="right">1.179</td>
-    <td align="right">0.125</td>
+    <td align="right">0.118</td>
     <td align="right">1</td>
     <td align="right">2</td>
     <td align="right">100</td>
-    <td align="right">895.65</td>
+    <td align="right">895.98</td>
     <td align="right">-66.31</td>
-    <td align="right">-19.88</td>
-    <td align="right">-18.68</td>
-    <td align="right">162.17</td>
+    <td align="right">-19.90</td>
+    <td align="right">-18.69</td>
+    <td align="right">161.84</td>
   </tr>
 </tbody>
 </table>
@@ -537,18 +584,20 @@ The columns contain:
 4. Amplitude of the largest peak (P1 peak) in the units of the input data.
 5. Amplitude of the largest trough in the units of the input data.
 6. Peak-to-peak amplitude in the units of the input data.
-7. Time where the pulse starts relative to P1 in milliseconds.
-8. Time where the pulse ends relative to P1 in milliseconds.
-9. Total width of the pulse in milliseconds.
-10. Time constant of the exponential decay of the tail of the pulse in milliseconds.
-11. Index of the first peak in the pulse (i.e. -1 for P-1)
-12. Index of the last peak in the pulse (i.e. 3 for P3)
-13. Number of EODs used for computing the averaged EOD waveform.
-14. Frequency at the peak power of the single pulse spectrum in Hertz.
-15. Peak power of the single pulse spectrum in decibel.
-16. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-17. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-18. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+7. Root-mean-variance of the averaged EOD waveform relative to the
+   peak-to_peak amplitude in percent.
+8. Time where the pulse starts relative to P1 in milliseconds.
+9. Time where the pulse ends relative to P1 in milliseconds.
+10. Total width of the pulse in milliseconds.
+11. Time constant of the exponential decay of the tail of the pulse in milliseconds.
+12. Index of the first peak in the pulse (i.e. -1 for P-1)
+13. Index of the last peak in the pulse (i.e. 3 for P3)
+14. Number of EODs used for computing the averaged EOD waveform.
+15. Frequency at the peak power of the single pulse spectrum in Hertz.
+16. Peak power of the single pulse spectrum in decibel.
+17. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+18. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+19. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
 ### RECORDING-pulsepeaks-N.EXT

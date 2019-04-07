@@ -591,6 +591,14 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                     td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
                 td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
                 td.append('n', '', '%5d', wave_props, 'n')
+                td.append_section('timing')
+                td.append('peakwidth', 'ms', '%.3f', wave_props, 'peakwidth', 1000.0)
+                td.append('troughwidth', 'ms', '%.3f', wave_props, 'troughwidth', 1000.0)
+                td.append('leftpeak', 'ms', '%.3f', wave_props, 'leftpeak', 1000.0)
+                td.append('rightpeak', 'ms', '%.3f', wave_props, 'rightpeak', 1000.0)
+                td.append('lefttrough', 'ms', '%.3f', wave_props, 'lefttrough', 1000.0)
+                td.append('righttrough', 'ms', '%.3f', wave_props, 'righttrough', 1000.0)
+                td.append('p-p-distance', 'ms', '%.3f', wave_props, 'p-p-distance', 1000.0)
                 fp = output_basename + '-wavefish'
                 td.write(fp, **write_table_args(cfg))
                 if verbose > 0:
