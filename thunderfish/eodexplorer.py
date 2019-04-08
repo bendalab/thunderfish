@@ -791,8 +791,8 @@ def main():
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-D', dest='column_groups', default=[], type=str, action='append',
-                        choices=['all', 'noise', 'timing', 'none'],
-                        help='default list of columns')
+                        choices=['all', 'noise', 'timing', 'ampl', 'relampl', 'power', 'relpower', 'phase', 'time', 'width', 'none'],
+                        help='default selection of data columns, check them with the -l option')
     parser.add_argument('-d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be appended or removed (if already listed) for analysis')
     parser.add_argument('-s', dest='save_pca', action='store_true',
@@ -865,36 +865,91 @@ def main():
         data.append('cluster', '', '%d', cluster)
 
     # default columns:
-    data_cols = ['EODf']
+    group_cols = ['EODf']
     if len(column_groups) == 0:
         column_groups = ['all']
     for group in column_groups:
         if group == 'none':
-            data_cols = []
+            group_cols = []
         elif wave_fish:
             if group == 'noise':
-                data_cols.extend(['p-p-amplitude', 'power', 'noise', 'rmserror'])
-            elif group == 'timing':
-                data_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
+                group_cols.extend(['p-p-amplitude', 'power', 'noise', 'rmserror'])
+            elif group == 'timing' or group == 'time':
+                group_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
                                   'lefttrough', 'righttrough'])
-            else:
+            elif group == 'ampl':
+                for k in range(0, 20):
+                    if not ('ampl%d' % k) in data:
+                        break
+                    group_cols.append('ampl%d' % k)
+            elif group == 'relampl':
                 for k in range(1, 20):
                     if not ('relampl%d' % k) in data:
                         break
-                    data_cols.append('relampl%d' % k)
-                    data_cols.append('phase%d' % k)
-        else:
-            if group == 'noise':
-                data_cols.extend(['p-p-amplitude', 'noise'])
+                    group_cols.append('relampl%d' % k)
+            elif group == 'relpower' or group == 'power':
+                for k in range(1, 20):
+                    if not ('relpower%d' % k) in data:
+                        break
+                    group_cols.append('relpower%d' % k)
+            elif group == 'phase':
+                for k in range(1, 20):
+                    if not ('phase%d' % k) in data:
+                        break
+                    group_cols.append('phase%d' % k)
+            elif group == 'all':
+                for k in range(1, 20):
+                    if not ('relampl%d' % k) in data:
+                        break
+                    group_cols.append('relampl%d' % k)
+                    group_cols.append('relpower%d' % k)
+                    group_cols.append('phase%d' % k)
             else:
+                parser.error('"%s" is not a valid data group for wavefish' % group)
+        else:  # pulse fish
+            if group == 'noise':
+                group_cols.extend(['noise', 'p-p-amplitude', 'min-ampl', 'max-ampl'])
+            elif group == 'timing':
+                group_cols.extend(['tstart', 'tend', 'width', 'tau', 'firstpeak', 'lastpeak'])
+            elif group == 'power':
+                group_cols.extend(['peakfreq', 'peakpower', 'poweratt5', 'poweratt50', 'lowcutoff'])
+            elif group == 'time':
+                for k in range(-2, 10):
+                    if ('P%dtime' % k) in data:
+                        group_cols.append('P%dtime' % k)
+            elif group == 'ampl':
+                for k in range(-2, 10):
+                    if ('P%dampl' % k) in data:
+                        group_cols.append('P%dampl' % k)
+            elif group == 'relampl':
                 for k in range(-2, 10):
                     if ('P%drelampl' % k) in data:
-                        data_cols.append('P%drelampl' % k)
-                    if ('P%dtime' % k) in data:
-                        data_cols.append('P%dtime' % k)
+                        group_cols.append('P%drelampl' % k)
+            elif group == 'width':
+                for k in range(-2, 10):
                     if ('P%dwidth' % k) in data:
-                        data_cols.append('P%dwidth' % k)
-                data_cols.extend(['tau', 'peakfreq', 'poweratt5'])
+                        group_cols.append('P%dwidth' % k)
+            elif group == 'all':
+                for k in range(-2, 10):
+                    if ('P%drelampl' % k) in data:
+                        group_cols.append('P%drelampl' % k)
+                    if ('P%dtime' % k) in data:
+                        group_cols.append('P%dtime' % k)
+                    if ('P%dwidth' % k) in data:
+                        group_cols.append('P%dwidth' % k)
+                group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
+            else:
+                parser.error('"%s" is not a valid data group for pulsefish' % group)
+    # translate to indices:
+    data_cols = []
+    for c in group_cols:
+        idx = data.index(c)
+        if idx is None:
+            parser.error('"%s" is not a valid data column' % c)
+        elif idx in data_cols:
+            data_cols.remove(idx)
+        else:
+            data_cols.append(idx)
 
     # additional data columns:
     for c in add_data_cols:
