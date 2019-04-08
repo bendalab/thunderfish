@@ -293,9 +293,8 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
             i1 = len(meod)
             i0 = i1 - 2*pinx
     else:
-        pinx //= 2
-        i0 = maxinx - pinx if maxinx >= pinx else 0
-        i1 = i0 + 2*pinx
+        i0 = maxinx - pinx//2 if maxinx >= pinx//2 else 0
+        i1 = i0 + pinx
 
     # subtract mean:
     meod[:,1] -= np.mean(meod[i0:i1,1])
@@ -303,7 +302,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     # zero crossings:
     ui, di = threshold_crossings(meod[:,1], 0.0)
     ut, dt = threshold_crossing_times(meod[:,0], meod[:,1], 0.0, ui, di)
-    uidx = np.argmax(ui>i0)
+    uidx = np.argmax(ui>maxinx-pinx//2)
     didx = np.argmax(di>ui[uidx])
     up_time = ut[uidx]
     down_time = dt[didx]
