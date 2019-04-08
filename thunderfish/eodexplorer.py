@@ -875,8 +875,8 @@ def main():
             if group == 'noise':
                 data_cols.extend(['p-p-amplitude', 'power', 'noise', 'rmserror'])
             elif group == 'timing':
-                data_cols.extend(['peakwidth', 'troughwidth', 'leftpeak', 'rightpeak',
-                                  'lefttrough', 'righttrough', 'p-p-distance'])
+                data_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
+                                  'lefttrough', 'righttrough'])
             else:
                 for k in range(1, 20):
                     if not ('relampl%d' % k) in data:
