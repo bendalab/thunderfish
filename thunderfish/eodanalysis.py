@@ -225,13 +225,13 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
           the p-p amplitude (only if a standard deviation is given in `eod`).
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than 0.05 the data are bad.
-        - peakwidth: width of the peak at the averaged amplitude.
-        - troughwidth: width of the trough at the averaged amplitude.
-        - leftpeak: time from positive zero crossing to peak.
-        - rightpeak: time from peak to negative zero crossing.
-        - lefttrough: time from negative zero crossing to trough.
-        - righttrough: time from trough to positive zero crossing.
-        - p-p-distance: time between peak and trough.
+        - peakwidth: width of the peak at the averaged amplitude relative to EOD period.
+        - troughwidth: width of the trough at the averaged amplitude relative to EOD period.
+        - leftpeak: time from positive zero crossing to peak relative to EOD period.
+        - rightpeak: time from peak to negative zero crossing relative to EOD period.
+        - lefttrough: time from negative zero crossing to trough relative to EOD period.
+        - righttrough: time from trough to positive zero crossing relative to EOD period.
+        - p-p-distance: time between peak and trough relative to EOD period.
         - power: summed power of all harmonics in decibel relative to one.
     spec_data: 2-D array of floats
         First column is the index of the harmonics, second column its frequency,
@@ -357,13 +357,13 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     props['rmserror'] = rmserror
     if rmvariance:
         props['rmvariance'] = rmvariance
-    props['peakwidth'] = peak_width
-    props['troughwidth'] = trough_width
-    props['leftpeak'] = phase1
-    props['rightpeak'] = phase2
-    props['lefttrough'] = phase3
-    props['righttrough'] = phase4
-    props['p-p-distance'] = distance
+    props['peakwidth'] = peak_width/period
+    props['troughwidth'] = trough_width/period
+    props['leftpeak'] = phase1/period
+    props['rightpeak'] = phase2/period
+    props['lefttrough'] = phase3/period
+    props['righttrough'] = phase4/period
+    props['p-p-distance'] = distance/period
     if hasattr(freq, 'shape'):
         spec_data = np.zeros((n_harm, 7))
         powers = freq[:n_harm, 1]
