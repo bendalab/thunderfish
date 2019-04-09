@@ -26,7 +26,7 @@ from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_dete
 from .harmonicgroups import fundamental_freqs, fundamental_freqs_and_power
 from .harmonicgroups import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
-from .eodanalysis import eod_waveform, unfilter, analyze_wave, analyze_pulse
+from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import eod_recording_plot, eod_waveform_plot
 from .eodanalysis import pulse_spectrum_plot, wave_spectrum_plot
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
@@ -72,7 +72,6 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     add_eod_analysis_config(cfg, min_pulse_win=0.004)
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
-    cfg.add('unfilterCutoff', 0.0, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
     add_eod_quality_config(cfg)
     add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
                            shrink_width=False)
@@ -415,8 +414,6 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             eod_waveform(data, samplerate,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
                          **eod_waveform_args(cfg))
-        if cfg.value('unfilterCutoff') > 0.0:
-            unfilter(mean_eod[:,1], samplerate, cutoff=cfg.value('unfilterCutoff'))
         mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times,
                                                       fresolution=minfres,
                                                       **analyze_pulse_args(cfg))
@@ -460,8 +457,6 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             eod_waveform(data, samplerate,
                          win_fac=3.0, min_win=0.0, period=1.0/fish[0,0],
                          **eod_waveform_args(cfg))
-        if cfg.value('unfilterCutoff') > 0.0:
-            unfilter(mean_eod[:,1], samplerate, cutoff=cfg.value('unfilterCutoff'))
         mean_eod, props, sdata, error_str = \
             analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
         if error_str:

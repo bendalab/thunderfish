@@ -3,7 +3,6 @@
 
 ## EOD analysis
 - `eod_waveform()`: compute an averaged EOD waveform.
-- `unfilter()`: apply inverse low-pass filter on data.
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
 
@@ -16,6 +15,9 @@
 ## Fit functions
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
 - `exp_decay()`: expontenial decay.
+
+## Filter functions
+- `unfilter()`: apply inverse low-pass filter on data.
 
 ## Configuration parameter
 - `add_eod_analysis_config()': add parameters for EOD analysis functions to configuration.
@@ -34,8 +36,8 @@ from .eventdetection import threshold_crossings, threshold_crossing_times
 from .powerspectrum import psd, nfft_noverlap, decibel
 
 
-def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0,
-                 win_fac=2.0, min_win=0.01, max_eods=None, period=None):
+def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
+                 min_win=0.01, max_eods=None, unfilter_cutoff=0.0, period=None):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard deviation.
 
@@ -57,6 +59,9 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0,
         The minimum size of the snippets in seconds.
     max_eods: int or None
         Maximum number of EODs to be used for averaging.
+    unfilter_cutoff: float
+        If not zero, the cutoff frequency for an inverse high-pass filter
+        applied to the mean EOD wavbeform.
     period: float or None
         Average waveforms with this period instead of peak times.
     
@@ -104,6 +109,10 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0,
     if len(eod_snippets) > 1:
         mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
 
+    # inverse filter:
+    if unfilter_cutoff > 0.0:
+        unfilter(mean_eod[:,1], samplerate, cutoff=unfilter_cutoff)
+        
     # time axis:
     mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / samplerate
     
@@ -382,7 +391,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
 
 def exp_decay(t, tau, ampl, offs):
     """
-    Expontenial decay.
+    Exponential decay function.
 
     x(t) = ampl*exp(-t/tau) + offs
 
@@ -913,7 +922,7 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
 
 
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
-                            win_fac=2.0, min_win=0.01, max_eods=None,
+                            win_fac=2.0, min_win=0.01, max_eods=None, unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',
                             n_harm=20, min_pulse_win=0.001, peak_thresh_fac=0.01,
                             min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
@@ -937,6 +946,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
     cfg.add('eodSnippetFac', win_fac, '', 'The duration of EOD snippets is the EOD period times this factor.')
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
+    cfg.add('unfilterCutoff', 0.0, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
     cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave-type fish to make largest extremum positive.')
     cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse-type fish to make the first large peak positive.')
     cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
@@ -968,7 +978,8 @@ def eod_waveform_args(cfg):
                  'percentile': 'pulseWidthPercentile',
                  'win_fac': 'eodSnippetFac',
                  'min_win': 'eodMinSnippet',
-                 'max_eods': 'eodMaxEODs'})
+                 'max_eods': 'eodMaxEODs',
+                 'unfilter_cutoff': 'unfilterCutoff'})
     return a
 
 
