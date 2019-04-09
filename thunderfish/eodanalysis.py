@@ -741,7 +741,7 @@ def wave_quality(idx, clipped, variance, rms_error, spec_data,
                         (100.0*spec_data[2,3], 100.0*max_relampl_harm2)]
     msg += ['ampl3=%5.1f%%' % (100.0*spec_data[3,3])]
     if spec_data[3,3] >= max_relampl_harm3:
-        skip_reason += ['distorted ampl1=%5.1f%% (max %5.1f%%)' %
+        skip_reason += ['distorted ampl3=%5.1f%% (max %5.1f%%)' %
                         (100.0*spec_data[3,3], 100.0*max_relampl_harm3)]
     return ', '.join(skip_reason), ', '.join(msg)
 
@@ -777,7 +777,7 @@ def pulse_quality(idx, clipped, variance, max_clipped_frac=0.01,
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]
-    msg += ['variance=%6.2f%%' % 100.0*variance]
+    msg += ['variance=%6.2f%%' % (100.0*variance)]
     if max_variance > 0.0 and variance >= max_variance:
         skip_reason += ['noisy variance=%6.2f%% (max %6.2f%%)' %
                         (100.0*variance, 100.0*max_variance)]

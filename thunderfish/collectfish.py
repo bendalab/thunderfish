@@ -7,10 +7,13 @@ import sys
 import argparse
 from .version import __version__, __year__
 from .tabledata import TableData
+from .configfile import ConfigFile
+from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
+from .eodanalysis import pulse_quality, pulse_quality_args
 
 
 def collect_fish(files, insert_file=True, append_file=False, simplify_file=False,
-                 max_fish=0, harmonics=None, peaks0=None, peaks1=None):
+                 max_fish=0, harmonics=None, peaks0=None, peaks1=None, cfg=None):
     """
     Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
 
@@ -39,6 +42,8 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
     peaks1: int
         Index of the last peak of a EOD pulse to be added to the pulse-type fish table.
         This data is read in from the corresponding *-pulsepeaks-*.* files.
+    cfg: ConfigFile
+        Configuration parameter for EOD quality assessment.
 
     Returns
     -------
@@ -113,14 +118,33 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         # fill table:
         n = data.rows() if not max_fish or max_fish > data.rows() else max_fish
         for r in range(n):
+            # fish index:
+            idx = r
+            if 'index' in data:
+                idx = data[r,'index']
+            # check quality:
+            skips = ''
+            if fish_type == 'wave':
+                wave_spec = TableData(base_path + '-wavespectrum-%d'%idx + file_ext)
+                if cfg is not None:
+                    spec_data = wave_spec.array()
+                    spec_data[:,3] *= 0.01
+                    skips, msg = wave_quality(idx, 0.0, 0.01*data[r,'noise'],
+                                              0.01*data[r,'rmserror'], spec_data,
+                                              **wave_quality_args(cfg))
+            else:
+                if cfg is not None:
+                    skips, msg = pulse_quality(idx, 0.0, 0.01*data[r,'noise'],
+                                               **pulse_quality_args(cfg))
+            if len(skips) > 0:
+                print('skip fish %d from %s: %s' % (data[r,'index'], recording, skips))
+                continue
+            # fill in data:
             data_col = 0
             if insert_file:
                 table.append_data(recording, data_col)
                 data_col += 1
             table.append_data(data[r,:], data_col)
-            idx = r
-            if 'index' in data:
-                idx = data[r,'index']
             if peaks0 is not None and fish_type == 'pulse':
                 pulse_peaks = TableData(base_path + '-pulsepeaks-%d'%idx + file_ext)
                 for p in range(peaks0, peaks1+1):
@@ -136,7 +160,6 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                         table.append_data(pulse_peaks[pr,'relampl'], 'P%drelampl' % p)
                     table.append_data(pulse_peaks[pr,'width'], 'P%dwidth' % p)
             elif harmonics is not None and fish_type == 'wave':
-                wave_spec = TableData(base_path + '-wavespectrum-%d'%idx + file_ext)
                 for h in range(harmonics+1):
                     table.append_data(wave_spec[h,'amplitude'])
                     if h > 0:
@@ -158,10 +181,11 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             if not is_same:
                 break
         for table in wave_table, pulse_table:
-            for k in range(table.rows()):
-                idx = table.index('file')
-                fps = os.path.normpath(table[k,idx]).split(os.path.sep)
-                table[k,idx] = os.path.sep.join(fps[fi:])
+            if table is not None:
+                for k in range(table.rows()):
+                    idx = table.index('file')
+                    fps = os.path.normpath(table[k,idx]).split(os.path.sep)
+                    table[k,idx] = os.path.sep.join(fps[fi:])
     return wave_table, pulse_table
 
     
@@ -229,6 +253,11 @@ def main():
     statistics = args.statistics
     out_path = args.out_path
     data_format = args.format
+    # read configuration:
+    cfgfile = __package__ + '.cfg'
+    cfg = ConfigFile()
+    add_eod_quality_config(cfg)
+    cfg.load_files(cfgfile, args.file[0], 3)
     # create output folder:
     if not os.path.exists(out_path):
         os.makedirs(out_path)
@@ -236,7 +265,7 @@ def main():
     wave_table, pulse_table = collect_fish(args.file, True, args.append_file,
                                            args.simplify_file,
                                            args.max_fish, args.harmonics,
-                                           args.pulse_peaks[0],  args.pulse_peaks[1])
+                                           args.pulse_peaks[0],  args.pulse_peaks[1], cfg)
     # output format:
     if not data_format:
         ext = os.path.splitext(args.file[0])[1][1:]

@@ -435,7 +435,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             if verbose > 0:
                 print('take %6.1fHz pulse-type fish: %s' % (props['EODf'], msg))
         else:
-            skip_reason += ['%.1fHz pulse-type fish %s' % (props['EODf'], skips)]
+            skip_reason += ['%d %.1fHz pulse-type fish %s' % (0, props['EODf'], skips)]
             if verbose > 0:
                 print('skip %6.1fHz pulse-type fish: %s (%s)' %
                       (props['EODf'], skips, msg))
@@ -477,7 +477,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             if verbose > 0:
                 print('%d take %6.1fHz wave-type fish: %s' % (idx, props['EODf'], msg))
         else:
-            skip_reason += ['%.1fHz wave-type fish %s' % (props['EODf'], skips)]
+            skip_reason += ['%d %.1fHz wave-type fish %s' % (idx, props['EODf'], skips)]
             if verbose > 0:
                 print('%d skip waveform of %6.1fHz fish: %s (%s)' %
                       (idx, props['EODf'], skips, msg))
