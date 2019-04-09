@@ -13,6 +13,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from multiprocessing import Pool, freeze_support, cpu_count
+from audioio import play, fade
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import load_data
@@ -21,15 +22,17 @@ from .bestwindow import find_best_window, plot_best_data
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import decibel, plot_decibel_psd, multi_resolution_psd
-from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args, fundamental_freqs, fundamental_freqs_and_power, colors_markers, plot_harmonic_groups
+from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .harmonicgroups import fundamental_freqs, fundamental_freqs_and_power
+from .harmonicgroups import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, unfilter, analyze_wave, analyze_pulse
 from .eodanalysis import eod_recording_plot, eod_waveform_plot
 from .eodanalysis import pulse_spectrum_plot, wave_spectrum_plot
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
+from .eodanalysis import add_eod_quality_config
 from .tabledata import TableData, add_write_table_config, write_table_args
-from audioio import play, fade
 
 
 def configuration(config_file, save_config=False, file_name='', verbose=0):
@@ -70,12 +73,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
     cfg.add('unfilterCutoff', 0.0, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
-    cfg.add_section('Waveform selection:')
-    cfg.add('maximumClippedFraction', 0.01, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
-    cfg.add('maximumFirstHarmonicAmplitude', 2.0, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
-    cfg.add('maximumSecondHarmonicAmplitude', 0.8, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
-    cfg.add('maximumThirdHarmonicAmplitude', 0.5, '', 'Skip waveform of wave-type fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental.')
-    cfg.add('maximumRMSError', 0.05, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+    add_eod_quality_config(cfg)
     add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
                            shrink_width=False)
     

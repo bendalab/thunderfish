@@ -22,6 +22,7 @@
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
+- `add_eod_quality_config()`: add parameters needed for assesing the quality of an EOD waveform.
 """
 
 import numpy as np
@@ -1018,6 +1019,27 @@ def analyze_pulse_args(cfg):
                  'fit_frac': 'eodExponentialFitFraction',
                  'flip_pulse': 'flipPulseEOD'})
     return a
+
+
+def add_eod_quality_config(cfg, max_clipped_frac=0.01, max_relampl_harm1=2.0,
+                           max_relampl_harm2=0.8, max_relampl_harm3=0.5,
+                           max_rms_error=0.05):
+    """Add parameters needed for assesing the quality of an EOD waveform.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+        
+    See check_wave_quality( and check_pulse_quality() for details on
+    the remaining arguments.
+    """
+    cfg.add_section('Waveform selection:')
+    cfg.add('maximumClippedFraction', max_clipped_frac, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
+    cfg.add('maximumFirstHarmonicAmplitude', max_relampl_harm1, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
+    cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
+    cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave-type fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental.')
+    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
 
 
 if __name__ == '__main__':
