@@ -267,7 +267,7 @@ def main():
             data_format = TableData.ext_formats[ext]
         else:
             data_format = 'dat'
-    elif data_format != 'auto':
+    if data_format != 'auto':
         cfg.set('fileFormat', data_format)
     # create output folder:
     if not os.path.exists(out_path):
