@@ -1523,6 +1523,11 @@ class TableData:
         missing: string
             Indicate missing data by this string.
 
+        Returns
+        -------
+        file_name: string or None
+            The full name of the file into which the data were written.
+
         Supported file formats
         ----------------------
         
@@ -1650,6 +1655,7 @@ class TableData:
             format_width=None
         # open file:
         own_file = False
+        file_name = None
         if not hasattr(fh, 'write'):
             _, ext = os.path.splitext(fh)
             if table_format is None:
@@ -1657,6 +1663,7 @@ class TableData:
                     table_format = self.ext_formats[ext[1:]]
             elif not ext:
                 fh += '.' + self.extensions[table_format]
+            file_name = fh
             fh = open(fh, 'w')
             own_file = True
         if table_format is None:
@@ -2120,6 +2127,8 @@ class TableData:
         # close file:
         if own_file:
             fh.close()
+        # return file name:
+        return file_name
 
             
     def __str__(self):

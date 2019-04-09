@@ -1,10 +1,12 @@
 """
-# Analyse EOD waveforms.
+# Analysis of EOD waveforms.
 
 ## EOD analysis
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
+
+## Quality assessment
 - `wave_quality()`: asses quality of EOD waveform of a wave-type fish.
 - `pulse_quality()`: asses quality of EOD waveform of a pulse-type fish.
 
@@ -13,6 +15,14 @@
 - `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard deviation.
 - `wave_spectrum_plot()`: plot and annotate spectrum of wave-type EODs.
 - `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse-type EOD.
+
+## Storage
+- `save_eod_waveform()`: save mean eod waveform to file.
+- `save_wave_eods()`: save properties of wave-type EODs to file.
+- `save_pulse_eods()`: save properties of pulse-type EODs to file.
+- `save_wave_spectrum()`: save amplitude and phase spectrum of wave-type EOD to file.
+- `save_pulse_spectrum()`: save power spectrum of pulse-type EOD to file.
+- `save_pulse_peaks()`: save peak properties of pulse-type EOD to file.
 
 ## Fit functions
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
@@ -38,6 +48,7 @@ import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from .eventdetection import threshold_crossings, threshold_crossing_times
 from .powerspectrum import psd, nfft_noverlap, decibel
+from .tabledata import TableData
 
 
 def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
@@ -1031,6 +1042,231 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
     ax.set_ylabel('Power [dB]')
 
 
+def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
+    """ Save mean eod waveform to file.
+
+    Parameter
+    ---------
+    mean_eod: 2D array of floats
+        Averaged EOD waveform as returned by eod_waveform(), analyze_wave(),
+        and analyze_pulse().
+    unit: string
+        Unit of the waveform data.
+    idx: int or None
+        Index of fish.
+    basename: string
+        Path and basename of file.
+        '-eodwaveform', the fish index, and a file extension are appended.
+    kwargs:
+        Arguments passed on to TableData.write()
+
+    Returns
+    -------
+    filename: string
+        The path and full name of the written file.
+    """
+    td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'std'],
+                   ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
+    if mean_eod.shape[1] > 3:
+        td.append('fit', unit, '%.5f', mean_eod[:,3])
+    fp = basename + '-eodwaveform'
+    if idx is not None:
+        fp += '-%d' % idx
+    file_name = td.write(fp, **kwargs)
+    return file_name
+
+
+def save_wave_eods(wave_props, unit, basename, **kwargs):
+    """ Save properties of wave-type EODs to file.
+
+    Parameter
+    ---------
+    wave_props: list of dict
+        Properties of several wave-type EODs as returned by analyze_wave().
+    unit: string
+        Unit of the waveform data.
+    basename: string
+        Path and basename of file. '-wavefish' and a file extension are appended.
+    kwargs:
+        Arguments passed on to TableData.write()
+
+    Returns
+    -------
+    filename: string
+        The path and full name of the written file.
+    """
+    td = TableData()
+    td.append_section('waveform')
+    td.append('index', '', '%d', wave_props, 'index')
+    td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
+    td.append('power', 'dB', '%7.2f', wave_props, 'power')
+    td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
+    if 'rmvariance' in wave_props[0]:
+        td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
+    td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
+    td.append('n', '', '%5d', wave_props, 'n')
+    td.append_section('timing')
+    td.append('peakwidth', '%', '%.2f', wave_props, 'peakwidth', 100.0)
+    td.append('troughwidth', '%', '%.2f', wave_props, 'troughwidth', 100.0)
+    td.append('leftpeak', '%', '%.2f', wave_props, 'leftpeak', 100.0)
+    td.append('rightpeak', '%', '%.2f', wave_props, 'rightpeak', 100.0)
+    td.append('lefttrough', '%', '%.2f', wave_props, 'lefttrough', 100.0)
+    td.append('righttrough', '%', '%.2f', wave_props, 'righttrough', 100.0)
+    td.append('p-p-distance', '%', '%.2f', wave_props, 'p-p-distance', 100.0)
+    fp = basename + '-wavefish'
+    file_name = td.write(fp, **kwargs)
+    return file_name
+
+
+def save_pulse_eods(pulse_props, unit, basename, **kwargs):
+    """ Save properties of pulse-type EODs to file.
+
+    Parameter
+    ---------
+    puls_props: list of dict
+        Properties of several pulse-type EODs as returned by analyze_pulse().
+    unit: string
+        Unit of the waveform data.
+    basename: string
+        Path and basename of file. '-pulsefish' and a file extension are appended.
+    kwargs:
+        Arguments passed on to TableData.write()
+
+    Returns
+    -------
+    filename: string
+        The path and full name of the written file.
+    """
+    td = TableData()
+    td.append_section('waveform')
+    td.append('index', '', '%d', pulse_props, 'index')
+    td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')
+    td.append('period', 'ms', '%7.2f', pulse_props, 'period', 1000.0)
+    td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
+    td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
+    td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
+    if 'rmvariance' in pulse_props[0]:
+        td.append('noise', '%', '%.1f', pulse_props, 'rmvariance', 100.0)
+    td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
+    td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
+    td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
+    td.append('tau', 'ms', '%.3f', pulse_props, 'tau', 1000.0)
+    td.append('firstpeak', '', '%d', pulse_props, 'firstpeak')
+    td.append('lastpeak', '', '%d', pulse_props, 'lastpeak')
+    td.append('n', '', '%d', pulse_props, 'n')
+    td.append_section('power spectrum')
+    td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
+    td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
+    td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
+    td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
+    td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
+    fp = basename + '-pulsefish'
+    file_name = td.write(fp, **kwargs)
+    return file_name
+
+
+def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
+    """ Save amplitude and phase spectrum of wave-type EOD to file.
+
+    Parameter
+    ---------
+    spec_data: 2D array of floats
+        Amplitude and phase spectrum of wave-type EOD as returned by analyze_wave().
+    unit: string
+        Unit of the waveform data.
+    idx: int or None
+        Index of fish.
+    basename: string
+        Path and basename of file.
+        '-wavespectrum', the fish index, and a file extension are appended.
+    kwargs:
+        Arguments passed on to TableData.write()
+
+    Returns
+    -------
+    filename: string
+        The path and full name of the written file.
+    """
+    td = TableData(spec_data[:,:6]*[1.0, 1.0, 1.0, 100.0, 1.0, 1.0],
+                   ['harmonics', 'frequency', 'amplitude', 'relampl', 'relpower', 'phase'],
+                   ['', 'Hz', unit, '%', 'dB', 'rad'],
+                   ['%.0f', '%.2f', '%.5f', '%10.2f', '%6.2f', '%8.4f'])
+    if spec_data.shape[1] > 6:
+        td.append('power', '%s^2/Hz' % unit, '%11.4e', spec_data[:,6])
+    fp = basename + '-wavespectrum'
+    if idx is not None:
+        fp += '-%d' % idx
+    file_name = td.write(fp, **kwargs)
+    return file_name
+
+                        
+def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
+    """ Save power spectrum of pulse-type EOD to file.
+
+    Parameter
+    ---------
+    spec_data: 2D array of floats
+        Power spectrum of single pulse as returned by analyze_pulse().
+    unit: string
+        Unit of the waveform data.
+    idx: int or None
+        Index of fish.
+    basename: string
+        Path and basename of file.
+        '-pulsespectrum', the fish index, and a file extension are appended.
+    kwargs:
+        Arguments passed on to TableData.write()
+
+    Returns
+    -------
+    filename: string
+        The path and full name of the written file.
+    """
+    td = TableData(spec_data[:,:2], ['frequency', 'power'],
+                   ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
+    fp = basename + '-pulsespectrum'
+    if idx is not None:
+        fp += '-%d' % idx
+    file_name = td.write(fp, **kwargs)
+    return file_name
+
+                        
+def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
+    """ Save peak properties of pulse-type EOD to file.
+
+    Parameter
+    ---------
+    peak_data: 2D array of floats
+        Properties of peaks and troughs of pulse-tyoe EOD as returned by analyze_pulse().
+    unit: string
+        Unit of the waveform data.
+    idx: int or None
+        Index of fish.
+    basename: string
+        Path and basename of file.
+        '-pulsepeaks', the fish index, and a file extension are appended.
+    kwargs:
+        Arguments passed on to TableData.write()
+
+    Returns
+    -------
+    filename: string
+        The path and full name of the written file.
+    """
+    if len(peak_data) > 0:
+        td = TableData(peak_data[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
+                       ['P', 'time', 'amplitude', 'relampl', 'width'],
+                       ['', 'ms', unit, '%', 'ms'],
+                       ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
+        fp = basename + '-pulsepeaks'
+        if idx is not None:
+            fp += '-%d' % idx
+        file_name = td.write(fp, **kwargs)
+        return file_name
+    else:
+        return None
+
+        
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
                             win_fac=2.0, min_win=0.01, max_eods=None, unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',

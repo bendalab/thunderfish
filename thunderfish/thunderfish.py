@@ -1,5 +1,8 @@
 """
-thunderfish
+# thunderfish
+
+Automatically detect and analyze all fish present in an EOD recording
+and generate a summary plot and data tables.
 
 Run it from the thunderfish development directory as:
 python3 -m thunderfish.thunderfish audiofile.wav   or
@@ -33,6 +36,8 @@ from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
+from .eodanalysis import save_eod_waveform, save_wave_eods, save_pulse_eods
+from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .tabledata import TableData, add_write_table_config, write_table_args
 
 
@@ -516,102 +521,36 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                     os.makedirs(outpath)
             # for each fish:
             for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
-                # mean waveform:
-                td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'std'],
-                               ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
-                if mean_eod.shape[1] > 3:
-                    td.append('fit', unit, '%.5f', mean_eod[:,3])
-                fp = output_basename + '-eodwaveform-%d' % i
-                td.write(fp, **write_table_args(cfg))
+                fp = save_eod_waveform(mean_eod, unit, i, output_basename,
+                                       **write_table_args(cfg))
                 if verbose > 0:
-                    print('wrote file %s.%s' % (fp, fext))
-                del td
+                    print('wrote file %s' % fp)
                 # power spectrum:
                 if len(sdata)>0:
                     if sdata.shape[1] == 2:
-                        td = TableData(sdata[:,:2], ['frequency', 'power'],
-                                       ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
-                        fp = output_basename + '-pulsespectrum-%d' % i
-                        td.write(fp, **write_table_args(cfg))
-                        if verbose > 0:
-                            print('wrote file %s.%s' % (fp, fext))
+                        fp = save_pulse_spectrum(sdata, unit, i, output_basename,
+                                                 **write_table_args(cfg))
                     else:
-                        td = TableData(sdata[:,:6]*[1.0, 1.0, 1.0, 100.0, 1.0, 1.0],
-                                       ['harmonics', 'frequency', 'amplitude', 'relampl', 'relpower', 'phase'],
-                                       ['', 'Hz', unit, '%', 'dB', 'rad'],
-                                       ['%.0f', '%.2f', '%.5f', '%10.2f', '%6.2f', '%8.4f'])
-                        if sdata.shape[1] > 6:
-                            td.append('power', '%s^2/Hz' % unit, '%11.4e', sdata[:,6])
-                        fp = output_basename + '-wavespectrum-%d' % i
-                        td.write(fp, **write_table_args(cfg))
-                        if verbose > 0:
-                            print('wrote file %s.%s' % (fp, fext))
-                    del td
-                # peaks:
-                if len(pdata)>0:
-                    td = TableData(pdata[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
-                                   ['P', 'time', 'amplitude', 'relampl', 'width'],
-                                   ['', 'ms', unit, '%', 'ms'],
-                                   ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
-                    fp = output_basename + '-pulsepeaks-%d' % i
-                    td.write(fp, **write_table_args(cfg))
+                        fp = save_wave_spectrum(sdata, unit, i, output_basename,
+                                                **write_table_args(cfg))
                     if verbose > 0:
-                        print('wrote file %s.%s' % (fp, fext))
-                    del td
+                        print('wrote file %s' % fp)
+                # peaks:
+                fp = save_pulse_peaks(pdata, unit, i, output_basename,
+                                      **write_table_args(cfg))
+                if verbose > 0 and not fp is None:
+                    print('wrote file %s' % fp)
             # fish properties:
             if wave_props:
-                td = TableData()
-                td.append_section('waveform')
-                td.append('index', '', '%d', wave_props, 'index')
-                td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
-                td.append('power', 'dB', '%7.2f', wave_props, 'power')
-                td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
-                if 'rmvariance' in wave_props[0]:
-                    td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
-                td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
-                td.append('n', '', '%5d', wave_props, 'n')
-                td.append_section('timing')
-                td.append('peakwidth', '%', '%.2f', wave_props, 'peakwidth', 100.0)
-                td.append('troughwidth', '%', '%.2f', wave_props, 'troughwidth', 100.0)
-                td.append('leftpeak', '%', '%.2f', wave_props, 'leftpeak', 100.0)
-                td.append('rightpeak', '%', '%.2f', wave_props, 'rightpeak', 100.0)
-                td.append('lefttrough', '%', '%.2f', wave_props, 'lefttrough', 100.0)
-                td.append('righttrough', '%', '%.2f', wave_props, 'righttrough', 100.0)
-                td.append('p-p-distance', '%', '%.2f', wave_props, 'p-p-distance', 100.0)
-                fp = output_basename + '-wavefish'
-                td.write(fp, **write_table_args(cfg))
+                fp = save_wave_eods(wave_props, unit, output_basename,
+                                    **write_table_args(cfg))
                 if verbose > 0:
-                    print('wrote file %s.%s' % (fp, fext))
-                del td
+                    print('wrote file %s' % fp)
             if pulse_props:
-                td = TableData()
-                td.append_section('waveform')
-                td.append('index', '', '%d', pulse_props, 'index')
-                td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')
-                td.append('period', 'ms', '%7.2f', pulse_props, 'period', 1000.0)
-                td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
-                td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
-                td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
-                if 'rmvariance' in pulse_props[0]:
-                    td.append('noise', '%', '%.1f', pulse_props, 'rmvariance', 100.0)
-                td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
-                td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
-                td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
-                td.append('tau', 'ms', '%.3f', pulse_props, 'tau', 1000.0)
-                td.append('firstpeak', '', '%d', pulse_props, 'firstpeak')
-                td.append('lastpeak', '', '%d', pulse_props, 'lastpeak')
-                td.append('n', '', '%d', pulse_props, 'n')
-                td.append_section('power spectrum')
-                td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
-                td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
-                td.append('poweratt5', 'dB', '%.2f', pulse_props, 'lowfreqattenuation5')
-                td.append('poweratt50', 'dB', '%.2f', pulse_props, 'lowfreqattenuation50')
-                td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 'powerlowcutoff')
-                fp = output_basename + '-pulsefish'
-                td.write(fp, **write_table_args(cfg))
+                fp = save_pulse_eods(pulse_props, unit, output_basename,
+                                     **write_table_args(cfg))
                 if verbose > 0:
-                    print('wrote file %s.%s' % (fp, fext))
-                del td
+                    print('wrote file %s' % fp)
 
     if save_plot or not save_data:
         output_plot(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
