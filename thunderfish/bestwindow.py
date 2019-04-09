@@ -454,6 +454,10 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
     """Visualize the cost function of used for finding the best window for analysis.
 
     Pass this function as the `plot_data_func` to the `best_window_*` functions.
+
+    Parameters
+    ----------
+    See documentation of the best_window_indices() functions.
     """
     # raw data:
     time = np.arange(0.0, len(data)) / rate

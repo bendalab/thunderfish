@@ -791,7 +791,7 @@ def main():
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-D', dest='column_groups', default=[], type=str, action='append',
-                        choices=['all', 'noise', 'timing', 'ampl', 'relampl', 'power', 'relpower', 'phase', 'time', 'width', 'none'],
+                        choices=['all', 'allpower', 'noise', 'timing', 'ampl', 'relampl', 'power', 'relpower', 'phase', 'time', 'width', 'none'],
                         help='default selection of data columns, check them with the -l option')
     parser.add_argument('-d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be appended or removed (if already listed) for analysis')
@@ -922,6 +922,10 @@ def main():
             elif group == 'all':
                 for k in range(1, max_harmonics):
                     group_cols.append('relampl%d' % k)
+                    group_cols.append('phase%d' % k)
+            elif group == 'allpower':
+                for k in range(1, max_harmonics):
+                    group_cols.append('relampl%d' % k)
                     group_cols.append('relpower%d' % k)
                     group_cols.append('phase%d' % k)
             else:
@@ -957,19 +961,11 @@ def main():
                 group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
             else:
                 parser.error('"%s" is not a valid data group for pulsefish' % group)
+    # additional data columns:
+    group_cols.extend(add_data_cols)
     # translate to indices:
     data_cols = []
     for c in group_cols:
-        idx = data.index(c)
-        if idx is None:
-            parser.error('"%s" is not a valid data column' % c)
-        elif idx in data_cols:
-            data_cols.remove(idx)
-        else:
-            data_cols.append(idx)
-
-    # additional data columns:
-    for c in add_data_cols:
         idx = data.index(c)
         if idx is None:
             parser.error('"%s" is not a valid data column' % c)
