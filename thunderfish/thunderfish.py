@@ -697,8 +697,8 @@ def main():
     # interactive plot:
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
 
-    # configuration:
     if args.save_config:
+        # configuration:
         file_name = args.file[0] if len(args.file) else ''
         configuration(cfgfile, args.save_config, file_name, verbose)
     elif len(args.file) == 0:

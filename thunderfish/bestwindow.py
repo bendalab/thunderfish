@@ -261,24 +261,25 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
         parameter to quickly visualize what is going on in selecting the best window.
         Signature:
         ````
-        plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost,
+        plot_data_func(data, rate, peak_thresh, peak_idx, trough_idx, idx0, idx1,
+                       win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost_thresh,
                        thresh, valid_wins, **kwargs)
         ```
-        - `data` (array): the raw data.
-        - `rate` (float): the sampling rate of the data.
+        - `data` (array): raw data.
+        - `rate` (float): sampling rate of the data.
+        - `peak_thresh` (array): thresholds used for detecting peaks and troughs in each data window.
         - `peak_idx` (array): indices into raw data indicating detected peaks.
         - `trough_idx` (array): indices into raw data indicating detected troughs.
         - `idx0` (int): index of the start of the best window.
         - `idx1` (int): index of the end of the best window.
-        - `win_start_times` (array): the times of the analysis windows.
-        - `cv_interv` (array): the coefficients of variation of the inter-peak and -trough
+        - `win_start_times` (array): times of the analysis windows.
+        - `cv_interv` (array): coefficients of variation of the inter-peak and -trough
            intervals.
-        - `mean_ampl` (array): the mean peak-to-trough amplitudes.
-        - `cv_ampl` (array): the coefficients of variation of the peak-to-trough amplitudes.
-        - `clipped_frac` (array): the fraction of clipped peaks or troughs.
-        - `cost` (array): the cost function.
-        - `thresh` (float): the threshold for the cost function.
+        - `mean_ampl` (array): mean peak-to-trough amplitudes.
+        - `cv_ampl` (array): coefficients of variation of the peak-to-trough amplitudes.
+        - `clipped_frac` (array): fraction of clipped peaks or troughs.
+        - `cost` (array): cost function.
+        - `cost_thresh` (float): threshold for the cost function.
         - `valid_wins` (array): boolean array indicating the windows which fulfill
           all three criteria.
         - `**kwargs` (dict): further user supplied key-word arguments.
