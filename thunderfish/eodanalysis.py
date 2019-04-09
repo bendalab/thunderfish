@@ -5,6 +5,8 @@
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
+- `wave_quality()`: asses quality of EOD waveform of a wave-type fish.
+- `pulse_quality()`: asses quality of EOD waveform of a pulse-type fish.
 
 ## Visualization
 - `eod_recording_plot()`: plot a zoomed in range of the recorded trace.
@@ -25,6 +27,8 @@
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 - `add_eod_quality_config()`: add parameters needed for assesing the quality of an EOD waveform.
+- `wave_quality_args(): retrieve parameters for `wave_quality()` from configuration.
+- `pulse_quality_args(): retrieve parameters for `pulse_quality()` from configuration.
 """
 
 import numpy as np
@@ -674,6 +678,112 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     return meod, props, peaks, ppower
 
 
+def wave_quality(idx, clipped, variance, rms_error, spec_data,
+                 max_clipped_frac=0.01, max_variance=0.0, max_rms_error=0.05,
+                 max_relampl_harm1=2.0, max_relampl_harm2=0.8, max_relampl_harm3=0.5):
+    """
+    Assess the quality of an EOD waveform of a wave-type fish.
+    
+    Parameter
+    ---------
+    idx: int
+        Index of the fish, zero indicates largest amplitude
+    clipped: float
+        Fraction of clipped data.
+    variance: float
+        Standard deviation of the data relative to p-p amplitude.
+    rms_error: float
+        Root-mean-square error between EOD waveform and Fourier fit relative to p-p amplitude.
+    spec_data: 2-D array of floats
+        Amplitude and phases of harmonics as returned by analyze_wave().
+    max_clipped_frac: float
+        Maximum allowed fraction of clipped data.
+    max_variance: float
+        If not zero, maximum allowed standard deviation of the data relative to p-p amplitude.
+    max_rms_error: float
+        Maximum allowed root-mean-square error between EOD waveform and
+        Fourier fit relative to p-p amplitude.
+    max_relampl_harm1: float
+        Maximum allowed amplitude of first harmonic relative to fundamental.
+    max_relampl_harm2: float
+        Maximum allowed amplitude of second harmonic relative to fundamental.
+    max_relampl_harm3: float
+        Maximum allowed amplitude of third harmonic relative to fundamental.
+                                       
+    Returns
+    -------
+    skip_reason: string
+        An empty string if the waveform is good, otherwise a string indicating the failure.
+    msg: string
+        A textual representation of the values tested.
+    """
+    msg = []
+    skip_reason = []
+    msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
+    if idx == 0 and clipped >= max_clipped_frac:
+        skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
+                        (100.0*clipped, 100.0*max_clipped_frac)]
+    msg += ['variance=%6.2f%%' % (100.0*variance)]
+    if max_variance > 0.0 and variance >= max_variance:
+        skip_reason += ['noisy variance=%6.2f%% (max %6.2f%%)' %
+                        (100.0*variance, 100.0*max_variance)]
+    msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
+    if rms_error >= max_rms_error:
+        skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
+                        (100.0*rms_error, 100.0*max_rms_error)]
+    msg += ['ampl1=%5.1f%%' % (100.0*spec_data[1,3])]
+    if spec_data[1,3] >= max_relampl_harm1:
+        skip_reason += ['distorted ampl1=%5.1f%% (max %5.1f%%)' %
+                        (100.0*spec_data[1,3], 100.0*max_relampl_harm1)]
+    msg += ['ampl2=%5.1f%%' % (100.0*spec_data[2,3])]
+    if spec_data[2,3] >= max_relampl_harm2:
+        skip_reason += ['distorted ampl2=%5.1f%% (max %5.1f%%)' %
+                        (100.0*spec_data[2,3], 100.0*max_relampl_harm2)]
+    msg += ['ampl3=%5.1f%%' % (100.0*spec_data[3,3])]
+    if spec_data[3,3] >= max_relampl_harm3:
+        skip_reason += ['distorted ampl1=%5.1f%% (max %5.1f%%)' %
+                        (100.0*spec_data[3,3], 100.0*max_relampl_harm3)]
+    return ', '.join(skip_reason), ', '.join(msg)
+
+
+def pulse_quality(idx, clipped, variance, max_clipped_frac=0.01,
+                  max_variance=0.0):
+    """
+    Assess the quality of an EOD waveform of a pulse-type fish.
+    
+    Parameter
+    ---------
+    idx: int
+        Index of the fish, zero indicates largest amplitude
+    clipped: float
+        Fraction of clipped data.
+    variance: float
+        Standard deviation of the data relative to p-p amplitude.
+    max_clipped_frac: float
+        Maximum allowed fraction of clipped data.
+    max_variance: float
+        If not zero, maximum allowed standard deviation of the data relative to p-p amplitude.
+                      
+    Returns
+    -------
+    skip_reason: string
+        An empty string if the waveform is good, otherwise a string indicating the failure.
+    msg: string
+        A textual representation of the values tested.
+    """
+    msg = []
+    skip_reason = []
+    msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
+    if idx == 0 and clipped >= max_clipped_frac:
+        skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
+                        (100.0*clipped, 100.0*max_clipped_frac)]
+    msg += ['variance=%6.2f%%' % 100.0*variance]
+    if max_variance > 0.0 and variance >= max_variance:
+        skip_reason += ['noisy variance=%6.2f%% (max %6.2f%%)' %
+                        (100.0*variance, 100.0*max_variance)]
+    return ', '.join(skip_reason), ', '.join(msg)
+
+
 def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
                        kwargs={'lw': 2, 'color': 'red'}):
     """
@@ -1032,9 +1142,9 @@ def analyze_pulse_args(cfg):
     return a
 
 
-def add_eod_quality_config(cfg, max_clipped_frac=0.01, max_relampl_harm1=2.0,
-                           max_relampl_harm2=0.8, max_relampl_harm3=0.5,
-                           max_rms_error=0.05):
+def add_eod_quality_config(cfg, max_clipped_frac=0.01, max_variance=0.0,
+                           max_rms_error=0.05, max_relampl_harm1=2.0,
+                           max_relampl_harm2=0.8, max_relampl_harm3=0.5):
     """Add parameters needed for assesing the quality of an EOD waveform.
 
     Parameters
@@ -1047,10 +1157,60 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.01, max_relampl_harm1=2.0,
     """
     cfg.add_section('Waveform selection:')
     cfg.add('maximumClippedFraction', max_clipped_frac, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
+    cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard deviation of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
+    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
     cfg.add('maximumFirstHarmonicAmplitude', max_relampl_harm1, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
     cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
     cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave-type fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental.')
-    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+
+
+def wave_quality_args(cfg):
+    """ Translates a configuration to the
+    respective parameter names of the function wave_quality().
+    
+    The return value can then be passed as key-word arguments to this function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the wave_quality() function
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
+                 'max_variance': 'maximumVariance',
+                 'max_rms_error': 'maximumRMSError',
+                 'max_relampl_harm1': 'maximumFirstHarmonicAmplitude',
+                 'max_relampl_harm2': 'maximumSecondHarmonicAmplitude',
+                 'max_relampl_harm3': 'maximumThirdHarmonicAmplitude'})
+    return a
+
+
+def pulse_quality_args(cfg):
+    """ Translates a configuration to the
+    respective parameter names of the function pulse_quality().
+    
+    The return value can then be passed as key-word arguments to this function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the pulse_quality() function
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
+                 'max_variance': 'maximumVariance'})
+    return a
+
 
 
 if __name__ == '__main__':
