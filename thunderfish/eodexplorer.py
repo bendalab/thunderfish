@@ -795,6 +795,8 @@ def main():
                         help='default selection of data columns, check them with the -l option')
     parser.add_argument('-d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be appended or removed (if already listed) for analysis')
+    parser.add_argument('-n', dest='max_harmonics', default=0, type=int, metavar='MAX',
+                        help='maximum number of harmonics or peaks to be used')
     parser.add_argument('-s', dest='save_pca', action='store_true',
                         help='save PCA components and exit')
     parser.add_argument('-c', dest='color_col', default='EODf', type=str, metavar='COLUMN',
@@ -840,6 +842,7 @@ def main():
     file_name = args.file
     column_groups = args.column_groups
     add_data_cols = args.add_data_cols
+    max_harmonics = args.max_harmonics
     save_pca = args.save_pca
     color_col = args.color_col
     color_map = args.color_map
@@ -864,6 +867,33 @@ def main():
         cluster[data[:,'phase1'] > 0] = 3
         data.append('cluster', '', '%d', cluster)
 
+    if wave_fish:
+        # maximum number of harmonics:
+        if max_harmonics == 0:
+            max_harmonics = 40
+        else:
+            max_harmonics += 1
+        for k in range(1, max_harmonics):
+            if not ('phase%d' % k) in data:
+                max_harmonics = k
+                break
+    else:
+        # minimum number of peaks:
+        min_peaks = -10
+        for k in range(1, min_peaks, -1):
+            if not ('P%dampl' % k) in data:
+                min_peaks = k+1
+                break
+        # maximum number of peaks:
+        if max_harmonics == 0:
+            max_peaks = 20
+        else:
+            max_peaks = max_harmonics + 1
+        for k in range(1, max_peaks):
+            if not ('P%dampl' % k) in data:
+                max_peaks = k
+                break
+        
     # default columns:
     group_cols = ['EODf']
     if len(column_groups) == 0:
@@ -878,29 +908,19 @@ def main():
                 group_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
                                   'lefttrough', 'righttrough'])
             elif group == 'ampl':
-                for k in range(0, 20):
-                    if not ('ampl%d' % k) in data:
-                        break
+                for k in range(0, max_harmonics):
                     group_cols.append('ampl%d' % k)
             elif group == 'relampl':
-                for k in range(1, 20):
-                    if not ('relampl%d' % k) in data:
-                        break
+                for k in range(1, max_harmonics):
                     group_cols.append('relampl%d' % k)
             elif group == 'relpower' or group == 'power':
-                for k in range(1, 20):
-                    if not ('relpower%d' % k) in data:
-                        break
+                for k in range(1, max_harmonics):
                     group_cols.append('relpower%d' % k)
             elif group == 'phase':
-                for k in range(1, 20):
-                    if not ('phase%d' % k) in data:
-                        break
+                for k in range(1, max_harmonics):
                     group_cols.append('phase%d' % k)
             elif group == 'all':
-                for k in range(1, 20):
-                    if not ('relampl%d' % k) in data:
-                        break
+                for k in range(1, max_harmonics):
                     group_cols.append('relampl%d' % k)
                     group_cols.append('relpower%d' % k)
                     group_cols.append('phase%d' % k)
@@ -914,28 +934,25 @@ def main():
             elif group == 'power':
                 group_cols.extend(['peakfreq', 'peakpower', 'poweratt5', 'poweratt50', 'lowcutoff'])
             elif group == 'time':
-                for k in range(-2, 10):
-                    if ('P%dtime' % k) in data:
+                for k in range(min_peaks, max_peaks):
+                    if k != 1:
                         group_cols.append('P%dtime' % k)
             elif group == 'ampl':
-                for k in range(-2, 10):
-                    if ('P%dampl' % k) in data:
-                        group_cols.append('P%dampl' % k)
+                for k in range(min_peaks, max_peaks):
+                    group_cols.append('P%dampl' % k)
             elif group == 'relampl':
-                for k in range(-2, 10):
-                    if ('P%drelampl' % k) in data:
+                for k in range(min_peaks, max_peaks):
+                    if k != 1:
                         group_cols.append('P%drelampl' % k)
             elif group == 'width':
-                for k in range(-2, 10):
-                    if ('P%dwidth' % k) in data:
+                for k in range(min_peaks, max_peaks):
+                    if k != 1:
                         group_cols.append('P%dwidth' % k)
             elif group == 'all':
-                for k in range(-2, 10):
-                    if ('P%drelampl' % k) in data:
+                for k in range(min_peaks, max_peaks):
+                    if k != 1:
                         group_cols.append('P%drelampl' % k)
-                    if ('P%dtime' % k) in data:
                         group_cols.append('P%dtime' % k)
-                    if ('P%dwidth' % k) in data:
                         group_cols.append('P%dwidth' % k)
                 group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
             else:
