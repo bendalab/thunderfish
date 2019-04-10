@@ -12,6 +12,7 @@
 ## Power spectra                
 - `psd()`: power spectrum for a given frequency resolution.
 - `multi_resolution_psd()`: power spectra for a range of frequency resolutions.
+- `multi_window_psd()`: power spectra for consecutive data windows and mutiple frequency resolutions.
 - `spectrogram()`: spectrogram of a given frequency resolution and overlap fraction.
 
 ## Power spectrum analysis
@@ -19,6 +20,10 @@
 
 ## Visualization
 - `plot_decibel_psd()`: plot power spectrum in decibel.
+
+## Configuration parameter
+- `add_power_spectra_config()': add parameters for power spectra to configuration.
+- `power_spectra_args()`: retrieve parameters for power spectra from configuration.
 """
 
 import numpy as np
@@ -146,8 +151,8 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, overlap_frac=0.5, **kwar
     The frequency intervals are smaller or equal to `freq_resolution`.
     NFFT is `samplerate` divided by the actual frequency resolution.
     
-    data: 1-D array
-        Data array you want to calculate a psd of.
+    data: 1-D array 
+        Data from which power spectra are computed.
     samplerate: float
         Sampling rate of the data in Hertz.
     freq_resolution: float
@@ -174,7 +179,8 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, overlap_frac=0.5, **kwar
     return np.asarray([np.squeeze(power), freqs])
 
 
-def multi_resolution_psd(data, samplerate, freq_resolution=0.5, min_nfft=16,
+def multi_resolution_psd(data, samplerate, freq_resolution=0.5,
+                         num_resolutions=None, min_nfft=16,
                          overlap_frac=0.5, **kwargs):
     """Compute power spectra for a range of frequency resolutions.
 
@@ -185,11 +191,15 @@ def multi_resolution_psd(data, samplerate, freq_resolution=0.5, min_nfft=16,
     Parameters
     ----------
     data: 1-D array
-        Data array you want to calculate a psd of.
+        Data from which power spectra are computed.
     samplerate: float
         Sampling rate of the data in Hertz.
     freq_resolution: float or 1-D array
         Frequency resolutions for one or multiple psds in Hertz.
+    num_resolutions: int or None
+        If not None and if freq_resolution is a single number,
+        then generate `num_resolutions` frequency resolutions
+        starting with `freq_resolution` und subsequently multiplied by two.
     min_nfft: int
         Smallest value of nfft to be used.
     overlap_frac: float
@@ -199,22 +209,65 @@ def multi_resolution_psd(data, samplerate, freq_resolution=0.5, min_nfft=16,
 
     Returns
     -------
-    multi_psd_data: 3-D or 2-D array
-        If the power spectrum is calculated for one frequency resolution
-        a 2-D array with the single power spectrum is returned (`psd_data[power, freq]`).
-        If the power sepctrum is calculated for multiple frequency resolutions
-        a list of 2-D array is returned (`psd_data[frequency_resolution][power, freq]`).
+    multi_psd_data: list of 2-D arrays
+        List of the power spectra for each frequency resolution
+        (`psd_data[frequency_resolution][power, freq]`).
     """
-    return_list = True
-    if not hasattr(freq_resolution, '__len__'):
-        return_list = False
+    if not isinstance(freq_resolution, (list, tuple, np.ndarray)):
         freq_resolution = [freq_resolution]
+        if not num_resolutions is None:
+            for i in range(1, num_resolutions):
+                freq_resolution.append(2*freq_resolution[-1])
     multi_psd_data = []
     for fres in freq_resolution:
         psd_data = psd(data, samplerate, fres, min_nfft, overlap_frac, **kwargs)
         multi_psd_data.append(psd_data)
-    if not return_list:
-        multi_psd_data = multi_psd_data[0]
+    return multi_psd_data
+
+
+def multi_window_psd(data, samplerate, freq_resolution=0.5,
+                     num_resolutions=None, num_windows=1,
+                     min_nfft=16, overlap_frac=0.5, **kwargs):
+    """Power spectra computed for consecutive data windows and
+    mutiple frequency resolutions.
+
+    Parameters
+    ----------
+    data: 1-D array
+        Data from which power spectra are computed.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    freq_resolution: float or 1-D array
+        Frequency resolutions for one or multiple psds in Hertz.
+    num_resolutions: int or None
+        If not None and if freq_resolution is a single number,
+        then generate `num_resolutions` frequency resolutions
+        starting with `freq_resolution` und subsequently multiplied by two.
+    num_windows: int
+        Data are chopped into `num_windows` segments that overlap by half
+        for which power spectra are computed.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    overlap_frac: float
+        Fraction of overlap for the fft windows within a single power spectrum.
+    kwargs: dict
+        Further arguments for mlab.psd().
+
+    Returns
+    -------
+    multi_psd_data: list of 2-D arrays
+        List of the power spectra for each window and frequency resolution
+        (`psd_data[i][power, freq]`).
+    """
+    n_incr = len(data)//(num_windows+1)  # overlap by half a window
+    multi_psd_data = []
+    for k in range(num_windows):
+        psd = multi_resolution_psd(data[k*n_incr:(k+2)*n_incr], samplerate,
+                                   freq_resolution=freq_resolution,
+                                   num_resolutions=num_resolutions,
+                                   min_nfft=min_nfft, overlap_frac=overlap_frac,
+                                   **kwargs)
+        multi_psd_data.extend(psd)
     return multi_psd_data
 
 
@@ -339,6 +392,49 @@ def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16, th
                 fpeak = float('NaN')
         freqs.append(fpeak)
     return np.array(freqs)
+
+
+def add_power_spectra_config(cfg, freq_resolution=0.5,
+                             num_resolutions=1, num_windows=1):
+    """ Add all parameters needed for power spectra functions as
+    a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+        
+    See multi_window_psd() for details on the remaining arguments.
+    """
+    cfg.add_section('Power spectrum estimation:')
+    cfg.add('frequencyResolution', freq_resolution, 'Hz', 'Frequency resolution of the power spectrum.')
+    cfg.add('numberPSDWindows', num_resolutions, '', 'Number of windows on which power spectra are computed.')
+    cfg.add('numberPSDResolutions', num_windows, '', 'Number of power spectra computed within each window with decreasing resolution.')
+
+
+def power_spectra_args(cfg):
+    """ Translates a configuration to the
+    respective parameter names of the functions multi_resolution_psd()
+    and multi_window_psd().
+    
+    The return value can then be passed as key-word arguments to
+    these functions.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the power spectra functions
+        and their values as supplied by `cfg`.
+    """
+    a = cfg.map({'freq_resolution': 'frequencyResolution',
+                 'num_resolutions': 'numberPSDWindows',
+                 'num_windows': 'numberPSDResolutions'})
+    return a
 
 
 if __name__ == '__main__':
