@@ -23,8 +23,8 @@ from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
 from .bestwindow import find_best_window, plot_best_data
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
-from .powerspectrum import decibel, plot_decibel_psd, multi_window_psd
-from .powerspectrum import add_power_spectra_config, power_spectra_args
+from .powerspectrum import decibel, plot_decibel_psd, multi_psd
+from .powerspectrum import add_multi_psd_config, multi_psd_args
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .harmonicgroups import fundamental_freqs, fundamental_freqs_and_power
@@ -65,7 +65,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
         Configuration parameters.
     """
     cfg = ConfigFile()
-    add_power_spectra_config(cfg)
+    add_multi_psd_config(cfg)
     cfg.add('frequencyThreshold', 1.0, 'Hz', 'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
     # TODO: make this threshold dependent on frequency resolution!
     add_psd_peak_detection_config(cfg)
@@ -362,7 +362,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                                          **check_pulse_width_args(cfg))
 
     # calculate power spectra:
-    psd_data = multi_window_psd(data, samplerate, **power_spectra_args(cfg))
+    psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
             
     # find the fishes in the different powerspectra:
     h_kwargs = psd_peak_detection_args(cfg)

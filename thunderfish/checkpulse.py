@@ -425,7 +425,7 @@ if __name__ == "__main__":
     import sys
     import matplotlib.pyplot as plt
     from .bestwindow import best_window
-    from .powerspectrum import multi_resolution_psd
+    from .powerspectrum import psd
     from .fakefish import generate_monophasic_pulses, generate_biphasic_pulses, generate_triphasic_pulses, generate_alepto
 
     print("\nChecking checkpulse module ...\n")
@@ -459,7 +459,7 @@ if __name__ == "__main__":
     plt.tight_layout()
 
     fig2, ax2 = plt.subplots()
-    psd_data = multi_resolution_psd(data, rate)
+    psd_data = psd(data, rate)
     psd_type, proportions = check_pulse_psd(psd_data[0], psd_data[1], verbose=1,
                                             plot_data_func=plot_psd_proportion, ax=ax2, fs=12)
     plt.tight_layout()
