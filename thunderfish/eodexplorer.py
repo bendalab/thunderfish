@@ -22,8 +22,8 @@ from .thunderfish import configuration
 
 class Explorer(object):
     
-    def __init__(self, data, labels, save_pca, colors, color_label, color_map, detailed_data,
-                 cfg=None):
+    def __init__(self, title, data, labels, save_pca, colors, color_label, color_map,
+                 detailed_data, **kwargs):
         if isinstance(data, TableData):
             self.raw_data = data.array()
             if labels is None:
@@ -48,7 +48,7 @@ class Explorer(object):
                            for k, v in enumerate(self.pca_variance)]
         self.pca_components = pca.components_
         if save_pca is not None:
-            self.save_pca(save_pca, data, labels, cfg)
+            self.save_pca(save_pca, data, labels, **kwargs)
             return
         print('PCA components:')
         self.save_pca(None, data, labels)
@@ -70,6 +70,7 @@ class Explorer(object):
         plt.rcParams['keymap.xscale'] = ''        
         plt.rcParams['keymap.yscale'] = ''        
         self.fig = plt.figure(facecolor='white')
+        self.fig.canvas.set_window_title(title)
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
         self.fig.canvas.mpl_connect('resize_event', self.on_resize)
         self.fig.canvas.mpl_connect('pick_event', self.on_pick)
@@ -118,7 +119,7 @@ class Explorer(object):
         self.plot_zoomed_correlations()
         plt.show()
 
-    def save_pca(self, file_name, data, labels=None, cfg=None):
+    def save_pca(self, file_name, data, labels=None, **kwargs):
         if isinstance(data, TableData):
             dd = data.table_header()
         else:
@@ -140,13 +141,14 @@ class Explorer(object):
             dd.append_data(comp)
         if file_name is None:
             dd.write(table_format='out', unitstyle='none')
-        elif cfg is None:
+        elif 'table_format' in kwargs:
+            if 'unitstyle' in kwargs:
+                del kwargs['unitstyle']
+            pca_file = file_name + 'pca'
+            dd.write(pca_file, unitstyle='none', **kwargs)
+        else:
             pca_file = file_name + 'pca.dat'
             dd.write(pca_file, unitstyle='none')
-        else:
-            del cfg['fileUnitStyle']
-            pca_file = file_name + 'pca'
-            dd.write(pca_file, unitstyle='none', **write_table_args(cfg))
 
     def set_color_column(self):
         if self.color_index == -2:
@@ -648,13 +650,13 @@ class EODExplorer(Explorer):
         self.wave_fish = wave_fish
         self.eoddata = data
         self.path = rawdata_path
-        self.cfg = None
         if not save_pca:
             save_pca = None
         else:
             save_pca = 'wavefish-' if wave_fish else 'pulsefish-'
-        Explorer.__init__(self, data[:,data_cols], None, save_pca,
-                          colors, color_label, color_map, eod_data, cfg)
+        Explorer.__init__(self, 'EODExplorer', data[:,data_cols], None, save_pca,
+                          colors, color_label, color_map, eod_data,
+                          **write_table_args(cfg))
 
     def fix_scatter_plot(self, ax, data, label, axis):
         if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
@@ -742,6 +744,7 @@ class EODExplorer(Explorer):
         fn = glob.glob(bp + '.*')
         if len(fn) == 0:
             print('no recording found for %s' % bp)
+            return
         recording = fn[0]
         channel = 0
         try:
@@ -753,12 +756,12 @@ class EODExplorer(Explorer):
             print('%s: empty data file' % recording)
             return
         # load configuration:
-        if self.cfg is None:
-            cfgfile = __package__ + '.cfg'
-            self.cfg = configuration(cfgfile, False, recording)
+        cfgfile = __package__ + '.cfg'
+        cfg = configuration(cfgfile, False, recording)
         # best_window:
-        data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, self.cfg)
+        data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg)
         fig, ax = plt.subplots(1)
+        fig.canvas.set_window_title(recording)
         plot_best_data(raw_data, samplerate, unit, idx0, idx1, clipped, ax)
         ax.set_title(recording)
         plt.show(block=False)
