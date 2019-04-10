@@ -1242,7 +1242,7 @@ if __name__ == "__main__":
         title = sys.argv[1]
 
     # analyse:
-    psd_data = psd(data, samplerate, fresolution=0.5)
+    psd_data = psd(data, samplerate, freq_resolution=0.5)
     groups, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(psd_data[1], psd_data[0])
     fundamentals = fundamental_freqs(groups)
     print(fundamentals)
