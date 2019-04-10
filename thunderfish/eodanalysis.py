@@ -433,7 +433,7 @@ def exp_decay(t, tau, ampl, offs):
 def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac = 0.5, fit_frac = 0.5,
-                  fresolution=1.0, flip_pulse='none'):
+                  freq_resolution=1.0, flip_pulse='none'):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -456,7 +456,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     fit_frac: float or None
         An exponential is fitted to the tail of the last peak/trough starting where the
         waveform falls below this fraction of the peak's height (0-1).
-    fresolution: float
+    freq_resolution: float
         The frequency resolution of the power spectrum of the single pulse.
     flip_pulse: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the first large extremum is positive.
@@ -643,12 +643,12 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
 
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
-    nfft, _ = nfft_noverlap(fresolution, samplerate)
+    nfft, _ = nfft_noverlap(freq_resolution, samplerate)
     n = len(meod)//4
     nn = np.max([nfft, 2*n])
     data = np.zeros(nn)
     data[nn//2-n:nn//2+n] = meod[max_idx-n:max_idx+n,1]
-    power, freqs = psd(data, samplerate, fresolution)
+    power, freqs = psd(data, samplerate, freq_resolution)
     ppower = np.zeros((len(freqs), 2))
     ppower[:,0] = freqs
     ppower[:,1] = power

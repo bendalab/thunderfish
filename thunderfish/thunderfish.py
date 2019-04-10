@@ -360,23 +360,22 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         print(filename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
 
     # pulse-type fish?
-    pulse_fish, pta_value, pulse_period = \
-        check_pulse_width(data, samplerate, verbose=verbose,
-                          **check_pulse_width_args(cfg))
+    pulse_fish, _, _ = check_pulse_width(data, samplerate, verbose=verbose,
+                                         **check_pulse_width_args(cfg))
 
     # calculate powerspectra within sequential windows and different frequency resolutions:
     numpsdwindows = cfg.value('numberPSDWindows')
     numpsdresolutions = cfg.value('numberPSDResolutions')
     minfres = cfg.value('frequencyResolution')
-    fresolution=[minfres]
+    freq_resolution=[minfres]
     for i in range(1, numpsdresolutions):
-        fresolution.append(2*fresolution[-1])
+        freq_resolution.append(2*freq_resolution[-1])
     n_incr = len(data)//(numpsdwindows+1) # half overlapping
     psd_data = []
     deltaf = minfres
     for k in range(numpsdwindows):
         mr_psd_data = multi_resolution_psd(data[k*n_incr:(k+2)*n_incr], samplerate,
-                                           fresolution=fresolution)
+                                           freq_resolution=freq_resolution)
         deltaf = mr_psd_data[0][1][1] - mr_psd_data[0][1][0]
         psd_data.extend(mr_psd_data)
     
@@ -421,7 +420,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
                          **eod_waveform_args(cfg))
         mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times,
-                                                      fresolution=minfres,
+                                                      freq_resolution=minfres,
                                                       **analyze_pulse_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)

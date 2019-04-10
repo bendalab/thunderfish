@@ -174,7 +174,7 @@ def chirp_analysis(data, samplerate):
     :param samplerate: (float) smaplerate of the data.
     :param min_power: (float) minimal power of the fish fundamental to include this fish in chirp detection.
     """
-    spectrum, freqs, time = spectrogram(data, samplerate, fresolution=2., overlap_frac=0.95)
+    spectrum, freqs, time = spectrogram(data, samplerate, freq_resolution=2., overlap_frac=0.95)
 
     power = np.mean(spectrum, axis=1) # spectrum[:, t0:t1] to only let spectrum of certain time....
 

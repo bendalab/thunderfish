@@ -38,7 +38,7 @@ class SignalPlot:
         self.fmin = 0.0
         self.fmax = 0.0
         self.decibel = True
-        self.fresolution = self.cfg.value('frequencyResolution')
+        self.freq_resolution = self.cfg.value('frequencyResolution')
         self.deltaf = 1.0
         self.mains_freq = self.cfg.value('mainsFreq')
         self.power_label = None
@@ -196,7 +196,7 @@ class SignalPlot:
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
-        nfft, noverlap = nfft_noverlap(self.fresolution, self.samplerate, 0.5, 16)
+        nfft, noverlap = nfft_noverlap(self.freq_resolution, self.samplerate, 0.5, 16)
         t00 = t0
         t11 = t1
         w = t11 - t00
@@ -496,12 +496,12 @@ class SignalPlot:
                 self.axp.set_xlim(self.fmin, self.fmax)
                 self.fig.canvas.draw()
         elif event.key in 'r':
-            if self.fresolution < 1000.0:
-                self.fresolution *= 2.0
+            if self.freq_resolution < 1000.0:
+                self.freq_resolution *= 2.0
                 self.update_plots()
         elif event.key in 'R':
-            if 1.0 / self.fresolution < self.tmax:
-                self.fresolution *= 0.5
+            if 1.0 / self.freq_resolution < self.tmax:
+                self.freq_resolution *= 0.5
                 self.update_plots()
         elif event.key in 'd':
             self.decibel = not self.decibel
