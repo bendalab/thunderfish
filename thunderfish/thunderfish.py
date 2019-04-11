@@ -95,7 +95,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
 
 
 def detect_eods(data, samplerate, clipped, verbose, cfg):
-    """
+    """ Detect EODs of all fish present in the data.
     """
     # pulse-type fish?
     pulse_fish, _, _ = check_pulse_width(data, samplerate, verbose=verbose,
@@ -217,7 +217,7 @@ def detect_eods(data, samplerate, clipped, verbose, cfg):
 
 
 def remove_eod_files(output_basename, verbose, cfg):
-    """
+    """ Remove all files from previous runs of thunderfish
     """
     fext = TableData.extensions[cfg.value('fileFormat')]
     # remove all files from previous runs of thunderfish:
@@ -228,7 +228,7 @@ def remove_eod_files(output_basename, verbose, cfg):
 
 def save_eods(output_basename, mean_eods, spec_data, peak_data,
               wave_props, pulse_props, unit, verbose, cfg):
-    """
+    """ Save analysis results of all EODs to files.
     """
     # for each fish:
     for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
@@ -264,16 +264,18 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
             print('wrote file %s' % fp)
 
                             
-def output_plot(base_name, raw_data, samplerate, idx0, idx1,
-                clipped, fishlist, mean_eods, eod_props, peak_data,
-                spec_data, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
-                output_folder='', save_plot=False, show_plot=False):
+def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
+              clipped, fishlist, mean_eods, eod_props, peak_data,
+              spec_data, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
+              interactive=True):
     """
     Creates an output plot for the Thunderfish program.
 
-    This output contains the raw trace where the analysis window is marked, the power-spectrum of this analysis window
-    where the detected fish are marked, a mean EOD plot, a histogram of the inter EOD interval and further information
-    about the recording that is analysed.
+    This output contains the raw trace where the analysis window is
+    marked, the power-spectrum of this analysis window where the
+    detected fish are marked, a mean EOD plot, a histogram of the inter
+    EOD interval and further information about the recording that is
+    analysed.
 
 
     Parameters
@@ -309,12 +311,13 @@ def output_plot(base_name, raw_data, samplerate, idx0, idx1,
         Maximum number of harmonics over which the total power of the signal is computed.
     label_power: boolean
         If `True` put the power in decibel in addition to the frequency into the legend.
-    output_folder: string
-        Path indicating where output-files will be saved.
-    save_plot: bool
-        If True, the plot will be saved in output_folder.
-    show_plot: bool
-        If True (and saveplot=False) it will show the plot without saving.
+    interactive: bool
+        If True install some keyboard interaction.
+
+    Returns
+    -------
+    fig: plt.figure
+        Figure with the plots.
     """
 
     def keypress(event):
@@ -327,6 +330,8 @@ def output_plot(base_name, raw_data, samplerate, idx0, idx1,
             play(playdata, samplerate, blocking=False)
 
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
+    if interactive:
+        fig.canvas.mpl_connect('key_press_event', keypress)
     ax1 = fig.add_axes([0.02, 0.9, 0.96, 0.1])   # title
     ax2 = fig.add_axes([0.075, 0.06, 0.9, 0.09]) # whole trace
     ax3 = fig.add_axes([0.075, 0.6, 0.7, 0.3])   # psd
@@ -335,9 +340,6 @@ def output_plot(base_name, raw_data, samplerate, idx0, idx1,
     ax6 = fig.add_axes([0.575, 0.36, 0.4, 0.14]) # amplitude spectrum
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
     ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording xoom-in
-
-    if show_plot:
-        fig.canvas.mpl_connect('key_press_event', keypress)
 
     # count number of detected fish types:
     nwave = 0
@@ -488,13 +490,7 @@ def output_plot(base_name, raw_data, samplerate, idx0, idx1,
         ax4.set_visible(False)
     if not usedax5:
         ax5.set_visible(False)
-
-    # save figure as pdf
-    if save_plot:
-        plt.savefig(os.path.join(output_folder, base_name + '.pdf'))
-    elif show_plot:
-        plt.show()
-    plt.close()
+    return fig
 
 
 def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
@@ -548,8 +544,8 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
             print(filename + ': no fish found.')
 
     # save results to files:
+    output_basename = os.path.join(output_folder, outfilename)
     if save_data:
-        output_basename = os.path.join(output_folder, outfilename)
         remove_eod_files(output_basename, verbose, cfg)
         if found_bestwindow:
             if keep_path:
@@ -562,10 +558,17 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                       wave_props, pulse_props, unit, verbose, cfg)
 
     if save_plot or not save_data:
-        output_plot(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
-                    mean_eods, eod_props, peak_data, spec_data, unit,
-                    psd_data, cfg.value('powerNHarmonics'), True, 3000.0, output_folder,
-                    save_plot=save_plot, show_plot=not save_data)
+        fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
+                        mean_eods, eod_props, peak_data, spec_data, unit,
+                        psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
+                        interactive=not save_data)
+        if save_plot:
+            # save figure as pdf:
+            fig.savefig(output_basename + '.pdf')
+            plt.close()
+        elif not save_data:
+            fig.canvas.set_window_title('thunderfish')
+            plt.show()
 
 
 pool_args = None
