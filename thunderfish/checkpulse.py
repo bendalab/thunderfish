@@ -459,8 +459,8 @@ if __name__ == "__main__":
     plt.tight_layout()
 
     fig2, ax2 = plt.subplots()
-    psd_data = psd(data, rate)
-    psd_type, proportions = check_pulse_psd(psd_data[0], psd_data[1], verbose=1,
+    power, freq = psd(data, rate)
+    psd_type, proportions = check_pulse_psd(freq, power, verbose=1,
                                             plot_data_func=plot_psd_proportion, ax=ax2, fs=12)
     plt.tight_layout()
     plt.show()

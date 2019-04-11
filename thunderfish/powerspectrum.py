@@ -50,23 +50,26 @@ def next_power_of_two(n):
     return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))
 
 
-def nfft_noverlap(freq_resolution, samplerate, overlap_frac=0.5, min_nfft=16):
+def nfft_noverlap(samplerate, freq_resolution,
+                  min_nfft=16, max_nfft=None, overlap_frac=0.5):
     """Required number of samples for an FFT of a given frequency resolution
     and number of overlapping data points.
 
-    The returned number of FFT samples results in frequency intervals that are
-    smaller or equal to `freq_resolution`.
+    Note that the returned number of FFT samples results
+    in frequency intervals that are smaller or equal to `freq_resolution`.
 
     Parameters
     ----------
-    freq_resolution: float
-        Minimum frequency resolution in Hertz.
     samplerate: float
         Sampling rate of the data in Hertz.
-    overlap_frac: float
-        Fraction the FFT windows should overlap.
+    freq_resolution: float
+        Minimum frequency resolution in Hertz.
     min_nfft: int
         Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
+    overlap_frac: float
+        Fraction the FFT windows should overlap.
 
     Returns
     -------
@@ -76,6 +79,9 @@ def nfft_noverlap(freq_resolution, samplerate, overlap_frac=0.5, min_nfft=16):
         Number of overlapping FFT points.
     """
     nfft = next_power_of_two(samplerate / freq_resolution)
+    if not max_nfft is None:
+        if nfft > max_nfft:
+            nfft = next_power_of_two(max_nfft//2 + 1)
     if nfft < min_nfft:
         nfft = min_nfft
     noverlap = int(nfft * overlap_frac)
@@ -94,8 +100,9 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     ----------
     power: float or array
         Power values, for example from a power spectrum or spectrogram.
-    ref_power: float
-        Reference power for computing decibel. If set to `None` the maximum power is used.
+    ref_power: float or None
+        Reference power for computing decibel.
+        If set to `None` the maximum power is used.
     min_power: float
         Power values smaller than `min_power` are set to `-inf`.
 
@@ -104,7 +111,7 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     decibel_psd: array
         Power values in decibel relative to `ref_power`.
     """
-    if hasattr(power, '__len__'):
+    if isinstance(power, (list, tuple, np.ndarray)):
         tmp_power = power
         decibel_psd = power.copy()
     else:
@@ -114,7 +121,7 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
         ref_power = np.max(decibel_psd)
     decibel_psd[tmp_power <= min_power] = float('-inf')
     decibel_psd[tmp_power > min_power] = 10.0 * np.log10(decibel_psd[tmp_power > min_power]/ref_power)
-    if hasattr(power, '__len__'):
+    if isinstance(power, (list, tuple, np.ndarray)):
         return decibel_psd
     else:
         return decibel_psd[0]
@@ -142,7 +149,8 @@ def power(decibel, ref_power=1.0):
     return ref_power * 10.0 ** (0.1 * decibel)
 
 
-def psd(data, samplerate, freq_resolution, min_nfft=16, overlap_frac=0.5, **kwargs):
+def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
+        overlap_frac=0.5, **kwargs):
     """Power spectrum density of a given frequency resolution.
 
     NFFT is computed from the requested frequency resolution and the samplerate.
@@ -158,6 +166,8 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, overlap_frac=0.5, **kwar
         Frequency resolution of the psd in Hertz.
     min_nfft: int
         Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
     overlap_frac: float
         Fraction of overlap for the fft windows.
     kwargs: dict
@@ -165,17 +175,22 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, overlap_frac=0.5, **kwar
 
     Returns
     -------
-    psd: 2-D array
-        Power (first row) and frequency (second row).
+    power: 1-D array
+        Power.
+    freq: 1-D array
+        Frequencies corresponding to power array.
     """
-    nfft, noverlap = nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=min_nfft)
-    if 'NFFT' in kwargs:
-        del kwargs['NFFT']
-    if 'noverlap' in kwargs:
-        del kwargs['noverlap']
-    power, freqs = mlab.psd(data, NFFT=nfft, noverlap=noverlap, Fs=samplerate, **kwargs)
+    nfft, noverlap = nfft_noverlap(samplerate, freq_resolution,
+                                   min_nfft, max_nfft, overlap_frac)
+    for k in ['Fs', 'NFFT', 'noverlap']:
+        if k in kwargs:
+            del kwargs[k]
+    power, freqs = mlab.psd(data, Fs=samplerate, NFFT=nfft,
+                            noverlap=noverlap, **kwargs)
+    # f, Pxx = sig.welch(data, fs=samplerate, nperseg=nfft, nfft=None,
+    #                    noverlap=noverlap, **kwargs)
     # squeeze is necessary when nfft is to large with respect to the data:
-    return np.asarray([np.squeeze(power), freqs])
+    return np.squeeze(power), freqs
 
 
 def multi_psd(data, samplerate, freq_resolution=0.5,
@@ -220,13 +235,14 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
     multi_psd_data = []
     for k in range(num_windows):
         for fres in freq_resolution:
-            psd_data = psd(data[k*n_incr:(k+2)*n_incr], samplerate, fres,
-                           min_nfft, overlap_frac, **kwargs)
-            multi_psd_data.append(psd_data)
+            power, freq = psd(data[k*n_incr:(k+2)*n_incr], samplerate, fres,
+                              min_nfft, 2*n_incr, overlap_frac, **kwargs)
+            multi_psd_data.append(np.asarray([power, freq]))
     return multi_psd_data
 
 
-def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16, overlap_frac=0.5, **kwargs):
+def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
+                max_nfft=None, overlap_frac=0.5, **kwargs):
     """
     Spectrogram of a given frequency resolution.
 
@@ -244,6 +260,8 @@ def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16, overlap_frac
         Frequency resolution for the spectrogram.
     min_nfft: int
         Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
     overlap_frac: float
         Overlap of the nffts (0 = no overlap; 1 = total overlap).
     kwargs: dict
@@ -258,7 +276,11 @@ def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16, overlap_frac
     time: array
         Time of the nfft windows.
     """
-    nfft, noverlap = nfft_noverlap(freq_resolution, samplerate, overlap_frac, min_nfft=min_nfft)
+    nfft, noverlap = nfft_noverlap(samplerate, freq_resolution,
+                                   min_nfft, max_nfft, overlap_frac)
+    for k in ['Fs', 'NFFT', 'noverlap']:
+        if k in kwargs:
+            del kwargs[k]
     spectrum, freqs, time = mlab.specgram(data, NFFT=nfft, Fs=samplerate,
                                           noverlap=noverlap, **kwargs)
     return spectrum, freqs, time
@@ -302,7 +324,8 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
     ax.set_ylabel('Power [dB]')
 
 
-def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16, thresh=None):
+def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=1.0,
+               thresh=None, **kwargs):
     """Peak frequencies computed for each of the data snippets.
 
     Parameters
@@ -313,16 +336,16 @@ def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16, th
         Indices indicating the offsets of the snippets in `data`.
     data: 1-D array
         Data array that contains the data snippets defined by `onsets` and `offsets`.
-    rate: float
+    samplerate: float
         Samplerate of data in Hertz.
     freq_resolution: float
         Desired frequency resolution of the computed power spectra in Hertz.
-    min_nfft: int
-        The smallest value of nfft to be used.
     thresh: None or float
         If not None than this is the threshold required for the minimum hight of the peak
         in the power spectrum. If the peak is too small than the peak frequency of
         that snippet is set to NaN.
+    kwargs: dict
+        Further arguments passed on to psd().
 
     Returns
     -------
@@ -330,18 +353,15 @@ def peak_freqs(onsets, offsets, data, rate, freq_resolution=1.0, min_nfft=16, th
         For each data snippet the frequency of the maximum power.
     """
     freqs = []
-    # for all events:
     for i0, i1 in zip(onsets, offsets):
-        nfft, _ = nfft_noverlap(freq_resolution, rate, 0.5, min_nfft)
-        if nfft > i1 - i0 :
-            nfft = next_power_of_two((i1 - i0)/2)
-        f, Pxx = sig.welch(data[i0:i1], fs=rate, nperseg=nfft, noverlap=nfft//2, nfft=None)
+        power, f = psd(data[i0:i1], samplerate, freq_resolution,
+                       max_nfft=i1-i0, **kwargs)
         if thresh is None:
-            fpeak = f[np.argmax(Pxx)]
+            fpeak = f[np.argmax(power)]
         else:
-            p, _ = detect_peaks(decibel(Pxx, None), thresh)
+            p, _ = detect_peaks(decibel(power, None), thresh)
             if len(p) > 0:
-                ipeak = np.argmax(Pxx[p])
+                ipeak = np.argmax(power[p])
                 fpeak = f[p[ipeak]]
             else:
                 fpeak = float('NaN')
