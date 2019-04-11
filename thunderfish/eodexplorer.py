@@ -906,7 +906,6 @@ def main():
         cluster = np.zeros(data.rows())
         cluster[(data[:,'phase1'] < 0) & (data[:,'EODf'] < 300.0)] = 1
         cluster[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0)] = 2
-        cluster[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0) & (data[:,'relampl2'] > 20.0)] = 3
         cluster[data[:,'phase1'] > 0] = 3
         data.append('cluster', '', '%d', cluster)
 
