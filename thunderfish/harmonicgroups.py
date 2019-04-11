@@ -626,7 +626,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 
     The standard deviation of the noise floor without peaks is estimated from
     the width of the histogram of the power spectrum at `hist_height` relative height.
-    The histogtram is computed in the third quarter of the linearly detrended power spectrum.
+    The histogram is computed in the third quarter of the linearly detrended power spectrum.
 
     Parameters
     ----------
