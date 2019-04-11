@@ -17,7 +17,7 @@ from .configfile import ConfigFile
 from .tabledata import TableData, add_write_table_config, write_table_args
 from .dataloader import load_data
 from .bestwindow import find_best_window, plot_best_data
-from .thunderfish import configuration, detect_eods
+from .thunderfish import configuration, detect_eods, plot_eods
 
 
 class Explorer(object):
@@ -61,6 +61,7 @@ class Explorer(object):
             self.data = self.raw_data
             self.labels = self.raw_labels
             self.show_maxcols = self.data_maxcols
+        self.toolbar_name = plt.rcParams['toolbar']
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
         plt.rcParams['keymap.back'] = ''
@@ -761,21 +762,21 @@ class EODExplorer(Explorer):
         # best_window:
         data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg)
         # detect EODs in the data:
-        pulse_fish, psd_data, fishlist, eod_props, wave_props, pulse_props, mean_eods, \
+        pulse_fish, psd_data, fishlist, eod_props, _, _, mean_eods, \
           spec_data, peak_data, power_thresh, skip_reason = \
           detect_eods(data, samplerate, clipped, 0, cfg)
         if idx1 == 0:
             pulsefish = False
             fishlist = []
             eod_props = []
-            wave_props = []
-            pulse_props = []
             mean_eods = []
-          
-        fig, ax = plt.subplots(1)
-        fig.canvas.set_window_title(recording)
-        plot_best_data(raw_data, samplerate, unit, idx0, idx1, clipped, ax)
-        ax.set_title(recording)
+        # plot EOD:
+        plt.rcParams['toolbar'] = self.toolbar_name
+        fig = plot_eods(basename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
+                        mean_eods, eod_props, peak_data, spec_data, unit,
+                        psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
+                        interactive=True)
+        fig.canvas.set_window_title('thunderfish: %s' % basename)
         plt.show(block=False)
 
 wave_fish = True
