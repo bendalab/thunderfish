@@ -643,7 +643,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
 
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
-    nfft, _ = nfft_noverlap(freq_resolution, samplerate)
+    nfft, _ = nfft_noverlap(samplerate, freq_resolution)
     n = len(meod)//4
     nn = np.max([nfft, 2*n])
     data = np.zeros(nn)

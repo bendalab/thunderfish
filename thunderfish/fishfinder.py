@@ -8,10 +8,10 @@ import matplotlib.mlab as ml
 from audioio import PlayAudio, fade, write_audio
 from .version import __version__
 from .configfile import ConfigFile
+from .powerspectrum import nfft_noverlap, decibel, psd, spectrogram
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
 from .dataloader import open_data
-from .powerspectrum import nfft_noverlap, decibel
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
@@ -196,7 +196,7 @@ class SignalPlot:
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
-        nfft, noverlap = nfft_noverlap(self.freq_resolution, self.samplerate, 0.5, 16)
+        nfft, _ = nfft_noverlap(self.samplerate, self.freq_resolution)
         t00 = t0
         t11 = t1
         w = t11 - t00
@@ -210,8 +210,8 @@ class SignalPlot:
         if t00 < 0:
             t00 = 0
             t11 = w
-        power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=noverlap, Fs=self.samplerate, detrend=ml.detrend_mean)
-        power = np.squeeze(power) # squeeze is necessary when nfft is to large with respect to the data
+        power, freqs = psd(self.data[t00:t11], self.samplerate,
+                           self.freq_resolution, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
         h_kwargs = psd_peak_detection_args(self.cfg)
@@ -222,7 +222,8 @@ class SignalPlot:
 
         # spectrogram:
         t2 = t1 + nfft
-        specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft // 2,
+        specpower, freqs, bins = spectrogram(self.data[t0:t2], self.samplerate,
+                                             self.freq_resolution,
                                              detrend=ml.detrend_mean)
         z = decibel(specpower)
         z = np.flipud(z)
