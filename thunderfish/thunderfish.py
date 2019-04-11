@@ -216,7 +216,54 @@ def detect_eods(data, samplerate, clipped, verbose, cfg):
             spec_data, peak_data, power_thresh, skip_reason)
 
 
-        
+def remove_eod_files(output_basename, verbose, cfg):
+    """
+    """
+    fext = TableData.extensions[cfg.value('fileFormat')]
+    # remove all files from previous runs of thunderfish:
+    for fn in glob.glob('%s-*.%s' % (output_basename, fext)):
+        os.remove(fn)
+        if verbose > 0:
+            print('removed file %s' % fn)
+
+def save_eods(output_basename, mean_eods, spec_data, peak_data,
+              wave_props, pulse_props, unit, verbose, cfg):
+    """
+    """
+    # for each fish:
+    for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
+        fp = save_eod_waveform(mean_eod, unit, i, output_basename,
+                               **write_table_args(cfg))
+        if verbose > 0:
+            print('wrote file %s' % fp)
+        # power spectrum:
+        if len(sdata)>0:
+            if sdata.shape[1] == 2:
+                fp = save_pulse_spectrum(sdata, unit, i, output_basename,
+                                         **write_table_args(cfg))
+            else:
+                fp = save_wave_spectrum(sdata, unit, i, output_basename,
+                                        **write_table_args(cfg))
+            if verbose > 0:
+                print('wrote file %s' % fp)
+        # peaks:
+        fp = save_pulse_peaks(pdata, unit, i, output_basename,
+                              **write_table_args(cfg))
+        if verbose > 0 and not fp is None:
+            print('wrote file %s' % fp)
+    # fish properties:
+    if wave_props:
+        fp = save_wave_eods(wave_props, unit, output_basename,
+                            **write_table_args(cfg))
+        if verbose > 0:
+            print('wrote file %s' % fp)
+    if pulse_props:
+        fp = save_pulse_eods(pulse_props, unit, output_basename,
+                             **write_table_args(cfg))
+        if verbose > 0:
+            print('wrote file %s' % fp)
+
+                            
 def output_plot(base_name, raw_data, samplerate, idx0, idx1,
                 clipped, fishlist, mean_eods, eod_props, peak_data,
                 spec_data, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
@@ -484,7 +531,6 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
     pulse_fish, psd_data, fishlist, eod_props, wave_props, pulse_props, mean_eods, \
       spec_data, peak_data, power_thresh, skip_reason = \
       detect_eods(data, samplerate, clipped, verbose, cfg)
-        
     if not found_bestwindow:
         pulsefish = False
         fishlist = []
@@ -501,54 +547,19 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         else:
             print(filename + ': no fish found.')
 
-    # write results to files:
+    # save results to files:
     if save_data:
-        fext = TableData.extensions[cfg.value('fileFormat')]
-        # remove all files from previous runs of thunderfish:
-        for fn in glob.glob(os.path.join(output_folder, '%s-*.%s' % (outfilename, fext))):
-            os.remove(fn)
-            if verbose > 0:
-                print('removed file %s' % fn)
+        output_basename = os.path.join(output_folder, outfilename)
+        remove_eod_files(output_basename, verbose, cfg)
         if found_bestwindow:
-            output_basename = os.path.join(output_folder, outfilename)
             if keep_path:
                 outpath = os.path.dirname(output_basename)
                 if not os.path.exists(outpath):
                     if verbose > 0:
                         print('mkdir %s' % outpath)
                     os.makedirs(outpath)
-            # for each fish:
-            for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
-                fp = save_eod_waveform(mean_eod, unit, i, output_basename,
-                                       **write_table_args(cfg))
-                if verbose > 0:
-                    print('wrote file %s' % fp)
-                # power spectrum:
-                if len(sdata)>0:
-                    if sdata.shape[1] == 2:
-                        fp = save_pulse_spectrum(sdata, unit, i, output_basename,
-                                                 **write_table_args(cfg))
-                    else:
-                        fp = save_wave_spectrum(sdata, unit, i, output_basename,
-                                                **write_table_args(cfg))
-                    if verbose > 0:
-                        print('wrote file %s' % fp)
-                # peaks:
-                fp = save_pulse_peaks(pdata, unit, i, output_basename,
-                                      **write_table_args(cfg))
-                if verbose > 0 and not fp is None:
-                    print('wrote file %s' % fp)
-            # fish properties:
-            if wave_props:
-                fp = save_wave_eods(wave_props, unit, output_basename,
-                                    **write_table_args(cfg))
-                if verbose > 0:
-                    print('wrote file %s' % fp)
-            if pulse_props:
-                fp = save_pulse_eods(pulse_props, unit, output_basename,
-                                     **write_table_args(cfg))
-                if verbose > 0:
-                    print('wrote file %s' % fp)
+            save_eods(output_basename, mean_eods, spec_data, peak_data,
+                      wave_props, pulse_props, unit, verbose, cfg)
 
     if save_plot or not save_data:
         output_plot(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
