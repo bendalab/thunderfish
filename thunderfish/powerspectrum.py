@@ -163,9 +163,14 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
 
     NFFT is computed from the requested frequency resolution and the
     samplerate.  Check the returned frequency array for the actually
-    used freqeuncy resolution.  The frequency intervals are smaller or
-    equal to `freq_resolution`.  NFFT is `samplerate` divided by the
-    actual frequency resolution.
+    used frequency resolution.  The frequency intervals are smaller or
+    equal to `freq_resolution`.  NFFT can be retrieved by dividing
+    `samplerate` by the actual frequency resolution:
+    ```
+    power, freq = psd(data, samplerate, 0.1)
+    df = np.mean(np.diff(freq))  # the actual frequency resolution
+    nfft = int(samplerate/df)
+    ```
 
     Uses scipy signal.welch() if available, otherwise
     matplotlib.mlab.psd().
@@ -229,6 +234,9 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
     """Power spectra computed for consecutive data windows and
     mutiple frequency resolutions.
 
+    See also psd() for more information on power spectra with given
+    frequency resolution.
+
     Parameters
     ----------
     data: 1-D array
@@ -284,9 +292,14 @@ def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
     """
     Spectrogram of a given frequency resolution.
 
-    Check the returned frequency array for the actually used freqeuncy resolution.
+    Check the returned frequency array for the actually used frequency resolution.
     The frequency intervals are smaller or equal to `freq_resolution`.
     NFFT is `samplerate` divided by the actual frequency resolution.
+    ```
+    spec, freq, time = spectrum(data, samplerate, 0.1)
+    df = np.mean(np.diff(freq))  # the actual frequency resolution
+    nfft = int(samplerate/df)
+    ```
     
     Parameters
     ----------
@@ -484,7 +497,9 @@ if __name__ == '__main__':
     # plot power spectra:
     fig, ax = plt.subplots()
     for k in range(len(psd_data)):
+        df = np.mean(np.diff(psd_data[k][1]))
+        nfft = int(samplerate/df)
         plot_decibel_psd(ax, psd_data[k][1], psd_data[k][0], lw=2,
-                         label='$\\Delta f = %.1f$ Hz' % (np.mean(np.diff(psd_data[k][1]))))
+                         label='$\\Delta f = %.1f$ Hz, nnft=%d' % (df, nfft))
     ax.legend(loc='upper right')
     plt.show()
