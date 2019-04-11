@@ -343,27 +343,31 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     
     # fit fourier series:
     ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
-    while n_harm > 1:
-        params = [freq0, -0.25/freq0, ampl]
-        for i in range(1, n_harm):
-            params.extend([1.0/(i+1), 0.0])
-        try:
-            popt, pcov = curve_fit(fourier_series, meod[i0:i1,0], meod[i0:i1,1],
-                                   params, maxfev=2000)
+    for p in np.arange(0.0, 1.0, 0.25):
+        while n_harm > 1:
+            params = [freq0, p/freq0, ampl]
+            for i in range(1, n_harm):
+                params.extend([1.0/(i+1), 0.0])
+            try:
+                popt, pcov = curve_fit(fourier_series, meod[i0:i1,0], meod[i0:i1,1],
+                                       params, maxfev=2000)
+                break
+            except (RuntimeError, TypeError):
+                error_str = '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics.' % (freq0, n_harm)
+                n_harm //= 2
+        if popt[2] > 0.0:
             break
-        except (RuntimeError, TypeError):
-            error_str = '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics.' % (freq0, n_harm)
-            n_harm //= 2
-    ampl = popt[2]
     for i in range(1, n_harm):
         # make all amplitudes positive:
         if popt[1+i*2] < 0.0:
-            popt[1+i*2] *= -1.0
+            if popt[1+i*2] < 0.0:
+                popt[1+i*2] *= -1.0
             popt[2+i*2] += np.pi
         # all phases in the range -pi to pi:
         popt[2+i*2] %= 2.0*np.pi
         if popt[2+i*2] > np.pi:
             popt[2+i*2] -= 2.0*np.pi
+    ampl = popt[2]
     meod[:,-1] = fourier_series(meod[:,0], *popt)
 
     # variance and fit error:
@@ -1293,8 +1297,8 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
     cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
-    cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave-type fish to make largest extremum positive.')
-    cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse-type fish to make the first large peak positive.')
+    cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave-type fish to make largest extremum positive (flip, none, or auto).')
+    cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse-type fish to make the first large peak positive (flip, none, or auto).')
     cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
     cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
     cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks in pulse-type EODs as a fraction of the pulse amplitude.')
