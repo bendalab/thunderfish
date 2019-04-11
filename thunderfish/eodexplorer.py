@@ -764,6 +764,14 @@ class EODExplorer(Explorer):
         pulse_fish, psd_data, fishlist, eod_props, wave_props, pulse_props, mean_eods, \
           spec_data, peak_data, power_thresh, skip_reason = \
           detect_eods(data, samplerate, clipped, 0, cfg)
+        if idx1 == 0:
+            pulsefish = False
+            fishlist = []
+            eod_props = []
+            wave_props = []
+            pulse_props = []
+            mean_eods = []
+          
         fig, ax = plt.subplots(1)
         fig.canvas.set_window_title(recording)
         plot_best_data(raw_data, samplerate, unit, idx0, idx1, clipped, ax)
