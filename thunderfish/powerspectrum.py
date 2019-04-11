@@ -26,11 +26,19 @@
 """
 
 import numpy as np
-import scipy.signal as sig
+from scipy.signal import get_window
 try:
-    import matplotlib.mlab as mlab
+    from scipy.signal import welch
+    psdscipy  = True
 except ImportError:
-    pass
+    from matplotlib.mlab import psd as mpsd
+    from matplotlib.mlab import detrend_linear, detrend_mean, detrend_none
+    psdscipy  = False
+try:
+    from matplotlib.mlab import specgram as mspecgram
+    specgrammlab = True
+except ImportError:
+    specgrammlab = False
 from .eventdetection import detect_peaks
 
 
@@ -150,13 +158,17 @@ def power(decibel, ref_power=1.0):
 
 
 def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
-        overlap_frac=0.5, **kwargs):
+        overlap_frac=0.5, detrend='constant', window='hanning'):
     """Power spectrum density of a given frequency resolution.
 
-    NFFT is computed from the requested frequency resolution and the samplerate.
-    Check the returned frequency array for the actually used freqeuncy resolution.
-    The frequency intervals are smaller or equal to `freq_resolution`.
-    NFFT is `samplerate` divided by the actual frequency resolution.
+    NFFT is computed from the requested frequency resolution and the
+    samplerate.  Check the returned frequency array for the actually
+    used freqeuncy resolution.  The frequency intervals are smaller or
+    equal to `freq_resolution`.  NFFT is `samplerate` divided by the
+    actual frequency resolution.
+
+    Uses scipy signal.welch() if available, otherwise
+    matplotlib.mlab.psd().
     
     data: 1-D array 
         Data from which power spectra are computed.
@@ -170,32 +182,50 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
         If not None, largest value of nfft to be used.
     overlap_frac: float
         Fraction of overlap for the fft windows.
-    kwargs: dict
-        Further arguments for mlab.psd().
+    detrend: string
+        If 'constant' subtract mean of data.
+        If 'linear' subtract line fitted to the data.
+        If 'none' do not deternd the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
 
     Returns
     -------
     power: 1-D array
-        Power.
+        Power spectral density in [data]^2/Hz.
     freq: 1-D array
         Frequencies corresponding to power array.
     """
     nfft, noverlap = nfft_noverlap(samplerate, freq_resolution,
                                    min_nfft, max_nfft, overlap_frac)
-    for k in ['Fs', 'NFFT', 'noverlap']:
-        if k in kwargs:
-            del kwargs[k]
-    power, freqs = mlab.psd(data, Fs=samplerate, NFFT=nfft,
-                            noverlap=noverlap, **kwargs)
-    # f, Pxx = sig.welch(data, fs=samplerate, nperseg=nfft, nfft=None,
-    #                    noverlap=noverlap, **kwargs)
+    if psdscipy:
+        if detrend == 'none':
+            detrend = lambda x: x
+        freqs, power = welch(data, fs=samplerate, nperseg=nfft, nfft=None,
+                             noverlap=noverlap, detrend=detrend,
+                             window=window, scaling='density')
+    else:
+        if detrend == 'linear':
+            detrend_func = detrend_linear
+        elif detrend == 'none':
+            detrend_func = detrend_none
+        else:
+            detrend_func = detrend_mean
+        power, freqs = mpsd(data, Fs=samplerate, NFFT=nfft,
+                                noverlap=noverlap, detrend=detrend_func,
+                                window=get_window(window, nfft),
+                                scale_by_freq=True)
     # squeeze is necessary when nfft is to large with respect to the data:
     return np.squeeze(power), freqs
 
 
 def multi_psd(data, samplerate, freq_resolution=0.5,
               num_resolutions=1, num_windows=1,
-              min_nfft=16, overlap_frac=0.5, **kwargs):
+              min_nfft=16, overlap_frac=0.5,
+              detrend='constant', window='hanning'):
     """Power spectra computed for consecutive data windows and
     mutiple frequency resolutions.
 
@@ -218,8 +248,15 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
         Smallest value of nfft to be used.
     overlap_frac: float
         Fraction of overlap for the fft windows within a single power spectrum.
-    kwargs: dict
-        Further arguments for mlab.psd().
+    detrend: string
+        If 'constant' subtract mean of data.
+        If 'linear' subtract line fitted to the data.
+        If 'none' do not deternd the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
 
     Returns
     -------
@@ -236,13 +273,14 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
     for k in range(num_windows):
         for fres in freq_resolution:
             power, freq = psd(data[k*n_incr:(k+2)*n_incr], samplerate, fres,
-                              min_nfft, 2*n_incr, overlap_frac, **kwargs)
+                              min_nfft, 2*n_incr, overlap_frac, detrend, window)
             multi_psd_data.append(np.asarray([power, freq]))
     return multi_psd_data
 
 
 def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
-                max_nfft=None, overlap_frac=0.5, **kwargs):
+                max_nfft=None, overlap_frac=0.5,
+                detrend='constant', window='hanning'):
     """
     Spectrogram of a given frequency resolution.
 
@@ -264,13 +302,19 @@ def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
         If not None, largest value of nfft to be used.
     overlap_frac: float
         Overlap of the nffts (0 = no overlap; 1 = total overlap).
-    kwargs: dict
-        Further arguments for mlab.specgram().
+    detrend: string
+        If 'constant' subtract mean of data.
+        If 'linear' subtract line fitted to the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
 
     Returns
     -------
-    spectrum: 2d array
-        Contains for every timestamp the power of the frequencies listed in the array `freqs`.
+    spectrum: 2D array
+        Power spectral density for each time and frequency.
     freqs: array
         Frequencies of the spectrogram.
     time: array
@@ -278,12 +322,22 @@ def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
     """
     nfft, noverlap = nfft_noverlap(samplerate, freq_resolution,
                                    min_nfft, max_nfft, overlap_frac)
-    for k in ['Fs', 'NFFT', 'noverlap']:
-        if k in kwargs:
-            del kwargs[k]
-    spectrum, freqs, time = mlab.specgram(data, NFFT=nfft, Fs=samplerate,
-                                          noverlap=noverlap, **kwargs)
-    return spectrum, freqs, time
+    if specgrammlab:
+        try:
+            spec, freqs, time = mspecgram(data, NFFT=nfft, Fs=samplerate,
+                                          noverlap=noverlap, detrend=detrend,
+                                          scale_by_freq=True, scale='linear',
+                                          mode='psd',
+                                          window=get_window(window, nfft))
+        except TypeError:
+            spec, freqs, time = mspecgram(data, NFFT=nfft, Fs=samplerate,
+                                          noverlap=noverlap, detrend=detrend,
+                                          scale_by_freq=True,
+                                          window=get_window(window, nfft))
+        return spec, freqs, time
+    else:
+        # ... some alternative implementation ...
+        return None, None, None
 
 
 def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
@@ -305,10 +359,9 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
         Power values smaller than `min_power` are set to `np.nan`.
     max_freq: float
         Limits of frequency axis are set to `(0, max_freq)` if `max_freq` is greater than zero
-    kwargs:
+    kwargs: dict
         Plot parameter that are passed on to the `plot()` function.
     """
-     
     decibel_psd = decibel(power, ref_power=ref_power, min_power=min_power)
     ax.plot(freqs, decibel_psd, **kwargs)
     ax.set_xlabel('Frequency [Hz]')
@@ -354,6 +407,8 @@ def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=1.0,
     """
     freqs = []
     for i0, i1 in zip(onsets, offsets):
+        if 'max_nfft' in kwargs:
+            del kwargs['max_nfft']
         power, f = psd(data[i0:i1], samplerate, freq_resolution,
                        max_nfft=i1-i0, **kwargs)
         if thresh is None:
@@ -424,7 +479,7 @@ if __name__ == '__main__':
 
     # compute power spectra:
     fr = [0.5, 1]
-    psd_data = multi_psd(data, samplerate, freq_resolution=fr)
+    psd_data = multi_psd(data, samplerate, freq_resolution=fr, detrend='none', window='hanning')
 
     # plot power spectra:
     fig, ax = plt.subplots()
