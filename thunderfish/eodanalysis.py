@@ -691,9 +691,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     return meod, props, peaks, ppower
 
 
-def wave_quality(idx, clipped, variance, rms_error, spec_data,
+def wave_quality(idx, clipped, variance, rms_error, power, spec_data,
                  max_clipped_frac=0.01, max_variance=0.0, max_rms_error=0.05,
-                 max_relampl_harm1=2.0, max_relampl_harm2=0.8, max_relampl_harm3=0.5):
+                 min_power=-100.0, max_relampl_harm1=2.0,
+                 max_relampl_harm2=0.8, max_relampl_harm3=0.5):
     """
     Assess the quality of an EOD waveform of a wave-type fish.
     
@@ -707,6 +708,8 @@ def wave_quality(idx, clipped, variance, rms_error, spec_data,
         Standard deviation of the data relative to p-p amplitude.
     rms_error: float
         Root-mean-square error between EOD waveform and Fourier fit relative to p-p amplitude.
+    power: float
+        Power of the EOD waveform in dB.
     spec_data: 2-D array of floats
         Amplitude and phases of harmonics as returned by analyze_wave().
     max_clipped_frac: float
@@ -716,6 +719,8 @@ def wave_quality(idx, clipped, variance, rms_error, spec_data,
     max_rms_error: float
         Maximum allowed root-mean-square error between EOD waveform and
         Fourier fit relative to p-p amplitude.
+    min_power: float
+        Minimum power of the EOD in dB.
     max_relampl_harm1: float
         Maximum allowed amplitude of first harmonic relative to fundamental.
     max_relampl_harm2: float
@@ -744,6 +749,10 @@ def wave_quality(idx, clipped, variance, rms_error, spec_data,
     if rms_error >= max_rms_error:
         skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
                         (100.0*rms_error, 100.0*max_rms_error)]
+    msg += ['power=%6.1fdB' % power]
+    if power < min_power:
+        skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
+                        (power, min_power)]
     msg += ['ampl1=%5.1f%%' % (100.0*spec_data[1,3])]
     if spec_data[1,3] >= max_relampl_harm1:
         skip_reason += ['distorted ampl1=%5.1f%% (max %5.1f%%)' %
@@ -1387,8 +1396,9 @@ def analyze_pulse_args(cfg):
 
 
 def add_eod_quality_config(cfg, max_clipped_frac=0.01, max_variance=0.0,
-                           max_rms_error=0.05, max_relampl_harm1=2.0,
-                           max_relampl_harm2=0.8, max_relampl_harm3=0.5):
+                           max_rms_error=0.05, min_power=-100.0,
+                           max_relampl_harm1=2.0, max_relampl_harm2=0.8,
+                           max_relampl_harm3=0.5):
     """Add parameters needed for assesing the quality of an EOD waveform.
 
     Parameters
@@ -1403,6 +1413,7 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.01, max_variance=0.0,
     cfg.add('maximumClippedFraction', max_clipped_frac, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
     cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard deviation of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
     cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+    cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave-type fish if its power is smaller than this value.')
     cfg.add('maximumFirstHarmonicAmplitude', max_relampl_harm1, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
     cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
     cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave-type fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental.')
@@ -1428,6 +1439,7 @@ def wave_quality_args(cfg):
     a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
                  'max_variance': 'maximumVariance',
                  'max_rms_error': 'maximumRMSError',
+                 'min_power': 'minimumPower',
                  'max_relampl_harm1': 'maximumFirstHarmonicAmplitude',
                  'max_relampl_harm2': 'maximumSecondHarmonicAmplitude',
                  'max_relampl_harm3': 'maximumThirdHarmonicAmplitude'})

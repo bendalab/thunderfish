@@ -553,7 +553,8 @@ class Explorer(object):
 
     def on_select(self, eclick, erelease):
         if eclick.dblclick:
-            self.analyze_selection(self.mark_data[-1])
+            if len(self.mark_data) > 0:
+                self.analyze_selection(self.mark_data[-1])
             return
         x0 = min(eclick.xdata, erelease.xdata)
         x1 = max(eclick.xdata, erelease.xdata)
@@ -590,7 +591,8 @@ class Explorer(object):
                 self.mark_data = [self.mark_data[k]]
         self.update_selection()
         if event.mouseevent.dblclick:
-            self.analyze_selection(self.mark_data[-1])
+            if len(self.mark_data) > 0:
+                self.analyze_selection(self.mark_data[-1])
             
     def set_layout(self, width, height):
         xoffs = self.xborder/width
@@ -758,8 +760,9 @@ class EODExplorer(Explorer):
         cfgfile = __package__ + '.cfg'
         cfg = configuration(cfgfile, False, recording)
         if 'flipped' in self.eoddata:
-            cfg.set('flipWaveEOD', self.eoddata[index,'flipped'])
-            cfg.set('flipPulseEOD', self.eoddata[index,'flipped'])
+            fs = 'flip' if self.eoddata[index,'flipped'] else 'none'
+            cfg.set('flipWaveEOD', fs)
+            cfg.set('flipPulseEOD', fs)
         # best_window:
         data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg)
         # detect EODs in the data:
@@ -946,7 +949,8 @@ def main():
             group_cols = []
         elif wave_fish:
             if group == 'noise':
-                group_cols.extend(['noise', 'rmserror', 'p-p-amplitude', 'power'])
+                group_cols.extend(['noise', 'rmserror',
+                                   'p-p-amplitude', 'power'])
             elif group == 'timing' or group == 'time':
                 group_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
                                   'lefttrough', 'righttrough'])
