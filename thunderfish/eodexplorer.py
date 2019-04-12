@@ -1027,7 +1027,10 @@ def main():
     elif color_idx in data_cols:
         colors = data_cols.index(color_idx)
     else:
-        colorlabel = '%s [%s]' % (data.label(color_idx), data.unit(color_idx))
+        if len(data.unit(color_idx)) > 0 and not data.unit(color_idx) in ['-', '1']:
+            colorlabel = '%s [%s]' % (data.label(color_idx), data.unit(color_idx))
+        else:
+            colorlabel = data.label(color_idx)
         colors = data[:,color_idx]
 
     # list columns:
