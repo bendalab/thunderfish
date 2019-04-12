@@ -552,6 +552,9 @@ class Explorer(object):
             self.fig.canvas.draw()
 
     def on_select(self, eclick, erelease):
+        if eclick.dblclick:
+            self.analyze_selection(self.mark_data[-1])
+            return
         x0 = min(eclick.xdata, erelease.xdata)
         x1 = max(eclick.xdata, erelease.xdata)
         y0 = min(eclick.ydata, erelease.ydata)
@@ -587,7 +590,7 @@ class Explorer(object):
                 self.mark_data = [self.mark_data[k]]
         self.update_selection()
         if event.mouseevent.dblclick:
-            self.analyze_selection(self.mark_data[0])
+            self.analyze_selection(self.mark_data[-1])
             
     def set_layout(self, width, height):
         xoffs = self.xborder/width
@@ -945,7 +948,7 @@ def main():
             group_cols = []
         elif wave_fish:
             if group == 'noise':
-                group_cols.extend(['p-p-amplitude', 'power', 'noise', 'rmserror'])
+                group_cols.extend(['noise', 'rmserror', 'p-p-amplitude', 'power'])
             elif group == 'timing' or group == 'time':
                 group_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
                                   'lefttrough', 'righttrough'])
