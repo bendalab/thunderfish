@@ -247,7 +247,7 @@ wave-type fish detected in the recording.
 <table>
 <thead>
   <tr>
-    <th align="left" colspan="7">waveform</th>
+    <th align="left" colspan="9">waveform</th>
     <th align="left" colspan="7">timing</th>
   </tr>
   <tr>
@@ -257,6 +257,8 @@ wave-type fish detected in the recording.
     <th align="left">p-p-amplitude</th>
     <th align="left">noise</th>
     <th align="left">rmserror</th>
+    <th align="left">clipped</th>
+    <th align="left">flipped</th>
     <th align="left">n</th>
     <th align="left">peakwidth</th>
     <th align="left">troughwidth</th>
@@ -273,6 +275,8 @@ wave-type fish detected in the recording.
     <th align="left">a.u.</th>
     <th align="left">%</th>
     <th align="left">%</th>
+    <th align="left">%</th>
+    <th align="left">-</th>
     <th align="left">-</th>
     <th align="left">%</th>
     <th align="left">%</th>
@@ -291,6 +295,8 @@ wave-type fish detected in the recording.
     <td align="right">0.153</td>
     <td align="right">37.4</td>
     <td align="right">0.32</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
     <td align="right">4641</td>
     <td align="right">72.50</td>
     <td align="right">27.50</td>
@@ -307,6 +313,8 @@ wave-type fish detected in the recording.
     <td align="right">0.040</td>
     <td align="right">183.3</td>
     <td align="right">0.36</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
     <td align="right">890</td>
     <td align="right">51.31</td>
     <td align="right">48.69</td>
@@ -323,6 +331,8 @@ wave-type fish detected in the recording.
     <td align="right">0.042</td>
     <td align="right">171.7</td>
     <td align="right">0.36</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
     <td align="right">1065</td>
     <td align="right">43.55</td>
     <td align="right">56.45</td>
@@ -339,13 +349,15 @@ wave-type fish detected in the recording.
     <td align="right">0.012</td>
     <td align="right">602.5</td>
     <td align="right">0.35</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
     <td align="right">4870</td>
-    <td align="right">32.15</td>
-    <td align="right">67.85</td>
-    <td align="right">57.69</td>
-    <td align="right">-25.54</td>
-    <td align="right">50.26</td>
-    <td align="right">17.59</td>
+    <td align="right">25.75</td>
+    <td align="right">74.25</td>
+    <td align="right">11.00</td>
+    <td align="right">14.76</td>
+    <td align="right">9.97</td>
+    <td align="right">64.28</td>
     <td align="right">24.73</td>
   </tr>
 </tbody>
