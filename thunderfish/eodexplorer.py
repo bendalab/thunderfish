@@ -706,7 +706,12 @@ class EODExplorer(Explorer):
                           transform = self.dax.transAxes,
                           ha='center', va='center')
         elif len(indices) == 1:
-            ax.set_title(self.eoddata[indices[0],'file'])
+            if 'index' in self.eoddata and \
+              np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
+                ax.set_title('%s: %d' % (self.eoddata[indices[0],'file'],
+                                         self.eoddata[indices[0],'index']))
+            else:
+                ax.set_title(self.eoddata[indices[0],'file'])
             ax.text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'], transform = self.dax.transAxes)
         else:
             ax.set_title('%d EOD waveforms selected' % len(indices))
@@ -773,12 +778,12 @@ class EODExplorer(Explorer):
         # detect EODs in the data:
         pulse_fish, psd_data, fishlist, eod_props, _, _, mean_eods, \
           spec_data, peak_data, power_thresh, skip_reason = \
-          detect_eods(data, samplerate, clipped, 0, cfg)
+          detect_eods(data, samplerate, clipped, recording, 0, cfg)
         # plot EOD:
-        index = self.eoddata[index,'index'] if 'index' in self.eoddata else 0
+        idx = int(self.eoddata[index,'index']) if 'index' in self.eoddata else 0
         plt.rcParams['toolbar'] = self.toolbar_name
         fig = plot_eods(basename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
-                        mean_eods, eod_props, peak_data, spec_data, [index], unit,
+                        mean_eods, eod_props, peak_data, spec_data, [idx], unit,
                         psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
                         interactive=True)
         fig.canvas.set_window_title('thunderfish: %s' % basename)

@@ -692,9 +692,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
 
 
 def wave_quality(idx, clipped, variance, rms_error, power, spec_data,
-                 max_clipped_frac=0.01, max_variance=0.0, max_rms_error=0.05,
+                 max_clipped_frac=0.1, max_variance=0.0, max_rms_error=0.05,
                  min_power=-100.0, max_relampl_harm1=2.0,
-                 max_relampl_harm2=0.8, max_relampl_harm3=0.5):
+                 max_relampl_harm2=1.0, max_relampl_harm3=0.8):
     """
     Assess the quality of an EOD waveform of a wave-type fish.
     
@@ -768,7 +768,7 @@ def wave_quality(idx, clipped, variance, rms_error, power, spec_data,
     return ', '.join(skip_reason), ', '.join(msg)
 
 
-def pulse_quality(idx, clipped, variance, max_clipped_frac=0.01,
+def pulse_quality(idx, clipped, variance, max_clipped_frac=0.1,
                   max_variance=0.0):
     """
     Assess the quality of an EOD waveform of a pulse-type fish.
@@ -1395,10 +1395,10 @@ def analyze_pulse_args(cfg):
     return a
 
 
-def add_eod_quality_config(cfg, max_clipped_frac=0.01, max_variance=0.0,
+def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
                            max_rms_error=0.05, min_power=-100.0,
-                           max_relampl_harm1=2.0, max_relampl_harm2=0.8,
-                           max_relampl_harm3=0.5):
+                           max_relampl_harm1=2.0, max_relampl_harm2=1.0,
+                           max_relampl_harm3=0.8):
     """Add parameters needed for assesing the quality of an EOD waveform.
 
     Parameters
