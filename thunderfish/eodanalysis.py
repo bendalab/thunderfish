@@ -327,10 +327,8 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     # zero crossings:
     ui, di = threshold_crossings(meod[:,1], 0.0)
     ut, dt = threshold_crossing_times(meod[:,0], meod[:,1], 0.0, ui, di)
-    uidx = np.argmax(ui>maxinx-pinx//2)
-    didx = np.argmax(di>ui[uidx])
-    up_time = ut[uidx]
-    down_time = dt[didx]
+    up_time = ut[ut<0.0][-1]
+    down_time = dt[dt>0.0][0]
     peak_width = down_time - up_time
     trough_width = period - peak_width
     peak_time = 0.0
