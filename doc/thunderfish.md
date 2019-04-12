@@ -360,14 +360,16 @@ The columns contain:
    peak-to_peak amplitude in percent.
 6. Root-mean-squared difference between the averaged EOD waveform and 
    the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
-7. Number of EODs used for computing the averaged EOD waveform.
-8. Width of the peak at the averaged amplitude relative to EOD period.
-9. Width of the trough at the averaged amplitude relative to EOD period.
-10. Time from positive zero crossing to peak relative to EOD period.
-11. Time from peak to negative zero crossing relative to EOD period.
-12. Time from negative zero crossing to trough relative to EOD period.
-13. Time from trough to positive zero crossing relative to EOD period.
-14. Time between peak and trough relative to EOD period.
+7. Percentage of recording that is clipped.
+8. Whether the waveform was flipped.
+9. Number of EODs used for computing the averaged EOD waveform.
+10. Width of the peak at the averaged amplitude relative to EOD period.
+11. Width of the trough at the averaged amplitude relative to EOD period.
+12. Time from positive zero crossing to peak relative to EOD period.
+13. Time from peak to negative zero crossing relative to EOD period.
+14. Time from negative zero crossing to trough relative to EOD period.
+15. Time from trough to positive zero crossing relative to EOD period.
+16. Time between peak and trough relative to EOD period.
 
 
 ### RECORDING-wavespectrum-N.EXT
@@ -461,7 +463,7 @@ Properties of each pulse-type fish detected in the recording.
 <table>
 <thead>
   <tr>
-    <th align="left" colspan="14">waveform</th>
+    <th align="left" colspan="16">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
   </tr>
   <tr>
@@ -472,6 +474,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">min-ampl</th>
     <th align="left">p-p-amplitude</th>
     <th align="left">noise</th>
+    <th align="left">clipped</th>
+    <th align="left">flipped</th>
     <th align="left">tstart</th>
     <th align="left">tend</th>
     <th align="left">width</th>
@@ -493,6 +497,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">a.u.</th>
     <th align="left">a.u.</th>
     <th align="left">%</th>
+    <th align="left">%</th>
+    <th align="left">-</th>
     <th align="left">ms</th>
     <th align="left">ms</th>
     <th align="left">ms</th>
@@ -516,6 +522,8 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">0.838</td>
     <td align="right">1.635</td>
     <td align="right">0.7</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
     <td align="right">-0.295</td>
     <td align="right">0.884</td>
     <td align="right">1.179</td>
@@ -525,9 +533,9 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">100</td>
     <td align="right">895.98</td>
     <td align="right">-66.31</td>
-    <td align="right">-19.90</td>
-    <td align="right">-18.69</td>
-    <td align="right">161.84</td>
+    <td align="right">-20.14</td>
+    <td align="right">-18.71</td>
+    <td align="right">159.14</td>
   </tr>
 </tbody>
 </table>
@@ -541,18 +549,20 @@ The columns contain:
 6. Peak-to-peak amplitude in the units of the input data.
 7. Root-mean-variance of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-8. Time where the pulse starts relative to P1 in milliseconds.
-9. Time where the pulse ends relative to P1 in milliseconds.
-10. Total width of the pulse in milliseconds.
-11. Time constant of the exponential decay of the tail of the pulse in milliseconds.
-12. Index of the first peak in the pulse (i.e. -1 for P-1)
-13. Index of the last peak in the pulse (i.e. 3 for P3)
-14. Number of EODs used for computing the averaged EOD waveform.
-15. Frequency at the peak power of the single pulse spectrum in Hertz.
-16. Peak power of the single pulse spectrum in decibel.
-17. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-18. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-19. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+8. Percentage of recording that is clipped.
+9. Whether the waveform was flipped.
+10. Time where the pulse starts relative to P1 in milliseconds.
+11. Time where the pulse ends relative to P1 in milliseconds.
+12. Total width of the pulse in milliseconds.
+13. Time constant of the exponential decay of the tail of the pulse in milliseconds.
+14. Index of the first peak in the pulse (i.e. -1 for P-1)
+15. Index of the last peak in the pulse (i.e. 3 for P3)
+16. Number of EODs used for computing the averaged EOD waveform.
+17. Frequency at the peak power of the single pulse spectrum in Hertz.
+18. Peak power of the single pulse spectrum in decibel.
+19. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+20. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+21. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
 ### RECORDING-pulsepeaks-N.EXT

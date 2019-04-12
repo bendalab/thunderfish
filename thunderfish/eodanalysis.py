@@ -1108,6 +1108,9 @@ def save_wave_eods(wave_props, unit, basename, **kwargs):
     if 'rmvariance' in wave_props[0]:
         td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
     td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
+    if 'clipped' in wave_props[0]:
+        td.append('clipped', '%', '%.1f', wave_props, 'clipped', 100.0)
+    td.append('flipped', '', '%d', wave_props, 'flipped')
     td.append('n', '', '%5d', wave_props, 'n')
     td.append_section('timing')
     td.append('peakwidth', '%', '%.2f', wave_props, 'peakwidth', 100.0)
@@ -1151,6 +1154,9 @@ def save_pulse_eods(pulse_props, unit, basename, **kwargs):
     td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
     if 'rmvariance' in pulse_props[0]:
         td.append('noise', '%', '%.1f', pulse_props, 'rmvariance', 100.0)
+    if 'clipped' in pulse_props[0]:
+        td.append('clipped', '%', '%.1f', pulse_props, 'clipped', 100.0)
+    td.append('flipped', '', '%d', pulse_props, 'flipped')
     td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
     td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
     td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
