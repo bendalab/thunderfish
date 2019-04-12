@@ -663,7 +663,9 @@ class EODExplorer(Explorer):
                           **write_table_args(cfg))
 
     def fix_scatter_plot(self, ax, data, label, axis):
-        if any(l in label for l in ['ampl', 'power', 'width', 'time', 'tau']):
+        if any(l in label for l in ['ampl', 'power', 'width',
+                                    'time', 'tau', 'var', 'peak', 'trough',
+                                    'dist', 'rms', 'noise']):
             if np.all(data >= 0.0):
                 if axis == 'x':
                     ax.set_xlim(0.0, None)
@@ -706,13 +708,6 @@ class EODExplorer(Explorer):
             ax.text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'], transform = self.dax.transAxes)
         else:
             ax.set_title('%d EOD waveforms selected' % len(indices))
-            # for k in range(min(7, len(indices))):
-            #     ax.text(0.05, 0.85-k*0.1, '%6.1fHz: %s' % \
-            #              (self.eoddata[indices[-1-k],'EODf'],
-            #               self.eoddata[indices[-1-k],'file']),
-            #             transform = self.dax.transAxes)
-            # if len(indices) > 7:
-            #     ax.text(0.05, 0.85-7*0.1, '. . .', transform = self.dax.transAxes)
         if self.wave_fish:
             ax.set_xlim(-0.7, 0.7)
             ax.set_xlabel('Time [1/EODf]')
@@ -762,6 +757,9 @@ class EODExplorer(Explorer):
         # load configuration:
         cfgfile = __package__ + '.cfg'
         cfg = configuration(cfgfile, False, recording)
+        if 'flipped' in self.eoddata:
+            cfg.set('flipWaveEOD', self.eoddata[index,'flipped'])
+            cfg.set('flipPulseEOD', self.eoddata[index,'flipped'])
         # best_window:
         data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg)
         # detect EODs in the data:
