@@ -199,7 +199,8 @@ def detect_eods(data, samplerate, clipped, verbose, cfg):
         props['index'] = len(eod_props)
         props['clipped'] = clipped if k == 0 else 0.0
         # add good waveforms only:
-        skips, msg = wave_quality(k, clipped, props['rmvariance'], props['rmserror'], sdata,
+        skips, msg = wave_quality(k, clipped, props['rmvariance'],
+                                  props['rmserror'], props['power'], sdata,
                                   **wave_quality_args(cfg))
         if len(skips) == 0:
             eod_props.append(props)

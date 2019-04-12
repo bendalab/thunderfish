@@ -130,7 +130,8 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     spec_data = wave_spec.array()
                     spec_data[:,3] *= 0.01
                     skips, msg = wave_quality(idx, 0.0, 0.01*data[r,'noise'],
-                                              0.01*data[r,'rmserror'], spec_data,
+                                              0.01*data[r,'rmserror'],
+                                              data[r,'power'], spec_data,
                                               **wave_quality_args(cfg))
             else:
                 if cfg is not None:
