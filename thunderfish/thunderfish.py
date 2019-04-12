@@ -268,8 +268,8 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
 
                             
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
-              clipped, fishlist, mean_eods, eod_props, peak_data,
-              spec_data, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
+              clipped, fishlist, mean_eods, eod_props, peak_data, spec_data,
+              indices, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
               interactive=True):
     """
     Creates an output plot for the Thunderfish program.
@@ -306,6 +306,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     spec_data: list of 2_D arrays
         For each pulsefish a power spectrum of the single pulse and for each wavefish
         the relative amplitudes and phases of the harmonics.
+    indices: list of int
+        Indices of the fish to be plotted.
     unit: string
         Unit of the trace and the mean EOD.
     psd_data: array
@@ -344,7 +346,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
     ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording xoom-in
 
-    # count number of detected fish types:
+    # count number of all detected fish types:
     nwave = 0
     npulse = 0
     for props in eod_props:
@@ -375,6 +377,15 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_visible(False)
 
+    # recount number of fish types to be plotted:
+    nwave = 0
+    npulse = 0
+    for idx in indices:
+        if eod_props[idx]['type'] == 'pulse':
+            npulse += 1
+        elif eod_props[idx]['type'] == 'wave':
+            nwave += 1
+    
     ############
 
     # plot trace
@@ -387,7 +398,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
        len(eod_props) > 0 and 'EODf' in eod_props[0]:
         ax3.plot(spec_data[0][:,0], decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]), '#CCCCCC', lw=1)
     if len(fishlist) > 0:
-        if len(fishlist) == 1:
+        if len(fishlist) == 1 or nwave == 1:
             title = None
             bbox = (1.0, 1.0)
             loc = 'upper right'
@@ -407,13 +418,13 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ############
 
     # plot recording
-    if len(eod_props) == 1:
+    if len(indices) == 1:
         ax3.set_position([0.575, 0.6, 0.4, 0.3])
         width = 0.1
-        if eod_props[0]['type'] == 'wave':
-            width = 5.0/eod_props[0]['EODf']
+        if eod_props[indices[0]]['type'] == 'wave':
+            width = 5.0/eod_props[indices[0]]['EODf']
         else:
-            width = 3.0/eod_props[0]['EODf']
+            width = 3.0/eod_props[indices[0]]['EODf']
         width = (1+width//0.005)*0.005
         eod_recording_plot(raw_data[idx0:idx1], samplerate, ax8, width, unit, idx0/samplerate)
         ax8.set_title('Recording', fontsize=14, y=1.05)
@@ -426,7 +437,10 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     usedax4 = False
     usedax5 = False
     eodaxes = [ax4, ax5]
-    for axeod, mean_eod, props, peaks in zip(eodaxes[:2], mean_eods[:2], eod_props[0:2], peak_data[0:2]):
+    for axeod, idx in zip(eodaxes[:2], indices):
+        mean_eod = mean_eods[idx]
+        props = eod_props[idx]
+        peaks = peak_data[idx]
         if axeod is ax4:
             usedax4 = True
         if axeod is ax5:
@@ -460,14 +474,14 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax7.set_visible(False)
     if not usedax5 and len(eod_props) > 0:
         usedax5 = True
-        if  eod_props[0]['type'] == 'pulse':
-            pulse_spectrum_plot(spec_data[0], eod_props[0], ax5)
+        if  eod_props[indices[0]]['type'] == 'pulse':
+            pulse_spectrum_plot(spec_data[indices[0]], eod_props[indices[0]], ax5)
             ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
         else:
             ax5.set_visible(False)
             ax6.set_visible(True)
             ax7.set_visible(True)
-            wave_spectrum_plot(spec_data[0], eod_props[0], ax6, ax7, unit)
+            wave_spectrum_plot(spec_data[indices[0]], eod_props[indices[0]], ax6, ax7, unit)
             ax6.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
             ax6.set_xticklabels([])
 
@@ -562,8 +576,8 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
 
     if save_plot or not save_data:
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
-                        mean_eods, eod_props, peak_data, spec_data, unit,
-                        psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
+                        mean_eods, eod_props, peak_data, spec_data, range(len(eod_props)),
+                        unit, psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
                         interactive=not save_data)
         if save_plot:
             # save figure as pdf:
