@@ -94,7 +94,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     return cfg
 
 
-def detect_eods(data, samplerate, clipped, verbose, cfg):
+def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     """ Detect EODs of all fish present in the data.
     """
     # pulse-type fish?
@@ -362,13 +362,14 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     pulsetitle = ""
     if npulse > 0:
         pulsetitle = "%d pulse-type fish" % npulse
+    idxs = (': %d' % indices[0]) if len(eod_props)>1 and len(indices)==1 else '   '
     if npulse==0 and nwave==0:
         ax1.text(0.0, .72, '%s     - no fish detected -' % base_name, fontsize=22)
     elif npulse>0 and nwave>0:
-        ax1.text(0.0, .72, '%s     %s and %s' % (base_name, pulsetitle, wavetitle),
+        ax1.text(0.0, .72, '%s%s   %s and %s' % (base_name, idxs, pulsetitle, wavetitle),
                  fontsize=22)
     else:
-        ax1.text(0.0, .72, '%s     %s' % (base_name, pulsetitle+wavetitle),
+        ax1.text(0.0, .72, '%s%s   %s' % (base_name, idxs, pulsetitle+wavetitle),
                  fontsize=22)
         
     ax1.text(1.0, .77, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
@@ -543,7 +544,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
     # detect EODs in the data:
     pulse_fish, psd_data, fishlist, eod_props, wave_props, pulse_props, mean_eods, \
       spec_data, peak_data, power_thresh, skip_reason = \
-      detect_eods(data, samplerate, clipped, verbose, cfg)
+      detect_eods(data, samplerate, clipped, filename, verbose, cfg)
     if not found_bestwindow:
         pulsefish = False
         fishlist = []
@@ -576,7 +577,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
 
     if save_plot or not save_data:
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
-                        mean_eods, eod_props, peak_data, spec_data, range(len(eod_props)),
+                        mean_eods, eod_props, peak_data, spec_data, list(range(len(eod_props))),
                         unit, psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
                         interactive=not save_data)
         if save_plot:
