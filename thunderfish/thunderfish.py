@@ -151,6 +151,7 @@ def detect_eods(data, samplerate, clipped, verbose, cfg):
                                                       **analyze_pulse_args(cfg))
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)
+        props['clipped'] = clipped
         power_thresh = np.zeros(power.shape)
         power_thresh[:,0] = power[:,0]
         power_thresh[:,1] = 5.0*props['EODf']**2.0 * power[:,1]
@@ -196,6 +197,7 @@ def detect_eods(data, samplerate, clipped, verbose, cfg):
             print(filename + ': ' + error_str)
         props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)
+        props['clipped'] = clipped if k == 0 else 0.0
         # add good waveforms only:
         skips, msg = wave_quality(k, clipped, props['rmvariance'], props['rmserror'], sdata,
                                   **wave_quality_args(cfg))
