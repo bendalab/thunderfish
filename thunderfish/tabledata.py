@@ -183,7 +183,7 @@ class TableData:
     - `col()`: a single column of the table.
     - `__getitem__()`: data elements specified by slice.
     - `__setitem__()`: assign values to data elements specified by slice.
-    - `__delitem__()`: delete data elements or whole columns.
+    - `__delitem__()`: delete data elements or whole columns or rows.
     - `array()`: the table data as a numpy array.
     - `append_data()`: append data elements to successive columns.
     - `append_data_column()`: append data elements to a column.
@@ -1124,7 +1124,7 @@ class TableData:
 
     def __delitem__(self, key):
         """
-        Delete data elements or whole columns.
+        Delete data elements or whole columns or rows.
 
         Parameters
         -----------
