@@ -38,31 +38,21 @@ class Explorer(object):
             self.raw_data = data
             self.raw_labels = labels
         self.data_maxcols = self.raw_data.shape[1]
+        # no pca data yet:
+        self.pca_data = None
+        self.pca_labels = None
         self.pca_maxcols = None
-        pca = decomposition.PCA()
-        pca.fit(self.raw_data)
-        self.pca_variance = pca.explained_variance_ratio_
-        for k in range(len(pca.components_)):
-            if np.abs(np.min(pca.components_[k])) > np.max(pca.components_[k]):
-                pca.components_[k] *= -1.0
-        self.pca_data = pca.transform(self.raw_data)
-        self.pca_labels = [('PCA%d (%.1f%%)' if v > 0.01 else 'PCA%d (%.2f%%)') % (k+1, 100.0*v)
-                           for k, v in enumerate(self.pca_variance)]
-        self.pca_components = pca.components_
+        self.pca_table = None
+        self.pca_header(data, labels)
         if pca_file is not None:
-            self.save_pca(pca_file, data, labels, **kwargs)
+            self.compute_pca()
+            self.save_pca(pca_file, **kwargs)
             return
-        print('PCA components:')
-        self.save_pca(None, data, labels)
+        # start showing raw data:
         self.show_pca = False
-        if self.show_pca:
-            self.data = self.pca_data
-            self.labels = self.pca_labels
-            self.show_maxcols = self.pca_maxcols
-        else:
-            self.data = self.raw_data
-            self.labels = self.raw_labels
-            self.show_maxcols = self.data_maxcols
+        self.data = self.raw_data
+        self.labels = self.raw_labels
+        self.show_maxcols = self.data_maxcols
         self.toolbar_name = plt.rcParams['toolbar']
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
@@ -77,7 +67,7 @@ class Explorer(object):
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
         self.fig.canvas.mpl_connect('resize_event', self.on_resize)
         self.fig.canvas.mpl_connect('pick_event', self.on_pick)
-        self.xborder = 60.0  # pixel for ylabels
+        self.xborder = 70.0  # pixel for ylabels
         self.yborder = 50.0  # pixel for xlabels
         self.spacing = 10.0  # pixel between plots
         self.pick_radius = 4.0
@@ -122,9 +112,9 @@ class Explorer(object):
         self.plot_zoomed_correlations()
         plt.show()
 
-    def save_pca(self, file_name, data, labels=None, **kwargs):
+    def pca_header(self, data, labels=None):
         if isinstance(data, TableData):
-            dd = data.table_header()
+            self.pca_table = data.table_header()
         else:
             lbs = []
             for l in labels:
@@ -134,24 +124,45 @@ class Explorer(object):
                     lbs.append(l.split('/')[0].strip())
                 else:
                     lbs.append(l)
-            dd = TableData(header=lbs)
-        dd.set_formats('%.3f')
-        dd.insert(0, ['PCA'] + ['-']*dd.nsecs, '', '%d')
-        dd.insert(1, 'variance', '%', '%.3f')
+            self.pca_table = TableData(header=lbs)
+        self.pca_table.set_formats('%.3f')
+        self.pca_table.insert(0, ['PCA'] + ['-']*self.pca_table.nsecs, '', '%d')
+        self.pca_table.insert(1, 'variance', '%', '%.3f')
+
+    def compute_pca(self):
+        # pca:
+        pca = decomposition.PCA()
+        #pca.fit((self.raw_data - np.mean(self.raw_data, axis=0))/np.std(self.raw_data, axis=0))
+        pca.fit(self.raw_data)
+        self.pca_variance = pca.explained_variance_ratio_
+        for k in range(len(pca.components_)):
+            if np.abs(np.min(pca.components_[k])) > np.max(pca.components_[k]):
+                pca.components_[k] *= -1.0
+        self.pca_data = pca.transform(self.raw_data)
+        self.pca_labels = [('PCA%d (%.1f%%)' if v > 0.01 else 'PCA%d (%.2f%%)') % (k+1, 100.0*v)
+                           for k, v in enumerate(self.pca_variance)]
+        self.pca_components = pca.components_
+        if np.min(self.pca_variance) >= 0.001:
+            self.pca_maxcols = self.pca_data.shape[1]
+        else:
+            self.pca_maxcols = np.argmax(self.pca_variance < 0.001)
+        if self.pca_maxcols < 2:
+            self.pca_maxcols = 2
+        self.pca_table.clear_data()
         for k, comp in enumerate(self.pca_components):
-            dd.append_data(k+1, 0)
-            dd.append_data(100.0*self.pca_variance[k])
-            dd.append_data(comp)
-        if file_name is None:
-            dd.write(table_format='out', unitstyle='none')
-        elif 'table_format' in kwargs:
+            self.pca_table.append_data(k+1, 0)
+            self.pca_table.append_data(100.0*self.pca_variance[k])
+            self.pca_table.append_data(comp)
+        
+    def save_pca(self, file_name, **kwargs):
+        if 'table_format' in kwargs:
             if 'unitstyle' in kwargs:
                 del kwargs['unitstyle']
             pca_file = file_name + '-pca'
-            dd.write(pca_file, unitstyle='none', **kwargs)
+            self.pca_table.write(pca_file, unitstyle='none', **kwargs)
         else:
             pca_file = file_name + '-pca.dat'
-            dd.write(pca_file, unitstyle='none')
+            self.pca_table.write(pca_file, unitstyle='none')
 
     def set_color_column(self):
         if self.color_index == -2:
@@ -525,13 +536,13 @@ class Explorer(object):
             elif event.key in 'p':
                 self.show_pca = not self.show_pca
                 if self.show_pca:
+                    if self.pca_data is None:
+                        self.compute_pca()
+                        print('PCA components:')
+                        self.pca_table.write(table_format='out', unitstyle='none')
                     self.data_maxcols = self.show_maxcols
                     self.data = self.pca_data
                     self.labels = self.pca_labels
-                    if self.pca_maxcols is None:
-                        self.pca_maxcols = np.argmax(self.pca_variance < 0.0001)
-                        if self.pca_maxcols < 2:
-                            self.pca_maxcols = 2
                     self.show_maxcols = self.pca_maxcols
                 else:
                     self.pca_maxcols = self.show_maxcols
@@ -970,7 +981,7 @@ def main():
         # minimum number of peaks:
         min_peaks = -10
         for k in range(1, min_peaks, -1):
-            if not ('P%dampl' % k) in data:
+            if not ('P%dampl' % k) in data or not np.all(np.isfinite(data[:,'P%dampl' % k])):
                 min_peaks = k+1
                 break
         # maximum number of peaks:
@@ -979,7 +990,7 @@ def main():
         else:
             max_peaks = max_harmonics + 1
         for k in range(1, max_peaks):
-            if not ('P%dampl' % k) in data:
+            if not ('P%dampl' % k) in data or not np.all(np.isfinite(data[:,'P%dampl' % k])):
                 max_peaks = k
                 break
         
