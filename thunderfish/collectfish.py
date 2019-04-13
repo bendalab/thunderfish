@@ -233,6 +233,8 @@ def main():
                         help='columns to be removed from output table')
     parser.add_argument('-s', dest='statistics', action='store_true',
                         help='also write table with statistics')
+    parser.add_argument('-n', dest='file_suffix', metavar='NAME', default='', type=str,
+                        help='name for summary files that is appended to "wavefish" or "pulsefish"')
     parser.add_argument('-o', dest='out_path', metavar='PATH', default='.', type=str,
                         help='path where to store summary tables')
     parser.add_argument('-f', dest='format', default='auto', type=str,
@@ -255,6 +257,7 @@ def main():
     table_type = args.table_type
     remove_cols = args.remove_cols
     statistics = args.statistics
+    file_suffix = args.file_suffix
     out_path = args.out_path
     data_format = args.format
     # read configuration:
@@ -282,22 +285,28 @@ def main():
                                            args.max_fish, args.harmonics,
                                            args.pulse_peaks[0],  args.pulse_peaks[1], cfg)
     # write tables:
+    if len(file_suffix) > 0 and file_suffix[0] != '-':
+        file_suffix = '-' + file_suffix
     if pulse_table and (not table_type or table_type == 'pulse'):
         for rc in remove_cols:
             if rc in pulse_table:
                 pulse_table.remove(rc)
-        pulse_table.write(os.path.join(out_path, 'pulsefish'), **write_table_args(cfg))
+        pulse_table.write(os.path.join(out_path, 'pulsefish%s' % file_suffix),
+                          **write_table_args(cfg))
         if statistics:
             s = pulse_table.statistics()
-            s.write(os.path.join(out_path, 'pulsefish-statistics'), **write_table_args(cfg))
+            s.write(os.path.join(out_path, 'pulsefish%s-statistics' % file_suffix),
+                    **write_table_args(cfg))
     if wave_table and (not table_type or table_type == 'wave'):
         for rc in remove_cols:
             if rc in wave_table:
                 wave_table.remove(rc)
-        wave_table.write(os.path.join(out_path, 'wavefish'), **write_table_args(cfg))
+        wave_table.write(os.path.join(out_path, 'wavefish%s' % file_suffix),
+                         **write_table_args(cfg))
         if statistics:
             s = wave_table.statistics()
-            s.write(os.path.join(out_path, 'wavefish-statistics'), **write_table_args(cfg))
+            s.write(os.path.join(out_path, 'wavefish%s-statistics' % file_suffix),
+                    **write_table_args(cfg))
 
 
 if __name__ == '__main__':
