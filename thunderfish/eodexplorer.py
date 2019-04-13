@@ -8,6 +8,7 @@ import sys
 import argparse
 import numpy as np
 from sklearn import decomposition
+from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.widgets as widgets
@@ -37,22 +38,26 @@ class Explorer(object):
         else:
             self.raw_data = data
             self.raw_labels = labels
-        self.data_maxcols = self.raw_data.shape[1]
         # no pca data yet:
-        self.pca_data = None
-        self.pca_labels = None
-        self.pca_maxcols = None
+        self.all_data = [self.raw_data, None, None]
+        self.all_labels = [self.raw_labels, None, None]
+        self.all_maxcols = [self.raw_data.shape[1], None, None]
+        self.all_titles = ['data', 'PCA', 'scaled PCA']
+        # pca:
         self.pca_table = None
         self.pca_header(data, labels)
         if pca_file is not None:
-            self.compute_pca()
-            self.save_pca(pca_file, **kwargs)
+            self.compute_pca(False)
+            self.save_pca(pca_file, False, **kwargs)
+            self.compute_pca(True)
+            self.save_pca(pca_file, True, **kwargs)
             return
         # start showing raw data:
-        self.show_pca = False
-        self.data = self.raw_data
-        self.labels = self.raw_labels
-        self.show_maxcols = self.data_maxcols
+        self.show_mode = 0
+        self.data = self.all_data[self.show_mode]
+        self.labels = self.all_labels[self.show_mode]
+        self.show_maxcols = self.all_maxcols[self.show_mode]
+        self.title = title
         self.toolbar_name = plt.rcParams['toolbar']
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
@@ -63,7 +68,7 @@ class Explorer(object):
         plt.rcParams['keymap.xscale'] = ''        
         plt.rcParams['keymap.yscale'] = ''        
         self.fig = plt.figure(facecolor='white')
-        self.fig.canvas.set_window_title(title)
+        self.fig.canvas.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
         self.fig.canvas.mpl_connect('resize_event', self.on_resize)
         self.fig.canvas.mpl_connect('pick_event', self.on_pick)
@@ -129,39 +134,52 @@ class Explorer(object):
         self.pca_table.insert(0, ['PCA'] + ['-']*self.pca_table.nsecs, '', '%d')
         self.pca_table.insert(1, 'variance', '%', '%.3f')
 
-    def compute_pca(self):
+    def compute_pca(self, scale=False):
         # pca:
         pca = decomposition.PCA()
-        #pca.fit((self.raw_data - np.mean(self.raw_data, axis=0))/np.std(self.raw_data, axis=0))
-        pca.fit(self.raw_data)
-        self.pca_variance = pca.explained_variance_ratio_
+        if scale:
+            scaler = preprocessing.StandardScaler()
+            scaler.fit(self.raw_data)
+            pca.fit(scaler.transform(self.raw_data))
+        else:
+            pca.fit(self.raw_data)
         for k in range(len(pca.components_)):
             if np.abs(np.min(pca.components_[k])) > np.max(pca.components_[k]):
                 pca.components_[k] *= -1.0
-        self.pca_data = pca.transform(self.raw_data)
-        self.pca_labels = [('PCA%d (%.1f%%)' if v > 0.01 else 'PCA%d (%.2f%%)') % (k+1, 100.0*v)
-                           for k, v in enumerate(self.pca_variance)]
-        self.pca_components = pca.components_
-        if np.min(self.pca_variance) >= 0.001:
-            self.pca_maxcols = self.pca_data.shape[1]
+        pca_data = pca.transform(self.raw_data)
+        pca_labels = [('PCA%d (%.1f%%)' if v > 0.01 else 'PCA%d (%.2f%%)') % (k+1, 100.0*v)
+                           for k, v in enumerate(pca.explained_variance_ratio_)]
+        if np.min(pca.explained_variance_ratio_) >= 0.01:
+            pca_maxcols = pca_data.shape[1]
         else:
-            self.pca_maxcols = np.argmax(self.pca_variance < 0.001)
-        if self.pca_maxcols < 2:
-            self.pca_maxcols = 2
+            pca_maxcols = np.argmax(pca.explained_variance_ratio_ < 0.01)
+        if pca_maxcols < 2:
+            pca_maxcols = 2
         self.pca_table.clear_data()
-        for k, comp in enumerate(self.pca_components):
+        for k, comp in enumerate(pca.components_):
             self.pca_table.append_data(k+1, 0)
-            self.pca_table.append_data(100.0*self.pca_variance[k])
+            self.pca_table.append_data(100.0*pca.explained_variance_ratio_[k])
             self.pca_table.append_data(comp)
+        if scale:
+            self.all_data[2] = pca_data
+            self.all_labels[2] = pca_labels
+            self.all_maxcols[2] = pca_maxcols
+        else:
+            self.all_data[1] = pca_data
+            self.all_labels[1] = pca_labels
+            self.all_maxcols[1] = pca_maxcols
         
-    def save_pca(self, file_name, **kwargs):
+    def save_pca(self, file_name, scale, **kwargs):
+        if scale:
+            pca_file = file_name + '-pcacor'
+        else:
+            pca_file = file_name + '-pcacov'
         if 'table_format' in kwargs:
             if 'unitstyle' in kwargs:
                 del kwargs['unitstyle']
-            pca_file = file_name + '-pca'
             self.pca_table.write(pca_file, unitstyle='none', **kwargs)
         else:
-            pca_file = file_name + '-pca.dat'
+            pca_file += '.dat'
             self.pca_table.write(pca_file, unitstyle='none')
 
     def set_color_column(self):
@@ -533,23 +551,30 @@ class Explorer(object):
                 if self.corrindices[-1][1] < self.data.shape[1]:
                     self.plot_scatter(self.corrax[-1], True, True)
                 self.fig.canvas.draw()
-            elif event.key in 'p':
-                self.show_pca = not self.show_pca
-                if self.show_pca:
-                    if self.pca_data is None:
-                        self.compute_pca()
-                        print('PCA components:')
-                        self.pca_table.write(table_format='out', unitstyle='none')
-                    self.data_maxcols = self.show_maxcols
-                    self.data = self.pca_data
-                    self.labels = self.pca_labels
-                    self.show_maxcols = self.pca_maxcols
+            elif event.key in 'pP':
+                self.all_maxcols[self.show_mode] = self.show_maxcols
+                if event.key == 'p':
+                    self.show_mode += 1
+                    if self.show_mode >= len(self.all_data):
+                        self.show_mode = 0
                 else:
-                    self.pca_maxcols = self.show_maxcols
-                    self.data = self.raw_data
-                    self.labels = self.raw_labels
-                    self.show_maxcols = self.data_maxcols
+                    self.show_mode -= 1
+                    if self.show_mode < 0:
+                        self.show_mode = len(self.all_data)-1
+                if self.show_mode == 1:
+                    print('PCA components')
+                elif self.show_mode == 2:
+                    print('scaled PCA components')
+                else:
+                    print('data')
+                if self.all_data[self.show_mode] is None:
+                    self.compute_pca(self.show_mode>1)
+                    self.pca_table.write(table_format='out', unitstyle='none')
+                self.data = self.all_data[self.show_mode]
+                self.labels = self.all_labels[self.show_mode]
+                self.show_maxcols = self.all_maxcols[self.show_mode]
                 self.zoom_stack = []
+                self.fig.canvas.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
                 for ax in self.histax:
                     self.plot_hist(ax, False, False)
                 for ax in self.corrax[:-1]:
