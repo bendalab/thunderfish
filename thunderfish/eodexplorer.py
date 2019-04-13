@@ -24,7 +24,7 @@ from .thunderfish import configuration, detect_eods, plot_eods
 
 class Explorer(object):
     
-    def __init__(self, title, data, labels, save_pca, colors, color_label, color_map,
+    def __init__(self, title, data, labels, pca_file, colors, color_label, color_map,
                  detailed_data, **kwargs):
         if isinstance(data, TableData):
             self.raw_data = data.array()
@@ -49,8 +49,8 @@ class Explorer(object):
         self.pca_labels = [('PCA%d (%.1f%%)' if v > 0.01 else 'PCA%d (%.2f%%)') % (k+1, 100.0*v)
                            for k, v in enumerate(self.pca_variance)]
         self.pca_components = pca.components_
-        if save_pca is not None:
-            self.save_pca(save_pca, data, labels, **kwargs)
+        if pca_file is not None:
+            self.save_pca(pca_file, data, labels, **kwargs)
             return
         print('PCA components:')
         self.save_pca(None, data, labels)
@@ -147,10 +147,10 @@ class Explorer(object):
         elif 'table_format' in kwargs:
             if 'unitstyle' in kwargs:
                 del kwargs['unitstyle']
-            pca_file = file_name + 'pca'
+            pca_file = file_name + '-pca'
             dd.write(pca_file, unitstyle='none', **kwargs)
         else:
-            pca_file = file_name + 'pca.dat'
+            pca_file = file_name + '-pca.dat'
             dd.write(pca_file, unitstyle='none')
 
     def set_color_column(self):
@@ -653,16 +653,13 @@ class Explorer(object):
             
 class EODExplorer(Explorer):
     
-    def __init__(self, data, data_cols, save_pca, colors, color_label, color_map,
+    def __init__(self, data, data_cols, save_pca, basename, colors, color_label, color_map,
                  wave_fish, eod_data, rawdata_path, cfg):
         self.wave_fish = wave_fish
         self.eoddata = data
         self.path = rawdata_path
-        if not save_pca:
-            save_pca = None
-        else:
-            save_pca = 'wavefish-' if wave_fish else 'pulsefish-'
-        Explorer.__init__(self, 'EODExplorer', data[:,data_cols], None, save_pca,
+        pca_file = basename if save_pca else None
+        Explorer.__init__(self, 'EODExplorer', data[:,data_cols], None, pca_file,
                           colors, color_label, color_map, eod_data,
                           **write_table_args(cfg))
 
@@ -894,6 +891,9 @@ def main():
     add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
                            shrink_width=False)
     cfg.load_files(cfgfile, file_name, 3)
+
+    # basename:
+    basename = os.path.splitext(os.path.basename(file_name))[0]
     
     # output format:
     if data_format == 'same':
@@ -1094,7 +1094,7 @@ def main():
         eod_data = list(map(load_waveform, range(data.rows())))
 
     # explore:
-    eodexp = EODExplorer(data, data_cols, save_pca, colors, colorlabel, color_map,
+    eodexp = EODExplorer(data, data_cols, save_pca, basename, colors, colorlabel, color_map,
                          wave_fish, eod_data, rawdata_path, cfg)
 
 
