@@ -167,7 +167,9 @@ class Explorer(object):
           self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
         self.data_colors = self.color_map((self.color_values - self.color_vmin)/(self.color_vmax - self.color_vmin))
                     
-    def plot_hist(self, ax, zoomax):
+    def plot_hist(self, ax, zoomax, keep_lims):
+        ax_xlim = ax.get_xlim()
+        ax_ylim = ax.get_ylim()
         try:
             idx = self.histax.index(ax)
             c = self.histindices[idx]
@@ -189,6 +191,9 @@ class Explorer(object):
             else:
                 plt.setp(ax.get_yticklabels(), visible=False)
         self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+        if keep_lims:
+            ax.set_xlim(*ax_xlim)
+            ax.set_ylim(*ax_ylim)
         try:
             selector = widgets.RectangleSelector(ax, self.on_select,
                                                  drawtype='box', useblit=True, button=1,
@@ -219,14 +224,16 @@ class Explorer(object):
             self.histax.append(ax)
             self.histindices.append(r)
             self.histselect.append(None)
-            self.plot_hist(ax, False)
+            self.plot_hist(ax, False, False)
             yax = ax
             
-    def plot_scatter(self, ax, zoomax, cax=None):
+    def plot_scatter(self, ax, zoomax, keep_lims, cax=None):
+        ax_xlim = ax.get_xlim()
+        ax_ylim = ax.get_ylim()
         idx = self.corrax.index(ax)
         c, r = self.corrindices[idx]
-        ax.clear()
         if self.scatter:
+            ax.clear()
             ax.relim()
             ax.autoscale(True)
             a = ax.scatter(self.data[:,c], self.data[:,r], c=self.color_values,
@@ -238,9 +245,11 @@ class Explorer(object):
                 self.color_vmin, self.color_vmax, self.color_ticks = \
                   self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
         else:
+            ax.autoscale(True)
             self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
             self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
             axrange = [ax.get_xlim(), ax.get_ylim()]
+            ax.clear()
             ax.hist2d(self.data[:,c], self.data[:,r], self.hist_nbins, range=axrange,
                       cmap=plt.get_cmap('Greys'))
         a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
@@ -257,6 +266,9 @@ class Explorer(object):
                 plt.setp(ax.get_yticklabels(), visible=False)
         self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
         self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
+        if keep_lims:
+            ax.set_xlim(*ax_xlim)
+            ax.set_ylim(*ax_ylim)
         if zoomax:
             bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
             if bbox is not None:
@@ -286,7 +298,7 @@ class Explorer(object):
                 self.corrindices.append([c, r])
                 self.corrartists.append(None)
                 self.corrselect.append(None)
-                self.plot_scatter(ax, False, cbax)
+                self.plot_scatter(ax, False, False, cbax)
                 yax = ax
                 cbax = None
 
@@ -485,7 +497,7 @@ class Explorer(object):
                         a.set_facecolors(self.data_colors[self.mark_data])
                 for l, c in zip(self.dax.lines, self.data_colors[self.mark_data]):
                     l.set_color(c)
-                self.plot_scatter(self.corrax[0], False, self.cbax)
+                self.plot_scatter(self.corrax[0], False, True, self.cbax)
                 self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
                 self.fig.canvas.draw()
             elif event.key in 'nN':
@@ -494,21 +506,21 @@ class Explorer(object):
                 elif self.hist_nbins >= 15:
                     self.hist_nbins = (self.hist_nbins*2)//3
                 for ax in self.histax:
-                    self.plot_hist(ax, False)
+                    self.plot_hist(ax, False, True)
                 if self.corrindices[-1][1] >= self.data.shape[1]:
-                    self.plot_hist(self.corrax[-1], True)
+                    self.plot_hist(self.corrax[-1], True, True)
                 elif not self.scatter:
-                    self.plot_scatter(self.corrax[-1], True)
+                    self.plot_scatter(self.corrax[-1], True, True)
                 if not self.scatter:
                     for ax in self.corrax[:-1]:
-                        self.plot_scatter(ax, False)
+                        self.plot_scatter(ax, False, True)
                 self.fig.canvas.draw()
             elif event.key in 'h':
                 self.scatter = not self.scatter
                 for ax in self.corrax[:-1]:
-                    self.plot_scatter(ax, False)
+                    self.plot_scatter(ax, False, True)
                 if self.corrindices[-1][1] < self.data.shape[1]:
-                    self.plot_scatter(self.corrax[-1], True)
+                    self.plot_scatter(self.corrax[-1], True, True)
                 self.fig.canvas.draw()
             elif event.key in 'p':
                 self.show_pca = not self.show_pca
@@ -528,9 +540,9 @@ class Explorer(object):
                     self.show_maxcols = self.data_maxcols
                 self.zoom_stack = []
                 for ax in self.histax:
-                    self.plot_hist(ax, False)
+                    self.plot_hist(ax, False, False)
                 for ax in self.corrax[:-1]:
-                    self.plot_scatter(ax, False)
+                    self.plot_scatter(ax, False, False)
                 self.update_layout()
             elif event.key in 'l':
                 if len(self.mark_data) > 0:
@@ -544,9 +556,9 @@ class Explorer(object):
             self.set_zoom_pos(self.fig.get_window_extent().width,
                               self.fig.get_window_extent().height)
             if self.corrindices[-1][1] < self.data.shape[1]:
-                self.plot_scatter(self.corrax[-1], True)
+                self.plot_scatter(self.corrax[-1], True, False)
             else:
-                self.plot_hist(self.corrax[-1], True)
+                self.plot_hist(self.corrax[-1], True, False)
             self.fig.canvas.draw()
 
     def on_select(self, eclick, erelease):
@@ -634,11 +646,11 @@ class Explorer(object):
                 self.corrindices[-1][1] = self.show_maxcols-1
             if self.corrindices[-1][0] >= self.corrindices[-1][1]:
                 self.corrindices[-1][0] = self.corrindices[-1][1]-1
-            self.plot_scatter(self.corrax[-1], True)
+            self.plot_scatter(self.corrax[-1], True, False)
         else:
             if self.corrindices[-1][0] >= self.show_maxcols:
                 self.corrindices[-1][0] = self.show_maxcols-1
-                self.plot_hist(self.corrax[-1], True)
+                self.plot_hist(self.corrax[-1], True, False)
         self.set_layout(self.fig.get_window_extent().width,
                         self.fig.get_window_extent().height)
         self.fig.canvas.draw()
