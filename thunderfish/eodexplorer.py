@@ -16,6 +16,8 @@ from .version import __version__, __year__
 from .configfile import ConfigFile
 from .tabledata import TableData, add_write_table_config, write_table_args
 from .dataloader import load_data
+from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
+from .eodanalysis import pulse_quality, pulse_quality_args
 from .bestwindow import find_best_window, plot_best_data
 from .thunderfish import configuration, detect_eods, plot_eods
 
@@ -888,6 +890,7 @@ def main():
     # read configuration:
     cfgfile = __package__ + '.cfg'
     cfg = ConfigFile()
+    add_eod_quality_config(cfg)
     add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
                            shrink_width=False)
     cfg.load_files(cfgfile, file_name, 3)
@@ -909,6 +912,32 @@ def main():
     # load summary data:
     wave_fish = 'wave' in file_name
     data = TableData(file_name)
+    
+    # check quality:
+    skipped = 0
+    for r in reversed(range(data.rows())):
+        idx = 0
+        if 'index' in data:
+            idx = data[r,'index']
+        clipped = 0.0
+        if 'clipped' in data:
+            clipped = 0.01*data[r,'clipped']
+        skips = ''
+        if wave_fish:
+            harm_rampl = np.array([data[r,'relampl%d'%(k+1)] for k in range(3)])
+            skips, msg = wave_quality(idx, clipped, 0.01*data[r,'noise'],
+                                      0.01*data[r,'rmserror'],
+                                      data[r,'power'], 0.01*harm_rampl,
+                                      **wave_quality_args(cfg))
+        else:
+            skips, msg = pulse_quality(idx, clipped, 0.01*data[r,'noise'],
+                                       **pulse_quality_args(cfg))
+        if len(skips) > 0:
+            print('skip fish %d from %s: %s' % (idx, data[r,'file'], skips))
+            del data[r,:]
+            skipped += 1
+    if skipped > 0:
+        print('')
 
     # add cluster column (experimental):
     if wave_fish:

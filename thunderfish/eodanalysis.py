@@ -691,7 +691,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     return meod, props, peaks, ppower
 
 
-def wave_quality(idx, clipped, variance, rms_error, power, spec_data,
+def wave_quality(idx, clipped, variance, rms_error, power, harm_relampl,
                  max_clipped_frac=0.1, max_variance=0.0, max_rms_error=0.05,
                  min_power=-100.0, max_relampl_harm1=2.0,
                  max_relampl_harm2=1.0, max_relampl_harm3=0.8):
@@ -710,8 +710,8 @@ def wave_quality(idx, clipped, variance, rms_error, power, spec_data,
         Root-mean-square error between EOD waveform and Fourier fit relative to p-p amplitude.
     power: float
         Power of the EOD waveform in dB.
-    spec_data: 2-D array of floats
-        Amplitude and phases of harmonics as returned by analyze_wave().
+    harm_relampl: 1-D array of floats
+        Relative amplitude of at least the first 3 harmonics without the fundamental.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_variance: float
@@ -737,34 +737,32 @@ def wave_quality(idx, clipped, variance, rms_error, power, spec_data,
     """
     msg = []
     skip_reason = []
+    # clipped fraction:
     msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]
+    # noise:
     msg += ['variance=%6.2f%%' % (100.0*variance)]
     if max_variance > 0.0 and variance >= max_variance:
         skip_reason += ['noisy variance=%6.2f%% (max %6.2f%%)' %
                         (100.0*variance, 100.0*max_variance)]
+    # fit error:
     msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
     if rms_error >= max_rms_error:
         skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
                         (100.0*rms_error, 100.0*max_rms_error)]
+    # wave power:
     msg += ['power=%6.1fdB' % power]
     if power < min_power:
         skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
                         (power, min_power)]
-    msg += ['ampl1=%5.1f%%' % (100.0*spec_data[1,3])]
-    if spec_data[1,3] >= max_relampl_harm1:
-        skip_reason += ['distorted ampl1=%5.1f%% (max %5.1f%%)' %
-                        (100.0*spec_data[1,3], 100.0*max_relampl_harm1)]
-    msg += ['ampl2=%5.1f%%' % (100.0*spec_data[2,3])]
-    if spec_data[2,3] >= max_relampl_harm2:
-        skip_reason += ['distorted ampl2=%5.1f%% (max %5.1f%%)' %
-                        (100.0*spec_data[2,3], 100.0*max_relampl_harm2)]
-    msg += ['ampl3=%5.1f%%' % (100.0*spec_data[3,3])]
-    if spec_data[3,3] >= max_relampl_harm3:
-        skip_reason += ['distorted ampl3=%5.1f%% (max %5.1f%%)' %
-                        (100.0*spec_data[3,3], 100.0*max_relampl_harm3)]
+    # relative amplitude of harmonics:
+    for k, max_relampl in enumerate([max_relampl_harm1, max_relampl_harm2, max_relampl_harm3]):
+        msg += ['ampl%d=%5.1f%%' % (k+1, 100.0*harm_relampl[k])]
+        if harm_relampl[k] >= max_relampl:
+            skip_reason += ['distorted ampl%d=%5.1f%% (max %5.1f%%)' %
+                            (k+1, 100.0*harm_relampl[k], 100.0*max_relampl)]
     return ', '.join(skip_reason), ', '.join(msg)
 
 
@@ -795,10 +793,12 @@ def pulse_quality(idx, clipped, variance, max_clipped_frac=0.1,
     """
     msg = []
     skip_reason = []
+    # clipped fraction:
     msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]
+    # noise:
     msg += ['variance=%6.2f%%' % (100.0*variance)]
     if max_variance > 0.0 and variance >= max_variance:
         skip_reason += ['noisy variance=%6.2f%% (max %6.2f%%)' %
