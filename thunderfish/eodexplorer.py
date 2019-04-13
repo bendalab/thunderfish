@@ -226,9 +226,9 @@ class Explorer(object):
         idx = self.corrax.index(ax)
         c, r = self.corrindices[idx]
         ax.clear()
-        ax.relim()
-        ax.autoscale(True)
         if self.scatter:
+            ax.relim()
+            ax.autoscale(True)
             a = ax.scatter(self.data[:,c], self.data[:,r], c=self.color_values,
                            cmap=self.color_map, vmin=self.color_vmin, vmax=self.color_vmax,
                            s=50, edgecolors='none', zorder=10)
@@ -238,13 +238,9 @@ class Explorer(object):
                 self.color_vmin, self.color_vmax, self.color_ticks = \
                   self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
         else:
-            if zoomax:
-                rax = self.corrax[self.corrindices.index([c, r])]
-            else:
-                self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
-                self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
-                rax = ax
-            axrange = [rax.get_xlim(), rax.get_ylim()]
+            self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+            self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
+            axrange = [ax.get_xlim(), ax.get_ylim()]
             ax.hist2d(self.data[:,c], self.data[:,r], self.hist_nbins, range=axrange,
                       cmap=plt.get_cmap('Greys'))
         a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
