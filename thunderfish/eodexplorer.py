@@ -399,7 +399,8 @@ class Explorer(object):
                 for ind, (x, y) in enumerate(zip(self.data[:,c], self.data[:,r])):
                     if x >= x0 and x <= x1 and y >= y0 and y <= y1:
                         if ind in self.mark_data:
-                            self.mark_data.remove(ind)
+                            if key == 'control':
+                                self.mark_data.remove(ind)
                         else:
                             self.mark_data.append(ind)
             else:
@@ -407,7 +408,8 @@ class Explorer(object):
                 for ind, x in enumerate(self.data[:,c]):
                     if x >= x0 and x <= x1:
                         if ind in self.mark_data:
-                            self.mark_data.remove(ind)
+                            if key == 'control':
+                                self.mark_data.remove(ind)
                         else:
                             self.mark_data.append(ind)
         except ValueError:
@@ -417,7 +419,8 @@ class Explorer(object):
                 for ind, x in enumerate(self.data[:,r]):
                     if x >= x0 and x <= x1:
                         if ind in self.mark_data:
-                            self.mark_data.remove(ind)
+                            if key == 'control':
+                                self.mark_data.remove(ind)
                         else:
                             self.mark_data.append(ind)
             except ValueError:
@@ -894,24 +897,25 @@ def main():
         parser.print_help()
         print('')
         print('mouse:')
-        print('left click             select data points')
-        print('left and drag          rectangular selection and zoom of data points')
-        print('shift + left click     add/remove data points to/from selection')
+        print('left click              select data points')
+        print('left and drag           rectangular selection and zoom of data points')
+        print('shift + left click/drag add data points to selection')
+        print('ctrl + left click/drag  add/remove data points to/from selection')
         print('')
         print('key shortcuts:')
-        print('l                      list selected EOD waveforms on console')
-        print('p                      toggle between data columns and PCA axis')
-        print('<, pageup              decrease number of displayed data columns/PCA axis')
-        print('>, pagedown            increase number of displayed data columns/PCA axis')
-        print('o, z                   toggle zoom mode on or off')
-        print('backspace              zoom back')
-        print('+, -                   increase, decrease pick radius')
-        print('0                      reset pick radius')
-        print('n, N                   decrease, increase number of bins of histograms')
-        print('h                      toggle between scatter plot and 2D histogram')
-        print('c, C                   cycle color map trough data columns')
-        print('left, right, up, down  show and move enlarged scatter plot')
-        print('escape                 close enlarged scatter plot')
+        print('l                       list selected EOD waveforms on console')
+        print('p,P                     toggle between data columns, PCA, and scaled PCA axis')
+        print('<, pageup               decrease number of displayed data columns/PCA axis')
+        print('>, pagedown             increase number of displayed data columns/PCA axis')
+        print('o, z                    toggle zoom mode on or off')
+        print('backspace               zoom back')
+        print('+, -                    increase, decrease pick radius')
+        print('0                       reset pick radius')
+        print('n, N                    decrease, increase number of bins of histograms')
+        print('h                       toggle between scatter plot and 2D histogram')
+        print('c, C                    cycle color map trough data columns')
+        print('left, right, up, down   show and move enlarged scatter plot')
+        print('escape                  close enlarged scatter plot')
         parser.exit()
         
     # read in command line arguments:    
