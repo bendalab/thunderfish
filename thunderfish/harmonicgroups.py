@@ -9,8 +9,8 @@ Extract harmonic groups from power spectra.
 - `threshold_estimate()`: estimates thresholds for peak detection in a power spectrum.
 
 ## Handling of lists of harmonic groups
-- `fundamental_freqs()`: extract the fundamental frequencies from lists of harmonic groups.
-- `fundamental_freqs_and_power()`:
+- `fundamental_freqs()`: extract fundamental frequencies from lists of harmonic groups.
+- `fundamental_freqs_and_power()`: extract fundamental frequencies and their power in dB from lists of harmonic groups.
 
 ## Visualization
 - `colors_markers()`: Generate a list of colors and markers for plotting.
@@ -815,7 +815,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
 
 def fundamental_freqs(group_list):
     """
-    Extract the fundamental frequencies from lists of harmonic groups.
+    Extract fundamental frequencies from lists of harmonic groups.
 
     The inner list of 2-D arrays of the input argument is transformed into
     a 1-D array containig the fundamental frequencies extracted from the 2-D arrays.
@@ -856,7 +856,7 @@ def fundamental_freqs(group_list):
 def fundamental_freqs_and_power(group_list, n_harmonics=1, power=False,
                                 ref_power=1.0, min_power=1e-20):
     """
-    Extract the fundamental frequencies and their power in dB from lists of harmonic groups.
+    Extract fundamental frequencies and their power in dB from lists of harmonic groups.
 
     The inner list of 2-D arrays of the input argument is transformed
     into a 2-D array containig for each fish (1st dimension) the
