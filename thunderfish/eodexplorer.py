@@ -57,16 +57,16 @@ class Explorer(object):
         self.data = self.all_data[self.show_mode]
         self.labels = self.all_labels[self.show_mode]
         self.show_maxcols = self.all_maxcols[self.show_mode]
+        # figure:
         self.title = title
-        self.toolbar_name = plt.rcParams['toolbar']
+        self.plt_params = {}
+        for k in ['toolbar', 'keymap.quit', 'keymap.back', 'keymap.forward',
+                  'keymap.zoom', 'keymap.pan', 'keymap.xscale', 'keymap.yscale']:
+            self.plt_params[k] = plt.rcParams[k]
+            if k != 'toolbar':
+                plt.rcParams[k] = ''
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
-        plt.rcParams['keymap.back'] = ''
-        plt.rcParams['keymap.forward'] = ''        
-        plt.rcParams['keymap.zoom'] = ''        
-        plt.rcParams['keymap.pan'] = ''        
-        plt.rcParams['keymap.xscale'] = ''        
-        plt.rcParams['keymap.yscale'] = ''        
         self.fig = plt.figure(facecolor='white')
         self.fig.canvas.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
         self.fig.canvas.mpl_connect('key_press_event', self.on_key)
@@ -827,7 +827,8 @@ class EODExplorer(Explorer):
           detect_eods(data, samplerate, clipped, recording, 0, cfg)
         # plot EOD:
         idx = int(self.eoddata[index,'index']) if 'index' in self.eoddata else 0
-        plt.rcParams['toolbar'] = self.toolbar_name
+        for k in ['toolbar', 'keymap.back', 'keymap.forward', 'keymap.zoom', 'keymap.pan']:
+            plt.rcParams[k] = self.plt_params[k]
         fig = plot_eods(basename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
                         mean_eods, eod_props, peak_data, spec_data, [idx], unit,
                         psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
