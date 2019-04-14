@@ -212,14 +212,16 @@ class Explorer(object):
         ax.autoscale(True)
         ax.hist(self.data[:,c], self.hist_nbins)
         ax.set_xlabel(self.labels[c])
+        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
         if zoomax:
             ax.set_ylabel('count')
+            cax = self.histax[self.corrindices[-1][0]]
+            ax.set_xlim(cax.get_xlim())
         else:
             if c == 0:
                 ax.set_ylabel('count')
             else:
                 plt.setp(ax.get_yticklabels(), visible=False)
-        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
         if keep_lims:
             ax.set_xlim(*ax_xlim)
             ax.set_ylim(*ax_ylim)
@@ -284,17 +286,20 @@ class Explorer(object):
         a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
                        c=self.data_colors[self.mark_data], s=80, zorder=11)
         self.corrartists[idx] = a
+        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+        self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
         if zoomax:
             ax.set_xlabel(self.labels[c])
             ax.set_ylabel(self.labels[r])
+            cax = self.corrax[self.corrindices[:-1].index(self.corrindices[-1])]
+            ax.set_xlim(cax.get_xlim())
+            ax.set_ylim(cax.get_ylim())
         else:
             plt.setp(ax.get_xticklabels(), visible=False)
             if c == 0:
                 ax.set_ylabel(self.labels[r])
             else:
                 plt.setp(ax.get_yticklabels(), visible=False)
-        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
-        self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
         if keep_lims:
             ax.set_xlim(*ax_xlim)
             ax.set_ylim(*ax_ylim)
@@ -489,6 +494,17 @@ class Explorer(object):
                     ax, xmin, xmax, ymin, ymax = self.zoom_stack.pop()
                     ax.set_xlim(xmin, xmax)
                     ax.set_ylim(ymin, ymax)
+                    if ax in self.corrax[:-1]:
+                        axidx = self.corrax[:-1].index(ax)
+                        if self.corrindices[axidx][0] == self.corrindices[-1][0]:
+                            self.corrax[-1].set_xlim(xmin, xmax)
+                        if self.corrindices[axidx][1] == self.corrindices[-1][1]:
+                            self.corrax[-1].set_ylim(ymin, ymax)
+                    elif ax in self.histax:
+                        if self.corrindices[-1][1] == self.data.shape[1] and \
+                           self.corrindices[-1][0] == self.histax.index(ax):
+                            self.corrax[-1].set_xlim(xmin, xmax)
+                            self.corrax[-1].set_ylim(ymin, ymax)
                     self.fig.canvas.draw()
             elif event.key in '+=':
                 self.pick_radius *= 1.5
@@ -589,6 +605,9 @@ class Explorer(object):
                     print('selected:')
                     self.list_selection(self.mark_data)
         if plot_zoom:
+            for k in reversed(range(len(self.zoom_stack))):
+                if self.zoom_stack[k][0] == self.corrax[-1]:
+                    del self.zoom_stack[k]
             self.corrax[-1].clear()
             self.corrax[-1].set_visible(True)
             self.zoomon = True
