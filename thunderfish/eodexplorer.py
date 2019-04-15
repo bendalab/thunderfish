@@ -80,14 +80,17 @@ class Explorer(object):
         self.extra_colors = None
         self.extra_color_label = None
         self.color_values = None
+        self.color_set_index = None
         self.color_index = None
         self.color_label = None
         if isinstance(colors, int):
+            self.color_set_index = 0
             self.color_index = colors
         else:
             self.extra_colors = colors
             self.extra_color_label = color_label
-            self.color_index = -1
+            self.color_set_index = -1
+            self.color_index = 1
         self.data_colors = None
         self.color_vmin = None
         self.color_vmax = None
@@ -141,13 +144,15 @@ class Explorer(object):
             scaler = preprocessing.StandardScaler()
             scaler.fit(self.raw_data)
             pca.fit(scaler.transform(self.raw_data))
+            pca_label = 'PCAs'
         else:
             pca.fit(self.raw_data)
+            pca_label = 'PCA'
         for k in range(len(pca.components_)):
             if np.abs(np.min(pca.components_[k])) > np.max(pca.components_[k]):
                 pca.components_[k] *= -1.0
         pca_data = pca.transform(self.raw_data)
-        pca_labels = [('PCA%d (%.1f%%)' if v > 0.01 else 'PCA%d (%.2f%%)') % (k+1, 100.0*v)
+        pca_labels = [('%s%d (%.1f%%)' if v > 0.01 else '%s%d (%.2f%%)') % (pca_label, k+1, 100.0*v)
                            for k, v in enumerate(pca.explained_variance_ratio_)]
         if np.min(pca.explained_variance_ratio_) >= 0.01:
             pca_maxcols = pca_data.shape[1]
@@ -155,7 +160,9 @@ class Explorer(object):
             pca_maxcols = np.argmax(pca.explained_variance_ratio_ < 0.01)
         if pca_maxcols < 2:
             pca_maxcols = 2
+        # table with PCA feature weights:
         self.pca_table.clear_data()
+        self.pca_table.set_section(pca_label, 0, self.pca_table.nsecs)
         for k, comp in enumerate(pca.components_):
             self.pca_table.append_data(k+1, 0)
             self.pca_table.append_data(100.0*pca.explained_variance_ratio_[k])
@@ -183,15 +190,16 @@ class Explorer(object):
             self.pca_table.write(pca_file, unitstyle='none')
 
     def set_color_column(self):
-        if self.color_index == -2:
-            self.color_values = np.arange(self.data.shape[0], dtype=np.float)
-            self.color_label = 'index'
-        elif self.color_index == -1:
-            self.color_values = self.extra_colors
-            self.color_label = self.extra_color_label
+        if self.color_set_index == -1:
+            if self.color_index == 0:
+                self.color_values = np.arange(self.data.shape[0], dtype=np.float)
+                self.color_label = 'index'
+            elif self.color_index == 1:
+                self.color_values = self.extra_colors
+                self.color_label = self.extra_color_label
         else:
-            self.color_values = self.data[:,self.color_index]
-            self.color_label = self.labels[self.color_index]
+            self.color_values = self.all_data[self.color_set_index][:,self.color_index]
+            self.color_label = self.all_labels[self.color_set_index][self.color_index]
         self.color_vmin, self.color_vmax, self.color_ticks = \
           self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
         self.data_colors = self.color_map((self.color_values - self.color_vmin)/(self.color_vmax - self.color_vmin))
@@ -522,20 +530,30 @@ class Explorer(object):
             elif event.key in 'cC':
                 if event.key in 'c':
                     self.color_index -= 1
-                    if self.color_index < -2:
-                        self.color_index = self.data.shape[1] - 1
-                    if self.color_index == -1 and self.extra_colors is None:
-                        self.color_index -= 1
-                        if self.color_index < -2:
-                            self.color_index = self.data.shape[1] - 1
+                    if self.color_index < 0:
+                        self.color_set_index -= 1
+                        if self.color_set_index < -1:
+                            self.color_set_index = len(self.all_data)-1
+                        if self.color_set_index >= 0:
+                            if self.all_data[self.color_set_index] is None:
+                                self.compute_pca(self.color_set_index>1)
+                                self.pca_table.write(table_format='out', unitstyle='none')
+                            self.color_index = self.all_data[self.color_set_index].shape[1]-1
+                        else:
+                            self.color_index = 0 if self.extra_colors is None else 1
                 else:
                     self.color_index += 1
-                    if self.color_index >= self.data.shape[1]:
-                        self.color_index = -2
-                    if self.color_index == -1 and self.extra_colors is None:
-                        self.color_index += 1
-                        if self.color_index >= self.data.shape[1]:
-                            self.color_index = -2
+                    if (self.color_set_index >= 0 and \
+                        self.color_index >= self.all_data[self.color_set_index].shape[1]) or \
+                        (self.color_set_index < 0 and \
+                         self.color_index >= (1 if self.extra_colors is None else 2)):
+                        self.color_index = 0
+                        self.color_set_index += 1
+                        if self.color_set_index >= len(self.all_data):
+                            self.color_set_index = -1
+                        elif self.all_data[self.color_set_index] is None:
+                            self.compute_pca(self.color_set_index>1)
+                            self.pca_table.write(table_format='out', unitstyle='none')
                 self.set_color_column()
                 for ax in self.corrax:
                     if len(ax.collections) > 0:
