@@ -113,10 +113,13 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
     win_inx = int(win * samplerate)
 
     # extract snippets:
+    eod_idx = eod_idx[(eod_idx >= win_inx) & (eod_idx < len(data)-win_inx)]
     if max_eods and max_eods > 0 and len(eod_idx) > max_eods:
         dn = (len(eod_idx) - max_eods)//2
         eod_idx = eod_idx[dn:dn+max_eods]
     eod_snippets = snippets(data, eod_idx, -win_inx, win_inx)
+    if len(eod_snippets) == 0:
+        return np.zeros((0, 3)), eod_times
 
     # mean and std of snippets:
     mean_eod = np.zeros((len(eod_snippets[0]), 3))
