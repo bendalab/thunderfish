@@ -129,7 +129,7 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
 
     # inverse filter:
     if unfilter_cutoff > 0.0:
-        unfilter(mean_eod[:,1], samplerate, cutoff=unfilter_cutoff)
+        unfilter(mean_eod[:,1], samplerate, unfilter_cutoff)
         
     # time axis:
     mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / samplerate
@@ -137,19 +137,15 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
     return mean_eod, eod_times
 
 
-def unfilter(data, samplerate, tau=1.0, cutoff=None):
+def unfilter(data, samplerate, cutoff):
     """
     Apply inverse high-pass filter on data.
 
-    Either the timeconstant `tau` or the cutoff frequency `cutoff` of the
-    high-pass filter need to be specified.
-
-    Assumes high-pass filter
-    \[ \tau \dot y = -y + \tau \dot x \]
-    has been applied on the original data $x$. To recover $x$
-    the ODE
-    \[ \tau \dot x = y + \tau \dot y \]
-    is applied on the filtered data $y$.
+    Assumes high-pass filter \[ \tau \dot y = -y + \tau \dot x \] has
+    been applied on the original data $x$, where $\tau=(2\pi
+    f_{cutoff})^{-1}$ is the time constant of the filter. To recover $x$
+    the ODE \[ \tau \dot x = y + \tau \dot y \] is applied on the
+    filtered data $y$.
 
     Parameters:
     -----------
@@ -157,18 +153,15 @@ def unfilter(data, samplerate, tau=1.0, cutoff=None):
         High-pass filtered original data.
     samplerate: float
         Sampling rate of `data` in Hertz.
-    tau: float
-        Time-constant of the high-pass filter in seconds.
     cutoff: float
-        Cutoff frequency of the high-passfilter. Overwrites `tau` if specified.
+        Cutoff frequency $f_{cutoff}$ of the high-pass filter in Hertz.
 
     Returns:
     --------
     data: ndarray
         Recovered original data.
     """
-    if cutoff:
-        tau = 0.5/np.pi/cutoff
+    tau = 0.5/np.pi/cutoff
     fac = tau*samplerate
     data -= np.mean(data)
     d0 = data[0]
@@ -1288,10 +1281,12 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=1.0,
-                            win_fac=2.0, min_win=0.01, max_eods=None, unfilter_cutoff=0.0,
+                            win_fac=2.0, min_win=0.01, max_eods=None,
+                            unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',
-                            n_harm=20, min_pulse_win=0.001, peak_thresh_fac=0.01,
-                            min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
+                            n_harm=20, min_pulse_win=0.001,
+                            peak_thresh_fac=0.01, min_dist=50.0e-6,
+                            width_frac = 0.5, fit_frac = 0.5,
                             pulse_percentile=1.0):
     """ Add all parameters needed for the eod analysis functions as
     a new section to a configuration.
