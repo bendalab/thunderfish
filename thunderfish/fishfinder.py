@@ -8,7 +8,7 @@ import matplotlib.mlab as ml
 from audioio import PlayAudio, fade, write_audio
 from .version import __version__
 from .configfile import ConfigFile
-from .powerspectrum import nfft_noverlap, decibel, psd, spectrogram
+from .powerspectrum import nfft, decibel, psd, spectrogram
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
 from .dataloader import open_data
@@ -196,11 +196,11 @@ class SignalPlot:
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
-        nfft, _ = nfft_noverlap(self.samplerate, self.freq_resolution)
+        n_fft = nfft(self.samplerate, self.freq_resolution)
         t00 = t0
         t11 = t1
         w = t11 - t00
-        minw = nfft * (self.cfg.value('minPSDAverages') + 1) // 2
+        minw = n_fft * (self.cfg.value('minPSDAverages') + 1) // 2
         if t11 - t00 < minw:
             w = minw
             t11 = t00 + w
@@ -221,7 +221,7 @@ class SignalPlot:
         lowth = center + 0.5 * lowth
 
         # spectrogram:
-        t2 = t1 + nfft
+        t2 = t1 + n_fft
         specpower, freqs, bins = spectrogram(self.data[t0:t2], self.samplerate,
                                              self.freq_resolution,
                                              detrend=ml.detrend_mean)
@@ -255,16 +255,16 @@ class SignalPlot:
             tws = '%.3gms' % (1000.0 * tw)
         else:
             tws = '%.3gs' % (tw)
-        a = 2 * w // nfft - 1  # number of ffts
+        a = 2 * w // n_fft - 1  # number of ffts
         m = ''
         if self.cfg.value('mainsFreq') > 0.0:
             m = ', mains=%.0fHz' % self.cfg.value('mainsFreq')
         if self.power_frequency_label == None:
             self.power_frequency_label = self.axp.set_xlabel(
-                r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(nfft, dfs, tws, a, m))
+                r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(n_fft, dfs, tws, a, m))
         else:
             self.power_frequency_label.set_text(
-                r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(nfft, dfs, tws, a, m))
+                r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(n_fft, dfs, tws, a, m))
         self.axp.set_xlim(self.fmin, self.fmax)
         if self.power_label == None:
             self.power_label = self.axp.set_ylabel('Power')

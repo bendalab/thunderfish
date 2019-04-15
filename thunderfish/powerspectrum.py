@@ -3,7 +3,7 @@
 
 ## Computation of nfft
 - `next_power_of_two()`: round an integer up to the next power of two.
-- `nfff_overlap()`: compute nfft and overlap based on a given frequency resolution.
+- `nfff()`: compute nfft based on a given frequency resolution.
 
 ## Decibel
 - `decibel()`: transform power to decibel.
@@ -58,10 +58,8 @@ def next_power_of_two(n):
     return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))
 
 
-def nfft_noverlap(samplerate, freq_resolution,
-                  min_nfft=16, max_nfft=None, overlap_frac=0.5):
-    """Required number of samples for an FFT of a given frequency resolution
-    and number of overlapping data points.
+def nfft(samplerate, freq_resolution, min_nfft=16, max_nfft=None):
+    """Required number of samples for an FFT of a given frequency resolution.
 
     Note that the returned number of FFT samples results
     in frequency intervals that are smaller or equal to `freq_resolution`.
@@ -76,15 +74,11 @@ def nfft_noverlap(samplerate, freq_resolution,
         Smallest value of nfft to be used.
     max_nfft: int or None
         If not None, largest value of nfft to be used.
-    overlap_frac: float
-        Fraction the FFT windows should overlap.
 
     Returns
     -------
     nfft: int
         Number of FFT points.
-    noverlap: int
-        Number of overlapping FFT points.
     """
     nfft = next_power_of_two(samplerate / freq_resolution)
     if not max_nfft is None:
@@ -92,8 +86,7 @@ def nfft_noverlap(samplerate, freq_resolution,
             nfft = next_power_of_two(max_nfft//2 + 1)
     if nfft < min_nfft:
         nfft = min_nfft
-    noverlap = int(nfft * overlap_frac)
-    return nfft, noverlap
+    return nfft
 
 
 def decibel(power, ref_power=1.0, min_power=1e-20):
@@ -204,12 +197,12 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
     freq: 1-D array
         Frequencies corresponding to power array.
     """
-    nfft, noverlap = nfft_noverlap(samplerate, freq_resolution,
-                                   min_nfft, max_nfft, overlap_frac)
+    n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
+    noverlap = int(n_fft * overlap_frac)
     if psdscipy:
         if detrend == 'none':
             detrend = lambda x: x
-        freqs, power = welch(data, fs=samplerate, nperseg=nfft, nfft=None,
+        freqs, power = welch(data, fs=samplerate, nperseg=n_fft, nfft=None,
                              noverlap=noverlap, detrend=detrend,
                              window=window, scaling='density')
     else:
@@ -219,11 +212,11 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
             detrend_func = detrend_none
         else:
             detrend_func = detrend_mean
-        power, freqs = mpsd(data, Fs=samplerate, NFFT=nfft,
+        power, freqs = mpsd(data, Fs=samplerate, NFFT=n_fft,
                                 noverlap=noverlap, detrend=detrend_func,
-                                window=get_window(window, nfft),
+                                window=get_window(window, n_fft),
                                 scale_by_freq=True)
-    # squeeze is necessary when nfft is to large with respect to the data:
+    # squeeze is necessary when n_fft is to large with respect to the data:
     return np.squeeze(power), freqs
 
 
@@ -333,20 +326,20 @@ def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
     time: array
         Time of the nfft windows.
     """
-    nfft, noverlap = nfft_noverlap(samplerate, freq_resolution,
-                                   min_nfft, max_nfft, overlap_frac)
+    n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
+    noverlap = int(n_fft * overlap_frac)
     if specgrammlab:
         try:
-            spec, freqs, time = mspecgram(data, NFFT=nfft, Fs=samplerate,
+            spec, freqs, time = mspecgram(data, NFFT=n_fft, Fs=samplerate,
                                           noverlap=noverlap, detrend=detrend,
                                           scale_by_freq=True, scale='linear',
                                           mode='psd',
-                                          window=get_window(window, nfft))
+                                          window=get_window(window, n_fft))
         except TypeError:
-            spec, freqs, time = mspecgram(data, NFFT=nfft, Fs=samplerate,
+            spec, freqs, time = mspecgram(data, NFFT=n_fft, Fs=samplerate,
                                           noverlap=noverlap, detrend=detrend,
                                           scale_by_freq=True,
-                                          window=get_window(window, nfft))
+                                          window=get_window(window, n_fft))
         return spec, freqs, time
     else:
         # ... some alternative implementation ...

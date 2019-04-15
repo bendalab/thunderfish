@@ -47,7 +47,7 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from .eventdetection import threshold_crossings, threshold_crossing_times
-from .powerspectrum import psd, nfft_noverlap, decibel
+from .powerspectrum import psd, nfft, decibel
 from .tabledata import TableData
 
 
@@ -641,9 +641,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
 
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
-    nfft, _ = nfft_noverlap(samplerate, freq_resolution)
+    n_fft = nfft(samplerate, freq_resolution)
     n = len(meod)//4
-    nn = np.max([nfft, 2*n])
+    nn = np.max([n_fft, 2*n])
     data = np.zeros(nn)
     data[nn//2-n:nn//2+n] = meod[max_idx-n:max_idx+n,1]
     power, freqs = psd(data, samplerate, freq_resolution)
