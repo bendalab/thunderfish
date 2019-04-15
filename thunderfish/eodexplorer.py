@@ -23,10 +23,32 @@ from .bestwindow import find_best_window, plot_best_data
 from .thunderfish import configuration, detect_eods, plot_eods
 
 
-class Explorer(object):
+class MultivariateExplorer(object):
+    """Simple GUI for exploring multivariate data.
+
+    Shown are scatter plots of all pairs of variables or PCA axis.
+    Scatter plots are colored according to one of the variables.
+    Data points can be selected and corresponding waveforms are shown.
+    """
     
-    def __init__(self, title, data, labels, pca_file, colors, color_label, color_map,
-                 detailed_data, **kwargs):
+    def __init__(self, title, data, labels=None, waveform_data=None):
+        """ Initialize wit the data.
+
+        Parameter
+        ---------
+        title: string
+            Title for the window.
+        data: TableData or 2D array
+            The data to be explored. Each column is a variable.
+        labels: list of string
+            If data is not a TableData, then this provides labels
+            for the data columns.
+        waveform_data: List of 2D arrays
+            Waveform data associated with each row of the data.
+            `data[i][:,time], data[i][:,x]`
+        """
+        # data and labels:
+        self.title = title
         if isinstance(data, TableData):
             self.raw_data = data.array()
             if labels is None:
@@ -44,65 +66,45 @@ class Explorer(object):
         self.all_maxcols = [self.raw_data.shape[1], None, None]
         self.all_titles = ['data', 'PCA', 'scaled PCA']
         # pca:
-        self.pca_table = None
+        self.pca_tables = [None, None]
         self.pca_header(data, labels)
-        if pca_file is not None:
-            self.compute_pca(False)
-            self.save_pca(pca_file, False, **kwargs)
-            self.compute_pca(True)
-            self.save_pca(pca_file, True, **kwargs)
-            return
         # start showing raw data:
         self.show_mode = 0
         self.data = self.all_data[self.show_mode]
         self.labels = self.all_labels[self.show_mode]
         self.show_maxcols = self.all_maxcols[self.show_mode]
-        # figure:
-        self.title = title
-        self.plt_params = {}
-        for k in ['toolbar', 'keymap.quit', 'keymap.back', 'keymap.forward',
-                  'keymap.zoom', 'keymap.pan', 'keymap.xscale', 'keymap.yscale']:
-            self.plt_params[k] = plt.rcParams[k]
-            if k != 'toolbar':
-                plt.rcParams[k] = ''
-        plt.rcParams['toolbar'] = 'None'
-        plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
-        self.fig = plt.figure(facecolor='white')
-        self.fig.canvas.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
-        self.fig.canvas.mpl_connect('key_press_event', self.on_key)
-        self.fig.canvas.mpl_connect('resize_event', self.on_resize)
-        self.fig.canvas.mpl_connect('pick_event', self.on_pick)
-        self.xborder = 70.0  # pixel for ylabels
-        self.yborder = 50.0  # pixel for xlabels
-        self.spacing = 10.0  # pixel between plots
-        self.pick_radius = 4.0
-        self.color_map = plt.get_cmap(color_map)
+        # waveform data:
+        self.waveform_data = waveform_data
+        # colors:
+        self.color_map = None
         self.extra_colors = None
         self.extra_color_label = None
         self.color_values = None
         self.color_set_index = None
         self.color_index = None
         self.color_label = None
-        if isinstance(colors, int):
-            self.color_set_index = 0
-            self.color_index = colors
-        else:
-            self.extra_colors = colors
-            self.extra_color_label = color_label
-            self.color_set_index = -1
-            self.color_index = 1
+        self.color_set_index = 0
+        self.color_index = 0
         self.data_colors = None
         self.color_vmin = None
         self.color_vmax = None
         self.color_ticks = None
         self.cbax = None
-        self.set_color_column()
-        self.detailed_data = detailed_data
+        # figure variables:
+        self.plt_params = {}
+        for k in ['toolbar', 'keymap.quit', 'keymap.back', 'keymap.forward',
+                  'keymap.zoom', 'keymap.pan', 'keymap.xscale', 'keymap.yscale']:
+            self.plt_params[k] = plt.rcParams[k]
+            if k != 'toolbar':
+                plt.rcParams[k] = ''
+        self.xborder = 70.0  # pixel for ylabels
+        self.yborder = 50.0  # pixel for xlabels
+        self.spacing = 10.0  # pixel between plots
+        self.pick_radius = 4.0
         self.histax = []
         self.histindices = []
         self.histselect = []
         self.hist_nbins = 30
-        self.plot_histograms()
         self.corrax = []
         self.corrindices = []
         self.corrartists = []
@@ -111,18 +113,62 @@ class Explorer(object):
         self.mark_data = []
         self.select_zooms = False
         self.zoom_stack = []
-        self.plot_correlations()
-        self.dax = self.fig.add_subplot(2, 3, 3)
-        self.fix_detailed_plot(self.dax, self.mark_data)
+        self.wave_ax = None
         self.zoomon = False
-        self.zoom_size = np.array([0.5, 0.5])
         self.zoom_back = None
+        self.zoom_size = np.array([0.5, 0.5])
+
+        
+    def set_colors(self, colors, color_label, color_map):
+        """ Set data column used to color scatter plots.
+        
+        Parameter
+        ---------
+        colors: int or 1D array
+           Index to colum in data to be used for coloring scatter plots.
+           Or data array used to color scaler plots.
+        color_label: string
+           If colors is an array, this is a label describing the data.
+           It is used to label the color bar.
+        color_map: string
+            Name of a matplotlib color map.
+        """
+        if isinstance(colors, int):
+            self.color_set_index = 0
+            self.color_index = colors
+        else:
+            self.extra_colors = colors
+            self.extra_color_label = color_label
+            self.color_set_index = -1
+            self.color_index = 1
+        self.color_map = plt.get_cmap(color_map)
+
+        
+    def show(self):
+        """ Show the interactive scatter plots for exploration.
+        """
+        plt.rcParams['toolbar'] = 'None'
+        plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
+        self.fig = plt.figure(facecolor='white')
+        self.fig.canvas.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
+        self.fig.canvas.mpl_connect('key_press_event', self.on_key)
+        self.fig.canvas.mpl_connect('resize_event', self.on_resize)
+        self.fig.canvas.mpl_connect('pick_event', self.on_pick)
+        if self.color_map is None:
+            self.color_map = plt.get_cmap('jet')
+        self.set_color_column()
+        self.plot_histograms()
+        self.plot_correlations()
+        if not self.waveform_data is None:
+            self.wave_ax = self.fig.add_subplot(2, 3, 3)
+            self.fix_waveform_plot(self.wave_ax, self.mark_data)
         self.plot_zoomed_correlations()
         plt.show()
 
-    def pca_header(self, data, labels=None):
+
+    def pca_header(self, data, labels):
         if isinstance(data, TableData):
-            self.pca_table = data.table_header()
+            header = data.table_header()
         else:
             lbs = []
             for l in labels:
@@ -132,12 +178,25 @@ class Explorer(object):
                     lbs.append(l.split('/')[0].strip())
                 else:
                     lbs.append(l)
-            self.pca_table = TableData(header=lbs)
-        self.pca_table.set_formats('%.3f')
-        self.pca_table.insert(0, ['PCA'] + ['-']*self.pca_table.nsecs, '', '%d')
-        self.pca_table.insert(1, 'variance', '%', '%.3f')
+            header = TableData(header=lbs)
+        header.set_formats('%.3f')
+        header.insert(0, ['PCA'] + ['-']*header.nsecs, '', '%d')
+        header.insert(1, 'variance', '%', '%.3f')
+        for k in range(len(self.pca_tables)):
+            self.pca_tables[k] = TableData(header)
 
-    def compute_pca(self, scale=False):
+                
+    def compute_pca(self, scale=False, write=False):
+        """ Compute PCA based on the data.
+
+        Parameter
+        ---------
+        scale: boolean
+            If True standardize data before computing PCA, i.e. remove mean
+            of each variabel and divide by its standard deviation.
+        write: boolean
+            If True write PCA components to standard out.
+        """
         # pca:
         pca = decomposition.PCA()
         if scale:
@@ -161,12 +220,16 @@ class Explorer(object):
         if pca_maxcols < 2:
             pca_maxcols = 2
         # table with PCA feature weights:
-        self.pca_table.clear_data()
-        self.pca_table.set_section(pca_label, 0, self.pca_table.nsecs)
+        pca_table = self.pca_tables[1] if scale else self.pca_tables[0]
+        pca_table.clear_data()
+        pca_table.set_section(pca_label, 0, pca_table.nsecs)
         for k, comp in enumerate(pca.components_):
-            self.pca_table.append_data(k+1, 0)
-            self.pca_table.append_data(100.0*pca.explained_variance_ratio_[k])
-            self.pca_table.append_data(comp)
+            pca_table.append_data(k+1, 0)
+            pca_table.append_data(100.0*pca.explained_variance_ratio_[k])
+            pca_table.append_data(comp)
+        if write:
+            pca_table.write(table_format='out', unitstyle='none')
+        # submit data:
         if scale:
             self.all_data[2] = pca_data
             self.all_labels[2] = pca_labels
@@ -175,20 +238,35 @@ class Explorer(object):
             self.all_data[1] = pca_data
             self.all_labels[1] = pca_labels
             self.all_maxcols[1] = pca_maxcols
-        
+
+            
     def save_pca(self, file_name, scale, **kwargs):
+        """ Write PCA data to file.
+
+        Parameter
+        ---------
+        file_name: string
+            Name of ouput file.
+        scale: boolean
+            If True write PCA components of standardized PCA.
+        kwargs: dict
+            Additional parameter for TableData.write()
+        """
         if scale:
             pca_file = file_name + '-pcacor'
+            pca_table = self.pca_tables[1]
         else:
             pca_file = file_name + '-pcacov'
+            pca_table = self.pca_tables[0]
+        if 'unitstyle' in kwargs:
+            del kwargs['unitstyle']
         if 'table_format' in kwargs:
-            if 'unitstyle' in kwargs:
-                del kwargs['unitstyle']
-            self.pca_table.write(pca_file, unitstyle='none', **kwargs)
+            pca_table.write(pca_file, unitstyle='none', **kwargs)
         else:
             pca_file += '.dat'
-            self.pca_table.write(pca_file, unitstyle='none')
+            pca_table.write(pca_file, unitstyle='none')
 
+            
     def set_color_column(self):
         if self.color_set_index == -1:
             if self.color_index == 0:
@@ -371,7 +449,7 @@ class Explorer(object):
         """
         pass
 
-    def fix_detailed_plot(self, ax, indices):
+    def fix_waveform_plot(self, ax, indices):
         pass
     
     def list_selection(self, indices):
@@ -446,13 +524,15 @@ class Explorer(object):
                 artist.set_offsets(list(zip(self.data[self.mark_data,c],
                                             self.data[self.mark_data,r])))
                 artist.set_facecolors(self.data_colors[self.mark_data])
-        # detailed plot:
-        self.dax.clear()
-        for idx in self.mark_data:
-            if idx < len(self.detailed_data):
-                self.dax.plot(self.detailed_data[idx][:,0], self.detailed_data[idx][:,1],
-                              c=self.data_colors[idx], lw=3, picker=5)
-        self.fix_detailed_plot(self.dax, self.mark_data)
+        # waveform plot:
+        if not sle.fwax is None:
+            self.wave_ax.clear()
+            for idx in self.mark_data:
+                if idx < len(self.waveform_data):
+                    self.wave_ax.plot(self.waveform_data[idx][:,0],
+                                      self.waveform_data[idx][:,1],
+                                      c=self.data_colors[idx], lw=3, picker=5)
+            self.fix_waveform_plot(self.wave_ax, self.mark_data)
         self.fig.canvas.draw()
         
     def on_key(self, event):
@@ -536,8 +616,7 @@ class Explorer(object):
                             self.color_set_index = len(self.all_data)-1
                         if self.color_set_index >= 0:
                             if self.all_data[self.color_set_index] is None:
-                                self.compute_pca(self.color_set_index>1)
-                                self.pca_table.write(table_format='out', unitstyle='none')
+                                self.compute_pca(self.color_set_index>1, True)
                             self.color_index = self.all_data[self.color_set_index].shape[1]-1
                         else:
                             self.color_index = 0 if self.extra_colors is None else 1
@@ -552,8 +631,7 @@ class Explorer(object):
                         if self.color_set_index >= len(self.all_data):
                             self.color_set_index = -1
                         elif self.all_data[self.color_set_index] is None:
-                            self.compute_pca(self.color_set_index>1)
-                            self.pca_table.write(table_format='out', unitstyle='none')
+                            self.compute_pca(self.color_set_index>1, True)
                 self.set_color_column()
                 for ax in self.corrax:
                     if len(ax.collections) > 0:
@@ -561,10 +639,13 @@ class Explorer(object):
                 for a in self.corrartists:
                     if a is not None:
                         a.set_facecolors(self.data_colors[self.mark_data])
-                for l, c in zip(self.dax.lines, self.data_colors[self.mark_data]):
-                    l.set_color(c)
+                if not self.wave_ax is None:
+                    for l, c in zip(self.wave_ax.lines,
+                                    self.data_colors[self.mark_data]):
+                        l.set_color(c)
                 self.plot_scatter(self.corrax[0], False, True, self.cbax)
-                self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
+                self.fix_scatter_plot(self.cbax, self.color_values,
+                                      self.color_label, 'c')
                 self.fig.canvas.draw()
             elif event.key in 'nN':
                 if event.key in 'N':
@@ -605,8 +686,7 @@ class Explorer(object):
                 else:
                     print('data')
                 if self.all_data[self.show_mode] is None:
-                    self.compute_pca(self.show_mode>1)
-                    self.pca_table.write(table_format='out', unitstyle='none')
+                    self.compute_pca(self.show_mode>1, True)
                 self.data = self.all_data[self.show_mode]
                 self.labels = self.all_labels[self.show_mode]
                 self.show_maxcols = self.all_maxcols[self.show_mode]
@@ -672,9 +752,10 @@ class Explorer(object):
         self.update_selection()
 
     def on_pick(self, event):
-        for k, l in enumerate(self.dax.lines):
-            if l is event.artist:
-                self.mark_data = [self.mark_data[k]]
+        if not self.wave_ax is None:
+            for k, l in enumerate(self.wave_ax.lines):
+                if l is event.artist:
+                    self.mark_data = [self.mark_data[k]]
         self.update_selection()
         if event.mouseevent.dblclick:
             if len(self.mark_data) > 0:
@@ -714,7 +795,8 @@ class Explorer(object):
         if self.show_maxcols%2 == 0:
             x0 += xoffs
             y0 += yoffs
-        self.dax.set_position([x0, y0, 1.0-x0-xs, 1.0-y0-3*ys])
+        if not self.wave_ax is None:
+            self.wave_ax.set_position([x0, y0, 1.0-x0-xs, 1.0-y0-3*ys])
 
     def update_layout(self):
         if self.corrindices[-1][1] < self.data.shape[1]:
@@ -735,17 +817,15 @@ class Explorer(object):
         self.set_layout(event.width, event.height)
 
             
-class EODExplorer(Explorer):
+class EODExplorer(MultivariateExplorer):
     
-    def __init__(self, data, data_cols, save_pca, basename, colors, color_label, color_map,
-                 wave_fish, eod_data, rawdata_path, cfg):
+    def __init__(self, data, data_cols, wave_fish, eod_data,
+                 rawdata_path, cfg):
         self.wave_fish = wave_fish
         self.eoddata = data
         self.path = rawdata_path
-        pca_file = basename if save_pca else None
-        Explorer.__init__(self, 'EODExplorer', data[:,data_cols], None, pca_file,
-                          colors, color_label, color_map, eod_data,
-                          **write_table_args(cfg))
+        MultivariateExplorer.__init__(self, 'EODExplorer', data[:,data_cols],
+                                      None, eod_data)
 
     def fix_scatter_plot(self, ax, data, label, axis):
         if any(l in label for l in ['ampl', 'power', 'width',
@@ -780,14 +860,14 @@ class EODExplorer(Explorer):
                 return -np.pi, np.pi, np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi)
         return np.min(data), np.max(data), None
 
-    def fix_detailed_plot(self, ax, indices):
+    def fix_waveform_plot(self, ax, indices):
         if len(indices) == 0:
-            self.dax.text(0.5, 0.5, 'Click to plot EOD waveforms',
-                          transform = self.dax.transAxes,
-                          ha='center', va='center')
-            self.dax.text(0.5, 0.3, 'n = %d' % len(self.raw_data),
-                          transform = self.dax.transAxes,
-                          ha='center', va='center')
+            self.wave_ax.text(0.5, 0.5, 'Click to plot EOD waveforms',
+                              transform = self.wave_ax.transAxes,
+                              ha='center', va='center')
+            self.wave_ax.text(0.5, 0.3, 'n = %d' % len(self.raw_data),
+                              transform = self.wave_ax.transAxes,
+                              ha='center', va='center')
         elif len(indices) == 1:
             if 'index' in self.eoddata and \
               np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
@@ -795,7 +875,8 @@ class EODExplorer(Explorer):
                                          self.eoddata[indices[0],'index']))
             else:
                 ax.set_title(self.eoddata[indices[0],'file'])
-            ax.text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'], transform = self.dax.transAxes)
+            ax.text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
+                    transform = self.wave_ax.transAxes)
         else:
             ax.set_title('%d EOD waveforms selected' % len(indices))
         if self.wave_fish:
@@ -977,9 +1058,6 @@ def main():
     add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
                            shrink_width=False)
     cfg.load_files(cfgfile, file_name, 3)
-
-    # basename:
-    basename = os.path.splitext(os.path.basename(file_name))[0]
     
     # output format:
     if data_format == 'same':
@@ -998,6 +1076,9 @@ def main():
     # load summary data:
     wave_fish = 'wave' in file_name
     data = TableData(file_name)
+
+    # basename:
+    basename = os.path.splitext(os.path.basename(file_name))[0]
     
     # check quality:
     skipped = 0
@@ -1145,7 +1226,7 @@ def main():
     # color code:
     color_idx = data.index(color_col)
     colors = None
-    colorlabel = None
+    color_label = None
     if color_idx is None and color_col != 'index':
         parser.error('"%s" is not a valid column for color code' % color_col)
     if color_idx is None:
@@ -1154,9 +1235,9 @@ def main():
         colors = data_cols.index(color_idx)
     else:
         if len(data.unit(color_idx)) > 0 and not data.unit(color_idx) in ['-', '1']:
-            colorlabel = '%s [%s]' % (data.label(color_idx), data.unit(color_idx))
+            color_label = '%s [%s]' % (data.label(color_idx), data.unit(color_idx))
         else:
-            colorlabel = data.label(color_idx)
+            color_label = data.label(color_idx)
         colors = data[:,color_idx]
 
     # list columns:
@@ -1180,8 +1261,17 @@ def main():
         eod_data = list(map(load_waveform, range(data.rows())))
 
     # explore:
-    eodexp = EODExplorer(data, data_cols, save_pca, basename, colors, colorlabel, color_map,
-                         wave_fish, eod_data, rawdata_path, cfg)
+    eod_expl = EODExplorer(data, data_cols, wave_fish, eod_data,
+                          rawdata_path, cfg)
+    # write pca:
+    if save_pca:
+        eod_expl.compute_pca(False)
+        eod_expl.save_pca(basename, False, **write_table_args(cfg))
+        eod_expl.compute_pca(True)
+        eod_expl.save_pca(basename, True, **write_table_args(cfg))
+    else:
+        eod_expl.set_colors(colors, color_label, color_map)
+        eod_expl.show()
 
 
 if __name__ == '__main__':
