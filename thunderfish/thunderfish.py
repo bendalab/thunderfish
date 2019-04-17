@@ -570,8 +570,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         return None
     found_bestwindow = idx1 > 0
     if not found_bestwindow:
-        print(filename + ': in best_window(): ' + str(e) +
-              '! You may want to adjust the bestWindowSize parameter in the configuration file.')
+        print(filename + ': not enough data for requested best window length. You may want to adjust the bestWindowSize parameter in the configuration file.')
 
     # detect EODs in the data:
     pulse_fish, psd_data, fishlist, fish_indices, eod_props, wave_props, \

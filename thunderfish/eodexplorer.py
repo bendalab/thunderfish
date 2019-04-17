@@ -525,7 +525,7 @@ class MultivariateExplorer(object):
                                             self.data[self.mark_data,r])))
                 artist.set_facecolors(self.data_colors[self.mark_data])
         # waveform plot:
-        if not sle.fwax is None:
+        if not self.wave_ax is None:
             self.wave_ax.clear()
             for idx in self.mark_data:
                 if idx < len(self.waveform_data):
