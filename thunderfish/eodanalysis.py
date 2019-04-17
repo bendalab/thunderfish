@@ -1143,7 +1143,7 @@ def save_wave_fish(wave_props, unit, basename, **kwargs):
     td.append('index', '', '%d', wave_props, 'index')
     td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
     td.append('power', 'dB', '%7.2f', wave_props, 'power')
-    td.append('p-p-amplitude', unit, '%.3f', wave_props, 'p-p-amplitude')
+    td.append('p-p-amplitude', unit, '%.5f', wave_props, 'p-p-amplitude')
     if 'rmvariance' in wave_props[0]:
         td.append('noise', '%', '%.1f', wave_props, 'rmvariance', 100.0)
     td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
@@ -1189,9 +1189,9 @@ def save_pulse_fish(pulse_props, unit, basename, **kwargs):
     td.append('index', '', '%d', pulse_props, 'index')
     td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')
     td.append('period', 'ms', '%7.2f', pulse_props, 'period', 1000.0)
-    td.append('max-ampl', unit, '%.3f', pulse_props, 'max-amplitude')
-    td.append('min-ampl', unit, '%.3f', pulse_props, 'min-amplitude')
-    td.append('p-p-amplitude', unit, '%.3f', pulse_props, 'p-p-amplitude')
+    td.append('max-ampl', unit, '%.5f', pulse_props, 'max-amplitude')
+    td.append('min-ampl', unit, '%.5f', pulse_props, 'min-amplitude')
+    td.append('p-p-amplitude', unit, '%.5f', pulse_props, 'p-p-amplitude')
     if 'rmvariance' in pulse_props[0]:
         td.append('noise', '%', '%.1f', pulse_props, 'rmvariance', 100.0)
     if 'clipped' in pulse_props[0]:
