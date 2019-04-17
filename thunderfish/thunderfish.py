@@ -20,14 +20,14 @@ from audioio import play, fade
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import load_data
-from .bestwindow import add_clip_config, add_best_window_config, clip_args, best_window_args
+from .bestwindow import add_clip_config, add_best_window_config
+from .bestwindow import clip_args, best_window_args
 from .bestwindow import find_best_window, plot_best_data
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import decibel, plot_decibel_psd, multi_psd
 from .powerspectrum import add_multi_psd_config, multi_psd_args
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
-from .harmonicgroups import fundamental_freqs, fundamental_freqs_and_power
 from .harmonicgroups import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
@@ -37,7 +37,7 @@ from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
-from .eodanalysis import save_eod_waveform, save_wave_eods, save_pulse_eods
+from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, save_pulse_fish
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .tabledata import TableData, add_write_table_config, write_table_args
 
@@ -57,7 +57,8 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
         Data file to be analyzed. Config files will be loaded from this path
         and up to three levels up.
     verbose: int
-        Print out information about loaded configuration files if greater than zero.
+        Print out information about loaded configuration files
+        if greater than zero.
 
     Returns
     -------
@@ -66,7 +67,8 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     """
     cfg = ConfigFile()
     add_multi_psd_config(cfg)
-    cfg.add('frequencyThreshold', 1.0, 'Hz', 'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
+    cfg.add('frequencyThreshold', 1.0, 'Hz',
+            'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
     # TODO: make this threshold dependent on frequency resolution!
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
@@ -77,8 +79,8 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
     add_eod_quality_config(cfg)
-    add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
-                           shrink_width=False)
+    add_write_table_config(cfg, table_format='csv', unitstyle='row',
+                           format_width=True, shrink_width=False)
     
     # load configuration from working directory and data directories:
     cfg.load_files(config_file, file_name, 3, verbose)
@@ -120,7 +122,8 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
                 print('  none')
         fishlists.append(fishlist)
     # filter the different fishlists to get a fishlist with consistent fishes:
-    fishlist = consistent_fishes(fishlists, df_th=cfg.value('frequencyThreshold'))
+    fishlist = consistent_fishes(fishlists,
+                                 df_th=cfg.value('frequencyThreshold'))
     if verbose > 0:
         if len(fishlist) > 0:
             print('fundamental frequencies consistent in all power spectra:')
@@ -185,6 +188,7 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     # analyse EOD waveform of all wavefish:
     powers = np.array([np.sum(fish[:cfg.value('powerNHarmonics'), 1])
                        for fish in fishlist])
+    fish_indices = np.zeros(len(fishlist))
     for k, idx in enumerate(np.argsort(-powers)):
         fish = fishlist[idx]
         mean_eod, eod_times = \
@@ -200,9 +204,10 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
         props['clipped'] = clipped if k == 0 else 0.0
         # add good waveforms only:
         skips, msg = wave_quality(k, clipped, props['rmvariance'],
-                                  props['rmserror'], props['power'], sdata[1:,3],
-                                  **wave_quality_args(cfg))
+                                  props['rmserror'], props['power'],
+                                  sdata[1:,3], **wave_quality_args(cfg))
         if len(skips) == 0:
+            fish_indices[idx] = props['index']
             eod_props.append(props)
             wave_props.append(props)
             mean_eods.append(mean_eod)
@@ -211,12 +216,14 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
             if verbose > 0:
                 print('%d take %6.1fHz wave-type fish: %s' % (idx, props['EODf'], msg))
         else:
+            fish_indices[idx] = float('nan')
             skip_reason += ['%d %.1fHz wave-type fish %s' % (idx, props['EODf'], skips)]
             if verbose > 0:
                 print('%d skip waveform of %6.1fHz fish: %s (%s)' %
                       (idx, props['EODf'], skips, msg))
-    return (pulse_fish, psd_data, fishlist, eod_props, wave_props, pulse_props, mean_eods,
-            spec_data, peak_data, power_thresh, skip_reason)
+    return (pulse_fish, psd_data, fishlist, fish_indices, eod_props, wave_props,
+            pulse_props, mean_eods, spec_data, peak_data, power_thresh,
+            skip_reason)
 
 
 def remove_eod_files(output_basename, verbose, cfg):
@@ -230,9 +237,16 @@ def remove_eod_files(output_basename, verbose, cfg):
             print('removed file %s' % fn)
 
 def save_eods(output_basename, mean_eods, spec_data, peak_data,
-              wave_props, pulse_props, unit, verbose, cfg):
+              wave_props, wave_eodfs, wave_indices, pulse_props,
+              unit, verbose, cfg):
     """ Save analysis results of all EODs to files.
     """
+    # for all wavetype fish in fishlist:
+    if len(wave_eodfs) > 0:
+        fp = save_wave_eodfs(wave_eodfs, wave_indices, output_basename,
+                             **write_table_args(cfg))
+        if verbose > 0:
+            print('wrote file %s' % fp)
     # for each fish:
     for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
         fp = save_eod_waveform(mean_eod, unit, i, output_basename,
@@ -256,12 +270,12 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
             print('wrote file %s' % fp)
     # fish properties:
     if wave_props:
-        fp = save_wave_eods(wave_props, unit, output_basename,
+        fp = save_wave_fish(wave_props, unit, output_basename,
                             **write_table_args(cfg))
         if verbose > 0:
             print('wrote file %s' % fp)
     if pulse_props:
-        fp = save_pulse_eods(pulse_props, unit, output_basename,
+        fp = save_pulse_fish(pulse_props, unit, output_basename,
                              **write_table_args(cfg))
         if verbose > 0:
             print('wrote file %s' % fp)
@@ -269,8 +283,8 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
                             
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
               clipped, fishlist, mean_eods, eod_props, peak_data, spec_data,
-              indices, unit, psd_data, power_n_harmonics, label_power, max_freq=3000.0,
-              interactive=True):
+              indices, unit, psd_data, power_n_harmonics, label_power,
+              max_freq=3000.0, interactive=True):
     """
     Creates an output plot for the Thunderfish program.
 
@@ -302,10 +316,11 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     eod_props: list of dict
         Properties for each waveform in mean_eods.
     peak_data: list of 2_D arrays
-        For each pulsefish a list of peak properties (index, time, and amplitude).
+        For each pulsefish a list of peak properties
+        (index, time, and amplitude).
     spec_data: list of 2_D arrays
-        For each pulsefish a power spectrum of the single pulse and for each wavefish
-        the relative amplitudes and phases of the harmonics.
+        For each pulsefish a power spectrum of the single pulse and for
+        each wavefish the relative amplitudes and phases of the harmonics.
     indices: list of int
         Indices of the fish to be plotted.
     unit: string
@@ -313,9 +328,11 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     psd_data: array
         Power spectrum of the analysed data for different frequency resolutions.
     power_n_harmonics: int
-        Maximum number of harmonics over which the total power of the signal is computed.
+        Maximum number of harmonics over which the total power of the signal
+        is computed.
     label_power: boolean
-        If `True` put the power in decibel in addition to the frequency into the legend.
+        If `True` put the power in decibel in addition to the frequency
+        into the legend.
     interactive: bool
         If True install some keyboard interaction.
 
@@ -397,7 +414,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     # plot psd
     if len(spec_data) > 0 and len(spec_data[0]) > 0 and \
        len(eod_props) > 0 and 'EODf' in eod_props[0]:
-        ax3.plot(spec_data[0][:,0], decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]), '#CCCCCC', lw=1)
+        ax3.plot(spec_data[0][:,0],
+                 decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]),
+                 '#CCCCCC', lw=1)
     if len(fishlist) > 0:
         if len(fishlist) == 1 or nwave == 1:
             title = None
@@ -408,12 +427,15 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             bbox = (1.0, 1.1)
             loc = 'upper left'
         colors, markers = colors_markers()
-        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12, sort_by_freq=True,
-                             power_n_harmonics=power_n_harmonics, label_power=label_power,
+        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12,
+                             sort_by_freq=True,
+                             power_n_harmonics=power_n_harmonics,
+                             label_power=label_power,
                              colors=colors, markers=markers, legend_rows=12,
                              frameon=False, bbox_to_anchor=bbox, loc=loc,
                              title=title)
-    plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq, color='blue')
+    plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq,
+                     color='blue')
     ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
     
     ############
@@ -427,7 +449,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         else:
             width = 3.0/eod_props[indices[0]]['EODf']
         width = (1+width//0.005)*0.005
-        eod_recording_plot(raw_data[idx0:idx1], samplerate, ax8, width, unit, idx0/samplerate)
+        eod_recording_plot(raw_data[idx0:idx1], samplerate, ax8, width, unit,
+                           idx0/samplerate)
         ax8.set_title('Recording', fontsize=14, y=1.05)
     else:
         ax8.set_visible(False)        
@@ -446,8 +469,10 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             usedax4 = True
         if axeod is ax5:
             usedax5 = True
-        axeod.text(-0.1, 1.08, '{EODf:.1f} Hz {type}-type fish'.format(**props), transform = axeod.transAxes, fontsize=14)
-        axeod.text(0.5, 1.08, 'Averaged EOD', transform = axeod.transAxes, fontsize=14, ha='center')
+        axeod.text(-0.1, 1.08, '{EODf:.1f} Hz {type}-type fish'.format(**props),
+                   transform = axeod.transAxes, fontsize=14)
+        axeod.text(0.5, 1.08, 'Averaged EOD',
+                   transform = axeod.transAxes, fontsize=14, ha='center')
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
         tau = props['tau'] if 'tau' in props else None
@@ -458,7 +483,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         if props['flipped']:
             label += 'flipped\n'
         if -mean_eod[0,0] < 0.6*mean_eod[-1,0]:
-            axeod.text(0.97, 0.97, label, transform = axeod.transAxes, va='top', ha='right')
+            axeod.text(0.97, 0.97, label, transform = axeod.transAxes,
+                       va='top', ha='right')
         else:
             axeod.text(0.03, 0.97, label, transform = axeod.transAxes, va='top')
         if props['type'] == 'wave':
@@ -476,13 +502,15 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     if not usedax5 and len(eod_props) > 0:
         usedax5 = True
         if  eod_props[indices[0]]['type'] == 'pulse':
-            pulse_spectrum_plot(spec_data[indices[0]], eod_props[indices[0]], ax5)
+            pulse_spectrum_plot(spec_data[indices[0]], eod_props[indices[0]],
+                                ax5)
             ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
         else:
             ax5.set_visible(False)
             ax6.set_visible(True)
             ax7.set_visible(True)
-            wave_spectrum_plot(spec_data[indices[0]], eod_props[indices[0]], ax6, ax7, unit)
+            wave_spectrum_plot(spec_data[indices[0]], eod_props[indices[0]],
+                               ax6, ax7, unit)
             ax6.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
             ax6.set_xticklabels([])
 
@@ -512,7 +540,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
 
 
 def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
-                output_folder='.', keep_path=False, show_bestwindow=False, verbose=0):
+                output_folder='.', keep_path=False, show_bestwindow=False,
+                verbose=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -527,27 +556,31 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
 
     # load data:
     try:
-        raw_data, samplerate, unit = load_data(filename, channel, verbose=verbose)
+        raw_data, samplerate, unit = load_data(filename, channel,
+                                               verbose=verbose)
     except IOError as e:
         return '%s: failed to open file: %s' % (filename, str(e))
     if len(raw_data) <= 1:
         return '%s: empty data file' % filename
 
     # best_window:
-    data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg, show_bestwindow)
+    data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg,
+                                                 show_bestwindow)
     if show_bestwindow:
         return None
     found_bestwindow = idx1 > 0
     if not found_bestwindow:
-        print(filename + ': in best_window(): ' + str(e) + '! You may want to adjust the bestWindowSize parameter in the configuration file.')
+        print(filename + ': in best_window(): ' + str(e) +
+              '! You may want to adjust the bestWindowSize parameter in the configuration file.')
 
     # detect EODs in the data:
-    pulse_fish, psd_data, fishlist, eod_props, wave_props, pulse_props, mean_eods, \
-      spec_data, peak_data, power_thresh, skip_reason = \
+    pulse_fish, psd_data, fishlist, fish_indices, eod_props, wave_props, \
+    pulse_props, mean_eods, spec_data, peak_data, power_thresh, skip_reason = \
       detect_eods(data, samplerate, clipped, filename, verbose, cfg)
     if not found_bestwindow:
         pulsefish = False
         fishlist = []
+        fish_indices = []
         eod_props = []
         wave_props = []
         pulse_props = []
@@ -573,12 +606,14 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                         print('mkdir %s' % outpath)
                     os.makedirs(outpath)
             save_eods(output_basename, mean_eods, spec_data, peak_data,
-                      wave_props, pulse_props, unit, verbose, cfg)
+                      wave_props, fishlist, fish_indices, pulse_props,
+                      unit, verbose, cfg)
 
     if save_plot or not save_data:
-        fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
-                        mean_eods, eod_props, peak_data, spec_data, list(range(len(eod_props))),
-                        unit, psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
+        fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
+                        fishlist, mean_eods, eod_props, peak_data, spec_data,
+                        list(range(len(eod_props))), unit, psd_data,
+                        cfg.value('powerNHarmonics'), True, 3000.0,
                         interactive=not save_data)
         if save_plot:
             # save figure as pdf:

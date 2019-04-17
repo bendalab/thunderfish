@@ -5,27 +5,33 @@ Extract harmonic groups from power spectra.
 ## Harmonic group extraction
 - `harmonic_groups()`: detect peaks in a power spectrum and groups them
                        according to their harmonic structure.
-- `extract_fundamentals()`: collect harmonic groups from lists of power spectrum peaks.
-- `threshold_estimate()`: estimates thresholds for peak detection in a power spectrum.
+- `extract_fundamentals()`: collect harmonic groups from
+                            lists of power spectrum peaks.
+- `threshold_estimate()`: estimates thresholds for peak detection
+                          in a power spectrum.
 
 ## Handling of lists of harmonic groups
-- `fundamental_freqs()`: extract fundamental frequencies from lists of harmonic groups.
-- `fundamental_freqs_and_power()`: extract fundamental frequencies and their power in dB from lists of harmonic groups.
+- `fundamental_freqs()`: extract fundamental frequencies from
+                         lists of harmonic groups.
+- `fundamental_freqs_and_power()`: extract fundamental frequencies and their
+                                   power in dB from lists of harmonic groups.
 
 ## Visualization
 - `colors_markers()`: Generate a list of colors and markers for plotting.
-- `plot_harmonic_groups()`: Mark decibel power of fundamentals and their harmonics.
-- `plot_psd_harmonic_groups()`: Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
+- `plot_harmonic_groups()`: Mark decibel power of fundamentals and their
+                            harmonics.
+- `plot_psd_harmonic_groups()`: Plot decibel power-spectrum with detected peaks,
+                                harmonic groups, and mains frequencies.
 
 ## Configuration parameter
-- `add_psd_peak_detection_config()`: add parameters for the detection of peaks in
-  power spectra to configuration.
-- `psd_peak_detection_args()`: retrieve parameters for the detection of peaks in
-  power spectra from configuration.
-- `add_harmonic_groups_config()`: add parameters for the detection of harmonic groups
-  to configuration.
-- `harmonic_groups_args()`: retrieve parameters for the detection of harmonic groups
-  from configuration.
+- `add_psd_peak_detection_config()`: add parameters for the detection of
+                                     peaks in power spectra to configuration.
+- `psd_peak_detection_args()`: retrieve parameters for the detection of peaks
+                               in power spectra from configuration.
+- `add_harmonic_groups_config()`: add parameters for the detection of
+                                  harmonic groups to configuration.
+- `harmonic_groups_args()`: retrieve parameters for the detection of
+                            harmonic groups from configuration.
 """
 
 from __future__ import print_function
@@ -801,16 +807,16 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     all_freqs[:, 1] = power(all_freqs[:, 1])
 
     # detect harmonic groups:
-    groups, fzero_harmonics, mains = extract_fundamentals(freqs, all_freqs, delta_f,
-                                                          verbose, freq_tol_fac,
-                                                          mains_freq, min_freq, max_freq,
-                                                          max_divisor, max_upper_fill,
-                                                          max_double_use_harmonics,
-                                                          max_double_use_count, max_fill_ratio,
-                                                          power_n_harmonics, min_group_size,
-                                                          max_harmonics, max_groups)
+    groups, fzero_harmonics, mains = \
+      extract_fundamentals(freqs, all_freqs, delta_f, verbose, freq_tol_fac,
+                           mains_freq, min_freq, max_freq,
+                           max_divisor, max_upper_fill,
+                           max_double_use_harmonics, max_double_use_count,
+                           max_fill_ratio, power_n_harmonics, min_group_size,
+                           max_harmonics, max_groups)
 
-    return groups, fzero_harmonics, mains, all_freqs, freqs[:, 0], low_threshold, high_threshold, center
+    return (groups, fzero_harmonics, mains, all_freqs, freqs[:, 0],
+            low_threshold, high_threshold, center)
 
 
 def fundamental_freqs(group_list):
@@ -818,14 +824,15 @@ def fundamental_freqs(group_list):
     Extract fundamental frequencies from lists of harmonic groups.
 
     The inner list of 2-D arrays of the input argument is transformed into
-    a 1-D array containig the fundamental frequencies extracted from the 2-D arrays.
+    a 1-D array containig the fundamental frequencies extracted from
+    the 2-D arrays.
 
     Parameters
     ----------
     group_list: (list of (list of ...)) list of 2-D arrays
-        Arbitrarily nested lists of harmonic groups as returned by extract_fundamentals()
-        and harmonic_groups() with the element [0, 0] of the
-        harmonic groups being the fundamental frequency.
+        Arbitrarily nested lists of harmonic groups as returned by
+        extract_fundamentals() and harmonic_groups() with the element
+        [0, 0] being the fundamental frequency.
 
     Returns
     -------
@@ -853,32 +860,31 @@ def fundamental_freqs(group_list):
     return fundamentals
 
 
-def fundamental_freqs_and_power(group_list, n_harmonics=1, power=False,
+def fundamental_freqs_and_power(group_list, power=False,
                                 ref_power=1.0, min_power=1e-20):
     """
     Extract fundamental frequencies and their power in dB from lists of harmonic groups.
 
     The inner list of 2-D arrays of the input argument is transformed
     into a 2-D array containig for each fish (1st dimension) the
-    fundamental frequencies and powers extracted from the 2-D arrays.
+    fundamental frequencies and powers (summed over all harmonics)
+    extracted from the 2-D arrays.
     
     Parameters
     ----------
     group_list: (list of (list of ...)) list of 2-D arrays
-        Arbitrarily nested lists of harmonic groups as returned by extract_fundamentals()
-        and harmonic_groups() with the element [0, 0] of the
-        harmonic groups being the fundamental frequency and the elements [:,1] being
+        Arbitrarily nested lists of harmonic groups as returned by
+        extract_fundamentals() and harmonic_groups() with the element
+        [0, 0] being the fundamental frequency and the elements [:,1] being
         the powers of each harmonics.
-    n_harmonics: int
-        For the power sum over the first `n_harmonmics` harmonics (including the
-        fundamental frequency). The default value of 1 returns the power of the
-        fundamental frequency only.
     power: boolean
-        If `False` convert the power into decibel using the powerspectrum.decibel() function.
+        If `False` convert the power into decibel using the
+        powerspectrum.decibel() function.
     ref_power: float
-        Reference power for computing decibel. If set to `None` the maximum power is used.
+        Reference power for computing decibel.
+        If set to `None` the maximum power is used.
     min_power: float
-        Power values smaller than `min_power` are set to `np.nan`.
+        Power values smaller than `min_power` are set to `-np.inf`.
 
     Returns
     -------
@@ -899,7 +905,7 @@ def fundamental_freqs_and_power(group_list, n_harmonics=1, power=False,
             break
         
     if list_of_groups:
-        fundamentals = np.array([[group[0, 0], np.sum(group[0:n_harmonics, 1])]
+        fundamentals = np.array([[group[0, 0], np.sum(group[:, 1])]
                             for group in group_list if len(group) > 0])
         if not power:
             fundamentals[:, 1] = decibel(fundamentals[:, 1], ref_power, min_power)
