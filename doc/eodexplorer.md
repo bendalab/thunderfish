@@ -31,7 +31,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -l                    list all available data columns and exit
-  -j [JOBS]             number of jobs run in parallel. Without argument use
+  -j [JOBS]             number of jobs run in parallel for loading waveform data. Without argument use
                         all CPU cores.
   -D {all,allpower,noise,timing,ampl,relampl,power,relpower,phase,time,width,none}
                         default selection of data columns, check them with the
@@ -68,6 +68,6 @@ backspace               zoom back
 n, N                    decrease, increase number of bins of histograms
 h                       toggle between scatter plot and 2D histogram
 c, C                    cycle color map trough data columns
-left, right, up, down   show and move enlarged scatter plot
-escape                  close enlarged scatter plot
+left, right, up, down   show and move magnified scatter plot
+escape                  close magnified scatter plot
 ```
