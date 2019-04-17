@@ -18,8 +18,9 @@
 
 ## Storage
 - `save_eod_waveform()`: save mean eod waveform to file.
-- `save_wave_eods()`: save properties of wave-type EODs to file.
-- `save_pulse_eods()`: save properties of pulse-type EODs to file.
+- `save_wave_eodfs()`: save frequencies of all wave-type EODs to file.
+- `save_wave_fish()`: save properties of wave-type EODs to file.
+- `save_pulse_fish()`: save properties of pulse-type EODs to file.
 - `save_wave_spectrum()`: save amplitude and phase spectrum of wave-type EOD to file.
 - `save_pulse_spectrum()`: save power spectrum of pulse-type EOD to file.
 - `save_pulse_peaks()`: save peak properties of pulse-type EOD to file.
@@ -48,6 +49,7 @@ import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from .eventdetection import threshold_crossings, threshold_crossing_times
 from .powerspectrum import psd, nfft, decibel
+from .harmonicgroups import fundamental_freqs_and_power
 from .tabledata import TableData
 
 
@@ -1083,7 +1085,40 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     return file_name
 
 
-def save_wave_eods(wave_props, unit, basename, **kwargs):
+def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
+    """ Save frequencies of all wave-type EODs to file.
+
+    Parameter
+    ---------
+    wave_eodfs: list of 2D arrays
+        Each item is a matrix with the frequencies and powers (columns) of the
+        fundamental and harmonics (rwos) as returned by harmonic groups().
+    wave_indices: array
+        Indices identifying each fish or NaN.
+        If None no index column is inserted.
+    basename: string
+        Path and basename of file.
+        '-waveeodfs' and a file extension are appended.
+    kwargs:
+        Arguments passed on to TableData.write()
+
+    Returns
+    -------
+    filename: string
+        The path and full name of the written file.
+    """
+    eodfs = fundamental_freqs_and_power(wave_eodfs)
+    td = TableData()
+    if wave_indices is not None:
+        td.append('index', '', '%d', wave_indices)
+    td.append('EODf', 'Hz', '%7.2f', eodfs[:,0])
+    td.append('power', 'dB', '%7.2f', eodfs[:,1])
+    fp = basename + '-waveeodfs'
+    file_name = td.write(fp, **kwargs)
+    return file_name
+
+    
+def save_wave_fish(wave_props, unit, basename, **kwargs):
     """ Save properties of wave-type EODs to file.
 
     Parameter
@@ -1093,7 +1128,8 @@ def save_wave_eods(wave_props, unit, basename, **kwargs):
     unit: string
         Unit of the waveform data.
     basename: string
-        Path and basename of file. '-wavefish' and a file extension are appended.
+        Path and basename of file.
+        '-wavefish' and a file extension are appended.
     kwargs:
         Arguments passed on to TableData.write()
 
@@ -1128,7 +1164,7 @@ def save_wave_eods(wave_props, unit, basename, **kwargs):
     return file_name
 
 
-def save_pulse_eods(pulse_props, unit, basename, **kwargs):
+def save_pulse_fish(pulse_props, unit, basename, **kwargs):
     """ Save properties of pulse-type EODs to file.
 
     Parameter
@@ -1138,7 +1174,8 @@ def save_pulse_eods(pulse_props, unit, basename, **kwargs):
     unit: string
         Unit of the waveform data.
     basename: string
-        Path and basename of file. '-pulsefish' and a file extension are appended.
+        Path and basename of file.
+        '-pulsefish' and a file extension are appended.
     kwargs:
         Arguments passed on to TableData.write()
 
@@ -1184,7 +1221,8 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     Parameter
     ---------
     spec_data: 2D array of floats
-        Amplitude and phase spectrum of wave-type EOD as returned by analyze_wave().
+        Amplitude and phase spectrum of wave-type EOD as
+        returned by analyze_wave().
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1250,7 +1288,8 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     Parameter
     ---------
     peak_data: 2D array of floats
-        Properties of peaks and troughs of pulse-tyoe EOD as returned by analyze_pulse().
+        Properties of peaks and troughs of pulse-tyoe EOD
+        as returned by analyze_pulse().
     unit: string
         Unit of the waveform data.
     idx: int or None

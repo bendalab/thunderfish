@@ -166,9 +166,10 @@ exist it is created.
 
 The following files are generated:
 - `RECORDING-eodwaveform-N.EXT`: averaged EOD waveform
-- `RECORDING-wavefish.EXT`: list of all detected wave-type fish
+- `RECORDING-waveeodfs.EXT`: list of all detected EOD frequencies and powers of wave-type fish
+- `RECORDING-wavefish.EXT`: list of EOD properties of wave-type fish
 - `RECORDING-wavespectrum-N.EXT`: for each wave-type fish the Fourier spectrum
-- `RECORDING-pulsefish.EXT`: list of all detected pulse-type fish
+- `RECORDING-pulsefish.EXT`: list of EOD properties of pulse-type fish
 - `RECORDING-pulsepeaks-N.EXT`: for each pulse-type fish properties of peaks and troughs
 - `RECORDING-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a singel pulse
 
@@ -237,6 +238,52 @@ The columns contain:
 3. Corresponding standard deviation.
 4. A fit to the averaged waveform. In case of a wave fish this is
    a Fourier series, for pulse fish it is an exponential fit to the tail of the last peak.
+
+### RECORDING-waveeodfs.EXT
+
+List of all detected EOD frequencies and powers of wave-type fish
+
+<table>
+<thead>
+  <tr>
+    <th align="left">index</th>
+    <th align="left">EODf</th>
+    <th align="left">power</th>
+  </tr>
+  <tr>
+    <th align="left">-</th>
+    <th align="left">Hz</th>
+    <th align="left">dB</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td align="right">1</td>
+    <td align="right">111.17</td>
+    <td align="right">-34.02</td>
+  </tr>
+  <tr>
+    <td align="right">2</td>
+    <td align="right">133.02</td>
+    <td align="right">-34.56</td>
+  </tr>
+  <tr>
+    <td align="right">0</td>
+    <td align="right">580.08</td>
+    <td align="right">-22.42</td>
+  </tr>
+  <tr>
+    <td align="right">3</td>
+    <td align="right">608.64</td>
+    <td align="right">-44.21</td>
+  </tr>
+</tbody>
+</table>
+
+The columns contain:
+1. Index of the fish (the number that is also used to number the files).
+2. EOD frequency in Hertz.
+3. Power of this EOD in decibel (sum over all peaks in the power spectrum of the recording).
 
 
 ### RECORDING-wavefish.EXT

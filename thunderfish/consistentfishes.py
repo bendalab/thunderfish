@@ -12,15 +12,20 @@ from .harmonicgroups import fundamental_freqs
 
 def find_consistency(fundamentals, df_th=1.0):
     """
-    Compares lists of floats to find these values consistent in every list. (with a certain threshold)
+    Compares lists of floats to find these values consistent in every list.
+    (with a certain threshold)
 
-    Every value of the first list is compared to the values of the other lists. The consistency_help array consists in
-    the beginning of ones, has the same length as the first list and is used to keep the information about values that
-    are available in several lists. If the difference between a value of the first list and a value of another list is
-    below the threshold the entry of the consistency_help array is added 1 to at the index of the value in the value in
-    the first list. The indices of the consistency_help array that are equal to the amount of lists compared are the
-    indices of the values of the first list that are consistent in all lists. The consistent value array and the indices
-    are returned.
+    Every value of the first list is compared to the values of the other
+    lists. The consistency_help array consists in the beginning of ones,
+    has the same length as the first list and is used to keep the
+    information about values that are available in several lists. If the
+    difference between a value of the first list and a value of another
+    list is below the threshold the entry of the consistency_help array
+    is added 1 to at the index of the value in the value in the first
+    list. The indices of the consistency_help array that are equal to
+    the amount of lists compared are the indices of the values of the
+    first list that are consistent in all lists. The consistent value
+    array and the indices are returned.
 
 
     Parameters
@@ -62,7 +67,7 @@ def consistent_fishes(fishlists, verbose=0, plot_data_func=None, df_th=1.0, **kw
 
     Parameters
     ----------
-    fishlists: 4-D array
+    fishlists: list of list of 2D array
         List of fishlists with harmonics and each frequency and power.
         fishlists[fishlist][fish][harmonic][frequency, power]
     plot_data_func:
@@ -78,7 +83,7 @@ def consistent_fishes(fishlists, verbose=0, plot_data_func=None, df_th=1.0, **kw
 
     Returns
     -------
-    filtered_fishlist: 3-D array
+    filtered_fishlist: list of 2-D arrays
         New fishlist with the same structure as a fishlist in fishlists only
         containing these fishes that are available in every fishlist in fishlists.
         fishlist[fish][harmonic][frequency, power]
