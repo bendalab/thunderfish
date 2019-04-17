@@ -167,15 +167,15 @@ exist it is created.
 The following files are generated:
 - `RECORDING-eodwaveform-N.EXT`: averaged EOD waveform
 - `RECORDING-waveeodfs.EXT`: list of all detected EOD frequencies and powers of wave-type fish
-- `RECORDING-wavefish.EXT`: list of EOD properties of wave-type fish
+- `RECORDING-wavefish.EXT`: list of properties good EODs of wave-type fish
 - `RECORDING-wavespectrum-N.EXT`: for each wave-type fish the Fourier spectrum
-- `RECORDING-pulsefish.EXT`: list of EOD properties of pulse-type fish
+- `RECORDING-pulsefish.EXT`: list of properties of good EODs of pulse-type fish
 - `RECORDING-pulsepeaks-N.EXT`: for each pulse-type fish properties of peaks and troughs
-- `RECORDING-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a singel pulse
+- `RECORDING-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a single pulse
 
-The filenames are composed of the basename of the input file (RECORDING).
-The fish detected in the recordings are numbered, starting with 0 (N).
-The file extension depends on the chosen file format (EXT).
+Filenames are composed of the basename of the input file (`RECORDING`).
+Fish detected in the recordings are numbered, starting with 0 (`N`).
+The file extension depends on the chosen file format (`EXT`).
 The following sections describe the content of the generated files.
 
 
@@ -233,15 +233,15 @@ For each fish the average waveform with standard deviation and fit.
 </table>
 
 The columns contain:
-1. Time in milliseconds.
-2. Averaged waveform in the unit of the input data.
-3. Corresponding standard deviation.
-4. A fit to the averaged waveform. In case of a wave fish this is
+1. `time` Time in milliseconds.
+2. `mean` Averaged waveform in the unit of the input data.
+3. `std` Corresponding standard deviation.
+4. `fit` A fit to the averaged waveform. In case of a wave fish this is
    a Fourier series, for pulse fish it is an exponential fit to the tail of the last peak.
 
 ### RECORDING-waveeodfs.EXT
 
-List of all detected EOD frequencies and powers of wave-type fish
+List of all detected EOD frequencies and powers of wave-type fish.
 
 <table>
 <thead>
@@ -281,9 +281,10 @@ List of all detected EOD frequencies and powers of wave-type fish
 </table>
 
 The columns contain:
-1. Index of the fish (the number that is also used to number the files).
-2. EOD frequency in Hertz.
-3. Power of this EOD in decibel (sum over all peaks in the power spectrum of the recording).
+1. `index` Index of the fish (the number that is also used to number the files).
+2. `EODf` EOD frequency in Hertz.
+3. `power` Power of this EOD in decibel (sum over all peaks in the power spectrum 
+   of the recording).
 
 
 ### RECORDING-wavefish.EXT
@@ -411,24 +412,24 @@ wave-type fish detected in the recording.
 </table>
 
 The columns contain:
-1. Index of the fish (the number that is also used to number the files).
-2. EOD frequency in Hertz.
-3. Power of this EOD in decibel.
-4. Peak-to-peak amplitude in the units of the input data.
-5. Root-mean-variance of the averaged EOD waveform relative to the
+1. `index` Index of the fish (the number that is also used to number the files).
+2. `EODf` EOD frequency in Hertz.
+3. `power` Power of this EOD in decibel.
+4. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
+5. `noise` Root-mean-variance of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-6. Root-mean-squared difference between the averaged EOD waveform and 
+6. `rmserror` Root-mean-squared difference between the averaged EOD waveform and 
    the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
-7. Percentage of recording that is clipped.
-8. Whether the waveform was flipped.
-9. Number of EODs used for computing the averaged EOD waveform.
-10. Width of the peak at the averaged amplitude relative to EOD period.
-11. Width of the trough at the averaged amplitude relative to EOD period.
-12. Time from positive zero crossing to peak relative to EOD period.
-13. Time from peak to negative zero crossing relative to EOD period.
-14. Time from negative zero crossing to trough relative to EOD period.
-15. Time from trough to positive zero crossing relative to EOD period.
-16. Time between peak and trough relative to EOD period.
+7. `clipped` Percentage of recording that is clipped.
+8. `flipped` Whether the waveform was flipped.
+9. `n` Number of EODs used for computing the averaged EOD waveform.
+10. `peakwidth` Width of the peak at the averaged amplitude relative to EOD period.
+11. `troughwidth` Width of the trough at the averaged amplitude relative to EOD period.
+12. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
+13. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
+14. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
+15. `righttrough` Time from trough to positive zero crossing relative to EOD period.
+16. `p-p-distance` Time between peak and trough relative to EOD period.
 
 
 ### RECORDING-wavespectrum-N.EXT
@@ -506,13 +507,13 @@ The parameter of the Fourier series fitted to the waveform of a wave-type fish.
 </table>
 
 The columns contain:
-1. Index of the harmonics. The first one with index 0 is the fundamental frequency.
-2. Frequency of the harmonics in Hertz.
-3. Amplitude of each harmonics obtained by fitting a Fourier series to the data in the unit of the input data.
-4. Amplitude of each harmonics relative to the amplitude of the fundamental in percent.
-5. Power of each harmonics relative to fundamental in decibel.
-6. Phase of each harmonics obtained by fitting a Fourier series to the data in radians ranging from 0 to 2 pi.
-7. Power spectral density of the harmonics from the original power spectrum of the data.
+1. `harmonics` Index of the harmonics. The first one with index 0 is the fundamental frequency.
+2. `frequency` Frequency of the harmonics in Hertz.
+3. `amplitude` Amplitude of each harmonics obtained by fitting a Fourier series to the data in the unit of the input data.
+4. `relampl` Amplitude of each harmonics relative to the amplitude of the fundamental in percent.
+5. `relpower` Power of each harmonics relative to fundamental in decibel.
+6. `phase` Phase of each harmonics obtained by fitting a Fourier series to the data in radians ranging from 0 to 2 pi.
+7. `power` Power spectral density of the harmonics from the original power spectrum of the data.
 
 
 ### RECORDING-pulsefish.EXT
@@ -600,28 +601,28 @@ Properties of each pulse-type fish detected in the recording.
 </table>
 
 The columns contain:
-1. Index of the fish (the number that is also used to number the files).
-2. EOD frequency in Hertz.
-3. Period between two pulses (1/EODf) in milliseconds.
-4. Amplitude of the largest peak (P1 peak) in the units of the input data.
-5. Amplitude of the largest trough in the units of the input data.
-6. Peak-to-peak amplitude in the units of the input data.
-7. Root-mean-variance of the averaged EOD waveform relative to the
+1. `index` Index of the fish (the number that is also used to number the files).
+2. `EODf` EOD frequency in Hertz.
+3. `period` Period between two pulses (1/EODf) in milliseconds.
+4. `max-ampl` Amplitude of the largest peak (P1 peak) in the units of the input data.
+5. `min-ampl` Amplitude of the largest trough in the units of the input data.
+6. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
+7. `noise` Root-mean-variance of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-8. Percentage of recording that is clipped.
-9. Whether the waveform was flipped.
-10. Time where the pulse starts relative to P1 in milliseconds.
-11. Time where the pulse ends relative to P1 in milliseconds.
-12. Total width of the pulse in milliseconds.
-13. Time constant of the exponential decay of the tail of the pulse in milliseconds.
-14. Index of the first peak in the pulse (i.e. -1 for P-1)
-15. Index of the last peak in the pulse (i.e. 3 for P3)
-16. Number of EODs used for computing the averaged EOD waveform.
-17. Frequency at the peak power of the single pulse spectrum in Hertz.
-18. Peak power of the single pulse spectrum in decibel.
-19. How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-20. How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-21. Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+8. `clipped` Percentage of recording that is clipped.
+9. `flipped` Whether the waveform was flipped.
+10. `tstart` Time where the pulse starts relative to P1 in milliseconds.
+11. `tend` Time where the pulse ends relative to P1 in milliseconds.
+12. `width` Total width of the pulse in milliseconds.
+13. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
+14. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1)
+15. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3)
+16. `n` Number of EODs used for computing the averaged EOD waveform.
+17. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
+18. `peakpower` Peak power of the single pulse spectrum in decibel.
+19. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+20. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+21. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
 ### RECORDING-pulsepeaks-N.EXT
@@ -664,12 +665,12 @@ Properties of peaks and troughs of a pulse-type fish's EOD.
 </table>
 
 The columns contain:
-1. Name of the peak/trough. Peaks and troughs are numbered sequentially. P1 is the 
+1. `P` Name of the peak/trough. Peaks and troughs are numbered sequentially. P1 is the 
    largest peak with positive amplitude.
-2. Time of the peak/trough relative to P1 in milliseconds.
-3. Amplitude of the peak/trough in the unit of the input data.
-4. Amplitude of the peak/trough relative to the amplitude of P1.
-5. Width of the peak/trough at half height in milliseconds. 
+2. `time` Time of the peak/trough relative to P1 in milliseconds.
+3. `amplitude` Amplitude of the peak/trough in the unit of the input data.
+4. `relampl` Amplitude of the peak/trough relative to the amplitude of P1.
+5. `width` Width of the peak/trough at half height in milliseconds. 
 
 
 ### RECORDING-pulsespectrum-N.EXT
@@ -716,6 +717,6 @@ The power spectrum of a single EOD pulse of a pulse-type fish:
 </table>
 
 The columns contain:
-1. Frequency in Hertz.
-2. Power spectral density.
+1. `frequency` Frequency in Hertz.
+2. `power` Power spectral density.
 
