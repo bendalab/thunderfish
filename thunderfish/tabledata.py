@@ -730,7 +730,7 @@ class TableData:
             for c, f in enumerate(formats):
                 self.formats[c] = f or '%g'
         else:
-            for c in range(len(formats)):
+            for c in range(len(self.formats)):
                 self.formats[c] = formats or '%g'
 
     def table_header(self):
