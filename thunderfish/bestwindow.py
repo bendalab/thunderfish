@@ -19,7 +19,7 @@ Select the region within a recording with the most stable signal of largest ampl
 - `plot_best_window()`: visualization of the algorithm used in best_window_indices().
 - `plot_best_data()`: plot the data and the selected best window.
 
-## Convinience function
+## Convenience function
 - `find_best_window()`: set clipping amplitudes and find best window.
 """
 
@@ -303,7 +303,8 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
 
     # threshold for peak detection:
     threshold = percentile_threshold(data, samplerate, win_shift,
-                                     thresh_fac=thresh_fac, percentile=percentile)
+                                     thresh_fac=thresh_fac,
+                                     percentile=percentile)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = detect_peaks(data, threshold)
@@ -313,7 +314,8 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
     # compute cv of intervals, mean peak amplitude and its cv:
     invalid_cv = 1000.0
     win_size_indices = int(win_size * samplerate)
-    win_start_inxs = np.arange(0, len(data) - win_size_indices, int(0.5*win_shift*samplerate))
+    win_start_inxs = np.arange(0, len(data) - win_size_indices,
+                               int(0.5*win_shift*samplerate))
     cv_interv = np.zeros(len(win_start_inxs))
     mean_ampl = np.zeros(len(win_start_inxs))
     cv_ampl = np.zeros(len(win_start_inxs))
