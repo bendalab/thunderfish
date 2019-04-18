@@ -913,15 +913,18 @@ def main():
     if args.file:
         # load data:
         data = TableData(args.file)
+        # initialize explorer:
+        expl = MultivariateExplorer(data)
     else:
         # generate data:
-        data = TableData()
         n = 100
-        data.append('A', '', '%.3f', np.random.randn(20))
-        data.append('B', '', '%.3f', data[:,0] + 0.3*np.random.randn(20))
-        data.append('C', '', '%.3f', data[:,0] - 2.0*data[:,1] + 0.5*np.random.randn(20))
-    # explore data (minimum example):
-    expl = MultivariateExplorer(data)
+        data = np.zeros((n, 3))
+        data[:,0] = np.random.randn(n)
+        data[:,1] = 2.0*data[:,0] + 2.5*np.random.randn(n)
+        data[:,2] = -3.0*data[:,0] - 2.0*data[:,1] + 1.8*np.random.randn(n)
+        # initialize explorer:
+        expl = MultivariateExplorer(data, ['A', 'B', 'C'])
+    # explore data:
     expl.set_colors()
     expl.show()
 
