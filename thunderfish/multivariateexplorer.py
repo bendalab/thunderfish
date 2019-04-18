@@ -71,6 +71,8 @@ class MultivariateExplorer(object):
         self.data = self.all_data[self.show_mode]
         self.labels = self.all_labels[self.show_mode]
         self.maxcols = self.all_maxcols[self.show_mode]
+        if self.maxcols > 6:
+            self.maxcols = 6
         # waveform data:
         self.waveform_data = waveform_data
         # colors:
@@ -222,6 +224,8 @@ class MultivariateExplorer(object):
             pca_maxcols = np.argmax(pca.explained_variance_ratio_ < 0.01)
         if pca_maxcols < 2:
             pca_maxcols = 2
+        if pca_maxcols > 6:
+            pca_maxcols = 6
         # table with PCA feature weights:
         pca_table = self.pca_tables[1] if scale else self.pca_tables[0]
         pca_table.clear_data()
