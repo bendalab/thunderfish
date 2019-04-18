@@ -312,14 +312,14 @@ def main():
     if skipped > 0:
         print('')
 
-    # add cluster column (experimental):
+    # add species column (experimental):
     if wave_fish:
-        # wavefish cluster:
-        cluster = np.zeros(data.rows())
-        cluster[(data[:,'phase1'] < 0) & (data[:,'EODf'] < 300.0)] = 1
-        cluster[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0)] = 2
-        cluster[data[:,'phase1'] > 0] = 3
-        data.append('cluster', '', '%d', cluster)
+        # wavefish species:
+        species = np.zeros(data.rows(), object)
+        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] < 300.0)] = 'Sternopygus'
+        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0)] = 'Eigenmannia'
+        species[data[:,'phase1'] > 0] = 'Apteronotus'
+        data.append('species', '', '%d', species)
 
     if wave_fish:
         # maximum number of harmonics:

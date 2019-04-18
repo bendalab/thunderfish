@@ -31,8 +31,11 @@ class MultivariateExplorer(object):
 
         Parameter
         ---------
-        data: TableData or 2D array
+        data: TableData, 2D array, or list of 1D arrays
             The data to be explored. Each column is a variable.
+            For the 2D array the columns are the second dimension,
+            for a list of 1D arrays, the list goes over columns,
+            i.e. each 1D array is one column.
         labels: list of string
             If data is not a TableData, then this provides labels
             for the data columns.
@@ -44,6 +47,16 @@ class MultivariateExplorer(object):
         """
         # data and labels:
         if isinstance(data, TableData):
+            self.categories = []
+            for c, col in enumerate(data):
+                if not isinstance(col[0], (int, float)):
+                    # categorial data:
+                    cats = sorted(set(col))
+                    idxcol = [cats.index(x) for x in col]
+                    data[:,c] = idxcol
+                    self.categories.append(cats)
+                else:
+                    self.categories.append(None)
             self.raw_data = data.array()
             if labels is None:
                 self.raw_labels = []
@@ -55,7 +68,20 @@ class MultivariateExplorer(object):
             else:
                 self.raw_labels = labels
         else:
-            self.raw_data = data
+            if isinstance(data, np.ndarray):
+                self.raw_data = data
+            else:
+                self.categories = []
+                for c, col in enumerate(data):
+                    if not isinstance(col[0], (int, float)):
+                        # categorial data:
+                        cats = sorted(set(col))
+                        idxcol = [cats.index(x) for x in col]
+                        data[c] = idxcol
+                        self.categories.append(cats)
+                    else:
+                        self.categories.append(None)
+                self.raw_data = np.asarray(data).T
             self.raw_labels = labels
         self.title = title if title is not None else 'MultivariateExplorer'
         # no pca data yet:
@@ -79,6 +105,7 @@ class MultivariateExplorer(object):
         self.color_map = None
         self.extra_colors = None
         self.extra_color_label = None
+        self.extra_categories = None
         self.color_values = None
         self.color_set_index = None
         self.color_index = None
@@ -142,7 +169,14 @@ class MultivariateExplorer(object):
             self.color_set_index = 0
             self.color_index = colors
         else:
-            self.extra_colors = colors
+            if not isinstance(colors[0], (int, float)):
+                # categorial data:
+                cats = sorted(set(colors))
+                idxcol = [cats.index(x) for x in colors]
+                self.extra_colors = idxcol
+                self.extra_categories = cats
+            else:
+                self.extra_colors = colors
             self.extra_color_label = color_label
             self.color_set_index = -1
             self.color_index = 1
@@ -287,10 +321,18 @@ class MultivariateExplorer(object):
             self.color_label = self.all_labels[self.color_set_index][self.color_index]
         self.color_vmin, self.color_vmax, self.color_ticks = \
           self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
+        if self.color_ticks is None:
+            if self.color_set_index == 0 and \
+               self.categories[self.color_index] is not None:
+                self.color_ticks = np.arange(len(self.categories[self.color_index]))
+            elif self.color_set_index == -1 and \
+                 self.color_index == 1 and \
+                 self.extra_categories is not None:
+                self.color_ticks = np.arange(len(self.extra_categories))
         self.data_colors = self.color_map((self.color_values - self.color_vmin)/(self.color_vmax - self.color_vmin))
 
                             
-    def _plot_hist(self, ax, zoomax, keep_lims):
+    def _plot_hist(self, ax, magnifiedax, keep_lims):
         ax_xlim = ax.get_xlim()
         ax_ylim = ax.get_ylim()
         try:
@@ -306,8 +348,11 @@ class MultivariateExplorer(object):
         ax.autoscale(True)
         ax.hist(self.data[:,c], self.hist_nbins)
         ax.set_xlabel(self.labels[c])
+        if self.categories[c] is not None:
+            ax.set_xticks(np.arange(len(self.categories[c])))
+            ax.set_xticklabels(self.categories[c])
         self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
-        if zoomax:
+        if magnifiedax:
             ax.set_ylabel('count')
             cax = self.hist_ax[self.scatter_indices[-1][0]]
             ax.set_xlim(cax.get_xlim())
@@ -331,7 +376,7 @@ class MultivariateExplorer(object):
         else:
             self.sctter_selector[idx] = selector
             self.scatter_artists[idx] = None
-        if zoomax:
+        if magnifiedax:
             bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
             if bbox is not None:
                 self.magnified_backdrop = patches.Rectangle((bbox.x0, bbox.y0),
@@ -355,7 +400,7 @@ class MultivariateExplorer(object):
             yax = ax
 
                         
-    def _plot_scatter(self, ax, zoomax, keep_lims, cax=None):
+    def _plot_scatter(self, ax, magnifiedax, keep_lims, cax=None):
         ax_xlim = ax.get_xlim()
         ax_ylim = ax.get_ylim()
         idx = self.scatter_ax.index(ax)
@@ -372,6 +417,14 @@ class MultivariateExplorer(object):
                 cax.set_ylabel(self.color_label)
                 self.color_vmin, self.color_vmax, self.color_ticks = \
                   self.fix_scatter_plot(self.cbax, self.color_values, self.color_label, 'c')
+                if self.color_ticks is None:
+                    if self.color_set_index == 0 and \
+                       self.categories[self.color_index] is not None:
+                        cax.set_yticklabels(self.categories[self.color_index])
+                    elif self.color_set_index == -1 and \
+                         self.color_index == 1 and \
+                         self.extra_categories is not None:
+                        cax.set_yticklabels(self.extra_categories)
         else:
             ax.autoscale(True)
             self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
@@ -383,9 +436,15 @@ class MultivariateExplorer(object):
         a = ax.scatter(self.data[self.mark_data,c], self.data[self.mark_data,r],
                        c=self.data_colors[self.mark_data], s=80, zorder=11)
         self.scatter_artists[idx] = a
+        if self.categories[c] is not None:
+            ax.set_xticks(np.arange(len(self.categories[c])))
+            ax.set_xticklabels(self.categories[c])
+        if self.categories[r] is not None:
+            ax.set_yticks(np.arange(len(self.categories[r])))
+            ax.set_yticklabels(self.categories[r])
         self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
         self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
-        if zoomax:
+        if magnifiedax:
             ax.set_xlabel(self.labels[c])
             ax.set_ylabel(self.labels[r])
             cax = self.scatter_ax[self.scatter_indices[:-1].index(self.scatter_indices[-1])]
@@ -400,7 +459,7 @@ class MultivariateExplorer(object):
         if keep_lims:
             ax.set_xlim(*ax_xlim)
             ax.set_ylim(*ax_ylim)
-        if zoomax:
+        if magnifiedax:
             bbox = ax.get_tightbbox(self.fig.canvas.get_renderer())
             if bbox is not None:
                 self.magnified_backdrop = patches.Rectangle((bbox.x0, bbox.y0),
@@ -922,12 +981,16 @@ def main():
     else:
         # generate data:
         n = 100
-        data = np.zeros((n, 3))
-        data[:,0] = np.random.randn(n)
-        data[:,1] = 2.0*data[:,0] + 2.5*np.random.randn(n)
-        data[:,2] = -3.0*data[:,0] - 2.0*data[:,1] + 1.8*np.random.randn(n)
+        data = []
+        data.append(np.random.randn(n))
+        data.append(2.0*data[0] + 2.5*np.random.randn(n))
+        data.append(-3.0*data[0] - 2.0*data[1] + 1.8*np.random.randn(n))
+        idx = np.random.randint(0, 3, n)
+        names = ['aaa', 'bbb', 'ccc']
+        data.append([names[i] for i in idx])
         # initialize explorer:
-        expl = MultivariateExplorer(data, ['A', 'B', 'C'])
+        expl = MultivariateExplorer(data,
+                                    map(chr, np.arange(len(data))+ord('A')))
     # explore data:
     expl.set_colors()
     expl.show()
