@@ -100,7 +100,12 @@ class MultivariateExplorer(object):
         if self.maxcols > 6:
             self.maxcols = 6
         # waveform data:
-        self.waveform_data = waveform_data
+        self.waveform_data = []
+        if waveform_data is not None and len(waveform_data) > 0:
+            if isinstance(waveform_data[0], np.ndarray):
+                self.waveform_data = [waveform_data]
+            else:
+                self.waveform_data = waveform_data
         # colors:
         self.color_map = None
         self.extra_colors = None
@@ -146,8 +151,8 @@ class MultivariateExplorer(object):
         self.magnified_on = False
         self.magnified_backdrop = None
         self.magnified_size = np.array([0.5, 0.5])
-        # waveform plot:
-        self.wave_ax = None
+        # waveform plots:
+        self.wave_ax = []
 
         
     def set_colors(self, colors=0, color_label=None, color_map=None):
@@ -198,8 +203,11 @@ class MultivariateExplorer(object):
         self._set_color_column()
         self._init_hist_plots()
         self._init_scatter_plots()
-        if not self.waveform_data is None:
-            self.wave_ax = self.fig.add_subplot(2, 3, 3)
+        if len(self.waveform_data) > 0:
+            self.wave_ax = []
+            for k in range(len(self.waveform_data)):
+                ax = self.fig.add_subplot(1, len(self.waveform_data), 1+k)
+                self.wave_ax.append(ax)
             self.fix_waveform_plot(self.wave_ax, self.mark_data)
         self._plot_magnified_scatter()
         plt.show()
@@ -549,16 +557,25 @@ class MultivariateExplorer(object):
         return np.min(data), np.max(data), None
 
     
-    def fix_waveform_plot(self, ax, indices):
-        """ Customize the waveform plot.
+    def fix_waveform_plot(self, axs, indices):
+        """ Customize the waveform plots.
 
-        This function is called once after new data have been plotted into the waveform plot.
-        Reimplement this function to customize this plot.
+        This function is called once after new data have been plotted
+        into the waveform plots.  Reimplement this function to customize
+        these plots. In particular to set axis limits and labels, plot
+        title, etc.
+
+        For example, you can set the linewidth of all plotted waveforms via:
+        ```
+        for ax in axs:
+            for l in ax.lines:
+                l.set_linewidth(3.0)
+        ```
 
         Parameters
         ----------
-        ax: matplotlib axes
-            Axes of the waveform plot to be worked on.
+        axs: list of matplotlib axes
+            Axis of the waveform plots to be worked on.
         indices: list of int
             Indices of the waveforms that have been selected and plotted.
         """
@@ -666,14 +683,15 @@ class MultivariateExplorer(object):
                 artist.set_offsets(list(zip(self.data[self.mark_data,c],
                                             self.data[self.mark_data,r])))
                 artist.set_facecolors(self.data_colors[self.mark_data])
-        # waveform plot:
-        if not self.wave_ax is None:
-            self.wave_ax.clear()
+        # waveform plots:
+        for k, ax in enumerate(self.wave_ax):
+            ax.clear()
             for idx in self.mark_data:
-                if idx < len(self.waveform_data):
-                    self.wave_ax.plot(self.waveform_data[idx][:,0],
-                                      self.waveform_data[idx][:,1],
-                                      c=self.data_colors[idx], lw=3, picker=5)
+                if idx < len(self.waveform_data[k]):
+                    ax.plot(self.waveform_data[k][idx][:,0],
+                            self.waveform_data[k][idx][:,1],
+                            c=self.data_colors[idx],
+                            picker=self.pick_radius)
             self.fix_waveform_plot(self.wave_ax, self.mark_data)
         self.fig.canvas.draw()
 
@@ -782,9 +800,8 @@ class MultivariateExplorer(object):
                 for a in self.scatter_artists:
                     if a is not None:
                         a.set_facecolors(self.data_colors[self.mark_data])
-                if not self.wave_ax is None:
-                    for l, c in zip(self.wave_ax.lines,
-                                    self.data_colors[self.mark_data]):
+                for ax in self.wave_ax:
+                    for l, c in zip(ax.lines, self.data_colors[self.mark_data]):
                         l.set_color(c)
                 self._plot_scatter(self.scatter_ax[0], False, True, self.cbax)
                 self.fix_scatter_plot(self.cbax, self.color_values,
@@ -897,8 +914,8 @@ class MultivariateExplorer(object):
 
         
     def _on_pick(self, event):
-        if not self.wave_ax is None:
-            for k, l in enumerate(self.wave_ax.lines):
+        for ax in self.wave_ax:
+            for k, l in enumerate(ax.lines):
                 if l is event.artist:
                     self.mark_data = [self.mark_data[k]]
         self._update_selection()
@@ -941,8 +958,9 @@ class MultivariateExplorer(object):
         if self.maxcols%2 == 0:
             x0 += xoffs
             y0 += yoffs
-        if not self.wave_ax is None:
-            self.wave_ax.set_position([x0, y0, 1.0-x0-xs, 1.0-y0-3*ys])
+        for k, ax in enumerate(self.wave_ax):
+            dy = (1.0-y0)/len(self.wave_ax)
+            ax.set_position([x0, y0+k*dy, 1.0-x0-xs, dy-3*ys])
 
             
     def _update_layout(self):
@@ -982,15 +1000,25 @@ def main():
         # generate data:
         n = 100
         data = []
-        data.append(np.random.randn(n))
-        data.append(2.0*data[0] + 2.5*np.random.randn(n))
+        data.append(np.random.randn(n) + 2.0)
+        data.append(1.0+0.1*data[0] + 1.5*np.random.randn(n))
         data.append(-3.0*data[0] - 2.0*data[1] + 1.8*np.random.randn(n))
         idx = np.random.randint(0, 3, n)
         names = ['aaa', 'bbb', 'ccc']
         data.append([names[i] for i in idx])
+        # generate waveforms:
+        waveforms1 = []
+        waveforms2 = []
+        time = np.arange(0.0, 10.0, 0.01)
+        for r in range(len(data[0])):
+            x = data[0][r]*np.sin(2.0*np.pi*data[1][r]*time + data[2][r])
+            waveforms1.append(np.column_stack((time, x)))
+            y = data[0][r]*np.exp(-0.5*((time-data[1][r])/(0.2*data[2][r]))**2.0)
+            waveforms2.append(np.column_stack((time, y)))
         # initialize explorer:
         expl = MultivariateExplorer(data,
-                                    map(chr, np.arange(len(data))+ord('A')))
+                                    map(chr, np.arange(len(data))+ord('A')),
+                                    [waveforms1, waveforms2])
     # explore data:
     expl.set_colors()
     expl.show()
