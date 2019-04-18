@@ -64,35 +64,44 @@ class EODExplorer(MultivariateExplorer):
                 return -np.pi, np.pi, np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi)
         return np.min(data), np.max(data), None
 
+    
     def fix_waveform_plot(self, ax, indices):
         if len(indices) == 0:
-            ax[0].text(0.5, 0.5, 'Click to plot EOD waveforms',
-                    transform = ax[0].transAxes, ha='center', va='center')
-            ax[0].text(0.5, 0.3, 'n = %d' % len(self.raw_data),
-                    transform = ax[0].transAxes, ha='center', va='center')
+            ax[-1].text(0.5, 0.5, 'Click to plot EOD waveforms',
+                    transform = ax[-1].transAxes, ha='center', va='center')
+            ax[-1].text(0.5, 0.3, 'n = %d' % len(self.raw_data),
+                    transform = ax[-1].transAxes, ha='center', va='center')
         elif len(indices) == 1:
             if 'index' in self.eoddata and \
               np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
-                ax[0].set_title('%s: %d' % (self.eoddata[indices[0],'file'],
+                ax[-1].set_title('%s: %d' % (self.eoddata[indices[0],'file'],
                                             self.eoddata[indices[0],'index']))
             else:
-                ax[0].set_title(self.eoddata[indices[0],'file'])
-            ax[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
-                       transform = ax[0].transAxes)
+                ax[-1].set_title(self.eoddata[indices[0],'file'])
+            ax[-1].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
+                       transform = ax[-1].transAxes)
         else:
-            ax[0].set_title('%d EOD waveforms selected' % len(indices))
-        for l in ax[0].lines:
-            l.set_linewidth(3.0)
+            ax[-1].set_title('%d EOD waveforms selected' % len(indices))
+        for axi in ax:
+            for l in axi.lines:
+                l.set_linewidth(3.0)
+        for axi in ax:
+            if len(indices) > 0:
+                axi.axhline(c='k', lw=1)
+            if self.wave_fish:
+                axi.set_xlim(-0.7, 0.7)
+                axi.set_xlabel('Time [1/EODf]')
+            else:
+                axi.set_xlim(-0.5, 1.5)
+                axi.set_xlabel('Time [ms]')
         if self.wave_fish:
-            ax[0].set_xlim(-0.7, 0.7)
-            ax[0].set_xlabel('Time [1/EODf]')
-            ax[0].set_ylim(-1.0, 1.0)
+            ax[-1].set_ylim(-1.0, 1.0)
         else:
-            ax[0].set_xlim(-0.5, 1.5)
-            ax[0].set_xlabel('Time [ms]')
-            ax[0].set_ylim(-1.5, 1.0)
-        ax[0].set_ylabel('Amplitude')
-    
+            ax[-1].set_ylim(-1.5, 1.0)
+        ax[0].set_ylabel('Derivative')
+        ax[-1].set_ylabel('Amplitude')
+
+            
     def list_selection(self, indices):
         if 'index' in self.eoddata and \
            np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
@@ -115,7 +124,8 @@ class EODExplorer(MultivariateExplorer):
             for k, v in zip(keys, values):
                 fs = '%%-%ds: %%s' % keylen
                 print(fs % (k, v.strip()))
-    
+
+                
     def analyze_selection(self, index):
         # load data:
         basename = self.eoddata[index,'file']
@@ -465,10 +475,15 @@ def main():
         del p
     else:
         eod_data = list(map(load_waveform, range(data.rows())))
+    deriv_data = list(map(lambda x: np.column_stack((x[:-1,0], np.diff(x[:,1]))),
+                                                     eod_data))
+    wave_data = [deriv_data]
+    wave_data = [] # remove to show derivative
+    wave_data.append(eod_data)
 
     # explore:
-    eod_expl = EODExplorer(data, data_cols, wave_fish, eod_data,
-                          rawdata_path, cfg)
+    eod_expl = EODExplorer(data, data_cols, wave_fish, wave_data,
+                           rawdata_path, cfg)
     # write pca:
     if save_pca:
         eod_expl.compute_pca(False)

@@ -26,7 +26,7 @@ class MultivariateExplorer(object):
     See the documentation of these functions for details.
     """
     
-    def __init__(self, data, labels=None, waveform_data=None, title=None):
+    def __init__(self, data, labels=None, wave_data=None, title=None):
         """ Initialize with the data.
 
         Parameter
@@ -39,9 +39,13 @@ class MultivariateExplorer(object):
         labels: list of string
             If data is not a TableData, then this provides labels
             for the data columns.
-        waveform_data: List of 2D arrays
-            Waveform data associated with each row of the data.
-            `data[i][:,time], data[i][:,x]`
+        wave_data: (list of) list of 2D arrays
+            Waveform data associated with each row `i` of the data.
+            Either for a single plot: `wave_data[i][:,x], wave_data[i][:,y]`
+            or for several plots `p`:
+            `wave_data[p][i][:,x], wave_data[p][i][:,y]`.
+            Note that the first (outermost) list is over plots.
+            The inner lists are over data points.
         title: string
             Title for the window.
         """
@@ -100,12 +104,12 @@ class MultivariateExplorer(object):
         if self.maxcols > 6:
             self.maxcols = 6
         # waveform data:
-        self.waveform_data = []
-        if waveform_data is not None and len(waveform_data) > 0:
-            if isinstance(waveform_data[0], np.ndarray):
-                self.waveform_data = [waveform_data]
+        self.wave_data = []
+        if wave_data is not None and len(wave_data) > 0:
+            if isinstance(wave_data[0], np.ndarray):
+                self.wave_data = [wave_data]
             else:
-                self.waveform_data = waveform_data
+                self.wave_data = wave_data
         # colors:
         self.color_map = None
         self.extra_colors = None
@@ -203,10 +207,10 @@ class MultivariateExplorer(object):
         self._set_color_column()
         self._init_hist_plots()
         self._init_scatter_plots()
-        if len(self.waveform_data) > 0:
+        if len(self.wave_data) > 0:
             self.wave_ax = []
-            for k in range(len(self.waveform_data)):
-                ax = self.fig.add_subplot(1, len(self.waveform_data), 1+k)
+            for k in range(len(self.wave_data)):
+                ax = self.fig.add_subplot(1, len(self.wave_data), 1+k)
                 self.wave_ax.append(ax)
             self.fix_waveform_plot(self.wave_ax, self.mark_data)
         self._plot_magnified_scatter()
@@ -687,11 +691,12 @@ class MultivariateExplorer(object):
         for k, ax in enumerate(self.wave_ax):
             ax.clear()
             for idx in self.mark_data:
-                if idx < len(self.waveform_data[k]):
-                    ax.plot(self.waveform_data[k][idx][:,0],
-                            self.waveform_data[k][idx][:,1],
+                if idx < len(self.wave_data[k]):
+                    ax.plot(self.wave_data[k][idx][:,0],
+                            self.wave_data[k][idx][:,1],
                             c=self.data_colors[idx],
                             picker=self.pick_radius)
+        if len(self.wave_ax) > 0:
             self.fix_waveform_plot(self.wave_ax, self.mark_data)
         self.fig.canvas.draw()
 
