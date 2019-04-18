@@ -66,32 +66,32 @@ class EODExplorer(MultivariateExplorer):
 
     def fix_waveform_plot(self, ax, indices):
         if len(indices) == 0:
-            self.wave_ax.text(0.5, 0.5, 'Click to plot EOD waveforms',
-                              transform = self.wave_ax.transAxes,
-                              ha='center', va='center')
-            self.wave_ax.text(0.5, 0.3, 'n = %d' % len(self.raw_data),
-                              transform = self.wave_ax.transAxes,
-                              ha='center', va='center')
+            ax[0].text(0.5, 0.5, 'Click to plot EOD waveforms',
+                    transform = ax[0].transAxes, ha='center', va='center')
+            ax[0].text(0.5, 0.3, 'n = %d' % len(self.raw_data),
+                    transform = ax[0].transAxes, ha='center', va='center')
         elif len(indices) == 1:
             if 'index' in self.eoddata and \
               np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
-                ax.set_title('%s: %d' % (self.eoddata[indices[0],'file'],
-                                         self.eoddata[indices[0],'index']))
+                ax[0].set_title('%s: %d' % (self.eoddata[indices[0],'file'],
+                                            self.eoddata[indices[0],'index']))
             else:
-                ax.set_title(self.eoddata[indices[0],'file'])
-            ax.text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
-                    transform = self.wave_ax.transAxes)
+                ax[0].set_title(self.eoddata[indices[0],'file'])
+            ax[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
+                       transform = ax[0].transAxes)
         else:
-            ax.set_title('%d EOD waveforms selected' % len(indices))
+            ax[0].set_title('%d EOD waveforms selected' % len(indices))
+        for l in ax[0].lines:
+            l.set_linewidth(3.0)
         if self.wave_fish:
-            ax.set_xlim(-0.7, 0.7)
-            ax.set_xlabel('Time [1/EODf]')
-            ax.set_ylim(-1.0, 1.0)
+            ax[0].set_xlim(-0.7, 0.7)
+            ax[0].set_xlabel('Time [1/EODf]')
+            ax[0].set_ylim(-1.0, 1.0)
         else:
-            ax.set_xlim(-0.5, 1.5)
-            ax.set_xlabel('Time [ms]')
-            ax.set_ylim(-1.5, 1.0)
-        ax.set_ylabel('Amplitude')
+            ax[0].set_xlim(-0.5, 1.5)
+            ax[0].set_xlabel('Time [ms]')
+            ax[0].set_ylim(-1.5, 1.0)
+        ax[0].set_ylabel('Amplitude')
     
     def list_selection(self, indices):
         if 'index' in self.eoddata and \
