@@ -74,6 +74,17 @@ class EODExplorer(MultivariateExplorer):
                 if ax is not None:
                     ax.set_yticklabels([u'-\u03c0', u'-\u03c0/2', '0', u'\u03c0/2', u'\u03c0'])
                 return -np.pi, np.pi, np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi)
+        elif 'species' in label:
+            if axis == 'x':
+                for label in ax.get_xticklabels():
+                    label.set_rotation(30)
+                ax.set_xlabel('')
+                ax.set_xlim(np.min(data)-0.5, np.max(data)+0.5)
+            elif axis == 'y':
+                ax.set_ylabel('')
+                ax.set_ylim(np.min(data)-0.5, np.max(data)+0.5)
+            elif axis == 'c':
+                ax.set_ylabel('')
         return np.min(data), np.max(data), None
 
     
@@ -334,9 +345,9 @@ def main():
     if wave_fish:
         # wavefish species:
         species = np.zeros(data.rows(), object)
-        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] < 300.0)] = 'Sternopygus'
-        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0)] = 'Eigenmannia'
-        species[data[:,'phase1'] > 0] = 'Apteronotus'
+        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] < 300.0)] = 'Sterno'
+        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0)] = 'Eigen'
+        species[data[:,'phase1'] > 0] = 'Aptero'
         data.append('species', '', '%d', species)
 
     if wave_fish:
