@@ -26,8 +26,8 @@ class MultivariateExplorer(object):
     See the documentation of these functions for details.
     """
     
-    def __init__(self, data, labels=None, wave_data=None, title=None):
-        """ Initialize with the data.
+    def __init__(self, data, labels=None, title=None):
+        """ Initialize explorer with scatter-plot data.
 
         Parameter
         ---------
@@ -39,13 +39,6 @@ class MultivariateExplorer(object):
         labels: list of string
             If data is not a TableData, then this provides labels
             for the data columns.
-        wave_data: (list of) list of 2D arrays
-            Waveform data associated with each row `i` of the data.
-            Either for a single plot: `wave_data[i][:,x], wave_data[i][:,y]`
-            or for several plots `p`:
-            `wave_data[p][i][:,x], wave_data[p][i][:,y]`.
-            Note that the first (outermost) list is over plots.
-            The inner lists are over data points.
         title: string
             Title for the window.
         """
@@ -105,11 +98,9 @@ class MultivariateExplorer(object):
             self.maxcols = 6
         # waveform data:
         self.wave_data = []
-        if wave_data is not None and len(wave_data) > 0:
-            if isinstance(wave_data[0], np.ndarray):
-                self.wave_data = [wave_data]
-            else:
-                self.wave_data = wave_data
+        self.wave_xlabels = ''
+        self.wave_ylabels = []
+        self.wave_title = False
         # colors:
         self.color_map = None
         self.extra_colors = None
@@ -156,6 +147,41 @@ class MultivariateExplorer(object):
         self.magnified_backdrop = None
         self.magnified_size = np.array([0.5, 0.5])
         # waveform plots:
+        self.wave_ax = []
+
+
+    def set_wave_data(self, data, xlabels='', ylabels=[], title=False):
+        """ Add waveform data to explorer.
+
+        Parameter
+        ---------
+        data: (list of) list of 2D arrays
+            Waveform data associated with each row `i` of the data.
+            Either for a single plot: `wave_data[i][:,x], wave_data[i][:,y]`
+            or for several plots `p`:
+            `wave_data[p][i][:,x], wave_data[p][i][:,y]`.
+            Note that the first (outermost) list is over plots.
+            The inner lists are over data points.
+        xlabel: string or list of strings
+            The xlabels for the waveform plots. If only a string is given, then
+            there will be a common xaxis for all the plots, and only the lowest
+            one gets a labeled xaxis. If a list of strings is given, each waveform
+            plot gets its own labeled x-axis.
+        ylabels: list of strings
+            The ylabels for each of the waveform plots.
+        title: bool or string
+            If True or a string, povide space on top of the waveform plots for a title.
+            If string, set this as the title for the waveform plots.
+        """
+        self.wave_data = []
+        if data is not None and len(data) > 0:
+            if isinstance(data[0], np.ndarray):
+                self.wave_data = [data]
+            else:
+                self.wave_data = data
+        self.wave_xlabels = xlabels
+        self.wave_ylabels = ylabels
+        self.wave_title = title
         self.wave_ax = []
 
         
@@ -209,9 +235,23 @@ class MultivariateExplorer(object):
         self._init_scatter_plots()
         if len(self.wave_data) > 0:
             self.wave_ax = []
+            axx = None
             for k in range(len(self.wave_data)):
-                ax = self.fig.add_subplot(1, len(self.wave_data), 1+k)
+                ax = self.fig.add_subplot(1, len(self.wave_data), 1+k, sharex=axx)
                 self.wave_ax.append(ax)
+                if isinstance(self.wave_xlabels, (list, tuple)):
+                    axx=ax
+            if not isinstance(self.wave_xlabels, (list, tuple)):
+                for ax in self.wave_ax[:-1]:
+                    plt.setp(ax.get_xticklabels(), visible=False)
+                self.wave_ax[-1].set_xlabel(self.wave_xlabels)
+            else:
+                for ax, xlabel in zip(self.wave_ax, self.wave_xlabels):
+                    ax.set_xlabel(xlabel)
+            for ax, ylabel in zip(self.wave_ax, self.wave_ylabels):
+                ax.set_ylabel(ylabel)
+            if not isinstance(self.wave_title, bool) and self.wave_title:
+                self.wave_ax[0].set_title(self.wave_title)
             self.fix_waveform_plot(self.wave_ax, self.mark_data)
         self._plot_magnified_scatter()
         plt.show()
@@ -696,6 +736,17 @@ class MultivariateExplorer(object):
                             self.wave_data[k][idx][:,1],
                             c=self.data_colors[idx],
                             picker=self.pick_radius)
+        if not isinstance(self.wave_xlabels, (list, tuple)):
+            for ax in self.wave_ax[:-1]:
+                plt.setp(ax.get_xticklabels(), visible=False)
+            self.wave_ax[-1].set_xlabel(self.wave_xlabels)
+        else:
+            for ax, xlabel in zip(self.wave_ax, self.wave_xlabels):
+                ax.set_xlabel(xlabel)
+        for ax, ylabel in zip(self.wave_ax, self.wave_ylabels):
+            ax.set_ylabel(ylabel)
+        if not isinstance(self.wave_title, bool) and self.wave_title:
+            self.wave_ax[0].set_title(self.wave_title)
         if len(self.wave_ax) > 0:
             self.fix_waveform_plot(self.wave_ax, self.mark_data)
         self.fig.canvas.draw()
@@ -963,9 +1014,15 @@ class MultivariateExplorer(object):
         if self.maxcols%2 == 0:
             x0 += xoffs
             y0 += yoffs
-        for k, ax in enumerate(self.wave_ax):
-            dy = (1.0-y0)/len(self.wave_ax)
-            ax.set_position([x0, y0+k*dy, 1.0-x0-xs, dy-3*ys])
+        if len(self.wave_ax) > 0:
+            dy = 1.0-y0
+            if self.wave_title and not isinstance(self.wave_xlabels, (list, tuple)):
+                dy -= 2*ys
+            dy /= len(self.wave_ax)
+            if isinstance(self.wave_xlabels, (list, tuple)):
+                ys += 2.5*ys 
+            for k, ax in enumerate(self.wave_ax):
+                ax.set_position([x0, y0+(len(self.wave_ax)-1-k)*dy, 1.0-x0-xs, dy-ys])
 
             
     def _update_layout(self):
@@ -1023,7 +1080,8 @@ def main():
         # initialize explorer:
         expl = MultivariateExplorer(data,
                                     map(chr, np.arange(len(data))+ord('A')),
-                                    [waveforms1, waveforms2])
+                                    'Explorer')
+        expl.set_wave_data([waveforms1, waveforms2], 'Time', ['Sine', 'Gauss'])
     # explore data:
     expl.set_colors()
     expl.show()
