@@ -494,8 +494,6 @@ class MultivariateExplorer(object):
         if self.categories[r] is not None:
             ax.set_yticks(np.arange(len(self.categories[r])))
             ax.set_yticklabels(self.categories[r])
-        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
-        self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
         if magnifiedax:
             ax.set_xlabel(self.labels[c])
             ax.set_ylabel(self.labels[r])
@@ -503,10 +501,13 @@ class MultivariateExplorer(object):
             ax.set_xlim(cax.get_xlim())
             ax.set_ylim(cax.get_ylim())
         else:
-            plt.setp(ax.get_xticklabels(), visible=False)
             if c == 0:
                 ax.set_ylabel(self.labels[r])
-            else:
+        self.fix_scatter_plot(ax, self.data[:,c], self.labels[c], 'x')
+        self.fix_scatter_plot(ax, self.data[:,r], self.labels[r], 'y')
+        if not magnifiedax:
+            plt.setp(ax.get_xticklabels(), visible=False)
+            if c > 0:
                 plt.setp(ax.get_yticklabels(), visible=False)
         if keep_lims:
             ax.set_xlim(*ax_xlim)
