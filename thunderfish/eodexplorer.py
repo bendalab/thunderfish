@@ -32,10 +32,15 @@ class EODExplorer(MultivariateExplorer):
         MultivariateExplorer.__init__(self, data[:,data_cols],
                                       None, 'EODExplorer')
         wave_data = [eod_data]
+        # first derivative:
         derivative = lambda x: np.column_stack((x[:-1,0], np.diff(x[:,1])/(x[1,0]-x[0,0])))
-        deriv_data = list(map(derivative, eod_data))
-        wave_data.append(deriv_data)
+        fderiv_data = list(map(derivative, eod_data))
+        wave_data.append(fderiv_data)
         ylabels.append('dV/dt [1/ms]')
+        # second derivative:
+        #sderiv_data = list(map(derivative, fderiv_data))
+        #wave_data.append(sderiv_data)
+        #ylabels.append('d^2V/dt^2 [1/ms^2]')
         if self.wave_fish:
             xlabel = 'Time [1/EODf]'
         else:
