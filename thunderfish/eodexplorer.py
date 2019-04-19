@@ -7,6 +7,7 @@ import glob
 import sys
 import argparse
 import numpy as np
+import scipy.signal as sig
 import matplotlib.pyplot as plt
 from multiprocessing import Pool, freeze_support, cpu_count
 from .version import __version__, __year__
@@ -33,14 +34,21 @@ class EODExplorer(MultivariateExplorer):
                                       None, 'EODExplorer')
         wave_data = [eod_data]
         # first derivative:
-        derivative = lambda x: np.column_stack((x[:-1,0], np.diff(x[:,1])/(x[1,0]-x[0,0])))
+        if hasattr(sig, 'savgol_filter'):
+            derivative = lambda x: np.column_stack((x[:,0], sig.savgol_filter(x[:,1], 5, 2, 1, x[1,0]-x[0,0])))
+        else:
+            derivative = lambda x: np.column_stack((x[:-1,0], np.diff(x[:,1])/(x[1,0]-x[0,0])))
         fderiv_data = list(map(derivative, eod_data))
         wave_data.append(fderiv_data)
         ylabels.append('dV/dt [1/ms]')
         # second derivative:
-        #sderiv_data = list(map(derivative, fderiv_data))
-        #wave_data.append(sderiv_data)
-        #ylabels.append('d^2V/dt^2 [1/ms^2]')
+        if hasattr(sig, 'savgol_filter'):
+            derivative = lambda x: np.column_stack((x[:,0], sig.savgol_filter(x[:,1], 5, 2, 2, x[1,0]-x[0,0])))
+            sderiv_data = list(map(derivative, eod_data))
+        else:
+            sderiv_data = list(map(derivative, fderiv_data))
+        wave_data.append(sderiv_data)
+        ylabels.append('d^2V/dt^2 [1/ms^2]')
         if self.wave_fish:
             xlabel = 'Time [1/EODf]'
         else:
@@ -178,7 +186,7 @@ class EODExplorer(MultivariateExplorer):
         # best_window:
         data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg)
         # detect EODs in the data:
-        pulse_fish, psd_data, fishlist, eod_props, _, _, mean_eods, \
+        pulse_fish, psd_data, fishlist, _, eod_props, _, _, mean_eods, \
           spec_data, peak_data, power_thresh, skip_reason = \
           detect_eods(data, samplerate, clipped, recording, 0, cfg)
         # plot EOD:
