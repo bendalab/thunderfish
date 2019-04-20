@@ -29,25 +29,23 @@ class EODExplorer(MultivariateExplorer):
         self.wave_fish = wave_fish
         self.eoddata = data
         self.path = rawdata_path
-        ylabels = ['Voltage']
         MultivariateExplorer.__init__(self, data[:,data_cols],
                                       None, 'EODExplorer')
-        wave_data = [eod_data]
+        wave_data = eod_data
+        ylabels = ['Voltage']
         # first derivative:
         if hasattr(sig, 'savgol_filter'):
-            derivative = lambda x: np.column_stack((x[:,0], sig.savgol_filter(x[:,1], 5, 2, 1, x[1,0]-x[0,0])))
+            derivative = lambda x: np.column_stack((x[:,:2], sig.savgol_filter(x[:,1], 5, 2, 1, x[1,0]-x[0,0])))
         else:
-            derivative = lambda x: np.column_stack((x[:-1,0], np.diff(x[:,1])/(x[1,0]-x[0,0])))
-        fderiv_data = list(map(derivative, eod_data))
-        wave_data.append(fderiv_data)
+            derivative = lambda x: np.column_stack((x[:-1,:2], np.diff(x[:,1])/(x[1,0]-x[0,0])))
+        wave_data = list(map(derivative, eod_data))
         ylabels.append('dV/dt [1/ms]')
         # second derivative:
         if hasattr(sig, 'savgol_filter'):
-            derivative = lambda x: np.column_stack((x[:,0], sig.savgol_filter(x[:,1], 5, 2, 2, x[1,0]-x[0,0])))
-            sderiv_data = list(map(derivative, eod_data))
+            derivative = lambda x: np.column_stack((x[:,:3], sig.savgol_filter(x[:,1], 5, 2, 2, x[1,0]-x[0,0])))
         else:
-            sderiv_data = list(map(derivative, fderiv_data))
-        wave_data.append(sderiv_data)
+            derivative = lambda x: np.column_stack((x[:-1,:3], np.diff(x[:,2])/(x[1,0]-x[0,0])))
+        wave_data = list(map(derivative, wave_data))
         ylabels.append('d^2V/dt^2 [1/ms^2]')
         if self.wave_fish:
             xlabel = 'Time [1/EODf]'
