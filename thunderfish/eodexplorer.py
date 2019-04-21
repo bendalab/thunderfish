@@ -25,7 +25,7 @@ from .thunderfish import configuration, detect_eods, plot_eods
 class EODExplorer(MultivariateExplorer):
     
     def __init__(self, data, data_cols, wave_fish, eod_data,
-                 rawdata_path, cfg):
+                 add_waveforms, rawdata_path, cfg):
         self.wave_fish = wave_fish
         self.eoddata = data
         self.path = rawdata_path
@@ -33,20 +33,32 @@ class EODExplorer(MultivariateExplorer):
                                       None, 'EODExplorer')
         wave_data = eod_data
         ylabels = ['Voltage']
-        # first derivative:
-        if hasattr(sig, 'savgol_filter'):
-            derivative = lambda x: np.column_stack((x[:,:2], sig.savgol_filter(x[:,1], 5, 2, 1, x[1,0]-x[0,0])))
-        else:
-            derivative = lambda x: np.column_stack((x[:-1,:2], np.diff(x[:,1])/(x[1,0]-x[0,0])))
-        wave_data = list(map(derivative, eod_data))
-        ylabels.append('dV/dt [1/ms]')
-        # second derivative:
-        if hasattr(sig, 'savgol_filter'):
-            derivative = lambda x: np.column_stack((x[:,:3], sig.savgol_filter(x[:,1], 5, 2, 2, x[1,0]-x[0,0])))
-        else:
-            derivative = lambda x: np.column_stack((x[:-1,:3], np.diff(x[:,2])/(x[1,0]-x[0,0])))
-        wave_data = list(map(derivative, wave_data))
-        ylabels.append('d^2V/dt^2 [1/ms^2]')
+        wave_col = 1
+        first_col = None
+        for waveform in add_waveforms:
+            if waveform == 'first':
+                # first derivative:
+                if hasattr(sig, 'savgol_filter'):
+                    derivative = lambda x: np.column_stack((x, \
+                        sig.savgol_filter(x[:,wave_col], 5, 2, 1, x[1,0]-x[0,0])))
+                else:
+                    derivative = lambda x: np.column_stack((x[:-1,:], \
+                        np.diff(x[:,wave_col])/(x[1,0]-x[0,0])))
+                wave_data = list(map(derivative, wave_data))
+                ylabels.append('dV/dt [1/ms]')
+                first_col = wave_data[0].shape[1]-1
+            elif waveform == 'second':
+                # second derivative:
+                if hasattr(sig, 'savgol_filter'):
+                    derivative = lambda x: np.column_stack((x, \
+                        sig.savgol_filter(x[:,wave_col], 5, 2, 2, x[1,0]-x[0,0])))
+                else:
+                    if first_col is None:
+                        continue
+                    derivative = lambda x: np.column_stack((x[:-1,:], \
+                        np.diff(x[:,first_col])/(x[1,0]-x[0,0])))
+                wave_data = list(map(derivative, wave_data))
+                ylabels.append('d^2V/dt^2 [1/ms^2]')
         if self.wave_fish:
             xlabel = 'Time [1/EODf]'
         else:
@@ -266,6 +278,9 @@ def main():
                         help='data columns to be appended or removed (if already listed) for analysis')
     parser.add_argument('-n', dest='max_harmonics', default=0, type=int, metavar='MAX',
                         help='maximum number of harmonics or peaks to be used')
+    parser.add_argument('-w', dest='add_waveforms', default=[], type=str, action='append',
+                        choices=['first', 'second'],
+                        help='default selection of data columns, check them with the -l option')
     parser.add_argument('-s', dest='save_pca', action='store_true',
                         help='save PCA components and exit')
     parser.add_argument('-c', dest='color_col', default='EODf', type=str, metavar='COLUMN',
@@ -290,6 +305,7 @@ def main():
     column_groups = args.column_groups
     add_data_cols = args.add_data_cols
     max_harmonics = args.max_harmonics
+    add_waveforms = args.add_waveforms
     save_pca = args.save_pca
     color_col = args.color_col
     color_map = args.color_map
@@ -508,7 +524,7 @@ def main():
 
     # explore:
     eod_expl = EODExplorer(data, data_cols, wave_fish, eod_data,
-                           rawdata_path, cfg)
+                           add_waveforms, rawdata_path, cfg)
     # write pca:
     if save_pca:
         eod_expl.compute_pca(False)
