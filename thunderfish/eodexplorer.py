@@ -25,45 +25,70 @@ from .thunderfish import configuration, detect_eods, plot_eods
 class EODExplorer(MultivariateExplorer):
     
     def __init__(self, data, data_cols, wave_fish, eod_data,
-                 add_waveforms, rawdata_path, cfg):
+                 add_waveforms, loaded_spec, rawdata_path, cfg):
         self.wave_fish = wave_fish
         self.eoddata = data
         self.path = rawdata_path
         MultivariateExplorer.__init__(self, data[:,data_cols],
                                       None, 'EODExplorer')
+        tunit = 'ms'
+        dunit = '1/ms'
+        if wave_fish:
+            tunit = '1/EODf'        
+            dunit = 'EODf'
         wave_data = eod_data
+        xlabels = ['Time [%s]' % tunit]
         ylabels = ['Voltage']
-        wave_col = 1
-        first_col = None
-        for waveform in add_waveforms:
-            if waveform == 'first':
-                # first derivative:
+        if 'first' in add_waveforms:
+            # first derivative:
+            if loaded_spec:
+                if hasattr(sig, 'savgol_filter'):
+                    derivative = lambda x: (np.column_stack((x[0], \
+                        sig.savgol_filter(x[0][:,1], 5, 2, 1, x[0][1,0]-x[0][0,0]))), x[1])
+                else:
+                    derivative = lambda x: (np.column_stack((x[0][:-1,:], \
+                        np.diff(x[0][:,1])/(x[0][1,0]-x[0][0,0]))), x[1])
+            else:
                 if hasattr(sig, 'savgol_filter'):
                     derivative = lambda x: np.column_stack((x, \
-                        sig.savgol_filter(x[:,wave_col], 5, 2, 1, x[1,0]-x[0,0])))
+                        sig.savgol_filter(x[:,1], 5, 2, 1, x[1,0]-x[0,0])))
                 else:
                     derivative = lambda x: np.column_stack((x[:-1,:], \
-                        np.diff(x[:,wave_col])/(x[1,0]-x[0,0])))
-                wave_data = list(map(derivative, wave_data))
-                ylabels.append('dV/dt [1/ms]')
-                first_col = wave_data[0].shape[1]-1
-            elif waveform == 'second':
+                        np.diff(x[:,1])/(x[1,0]-x[0,0])))
+            wave_data = list(map(derivative, wave_data))
+            ylabels.append('dV/dt [%s]' % dunit)
+            if 'second' in add_waveforms:
                 # second derivative:
-                if hasattr(sig, 'savgol_filter'):
-                    derivative = lambda x: np.column_stack((x, \
-                        sig.savgol_filter(x[:,wave_col], 5, 2, 2, x[1,0]-x[0,0])))
+                if loaded_spec:
+                    if hasattr(sig, 'savgol_filter'):
+                        derivative = lambda x: (np.column_stack((x[0], \
+                            sig.savgol_filter(x[0][:,1], 5, 2, 2, x[0][1,0]-x[0][0,0]))), x[1])
+                    else:
+                        derivative = lambda x: (np.column_stack((x[0][:-1,:], \
+                            np.diff(x[0][:,2])/(x[0][1,0]-x[0][0,0]))), x[1])
                 else:
-                    if first_col is None:
-                        continue
-                    derivative = lambda x: np.column_stack((x[:-1,:], \
-                        np.diff(x[:,first_col])/(x[1,0]-x[0,0])))
+                    if hasattr(sig, 'savgol_filter'):
+                        derivative = lambda x: np.column_stack((x, \
+                            sig.savgol_filter(x[:,1], 5, 2, 2, x[1,0]-x[0,0])))
+                    else:
+                        derivative = lambda x: np.column_stack((x[:-1,:], \
+                            np.diff(x[:,2])/(x[1,0]-x[0,0])))
                 wave_data = list(map(derivative, wave_data))
-                ylabels.append('d^2V/dt^2 [1/ms^2]')
-        if self.wave_fish:
-            xlabel = 'Time [1/EODf]'
-        else:
-            xlabel = 'Time [ms]'
-        self.set_wave_data(wave_data, xlabel, ylabels, True)
+                ylabels.append('d^2V/dt^2 [%s^2]' % dunit)
+        if loaded_spec:
+            indices = [0]
+            xlabels.append('Harmonics')
+            if 'ampl' in add_waveforms:
+                indices.append(3)
+                ylabels.append('Ampl [%]')
+            if 'power' in add_waveforms:
+                indices.append(4)
+                ylabels.append('Power [dB]')
+            if 'phase' in add_waveforms:
+                indices.append(5)
+                ylabels.append('Phase')
+            wave_data = list(map(lambda x: (x[0], x[1][:,indices]), wave_data))
+        self.set_wave_data(wave_data, xlabels, ylabels, True)
 
         
     def fix_scatter_plot(self, ax, data, label, axis):
@@ -128,20 +153,17 @@ class EODExplorer(MultivariateExplorer):
                        transform = ax[-1].transAxes)
         else:
             ax[0].set_title('%d EOD waveforms selected' % len(indices))
+        if len(indices) > 0:
+            for axi in ax:
+                axi.axhline(c='k', lw=1)
         for axi in ax:
             for l in axi.lines:
                 l.set_linewidth(3.0)
-        for axi in ax:
-            if len(indices) > 0:
-                axi.axhline(c='k', lw=1)
-            if self.wave_fish:
-                axi.set_xlim(-0.7, 0.7)
-            else:
-                axi.set_xlim(-0.5, 1.5)
         if self.wave_fish:
-            ax[0].set_ylim(-1.0, 1.0)
+            ax[0].set_xlim(-0.7, 0.7)
         else:
-            ax[0].set_ylim(-1.5, 1.0)
+            ax[0].set_xlim(-0.5, 1.5)
+        ax[0].set_ylim(-1.5, 1.0)
 
             
     def list_selection(self, indices):
@@ -239,6 +261,7 @@ class PrintHelp(argparse.Action):
 
         
 wave_fish = True
+load_spec = False
 data = None
 data_path = None
 
@@ -248,16 +271,22 @@ def load_waveform(idx):
     file_index = data[idx,'index'] if 'index' in data else 0
     eod_table = TableData(os.path.join(data_path, '%s-eodwaveform-%d.csv' % (file_name, file_index)))
     eod = eod_table[:,'mean']
+    norm = np.max(eod)
     if wave_fish:
-        norm = max(np.max(eod), np.abs(np.min(eod)))
-        return np.vstack((eod_table[:,'time']*0.001*eodf, eod/norm)).T
+        eod = np.column_stack((eod_table[:,'time']*0.001*eodf, eod/norm))
     else:
-        norm = np.max(eod)
-        return np.vstack((eod_table[:,'time'], eod/norm)).T
+        eod = np.column_stack((eod_table[:,'time'], eod/norm))
+    if not load_spec:
+        return eod
+    fish_type = 'wave' if wave_fish else 'pulse'
+    spec_table = TableData(os.path.join(data_path, '%s-%sspectrum-%d.csv' % (file_name, fish_type, file_index)))
+    return (eod, spec_table)
+        
 
 def main():
     global data
     global wave_fish
+    global load_spec
     global data_path
 
     # command line arguments:
@@ -279,7 +308,7 @@ def main():
     parser.add_argument('-n', dest='max_harmonics', default=0, type=int, metavar='MAX',
                         help='maximum number of harmonics or peaks to be used')
     parser.add_argument('-w', dest='add_waveforms', default=[], type=str, action='append',
-                        choices=['first', 'second'],
+                        choices=['first', 'second', 'ampl', 'power', 'phase'],
                         help='default selection of data columns, check them with the -l option')
     parser.add_argument('-s', dest='save_pca', action='store_true',
                         help='save PCA components and exit')
@@ -514,6 +543,7 @@ def main():
         parser.exit()
 
     # load waveforms:
+    load_spec = 'ampl' in add_waveforms or 'power' in add_waveforms or 'phase' in add_waveforms
     if jobs is not None:
         cpus = cpu_count() if jobs == 0 else jobs
         p = Pool(cpus)
@@ -524,7 +554,7 @@ def main():
 
     # explore:
     eod_expl = EODExplorer(data, data_cols, wave_fish, eod_data,
-                           add_waveforms, rawdata_path, cfg)
+                           add_waveforms, load_spec, rawdata_path, cfg)
     # write pca:
     if save_pca:
         eod_expl.compute_pca(False)

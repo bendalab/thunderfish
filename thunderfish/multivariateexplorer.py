@@ -1050,8 +1050,8 @@ class MultivariateExplorer(object):
             yp -= ys
             dy -= ys
             if self.wave_title:
-                yp -= ys
-                dy -= ys
+                yp -= 2*ys
+                dy -= 2*ys
             dy /= len(self.wave_ax)
             for ax, has_xticks in zip(self.wave_ax, self.wave_has_xticks):
                 yp -= dy
