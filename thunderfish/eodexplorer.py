@@ -9,6 +9,7 @@ import argparse
 import numpy as np
 import scipy.signal as sig
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from multiprocessing import Pool, freeze_support, cpu_count
 from .version import __version__, __year__
 from .configfile import ConfigFile
@@ -173,9 +174,18 @@ class EODExplorer(MultivariateExplorer):
         for axi in ax:
             for l in axi.lines:
                 l.set_linewidth(3.0)
+        for axi, xl in zip(ax, self.wave_ylabels):
+            if 'Voltage' in xl:
+                axi.set_ylim(top=1.1)
+                axi.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+            if 'dV/dt' in xl:
+                axi.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+            if 'd^2V/dt^2' in xl:
+                axi.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
         if self.wave_fish:
-            ax[0].set_xlim(-0.7, 0.7)
-            for axi, xl in zip(ax[1:], self.wave_ylabels[1:]):
+            for axi, xl in zip(ax, self.wave_ylabels):
+                if 'Voltage' in xl:
+                    axi.set_xlim(-0.7, 0.7)
                 if 'Ampl' in xl or 'Power' in xl or 'Phase' in xl:
                     axi.set_xlim(-0.5, 8.5)
                     for l in axi.lines:
@@ -184,13 +194,25 @@ class EODExplorer(MultivariateExplorer):
                         l.set_markeredgewidth(0.5)
                         l.set_markeredgecolor('k')
                         l.set_markerfacecolor(l.get_color())
+                if 'Ampl' in xl:
+                    axi.set_ylim(0.0, 100.0)
+                    axi.yaxis.set_major_locator(ticker.MultipleLocator(25.0))
+                if 'Power' in xl:
+                    axi.set_ylim(-60.0, 2.0)
+                    axi.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+                if 'Phase' in xl:
+                    axi.set_ylim(0.0, 2.0*np.pi)
+                    axi.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
+                    axi.set_yticklabels(['0', u'\u03c0/2', u'\u03c0', u'3\u03c0/2', u'2\u03c0'])
         else:
-            ax[0].set_xlim(-0.5, 1.5)
-            for axi, xl in zip(ax[1:], self.wave_ylabels[1:]):
+            for axi, xl in zip(ax, self.wave_ylabels):
+                if 'Voltage' in xl:
+                    axi.set_xlim(-0.5, 1.5)
                 if 'Power' in xl:
                     axi.set_xlim(1.0, 2000.0)
                     axi.set_xscale('log')
-        ax[0].set_ylim(-1.5, 1.0)
+                    axi.set_ylim(-60.0, 2.0)
+                    axi.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
         if len(indices) > 0:
             for axi in ax:
                 axi.axhline(c='k', lw=1)
