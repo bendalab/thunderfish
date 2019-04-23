@@ -881,6 +881,7 @@ class MultivariateExplorer(object):
                 for ax in self.wave_ax:
                     for l, c in zip(ax.lines, self.data_colors[self.mark_data]):
                         l.set_color(c)
+                        l.set_markerfacecolor(c)
                 self._plot_scatter(self.scatter_ax[0], False, True, self.cbax)
                 self.fix_scatter_plot(self.cbax, self.color_values,
                                       self.color_label, 'c')

@@ -17,6 +17,7 @@ from .dataloader import load_data
 from .multivariateexplorer import MultivariateExplorer
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
+from .powerspectrum import decibel
 from .bestwindow import find_best_window, plot_best_data
 from .thunderfish import configuration, detect_eods, plot_eods
 
@@ -76,18 +77,34 @@ class EODExplorer(MultivariateExplorer):
                 wave_data = list(map(derivative, wave_data))
                 ylabels.append('d^2V/dt^2 [%s^2]' % dunit)
         if loaded_spec:
-            indices = [0]
-            xlabels.append('Harmonics')
-            if 'ampl' in add_waveforms:
-                indices.append(3)
-                ylabels.append('Ampl [%]')
-            if 'power' in add_waveforms:
-                indices.append(4)
+            if wave_fish:
+                indices = [0]
+                phase = False
+                xlabels.append('Harmonics')
+                if 'ampl' in add_waveforms:
+                    indices.append(3)
+                    ylabels.append('Ampl [%]')
+                if 'power' in add_waveforms:
+                    indices.append(4)
+                    ylabels.append('Power [dB]')
+                if 'phase' in add_waveforms:
+                    indices.append(5)
+                    ylabels.append('Phase')
+                    phase = True
+                def get_spectra(x):
+                    y = x[1][:,indices]
+                    if phase:
+                        y[y[:,-1]<0.0,-1] += 2.0*np.pi 
+                    return (x[0], y)
+                wave_data = list(map(get_spectra, wave_data))
+            else:
+                xlabels.append('Frequency [Hz]')
                 ylabels.append('Power [dB]')
-            if 'phase' in add_waveforms:
-                indices.append(5)
-                ylabels.append('Phase')
-            wave_data = list(map(lambda x: (x[0], x[1][:,indices]), wave_data))
+                def get_spectra(x):
+                    y = x[1]
+                    y[:,1] = decibel(y[:,1], None)
+                    return (x[0], y)
+                wave_data = list(map(get_spectra, wave_data))
         self.set_wave_data(wave_data, xlabels, ylabels, True)
 
         
@@ -153,17 +170,30 @@ class EODExplorer(MultivariateExplorer):
                        transform = ax[-1].transAxes)
         else:
             ax[0].set_title('%d EOD waveforms selected' % len(indices))
-        if len(indices) > 0:
-            for axi in ax:
-                axi.axhline(c='k', lw=1)
         for axi in ax:
             for l in axi.lines:
                 l.set_linewidth(3.0)
         if self.wave_fish:
             ax[0].set_xlim(-0.7, 0.7)
+            for axi, xl in zip(ax[1:], self.wave_ylabels[1:]):
+                if 'Ampl' in xl or 'Power' in xl or 'Phase' in xl:
+                    axi.set_xlim(-0.5, 8.5)
+                    for l in axi.lines:
+                        l.set_marker('.')
+                        l.set_markersize(15.0)
+                        l.set_markeredgewidth(0.5)
+                        l.set_markeredgecolor('k')
+                        l.set_markerfacecolor(l.get_color())
         else:
             ax[0].set_xlim(-0.5, 1.5)
+            for axi, xl in zip(ax[1:], self.wave_ylabels[1:]):
+                if 'Power' in xl:
+                    axi.set_xlim(1.0, 2000.0)
+                    axi.set_xscale('log')
         ax[0].set_ylim(-1.5, 1.0)
+        if len(indices) > 0:
+            for axi in ax:
+                axi.axhline(c='k', lw=1)
 
             
     def list_selection(self, indices):
@@ -280,7 +310,11 @@ def load_waveform(idx):
         return eod
     fish_type = 'wave' if wave_fish else 'pulse'
     spec_table = TableData(os.path.join(data_path, '%s-%sspectrum-%d.csv' % (file_name, fish_type, file_index)))
-    return (eod, spec_table)
+    spec_data = spec_table.array()
+    if not wave_fish:
+        spec_data = spec_data[spec_data[:,0]<2000.0,:]
+        spec_data = spec_data[::5,:]
+    return (eod, spec_data)
         
 
 def main():
@@ -309,7 +343,7 @@ def main():
                         help='maximum number of harmonics or peaks to be used')
     parser.add_argument('-w', dest='add_waveforms', default=[], type=str, action='append',
                         choices=['first', 'second', 'ampl', 'power', 'phase'],
-                        help='default selection of data columns, check them with the -l option')
+                        help='add first or second derivative of EOD waveform, or relative amplitude, power, or phase to the plot of selected EODs.')
     parser.add_argument('-s', dest='save_pca', action='store_true',
                         help='save PCA components and exit')
     parser.add_argument('-c', dest='color_col', default='EODf', type=str, metavar='COLUMN',
