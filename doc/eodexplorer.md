@@ -17,8 +17,9 @@ returns
 ```
 usage: eodexplorer [-h] [--version] [-l] [-j [JOBS]]
                    [-D {all,allpower,noise,timing,ampl,relampl,power,relpower,phase,time,width,none}]
-                   [-d COLUMN] [-n MAX] [-s] [-c COLUMN] [-m CMAP] [-p PATH]
-                   [-P PATH] [-f {dat,ascii,csv,rtai,md,tex,html,same}]
+                   [-d COLUMN] [-n MAX] [-w {first,second,ampl,power,phase}]
+                   [-s] [-c COLUMN] [-m CMAP] [-p PATH] [-P PATH]
+                   [-f {dat,ascii,csv,rtai,md,tex,html,same}]
                    file
 
 View and explore properties of EOD waveforms.
@@ -31,14 +32,18 @@ optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -l                    list all available data columns and exit
-  -j [JOBS]             number of jobs run in parallel for loading waveform data. Without argument use
-                        all CPU cores.
+  -j [JOBS]             number of jobs run in parallel for loading waveform
+                        data. Without argument use all CPU cores.
   -D {all,allpower,noise,timing,ampl,relampl,power,relpower,phase,time,width,none}
                         default selection of data columns, check them with the
                         -l option
   -d COLUMN             data columns to be appended or removed (if already
                         listed) for analysis
   -n MAX                maximum number of harmonics or peaks to be used
+  -w {first,second,ampl,power,phase}
+                        add first or second derivative of EOD waveform, or
+                        relative amplitude, power, or phase to the plot of
+                        selected EODs.
   -s                    save PCA components and exit
   -c COLUMN             data column to be used for color code or "index"
   -m CMAP               name of color map
@@ -58,9 +63,9 @@ ctrl + left click/drag  add/remove data points to/from selection
 
 key shortcuts:
 l                       list selected EOD waveforms on console
-p,P                     toggle between data columns, PCA, and scaled PCA axis
-<, pageup               decrease number of displayed data columns/PCA axis
->, pagedown             increase number of displayed data columns/PCA axis
+p,P                     toggle between data columns, PC, and scaled PC axis
+<, pageup               decrease number of displayed data columns/PC axis
+>, pagedown             increase number of displayed data columns/PC axis
 o, z                    toggle zoom mode on or off
 backspace               zoom back
 +, -                    increase, decrease pick radius
