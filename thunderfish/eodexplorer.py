@@ -302,6 +302,7 @@ class PrintHelp(argparse.Action):
         print('>, pagedown             increase number of displayed data columns/PC axis')
         print('o, z                    toggle zoom mode on or off')
         print('backspace               zoom back')
+        print('ctrl + a                select all')
         print('+, -                    increase, decrease pick radius')
         print('0                       reset pick radius')
         print('n, N                    decrease, increase number of bins of histograms')
