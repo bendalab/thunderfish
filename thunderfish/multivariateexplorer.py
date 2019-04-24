@@ -25,6 +25,26 @@ class MultivariateExplorer(object):
     fix_scatter_plot(), fix_waveform_plot(), list_selection(), analyze_selection().
     See the documentation of these functions for details.
     """
+
+    mouse_actions = (('left click', 'select data points'),
+                     ('left and drag', 'rectangular selection and zoom of data points'),
+                     ('shift + left click/drag', 'add data points to selection'),
+                     ('ctrl + left click/drag',  'add/remove data points to/from selection'))
+        
+    key_actions = (('l', 'list selected EOD waveforms on console'),
+                   ('p,P', 'toggle between data columns, PC, and scaled PC axis'),
+                   ('<, pageup', 'decrease number of displayed data columns/PC axis'),
+                   ('>, pagedown', 'increase number of displayed data columns/PC axis'),
+                   ('o, z',  'toggle zoom mode on or off'),
+                   ('backspace', 'zoom back'),
+                   ('ctrl + a', 'select all'),
+                   ('+, -', 'increase, decrease pick radius'),
+                   ('0', 'reset pick radius'),
+                   ('n, N', 'decrease, increase number of bins of histograms'),
+                   ('h', 'toggle between scatter plot and 2D histogram'),
+                   ('c, C', 'cycle color map trough data columns'),
+                   ('left, right, up, down', 'show and move magnified scatter plot'),
+                   ('escape', 'close magnified scatter plot'))
     
     def __init__(self, data, labels=None, title=None):
         """ Initialize explorer with scatter-plot data.
