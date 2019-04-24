@@ -68,6 +68,7 @@ p,P                     toggle between data columns, PC, and scaled PC axis
 >, pagedown             increase number of displayed data columns/PC axis
 o, z                    toggle zoom mode on or off
 backspace               zoom back
+ctrl + a                select all
 +, -                    increase, decrease pick radius
 0                       reset pick radius
 n, N                    decrease, increase number of bins of histograms

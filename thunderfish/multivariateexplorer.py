@@ -846,6 +846,9 @@ class MultivariateExplorer(object):
                 elif event.key in ['pagedown', '>'] and self.maxcols < self.raw_data.shape[1]:
                     self.maxcols += 1
                 self._update_layout()
+            elif event.key in 'ctrl+a':
+                self.mark_data = range(len(self.data))
+                self._update_selection()
             elif event.key in 'cC':
                 if event.key in 'c':
                     self.color_index -= 1
