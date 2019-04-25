@@ -472,8 +472,7 @@ class MultivariateExplorer(object):
                 self.magnified_backdrop = patches.Rectangle((bbox.x0, bbox.y0),
                                                             bbox.width, bbox.height,
                                                             transform=None, clip_on=False,
-                                                            facecolor='white', edgecolor='none',
-                                                            alpha=0.8, zorder=-5)
+                                                            facecolor='white', edgecolor='none', zorder=-5)
                 ax.add_patch(self.magnified_backdrop)
 
                         
@@ -556,8 +555,7 @@ class MultivariateExplorer(object):
                 self.magnified_backdrop = patches.Rectangle((bbox.x0, bbox.y0),
                                                             bbox.width, bbox.height,
                                                             transform=None, clip_on=False,
-                                                            facecolor='white', edgecolor='none',
-                                                            alpha=0.8, zorder=-5)
+                                                            facecolor='white', edgecolor='none', zorder=-5)
                 ax.add_patch(self.magnified_backdrop)
         try:
             selector = widgets.RectangleSelector(ax, self._on_select, drawtype='box',

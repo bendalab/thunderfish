@@ -150,7 +150,8 @@ class EODExplorer(MultivariateExplorer):
                 ax.set_ylabel('')
                 ax.set_ylim(np.min(data)-0.5, np.max(data)+0.5)
             elif axis == 'c':
-                ax.set_ylabel('')
+                if ax is not None:
+                    ax.set_ylabel('')
         return np.min(data), np.max(data), None
 
     
