@@ -155,68 +155,68 @@ class EODExplorer(MultivariateExplorer):
         return np.min(data), np.max(data), None
 
     
-    def fix_waveform_plot(self, ax, indices):
+    def fix_waveform_plot(self, axs, indices):
         if len(indices) == 0:
-            ax[0].text(0.5, 0.5, 'Click to plot EOD waveforms',
-                       transform = ax[0].transAxes, ha='center', va='center')
-            ax[0].text(0.5, 0.3, 'n = %d' % len(self.raw_data),
-                       transform = ax[0].transAxes, ha='center', va='center')
+            axs[0].text(0.5, 0.5, 'Click to plot EOD waveforms',
+                        transform = axs[0].transAxes, ha='center', va='center')
+            axs[0].text(0.5, 0.3, 'n = %d' % len(self.raw_data),
+                        transform = axs[0].transAxes, ha='center', va='center')
         elif len(indices) == 1:
             if 'index' in self.eoddata and \
               np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
-                ax[0].set_title('%s: %d' % (self.eoddata[indices[0],'file'],
-                                            self.eoddata[indices[0],'index']))
+                axs[0].set_title('%s: %d' % (self.eoddata[indices[0],'file'],
+                                             self.eoddata[indices[0],'index']))
             else:
-                ax[0].set_title(self.eoddata[indices[0],'file'])
-            ax[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
-                       transform = ax[-1].transAxes)
+                axs[0].set_title(self.eoddata[indices[0],'file'])
+            axs[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
+                        transform = axs[0].transAxes)
         else:
-            ax[0].set_title('%d EOD waveforms selected' % len(indices))
-        for axi in ax:
-            for l in axi.lines:
+            axs[0].set_title('%d EOD waveforms selected' % len(indices))
+        for ax in axs:
+            for l in ax.lines:
                 l.set_linewidth(3.0)
-        for axi, xl in zip(ax, self.wave_ylabels):
+        for ax, xl in zip(axs, self.wave_ylabels):
             if 'Voltage' in xl:
-                axi.set_ylim(top=1.1)
-                axi.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+                ax.set_ylim(top=1.1)
+                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
             if 'dV/dt' in xl:
-                axi.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
             if 'd^2V/dt^2' in xl:
-                axi.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
         if self.wave_fish:
-            for axi, xl in zip(ax, self.wave_ylabels):
+            for ax, xl in zip(axs, self.wave_ylabels):
                 if 'Voltage' in xl:
-                    axi.set_xlim(-0.7, 0.7)
+                    ax.set_xlim(-0.7, 0.7)
                 if 'Ampl' in xl or 'Power' in xl or 'Phase' in xl:
-                    axi.set_xlim(-0.5, 8.5)
-                    for l in axi.lines:
+                    ax.set_xlim(-0.5, 8.5)
+                    for l in ax.lines:
                         l.set_marker('.')
                         l.set_markersize(15.0)
                         l.set_markeredgewidth(0.5)
                         l.set_markeredgecolor('k')
                         l.set_markerfacecolor(l.get_color())
                 if 'Ampl' in xl:
-                    axi.set_ylim(0.0, 100.0)
-                    axi.yaxis.set_major_locator(ticker.MultipleLocator(25.0))
+                    ax.set_ylim(0.0, 100.0)
+                    ax.yaxis.set_major_locator(ticker.MultipleLocator(25.0))
                 if 'Power' in xl:
-                    axi.set_ylim(-60.0, 2.0)
-                    axi.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+                    ax.set_ylim(-60.0, 2.0)
+                    ax.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
                 if 'Phase' in xl:
-                    axi.set_ylim(0.0, 2.0*np.pi)
-                    axi.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
-                    axi.set_yticklabels(['0', u'\u03c0/2', u'\u03c0', u'3\u03c0/2', u'2\u03c0'])
+                    ax.set_ylim(0.0, 2.0*np.pi)
+                    ax.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
+                    ax.set_yticklabels(['0', u'\u03c0/2', u'\u03c0', u'3\u03c0/2', u'2\u03c0'])
         else:
-            for axi, xl in zip(ax, self.wave_ylabels):
+            for ax, xl in zip(ax, self.wave_ylabels):
                 if 'Voltage' in xl:
-                    axi.set_xlim(-0.5, 1.5)
+                    ax.set_xlim(-0.5, 1.5)
                 if 'Power' in xl:
-                    axi.set_xlim(1.0, 2000.0)
-                    axi.set_xscale('log')
-                    axi.set_ylim(-60.0, 2.0)
-                    axi.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+                    ax.set_xlim(1.0, 2000.0)
+                    ax.set_xscale('log')
+                    ax.set_ylim(-60.0, 2.0)
+                    ax.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
         if len(indices) > 0:
-            for axi in ax:
-                axi.axhline(c='k', lw=1)
+            for ax in axs:
+                ax.axhline(c='k', lw=1)
 
             
     def list_selection(self, indices):

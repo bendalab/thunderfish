@@ -39,6 +39,7 @@ Look into the modules for more information.
 - *eventdetection.py*: Detect and hande peaks and troughs as well as threshold crossings in data arrays.
 - *powerspectrum.py*: Compute and plot powerspectra and spectrograms for a given minimum frequency resolution.
 - *voronoi.py*: Analyse Voronoi diagrams based on scipy.spatial.
+- *multivariateexplorer.py*: Simple GUI for viewing and exploring multivariate data.
 
 ### EOD analysis
 
@@ -47,5 +48,5 @@ Look into the modules for more information.
 - *consistentfishes.py*: Create a list of EOD frequencies with fishes present in all provided fish lists.
 - *eodanalysis.py*: Analyse EOD waveforms.
 - *fakefish.py*: Generate artificial EOD waveforms.
-- *harmonicgroups.py*: Extract harmonic groups from a power spectra.
+- *harmonicgroups.py*: Extract harmonic groups from power spectra.
 

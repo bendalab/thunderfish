@@ -1,5 +1,5 @@
 """
-View and explore multivariate data.
+Simple GUI for viewing and exploring multivariate data.
 """
 
 import numpy as np
@@ -20,9 +20,22 @@ class MultivariateExplorer(object):
     Scatter plots are colored according to one of the variables.
     Data points can be selected and corresponding waveforms are shown.
 
-    Customize the appearance and information provided by subcallsing MultivariateExplorer and
-    reimplementing the functions
-    fix_scatter_plot(), fix_waveform_plot(), list_selection(), analyze_selection().
+    First you initialize the explorer with the data. Then you optionally
+    specify how to colorize the data and provide waveform data
+    associated with the data. Finally you show the figure:
+    ```
+    expl = MultivariateExplorer(data)
+    expl.set_colors(2)
+    expl.set_wave_data(waveforms, 'Time [s]', 'Sine')
+    expl.show()
+    ```
+
+    Customize the appearance and information provided by subclassing
+    MultivariateExplorer and reimplementing the functions
+    - fix_scatter_plot()
+    - fix_waveform_plot()
+    - list_selection()
+    - analyze_selection()
     See the documentation of these functions for details.
     """
 
@@ -125,13 +138,13 @@ class MultivariateExplorer(object):
         self.wave_ylabels = []
         self.wave_title = False
         # colors:
-        self.color_map = None
+        self.color_map = plt.get_cmap('jet')
         self.extra_colors = None
         self.extra_color_label = None
         self.extra_categories = None
         self.color_values = None
-        self.color_set_index = None
-        self.color_index = None
+        self.color_set_index = 0
+        self.color_index = 0
         self.color_label = None
         self.color_set_index = 0
         self.color_index = 0
@@ -613,6 +626,16 @@ class MultivariateExplorer(object):
 
         Return values are only used for the color bar (`axis='c').
         Otherwise they are ignored.
+
+        For example, ticks for phase variables can be nicely labeled
+        using the unicode character for pi:
+        ```
+        if 'phase' in label:
+            if axis == 'y':
+                ax.set_ylim(0.0, 2.0*np.pi)
+                ax.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
+                ax.set_yticklabels(['0', u'\u03c0/2', u'\u03c0', u'3\u03c0/2', u'2\u03c0'])
+        ```
         
         Parameter
         ---------
@@ -624,7 +647,8 @@ class MultivariateExplorer(object):
             Label coresponding to the data array.
         axis: str
             'x', 'y': set properties of x or y axes of ax.
-            'c': set properies of color bar axes and return vmin, vmax, and ticks.
+            'c': set properies of color bar axes (note that ax can be None!)
+                 and return vmin, vmax, and ticks.
 
         Returns
         -------
@@ -645,12 +669,36 @@ class MultivariateExplorer(object):
         into the waveform plots.  Reimplement this function to customize
         these plots. In particular to set axis limits and labels, plot
         title, etc.
+        You may even open a new figure (with non-blocking `show()`).
 
+        The following member variables might be usefull:
+        - `self.wave_data`: the full list of waveform data.
+        - `self.wave_nested`: True if the elements of `self.wave_data` are lists of 2D arrays. Otherwise the elements are 2D arrays. The first column of a 2D array contains the x-values, further columns y-values.
+        - `self.wave_has_xticks`: List of booleans for each axis. True if the axis has its own xticks.
+        - `self.wave_xlabels`: List of xlabels (only for the axis where the corresponding entry in `self.wave_has_xticks` is True).
+        - `self.wave_ylabels`: for each axis its ylabel
+        
         For example, you can set the linewidth of all plotted waveforms via:
         ```
         for ax in axs:
             for l in ax.lines:
                 l.set_linewidth(3.0)
+        ```
+        or enable marker to be plotted:
+        ```
+        for ax, yl in zip(axs, self.wave_ylabels):
+            if 'Power' in yl:
+                for l in ax.lines:
+                    l.set_marker('.')
+                    l.set_markersize(15.0)
+                    l.set_markeredgewidth(0.5)
+                    l.set_markeredgecolor('k')
+                    l.set_markerfacecolor(l.get_color())
+        ```
+        Usefull is to reduce the maximum number of y-ticks:
+        ```
+        import matplotlib.ticker as ticker
+        axs[0].yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
         ```
 
         Parameters
@@ -666,9 +714,10 @@ class MultivariateExplorer(object):
     def list_selection(self, indices):
         """ List information about the current selection of data points.
 
-        This function is called when 'l' is pressed.
-        Reimplement this function to print some meaningfull information
-        about the current selection of data points on to the console.
+        This function is called when 'l' is pressed.  Reimplement this
+        function, for example, to print some meaningfull information
+        about the current selection of data points on console. You nay
+        do, however, whatever you want in this function.
 
         Parameter
         ---------
@@ -682,12 +731,10 @@ class MultivariateExplorer(object):
     def analyze_selection(self, index):
         """ Provide further information of single selected data point.
 
-        This function is called when double clicking on a single data item.
-        Reimplement this function to prived some further details on this data point.
-        This can be an additional figure window. In this case show it non-blocking:
-        ```
-        plt.show(block=False)
-        ```
+        This function is called when double clicking on a single data
+        item.  Reimplement this function to provide some further details
+        on this data point.  This can be an additional figure window. In
+        this case show it non-blocking: `plt.show(block=False)`
 
         Parameter
         ---------
