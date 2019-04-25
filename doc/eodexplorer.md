@@ -66,6 +66,7 @@ l                       list selected EOD waveforms on console
 p,P                     toggle between data columns, PC, and scaled PC axis
 <, pageup               decrease number of displayed data columns/PC axis
 >, pagedown             increase number of displayed data columns/PC axis
+w                       toggle maximized waveform plot
 o, z                    toggle zoom mode on or off
 backspace               zoom back
 ctrl + a                select all
