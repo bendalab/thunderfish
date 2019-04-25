@@ -30,6 +30,9 @@ class MultivariateExplorer(object):
     expl.show()
     ```
 
+    The `compute_pca() function computes a principal component analysis (PCA)
+    on the input data, and `save_pca()` writes the principal components to a file.
+
     Customize the appearance and information provided by subclassing
     MultivariateExplorer and reimplementing the functions
     - fix_scatter_plot()
@@ -309,6 +312,7 @@ class MultivariateExplorer(object):
 
 
     def _pca_header(self, data, labels):
+        """ Set up the header for the table of principal components. """
         if isinstance(data, TableData):
             header = data.table_header()
         else:
@@ -412,6 +416,7 @@ class MultivariateExplorer(object):
 
             
     def _set_color_column(self):
+        """ Initialize variables used for colorization of scatter points. """
         if self.color_set_index == -1:
             if self.color_index == 0:
                 self.color_values = np.arange(self.data.shape[0], dtype=np.float)
@@ -436,6 +441,7 @@ class MultivariateExplorer(object):
 
                             
     def _plot_hist(self, ax, magnifiedax, keep_lims):
+        """ Plot and label a histogram. """
         ax_xlim = ax.get_xlim()
         ax_ylim = ax.get_ylim()
         try:
@@ -490,6 +496,7 @@ class MultivariateExplorer(object):
 
                         
     def _init_hist_plots(self):
+        """ Initial plots of the histograms. """
         n = self.data.shape[1]
         yax = None
         self.hist_ax = []
@@ -503,6 +510,7 @@ class MultivariateExplorer(object):
 
                         
     def _plot_scatter(self, ax, magnifiedax, keep_lims, cax=None):
+        """ Plot a scatter plot. """
         ax_xlim = ax.get_xlim()
         ax_ylim = ax.get_ylim()
         idx = self.scatter_ax.index(ax)
@@ -581,6 +589,7 @@ class MultivariateExplorer(object):
 
         
     def _init_scatter_plots(self):
+        """ Initial plots of the scatter plots. """
         self.cbax = self.fig.add_axes([0.5, 0.5, 0.1, 0.5])
         cbax = self.cbax
         n = self.data.shape[1]
@@ -598,6 +607,7 @@ class MultivariateExplorer(object):
 
                 
     def _plot_magnified_scatter(self):
+        """ Initial plot of the magnified scatter plot. """
         ax = self.fig.add_axes([0.5, 0.9, 0.05, 0.05])
         ax.set_visible(False)
         self.magnified_on = False
@@ -745,6 +755,7 @@ class MultivariateExplorer(object):
 
     
     def _set_magnified_pos(self, width, height):
+        """ Set position of the magnified plot. """
         if self.magnified_on:
             xoffs = self.xborder/width
             yoffs = self.yborder/height
@@ -769,6 +780,7 @@ class MultivariateExplorer(object):
 
             
     def _make_selection(self, ax, key, x0, x1, y0, y1):
+        """ Select points from a scatter or histogram plot. """
         if not key in ['shift', 'control']:
             self.mark_data = []
         try:
@@ -809,6 +821,7 @@ class MultivariateExplorer(object):
 
                         
     def _update_selection(self):
+        """ Highlight select points in the scatter plots and plot corresponding waveforms. """
         # update scatter plots:
         for artist, (c, r) in zip(self.scatter_artists, self.scatter_indices):
             if artist is not None:
@@ -845,6 +858,7 @@ class MultivariateExplorer(object):
 
         
     def _on_key(self, event):
+        """ Handles key events. """
         #print('pressed', event.key)
         plot_zoom = True
         if event.key in ['left', 'right', 'up', 'down']:
@@ -925,7 +939,7 @@ class MultivariateExplorer(object):
                 self._set_layout(self.fig.get_window_extent().width,
                                  self.fig.get_window_extent().height)
                 self.fig.canvas.draw()
-            elif event.key in 'ctrl+a':
+            elif event.key == 'ctrl+a':
                 self.mark_data = range(len(self.data))
                 self._update_selection()
             elif event.key in 'cC':
@@ -1040,6 +1054,7 @@ class MultivariateExplorer(object):
 
             
     def _on_select(self, eclick, erelease):
+        """ Handles selection events. """
         if eclick.dblclick:
             if len(self.mark_data) > 0:
                 self.analyze_selection(self.mark_data[-1])
@@ -1075,6 +1090,7 @@ class MultivariateExplorer(object):
 
         
     def _on_pick(self, event):
+        """ Handles pick events on the waveforms. """
         for ax in self.wave_ax:
             for k, l in enumerate(ax.lines):
                 if l is event.artist:
@@ -1086,6 +1102,7 @@ class MultivariateExplorer(object):
 
                     
     def _set_layout(self, width, height):
+        """ Update positions and visibility of all plots. """
         xoffs = self.xborder/width
         yoffs = self.yborder/height
         xs = self.spacing/width
@@ -1160,6 +1177,7 @@ class MultivariateExplorer(object):
 
             
     def _update_layout(self):
+        """ Update content and position of magnified plot. """
         if self.scatter_indices[-1][1] < self.data.shape[1]:
             if self.scatter_indices[-1][1] >= self.maxcols:
                 self.scatter_indices[-1][1] = self.maxcols-1
@@ -1176,6 +1194,7 @@ class MultivariateExplorer(object):
 
         
     def _on_resize(self, event):
+        """ Adapt layout of plots to new figure size. """
         self._set_layout(event.width, event.height)
 
 
