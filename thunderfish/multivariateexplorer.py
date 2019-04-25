@@ -35,6 +35,7 @@ class MultivariateExplorer(object):
                    ('p,P', 'toggle between data columns, PC, and scaled PC axis'),
                    ('<, pageup', 'decrease number of displayed data columns/PC axis'),
                    ('>, pagedown', 'increase number of displayed data columns/PC axis'),
+                   ('w',  'toggle maximized waveform plot'),
                    ('o, z',  'toggle zoom mode on or off'),
                    ('backspace', 'zoom back'),
                    ('ctrl + a', 'select all'),
@@ -716,6 +717,10 @@ class MultivariateExplorer(object):
             pos[0] = pos[1] - self.magnified_size
             self.scatter_ax[-1].set_position([pos[0][0], pos[0][1],
                                              self.magnified_size[0], self.magnified_size[1]])
+            self.scatter_ax[-1].set_visible(True)
+        else:
+            self.scatter_ax[-1].set_position([0.5, 0.9, 0.05, 0.05])
+            self.scatter_ax[-1].set_visible(False)
 
             
     def _make_selection(self, ax, key, x0, x1, y0, y1):
@@ -866,6 +871,15 @@ class MultivariateExplorer(object):
                 elif event.key in ['pagedown', '>'] and self.maxcols < self.raw_data.shape[1]:
                     self.maxcols += 1
                 self._update_layout()
+            elif event.key == 'w':
+                if self.maxcols > 0:
+                    self.all_maxcols[self.show_mode] = self.maxcols
+                    self.maxcols = 0
+                else:
+                    self.maxcols = self.all_maxcols[self.show_mode]
+                self._set_layout(self.fig.get_window_extent().width,
+                                 self.fig.get_window_extent().height)
+                self.fig.canvas.draw()
             elif event.key in 'ctrl+a':
                 self.mark_data = range(len(self.data))
                 self._update_selection()
@@ -1029,12 +1043,13 @@ class MultivariateExplorer(object):
     def _set_layout(self, width, height):
         xoffs = self.xborder/width
         yoffs = self.yborder/height
-        dx = (1.0-xoffs)/self.maxcols
-        dy = (1.0-yoffs)/self.maxcols
         xs = self.spacing/width
         ys = self.spacing/height
-        xw = dx - xs
-        yw = dy - ys
+        if self.maxcols > 0:
+            dx = (1.0-xoffs)/self.maxcols
+            dy = (1.0-yoffs)/self.maxcols
+            xw = dx - xs
+            yw = dy - ys
         # histograms:
         for c, ax in enumerate(self.hist_ax):
             if c < self.maxcols:
@@ -1052,22 +1067,35 @@ class MultivariateExplorer(object):
                 ax.set_visible(False)
                 ax.set_position([0.99, 0.01, 0.01, 0.01])
         # color bar:
-        self.cbax.set_position([xoffs+dx, yoffs+(self.maxcols-1)*dy, 0.3*xoffs, yw])
+        if self.maxcols > 0:
+            self.cbax.set_position([xoffs+dx, yoffs+(self.maxcols-1)*dy, 0.3*xoffs, yw])
+            self.cbax.set_visible(True)
+        else:
+            self.cbax.set_visible(False)
+            self.cbax.set_position([0.99, 0.01, 0.01, 0.01])
         # magnified plot:
-        self._set_magnified_pos(width, height)
-        if self.magnified_backdrop is not None:  # XXX Why is it sometimes None????
-            bbox = self.scatter_ax[-1].get_tightbbox(self.fig.canvas.get_renderer())
-            if bbox is not None:
-                self.magnified_backdrop.set_bounds(bbox.x0, bbox.y0, bbox.width, bbox.height)
+        if self.maxcols > 0:
+            self._set_magnified_pos(width, height)
+            if self.magnified_backdrop is not None:
+                bbox = self.scatter_ax[-1].get_tightbbox(self.fig.canvas.get_renderer())
+                if bbox is not None:
+                    self.magnified_backdrop.set_bounds(bbox.x0, bbox.y0, bbox.width, bbox.height)
+        else:
+            self.scatter_ax[-1].set_position([0.5, 0.9, 0.05, 0.05])
+            self.scatter_ax[-1].set_visible(False)
         # waveform plots:
         if len(self.wave_ax) > 0:
-            x0 = xoffs+((self.maxcols+1)//2)*dx
-            y0 = ((self.maxcols+1)//2)*dy
-            if self.maxcols%2 == 0:
-                x0 += xoffs
-                y0 += yoffs - ys
+            if self.maxcols > 0:
+                x0 = xoffs+((self.maxcols+1)//2)*dx
+                y0 = ((self.maxcols+1)//2)*dy
+                if self.maxcols%2 == 0:
+                    x0 += xoffs
+                    y0 += yoffs - ys
+                else:
+                    y0 += ys
             else:
-                y0 += ys
+                x0 = xoffs
+                y0 = 0.0
             yp = 1.0
             dy = 1.0-y0
             dy -= np.sum(self.wave_has_xticks)*yoffs
@@ -1098,7 +1126,7 @@ class MultivariateExplorer(object):
                 self.scatter_indices[-1][0] = self.maxcols-1
                 self._plot_hist(self.scatter_ax[-1], True, False)
         self._set_layout(self.fig.get_window_extent().width,
-                        self.fig.get_window_extent().height)
+                         self.fig.get_window_extent().height)
         self.fig.canvas.draw()
 
         
