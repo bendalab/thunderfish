@@ -1837,7 +1837,9 @@ class TableData:
         fh.write(begin_str)
         if table_format[0] == 't':
             fh.write('{')
-            for f in self.formats:
+            for h, f in zip(self.hidden, self.formats):
+                if h:
+                    continue
                 if f[1] == '-':
                     fh.write('l')
                 else:
@@ -1998,6 +2000,8 @@ class TableData:
                 if not unit:
                     unit = '-'
                 if table_format[0] == 't':
+                    if unit == '%':
+                        unit = '\\%'
                     fh.write('\\multicolumn{1}{l}{%s}' % unit)
                 else:
                     if format_width and not table_format[0] in 'h':
