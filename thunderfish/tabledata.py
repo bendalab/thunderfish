@@ -1937,7 +1937,7 @@ class TableData:
         # top line:
         if top_line:
             if table_format[0] == 't':
-                fh.write('  \\hline\n')
+                fh.write('  \\hline \\\\[-2ex]\n')
             else:
                 first = True
                 fh.write(header_start.replace(' ', '-'))
@@ -2098,7 +2098,7 @@ class TableData:
                         fh.write((w-1)*'-' + ':|')
                 fh.write('\n')
             elif table_format[0] == 't':
-                fh.write('  \\hline\n')
+                fh.write('  \\hline \\\\[-2ex]\n')
             else:
                 first = True
                 fh.write(header_start.replace(' ', '-'))
