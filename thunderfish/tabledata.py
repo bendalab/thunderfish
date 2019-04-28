@@ -6,6 +6,7 @@ including units and formats.
 
 ## helper functions
 - `write()`: shortcut for constructing and writing a TableData.
+- `latex_unit()`: translate unit string into SIunit LaTeX code.
 - `index2aa()`: convert an integer into an alphabetical representation.
 - `aa2index()`: convert an alphabetical representation to an index.
 
@@ -1477,8 +1478,9 @@ class TableData:
                 self.hidden[c] = False
 
     def write(self, fh=sys.stdout, table_format=None, delimiter=None,
-              unitstyle=None, column_numbers=None, sections=None,
-              format_width=None, shrink_width=True, missing='-'):
+              unit_style=None, column_numbers=None, sections=None,
+              align_columns=None, shrink_width=True, missing='-',
+              latex_label_command=''):
         """
         Write the table to a file or stream.
 
@@ -1497,7 +1499,7 @@ class TableData:
         delimiter: string
             String or character separating columns, if supported by the `table_format`.
             If None or 'auto' use the default for the specified `table_format`.
-        unitstyle: None or string
+        unit_style: None or string
             - None or 'auto': use default of the specified `table_format`.
             - 'row': write an extra row to the table header specifying the units of the columns.
             - 'header': add the units to the column headers.
@@ -1513,7 +1515,7 @@ class TableData:
         sections: None or int
             Number of section levels to be printed.
             If `None` or 'auto' use default of selected `table_format`.
-        format_width: boolean
+        align_columns: boolean
             - `True`: set width of column formats to make them align.
             - `False`: set width of column formats to 0 - no unnecessary spaces.
             - None or 'auto': Use default of the selected `table_format`.
@@ -1522,6 +1524,9 @@ class TableData:
             such that columns can become narrower.
         missing: string
             Indicate missing data by this string.
+        latex_label_command: string
+            Command for formatting header labels.
+            E.g. 'textbf' for making the header labels bold.
 
         Returns
         -------
@@ -1645,14 +1650,14 @@ class TableData:
             table_format =None
         if delimiter == 'auto':
             delimiter=None
-        if unitstyle == 'auto':
-            unitstyle=None
+        if unit_style == 'auto':
+            unit_style=None
         if column_numbers == 'none':
             column_numbers=None
         if sections == 'auto':
             sections=None
-        if format_width == 'auto':
-            format_width=None
+        if align_columns == 'auto':
+            align_columns=None
         # open file:
         own_file = False
         file_name = None
@@ -1670,7 +1675,7 @@ class TableData:
             table_format = 'dat'
         # set style:        
         if table_format[0] == 'd':
-            format_width = True
+            align_columns = True
             begin_str = ''
             end_str = ''
             header_start = '# '
@@ -1690,7 +1695,7 @@ class TableData:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 'a':
-            format_width = True
+            align_columns = True
             begin_str = ''
             end_str = ''
             header_start = '| '
@@ -1712,10 +1717,10 @@ class TableData:
         elif table_format[0] == 'c':
             # csv according to http://www.ietf.org/rfc/rfc4180.txt :
             column_numbers=None
-            if unitstyle is None:
-                unitstyle = 'header'
-            if format_width is None:
-                format_width = False
+            if unit_style is None:
+                unit_style = 'header'
+            if align_columns is None:
+                align_columns = False
             begin_str = ''
             end_str = ''
             header_start=''
@@ -1735,7 +1740,7 @@ class TableData:
             if sections is None:
                 sections = 0
         elif table_format[0] == 'r':
-            format_width = True
+            align_columns = True
             begin_str = ''
             end_str = ''
             header_start = 'RTH| '
@@ -1752,9 +1757,9 @@ class TableData:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 'm':
-            if unitstyle is None or unitstyle == 'row':
-                unitstyle = 'header'
-            format_width = True
+            if unit_style is None or unit_style == 'row':
+                unit_style = 'header'
+            align_columns = True
             begin_str = ''
             end_str = ''
             header_start='| '
@@ -1771,7 +1776,7 @@ class TableData:
             if sections is None:
                 sections = 0
         elif table_format[0] == 'h':
-            format_width = False
+            align_columns = False
             begin_str = '<table>\n<thead>\n'
             end_str = '</tbody>\n</table>\n'
             header_start='  <tr>\n    <th align="left"'
@@ -1788,8 +1793,8 @@ class TableData:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 't':
-            if format_width is None:
-                format_width = False
+            if align_columns is None:
+                align_columns = False
             begin_str = '\\begin{tabular}'
             end_str = '\\end{tabular}\n'
             header_start='  '
@@ -1806,8 +1811,8 @@ class TableData:
             if sections is None:
                 sections = 1000
         else:
-            if format_width is None:
-                format_width = True
+            if align_columns is None:
+                align_columns = True
             begin_str = ''
             end_str = ''
             header_start = ''
@@ -1824,15 +1829,15 @@ class TableData:
             if sections is None:
                 sections = 1000
         # check units:
-        if unitstyle is None:
-            unitstyle = 'row'
+        if unit_style is None:
+            unit_style = 'row'
         have_units = False
         for u in self.units:
             if u and u != '1' and u != '-':
                 have_units = True
                 break
         if not have_units:
-            unitstyle = 'none'
+            unit_style = 'none'
         # begin table:
         fh.write(begin_str)
         if table_format[0] == 't':
@@ -1861,7 +1866,7 @@ class TableData:
             widths_pos.append((i0, i1))
             # adapt width to header label:
             hw = len(self.header[c][0])
-            if unitstyle == 'header' and self.units[c] and\
+            if unit_style == 'header' and self.units[c] and\
                self.units[c] != '1' and self.units[c] != '-':
                 hw += 1 + len(self.units[c])
             if w < hw:
@@ -1969,12 +1974,14 @@ class TableData:
                             fh.write(' colspan="%d"' % columns)
                     elif table_format[0] == 't':
                         fh.write('\\multicolumn{%d}{l}{' % columns)
+                        if latex_label_command:
+                            fh.write('\\%s{' % latex_label_command)
                     fh.write(header_close)
                     hs = self.header[c][nsec]
-                    if nsec == 0 and unitstyle == 'header':
+                    if nsec == 0 and unit_style == 'header':
                         if self.units[c] and self.units[c] != '1' and self.units[c] != '-':
                             hs += '/' + self.units[c]
-                    if format_width and not table_format[0] in 'th':
+                    if align_columns and not table_format[0] in 'th':
                         f = '%%-%ds' % sw
                         fh.write(f % hs)
                     else:
@@ -1983,10 +1990,12 @@ class TableData:
                         if not last:
                             fh.write(header_sep*(columns-1))
                     elif table_format[0] == 't':
+                        if latex_label_command:
+                            fh.write('}')
                         fh.write('}')
             fh.write(header_end)
         # units:
-        if unitstyle == 'row':
+        if unit_style == 'row':
             first = True
             fh.write(header_start)
             for c in range(len(self.header)):
@@ -2000,11 +2009,9 @@ class TableData:
                 if not unit:
                     unit = '-'
                 if table_format[0] == 't':
-                    if unit == '%':
-                        unit = '\\%'
-                    fh.write('\\multicolumn{1}{l}{%s}' % unit)
+                    fh.write('\\multicolumn{1}{l}{%s}' % latex_unit(unit))
                 else:
-                    if format_width and not table_format[0] in 'h':
+                    if align_columns and not table_format[0] in 'h':
                         f = '%%-%ds' % widths[c]
                         fh.write(f % unit)
                     else:
@@ -2034,13 +2041,13 @@ class TableData:
                         fh.write('\\multicolumn{1}{l}{%s}' % aa)
                 else:
                     if column_numbers == 'num' or column_numbers == 'index':
-                        if format_width:
+                        if align_columns:
                             f = '%%%dd' % widths[c]
                             fh.write(f % i)
                         else:
                             fh.write('%d' % i)
                     else:
-                        if format_width:
+                        if align_columns:
                             f = '%%-%ds' % widths[c]
                             fh.write(f % aa)
                         else:
@@ -2095,7 +2102,7 @@ class TableData:
                 fh.write(data_close)
                 if k >= len(self.data[c]) or \
                    (isinstance(self.data[c][k], float) and m.isnan(self.data[c][k])):
-                    if format_width:
+                    if align_columns:
                         if f[1] == '-':
                             fn = '%%-%ds' % widths[c]
                         else:
@@ -2105,7 +2112,7 @@ class TableData:
                         fh.write(missing)
                 else:
                     ds = f % self.data[c][k]
-                    if not format_width:
+                    if not align_columns:
                         ds = ds.strip()
                     fh.write(ds)
             fh.write(data_end)
@@ -2464,8 +2471,9 @@ class TableData:
 
 
 def write(fh, data, header, units=None, formats=None, table_format=None, delimiter=None,
-              unitstyle=None, column_numbers=None, sections=None,
-              format_width=None, shrink_width=True, missing='-'):
+              unit_style=None, column_numbers=None, sections=None,
+              align_columns=None, shrink_width=True, missing='-',
+              latex_label_command=''):
     """
     Construct table and write to file.
 
@@ -2495,14 +2503,16 @@ def write(fh, data, header, units=None, formats=None, table_format=None, delimit
     ```
     """
     td = TableData(data, header, units, formats)
-    td.write(fh, table_format=table_format, units=unitstyle, column_numbers=column_numbers,
-             missing=missing, shrink_width=shrink_width, delimiter=delimiter,
-             format_width=format_width, sections=sections)
+    td.write(fh, table_format=table_format, unit_style=unit_style,
+             column_numbers=column_numbers, missing=missing, shrink_width=shrink_width,
+             delimiter=delimiter, align_columns=align_columns, sections=sections,
+             latex_label_command=latex_label_command)
 
     
 def add_write_table_config(cfg, table_format=None, delimiter=None,
-                           unitstyle=None, column_numbers=None, sections=None,
-                           format_width=None, shrink_width=True, missing='-'):
+                           unit_style=None, column_numbers=None, sections=None,
+                           align_columns=None, shrink_width=True, missing='-',
+                           latex_label_command=''):
     """ Add parameter specifying how to write a table to a file as a new section to a configuration.
 
     Parameters
@@ -2514,12 +2524,13 @@ def add_write_table_config(cfg, table_format=None, delimiter=None,
     cfg.add_section('File format for storing analysis results:')
     cfg.add('fileFormat', table_format or 'auto', '', 'Default file format used to store analysis results.\nOne of %s.' % ', '.join(TableData.formats))
     cfg.add('fileDelimiter', delimiter or 'auto', '', 'String used to separate columns or "auto".')
-    cfg.add('fileUnitStyle', unitstyle or 'auto', '', 'Add units as extra row ("row"), add units to header label ("header"), do not print out units ("none"), or "auto".')
+    cfg.add('fileUnitStyle', unit_style or 'auto', '', 'Add units as extra row ("row"), add units to header label ("header"), do not print out units ("none"), or "auto".')
     cfg.add('fileColumnNumbers', column_numbers or 'none', '', 'Add line with column indices ("index", "num", "aa", "AA", or "none")')
     cfg.add('fileSections', sections or 'auto', '', 'Maximum number of section levels or "auto"')
-    cfg.add('fileColumnWidth', format_width or 'auto', '', 'If True, write all data of a column using the same width, if False write the data without any white space, or "auto".')
+    cfg.add('fileAlignColumns', align_columns or 'auto', '', 'If True, write all data of a column using the same width, if False write the data without any white space, or "auto".')
     cfg.add('fileShrinkColumnWidth', shrink_width, '', 'Allow to make columns narrower than specified by the corresponding format strings.')
     cfg.add('fileMissing', missing, '', 'String used to indicate missing data values.')
+    cfg.add('fileLaTeXLableCommand', latex_label_command, '', 'LaTeX command name for formatting column labels of the table header.')
 
 
 def write_table_args(cfg):
@@ -2541,18 +2552,127 @@ def write_table_args(cfg):
 
     d = cfg.map({'table_format': 'fileFormat',
                  'delimiter': 'fileDelimiter',
-                 'unitstyle': 'fileUnitStyle',
+                 'unit_style': 'fileUnitStyle',
                  'column_numbers': 'fileColumnNumbers',
                  'sections': 'fileSections',
-                 'format_width': 'fileColumnWidth',
+                 'align_columns': 'fileAlignColumns',
                  'shrink_width': 'fileShrinkColumnWidth',
-                 'missing': 'fileMissing'})
+                 'missing': 'fileMissing',
+                 'latex_label_command': 'fileLaTeXLableCommand'})
     if 'sections' in d:
         if d['sections'] != 'auto':
             d['sections'] = int(d['sections'])
     return d
 
-                  
+
+def latex_unit(unit):
+    """ Translate unit string into SIunit LaTeX code.
+    
+    Parameters
+    ----------
+    unit: string
+        String enoting a unit.
+        
+    Returns
+    -------
+    unit: string
+        Unit string as valid LaTeX code.
+    """
+    si_prefixes = {'y': '\\yocto',
+                  'z': '\\zepto',
+                  'a': '\\atto',
+                  'f': '\\femto',
+                  'p': '\\pico',
+                  'n': '\\nano',
+                  'u': '\\micro',
+                  'm': '\\milli',
+                  'c': '\\centi',
+                  'd': '\\deci',
+                  'h': '\\hecto',
+                  'k': '\\kilo',
+                  'M': '\\mega',
+                  'G': '\\giga',
+                  'T': '\\tera',
+                  'P': '\\peta',
+                  'E': '\\exa',
+                  'Z': '\\zetta',
+                  'Y': '\\yotta' }
+    si_units = {'m': '\\metre',
+               'g': '\\gram',
+               's': '\\second',
+               'A': '\\ampere',
+               'K': '\\kelvin',
+               'mol': '\\mole',
+               'cd': '\\candela',
+               'Hz': '\\hertz',
+               'N': '\\newton',
+               'Pa': '\\pascal',
+               'J': '\\joule',
+               'W': '\\watt',
+               'C': '\\coulomb',
+               'V': '\\volt',
+               'F': '\\farad',
+               'O': '\\ohm',
+               'S': '\\siemens',
+               'Wb': '\\weber',
+               'T': '\\tesla',
+               'H': '\\henry',
+               'C': '\\celsius',
+               'lm': '\\lumen',
+               'lx': '\\lux',
+               'Bq': '\\becquerel',
+               'Gv': '\\gray',
+               'Sv': '\\sievert'}
+    other_units = {"'": '\\arcminute',
+               "''": '\\arcsecond',
+               'a': '\\are',
+               'd': '\\dday',
+               'eV': '\\electronvolt',
+               'ha': '\\hectare',
+               'h': '\\hour',
+               'L': '\\liter',
+               'l': '\\litre',
+               'min': '\\minute',
+               'Np': '\\neper',
+               'rad': '\\rad',
+               't': '\\ton',
+               '%': '\\%'}
+    unit_powers = {'^2': '\\squared',
+              '^3': '\\cubed',
+              '/': '\\per',
+              '^-1': '\\power{}{-1}',
+              '^-2': '\\rpsquared',
+              '^-3': '\\rpcubed'}
+    units = ''
+    j = len(unit)
+    while j >= 0:
+        for k in range(-3, 0):
+            if j+k < 0:
+                continue
+            uss = unit[j+k:j]
+            if uss in unit_powers:
+                units = unit_powers[uss] + units
+                break
+            elif uss in other_units:
+                units = other_units[uss] + units
+                break
+            elif uss in si_units:
+                units = si_units[uss] + units
+                j = j+k
+                k = 0
+                if j-1 >= 0:
+                    uss = unit[j-1:j]
+                    if uss in si_prefixes:
+                        units = si_prefixes[uss] + units
+                        k = -1
+                break
+        else:
+            k = -1
+            units = unit[j+k:j] + units
+        j = j + k
+    return units
+
+
 def index2aa(n, a='a'):
     """
     Convert an integer into an alphabetical representation.
