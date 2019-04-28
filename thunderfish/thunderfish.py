@@ -79,8 +79,8 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
     add_eod_quality_config(cfg)
-    add_write_table_config(cfg, table_format='csv', unitstyle='row',
-                           format_width=True, shrink_width=False)
+    add_write_table_config(cfg, table_format='csv', unit_style='row',
+                           align_columns=True, shrink_width=False)
     
     # load configuration from working directory and data directories:
     cfg.load_files(config_file, file_name, 3, verbose)
