@@ -264,8 +264,8 @@ def main():
     cfgfile = __package__ + '.cfg'
     cfg = ConfigFile()
     add_eod_quality_config(cfg)
-    add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
-                           shrink_width=False)
+    add_write_table_config(cfg, table_format='csv', unit_style='row',
+                           align_columns=True, shrink_width=False)
     cfg.load_files(cfgfile, args.file[0], 3)
     # output format:
     if data_format == 'same':

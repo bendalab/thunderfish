@@ -256,7 +256,7 @@ class EODExplorer(MultivariateExplorer):
         try:
             raw_data, samplerate, unit = load_data(recording, channel)
         except IOError as e:
-            print('%s: failed to open file: %s' % (recording, str(e)))
+            print('%s: failed to open file: did you provide a path to the raw data (-P option)?' % (recording))
             return
         if len(raw_data) <= 1:
             print('%s: empty data file' % recording)
@@ -390,8 +390,8 @@ def main():
     cfgfile = __package__ + '.cfg'
     cfg = ConfigFile()
     add_eod_quality_config(cfg)
-    add_write_table_config(cfg, table_format='csv', unitstyle='row', format_width=True,
-                           shrink_width=False)
+    add_write_table_config(cfg, table_format='csv', unit_style='row',
+                           align_columns=True, shrink_width=False)
     cfg.load_files(cfgfile, file_name, 3)
     
     # output format:

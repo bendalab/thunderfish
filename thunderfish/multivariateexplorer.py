@@ -376,7 +376,7 @@ class MultivariateExplorer(object):
             pca_table.append_data(100.0*pca.explained_variance_ratio_[k])
             pca_table.append_data(comp)
         if write:
-            pca_table.write(table_format='out', unitstyle='none')
+            pca_table.write(table_format='out', unit_style='none')
         # submit data:
         if scale:
             self.all_data[2] = pca_data
@@ -406,13 +406,13 @@ class MultivariateExplorer(object):
         else:
             pca_file = file_name + '-pcacov'
             pca_table = self.pca_tables[0]
-        if 'unitstyle' in kwargs:
-            del kwargs['unitstyle']
+        if 'unit_style' in kwargs:
+            del kwargs['unit_style']
         if 'table_format' in kwargs:
-            pca_table.write(pca_file, unitstyle='none', **kwargs)
+            pca_table.write(pca_file, unit_style='none', **kwargs)
         else:
             pca_file += '.dat'
-            pca_table.write(pca_file, unitstyle='none')
+            pca_table.write(pca_file, unit_style='none')
 
             
     def _set_color_column(self):
