@@ -22,12 +22,17 @@ from .powerspectrum import decibel
 from .bestwindow import find_best_window, plot_best_data
 from .thunderfish import configuration, detect_eods, plot_eods
 
-
             
 class EODExplorer(MultivariateExplorer):
     """Simple for viewing and exploring properties of EOD waveforms.
 
     EODExplorer adapts a MultivariateExplorer to specific needs of EODs.
+
+    Static members
+    -----------------------
+    - `groups`: names of groups of data columns that can be selected.
+    - `select_EOD_properties()`: select data columns to be explored.
+    - `select_color_property()`: select column from data table used to color the data.
     """
     
     def __init__(self, data, data_cols, wave_fish, eod_data,
@@ -330,7 +335,193 @@ class EODExplorer(MultivariateExplorer):
         fig.canvas.set_window_title('thunderfish: %s' % basename)
         plt.show(block=False)
 
-        
+
+    """ Names of groups of data columns that can be selected by the select_EOD_properties() function.
+    """
+    groups = ['all', 'allpower', 'noise', 'timing',
+              'ampl', 'relampl', 'power', 'relpower', 'phase',
+              'time', 'width', 'none']
+    
+    @staticmethod
+    def select_EOD_properties(data, wave_fish, max_n, column_groups, add_columns):
+        """ Select data columns to be explored.
+
+        First, groups of columns are selected, then individual
+        columns. Columns that are selected twice are removed from the
+        selection.
+
+        Parameter
+        ---------
+        data: TableData
+            Table with EOD properties from which columns are selected.
+        wave_fish: boolean.
+            Indicates if data contains properties of wave- or pulse-type electric fish.
+        max_n: int
+            Maximum number of harmonics (wae-type fish) or peaks (pulse-type fish)
+            to be  selected.
+        column_groups: list of string
+            List of name denoting groups of columns to be selected. Supported groups are
+            listed in `EODExplor.groups`.
+        add_columns: list of string or int
+            List of further individual columns to be selected.
+
+        Returns
+        -------
+        data_cols: list of int
+            Indices of data columns to be shown by EODExplorer.
+        """
+        if wave_fish:
+            # maximum number of harmonics:
+            if max_n == 0:
+                max_n = 40
+            else:
+                max_n += 1
+            for k in range(1, max_n):
+                if not ('phase%d' % k) in data:
+                    max_n = k
+                    break
+        else:
+            # minimum number of peaks:
+            min_peaks = -10
+            for k in range(1, min_peaks, -1):
+                if not ('P%dampl' % k) in data or not np.all(np.isfinite(data[:,'P%dampl' % k])):
+                    min_peaks = k+1
+                    break
+            # maximum number of peaks:
+            if max_n == 0:
+                max_peaks = 20
+            else:
+                max_peaks = max_n + 1
+            for k in range(1, max_peaks):
+                if not ('P%dampl' % k) in data or not np.all(np.isfinite(data[:,'P%dampl' % k])):
+                    max_peaks = k
+                    break
+
+        # default columns:
+        group_cols = ['EODf']
+        if len(column_groups) == 0:
+            column_groups = ['all']
+        for group in column_groups:
+            if group == 'none':
+                group_cols = []
+            elif wave_fish:
+                if group == 'noise':
+                    group_cols.extend(['noise', 'rmserror',
+                                       'p-p-amplitude', 'power'])
+                elif group == 'timing' or group == 'time':
+                    group_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
+                                      'lefttrough', 'righttrough'])
+                elif group == 'ampl':
+                    for k in range(0, max_n):
+                        group_cols.append('ampl%d' % k)
+                elif group == 'relampl':
+                    for k in range(1, max_n):
+                        group_cols.append('relampl%d' % k)
+                elif group == 'relpower' or group == 'power':
+                    for k in range(1, max_n):
+                        group_cols.append('relpower%d' % k)
+                elif group == 'phase':
+                    for k in range(1, max_n):
+                        group_cols.append('phase%d' % k)
+                elif group == 'all':
+                    for k in range(1, max_n):
+                        group_cols.append('relampl%d' % k)
+                        group_cols.append('phase%d' % k)
+                elif group == 'allpower':
+                    for k in range(1, max_n):
+                        group_cols.append('relampl%d' % k)
+                        group_cols.append('relpower%d' % k)
+                        group_cols.append('phase%d' % k)
+                else:
+                    parser.error('"%s" is not a valid data group for wavefish' % group)
+            else:  # pulse fish
+                if group == 'noise':
+                    group_cols.extend(['noise', 'p-p-amplitude', 'min-ampl', 'max-ampl'])
+                elif group == 'timing':
+                    group_cols.extend(['tstart', 'tend', 'width', 'tau', 'firstpeak', 'lastpeak'])
+                elif group == 'power':
+                    group_cols.extend(['peakfreq', 'peakpower', 'poweratt5', 'poweratt50', 'lowcutoff'])
+                elif group == 'time':
+                    for k in range(min_peaks, max_peaks):
+                        if k != 1:
+                            group_cols.append('P%dtime' % k)
+                elif group == 'ampl':
+                    for k in range(min_peaks, max_peaks):
+                        group_cols.append('P%dampl' % k)
+                elif group == 'relampl':
+                    for k in range(min_peaks, max_peaks):
+                        if k != 1:
+                            group_cols.append('P%drelampl' % k)
+                elif group == 'width':
+                    for k in range(min_peaks, max_peaks):
+                        if k != 1:
+                            group_cols.append('P%dwidth' % k)
+                elif group == 'all':
+                    for k in range(min_peaks, max_peaks):
+                        if k != 1:
+                            group_cols.append('P%drelampl' % k)
+                            group_cols.append('P%dtime' % k)
+                            group_cols.append('P%dwidth' % k)
+                    group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
+                else:
+                    parser.error('"%s" is not a valid data group for pulsefish' % group)
+        # additional data columns:
+        group_cols.extend(add_columns)
+        # translate to indices:
+        data_cols = []
+        for c in group_cols:
+            idx = data.index(c)
+            if idx is None:
+                parser.error('"%s" is not a valid data column' % c)
+            elif idx in data_cols:
+                data_cols.remove(idx)
+            else:
+                data_cols.append(idx)
+        return data_cols
+
+    
+    @staticmethod
+    def select_color_property(data, data_cols, color_col):
+        """ Select column from data table used to color the data.
+
+        Parameter
+        ---------
+        data: TableData
+            Table with all EOD properties from which columns are selected.
+        data_cols: list of int
+            List of columns selected to be explored.
+        color_col: string or int
+            Column to be selected for coloring the data.
+            If 'index' the use the index of the data for coloring.
+
+        Returns
+        -------
+        colors: int or column from data.
+            Either index of data_cols or additional data from the data table
+            to be used for coloring.
+        color_label: string
+            Label for labeling the color bar.
+        error: string
+            In case an invalid column is selected, an error string.
+        """
+        color_idx = data.index(color_col)
+        colors = None
+        color_label = None
+        if color_idx is None and color_col != 'index':
+            return None, None, '"%s" is not a valid column for color code' % color_col
+        if color_idx is None:
+            colors = -2
+        elif color_idx in data_cols:
+            colors = data_cols.index(color_idx)
+        else:
+            if len(data.unit(color_idx)) > 0 and not data.unit(color_idx) in ['-', '1']:
+                color_label = '%s [%s]' % (data.label(color_idx), data.unit(color_idx))
+            else:
+                color_label = data.label(color_idx)
+            colors = data[:,color_idx]
+        return colors, color_label, None
+
+
 class PrintHelp(argparse.Action):
     def __call__(self, parser, namespace, values, option_string):
         parser.print_help()
@@ -390,11 +581,11 @@ def main():
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel for loading waveform data. Without argument use all CPU cores.')
     parser.add_argument('-D', dest='column_groups', default=[], type=str, action='append',
-                        choices=['all', 'allpower', 'noise', 'timing', 'ampl', 'relampl', 'power', 'relpower', 'phase', 'time', 'width', 'none'],
+                        choices=EODExplorer.groups,
                         help='default selection of data columns, check them with the -l option')
     parser.add_argument('-d', dest='add_data_cols', action='append', default=[], metavar='COLUMN',
                         help='data columns to be appended or removed (if already listed) for analysis')
-    parser.add_argument('-n', dest='max_harmonics', default=0, type=int, metavar='MAX',
+    parser.add_argument('-n', dest='max_n', default=0, type=int, metavar='MAX',
                         help='maximum number of harmonics or peaks to be used')
     parser.add_argument('-w', dest='add_waveforms', default=[], type=str, action='append',
                         choices=['first', 'second', 'ampl', 'power', 'phase'],
@@ -422,7 +613,7 @@ def main():
     file_name = args.file
     column_groups = args.column_groups
     add_data_cols = args.add_data_cols
-    max_harmonics = args.max_harmonics
+    max_n = args.max_n
     add_waveforms = args.add_waveforms
     save_pca = args.save_pca
     color_col = args.color_col
@@ -495,130 +686,14 @@ def main():
         species[data[:,'phase1'] > 0] = 'Aptero'
         data.append('species', '', '%s', species)
 
-    if wave_fish:
-        # maximum number of harmonics:
-        if max_harmonics == 0:
-            max_harmonics = 40
-        else:
-            max_harmonics += 1
-        for k in range(1, max_harmonics):
-            if not ('phase%d' % k) in data:
-                max_harmonics = k
-                break
-    else:
-        # minimum number of peaks:
-        min_peaks = -10
-        for k in range(1, min_peaks, -1):
-            if not ('P%dampl' % k) in data or not np.all(np.isfinite(data[:,'P%dampl' % k])):
-                min_peaks = k+1
-                break
-        # maximum number of peaks:
-        if max_harmonics == 0:
-            max_peaks = 20
-        else:
-            max_peaks = max_harmonics + 1
-        for k in range(1, max_peaks):
-            if not ('P%dampl' % k) in data or not np.all(np.isfinite(data[:,'P%dampl' % k])):
-                max_peaks = k
-                break
-        
-    # default columns:
-    group_cols = ['EODf']
-    if len(column_groups) == 0:
-        column_groups = ['all']
-    for group in column_groups:
-        if group == 'none':
-            group_cols = []
-        elif wave_fish:
-            if group == 'noise':
-                group_cols.extend(['noise', 'rmserror',
-                                   'p-p-amplitude', 'power'])
-            elif group == 'timing' or group == 'time':
-                group_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
-                                  'lefttrough', 'righttrough'])
-            elif group == 'ampl':
-                for k in range(0, max_harmonics):
-                    group_cols.append('ampl%d' % k)
-            elif group == 'relampl':
-                for k in range(1, max_harmonics):
-                    group_cols.append('relampl%d' % k)
-            elif group == 'relpower' or group == 'power':
-                for k in range(1, max_harmonics):
-                    group_cols.append('relpower%d' % k)
-            elif group == 'phase':
-                for k in range(1, max_harmonics):
-                    group_cols.append('phase%d' % k)
-            elif group == 'all':
-                for k in range(1, max_harmonics):
-                    group_cols.append('relampl%d' % k)
-                    group_cols.append('phase%d' % k)
-            elif group == 'allpower':
-                for k in range(1, max_harmonics):
-                    group_cols.append('relampl%d' % k)
-                    group_cols.append('relpower%d' % k)
-                    group_cols.append('phase%d' % k)
-            else:
-                parser.error('"%s" is not a valid data group for wavefish' % group)
-        else:  # pulse fish
-            if group == 'noise':
-                group_cols.extend(['noise', 'p-p-amplitude', 'min-ampl', 'max-ampl'])
-            elif group == 'timing':
-                group_cols.extend(['tstart', 'tend', 'width', 'tau', 'firstpeak', 'lastpeak'])
-            elif group == 'power':
-                group_cols.extend(['peakfreq', 'peakpower', 'poweratt5', 'poweratt50', 'lowcutoff'])
-            elif group == 'time':
-                for k in range(min_peaks, max_peaks):
-                    if k != 1:
-                        group_cols.append('P%dtime' % k)
-            elif group == 'ampl':
-                for k in range(min_peaks, max_peaks):
-                    group_cols.append('P%dampl' % k)
-            elif group == 'relampl':
-                for k in range(min_peaks, max_peaks):
-                    if k != 1:
-                        group_cols.append('P%drelampl' % k)
-            elif group == 'width':
-                for k in range(min_peaks, max_peaks):
-                    if k != 1:
-                        group_cols.append('P%dwidth' % k)
-            elif group == 'all':
-                for k in range(min_peaks, max_peaks):
-                    if k != 1:
-                        group_cols.append('P%drelampl' % k)
-                        group_cols.append('P%dtime' % k)
-                        group_cols.append('P%dwidth' % k)
-                group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
-            else:
-                parser.error('"%s" is not a valid data group for pulsefish' % group)
-    # additional data columns:
-    group_cols.extend(add_data_cols)
-    # translate to indices:
-    data_cols = []
-    for c in group_cols:
-        idx = data.index(c)
-        if idx is None:
-            parser.error('"%s" is not a valid data column' % c)
-        elif idx in data_cols:
-            data_cols.remove(idx)
-        else:
-            data_cols.append(idx)
+    # select columns (EOD properties) to be shown:
+    data_cols = EODExplorer.select_EOD_properties(data, wave_fish, max_n,
+                                                  column_groups, add_data_cols)
 
-    # color code:
-    color_idx = data.index(color_col)
-    colors = None
-    color_label = None
-    if color_idx is None and color_col != 'index':
-        parser.error('"%s" is not a valid column for color code' % color_col)
-    if color_idx is None:
-        colors = -2
-    elif color_idx in data_cols:
-        colors = data_cols.index(color_idx)
-    else:
-        if len(data.unit(color_idx)) > 0 and not data.unit(color_idx) in ['-', '1']:
-            color_label = '%s [%s]' % (data.label(color_idx), data.unit(color_idx))
-        else:
-            color_label = data.label(color_idx)
-        colors = data[:,color_idx]
+    # select column used for coloring the data:
+    colors, color_label, error = EODExplorer.select_color_property(data, data_cols, color_col)
+    if error:
+        parser.error(error)
 
     # list columns:
     if list_columns:
@@ -628,7 +703,7 @@ def main():
                 s[1] = '*'
             if k == color_idx:
                 s[0] = 'C'
-            print(''.join(s) + c)
+                print(''.join(s) + c)
         parser.exit()
 
     # load waveforms:
