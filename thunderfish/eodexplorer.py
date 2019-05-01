@@ -29,10 +29,10 @@ class EODExplorer(MultivariateExplorer):
     EODExplorer adapts a MultivariateExplorer to specific needs of EODs.
 
     Static members
-    -----------------------
+    --------------
     - `groups`: names of groups of data columns that can be selected.
     - `select_EOD_properties()`: select data columns to be explored.
-    - `select_color_property()`: select column from data table used to color the data.
+    - `select_color_property()`: select column from data table for colorizing the data.
     """
     
     def __init__(self, data, data_cols, wave_fish, eod_data,
@@ -44,6 +44,8 @@ class EODExplorer(MultivariateExplorer):
             Full table of EOD properties. Each row is a fish.
         data_cols: list of string or ints
             Names or indices of columns in `data` to be explored.
+            You may use the static function `select_EOD_properties()`
+            for assisting the selection of columns.
         wave_fish: boolean
             True if data are about wave-type weakly electric fish.
             False if data are about pulse-type weakly electric fish.
@@ -482,7 +484,9 @@ class EODExplorer(MultivariateExplorer):
     
     @staticmethod
     def select_color_property(data, data_cols, color_col):
-        """ Select column from data table used to color the data.
+        """ Select column from data table for colorizing the data.
+
+        Pass the output of this function on to MultivariateExplorer.set_colors().
 
         Parameter
         ---------
