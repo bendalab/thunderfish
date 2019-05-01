@@ -1404,7 +1404,7 @@ class TableData:
         else:
             u = ''
             if not self.units[col] in '1-' and self.units[col] != 'a.u.':
-                u = self.units[col] 
+                u = self.units[col]
             v = (self.formats[col] % self.data[col][row]) + u
         return self.header[col][0], v
 
