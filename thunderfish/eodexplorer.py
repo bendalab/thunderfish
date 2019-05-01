@@ -24,7 +24,7 @@ from .thunderfish import configuration, detect_eods, plot_eods
 
             
 class EODExplorer(MultivariateExplorer):
-    """Simple for viewing and exploring properties of EOD waveforms.
+    """Simple GUI for viewing and exploring properties of EOD waveforms.
 
     EODExplorer adapts a MultivariateExplorer to specific needs of EODs.
 
