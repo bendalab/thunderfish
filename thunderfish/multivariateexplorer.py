@@ -14,11 +14,11 @@ from .tabledata import TableData
 
 
 class MultivariateExplorer(object):
-    """Simple matplotlib-based GUI for exploring multivariate data.
+    """Simple matplotlib-based GUI for viewing and exploring multivariate data.
 
     Shown are scatter plots of all pairs of variables or PCA axis.
-    Scatter plots are colored according to one of the variables.
-    Data points can be selected and corresponding waveforms are shown.
+    Points in the scatter plots are colored according to the values of one of the variables.
+    Data points can be selected and optionally corresponding waveforms are shown.
 
     First you initialize the explorer with the data. Then you optionally
     specify how to colorize the data and provide waveform data
@@ -271,7 +271,7 @@ class MultivariateExplorer(object):
 
         
     def show(self):
-        """ Show the interactive scatter plots for exploration.
+        """ Show interactive scatter plots for exploration.
         """
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
@@ -312,7 +312,7 @@ class MultivariateExplorer(object):
 
 
     def _pca_header(self, data, labels):
-        """ Set up the header for the table of principal components. """
+        """ Set up header for the table of principal components. """
         if isinstance(data, TableData):
             header = data.table_header()
         else:
@@ -589,7 +589,7 @@ class MultivariateExplorer(object):
 
         
     def _init_scatter_plots(self):
-        """ Initial plots of the scatter plots. """
+        """ Initial plots of scatter plots. """
         self.cbax = self.fig.add_axes([0.5, 0.5, 0.1, 0.5])
         cbax = self.cbax
         n = self.data.shape[1]
@@ -634,7 +634,7 @@ class MultivariateExplorer(object):
         Once for the x axes, once for the y axis and once for the color bar.
         Reimplement this function to set appropriate limits and ticks.
 
-        Return values are only used for the color bar (`axis='c').
+        Return values are only used for the color bar (`axis='c'`).
         Otherwise they are ignored.
 
         For example, ticks for phase variables can be nicely labeled
@@ -673,7 +673,7 @@ class MultivariateExplorer(object):
 
     
     def fix_waveform_plot(self, axs, indices):
-        """ Customize the waveform plots.
+        """ Customize waveform plots.
 
         This function is called once after new data have been plotted
         into the waveform plots.  Reimplement this function to customize
@@ -694,7 +694,7 @@ class MultivariateExplorer(object):
             for l in ax.lines:
                 l.set_linewidth(3.0)
         ```
-        or enable marker to be plotted:
+        or enable markers to be plotted:
         ```
         for ax, yl in zip(axs, self.wave_ylabels):
             if 'Power' in yl:
@@ -706,6 +706,10 @@ class MultivariateExplorer(object):
                     l.set_markerfacecolor(l.get_color())
         ```
         Usefull is to reduce the maximum number of y-ticks:
+        ```
+        axs[0].yaxis.get_major_locator().set_params(nbins=7)
+        ```
+        or
         ```
         import matplotlib.ticker as ticker
         axs[0].yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
@@ -739,12 +743,13 @@ class MultivariateExplorer(object):
 
             
     def analyze_selection(self, index):
-        """ Provide further information of single selected data point.
+        """ Provide further information about a single selected data point.
 
-        This function is called when double clicking on a single data
-        item.  Reimplement this function to provide some further details
-        on this data point.  This can be an additional figure window. In
-        this case show it non-blocking: `plt.show(block=False)`
+        This function is called when a single data item was double
+        clicked.  Reimplement this function to provide some further
+        details on this data point.  This can be an additional figure
+        window. In this case show it non-blocking:
+        `plt.show(block=False)`
 
         Parameter
         ---------
@@ -755,7 +760,7 @@ class MultivariateExplorer(object):
 
     
     def _set_magnified_pos(self, width, height):
-        """ Set position of the magnified plot. """
+        """ Set position of magnified plot. """
         if self.magnified_on:
             xoffs = self.xborder/width
             yoffs = self.yborder/height
@@ -858,7 +863,7 @@ class MultivariateExplorer(object):
 
         
     def _on_key(self, event):
-        """ Handles key events. """
+        """ Handle key events. """
         #print('pressed', event.key)
         plot_zoom = True
         if event.key in ['left', 'right', 'up', 'down']:
@@ -1054,7 +1059,7 @@ class MultivariateExplorer(object):
 
             
     def _on_select(self, eclick, erelease):
-        """ Handles selection events. """
+        """ Handle selection events. """
         if eclick.dblclick:
             if len(self.mark_data) > 0:
                 self.analyze_selection(self.mark_data[-1])
@@ -1090,7 +1095,7 @@ class MultivariateExplorer(object):
 
         
     def _on_pick(self, event):
-        """ Handles pick events on the waveforms. """
+        """ Handle pick events on waveforms. """
         for ax in self.wave_ax:
             for k, l in enumerate(ax.lines):
                 if l is event.artist:

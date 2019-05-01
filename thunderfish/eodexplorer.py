@@ -25,9 +25,40 @@ from .thunderfish import configuration, detect_eods, plot_eods
 
             
 class EODExplorer(MultivariateExplorer):
+    """Simple for viewing and exploring properties of EOD waveforms.
+
+    EODExplorer adapts a MultivariateExplorer to specific needs of EODs.
+    """
     
     def __init__(self, data, data_cols, wave_fish, eod_data,
-                 add_waveforms, loaded_spec, rawdata_path, cfg):
+                 add_waveforms, loaded_spec, rawdata_path):
+        """
+        Parameter
+        ---------
+        data: TableData
+            Full table of EOD properties. Each row is a fish.
+        data_cols: list of string or ints
+            Names or indices of columns in `data` to be explored.
+        wave_fish: boolean
+            True if data are about wave-type weakly electric fish.
+            False if data are about pulse-type weakly electric fish.
+        eod_data: list of waveform data
+            Either waveform data is only the EOD waveform,
+            a ndarray of shape (time, ['time', 'voltage']), or
+            it is a list with the first element being the EOD waveform,
+            and the second element being a 2D ndarray of spectral properties
+            of the EOD waveform with first column being the frequency or harmonics.
+        add_waveforms: list of string
+            List of what should be shown as waveform. Elements can be
+            'first', 'second', 'ampl', 'power', or 'phase'. For 'first' and 'second'
+            the first and second derivatives of the supplied EOD waveform a computed and shown.
+            'ampl', 'power', and 'phase' select properties of the provided spectral properties.
+        loaded_spec: boolean
+            Indicates whether eod_data contains spectral properties.
+        rawdata_path: string
+            Base path to the raw recording, needed to show thunderfish
+            when double clicking on a single EOD.
+        """
         self.wave_fish = wave_fish
         self.eoddata = data
         self.path = rawdata_path
@@ -110,6 +141,12 @@ class EODExplorer(MultivariateExplorer):
 
         
     def fix_scatter_plot(self, ax, data, label, axis):
+        """Customize an axes of a scatter plot.
+
+        - Limits for amplitude and time like quantities start at zero.
+        - Phases a labeled with multuples of pi.
+        - Species labels are rotated.
+        """
         if any(l in label for l in ['ampl', 'power', 'width',
                                     'time', 'tau', 'var', 'peak', 'trough',
                                     'dist', 'rms', 'noise']):
@@ -156,6 +193,8 @@ class EODExplorer(MultivariateExplorer):
 
     
     def fix_waveform_plot(self, axs, indices):
+        """ Adapt waveform plots to EOD waveforms, derivatives, and spectra.
+        """
         if len(indices) == 0:
             axs[0].text(0.5, 0.5, 'Click to plot EOD waveforms',
                         transform = axs[0].transAxes, ha='center', va='center')
@@ -220,6 +259,10 @@ class EODExplorer(MultivariateExplorer):
 
             
     def list_selection(self, indices):
+        """ List file names and indices of selection.
+
+        If only a single EOD is selected, list all of its properties.
+        """
         if 'index' in self.eoddata and \
            np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
             for i in indices:
@@ -244,6 +287,8 @@ class EODExplorer(MultivariateExplorer):
 
                 
     def analyze_selection(self, index):
+        """ Launch thunderfish on the selected EOD.
+        """
         # load data:
         basename = self.eoddata[index,'file']
         bp = os.path.join(self.path, basename)
@@ -448,7 +493,7 @@ def main():
         species[(data[:,'phase1'] < 0) & (data[:,'EODf'] < 300.0)] = 'Sterno'
         species[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0)] = 'Eigen'
         species[data[:,'phase1'] > 0] = 'Aptero'
-        data.append('species', '', '%d', species)
+        data.append('species', '', '%s', species)
 
     if wave_fish:
         # maximum number of harmonics:
@@ -598,7 +643,7 @@ def main():
 
     # explore:
     eod_expl = EODExplorer(data, data_cols, wave_fish, eod_data,
-                           add_waveforms, load_spec, rawdata_path, cfg)
+                           add_waveforms, load_spec, rawdata_path)
     # write pca:
     if save_pca:
         eod_expl.compute_pca(False)
