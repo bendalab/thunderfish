@@ -3,7 +3,7 @@
 
 Provides `class TableData` for tables with a rich hierarchical header
 including units and formats. Kind of similar to a pandas data frame, but
-with intuitive numpy-style indexing and output to csv, html, and latex.
+with intuitive numpy-style indexing and nicely formatted output to csv, html, and latex.
 
 ## helper functions
 - `write()`: shortcut for constructing and writing a TableData.
@@ -29,7 +29,7 @@ else:
 
 class TableData:
     """
-    Table with a rich hierarchical header including units and formats.
+    Table with numpy-style indexing and a rich hierarchical header including units and formats.
       
     ## Manipulate table header
 
@@ -54,6 +54,10 @@ class TableData:
     - `set_formats()`: set the format strings of all columns.
 
     For example:
+    ```
+    tf = TableData('data.csv')
+    ```
+    loads a table directly from a file. See `load()` for details.
     ```
     tf = TableData(np.random.randn(4,3), header=['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')    
     ```
@@ -82,7 +86,7 @@ class TableData:
     df.append_data(float('NaN'), 1)
     # fill up the remaining columns of the row:
     df.append_data((0.543, 45, 1.235e2))
-    # append data to the next row:
+    # append data to the next row starting at the second column:
     df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
     ```
     results in
@@ -248,9 +252,9 @@ class TableData:
 
     Table data can be written to a variety of text-based formats
     including comma separated values, latex and html files.  Which
-    columns are written can be controlled by the hide() and shw()
-    functions. TableData can loaded from all the written file formats
-    (except html).
+    columns are written can be controlled by the hide() and show()
+    functions. TableData can be loaded from all the written file formats
+    (except html), also directly via the constructor.
     
     - `hide()`: hide a column or a range of columns.
     - `hide_all()`: hide all columns.
@@ -2201,9 +2205,11 @@ class TableData:
         # data:
         for k in range(self.rows()):
             first = True
+            merged = False
             fh.write(data_start)
             for c, f in enumerate(formats):
-                if self.hidden[c]:
+                if self.hidden[c] or merged:
+                    merged = False
                     continue
                 if not first:
                     fh.write(data_sep)
@@ -2218,7 +2224,11 @@ class TableData:
                 fh.write(data_close)
                 if k >= len(self.data[c]) or \
                    (isinstance(self.data[c][k], float) and m.isnan(self.data[c][k])):
-                    if align_columns:
+                    # missing data:
+                    if table_format[0] == 't' and latex_merge_std and stdev_col[c]:
+                        merged = True
+                        fh.write('\\multicolumn{2}{c}{%s}' % missing)
+                    elif align_columns:
                         if f[1] == '-':
                             fn = '%%-%ds' % widths[c]
                         else:
@@ -2227,6 +2237,7 @@ class TableData:
                     else:
                         fh.write(missing)
                 else:
+                    # data value:
                     ds = f % self.data[c][k]
                     if not align_columns:
                         ds = ds.strip()
