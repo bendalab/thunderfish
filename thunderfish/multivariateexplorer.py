@@ -455,7 +455,8 @@ class MultivariateExplorer(object):
         ax.clear()
         ax.relim()
         ax.autoscale(True)
-        ax.hist(self.data[:,c], self.hist_nbins)
+        x = self.data[:,c]
+        ax.hist(x[np.isfinite(x)], self.hist_nbins)
         ax.set_xlabel(self.labels[c])
         if self.categories[c] is not None:
             ax.set_xticks(np.arange(len(self.categories[c])))
@@ -669,7 +670,7 @@ class MultivariateExplorer(object):
             ticks: list of float
                 position of ticks for color bar axis
         """
-        return np.min(data), np.max(data), None
+        return np.nanmin(data), np.nanmax(data), None
 
     
     def fix_waveform_plot(self, axs, indices):

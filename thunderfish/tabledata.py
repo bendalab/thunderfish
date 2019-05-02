@@ -1170,7 +1170,14 @@ class TableData:
                     self.data[c][rows] = value.data[k][0]
         else:
             if len(cols) == 1:
-                self.data[cols[0]][rows] = value
+                if isinstance(rows, (list, tuple, np.ndarray)):
+                    if len(rows) == 1:
+                        self.data[cols[0]][rows[0]] = value
+                    else:
+                        for k, r in enumerate(rows):
+                            self.data[cols[0]][r] = value[k]
+                else:
+                    self.data[cols[0]][rows] = value
             else:
                 if isinstance(self.data[0][rows], (list, tuple, np.ndarray)):
                     for k, c in enumerate(cols):
