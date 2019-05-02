@@ -1549,7 +1549,7 @@ class TableData:
     def write(self, fh=sys.stdout, table_format=None, delimiter=None,
               unit_style=None, column_numbers=None, sections=None,
               align_columns=None, shrink_width=True, missing='-',
-              latex_label_command='', latex_merge_std=False):
+              center_columns=False, latex_label_command='', latex_merge_std=False):
         """
         Write the table to a file or stream.
 
@@ -1593,6 +1593,8 @@ class TableData:
             such that columns can become narrower.
         missing: string
             Indicate missing data by this string.
+        center_columns: boolean
+            If True center all columns (markdown, html, and latex).
         latex_label_command: string
             LaTeX command for formatting header labels.
             E.g. 'textbf' for making the header labels bold.
@@ -1851,8 +1853,12 @@ class TableData:
             align_columns = False
             begin_str = '<table>\n<thead>\n'
             end_str = '</tbody>\n</table>\n'
-            header_start='  <tr>\n    <th align="left"'
-            header_sep = '</th>\n    <th align="left"'
+            if center_columns:
+                header_start='  <tr>\n    <th align="center"'
+                header_sep = '</th>\n    <th align="center"'
+            else:
+                header_start='  <tr>\n    <th align="left"'
+                header_sep = '</th>\n    <th align="left"'
             header_close = '>'
             header_end='</th>\n  </tr>\n'
             data_start='  <tr>\n    <td'
@@ -1931,6 +1937,8 @@ class TableData:
                 if latex_merge_std and s:
                     fh.write('r@{$\\,\\pm\\,$}')
                     merged = True
+                elif center_columns:
+                    fh.write('c')
                 elif f[1] == '-':
                     fh.write('l')
                 else:
@@ -2066,6 +2074,8 @@ class TableData:
                         if latex_merge_std and nsec == 0 and stdev_col[c]:
                             merged = True
                             fh.write('\\multicolumn{%d}{c}{' % (columns+1))
+                        elif center_columns:
+                            fh.write('\\multicolumn{%d}{c}{' % columns)
                         else:
                             fh.write('\\multicolumn{%d}{l}{' % columns)
                         if latex_label_command:
@@ -2108,6 +2118,8 @@ class TableData:
                     if latex_merge_std and stdev_col[c]:
                         merged = True
                         fh.write('\\multicolumn{2}{c}{%s}' % latex_unit(unit))
+                    elif center_columns:
+                        fh.write('\\multicolumn{1}{c}{%s}' % latex_unit(unit))
                     else:
                         fh.write('\\multicolumn{1}{l}{%s}' % latex_unit(unit))
                 else:
@@ -2161,7 +2173,9 @@ class TableData:
                     if self.hidden[c]:
                         continue
                     w = widths[c]+2
-                    if formats[c][1] == '-':
+                    if center_columns:
+                        fh.write(':' + (w-2)*'-' + ':|')
+                    elif formats[c][1] == '-':
                         fh.write(w*'-' + '|')
                     else:
                         fh.write((w-1)*'-' + ':|')
@@ -2195,7 +2209,9 @@ class TableData:
                     fh.write(data_sep)
                 first = False
                 if table_format[0] == 'h':
-                    if f[1] == '-':
+                    if center_columns:
+                        fh.write(' align="center"')
+                    elif f[1] == '-':
                         fh.write(' align="left"')
                     else:
                         fh.write(' align="right"')
@@ -2581,7 +2597,7 @@ class TableData:
 def write(fh, data, header, units=None, formats=None, table_format=None, delimiter=None,
               unit_style=None, column_numbers=None, sections=None,
               align_columns=None, shrink_width=True, missing='-',
-              latex_label_command='', latex_merge_std=False):
+              center_columns=False, latex_label_command='', latex_merge_std=False):
     """
     Construct table and write to file.
 
@@ -2620,7 +2636,7 @@ def write(fh, data, header, units=None, formats=None, table_format=None, delimit
 def add_write_table_config(cfg, table_format=None, delimiter=None,
                            unit_style=None, column_numbers=None, sections=None,
                            align_columns=None, shrink_width=True, missing='-',
-                           latex_label_command='', latex_merge_std=False):
+                           center_columns=False, latex_label_command='', latex_merge_std=False):
     """ Add parameter specifying how to write a table to a file as a new section to a configuration.
 
     Parameters
@@ -2638,6 +2654,7 @@ def add_write_table_config(cfg, table_format=None, delimiter=None,
     cfg.add('fileAlignColumns', align_columns or 'auto', '', 'If True, write all data of a column using the same width, if False write the data without any white space, or "auto".')
     cfg.add('fileShrinkColumnWidth', shrink_width, '', 'Allow to make columns narrower than specified by the corresponding format strings.')
     cfg.add('fileMissing', missing, '', 'String used to indicate missing data values.')
+    cfg.add('fileCenterColumns', center_columns, '', 'Center content of all columns (markdown, html, and latex).')
     cfg.add('fileLaTeXLabelCommand', latex_label_command, '', 'LaTeX command name for formatting column labels of the table header.')
     cfg.add('fileLaTeXMergeStd', latex_merge_std, '', 'Merge header of columns with standard deviations with previous column (LaTeX tables only).')
 
@@ -2667,6 +2684,7 @@ def write_table_args(cfg):
                  'align_columns': 'fileAlignColumns',
                  'shrink_width': 'fileShrinkColumnWidth',
                  'missing': 'fileMissing',
+                 'center_columns': 'fileCenterColumns',
                  'latex_label_command': 'fileLaTeXLabelCommand',
                  'latex_merge_std': 'fileLaTeXMergeStd'})
     if 'sections' in d:
@@ -2904,10 +2922,3 @@ if __name__ == "__main__":
         df.write(iout, table_format=tf)
         print('      ```')
         print('')
-
-    print(df)        
-    df[df[:,'speed'] > 100.0, 'size'] = 0.0
-    print('')
-    df[df[:,'ID'] == 'F', 'size'] = 100.0
-    print(df)        
-    df[4,'id':]
