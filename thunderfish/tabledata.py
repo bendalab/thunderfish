@@ -2,7 +2,8 @@
 # tabledata module
 
 Provides `class TableData` for tables with a rich hierarchical header
-including units and formats.
+including units and formats. Kind of similar to a pandas data frame, but
+with intuitive numpy-style indexing and output to csv, html, and latex.
 
 ## helper functions
 - `write()`: shortcut for constructing and writing a TableData.
@@ -1044,6 +1045,11 @@ class TableData:
     def __setupkey(self, key):
         """
         Helper function that turns a key into row and column indices.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
         if type(key) is not tuple:
             rows = key
@@ -1052,16 +1058,29 @@ class TableData:
             rows = key[0]
             cols = key[1]
         if isinstance(cols, slice):
-            start = self.index(cols.start)
-            stop = self.index(cols.stop)
+            start = cols.start
+            if start is not None:
+                start = self.index(start)
+                if start is None:
+                    raise IndexError('"%s" is not a valid column index' % cols.start)
+            stop = cols.stop
+            if stop is not None:
+                stop = self.index(stop)
+                if stop is None:
+                    raise IndexError('"%s" is not a valid column index' % cols.stop)
             cols = slice(start, stop, cols.step)
             cols = range(self.columns())[cols]
-        elif isinstance(cols, (list, tuple, np.ndarray)):
-            cols = [self.index(inx) for inx in cols]
         else:
-            cols = [self.index(cols)]
+            if not isinstance(cols, (list, tuple, np.ndarray)):
+                cols = [cols]
+            c = [self.index(inx) for inx in cols]
+            if None in c:
+                raise IndexError('"%s" is not a valid column index' % cols[c.index(None)])
+            cols = c
         if isinstance(rows, np.ndarray) and rows.dtype == np.dtype(bool):
             rows = np.where(rows)[0]
+            if len(rows) == 0:
+                rows = None
         return rows, cols
 
     def __getitem__(self, key):
@@ -1080,10 +1099,18 @@ class TableData:
             - A single data value if a single row and a single column is specified.
             - An array of data elements if a single single column is specified.
             - A TableData object for multiple columns.
+            - None if no row is selected (e.g. by a logical index that nowhere is True)
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
         rows, cols = self.__setupkey(key)
         if len(cols) == 1:
-            if isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)):
+            if rows is None:
+                return None
+            elif isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)):
                 return np.asarray(self.data[cols[0]][rows])
             else:
                 return self.data[cols[0]][rows]
@@ -1097,6 +1124,8 @@ class TableData:
                     if i != sec_indices[l]:
                         data.header[-1].append(s)
                         sec_indices[l] = i
+                if rows is None:
+                    continue
                 if isinstance(rows, (list, tuple, np.ndarray)):
                     for r in rows:
                         data.data[-1].append(self.data[c][r])
@@ -1119,8 +1148,15 @@ class TableData:
             Columns can be specified by index or name, see index() for details.
         value: TableData, list, ndarray, float, ...
             Value(s) used to assing to the table elements as specified by `key`.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
         rows, cols = self.__setupkey(key)
+        if rows is None:
+            return
         if isinstance(value, TableData):
             if isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)):
                 for k, c in enumerate(cols):
@@ -1152,8 +1188,15 @@ class TableData:
             Otherwise only data values are removed.
             If all columns are selected than entire rows of data values are removed.
             Otherwise only data values in the specified rows are removed.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
         rows, cols = self.__setupkey(key)
+        if rows is None:
+            return
         if isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)) and \
            len(self.data[cols[0]][rows]) == len(self.data[cols[0]]) :
             # delete whole columns:
@@ -2839,17 +2882,18 @@ if __name__ == "__main__":
 
     # setup a table:
     df = TableData()
-    df.append(["data", "partial information", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    df.append(["data", "partial information", "ID"], "", "%-s", list('ABCDEFGH'))
+    df.append("size", "m", "%6.2f", [2.34, 56.7, 8.9])
     df.append("full weight", "kg", "%.0f", 122.8)
     df.append_section("complete reaction")
     df.append("speed", "m/s", "%.3g", 98.7)
     df.append("median jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
-    df.append_data(float('NaN'), 1)  # single value
+    df.append_data(float('NaN'), 2)  # single value
     df.append_data((0.543, 45, 1.235e2)) # remaining row
-    df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
+    df.append_data((43.21, 6789.1, 3405, 1.235e-4), 2) # next row
     a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
-    df.append_data(a.T, 0) # rest of table
+    df.append_data(a.T, 1) # rest of table
     df[3:6,'weight'] = [11.0]*3
     
     # write out in all formats:
@@ -2860,3 +2904,10 @@ if __name__ == "__main__":
         df.write(iout, table_format=tf)
         print('      ```')
         print('')
+
+    print(df)        
+    df[df[:,'speed'] > 100.0, 'size'] = 0.0
+    print('')
+    df[df[:,'ID'] == 'F', 'size'] = 100.0
+    print(df)        
+    df[4,'id':]
