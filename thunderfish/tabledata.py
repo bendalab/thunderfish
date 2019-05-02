@@ -116,9 +116,9 @@ class TableData:
 
     ## Iterating over columns
 
-    A table behaves like an ordered dictionary with the colomn names as the
-    keys and the data of a column as the values.
-    Iterating over the table goes over columns.
+    A table behaves like an ordered dictionary with column names as
+    keys and the data of each column as values.
+    Iterating over a table goes over columns.
     
     - `keys()`: list of unique column keys for all available columns.
     - `values()`: list of column data corresponding to keys().
@@ -175,7 +175,11 @@ class TableData:
 
     In contrast to the iterator functions the [] operator treats the table as a
     2D-array where the first index indicates the row and the second index the column.
-    Columns can be specified as indices or strings.
+
+    Like a numpy aray the table can be sliced, and logical indexing can
+    be used to select specific parts of the table.
+    
+    As for any function, columns can be specified as indices or strings.
     
     - `rows()`: the number of rows.
     - `columns()`: the number of columns.
@@ -199,16 +203,19 @@ class TableData:
     For example:
     ```
     # single column:    
-    df[:,'size']   # data of 'size' column
+    df[:,'size']   # data of 'size' column as numpy array
     df.col('size') # table with the single column 'size'
 
     # single row:    
-    df[2,:]    # data of the third row
+    df[2,:]    # table with data of only the third row
     df.row(2)  # table with data of only the third row
 
     # slices:
     df[2:5,['size','jitter']]          # sub table
     df[2:5,['size','jitter']].array()  # numpy array with data only
+
+    # logical indexing:
+    df[df[:,'speed'] > 100.0, 'size'] = 0.0 # set size to 0 if speed is > 100
 
     # delete:
     del df[3:6, 'weight']  # delete rows 3-6 from column 'weight'
@@ -264,7 +271,8 @@ class TableData:
     extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'md', 'tex': 'tex', 'html': 'html'}
     ext_formats = {'dat': 'dat', 'DAT': 'dat', 'txt': 'dat', 'TXT': 'dat', 'csv': 'csv', 'CSV': 'csv', 'md': 'md', 'MD': 'md', 'tex': 'tex', 'TEX': 'tex', 'html': 'html', 'HTML': 'html'}
 
-    def __init__(self, data=None, header=None, units=None, formats=None):
+    def __init__(self, data=None, header=None, units=None, formats=None,
+                 missing='-'):
         """
         Initialize a TableData from data or a file.
 
@@ -282,6 +290,8 @@ class TableData:
         formats: string or list of string, optional
             Format strings for each column. If only a single format string is
             given, then all columns are initialized with this format string.
+        missing: string
+            Missing data are indicated by this string.
         """
         self.data = []
         self.shape = (0, 0)
@@ -328,7 +338,7 @@ class TableData:
                     for c, val in enumerate(data):
                         self.data[c].append(val)
             else:
-                self.load(data)
+                self.load(data, missing)
         
     def append(self, label, unit, formats=None, value=None, key=None, fac=None):
         """
@@ -1050,6 +1060,8 @@ class TableData:
             cols = [self.index(inx) for inx in cols]
         else:
             cols = [self.index(cols)]
+        if isinstance(rows, np.ndarray) and rows.dtype == np.dtype(bool):
+            rows = np.where(rows)[0]
         return rows, cols
 
     def __getitem__(self, key):
@@ -1066,8 +1078,8 @@ class TableData:
         -------
         data:
             - A single data value if a single row and a single column is specified.
-            - An array of data elements if a single row or a single column is specified.
-            - A TableData object for multiple rows and columns.
+            - An array of data elements if a single single column is specified.
+            - A TableData object for multiple columns.
         """
         rows, cols = self.__setupkey(key)
         if len(cols) == 1:
@@ -1076,21 +1088,25 @@ class TableData:
             else:
                 return self.data[cols[0]][rows]
         else:
-            if isinstance(self.data[0][rows], (list, tuple, np.ndarray)):
-                data = TableData()
-                sec_indices = [-1] * self.nsecs
-                for c in cols:
-                    data.append(*self.column_head(c))
-                    for l in range(self.nsecs):
-                        s, i = self.section(c, l+1)
-                        if i != sec_indices[l]:
-                            data.header[-1].append(s)
-                            sec_indices[l] = i
-                    data.data[-1] = self.data[c][rows]
-                data.nsecs = self.nsecs
-                return data
-            else:
-                return np.asarray([self.data[i][rows] for i in cols])
+            data = TableData()
+            sec_indices = [-1] * self.nsecs
+            for c in cols:
+                data.append(*self.column_head(c))
+                for l in range(self.nsecs):
+                    s, i = self.section(c, l+1)
+                    if i != sec_indices[l]:
+                        data.header[-1].append(s)
+                        sec_indices[l] = i
+                if isinstance(rows, (list, tuple, np.ndarray)):
+                    for r in rows:
+                        data.data[-1].append(self.data[c][r])
+                else:
+                    if isinstance(self.data[c][rows], (list, tuple, np.ndarray)):
+                        data.data[-1].extend(self.data[c][rows])
+                    else:
+                        data.data[-1].append(self.data[c][rows])
+            data.nsecs = self.nsecs
+            return data
 
     def __setitem__(self, key, value):
         """
@@ -1153,16 +1169,26 @@ class TableData:
                 for c in cols:
                     del self.data[c][rows]
 
-    def array(self):
+    def array(self, row=None):
         """
         The table data as a numpy array.
 
+        Parameter
+        ---------
+        row: int or None
+            If specified, a 1D array of that row will be returned.
+
         Return
         ------
-        data: ndarray
-            The data content of the entire table as a 2D numpy array (rows first).
+        data: 2D or 1D ndarray
+            If no row is specified, the data content of the entire table
+            as a 2D numpy array (rows first).
+            If a row is specified, a 1D array of that row.
         """
-        return np.array(self.data).T
+        if row is None:
+            return np.array(self.data).T
+        else:
+            return np.array([d[row] for d in self.data])
 
     def append_data(self, data, column=None):
         """
@@ -1891,7 +1917,7 @@ class TableData:
             # adapt width to data:
             if f[-1] == 's':
                 for v in self.data[c]:
-                    if w < len(v):
+                    if not isinstance(v, float) and w < len(v):
                         w = len(v)
             else:
                 fs = f[:i0] + str(0) + f[i1:]
@@ -2237,8 +2263,10 @@ class TableData:
             if sep is None:
                 cols = [m.group(0) for m in re.finditer(r'\S+', line.strip())]
             else:
-                seps = r'[^\s'+re.escape(sep)+']+'
+                seps = r'[^'+re.escape(sep)+']+'
                 cols = [m.group(0).strip() for m in re.finditer(seps, line.strip())]
+                cols[0] = cols[0].lstrip('|').lstrip()
+                cols[-1] = cols[-1].rstrip('|').rstrip()
             cols = [c for c in cols if c not in '|']
             # read columns:
             for k, c in enumerate(cols):
@@ -2442,6 +2470,12 @@ class TableData:
                 labels = []
                 units = []
                 for c in key_cols[kr]:
+                    if c[-1] == ')':
+                        lu = c[:-1].split('(')
+                        if len(lu) >= 2:
+                            labels.append(lu[0].strip())
+                            units.append('('.join(lu[1:]).strip())
+                            continue
                     lu = c.split('/')
                     if len(lu) >= 2:
                         labels.append(lu[0].strip())
@@ -2676,6 +2710,8 @@ def latex_unit(unit):
               '^-1': '\\power{}{-1}',
               '^-2': '\\rpsquared',
               '^-3': '\\rpcubed'}
+    if '\\' in unit:   # this string is already translated!
+        return unit
     units = ''
     j = len(unit)
     while j >= 0:
