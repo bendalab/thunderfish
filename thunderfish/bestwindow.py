@@ -18,10 +18,14 @@ Select the region within a recording with the most stable signal of largest ampl
 - `plot_clipping()`: visualization of the algorithm for detecting clipped amplitudes in clip_amplitudes().
 - `plot_best_window()`: visualization of the algorithm used in best_window_indices().
 - `plot_best_data()`: plot the data and the selected best window.
+
+## Convenience function
+- `find_best_window()`: set clipping amplitudes and find best window.
 """
 
 import numpy as np
 from .eventdetection import percentile_threshold, detect_peaks, trim_to_peak
+from audioio import unwrap
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -257,24 +261,25 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
         parameter to quickly visualize what is going on in selecting the best window.
         Signature:
         ````
-        plot_data_func(data, rate, peak_idx, trough_idx, idx0, idx1,
-                       win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost,
+        plot_data_func(data, rate, peak_thresh, peak_idx, trough_idx, idx0, idx1,
+                       win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost_thresh,
                        thresh, valid_wins, **kwargs)
         ```
-        - `data` (array): the raw data.
-        - `rate` (float): the sampling rate of the data.
+        - `data` (array): raw data.
+        - `rate` (float): sampling rate of the data.
+        - `peak_thresh` (array): thresholds used for detecting peaks and troughs in each data window.
         - `peak_idx` (array): indices into raw data indicating detected peaks.
         - `trough_idx` (array): indices into raw data indicating detected troughs.
         - `idx0` (int): index of the start of the best window.
         - `idx1` (int): index of the end of the best window.
-        - `win_start_times` (array): the times of the analysis windows.
-        - `cv_interv` (array): the coefficients of variation of the inter-peak and -trough
+        - `win_start_times` (array): times of the analysis windows.
+        - `cv_interv` (array): coefficients of variation of the inter-peak and -trough
            intervals.
-        - `mean_ampl` (array): the mean peak-to-trough amplitudes.
-        - `cv_ampl` (array): the coefficients of variation of the peak-to-trough amplitudes.
-        - `clipped_frac` (array): the fraction of clipped peaks or troughs.
-        - `cost` (array): the cost function.
-        - `thresh` (float): the threshold for the cost function.
+        - `mean_ampl` (array): mean peak-to-trough amplitudes.
+        - `cv_ampl` (array): coefficients of variation of the peak-to-trough amplitudes.
+        - `clipped_frac` (array): fraction of clipped peaks or troughs.
+        - `cost` (array): cost function.
+        - `cost_thresh` (float): threshold for the cost function.
         - `valid_wins` (array): boolean array indicating the windows which fulfill
           all three criteria.
         - `**kwargs` (dict): further user supplied key-word arguments.
@@ -293,11 +298,13 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
 
     # too little data:
     if len(data) / samplerate <= win_size:
-        raise UserWarning('not enough data')
+        raise UserWarning('not enough data (data=%gs, win=%gs)' %
+                          (len(data) / samplerate, win_size))
 
     # threshold for peak detection:
     threshold = percentile_threshold(data, samplerate, win_shift,
-                                     thresh_fac=thresh_fac, percentile=percentile)
+                                     thresh_fac=thresh_fac,
+                                     percentile=percentile)
 
     # detect large peaks and troughs:
     peak_idx, trough_idx = detect_peaks(data, threshold)
@@ -307,7 +314,8 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
     # compute cv of intervals, mean peak amplitude and its cv:
     invalid_cv = 1000.0
     win_size_indices = int(win_size * samplerate)
-    win_start_inxs = np.arange(0, len(data) - win_size_indices, int(0.5*win_shift*samplerate))
+    win_start_inxs = np.arange(0, len(data) - win_size_indices,
+                               int(0.5*win_shift*samplerate))
     cv_interv = np.zeros(len(win_start_inxs))
     mean_ampl = np.zeros(len(win_start_inxs))
     cv_ampl = np.zeros(len(win_start_inxs))
@@ -448,6 +456,10 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
     """Visualize the cost function of used for finding the best window for analysis.
 
     Pass this function as the `plot_data_func` to the `best_window_*` functions.
+
+    Parameters
+    ----------
+    See documentation of the best_window_indices() functions.
     """
     # raw data:
     time = np.arange(0.0, len(data)) / rate
@@ -602,6 +614,64 @@ def best_window_args(cfg):
                     'w_cv_ampl': 'weightCVAmplitude',
                     'tolerance': 'bestWindowTolerance',
                     'expand': 'expandBestWindow'})
+
+        
+def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
+    """
+    Set clipping amplitudes and find best window.
+
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analyzed.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    cfg: ConfigFile
+        Configuration for clipping and best window.
+    show_bestwindow: boolean
+        If true show a plot with the best window cost functions.
+    """
+    found_bestwindow = True
+    min_clip = cfg.value('minClipAmplitude')
+    max_clip = cfg.value('maxClipAmplitude')
+    if min_clip == 0.0 or max_clip == 0.0:
+        min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
+    if cfg.value('unwrapData'):
+        raw_data = unwrap(raw_data)
+        min_clip = -2.0
+        max_clip = 2.0
+    # best window size parameter:
+    bwa = best_window_args(cfg)
+    if 'win_size' in bwa:
+        del bwa['win_size']
+    best_window_size = cfg.value('bestWindowSize')
+    if best_window_size <= 0.0:
+        best_window_size = (len(raw_data)-1)/samplerate
+    # show cost function:
+    if show_bestwindow:
+        fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
+        try:
+            best_window_indices(raw_data, samplerate,
+                                min_clip=min_clip, max_clip=max_clip,
+                                win_size=best_window_size,
+                                plot_data_func=plot_best_window, ax=ax,
+                                **bwa)
+            plt.show()
+        except UserWarning as e:
+            found_bestwindow = False
+    else:
+        try:
+            idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
+                                                      min_clip=min_clip,
+                                                      max_clip=max_clip,
+                                                      win_size=best_window_size,
+                                                      **bwa)
+        except UserWarning as e:
+            found_bestwindow = False
+    if found_bestwindow:
+        return raw_data[idx0:idx1], idx0, idx1, clipped
+    else:
+        return raw_data, 0, 0, 0.0
 
 
 if __name__ == "__main__":

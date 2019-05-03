@@ -1,5 +1,5 @@
 """
-Loading time-series data from files.
+Load time-series data from files.
 
 ```
 data, samplingrate, unit = load_data('data/file.wav')

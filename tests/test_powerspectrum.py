@@ -1,6 +1,7 @@
 from nose.tools import assert_equal, assert_true
 import numpy as np
 import thunderfish.powerspectrum as ps
+import matplotlib.pyplot as plt
 
 # run this with "nosetests tests/test_powerspectrum.py" in the first thunderfish folder.
 
@@ -12,18 +13,18 @@ def test_powerspectrum():
     data = np.sin(time * 2 * np.pi * fundamental)
 
     # run multi_resolution_psd with 2 fresolutions (list)
-    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=[0.5, 1])
+    psd_data = ps.multi_psd(data, samplerate, freq_resolution=[0.5, 1])
 
     # test the results
-    assert_equal(round(psd_data[0][1][np.argmax(psd_data[0][0])]), fundamental,
+    assert_equal(round(psd_data[0][np.argmax(psd_data[0][:,1]),0]), fundamental,
                  'peak in PSD is not the fundamental frequency given.')
-    assert_equal(round(psd_data[1][1][np.argmax(psd_data[1][0])]), fundamental,
+    assert_equal(round(psd_data[1][np.argmax(psd_data[1][:,1]),0]), fundamental,
                  'peak in PSD is not the fundamental frequency given.')
-    # run multi_resolution_psd with 1 fresolutions (float)
-    psd_data = ps.multi_resolution_psd(data, samplerate, fresolution=0.5)
+    # run multi_psd with 1 fresolutions (float)
+    psd_data = ps.multi_psd(data, samplerate, freq_resolution=0.5)
 
     # test the result
-    assert_equal(round(psd_data[1][np.argmax(psd_data[0])]), fundamental,
+    assert_equal(round(psd_data[0][np.argmax(psd_data[0][:,1]),0]), fundamental,
                  'peak in PSD is not the fundamental frequency given.')
 
 

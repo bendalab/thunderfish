@@ -1,5 +1,5 @@
 """
-Analysis of Voronoi diagrams based on scipy.spatial.
+Analye Voronoi diagrams based on scipy.spatial.
 
 class Voronoi: Compute and analyse Voronoi diagrams.
 """
@@ -17,7 +17,7 @@ class Voronoi:
     """
     Input points
     ------------
-    The points from the Voronoi diagram is constructed.
+    The points from which the Voronoi diagram is constructed.
     
     ndim: int
         The dimension of the input points, i.e. number of coordinates.
@@ -165,8 +165,8 @@ class Voronoi:
 
         Parameters
         ----------
-        points: list of lists of floats
-            List of point coordiantes.
+        points: ndarray of floats, shape (npoints, 2)
+            List of point coordinates.
         radius: float or None
             Radius for computing far points of infinite ridges.
             If None twice the maximum extent of the input points is used.
@@ -232,17 +232,6 @@ class Voronoi:
             self.nearest_points.append(self.neighbor_points[k][0])
             self.nearest_distances[k] = self.neighbor_distances[k][0]
         self.mean_nearest_distance = np.mean(self.nearest_distances)
-
-        ## # estimate aspect ratio
-        ## # XXX better would be a ratio of the two main PCI axis
-        ## bbox = self.vor.max_bound - self.vor.min_bound
-        ## aspect_ratio = bbox[1]/bbox[0]
-        ## if aspect_ratio > 1.0:
-        ##     aspect_ratio = 1.0/aspect_ratio
-        ## ratio = np.sqrt(0.5*(1.0+1.0/aspect_ratio))
-        ## self.mean_nearest_distance *= 1.0 - ratio*2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
-        ## # this is not the right correction factor!
-        
         self.mean_nearest_distance *= 1.0-2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
 
     def _compute_infinite_vertices(self, radius=None):
@@ -944,6 +933,8 @@ if __name__ == "__main__":
     print('')
     print('distances of nearest neighbors:')
     print(vor.nearest_distances)
+    print('for each point its nearest neighbor:')
+    print(vor.nearest_points)
     print('for each point all Voronoi distances:')
     print(vor.neighbor_distances)
     print('for each point all its neighbors:')

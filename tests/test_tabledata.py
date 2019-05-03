@@ -25,7 +25,7 @@ def setup_table(nanvalue=True):
 
 def test_write():
     df = setup_table()
-    for unitstyle in [None, 'none', 'row', 'header']:
+    for unit_style in [None, 'none', 'row', 'header']:
         for column_numbers in [None, 'index', 'num', 'aa', 'AA']:
             for tf in td.TableData.formats:
                 df.write(table_format=tf, column_numbers=column_numbers)
@@ -51,7 +51,7 @@ def test_columns():
         k = df.column_spec(c)
         assert_equal(c, df.index(k), 'index %s is not %d' % (k, c))
         assert_equal(units[c], df.unit(c), 'unit of column %d is not %s' % (c, units[c]))
-        assert_equal(formats[c], df.format(c), 'unit of column %d is not %s' % (c, formats[c]))
+        assert_equal(formats[c], df.format(c), 'format of column %d is not %s' % (c, formats[c]))
     for c, (s1, c1) in enumerate(sec1):
         ds, cs = df.section(c, 1)
         assert_equal(s1, ds, 'section level 1 name of column %d is not %s' % (c, s1))
@@ -138,21 +138,21 @@ def test_sort():
     
 def test_write_load():
     df = setup_table()
-    for unitstyle in [None, 'none', 'row', 'header']:
+    for unit_style in [None, 'none', 'row', 'header']:
         for column_numbers in [None, 'none', 'index', 'num', 'aa', 'AA']:
             for delimiter in [None, ';', '| ', '\t']:
-                for format_width in [None, True, False]:
+                for align_columns in [None, True, False]:
                     for sections in [None, 0, 1, 2]:
                         for tf in td.TableData.formats[:-1]:
                             orgfilename = 'tabletest.' + td.TableData.extensions[tf]
                             df.write(orgfilename, table_format=tf, column_numbers=column_numbers,
-                                     unitstyle=unitstyle, delimiter=delimiter,
-                                     format_width=format_width, sections=sections)
+                                     unit_style=unit_style, delimiter=delimiter,
+                                     align_columns=align_columns, sections=sections)
                             sf = td.TableData(orgfilename)
                             filename = 'tabletest-read.' + td.TableData.extensions[tf]
                             sf.write(filename, table_format=tf, column_numbers=column_numbers,
-                                     unitstyle=unitstyle, delimiter=delimiter,
-                                     format_width=format_width, sections=sections)
+                                     unit_style=unit_style, delimiter=delimiter,
+                                     align_columns=align_columns, sections=sections)
                             with open(orgfilename, 'r') as f1, open(filename, 'r') as f2:
                                 for k, (line1, line2) in enumerate(zip(f1, f2)):
                                     if line1 != line2:
@@ -160,16 +160,16 @@ def test_write_load():
                                         print('files differ!')
                                         print('original table:')
                                         df.write(table_format=tf, column_numbers=column_numbers,
-                                                 unitstyle=unitstyle, delimiter=delimiter,
-                                                 format_width=format_width, sections=sections)
+                                                 unit_style=unit_style, delimiter=delimiter,
+                                                 align_columns=align_columns, sections=sections)
                                         print('')
                                         print('read in table:')
                                         sf.write(table_format=tf, column_numbers=column_numbers,
-                                                 unitstyle=unitstyle, delimiter=delimiter,
-                                                 format_width=format_width, sections=sections)
+                                                 unit_style=unit_style, delimiter=delimiter,
+                                                 align_columns=align_columns, sections=sections)
                                         print('')
                                         print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.rstrip('\n'), line2.rstrip('\n')))
-                                    assert_equal(line1, line2, 'files differ')
+                                    assert_equal(line1, line2, 'files differ at line %d:\n%s\n%s' % (k, line1, line2))
                             os.remove(orgfilename)
                             os.remove(filename)
 
@@ -196,7 +196,7 @@ def test_read_access():
             c0, c1 = np.sort(c)
             if c1-c0 < 2:
                 continue
-            assert_true(np.array_equal(df[r,c0:c1], data[r,c0:c1]), 'slicing of columns failed')
+            assert_true(np.array_equal(df[r,c0:c1].array(0), data[r,c0:c1]), 'slicing of columns failed')
     # reading row and column slices:
     for c, r in zip(np.random.randint(0, df.columns(), (n,2)), np.random.randint(0, df.rows(), (n,2))):
         r0, r1 = np.sort(r)
@@ -212,8 +212,8 @@ def test_read_access():
         assert_true(np.array_equal(d, data[:,c]), 'iterating of full column failed')
     # reading full row slices:
     for r in range(df.rows()):
-        assert_true(np.array_equal(df[r,:], data[r,:]), 'slicing of full row failed')
-        assert_true(np.array_equal(df.row(r)[0,:], data[r,:]), 'slicing of full row failed')
+        assert_true(np.array_equal(df[r,:].array(0), data[r,:]), 'slicing of full row failed')
+        assert_true(np.array_equal(df.row(r)[0,:].array(0), data[r,:]), 'slicing of full row failed')
 
 
 def test_write_access():
@@ -242,7 +242,7 @@ def test_write_access():
                 continue
             v = np.random.randn(c1-c0)
             df[r,c0:c1] = v
-            assert_true(np.array_equal(df[r,c0:c1], v), 'slicing of columns failed')
+            assert_true(np.array_equal(df[r,c0:c1].array(0), v), 'slicing of columns failed')
     # writing and reading row and column slices:
     for c, r in zip(np.random.randint(0, df.columns(), (n,2)), np.random.randint(0, df.rows(), (n,2))):
         r0, r1 = np.sort(r)
