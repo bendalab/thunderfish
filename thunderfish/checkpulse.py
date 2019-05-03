@@ -136,7 +136,7 @@ def check_pulse_width(data, samplerate, thresh_fac=0.8, percentile=1.0,
     return pulse_fish, peak_ratio, interval
 
 
-def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bin_width=125.0, max_freq=3000.0,
+def check_pulse_psd(freqs, power, proportion_th=0.27, freq_bin_width=125.0, max_freq=3000.0,
                     outer_percentile=1.0, inner_percentile=25.0, verbose=0,
                     plot_data_func=None, **kwargs):
     """Detects if a fish is pulse- or wave-type based on the inter-quartile range
@@ -184,12 +184,12 @@ def check_pulse_psd(power, freqs, proportion_th=0.27, freq_bin_width=125.0, max_
     # Take a 1-D array of powers (from powerspectrums), transforms it into dB and divides it into several bins.
     proportions = []
     all_percentiles = []
-    for trial in range(int(max_freq / freq_bin_width)):
-        tmp_power_db = decibel(power[trial * int(freq_bin_width / res): (trial + 1) * int(freq_bin_width / res)])
+    for trial in range(int(max_freq // freq_bin_width)):
+        tmp_power_db = decibel(power[trial * int(freq_bin_width // res): (trial + 1) * int(freq_bin_width // res)])
         # calculates 4 percentiles for each powerbin
         percentiles = np.percentile(tmp_power_db, [outer_percentile, inner_percentile,
-                                                   100 - inner_percentile,
-                                                   100 - outer_percentile])
+                                                   100.0 - inner_percentile,
+                                                   100.0 - outer_percentile])
         all_percentiles.append(percentiles)
         proportions.append((percentiles[1] - percentiles[2]) / (percentiles[0] - percentiles[3]))
 
@@ -253,7 +253,7 @@ def plot_width_period_ratio(data, samplerate, peak_idx, trough_idx, peakdet_th, 
             c_axis.plot(t, data, lw=2.5, color='purple', alpha=0.7)
             c_axis.plot(t[peak_idx], data[peak_idx], 'o', ms=11, mec='black', mew=1.5, color='crimson', alpha=0.7)
             c_axis.plot(t[trough_idx], data[trough_idx], 'o', ms=11, mec='black', mew=1.5, color='lime', alpha=0.7)
-            c_axis.plot(t[::10], peakdet_th[::10], '--k', lw=2., rasterized=True, alpha=0.7, label='peakdet-threshold')
+            #c_axis.plot(t[::10], peakdet_th[::10], '--k', lw=2., rasterized=True, alpha=0.7, label='peakdet-threshold')
             c_axis.plot(t[::10], np.zeros(len(t[::10])), '--k', lw=2., rasterized=True, alpha=0.7)
 
     # define inset boundaries and plot them:
@@ -425,7 +425,7 @@ if __name__ == "__main__":
     import sys
     import matplotlib.pyplot as plt
     from .bestwindow import best_window
-    from .powerspectrum import multi_resolution_psd
+    from .powerspectrum import psd
     from .fakefish import generate_monophasic_pulses, generate_biphasic_pulses, generate_triphasic_pulses, generate_alepto
 
     print("\nChecking checkpulse module ...\n")
@@ -454,13 +454,13 @@ if __name__ == "__main__":
     fig1, ax1 = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
 
     # run pulse-width-based detector:
-    pulse_fish, r_val = check_pulse_width(data, rate,
-                                          plot_data_func=plot_width_period_ratio, ax=ax1)
+    pulse_fish, r_val, T = check_pulse_width(data, rate,
+                                             plot_data_func=plot_width_period_ratio, ax=ax1)
     plt.tight_layout()
 
     fig2, ax2 = plt.subplots()
-    psd_data = multi_resolution_psd(data, rate)
-    psd_type, proportions = check_pulse_psd(psd_data[0], psd_data[1], verbose=1,
+    freq, power = psd(data, rate, 0.5)
+    psd_type, proportions = check_pulse_psd(freq, power, verbose=1,
                                             plot_data_func=plot_psd_proportion, ax=ax2, fs=12)
     plt.tight_layout()
     plt.show()

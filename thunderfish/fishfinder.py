@@ -8,10 +8,10 @@ import matplotlib.mlab as ml
 from audioio import PlayAudio, fade, write_audio
 from .version import __version__
 from .configfile import ConfigFile
+from .powerspectrum import nfft, decibel, psd, spectrogram
 from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
 from .dataloader import open_data
-from .powerspectrum import nfft_noverlap, decibel
 from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
@@ -38,7 +38,7 @@ class SignalPlot:
         self.fmin = 0.0
         self.fmax = 0.0
         self.decibel = True
-        self.fresolution = self.cfg.value('frequencyResolution')
+        self.freq_resolution = self.cfg.value('frequencyResolution')
         self.deltaf = 1.0
         self.mains_freq = self.cfg.value('mainsFreq')
         self.power_label = None
@@ -196,11 +196,11 @@ class SignalPlot:
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
-        nfft, noverlap = nfft_noverlap(self.fresolution, self.samplerate, 0.5, 16)
+        n_fft = nfft(self.samplerate, self.freq_resolution)
         t00 = t0
         t11 = t1
         w = t11 - t00
-        minw = nfft * (self.cfg.value('minPSDAverages') + 1) // 2
+        minw = n_fft * (self.cfg.value('minPSDAverages') + 1) // 2
         if t11 - t00 < minw:
             w = minw
             t11 = t00 + w
@@ -210,8 +210,8 @@ class SignalPlot:
         if t00 < 0:
             t00 = 0
             t11 = w
-        power, freqs = ml.psd(self.data[t00:t11], NFFT=nfft, noverlap=noverlap, Fs=self.samplerate, detrend=ml.detrend_mean)
-        power = np.squeeze(power) # squeeze is necessary when nfft is to large with respect to the data
+        freqs, power = psd(self.data[t00:t11], self.samplerate,
+                           self.freq_resolution, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
         h_kwargs = psd_peak_detection_args(self.cfg)
@@ -221,8 +221,9 @@ class SignalPlot:
         lowth = center + 0.5 * lowth
 
         # spectrogram:
-        t2 = t1 + nfft
-        specpower, freqs, bins = ml.specgram(self.data[t0:t2], NFFT=nfft, Fs=self.samplerate, noverlap=nfft // 2,
+        t2 = t1 + n_fft
+        specpower, freqs, bins = spectrogram(self.data[t0:t2], self.samplerate,
+                                             self.freq_resolution,
                                              detrend=ml.detrend_mean)
         z = decibel(specpower)
         z = np.flipud(z)
@@ -254,16 +255,16 @@ class SignalPlot:
             tws = '%.3gms' % (1000.0 * tw)
         else:
             tws = '%.3gs' % (tw)
-        a = 2 * w // nfft - 1  # number of ffts
+        a = 2 * w // n_fft - 1  # number of ffts
         m = ''
         if self.cfg.value('mainsFreq') > 0.0:
             m = ', mains=%.0fHz' % self.cfg.value('mainsFreq')
         if self.power_frequency_label == None:
             self.power_frequency_label = self.axp.set_xlabel(
-                r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(nfft, dfs, tws, a, m))
+                r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(n_fft, dfs, tws, a, m))
         else:
             self.power_frequency_label.set_text(
-                r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(nfft, dfs, tws, a, m))
+                r'Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})'.format(n_fft, dfs, tws, a, m))
         self.axp.set_xlim(self.fmin, self.fmax)
         if self.power_label == None:
             self.power_label = self.axp.set_ylabel('Power')
@@ -496,12 +497,12 @@ class SignalPlot:
                 self.axp.set_xlim(self.fmin, self.fmax)
                 self.fig.canvas.draw()
         elif event.key in 'r':
-            if self.fresolution < 1000.0:
-                self.fresolution *= 2.0
+            if self.freq_resolution < 1000.0:
+                self.freq_resolution *= 2.0
                 self.update_plots()
         elif event.key in 'R':
-            if 1.0 / self.fresolution < self.tmax:
-                self.fresolution *= 0.5
+            if 1.0 / self.freq_resolution < self.tmax:
+                self.freq_resolution *= 0.5
                 self.update_plots()
         elif event.key in 'd':
             self.decibel = not self.decibel

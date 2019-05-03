@@ -2,10 +2,12 @@
 # tabledata module
 
 Provides `class TableData` for tables with a rich hierarchical header
-including units and formats.
+including units and formats. Kind of similar to a pandas data frame, but
+with intuitive numpy-style indexing and nicely formatted output to csv, html, and latex.
 
 ## helper functions
 - `write()`: shortcut for constructing and writing a TableData.
+- `latex_unit()`: translate unit string into SIunit LaTeX code.
 - `index2aa()`: convert an integer into an alphabetical representation.
 - `aa2index()`: convert an alphabetical representation to an index.
 
@@ -27,7 +29,7 @@ else:
 
 class TableData:
     """
-    Table with a rich hierarchical header including units and formats.
+    Table with numpy-style indexing and a rich hierarchical header including units and formats.
       
     ## Manipulate table header
 
@@ -52,6 +54,10 @@ class TableData:
     - `set_formats()`: set the format strings of all columns.
 
     For example:
+    ```
+    tf = TableData('data.csv')
+    ```
+    loads a table directly from a file. See `load()` for details.
     ```
     tf = TableData(np.random.randn(4,3), header=['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')    
     ```
@@ -80,7 +86,7 @@ class TableData:
     df.append_data(float('NaN'), 1)
     # fill up the remaining columns of the row:
     df.append_data((0.543, 45, 1.235e2))
-    # append data to the next row:
+    # append data to the next row starting at the second column:
     df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
     ```
     results in
@@ -115,9 +121,9 @@ class TableData:
 
     ## Iterating over columns
 
-    A table behaves like an ordered dictionary with the colomn names as the
-    keys and the data of a column as the values.
-    Iterating over the table goes over columns.
+    A table behaves like an ordered dictionary with column names as
+    keys and the data of each column as values.
+    Iterating over a table goes over columns.
     
     - `keys()`: list of unique column keys for all available columns.
     - `values()`: list of column data corresponding to keys().
@@ -170,11 +176,15 @@ class TableData:
     [1.234, 123.5, 0.0001235]
     ```
 
-    ## Access the data
+    ## Accessing data
 
     In contrast to the iterator functions the [] operator treats the table as a
     2D-array where the first index indicates the row and the second index the column.
-    Columns can be specified as indices or strings.
+
+    Like a numpy aray the table can be sliced, and logical indexing can
+    be used to select specific parts of the table.
+    
+    As for any function, columns can be specified as indices or strings.
     
     - `rows()`: the number of rows.
     - `columns()`: the number of columns.
@@ -183,7 +193,7 @@ class TableData:
     - `col()`: a single column of the table.
     - `__getitem__()`: data elements specified by slice.
     - `__setitem__()`: assign values to data elements specified by slice.
-    - `__delitem__()`: delete data elements or whole columns.
+    - `__delitem__()`: delete data elements or whole columns or rows.
     - `array()`: the table data as a numpy array.
     - `append_data()`: append data elements to successive columns.
     - `append_data_column()`: append data elements to a column.
@@ -198,16 +208,19 @@ class TableData:
     For example:
     ```
     # single column:    
-    df[:,'size']   # data of 'size' column
+    df[:,'size']   # data of 'size' column as numpy array
     df.col('size') # table with the single column 'size'
 
     # single row:    
-    df[2,:]    # data of the third row
+    df[2,:]    # table with data of only the third row
     df.row(2)  # table with data of only the third row
 
     # slices:
     df[2:5,['size','jitter']]          # sub table
     df[2:5,['size','jitter']].array()  # numpy array with data only
+
+    # logical indexing:
+    df[df[:,'speed'] > 100.0, 'size'] = 0.0 # set size to 0 if speed is > 100
 
     # delete:
     del df[3:6, 'weight']  # delete rows 3-6 from column 'weight'
@@ -239,9 +252,9 @@ class TableData:
 
     Table data can be written to a variety of text-based formats
     including comma separated values, latex and html files.  Which
-    columns are written can be controlled by the hide() and shw()
-    functions. TableData can loaded from all the written file formats
-    (except html).
+    columns are written can be controlled by the hide() and show()
+    functions. TableData can be loaded from all the written file formats
+    (except html), also directly via the constructor.
     
     - `hide()`: hide a column or a range of columns.
     - `hide_all()`: hide all columns.
@@ -263,7 +276,8 @@ class TableData:
     extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'md', 'tex': 'tex', 'html': 'html'}
     ext_formats = {'dat': 'dat', 'DAT': 'dat', 'txt': 'dat', 'TXT': 'dat', 'csv': 'csv', 'CSV': 'csv', 'md': 'md', 'MD': 'md', 'tex': 'tex', 'TEX': 'tex', 'html': 'html', 'HTML': 'html'}
 
-    def __init__(self, data=None, header=None, units=None, formats=None):
+    def __init__(self, data=None, header=None, units=None, formats=None,
+                 missing='-'):
         """
         Initialize a TableData from data or a file.
 
@@ -281,6 +295,8 @@ class TableData:
         formats: string or list of string, optional
             Format strings for each column. If only a single format string is
             given, then all columns are initialized with this format string.
+        missing: string
+            Missing data are indicated by this string.
         """
         self.data = []
         self.shape = (0, 0)
@@ -327,9 +343,9 @@ class TableData:
                     for c, val in enumerate(data):
                         self.data[c].append(val)
             else:
-                self.load(data)
+                self.load(data, missing)
         
-    def append(self, label, unit, formats=None, value=None, key=None):
+    def append(self, label, unit, formats=None, value=None, key=None, fac=None):
         """
         Append column to the table.
 
@@ -349,6 +365,8 @@ class TableData:
             If not None and `value` is a list of dictionaries,
             extract from each dictionary in the list the value specified
             by `key` and assign the resulting list as data to the column.
+        fac: float
+            If not None, multiply the dta values by this number.
 
         Returns
         -------
@@ -382,6 +400,9 @@ class TableData:
                 self.data[-1].extend(value)
             else:
                 self.data[-1].append(value)
+        if fac:
+            for k in range(len(self.data[-1])):
+                self.data[-1][k] *= fac
         self.addcol = len(self.data)
         self.shape = (self.rows(), self.columns())
         return self.addcol-1
@@ -725,7 +746,7 @@ class TableData:
             for c, f in enumerate(formats):
                 self.formats[c] = f or '%g'
         else:
-            for c in range(len(formats)):
+            for c in range(len(self.formats)):
                 self.formats[c] = formats or '%g'
 
     def table_header(self):
@@ -1028,6 +1049,11 @@ class TableData:
     def __setupkey(self, key):
         """
         Helper function that turns a key into row and column indices.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
         if type(key) is not tuple:
             rows = key
@@ -1036,14 +1062,29 @@ class TableData:
             rows = key[0]
             cols = key[1]
         if isinstance(cols, slice):
-            start = self.index(cols.start)
-            stop = self.index(cols.stop)
+            start = cols.start
+            if start is not None:
+                start = self.index(start)
+                if start is None:
+                    raise IndexError('"%s" is not a valid column index' % cols.start)
+            stop = cols.stop
+            if stop is not None:
+                stop = self.index(stop)
+                if stop is None:
+                    raise IndexError('"%s" is not a valid column index' % cols.stop)
             cols = slice(start, stop, cols.step)
             cols = range(self.columns())[cols]
-        elif isinstance(cols, (list, tuple, np.ndarray)):
-            cols = [self.index(inx) for inx in cols]
         else:
-            cols = [self.index(cols)]
+            if not isinstance(cols, (list, tuple, np.ndarray)):
+                cols = [cols]
+            c = [self.index(inx) for inx in cols]
+            if None in c:
+                raise IndexError('"%s" is not a valid column index' % cols[c.index(None)])
+            cols = c
+        if isinstance(rows, np.ndarray) and rows.dtype == np.dtype(bool):
+            rows = np.where(rows)[0]
+            if len(rows) == 0:
+                rows = None
         return rows, cols
 
     def __getitem__(self, key):
@@ -1060,31 +1101,47 @@ class TableData:
         -------
         data:
             - A single data value if a single row and a single column is specified.
-            - An array of data elements if a single row or a single column is specified.
-            - A TableData object for multiple rows and columns.
+            - An array of data elements if a single single column is specified.
+            - A TableData object for multiple columns.
+            - None if no row is selected (e.g. by a logical index that nowhere is True)
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
         rows, cols = self.__setupkey(key)
         if len(cols) == 1:
-            if hasattr(self.data[cols[0]][rows], '__len__'):
+            if rows is None:
+                return None
+            elif isinstance(rows, slice):
                 return np.asarray(self.data[cols[0]][rows])
+            elif isinstance(rows, (list, tuple, np.ndarray)):
+                return np.asarray([self.data[cols[0]][r] for r in rows])
             else:
                 return self.data[cols[0]][rows]
         else:
-            if hasattr(self.data[0][rows], '__len__'):
-                data = TableData()
-                sec_indices = [-1] * self.nsecs
-                for c in cols:
-                    data.append(*self.column_head(c))
-                    for l in range(self.nsecs):
-                        s, i = self.section(c, l+1)
-                        if i != sec_indices[l]:
-                            data.header[-1].append(s)
-                            sec_indices[l] = i
-                    data.data[-1] = self.data[c][rows]
-                data.nsecs = self.nsecs
-                return data
-            else:
-                return mp.asarray([self.data[i][rows] for i in cols])
+            data = TableData()
+            sec_indices = [-1] * self.nsecs
+            for c in cols:
+                data.append(*self.column_head(c))
+                for l in range(self.nsecs):
+                    s, i = self.section(c, l+1)
+                    if i != sec_indices[l]:
+                        data.header[-1].append(s)
+                        sec_indices[l] = i
+                if rows is None:
+                    continue
+                if isinstance(rows, (list, tuple, np.ndarray)):
+                    for r in rows:
+                        data.data[-1].append(self.data[c][r])
+                else:
+                    if isinstance(self.data[c][rows], (list, tuple, np.ndarray)):
+                        data.data[-1].extend(self.data[c][rows])
+                    else:
+                        data.data[-1].append(self.data[c][rows])
+            data.nsecs = self.nsecs
+            return data
 
     def __setitem__(self, key, value):
         """
@@ -1097,10 +1154,17 @@ class TableData:
             Columns can be specified by index or name, see index() for details.
         value: TableData, list, ndarray, float, ...
             Value(s) used to assing to the table elements as specified by `key`.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
         rows, cols = self.__setupkey(key)
+        if rows is None:
+            return
         if isinstance(value, TableData):
-            if hasattr(self.data[cols[0]][rows], '__len__'):
+            if isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)):
                 for k, c in enumerate(cols):
                     self.data[c][rows] = value.data[k]
             else:
@@ -1108,9 +1172,16 @@ class TableData:
                     self.data[c][rows] = value.data[k][0]
         else:
             if len(cols) == 1:
-                self.data[cols[0]][rows] = value
+                if isinstance(rows, (list, tuple, np.ndarray)):
+                    if len(rows) == 1:
+                        self.data[cols[0]][rows[0]] = value
+                    else:
+                        for k, r in enumerate(rows):
+                            self.data[cols[0]][r] = value[k]
+                else:
+                    self.data[cols[0]][rows] = value
             else:
-                if hasattr(self.data[0][rows], '__len__'):
+                if isinstance(self.data[0][rows], (list, tuple, np.ndarray)):
                     for k, c in enumerate(cols):
                         self.data[c][rows] = value[:,k]
                 else:
@@ -1119,7 +1190,7 @@ class TableData:
 
     def __delitem__(self, key):
         """
-        Delete data elements or whole columns.
+        Delete data elements or whole columns or rows.
 
         Parameters
         -----------
@@ -1130,9 +1201,16 @@ class TableData:
             Otherwise only data values are removed.
             If all columns are selected than entire rows of data values are removed.
             Otherwise only data values in the specified rows are removed.
+
+        Raises
+        ------
+        IndexError:
+            If an invalid column was specified.
         """
         rows, cols = self.__setupkey(key)
-        if hasattr(self.data[cols[0]][rows], '__len__') and \
+        if rows is None:
+            return
+        if isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)) and \
            len(self.data[cols[0]][rows]) == len(self.data[cols[0]]) :
             # delete whole columns:
             self.remove(cols)
@@ -1147,16 +1225,26 @@ class TableData:
                 for c in cols:
                     del self.data[c][rows]
 
-    def array(self):
+    def array(self, row=None):
         """
         The table data as a numpy array.
 
+        Parameter
+        ---------
+        row: int or None
+            If specified, a 1D array of that row will be returned.
+
         Return
         ------
-        data: ndarray
-            The data content of the entire table as a 2D numpy array (rows first).
+        data: 2D or 1D ndarray
+            If no row is specified, the data content of the entire table
+            as a 2D numpy array (rows first).
+            If a row is specified, a 1D array of that row.
         """
-        return np.array(self.data).T
+        if row is None:
+            return np.array(self.data).T
+        else:
+            return np.array([d[row] for d in self.data])
 
     def append_data(self, data, column=None):
         """
@@ -1324,13 +1412,6 @@ class TableData:
             ds.append('-', '-', '%-10s')
         else:
             ds.append('statistics', '-', '%-10s')
-        ds.header.extend(self.header)
-        ds.units.extend(self.units)
-        ds.formats.extend(self.formats)
-        ds.nsecs = self.nsecs
-        ds.hidden = [False] * ds.columns()
-        for c in range(self.columns()):
-            ds.data.append([])
         ds.append_data('mean', 0)
         ds.append_data('std', 0)
         ds.append_data('min', 0)
@@ -1339,16 +1420,39 @@ class TableData:
         ds.append_data('quartile3', 0)
         ds.append_data('max', 0)
         ds.append_data('count', 0)
+        dc = 1
         for c in range(self.columns()):
-            ds.append_data(np.nanmean(self.data[c]), c+1)
-            ds.append_data(np.nanstd(self.data[c]), c+1)
-            ds.append_data(np.nanmin(self.data[c]), c+1)
-            q1, m, q3 = np.percentile(self.data[c], [25., 50., 75.])
-            ds.append_data(q1, c+1)
-            ds.append_data(m, c+1)
-            ds.append_data(q3, c+1)
-            ds.append_data(np.nanmax(self.data[c]), c+1)
-            ds.append_data(np.count_nonzero(~np.isnan(self.data[c])), c+1)
+            if len(self.data[c]) > 0 and isinstance(self.data[c][0], (float, int)):
+                ds.hidden.append(False)
+                ds.header.append(self.header[c])
+                ds.units.append(self.units[c])
+                # integer data still make floating point statistics:
+                if isinstance(self.data[c][0], float):
+                    f = self.formats[c]
+                    i0 = f.find('.')
+                    if i0 > 0:
+                        p = int(f[i0+1:-1])
+                        if p <= 0:
+                            f = '%.1f'
+                    ds.formats.append(f)
+                else:
+                    ds.formats.append('%.1f')
+                # remove nans:
+                data = np.asarray(self.data[c], np.float)
+                data = data[np.isfinite(data)]
+                # compute statistics:
+                ds.data.append([])
+                ds.append_data(np.mean(data), dc)
+                ds.append_data(np.std(data), dc)
+                ds.append_data(np.min(data), dc)
+                q1, m, q3 = np.percentile(data, [25., 50., 75.])
+                ds.append_data(q1, dc)
+                ds.append_data(m, dc)
+                ds.append_data(q3, dc)
+                ds.append_data(np.max(data), dc)
+                ds.append_data(len(data), dc)
+                dc += 1
+        ds.nsecs = self.nsecs
         ds.shape = (ds.rows(), ds.columns())
         return ds
 
@@ -1368,9 +1472,10 @@ class TableData:
 
         Returns
         -------
-        s: string
-            A string composed of the header label of the column, an '=' character,
-            a textual representation of the data element according to the format
+        key: string
+            Header label of the column
+        value: string
+            A textual representation of the data element according to the format
             of the column, followed by the unit of the column.
         """
         col = self.index(col)
@@ -1379,9 +1484,11 @@ class TableData:
         if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
             v = missing
         else:
-            u = self.units[col] if self.units[col] != '1' else ''
+            u = ''
+            if not self.units[col] in '1-' and self.units[col] != 'a.u.':
+                u = self.units[col]
             v = (self.formats[col] % self.data[col][row]) + u
-        return self.header[col][0] + '=' + v
+        return self.header[col][0], v
 
     def hide(self, column):
         """
@@ -1453,8 +1560,9 @@ class TableData:
                 self.hidden[c] = False
 
     def write(self, fh=sys.stdout, table_format=None, delimiter=None,
-              unitstyle=None, column_numbers=None, sections=None,
-              format_width=None, shrink_width=True, missing='-'):
+              unit_style=None, column_numbers=None, sections=None,
+              align_columns=None, shrink_width=True, missing='-',
+              center_columns=False, latex_label_command='', latex_merge_std=False):
         """
         Write the table to a file or stream.
 
@@ -1473,7 +1581,7 @@ class TableData:
         delimiter: string
             String or character separating columns, if supported by the `table_format`.
             If None or 'auto' use the default for the specified `table_format`.
-        unitstyle: None or string
+        unit_style: None or string
             - None or 'auto': use default of the specified `table_format`.
             - 'row': write an extra row to the table header specifying the units of the columns.
             - 'header': add the units to the column headers.
@@ -1489,7 +1597,7 @@ class TableData:
         sections: None or int
             Number of section levels to be printed.
             If `None` or 'auto' use default of selected `table_format`.
-        format_width: boolean
+        align_columns: boolean
             - `True`: set width of column formats to make them align.
             - `False`: set width of column formats to 0 - no unnecessary spaces.
             - None or 'auto': Use default of the selected `table_format`.
@@ -1498,6 +1606,19 @@ class TableData:
             such that columns can become narrower.
         missing: string
             Indicate missing data by this string.
+        center_columns: boolean
+            If True center all columns (markdown, html, and latex).
+        latex_label_command: string
+            LaTeX command for formatting header labels.
+            E.g. 'textbf' for making the header labels bold.
+        latex_merge_std: string
+            Merge header of columns with standard deviations with previous column
+            (LaTeX tables only).
+
+        Returns
+        -------
+        file_name: string or None
+            The full name of the file into which the data were written.
 
         Supported file formats
         ----------------------
@@ -1616,16 +1737,17 @@ class TableData:
             table_format =None
         if delimiter == 'auto':
             delimiter=None
-        if unitstyle == 'auto':
-            unitstyle=None
+        if unit_style == 'auto':
+            unit_style=None
         if column_numbers == 'none':
             column_numbers=None
         if sections == 'auto':
             sections=None
-        if format_width == 'auto':
-            format_width=None
+        if align_columns == 'auto':
+            align_columns=None
         # open file:
         own_file = False
+        file_name = None
         if not hasattr(fh, 'write'):
             _, ext = os.path.splitext(fh)
             if table_format is None:
@@ -1633,13 +1755,14 @@ class TableData:
                     table_format = self.ext_formats[ext[1:]]
             elif not ext:
                 fh += '.' + self.extensions[table_format]
+            file_name = fh
             fh = open(fh, 'w')
             own_file = True
         if table_format is None:
             table_format = 'dat'
         # set style:        
         if table_format[0] == 'd':
-            format_width = True
+            align_columns = True
             begin_str = ''
             end_str = ''
             header_start = '# '
@@ -1659,7 +1782,7 @@ class TableData:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 'a':
-            format_width = True
+            align_columns = True
             begin_str = ''
             end_str = ''
             header_start = '| '
@@ -1681,10 +1804,10 @@ class TableData:
         elif table_format[0] == 'c':
             # csv according to http://www.ietf.org/rfc/rfc4180.txt :
             column_numbers=None
-            if unitstyle is None:
-                unitstyle = 'header'
-            if format_width is None:
-                format_width = False
+            if unit_style is None:
+                unit_style = 'header'
+            if align_columns is None:
+                align_columns = False
             begin_str = ''
             end_str = ''
             header_start=''
@@ -1704,7 +1827,7 @@ class TableData:
             if sections is None:
                 sections = 0
         elif table_format[0] == 'r':
-            format_width = True
+            align_columns = True
             begin_str = ''
             end_str = ''
             header_start = 'RTH| '
@@ -1721,9 +1844,9 @@ class TableData:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 'm':
-            if unitstyle is None or unitstyle == 'row':
-                unitstyle = 'header'
-            format_width = True
+            if unit_style is None or unit_style == 'row':
+                unit_style = 'header'
+            align_columns = True
             begin_str = ''
             end_str = ''
             header_start='| '
@@ -1740,11 +1863,15 @@ class TableData:
             if sections is None:
                 sections = 0
         elif table_format[0] == 'h':
-            format_width = False
+            align_columns = False
             begin_str = '<table>\n<thead>\n'
             end_str = '</tbody>\n</table>\n'
-            header_start='  <tr>\n    <th align="left"'
-            header_sep = '</th>\n    <th align="left"'
+            if center_columns:
+                header_start='  <tr>\n    <th align="center"'
+                header_sep = '</th>\n    <th align="center"'
+            else:
+                header_start='  <tr>\n    <th align="left"'
+                header_sep = '</th>\n    <th align="left"'
             header_close = '>'
             header_end='</th>\n  </tr>\n'
             data_start='  <tr>\n    <td'
@@ -1757,8 +1884,8 @@ class TableData:
             if sections is None:
                 sections = 1000
         elif table_format[0] == 't':
-            if format_width is None:
-                format_width = False
+            if align_columns is None:
+                align_columns = False
             begin_str = '\\begin{tabular}'
             end_str = '\\end{tabular}\n'
             header_start='  '
@@ -1775,8 +1902,8 @@ class TableData:
             if sections is None:
                 sections = 1000
         else:
-            if format_width is None:
-                format_width = True
+            if align_columns is None:
+                align_columns = True
             begin_str = ''
             end_str = ''
             header_start = ''
@@ -1793,21 +1920,39 @@ class TableData:
             if sections is None:
                 sections = 1000
         # check units:
-        if unitstyle is None:
-            unitstyle = 'row'
+        if unit_style is None:
+            unit_style = 'row'
         have_units = False
         for u in self.units:
             if u and u != '1' and u != '-':
                 have_units = True
                 break
         if not have_units:
-            unitstyle = 'none'
+            unit_style = 'none'
+        # find std columns:
+        stdev_col = np.zeros(len(self.header), dtype=np.bool)
+        for c in range(len(self.header)-1):
+            if self.header[c+1][0].lower() in ['sd', 'std', 's.d.', 'stdev'] and \
+               not self.hidden[c+1]:
+                stdev_col[c] = True
         # begin table:
         fh.write(begin_str)
         if table_format[0] == 't':
             fh.write('{')
-            for f in self.formats:
-                if f[1] == '-':
+            merged = False
+            for h, f, s in zip(self.hidden, self.formats, stdev_col):
+                if merged:
+                    fh.write('l')
+                    merged = False
+                    continue
+                if h:
+                    continue
+                if latex_merge_std and s:
+                    fh.write('r@{$\\,\\pm\\,$}')
+                    merged = True
+                elif center_columns:
+                    fh.write('c')
+                elif f[1] == '-':
                     fh.write('l')
                 else:
                     fh.write('r')
@@ -1828,7 +1973,7 @@ class TableData:
             widths_pos.append((i0, i1))
             # adapt width to header label:
             hw = len(self.header[c][0])
-            if unitstyle == 'header' and self.units[c] and\
+            if unit_style == 'header' and self.units[c] and\
                self.units[c] != '1' and self.units[c] != '-':
                 hw += 1 + len(self.units[c])
             if w < hw:
@@ -1836,7 +1981,7 @@ class TableData:
             # adapt width to data:
             if f[-1] == 's':
                 for v in self.data[c]:
-                    if w < len(v):
+                    if not isinstance(v, float) and w < len(v):
                         w = len(v)
             else:
                 fs = f[:i0] + str(0) + f[i1:]
@@ -1857,6 +2002,7 @@ class TableData:
             for l in range(min(self.nsecs, sections)):
                 if 1+l < len(self.header[c]):
                     if c > 0 and sec_columns[l] > 0 and \
+                       1+l < len(self.header[sec_indices[l]]) and \
                        len(self.header[sec_indices[l]][1+l]) > sec_widths[l]:
                         dw = len(self.header[sec_indices[l]][1+l]) - sec_widths[l]
                         nc = sec_columns[l]
@@ -1881,7 +2027,7 @@ class TableData:
         # top line:
         if top_line:
             if table_format[0] == 't':
-                fh.write('  \\hline\n')
+                fh.write('  \\hline \\\\[-2ex]\n')
             else:
                 first = True
                 fh.write(header_start.replace(' ', '-'))
@@ -1903,6 +2049,7 @@ class TableData:
             nsec = self.nsecs-ns
             first = True
             last = False
+            merged = False
             fh.write(header_start)
             for c in range(len(self.header)):
                 if nsec < len(self.header[c]):
@@ -1925,7 +2072,7 @@ class TableData:
                             sw = 0  # last entry needs no width
                     if columns == 0:
                         continue
-                    if not first:
+                    if not first and not merged:
                         fh.write(header_sep)
                     first = False
                     if table_format[0] == 'c':
@@ -1934,13 +2081,24 @@ class TableData:
                         if columns>1:
                             fh.write(' colspan="%d"' % columns)
                     elif table_format[0] == 't':
-                        fh.write('\\multicolumn{%d}{l}{' % columns)
+                        if merged:
+                            merged = False
+                            continue
+                        if latex_merge_std and nsec == 0 and stdev_col[c]:
+                            merged = True
+                            fh.write('\\multicolumn{%d}{c}{' % (columns+1))
+                        elif center_columns:
+                            fh.write('\\multicolumn{%d}{c}{' % columns)
+                        else:
+                            fh.write('\\multicolumn{%d}{l}{' % columns)
+                        if latex_label_command:
+                            fh.write('\\%s{' % latex_label_command)
                     fh.write(header_close)
                     hs = self.header[c][nsec]
-                    if nsec == 0 and unitstyle == 'header':
+                    if nsec == 0 and unit_style == 'header':
                         if self.units[c] and self.units[c] != '1' and self.units[c] != '-':
                             hs += '/' + self.units[c]
-                    if format_width and not table_format[0] in 'th':
+                    if align_columns and not table_format[0] in 'th':
                         f = '%%-%ds' % sw
                         fh.write(f % hs)
                     else:
@@ -1949,14 +2107,18 @@ class TableData:
                         if not last:
                             fh.write(header_sep*(columns-1))
                     elif table_format[0] == 't':
+                        if latex_label_command:
+                            fh.write('}')
                         fh.write('}')
             fh.write(header_end)
         # units:
-        if unitstyle == 'row':
+        if unit_style == 'row':
             first = True
+            merged = False
             fh.write(header_start)
             for c in range(len(self.header)):
-                if self.hidden[c]:
+                if self.hidden[c] or merged:
+                    merged = False
                     continue
                 if not first:
                     fh.write(header_sep)
@@ -1966,9 +2128,15 @@ class TableData:
                 if not unit:
                     unit = '-'
                 if table_format[0] == 't':
-                    fh.write('\\multicolumn{1}{l}{%s}' % unit)
+                    if latex_merge_std and stdev_col[c]:
+                        merged = True
+                        fh.write('\\multicolumn{2}{c}{%s}' % latex_unit(unit))
+                    elif center_columns:
+                        fh.write('\\multicolumn{1}{c}{%s}' % latex_unit(unit))
+                    else:
+                        fh.write('\\multicolumn{1}{l}{%s}' % latex_unit(unit))
                 else:
-                    if format_width and not table_format[0] in 'h':
+                    if align_columns and not table_format[0] in 'h':
                         f = '%%-%ds' % widths[c]
                         fh.write(f % unit)
                     else:
@@ -1998,13 +2166,13 @@ class TableData:
                         fh.write('\\multicolumn{1}{l}{%s}' % aa)
                 else:
                     if column_numbers == 'num' or column_numbers == 'index':
-                        if format_width:
+                        if align_columns:
                             f = '%%%dd' % widths[c]
                             fh.write(f % i)
                         else:
                             fh.write('%d' % i)
                     else:
-                        if format_width:
+                        if align_columns:
                             f = '%%-%ds' % widths[c]
                             fh.write(f % aa)
                         else:
@@ -2018,13 +2186,15 @@ class TableData:
                     if self.hidden[c]:
                         continue
                     w = widths[c]+2
-                    if formats[c][1] == '-':
+                    if center_columns:
+                        fh.write(':' + (w-2)*'-' + ':|')
+                    elif formats[c][1] == '-':
                         fh.write(w*'-' + '|')
                     else:
                         fh.write((w-1)*'-' + ':|')
                 fh.write('\n')
             elif table_format[0] == 't':
-                fh.write('  \\hline\n')
+                fh.write('  \\hline \\\\[-2ex]\n')
             else:
                 first = True
                 fh.write(header_start.replace(' ', '-'))
@@ -2044,22 +2214,30 @@ class TableData:
         # data:
         for k in range(self.rows()):
             first = True
+            merged = False
             fh.write(data_start)
             for c, f in enumerate(formats):
-                if self.hidden[c]:
+                if self.hidden[c] or merged:
+                    merged = False
                     continue
                 if not first:
                     fh.write(data_sep)
                 first = False
                 if table_format[0] == 'h':
-                    if f[1] == '-':
+                    if center_columns:
+                        fh.write(' align="center"')
+                    elif f[1] == '-':
                         fh.write(' align="left"')
                     else:
                         fh.write(' align="right"')
                 fh.write(data_close)
                 if k >= len(self.data[c]) or \
                    (isinstance(self.data[c][k], float) and m.isnan(self.data[c][k])):
-                    if format_width:
+                    # missing data:
+                    if table_format[0] == 't' and latex_merge_std and stdev_col[c]:
+                        merged = True
+                        fh.write('\\multicolumn{2}{c}{%s}' % missing)
+                    elif align_columns:
                         if f[1] == '-':
                             fn = '%%-%ds' % widths[c]
                         else:
@@ -2068,8 +2246,9 @@ class TableData:
                     else:
                         fh.write(missing)
                 else:
+                    # data value:
                     ds = f % self.data[c][k]
-                    if not format_width:
+                    if not align_columns:
                         ds = ds.strip()
                     fh.write(ds)
             fh.write(data_end)
@@ -2095,6 +2274,8 @@ class TableData:
         # close file:
         if own_file:
             fh.close()
+        # return file name:
+        return file_name
 
             
     def __str__(self):
@@ -2161,8 +2342,10 @@ class TableData:
             if sep is None:
                 cols = [m.group(0) for m in re.finditer(r'\S+', line.strip())]
             else:
-                seps = r'[^\s'+re.escape(sep)+']+'
+                seps = r'[^'+re.escape(sep)+']+'
                 cols = [m.group(0).strip() for m in re.finditer(seps, line.strip())]
+                cols[0] = cols[0].lstrip('|').lstrip()
+                cols[-1] = cols[-1].rstrip('|').rstrip()
             cols = [c for c in cols if c not in '|']
             # read columns:
             for k, c in enumerate(cols):
@@ -2366,6 +2549,12 @@ class TableData:
                 labels = []
                 units = []
                 for c in key_cols[kr]:
+                    if c[-1] == ')':
+                        lu = c[:-1].split('(')
+                        if len(lu) >= 2:
+                            labels.append(lu[0].strip())
+                            units.append('('.join(lu[1:]).strip())
+                            continue
                     lu = c.split('/')
                     if len(lu) >= 2:
                         labels.append(lu[0].strip())
@@ -2426,8 +2615,9 @@ class TableData:
 
 
 def write(fh, data, header, units=None, formats=None, table_format=None, delimiter=None,
-              unitstyle=None, column_numbers=None, sections=None,
-              format_width=None, shrink_width=True, missing='-'):
+              unit_style=None, column_numbers=None, sections=None,
+              align_columns=None, shrink_width=True, missing='-',
+              center_columns=False, latex_label_command='', latex_merge_std=False):
     """
     Construct table and write to file.
 
@@ -2457,14 +2647,16 @@ def write(fh, data, header, units=None, formats=None, table_format=None, delimit
     ```
     """
     td = TableData(data, header, units, formats)
-    td.write(fh, table_format=table_format, units=unitstyle, column_numbers=column_numbers,
-             missing=missing, shrink_width=shrink_width, delimiter=delimiter,
-             format_width=format_width, sections=sections)
+    td.write(fh, table_format=table_format, unit_style=unit_style,
+             column_numbers=column_numbers, missing=missing, shrink_width=shrink_width,
+             delimiter=delimiter, align_columns=align_columns, sections=sections,
+             latex_label_command=latex_label_command, latex_merge_std=latex_merge_std)
 
     
 def add_write_table_config(cfg, table_format=None, delimiter=None,
-                           unitstyle=None, column_numbers=None, sections=None,
-                           format_width=None, shrink_width=True, missing='-'):
+                           unit_style=None, column_numbers=None, sections=None,
+                           align_columns=None, shrink_width=True, missing='-',
+                           center_columns=False, latex_label_command='', latex_merge_std=False):
     """ Add parameter specifying how to write a table to a file as a new section to a configuration.
 
     Parameters
@@ -2476,12 +2668,15 @@ def add_write_table_config(cfg, table_format=None, delimiter=None,
     cfg.add_section('File format for storing analysis results:')
     cfg.add('fileFormat', table_format or 'auto', '', 'Default file format used to store analysis results.\nOne of %s.' % ', '.join(TableData.formats))
     cfg.add('fileDelimiter', delimiter or 'auto', '', 'String used to separate columns or "auto".')
-    cfg.add('fileUnitStyle', unitstyle or 'auto', '', 'Add units as extra row ("row"), add units to header label ("header"), do not print out units ("none"), or "auto".')
+    cfg.add('fileUnitStyle', unit_style or 'auto', '', 'Add units as extra row ("row"), add units to header label ("header"), do not print out units ("none"), or "auto".')
     cfg.add('fileColumnNumbers', column_numbers or 'none', '', 'Add line with column indices ("index", "num", "aa", "AA", or "none")')
     cfg.add('fileSections', sections or 'auto', '', 'Maximum number of section levels or "auto"')
-    cfg.add('fileColumnWidth', format_width or 'auto', '', 'If True, write all data of a column using the same width, if False write the data without any white space, or "auto".')
+    cfg.add('fileAlignColumns', align_columns or 'auto', '', 'If True, write all data of a column using the same width, if False write the data without any white space, or "auto".')
     cfg.add('fileShrinkColumnWidth', shrink_width, '', 'Allow to make columns narrower than specified by the corresponding format strings.')
     cfg.add('fileMissing', missing, '', 'String used to indicate missing data values.')
+    cfg.add('fileCenterColumns', center_columns, '', 'Center content of all columns (markdown, html, and latex).')
+    cfg.add('fileLaTeXLabelCommand', latex_label_command, '', 'LaTeX command name for formatting column labels of the table header.')
+    cfg.add('fileLaTeXMergeStd', latex_merge_std, '', 'Merge header of columns with standard deviations with previous column (LaTeX tables only).')
 
 
 def write_table_args(cfg):
@@ -2501,15 +2696,133 @@ def write_table_args(cfg):
         and their values as supplied by `cfg`.
     """
 
-    return cfg.map({'table_format': 'fileFormat',
-                    'delimiter': 'fileDelimiter',
-                    'unitstyle': 'fileUnitStyle',
-                    'column_numbers': 'fileColumnNumbers',
-                    'sections': 'fileSections',
-                    'format_width': 'fileColumnWidth',
-                    'shrink_width': 'fileShrinkColumnWidth',
-                    'missing': 'fileMissing'})
-                  
+    d = cfg.map({'table_format': 'fileFormat',
+                 'delimiter': 'fileDelimiter',
+                 'unit_style': 'fileUnitStyle',
+                 'column_numbers': 'fileColumnNumbers',
+                 'sections': 'fileSections',
+                 'align_columns': 'fileAlignColumns',
+                 'shrink_width': 'fileShrinkColumnWidth',
+                 'missing': 'fileMissing',
+                 'center_columns': 'fileCenterColumns',
+                 'latex_label_command': 'fileLaTeXLabelCommand',
+                 'latex_merge_std': 'fileLaTeXMergeStd'})
+    if 'sections' in d:
+        if d['sections'] != 'auto':
+            d['sections'] = int(d['sections'])
+    return d
+
+
+def latex_unit(unit):
+    """ Translate unit string into SIunit LaTeX code.
+    
+    Parameters
+    ----------
+    unit: string
+        String enoting a unit.
+        
+    Returns
+    -------
+    unit: string
+        Unit string as valid LaTeX code.
+    """
+    si_prefixes = {'y': '\\yocto',
+                  'z': '\\zepto',
+                  'a': '\\atto',
+                  'f': '\\femto',
+                  'p': '\\pico',
+                  'n': '\\nano',
+                  'u': '\\micro',
+                  'm': '\\milli',
+                  'c': '\\centi',
+                  'd': '\\deci',
+                  'h': '\\hecto',
+                  'k': '\\kilo',
+                  'M': '\\mega',
+                  'G': '\\giga',
+                  'T': '\\tera',
+                  'P': '\\peta',
+                  'E': '\\exa',
+                  'Z': '\\zetta',
+                  'Y': '\\yotta' }
+    si_units = {'m': '\\metre',
+               'g': '\\gram',
+               's': '\\second',
+               'A': '\\ampere',
+               'K': '\\kelvin',
+               'mol': '\\mole',
+               'cd': '\\candela',
+               'Hz': '\\hertz',
+               'N': '\\newton',
+               'Pa': '\\pascal',
+               'J': '\\joule',
+               'W': '\\watt',
+               'C': '\\coulomb',
+               'V': '\\volt',
+               'F': '\\farad',
+               'O': '\\ohm',
+               'S': '\\siemens',
+               'Wb': '\\weber',
+               'T': '\\tesla',
+               'H': '\\henry',
+               'C': '\\celsius',
+               'lm': '\\lumen',
+               'lx': '\\lux',
+               'Bq': '\\becquerel',
+               'Gv': '\\gray',
+               'Sv': '\\sievert'}
+    other_units = {"'": '\\arcminute',
+               "''": '\\arcsecond',
+               'a': '\\are',
+               'd': '\\dday',
+               'eV': '\\electronvolt',
+               'ha': '\\hectare',
+               'h': '\\hour',
+               'L': '\\liter',
+               'l': '\\litre',
+               'min': '\\minute',
+               'Np': '\\neper',
+               'rad': '\\rad',
+               't': '\\ton',
+               '%': '\\%'}
+    unit_powers = {'^2': '\\squared',
+              '^3': '\\cubed',
+              '/': '\\per',
+              '^-1': '\\power{}{-1}',
+              '^-2': '\\rpsquared',
+              '^-3': '\\rpcubed'}
+    if '\\' in unit:   # this string is already translated!
+        return unit
+    units = ''
+    j = len(unit)
+    while j >= 0:
+        for k in range(-3, 0):
+            if j+k < 0:
+                continue
+            uss = unit[j+k:j]
+            if uss in unit_powers:
+                units = unit_powers[uss] + units
+                break
+            elif uss in other_units:
+                units = other_units[uss] + units
+                break
+            elif uss in si_units:
+                units = si_units[uss] + units
+                j = j+k
+                k = 0
+                if j-1 >= 0:
+                    uss = unit[j-1:j]
+                    if uss in si_prefixes:
+                        units = si_prefixes[uss] + units
+                        k = -1
+                break
+        else:
+            k = -1
+            units = unit[j+k:j] + units
+        j = j + k
+    return units
+
+
 def index2aa(n, a='a'):
     """
     Convert an integer into an alphabetical representation.
@@ -2607,17 +2920,18 @@ if __name__ == "__main__":
 
     # setup a table:
     df = TableData()
-    df.append(["data", "partial information", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    df.append(["data", "partial information", "ID"], "", "%-s", list('ABCDEFGH'))
+    df.append("size", "m", "%6.2f", [2.34, 56.7, 8.9])
     df.append("full weight", "kg", "%.0f", 122.8)
     df.append_section("complete reaction")
     df.append("speed", "m/s", "%.3g", 98.7)
     df.append("median jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
-    df.append_data(float('NaN'), 1)  # single value
+    df.append_data(float('NaN'), 2)  # single value
     df.append_data((0.543, 45, 1.235e2)) # remaining row
-    df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
+    df.append_data((43.21, 6789.1, 3405, 1.235e-4), 2) # next row
     a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
-    df.append_data(a.T, 0) # rest of table
+    df.append_data(a.T, 1) # rest of table
     df[3:6,'weight'] = [11.0]*3
     
     # write out in all formats:

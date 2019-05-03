@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                          data_snippet_secs=60.0,
-                         nffts_per_psd=4, fresolution=0.5, overlap_frac=.9,
+                         nffts_per_psd=4, freq_resolution=0.5, overlap_frac=.9,
                          plot_harmonic_groups=False, verbose=0, **kwargs):
     """
     For a long data array calculates spectograms of small data snippets, computes PSDs, extracts harmonic groups and
@@ -35,7 +35,7 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
     :param end_time: (int) stop analysis at this time (in seconds). If -1 then analyse to the end of the data. XXX TODO this should be a float!!!! Internally I would use indices.
     :param data_snippet_secs: (float) duration of data snipped processed at once in seconds. Necessary because of memory issues.
     :param nffts_per_psd: (int) number of nffts used for calculating one psd.
-    :param fresolution: (float) frequency resolution for the spectrogram.
+    :param freq_resolution: (float) frequency resolution for the spectrogram.
     :param overlap_frac: (float) overlap of the nffts (0 = no overlap; 1 = total overlap).
     :param verbose: (int) with increasing value provides more output on console.
     :param kwargs: further arguments are passed on to harmonic_groups().
@@ -48,7 +48,7 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
     if end_time < 0.0:
         end_time = len(data)/samplerate
 
-    nfft = next_power_of_two(samplerate / fresolution)
+    nfft = next_power_of_two(samplerate / freq_resolution)
     if len(data.shape) > 1:
         channels = range(data.shape[1])
     else:
@@ -69,7 +69,7 @@ def extract_fundamentals(data, samplerate, start_time=0.0, end_time=-1.0,
                 tmp_data = data[int(start_time*samplerate) : int((start_time+data_snippet_secs)*samplerate)]
 
             # spectrogram
-            spectrum, freqs, time = spectrogram(tmp_data, samplerate, fresolution=fresolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
+            spectrum, freqs, time = spectrogram(tmp_data, samplerate, freq_resolution=freq_resolution, overlap_frac=overlap_frac)  # nfft window = 2 sec
 
             # psd and fish fundamentals frequency detection
             tmp_power = [np.array([]) for i in range(len(time)-(nffts_per_psd-1))]
@@ -785,7 +785,7 @@ def plot_fishes(fishes, all_times, all_rises, base_name, save_plot, output_folde
         plt.show()
 
 
-def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, fresolution = 0.5, overlap_frac = .9,
+def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, freq_resolution = 0.5, overlap_frac = .9,
                        freq_tolerance = 0.5, rise_f_th = 0.5, prim_time_tolerance = 1., max_time_tolerance = 10., f_th=5.):
     """ Add parameter needed for fish_tracker() as
     a new section to a configuration.
@@ -798,7 +798,7 @@ def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, fresolut
          Duration of data snipped processed at once in seconds.
     nffts_per_psd: int
         nffts used for powerspectrum analysis.
-    fresolution: float
+    freq_resolution: float
         Frequency resoltution of the spectrogram.
     overlap_frac: float
         Overlap fraction of nffts for powerspectrum analysis.
@@ -816,7 +816,7 @@ def add_tracker_config(cfg, data_snipped_secs = 60., nffts_per_psd = 4, fresolut
     cfg.add_section('Fish tracking:')
     cfg.add('DataSnippedSize', data_snipped_secs, 's', 'Duration of data snipped processed at once in seconds.')
     cfg.add('NfftPerPsd', nffts_per_psd, '', 'Number of nffts used for powerspectrum analysis.')
-    cfg.add('FreqResolution', fresolution, 'Hz', 'Frequency resolution of the spectrogram')
+    cfg.add('FreqResolution', freq_resolution, 'Hz', 'Frequency resolution of the spectrogram')
     cfg.add('OverlapFrac', overlap_frac, '', 'Overlap fraction of the nffts during Powerspectrum analysis')
     cfg.add('FreqTolerance', freq_tolerance, 'Hz', 'Frequency tolernace in the first fish sorting step.')
     cfg.add('RiseFreqTh', rise_f_th, 'Hz', 'Frequency threshold for the primary rise detection.')
@@ -842,7 +842,7 @@ def tracker_args(cfg):
     """
     return cfg.map({'data_snipped_secs': 'DataSnippedSize',
                     'nffts_per_psd': 'NfftPerPsd',
-                    'fresolution': 'FreqResolution',
+                    'freq_resolution': 'FreqResolution',
                     'overlap_frac': 'OverlapFrac',
                     'freq_tolerance': 'FreqTolerance',
                     'rise_f_th': 'RiseFreqTh',
@@ -852,7 +852,7 @@ def tracker_args(cfg):
 
 
 def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_plot=False,
-                 save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, fresolution = 0.5,
+                 save_original_fishes=False, data_snippet_secs = 60., nffts_per_psd = 4, freq_resolution = 0.5,
                  overlap_frac =.9, freq_tolerance = 0.5, rise_f_th= .5, max_time_tolerance = 5.,
                  f_th= 5., output_folder = '.', plot_harmonic_groups=False, verbose=0, **kwargs):
 
@@ -892,11 +892,11 @@ def fish_tracker(data_file, start_time=0.0, end_time=-1.0, gridfile=False, save_
     if verbose >= 1:
         print('\nextract fundamentals...')
         if verbose >= 2:
-            print('> frequency resolution = %.2f Hz' % fresolution)
+            print('> frequency resolution = %.2f Hz' % freq_resolution)
             print('> nfft overlap fraction = %.2f' % overlap_frac)
     all_fundamentals, all_times = extract_fundamentals(data, samplerate, start_time, end_time,
                                                        data_snippet_secs, nffts_per_psd,
-                                                       fresolution=fresolution,
+                                                       freq_resolution=freq_resolution,
                                                        overlap_frac=overlap_frac,
                                                        plot_harmonic_groups=plot_harmonic_groups,
                                                        verbose=verbose, **kwargs)
