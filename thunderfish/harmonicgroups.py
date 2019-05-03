@@ -912,7 +912,7 @@ def fundamental_freqs_and_power(group_list, power=False,
     else:
         fundamentals = []
         for groups in group_list:
-            f = fundamental_freqs_and_power(groups, n_harmonics, power,
+            f = fundamental_freqs_and_power(groups, power,
                                             ref_power, min_power)
             fundamentals.append(f)
     return fundamentals
