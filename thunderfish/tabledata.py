@@ -1114,8 +1114,10 @@ class TableData:
         if len(cols) == 1:
             if rows is None:
                 return None
-            elif isinstance(self.data[cols[0]][rows], (list, tuple, np.ndarray)):
+            elif isinstance(rows, slice):
                 return np.asarray(self.data[cols[0]][rows])
+            elif isinstance(rows, (list, tuple, np.ndarray)):
+                return np.asarray([self.data[cols[0]][r] for r in rows])
             else:
                 return self.data[cols[0]][rows]
         else:

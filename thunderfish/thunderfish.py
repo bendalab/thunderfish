@@ -111,7 +111,7 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     h_kwargs.update(harmonic_groups_args(cfg))
     fishlists = []
     for i, psd in enumerate(psd_data):
-        fishlist = harmonic_groups(psd[1], psd[0], verbose-1, **h_kwargs)[0]
+        fishlist = harmonic_groups(psd[:,0], psd[:,1], verbose-1, **h_kwargs)[0]
         if verbose > 0:
             numpsdresolutions = cfg.value('numberPSDResolutions')
             print('fundamental frequencies detected in power spectrum of window %d at resolution %d:'
@@ -434,7 +434,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                              colors=colors, markers=markers, legend_rows=12,
                              frameon=False, bbox_to_anchor=bbox, loc=loc,
                              title=title)
-    plot_decibel_psd(ax3, psd_data[0][1], psd_data[0][0], max_freq=max_freq,
+    plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], max_freq=max_freq,
                      color='blue')
     ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
     

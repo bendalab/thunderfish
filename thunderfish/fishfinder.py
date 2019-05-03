@@ -210,7 +210,7 @@ class SignalPlot:
         if t00 < 0:
             t00 = 0
             t11 = w
-        power, freqs = psd(self.data[t00:t11], self.samplerate,
+        freqs, power = psd(self.data[t00:t11], self.samplerate,
                            self.freq_resolution, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:

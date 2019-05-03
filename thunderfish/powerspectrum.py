@@ -160,7 +160,7 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
     equal to `freq_resolution`.  NFFT can be retrieved by dividing
     `samplerate` by the actual frequency resolution:
     ```
-    power, freq = psd(data, samplerate, 0.1)
+    freq, power = psd(data, samplerate, 0.1)
     df = np.mean(np.diff(freq))  # the actual frequency resolution
     nfft = int(samplerate/df)
     ```
@@ -192,10 +192,10 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
 
     Returns
     -------
-    power: 1-D array
-        Power spectral density in [data]^2/Hz.
     freq: 1-D array
         Frequencies corresponding to power array.
+    power: 1-D array
+        Power spectral density in [data]^2/Hz.
     """
     n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
     noverlap = int(n_fft * overlap_frac)
@@ -217,7 +217,7 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
                                 window=get_window(window, n_fft),
                                 scale_by_freq=True)
     # squeeze is necessary when n_fft is to large with respect to the data:
-    return np.squeeze(power), freqs
+    return freqs, np.squeeze(power)
 
 
 def multi_psd(data, samplerate, freq_resolution=0.5,
@@ -263,7 +263,7 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
     -------
     multi_psd_data: list of 2-D arrays
         List of the power spectra for each window and frequency resolution
-        (`psd_data[i][power, freq]`).
+        (`psd_data[i][freq, power]`).
     """
     if not isinstance(freq_resolution, (list, tuple, np.ndarray)):
         freq_resolution = [freq_resolution]
@@ -273,9 +273,9 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
     multi_psd_data = []
     for k in range(num_windows):
         for fres in freq_resolution:
-            power, freq = psd(data[k*n_incr:(k+2)*n_incr], samplerate, fres,
+            freq, power = psd(data[k*n_incr:(k+2)*n_incr], samplerate, fres,
                               min_nfft, 2*n_incr, overlap_frac, detrend, window)
-            multi_psd_data.append(np.asarray([power, freq]))
+            multi_psd_data.append(np.column_stack((freq, power)))
     return multi_psd_data
 
 
@@ -415,7 +415,7 @@ def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=1.0,
     for i0, i1 in zip(onsets, offsets):
         if 'max_nfft' in kwargs:
             del kwargs['max_nfft']
-        power, f = psd(data[i0:i1], samplerate, freq_resolution,
+        f, power = psd(data[i0:i1], samplerate, freq_resolution,
                        max_nfft=i1-i0, **kwargs)
         if thresh is None:
             fpeak = f[np.argmax(power)]
@@ -490,9 +490,9 @@ if __name__ == '__main__':
     # plot power spectra:
     fig, ax = plt.subplots()
     for k in range(len(psd_data)):
-        df = np.mean(np.diff(psd_data[k][1]))
+        df = np.mean(np.diff(psd_data[k][:,0]))
         nfft = int(samplerate/df)
-        plot_decibel_psd(ax, psd_data[k][1], psd_data[k][0], lw=2,
+        plot_decibel_psd(ax, psd_data[k][:,0], psd_data[k][:,1], lw=2,
                          label='$\\Delta f = %.1f$ Hz, nnft=%d' % (df, nfft))
     ax.legend(loc='upper right')
     plt.show()

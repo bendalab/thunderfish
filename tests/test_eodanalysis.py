@@ -10,7 +10,7 @@ def test_pulsefish():
     samplerate = 44100.0
     data = ff.generate_biphasic_pulses(200.0, samplerate, 5.0, noise_std=0.02)
     mean_eod, eod_times = ea.eod_waveform(data, samplerate)
-    mean_eod, props, peaks, power, intervals = ea.analyze_pulse(mean_eod, eod_times)
+    mean_eod, props, peaks, power = ea.analyze_pulse(mean_eod, eod_times)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     ea.pulse_spectrum_plot(power, props, ax)
@@ -22,7 +22,7 @@ def test_wavefish():
     samplerate = 44100.0
     data = ff.generate_alepto(800.0, samplerate, duration=10.0, noise_std=0.01)
     mean_eod, eod_times = ea.eod_waveform(data, samplerate)
-    mean_eod, props, power = ea.analyze_wave(mean_eod, 800.0)
+    mean_eod, props, power, es = ea.analyze_wave(mean_eod, 800.0)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     ea.eod_waveform_plot(mean_eod, [], ax)

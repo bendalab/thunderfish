@@ -26,8 +26,8 @@ def test_harmonic_groups():
     data = fish1 + fish2 + fish3 + fish4
 
     # analyse:
-    psd_data = ps.psd(data, samplerate, fresolution=df)
-    groups = hg.harmonic_groups(psd_data[1], psd_data[0])[0]
+    psd_data = ps.psd(data, samplerate, freq_resolution=df)
+    groups = hg.harmonic_groups(psd_data[0], psd_data[1])[0]
     fundamentals = hg.fundamental_freqs(groups)
     fdbs = hg.fundamental_freqs_and_power(groups)
     # check:

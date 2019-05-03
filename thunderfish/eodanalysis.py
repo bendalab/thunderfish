@@ -648,7 +648,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     nn = np.max([n_fft, 2*n])
     data = np.zeros(nn)
     data[nn//2-n:nn//2+n] = meod[max_idx-n:max_idx+n,1]
-    power, freqs = psd(data, samplerate, freq_resolution)
+    freqs, power = psd(data, samplerate, freq_resolution)
     ppower = np.zeros((len(freqs), 2))
     ppower[:,0] = freqs
     ppower[:,1] = power
@@ -1530,7 +1530,7 @@ if __name__ == '__main__':
 
     # analyse EOD:
     mean_eod, eod_times = eod_waveform(data, samplerate)
-    mean_eod, props, peaks, power, intervals = analyze_pulse(mean_eod, eod_times)
+    mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times)
 
     # plot:
     fig = plt.figure()
