@@ -5,6 +5,7 @@
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
+- `adjust_eodf()`: adjust EOD frequencies to standard temperature.
 
 ## Quality assessment
 - `wave_quality()`: asses quality of EOD waveform of a wave-type fish.
@@ -687,6 +688,28 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['n'] = len(eod_times)
     
     return meod, props, peaks, ppower
+
+
+def adjust_eodf(eodf, temp, temp_adjust=25., q10=1.62):
+    """ Adjust EOD frequencies to standard temperature using Q10.
+
+    Parameters
+    ----------
+    eodf: float or ndarray
+        EOD frequencies.
+    temp: float
+        Temperature at which EOD frequencies in `eodf` were measured.
+    temp_adjust: float
+        Standard temperature to which EOD frequencies are adjusted.
+    q10: float
+        Q10 value describing temperature dependence of EOD frequencies.
+
+    Returns
+    -------
+    eodf_corrected: float or array
+        EOD frequencies adjusted to t1 using Q_10
+    """
+    return eodf * q10 ** ((temp_adjust - temp) / 10.)
 
 
 def wave_quality(idx, clipped, variance, rms_error, power, harm_relampl,
