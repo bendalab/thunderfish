@@ -5,7 +5,7 @@
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
-- `adjust_eodf()`: adjust EOD frequencies to standard temperature.
+- `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
 ## Quality assessment
 - `wave_quality()`: asses quality of EOD waveform of a wave-type fish.
@@ -690,26 +690,28 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     return meod, props, peaks, ppower
 
 
-def adjust_eodf(eodf, temp, temp_adjust=25., q10=1.62):
-    """ Adjust EOD frequencies to standard temperature using Q10.
+def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
+    """ Adjust EOD frequencies to a standard temperature using Q10.
 
     Parameters
     ----------
     eodf: float or ndarray
         EOD frequencies.
     temp: float
-        Temperature at which EOD frequencies in `eodf` were measured.
+        Temperature in degree celsisus at which EOD frequencies in `eodf` were measured.
     temp_adjust: float
-        Standard temperature to which EOD frequencies are adjusted.
+        Standard temperature in degree celsisus  to which EOD frequencies are adjusted.
     q10: float
         Q10 value describing temperature dependence of EOD frequencies.
+        The default of 1.62 is from Dunlap, Smith, Yetka (2000) Brain Behav Evol,
+        measured for Apteronotus lepthorhynchus in the lab.
 
     Returns
     -------
     eodf_corrected: float or array
-        EOD frequencies adjusted to t1 using Q_10
+        EOD frequencies adjusted to `temp_adjust` using `q10`.
     """
-    return eodf * q10 ** ((temp_adjust - temp) / 10.)
+    return eodf * q10 ** ((temp_adjust - temp) / 10.0)
 
 
 def wave_quality(idx, clipped, variance, rms_error, power, harm_relampl,
@@ -719,8 +721,8 @@ def wave_quality(idx, clipped, variance, rms_error, power, harm_relampl,
     """
     Assess the quality of an EOD waveform of a wave-type fish.
     
-    Parameter
-    ---------
+    Parameters
+    ----------
     idx: int
         Index of the fish, zero indicates largest amplitude
     clipped: float
@@ -792,8 +794,8 @@ def pulse_quality(idx, clipped, variance, max_clipped_frac=0.1,
     """
     Assess the quality of an EOD waveform of a pulse-type fish.
     
-    Parameter
-    ---------
+    Parameters
+    ----------
     idx: int
         Index of the fish, zero indicates largest amplitude
     clipped: float
@@ -1077,8 +1079,8 @@ def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
 def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     """ Save mean eod waveform to file.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     mean_eod: 2D array of floats
         Averaged EOD waveform as returned by eod_waveform(), analyze_wave(),
         and analyze_pulse().
@@ -1111,8 +1113,8 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
 def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     """ Save frequencies of all wave-type EODs to file.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     wave_eodfs: list of 2D arrays
         Each item is a matrix with the frequencies and powers (columns) of the
         fundamental and harmonics (rwos) as returned by harmonic groups().
@@ -1144,8 +1146,8 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
 def save_wave_fish(wave_props, unit, basename, **kwargs):
     """ Save properties of wave-type EODs to file.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     wave_props: list of dict
         Properties of several wave-type EODs as returned by analyze_wave().
     unit: string
@@ -1190,8 +1192,8 @@ def save_wave_fish(wave_props, unit, basename, **kwargs):
 def save_pulse_fish(pulse_props, unit, basename, **kwargs):
     """ Save properties of pulse-type EODs to file.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     puls_props: list of dict
         Properties of several pulse-type EODs as returned by analyze_pulse().
     unit: string
@@ -1241,8 +1243,8 @@ def save_pulse_fish(pulse_props, unit, basename, **kwargs):
 def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     """ Save amplitude and phase spectrum of wave-type EOD to file.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     spec_data: 2D array of floats
         Amplitude and phase spectrum of wave-type EOD as
         returned by analyze_wave().
@@ -1277,8 +1279,8 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
 def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     """ Save power spectrum of pulse-type EOD to file.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     spec_data: 2D array of floats
         Power spectrum of single pulse as returned by analyze_pulse().
     unit: string
@@ -1308,8 +1310,8 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
 def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     """ Save peak properties of pulse-type EOD to file.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     peak_data: 2D array of floats
         Properties of peaks and troughs of pulse-tyoe EOD
         as returned by analyze_pulse().
