@@ -95,7 +95,7 @@ class MultivariateExplorer(object):
             if labels is None:
                 self.raw_labels = []
                 for c in range(len(data)):
-                    if data.unit(c):
+                    if len(data.unit(c)) > 0 and not data.unit(c) in ['-', '1']:
                         self.raw_labels.append('%s [%s]' % (data.label(c), data.unit(c)))
                     else:
                         self.raw_labels.append(data.label(c))
@@ -244,6 +244,7 @@ class MultivariateExplorer(object):
         ---------
         colors: int or 1D array
            Index to colum in data to be used for coloring scatter plots.
+           -2 for coloring row index of data.
            Or data array used to color scaler plots.
         color_label: string
            If colors is an array, this is a label describing the data.
@@ -253,8 +254,12 @@ class MultivariateExplorer(object):
             If None 'jet' is used.
         """
         if isinstance(colors, int):
-            self.color_set_index = 0
-            self.color_index = colors
+            if colors < 0:
+                self.color_set_index = -1
+                self.color_index = 0
+            else:
+                self.color_set_index = 0
+                self.color_index = colors
         else:
             if not isinstance(colors[0], (int, float)):
                 # categorial data:
@@ -420,7 +425,7 @@ class MultivariateExplorer(object):
         if self.color_set_index == -1:
             if self.color_index == 0:
                 self.color_values = np.arange(self.data.shape[0], dtype=np.float)
-                self.color_label = 'index'
+                self.color_label = 'row'
             elif self.color_index == 1:
                 self.color_values = self.extra_colors
                 self.color_label = self.extra_color_label

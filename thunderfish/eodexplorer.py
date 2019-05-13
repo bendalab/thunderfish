@@ -496,7 +496,7 @@ class EODExplorer(MultivariateExplorer):
             List of columns selected to be explored.
         color_col: string or int
             Column to be selected for coloring the data.
-            If 'index' the use the index of the data for coloring.
+            If 'row' then use the row index of the data in the table for coloring.
 
         Returns
         -------
@@ -511,7 +511,7 @@ class EODExplorer(MultivariateExplorer):
         color_idx = data.index(color_col)
         colors = None
         color_label = None
-        if color_idx is None and color_col != 'index':
+        if color_idx is None and color_col != 'row':
             return None, None, '"%s" is not a valid column for color code' % color_col
         if color_idx is None:
             colors = -2
@@ -549,7 +549,8 @@ def load_waveform(idx):
     eodf = data[idx,'EODf']
     file_name = data[idx,'file']
     file_index = data[idx,'index'] if 'index' in data else 0
-    eod_table = TableData(os.path.join(data_path, '%s-eodwaveform-%d.csv' % (file_name, file_index)))
+    eod_filename = os.path.join(data_path, '%s-eodwaveform-%d.csv' % (file_name, file_index))
+    eod_table = TableData(eod_filename)
     eod = eod_table[:,'mean']
     norm = np.max(eod)
     if wave_fish:
@@ -597,7 +598,7 @@ def main():
     parser.add_argument('-s', dest='save_pca', action='store_true',
                         help='save PCA components and exit')
     parser.add_argument('-c', dest='color_col', default='EODf', type=str, metavar='COLUMN',
-                        help='data column to be used for color code or "index"')
+                        help='data column to be used for color code or "row"')
     parser.add_argument('-m', dest='color_map', default='jet', type=str, metavar='CMAP',
                         help='name of color map')
     parser.add_argument('-p', dest='data_path', default='.', type=str, metavar='PATH',
