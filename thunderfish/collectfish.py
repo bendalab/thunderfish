@@ -148,7 +148,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             if insert_file:
                 table.append_data(recording, data_col)
                 data_col += 1
-            table.append_data(data[r,:], data_col)
+            table.append_data(data[r,:].array(), data_col)
             if peaks0 is not None and fish_type == 'pulse':
                 pulse_peaks = TableData(base_path + '-pulsepeaks-%d'%idx + file_ext)
                 for p in range(peaks0, peaks1+1):
