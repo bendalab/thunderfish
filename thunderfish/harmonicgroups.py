@@ -918,6 +918,49 @@ def fundamental_freqs_and_power(group_list, power=False,
     return fundamentals
 
 
+def unify(freqs, df_thresh):
+    """ Remove similar frequencies from different recordings.
+
+    If two frequencies from different elements in `freqs` are closer than
+    `df_thresh`, then the one with the smaller power is removed.
+
+    Parameters
+    ----------
+    freqs: list of 2D ndarrays
+        First column in the ndarrays is fundamental frequency and
+        second column the corresponding power.
+        fundamental_freqs_and_power() returns such a list.
+    df_thresh: float
+        Fundamental frequencies closer than this threshold are considered
+        equal.
+
+    Returns
+    -------
+    uniqe_freqs: list of 2D ndarrays
+        Same as `freqs` but with similar frequencies removed.
+    """
+    # mark double frequencies to be deleted:
+    mask = [np.ones(len(freqs[i]), dtype=bool) for i in range(len(freqs))]
+    for j in range(len(freqs)-1):
+        freqsj = np.asarray(freqs[j])
+        for n in range(len(freqsj)):
+            freq1 = freqsj[n]
+            for k in range(j+1, len(freqs)):
+                freqsk = np.asarray(freqs[k])
+                m = np.argmin(np.abs(freqsk[:,0] - freq1[0]))
+                freq2 = freqsk[m]
+                if np.abs(freq1[0] - freq2[0]) < df_thresh:
+                    if freq1[1] > freq2[1]:
+                        mask[k][m] = False
+                    else:
+                        mask[j][n] = False
+    # remove marked frequencies:
+    unique_freqs = []
+    for f, m in zip(freqs, mask):
+        unique_freqs.append(f[m])
+    return unique_freqs
+
+
 def colors_markers():
     """
     Generate a list of colors and markers for plotting.
@@ -1237,9 +1280,9 @@ if __name__ == "__main__":
         fish2 = generate_wavefish(eodfs[1], samplerate, duration=8.0, noise_std=0.01,
                                   amplitudes=[1.0, 0.7, 0.2, 0.1], phases=[0.0, 0.0, 0.0, 0.0])
         fish3 = generate_wavefish(eodfs[2], samplerate, duration=8.0, noise_std=0.01,
-                                  amplitudes=[10.0, 5.0, 1.0], phases=[0.0, 0.0, 0.0])
+                                  amplitudes=[10.0, 5.0, 1.0, 0.2], phases=[0.0, 0.0, 0.0, 0.0])
         fish4 = generate_wavefish(eodfs[3], samplerate, duration=8.0, noise_std=0.01,
-                                  amplitudes=[6.0, 3.0, 1.0], phases=[0.0, 0.0, 0.0])
+                                  amplitudes=[6.0, 3.0, 1.0, 0.3], phases=[0.0, 0.0, 0.0, 0.0])
         data = fish1 + fish2 + fish3 + fish4
     else:
         from .dataloader import load_data
@@ -1249,12 +1292,18 @@ if __name__ == "__main__":
 
     # analyse:
     psd_data = psd(data, samplerate, freq_resolution=0.5)
-    groups, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(psd_data[1], psd_data[0])
+    groups, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(psd_data[0], psd_data[1])
     fundamentals = fundamental_freqs(groups)
+    np.set_printoptions(formatter={'float': lambda x: '%5.1f' % x})
     print(fundamentals)
+    freqs = fundamental_freqs_and_power([groups])
+    freqs.append(np.array([[44.0, -20.0], [322.0, 10.0], [665.0, 10.0]]))
+    print(freqs)
+    unique_freqs = unify(freqs, 2.0)
+    print(unique_freqs)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    plot_psd_harmonic_groups(ax, psd_data[1], psd_data[0], groups, mains, all_freqs, good_freqs,
+    plot_psd_harmonic_groups(ax, psd_data[0], psd_data[1], groups, mains, all_freqs, good_freqs,
                              max_freq=3000.0)
     ax.set_title(title)
     plt.show()
