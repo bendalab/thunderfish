@@ -2,8 +2,8 @@
 Compare fishlists created by the harmonicgroups module in order to create a fishlist with
 fishes present in all fishlists.
 
-consistent_fishes(): Compares a list of fishlists and builds a consistent fishlist.
-consistent_fishes_plot(): Visualize the algorithm of consisten_fishes().
+- `consistent_fishes()`: Compares a list of fishlists and builds a consistent fishlist.
+- `consistent_fishes_plot()`: Visualize the algorithm of consisten_fishes().
 """
 
 import numpy as np
