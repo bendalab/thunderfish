@@ -15,6 +15,9 @@ Extract harmonic groups from power spectra.
                          lists of harmonic groups.
 - `fundamental_freqs_and_power()`: extract fundamental frequencies and their
                                    power in dB from lists of harmonic groups.
+- `add_power_ranks()`: add a column with power ranks.
+- `unique_mask()`: mark similar frequencies from different recordings as dublicate.
+- `unique()`: remove similar frequencies from different recordings.
 
 ## Visualization
 - `colors_markers()`: Generate a list of colors and markers for plotting.
@@ -918,11 +921,102 @@ def fundamental_freqs_and_power(group_list, power=False,
     return fundamentals
 
 
-def unify(freqs, df_thresh):
+def add_power_ranks(freqs, order=None):
+    """ Add a column with power ranks.
+
+    Parameters
+    ----------
+    freqs: list of 2D ndarrays
+        First column in the ndarrays is fundamental frequency and
+        second column the corresponding power.
+        fundamental_freqs_and_power() returns such a list.
+    order: None or list of int
+        Order in which the columns of the returned ndarrays are arranged.
+        '0' is the frequency, '1' the power, and '2' the ranks.
+        Default is `[0, 1, 2]`, i.e. ranks are added as the last column.
+
+    Returns
+    -------
+    rank_freqs: list of 2D ndarrays
+        Same as freqs, but with an added column containing the ranks.
+    """
+    if order is None:
+        order = [0, 1,  2]
+    order = np.asarray(order)
+    rank_freqs = []
+    for f in freqs:
+        i = np.argsort(f[:,1])[::-1]
+        ranks = np.empty_like(i)
+        ranks[i] = -np.arange(len(i))
+        data = np.column_stack((f[:,0], f[:,1], ranks))
+        rank_freqs.append(data[:,order])
+    return rank_freqs
+
+
+def unique_mask(freqs, df_thresh, nextfs=0):
+    """ Mark similar frequencies from different recordings as dublicate.
+
+    If two frequencies from different elements in `freqs` are
+    reciprocally the closest to each other and closer than `df_thresh`,
+    then the one with the smaller power is marked for removal.
+
+    Parameters
+    ----------
+    freqs: list of 2D ndarrays
+        First column in the ndarrays is fundamental frequency and
+        second column the corresponding power or equivalent.
+        If values in the second column are equal (e.g. they are ranks),
+        and there is a third column (e.g. power),
+        the third column is used to decide, which element should be removed.
+    df_thresh: float
+        Fundamental frequencies closer than this threshold are considered
+        equal.
+    nextfs: int
+        If zero, compare all elements in freqs with each other. Otherwise,
+        only compare with the `nextfs` next elements in freqs.
+
+    Returns
+    -------
+    mask: list of boolean arrays
+        For each element in `freqs` True if that frequency should be kept.
+    """
+    mask = [np.ones(len(freqs[i]), dtype=bool) for i in range(len(freqs))]
+    for j in range(len(freqs)-1):
+        freqsj = np.asarray(freqs[j])
+        for m in range(len(freqsj)):
+            freq1 = freqsj[m]
+            nn = len(freqs) if nextfs == 0 else j+1+nextfs
+            if nn > len(freqs):
+                nn = len(freqs)
+            for k in range(j+1, nn):
+                freqsk = np.asarray(freqs[k])
+                if len(freqsk) == 0:
+                    continue
+                n = np.argmin(np.abs(freqsk[:,0] - freq1[0]))
+                freq2 = freqsk[n]
+                if np.argmin(np.abs(freqsj[:,0] - freq2[0])) != m:
+                    continue
+                if np.abs(freq1[0] - freq2[0]) < df_thresh:
+                    if freq1[1] > freq2[1]:
+                        mask[k][n] = False
+                    elif freq1[1] < freq2[1]:
+                        mask[j][m] = False
+                    elif len(freq1) > 2:
+                        if freq1[2] > freq2[2]:
+                            mask[k][n] = False
+                        else:
+                            mask[j][m] = False
+                    else:
+                        mask[j][m] = False
+    return mask
+
+
+def unique(freqs, df_thresh, mode='power', nextfs=0):
     """ Remove similar frequencies from different recordings.
 
-    If two frequencies from different elements in `freqs` are closer than
-    `df_thresh`, then the one with the smaller power is removed.
+    If two frequencies from different elements in `freqs` are
+    reciprocally the closest to each other and closer than `df_thresh`,
+    then the one with the smaller power is removed.
 
     Parameters
     ----------
@@ -933,28 +1027,26 @@ def unify(freqs, df_thresh):
     df_thresh: float
         Fundamental frequencies closer than this threshold are considered
         equal.
+    mode: string
+        - 'power': use second column of freqs elements as power.
+        - 'rank': use rank of second column of freqs elements
+                  for deciding which frequency to delete.
+    nextfs: int
+        If zero, compare all elements in freqs with each other. Otherwise,
+        only compare with the `nextfs` next elements in freqs.
 
     Returns
     -------
     uniqe_freqs: list of 2D ndarrays
         Same as `freqs` but with similar frequencies removed.
     """
-    # mark double frequencies to be deleted:
-    mask = [np.ones(len(freqs[i]), dtype=bool) for i in range(len(freqs))]
-    for j in range(len(freqs)-1):
-        freqsj = np.asarray(freqs[j])
-        for n in range(len(freqsj)):
-            freq1 = freqsj[n]
-            for k in range(j+1, len(freqs)):
-                freqsk = np.asarray(freqs[k])
-                m = np.argmin(np.abs(freqsk[:,0] - freq1[0]))
-                freq2 = freqsk[m]
-                if np.abs(freq1[0] - freq2[0]) < df_thresh:
-                    if freq1[1] > freq2[1]:
-                        mask[k][m] = False
-                    else:
-                        mask[j][n] = False
-    # remove marked frequencies:
+    if mode == 'power':
+        mask = unique_mask(freqs, df_thresh, nextfs)
+    elif mode == 'rank':
+        rank_freqs = add_power_ranks(freqs, [0, 2, 1])
+        mask = unique_mask(rank_freqs, df_thresh, nextfs)
+    else:
+        raise ValueError('%s is not a valid mode for unique(). Choose one of "power" or "rank"')
     unique_freqs = []
     for f, m in zip(freqs, mask):
         unique_freqs.append(f[m])
@@ -1268,7 +1360,7 @@ if __name__ == "__main__":
     from .fakefish import generate_wavefish
     from .powerspectrum import psd
 
-    print("Checking harmonicgroups module ...")
+    print("Checking harmonicgroups module ...\n")
 
     if len(sys.argv) < 2:
         # generate data:
@@ -1290,21 +1382,34 @@ if __name__ == "__main__":
         data, samplerate, unit = load_data(sys.argv[1], 0)
         title = sys.argv[1]
 
-    # analyse:
+    # retrieve fundamentals from power spectrum:
     psd_data = psd(data, samplerate, freq_resolution=0.5)
     groups, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(psd_data[0], psd_data[1])
-    fundamentals = fundamental_freqs(groups)
-    np.set_printoptions(formatter={'float': lambda x: '%5.1f' % x})
-    print(fundamentals)
-    freqs = fundamental_freqs_and_power([groups])
-    freqs.append(np.array([[44.0, -20.0], [322.0, 10.0], [665.0, 10.0]]))
-    print(freqs)
-    unique_freqs = unify(freqs, 2.0)
-    print(unique_freqs)
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     plot_psd_harmonic_groups(ax, psd_data[0], psd_data[1], groups, mains, all_freqs, good_freqs,
                              max_freq=3000.0)
     ax.set_title(title)
     plt.show()
+    # unify fundamental frequencies:
+    fundamentals = fundamental_freqs(groups)
+    np.set_printoptions(formatter={'float': lambda x: '%5.1f' % x})
+    print('fundamental frequencies extracted from power spectrum:')
+    print(fundamentals)
+    print('')
+    freqs = fundamental_freqs_and_power([groups])
+    freqs.append(np.array([[44.0, -20.0], [44.2, -10.0], [320.5, 2.5], [665.5, 5.0], [666.2, 10.0]]))
+    freqs.append(np.array([[320.2, -2.0], [668.4, 2.0]]))
+    rank_freqs = add_power_ranks(freqs)
+    print('all frequencies (frequency, power, rank):')
+    print('\n'.join(( str(f) for f in rank_freqs)))
+    print('')
+    unique_freqs = unique(freqs, 1.0, 'power')
+    print('unique power:')
+    print('\n'.join(( str(f) for f in unique_freqs)))
+    print('')
+    unique_freqs = unique(freqs, 1.0, 'rank')
+    print('unique rank:')
+    print('\n'.join(( str(f) for f in unique_freqs)))
+    print('')
     
