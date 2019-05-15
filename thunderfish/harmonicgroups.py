@@ -59,9 +59,9 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0, min_freq=20.0, ma
     Parameters
     ----------
     freqs: 2-D array
-        List of frequency, height, size, width and count of strong peaks in a power spectrum.
+        List of frequency, power, size, width and count of strong peaks in a power spectrum.
     more_freqs:
-        List of frequency, height, size, width and count of all peaks in a power spectrum.
+        List of frequency, power, size, width and count of all peaks in a power spectrum.
     deltaf: float
         Frequency resolution of the power spectrum.
     verbose: int
@@ -468,9 +468,9 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     Parameters
     ----------
     good_freqs: 2-D array
-        List of frequency, height, size, width and count of strong peaks in a power spectrum.
+        List of frequency, power, size, width and count of strong peaks in a power spectrum.
     all_freqs: 2-D array
-        List of frequency, height, size, width and count of all peaks in a power spectrum.
+        List of frequency, power, size, width and count of all peaks in a power spectrum.
     deltaf: float
         Frequency resolution of the power spectrum.
     verbose: int
@@ -509,12 +509,12 @@ def extract_fundamentals(good_freqs, all_freqs, deltaf, verbose=0, freq_tol_fac=
     group_list: list of 2-D arrays
         List of all harmonic groups found sorted by fundamental frequency.
         Each harmonic group is a 2-D array with the first dimension the harmonics
-        and the second dimension containing frequency, height, and size of each harmonic.
+        and the second dimension containing frequency, power, and size of each harmonic.
         If the power is zero, there was no corresponding peak in the power spectrum.
     fzero_harmonics_list: list of int
         The harmonics from which the fundamental frequencies were computed.
     mains_list: 2-d array
-        Array of mains peaks found in all_freqs (frequency, height, size).
+        Array of mains peaks found in all_freqs (frequency, power, size).
     """
     if verbose > 0:
         print('')
@@ -745,7 +745,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     group_list: list of 2-D arrays
         List of all extracted harmonic groups, sorted by fundamental frequency.
         Each harmonic group is a 2-D array with the first dimension the harmonics
-        and the second dimension containing frequency, height, and size of each harmonic.
+        and the second dimension containing frequency, power, and size of each harmonic.
         If the power is zero, there was no corresponding peak in the power spectrum.
     fzero_harmonics: list of ints
         The harmonics from which the fundamental frequencies were computed.
@@ -850,7 +850,7 @@ def fundamental_freqs(group_list):
     # check whether group_list is list of harmonic groups:
     list_of_groups = True
     for group in group_list:
-        if not ( hasattr(group, 'shape') and len(np.shape(group)) == 2 ):
+        if not ( hasattr(group, 'shape') and len(group.shape) == 2 ):
             list_of_groups = False
             break
 
@@ -904,7 +904,7 @@ def fundamental_freqs_and_power(group_list, power=False,
     # check whether group_list is list of harmonic groups:
     list_of_groups = True
     for group in group_list:
-        if not ( hasattr(group, 'shape') and len(np.shape(group)) == 2 ):
+        if not ( hasattr(group, 'shape') and len(group.shape) == 2 ):
             list_of_groups = False
             break
         
@@ -912,7 +912,8 @@ def fundamental_freqs_and_power(group_list, power=False,
         fundamentals = np.array([[group[0, 0], np.sum(group[:, 1])]
                             for group in group_list if len(group) > 0])
         if not power:
-            fundamentals[:, 1] = decibel(fundamentals[:, 1], ref_power, min_power)
+            fundamentals[:, 1] = decibel(fundamentals[:, 1],
+                                         ref_power, min_power)
     else:
         fundamentals = []
         for groups in group_list:
@@ -983,7 +984,7 @@ def unique_mask(freqs, df_thresh, nextfs=0):
     freqs: list of 2D ndarrays
         First column in the ndarrays is fundamental frequency and
         second column the corresponding power or equivalent.
-        If values in the second column are equal (e.g. they are ranks),
+        If values in the second column are equal (e.g. they are the same ranks),
         and there is a third column (e.g. power),
         the third column is used to decide, which element should be removed.
     df_thresh: float
@@ -1032,8 +1033,8 @@ def unique_mask(freqs, df_thresh, nextfs=0):
 def unique(freqs, df_thresh, mode='power', nextfs=0):
     """ Remove similar frequencies from different recordings.
 
-    If two frequencies from different elements in `freqs` are
-    reciprocally the closest to each other and closer than `df_thresh`,
+    If two frequencies from different elements in the inner lists of `freqs`
+    are reciprocally the closest to each other and closer than `df_thresh`,
     then the one with the smaller power is removed. As power, either the
     absolute power as provided in the second column of the data elements
     in `freqs` is taken (mode=='power'), or the relative power
@@ -1041,10 +1042,10 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
 
     Parameters
     ----------
-    freqs: list of 2D ndarrays
+    freqs: (list of (list of ...)) list of 2D ndarrays
         First column in the ndarrays is fundamental frequency and
-        second column the corresponding power.
-        fundamental_freqs_and_power() returns such a list.
+        second column the corresponding power, as returned by
+        fundamental_freqs_and_power().
     df_thresh: float
         Fundamental frequencies closer than this threshold are considered
         equal.
@@ -1060,22 +1061,38 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
 
     Returns
     -------
-    uniqe_freqs: list of 2D ndarrays
-        Same as `freqs` but with similar frequencies removed.
+    uniqe_freqs: (list of (list of ...)) list of 2D ndarrays
+        Same as `freqs` but elements with similar fundamental frequencies
+        removed.
     """
-    if mode == 'power':
-        mask = unique_mask(freqs, df_thresh, nextfs)
-    elif mode == 'relpower':
-        power_freqs = [f[:,[0, 2, 1]] for f in add_relative_power(freqs)]
-        mask = unique_mask(power_freqs, df_thresh, nextfs)
-    elif mode == 'rank':
-        rank_freqs = [f[:,[0, 2, 1]] for f in add_power_ranks(freqs)]
-        mask = unique_mask(rank_freqs, df_thresh, nextfs)
+    if len(freqs) == 0:
+        return []
+    
+    # check whether freqs is list of fundamental frequencies and powers:
+    list_of_freq_power = True
+    for group in freqs:
+        if not (hasattr(group, 'shape') and len(group.shape) == 2):
+            list_of_freq_power = False
+            break
+
+    if list_of_freq_power:
+        if mode == 'power':
+            mask = unique_mask(freqs, df_thresh, nextfs)
+        elif mode == 'relpower':
+            power_freqs = [f[:,[0, 2, 1]] for f in add_relative_power(freqs)]
+            mask = unique_mask(power_freqs, df_thresh, nextfs)
+        elif mode == 'rank':
+            rank_freqs = [f[:,[0, 2, 1]] for f in add_power_ranks(freqs)]
+            mask = unique_mask(rank_freqs, df_thresh, nextfs)
+        else:
+            raise ValueError('%s is not a valid mode for unique(). Choose one of "power" or "rank"')
+        unique_freqs = []
+        for f, m in zip(freqs, mask):
+            unique_freqs.append(f[m])
     else:
-        raise ValueError('%s is not a valid mode for unique(). Choose one of "power" or "rank"')
-    unique_freqs = []
-    for f, m in zip(freqs, mask):
-        unique_freqs.append(f[m])
+        unique_freqs = []
+        for groups in freqs:
+            unique_freqs.append(unique(groups, df_thresh, mode, nextfs))
     return unique_freqs
 
 
@@ -1416,7 +1433,7 @@ if __name__ == "__main__":
     plot_psd_harmonic_groups(ax, psd_data[0], psd_data[1], groups, mains, all_freqs, good_freqs,
                              max_freq=3000.0)
     ax.set_title(title)
-    #plt.show()
+    plt.show()
     # unify fundamental frequencies:
     fundamentals = fundamental_freqs(groups)
     np.set_printoptions(formatter={'float': lambda x: '%5.1f' % x})
@@ -1439,7 +1456,7 @@ if __name__ == "__main__":
     print('\n'.join(( str(f) for f in unique_freqs)))
     print('')
     unique_freqs = unique(freqs, 1.0, 'rank', 1)
-    print('unique rank only for next neighor:')
+    print('unique rank for next neighor only:')
     print('\n'.join(( str(f) for f in unique_freqs)))
     print('')
     
