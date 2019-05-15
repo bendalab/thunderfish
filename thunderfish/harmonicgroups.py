@@ -15,6 +15,7 @@ Extract harmonic groups from power spectra.
                          lists of harmonic groups.
 - `fundamental_freqs_and_power()`: extract fundamental frequencies and their
                                    power in dB from lists of harmonic groups.
+- `add_relative_power()`: add a column with relative power.
 - `add_power_ranks()`: add a column with power ranks.
 - `unique_mask()`: mark similar frequencies from different recordings as dublicate.
 - `unique()`: remove similar frequencies from different recordings.
@@ -921,7 +922,29 @@ def fundamental_freqs_and_power(group_list, power=False,
     return fundamentals
 
 
-def add_power_ranks(freqs, order=None):
+def add_relative_power(freqs):
+    """ Add a column with relative power.
+
+    For each element in `freqs`, its maximum power is subtracted
+    from all powers.
+
+    Parameters
+    ----------
+    freqs: list of 2D ndarrays
+        First column in the ndarrays is fundamental frequency and
+        second column the corresponding power.
+        Further columns are optional and kept in the returned list.
+        fundamental_freqs_and_power() returns such a list.
+
+    Returns
+    -------
+    power_freqs: list of 2D ndarrays
+        Same as freqs, but with an added column containing the relative power.
+    """
+    return [np.column_stack((f, f[:,1] - np.max(f[:,1]))) for f in freqs]
+
+
+def add_power_ranks(freqs):
     """ Add a column with power ranks.
 
     Parameters
@@ -929,27 +952,22 @@ def add_power_ranks(freqs, order=None):
     freqs: list of 2D ndarrays
         First column in the ndarrays is fundamental frequency and
         second column the corresponding power.
+        Further columns are optional and kept in the returned list.
         fundamental_freqs_and_power() returns such a list.
-    order: None or list of int
-        Order in which the columns of the returned ndarrays are arranged.
-        '0' is the frequency, '1' the power, and '2' the ranks.
-        Default is `[0, 1, 2]`, i.e. ranks are added as the last column.
 
     Returns
     -------
     rank_freqs: list of 2D ndarrays
         Same as freqs, but with an added column containing the ranks.
+        The highest power is assinged to zero,
+        lower powers are assigned negative integers.
     """
-    if order is None:
-        order = [0, 1,  2]
-    order = np.asarray(order)
     rank_freqs = []
     for f in freqs:
         i = np.argsort(f[:,1])[::-1]
         ranks = np.empty_like(i)
         ranks[i] = -np.arange(len(i))
-        data = np.column_stack((f[:,0], f[:,1], ranks))
-        rank_freqs.append(data[:,order])
+        rank_freqs.append(np.column_stack((f, ranks)))
     return rank_freqs
 
 
@@ -1016,7 +1034,10 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
 
     If two frequencies from different elements in `freqs` are
     reciprocally the closest to each other and closer than `df_thresh`,
-    then the one with the smaller power is removed.
+    then the one with the smaller power is removed. As power, either the
+    absolute power as provided in the second column of the data elements
+    in `freqs` is taken (mode=='power'), or the relative power
+    (mode='relpower'), or the power rank (mode='rank').
 
     Parameters
     ----------
@@ -1029,6 +1050,8 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
         equal.
     mode: string
         - 'power': use second column of freqs elements as power.
+        - 'relpower': use relative power computed from the second column
+          of freqs elements for deciding which frequency to delete.
         - 'rank': use rank of second column of freqs elements
                   for deciding which frequency to delete.
     nextfs: int
@@ -1042,8 +1065,11 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
     """
     if mode == 'power':
         mask = unique_mask(freqs, df_thresh, nextfs)
+    elif mode == 'relpower':
+        power_freqs = [f[:,[0, 2, 1]] for f in add_relative_power(freqs)]
+        mask = unique_mask(power_freqs, df_thresh, nextfs)
     elif mode == 'rank':
-        rank_freqs = add_power_ranks(freqs, [0, 2, 1])
+        rank_freqs = [f[:,[0, 2, 1]] for f in add_power_ranks(freqs)]
         mask = unique_mask(rank_freqs, df_thresh, nextfs)
     else:
         raise ValueError('%s is not a valid mode for unique(). Choose one of "power" or "rank"')
@@ -1390,7 +1416,7 @@ if __name__ == "__main__":
     plot_psd_harmonic_groups(ax, psd_data[0], psd_data[1], groups, mains, all_freqs, good_freqs,
                              max_freq=3000.0)
     ax.set_title(title)
-    plt.show()
+    #plt.show()
     # unify fundamental frequencies:
     fundamentals = fundamental_freqs(groups)
     np.set_printoptions(formatter={'float': lambda x: '%5.1f' % x})
@@ -1399,7 +1425,7 @@ if __name__ == "__main__":
     print('')
     freqs = fundamental_freqs_and_power([groups])
     freqs.append(np.array([[44.0, -20.0], [44.2, -10.0], [320.5, 2.5], [665.5, 5.0], [666.2, 10.0]]))
-    freqs.append(np.array([[320.2, -2.0], [668.4, 2.0]]))
+    freqs.append(np.array([[123.3, 1.0], [320.2, -2.0], [668.4, 2.0]]))
     rank_freqs = add_power_ranks(freqs)
     print('all frequencies (frequency, power, rank):')
     print('\n'.join(( str(f) for f in rank_freqs)))
@@ -1408,8 +1434,12 @@ if __name__ == "__main__":
     print('unique power:')
     print('\n'.join(( str(f) for f in unique_freqs)))
     print('')
-    unique_freqs = unique(freqs, 1.0, 'rank')
-    print('unique rank:')
+    unique_freqs = unique(freqs, 1.0, 'relpower')
+    print('unique relative power:')
+    print('\n'.join(( str(f) for f in unique_freqs)))
+    print('')
+    unique_freqs = unique(freqs, 1.0, 'rank', 1)
+    print('unique rank only for next neighor:')
     print('\n'.join(( str(f) for f in unique_freqs)))
     print('')
     
