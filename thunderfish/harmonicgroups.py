@@ -976,13 +976,14 @@ def add_power_ranks(freqs):
 def similar_indices(freqs, df_thresh, nextfs=0):
     """ Indices of similar frequencies.
 
-    If two frequencies from different elements in `freqs` are
+    If two frequencies from different elements in the inner lists of `freqs` are
     reciprocally the closest to each other and closer than `df_thresh`,
-    then the one with the smaller power is marked for removal.
+    then two indices (element, frequency) of the respective other frequency
+    are appended.
 
     Parameters
     ----------
-    freqs: list of 2D ndarrays
+    freqs: (list of (list of ...)) list of 2D ndarrays
         First column in the ndarrays is fundamental frequency.
     df_thresh: float
         Fundamental frequencies closer than this threshold are considered
@@ -993,29 +994,44 @@ def similar_indices(freqs, df_thresh, nextfs=0):
 
     Returns
     -------
-    indices: list of list of two-tuples of int
+    indices: (list of (list of ...)) list of list of two-tuples of int
         For each frequency of each element in `freqs` a list of two tuples containing
         the indices of elements and frequencies that are similar.
     """
-    indices = [ [[] for j in range(len(freqs[i]))] for i in range(len(freqs))]
-    for j in range(len(freqs)-1):
-        freqsj = np.asarray(freqs[j])
-        for m in range(len(freqsj)):
-            freq1 = freqsj[m]
-            nn = len(freqs) if nextfs == 0 else j+1+nextfs
-            if nn > len(freqs):
-                nn = len(freqs)
-            for k in range(j+1, nn):
-                freqsk = np.asarray(freqs[k])
-                if len(freqsk) == 0:
-                    continue
-                n = np.argmin(np.abs(freqsk[:,0] - freq1[0]))
-                freq2 = freqsk[n]
-                if np.argmin(np.abs(freqsj[:,0] - freq2[0])) != m:
-                    continue
-                if np.abs(freq1[0] - freq2[0]) < df_thresh:
-                    indices[k][n].append((j, m))
-                    indices[j][m].append((k, n))
+    if len(freqs) == 0:
+        return []
+    
+    # check whether freqs is list of fundamental frequencies and powers:
+    list_of_freq_power = True
+    for group in freqs:
+        if not (hasattr(group, 'shape') and len(group.shape) == 2):
+            list_of_freq_power = False
+            break
+
+    if list_of_freq_power:
+        indices = [ [[] for j in range(len(freqs[i]))] for i in range(len(freqs))]
+        for j in range(len(freqs)-1):
+            freqsj = np.asarray(freqs[j])
+            for m in range(len(freqsj)):
+                freq1 = freqsj[m]
+                nn = len(freqs) if nextfs == 0 else j+1+nextfs
+                if nn > len(freqs):
+                    nn = len(freqs)
+                for k in range(j+1, nn):
+                    freqsk = np.asarray(freqs[k])
+                    if len(freqsk) == 0:
+                        continue
+                    n = np.argmin(np.abs(freqsk[:,0] - freq1[0]))
+                    freq2 = freqsk[n]
+                    if np.argmin(np.abs(freqsj[:,0] - freq2[0])) != m:
+                        continue
+                    if np.abs(freq1[0] - freq2[0]) < df_thresh:
+                        indices[k][n].append((j, m))
+                        indices[j][m].append((k, n))
+    else:
+        indices = []
+        for groups in freqs:
+            indices.append(similar_indices(groups, df_thresh, nextfs))
     return indices
 
 
