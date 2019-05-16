@@ -17,6 +17,7 @@ Extract harmonic groups from power spectra.
                                    power in dB from lists of harmonic groups.
 - `add_relative_power()`: add a column with relative power.
 - `add_power_ranks()`: add a column with power ranks.
+- `similar_indices()`: indices of similar frequencies.
 - `unique_mask()`: mark similar frequencies from different recordings as dublicate.
 - `unique()`: remove similar frequencies from different recordings.
 
@@ -972,6 +973,52 @@ def add_power_ranks(freqs):
     return rank_freqs
 
 
+def similar_indices(freqs, df_thresh, nextfs=0):
+    """ Indices of similar frequencies.
+
+    If two frequencies from different elements in `freqs` are
+    reciprocally the closest to each other and closer than `df_thresh`,
+    then the one with the smaller power is marked for removal.
+
+    Parameters
+    ----------
+    freqs: list of 2D ndarrays
+        First column in the ndarrays is fundamental frequency.
+    df_thresh: float
+        Fundamental frequencies closer than this threshold are considered
+        equal.
+    nextfs: int
+        If zero, compare all elements in freqs with each other. Otherwise,
+        only compare with the `nextfs` next elements in freqs.
+
+    Returns
+    -------
+    indices: list of list of two-tuples of int
+        For each frequency of each element in `freqs` a list of two tuples containing
+        the indices of elements and frequencies that are similar.
+    """
+    indices = [ [[] for j in range(len(freqs[i]))] for i in range(len(freqs))]
+    for j in range(len(freqs)-1):
+        freqsj = np.asarray(freqs[j])
+        for m in range(len(freqsj)):
+            freq1 = freqsj[m]
+            nn = len(freqs) if nextfs == 0 else j+1+nextfs
+            if nn > len(freqs):
+                nn = len(freqs)
+            for k in range(j+1, nn):
+                freqsk = np.asarray(freqs[k])
+                if len(freqsk) == 0:
+                    continue
+                n = np.argmin(np.abs(freqsk[:,0] - freq1[0]))
+                freq2 = freqsk[n]
+                if np.argmin(np.abs(freqsj[:,0] - freq2[0])) != m:
+                    continue
+                if np.abs(freq1[0] - freq2[0]) < df_thresh:
+                    indices[k][n].append((j, m))
+                    indices[j][m].append((k, n))
+    return indices
+
+
 def unique_mask(freqs, df_thresh, nextfs=0):
     """ Mark similar frequencies from different recordings as dublicate.
 
@@ -1443,9 +1490,14 @@ if __name__ == "__main__":
     freqs = fundamental_freqs_and_power([groups])
     freqs.append(np.array([[44.0, -20.0], [44.2, -10.0], [320.5, 2.5], [665.5, 5.0], [666.2, 10.0]]))
     freqs.append(np.array([[123.3, 1.0], [320.2, -2.0], [668.4, 2.0]]))
-    rank_freqs = add_power_ranks(freqs)
-    print('all frequencies (frequency, power, rank):')
+    rank_freqs = add_relative_power(freqs)
+    rank_freqs = add_power_ranks(rank_freqs)
+    print('all frequencies (frequency, power, relpower, rank):')
     print('\n'.join(( str(f) for f in rank_freqs)))
+    print('')
+    indices = similar_indices(freqs, 1.0)
+    print('similar indices:')
+    print('\n'.join(( ('\n  '.join((str(f) for f in g)) for g in indices))))
     print('')
     unique_freqs = unique(freqs, 1.0, 'power')
     print('unique power:')
@@ -1455,8 +1507,11 @@ if __name__ == "__main__":
     print('unique relative power:')
     print('\n'.join(( str(f) for f in unique_freqs)))
     print('')
+    unique_freqs = unique(freqs, 1.0, 'rank')
+    print('unique rank:')
+    print('\n'.join(( str(f) for f in unique_freqs)))
+    print('')
     unique_freqs = unique(freqs, 1.0, 'rank', 1)
     print('unique rank for next neighor only:')
     print('\n'.join(( str(f) for f in unique_freqs)))
     print('')
-    
