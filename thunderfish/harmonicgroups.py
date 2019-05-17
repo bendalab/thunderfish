@@ -140,97 +140,32 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0,
         fzero = fmax / divisor
         # fzero is not allowed to be smaller than our chosen minimum frequency:
         # if divisor > 1 and fzero < min_freq:   # XXX why not also for divisor=1???
-        #    break
+        #    break                               # -> fmax needs to be deleted!?
         fzero_harmonics = 1
 
+        # find harmonics in freqs and adjust fzero accordingly:
+        hfreqs = [fmax]
+        for h in range(divisor+1, 2*min_group_size+1):
+            ff = freqs[np.abs(freqs[:,0]/h - fzero)<freqtol,0]
+            if len(ff) == 0:
+                if h > min_group_size:
+                    break
+                continue
+            df = ff-hfreqs[-1]
+            fe = np.abs(np.abs(df)/np.round(df/fzero) - fzero)
+            idx = np.argmin(fe)
+            if fe[idx] > 2.0*freqtol:
+                if h > min_group_size:
+                    break
+                continue
+            hfreqs.append(ff[idx])
+            # update fzero:
+            fzero_harmonics = h
+            fzero = hfreqs[-1] / fzero_harmonics
+            if verbose > 2:
+                print('adjusted fzero to %.1fHz' % fzero)
         if verbose > 1:
-            print('# divisor:', divisor, 'fzero=', fzero)
-
-        # ###########################################
-        # SEARCH ALL DETECTED FREQUENCIES in freqs
-        # this in the end only recomputes fzero!
-        newgroup = list()
-        npre = -1  # previous harmonics
-        ndpre = 0.0  # difference of previous frequency
-        connected = True
-        for j in range(freqs.shape[0]):
-
-            if verbose > 2:
-                print('check freq {:3d} {:8.2f} '.format(j, freqs[j, 0]), end='')
-
-            # IS THE CURRENT FREQUENCY AN INTEGRAL MULTIPLE OF FZERO?
-            # divide the frequency-to-be-checked by fzero
-            # to get the multiplication factor between freq and fzero
-            n = int(np.round(freqs[j, 0] / fzero))
-            if n == 0:
-                if verbose > 2:
-                    print('discarded: n == 0')
-                continue
-
-            # !! the difference between the current frequency, divided by the derived integer,
-            # and fzero should be very very small: 1 resolution step of the fft
-            # (freqs[j,0] / n) = should be fzero, plus minus a little tolerance,
-            # which is the fft resolution
-            nd = np.abs((freqs[j, 0] / n) - fzero)
-            # ... compare it to our tolerance
-            if nd > freqtol:
-                if verbose > 2:
-                    print('discarded: not a harmonic n=%2d d=%5.2fHz tol=%5.2fHz' % (n, nd, freqtol))
-                continue
-
-            # two succeeding frequencies should also differ by
-            # fzero plus/minus twice! the tolerance:
-            if len(newgroup) > 0:
-                nn = int(np.round((freqs[j, 0] - freqs[newgroup[-1], 0]) / fzero))
-                if nn == 0:
-                    # the current frequency is the same harmonic as the previous one
-                    # print(divisor, j, freqs[j,0], freqs[newgroup[-1],0])
-                    if len(newgroup) > 1:
-                        # check whether the current frequency is fzero apart from the previous harmonics:
-                        nn = int(np.round((freqs[j, 0] - freqs[newgroup[-2], 0]) / fzero))
-                        nnd = np.abs(((freqs[j, 0] - freqs[newgroup[-2], 0]) / nn) - fzero)
-                        if nnd > 2.0 * freqtol:
-                            if verbose > 2:
-                                print('discarded: distance to previous harmonics %2d %5.2f %5.2f %8.2f'
-                                      % (nn, nnd, freqtol, fzero))
-                            continue
-                    if ndpre < nd:
-                        # the previous frequency is closer to the harmonics, keep it:
-                        if verbose > 2:
-                            print('discarded: previous harmonics is closer %2d %5.2f %5.2f %5.2f %8.2f' %
-                                  (n, nd, ndpre, freqtol, fzero))
-                        continue
-                    else:
-                        # the current frequency is closer to the harmonics, remove the previous one:
-                        newgroup.pop()
-                else:
-                    # check whether the current frequency is fzero apart from the previous harmonics:
-                    nnd = np.abs(((freqs[j, 0] - freqs[newgroup[-1], 0]) / nn) - fzero)
-                    if nnd > 2.0 * freqtol:
-                        if verbose > 2:
-                            print('discarded: distance to previous harmonics %2d %5.2f %5.2f %8.2f' %
-                                  (nn, nnd, freqtol, fzero))
-                        continue
-
-            # take frequency:
-            newgroup.append(j)  # append index of frequency
-            if verbose > 2:
-                print('append n={:.2f} d={:5.2f}Hz tol={:5.2f}Hz'.format(freqs[j, 0] / fzero, nd, freqtol))
-
-            if npre >= 0 and n - npre > 1:
-                connected = False
-            npre = n
-            ndpre = nd
-
-            if connected:
-                # adjust fzero as we get more information from the higher frequencies:
-                fzero = freqs[j, 0] / n
-                fzero_harmonics = int(n)
-                if verbose > 2:
-                    print('adjusted fzero to', fzero)
-
-        if verbose > 3:
-            print('newgroup:', divisor, fzero, newgroup)
+            print('# divisor: %d, fzero=%.1fHz adjusted from harmonics %d' % (divisor, fzero, fzero_harmonics))
 
         newmoregroup = list()
         fill_ins = 0
@@ -270,8 +205,6 @@ def build_harmonic_group(freqs, more_freqs, deltaf, verbose=0,
                 nn = int(np.round((more_freqs[j, 0] - more_freqs[newmoregroup[-1], 0]) / fzero))
                 if nn == 0:
                     # the current frequency is close to the same harmonic as the previous one
-                    # print(n, newmoregroup[-1], ( more_freqs[j,0] - more_freqs[newmoregroup[-1],0] )/fzero)
-                    # print(divisor, j, n, more_freqs[j,0], more_freqs[newmoregroup[-1],0], more_freqs[newmoregroup[-2],0], newmoregroup[-2])
                     if len(newmoregroup) > 1 and newmoregroup[-2] >= 0:
                         # check whether the current frequency is fzero apart from the previous harmonics:
                         nn = int(np.round((more_freqs[j, 0] - more_freqs[newmoregroup[-2], 0]) / fzero))
@@ -651,6 +584,8 @@ def build_harmonic_group_new(freqs, more_freqs, deltaf, verbose=0,
                 print('discarded group: missing harmonics below the %d-th one!' % min_group_size)
             continue
         # fraction of missing harmonics too large:
+        # XXX compute only for upto
+        # if more_freqs[j, 0] > fmax and n - 1 - len(newmoregroup) > max_upper_fill:
         missing = float(len(mharms))/float(mharms[-1])
         if missing > max_fill_ratio:
             if verbose > 1:
@@ -658,7 +593,7 @@ def build_harmonic_group_new(freqs, more_freqs, deltaf, verbose=0,
                       (mharms[-1]-len(mharms), mharms[-1], 100.0*missing, 100.0*max_fill_ratio))
             continue
         # check double use of frequencies:
-        double_use = np.sum([1 for mf in mfreqs[:min_group_size]
+        double_use = np.sum([1 for mf in mfreqs[:2*min_group_size]
                              if more_freqs[np.argmin(np.abs(more_freqs[:,0] - mf)),4] > 0])
         if double_use > max_double_use_count:
             if verbose > 1:
