@@ -186,8 +186,7 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
                     print('removed frequency %.1f Hz, because %.0f%% of the harmonics where below pulsefish threshold' % (fish[0,0], 100.0*hfrac))        
 
     # analyse EOD waveform of all wavefish:
-    powers = np.array([np.sum(fish[:cfg.value('powerNHarmonics'), 1])
-                       for fish in fishlist])
+    powers = np.array([np.sum(fish[:, 1]) for fish in fishlist])
     fish_indices = np.zeros(len(fishlist))
     for k, idx in enumerate(np.argsort(-powers)):
         fish = fishlist[idx]
@@ -283,7 +282,7 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
                             
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
               clipped, fishlist, mean_eods, eod_props, peak_data, spec_data,
-              indices, unit, psd_data, power_n_harmonics, label_power,
+              indices, unit, psd_data, label_power,
               max_freq=3000.0, interactive=True):
     """
     Creates an output plot for the Thunderfish program.
@@ -327,9 +326,6 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         Unit of the trace and the mean EOD.
     psd_data: array
         Power spectrum of the analysed data for different frequency resolutions.
-    power_n_harmonics: int
-        Maximum number of harmonics over which the total power of the signal
-        is computed.
     label_power: boolean
         If `True` put the power in decibel in addition to the frequency
         into the legend.
@@ -429,7 +425,6 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         colors, markers = colors_markers()
         plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12,
                              sort_by_freq=True,
-                             power_n_harmonics=power_n_harmonics,
                              label_power=label_power,
                              colors=colors, markers=markers, legend_rows=12,
                              frameon=False, bbox_to_anchor=bbox, loc=loc,
@@ -612,8 +607,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
                         fishlist, mean_eods, eod_props, peak_data, spec_data,
                         list(range(len(eod_props))), unit, psd_data,
-                        cfg.value('powerNHarmonics'), True, 3000.0,
-                        interactive=not save_data)
+                        True, 3000.0, interactive=not save_data)
         if save_plot:
             # save figure as pdf:
             fig.savefig(output_basename + '.pdf')

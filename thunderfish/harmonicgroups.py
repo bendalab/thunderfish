@@ -1366,8 +1366,9 @@ def colors_markers():
     return colors, markers
 
 
-def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0, sort_by_freq=True,
-                         label_power=False, colors=None, markers=None, legend_rows=8, **kwargs):
+def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
+                         sort_by_freq=True, label_power=False,
+                         colors=None, markers=None, legend_rows=8, **kwargs):
     """
     Mark decibel power of fundamentals and their harmonics in a plot.
 
