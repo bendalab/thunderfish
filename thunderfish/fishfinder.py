@@ -158,15 +158,13 @@ class SignalPlot:
         fwidth = self.fmax - self.fmin
         pl = []
         if self.cfg.value('labelFrequency'):
-            pl.append(r'$f=${:.1f} Hz'.format(peak[0]))
+            pl.append(r'$f=$%.1f Hz' % peak[0])
         if self.cfg.value('labelHarmonic') and harmonics >= 0:
-            pl.append(r'$h=${:d}'.format(harmonics))
+            pl.append(r'$h=$%d' % harmonics)
         if self.cfg.value('labelPower'):
-            pl.append(r'$p=${:g}'.format(peak[1]))
-        if self.cfg.value('labelWidth'):
-            pl.append(r'$\Delta f=${:.2f} Hz'.format(peak[3]))
-        if self.cfg.value('labelDoubleUse'):
-            pl.append(r'dc={:.0f}'.format(peak[4]))
+            pl.append(r'$p=$%g' % peak[1])
+        if self.cfg.value('labelUseCount'):
+            pl.append(r'$c=$%.0f' % peak[2])
         self.peak_annotation.append(self.axp.annotate('\n'.join(pl), xy=(peak[0], peak[1]),
                                                       xytext=(peak[0] + 0.03 * fwidth, peak[1]),
                                                       bbox=dict(boxstyle='round', facecolor='white'),
@@ -742,8 +740,7 @@ def main():
     cfg.add('labelFrequency', True, '', 'Display the frequency of the peak')
     cfg.add('labelHarmonic', True, '', 'Display the harmonic of the peak')
     cfg.add('labelPower', True, '', 'Display the power of the peak')
-    cfg.add('labelWidth', True, '', 'Display the width of the peak')
-    cfg.add('labelDoubleUse', True, '', 'Display double-use count of the peak')
+    cfg.add('labelUseCount', True, '', 'Display use count of the peak')
     
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
