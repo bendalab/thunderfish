@@ -9,10 +9,10 @@ from audioio import PlayAudio, fade, write_audio
 from .version import __version__
 from .configfile import ConfigFile
 from .powerspectrum import nfft, decibel, psd, spectrogram
-from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
+from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
 from .dataloader import open_data
-from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 

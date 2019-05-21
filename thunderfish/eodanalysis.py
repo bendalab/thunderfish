@@ -50,7 +50,7 @@ import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from .eventdetection import threshold_crossings, threshold_crossing_times
 from .powerspectrum import psd, nfft, decibel
-from .harmonicgroups import fundamental_freqs_and_power
+from .harmonics import fundamental_freqs_and_power
 from .tabledata import TableData
 
 

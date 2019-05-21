@@ -1,6 +1,6 @@
 """
-# Harmonic groups
-Extract and analyze harmonic groups from power spectra.
+# Harmonics
+Extract and analyze harmonic frequencies from power spectra.
 
 ## Harmonic group extraction
 - `harmonic_groups()`: detect peaks in power spectrum and group them
