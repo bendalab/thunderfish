@@ -1174,15 +1174,18 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
     # sort by power:
     powers = np.array([np.sum(fish[:,1]) for fish in group_list])
     max_power = np.max(powers)
-    idx_maxpower = np.argsort(powers)
-    if max_groups > 0 and len(idx_maxpower > max_groups):
-        idx_maxpower = idx_maxpower[-max_groups:]
-    idx = np.array(list(reversed(idx_maxpower)))
+    power_idx = np.argsort(powers)
+    if max_groups > 0 and len(power_idx > max_groups):
+        power_idx = power_idx[-max_groups:]
+    idx = np.array(list(reversed(power_idx)))
 
     # sort by frequency:
     if sort_by_freq:
         freqs = [group_list[group][0, 0] for group in idx]
-        idx = idx[np.argsort(freqs)]
+        if legend_rows > 0 and legend_rows < len(freqs):
+            idx[:legend_rows] = idx[np.argsort(freqs[:legend_rows])]
+        else:
+            idx = idx[np.argsort(freqs)]
 
     # plot:
     for k, i in enumerate(idx):
@@ -1192,25 +1195,31 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
         if max_freq > 0.0:
             y = y[x<=max_freq]
             x = x[x<=max_freq]
-        msize = 7.0 + 10.0 * (powers[i] / max_power) ** 0.25
+        msize = 7.0 + 10.0*(powers[i]/max_power)**0.25
         color_kwargs = {}
         if colors is not None:
             color_kwargs = {'color': colors[k%len(colors)]}
         label = '%6.1f Hz' % group[0, 0]
         if label_power:
             label += ' %6.1f dB' % decibel(np.array([np.sum(group[:,1])]))[0]
+        if legend_rows > 5 and k >= legend_rows:
+            label = None
         if markers is None:
             ax.plot(x, decibel(y), 'o', ms=msize, label=label,
                     clip_on=False, **color_kwargs)
         else:
             if k >= len(markers):
                 break
-            ax.plot(x, decibel(y), linestyle='None', marker=markers[k], mec=None, mew=0.0,
-                    ms=msize, label=label, clip_on=False, **color_kwargs)
+            ax.plot(x, decibel(y), linestyle='None', marker=markers[k],
+                    mec=None, mew=0.0, ms=msize, label=label,
+                    clip_on=False, **color_kwargs)
 
     # legend:
     if legend_rows > 0:
-        ncol = (len(idx)-1) // legend_rows + 1
+        if legend_rows > 5:
+            ncol = 1
+        else:
+            ncol = (len(idx)-1) // legend_rows + 1
         leg = ax.legend(numpoints=1, ncol=ncol, **kwargs)
     else:
         leg = ax.legend(numpoints=1, **kwargs)

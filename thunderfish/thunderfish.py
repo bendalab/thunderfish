@@ -418,20 +418,26 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             title = None
             bbox = (1.0, 1.0)
             loc = 'upper right'
+            legend_rows = 2
         else:
             title = '%d EOD frequencies' % len(fishlist)
             bbox = (1.0, 1.1)
             loc = 'upper left'
+            legend_rows = 12
         colors, markers = colors_markers()
-        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12,
-                             sort_by_freq=True,
-                             label_power=label_power,
-                             colors=colors, markers=markers, legend_rows=12,
-                             frameon=False, bbox_to_anchor=bbox, loc=loc,
-                             title=title)
+        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=0,
+                             sort_by_freq=True, label_power=label_power,
+                             colors=colors, markers=markers,
+                             legend_rows=legend_rows, frameon=False,
+                             bbox_to_anchor=bbox, loc=loc, title=title)
     plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], max_freq=max_freq,
                      color='blue')
-    ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
+    if len(fishlist) == 1 or nwave == 1:
+        ax3.get_legend().set_visible(False)
+        label = '%6.1f Hz' % fishlist[0][0, 0]
+        ax3.set_title('Powerspectrum: %s' % label, y=1.05, fontsize=14)
+    else:
+        ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
     
     ############
 
