@@ -367,6 +367,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
             print('f=%7.2fHz n=%5.2f: power=%8.3f power/p0=%6.4f'
                   % (group[i,0], group[i,0]/group[0,0],
                      group[i,1], group[i,1]/group[refi,1]))
+        print('')
             
     # erase group from good_freqs:
     good_freqs = np.delete(good_freqs, indices, axis=0)
@@ -519,16 +520,13 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
     fzero_harmonics_list = list()
     # as long as there are frequencies left in good_freqs:
     while good_freqs.shape[0] > 0:
-        # we check for harmonic groups:
+        # check for harmonic groups:
         good_freqs, all_freqs, harm_group, fzero_harmonics, fmax = \
             build_harmonic_group(good_freqs, all_freqs, freq_tol,
                                  verbose-1, min_group_size, max_divisor)
 
-        if verbose > 1:
-            print('')
-
         # nothing found:
-        if harm_group.shape[0] == 0:
+        if len(harm_group) == 0:
             if verbose > 0:
                 print('Nothing found for fmax=%.2fHz' % fmax)
             continue
@@ -536,28 +534,25 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         # check frequency range of fundamental:
         fundamental_ok = (harm_group[0, 0] >= min_freq and
                           harm_group[0, 0] <= max_freq)
-
-        # check power hum (does this really ever happen???):
-        mains_ok = ((mains_freq == 0.0) |
-                    (np.abs(harm_group[0, 0] - mains_freq) > freq_tol))
-
+        # check power hum:
+        mains_ok = ((mains_freq <= 0.0) or
+                    (m.fabs(harm_group[0,0] - mains_freq) > freq_tol))
         # check:
         if fundamental_ok and mains_ok:
             if verbose > 0:
-                print('Accepting harmonic group: {:.2f}Hz p={:10.8f}'.format(
-                    harm_group[0, 0], np.sum(harm_group[:, 1])))
-
-            group_list.append(harm_group[:, 0:2])
+                print('Accepting harmonic group: %.2fHz power=%8.3f'
+                      % (harm_group[0,0], np.sum(harm_group[:,1])))
+            group_list.append(harm_group[:,0:2])
             fzero_harmonics_list.append(fzero_harmonics)
         else:
             if verbose > 0:
-                print('Discarded harmonic group: {:.2f}Hz p={:10.8f} f={:} m={:}'.format(
-                    harm_group[0, 0], np.sum(harm_group[:, 1]),
-                    fundamental_ok, mains_ok))
-
+                print('Discarded harmonic group: %.2fHz power=%8.3f freqrange=%d mains=%d'
+                      % (harm_group[0,0], np.sum(harm_group[:,1]),
+                         fundamental_ok, mains_ok))
+                
     # select most powerful harmonic groups:
     if max_groups > 0:
-        powers = [np.sum(group[:, 1]) for group in group_list]
+        powers = [np.sum(group[:,1]) for group in group_list]
         powers_inx = np.argsort(powers)
         group_list = [group_list[pi] for pi in powers_inx[-max_groups:]]
         fzero_harmonics_list = [fzero_harmonics_list[pi] for pi in powers_inx[-max_groups:]]
@@ -565,19 +560,18 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             print('Selected the %d most powerful groups.' % max_groups)
         
     # sort groups by fundamental frequency:
-    ffreqs = [f[0, 0] for f in group_list]
-    finx = np.argsort(ffreqs)
-    group_list = [expand_group(group_list[fi], all_freqs, freq_tol, max_harmonics) for fi in finx]
-    fzero_harmonics_list = [fzero_harmonics_list[fi] for fi in finx]
+    freqs = [group[0,0] for group in group_list]
+    freq_inx = np.argsort(freqs)
+    group_list = [expand_group(group_list[fi], all_freqs, freq_tol, max_harmonics) for fi in freq_inx]
+    fzero_harmonics_list = [fzero_harmonics_list[fi] for fi in freq_inx]
 
     if verbose > 0:
         print('')
         if len(group_list) > 0:
             print('## FUNDAMENTALS FOUND: ##')
-            for i in range(len(group_list)):
-                print('%7.2fHz: power=%8.3f %3d'
-                      % (group_list[i][0,0], np.sum(group_list[i][:,1]),
-                         fzero_harmonics_list[i]))
+            for group, fzero_h in zip(group_list, fzero_harmonics_list):
+                print('%7.2fHz: power=%8.3f fzero-h=%2d'
+                      % (group[0,0], np.sum(group[:,1]), fzero_h))
         else:
             print('## NO FUNDAMENTALS FOUND ##')
 
@@ -1184,7 +1178,7 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
         return
     
     # sort by power:
-    powers = np.array([np.sum(fish[:,1]) for fish in group_list])
+    powers = np.array([np.sum(group[:,1]) for group in group_list])
     max_power = np.max(powers)
     power_idx = np.argsort(powers)
     if max_groups > 0 and len(power_idx > max_groups):
