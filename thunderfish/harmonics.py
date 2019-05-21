@@ -62,13 +62,15 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     Parameters
     ----------
     good_freqs: 2-D array
-        List of frequency, power, size, width and count of strong peaks in a power spectrum.
+        List of frequency, power, size, width and count of strong peaks
+        in a power spectrum.
     all_freqs:
-        List of frequency, power, size, width and count of all peaks in a power spectrum.
+        List of frequency, power, size, width and count of all peaks
+        in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
-        This should be in the range of the frequency resolution and not be smaller than
-        half of the frequency resolution.
+        This should be in the range of the frequency resolution
+        and not be smaller than half of the frequency resolution.
     verbose: int
         Verbosity level.
     min_group_size: int
@@ -79,13 +81,15 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     Returns
     -------
     good_freqs: 2-D array
-        List of strong frequencies with frequencies of the returned group removed.
+        List of strong frequencies with frequencies of
+        the returned group removed.
     all_freqs: 2-D array
         List of all frequencies with updated double-use counts.
     group: 2-D array
         The detected harmonic group. Might be empty.
     best_fzero_harmonics: int
-        The highest harmonics that was used to recompute the fundamental frequency.
+        The highest harmonics that was used to recompute
+        the fundamental frequency.
     fmax: float
         The frequency of the largest peak in good_freqs
         for which the harmonic group was detected.
@@ -96,9 +100,10 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     if verbose > 0:
         print('')
         print(70 * '#')
-        print('good_freqs: ', '[', ', '.join(['%.2f' % f for f in good_freqs[:,0]]), ']')
-        print('all_freqs:  ', '[', ', '.join(
-                        ['%.2f' % f for f in all_freqs[:,0] if f < 3000.0]), ']')
+        print('good_freqs: ', '[',
+              ', '.join(['%.2f' % f for f in good_freqs[:,0]]), ']')
+        print('all_freqs:  ', '[',
+              ', '.join(['%.2f' % f for f in all_freqs[:,0] if f < 3000.0]), ']')
         print('## build harmonic group for fmax=%.2fHz, power=%g ##'
               % (fmax, good_freqs[fmaxinx,1]))
 
@@ -205,7 +210,8 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         freqs = []
         prev_h = 0
         prev_fe = 0.0
-        for i, f in enumerate(all_freqs[all_freqs[:,0] < (min_group_size+0.5)*fzero,0]):
+        fupper = (min_group_size+0.5)*fzero
+        for i, f in enumerate(all_freqs[all_freqs[:,0] < fupper,0]):
             h = m.floor(f/fzero + 0.5)  # round
             if h < 1:
                 continue
@@ -359,7 +365,8 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         print('# resulting harmonic group for fmax=%.2fHz' % fmax)
         for i in range(len(group)):
             print('f=%7.2fHz n=%5.2f: power=%8.3f power/p0=%6.4f'
-                  % (group[i,0], group[i,0]/group[0,0], group[i,1], group[i,1]/group[refi,1]))
+                  % (group[i,0], group[i,0]/group[0,0],
+                     group[i,1], group[i,1]/group[refi,1]))
             
     # erase group from good_freqs:
     good_freqs = np.delete(good_freqs, indices, axis=0)
@@ -375,13 +382,15 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
     Parameters
     ----------
     group: ndarray
-        Group of fundamental frequency and harmonics as returned by build_harmonic_group.
+        Group of fundamental frequency and harmonics
+        as returned by build_harmonic_group.
     freqs: 2D array
-        List of frequency, power, size, width and count of all peaks in a power spectrum.
+        List of frequency, power, size, width and count of all peaks
+        in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
-        This should be in the range of the frequency resolution and not be smaller than
-        half of the frequency resolution.
+        This should be in the range of the frequency resolution
+        and not be smaller than half of the frequency resolution.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     """
@@ -441,7 +450,8 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
             
 
 def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
-                         mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
+                         mains_freq=60.0, mains_freq_tol=1.0,
+                         min_freq=0.0, max_freq=2000.0,
                          max_divisor=4, min_group_size=4, max_harmonics=0,
                          max_groups=0, **kwargs):
     """Extract fundamental frequencies from power-spectrum peaks.
@@ -449,17 +459,22 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
     Parameters
     ----------
     good_freqs: 2-D array
-        List of frequency, power, size, width and count of strong peaks in a power spectrum.
+        List of frequency, power, size, width and count of strong peaks
+        in a power spectrum.
     all_freqs: 2-D array
-        List of frequency, power, size, width and count of all peaks in a power spectrum.
+        List of frequency, power, size, width and count of all peaks
+        in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
-        This should be in the range of the frequency resolution and not be smaller than
-        half of the frequency resolution.
+        This should be in the range of the frequency resolution
+        and not be smaller than half of the frequency resolution.
     verbose: int
         Verbosity level.
     mains_freq: float
         Frequency of the mains power supply.
+    mains_freq_tol: float
+        Tolarerance around harmonics of the mains frequency,
+        within which peaks are removed.
     min_freq: float
         Minimum frequency accepted as a fundamental frequency.
     max_freq: float
@@ -482,27 +497,23 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         If the power is zero, there was no corresponding peak in the power spectrum.
     fzero_harmonics_list: list of int
         The harmonics from which the fundamental frequencies were computed.
-    mains_list: 2-d array
+    mains_freqs: 2-d array
         Array of mains peaks found in all_freqs (frequency, power, size).
     """
     if verbose > 0:
         print('')
 
     # set double use count to zero:
-    all_freqs[:, 4] = 0.0
+    all_freqs[:,4] = 0.0
 
     # remove power line harmonics from good_freqs:
-    # XXX might be improved!!!
     if mains_freq > 0.0:
-        pfreq_tol = 1.0  # 1 Hz tolerance
-        for inx in reversed(range(len(good_freqs))):
-            n = int(np.round(good_freqs[inx, 0] / mains_freq))
-            nd = np.abs(good_freqs[inx, 0] - n * mains_freq)
-            if nd <= pfreq_tol:
-                if verbose > 1:
-                    print('remove power line frequency', inx, good_freqs[inx, 0], np.abs(
-                        good_freqs[inx, 0] - n * mains_freq))
-                good_freqs = np.delete(good_freqs, inx, axis=0)
+        indices = np.where(np.abs(good_freqs[:,0] - np.round(good_freqs[:,0]/mains_freq)*mains_freq) < mains_freq_tol)[0]
+        if len(indices)>0:
+            if verbose > 1:
+                print('remove power line frequencies',
+                      ', '.join(['%.1f' % f for f in good_freqs[indices,0]]))
+            good_freqs = np.delete(good_freqs, indices, axis=0)
 
     group_list = list()
     fzero_harmonics_list = list()
@@ -571,16 +582,12 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             print('## NO FUNDAMENTALS FOUND ##')
 
     # assemble mains frequencies from all_freqs:
-    mains_list = []
     if mains_freq > 0.0:
-        pfreq_tol = 1.0
-        for inx in range(len(all_freqs)):
-            n = int(np.round(all_freqs[inx, 0] / mains_freq))
-            nd = np.abs(all_freqs[inx, 0] - n * mains_freq)
-            if nd <= pfreq_tol:
-                mains_list.append(all_freqs[inx, 0:2])
+        mains_freqs = all_freqs[np.abs(all_freqs[:,0] - np.round(all_freqs[:,0]/mains_freq)*mains_freq) < mains_freq_tol,:2]
+    else:
+        mains_freqs = np.zeros((0, 2))
                 
-    return group_list, fzero_harmonics_list, np.array(mains_list)
+    return group_list, fzero_harmonics_list, mains_freqs
 
             
 def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
@@ -626,11 +633,12 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
     return low_threshold, high_threshold, center
 
 
-def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold=0.0,
-                    thresh_bins=100, low_thresh_factor=6.0, high_thresh_factor=10.0,
+def harmonic_groups(psd_freqs, psd, verbose=0,
+                    low_threshold=0.0, high_threshold=0.0, thresh_bins=100,
+                    low_thresh_factor=6.0, high_thresh_factor=10.0,
                     max_peak_width_fac=20.0, min_peak_width=1.0,
-                    freq_tol_fac=1.0, mains_freq=60.0, min_freq=0.0, max_freq=2000.0,
-                    max_divisor=4,
+                    freq_tol_fac=1.0, mains_freq=60.0, mains_freq_tol=1.0,
+                    min_freq=0.0, max_freq=2000.0, max_divisor=4,
                     min_group_size=4, max_harmonics=0, max_groups=0, **kwargs):
     """Detect peaks in power spectrum and group them according to their harmonic structure.
 
@@ -664,6 +672,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
         Harmonics need to fall within `deltaf*freq_tol_fac`.
     mains_freq: float
         Frequency of the mains power supply.
+    mains_freq_tol: float
+        Tolarerance around harmonics of the mains frequency,
+        within which peaks are removed.
     min_freq: float
         Minimum frequency accepted as a fundamental frequency.
     max_freq: float
@@ -750,8 +761,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, low_threshold=0.0, high_threshold
     # detect harmonic groups:
     groups, fzero_harmonics, mains = \
       extract_fundamentals(good_freqs, all_freqs, delta_f*freq_tol_fac,
-                           verbose, mains_freq, min_freq, max_freq,
-                           max_divisor, min_group_size, max_harmonics, max_groups)
+                           verbose, mains_freq, mains_freq_tol,
+                           min_freq, max_freq, max_divisor, min_group_size,
+                           max_harmonics, max_groups)
 
     return (groups, fzero_harmonics, mains, all_freqs, good_freqs[:, 0],
             low_threshold, high_threshold, center)
@@ -1329,7 +1341,8 @@ def psd_peak_detection_args(cfg):
                     'min_peak_width': 'minPeakWidth'})
 
 
-def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac=1.0,
+def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
+                               max_divisor=4, freq_tol_fac=1.0,
                                min_group_size=4, min_freq=20.0, max_freq=2000.0,
                                max_harmonics=0, max_groups=0):
     """ Add parameter needed for detection of harmonic groups as
@@ -1343,6 +1356,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, max_divisor=4, freq_tol_fac
     
     cfg.add_section('Harmonic groups:')
     cfg.add('mainsFreq', mains_freq, 'Hz', 'Mains frequency to be excluded.')
+    cfg.add('mainsFreqTolerance', mains_freq_tol, 'Hz', 'Exclude peaks within this tolerance around multiples of the mains frequency.')
     cfg.add('maxDivisor', max_divisor, '', 'Maximum ratio between the frequency of the largest peak and its fundamental')
     cfg.add('freqTolerance', freq_tol_fac, '',
             'Harmonics need be within this factor times the frequency resolution of the power spectrum. Needs to be higher than 0.5!')
@@ -1373,6 +1387,7 @@ def harmonic_groups_args(cfg):
         and their values as supplied by `cfg`.
     """
     return cfg.map({'mains_freq': 'mainsFreq',
+                    'mains_freq_tol': 'mainsFreqTolerance',
                     'max_divisor': 'maxDivisor',
                     'freq_tol_fac': 'freqTolerance',
                     'min_group_size': 'minimumGroupSize',
