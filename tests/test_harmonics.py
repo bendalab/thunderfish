@@ -2,7 +2,7 @@ from nose.tools import assert_true, assert_equal, assert_almost_equal
 import numpy as np
 import thunderfish.fakefish as ff
 import thunderfish.powerspectrum as ps
-import thunderfish.harmonicgroups as hg
+import thunderfish.harmonics as hg
 
 
 def test_harmonic_groups():

@@ -26,9 +26,9 @@ from .bestwindow import find_best_window, plot_best_data
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import decibel, plot_decibel_psd, multi_psd
 from .powerspectrum import add_multi_psd_config, multi_psd_args
-from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
-from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
-from .harmonicgroups import colors_markers, plot_harmonic_groups
+from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
+from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import eod_recording_plot, eod_waveform_plot
