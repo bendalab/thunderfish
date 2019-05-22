@@ -99,13 +99,11 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     fmax = good_freqs[fmaxinx,0]
     if verbose > 0:
         print('')
-        print(70 * '#')
+        print('%s build harmonic group %s' % (10*'#', 38*'#'))
+        print('%s fmax=%7.2fHz, power=%9.3g %s'
+              % (10*'#', fmax, good_freqs[fmaxinx,1], 27*'#'))
         print('good_freqs: ', '[',
               ', '.join(['%.2f' % f for f in good_freqs[:,0]]), ']')
-        print('all_freqs:  ', '[',
-              ', '.join(['%.2f' % f for f in all_freqs[:,0] if f < 3000.0]), ']')
-        print('## build harmonic group for fmax=%.2fHz, power=%g ##'
-              % (fmax, good_freqs[fmaxinx,1]))
 
     # container for harmonic groups
     best_group = []
@@ -219,18 +217,27 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
                 break
             fac = 1.0 if h >= divisor else 2.0
             if m.fabs(f/h - fzero) > fac*freq_tol:
+                if verbose > 1 and m.fabs(f/h - fzero) < 20.0*fac*freq_tol:
+                    print('%d. harmonics at %7.2fHz is off by %7.2fHz (max %5.2fHz) from %7.2fHz'
+                          % (h, f, f-h*fzero, fac*freq_tol, h*fzero))
                 continue
             if len(freqs) > 0:
-                df = f - freqs[-1]
+                pf = freqs[-1]
+                df = f - pf
                 if df < 0.5*fzero:
                     if len(freqs)>1:
-                        df = f - freqs[-2]
+                        pf = freqs[-2]
+                        df = f - pf
                     else:
+                        pf = 0.0
                         df = h*fzero
                 dh = m.floor(df/fzero + 0.5)
                 fe = m.fabs(df/dh - fzero)
                 fac = 1.0 if h > divisor else 2.0                
                 if fe > 2.0*fac*freq_tol:
+                    if verbose > 1:
+                        print('%d. harmonics at %7.2fHz is off by %7.2fHz (max %5.2fHz) from previous harmonics at %7.2fHz'
+                              % (h, f, fe, 2.0*fac*freq_tol, pf))
                     continue
             else:
                 fe = 0.0
@@ -364,7 +371,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         print('')
         print('# resulting harmonic group for fmax=%.2fHz' % fmax)
         for i in range(len(group)):
-            print('f=%7.2fHz n=%5.2f: power=%8.3f power/p0=%6.4f'
+            print('f=%7.2fHz n=%5.2f: power=%9.3g power/p0=%6.4f'
                   % (group[i,0], group[i,0]/group[0,0],
                      group[i,1], group[i,1]/group[refi,1]))
         print('')
@@ -520,8 +527,13 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
                       ', '.join(['%.1f' % f for f in good_freqs[indices,0]]))
             good_freqs = np.delete(good_freqs, indices, axis=0)
 
-    group_list = list()
-    fzero_harmonics_list = list()
+    if verbose > 1:
+        print('all_freqs:  ', '[',
+              ', '.join(['%.2f' % f for f in all_freqs[:,0] if f < 3000.0]), ']')
+
+    group_list = []
+    fzero_harmonics_list = []
+    first = True
     # as long as there are frequencies left in good_freqs:
     while len(good_freqs) > 0:
         # check for harmonic groups:
@@ -531,9 +543,11 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
 
         # nothing found:
         if len(harm_group) == 0:
-            if verbose > 0:
-                print('Nothing found for fmax=%.2fHz' % fmax)
+            if verbose > 1 or first:
+                s = 'largest' if first else ''
+                print('No %-7s harmonic group: %7.2fHz' % (s, fmax))
             continue
+        first = False
 
         # check frequency range of fundamental:
         fundamental_ok = (harm_group[0, 0] >= min_freq and
@@ -547,13 +561,13 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         # check:
         if fundamental_ok and mains_ok and amplitude_ok:
             if verbose > 0:
-                print('Accepting harmonic group: %.2fHz power=%8.3f'
+                print('Accepting  harmonic group: %7.2fHz power=%9.3g'
                       % (harm_group[0,0], np.sum(harm_group[:,1])))
             group_list.append(harm_group[:,0:2])
             fzero_harmonics_list.append(fzero_harmonics)
         else:
             if verbose > 0:
-                print('Discarded harmonic group: %.2fHz power=%8.3f freqrange=%d mains=%d relpower=%.3f (max %.3f)'
+                print('Discarded  harmonic group: %7.2fHz power=%9.3g freqrange=%d mains=%d relpower=%5.3f (max %5.3f)'
                       % (harm_group[0,0], np.sum(harm_group[:,1]),
                          fundamental_ok, mains_ok, rpower, max_rel_power))
                 
@@ -572,12 +586,12 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
     group_list = [expand_group(group_list[fi], all_freqs, freq_tol, max_harmonics) for fi in freq_inx]
     fzero_harmonics_list = [fzero_harmonics_list[fi] for fi in freq_inx]
 
-    if verbose > 0:
+    if verbose > 1:
         print('')
         if len(group_list) > 0:
             print('## FUNDAMENTALS FOUND: ##')
             for group, fzero_h in zip(group_list, fzero_harmonics_list):
-                print('%7.2fHz: power=%8.3f fzero-h=%2d'
+                print('%7.2fHz: power=%9.3g fzero-h=%2d'
                       % (group[0,0], np.sum(group[:,1]), fzero_h))
         else:
             print('## NO FUNDAMENTALS FOUND ##')
@@ -712,8 +726,8 @@ def harmonic_groups(psd_freqs, psd, verbose=0,
     """
     if verbose > 0:
         print('')
-        print(70 * '#')
-        print('##### harmonic_groups', 48 * '#')
+        print(70*'#')
+        print('##### harmonic_groups', 48*'#')
 
     # decibel power spectrum:
     log_psd = decibel(psd)
@@ -747,7 +761,8 @@ def harmonic_groups(psd_freqs, psd, verbose=0,
         
     # select good peaks:
     good_freqs = all_freqs[(log_psd[peaks] - log_psd[troughs] > high_threshold) &
-                           (all_freqs[:,0] >= min_freq),:]
+                           (all_freqs[:,0] >= min_freq) &
+                           (all_freqs[:,0] < max_freq*max_divisor),:]
 
     # detect harmonic groups:
     groups, fzero_harmonics, mains = \
