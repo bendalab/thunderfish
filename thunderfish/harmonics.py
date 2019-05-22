@@ -94,6 +94,11 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         The frequency of the largest peak in good_freqs
         for which the harmonic group was detected.
     """
+    # check:
+    if max_divisor > min_group_size:
+        print('max_divisor=%d must not be larger than min_group_size=%d!'
+              % (max_divisor, min_group_size))
+        max_divisor = min_group_size
     # select strongest frequency for building the harmonic group:
     fmaxinx = np.argmax(good_freqs[:,1])
     fmax = good_freqs[fmaxinx,0]
