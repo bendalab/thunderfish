@@ -358,32 +358,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax6 = fig.add_axes([0.575, 0.36, 0.4, 0.14]) # amplitude spectrum
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
     ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording xoom-in
-
-    # count number of all detected fish types:
-    nwave = 0
-    npulse = 0
-    for props in eod_props:
-        if props['type'] == 'pulse':
-            npulse += 1
-        elif props['type'] == 'wave':
-            nwave += 1
-                    
-    # plot title
-    wavetitle = ""
-    if nwave > 0:
-        wavetitle = "%d wave-type fish" % nwave
-    pulsetitle = ""
-    if npulse > 0:
-        pulsetitle = "%d pulse-type fish" % npulse
-    idxs = (': %d' % indices[0]) if len(eod_props)>1 and len(indices)==1 else '   '
-    if npulse==0 and nwave==0:
-        ax1.text(0.0, .72, '%s     - no fish detected -' % base_name, fontsize=22)
-    elif npulse>0 and nwave>0:
-        ax1.text(0.0, .72, '%s%s   %s and %s' % (base_name, idxs, pulsetitle, wavetitle),
-                 fontsize=22)
-    else:
-        ax1.text(0.0, .72, '%s%s   %s' % (base_name, idxs, pulsetitle+wavetitle),
-                 fontsize=22)
+    
+    # plot title:
+    ax1.text(0.0, .72, base_name, fontsize=22)
         
     ax1.text(1.0, .77, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
     ax1.text(1.0, .5, 'Version %s' % __version__, fontsize=16, ha='right')
@@ -391,7 +368,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_visible(False)
 
-    # recount number of fish types to be plotted:
+    # count number of fish types to be plotted:
     nwave = 0
     npulse = 0
     for idx in indices:
@@ -414,7 +391,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                  decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]),
                  '#CCCCCC', lw=1)
     if len(fishlist) > 0:
-        if len(fishlist) == 1 or nwave == 1:
+        if len(fishlist) == 1:
             title = None
             bbox = (1.0, 1.0)
             loc = 'upper right'
@@ -432,7 +409,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                              bbox_to_anchor=bbox, loc=loc, title=title)
     plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], max_freq=max_freq,
                      color='blue')
-    if len(fishlist) == 1 or nwave == 1:
+    if len(fishlist) == 1:
         ax3.get_legend().set_visible(False)
         label = '%6.1f Hz' % fishlist[0][0, 0]
         ax3.set_title('Powerspectrum: %s' % label, y=1.05, fontsize=14)
@@ -442,7 +419,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ############
 
     # plot recording
-    if len(indices) == 1:
+    if len(indices) == 1 and len(fishlist) <= 1:
         ax3.set_position([0.575, 0.6, 0.4, 0.3])
         width = 0.1
         if eod_props[indices[0]]['type'] == 'wave':
