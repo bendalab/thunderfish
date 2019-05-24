@@ -127,19 +127,23 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         prev_freq = fmax
         for h in range(divisor+1, 2*min_group_size+1):
             ff = good_freqs[np.abs(good_freqs[:,0]/h - fzero)<freq_tol,0]
-            if len(ff) == 0:
+            df = ff - prev_freq
+            dh = np.round(df/fzero)
+            if np.sum(dh>0) == 0:
                 if h > min_group_size:
                     break
                 continue
+            ff = ff[dh>0]
+            dh = dh[dh>0]
             df = ff - prev_freq
-            fe = np.abs(df/np.round(df/fzero) - fzero)
+            fe = np.abs(df/dh - fzero)
             idx = np.argmin(fe)
-            prev_freq = ff[idx]
             if fe[idx] > 2.0*freq_tol:
                 if h > min_group_size:
                     break
                 continue
             # update fzero:
+            prev_freq = ff[idx]
             fzero_harmonics = h
             fzero = prev_freq/fzero_harmonics
             if verbose > 1:
@@ -274,7 +278,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         # 5. compare new group to best group:
         peaksum = np.sum(all_freqs[new_group, 1])
         rel_power = all_freqs[new_group[-1], 1]/all_freqs[new_group[0], 1]
-        new_group_value = peaksum/rel_power
+        new_group_value = peaksum/rel_power if rel_power > 0.5 and rel_power < 2.0 else peaksum
         if verbose > 0:
             print('  new group:  fzero=%7.2fHz, value=%9.3g, peaksum=%9.3g, relpower=%.3f'
                   % (fzero, new_group_value, peaksum, rel_power), new_group)
@@ -554,6 +558,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             if verbose > 1 or first:
                 s = 'largest' if first else ''
                 print('No %-7s harmonic group %7.2fHz' % (s, fmax))
+            first = False
             continue
         first = False
 
