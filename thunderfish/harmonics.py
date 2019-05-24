@@ -278,7 +278,14 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         # 5. compare new group to best group:
         peaksum = np.sum(all_freqs[new_group, 1])
         rel_power = all_freqs[new_group[-1], 1]/all_freqs[new_group[0], 1]
-        new_group_value = peaksum/rel_power if rel_power > 0.5 and rel_power < 2.0 else peaksum
+        new_group_value = peaksum
+        if min_group_size >= 3:
+            fac = rel_power
+            if fac < 0.5:
+                fac = 0.5
+            elif fac > 2.0:
+                fac = 2.0
+            new_group_value = peaksum/fac
         if verbose > 0:
             print('  new group:  fzero=%7.2fHz, value=%9.3g, peaksum=%9.3g, relpower=%.3f'
                   % (fzero, new_group_value, peaksum, rel_power), new_group)
