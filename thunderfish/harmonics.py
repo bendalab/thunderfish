@@ -1363,13 +1363,13 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
     cfg.add_section('Harmonic groups:')
     cfg.add('mainsFreq', mains_freq, 'Hz', 'Mains frequency to be excluded.')
     cfg.add('mainsFreqTolerance', mains_freq_tol, 'Hz', 'Exclude peaks within this tolerance around multiples of the mains frequency.')
+    cfg.add('minimumGroupSize', min_group_size, '',
+'The number of harmonics (inclusively fundamental) that are allowed do be filled in.')
     cfg.add('maxDivisor', max_divisor, '', 'Maximum ratio between the frequency of the largest peak and its fundamental')
     cfg.add('freqTolerance', freq_tol_fac, '',
             'Harmonics need be within this factor times the frequency resolution of the power spectrum. Needs to be higher than 0.5!')
     
     cfg.add_section('Acceptance of best harmonic groups:')
-    cfg.add('minimumGroupSize', min_group_size, '',
-'The number of harmonics (inclusively fundamental) that are allowed do be filled in.')
     cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
     cfg.add('maxRelativePower', max_rel_power, '', 'Maximum allowed power of the minimumGroupSize harmonics relative to fundamental. If zero do not check for relative power.')
@@ -1395,8 +1395,8 @@ def harmonic_groups_args(cfg):
     """
     return cfg.map({'mains_freq': 'mainsFreq',
                     'mains_freq_tol': 'mainsFreqTolerance',
-                    'max_divisor': 'maxDivisor',
                     'freq_tol_fac': 'freqTolerance',
+                    'max_divisor': 'maxDivisor',
                     'min_group_size': 'minimumGroupSize',
                     'min_freq': 'minimumFrequency',
                     'max_freq': 'maximumFrequency',
