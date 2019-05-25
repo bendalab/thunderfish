@@ -49,7 +49,7 @@ class SignalPlot:
         self.peak_artists = []
         self.legend = True
         self.legendhandle = None
-        self.help = self.cfg.value('displayHelp')
+        self.help = False
         self.helptext = []
         self.allpeaks = []
         self.fishlist = []
@@ -157,14 +157,10 @@ class SignalPlot:
         # annotation:
         fwidth = self.fmax - self.fmin
         pl = []
-        if self.cfg.value('labelFrequency'):
-            pl.append(r'$f=$%.1f Hz' % peak[0])
-        if self.cfg.value('labelHarmonic') and harmonics >= 0:
-            pl.append(r'$h=$%d' % harmonics)
-        if self.cfg.value('labelPower'):
-            pl.append(r'$p=$%g' % peak[1])
-        if self.cfg.value('labelUseCount'):
-            pl.append(r'$c=$%.0f' % peak[2])
+        pl.append(r'$f=$%.1f Hz' % peak[0])
+        pl.append(r'$h=$%d' % harmonics)
+        pl.append(r'$p=$%g' % peak[1])
+        pl.append(r'$c=$%.0f' % peak[2])
         self.peak_annotation.append(self.axp.annotate('\n'.join(pl), xy=(peak[0], peak[1]),
                                                       xytext=(peak[0] + 0.03 * fwidth, peak[1]),
                                                       bbox=dict(boxstyle='round', facecolor='white'),
@@ -734,13 +730,6 @@ def main():
     cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
     cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
     cfg.add('numberPSDWindows', 1, '', 'Number of windows on which power spectra are computed.')
-
-    cfg.add_section('Items to display:')
-    cfg.add('displayHelp', False, '', 'Display help on key bindings')
-    cfg.add('labelFrequency', True, '', 'Display the frequency of the peak')
-    cfg.add('labelHarmonic', True, '', 'Display the harmonic of the peak')
-    cfg.add('labelPower', True, '', 'Display the power of the peak')
-    cfg.add('labelUseCount', True, '', 'Display use count of the peak')
     
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
