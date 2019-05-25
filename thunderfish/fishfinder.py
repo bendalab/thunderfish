@@ -8,12 +8,14 @@ import matplotlib.mlab as ml
 from audioio import PlayAudio, fade, write_audio
 from .version import __version__
 from .configfile import ConfigFile
-from .powerspectrum import nfft, decibel, psd, spectrogram
-from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
-from .bestwindow import add_clip_config, add_best_window_config, best_window_args
 from .dataloader import open_data
+from .powerspectrum import nfft, decibel, psd, spectrogram
+from .powerspectrum import add_multi_psd_config, multi_psd_args
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
+from .bestwindow import add_clip_config, add_best_window_config, best_window_args
+from .thunderfish import configuration
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
 
@@ -717,43 +719,24 @@ def main():
     parser.add_argument('channel', nargs='?', default=0, type=int,
                         help='channel to be displayed')
     args = parser.parse_args()
+    filepath = args.file
 
     # set verbosity level from command line:
     verbose = 0
     if args.verbose != None:
         verbose = args.verbose
 
-    # configuration options:
-    cfg = ConfigFile()
-
-    cfg.add_section('Power spectrum estimation:')
-    cfg.add('frequencyResolution', 0.5, 'Hz', 'Frequency resolution of the power spectrum.')
-    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')
-    cfg.add('numberPSDWindows', 1, '', 'Number of windows on which power spectra are computed.')
-    
-    add_psd_peak_detection_config(cfg)
-    add_harmonic_groups_config(cfg)
-    add_clip_config(cfg)
-    add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
-
-    # load configuration from working directory and data directories:
-    filepath = args.file
-    cfg.load_files(cfgfile, filepath, 3, verbose)
-
-    # save configuration:
-    if len(args.save_config) > 0:
-        ext = os.path.splitext(args.save_config)[1]
-        if ext != os.extsep + 'cfg':
-            print('configuration file name must have .cfg as extension!')
-        else:
-            print('write configuration file %s .' % args.save_config)
-            cfg.dump(args.save_config)
+    if len(args.save_config):
+        # save configuration:
+        configuration(cfgfile, args.save_config, filepath, verbose)
         return
+    elif len(filepath) == 0:
+        parser.error('you need to specify a file containing some data')
+
+    # load configuration:
+    cfg = configuration(cfgfile, False, filepath, verbose-1)
 
     # load data:
-    if len(filepath) == 0:
-        parser.error('you need to specify a file containing some data')
-        return
     filename = os.path.basename(filepath)
     channel = args.channel
     # TODO: add blocksize and backsize as configuration parameter!
@@ -769,15 +752,6 @@ def main():
 if __name__ == '__main__':
     main()
 
-    
-## data = data/2.0**15
-## time = np.arange( 0.0, len( data ) )/freq
-## # t=69-69.25: EODf=324 and 344Hz
-## #data = data[(time>=69.0) & (time<=69.25)]
-## #time = 1000.0*(time[(time>=69.0) & (time<=69.25)]-69.0)
-## # 103.23 + 60ms: EODf=324Hz
-## data = data[(time>=103.24) & (time<103.28)]
-## time = 1000.0*(time[(time>=103.24) & (time<103.28)]-103.24)
 
 # 50301L02.WAV t=9 bis 9.15 sec
 

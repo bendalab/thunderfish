@@ -70,6 +70,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     cfg.add('frequencyThreshold', 1.0, 'Hz',
             'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
     # TODO: make this threshold dependent on frequency resolution!
+    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')  # needed by fishfinder
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
@@ -87,12 +88,17 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
 
     # save configuration:
     if save_config:
-        print('write configuration to %s ...' % config_file)
-        del cfg['fileColumnNumbers']
-        del cfg['fileShrinkColumnWidth']
-        del cfg['fileMissing']
-        cfg.dump(config_file)
-            
+        ext = os.path.splitext(config_file)[1]
+        if ext != os.extsep + 'cfg':
+            print('configuration file name must have .cfg as extension!')
+        else:
+            print('write configuration to %s ...' % config_file)
+            del cfg['fileColumnNumbers']
+            del cfg['fileShrinkColumnWidth']
+            del cfg['fileMissing']
+            del cfg['fileLaTeXLabelCommand']
+            del cfg['fileLaTeXMergeStd']
+            cfg.dump(config_file)
     return cfg
 
 
@@ -678,35 +684,36 @@ def main():
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
 
     if args.save_config:
-        # configuration:
+        # save configuration:
         file_name = args.file[0] if len(args.file) else ''
         configuration(cfgfile, args.save_config, file_name, verbose)
+        exit()
     elif len(args.file) == 0:
         parser.error('you need to specify at least one file for the analysis')
-    else:
-        # analyze data files:
-        cfg = configuration(cfgfile, False, args.file[0], verbose-1)
-        if args.format != 'auto':
-            cfg.set('fileFormat', args.format)
-        # create output folder:
-        if args.save_data or args.save_plot:
-            if not os.path.exists(args.outpath):
-                if verbose > 1:
-                    print('mkdir %s' % args.outpath)
-                os.makedirs(args.outpath)
-        # run on pool:
-        global pool_args
-        pool_args = (cfg, args.channel, args.save_data,
-                     args.save_plot, args.outpath, args.keep_path,
-                     args.show_bestwindow, verbose-1)
-        if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
-            cpus = cpu_count() if args.jobs == 0 else args.jobs
+
+    # analyze data files:
+    cfg = configuration(cfgfile, False, args.file[0], verbose-1)
+    if args.format != 'auto':
+        cfg.set('fileFormat', args.format)
+    # create output folder:
+    if args.save_data or args.save_plot:
+        if not os.path.exists(args.outpath):
             if verbose > 1:
-                print('run on %d cpus' % cpus)
-            p = Pool(cpus)
-            p.map(run_thunderfish, args.file)
-        else:
-            list(map(run_thunderfish, args.file))
+                print('mkdir %s' % args.outpath)
+            os.makedirs(args.outpath)
+    # run on pool:
+    global pool_args
+    pool_args = (cfg, args.channel, args.save_data,
+                 args.save_plot, args.outpath, args.keep_path,
+                 args.show_bestwindow, verbose-1)
+    if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
+        cpus = cpu_count() if args.jobs == 0 else args.jobs
+        if verbose > 1:
+            print('run on %d cpus' % cpus)
+        p = Pool(cpus)
+        p.map(run_thunderfish, args.file)
+    else:
+        list(map(run_thunderfish, args.file))
 
 
 if __name__ == '__main__':
