@@ -509,93 +509,93 @@ def freq_tracking_v5(fundamentals, signatures, times, freq_tolerance, n_channels
 
         # ToDo: check overlap of ident v...
 
-        ids = np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)])
-        id_comb = []
-        id_comb_df = []
-        id_comb_overlap = []
-        for id0 in range(len(ids)):
-            id0_med_freq = np.median(tmp_fund_v[tmp_ident_v == ids[id0]])
-
-            for id1 in range(id0+1, len(ids)):
-                # print(id0, id1)
-                id_comb.append((id0, id1))
-                id1_med_freq = np.median(tmp_fund_v[tmp_ident_v == ids[id1]])
-                id_comb_df.append(np.abs(id1_med_freq - id0_med_freq))
-
-                if np.max(tmp_idx_v[tmp_ident_v == ids[id0]]) < np.min(tmp_idx_v[tmp_ident_v == ids[id1]]):
-                    id_comb_overlap.append(0) # ToDo: neg. values for time distance
-
-                elif np.max(tmp_idx_v[tmp_ident_v == ids[id1]]) < np.min(tmp_idx_v[tmp_ident_v == ids[id0]]):
-                    id_comb_overlap.append(0)
-
-                elif (np.min(tmp_idx_v[tmp_ident_v == ids[id0]]) <= np.min(tmp_idx_v[tmp_ident_v == ids[id1]])) and (np.max(tmp_idx_v[tmp_ident_v == ids[id0]]) >= np.min(tmp_idx_v[tmp_ident_v == ids[id1]])):
-                    ioi = [np.min(tmp_idx_v[tmp_ident_v == ids[id0]]), np.max(tmp_idx_v[tmp_ident_v == ids[id0]]),
-                           np.min(tmp_idx_v[tmp_ident_v == ids[id1]]), np.max(tmp_idx_v[tmp_ident_v == ids[id1]])]
-                    ioi = np.array(ioi)[np.argsort(ioi)]
-                    id_comb_overlap.append(ioi[2] - ioi[1] + 1)
-                elif (np.min(tmp_idx_v[tmp_ident_v == ids[id1]]) <= np.min(tmp_idx_v[tmp_ident_v == ids[id0]])) and (np.max(tmp_idx_v[tmp_ident_v == ids[id1]]) >= np.min(tmp_idx_v[tmp_ident_v == ids[id0]])):
-                    ioi = [np.min(tmp_idx_v[tmp_ident_v == ids[id0]]), np.max(tmp_idx_v[tmp_ident_v == ids[id0]]),
-                           np.min(tmp_idx_v[tmp_ident_v == ids[id1]]), np.max(tmp_idx_v[tmp_ident_v == ids[id1]])]
-                    ioi = np.array(ioi)[np.argsort(ioi)]
-                    id_comb_overlap.append(ioi[2] - ioi[1] + 1)
-                else:
-                    print('found a non existing cases')
-                    embed()
-                    quit()
-
-        sorting_mask = np.argsort(id_comb_df)
-        # id0, id1 = np.array(id_comb)[sorting_mask][0]
-        for i, (id0, id1) in enumerate(np.array(id_comb)[sorting_mask]):
-            # print(id0, id1, i)
-            # if id_comb_df[i] > 5:
-            #     continue
-            comb_f = np.concatenate((tmp_fund_v[tmp_ident_v == ids[id0]], tmp_fund_v[tmp_ident_v == ids[id1]]))
-
-            bins = np.arange((np.min(comb_f) // .1) * .1, (np.max(comb_f) // .1) * .1 + .1, .1)
-            bc = bins[:-1] + (bins[1:] - bins[:-1]) / 2
-
-            n0, bins = np.histogram(tmp_fund_v[tmp_ident_v == ids[id0]], bins=bins)
-
-            n1, bins = np.histogram(tmp_fund_v[tmp_ident_v == ids[id1]], bins=bins)
-            # n0 = n0 / np.sum(n0) / .1
-            # n1 = n1 / np.sum(n1) / .1
-            greater_mask = n0 >= n1
-            # smaller_mask = n0 < n1
-
-            overlapping_counts = np.sum(np.concatenate((n1[greater_mask], n0[~greater_mask])))
-
-            pct_overlap = np.max([overlapping_counts / np.sum(n1), overlapping_counts / np.sum(n0)])
-
-            if pct_overlap > .25:
-                # embed()
-                # quit()
-
-                fig, ax = plt.subplots(1, 2, facecolor='white', figsize=(20/2.54, 12/2.54))
-                for j in range(len(ids)):
-                    if ids[j] == ids[id0]:
-                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', color='red')
-                    elif ids[j] == ids[id1]:
-                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', color='blue')
-                    else:
-                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', color='grey')
-
-                ax[1].set_title('%.2f' % pct_overlap)
-                ax[1].bar(bc, n0, color='red', alpha=.5, width=.08)
-                ax[1].bar(bc, n1, color='blue', alpha=.5, width=.08)
-                plt.show(block=False)
-                plt.waitforbuttonpress()
-                plt.close(fig)
-
-                if id_comb_overlap[sorting_mask[i]] > 0:
-                    embed()
-                    quit()
-                len_id0 = len(tmp_ident_v[tmp_ident_v == ids[id0]])
-                len_id1 = len(tmp_ident_v[tmp_ident_v == ids[id1]])
-                
-                overlapping_idx = list(set(tmp_idx_v[tmp_ident_v == ids[id0]]) & set(tmp_idx_v[tmp_ident_v == ids[id1]]) )
-                # overlapping_idx = tmp_idx_v[tmp_ident_v == ids[id0]][list(map(lambda x: x in tmp_idx_v[tmp_ident_v == ids[id1]], tmp_idx_v[tmp_ident_v == ids[id0]]))]
-                # plt.pause(1)
-                # plt.close(fig)
+        # ids = np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)])
+        # id_comb = []
+        # id_comb_df = []
+        # id_comb_overlap = []
+        # for id0 in range(len(ids)):
+        #     id0_med_freq = np.median(tmp_fund_v[tmp_ident_v == ids[id0]])
+        #
+        #     for id1 in range(id0+1, len(ids)):
+        #         # print(id0, id1)
+        #         id_comb.append((id0, id1))
+        #         id1_med_freq = np.median(tmp_fund_v[tmp_ident_v == ids[id1]])
+        #         id_comb_df.append(np.abs(id1_med_freq - id0_med_freq))
+        #
+        #         if np.max(tmp_idx_v[tmp_ident_v == ids[id0]]) < np.min(tmp_idx_v[tmp_ident_v == ids[id1]]):
+        #             id_comb_overlap.append(0) # ToDo: neg. values for time distance
+        #
+        #         elif np.max(tmp_idx_v[tmp_ident_v == ids[id1]]) < np.min(tmp_idx_v[tmp_ident_v == ids[id0]]):
+        #             id_comb_overlap.append(0)
+        #
+        #         elif (np.min(tmp_idx_v[tmp_ident_v == ids[id0]]) <= np.min(tmp_idx_v[tmp_ident_v == ids[id1]])) and (np.max(tmp_idx_v[tmp_ident_v == ids[id0]]) >= np.min(tmp_idx_v[tmp_ident_v == ids[id1]])):
+        #             ioi = [np.min(tmp_idx_v[tmp_ident_v == ids[id0]]), np.max(tmp_idx_v[tmp_ident_v == ids[id0]]),
+        #                    np.min(tmp_idx_v[tmp_ident_v == ids[id1]]), np.max(tmp_idx_v[tmp_ident_v == ids[id1]])]
+        #             ioi = np.array(ioi)[np.argsort(ioi)]
+        #             id_comb_overlap.append(ioi[2] - ioi[1] + 1)
+        #         elif (np.min(tmp_idx_v[tmp_ident_v == ids[id1]]) <= np.min(tmp_idx_v[tmp_ident_v == ids[id0]])) and (np.max(tmp_idx_v[tmp_ident_v == ids[id1]]) >= np.min(tmp_idx_v[tmp_ident_v == ids[id0]])):
+        #             ioi = [np.min(tmp_idx_v[tmp_ident_v == ids[id0]]), np.max(tmp_idx_v[tmp_ident_v == ids[id0]]),
+        #                    np.min(tmp_idx_v[tmp_ident_v == ids[id1]]), np.max(tmp_idx_v[tmp_ident_v == ids[id1]])]
+        #             ioi = np.array(ioi)[np.argsort(ioi)]
+        #             id_comb_overlap.append(ioi[2] - ioi[1] + 1)
+        #         else:
+        #             print('found a non existing cases')
+        #             embed()
+        #             quit()
+        #
+        # sorting_mask = np.argsort(id_comb_df)
+        # # id0, id1 = np.array(id_comb)[sorting_mask][0]
+        # for i, (id0, id1) in enumerate(np.array(id_comb)[sorting_mask]):
+        #     # print(id0, id1, i)
+        #     # if id_comb_df[i] > 5:
+        #     #     continue
+        #     comb_f = np.concatenate((tmp_fund_v[tmp_ident_v == ids[id0]], tmp_fund_v[tmp_ident_v == ids[id1]]))
+        #
+        #     bins = np.arange((np.min(comb_f) // .1) * .1, (np.max(comb_f) // .1) * .1 + .1, .1)
+        #     bc = bins[:-1] + (bins[1:] - bins[:-1]) / 2
+        #
+        #     n0, bins = np.histogram(tmp_fund_v[tmp_ident_v == ids[id0]], bins=bins)
+        #
+        #     n1, bins = np.histogram(tmp_fund_v[tmp_ident_v == ids[id1]], bins=bins)
+        #     # n0 = n0 / np.sum(n0) / .1
+        #     # n1 = n1 / np.sum(n1) / .1
+        #     greater_mask = n0 >= n1
+        #     # smaller_mask = n0 < n1
+        #
+        #     overlapping_counts = np.sum(np.concatenate((n1[greater_mask], n0[~greater_mask])))
+        #
+        #     pct_overlap = np.max([overlapping_counts / np.sum(n1), overlapping_counts / np.sum(n0)])
+        #
+        #     if pct_overlap > .25:
+        #         # embed()
+        #         # quit()
+        #
+        #         fig, ax = plt.subplots(1, 2, facecolor='white', figsize=(20/2.54, 12/2.54))
+        #         for j in range(len(ids)):
+        #             if ids[j] == ids[id0]:
+        #                 ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', color='red')
+        #             elif ids[j] == ids[id1]:
+        #                 ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', color='blue')
+        #             else:
+        #                 ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', color='grey')
+        #
+        #         ax[1].set_title('%.2f' % pct_overlap)
+        #         ax[1].bar(bc, n0, color='red', alpha=.5, width=.08)
+        #         ax[1].bar(bc, n1, color='blue', alpha=.5, width=.08)
+        #         plt.show(block=False)
+        #         plt.waitforbuttonpress()
+        #         plt.close(fig)
+        #
+        #         if id_comb_overlap[sorting_mask[i]] > 0:
+        #             embed()
+        #             quit()
+        #         len_id0 = len(tmp_ident_v[tmp_ident_v == ids[id0]])
+        #         len_id1 = len(tmp_ident_v[tmp_ident_v == ids[id1]])
+        #
+        #         overlapping_idx = list(set(tmp_idx_v[tmp_ident_v == ids[id0]]) & set(tmp_idx_v[tmp_ident_v == ids[id1]]) )
+        #         # overlapping_idx = tmp_idx_v[tmp_ident_v == ids[id0]][list(map(lambda x: x in tmp_idx_v[tmp_ident_v == ids[id1]], tmp_idx_v[tmp_ident_v == ids[id0]]))]
+        #         # plt.pause(1)
+        #         # plt.close(fig)
 
 
         tmp_ident_v_ret = np.full(len(fund_v), np.nan)
@@ -5184,11 +5184,11 @@ def main():
 
     # if True:
     #     ToDo: tracking parameters for pool experiments
-        # t_kwargs['low_thresh_factor'] = 12.
-        # t_kwargs['high_thresh_factor'] = 15.
-        # t_kwargs['min_group_size'] = 1
-        # t_kwargs['fresolution'] = 1.5
-        # t_kwargs['overlap_frac'] = .85
+    # t_kwargs['low_thresh_factor'] = 12.
+    # t_kwargs['high_thresh_factor'] = 15.
+    # t_kwargs['min_group_size'] = 1
+    # t_kwargs['fresolution'] = 1.5
+    # t_kwargs['overlap_frac'] = .85
 
     if args.transect_data:
         t_kwargs['low_thresh_factor'] = 6.
@@ -5207,6 +5207,31 @@ def main():
         else:
             data = open_data(datafile, -1, 60.0, 10.0)
         samplerate = data.samplerate
+
+    # embed()
+    # quit()
+    # import matplotlib.gridspec as gridspec
+    # fig = plt.figure(figsize=(20/2.54, 12/2.54), facecolor='white')
+    # gs = gridspec.GridSpec(2, 2)
+    # gs.update(left=0.1, bottom=0.1, right=1, top=1, wspace=.2, hspace=.2)
+    #
+    # for g0, g1, s in zip([0, 0, 1, 1], [0, 1, 0, 1], [0, 1, 2, 3]):
+    #     hist_data = data[s*20000 * 60 * 60:s*20000 * 60 * 60 + 20000*30, :]
+    #     hist_data = np.hstack(hist_data)
+    #
+    #     pc = np.percentile(hist_data, (0.1, 99.9))
+    #
+    #     ax = plt.subplot(gs[g0, g1])
+    #     n, bins = np.histogram(hist_data, 1000)
+    #     n = n / np.sum(n) / (bins[1] - bins[0])
+    #     bc = bins[:-1] - (bins[1] - bins[0]) / 2
+    #     ax.bar(bc, n, width = (bins[1] - bins[0]) * 0.8)
+    #     ax.set_xlim(pc[0], pc[1])
+    #
+    #     ax.text(pc[0] + (pc[1] - pc[0]) * 0.6, np.max(n) * 0.8, 'max = %.3f\nmin = %.3f' % (np.max(hist_data), np.min(hist_data)))
+
+    plt.show()
+
 
     channels = range(data.shape[1]) if len(data.shape) > 1 else range(1)
 
