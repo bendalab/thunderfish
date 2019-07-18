@@ -12,9 +12,9 @@ from .version import __version__
 from .configfile import ConfigFile
 from .dataloader import open_data
 from .powerspectrum import spectrogram, next_power_of_two
-from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
-from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
-from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
+from .harmonicgs import add_psd_peak_detection_config, add_harmonic_groups_config
+from .harmonicgs import harmonic_groups_args, psd_peak_detection_args
+from .harmonicgs import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
 # TODO: separate plt usage out from analysis!
 import matplotlib.pyplot as plt
 

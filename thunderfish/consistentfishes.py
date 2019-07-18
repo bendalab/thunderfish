@@ -1,13 +1,13 @@
 """
-Compare fishlists created by the harmonicgroups module in order to create a fishlist with
+Compare fishlists created by the harmonics module in order to create a fishlist with
 fishes present in all fishlists.
 
-consistent_fishes(): Compares a list of fishlists and builds a consistent fishlist.
-consistent_fishes_plot(): Visualize the algorithm of consisten_fishes().
+- `consistent_fishes()`: Compares a list of fishlists and builds a consistent fishlist.
+- `consistent_fishes_plot()`: Visualize the algorithm of consisten_fishes().
 """
 
 import numpy as np
-from .harmonicgroups import fundamental_freqs
+from .harmonics import fundamental_freqs
 
 
 def find_consistency(fundamentals, df_th=1.0):
