@@ -328,12 +328,12 @@ class EODExplorer(MultivariateExplorer):
           detect_eods(data, samplerate, clipped, recording, 0, cfg)
         # plot EOD:
         idx = int(self.eoddata[index,'index']) if 'index' in self.eoddata else 0
-        for k in ['toolbar', 'keymap.back', 'keymap.forward', 'keymap.zoom', 'keymap.pan']:
+        for k in ['toolbar', 'keymap.back', 'keymap.forward',
+                  'keymap.zoom', 'keymap.pan']:
             plt.rcParams[k] = self.plt_params[k]
-        fig = plot_eods(basename, raw_data, samplerate, idx0, idx1, clipped, fishlist,
-                        mean_eods, eod_props, peak_data, spec_data, [idx], unit,
-                        psd_data, cfg.value('powerNHarmonics'), True, 3000.0,
-                        interactive=True)
+        fig = plot_eods(basename, raw_data, samplerate, idx0, idx1, clipped,
+                        fishlist, mean_eods, eod_props, peak_data, spec_data,
+                        [idx], unit, psd_data, True, 3000.0, interactive=True)
         fig.canvas.set_window_title('thunderfish: %s' % basename)
         plt.show(block=False)
 

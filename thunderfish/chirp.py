@@ -7,7 +7,7 @@ chirp_detection(): extracts chirp times with help of given spectrogram and fishl
 """
 
 import numpy as np
-from .harmonicgroups import harmonic_groups
+from .harmonics import harmonic_groups
 from .powerspectrum import spectrogram
 from .eventdetection import std_threshold, detect_peaks, trim_to_peak
 try:

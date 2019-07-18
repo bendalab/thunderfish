@@ -26,9 +26,9 @@ from .bestwindow import find_best_window, plot_best_data
 from .checkpulse import check_pulse_width, add_check_pulse_width_config, check_pulse_width_args
 from .powerspectrum import decibel, plot_decibel_psd, multi_psd
 from .powerspectrum import add_multi_psd_config, multi_psd_args
-from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
-from .harmonicgroups import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
-from .harmonicgroups import colors_markers, plot_harmonic_groups
+from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
+from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
+from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import eod_recording_plot, eod_waveform_plot
@@ -70,6 +70,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     cfg.add('frequencyThreshold', 1.0, 'Hz',
             'The fundamental frequency of each fish needs to be detected in each power spectrum within this threshold.')
     # TODO: make this threshold dependent on frequency resolution!
+    cfg.add('minPSDAverages', 3, '', 'Minimum number of fft averages for estimating the power spectrum.')  # needed by fishfinder
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
@@ -87,12 +88,17 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
 
     # save configuration:
     if save_config:
-        print('write configuration to %s ...' % config_file)
-        del cfg['fileColumnNumbers']
-        del cfg['fileShrinkColumnWidth']
-        del cfg['fileMissing']
-        cfg.dump(config_file)
-            
+        ext = os.path.splitext(config_file)[1]
+        if ext != os.extsep + 'cfg':
+            print('configuration file name must have .cfg as extension!')
+        else:
+            print('write configuration to %s ...' % config_file)
+            del cfg['fileColumnNumbers']
+            del cfg['fileShrinkColumnWidth']
+            del cfg['fileMissing']
+            del cfg['fileLaTeXLabelCommand']
+            del cfg['fileLaTeXMergeStd']
+            cfg.dump(config_file)
     return cfg
 
 
@@ -186,8 +192,7 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
                     print('removed frequency %.1f Hz, because %.0f%% of the harmonics where below pulsefish threshold' % (fish[0,0], 100.0*hfrac))        
 
     # analyse EOD waveform of all wavefish:
-    powers = np.array([np.sum(fish[:cfg.value('powerNHarmonics'), 1])
-                       for fish in fishlist])
+    powers = np.array([np.sum(fish[:, 1]) for fish in fishlist])
     fish_indices = np.zeros(len(fishlist))
     for k, idx in enumerate(np.argsort(-powers)):
         fish = fishlist[idx]
@@ -283,7 +288,7 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
                             
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
               clipped, fishlist, mean_eods, eod_props, peak_data, spec_data,
-              indices, unit, psd_data, power_n_harmonics, label_power,
+              indices, unit, psd_data, label_power,
               max_freq=3000.0, interactive=True):
     """
     Creates an output plot for the Thunderfish program.
@@ -327,9 +332,6 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         Unit of the trace and the mean EOD.
     psd_data: array
         Power spectrum of the analysed data for different frequency resolutions.
-    power_n_harmonics: int
-        Maximum number of harmonics over which the total power of the signal
-        is computed.
     label_power: boolean
         If `True` put the power in decibel in addition to the frequency
         into the legend.
@@ -362,32 +364,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax6 = fig.add_axes([0.575, 0.36, 0.4, 0.14]) # amplitude spectrum
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
     ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording xoom-in
-
-    # count number of all detected fish types:
-    nwave = 0
-    npulse = 0
-    for props in eod_props:
-        if props['type'] == 'pulse':
-            npulse += 1
-        elif props['type'] == 'wave':
-            nwave += 1
-                    
-    # plot title
-    wavetitle = ""
-    if nwave > 0:
-        wavetitle = "%d wave-type fish" % nwave
-    pulsetitle = ""
-    if npulse > 0:
-        pulsetitle = "%d pulse-type fish" % npulse
-    idxs = (': %d' % indices[0]) if len(eod_props)>1 and len(indices)==1 else '   '
-    if npulse==0 and nwave==0:
-        ax1.text(0.0, .72, '%s     - no fish detected -' % base_name, fontsize=22)
-    elif npulse>0 and nwave>0:
-        ax1.text(0.0, .72, '%s%s   %s and %s' % (base_name, idxs, pulsetitle, wavetitle),
-                 fontsize=22)
-    else:
-        ax1.text(0.0, .72, '%s%s   %s' % (base_name, idxs, pulsetitle+wavetitle),
-                 fontsize=22)
+    
+    # plot title:
+    ax1.text(0.0, .72, base_name, fontsize=22)
         
     ax1.text(1.0, .77, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
     ax1.text(1.0, .5, 'Version %s' % __version__, fontsize=16, ha='right')
@@ -395,7 +374,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_visible(False)
 
-    # recount number of fish types to be plotted:
+    # count number of fish types to be plotted:
     nwave = 0
     npulse = 0
     for idx in indices:
@@ -418,30 +397,35 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                  decibel(5.0*eod_props[0]['EODf']**2.0*spec_data[0][:,1]),
                  '#CCCCCC', lw=1)
     if len(fishlist) > 0:
-        if len(fishlist) == 1 or nwave == 1:
+        if len(fishlist) == 1:
             title = None
             bbox = (1.0, 1.0)
             loc = 'upper right'
+            legend_rows = 2
         else:
             title = '%d EOD frequencies' % len(fishlist)
             bbox = (1.0, 1.1)
             loc = 'upper left'
+            legend_rows = 12
         colors, markers = colors_markers()
-        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=12,
-                             sort_by_freq=True,
-                             power_n_harmonics=power_n_harmonics,
-                             label_power=label_power,
-                             colors=colors, markers=markers, legend_rows=12,
-                             frameon=False, bbox_to_anchor=bbox, loc=loc,
-                             title=title)
+        plot_harmonic_groups(ax3, fishlist, max_freq=max_freq, max_groups=0,
+                             sort_by_freq=True, label_power=label_power,
+                             colors=colors, markers=markers,
+                             legend_rows=legend_rows, frameon=False,
+                             bbox_to_anchor=bbox, loc=loc, title=title)
     plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], max_freq=max_freq,
                      color='blue')
-    ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
+    if len(fishlist) == 1:
+        ax3.get_legend().set_visible(False)
+        label = '%6.1f Hz' % fishlist[0][0, 0]
+        ax3.set_title('Powerspectrum: %s' % label, y=1.05, fontsize=14)
+    else:
+        ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
     
     ############
 
     # plot recording
-    if len(indices) == 1:
+    if len(indices) == 1 and len(fishlist) <= 1:
         ax3.set_position([0.575, 0.6, 0.4, 0.3])
         width = 0.1
         if eod_props[indices[0]]['type'] == 'wave':
@@ -612,8 +596,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
                         fishlist, mean_eods, eod_props, peak_data, spec_data,
                         list(range(len(eod_props))), unit, psd_data,
-                        cfg.value('powerNHarmonics'), True, 3000.0,
-                        interactive=not save_data)
+                        True, 3000.0, interactive=not save_data)
         if save_plot:
             # save figure as pdf:
             fig.savefig(output_basename + '.pdf')
@@ -701,35 +684,36 @@ def main():
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
 
     if args.save_config:
-        # configuration:
+        # save configuration:
         file_name = args.file[0] if len(args.file) else ''
         configuration(cfgfile, args.save_config, file_name, verbose)
+        exit()
     elif len(args.file) == 0:
         parser.error('you need to specify at least one file for the analysis')
-    else:
-        # analyze data files:
-        cfg = configuration(cfgfile, False, args.file[0], verbose-1)
-        if args.format != 'auto':
-            cfg.set('fileFormat', args.format)
-        # create output folder:
-        if args.save_data or args.save_plot:
-            if not os.path.exists(args.outpath):
-                if verbose > 1:
-                    print('mkdir %s' % args.outpath)
-                os.makedirs(args.outpath)
-        # run on pool:
-        global pool_args
-        pool_args = (cfg, args.channel, args.save_data,
-                     args.save_plot, args.outpath, args.keep_path,
-                     args.show_bestwindow, verbose-1)
-        if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
-            cpus = cpu_count() if args.jobs == 0 else args.jobs
+
+    # analyze data files:
+    cfg = configuration(cfgfile, False, args.file[0], verbose-1)
+    if args.format != 'auto':
+        cfg.set('fileFormat', args.format)
+    # create output folder:
+    if args.save_data or args.save_plot:
+        if not os.path.exists(args.outpath):
             if verbose > 1:
-                print('run on %d cpus' % cpus)
-            p = Pool(cpus)
-            p.map(run_thunderfish, args.file)
-        else:
-            list(map(run_thunderfish, args.file))
+                print('mkdir %s' % args.outpath)
+            os.makedirs(args.outpath)
+    # run on pool:
+    global pool_args
+    pool_args = (cfg, args.channel, args.save_data,
+                 args.save_plot, args.outpath, args.keep_path,
+                 args.show_bestwindow, verbose-1)
+    if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
+        cpus = cpu_count() if args.jobs == 0 else args.jobs
+        if verbose > 1:
+            print('run on %d cpus' % cpus)
+        p = Pool(cpus)
+        p.map(run_thunderfish, args.file)
+    else:
+        list(map(run_thunderfish, args.file))
 
 
 if __name__ == '__main__':

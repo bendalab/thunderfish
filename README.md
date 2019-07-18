@@ -48,5 +48,6 @@ Look into the modules for more information.
 - *consistentfishes.py*: Create a list of EOD frequencies with fishes present in all provided fish lists.
 - *eodanalysis.py*: Analyse EOD waveforms.
 - *fakefish.py*: Generate artificial EOD waveforms.
-- *harmonicgroups.py*: Extract harmonic groups from power spectra.
+- *harmonics.py*: Extract and analyze harmonic frequencies from power spectra.
+
 
