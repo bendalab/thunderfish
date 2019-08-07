@@ -16,9 +16,9 @@ from .version import __version__
 from .configfile import ConfigFile
 from .dataloader import open_data
 from .powerspectrum import spectrogram, next_power_of_two, decibel
-from .harmonicgroups import add_psd_peak_detection_config, add_harmonic_groups_config
-from .harmonicgroups import harmonic_groups_args, psd_peak_detection_args
-from .harmonicgroups import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
+from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
+from .harmonics import harmonic_groups_args, psd_peak_detection_args
+from .harmonics import harmonic_groups, fundamental_freqs, plot_psd_harmonic_groups
 from tqdm import tqdm
 
 from IPython import embed
@@ -2072,7 +2072,7 @@ def get_spectrum_funds_amp_signature(data, samplerate, channels, data_snippet_id
             fresolution = 0.5
             overlap_frac = .8
 
-        func = partial(spectrogram, samplerate=samplerate, fresolution=fresolution, overlap_frac=overlap_frac)
+        func = partial(spectrogram, samplerate=samplerate, freq_resolution=fresolution, overlap_frac=overlap_frac)
 
         if noice_cancel:
             # print('denoiced')
@@ -2495,162 +2495,165 @@ class Obs_tracker():
             plt.show()
 
     def key_options(self):
+        print('')
         # for i in range(len(self.text_handles_key)):
-        for i, j in zip(self.text_handles_key, self.text_handles_effect):
-            self.main_fig.texts.remove(i)
-            self.main_fig.texts.remove(j)
-        self.text_handles_key = []
-        self.text_handles_effect = []
+        # for i, j in zip(self.text_handles_key, self.text_handles_effect):
+        #     self.main_fig.texts.remove(i)
+        #     self.main_fig.texts.remove(j)
+        # self.text_handles_key = []
+        # self.text_handles_effect = []
+        #
+        # if True:
+        #     if self.current_task:
+        #         t = self.main_fig.text(0.1, 0.925, 'task: ')
+        #         t1 = self.main_fig.text(0.2, 0.925, '%s' % self.current_task)
+        #         self.text_handles_key.append(t)
+        #         self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.1, 0.875, 'enter:')
+        #     t1 = self.main_fig.text(0.15, 0.875, 'execute task')
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.1, 0.85, 'ctrl+t:')
+        #     t1 = self.main_fig.text(0.15, 0.85, 'tracking tasks')
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.1, 0.825, 'c:')
+        #     t1 = self.main_fig.text(0.15, 0.825, 'correction tasks')
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     # t = self.main_fig.text(0.1, 0.8,  'e:')
+        #     # t1 = self.main_fig.text(0.15, 0.8, 'embed')
+        #     t = self.main_fig.text(0.1, 0.8, 'p:')
+        #     t1 = self.main_fig.text(0.15, 0.8, 'spectral tasks')
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.1, 0.775, 's/l:')
+        #     t1 = self.main_fig.text(0.15, 0.775, 'save/load arrays or plots')
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.1, 0.75, '(ctrl+)q:')
+        #     t1 = self.main_fig.text(0.15, 0.75, 'close (all)/ powerspectrum')
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.1, 0.725, 'z')
+        #     t1 = self.main_fig.text(0.15, 0.725, 'zoom')
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        # if self.add_ax[0]:
+        #     # if self.current_task == 'part_spec' or self.current_task == 'track_snippet':
+        #     #     pass
+        #     if self.current_task in  ['track_snippet', 'track_snippet_show', 'track_snippet_live', 'show_powerspectum', 'update_hg']:
+        #         if hasattr(self.fundamentals, '__len__'):
+        #             pass
+        #         else:
+        #             t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
+        #             t1 = self.main_fig.text(0.35, 0.85,
+        #                                     '%.2f dB; rel. dB th for good Peaks' % (self.kwargs['high_threshold']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
+        #             t1 = self.main_fig.text(0.35, 0.825,
+        #                                     '%.2f dB; rel. dB th for all Peaks' % (self.kwargs['low_threshold']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
+        #             t1 = self.main_fig.text(0.35, 0.8, '%.2f; low th fac' % (self.kwargs['low_thresh_factor']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.3, 0.775, '(ctrl+)4:')
+        #             t1 = self.main_fig.text(0.35, 0.775, '%.2f; high th fac' % (self.kwargs['high_thresh_factor']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.3, 0.75, '(ctrl+)5:')
+        #             t1 = self.main_fig.text(0.35, 0.75, '%.2f dB; min Peak width' % (self.kwargs['min_peak_width']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.3, 0.725, '(ctrl+)6:')
+        #             t1 = self.main_fig.text(0.35, 0.725,
+        #                                     '%.2f X fresolution; max Peak width' % (self.kwargs['max_peak_width_fac']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.5, 0.85, '(ctrl+)7:')
+        #             t1 = self.main_fig.text(0.55, 0.85, '%.0f; min group size' % (self.kwargs['min_group_size']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.5, 0.825, '(ctrl+)8:')
+        #             t1 = self.main_fig.text(0.55, 0.825,
+        #                                     '%.1f; * fresolution = max dif of harmonics' % (self.kwargs['freq_tol_fac']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.5, 0.8, '(ctrl+)9:')
+        #             t1 = self.main_fig.text(0.55, 0.8,
+        #                                     '%.0f; max divisor to check subharmonics' % (self.kwargs['max_divisor']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.5, 0.775, '(ctrl+)0:')
+        #             t1 = self.main_fig.text(0.55, 0.775, '%.0f; max freqs to fill in' % (self.kwargs['max_upper_fill']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.5, 0.75, '(ctrl+)+:')
+        #             t1 = self.main_fig.text(0.55, 0.75, '%.0f; 1 group max double used peaks' % (
+        #             self.kwargs['max_double_use_harmonics']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        #             t = self.main_fig.text(0.5, 0.725, '(ctrl+)#:')
+        #             t1 = self.main_fig.text(0.55, 0.725,
+        #                                     '%.0f; 1 Peak part of n groups' % (self.kwargs['max_double_use_count']))
+        #             self.text_handles_key.append(t)
+        #             self.text_handles_effect.append(t1)
+        #
+        # if self.current_task == 'part_spec':
+        #     t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
+        #     t1 = self.main_fig.text(0.35, 0.85, '%.2f Hz; freuency resolution' % (self.kwargs['fresolution']))
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
+        #     t1 = self.main_fig.text(0.35, 0.825,
+        #                             '%.2f; overlap fraction of FFT windows' % (self.kwargs['overlap_frac']))
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
+        #     t1 = self.main_fig.text(0.35, 0.8, '%.0f; n fft widnows averaged for psd' % (self.kwargs['nffts_per_psd']))
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.3, 0.775, '')
+        #     t1 = self.main_fig.text(0.35, 0.775, '%.0f; nfft' % (next_power_of_two(
+        #         self.samplerate / self.kwargs['fresolution'])))
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
+        #
+        #     t = self.main_fig.text(0.3, 0.75, '')
+        #     t1 = self.main_fig.text(0.35, 0.75,
+        #                             '%.3f s; temporal resolution' % (next_power_of_two(
+        #                                 self.samplerate / self.kwargs['fresolution']) / self.samplerate * (
+        #                                                                      1. - self.kwargs['overlap_frac'])))
+        #     self.text_handles_key.append(t)
+        #     self.text_handles_effect.append(t1)
 
-        if True:
-            if self.current_task:
-                t = self.main_fig.text(0.1, 0.925, 'task: ')
-                t1 = self.main_fig.text(0.2, 0.925, '%s' % self.current_task)
-                self.text_handles_key.append(t)
-                self.text_handles_effect.append(t1)
 
-            t = self.main_fig.text(0.1, 0.875, 'enter:')
-            t1 = self.main_fig.text(0.15, 0.875, 'execute task')
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.1, 0.85, 'ctrl+t:')
-            t1 = self.main_fig.text(0.15, 0.85, 'tracking tasks')
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.1, 0.825, 'c:')
-            t1 = self.main_fig.text(0.15, 0.825, 'correction tasks')
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            # t = self.main_fig.text(0.1, 0.8,  'e:')
-            # t1 = self.main_fig.text(0.15, 0.8, 'embed')
-            t = self.main_fig.text(0.1, 0.8, 'p:')
-            t1 = self.main_fig.text(0.15, 0.8, 'spectral tasks')
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.1, 0.775, 's/l:')
-            t1 = self.main_fig.text(0.15, 0.775, 'save/load arrays or plots')
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.1, 0.75, '(ctrl+)q:')
-            t1 = self.main_fig.text(0.15, 0.75, 'close (all)/ powerspectrum')
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.1, 0.725, 'z')
-            t1 = self.main_fig.text(0.15, 0.725, 'zoom')
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-        if self.add_ax[0]:
-            # if self.current_task == 'part_spec' or self.current_task == 'track_snippet':
-            #     pass
-            if self.current_task in  ['track_snippet', 'track_snippet_show', 'track_snippet_live', 'show_powerspectum', 'update_hg']:
-                if hasattr(self.fundamentals, '__len__'):
-                    pass
-                else:
-                    t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
-                    t1 = self.main_fig.text(0.35, 0.85,
-                                            '%.2f dB; rel. dB th for good Peaks' % (self.kwargs['high_threshold']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
-                    t1 = self.main_fig.text(0.35, 0.825,
-                                            '%.2f dB; rel. dB th for all Peaks' % (self.kwargs['low_threshold']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
-                    t1 = self.main_fig.text(0.35, 0.8, '%.2f; low th fac' % (self.kwargs['low_thresh_factor']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.3, 0.775, '(ctrl+)4:')
-                    t1 = self.main_fig.text(0.35, 0.775, '%.2f; high th fac' % (self.kwargs['high_thresh_factor']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.3, 0.75, '(ctrl+)5:')
-                    t1 = self.main_fig.text(0.35, 0.75, '%.2f dB; min Peak width' % (self.kwargs['min_peak_width']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.3, 0.725, '(ctrl+)6:')
-                    t1 = self.main_fig.text(0.35, 0.725,
-                                            '%.2f X fresolution; max Peak width' % (self.kwargs['max_peak_width_fac']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.5, 0.85, '(ctrl+)7:')
-                    t1 = self.main_fig.text(0.55, 0.85, '%.0f; min group size' % (self.kwargs['min_group_size']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.5, 0.825, '(ctrl+)8:')
-                    t1 = self.main_fig.text(0.55, 0.825,
-                                            '%.1f; * fresolution = max dif of harmonics' % (self.kwargs['freq_tol_fac']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.5, 0.8, '(ctrl+)9:')
-                    t1 = self.main_fig.text(0.55, 0.8,
-                                            '%.0f; max divisor to check subharmonics' % (self.kwargs['max_divisor']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.5, 0.775, '(ctrl+)0:')
-                    t1 = self.main_fig.text(0.55, 0.775, '%.0f; max freqs to fill in' % (self.kwargs['max_upper_fill']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.5, 0.75, '(ctrl+)+:')
-                    t1 = self.main_fig.text(0.55, 0.75, '%.0f; 1 group max double used peaks' % (
-                    self.kwargs['max_double_use_harmonics']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-                    t = self.main_fig.text(0.5, 0.725, '(ctrl+)#:')
-                    t1 = self.main_fig.text(0.55, 0.725,
-                                            '%.0f; 1 Peak part of n groups' % (self.kwargs['max_double_use_count']))
-                    self.text_handles_key.append(t)
-                    self.text_handles_effect.append(t1)
-
-        if self.current_task == 'part_spec':
-            t = self.main_fig.text(0.3, 0.85, '(ctrl+)1:')
-            t1 = self.main_fig.text(0.35, 0.85, '%.2f Hz; freuency resolution' % (self.kwargs['fresolution']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.3, 0.825, '(ctrl+)2:')
-            t1 = self.main_fig.text(0.35, 0.825,
-                                    '%.2f; overlap fraction of FFT windows' % (self.kwargs['overlap_frac']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.3, 0.8, '(ctrl+)3:')
-            t1 = self.main_fig.text(0.35, 0.8, '%.0f; n fft widnows averaged for psd' % (self.kwargs['nffts_per_psd']))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.3, 0.775, '')
-            t1 = self.main_fig.text(0.35, 0.775, '%.0f; nfft' % (next_power_of_two(
-                self.samplerate / self.kwargs['fresolution'])))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
-            t = self.main_fig.text(0.3, 0.75, '')
-            t1 = self.main_fig.text(0.35, 0.75,
-                                    '%.3f s; temporal resolution' % (next_power_of_two(
-                                        self.samplerate / self.kwargs['fresolution']) / self.samplerate * (
-                                                                             1. - self.kwargs['overlap_frac'])))
-            self.text_handles_key.append(t)
-            self.text_handles_effect.append(t1)
-
+        #####################################################
         # if self.current_task == 'check_tracking':
         #     if self.active_fundamental0_0 and self.active_fundamental0_1:
         #         a_error = np.sqrt(np.sum([(self.sign_v[self.active_fundamental0_0][k] -
@@ -4934,7 +4937,7 @@ class Obs_tracker():
             #                                               overlap_frac=self.kwargs['overlap_frac'])
             # else:
             c_spectrum, c_freqs, c_time = spectrogram(self.data[data_idx0: data_idx1, channel], self.samplerate,
-                                                      fresolution=self.kwargs['fresolution'],
+                                                      freq_resolution=self.kwargs['fresolution'],
                                                       overlap_frac=self.kwargs['overlap_frac'])
             if not hasattr(all_c_freqs, '__len__'):
                 all_c_freqs = c_freqs
