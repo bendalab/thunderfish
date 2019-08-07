@@ -274,97 +274,195 @@ def freq_tracking_v5(fundamentals, signatures, times, freq_tolerance= 10., n_cha
 
 
         #### this is new and in progress ####
-        # ToDo: check overlap of ident v...
+        # ToDo: cut those strange ones... NOPE identify potential new partner first!!! s.u.
 
-        ids = np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)])
-        id_comb = []
-        id_comb_df = []
-        id_comb_overlap = []
-        for id0 in range(len(ids)):
-            id0_med_freq = np.median(tmp_fund_v[tmp_ident_v == ids[id0]])
+        # ids = np.unique(tmp_ident_v[~np.isnan(tmp_ident_v)])
+        # id_comb = []
+        # id_comb_freqs = []
+        # id_comb_idx = []
+        # id_comb_df = []
+        # id_comb_part_df = []
+        # id_comb_overlap = []
+        # for id0 in range(len(ids)):
+        #     id0_med_freq = np.median(tmp_fund_v[tmp_ident_v == ids[id0]])
+        #
+        #     for id1 in range(id0 + 1, len(ids)):
+        #         id_comb.append((id0, id1))
+        #         id1_med_freq = np.median(tmp_fund_v[tmp_ident_v == ids[id1]])
+        #         id_comb_df.append(np.abs(id1_med_freq - id0_med_freq))
+        #
+        #         # no overlap + 5 sec ?!
+        #         if np.max(tmp_idx_v[tmp_ident_v == ids[id0]]) < np.min(tmp_idx_v[tmp_ident_v == ids[id1]]):
+        #             idx0_n = int(tmp_idx_v[tmp_ident_v == ids[id0]][-1] + idx_comp_range / 2)
+        #             idx0_0 = int(idx0_n - idx_comp_range / 2)
+        #
+        #             idx1_0 = int(tmp_idx_v[tmp_ident_v == ids[id1]][0] - idx_comp_range / 2)
+        #             idx1_n = int(idx1_0 + idx_comp_range / 2)
+        #
+        #             idx1_0 = idx1_0 if idx1_0 > 0 else 0
+        #             idx1_n = idx1_n if idx1_n > 0 else 0
+        #             idx0_0 = idx0_0 if idx0_0 > 0 else 0
+        #             idx0_n = idx0_n if idx0_n > 0 else 0
+        #
+        #             id0_part_idx = np.arange(len(tmp_ident_v))[(tmp_ident_v == ids[id0]) & (tmp_idx_v >= idx0_0) & (tmp_idx_v <= idx0_n)]
+        #             id0_part_freq = tmp_fund_v[id0_part_idx]
+        #
+        #             id1_part_idx = np.arange(len(tmp_ident_v))[(tmp_ident_v == ids[id1]) & (tmp_idx_v >= idx1_0) & (tmp_idx_v <= idx1_n)]
+        #             id1_part_freq = tmp_fund_v[id1_part_idx]
+        #
+        #             id_comb_part_df.append(np.abs(np.median(id0_part_freq) - np.median(id1_part_freq)))
+        #             id_comb_freqs.append([id0_part_freq, id1_part_freq])
+        #             id_comb_idx.append([id0_part_idx, id1_part_idx])
+        #             # ToDo: maybe id_comb_idx
+        #
+        #             # id0 < id1
+        #             id_comb_overlap.append(-1*(np.min(tmp_idx_v[tmp_ident_v == ids[id1]]) - np.max(tmp_idx_v[tmp_ident_v == ids[id0]])))  # ToDo: neg. values for time distance
+        #
+        #
+        #         elif np.max(tmp_idx_v[tmp_ident_v == ids[id1]]) < np.min(tmp_idx_v[tmp_ident_v == ids[id0]]):
+        #             idx1_n = int(tmp_idx_v[tmp_ident_v == ids[id1]][-1] + idx_comp_range / 2)
+        #             idx1_0 = int(idx1_n - idx_comp_range / 2)
+        #
+        #             idx0_0 = int(tmp_idx_v[tmp_ident_v == ids[id0]][0] - idx_comp_range / 2)
+        #             idx0_n = int(idx0_0 + idx_comp_range / 2)
+        #
+        #             idx1_0 = idx1_0 if idx1_0 > 0 else 0
+        #             idx1_n = idx1_n if idx1_n > 0 else 0
+        #             idx0_0 = idx0_0 if idx0_0 > 0 else 0
+        #             idx0_n = idx0_n if idx0_n > 0 else 0
+        #
+        #             id0_part_idx = np.arange(len(tmp_ident_v))[(tmp_ident_v == ids[id0]) & (tmp_idx_v >= idx0_0) & (tmp_idx_v <= idx0_n)]
+        #             id0_part_freq = tmp_fund_v[id0_part_idx]
+        #
+        #             id1_part_idx = np.arange(len(tmp_ident_v))[(tmp_ident_v == ids[id1]) & (tmp_idx_v >= idx1_0) & (tmp_idx_v <= idx1_n)]
+        #             id1_part_freq = tmp_fund_v[id1_part_idx]
+        #
+        #             id_comb_part_df.append(np.abs(np.median(id0_part_freq) - np.median(id1_part_freq)))
+        #             id_comb_freqs.append([id0_part_freq, id1_part_freq])
+        #             id_comb_idx.append([id0_part_idx, id1_part_idx])
+        #
+        #             # id1 < id0
+        #             id_comb_overlap.append(-1*(np.min(tmp_idx_v[tmp_ident_v == ids[id0]]) - np.max(tmp_idx_v[tmp_ident_v == ids[id1]])))
+        #
+        #         # overlap + 5 sec ?!
+        #         elif (np.min(tmp_idx_v[tmp_ident_v == ids[id0]]) <= np.min(tmp_idx_v[tmp_ident_v == ids[id1]])) and (
+        #                 np.max(tmp_idx_v[tmp_ident_v == ids[id0]]) >= np.min(tmp_idx_v[tmp_ident_v == ids[id1]])):
+        #
+        #             ioi = [np.min(tmp_idx_v[tmp_ident_v == ids[id0]]), np.max(tmp_idx_v[tmp_ident_v == ids[id0]]),
+        #                    np.min(tmp_idx_v[tmp_ident_v == ids[id1]]), np.max(tmp_idx_v[tmp_ident_v == ids[id1]])]
+        #             ioi = np.array(ioi)[np.argsort(ioi)]
+        #             id_comb_overlap.append(ioi[2] - ioi[1] + 1)
+        #
+        #             idx0_n = int(ioi[2] + idx_comp_range / 2) if int(ioi[2] + idx_comp_range / 2) > 0 else 0
+        #             idx0_0 = int(ioi[1] - idx_comp_range / 2) if int(ioi[1] - idx_comp_range / 2) > 0 else 0
+        #
+        #             idx1_0 = int(ioi[1] - idx_comp_range / 2) if int(ioi[1] - idx_comp_range / 2) > 0 else 0
+        #             idx1_n = int(ioi[2] + idx_comp_range / 2) if int(ioi[2] + idx_comp_range / 2) > 0 else 0
+        #
+        #             id0_part_idx = np.arange(len(tmp_ident_v))[(tmp_ident_v == ids[id0]) & (tmp_idx_v >= idx0_0) & (tmp_idx_v <= idx0_n)]
+        #             id0_part_freq = tmp_fund_v[id0_part_idx]
+        #
+        #             id1_part_idx = np.arange(len(tmp_ident_v))[(tmp_ident_v == ids[id1]) & (tmp_idx_v >= idx1_0) & (tmp_idx_v <= idx1_n)]
+        #             id1_part_freq = tmp_fund_v[id1_part_idx]
+        #
+        #             id_comb_part_df.append(np.abs(np.median(id0_part_freq) - np.median(id1_part_freq)))
+        #             id_comb_freqs.append([id0_part_freq, id1_part_freq])
+        #             id_comb_idx.append([id0_part_idx, id1_part_idx])
+        #
+        #             # id0 < id1
+        #
+        #
+        #         elif (np.min(tmp_idx_v[tmp_ident_v == ids[id1]]) <= np.min(tmp_idx_v[tmp_ident_v == ids[id0]])) and (
+        #                 np.max(tmp_idx_v[tmp_ident_v == ids[id1]]) >= np.min(tmp_idx_v[tmp_ident_v == ids[id0]])):
+        #
+        #             ioi = [np.min(tmp_idx_v[tmp_ident_v == ids[id0]]), np.max(tmp_idx_v[tmp_ident_v == ids[id0]]),
+        #                    np.min(tmp_idx_v[tmp_ident_v == ids[id1]]), np.max(tmp_idx_v[tmp_ident_v == ids[id1]])]
+        #             ioi = np.array(ioi)[np.argsort(ioi)]
+        #             id_comb_overlap.append(ioi[2] - ioi[1] + 1)
+        #
+        #             idx1_n = int(ioi[2] + idx_comp_range / 2) if int(ioi[2] + idx_comp_range / 2) > 0 else 0
+        #             idx1_0 = int(ioi[1] - idx_comp_range / 2) if int(ioi[1] - idx_comp_range / 2) > 0 else 0
+        #
+        #             idx0_0 = int(ioi[1] - idx_comp_range / 2) if int(ioi[1] - idx_comp_range / 2) > 0 else 0
+        #             idx0_n = int(ioi[2] + idx_comp_range / 2) if int(ioi[2] + idx_comp_range / 2) > 0 else 0
+        #
+        #
+        #             id0_part_idx = np.arange(len(tmp_ident_v))[(tmp_ident_v == ids[id0]) & (tmp_idx_v >= idx0_0) & (tmp_idx_v <= idx0_n)]
+        #             id0_part_freq = tmp_fund_v[id0_part_idx]
+        #
+        #             id1_part_idx = np.arange(len(tmp_ident_v))[(tmp_ident_v == ids[id1]) & (tmp_idx_v >= idx1_0) & (tmp_idx_v <= idx1_n)]
+        #             id1_part_freq = tmp_fund_v[id1_part_idx]
+        #
+        #             id_comb_part_df.append(np.abs(np.median(id0_part_freq) - np.median(id1_part_freq)))
+        #             id_comb_freqs.append([id0_part_freq, id1_part_freq])
+        #             id_comb_idx.append([id0_part_idx, id1_part_idx])
+        #
+        #             # id1 < id0
+        #
+        #         else:
+        #             print('found a non existing cases')
+        #             embed()
+        #             quit()
 
-            for id1 in range(id0 + 1, len(ids)):
-                # print(id0, id1)
-                id_comb.append((id0, id1))
-                id1_med_freq = np.median(tmp_fund_v[tmp_ident_v == ids[id1]])
-                id_comb_df.append(np.abs(id1_med_freq - id0_med_freq))
+        # embed()
+        # quit()
+        id_comb_part_df = np.array(id_comb_part_df)
+        sorting_mask = np.argsort(id_comb_part_df)[:len(id_comb_part_df[id_comb_part_df <= 25])]
 
-                if np.max(tmp_idx_v[tmp_ident_v == ids[id0]]) < np.min(tmp_idx_v[tmp_ident_v == ids[id1]]):
-                    id_comb_overlap.append(0)  # ToDo: neg. values for time distance
-
-                elif np.max(tmp_idx_v[tmp_ident_v == ids[id1]]) < np.min(tmp_idx_v[tmp_ident_v == ids[id0]]):
-                    id_comb_overlap.append(0)
-
-                elif (np.min(tmp_idx_v[tmp_ident_v == ids[id0]]) <= np.min(tmp_idx_v[tmp_ident_v == ids[id1]])) and (
-                        np.max(tmp_idx_v[tmp_ident_v == ids[id0]]) >= np.min(tmp_idx_v[tmp_ident_v == ids[id1]])):
-                    ioi = [np.min(tmp_idx_v[tmp_ident_v == ids[id0]]), np.max(tmp_idx_v[tmp_ident_v == ids[id0]]),
-                           np.min(tmp_idx_v[tmp_ident_v == ids[id1]]), np.max(tmp_idx_v[tmp_ident_v == ids[id1]])]
-                    ioi = np.array(ioi)[np.argsort(ioi)]
-                    id_comb_overlap.append(ioi[2] - ioi[1] + 1)
-                elif (np.min(tmp_idx_v[tmp_ident_v == ids[id1]]) <= np.min(tmp_idx_v[tmp_ident_v == ids[id0]])) and (
-                        np.max(tmp_idx_v[tmp_ident_v == ids[id1]]) >= np.min(tmp_idx_v[tmp_ident_v == ids[id0]])):
-                    ioi = [np.min(tmp_idx_v[tmp_ident_v == ids[id0]]), np.max(tmp_idx_v[tmp_ident_v == ids[id0]]),
-                           np.min(tmp_idx_v[tmp_ident_v == ids[id1]]), np.max(tmp_idx_v[tmp_ident_v == ids[id1]])]
-                    ioi = np.array(ioi)[np.argsort(ioi)]
-                    id_comb_overlap.append(ioi[2] - ioi[1] + 1)
-                else:
-                    print('found a non existing cases')
-                    embed()
-                    quit()
-
-        sorting_mask = np.argsort(id_comb_df)
-        # id0, id1 = np.array(id_comb)[sorting_mask][0]
         for i, (id0, id1) in enumerate(np.array(id_comb)[sorting_mask]):
-            # print(id0, id1, i)
-            # if id_comb_df[i] > 5:
-            #     continue
-            comb_f = np.concatenate((tmp_fund_v[tmp_ident_v == ids[id0]], tmp_fund_v[tmp_ident_v == ids[id1]]))
+            comb_f = np.concatenate(id_comb_freqs[sorting_mask[i]])
 
             bins = np.arange((np.min(comb_f) // .1) * .1, (np.max(comb_f) // .1) * .1 + .1, .1)
             bc = bins[:-1] + (bins[1:] - bins[:-1]) / 2
 
-            n0, bins = np.histogram(tmp_fund_v[tmp_ident_v == ids[id0]], bins=bins)
+            n0, bins = np.histogram(id_comb_freqs[sorting_mask[i]][0], bins=bins)
 
-            n1, bins = np.histogram(tmp_fund_v[tmp_ident_v == ids[id1]], bins=bins)
-            # n0 = n0 / np.sum(n0) / .1
-            # n1 = n1 / np.sum(n1) / .1
+            n1, bins = np.histogram(id_comb_freqs[sorting_mask[i]][1], bins=bins)
+
             greater_mask = n0 >= n1
-            # smaller_mask = n0 < n1
 
             overlapping_counts = np.sum(np.concatenate((n1[greater_mask], n0[~greater_mask])))
 
             pct_overlap = np.max([overlapping_counts / np.sum(n1), overlapping_counts / np.sum(n0)])
 
-            if pct_overlap > .25:
-                # embed()
-                # quit()
+            if pct_overlap >= 0:
 
                 fig, ax = plt.subplots(1, 2, facecolor='white', figsize=(20 / 2.54, 12 / 2.54))
+                # embed()
+                # quit()
                 for j in range(len(ids)):
                     if ids[j] == ids[id0]:
-                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.',
+                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', markersize=4,
+                                   color='red', alpha = 0.5)
+                        ax[0].plot(tmp_idx_v[id_comb_idx[sorting_mask[i]][0]], id_comb_freqs[sorting_mask[i]][0], marker='o', markersize=4,
                                    color='red')
+
                     elif ids[j] == ids[id1]:
-                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.',
+                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', markersize=4,
+                                   color='blue', alpha = 0.5)
+                        ax[0].plot(tmp_idx_v[id_comb_idx[sorting_mask[i]][1]], id_comb_freqs[sorting_mask[i]][1], marker='o',
+                                   markersize=4,
                                    color='blue')
                     else:
-                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.',
+                        ax[0].plot(tmp_idx_v[tmp_ident_v == ids[j]], tmp_fund_v[tmp_ident_v == ids[j]], marker='.', markersize=4,
                                    color='grey')
 
                 ax[1].set_title('%.2f' % pct_overlap)
                 ax[1].bar(bc, n0, color='red', alpha=.5, width=.08)
                 ax[1].bar(bc, n1, color='blue', alpha=.5, width=.08)
-                plt.show(block=False)
-                plt.waitforbuttonpress()
-                plt.close(fig)
+                ax[0].set_ylim(np.mean(ax[1].get_xlim()) - 5, np.mean(ax[1].get_xlim()) + 5)
+                plt.show()
+                # plt.show(block=False)
+                # plt.waitforbuttonpress()
+                # plt.close(fig)
 
-                if id_comb_overlap[sorting_mask[i]] > 0:
-                    embed()
-                    quit()
-                len_id0 = len(tmp_ident_v[tmp_ident_v == ids[id0]])
-                len_id1 = len(tmp_ident_v[tmp_ident_v == ids[id1]])
-
-                overlapping_idx = list(set(tmp_idx_v[tmp_ident_v == ids[id0]]) & set(tmp_idx_v[tmp_ident_v == ids[id1]]))
+                # if id_comb_overlap[sorting_mask[i]] > 0:
+                #     embed()
+                #     quit()
+                # len_id0 = len(tmp_ident_v[tmp_ident_v == ids[id0]])
+                # len_id1 = len(tmp_ident_v[tmp_ident_v == ids[id1]])
+                #
+                # overlapping_idx = list(set(tmp_idx_v[tmp_ident_v == ids[id0]]) & set(tmp_idx_v[tmp_ident_v == ids[id1]]))
 
         #### this is new and in progress --- end ####
 
@@ -422,8 +520,7 @@ def freq_tracking_v5(fundamentals, signatures, times, freq_tolerance= 10., n_cha
             sign_v = (sign_v - np.min(sign_v, axis=1).reshape(len(sign_v), 1)) / (
                     np.max(sign_v, axis=1).reshape(len(sign_v), 1) - np.min(sign_v, axis=1).reshape(len(sign_v), 1))
 
-        idx_comp_range = int(
-            np.floor(dps * max_dt))  # maximum compare range backwards for amplitude signature comparison
+        idx_comp_range = int(np.floor(dps * max_dt))  # maximum compare range backwards for amplitude signature comparison
 
         return fund_v, ident_v, idx_v, sign_v, original_sign_v, idx_of_origin_v, idx_comp_range, dps
 
@@ -440,7 +537,8 @@ def freq_tracking_v5(fundamentals, signatures, times, freq_tolerance= 10., n_cha
         if update:
             Citt = [cube_app_idx]
         else:
-            Citt = np.arange(start_idx, int(start_idx + idx_comp_range * 3))
+            # Citt = np.arange(start_idx, int(start_idx + idx_comp_range * 3))
+            Citt = np.arange(start_idx, int(start_idx + idx_comp_range * 2))
 
         for i in Citt:
             i0_v = np.arange(len(idx_v))[
@@ -572,8 +670,7 @@ def freq_tracking_v5(fundamentals, signatures, times, freq_tolerance= 10., n_cha
     a_error_distribution, f_error_distribution = \
         get_a_and_f_error_dist(fund_v, idx_v, sign_v, start_idx, idx_comp_range, freq_lims,
                                freq_tolerance=freq_tolerance)
-    # embed()
-    # quit()
+
     error_cube, i0_m, i1_m, cube_app_idx = create_error_cube(i0_m=None, i1_m=None, error_cube=None, freq_lims=freq_lims,
                                                              cube_app_idx=None)
 
@@ -672,10 +769,10 @@ def load_example_data():
 
 
 def back_shape_data(fund_v, sign_v, idx_v, times):
-    # t0 = 17150
-    t0 = 1000
-    # t1 = 17250
-    t1 = 1200
+    t0 = 17150
+    # t0 = 1000
+    t1 = 17250
+    # t1 = 1200
     mask = np.arange(len(idx_v))[(times[idx_v] >= t0) & (times[idx_v] <= t1)]
     fundamentals = []
     signatures = []
