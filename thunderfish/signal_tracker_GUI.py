@@ -70,8 +70,8 @@ class SubWindow1(QMainWindow):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super(MainWindow, self).__init__(parent)
         self.initMe()
 
     def initMe(self):
@@ -89,6 +89,10 @@ class MainWindow(QMainWindow):
 
         self.init_var()
 
+        qApp.installEventFilter(self)
+
+        # self.keyPressEvent = QWidget.keyPressEvent
+
         # ToDo: set to auto ?!
         self.setGeometry(200, 50, 1200, 800)  # set window proportion
         self.setWindowTitle('FishLab v1.0')  # set window title
@@ -96,11 +100,11 @@ class MainWindow(QMainWindow):
         # ToDo: create icon !!!
         # self.setWindowIcon(QIcon('<path>'))  # set window image (left top)
 
-        central_widget = QWidget(self)
+        self.central_widget = QWidget(self)
 
-        self.button = QPushButton('Open', central_widget)
+        self.button = QPushButton('Open', self.central_widget)
         self.button.clicked.connect(self.open)
-        self.button2 = QPushButton('Load', central_widget)
+        self.button2 = QPushButton('Load', self.central_widget)
         self.button2.clicked.connect(self.load)
 
         self.gridLayout = QGridLayout()
@@ -110,15 +114,44 @@ class MainWindow(QMainWindow):
         self.gridLayout.addWidget(self.button2, 4, 3)
         # self.setLayout(v)
 
-        central_widget.setLayout(self.gridLayout)
-        self.setCentralWidget(central_widget)
         # self.show()  # show the window
+        self.central_widget.setLayout(self.gridLayout)
+        # self.installEventFilter(self)
 
+        self.central_widget.setFocusPolicy(Qt.NoFocus)
+        # self.central_widget.installEventFilter(self)
 
-        # self.ax.plot(range(10), range(10))
+        self.setCentralWidget(self.central_widget)
+
         self.figure.canvas.draw()
 
+    def eventFilter(self, source, event):
+        # if event.type() == QEvent.KeyPress:
+        # print(event.type)
+        if event.type() == QEvent.KeyPress:
+            if event.key() == Qt.Key_Right:
+                self.move_right()
+                return True
+            elif event.key() == Qt.Key_Left:
+                self.move_left()
+                return True
+            elif event.key() == Qt.Key_Up:
+                self.move_up()
+                return True
+
+            elif event.key() == Qt.Key_Down:
+                self.move_down()
+                return True
+
+        return super(MainWindow, self).eventFilter(source, event)
+
     def init_var(self):
+        self.xlim = None
+        self.ylim = None
+
+        self.init_xlim = None
+        self.init_ylim = None
+
         self.spec_img_handle = None
         self.trace_handles = []
 
@@ -244,19 +277,41 @@ class MainWindow(QMainWindow):
         # self.Act_xx.setChecked(True)
 
         self.Act_interactive_con = QAction(QIcon('./gui_sym/con.png'), 'Connect', self)
+        self.Act_interactive_con.setCheckable(True)
         self.Act_interactive_GrCon = QAction(QIcon('./gui_sym/GrCon.png'), 'Group Connect', self)
+        self.Act_interactive_GrCon.setCheckable(True)
         self.Act_interactive_del = QAction(QIcon('./gui_sym/del.png'), 'Delete Trace', self)
+        self.Act_interactive_del.setCheckable(True)
         self.Act_interactive_GrDel = QAction(QIcon('./gui_sym/GrDel.png'), 'Group Delete', self)
+        self.Act_interactive_GrDel.setCheckable(True)
+
         self.Act_interactive_AutoSort = QAction(QIcon('./gui_sym/auto.png'), 'Auto Connect', self)
         self.Act_interactive_ManualSort = QAction(QIcon('./gui_sym/manuel.png'), 'Manual Connect', self)
+
         self.Act_interactive_zoom_out = QAction(QIcon('./gui_sym/zoomout.png'), 'Zoom -', self)
+        self.Act_interactive_zoom_out.triggered.connect(self.zoom_out)
         self.Act_interactive_zoom_in = QAction(QIcon('./gui_sym/zoomin.png'), 'zoom +', self)
+        self.Act_interactive_zoom_in.triggered.connect(self.zoom_in)
         self.Act_interactive_zoom_home = QAction(QIcon('./gui_sym/zoom_home.png'), 'zoom Home', self)
+        self.Act_interactive_zoom_home.triggered.connect(self.zoom_home)
         self.Act_interactive_zoom = QAction(QIcon('./gui_sym/zoom.png'), 'Zoom select', self)
+        self.Act_interactive_zoom.setCheckable(True)
         self.Act_interactive_cut = QAction(QIcon('./gui_sym/cut.png'), 'Cut trace', self)
+        self.Act_interactive_cut.setCheckable(True)
 
         self.Act_fine_spec = QAction(QIcon('./gui_sym/spec_fine.png'), 'Show fine Spectrogram', self)
         self.Act_norm_spec = QAction(QIcon('./gui_sym/spec_roght.png'), 'Show rough Spectrogram', self)
+
+
+        # --- Zoom act --- #
+        self.Act_right = QAction('moveright', self)
+        self.Act_right.setShortcut('right')
+        self.Act_right.triggered.connect(self.move_right)
+
+        # self.Act_exit = QAction('&Exit', self)  # trigger with alt+E
+        # self.Act_exit.setShortcut('ctrl+Q')
+        # self.Act_exit.setStatusTip('Terminate programm')
+        # self.Act_exit.triggered.connect(self.close)
 
     def buttonpress(self, e):
         print('press')
@@ -267,6 +322,11 @@ class MainWindow(QMainWindow):
         print('released')
         print(e.xdata)
         print(e.ydata)
+
+    def keyPressEvent(self, e):
+        print('wuff')
+        if e.key() == QtCore.Qt.Key_Up:
+            print('yay')
 
     def open(self):
         fd = QFileDialog()
@@ -285,9 +345,12 @@ class MainWindow(QMainWindow):
             rec_year = int(rec_year)
             rec_month = int(rec_month)
             rec_day = int(rec_day)
-            rec_time = (int(rec_time.split('_')[0]), int(rec_time.split('_')[1]))
+            rec_time = [int(rec_time.split('_')[0]), int(rec_time.split('_')[1]), 0]
 
-            rec_datetime = datetime.datetime(rec_year, rec_month, rec_day, *rec_time)
+            rec_datetime = datetime.datetime(year=rec_year, month=rec_month, day=rec_day, hour=rec_time[0],
+                                             minute=rec_time[1], second=rec_time[2])
+
+            # print(rec_datetime)
 
             return rec_datetime
 
@@ -317,10 +380,12 @@ class MainWindow(QMainWindow):
 
             self.plot_traces()
 
+            self.clock_time()
 
             self.figure.canvas.draw()
 
-            # self.get_clock_time()
+        # print(self.xlim, self.ylim)
+
 
         self.Act_save.setEnabled(True)
         self.button.close()
@@ -339,10 +404,16 @@ class MainWindow(QMainWindow):
                                    self.fund_v[self.ident_v == ident], marker='.', color=c)
             self.trace_handles.append((h, ident))
 
-    def clock_time(self):
-        xlim = self.ax.get_xlim()
-        dx = np.diff(xlim)
+        self.xlim = self.ax.get_xlim()
+        self.ylim = self.ax.get_ylim()
+        self.init_xlim = self.xlim
+        self.init_ylim = self.ylim
 
+    def clock_time(self):
+        xlim = self.xlim
+        dx = np.diff(xlim)[0]
+
+        label_idx0 = 0
         if dx <= 20:
             res = 1
         elif dx > 20 and dx <= 120:
@@ -350,11 +421,119 @@ class MainWindow(QMainWindow):
         elif dx > 120 and dx <=1200:
             res = 60
         elif dx > 1200 and dx <= 3600:
-            res = 600
+            res = 600  # 10 min
         elif dx > 3600 and dx <= 7200:
-            res = 1800
+            res = 1800  # 30 min
         else:
-            res = 3600
+            res = 3600  # 60 min
+
+        if dx > 1200:
+            if self.rec_datetime.minute % int(res / 60) != 0:
+                dmin = int(res / 60) - self.rec_datetime.minute % int(res / 60)
+                label_idx0 = dmin * 60
+
+        xtick = np.arange(label_idx0, self.times[-1], res)
+        datetime_xlabels = list(map(lambda x: self.rec_datetime + datetime.timedelta(seconds= x), xtick))
+
+        if dx > 120:
+            xlabels = list(map(lambda x: ('%2s:%2s' % (str(x.hour), str(x.minute))).replace(' ', '0'), datetime_xlabels))
+            rotation = 0
+        else:
+            xlabels = list(map(lambda x: ('%2s:%2s:%2s' % (str(x.hour), str(x.minute), str(x.second))).replace(' ', '0'), datetime_xlabels))
+            rotation = 45
+        # ToDo: create mask
+        mask = np.arange(len(xtick))[(xtick > self.xlim[0]) & (xtick < self.xlim[1])]
+        self.ax.set_xticks(xtick[mask])
+        self.ax.set_xticklabels(np.array(xlabels)[mask], rotation = rotation)
+        self.ax.set_xlim(*self.xlim)
+        self.ax.set_ylim(*self.ylim)
+        # embed()
+        # quit()
+
+    def zoom_in(self):
+        xlim = self.xlim
+        ylim = self.ylim
+
+        new_xlim = (xlim[0] + np.diff(xlim)[0] * 0.25, xlim[1] - np.diff(xlim)[0] * 0.25)
+        new_ylim = (ylim[0] + np.diff(ylim)[0] * 0.25, ylim[1] - np.diff(ylim)[0] * 0.25)
+        self.ylim = new_ylim
+        self.xlim = new_xlim
+
+        self.ax.set_xlim(*new_xlim)
+        self.ax.set_ylim(*new_ylim)
+        self.clock_time()
+
+        self.figure.canvas.draw()
+
+    def zoom_out(self):
+        xlim = self.xlim
+        ylim = self.ylim
+
+        new_xlim = (xlim[0] - np.diff(xlim)[0] * 0.25, xlim[1] + np.diff(xlim)[0] * 0.25)
+        new_ylim = (ylim[0] - np.diff(ylim)[0] * 0.25, ylim[1] + np.diff(ylim)[0] * 0.25)
+        self.ylim = new_ylim
+        self.xlim = new_xlim
+
+        self.ax.set_xlim(*new_xlim)
+        self.ax.set_ylim(*new_ylim)
+        self.clock_time()
+
+        self.figure.canvas.draw()
+
+    def zoom_home(self):
+        new_xlim = self.init_xlim
+        new_ylim = self.init_ylim
+        self.ylim = new_ylim
+        self.xlim = new_xlim
+
+        self.ax.set_xlim(*new_xlim)
+        self.ax.set_ylim(*new_ylim)
+        self.clock_time()
+
+        self.figure.canvas.draw()
+
+    def move_right(self):
+        xlim = self.xlim
+
+        new_xlim = (xlim[0] + np.diff(xlim)[0] * 0.25, xlim[1] + np.diff(xlim)[0] * 0.25)
+        self.xlim = new_xlim
+
+        self.ax.set_xlim(*new_xlim)
+        self.clock_time()
+
+        self.figure.canvas.draw()
+
+    def move_left(self):
+        xlim = self.xlim
+
+        new_xlim = (xlim[0] - np.diff(xlim)[0] * 0.25, xlim[1] - np.diff(xlim)[0] * 0.25)
+        self.xlim = new_xlim
+
+        self.ax.set_xlim(*new_xlim)
+        self.clock_time()
+
+        self.figure.canvas.draw()
+
+    def move_up(self):
+        ylim = self.ylim
+
+        new_ylim = (ylim[0] + np.diff(ylim)[0] * 0.25, ylim[1] + np.diff(ylim)[0] * 0.25)
+        self.ylim = new_ylim
+
+        self.ax.set_ylim(*new_ylim)
+        self.figure.canvas.draw()
+
+    def move_down(self):
+        ylim = self.ylim
+
+        new_ylim = (ylim[0] - np.diff(ylim)[0] * 0.25, ylim[1] - np.diff(ylim)[0] * 0.25)
+        self.ylim = new_ylim
+
+        self.ax.set_ylim(*new_ylim)
+        self.figure.canvas.draw()
+        
+    # def closeEvent(self, event):
+    #     print('adapt here !!!')
 
 
     def stateAsk(self):
