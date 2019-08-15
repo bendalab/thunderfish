@@ -315,7 +315,6 @@ class MainWindow(QMainWindow):
     def initMe(self):
         # implement status Bar
         self.statusBar().showMessage('Welcome to FishLab')
-
         # MenuBar
         self.init_Actions()
 
@@ -386,6 +385,7 @@ class MainWindow(QMainWindow):
         toolbar.addAction(self.Act_interactive_cut)
         toolbar.addAction(self.Act_interactive_del)
         toolbar.addAction(self.Act_interactive_GrDel)
+        toolbar.addAction(self.Act_interactive_reset)
 
         toolbar2.addAction(self.Act_interactive_zoom)
         toolbar2.addAction(self.Act_interactive_zoom_in)
@@ -498,6 +498,11 @@ class MainWindow(QMainWindow):
         self.Act_interactive_GrDel = QAction(QIcon('./thunderfish/gui_sym/GrDel.png'), 'Group Delete', self)
         self.Act_interactive_GrDel.setCheckable(True)
         self.Act_interactive_GrDel.setEnabled(False)
+
+        self.Act_interactive_reset = QAction(QIcon('./thunderfish/gui_sym/reset.png'), 'Reset Variables', self)
+        self.Act_interactive_reset.setEnabled(False)
+        self.Act_interactive_reset.triggered.connect(self.reset_variables)
+
 
 
         self.Act_interactive_cut = QAction(QIcon('./thunderfish/gui_sym/cut.png'), 'Cut trace', self)
@@ -685,6 +690,7 @@ class MainWindow(QMainWindow):
             self.Act_interactive_GrCon.setEnabled(True)
             self.Act_interactive_del.setEnabled(True)
             self.Act_interactive_GrDel.setEnabled(True)
+            self.Act_interactive_reset.setEnabled(True)
             self.Act_interactive_cut.setEnabled(True)
             self.Act_interactive_AutoSort.setEnabled(True)
             self.Act_interactive_ManualSort.setEnabled(True)
@@ -759,19 +765,7 @@ class MainWindow(QMainWindow):
         self.Plot.active_idx_in_trace = None
         self.Plot.plot_traces(self.ident_v, self.times, self.idx_v, self.fund_v, task='post cut', active_id = self.active_id)
 
-        self.active_idx = None
-        self.active_id = None
-
-        self.active_idx2 = None
-        self.active_id2 = None
-
-        self.active_id = None
-        self.Plot.active_id_handle0.remove()
-        self.Plot.active_id_handle0 = None
-
-        self.active_idx_in_trace = None
-        self.Plot.active_cut_handle.remove()
-        self.Plot.active_cut_handle = None
+        self.reset_variables()
 
         self.Plot.canvas.draw()
 
@@ -790,22 +784,35 @@ class MainWindow(QMainWindow):
 
         self.Plot.plot_traces(self.ident_v, self.times, self.idx_v, self.fund_v, task = 'post_connect', active_id = self.active_id, active_id2 = self.active_id2)
 
-        self.active_idx = None
-        self.active_id = None
-        self.Plot.active_id_handle0.remove()
-        self.Plot.active_id_handle0 = None
-
-        self.active_idx2 = None
-        self.active_id2 = None
-        self.Plot.active_id_handle1.remove()
-        self.Plot.active_id_handle1 = None
+        self.reset_variables()
 
         self.Plot.canvas.draw()
+
 
         # if hasattr(self.id_tag, '__len__'):
         #     help_mask = [x in np.array(self.trace_handles)[:, 1] for x in self.id_tag[:, 0]]
         #     mask = np.arange(len(self.id_tag))[help_mask]
         #     self.id_tag = self.id_tag[mask]
+
+    def reset_variables(self):
+        self.active_idx = None
+        self.active_id = None
+        if self.Plot.active_id_handle0:
+            self.Plot.active_id_handle0.remove()
+        self.Plot.active_id_handle0 = None
+
+        self.active_idx2 = None
+        self.active_id2 = None
+        if self.Plot.active_id_handle1:
+            self.Plot.active_id_handle1.remove()
+        self.Plot.active_id_handle1 = None
+
+        self.active_idx_in_trace = None
+        if self.Plot.active_cut_handle:
+            self.Plot.active_cut_handle.remove()
+        self.Plot.active_cut_handle = None
+
+        self.Plot.canvas.draw()
 
     def stateAsk(self):
         # ToDo: remove !!!
