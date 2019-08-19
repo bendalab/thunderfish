@@ -73,8 +73,6 @@ class PlotWidget():
     def __init__(self):
         self.figure = plt.figure()
         self.canvas = FigureCanvas(self.figure)
-        self.figure.canvas.mpl_connect('button_press_event', self.buttonpress)
-        self.figure.canvas.mpl_connect('button_release_event', self.buttonrelease)
 
         self.ax = self.figure.add_subplot(111)
 
@@ -89,24 +87,13 @@ class PlotWidget():
         self.active_id_handle0 = None
         self.active_id_handle1 = None
         self.active_cut_handle = None
+        self.active_group_handle = None
 
         self.current_task = None
         self.rec_datetime = None
         self.times = None
 
-    def buttonpress(self, e):
-        self.x0 = e.xdata
-        self.y0 = e.ydata
-
-    def buttonrelease(self, e):
-        self.x1 = e.xdata
-        self.y1 = e.ydata
-        # if self.current_task == 'Zoom':
-        #     self.zoom(self.x0, self.x1, self.y0, self.y1)
-        #     self.clock_time(self.rec_datetime, self.times)
-        #     self.canvas.draw()
-
-    def plot_traces(self, ident_v, times, idx_v, fund_v, task = 'init', active_id = None, active_id2 = None):
+    def plot_traces(self, ident_v, times, idx_v, fund_v, task = 'init', active_id = None, active_id2 = None, active_ids = None):
         if task == 'init':
             for handle in self.trace_handles:
                 handle[0].remove()
@@ -123,6 +110,7 @@ class PlotWidget():
             self.ylim = self.ax.get_ylim()
             self.init_xlim = self.xlim
             self.init_ylim = self.ylim
+
         elif task == 'post cut':
             handle_idents = np.array([x[1] for x in self.trace_handles])
             refresh_handle = np.array(self.trace_handles)[handle_idents == active_id][0]
@@ -154,8 +142,39 @@ class PlotWidget():
 
             self.trace_handles.pop(np.arange(len(self.trace_handles))[handle_idents == active_id2][0])
 
+        elif task == 'post_delete':
+            handle_idents = np.array([x[1] for x in self.trace_handles])
+            delete_handle_idx = np.arange(len(self.trace_handles))[handle_idents == active_id][0]
+            delete_handle = np.array(self.trace_handles)[handle_idents == active_id][0]
+            delete_handle[0].remove()
+            self.trace_handles.pop(delete_handle_idx)
 
+        elif task == 'post_group_connect' or task == 'post_group_delete':
+            handle_idents = np.array([x[1] for x in self.trace_handles])
+            effected_idents = active_ids
 
+            mask = np.array([x in effected_idents for x in handle_idents], dtype=bool)
+            delete_handle_idx = np.arange(len(self.trace_handles))[mask]
+            delete_handle = np.array(self.trace_handles)[mask]
+
+            delete_afterwards = []
+            for dhi, dh in zip(delete_handle_idx, delete_handle):
+                dh[0].remove()
+                if len(ident_v[ident_v == dh[1]]) >= 1:
+                    c = np.random.rand(3)
+                    h, = self.ax.plot(times[idx_v[ident_v == dh[1]]], fund_v[ident_v == dh[1]], marker='.', color=c)
+                    self.trace_handles[dhi] = (h, dh[1])
+                else:
+                    delete_afterwards.append(dhi)
+
+            for i in reversed(sorted(delete_afterwards)):
+                self.trace_handles.pop(i)
+
+    def highlight_group(self, active_idx, ident_v, times, idx_v, fund_v):
+        if self.active_group_handle:
+            self.active_group_handle.remove()
+
+        self.active_group_handle, = self.ax.plot(times[idx_v[active_idx]], fund_v[active_idx], 'o', color='orange', markersize=4)
 
     def highlight_id(self, active_id, ident_v, times, idx_v, fund_v, no):
         if no == 'first':
@@ -329,8 +348,7 @@ class MainWindow(QMainWindow):
         self.active_id = None
         self.active_id2 = None
         self.active_idx_in_trace = None
-
-        self.active_id_group = []
+        self.active_ids = None
 
         # ToDo: set to auto ?!
         self.setGeometry(200, 50, 1200, 800)  # set window proportion
@@ -627,6 +645,26 @@ class MainWindow(QMainWindow):
                     self.Plot.highlight_id(self.active_id2, self.ident_v, self.times, self.idx_v, self.fund_v, 'second')
                     self.Plot.canvas.draw()
 
+        if self.Act_interactive_del.isChecked():
+            self.get_active_idx_rect()
+            if len(self.active_idx) > 0:
+                self.get_active_id(self.active_idx)
+                self.Plot.highlight_id(self.active_id, self.ident_v, self.times, self.idx_v, self.fund_v, 'first')
+                self.Plot.canvas.draw()
+
+        if self.Act_interactive_GrCon.isChecked():
+            self.get_active_idx_rect()
+            if len(self.active_idx) > 0:
+                self.Plot.highlight_group(self.active_idx, self.ident_v, self.times, self.idx_v, self.fund_v)
+                self.Plot.canvas.draw()
+
+        if self.Act_interactive_GrDel.isChecked():
+            self.get_active_idx_rect()
+            if len(self.active_idx) > 0:
+                self.Plot.highlight_group(self.active_idx, self.ident_v, self.times, self.idx_v, self.fund_v)
+                self.Plot.canvas.draw()
+
+
     def open(self):
         fd = QFileDialog()
         if os.path.exists('/home/raab/data/'):
@@ -721,8 +759,6 @@ class MainWindow(QMainWindow):
         self.Plot.clock_time(self.rec_datetime, self.times)
         self.Plot.figure.canvas.draw()
 
-
-
     def execute(self):
         if self.Act_interactive_cut.isChecked():
             if self.active_id and self.active_idx_in_trace:
@@ -731,6 +767,20 @@ class MainWindow(QMainWindow):
         if self.Act_interactive_con.isChecked():
             if self.active_id and self.active_id2:
                 self.connect()
+
+        if self.Act_interactive_del.isChecked():
+            if self.active_id:
+                self.delete()
+
+        if self.Act_interactive_GrCon.isChecked():
+            if hasattr(self.active_idx, '__len__'):
+                self.get_active_group_ids()
+                self.group_connect()
+
+        if self.Act_interactive_GrDel.isChecked():
+            if hasattr(self.active_idx, '__len__'):
+                self.get_active_group_ids()
+                self.group_delete()
 
     def get_active_idx_rect(self):
         xlim = np.sort([self.x0, self.x1])
@@ -753,6 +803,9 @@ class MainWindow(QMainWindow):
 
         elif self.active_id and not self.active_id2:
             self.active_id2 = self.ident_v[idx[0]]
+
+    def get_active_group_ids(self):
+        self.active_ids = np.unique(self.ident_v[self.active_idx])
 
     def get_active_idx_in_trace(self):
         self.active_idx_in_trace = np.arange(len(self.fund_v))[(self.ident_v == self.active_id) &
@@ -794,6 +847,57 @@ class MainWindow(QMainWindow):
         #     mask = np.arange(len(self.id_tag))[help_mask]
         #     self.id_tag = self.id_tag[mask]
 
+    def delete(self):
+        self.ident_v[self.ident_v == self.active_id] = np.nan
+        self.Plot.plot_traces(self.ident_v, self.times, self.idx_v, self.fund_v, task = 'post_delete', active_id = self.active_id)
+
+        self.reset_variables()
+
+        self.Plot.canvas.draw()
+
+        # self.trace_handles.pop(delete_handle_idx)
+        # if hasattr(self.id_tag, '__len__'):
+        #     help_mask = [x in np.array(self.trace_handles)[:, 1] for x in self.id_tag[:, 0]]
+        #     mask = np.arange(len(self.id_tag))[help_mask]
+        #     self.id_tag = self.id_tag[mask]
+
+    def group_connect(self):
+        target_ident = self.active_ids[0]
+
+        for ai in self.active_ids:
+            if ai == target_ident:
+                continue
+
+            overlapping_idxs = np.intersect1d(self.idx_v[self.ident_v == target_ident], self.idx_v[self.ident_v == ai])
+            self.ident_v[(np.in1d(self.idx_v, np.array(overlapping_idxs))) & (self.ident_v == ai)] = np.nan
+            self.ident_v[self.ident_v == ai] = target_ident
+
+        self.Plot.plot_traces(self.ident_v, self.times, self.idx_v, self.fund_v, task = 'post_group_connect', active_ids=self.active_ids)
+
+        self.reset_variables()
+        self.Plot.canvas.draw()
+
+        # if hasattr(self.id_tag, '__len__'):
+        #     # embed()
+        #     # quit()
+        #     help_mask = [x in np.array(self.trace_handles)[:, 1] for x in self.id_tag[:, 0]]
+        #     mask = np.arange(len(self.id_tag))[help_mask]
+        #     self.id_tag = self.id_tag[mask]
+
+    def group_delete(self):
+        self.ident_v[self.active_idx] = np.nan
+        self.Plot.plot_traces(self.ident_v, self.times, self.idx_v, self.fund_v, task = 'post_group_delete', active_ids=self.active_ids)
+
+        self.reset_variables()
+        self.Plot.canvas.draw()
+
+        # if hasattr(self.id_tag, '__len__'):
+        #     # embed()
+        #     # quit()
+        #     help_mask = [x in np.array(self.trace_handles)[:, 1] for x in self.id_tag[:, 0]]
+        #     mask = np.arange(len(self.id_tag))[help_mask]
+        #     self.id_tag = self.id_tag[mask]
+
     def reset_variables(self):
         self.active_idx = None
         self.active_id = None
@@ -811,6 +915,11 @@ class MainWindow(QMainWindow):
         if self.Plot.active_cut_handle:
             self.Plot.active_cut_handle.remove()
         self.Plot.active_cut_handle = None
+
+        self.active_ids = None
+        if self.Plot.active_group_handle:
+            self.Plot.active_group_handle.remove()
+        self.Plot.active_group_handle = None
 
         self.Plot.canvas.draw()
 
