@@ -791,7 +791,10 @@ class MainWindow(QMainWindow):
             rec_year = int(rec_year)
             rec_month = int(rec_month)
             rec_day = int(rec_day)
-            rec_time = [int(rec_time.split('_')[0]), int(rec_time.split('_')[1]), 0]
+            try:
+                rec_time = [int(rec_time.split('_')[0]), int(rec_time.split('_')[1]), 0]
+            except:
+                rec_time = [int(rec_time.split(':')[0]), int(rec_time.split(':')[1]), 0]
 
             rec_datetime = datetime.datetime(year=rec_year, month=rec_month, day=rec_day, hour=rec_time[0],
                                              minute=rec_time[1], second=rec_time[2])
@@ -799,6 +802,8 @@ class MainWindow(QMainWindow):
 
             return rec_datetime
 
+        # embed()
+        # quit()
         self.folder = os.path.split(self.filename)[0]
         if os.path.exists(os.path.join(self.folder, 'id_tag.npy')):
             self.id_tag = np.load(os.path.join(self.folder, 'id_tag.npy'))
