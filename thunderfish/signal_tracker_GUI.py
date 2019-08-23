@@ -6,6 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from .version import __version__
 from .powerspectrum import decibel
+from .dataloader import open_data, fishgrid_grids, fishgrid_spacings
 
 from IPython import embed
 
@@ -17,57 +18,149 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 
 
 from matplotlib.widgets import RectangleSelector, EllipseSelector
-#
-#
-# def decibel(power, ref_power=1.0, min_power=1e-20):
-#     """
-#     Transform power to decibel relative to ref_power.
-#     ```
-#     decibel = 10 * log10(power/ref_power)
-#     ```
-#     Power values smaller than `min_power` are set to `-np.inf`.
-#
-#     Parameters
-#     ----------
-#     power: float or array
-#         Power values, for example from a power spectrum or spectrogram.
-#     ref_power: float or None
-#         Reference power for computing decibel.
-#         If set to `None` the maximum power is used.
-#     min_power: float
-#         Power values smaller than `min_power` are set to `-inf`.
-#
-#     Returns
-#     -------
-#     decibel_psd: array
-#         Power values in decibel relative to `ref_power`.
-#     """
-#     if isinstance(power, (list, tuple, np.ndarray)):
-#         tmp_power = power
-#         decibel_psd = power.copy()
-#     else:
-#         tmp_power = np.array([power])
-#         decibel_psd = np.array([power])
-#     if ref_power is None:
-#         ref_power = np.max(decibel_psd)
-#     decibel_psd[tmp_power <= min_power] = float('-inf')
-#     decibel_psd[tmp_power > min_power] = 10.0 * np.log10(decibel_psd[tmp_power > min_power]/ref_power)
-#     if isinstance(power, (list, tuple, np.ndarray)):
-#         return decibel_psd
-#     else:
-#         return decibel_psd[0]
 
 
-class SubWindow1(QMainWindow):
+class GridDialog(QMainWindow):
     def __init__(self):
         super().__init__()
 
         self.initMe()
 
     def initMe(self):
-        self.setGeometry(300, 150, 200, 200)  # set window proportion
-        self.setWindowTitle('E-Fish Tracker')
-        self.show()
+        # self.setGeometry(300, 150, 200, 200)  # set window proportion
+        self.setGeometry(300, 150, 300, 450)
+        self.setWindowTitle('Grid Layout')
+
+        print('init dialig grid')
+        self.channels = 1
+        self.elecs_x = 1
+        self.elecs_x_spacing = 1
+
+        self.elecs_y = 1
+        self.elecs_y_spacing = 1
+
+        self.grid_handle = None
+        self.e0_handle = None
+        self.en_handle = None
+
+        self.elec_TL = 1
+        self.elec_BR = 'n'
+
+        self.central_widget = QWidget(self)
+        self.gridLayout = QGridLayout()
+        self.gridLayout.setColumnStretch(0, 2)
+        self.gridLayout.setColumnStretch(1, 1)
+        self.gridLayout.setColumnStretch(2, 2)
+        self.gridLayout.setColumnStretch(3, 5)
+
+        self.gridLayout.setRowStretch(0, 1)
+        self.gridLayout.setRowStretch(1, 1)
+        self.gridLayout.setRowStretch(2, 1)
+        self.gridLayout.setRowStretch(3, 2)
+        self.gridLayout.setRowStretch(4, 1)
+        # self.gridLayout.setColumnStretch(1, 1)
+
+        self.layout_plot()
+
+        self.init_widgets()
+
+        self.update_grid()
+        self.central_widget.setLayout(self.gridLayout)
+        self.setCentralWidget(self.central_widget)
+        # self.show()
+
+    def init_widgets(self):
+        self.layout_xW = QLineEdit(str(self.elecs_x), self.central_widget)
+        self.layout_xW.setValidator(QIntValidator(0, 10))
+        self.gridLayout.addWidget(self.layout_xW, 0, 0)
+
+        x = QLabel('x', self.central_widget)
+        self.gridLayout.addWidget(x, 0, 1)
+
+        self.layout_yW = QLineEdit(str(self.elecs_y), self.central_widget)
+        self.layout_yW.setValidator(QIntValidator(0, 10))
+        self.gridLayout.addWidget(self.layout_yW, 0, 2)
+
+        layout_textW = QLabel('grid_layout [x, y]', self.central_widget)
+        self.gridLayout.addWidget(layout_textW, 0, 3)
+
+        self.x_spaceW = QLineEdit(str(self.elecs_x_spacing), self.central_widget)
+        self.x_spaceW.setValidator(QIntValidator(0, 1000))
+        self.gridLayout.addWidget(self.x_spaceW, 1, 0, 1, 3)
+
+        x_space_textW = QLabel('x-spacing [cm]')
+        self.gridLayout.addWidget(x_space_textW, 1, 3)
+
+        self.y_spaceW = QLineEdit(str(self.elecs_y_spacing), self.central_widget)
+        self.y_spaceW.setValidator(QIntValidator(0, 1000))
+        self.gridLayout.addWidget(self.y_spaceW, 2, 0, 1, 3)
+
+        y_space_textW = QLabel('y-spacing [cm]')
+        self.gridLayout.addWidget(y_space_textW, 2, 3)
+
+        self.gridLayout.addWidget(self.canvas, 3, 0, 1, 4)
+
+        Apply = QPushButton('&Apply', self.central_widget)
+        Apply.clicked.connect(self.apply_settings)
+        self.gridLayout.addWidget(Apply, 4, 0, 1, 3)
+
+        Cancel = QPushButton('&Cancel', self.central_widget)
+        Cancel.clicked.connect(self.close)
+        self.gridLayout.addWidget(Cancel, 4, 3)
+
+
+    def update_widgets(self):
+        self.layout_xW.setText(str(self.elecs_x))
+        self.layout_yW.setText(str(self.elecs_y))
+
+        self.x_spaceW.setText(str(self.elecs_x_spacing))
+        self.y_spaceW.setText(str(self.elecs_y_spacing))
+        self.update_grid()
+
+    def layout_plot(self):
+        self.figure = plt.figure()
+        self.canvas = FigureCanvas(self.figure)
+
+        self.ax = self.figure.add_axes([0, 0, 1, 1])
+        self.ax.axis('off')
+        self.ax.invert_yaxis()
+
+    def update_grid(self):
+        if self.grid_handle:
+            self.grid_handle.remove()
+        if self.e0_handle:
+            self.e0_handle.remove()
+        if self.en_handle:
+            self.en_handle.remove()
+
+        X, Y = np.meshgrid(np.arange(int(self.layout_xW.text())), np.arange(int(self.layout_yW.text())))
+        x = np.hstack(X) * int(self.x_spaceW.text())
+        y = np.hstack(Y) * int(self.y_spaceW.text())
+
+        max_lim = np.max(np.hstack([x, y]))
+
+        self.grid_handle, = self.ax.plot(x[1:-1], y[1:-1], 'o', color='k')
+        self.e0_handle = self.ax.text(x[0], y[0], str(self.elec_TL), color='red', va='center', ha='center')
+        if len(x) + len(y) > 2:
+            self.en_handle = self.ax.text(x[-1], y[-1], str(self.elec_BR), color='red', va='center', ha='center')
+
+
+        self.ax.set_xlim(-10, max_lim+10)
+        self.ax.set_ylim(-10, max_lim+10)
+        self.ax.invert_yaxis()
+        self.canvas.draw()
+
+    def apply_settings(self):
+        self.update_grid()
+        print(int(self.layout_xW.text()))
+
+    def keyPressEvent(self, e):
+        # print(e.key())
+        if e.key() == Qt.Key_Return:
+            self.update_grid()
+        else:
+            print('no function on', e.text())
+
 
 class PlotWidget():
     def __init__(self):
@@ -322,6 +415,7 @@ class PlotWidget():
         self.ax.set_ylim(*new_ylim)
         self.figure.canvas.draw()
 
+
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
         super(MainWindow, self).__init__(parent)
@@ -329,6 +423,9 @@ class MainWindow(QMainWindow):
 
         self.Plot.figure.canvas.mpl_connect('button_press_event', self.buttonpress)
         self.Plot.figure.canvas.mpl_connect('button_release_event', self.buttonrelease)
+
+        self.Grid = GridDialog()
+
         self.initMe()
 
     def initMe(self):
@@ -359,25 +456,25 @@ class MainWindow(QMainWindow):
 
         self.central_widget = QWidget(self)
 
-        self.button = QPushButton('Open', self.central_widget)
-        self.button.clicked.connect(self.open)
-        self.button2 = QPushButton('Load', self.central_widget)
-        self.button2.clicked.connect(self.load)
-        self.button2.setEnabled(False)
+        self.open_button = QPushButton('Open', self.central_widget)
+        self.open_button.clicked.connect(self.open)
+        self.load_button = QPushButton('Load', self.central_widget)
+        self.load_button.clicked.connect(self.load)
+        self.load_button.setEnabled(False)
 
         self.gridLayout = QGridLayout()
 
         # self.gridLayout.addWidget(self.canvas, 0, 0, 4, 5)
         self.gridLayout.addWidget(self.Plot.canvas, 0, 0, 4, 5)
-        self.gridLayout.addWidget(self.button, 4, 1)
-        self.gridLayout.addWidget(self.button2, 4, 3)
+        self.gridLayout.addWidget(self.open_button, 4, 1)
+        self.gridLayout.addWidget(self.load_button, 4, 3)
         # self.setLayout(v)
 
         # self.show()  # show the window
         self.central_widget.setLayout(self.gridLayout)
         # self.installEventFilter(self)
 
-        self.central_widget.setFocusPolicy(Qt.NoFocus)
+        # self.central_widget.setFocusPolicy(Qt.NoFocus)
         # self.central_widget.installEventFilter(self)
 
         self.setCentralWidget(self.central_widget)
@@ -424,7 +521,7 @@ class MainWindow(QMainWindow):
         file.addActions([self.Act_open, self.Act_load, self.Act_save, self.Act_exit])
 
         edit = menubar.addMenu('&Edit')
-        edit.addActions([self.Act_undo, self.Act_embed])
+        edit.addActions([self.Act_undo])
 
         settings = menubar.addMenu('&Settings')
         settings.addActions([self.Act_set_psd, self.Act_set_track, self.Act_set_gridLayout])
@@ -463,10 +560,6 @@ class MainWindow(QMainWindow):
         self.Act_undo = QAction(QIcon('./thunderfish/gui_sym/undo.png'), '&Undo', self)
         self.Act_undo.setStatusTip('Undo last sorting step')
 
-        self.Act_embed = QAction('&Embed', self)
-        self.Act_embed.setStatusTip('Go to shell')
-        self.Act_embed.triggered.connect(embed)
-
         # --- MenuBar - Edit --- #
 
         self.Act_set_psd = QAction('PSD settings', self)
@@ -477,6 +570,7 @@ class MainWindow(QMainWindow):
 
         self.Act_set_gridLayout = QAction('Grid layout', self)
         self.Act_set_gridLayout.setStatusTip('define grid layout')
+        self.Act_set_gridLayout.triggered.connect(self.grid_layout)
 
         # --- MenuBar - Tracking --- #
 
@@ -674,7 +768,21 @@ class MainWindow(QMainWindow):
 
         if ok:
             self.Act_load.setEnabled(True)
-            self.button2.setEnabled(True)
+            self.load_button.setEnabled(True)
+
+            self.data = open_data(self.filename, -1, 60.0, 10.0)
+            if os.path.exists(os.path.join(os.path.split(self.filename)[0], 'fishgrid.cfg')):
+                self.channels = self.data.channels
+                self.Grid.channels = self.data.channels
+
+                self.elecs_y, self.elecs_x = fishgrid_grids(self.filename)[0]
+                self.Grid.elecs_y, self.Grid.elecs_x = fishgrid_grids(self.filename)[0]
+
+                self.elecs_y_spacing, self.elecs_x_spacing = fishgrid_spacings(self.filename)[0]
+                self.Grid.elecs_y_spacing, self.Grid.elecs_x_spacing = fishgrid_spacings(self.filename)[0]
+
+                self.Grid.update_widgets()
+
 
     def load(self):
         def get_datetime(folder):
@@ -741,8 +849,8 @@ class MainWindow(QMainWindow):
             self.Act_arrowkeys.setEnabled(True)
             self.Act_arrowkeys.setChecked(True)
 
-            self.button.close()
-            self.button2.close()
+            self.open_button.close()
+            self.load_button.close()
 
     def Mzoom_in(self):
         self.Plot.zoom_in()
@@ -928,10 +1036,9 @@ class MainWindow(QMainWindow):
         # print(self.Act_interactive_sel.isChecked())
         print(self.Act_interactive_cut.isChecked())
 
-    def call_win2(self):
+    def grid_layout(self):
         # ToDo: remove !!!
-        self.sec_window = SubWindow1()
-        self.sec_window.show()
+        self.Grid.show()
 
 
 
