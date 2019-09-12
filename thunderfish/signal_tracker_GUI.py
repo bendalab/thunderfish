@@ -19,6 +19,42 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 
 from matplotlib.widgets import RectangleSelector, EllipseSelector
 
+def position_tracking(sign_v, ident_v, elecs, elecs_spacing, n = 4, id = None):
+    def get_elec_pos(elecs_y, elecs_x, elecs_y_spacing, elecs_x_spacing ):
+        elec_pos = np.zeros((2, elecs_y * elecs_x))
+        elec_pos[0] = (np.arange(elecs_y * elecs_x) %  elecs_x) * elecs_x_spacing
+        elec_pos[1] = (np.arange(elecs_y * elecs_x) // elecs_x) * elecs_y_spacing
+
+        return elec_pos.T
+
+    elecs_y, elecs_x = elecs
+    elecs_y_spacing, elecs_x_spacing = elecs_spacing
+
+    if np.max(sign_v[0]) != 1:
+        sqr_sign = np.sqrt(0.1 * 10.**sign_v)
+    else:
+        sqr_sign = sign_v
+        # ToDo: check in goettingen stuff how i calculate distance there !!!
+
+    x_v = np.zeros(len(sign_v))
+    y_v = np.zeros(len(sign_v))
+
+    elec_pos = get_elec_pos(elecs_y, elecs_x, elecs_y_spacing, elecs_x_spacing )
+    max_power_electrodes = np.argsort(sign_v, axis = 1)[:, -n:][:, ::-1]
+
+    max_power = list(map(lambda x, y: x[y], sign_v, max_power_electrodes))
+
+    print('yay')
+    x_pos = list(map(lambda x, y: np.sum(elec_pos[x][:, 0] * y) / np.sum(y), max_power_electrodes, max_power ))
+    y_pos = list(map(lambda x, y: np.sum(elec_pos[x][:, 1] * y) / np.sum(y), max_power_electrodes, max_power ))
+
+    print('done ')
+    embed()
+    quit()
+
+
+
+
 
 class GridDialog(QMainWindow):
     def __init__(self):
@@ -532,6 +568,10 @@ class MainWindow(QMainWindow):
         spectrogram = menubar.addMenu('&Spectrogram')
         spectrogram.addActions([self.Act_compSpec])
 
+        individual = menubar.addMenu('&Individual')
+        individual.addActions([self.Act_individual_field])
+
+
     def init_Actions(self):
         #################### Menu ####################
         # --- MenuBar - File --- #
@@ -579,11 +619,18 @@ class MainWindow(QMainWindow):
 
         self.Act_Positontrack = QAction('Track position', self)
         self.Act_Positontrack.setStatusTip('track fish locations')
+        self.Act_Positontrack.triggered.connect(self.Mposition_tracking)
 
         # --- MenuBar - Spectrogram --- #
 
         self.Act_compSpec = QAction('Compute full spectrogram', self)
         self.Act_compSpec.setStatusTip('compute full detailed spectrogram')
+
+        # --- MenuBar - Individual --- #
+
+        self.Act_individual_field = QAction('Show electric field', self)
+        self.Act_individual_field.setStatusTip('shows video of electric field')
+
 
         ################## ToolBar ###################
 
@@ -866,6 +913,10 @@ class MainWindow(QMainWindow):
         self.Plot.zoom_out()
         self.Plot.clock_time(self.rec_datetime, self.times)
         self.Plot.figure.canvas.draw()
+
+    def Mposition_tracking(self):
+        position_tracking(self.sign_v, self.ident_v, (self.elecs_y, self.elecs_x),
+                          (self.elecs_y_spacing, self.elecs_x_spacing))
 
     def Mzoom_home(self):
         self.Plot.zoom_home()
