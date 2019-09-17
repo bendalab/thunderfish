@@ -375,9 +375,10 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
         ax.set_xlim(0, max_freq)
     else:
         max_freq = freqs[-1]
-    pmin = np.min(decibel_psd[np.isfinite(decibel_psd[freqs < max_freq])])
+    dpmf = decibel_psd[freqs < max_freq]
+    pmin = np.min(dpmf[np.isfinite(dpmf)])
     pmin = np.floor(pmin / 10.0) * 10.0
-    pmax = np.max(decibel_psd[np.isfinite(decibel_psd[freqs < max_freq])])
+    pmax = np.max(dpmf[np.isfinite(dpmf)])
     pmax = np.ceil(pmax / 10.0) * 10.0
     ax.set_ylim(pmin, pmax)
     ax.set_ylabel('Power [dB]')
