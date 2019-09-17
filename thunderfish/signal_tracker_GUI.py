@@ -4,8 +4,10 @@ import time
 import datetime
 import numpy as np
 import matplotlib.pyplot as plt
+import multiprocessing
+from functools import partial
 from .version import __version__
-from .powerspectrum import decibel
+from .powerspectrum import decibel, next_power_of_two, spectrogram
 from .dataloader import open_data, fishgrid_grids, fishgrid_spacings
 
 from IPython import embed
@@ -19,7 +21,7 @@ from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
 
 from matplotlib.widgets import RectangleSelector, EllipseSelector
 
-def position_tracking(sign_v, ident_v, elecs, elecs_spacing, n = 4, id = None):
+def position_tracking(sign_v, ident_v, elecs, elecs_spacing, n = 6, id = None):
     def get_elec_pos(elecs_y, elecs_x, elecs_y_spacing, elecs_x_spacing ):
         elec_pos = np.zeros((2, elecs_y * elecs_x))
         elec_pos[0] = (np.arange(elecs_y * elecs_x) %  elecs_x) * elecs_x_spacing
@@ -44,17 +46,44 @@ def position_tracking(sign_v, ident_v, elecs, elecs_spacing, n = 4, id = None):
 
     max_power = list(map(lambda x, y: x[y], sign_v, max_power_electrodes))
 
-    print('yay')
     x_pos = list(map(lambda x, y: np.sum(elec_pos[x][:, 0] * y) / np.sum(y), max_power_electrodes, max_power ))
     y_pos = list(map(lambda x, y: np.sum(elec_pos[x][:, 1] * y) / np.sum(y), max_power_electrodes, max_power ))
 
-    print('done ')
-    embed()
-    quit()
 
+class Analysis():
+    def __init__(self):
+        self.param1 = None
+        self.param2 = None
+        self.param3 = None
+        self.param4 = None
+        self.param5 = None
 
+        self.data = None
+        self.channels = None
+        self.samplerate = None
 
+        self.start_idx = None
+        self.end_idx = None
 
+        self.data_snippet_idxs = None
+        self.fresolution = None
+        self.overlap_frac = None
+
+    def compute_spectogram(self):
+        core_count = multiprocessing.cpu_count()
+        pool = multiprocessing.Pool(core_count // 2)
+        nfft = next_power_of_two(self.samplerate / self.fresolution)
+
+        func = partial(spectrogram, samplerate=self.samplerate, freq_resolution=self.fresolution, overlap_frac=self.overlap_frac)
+
+        a = pool.map(func, [self.data[self.start_idx: self.start_idx + self.data_snippet_idxs, channel] for channel in self.channels])  # ret: spec, freq, time
+
+        spectra = [a[channel][0] for channel in range(len(a))]
+        spec_freqs = a[0][1]
+        spec_times = a[0][2]
+        pool.terminate()
+
+        comb_spectra = np.sum(spectra, axis=0)
 
 class GridDialog(QMainWindow):
     def __init__(self):
