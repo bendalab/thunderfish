@@ -338,7 +338,7 @@ def plot_psd_proportion(freqs, power, proportions, percentiles, pulse_fish,
     ax.set_ylabel('Power [dB]', fontsize=fs)
 
 
-def add_check_pulse_width_config(cfg, thresh_fac=0.8, percentile=1.0, pulse_thresh=0.1):
+def add_check_pulse_width_config(cfg, thresh_fac=0.8, percentile=0.1, pulse_thresh=0.1):
     """ Add parameter needed for check_pulse_width() as
     a new section to a configuration.
 
