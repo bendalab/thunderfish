@@ -5,8 +5,13 @@ import datetime
 import numpy as np
 import matplotlib.pyplot as plt
 from .version import __version__
-from .powerspectrum import decibel
+from .powerspectrum import decibel, next_power_of_two, spectrogram
 from .dataloader import open_data, fishgrid_grids, fishgrid_spacings
+from .harmonics import harmonic_groups, fundamental_freqs
+
+import multiprocessing
+from functools import partial
+
 
 from IPython import embed
 
@@ -53,8 +58,269 @@ def position_tracking(sign_v, ident_v, elecs, elecs_spacing, n = 4, id = None):
     quit()
 
 
+class AnalysisDialog(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
+        self.initMe()
 
+    def initMe(self):
+        # self.setGeometry(300, 150, 200, 200)  # set window proportion
+
+        self.got_changed = False
+        self.start_time = 0 * 60
+        self.end_time = .1 * 60
+        self.data = None
+        self.samplerate = None
+        self.channels = None
+        self.channel_list = []
+        self.data_snippet_sec = 15.
+        # int(data_snippet_secs * samplerate)
+        self.data_snippet_idxs = None
+
+        self.fresolution = 0.5
+        self.overlap_frac = 0.95
+        self.channel_list = None
+        self.nffts_per_psd = 1
+
+        self.fundamentals = []
+        self.signatures = []
+        self.times = []
+
+        self.setGeometry(300, 150, 600, 600)
+        self.setWindowTitle('EODf and signature extraction')
+
+        self.central_widget = QWidget(self)
+        self.gridLayout = QGridLayout()
+
+        self.gridLayout.setColumnStretch(0, 1)
+        self.gridLayout.setColumnStretch(1, 1)
+        self.gridLayout.setColumnStretch(2, 1)
+        #self.gridLayout.setColumnStretch(1, 1)
+        #self.gridLayout.setColumnStretch(2, 2)
+        #self.gridLayout.setColumnStretch(3, 5)
+
+        #self.gridLayout.setRowStretch(0, 1)
+        #self.gridLayout.setRowStretch(1, 1)
+        #self.gridLayout.setRowStretch(2, 1)
+        #self.gridLayout.setRowStretch(3, 2)
+        #self.gridLayout.setRowStretch(4, 1)
+        # self.gridLayout.setColumnStretch(1, 1)
+
+        #self.layout_plot()ft
+
+        self.init_widgets()
+
+        self.central_widget.setLayout(self.gridLayout)
+        self.setCentralWidget(self.central_widget)
+
+    def init_widgets(self):
+
+        self.StartTime = QLineEdit(str(self.start_time), self.central_widget)
+        self.gridLayout.addWidget(self.StartTime, 0, 0)
+        t0 = QLabel('start time [min]')
+        self.gridLayout.addWidget(t0, 0, 1)
+
+        self.EndTime = QLineEdit(str(self.end_time), self.central_widget)
+        self.gridLayout.addWidget(self.EndTime, 1, 0)
+        t1 = QLabel('end time [min]')
+        self.gridLayout.addWidget(t1, 1, 1)
+
+        self.SnippetSize = QLineEdit(str(self.data_snippet_sec), self.central_widget)
+        self.gridLayout.addWidget(self.SnippetSize, 2, 0)
+        snip_size = QLabel('data snippet size [sec]')
+        self.gridLayout.addWidget(snip_size, 2, 1)
+
+        self.FreqResolution = QLineEdit(str(self.fresolution), self.central_widget)
+        self.gridLayout.addWidget(self.FreqResolution, 3, 0)
+        freqres = QLabel('frequency resolution [Hz]')
+        self.gridLayout.addWidget(freqres, 3, 1)
+
+        self.Overlap = QLineEdit(str(self.overlap_frac), self.central_widget)
+        self.gridLayout.addWidget(self.Overlap, 4, 0)
+        overlap = QLabel('frequency resolution [Hz]')
+        self.gridLayout.addWidget(overlap, 4, 1)
+
+        self.NfftPerPsd = QLineEdit(str(self.nffts_per_psd), self.central_widget)
+        self.gridLayout.addWidget(self.NfftPerPsd, 5, 0)
+        overlap = QLabel('nffts per PSD [n]')
+        self.gridLayout.addWidget(overlap, 5, 1)
+
+        Run = QPushButton('&Run', self.central_widget)
+        Run.clicked.connect(self.snippet_spectrogram)
+        self.gridLayout.addWidget(Run, 6, 0)
+
+        Apply = QPushButton('&Apply', self.central_widget)
+        Apply.clicked.connect(self.apply_settings)
+        self.gridLayout.addWidget(Apply, 6, 1)
+
+        Cancel = QPushButton('&Cancel', self.central_widget)
+        Cancel.clicked.connect(self.close)
+        self.gridLayout.addWidget(Cancel, 6, 2)
+
+    def apply_settings(self):
+        print('read that input')
+
+    def snippet_spectrogram(self):
+        start_idx = int(self.start_time * self.samplerate)
+        if self.end_time < 0.0:
+            end_time = len(self.data) / self.samplerate
+            end_idx = int(len(self.data) - 1)
+        else:
+            end_idx = int(self.end_time * self.samplerate)
+            if end_idx >= int(len(self.data) - 1):
+                end_idx = int(len(self.data) - 1)
+
+        last_run = False
+        get_spec_plot_matrix = False
+        while start_idx <= end_idx:
+            print(start_idx, end_idx)
+            if start_idx >= end_idx - self.data_snippet_idxs:
+                last_run = True
+
+            core_count = multiprocessing.cpu_count()
+            pool = multiprocessing.Pool(core_count // 2)
+            nfft = next_power_of_two(self.samplerate / self.fresolution)
+
+            func = partial(spectrogram, samplerate=self.samplerate, freq_resolution=self.fresolution, overlap_frac=self.overlap_frac)
+
+            if len(np.shape(self.data)) == 1:
+                a = pool.map(func, [self.data[start_idx: start_idx + self.data_snippet_idxs]])  # ret: spec, freq, time
+            else:
+                a = pool.map(func, [self.data[start_idx: start_idx + self.data_snippet_idxs, channel] for channel in
+                                    self.channel_list])  # ret: spec, freq, time
+
+            print('check 1')
+            self.spectra = [a[channel][0] for channel in range(len(a))]
+            self.spec_freqs = a[0][1]
+            self.spec_times = a[0][2]
+            pool.terminate()
+
+            self.comb_spectra = np.sum(self.spectra, axis=0)
+            self.tmp_times = self.spec_times + (start_idx / self.samplerate)
+
+            ####
+            comp_max_freq = 2000
+            comp_min_freq = 0
+            create_plotable_spectrogram = True
+
+            plot_freqs = self.spec_freqs[self.spec_freqs < comp_max_freq]
+            plot_spectra = np.sum(self.spectra, axis=0)[self.spec_freqs < comp_max_freq]
+
+            print('check 2')
+            if create_plotable_spectrogram:
+                # if not checked_xy_borders:
+                if not get_spec_plot_matrix:
+                    fig_xspan = 20.
+                    fig_yspan = 12.
+                    fig_dpi = 80.
+                    no_x = fig_xspan * fig_dpi
+                    no_y = fig_yspan * fig_dpi
+
+                    min_x = self.start_time
+                    max_x = self.end_time
+
+                    min_y = comp_min_freq
+                    max_y = comp_max_freq
+
+                    x_borders = np.linspace(min_x, max_x, no_x * 2)
+                    y_borders = np.linspace(min_y, max_y, no_y * 2)
+                    # checked_xy_borders = False
+
+                    self.tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
+
+                    recreate_matrix = False
+                    if (self.tmp_times[1] - self.tmp_times[0]) > (x_borders[1] - x_borders[0]):
+                        x_borders = np.linspace(min_x, max_x, (max_x - min_x) // (self.tmp_times[1] - self.tmp_times[0]) + 1)
+                        recreate_matrix = True
+                    if (self.spec_freqs[1] - self.spec_freqs[0]) > (y_borders[1] - y_borders[0]):
+                        recreate_matrix = True
+                        y_borders = np.linspace(min_y, max_y, (max_y - min_y) // (self.spec_freqs[1] - self.spec_freqs[0]) + 1)
+                    if recreate_matrix:
+                        self.tmp_spectra = np.zeros((len(y_borders) - 1, len(x_borders) - 1))
+
+                    get_spec_plot_matrix = True
+                    # checked_xy_borders = True
+
+                for i in range(len(y_borders) - 1):
+                    print(i/len(y_borders))
+                    for j in range(len(x_borders) - 1):
+                        if x_borders[j] > self.tmp_times[-1]:
+                            break
+                        if x_borders[j + 1] < self.tmp_times[0]:
+                            continue
+
+                        t_mask = np.arange(len(self.tmp_times))[(self.tmp_times >= x_borders[j]) & (self.tmp_times < x_borders[j + 1])]
+                        f_mask = np.arange(len(plot_spectra))[(plot_freqs >= y_borders[i]) & (plot_freqs < y_borders[i + 1])]
+
+                        if len(t_mask) == 0 or len(f_mask) == 0:
+                            continue
+                        print('yay')
+                        self.tmp_spectra[i, j] = np.max(plot_spectra[f_mask[:, None], t_mask])
+            ####
+            print('check 3')
+
+            self.power = [np.array([]) for i in range(len(self.spec_times))]
+
+            for t in range(len(self.spec_times)):
+                self.power[t] = np.mean(self.comb_spectra[:, t:t + 1], axis=1)
+            self.extract_fundamentals_and_signatures()
+
+            non_overlapping_idx = (1 - self.overlap_frac) * nfft
+            start_idx += int((len(self.spec_times) - self.nffts_per_psd + 1) * non_overlapping_idx)
+            self.times = np.concatenate((self.times, self.tmp_times))
+
+            print('check 4')
+            if start_idx >= end_idx or last_run:
+                print('done')
+                break
+        self.got_changed = True
+        print('done')
+        self.close()
+
+    def extract_fundamentals_and_signatures(self):
+        core_count = multiprocessing.cpu_count()
+        pool = multiprocessing.Pool(core_count // 2)
+
+        # ToDo the kwarg problem ....
+
+       # if True:
+            #psd_freqs
+            #psd
+            #verbose=0
+            #check_freqs=[]
+            #low_threshold=0.0
+            #high_threshold=0.0
+            #thresh_bins=100
+            #low_thresh_factor=6.0
+            #high_thresh_factor=10.0
+            #freq_tol_fac=1.0
+            #mains_freq=60.0
+            #mains_freq_tol=1.0
+            #min_freq=0.0
+            #max_freq=2000.0
+            #max_divisor=4
+            #min_group_size=4
+            #max_rel_power_weight=2.0
+            #max_rel_power=0.0
+            #max_harmonics=0
+            #max_groups=0
+
+        func = partial(harmonic_groups, self.spec_freqs)
+        a = pool.map(func, self.power)
+        log_spectra = decibel(np.array(self.spectra))
+        for p in range(len(self.power)):
+            tmp_fundamentals = fundamental_freqs(a[p][0])
+            self.fundamentals.append(tmp_fundamentals)
+
+            if len(tmp_fundamentals) >= 1:
+                f_idx = np.array([np.argmin(np.abs(self.spec_freqs - f)) for f in tmp_fundamentals])
+                tmp_signatures = log_spectra[:, np.array(f_idx), p].transpose()
+            else:
+                tmp_signatures = np.array([])
+
+            self.signatures.append(tmp_signatures)
+        pool.terminate()
 
 class GridDialog(QMainWindow):
     def __init__(self):
@@ -194,8 +460,6 @@ class GridDialog(QMainWindow):
         # print(e.key())
         if e.key() == Qt.Key_Return:
             self.update_grid()
-        else:
-            print('no function on', e.text())
 
 
 class PlotWidget():
@@ -462,6 +726,9 @@ class MainWindow(QMainWindow):
 
         self.Grid = GridDialog()
 
+        self.AnalysisDial = AnalysisDialog()
+
+
         self.initMe()
 
     def initMe(self):
@@ -498,11 +765,15 @@ class MainWindow(QMainWindow):
         self.load_button.clicked.connect(self.load)
         self.load_button.setEnabled(False)
 
+        self.disp_analysis_button = QPushButton('Display analysis', self.central_widget)
+        self.disp_analysis_button.clicked.connect(self.show_updates)
+
         self.gridLayout = QGridLayout()
 
         # self.gridLayout.addWidget(self.canvas, 0, 0, 4, 5)
         self.gridLayout.addWidget(self.Plot.canvas, 0, 0, 4, 5)
         self.gridLayout.addWidget(self.open_button, 4, 1)
+        self.gridLayout.addWidget(self.disp_analysis_button, 4, 2)
         self.gridLayout.addWidget(self.load_button, 4, 3)
         # self.setLayout(v)
 
@@ -562,8 +833,8 @@ class MainWindow(QMainWindow):
         settings = menubar.addMenu('&Settings')
         settings.addActions([self.Act_set_psd, self.Act_set_track, self.Act_set_gridLayout])
 
-        tracking = menubar.addMenu('&Tracking')
-        tracking.addActions([self.Act_EODtrack, self.Act_Positontrack])
+        analysis = menubar.addMenu('&Analysis')
+        analysis.addActions([self.Act_PSD_n_harmonic, self.Act_EODtrack, self.Act_Positontrack])
 
         spectrogram = menubar.addMenu('&Spectrogram')
         spectrogram.addActions([self.Act_compSpec])
@@ -613,6 +884,10 @@ class MainWindow(QMainWindow):
         self.Act_set_gridLayout.triggered.connect(self.grid_layout)
 
         # --- MenuBar - Tracking --- #
+        self.Act_PSD_n_harmonic = QAction('Extract EODf and Signature', self)
+        self.Act_PSD_n_harmonic.setStatusTip('Powerspectrum and harmonic groups')
+        self.Act_PSD_n_harmonic.triggered.connect(self.ManalysisDial)
+
 
         self.Act_EODtrack = QAction('Track EOD traces', self)
         self.Act_EODtrack.setStatusTip('track EOD traces')
@@ -741,8 +1016,7 @@ class MainWindow(QMainWindow):
         if e.key() == Qt.Key_Return:
             self.execute()
             # print('enter')
-        else:
-            print('no function on', e.text())
+
 
     def buttonpress(self, e):
         self.x0 = e.xdata
@@ -818,9 +1092,19 @@ class MainWindow(QMainWindow):
             self.load_button.setEnabled(True)
 
             self.data = open_data(self.filename, -1, 60.0, 10.0)
+            self.AnalysisDial.data = self.data
+
+            self.samplerate= self.data.samplerate
+            self.AnalysisDial.samplerate= self.samplerate
+            self.AnalysisDial.data_snippet_idxs = int(self.AnalysisDial.data_snippet_sec * self.samplerate)
+
+            self.channels = self.data.channels
+            self.Grid.channels = self.data.channels
+            self.AnalysisDial.channels = self.data.channels
+            self.AnalysisDial.channel_list = np.arange(self.channels)
+
+
             if os.path.exists(os.path.join(os.path.split(self.filename)[0], 'fishgrid.cfg')):
-                self.channels = self.data.channels
-                self.Grid.channels = self.data.channels
 
                 self.elecs_y, self.elecs_x = fishgrid_grids(self.filename)[0]
                 self.Grid.elecs_y, self.Grid.elecs_x = fishgrid_grids(self.filename)[0]
@@ -1096,6 +1380,24 @@ class MainWindow(QMainWindow):
         # ToDo: remove !!!
         self.Grid.show()
 
+    def ManalysisDial(self):
+        self.AnalysisDial.show()
+
+
+    def show_updates(self):
+        if self.AnalysisDial.got_changed:
+            if self.Plot.spec_img_handle:
+                self.Plot.spec_img_handle.remove()
+            self.Plot.spec_img_handle = self.Plot.ax.imshow(decibel(self.AnalysisDial.tmp_spectra)[::-1],
+                                                       extent=[self.AnalysisDial.start_time, self.AnalysisDial.end_time, 0, 2000],
+                                                       aspect='auto', alpha=0.7, cmap='jet',
+                                                       interpolation='gaussian')
+
+            self.Plot.ax.set_xlim([self.AnalysisDial.start_time, self.AnalysisDial.end_time])
+            self.Plot.ax.set_ylim([0, 2000])
+            self.Plot.canvas.draw()
+
+            self.AnalysisDial.got_changed = False
 
 
 def main():
