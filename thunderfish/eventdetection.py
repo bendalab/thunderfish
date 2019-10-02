@@ -354,6 +354,7 @@ def peak_size_width(time, data, peak_indices, trough_indices,
     trough_inx = np.asarray(trough_indices, dtype=int)
     if len(trough_inx) == 0 or peak_inx[0] < trough_inx[0]:
          trough_inx = np.hstack((0, trough_inx))
+
     if peak_inx[-1] > trough_inx[-1]:
          trough_inx = np.hstack((trough_inx, len(data)-1))
     # base for size of peaks:
@@ -370,6 +371,7 @@ def peak_size_width(time, data, peak_indices, trough_indices,
         base_func = mean_base
     elif base == 'closest':
         base_func = closest_base
+
     else:
         raise ValueError('Invalid value for base (%s)' % base)
     # size and width of peaks:
