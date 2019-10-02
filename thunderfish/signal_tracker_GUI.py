@@ -247,7 +247,7 @@ class AnalysisDialog(QMainWindow):
                     # checked_xy_borders = True
 
                 for i in range(len(y_borders) - 1):
-                    print(i/len(y_borders))
+                    # print(i/len(y_borders))
                     for j in range(len(x_borders) - 1):
                         if x_borders[j] > self.tmp_times[-1]:
                             break
