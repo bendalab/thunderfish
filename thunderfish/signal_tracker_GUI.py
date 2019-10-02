@@ -143,17 +143,24 @@ class AnalysisDialog(QMainWindow):
         overlap = QLabel('nffts per PSD [n]')
         self.gridLayout.addWidget(overlap, 5, 1)
 
+        space = QLabel('', self)
+        self.gridLayout.addWidget(space, 6, 0)
+
         Run = QPushButton('&Run', self.central_widget)
         Run.clicked.connect(self.snippet_spectrogram)
-        self.gridLayout.addWidget(Run, 6, 0)
+        self.gridLayout.addWidget(Run, 7, 0)
 
         Apply = QPushButton('&Apply', self.central_widget)
         Apply.clicked.connect(self.apply_settings)
-        self.gridLayout.addWidget(Apply, 6, 1)
+        self.gridLayout.addWidget(Apply, 7, 1)
 
         Cancel = QPushButton('&Cancel', self.central_widget)
         Cancel.clicked.connect(self.close)
-        self.gridLayout.addWidget(Cancel, 6, 2)
+        self.gridLayout.addWidget(Cancel, 7, 2)
+
+        # space = QLabel('', self)
+        # self.gridLayout.addWidget(Cancel, 7, 0)
+        # self.gridLayout.addWidget()
 
     def apply_settings(self):
         print('read that input')
@@ -187,7 +194,7 @@ class AnalysisDialog(QMainWindow):
                 a = pool.map(func, [self.data[start_idx: start_idx + self.data_snippet_idxs, channel] for channel in
                                     self.channel_list])  # ret: spec, freq, time
 
-            print('check 1')
+            # print('check 1')
             self.spectra = [a[channel][0] for channel in range(len(a))]
             self.spec_freqs = a[0][1]
             self.spec_times = a[0][2]
@@ -204,7 +211,7 @@ class AnalysisDialog(QMainWindow):
             plot_freqs = self.spec_freqs[self.spec_freqs < comp_max_freq]
             plot_spectra = np.sum(self.spectra, axis=0)[self.spec_freqs < comp_max_freq]
 
-            print('check 2')
+            # print('check 2')
             if create_plotable_spectrogram:
                 # if not checked_xy_borders:
                 if not get_spec_plot_matrix:
@@ -252,10 +259,10 @@ class AnalysisDialog(QMainWindow):
 
                         if len(t_mask) == 0 or len(f_mask) == 0:
                             continue
-                        print('yay')
+                        # print('yay')
                         self.tmp_spectra[i, j] = np.max(plot_spectra[f_mask[:, None], t_mask])
             ####
-            print('check 3')
+            # print('check 3')
 
             self.power = [np.array([]) for i in range(len(self.spec_times))]
 
@@ -267,12 +274,12 @@ class AnalysisDialog(QMainWindow):
             start_idx += int((len(self.spec_times) - self.nffts_per_psd + 1) * non_overlapping_idx)
             self.times = np.concatenate((self.times, self.tmp_times))
 
-            print('check 4')
+            # print('check 4')
             if start_idx >= end_idx or last_run:
-                print('done')
+                # print('done')
                 break
         self.got_changed = True
-        print('done')
+        # print('done')
         self.close()
 
     def extract_fundamentals_and_signatures(self):
