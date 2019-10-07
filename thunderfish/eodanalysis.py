@@ -326,8 +326,16 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     # zero crossings:
     ui, di = threshold_crossings(meod[:,1], 0.0)
     ut, dt = threshold_crossing_times(meod[:,0], meod[:,1], 0.0, ui, di)
-    up_time = ut[ut<0.0][-1]
-    down_time = dt[dt>0.0][0]
+    if np.any(ut<0.0):    
+        up_time = ut[ut<0.0][-1]
+    else:
+        up_time = 0.0 
+        error_str += '%.1f Hz wave-type fish: no upward zero crossing. ' % freq0
+    if np.any(dt>0.0):
+        down_time = dt[dt>0.0][0]
+    else:
+        down_time = 0.0
+        error_str += '%.1f Hz wave-type fish: no downward zero crossing. ' % freq0
     peak_width = down_time - up_time
     trough_width = period - peak_width
     peak_time = 0.0
@@ -350,7 +358,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
                                        params, maxfev=2000)
                 break
             except (RuntimeError, TypeError):
-                error_str = '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics.' % (freq0, n_harm)
+                error_str += '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics. ' % (freq0, n_harm)
                 n_harm //= 2
         if popt[2] > 0.0:
             break
@@ -852,7 +860,7 @@ def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
     kwargs: dict
         Arguments passed on to the plot command for the recorded trace.
     """
-    widx2 = int(width*samplerate)/2
+    widx2 = int(width*samplerate/2)
     i0 = len(data)//2 - widx2
     i0 = (i0//widx2)*widx2
     i1 = i0 + 2*widx2
