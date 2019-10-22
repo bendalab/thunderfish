@@ -109,7 +109,7 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
     # window size:
     tmp_period = period
     if tmp_period is None:
-        tmp_period = np.mean(np.diff(eod_times))
+        tmp_period = np.min(np.diff(eod_times))
     win = 0.5*win_fac*tmp_period
     if 2*win < min_win:
         win = 0.5*min_win
@@ -566,10 +566,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     threshold = max_ampl*peak_thresh_fac
     if threshold < min_thresh:
         threshold = min_thresh
-
+        
     # cut out relevant signal:
-    lidx = np.argmax(np.abs(meod[:,1])>0.5*threshold)
-    ridx = len(meod) - 1 - np.argmax(np.abs(meod[::-1,1])>0.5*threshold)
+    lidx = np.argmax(np.abs(meod[:,1])>threshold)
+    ridx = len(meod) - 1 - np.argmax(np.abs(meod[::-1,1])>threshold)
     t0 = meod[lidx,0]
     t1 = meod[ridx,0]
     width = t1 - t0
