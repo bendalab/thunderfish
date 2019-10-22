@@ -743,7 +743,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         Set `max_rel_power_weight` to one to disable this.
     max_rel_power: float
         Maximum allowed relative power of the `min_group_size`-th and higher harmonics
-        (relative to power of fundamental). If zero do not check for relative power.
+        (in decibel relative to power of fundamental). If zero do not check for relative power.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -820,8 +820,8 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         mains_ok = ((mains_freq <= 0.0) or
                     (m.fabs(harm_group[0,0] - mains_freq) > freq_tol))
         # check relative power of higher harmonics:
-        rpowers = harm_group[min_group_size:,1]/harm_group[0,1]
-        amplitude_ok = ( (max_rel_power <= 0.0) or \
+        rpowers = decibel(harm_group[min_group_size:,1], harm_group[0,1])
+        amplitude_ok = ( (np.abs(max_rel_power) <= 1e-8) or \
                          np.all((rpowers < max_rel_power) | \
                                 (harm_group[min_group_size:,2] > 1)) )
         # check:
@@ -978,7 +978,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
         Set `max_rel_power_weight` to one to disable this.
     max_rel_power: float
         Maximum allowed relative power of the `min_group_size`-th and higher harmonics
-        (relative to power of fundamental). If zero do not check for relative power.
+        (in decibel relative to power of fundamental). If zero do not check for relative power.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -1646,7 +1646,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
     cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
     cfg.add('maxRelativePowerWeight', max_rel_power_weight, '', 'Maximum value of the power of the minimumGroupSize-th harmonic relative to fundamental used for punishing overall power of a harmonic group.')
-    cfg.add('maxRelativePower', max_rel_power, '', 'Maximum allowed power of the minimumGroupSize-th and higher harmonics relative to fundamental. If zero do not check for relative power.')
+    cfg.add('maxRelativePower', max_rel_power, 'dB', 'Maximum allowed power of the minimumGroupSize-th and higher harmonics relative to fundamental. If zero do not check for relative power.')
     cfg.add('maxHarmonics', max_harmonics, '', '0: keep all, >0 only keep the first # harmonics.')
     cfg.add('maxGroups', max_groups, '', 'Maximum number of harmonic groups. If 0 process all.')
 
