@@ -839,7 +839,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
                 ms = 'not ' if mains_ok else 'is'
                 ps = 'smaller' if amplitude_ok else 'larger '
                 pi = 0 if amplitude_ok else np.where(rpowers >= max_harmonics_decibel)[0][0]
-                print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, relpower[%d]=%5.3fdB %s than %5.3fdB'
+                print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, relpower[%d]=%6.1fdB %s than %6.1fdB'
                       % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
                          fs, ms, min_group_size+pi, rpowers[pi], ps, max_harmonics_decibel))
                 
