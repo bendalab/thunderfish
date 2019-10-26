@@ -13,6 +13,7 @@
 
 ## Visualization
 - `eod_recording_plot()`: plot a zoomed in range of the recorded trace.
+- `pulse_eods_plot()`: mark pulse-type EODs in a plot of an EOD recording.
 - `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard deviation.
 - `wave_spectrum_plot()`: plot and annotate spectrum of wave-type EODs.
 - `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse-type EOD.
@@ -507,6 +508,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
           relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
         - n: number of pulses analyzed.
+        - times: the times of the detected EOD pulses (i.e. `eod_times`).
     peaks: 2-D array
         For each peak and trough (rows) of the EOD waveform
         5 columns: the peak index (1 is P1, i.e. the largest positive peak),
@@ -695,6 +697,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props['powerlowcutoff'] = lowcutoff
     props['flipped'] = flipped
     props['n'] = len(eod_times)
+    props['times'] = eod_times
     
     return meod, props, peaks, ppower
 
@@ -884,6 +887,76 @@ def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
         ax.set_ylabel('Amplitude')
     else:
         ax.set_ylabel('Amplitude [%s]' % unit)
+
+
+def pulse_eods_plot(ax, data, samplerate, eod_props, toffs=0.0,
+                    colors=None, markers=None, marker_size=10,
+                    legend_rows=8, **kwargs):
+    """
+    Mark pulse-type EODs in a plot of an EOD recording.
+
+    Parameters
+    ----------
+    ax: axis for plot
+            Axis used for plotting.
+    data: 1D ndarray
+        Recorded data (these are not plotted!).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    eod_props: list of dictionaries
+            Lists of EOD properties as returned by analyze_pulse() and analyze_wave().
+            From the entries with 'type' == 'pulse' the properties 'EODf' and 'times'
+            are used. 'EODf' is the averaged EOD frequency, and 'times' is a list of
+            detected EOD pulse times.
+    toffs: float
+        Time of first data value in seconds that will be added
+        to the pulse times in `eod_props`.
+    colors: list of colors or None
+            If not None list of colors for plotting each group
+    markers: list of markers or None
+            If not None list of markers for plotting each group
+    marker_size: float
+            Size of markers used to mark the pulses.
+    legend_rows: int
+            Maximum number of rows to be used for the legend.
+    kwargs: 
+            Key word arguments for the legend of the plot.
+    """
+    k = 0
+    for eod in eod_props:
+        if eod['type'] != 'pulse':
+            continue
+        if 'times' not in eod:
+            continue
+        x = eod['times'] + toffs
+        y = data[np.round(eod['times']*samplerate).astype(np.int)]
+        color_kwargs = {}
+        if colors is not None:
+            color_kwargs['color'] = colors[k%len(colors)]
+        if marker_size is not None:
+            color_kwargs['ms'] = marker_size
+        label = '%6.1f Hz' % eod['EODf']
+        if legend_rows > 5 and k >= legend_rows:
+            label = None
+        if markers is None:
+            ax.plot(x, y, 'o', label=label, **color_kwargs)
+        else:
+            if k >= len(markers):
+                break
+            ax.plot(x, y, linestyle='None', marker=markers[k],
+                    mec=None, mew=0.0, label=label, **color_kwargs)
+        k += 1
+
+    # legend:
+    if k > 1:
+        if legend_rows > 0:
+            if legend_rows > 5:
+                ncol = 1
+            else:
+                ncol = (len(idx)-1) // legend_rows + 1
+            leg = ax.legend(numpoints=1, ncol=ncol, **kwargs)
+        else:
+            leg = ax.legend(numpoints=1, **kwargs)
 
 
 def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,

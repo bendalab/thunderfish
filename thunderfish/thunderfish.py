@@ -31,7 +31,7 @@ from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection
 from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
-from .eodanalysis import eod_recording_plot, eod_waveform_plot
+from .eodanalysis import eod_recording_plot, pulse_eods_plot, eod_waveform_plot
 from .eodanalysis import pulse_spectrum_plot, wave_spectrum_plot
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
@@ -363,7 +363,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pulse spectrum
     ax6 = fig.add_axes([0.575, 0.36, 0.4, 0.14]) # amplitude spectrum
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
-    ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording xoom-in
+    ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording zoom-in
     
     # plot title:
     ax1.text(0.0, .72, base_name, fontsize=22)
@@ -435,6 +435,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         width = (1+width//0.005)*0.005
         eod_recording_plot(raw_data[idx0:idx1], samplerate, ax8, width, unit,
                            idx0/samplerate)
+        pulse_eods_plot(ax8, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate)
         ax8.set_title('Recording', fontsize=14, y=1.05)
     else:
         ax8.set_visible(False)        
