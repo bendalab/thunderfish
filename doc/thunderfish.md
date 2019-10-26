@@ -19,37 +19,38 @@ thunderfish --help
 returns
 ```
 usage: thunderfish [-h] [--version] [-v] [-c] [--channel CHANNEL] [-j [JOBS]]
-                   [-s] [-f {dat,ascii,csv,rtai,md,tex,html}] [-p] [-k]
-                   [-o OUTPATH] [-b]
+                   [-s] [-f {dat,ascii,csv,rtai,md,tex,html}] [-p]
+                   [-o OUTPATH] [-k] [-b]
                    [file [file ...]]
 
 Analyze EOD waveforms of weakly electric fish.
 
 positional arguments:
-  file                  name of the file with the time series data
+  file                  name of a file with time series data of an EOD recording
 
 optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
   -v                    verbosity level. Increase by specifying -v multiple
-                        times, or like -vvv.
+                        times, or like -vvv
   -c                    save configuration to file thunderfish.cfg after
                         reading all configuration files
-  --channel CHANNEL     channel to be analyzed. Default is to use first
-                        channel.
+  --channel CHANNEL     channel to be analyzed (defaults to first channel)
   -j [JOBS]             number of jobs run in parallel. Without argument use
                         all CPU cores.
   -s                    save analysis results to files
   -f {dat,ascii,csv,rtai,md,tex,html}
                         file format used for saving analysis results, defaults
                         to the format specified in the configuration file or
-                        "dat")
+                        "dat"
   -p                    save output plot as pdf file
-  -k                    keep path of input file when saving analysis files
-  -o OUTPATH            path where to store results and figures
+  -o OUTPATH            path where to store results and figures (defaults to
+                        current working directory)
+  -k                    keep path of input file when saving analysis files,
+                        i.e. append path of input file to OUTPATH
   -b                    show the cost function of the best window algorithm
 
-version 1.7 by Benda-Lab (2015-2019)
+version 1.8 by Benda-Lab (2015-2019)
 
 examples:
 - analyze the single file data.wav interactively:
@@ -57,7 +58,7 @@ examples:
 - automatically analyze all wav files in the current working directory and save analysis results and plot to files:
   > thunderfish -s -p *.wav
 - analyze all wav files in the river1/ directory, use all CPUs, and write files directly to "results/":
-  > thunderfish -j -s -p -o results/ *.wav
+  > thunderfish -j -s -p -o results/ river1/*.wav
 - analyze all wav files in the river1/ directory and write files to "results/river1/":
   > thunderfish -s -p -o results/ -k river1/*.wav
 - write configuration file:
