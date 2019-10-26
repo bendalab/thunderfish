@@ -1,7 +1,7 @@
 """
 # thunderfish
 
-Automatically detect and analyze all fish present in an EOD recording
+Automatically detect and analyze all fish present in a short EOD recording
 and generate a summary plot and data tables.
 
 Run it from the thunderfish development directory as:
@@ -634,28 +634,28 @@ def main():
                         help='show this help message and exit')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose',
-                        help='verbosity level. Increase by specifying -v multiple times, or like -vvv.')
+                        help='verbosity level. Increase by specifying -v multiple times, or like -vvv')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
-                        help='channel to be analyzed. Default is to use first channel.')
+                        help='channel to be analyzed (defaults to first channel)')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-s', dest='save_data', action='store_true',
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         choices=TableData.formats,
-                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat")')
+                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot as pdf file')
-    parser.add_argument('-k', dest='keep_path', action='store_true',
-                        help='keep path of input file when saving analysis files')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
-                        help='path where to store results and figures')
+                        help='path where to store results and figures (defaults to current working directory)')
+    parser.add_argument('-k', dest='keep_path', action='store_true',
+                        help='keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH')
     parser.add_argument('-b', dest='show_bestwindow', action='store_true',
                         help='show the cost function of the best window algorithm')
     parser.add_argument('file', nargs='*', default='', type=str,
-                        help='name of the file with the time series data')
+                        help='name of a file with time series data of an EOD recording')
     args = parser.parse_args()
 
     # help:
@@ -668,7 +668,7 @@ def main():
         print('- automatically analyze all wav files in the current working directory and save analysis results and plot to files:')
         print('  > thunderfish -s -p *.wav')
         print('- analyze all wav files in the river1/ directory, use all CPUs, and write files directly to "results/":')
-        print('  > thunderfish -j -s -p -o results/ *.wav')
+        print('  > thunderfish -j -s -p -o results/ river1/*.wav')
         print('- analyze all wav files in the river1/ directory and write files to "results/river1/":')
         print('  > thunderfish -s -p -o results/ -k river1/*.wav')
         print('- write configuration file:')
