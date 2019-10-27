@@ -1,7 +1,7 @@
 """
 # thunderfish
 
-Automatically detect and analyze all fish present in a short EOD recording
+Automatically detect and analyze all EOD waveforms in a short recording
 and generate a summary plot and data tables.
 
 Run it from the thunderfish development directory as:
