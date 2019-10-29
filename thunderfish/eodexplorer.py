@@ -371,6 +371,8 @@ class EODExplorer(MultivariateExplorer):
         -------
         data_cols: list of int
             Indices of data columns to be shown by EODExplorer.
+        error: string
+            In case of an invalid column group, an error string.
         """
         if wave_fish:
             # maximum number of harmonics:
@@ -435,7 +437,7 @@ class EODExplorer(MultivariateExplorer):
                         group_cols.append('relpower%d' % k)
                         group_cols.append('phase%d' % k)
                 else:
-                    parser.error('"%s" is not a valid data group for wavefish' % group)
+                    return None, '"%s" is not a valid data group for wavefish' % group
             else:  # pulse fish
                 if group == 'noise':
                     group_cols.extend(['noise', 'p-p-amplitude', 'min-ampl', 'max-ampl'])
@@ -466,7 +468,7 @@ class EODExplorer(MultivariateExplorer):
                             group_cols.append('P%dwidth' % k)
                     group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
                 else:
-                    parser.error('"%s" is not a valid data group for pulsefish' % group)
+                    return None, '"%s" is not a valid data group for pulsefish' % group
         # additional data columns:
         group_cols.extend(add_columns)
         # translate to indices:
@@ -479,7 +481,7 @@ class EODExplorer(MultivariateExplorer):
                 data_cols.remove(idx)
             else:
                 data_cols.append(idx)
-        return data_cols
+        return data_cols, None
 
     
     @staticmethod
@@ -695,8 +697,11 @@ def main():
         data.append('species', '', '%s', species)
 
     # select columns (EOD properties) to be shown:
-    data_cols = EODExplorer.select_EOD_properties(data, wave_fish, max_n,
-                                                  column_groups, add_data_cols)
+    data_cols, error = \
+      EODExplorer.select_EOD_properties(data, wave_fish, max_n,
+                                        column_groups, add_data_cols)
+    if error:
+        parser.error(error)
 
     # select column used for coloring the data:
     colors, color_label, color_idx, error = \
