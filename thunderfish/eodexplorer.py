@@ -501,10 +501,12 @@ class EODExplorer(MultivariateExplorer):
         Returns
         -------
         colors: int or column from data.
-            Either index of data_cols or additional data from the data table
+            Either index of `data_cols` or additional data from the data table
             to be used for coloring.
         color_label: string
             Label for labeling the color bar.
+        color_idx: int or None
+            Index of column in `data`.
         error: string
             In case an invalid column is selected, an error string.
         """
@@ -512,7 +514,7 @@ class EODExplorer(MultivariateExplorer):
         colors = None
         color_label = None
         if color_idx is None and color_col != 'row':
-            return None, None, '"%s" is not a valid column for color code' % color_col
+            return None, None, None, '"%s" is not a valid column for color code' % color_col
         if color_idx is None:
             colors = -2
         elif color_idx in data_cols:
@@ -523,7 +525,7 @@ class EODExplorer(MultivariateExplorer):
             else:
                 color_label = data.label(color_idx)
             colors = data[:,color_idx]
-        return colors, color_label, None
+        return colors, color_label, color_idx, None
 
 
 class PrintHelp(argparse.Action):
@@ -697,7 +699,8 @@ def main():
                                                   column_groups, add_data_cols)
 
     # select column used for coloring the data:
-    colors, color_label, error = EODExplorer.select_color_property(data, data_cols, color_col)
+    colors, color_label, color_idx, error = \
+      EODExplorer.select_color_property(data, data_cols, color_col)
     if error:
         parser.error(error)
 
@@ -707,9 +710,9 @@ def main():
             s = [' '] * 3
             if k in data_cols:
                 s[1] = '*'
-            if k == color_idx:
+            if color_idx is not None and k == color_idx:
                 s[0] = 'C'
-                print(''.join(s) + c)
+            print(''.join(s) + c)
         parser.exit()
 
     # load waveforms:
