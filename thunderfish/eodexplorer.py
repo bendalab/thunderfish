@@ -533,6 +533,7 @@ class PrintHelp(argparse.Action):
         print('mouse:')
         for ma in MultivariateExplorer.mouse_actions:
             print('%-23s %s' % ma)
+        print('%-23s %s' % ('double left click', 'run thunderfish on selected EOD waveform'))
         print('')
         print('key shortcuts:')
         for ka in MultivariateExplorer.key_actions:
