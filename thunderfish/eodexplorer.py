@@ -157,7 +157,7 @@ class EODExplorer(MultivariateExplorer):
         if any(l in label for l in ['ampl', 'power', 'width',
                                     'time', 'tau', 'var', 'peak', 'trough',
                                     'dist', 'rms', 'noise']):
-            if np.all(data >= 0.0):
+            if np.all(data[np.isfinite(data)] >= 0.0):
                 if axis == 'x':
                     ax.set_xlim(0.0, None)
                 elif axis == 'y':
@@ -252,7 +252,7 @@ class EODExplorer(MultivariateExplorer):
                     ax.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
                     ax.set_yticklabels(['0', u'\u03c0/2', u'\u03c0', u'3\u03c0/2', u'2\u03c0'])
         else:
-            for ax, xl in zip(ax, self.wave_ylabels):
+            for ax, xl in zip(axs, self.wave_ylabels):
                 if 'Voltage' in xl:
                     ax.set_xlim(-0.5, 1.5)
                 if 'Power' in xl:
@@ -342,7 +342,7 @@ class EODExplorer(MultivariateExplorer):
     """
     groups = ['all', 'allpower', 'noise', 'timing',
               'ampl', 'relampl', 'power', 'relpower', 'phase',
-              'time', 'width', 'none']
+              'time', 'width', 'peaks', 'none']
     
     @staticmethod
     def select_EOD_properties(data, wave_fish, max_n, column_groups, add_columns):
@@ -458,14 +458,17 @@ class EODExplorer(MultivariateExplorer):
                             group_cols.append('P%drelampl' % k)
                 elif group == 'width':
                     for k in range(min_peaks, max_peaks):
-                        if k != 1:
-                            group_cols.append('P%dwidth' % k)
+                        group_cols.append('P%dwidth' % k)
+                elif group == 'peaks':
+                    group_cols.append('firstpeak')
+                    group_cols.append('lastpeak')
                 elif group == 'all':
+                    group_cols.extend(['firstpeak', 'lastpeak'])
                     for k in range(min_peaks, max_peaks):
                         if k != 1:
                             group_cols.append('P%drelampl' % k)
                             group_cols.append('P%dtime' % k)
-                            group_cols.append('P%dwidth' % k)
+                        group_cols.append('P%dwidth' % k)
                     group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
                 else:
                     return None, '"%s" is not a valid data group for pulsefish' % group
