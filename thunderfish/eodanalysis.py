@@ -14,7 +14,7 @@
 ## Visualization
 - `eod_recording_plot()`: plot a zoomed in range of the recorded trace.
 - `pulse_eods_plot()`: mark pulse-type EODs in a plot of an EOD recording.
-- `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard deviation.
+- `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard error.
 - `wave_spectrum_plot()`: plot and annotate spectrum of wave-type EODs.
 - `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse-type EOD.
 
@@ -58,7 +58,7 @@ from .tabledata import TableData
 def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
                  min_win=0.01, max_eods=None, unfilter_cutoff=0.0, period=None):
     """Detect EODs in the given data, extract data snippets around each EOD,
-    and compute a mean waveform with standard deviation.
+    and compute a mean waveform with standard error.
 
     Parameters
     ----------
@@ -88,7 +88,7 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
     -------
     mean_eod: 2-D array
         Average of the EOD snippets. First column is time in seconds,
-        second column the mean eod, third column the standard deviation
+        second column the mean eod, third column the standard error.
     eod_times: 1-D array
         Times of EOD peaks in seconds.
     """
@@ -105,7 +105,7 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
         eod_times = eod_idx / samplerate
     else:
         eod_times = np.arange(0.0, len(data)/samplerate, period)
-        eod_idx = np.asarray(eod_times * samplerate, dtype=int)
+        eod_idx = np.round(eod_times * samplerate).astype(np.int)
 
     # window size:
     tmp_period = period
@@ -129,7 +129,7 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
     mean_eod = np.zeros((len(eod_snippets[0]), 3))
     mean_eod[:,1] = np.mean(eod_snippets, axis=0)
     if len(eod_snippets) > 1:
-        mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)
+        mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)/np.sqrt(len(eod_snippets))
 
     # inverse filter:
     if unfilter_cutoff > 0.0:
@@ -213,7 +213,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     ----------
     eod: 2-D array
         The eod waveform. First column is time in seconds, second column the EOD waveform,
-        third column, if present, is the standarad deviation of the EOD waveform,
+        third column, if present, is the standarad error of the EOD waveform,
         Further columns are optional but not used.
     freq: float or 2-D array
         The frequency of the EOD or the list of harmonics (rows)
@@ -242,7 +242,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
         - flipped: True if the waveform was flipped.
         - amplitude: amplitude factor of the Fourier fit.
         - rmvariance: root-mean variance of the averaged EOD waveform relative to
-          the p-p amplitude (only if a standard deviation is given in `eod`).
+          the p-p amplitude (only if a standard error is given in `eod`).
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than 0.05 the data are bad.
         - peakwidth: width of the peak at the averaged amplitude relative to EOD period.
@@ -444,8 +444,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     Parameters
     ----------
     eod: 2-D array
-        The eod waveform. First column is time in seconds,
-        second column the eod waveform.
+        The eod waveform. First column is time in seconds, second column the EOD waveform,
+        third column, if present, is the standarad error of the EOD waveform,
         Further columns are optional but not used.
     eod_times: 1-D array
         List of times of detected EOD peaks.
@@ -483,7 +483,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - min-amplitude: the amplitude of the largest negative peak (P2).
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
         - rmvariance: root-mean variance of the averaged EOD waveform relative to
-          the p-p amplitude (only if a standard deviation is given in `eod`).
+          the p-p amplitude (only if a standard error is given in `eod`).
         - tstart: time in seconds where the pulse starts,
           i.e. crosses the threshold for the first time.
         - tend: time in seconds where the pulse ends,
@@ -734,7 +734,7 @@ def wave_quality(idx, clipped, variance, rms_error, power, harm_relampl,
     clipped: float
         Fraction of clipped data.
     variance: float
-        Standard deviation of the data relative to p-p amplitude.
+        Standard error of the data relative to p-p amplitude.
     rms_error: float
         Root-mean-square error between EOD waveform and Fourier fit relative to p-p amplitude.
     power: float
@@ -744,7 +744,7 @@ def wave_quality(idx, clipped, variance, rms_error, power, harm_relampl,
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_variance: float
-        If not zero, maximum allowed standard deviation of the data relative to p-p amplitude.
+        If not zero, maximum allowed standard error of the data relative to p-p amplitude.
     max_rms_error: float
         Maximum allowed root-mean-square error between EOD waveform and
         Fourier fit relative to p-p amplitude.
@@ -807,11 +807,11 @@ def pulse_quality(idx, clipped, variance, max_clipped_frac=0.1,
     clipped: float
         Fraction of clipped data.
     variance: float
-        Standard deviation of the data relative to p-p amplitude.
+        Standard error of the data relative to p-p amplitude.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_variance: float
-        If not zero, maximum allowed standard deviation of the data relative to p-p amplitude.
+        If not zero, maximum allowed standard error of the data relative to p-p amplitude.
                       
     Returns
     -------
@@ -959,14 +959,14 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
                       fkwargs={'lw': 6, 'color': 'steelblue'},
                       zkwargs={'lw': 1, 'color': '#AAAAAA'}):
     """
-    Plot mean EOD, its standard deviation, and an optional fit to the EOD.
+    Plot mean EOD, its standard error, and an optional fit to the EOD.
 
     Parameters
     ----------
     eod_waveform: 2-D array
         EOD waveform. First column is time in seconds,
         second column the (mean) eod waveform. The optional third column is the
-        standard deviation, and the optional fourth column is a fit on the waveform.
+        standard error, and the optional fourth column is a fit on the waveform.
     peaks: 2_D arrays or None
         List of peak properties (index, time, and amplitude) of a EOD pulse
         as returned by `analyze_pulse()`.
@@ -979,7 +979,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
     mkwargs: dict
         Arguments passed on to the plot command for the mean EOD.
     skwargs: dict
-        Arguments passed on to the fill_between command for the standard deviation of the EOD.
+        Arguments passed on to the fill_between command for the standard error of the EOD.
     fkwargs: dict
         Arguments passed on to the plot command for the fitted EOD.
     zkwargs: dict
@@ -995,7 +995,7 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
     # plot waveform:
     mean_eod = eod_waveform[:,1]
     ax.plot(time, mean_eod, zorder=5, **mkwargs)
-    # plot standard deviation:
+    # plot standard error:
     if eod_waveform.shape[1] > 2:
         ax.autoscale(False)
         std_eod = eod_waveform[:,2]
@@ -1175,7 +1175,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     filename: string
         The path and full name of the written file.
     """
-    td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'std'],
+    td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'sem'],
                    ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
     if mean_eod.shape[1] > 3:
         td.append('fit', unit, '%.5f', mean_eod[:,3])
@@ -1550,7 +1550,7 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
     """
     cfg.add_section('Waveform selection:')
     cfg.add('maximumClippedFraction', max_clipped_frac, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
-    cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard deviation of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
+    cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard error of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
     cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
     cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave-type fish if its power is smaller than this value.')
     cfg.add('maximumFirstHarmonicAmplitude', max_relampl_harm1, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
