@@ -178,11 +178,11 @@ def unfilter(data, samplerate, cutoff):
     return data
 
 
-def fourier_series(t, freq, delay, ampl, *ap):
+def fourier_series(t, freq, *ap):
     """
     Fourier series of sine waves with amplitudes and phases.
 
-    x(t) = ampl sin(2 pi freq (t-delay) + ampl sum_{k=0}^n ap[2*i]*sin(2 pi (k+2) freq (t-delay) + ap[2*i+1])
+    x(t) = sum_{i=0}^n ap[2*i]*sin(2 pi (i+1) freq t + ap[2*i+1])
     
     Parameters
     ----------
@@ -190,24 +190,19 @@ def fourier_series(t, freq, delay, ampl, *ap):
         Time.
     freq: float
         Fundamental frequency.
-    delay: float
-        Shift of sinewaves in time.
-    ampl: float
-        Amplitude of the sinewave with the fundamental frequency.
     *ap: list of floats
-        The relative amplitudes and phases (in rad) of the harmonics.
+        The amplitudes and phases (in rad) of the fundamental and harmonics.
         
     Returns
     -------
     x: float or array
         The Fourier series evaluated at times `t`.
     """
-    tt = t - delay
     omega = 2.0*np.pi*freq
-    x = np.sin(omega*tt)
-    for k, (a, p) in enumerate(zip(ap[0:-1:2], ap[1::2])):
-        x += a*np.sin((k+2)*omega*tt+p)
-    return ampl*x
+    x = 0.0
+    for i, (a, p) in enumerate(zip(ap[0:-1:2], ap[1::2])):
+        x += a*np.sin((i+1)*omega*t+p)
+    return x
 
 
 def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none'):
@@ -257,6 +252,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
         - lefttrough: time from negative zero crossing to trough relative to EOD period.
         - righttrough: time from trough to positive zero crossing relative to EOD period.
         - p-p-distance: time between peak and trough relative to EOD period.
+        - reltroughampl: amplitude of trough relative to peak amplitude.
         - power: summed power of all harmonics in decibel relative to one.
     spec_data: 2-D array of floats
         First column is the index of the harmonics, second column its frequency,
@@ -349,35 +345,33 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     
     # fit fourier series:
     ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
-    for p in np.arange(0.0, 1.0, 0.25):
-        while n_harm > 1:
-            params = [freq0, p/freq0, ampl]
-            for i in range(1, n_harm):
-                params.extend([1.0/(i+1), 0.0])
-            try:
-                popt, pcov = curve_fit(fourier_series, meod[i0:i1,0], meod[i0:i1,1],
-                                       params, maxfev=2000)
-                break
-            except (RuntimeError, TypeError):
-                error_str += '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics. ' % (freq0, n_harm)
-                n_harm //= 2
-        if popt[2] > 0.0:
+    while n_harm > 1:
+        params = [freq0]
+        for i in range(1, n_harm):
+            params.extend([ampl/i, 0.0])
+        try:
+            popt, pcov = curve_fit(fourier_series, meod[i0:i1,0], meod[i0:i1,1],
+                                   params, maxfev=2000)
             break
+        except (RuntimeError, TypeError):
+            error_str += '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics. ' % (freq0, n_harm)
+            n_harm //= 2
     for i in range(1, n_harm):
         # make all amplitudes positive:
-        if popt[1+i*2] < 0.0:
-            if popt[1+i*2] < 0.0:
-                popt[1+i*2] *= -1.0
-            popt[2+i*2] += np.pi
+        if popt[i*2-1] < 0.0:
+            popt[i*2-1] *= -1.0
+            popt[i*2] += np.pi
         # all phases in the range -pi to pi:
-        popt[2+i*2] %= 2.0*np.pi
-        if popt[2+i*2] > np.pi:
-            popt[2+i*2] -= 2.0*np.pi
-    ampl = popt[2]
+        popt[i*2] %= 2.0*np.pi
+        if popt[i*2] > np.pi:
+            popt[i*2] -= 2.0*np.pi
     meod[:,-1] = fourier_series(meod[:,0], *popt)
 
-    # variance and fit error:
+    # peak and trough amplitudes:
     ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
+    relptampl = np.min(meod[i0:i1,1])/np.max(meod[i0:i1,1])
+    
+    # variance and fit error:
     rmvariance = np.sqrt(np.mean(meod[i0:i1,2]**2.0))/ppampl if eod.shape[1] > 2 else None
     rmserror = np.sqrt(np.mean((meod[i0:i1,1] - meod[i0:i1,-1])**2.0))/ppampl
 
@@ -387,7 +381,7 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     props['EODf'] = freq0
     props['p-p-amplitude'] = ppampl
     props['flipped'] = flipped
-    props['amplitude'] = ampl
+    props['amplitude'] = 0.5*ppampl  # remove it
     props['rmserror'] = rmserror
     if rmvariance:
         props['rmvariance'] = rmvariance
@@ -398,16 +392,16 @@ def analyze_wave(eod, freq, n_harm=20, power_n_harmonics=1000, flip_wave='none')
     props['lefttrough'] = phase3/period
     props['righttrough'] = phase4/period
     props['p-p-distance'] = distance/period
+    props['reltroughampl'] = np.abs(relptampl)
     if hasattr(freq, 'shape'):
         spec_data = np.zeros((n_harm, 7))
         powers = freq[:n_harm, 1]
         spec_data[:len(powers), 6] = powers
     else:
         spec_data = np.zeros((n_harm, 6))
-    spec_data[0,:6] = [0.0, freq0, ampl, 1.0, 0.0, 0.0]
-    for i in range(1, n_harm):
-        spec_data[i,:6] = [i, (i+1)*freq0, ampl*popt[1+i*2], popt[1+i*2],
-                           decibel(popt[1+i*2]**2.0), popt[2+i*2]]
+    for i in range(n_harm-1):
+        spec_data[i,:6] = [i, (i+1)*freq0, popt[i*2+1], popt[i*2+1]/popt[1],
+                           decibel((popt[i*2+1]/popt[1])**2.0), popt[i*2+2]]
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
     
@@ -1266,6 +1260,7 @@ def save_wave_fish(wave_props, unit, basename, **kwargs):
     td.append('lefttrough', '%', '%.2f', wave_props, 'lefttrough', 100.0)
     td.append('righttrough', '%', '%.2f', wave_props, 'righttrough', 100.0)
     td.append('p-p-distance', '%', '%.2f', wave_props, 'p-p-distance', 100.0)
+    td.append('reltroughampl', '%', '%.2f', wave_props, 'reltroughampl', 100.0)
     fp = basename + '-wavefish'
     file_name = td.write(fp, **kwargs)
     return file_name

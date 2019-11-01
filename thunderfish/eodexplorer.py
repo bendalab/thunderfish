@@ -377,7 +377,7 @@ class EODExplorer(MultivariateExplorer):
         if wave_fish:
             # maximum number of harmonics:
             if max_n == 0:
-                max_n = 40
+                max_n = 100
             else:
                 max_n += 1
             for k in range(1, max_n):
@@ -413,27 +413,28 @@ class EODExplorer(MultivariateExplorer):
                     group_cols.extend(['noise', 'rmserror',
                                        'p-p-amplitude', 'power'])
                 elif group == 'timing' or group == 'time':
-                    group_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
-                                      'lefttrough', 'righttrough'])
+                    group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
+                                       'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
                 elif group == 'ampl':
                     for k in range(0, max_n):
                         group_cols.append('ampl%d' % k)
                 elif group == 'relampl':
+                    group_cols.append('reltroughampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                 elif group == 'relpower' or group == 'power':
                     for k in range(1, max_n):
                         group_cols.append('relpower%d' % k)
                 elif group == 'phase':
-                    for k in range(1, max_n):
+                    for k in range(0, max_n):
                         group_cols.append('phase%d' % k)
                 elif group == 'all':
+                    group_cols.append('reltroughampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                         group_cols.append('phase%d' % k)
                 elif group == 'allpower':
                     for k in range(1, max_n):
-                        group_cols.append('relampl%d' % k)
                         group_cols.append('relpower%d' % k)
                         group_cols.append('phase%d' % k)
                 else:
@@ -694,9 +695,9 @@ def main():
     if wave_fish:
         # wavefish species:
         species = np.zeros(data.rows(), object)
-        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] < 300.0)] = 'Sterno'
-        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0)] = 'Eigen'
-        species[data[:,'phase1'] > 0] = 'Aptero'
+        species[data[:,'EODf'] < 300.0] = 'Sterno'
+        species[(data[:,'reltroughampl'] < 70.0) & (data[:,'EODf'] > 300.0)] = 'Eigen'
+        species[(data[:,'reltroughampl'] > 70.0) & (data[:,'EODf'] > 300.0)] = 'Aptero'
         data.append('species', '', '%s', species)
 
     # select columns (EOD properties) to be shown:
