@@ -478,7 +478,7 @@ The columns contain:
 2. `EODf` EOD frequency in Hertz.
 3. `power` Power of this EOD in decibel.
 4. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
-5. `noise` Root-mean-variance of the averaged EOD waveform relative to the
+5. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
 6. `rmserror` Root-mean-squared difference between the averaged EOD waveform and 
    the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
@@ -669,7 +669,7 @@ The columns contain:
 4. `max-ampl` Amplitude of the largest peak (P1 peak) in the units of the input data.
 5. `min-ampl` Amplitude of the largest trough in the units of the input data.
 6. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
-7. `noise` Root-mean-variance of the averaged EOD waveform relative to the
+7. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
 8. `clipped` Percentage of recording that is clipped.
 9. `flipped` Whether the waveform was flipped.

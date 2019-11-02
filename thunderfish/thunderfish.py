@@ -165,7 +165,7 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
         power_thresh[:,0] = power[:,0]
         power_thresh[:,1] = 5.0*props['EODf']**2.0 * power[:,1]
         # add good waveforms only:
-        skips, msg = pulse_quality(0, clipped, props['rmvariance'],
+        skips, msg = pulse_quality(0, clipped, props['rmssem'],
                                    **pulse_quality_args(cfg))
         if len(skips) == 0:
             eod_props.append(props)
@@ -208,7 +208,7 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
         props['index'] = len(eod_props)
         props['clipped'] = clipped if k == 0 else 0.0
         # add good waveforms only:
-        skips, msg = wave_quality(k, clipped, props['rmvariance'],
+        skips, msg = wave_quality(k, clipped, props['rmssem'],
                                   props['rmserror'], props['power'],
                                   sdata[1:,3], **wave_quality_args(cfg))
         if len(skips) == 0:
