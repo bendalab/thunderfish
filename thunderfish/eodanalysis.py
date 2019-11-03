@@ -1627,26 +1627,19 @@ if __name__ == '__main__':
     import sys
     import matplotlib.pyplot as plt
     from .fakefish import generate_biphasic_pulses
-    from .dataloader import load_data
-    from .bestwindow import best_window
+    from .eventdetection import detect_peaks
 
     print('Analysis of EOD waveforms.')
-    print('')
-    print('Usage:')
-    print('  python eodanalysis.py [<audiofile>]')
-    print('')
 
     # data:
-    if len(sys.argv) <= 1:
-        samplerate = 44100.0
-        data = generate_biphasic_pulses(200.0, samplerate, 5.0, noise_std=0.02)
-        unit = 'mV'
-    else:
-        rawdata, samplerate, unit = load_data(sys.argv[1], 0)
-        data, _ = best_window(rawdata, samplerate)
+    samplerate = 44100.0
+    data = generate_biphasic_pulses(83.0, samplerate, 5.0, noise_std=0.05)
+    unit = 'mV'
+    eod_idx, _ = detect_peaks(data, 1.0)
+    eod_times = eod_idx/samplerate
 
     # analyse EOD:
-    mean_eod, eod_times = eod_waveform(data, samplerate)
+    mean_eod, eod_times = eod_waveform(data, samplerate, eod_times)
     mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times)
 
     # plot:
