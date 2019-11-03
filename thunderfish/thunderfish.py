@@ -106,8 +106,8 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     """ Detect EODs of all fish present in the data.
     """
     # pulse-type fish?
-    pulse_fish, _, _ = check_pulse_width(data, samplerate, verbose=verbose,
-                                         **check_pulse_width_args(cfg))
+    pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
+                                                 **check_pulse_width_args(cfg))
 
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
@@ -151,11 +151,11 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
     if pulse_fish:
-        mean_eod, eod_times = \
-            eod_waveform(data, samplerate,
+        mean_eod, eod_times0 = \
+            eod_waveform(data, samplerate, eod_times,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
                          **eod_waveform_args(cfg))
-        mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times,
+        mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
                                                       freq_resolution=minfres,
                                                       **analyze_pulse_args(cfg))
         props['index'] = len(eod_props)
@@ -195,9 +195,9 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     fish_indices = np.zeros(len(fishlist))
     for k, idx in enumerate(np.argsort(-powers)):
         fish = fishlist[idx]
+        eod_times = np.arange(0.0, len(data)/samplerate, 1.0/fish[0,0])
         mean_eod, eod_times = \
-            eod_waveform(data, samplerate,
-                         win_fac=3.0, min_win=0.0, period=1.0/fish[0,0],
+            eod_waveform(data, samplerate, eod_times, win_fac=3.0, min_win=0.0,
                          **eod_waveform_args(cfg))
         mean_eod, props, sdata, error_str = \
             analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))

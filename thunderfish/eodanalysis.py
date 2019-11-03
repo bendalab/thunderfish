@@ -55,8 +55,8 @@ from .harmonics import fundamental_freqs_and_power
 from .tabledata import TableData
 
 
-def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
-                 min_win=0.01, max_eods=None, unfilter_cutoff=0.0, period=None):
+def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
+                 min_win=0.01, max_eods=None, unfilter_cutoff=0.0):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard error.
 
@@ -83,27 +83,22 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
 
     Parameters
     ----------
-    data: 1-D array
+    data: 1-D array of float
         The data to be analysed.
     samplerate: float
         Sampling rate of the data in Hertz.
-    percentile: float
-        Percentile parameter in percent for the eventdetection.percentile_threshold() function
-        used to estimate thresholds for detecting EOD peaks in the data.
-    thresh_fac: float
-        thresh_fac parameter for the eventdetection.percentile_threshold() function used to
-        estimate thresholds for detecting EOD peaks in the data.
+    eod_times: 1-D array of float
+        Array of EOD times in seconds over which the waveform should be averaged.
     win_fac: float
-        The snippet size is the period times `win_fac`.
+        The snippet size is the EOD period times `win_fac`. The EOD period is determined
+        as the minimum interval between EOD times.
     min_win: float
         The minimum size of the snippets in seconds.
     max_eods: int or None
         Maximum number of EODs to be used for averaging.
     unfilter_cutoff: float
         If not zero, the cutoff frequency for an inverse high-pass filter
-        applied to the mean EOD wavbeform.
-    period: float or None
-        Average waveforms with this period instead of peak times.
+        applied to the mean EOD waveform.
     
     Returns
     -------
@@ -111,28 +106,15 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
         Average of the EOD snippets. First column is time in seconds,
         second column the mean eod, third column the standard error.
     eod_times: 1-D array
-        Times of EOD peaks in seconds.
+        Times of EOD peaks in seconds that have been actually used to calculate the
+        averaged EOD waveform.
     """
-    if period is None:
-        # threshold for peak detection:
-        threshold = percentile_threshold(data, thresh_fac=thresh_fac, percentile=percentile)
-
-        # detect peaks:
-        eod_idx, _ = detect_peaks(data, threshold)
-        if len(eod_idx) == 0:
-            return np.array([]), np.array([]), np.array([]), np.array([])
-
-        # eod indices and times:
-        eod_times = eod_idx / samplerate
-    else:
-        eod_times = np.arange(0.0, len(data)/samplerate, period)
-        eod_idx = np.round(eod_times * samplerate).astype(np.int)
-
+    # indices of EOD times:
+    eod_idx = np.round(eod_times * samplerate).astype(np.int)
+        
     # window size:
-    tmp_period = period
-    if tmp_period is None:
-        tmp_period = np.min(np.diff(eod_times))
-    win = 0.5*win_fac*tmp_period
+    period = np.min(np.diff(eod_times))
+    win = 0.5*win_fac*period
     if 2*win < min_win:
         win = 0.5*min_win
     win_inx = int(win * samplerate)
@@ -159,7 +141,6 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
             maxn = step*(idx+1)
             eod_snippets = eod_snippets[:maxn]
             eod_times = eod_times[:maxn]
-            eod_idx = eod_idx[:maxn]
 
     # mean and std of snippets:
     mean_eod = np.zeros((len(eod_snippets[0]), 3))
@@ -167,8 +148,8 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
     if len(eod_snippets) > 1:
         mean_eod[:,2] = np.std(eod_snippets, axis=0, ddof=1)/np.sqrt(len(eod_snippets))
         
-    # inverse filter:
-    if unfilter_cutoff > 0.0:
+    # apply inverse filter:
+    if unfilter_cutoff and unfilter_cutoff > 0.0:
         unfilter(mean_eod[:,1], samplerate, unfilter_cutoff)
         
     # time axis:
@@ -537,7 +518,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - powerlowcutoff: frequency at which the power reached half of the peak power
           relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
-        - n: number of pulses analyzed.
+        - n: number of pulses analyzed  (i.e. number of `eod_times`).
         - times: the times of the detected EOD pulses (i.e. `eod_times`).
     peaks: 2-D array
         For each peak and trough (rows) of the EOD waveform
@@ -1512,9 +1493,7 @@ def eod_waveform_args(cfg):
         Dictionary with names of arguments of the eod_waveform() function
         and their values as supplied by `cfg`.
     """
-    a = cfg.map({'thresh_fac': 'pulseWidthThresholdFactor',
-                 'percentile': 'pulseWidthPercentile',
-                 'win_fac': 'eodSnippetFac',
+    a = cfg.map({'win_fac': 'eodSnippetFac',
                  'min_win': 'eodMinSnippet',
                  'max_eods': 'eodMaxEODs',
                  'unfilter_cutoff': 'unfilterCutoff'})
