@@ -60,6 +60,27 @@ def eod_waveform(data, samplerate, thresh_fac=0.8, percentile=1.0, win_fac=2.0,
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard error.
 
+    Retrieving the EOD waveform works under the following conditions.
+    (i) at a signal-to-noise ratio $SNR = P_s/P_n$, i.e. the power of the EOD
+    of interest relative to the largest other EOD, we need to average over at least
+    $n > (SNR c_s^2)^{-1}$ snippets to bring the standard error of the averaged EOD waveform
+    down to $c_s$ relative to its amplitude. For a s.e.m. less than 5% ($c_s=0.05$) and
+    an SNR of -10dB (the signal is 10 times smaller than the noise, SNR=0.1) we get
+    $n > 0.00025^{-1} = 4000$ data snippets - a recording a couple of seconds long.
+    (ii) Very important for wave-type fish is that they keep their frequency constant.
+    Slight changes in the EOD frequency will corrupt the average waveform.
+    If the period of the waveform changes by $c_f=\Delta T/T$, then after
+    $n = 1/c_f$ periods moved the modified waveform through a whole period.
+    This is in the range of hundreds or thousands waveforms.
+
+    The algorithm checks for a global minimum of the s.e.m. as a function of snippet number.
+    If there is one then the average is computed for this number of snippets,
+    otherwise all snippets are taken from the provided data segment. Note that this check
+    only works for the strongest EOD in a recording. For weaker EOD the s.e.m. always
+    decays with snippet number (empirical observation).
+
+    TODO: use power spectra to check for changes in EOD frequency!
+
     Parameters
     ----------
     data: 1-D array
