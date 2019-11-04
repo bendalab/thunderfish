@@ -695,9 +695,10 @@ def main():
     if wave_fish:
         # wavefish species:
         species = np.zeros(data.rows(), object)
-        species[data[:,'EODf'] < 300.0] = 'Sterno'
+        species[data[:,'EODf'] < 250.0] = 'Sterno'
         species[(data[:,'reltroughampl'] < 72.0) & (data[:,'EODf'] > 250.0)] = 'Eigen'
-        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 250.0)] = 'Aptero'
+        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 500.0)] = 'Aptero'
+        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 250.0) & (data[:,'EODf'] < 500.0)] = 'unknown'
         data.append('species', '', '%s', species)
 
     # select columns (EOD properties) to be shown:
