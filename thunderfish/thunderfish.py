@@ -15,6 +15,7 @@ import glob
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Bbox
 from multiprocessing import Pool, freeze_support, cpu_count
 from audioio import play, fade
 from .version import __version__, __year__
@@ -524,8 +525,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
 
 
 def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
-                output_folder='.', keep_path=False, show_bestwindow=False,
-                verbose=0):
+                save_subplots=False, output_folder='.', keep_path=False,
+                show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -600,6 +601,9 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         if save_plot:
             # save figure as pdf:
             fig.savefig(output_basename + '.pdf')
+            if save_subplots:
+                # make figures and call plot functions on them individually
+                print('sorry, saving subplots separately is not implemented yet!')
             plt.close()
         elif not save_data:
             fig.canvas.set_window_title('thunderfish')
@@ -648,6 +652,8 @@ def main():
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot as pdf file')
+    parser.add_argument('-P', dest='save_subplots', action='store_true',
+                        help='save subplots as separate pdf files')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures (defaults to current working directory)')
     parser.add_argument('-k', dest='keep_path', action='store_true',
@@ -695,6 +701,9 @@ def main():
     cfg = configuration(cfgfile, False, args.file[0], verbose-1)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
+    # save plots:
+    if args.save_subplots:
+        args.save_plot = True
     # create output folder:
     if args.save_data or args.save_plot:
         if not os.path.exists(args.outpath):
@@ -704,7 +713,7 @@ def main():
     # run on pool:
     global pool_args
     pool_args = (cfg, args.channel, args.save_data,
-                 args.save_plot, args.outpath, args.keep_path,
+                 args.save_plot, args.save_subplots, args.outpath, args.keep_path,
                  args.show_bestwindow, verbose-1)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
