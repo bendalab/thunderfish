@@ -852,7 +852,7 @@ def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
     kwargs: dict
         Arguments passed on to the plot command for the recorded trace.
     """
-    widx2 = int(width*samplerate)/2
+    widx2 = int(width*samplerate)//2
     i0 = len(data)//2 - widx2
     i0 = (i0//widx2)*widx2
     i1 = i0 + 2*widx2
