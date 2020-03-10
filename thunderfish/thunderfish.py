@@ -1,7 +1,7 @@
 """
 # thunderfish
 
-Automatically detect and analyze all fish present in an EOD recording
+Automatically detect and analyze all EOD waveforms in a short recording
 and generate a summary plot and data tables.
 
 Run it from the thunderfish development directory as:
@@ -15,6 +15,7 @@ import glob
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.transforms import Bbox
 from multiprocessing import Pool, freeze_support, cpu_count
 from audioio import play, fade
 from .version import __version__, __year__
@@ -31,7 +32,7 @@ from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection
 from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
-from .eodanalysis import eod_recording_plot, eod_waveform_plot
+from .eodanalysis import eod_recording_plot, pulse_eods_plot, eod_waveform_plot
 from .eodanalysis import pulse_spectrum_plot, wave_spectrum_plot
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
@@ -106,8 +107,8 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     """ Detect EODs of all fish present in the data.
     """
     # pulse-type fish?
-    pulse_fish, _, _ = check_pulse_width(data, samplerate, verbose=verbose,
-                                         **check_pulse_width_args(cfg))
+    pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
+                                                 **check_pulse_width_args(cfg))
 
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
@@ -151,21 +152,20 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
     if pulse_fish:
-        mean_eod, eod_times = \
-            eod_waveform(data, samplerate,
+        mean_eod, eod_times0 = \
+            eod_waveform(data, samplerate, eod_times,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
                          **eod_waveform_args(cfg))
-        mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times,
+        mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
                                                       freq_resolution=minfres,
                                                       **analyze_pulse_args(cfg))
-        props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
         props['index'] = len(eod_props)
         props['clipped'] = clipped
         power_thresh = np.zeros(power.shape)
         power_thresh[:,0] = power[:,0]
         power_thresh[:,1] = 5.0*props['EODf']**2.0 * power[:,1]
         # add good waveforms only:
-        skips, msg = pulse_quality(0, clipped, props['rmvariance'],
+        skips, msg = pulse_quality(0, clipped, props['rmssem'],
                                    **pulse_quality_args(cfg))
         if len(skips) == 0:
             eod_props.append(props)
@@ -196,19 +196,19 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     fish_indices = np.zeros(len(fishlist))
     for k, idx in enumerate(np.argsort(-powers)):
         fish = fishlist[idx]
+        eod_times = np.arange(0.0, len(data)/samplerate, 1.0/fish[0,0])
         mean_eod, eod_times = \
-            eod_waveform(data, samplerate,
-                         win_fac=3.0, min_win=0.0, period=1.0/fish[0,0],
+            eod_waveform(data, samplerate, eod_times, win_fac=3.0, min_win=0.0,
                          **eod_waveform_args(cfg))
         mean_eod, props, sdata, error_str = \
             analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
         if error_str:
             print(filename + ': ' + error_str)
-        props['n'] = len(eod_times) if len(eod_times) < max_eods or max_eods == 0 else max_eods
+        props['n'] = len(eod_times)
         props['index'] = len(eod_props)
         props['clipped'] = clipped if k == 0 else 0.0
         # add good waveforms only:
-        skips, msg = wave_quality(k, clipped, props['rmvariance'],
+        skips, msg = wave_quality(k, clipped, props['rmssem'],
                                   props['rmserror'], props['power'],
                                   sdata[1:,3], **wave_quality_args(cfg))
         if len(skips) == 0:
@@ -363,7 +363,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pulse spectrum
     ax6 = fig.add_axes([0.575, 0.36, 0.4, 0.14]) # amplitude spectrum
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum
-    ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording xoom-in
+    ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording zoom-in
     
     # plot title:
     ax1.text(0.0, .72, base_name, fontsize=22)
@@ -435,6 +435,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         width = (1+width//0.005)*0.005
         eod_recording_plot(raw_data[idx0:idx1], samplerate, ax8, width, unit,
                            idx0/samplerate)
+        pulse_eods_plot(ax8, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate)
         ax8.set_title('Recording', fontsize=14, y=1.05)
     else:
         ax8.set_visible(False)        
@@ -524,8 +525,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
 
 
 def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
-                output_folder='.', keep_path=False, show_bestwindow=False,
-                verbose=0):
+                save_subplots=False, output_folder='.', keep_path=False,
+                show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -600,6 +601,9 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         if save_plot:
             # save figure as pdf:
             fig.savefig(output_basename + '.pdf')
+            if save_subplots:
+                # make figures and call plot functions on them individually
+                print('sorry, saving subplots separately is not implemented yet!')
             plt.close()
         elif not save_data:
             fig.canvas.set_window_title('thunderfish')
@@ -634,28 +638,30 @@ def main():
                         help='show this help message and exit')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose',
-                        help='verbosity level. Increase by specifying -v multiple times, or like -vvv.')
+                        help='verbosity level. Increase by specifying -v multiple times, or like -vvv')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
-                        help='channel to be analyzed. Default is to use first channel.')
+                        help='channel to be analyzed (defaults to first channel)')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-s', dest='save_data', action='store_true',
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         choices=TableData.formats,
-                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat")')
+                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot as pdf file')
-    parser.add_argument('-k', dest='keep_path', action='store_true',
-                        help='keep path of input file when saving analysis files')
+    parser.add_argument('-P', dest='save_subplots', action='store_true',
+                        help='save subplots as separate pdf files')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
-                        help='path where to store results and figures')
+                        help='path where to store results and figures (defaults to current working directory)')
+    parser.add_argument('-k', dest='keep_path', action='store_true',
+                        help='keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH')
     parser.add_argument('-b', dest='show_bestwindow', action='store_true',
                         help='show the cost function of the best window algorithm')
     parser.add_argument('file', nargs='*', default='', type=str,
-                        help='name of the file with the time series data')
+                        help='name of a file with time series data of an EOD recording')
     args = parser.parse_args()
 
     # help:
@@ -668,7 +674,7 @@ def main():
         print('- automatically analyze all wav files in the current working directory and save analysis results and plot to files:')
         print('  > thunderfish -s -p *.wav')
         print('- analyze all wav files in the river1/ directory, use all CPUs, and write files directly to "results/":')
-        print('  > thunderfish -j -s -p -o results/ *.wav')
+        print('  > thunderfish -j -s -p -o results/ river1/*.wav')
         print('- analyze all wav files in the river1/ directory and write files to "results/river1/":')
         print('  > thunderfish -s -p -o results/ -k river1/*.wav')
         print('- write configuration file:')
@@ -695,6 +701,9 @@ def main():
     cfg = configuration(cfgfile, False, args.file[0], verbose-1)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
+    # save plots:
+    if args.save_subplots:
+        args.save_plot = True
     # create output folder:
     if args.save_data or args.save_plot:
         if not os.path.exists(args.outpath):
@@ -704,7 +713,7 @@ def main():
     # run on pool:
     global pool_args
     pool_args = (cfg, args.channel, args.save_data,
-                 args.save_plot, args.outpath, args.keep_path,
+                 args.save_plot, args.save_subplots, args.outpath, args.keep_path,
                  args.show_bestwindow, verbose-1)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
