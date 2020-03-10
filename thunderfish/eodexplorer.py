@@ -157,7 +157,7 @@ class EODExplorer(MultivariateExplorer):
         if any(l in label for l in ['ampl', 'power', 'width',
                                     'time', 'tau', 'var', 'peak', 'trough',
                                     'dist', 'rms', 'noise']):
-            if np.all(data >= 0.0):
+            if np.all(data[np.isfinite(data)] >= 0.0):
                 if axis == 'x':
                     ax.set_xlim(0.0, None)
                 elif axis == 'y':
@@ -252,7 +252,7 @@ class EODExplorer(MultivariateExplorer):
                     ax.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
                     ax.set_yticklabels(['0', u'\u03c0/2', u'\u03c0', u'3\u03c0/2', u'2\u03c0'])
         else:
-            for ax, xl in zip(ax, self.wave_ylabels):
+            for ax, xl in zip(axs, self.wave_ylabels):
                 if 'Voltage' in xl:
                     ax.set_xlim(-0.5, 1.5)
                 if 'Power' in xl:
@@ -342,7 +342,7 @@ class EODExplorer(MultivariateExplorer):
     """
     groups = ['all', 'allpower', 'noise', 'timing',
               'ampl', 'relampl', 'power', 'relpower', 'phase',
-              'time', 'width', 'none']
+              'time', 'width', 'peaks', 'none']
     
     @staticmethod
     def select_EOD_properties(data, wave_fish, max_n, column_groups, add_columns):
@@ -371,11 +371,13 @@ class EODExplorer(MultivariateExplorer):
         -------
         data_cols: list of int
             Indices of data columns to be shown by EODExplorer.
+        error: string
+            In case of an invalid column group, an error string.
         """
         if wave_fish:
             # maximum number of harmonics:
             if max_n == 0:
-                max_n = 40
+                max_n = 100
             else:
                 max_n += 1
             for k in range(1, max_n):
@@ -411,31 +413,32 @@ class EODExplorer(MultivariateExplorer):
                     group_cols.extend(['noise', 'rmserror',
                                        'p-p-amplitude', 'power'])
                 elif group == 'timing' or group == 'time':
-                    group_cols.extend(['peakwidth', 'p-p-distance', 'leftpeak', 'rightpeak',
-                                      'lefttrough', 'righttrough'])
+                    group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
+                                       'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
                 elif group == 'ampl':
                     for k in range(0, max_n):
                         group_cols.append('ampl%d' % k)
                 elif group == 'relampl':
+                    group_cols.append('reltroughampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                 elif group == 'relpower' or group == 'power':
                     for k in range(1, max_n):
                         group_cols.append('relpower%d' % k)
                 elif group == 'phase':
-                    for k in range(1, max_n):
+                    for k in range(0, max_n):
                         group_cols.append('phase%d' % k)
                 elif group == 'all':
+                    group_cols.append('reltroughampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                         group_cols.append('phase%d' % k)
                 elif group == 'allpower':
                     for k in range(1, max_n):
-                        group_cols.append('relampl%d' % k)
                         group_cols.append('relpower%d' % k)
                         group_cols.append('phase%d' % k)
                 else:
-                    parser.error('"%s" is not a valid data group for wavefish' % group)
+                    return None, '"%s" is not a valid data group for wavefish' % group
             else:  # pulse fish
                 if group == 'noise':
                     group_cols.extend(['noise', 'p-p-amplitude', 'min-ampl', 'max-ampl'])
@@ -456,17 +459,20 @@ class EODExplorer(MultivariateExplorer):
                             group_cols.append('P%drelampl' % k)
                 elif group == 'width':
                     for k in range(min_peaks, max_peaks):
-                        if k != 1:
-                            group_cols.append('P%dwidth' % k)
+                        group_cols.append('P%dwidth' % k)
+                elif group == 'peaks':
+                    group_cols.append('firstpeak')
+                    group_cols.append('lastpeak')
                 elif group == 'all':
+                    group_cols.extend(['firstpeak', 'lastpeak'])
                     for k in range(min_peaks, max_peaks):
                         if k != 1:
                             group_cols.append('P%drelampl' % k)
                             group_cols.append('P%dtime' % k)
-                            group_cols.append('P%dwidth' % k)
+                        group_cols.append('P%dwidth' % k)
                     group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
                 else:
-                    parser.error('"%s" is not a valid data group for pulsefish' % group)
+                    return None, '"%s" is not a valid data group for pulsefish' % group
         # additional data columns:
         group_cols.extend(add_columns)
         # translate to indices:
@@ -479,7 +485,7 @@ class EODExplorer(MultivariateExplorer):
                 data_cols.remove(idx)
             else:
                 data_cols.append(idx)
-        return data_cols
+        return data_cols, None
 
     
     @staticmethod
@@ -501,10 +507,12 @@ class EODExplorer(MultivariateExplorer):
         Returns
         -------
         colors: int or column from data.
-            Either index of data_cols or additional data from the data table
+            Either index of `data_cols` or additional data from the data table
             to be used for coloring.
         color_label: string
             Label for labeling the color bar.
+        color_idx: int or None
+            Index of column in `data`.
         error: string
             In case an invalid column is selected, an error string.
         """
@@ -512,7 +520,7 @@ class EODExplorer(MultivariateExplorer):
         colors = None
         color_label = None
         if color_idx is None and color_col != 'row':
-            return None, None, '"%s" is not a valid column for color code' % color_col
+            return None, None, None, '"%s" is not a valid column for color code' % color_col
         if color_idx is None:
             colors = -2
         elif color_idx in data_cols:
@@ -523,7 +531,7 @@ class EODExplorer(MultivariateExplorer):
             else:
                 color_label = data.label(color_idx)
             colors = data[:,color_idx]
-        return colors, color_label, None
+        return colors, color_label, color_idx, None
 
 
 class PrintHelp(argparse.Action):
@@ -533,6 +541,7 @@ class PrintHelp(argparse.Action):
         print('mouse:')
         for ma in MultivariateExplorer.mouse_actions:
             print('%-23s %s' % ma)
+        print('%-23s %s' % ('double left click', 'run thunderfish on selected EOD waveform'))
         print('')
         print('key shortcuts:')
         for ka in MultivariateExplorer.key_actions:
@@ -686,17 +695,22 @@ def main():
     if wave_fish:
         # wavefish species:
         species = np.zeros(data.rows(), object)
-        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] < 300.0)] = 'Sterno'
-        species[(data[:,'phase1'] < 0) & (data[:,'EODf'] > 300.0)] = 'Eigen'
-        species[data[:,'phase1'] > 0] = 'Aptero'
+        species[data[:,'EODf'] < 250.0] = 'Sterno'
+        species[(data[:,'reltroughampl'] < 72.0) & (data[:,'EODf'] > 250.0)] = 'Eigen'
+        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 500.0)] = 'Aptero'
+        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 250.0) & (data[:,'EODf'] < 500.0)] = 'unknown'
         data.append('species', '', '%s', species)
 
     # select columns (EOD properties) to be shown:
-    data_cols = EODExplorer.select_EOD_properties(data, wave_fish, max_n,
-                                                  column_groups, add_data_cols)
+    data_cols, error = \
+      EODExplorer.select_EOD_properties(data, wave_fish, max_n,
+                                        column_groups, add_data_cols)
+    if error:
+        parser.error(error)
 
     # select column used for coloring the data:
-    colors, color_label, error = EODExplorer.select_color_property(data, data_cols, color_col)
+    colors, color_label, color_idx, error = \
+      EODExplorer.select_color_property(data, data_cols, color_col)
     if error:
         parser.error(error)
 
@@ -706,9 +720,9 @@ def main():
             s = [' '] * 3
             if k in data_cols:
                 s[1] = '*'
-            if k == color_idx:
+            if color_idx is not None and k == color_idx:
                 s[0] = 'C'
-                print(''.join(s) + c)
+            print(''.join(s) + c)
         parser.exit()
 
     # load waveforms:

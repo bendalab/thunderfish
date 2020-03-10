@@ -75,8 +75,8 @@ def check_pulse_width(data, samplerate, thresh_fac=0.8, percentile=1.0,
     peak_ratio: float
         Returns a float between 0. and 1. which gives the proportion of peak-2-trough,
         from peak-2-peak time distance, i.e. pulse width relative to pulse interval.
-    interval: float
-        The mean inter-pulse-interval.
+    eod_times: 1D array of float
+        Array of times of EOD pulses.
     """
 
     def ratio(peak_idx, trough_idx):
@@ -119,11 +119,6 @@ def check_pulse_width(data, samplerate, thresh_fac=0.8, percentile=1.0,
     peak_ratio = np.mean([pr_pvt, pr_tvp])
 
     pulse_fish = peak_ratio < pulse_thresh
-
-    if len(peak_idx) > 1:
-        interval = np.mean(np.diff(peak_idx)/samplerate)
-    else:
-        interval = -1.0
     
     if plot_data_func:
         plot_data_func(data, samplerate, peak_idx, trough_idx, threshold, pulse_thresh,
@@ -132,8 +127,10 @@ def check_pulse_width(data, samplerate, thresh_fac=0.8, percentile=1.0,
     if verbose > 0:
         f_type = 'pulse' if pulse_fish else 'wave'
         print('  fish-type is %s. pulse-width-ratio is %.3f' % (f_type, peak_ratio))
+
+    eod_times = peak_idx/samplerate
         
-    return pulse_fish, peak_ratio, interval
+    return pulse_fish, peak_ratio, eod_times
 
 
 def check_pulse_psd(freqs, power, proportion_th=0.27, freq_bin_width=125.0, max_freq=3000.0,
@@ -454,7 +451,7 @@ if __name__ == "__main__":
     fig1, ax1 = plt.subplots(nrows=3, ncols=1, figsize=(8., 12.))
 
     # run pulse-width-based detector:
-    pulse_fish, r_val, T = check_pulse_width(data, rate,
+    pulse_fish, r_val, _ = check_pulse_width(data, rate,
                                              plot_data_func=plot_width_period_ratio, ax=ax1)
     plt.tight_layout()
 

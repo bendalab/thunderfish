@@ -322,6 +322,32 @@ def fishgrid_samplerate(filename):
     raise ValueError('could not retrieve sampling rate from ' + fishgrid_file)
 
 
+def fishgrid_spacings(filename):
+    fishgrid_dir = filename
+    if not os.path.isdir(filename):
+        fishgrid_dir = os.path.dirname(filename)
+
+    # retreive grids from fishgrid.cfg file:
+    grids_dist = []
+    rows_dist = None
+    cols_dist = None
+    fishgrid_file = os.path.join(fishgrid_dir, 'fishgrid.cfg')
+    with open(fishgrid_file, 'r') as sf:
+        for line in sf:
+            if "Grid" in line:
+                if rows_dist is not None and cols_dist is not None:
+                    grids_dist.append((rows_dist, cols_dist))
+                rows_dist = None
+                cols_dist = None
+            elif "ColumnDistance1" in line:
+                cols_dist = int(line.split(':')[1].strip().split('.')[0])
+            elif "RowDistance1" in line:
+                rows_dist = int(line.split(':')[1].strip().split('.')[0])
+        if rows_dist is not None and cols_dist is not None:
+            grids_dist.append((rows_dist, cols_dist))
+    return grids_dist
+
+
 def fishgrid_grids(filename):
     """
     Retrieve grid sizes from a fishgrid.cfg file.
