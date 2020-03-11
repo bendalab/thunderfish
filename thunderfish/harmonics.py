@@ -80,11 +80,13 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     max_divisor: int
         Maximum divisor used for checking for sub-harmonics.
     max_rel_power_weight: float
-        Harmonic groups with larger overall power are preferred. If min_group_size
+        Harmonic groups with larger overall power are preferred when comparing
+        harmonic groups constracted from the same frequency. If min_group_size
         is larger than two, the overall power is divided by the relative power of
-        the `min_group_size`-th harmonics relative to the power of the fundamental.
-        This way, harmonic groups with strong harmonics are punished. The relative power
-        can be limited to range from `1/max_rel_power_weight` to `max_rel_power_weight`.
+        the `min_group_size`-th harmonics (relative to the power of the fundamental).
+        This way, harmonic groups with too strong higher harmonics are punished.
+        The relative power for punishing too strong harmonics can be limited to range
+        from `1/max_rel_power_weight` to `max_rel_power_weight`.
         Set `max_rel_power_weight` to one to disable this.
     
     Returns
@@ -422,7 +424,8 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
         Fundamental frequency for which harmonics are retrieved.
     good_freqs: 2-D array
         List of frequency, power, and count of strong peaks
-        in a power spectrum.
+        in a power spectrum. All harmonics of `freq` will be
+        removed from `good_freqs`.
     all_freqs:
         List of frequency, power, and count of all peaks
         in a power spectrum.
@@ -649,7 +652,6 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
         return group
     fzero = group[0,0]
     ## indices = np.where(np.abs(freqs[:,0] - np.round(freqs[:,0]/fzero)*fzero) < 2.0*freq_tol)[0]
-    ##    
     indices = []
     group_freqs = list(group[:,0])
     prev_h = len(group_freqs)
@@ -676,11 +678,6 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
             if h == prev_h and len(group_freqs) > 0:
                 group_freqs.pop()
                 indices.pop()
-            ## do we realy need fill ins? It is not working anyways!
-            ## else:
-            ##     while prev_h < h-2:
-            ##         indices.append(-1)
-            ##         prev_h += 1
             group_freqs.append(f)
             indices.append(i)
             prev_h = h
@@ -700,7 +697,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
                          check_freqs=[], mains_freq=60.0, mains_freq_tol=1.0,
                          min_freq=0.0, max_freq=2000.0,
                          max_divisor=4, min_group_size=4,
-                         max_rel_power_weight=2.0, max_rel_power=0.0,
+                         max_rel_power_weight=2.0, max_harmonics_decibel=0.0,
                          max_harmonics=0, max_groups=0, **kwargs):
     """Extract fundamental frequencies from power-spectrum peaks.
                          
@@ -736,15 +733,19 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
     min_group_size: int
         Within min_group_size no harmonics are allowed to be filled in.
     max_rel_power_weight: float
-        Harmonic groups with larger overall power are preferred. If min_group_size
+        Harmonic groups with larger overall power are preferred when comparing
+        harmonic groups constracted from the same frequency. If min_group_size
         is larger than two, the overall power is divided by the relative power of
-        the `min_group_size`-th harmonics relative to the power of the fundamental.
-        This way, harmonic groups with strong harmonics are punished. The relative power
-        can be limited to range from `1/max_rel_power_weight` to `max_rel_power_weight`.
+        the `min_group_size`-th harmonics (relative to the power of the fundamental).
+        This way, harmonic groups with too strong higher harmonics are punished.
+        The relative power for punishing too strong harmonics can be limited to range
+        from `1/max_rel_power_weight` to `max_rel_power_weight`.
         Set `max_rel_power_weight` to one to disable this.
-    max_rel_power: float
-        Maximum allowed power of the `min_group_size`-th harmonics
-        relative to fundamental. If zero do not check for relative power.
+    max_harmonics_decibel: float
+        Maximum allowed power of the `min_group_size`-th and higher harmonics
+        (in decibel relative to power of fundamental, i.e. if harmonics are required
+        to be smaller than fundamental then this is a negative number).
+        If zero do not check for relative power.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -799,8 +800,8 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             # check for harmonic groups:
             f0s = 'fmax'
             good_freqs, all_freqs, harm_group, fzero_harmonics, fmax = \
-                build_harmonic_group(good_freqs, all_freqs, freq_tol,
-                                     verbose-1, min_group_size, max_divisor)
+                build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose-1,
+                                     min_group_size, max_divisor, max_rel_power_weight)
 
         # nothing found:
         if len(harm_group) == 0:
@@ -811,15 +812,20 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             continue
         first = False
 
+        # fill up harmonic group:
+        harm_group = expand_group(harm_group, all_freqs, freq_tol, max_harmonics)
+
         # check frequency range of fundamental:
         fundamental_ok = (harm_group[0, 0] >= min_freq and
                           harm_group[0, 0] <= max_freq)
         # check power hum:
         mains_ok = ((mains_freq <= 0.0) or
                     (m.fabs(harm_group[0,0] - mains_freq) > freq_tol))
-        # check relative power of highest harmonic:
-        rpower = harm_group[-1,1]/harm_group[0,1]
-        amplitude_ok = ((max_rel_power <= 0.0) or (rpower < max_rel_power))
+        # check relative power of higher harmonics:
+        rpowers = decibel(harm_group[min_group_size:,1], harm_group[0,1])
+        amplitude_ok = ( (np.abs(max_harmonics_decibel) <= 1e-8) or \
+                         np.all((rpowers < max_harmonics_decibel) | \
+                                (harm_group[min_group_size:,2] > 1)) )
         # check:
         if fundamental_ok and mains_ok and amplitude_ok:
             if verbose > 0:
@@ -832,9 +838,10 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
                 fs = 'is ' if fundamental_ok else 'not'
                 ms = 'not ' if mains_ok else 'is'
                 ps = 'smaller' if amplitude_ok else 'larger '
-                print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, relpower=%5.3f %s than %5.3f'
+                pi = 0 if amplitude_ok else np.where(rpowers >= max_harmonics_decibel)[0][0]
+                print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, relpower[%d]=%6.1fdB %s than %6.1fdB'
                       % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
-                         fs, ms, rpower, ps, max_rel_power))
+                         fs, ms, min_group_size+pi, rpowers[pi], ps, max_harmonics_decibel))
                 
     # select most powerful harmonic groups:
     if max_groups > 0:
@@ -918,7 +925,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
                     low_thresh_factor=6.0, high_thresh_factor=10.0,
                     freq_tol_fac=1.0, mains_freq=60.0, mains_freq_tol=1.0,
                     min_freq=0.0, max_freq=2000.0, max_divisor=4,
-                    min_group_size=4, max_rel_power_weight=2.0, max_rel_power=0.0,
+                    min_group_size=4, max_rel_power_weight=2.0, max_harmonics_decibel=0.0,
                     max_harmonics=0, max_groups=0, **kwargs):
     """Detect peaks in power spectrum and group them according to their harmonic structure.
 
@@ -963,15 +970,19 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
     min_group_size: int
         Within min_group_size no harmonics are allowed to be filled in.
     max_rel_power_weight: float
-        Harmonic groups with larger overall power are preferred. If min_group_size
+        Harmonic groups with larger overall power are preferred when comparing
+        harmonic groups constracted from the same frequency. If min_group_size
         is larger than two, the overall power is divided by the relative power of
-        the `min_group_size`-th harmonics relative to the power of the fundamental.
-        This way, harmonic groups with strong harmonics are punished. The relative power
-        can be limited to range from `1/max_rel_power_weight` to `max_rel_power_weight`.
+        the `min_group_size`-th harmonics (relative to the power of the fundamental).
+        This way, harmonic groups with too strong higher harmonics are punished.
+        The relative power for punishing too strong harmonics can be limited to range
+        from `1/max_rel_power_weight` to `max_rel_power_weight`.
         Set `max_rel_power_weight` to one to disable this.
-    max_rel_power: float
-        Maximum allowed power of the min_group_size harmonics
-        relative to fundamental. If zero do not check for relative power.
+    max_harmonics_decibel: float
+        Maximum allowed power of the `min_group_size`-th and higher harmonics
+        (in decibel relative to power of fundamental, i.e. if harmonics are required
+        to be smaller than fundamental then this is a negative number).
+        If zero do not check for relative power.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -1045,7 +1056,8 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
       extract_fundamentals(good_freqs, all_freqs, delta_f*freq_tol_fac,
                            verbose, check_freqs, mains_freq, mains_freq_tol,
                            min_freq, max_freq, max_divisor, min_group_size,
-                           max_rel_power_weight, max_rel_power, max_harmonics, max_groups)
+                           max_rel_power_weight, max_harmonics_decibel,
+                           max_harmonics, max_groups)
 
     return (groups, fzero_harmonics, mains, all_freqs, good_freqs[:,0],
             low_threshold, high_threshold, center)
@@ -1615,7 +1627,7 @@ def psd_peak_detection_args(cfg):
 def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
                                max_divisor=4, freq_tol_fac=1.0,
                                min_group_size=4, min_freq=20.0, max_freq=2000.0,
-                               max_rel_power_weight=2.0, max_rel_power=0.0,
+                               max_rel_power_weight=2.0, max_harmonics_decibel=0.0,
                                max_harmonics=0, max_groups=0):
     """ Add parameter needed for detection of harmonic groups as
     a new section to a configuration.
@@ -1638,8 +1650,8 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
     cfg.add_section('Acceptance of best harmonic groups:')
     cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
-    cfg.add('maxRelativePowerWeight', max_rel_power_weight, '', 'Maximum value of the power of the minimumGroupSize harmonics relative to fundamental used for punishing overall power of a harmonic group.')
-    cfg.add('maxRelativePower', max_rel_power, '', 'Maximum allowed power of the minimumGroupSize harmonics relative to fundamental. If zero do not check for relative power.')
+    cfg.add('maxRelativePowerWeight', max_rel_power_weight, '', 'Maximum value of the power of the minimumGroupSize-th harmonic relative to fundamental used for punishing overall power of a harmonic group.')
+    cfg.add('maxRelativePower', max_harmonics_decibel, 'dB', 'Maximum allowed power of the minimumGroupSize-th and higher harmonics relative to fundamental. If zero do not check for relative power.')
     cfg.add('maxHarmonics', max_harmonics, '', '0: keep all, >0 only keep the first # harmonics.')
     cfg.add('maxGroups', max_groups, '', 'Maximum number of harmonic groups. If 0 process all.')
 
@@ -1668,7 +1680,7 @@ def harmonic_groups_args(cfg):
                     'min_freq': 'minimumFrequency',
                     'max_freq': 'maximumFrequency',
                     'max_rel_power_weight': 'maxRelativePowerWeight',
-                    'max_rel_power': 'maxRelativePower',
+                    'max_harmonics_decibel': 'maxRelativePower',
                     'max_harmonics': 'maxHarmonics',
                     'max_groups': 'maxGroups'})
 
