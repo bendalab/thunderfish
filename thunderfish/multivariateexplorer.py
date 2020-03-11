@@ -245,7 +245,7 @@ class MultivariateExplorer(object):
         colors: int or 1D array
            Index to colum in data to be used for coloring scatter plots.
            -2 for coloring row index of data.
-           Or data array used to color scaler plots.
+           Or data array used to color scalar plots.
         color_label: string
            If colors is an array, this is a label describing the data.
            It is used to label the color bar.
