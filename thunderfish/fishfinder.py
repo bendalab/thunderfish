@@ -691,7 +691,9 @@ class SignalPlot:
         self.audio.beep(1.0, frequency)
 
 
-def short_user_warning(message, category, filename, lineno, file=sys.stderr, line=''):
+def short_user_warning(message, category, filename, lineno, file=None, line=''):
+    if file is None:
+        file = sys.stderr
     if category == UserWarning:
         file.write('%s line %d: %s\n' % ('/'.join(filename.split('/')[-2:]), lineno, message))
     else:
