@@ -110,7 +110,7 @@ def generate_eigenmannia(frequency=100.0, samplerate=44100., duration=1., noise_
     """
     return generate_wavefish(frequency=frequency, samplerate=samplerate, duration=duration,
                              noise_std=noise_std, amplitudes=[1.0, 0.25, 0.0, 0.01],
-                             phases=[0.0, 0.5*np.pi, 0.0, 0.0])
+                             phases=[0.0, -0.48*np.pi, 0.0, 0.0])
 
 
 def chirps_frequency(eodf=100.0, samplerate=44100., duration=1.,
