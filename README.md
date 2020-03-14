@@ -47,7 +47,11 @@ Look into the modules for more information.
 - *checkpulse.py*: Check whether a pulse-type or a wave-type weakly electric fish is present in a recording.
 - *consistentfishes.py*: Create a list of EOD frequencies with fishes present in all provided fish lists.
 - *eodanalysis.py*: Analyse EOD waveforms.
-- *fakefish.py*: Generate artificial EOD waveforms.
 - *harmonics.py*: Extract and analyze harmonic frequencies from power spectra.
+
+### EOD simulations
+- *fakefish.py*: Generate artificial EOD waveforms and fields.
+- *fishshapes.py*: Plot fish silhouettes.
+
 
 
