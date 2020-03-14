@@ -269,7 +269,7 @@ apteronotus_top = np.array([
 fish_shapes = dict(apterotop=apteronotus_top)
     
 
-def plot_fish(ax, fish, pos=(0, 0), direction=(0, 1), size=20.0, bend=0, **kwargs):
+def plot_fish(ax, fish, pos=(0, 0), direction=(0, 1), size=20.0, bend=0, scaley=1, **kwargs):
     """ Plot silhouette of an electric fish.
 
     Parameters
@@ -287,6 +287,9 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(0, 1), size=20.0, bend=0, **kwarg
         Size of the fish.
     bend: float
         Bending angle of the fish's tail in degree.
+    scaley: float
+        Scale factor applied in y direction after bending and rotation to
+        compensate for differntly scaled axes.
     kwargs: key word arguments
         Arguments for PathPatch used to draw the fish.
     """
@@ -309,9 +312,17 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(0, 1), size=20.0, bend=0, **kwarg
     codes[0] = Path.MOVETO
     codes[-1] = Path.CLOSEPOLY
     path = Path(verts, codes)
+    #pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+    #pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    #xmin, xmax = ax.get_xlim()
+    #ymin, ymax = ax.get_ylim()
+    #dxu = np.abs(xmax - xmin)/pixelx
+    #dyu = np.abs(ymax - ymin)/pixely
     trans = mpl.transforms.Affine2D()
     angle = np.arctan2(-direction[0], direction[1])
     trans.rotate(angle)
+    #trans.scale(dxu/dyu, dyu/dxu)   # what is the right scaling????
+    trans.scale(1, scaley)
     trans.translate(*pos)
     path = path.transformed(trans)
     ax.add_patch(PathPatch(path, **kwargs))
