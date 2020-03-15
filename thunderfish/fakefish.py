@@ -25,13 +25,15 @@ rises_frequency() for rises.
 The returned frequency of these functions can then be directly passed on
 to generate_wavefish() for generating a frequency modulated EOD waveform.
 
-The spatial geometry of a fish's electric field is simulated by
+The spatial geometry of a fish's electric field is simulated by the functions
 
-efield() .
+epotential()
+efield()
+fieldline()
 
-Electric field potententials can be transformed for nice contour plots via
+Electric field potentials can be transformed for nice contour plots via
 
-transform_efield() .
+squareroot_transform()
 """
 
 import numpy as np
@@ -348,8 +350,8 @@ def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0):
     the sum of the positive unit charges of the other (head) monopoles.
     The strength of the dipole increases linearly with fish size.
 
-    Pass the returned monopole positions and charges on to the efield() function
-    to simulate the resulting electric field.
+    Pass the returned monopole positions and charges on to the epotential() function
+    to simulate the resulting electric field potentials.
 
     Parameters
     ----------
@@ -396,10 +398,8 @@ def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0):
     return poles, charges
 
 
-def efield(x, y, *args):
-    """ Electric field simulation given a set of electric monopoles.
-
-    Use efish_monopoles() to generate monopoles and corresponding charges.
+def epotential(x, y, *args):
+    """ Simulation of electric field potentials given a set of electric monopoles.
 
     Parameters
     ----------
@@ -412,12 +412,13 @@ def efield(x, y, *args):
     args: list of tuples
         Each tuple contains as the first argument the position of monopoles
         (2D array of floats), and as the second argument the corresponding charges
-        (array of floats).
+        (array of floats). Use efish_monopoles() to generate monopoles and
+        corresponding charges.
 
     Returns
     -------
     pot: array of float
-        The potential of the fish at the x and y coordinates.
+        The potential at the x and y coordinates.
         Same shape as x or y.
     """
     pot = np.zeros(x.shape)
@@ -432,41 +433,156 @@ def efield(x, y, *args):
     return pot
 
 
-def transform_efield(pot, thresh=1.0):
-    """ Transform spatial electric field for plotting.
+def squareroot_transform(values, thresh=1.0):
+    """ Nonlinear transformation applying a square root and keeping the sign.
 
-    Takes the square root of positive potentials.
-    Takes the square root of the absolute values of negative potentials
-    and negates it.
+    Takes the square root of positive values and takes the square root
+    of the absolute values of negative values and negates the results.
+
     Then truncate symmetrically both positive and negative values to
     a threshold.
 
-    The resulting transformed potential gives nice contour lines in a
+    The resulting transformed values give nice contour lines in a
     contour plot.
 
     Parameters
     ----------
-    pot: array of float
-        The potential of the fish.
+    values: array of float
+        The values to be transformed, i.e. potentials or field strengths.
     thresh: float or None
-        Maximum absolute value of the returned potential.
+        Maximum absolute value of the returned values.
         Must be positive!
+        If thesh equals zero, then do not apply treshold.
         If None, take the smaller of the maximum of the
         positive values or of the absolute negative values. 
 
     Returns
     -------
-    pot: array of float
-        The transformed potential of the fish.
+    values: array of float
+        The transformed (square-rooted and thresholded) values.
     """
-    sel = pot>=0.0
-    pot[sel] = pot[sel]**0.5
-    pot[np.logical_not(sel)] = -((-pot[np.logical_not(sel)])**0.5)
+    sel = values>=0.0
+    values[sel] = values[sel]**0.5
+    values[np.logical_not(sel)] = -((-values[np.logical_not(sel)])**0.5)
     if thresh is None:
-        thresh = min(np.max(pot), -np.min(pot))
-    pot[pot>thresh] = thresh
-    pot[pot<-thresh] = -thresh
-    return pot
+        thresh = min(np.max(values), -np.min(values))
+    if thresh > 0:
+        values[values>thresh] = thresh
+        values[values<-thresh] = -thresh
+    return values
+
+
+def efield(x, y, *args):
+    """ Simulation of electric field given a set of electric monopoles.
+
+    Parameters
+    ----------
+    x: array of floats
+        1 to 3 dimensional array of x coordinates for which
+        the field should be calculated.
+    y: array of floats
+        1 to 3 dimensional array of y coordinates for which
+        the field should be calculated.
+    args: list of tuples
+        Each tuple contains as the first argument the position of monopoles
+        (2D array of floats), and as the second argument the corresponding charges
+        (array of floats). Use efish_monopoles() to generate monopoles and
+        corresponding charges.
+
+    Returns
+    -------
+    fieldx: array of float
+        The electric field component in x-direction at the x and y coordinates.
+        Same shape as x.
+    fieldy: array of float
+        The electric field component in y-direction at the x and y coordinates.
+        Same shape as y.
+    """
+    fieldx = np.zeros(x.shape)
+    fieldy = np.zeros(x.shape)
+    for poles, charges in args:
+        for p, c in zip(poles, charges):
+            xd = x-p[0]
+            yd = y-p[1]
+            r = np.concatenate((xd[..., np.newaxis], yd[..., np.newaxis]), axis=-1)
+            rnorm = np.linalg.norm(r, axis=-1)
+            rnorm[np.abs(rnorm) < 1e-12] = 1.0e-12
+            fac = c/rnorm**3
+            fieldx += fac*xd
+            fieldy += fac*yd
+    return fieldx, fieldy
+
+
+def fieldline(x, y, x0, y0, *args):
+    """ Compute an electric field line given a set of electric monopoles.
+
+    From the initial position `(x0, y0)` the field line is computed in both directions
+    until it leaves the area defined by `x` and `y`.
+
+    Parameters
+    ----------
+    x: array of floats
+        The range of x values over which the field line is maximally camputed.
+    y: array of floats
+        The range of y values over which the field line is maximally camputed.
+    x0: float
+        Initial x-coordinate where to start the computation of the field line.
+    y0: float
+        Initial y-coordinate where to start the computation of the field line.
+    args: list of tuples
+        Each tuple contains as the first argument the position of monopoles
+        (2D array of floats), and as the second argument the corresponding charges
+        (array of floats). Use efish_monopoles() to generate monopoles and
+        corresponding charges.
+
+    Returns
+    -------
+    xf: array of float
+        x coordinates of the computed field line.
+    yf: array of float
+        y coordinates of the computed field line.
+    """
+    xmin = np.min(x)
+    xmax = np.max(x)
+    ymin = np.min(y)
+    ymax = np.max(y)
+    p = np.array((x0, y0))
+    n = 1000
+    # forward integration:
+    xf = np.zeros(n)
+    yf = np.zeros(n)
+    eps = 0.1
+    for i in range(len(xf)):
+        if p[0]<xmin or p[0]>xmax or p[1]<ymin or p[1]>ymax:
+            xf = xf[:i]
+            yf = yf[:i]
+            break
+        xf[i] = p[0]
+        yf[i] = p[1]
+        u, v = efield(np.array([p[0]]), np.array([p[1]]), *args)
+        uv = np.array((u[0], v[0]))
+        uv /= np.linalg.norm(uv)
+        p += eps*uv
+    # backward integration:
+    n = 20
+    p = np.array((x0, y0))
+    xb = np.zeros(n)
+    yb = np.zeros(n)
+    eps = 0.2
+    for i in range(len(xb)):
+        if p[0]<xmin or p[0]>xmax or p[1]<ymin or p[1]>ymax:
+            xb = xb[:i]
+            yb = yb[:i]
+            break
+        xb[i] = p[0]
+        yb[i] = p[1]
+        u, v = efield(np.array([p[0]]), np.array([p[1]]), *args)
+        uv = np.array((u[0], v[0]))
+        uv /= np.linalg.norm(uv)
+        p -= eps*uv
+    xx = np.concatenate((xb[::-1], xf))
+    yy = np.concatenate((yb[::-1], yf))
+    return xx, yy
 
     
 def main():
