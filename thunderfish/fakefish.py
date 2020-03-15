@@ -40,10 +40,15 @@ fieldline()
 Electric field potentials can be transformed for nice contour plots via
 
 squareroot_transform()
+
+Field lines with arrows are plotted with
+
+plot_fieldlines()
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch
 
 
 def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.05,
@@ -562,6 +567,26 @@ def efield(x, y, *args):
     fieldy: array of float
         The electric field component in y-direction at the x and y coordinates.
         Same shape as y.
+
+    Example
+    -------
+    ```
+    maxx = 12.0
+    maxy = 18.0
+    x = np.linspace(-maxx, maxx, 201)
+    y = np.linspace(-maxy, maxy, 201)
+    xx, yy = np.meshgrid(x, y)
+    fish = ('apterotop', (0, 0), (0, 1), 20.0, 0)
+    poles, charges = efish_monopoles(*fish[1:])
+    fieldx, fieldy = efield(xx, yy, (poles, charges))
+    n = 7
+    u = squareroot_transform(fieldx[n::2*n,n::2*n], 0.0)
+    v = squareroot_transform(fieldy[n::2*n,n::2*n], 0.0)
+    xq = xx[n::2*n,n::2*n]
+    yq = yy[n::2*n,n::2*n]
+    ax.quiver(xq, yq, u, v, units='xy', angles='uv', scale=2, scale_units='xy',
+              width=0.07, headwidth=5)
+    ``` 
     """
     fieldx = np.zeros(x.shape)
     fieldy = np.zeros(x.shape)
@@ -614,43 +639,76 @@ def fieldline(x, y, x0, y0, *args):
     p = np.array((x0, y0))
     n = 1000
     # forward integration:
-    xf = np.zeros(n)
-    yf = np.zeros(n)
+    flf = np.zeros((n, 2))
     eps = 0.1
-    for i in range(len(xf)):
-        if p[0]<xmin or p[0]>xmax or p[1]<ymin or p[1]>ymax or (i >= 2 and
-            (xf[i]-xf[i-1])*(xf[i-1]-xf[i-2])<0 and (yf[i]-yf[i-1])*(yf[i-1]-yf[i-2])<0):
-            xf = xf[:i]
-            yf = yf[:i]
+    for i in range(len(flf)):
+        flf[i,:] = p
+        if p[0]<xmin or p[0]>xmax or p[1]<ymin or p[1]>ymax or (i >= 5 and
+            (flf[i,0]-flf[i-1,0])*(flf[i-1,0]-flf[i-2,0])<0 and
+            (flf[i,1]-flf[i-1,1])*(flf[i-1,1]-flf[i-2,1])<0):
+            flf = flf[:i,:]
             break
-        xf[i] = p[0]
-        yf[i] = p[1]
         u, v = efield(np.array([p[0]]), np.array([p[1]]), *args)
         uv = np.array((u[0], v[0]))
         uv /= np.linalg.norm(uv)
         p += eps*uv
     # backward integration:
     p = np.array((x0, y0))
-    xb = np.zeros(n)
-    yb = np.zeros(n)
-    eps = 0.2
-    for i in range(len(xb)):
-        xb[i] = p[0]
-        yb[i] = p[1]
-        if p[0]<xmin or p[0]>xmax or p[1]<ymin or p[1]>ymax or (i >= 2 and
-            (xb[i]-xb[i-1])*(xb[i-1]-xb[i-2])<0 and (yb[i]-yb[i-1])*(yb[i-1]-yb[i-2])<0):
-            xb = xb[:i]
-            yb = yb[:i]
+    flb = np.zeros((n, 2))
+    for i in range(len(flb)):
+        flb[i,:] = p
+        if p[0]<xmin or p[0]>xmax or p[1]<ymin or p[1]>ymax or (i >= 5 and
+            (flb[i,0]-flb[i-1,0])*(flb[i-1,0]-flb[i-2,0])<0 and
+            (flb[i,1]-flb[i-1,1])*(flb[i-1,1]-flb[i-2,1])<0):
+            flb = flb[:i,:]
             break
         u, v = efield(np.array([p[0]]), np.array([p[1]]), *args)
         uv = np.array((u[0], v[0]))
         uv /= np.linalg.norm(uv)
         p -= eps*uv
-    xx = np.concatenate((xb[::-1], xf))
-    yy = np.concatenate((yb[::-1], yf))
-    return xx, yy
+    fl = np.vstack((flb[::-2], flf[::2]))
+    return fl[:,0], fl[:,1]
 
-    
+
+def plot_fieldlines(ax, flines, maxx, maxy, zorder, **kwargs):
+    """ Plot field lines with arrows.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes in which to plot the field lines.
+    flines: list of 2D arrays
+        The field lines.
+    maxx: float
+        The maximum x coordinate of the axes.
+    maxy: float
+        The maximum y coordinate of the axes.
+    zorder: int
+        zorder for the plot commands.
+    **kwargs: key word arguments
+        Passed on to plot().
+    """
+    for fl in flines:
+        ax.plot(fl[:,0], fl[:,1], zorder=zorder, **kwargs)
+        # arrows:
+        d = np.diff(fl, axis=0)
+        dd = np.linalg.norm(d, axis=1)
+        dist = np.cumsum(dd)
+        if dist[-1] >= 6:
+            idx0 = np.argmin(np.abs(dist-0.5*maxx))
+            idx1 = np.argmin(np.abs(dist-0.5*dist[-1]))
+            idx = min(idx0, idx1)
+            if np.abs(np.abs(fl[0,0])-maxx)<1 or np.abs(np.abs(fl[0,1])-maxy)<1:
+                idx = np.argmin(np.abs(dist[-1]-dist-0.5*maxx))
+            posa = fl[idx,:]
+            posb = fl[idx+1,:]
+            arrow = FancyArrowPatch(posA=posa, posB=posb, shrinkA=0, shrinkB=0,
+                                    arrowstyle='fancy', mutation_scale=10,
+                                    connectionstyle='arc3', fill=True,
+                                    color=kwargs['color'], zorder=zorder)
+            ax.add_patch(arrow)
+
+
 def main():
     import sys
     import os
