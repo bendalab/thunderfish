@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
-from matplotlib.patches import PathPatch
+from matplotlib.patches import PathPatch, Circle
 
 
 def extract_fish(data):
@@ -326,6 +326,23 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(0, 1), size=20.0, bend=0, scaley=
     trans.translate(*pos)
     path = path.transformed(trans)
     ax.add_patch(PathPatch(path, **kwargs))
+
+
+def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
+    """ Plot circular object.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the fish.
+    pos: tuple of floats
+        Coordinates of the objects's position (its center).
+    radius: float
+        Radius of the cirular object.
+    kwargs: key word arguments
+        Arguments for PathPatch used to draw the fish.
+    """
+    ax.add_patch(Circle(pos, radius, **kwargs))
 
     
 def main():
