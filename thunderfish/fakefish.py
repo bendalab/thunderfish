@@ -670,7 +670,7 @@ def fieldline(x, y, x0, y0, *args):
     return fl[:,0], fl[:,1]
 
 
-def plot_fieldlines(ax, flines, maxx, maxy, zorder, **kwargs):
+def plot_fieldlines(ax, flines, pos, zorder, **kwargs):
     """ Plot field lines with arrows.
 
     Parameters
@@ -679,15 +679,17 @@ def plot_fieldlines(ax, flines, maxx, maxy, zorder, **kwargs):
         Axes in which to plot the field lines.
     flines: list of 2D arrays
         The field lines.
-    maxx: float
-        The maximum x coordinate of the axes.
-    maxy: float
-        The maximum y coordinate of the axes.
+    pos: float
+        The position of the arrow on the field line in units of the coordinates.
     zorder: int
         zorder for the plot commands.
     **kwargs: key word arguments
         Passed on to plot().
     """
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    dx = 0.05*np.abs(xmax-xmin)
+    dy = 0.05*np.abs(ymax-ymin)
     for fl in flines:
         ax.plot(fl[:,0], fl[:,1], zorder=zorder, **kwargs)
         # arrows:
@@ -695,11 +697,12 @@ def plot_fieldlines(ax, flines, maxx, maxy, zorder, **kwargs):
         dd = np.linalg.norm(d, axis=1)
         dist = np.cumsum(dd)
         if dist[-1] >= 6:
-            idx0 = np.argmin(np.abs(dist-0.5*maxx))
+            idx0 = np.argmin(np.abs(dist-pos))
+            if (np.abs(fl[0,0]-xmin)<dx or np.abs(fl[0,0]-xmax)<dx or
+                np.abs(fl[0,1]-ymin)<dy or np.abs(fl[0,1]-ymax)<dy):
+                idx0 = np.argmin(np.abs(dist[-1]-dist-pos))
             idx1 = np.argmin(np.abs(dist-0.5*dist[-1]))
             idx = min(idx0, idx1)
-            if np.abs(np.abs(fl[0,0])-maxx)<1 or np.abs(np.abs(fl[0,1])-maxy)<1:
-                idx = np.argmin(np.abs(dist[-1]-dist-0.5*maxx))
             posa = fl[idx,:]
             posb = fl[idx+1,:]
             arrow = FancyArrowPatch(posA=posa, posB=posb, shrinkA=0, shrinkB=0,
