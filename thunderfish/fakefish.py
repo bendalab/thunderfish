@@ -349,16 +349,16 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
                               peak_times=[0.0, 0.00015, 0.0004])
 
 
-def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0):
+def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0, nneg=1):
     """ Monopoles for simulating the electric field of an electric fish.
 
     This implements the model published in
     Chen, House, Krahe, Nelson (2005) "Modeling signal and background
     components of electrosensory scenes", J Comp Physiol A 191: 331-345
 
-    Ten monopoles are uniformly distributed for each size unit.
-    The first (tail) monopole gets a negative charge that equals
-    the sum of the positive unit charges of the other (head) monopoles.
+    Ten monopoles per unit size are uniformly distributed along the fish's body axis.
+    The first (tail) nneg monopoles get negative charges that equal in sum
+    the sum of the positive unit charges of the remaining (head) monopoles.
     The strength of the dipole increases linearly with fish size.
 
     Pass the returned monopole positions and charges on to the epotential() function
@@ -369,42 +369,51 @@ def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0):
     ----------
     pos: tuple of floats
         Coordinates of the fish's position (its center).
+        The number of elements in pos set the number of dimensions to be used.
     direction: tuple of floats
         Coordinates of a vector defining the orientation of the fish.
+        Missing dimensions are filled in with zeros.
+        Note: currently only rotations in the x-y plane are implemented.
     size: float
-        Size of the fish.
+        Size of the fish. Per size unit 10 monopols are distributed along
+        the fish's body axis.
     bend: float
         Bending angle of the fish's tail in degree.
+    nneg: int
+        Number of negative charges to be used. The remaining ones are positively charged.
 
     Returns
     -------
     poles: 2D array of floats
-        Positions of the monopoles.
+        Positions of the monopoles with n-dimensional coordinates
+        as specified by the number of elements in pos.
     charges: array of floats
         The charge of each monopole.
     """
     n = int(10*size)
-    nneg = 1
     npos = n - nneg
     ppx = 0.1
     pos = np.asarray(pos)
+    dirv = np.zeros(len(pos))
+    dirv[:len(direction)] = direction        
     charges = np.ones(n)
     charges[:nneg] = -float(npos)/nneg
-    poles = np.array([(0, k*ppx) for k in range(-n//2, -n//2+n)])
+    poles = np.zeros((n, len(pos)))
+    poles[:,0] = np.arange(-n//2, -n//2+n)*ppx
     if np.abs(bend) > 1.e-8:
-        ym = -np.min(poles[:,1])       # tip of fish tail
-        r = 180.0*ym/bend/np.pi        # radius of circle on which to bend the tail
-        yp = poles[poles[:,1]<0.0,1]   # all negative y coordinates of poles
-        beta = yp/r                    # angle on circle for each y coordinate
-        poles[poles[:,1]<0.0,0] = r*(1.0-np.cos(beta))    # transformed x corrdinates
-        poles[poles[:,1]<0.0,1] = -np.abs(r*np.sin(beta)) # transformed y coordinates
+        xm = -np.min(poles[:,0])       # tip of fish tail
+        r = -180.0*xm/bend/np.pi       # radius of circle on which to bend the tail
+        xp = poles[poles[:,0]<0.0,0]   # all negative x coordinates of poles
+        beta = xp/r                    # angle on circle for each x coordinate
+        poles[poles[:,0]<0.0,0] = -np.abs(r*np.sin(beta)) # transformed x coordinates
+        poles[poles[:,0]<0.0,1] = r*(1.0-np.cos(beta))    # transformed y corrdinates
     # rotation matrix:
-    theta = np.arctan2(*direction)
+    theta = -np.arctan2(dirv[1], dirv[0])
     c = np.cos(theta)
     s = np.sin(theta)
     rm = np.array(((c, -s), (s, c)))
     # rotation:
-    poles = np.dot(poles, rm)
+    poles[:,:2] = np.dot(poles[:,:2], rm)
     # translation:
     poles += pos
     return poles, charges
