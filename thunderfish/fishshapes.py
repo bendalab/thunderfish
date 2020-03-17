@@ -497,10 +497,11 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
             sel = verts[:,0]<0.0
             xp = verts[sel,0]   # x coordinates of all negative y coordinates of verts
             yp = verts[sel,1]   # all negative y coordinates of verts
-            r = -180.0*0.5*size/bend/np.pi              # radius of circle on which to bend the tail
-            beta = xp/r                                 # angle on circle for each y coordinate
-            verts[sel,0] = -np.abs((r+yp)*np.sin(beta)) # transformed x coordinates
-            verts[sel,1] = -r+(r+yp)*np.cos(beta)        # transformed y coordinates
+            r = -180.0*0.5*size/bend/np.pi         # radius of circle on which to bend the tail
+            beta = xp/r                            # angle on circle for each y coordinate
+            R = r-yp                               # radius of point
+            verts[sel,0] = -np.abs(R*np.sin(beta)) # transformed x coordinates
+            verts[sel,1] = r-R*np.cos(beta)        # transformed y coordinates
         codes = np.zeros(len(verts))
         codes[:] = Path.LINETO
         codes[0] = Path.MOVETO
