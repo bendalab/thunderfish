@@ -2,6 +2,7 @@
 Plot fish outlines.
 
 - `plot_fish()`: plot outline of an electric fish.
+- `fish_surface()`: meshgrid of one side of the fish.
 
 For importing fish outlines use the following functions:
 - `extract_fish()`: convert SVG coordinates to numpy array.
@@ -310,6 +311,21 @@ def export_fish_demo():
     plt.show()
 
 
+def bend_path(path, bend, size, size_fac=1.0):
+    path = np.array(path)
+    path *= size_fac*size
+    if np.abs(bend) > 1.e-8:
+        sel = path[:,0]<0.0
+        xp = path[sel,0]   # x coordinates of all negative y coordinates of path
+        yp = path[sel,1]   # all negative y coordinates of path
+        r = -180.0*0.5*size/bend/np.pi        # radius of circle on which to bend the tail
+        beta = xp/r                           # angle on circle for each y coordinate
+        R = r-yp                              # radius of point
+        path[sel,0] = -np.abs(R*np.sin(beta)) # transformed x coordinates
+        path[sel,1] = r-R*np.cos(beta)        # transformed y coordinates
+    return path
+        
+
 """ Outline of an Apteronotus viewd from top, modified from Krahe 2004. """
 Alepto_top = dict(body=np.array([
     [-4.50000000e-01, 0.00000000e+00], [-4.49802704e-01, 1.23222860e-03],
@@ -497,17 +513,7 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
     bbox = bbox_pathes(*fish.values())
     size_fac = -1.05*0.5/bbox[0,0]
     for part, verts in fish.items():
-        verts = np.array(verts)
-        verts *= size_fac*size
-        if np.abs(bend) > 1.e-8:
-            sel = verts[:,0]<0.0
-            xp = verts[sel,0]   # x coordinates of all negative y coordinates of verts
-            yp = verts[sel,1]   # all negative y coordinates of verts
-            r = -180.0*0.5*size/bend/np.pi         # radius of circle on which to bend the tail
-            beta = xp/r                            # angle on circle for each y coordinate
-            R = r-yp                               # radius of point
-            verts[sel,0] = -np.abs(R*np.sin(beta)) # transformed x coordinates
-            verts[sel,1] = r-R*np.cos(beta)        # transformed y coordinates
+        verts = bend_path(verts, bend, size, size_fac)
         codes = np.zeros(len(verts))
         codes[:] = Path.LINETO
         codes[0] = Path.MOVETO
@@ -550,13 +556,98 @@ def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
     """
     ax.add_patch(Circle(pos, radius, **kwargs))
 
+
+def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0):
+    """ Meshgrid of one side of the fish.
+    
+    Parameters
+    ----------
+    fish: string or tuple or dict
+        Specifies a fish to show:
+        - any of the strings defining a shape contained in the `fish_shapes` dictionary,
+        - a tuple with the name of the fish and 'top' or 'side',
+        - a dictionary with at least a 'body' key holding pathes to be drawn.
+    pos: tuple of floats
+        Coordinates of the fish's position (its center).
+    direction: tuple of floats
+        Coordinates of a vector defining the orientation of the fish.
+    size: float
+        Size of the fish.
+    bend: float
+        Bending angle of the fish's tail in degree.
+
+    Returns
+    -------
+    xx: 2D array of floats
+        x-coordinates in direction of body axis.
+    yy: 2D array of floats
+        y-coordinates in direction upwards from body axis.
+    zz: 2D array of floats
+        z-coordinates of fish surface, outside of fish nan.
+    """
+    if direction != (1, 0):
+        raise ValueError('rotation not supported by fish_surface yet.')
+    # retrieve fish shape:
+    if not isinstance(fish, dict):
+        if isinstance(fish, (tuple, list)):
+            if fish[1] == 'top':
+                fish = fish_top_shapes[fish[0]]
+            else:
+                fish = fish_side_shapes[fish[0]]
+        else:
+            fish = fish_shapes[fish]
+    bbox = bbox_pathes(*fish.values())
+    size_fac = -1.05*0.5/bbox[0,0]
+    path = bend_path(fish['body'], bend, size, size_fac)
+    # split in top and bottom half:
+    minxi = np.argmin(path[:,0])
+    maxxi = np.argmax(path[:,0])
+    i0 = min(minxi, maxxi)
+    i1 = max(minxi, maxxi)
+    path0 = path[i0:i1,:]
+    path1 = np.vstack((path[i0::-1,:], path[:i1:-1,:]))
+    if np.mean(path0[:,1]) < np.mean(path1[:,1]):
+        path0, path1 = path1, path0
+    # make sure x coordinates are monotonically increasing:
+    pm = np.maximum.accumulate(path0[:,0])
+    path0 = np.delete(path0, np.where(path0[:,0] < pm)[0], axis=0)
+    pm = np.maximum.accumulate(path1[:,0])
+    path1 = np.delete(path1, np.where(path1[:,0] < pm)[0], axis=0)
+    # rotate: XXX
+    # translate:
+    minx = path[minxi,0] + pos[0]
+    maxx = path[maxxi,0] + pos[0]
+    path0 += pos[:2]
+    path1 += pos[:2]
+    # interpolate:
+    n = 5*max(len(path0), len(path1))
+    x = np.linspace(minx, maxx, n)
+    upperpath = np.zeros((len(x), 2))
+    upperpath[:,0] = x
+    upperpath[:,1] = np.interp(x, path0[:,0], path0[:,1])
+    lowerpath = np.zeros((len(x), 2))
+    lowerpath[:,0] = x
+    lowerpath[:,1] = np.interp(x, path1[:,0], path1[:,1])
+    # ellipse origin and semi axes:
+    midline = np.array(upperpath)
+    midline[:,1] = np.mean(np.vstack((upperpath[:,1], lowerpath[:,1])), axis=0)
+    diamy = upperpath[:,1] - midline[:,1]
+    diamz = 0.3*diamy  # take it from the top view!
+    # apply ellipse:
+    y = np.linspace(np.min(midline[:,1]-diamy), np.max(midline[:,1]+diamy), n//2)
+    xx, yy = np.meshgrid(x ,y)
+    zz = diamz/diamy * np.sqrt(diamy**2 - (yy-midline[:,1])**2)
+    return xx, yy, zz
+
     
 def main():
-    fig, ax = plt.subplots()
     fish1 = (('Alepto', 'top'), (-10, -7), (1, 1), 18.0, -25)
-    fish2 = (('Alepto', 'side'), (10, 5), (1, -0.7), 20.0, 20)
-    bodykwargs=dict(lw=1, edgecolor='k', facecolor='r')
-    finkwargs=dict(lw=1, edgecolor='k', facecolor='b')
+    fish2 = (('Alepto', 'side'), (8, 8), (1, 0), 20.0, 20)
+    xx, yy, zz = fish_surface(*fish2)
+    fig, ax = plt.subplots()
+    bodykwargs=dict(lw=1, edgecolor='b', facecolor='none')
+    finkwargs=dict(lw=1, edgecolor='r', facecolor='c')
+    ax.contourf(xx[0,:], yy[:,0], zz, 20, cmap='RdYlBu')
     plot_fish(ax, *fish1, bodykwargs=bodykwargs, finkwargs=finkwargs)
     plot_fish(ax, *fish2, bodykwargs=bodykwargs, finkwargs=finkwargs)
     ax.set_xlim(-25, 25)
