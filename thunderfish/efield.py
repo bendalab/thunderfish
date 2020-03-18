@@ -401,8 +401,8 @@ def fieldline(pos0, bounds, *args, eps=0.1, maxiter=1000):
     return fl
 
 
-def squareroot_transform(values, thresh=1.0):
-    """ Square-root transformatio keeping the sign.
+def squareroot_transform(values, thresh=0.0):
+    """ Square-root transformation keeping the sign.
 
     Takes the square root of positive values and takes the square root
     of the absolute values of negative values and negates the results.
@@ -420,7 +420,7 @@ def squareroot_transform(values, thresh=1.0):
     thresh: float or None
         Maximum absolute value of the returned values.
         Must be positive!
-        If thesh equals zero, then do not apply treshold.
+        If thresh equals zero, then do not apply treshold.
         If None, take the smaller of the maximum of the
         positive values or of the absolute negative values. 
 
@@ -446,6 +446,7 @@ def squareroot_transform(values, thresh=1.0):
     plt.show()
     ```
     """
+    values = np.array(values)
     sel = values>=0.0
     values[sel] = values[sel]**0.5
     values[np.logical_not(sel)] = -((-values[np.logical_not(sel)])**0.5)
