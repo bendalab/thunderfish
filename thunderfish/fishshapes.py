@@ -478,6 +478,11 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
         Key-word arguments for PathPatch used to draw the fish's body.
     finkwargs: dict
         Key-word arguments for PathPatch used to draw the fish's fins.
+
+    Returns
+    -------
+    bpatch: matplotlib.patches.PathPatch
+        The fish's body. Can be used for set_clip_path().
     """
     # retrieve fish shape:
     if not isinstance(fish, dict):
@@ -488,6 +493,7 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
                 fish = fish_side_shapes[fish[0]]
         else:
             fish = fish_shapes[fish]
+    bpatch = None
     bbox = bbox_pathes(*fish.values())
     size_fac = -1.05*0.5/bbox[0,0]
     for part, verts in fish.items():
@@ -521,7 +527,11 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
         trans.translate(*pos)
         path = path.transformed(trans)
         kwargs = bodykwargs if part == 'body' else finkwargs
-        ax.add_patch(PathPatch(path, **kwargs))
+        patch = PathPatch(path, **kwargs)
+        if part == 'body':
+            bpatch = patch
+        ax.add_patch(patch)
+    return bpatch
 
 
 def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
