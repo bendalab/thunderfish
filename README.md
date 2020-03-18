@@ -50,8 +50,9 @@ Look into the modules for more information.
 - *harmonics.py*: Extract and analyze harmonic frequencies from power spectra.
 
 ### EOD simulations
-- *fakefish.py*: Generate artificial EOD waveforms and fields.
-- *fishshapes.py*: Plot fish silhouettes.
+- *fakefish.py*: Generate artificial EOD waveforms.
+- *efield.py*: Simulations of spatial electric fields.
+- *fishshapes.py*: Plot fish outlines.
 
 
 
