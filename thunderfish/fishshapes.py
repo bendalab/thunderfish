@@ -639,18 +639,58 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0):
     zz = diamz/diamy * np.sqrt(diamy**2 - (yy-midline[:,1])**2)
     return xx, yy, zz
 
+
+def surface_normals(xx, yy, zz):
+    """ Normal vectors on a surface.
+
+    Parameters
+    ----------
+    xx: 2D array of floats
+        Mesh grid of x coordinates.
+    yy: 2D array of floats
+        Mesh grid of y coordinates.
+    zz: 2D array of floats
+        z-coordinates of surface on the xx and yy cordinates.
+
+    Returns
+    -------
+    nx: 2D array of floats
+        x-coordinates of normal vectors for each point in xx and yy.
+    ny: 2D array of floats
+        y-coordinates of normal vectors for each point in xx and yy.
+    nz: 2D array of floats
+        z-coordinates of normal vectors for each point in xx and yy.
+    """
+    dx = xx[0,1] - xx[0,0]
+    dy = yy[1,0] - yy[0,0]
+    nx = np.zeros(xx.shape)
+    nx[:,:-1] = -np.diff(zz, axis=1)/dx
+    ny = np.zeros(xx.shape)
+    ny[:-1,:] = -np.diff(zz, axis=0)/dy
+    nz = np.ones(xx.shape)
+    norm = np.sqrt(nx*nx+ny*ny+1)
+    return nx/norm, ny/norm, nz/norm
+
     
 def main():
-    fish1 = (('Alepto', 'top'), (-10, -7), (1, 1), 18.0, -25)
-    fish2 = (('Alepto', 'side'), (8, 8), (1, 0), 20.0, 20)
-    xx, yy, zz = fish_surface(*fish2)
-    fig, ax = plt.subplots()
     bodykwargs=dict(lw=1, edgecolor='b', facecolor='none')
     finkwargs=dict(lw=1, edgecolor='r', facecolor='c')
-    ax.contourf(xx[0,:], yy[:,0], zz, 20, cmap='RdYlBu')
+    var = ['zz', 'nx', 'ny', 'nz']
+    fig, ax = plt.subplots()
+    for k in range(4):
+        y = (1.5-k)*8
+        fish = (('Alepto', 'side'), (0, y), (1, 0), 20.0, 0)
+        xx, yy, zz = fish_surface(*fish)
+        nx, ny, nz = surface_normals(xx, yy, zz)
+        a = [zz, nx, ny, nz]
+        th = np.nanmax(np.abs(a[k]))
+        print(np.nanmin(a[k]), np.nanmax(a[k]))
+        ax.contourf(xx[0,:], yy[:,0], a[k], 20, vmin=-th, vmax=th, cmap='RdYlBu')
+        plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+        ax.text(-11, y+2, var[k])
+    fish1 = (('Alepto', 'top'), (23, -5), (1, 5), 28.0, -25)
     plot_fish(ax, *fish1, bodykwargs=bodykwargs, finkwargs=finkwargs)
-    plot_fish(ax, *fish2, bodykwargs=bodykwargs, finkwargs=finkwargs)
-    ax.set_xlim(-25, 25)
+    ax.set_xlim(-15, 30)
     ax.set_ylim(-20, 20)
     plt.show()
 

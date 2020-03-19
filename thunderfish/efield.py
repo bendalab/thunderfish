@@ -13,6 +13,7 @@ The the resulting potential, field, and field lines can be computed:
 - `epotential_meshgrid()`: simulation of electric field potentials on a mesh grid.
 - `efield()`: simulation of electric field.
 - `efield_meshgrid()`: simulation of electric field on a mesh grid.
+- `projection()`: projection of electric field on surface normals.
 - `fieldline()`: compute an electric field line.
 
 For plotting, the following functions might be helpful:
@@ -204,19 +205,23 @@ def epotential(pos, *args):
     return pot
 
 
-def epotential_meshgrid(x, y, *args):
+def epotential_meshgrid(xx, yy, zz, *args):
     """ Simulation of electric field potentials on a mesh grid.
 
     This is a simple wrapper for epotential().
 
     Parameters
     ----------
-    x: 1D array of floats
-        Range of x coordinates.
-    y: 1D array of floats
-        Range of y coordinates.
+    xx: 2D array of floats
+        Range of x coordinates as returned by numpy.meshgrid().
+    yy: 2D array of floats
+        Range of y coordinates as returned by numpy.meshgrid().
+    zz: None or 2D array of floats
+        z coordinates on the meshgrid defined by xx and yy.
+        If provided, poles in args must be 3D.
+        If None then treat it as a 2D problem with poles in args providing 2D coordinate.
     args: list of tuples
-        Each tuple contains as the first argument the position of monopoles
+        Each tuple contains as the first argument the position (2D or 3D) of monopoles
         (2D array of floats), and as the second argument the corresponding charges
         (array of floats). Use efish_monopoles() to generate monopoles and
         corresponding charges.
@@ -224,31 +229,35 @@ def epotential_meshgrid(x, y, *args):
     Returns
     -------
     pot: 2D array of floats
-        The potential for the mesh grid spanned by x and y.
+        The potential for the mesh grid defined by xx and yy and evaluated
+        at (xx, yy, zz).
 
     Example
     -------
     ```
+    fig, ax = plt.subplots()
     maxx = 30.0
     maxy = 27.0
     x = np.linspace(-maxx, maxx, 200)
     y = np.linspace(-maxy, maxy, 200)
+    xx, yy = np.meshgrid(x, y)
     fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
     fish2 = ((12, 3), (0.8, 1), 20.0, 20)
     poles1 = efish_monopoles(*fish1)
     poles2 = efish_monopoles(*fish2)
-    pot = epotential_meshgrid(x, y, poles1, poles2)
+    poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+    allpoles = (poles1, poles2, poles3)
+    # potential:
+    pot = epotential_meshgrid(xx, yy, None, *allpoles)
     thresh = 0.65
     zz = squareroot_transform(pot/200, thresh)
     levels = np.linspace(-thresh, thresh, 16)
-    fig, ax = plt.subplots()
     ax.contourf(x, y, -zz, levels, cmap='RdYlBu')
     ax.contour(x, y, -zz, levels, zorder=1, colors='#707070',
                linewidths=0.1, linestyles='solid')
     plt.show()
     ```
     """
-    xx, yy = np.meshgrid(x, y)
     pos = np.vstack((xx.ravel(), yy.ravel())).T
     pot = epotential(pos, *args)
     return pot.reshape(xx.shape)
@@ -289,58 +298,100 @@ def efield(pos, *args):
     return field[0] if onedim else field
 
 
-def efield_meshgrid(x, y, *args):
+def efield_meshgrid(xx, yy, zz, *args):
     """ Simulation of electric field on a mesh grid.
 
     This is a simple wrapper for efield().
-
+    
     Parameters
     ----------
-    x: 1D array of floats
-        Range of x coordinates.
-    y: 1D array of floats
-        Range of y coordinates.
+    xx: 2D array of floats
+        Range of x coordinates as returned by numpy.meshgrid().
+    yy: 2D array of floats
+        Range of y coordinates as returned by numpy.meshgrid().
+    zz: None or 2D array of floats
+        z coordinates on the meshgrid defined by xx and yy.
+        If provided, poles in args must be 3D.
+        If None then treat it as a 2D problem with poles in args providing 2D coordinate.
     args: list of tuples
-        Each tuple contains as the first argument the position of monopoles
+        Each tuple contains as the first argument the position (2D or 3D) of monopoles
         (2D array of floats), and as the second argument the corresponding charges
         (array of floats). Use efish_monopoles() to generate monopoles and
         corresponding charges.
 
     Returns
     -------
-    xx: 2D array of floats
-        Matrix of x-coordinates as returned by `numpy.meshgrid(x, y)`.
-    yy: 2D array of floats
-        Matrix of y-coordinates as returned by `numpy.meshgrid(x, y)`.
+    pot: 2D array of floats
+        The potential for the mesh grid defined by xx and yy and evaluated
+        at (xx, yy, zz).
+
+    Returns
+    -------
     fieldx: 2D array of floats
-        The x-coordinate of the electric field for the mesh grid spanned by x and y.
+        The x-coordinate of the electric field for the mesh grid
+        defined by xx and yy and evaluated at (xx, yy, zz).
     fieldy: 2D array of floats
-        The y-coordinate of the electric field for the mesh grid spanned by x and y.
+        The y-coordinate of the electric field for the mesh grid
+        defined by xx and yy and evaluated at (xx, yy, zz).
+    fieldz: 2D array of floats
+        The z-coordinate of the electric field for the mesh grid
+        defined by xx and yy and evaluated at (xx, yy, zz).
+        This is only returned if zz is not None.
 
     Example
     -------
     ```
+    fig, ax = plt.subplots()
     maxx = 30.0
     maxy = 27.0
-    x = np.linspace(-maxx, maxx, 200)
-    y = np.linspace(-maxy, maxy, 200)
+    x = np.linspace(-maxx, maxx, 40)
+    y = np.linspace(-maxy, maxy, 40)
+    xx, yy = np.meshgrid(x, y)
     fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
     fish2 = ((12, 3), (0.8, 1), 20.0, 20)
     poles1 = efish_monopoles(*fish1)
     poles2 = efish_monopoles(*fish2)
-    n = 5
-    xx, yy, fieldx, fieldy = efield_meshgrid(x[n::2*n], y[n::2*n], poles1, poles2)
+    poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+    allpoles = (poles1, poles2, poles3)
+    fieldx, fieldy = efield_meshgrid(xx, yy, None, *allpoles)
     u = squareroot_transform(fieldx, 0)
     v = squareroot_transform(fieldy, 0)
-    ax.quiver(xx, yy, u, v, units='xy', angles='uv', scale=2, scale_units='xy',
+    ax.quiver(qx, qy, u, v, units='xy', angles='uv', scale=2, scale_units='xy',
               width=0.07, headwidth=5)
-    plt.show()
     ``` 
     """
-    xx, yy = np.meshgrid(x, y)
-    pos = np.vstack((xx.ravel(), yy.ravel())).T
-    ef = efield(pos, *args)
-    return xx, yy, ef[:,0].reshape(xx.shape), ef[:,1].reshape(xx.shape)
+    if zz is None:
+        pos = np.vstack((xx.ravel(), yy.ravel())).T
+        ef = efield(pos, *args)
+        return ef[:,0].reshape(xx.shape), ef[:,1].reshape(xx.shape)
+    else:
+        pos = np.vstack((xx.ravel(), yy.ravel(), zz.ravel())).T
+        ef = efield(pos, *args)
+        return ef[:,0].reshape(xx.shape), ef[:,1].reshape(xx.shape), ef[:,2].reshape(xx.shape)
+
+
+def projection(ex, ey, ez, nx, ny, nz):
+    """ Projection of electric field on surface normals.
+
+    Parameters
+    ----------
+    ex: array of floats
+        x-coordinates of the electric field.
+    ey: array of floats
+        y-coordinates of the electric field.
+    ez: array of floats
+        z-coordinates of the electric field.
+    nx: array of floats
+        x-coordinates of the surface normals.
+    ny: array of floats
+        y-coordinates of the surface normals.
+    nz: array of floats
+        z-coordinates of the surface normals.
+    """
+    ef = np.vstack((ex.ravel(), ey.ravel(), ez.ravel())).T
+    nf = np.vstack((nx.ravel(), ny.ravel(), nz.ravel())).T
+    proj = np.sum(ef*nf, axis=1)
+    return proj.reshape(ex.shape)
 
 
 def fieldline(pos0, bounds, *args, eps=0.1, maxiter=1000):
@@ -370,6 +421,19 @@ def fieldline(pos0, bounds, *args, eps=0.1, maxiter=1000):
     -------
     fl: 2D array of floats
         Coordinates of the computed field line.
+
+    Example
+    -------
+    ```
+    fig, ax = plt.subplots()
+    fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+    fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+    poles1 = efish_monopoles(*fish1)
+    poles2 = efish_monopoles(*fish2)
+    fl = fieldline((0, -16), [[-maxx, -maxy], [maxx, maxy]], poles1, poles2)
+    plot_fieldlines(ax, [fl], 5, color='b', lw=2)
+    plt.show()
+    ```
     """
     bounds = np.asarray(bounds)
     p = np.array(pos0)
@@ -428,23 +492,6 @@ def squareroot_transform(values, thresh=0.0):
     -------
     values: array of float
         The transformed (square-rooted and thresholded) values.
-
-    Example
-    -------
-    ```
-    fig, ax = plt.subplots()
-    maxx = 30.0
-    maxy = 27.0
-    x = np.linspace(-maxx, maxx, 200)
-    y = np.linspace(-maxy, maxy, 200)
-    fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
-    fish2 = ((12, 3), (0.8, 1), 20.0, 20)
-    poles1 = efish_monopoles(*fish1)
-    poles2 = efish_monopoles(*fish2)
-    fl = fieldline((0, -16), [[-maxx, -maxy], [maxx, maxy]], poles1, poles2)
-    plot_fieldlines(ax, [fl], 5, color='b', lw=2)
-    plt.show()
-    ```
     """
     values = np.array(values)
     sel = values>=0.0
@@ -505,6 +552,7 @@ def main():
     maxy = 27.0
     x = np.linspace(-maxx, maxx, 200)
     y = np.linspace(-maxy, maxy, 200)
+    xx, yy = np.meshgrid(x, y)
     fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
     fish2 = ((12, 3), (0.8, 1), 20.0, 20)
     poles1 = efish_monopoles(*fish1)
@@ -512,7 +560,7 @@ def main():
     poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
     allpoles = (poles1, poles2, poles3)
     # potential:
-    pot = epotential_meshgrid(x, y, *allpoles)
+    pot = epotential_meshgrid(xx, yy, None, *allpoles)
     thresh = 0.65
     zz = squareroot_transform(pot/200, thresh)
     levels = np.linspace(-thresh, thresh, 16)
@@ -521,10 +569,11 @@ def main():
                linewidths=0.1, linestyles='solid')
     # electric field vectors:
     n = 5
-    xx, yy, fieldx, fieldy = efield_meshgrid(x[n::2*n], y[n::2*n], *allpoles)
+    qx, qy = np.meshgrid(x[n::2*n], y[n::2*n])
+    fieldx, fieldy = efield_meshgrid(qx, qy, None, *allpoles)
     u = squareroot_transform(fieldx, 0)
     v = squareroot_transform(fieldy, 0)
-    ax.quiver(xx, yy, u, v, units='xy', angles='uv', scale=2, scale_units='xy',
+    ax.quiver(qx, qy, u, v, units='xy', angles='uv', scale=2, scale_units='xy',
               width=0.07, headwidth=5)
     # field line:
     bounds = [[-maxx, -maxy], [maxx, maxy]]
