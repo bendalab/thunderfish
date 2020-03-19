@@ -89,6 +89,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
         Sampling rate of the data in Hertz.
     eod_times: 1-D array of float
         Array of EOD times in seconds over which the waveform should be averaged.
+        WARNING: The first data point must be at time zero!
     win_fac: float
         The snippet size is the EOD period times `win_fac`. The EOD period is determined
         as the minimum interval between EOD times.
