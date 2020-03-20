@@ -55,7 +55,7 @@ def generate_wavefish(frequency=100.0, samplerate=44100.0, duration=1.0, phase0=
     duration: float
         Duration of the generated data in seconds. Only used if frequency is float.
     phase0: float
-        Phase offset of the EOD waveform in radians.
+-        Phase offset of the EOD waveform in radians.
     noise_std: float
         Standard deviation of additive Gaussian white noise.
     amplitudes: float or list of floats
@@ -89,7 +89,7 @@ def generate_wavefish(frequency=100.0, samplerate=44100.0, duration=1.0, phase0=
     # generate EOD:
     data = np.zeros(len(phase))
     for har, (ampl, phi) in enumerate(zip(amplitudes, phases)):
-        data += ampl * np.sin(2*np.pi*(har+1)*phase+phi+phase0)
+        data += ampl * np.sin(2*np.pi*(har+1)*phase + phi - (har+1)*phase0)
     # add noise:
     data += noise_std * np.random.randn(len(data))
     return data
@@ -103,8 +103,8 @@ def generate_alepto(frequency=100.0, samplerate=44100.0, duration=1.0,
     """
     return generate_wavefish(frequency=frequency, samplerate=samplerate, duration=duration,
                              phase0=phase0, noise_std=noise_std,
-                             amplitudes=[1.0, 0.5, 0.1, 0.01, 0.001],
-                             phases=[0.0, 0.0, 0.0, 0.0, 0.0])
+                             amplitudes=[1.0, 0.17, 0.08, 0.014, 0.013],
+                             phases=[1.4, 2.4, 1.1, 2.8, -2.5])
 
 
 def generate_eigenmannia(frequency=100.0, samplerate=44100.0, duration=1.0,
@@ -115,8 +115,10 @@ def generate_eigenmannia(frequency=100.0, samplerate=44100.0, duration=1.0,
     """
     return generate_wavefish(frequency=frequency, samplerate=samplerate, duration=duration,
                              phase0=phase0, noise_std=noise_std,
-                             amplitudes=[1.0, 0.25, 0.0, 0.01],
-                             phases=[0.0, -0.48*np.pi, 0.0, 0.0])
+                             amplitudes=[1.0, 0.23, 0.06, 0.02, 0.01, 0.008],
+                             phases=[1.31, 1.26, 2.83, 2.69, 2.53, -3.03])
+                             #amplitudes=[1.0, 0.25, 0.0, 0.01],
+                             #phases=[0.0, -0.48*np.pi, 0.0, 0.0])
 
 
 def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
