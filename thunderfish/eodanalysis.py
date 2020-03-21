@@ -1627,14 +1627,14 @@ def pulse_quality_args(cfg):
 if __name__ == '__main__':
     import sys
     import matplotlib.pyplot as plt
-    from .fakefish import generate_biphasic_pulses
+    from .fakefish import pulsefish_eod
     from .eventdetection import detect_peaks
 
     print('Analysis of EOD waveforms.')
 
     # data:
     samplerate = 44100.0
-    data = generate_biphasic_pulses(83.0, samplerate, 5.0, noise_std=0.05)
+    data = pulsefish_eod('biphasic', 83.0, samplerate, 5.0, noise_std=0.05)
     unit = 'mV'
     eod_idx, _ = detect_peaks(data, 1.0)
     eod_times = eod_idx/samplerate
