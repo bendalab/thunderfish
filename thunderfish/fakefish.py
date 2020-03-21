@@ -2,11 +2,13 @@
 Simulate EOD waveforms.
 
 - `wavefish_eods()`: simulate EOD waveform of a wave-type fish.
-- `normalize_wavefish()`: normalize amplitudes and phases of EOD waveform.
+- `normalize_wavefish()`: normalize amplitudes and phases of EOD wave-type waveform.
 - `export_wavefish()`: serialize wavefish parameter to file.
 - `chirps()`: simulate frequency trace with chirps.
 - `rises()`: simulate frequency trace with rises.
 - `pulsefish_eods(): simulate EOD waveform of a pulse-type fish.
+- `normalize_pulsefish()`: normalize times and stdevs of pulse-type EOD waveform.
+- `export_pulsefish()`: serialize pulsefish parameter to file.
 - `generate_waveform()`: interactively generate audio file with simulated EOD waveforms.
 """
 
@@ -103,7 +105,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
 
 
 def normalize_wavefish(fish):
-    """ Normalize amplitudes and phases of EOD waveform.
+    """ Normalize amplitudes and phases of wave-type EOD waveform.
 
     The amplitudes and phases of the Fourier components are adjusted such
     that the resulting EOD waveform has a peak-to-peak amplitude of two
@@ -142,7 +144,7 @@ def normalize_wavefish(fish):
     data = wavefish_eods(fish, eodf, rate, 2.0/eodf, noise_std=0.0)
     # normalize amplitudes:
     ampl = 0.5*(np.max(data) - np.min(data))
-    newamplitudes = amplitudes/ampl
+    newamplitudes = np.array(amplitudes)/ampl
     # shift phases:
     deltat = np.argmax(data[:int(rate/eodf)])/rate
     deltap = 2.0*np.pi*deltat*eodf
@@ -169,7 +171,7 @@ def export_wavefish(fish, name="Unknown_harmonics", file=None):
         If tuple then the first element is the list of amplitudes and
         the second one the list of relative phases in radians.
     name: string
-        Name of the dictionart to be written.
+        Name of the dictionary to be written.
     file: string or file or None
         File name or open file object where to write wavefish dictionary.
 
@@ -201,7 +203,7 @@ def export_wavefish(fish, name="Unknown_harmonics", file=None):
         file = open(file, 'w')
         closeit = True
     ds = name + ' = dict('
-    file.write('%samplitudes=(' % ds)
+    file.write(ds + 'amplitudes=(')
     file.write(', '.join(['%.5g' % a for a in amplitudes]))
     file.write('),\n')
     file.write(' ' * len(ds) + 'phases=(')
@@ -332,10 +334,13 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
 monophasic_peaks = dict(times=(0.0,), amplitudes=(1.0,), stdevs=(0.0003,))
 
 """ Positions, amplitudes and standard deviations of binophasic EOD waveforms. """
-biphasic_peaks = dict(times=(0.0, 0.0003), amplitudes=(1.0, -0.3), stdevs=(0.0001, 0.0002))
+biphasic_peaks = dict(times=(1e-05, 0.00031),
+                      amplitudes=(1.1053, -0.33158),
+                      stdevs=(0.0001, 0.0002))
 
 """ Positions, amplitudes and standard deviations of trinophasic EOD waveforms. """
-triphasic_peaks = dict(times=(0.0, 0.00015, 0.0004), amplitudes=(1.0, -0.8, 0.1),
+triphasic_peaks = dict(times=(3e-05, 0.00018, 0.00043),
+                       amplitudes=(1.2382, -0.9906, 0.12382),
                        stdevs=(0.0001, 0.0001, 0.0002))
 
 """ Standard deviations, amplitudes and positions of Gaussians that make up
@@ -346,7 +351,7 @@ pulsefish_peaks = dict(monophasic=monophasic_peaks,
                               
 
 def pulsefish_eods(fish='biphasic', frequency=100.0, samplerate=44100.0, duration=1.0,
-                   noise_std=0.01, jitter_cv=0.1):
+                   noise_std=0.01, jitter_cv=0.1, first_pulse=None):
     """
     Simulate EOD waveform of a pulse-type fish.
 
@@ -381,12 +386,9 @@ def pulsefish_eods(fish='biphasic', frequency=100.0, samplerate=44100.0, duratio
     jitter_cv: float
         Gaussian distributed jitter of pulse times as coefficient of variation
         of inter-pulse intervals.
-    peak_stds: float or list of floats
-        Standard deviation of Gaussian shaped peaks in seconds.
-    peak_amplitudes: float or list of floats
-        Amplitude of each peak (positive and negative).
-    peak_times: float or list of floats
-        Position of each Gaussian peak in seconds.
+    first_pulse: float or None
+        The position of the first pulse. If None it is choosen automatically
+        depending on pulse width, jitter, and frequency.
 
     Returns
     -------
@@ -420,27 +422,163 @@ def pulsefish_eods(fish='biphasic', frequency=100.0, samplerate=44100.0, duratio
     # time axis for single pulse:
     min_time_inx = np.argmin(peak_times)
     max_time_inx = np.argmax(peak_times)
-    x = np.arange(-4.*peak_stdevs[min_time_inx] + peak_times[min_time_inx],
-                  4.*peak_stdevs[max_time_inx] + peak_times[max_time_inx], 1.0/samplerate)
+    tmax = max(np.abs(peak_times[min_time_inx]-4.0*peak_stdevs[min_time_inx]),
+               np.abs(peak_times[max_time_inx]+4.0*peak_stdevs[max_time_inx]))
+    x = np.arange(-tmax, tmax, 1.0/samplerate)
     pulse_duration = x[-1] - x[0]
     
     # generate a single pulse:
     pulse = np.zeros(len(x))
     for time, ampl, std in zip(peak_times, peak_amplitudes, peak_stdevs):
-        pulse += ampl * np.exp(-0.5*((x-time)/std)**2) 
+        pulse += ampl * np.exp(-0.5*((x-time)/std)**2)
+    poffs = len(pulse)//2
 
     # paste the pulse into the noise floor:
     time = np.arange(0, duration, 1.0/samplerate)
     data = np.random.randn(len(time)) * noise_std
     period = 1.0/frequency
     jitter_std = period * jitter_cv
-    first_pulse = np.max([pulse_duration, 3.0*jitter_std])
+    if first_pulse is None:
+        first_pulse = np.max([pulse_duration, 3.0*jitter_std])
     pulse_times = np.arange(first_pulse, duration, period )
-    pulse_times += np.random.randn(len(pulse_times)) * jitter_std
+    pulse_times += jitter_std*np.random.randn(len(pulse_times))
     pulse_indices = np.round(pulse_times * samplerate).astype(np.int)
-    for inx in pulse_indices[(pulse_indices >= 0) & (pulse_indices < len(data)-len(pulse)-1)]:
-        data[inx:inx + len(pulse)] += pulse
+    for inx in pulse_indices[(pulse_indices>=poffs)&(pulse_indices-poffs+len(pulse)<len(data))]:
+        data[inx-poffs:inx-poffs+len(pulse)] += pulse
     return data
+
+
+def normalize_pulsefish(fish):
+    """ Normalize times and stdevs of pulse-type EOD waveform.
+
+    The positions and amplitudes of Gaussian peaks are adjusted such
+    that the resulting EOD waveform has a maximum peak amplitude of one
+    and has the largest peak at time zero.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes and standard deviations Gaussians peaks that are
+        superimposed to simulate EOD waveforms of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_peaks` dictionary.
+        If dictionary then take pulse properties from the 'times', 'amlitudes'
+        and 'stdevs' keys.
+        If tuple then the first element is the list of peak positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with adjusted times and standard deviations.
+    """
+    # get peak properties:
+    if isinstance(fish, (tuple, list)):
+        peak_times = fish[0]
+        peak_amplitudes = fish[1]
+        peak_stds = fish[2]
+    elif isinstance(fish, dict):
+        peak_times = fish['times']
+        peak_amplitudes = fish['amplitudes']
+        peak_stdevs = fish['stdevs']
+    else:
+        if not fish in pulsefish_peaks:
+            raise KeyError('unknown pulse-type fish. Choose one of ' +
+                           ', '.join(pulsefish_peaks.keys()))
+        peak_times = pulsefish_peaks[fish]['times']
+        peak_amplitudes = pulsefish_peaks[fish]['amplitudes']
+        peak_stdevs = pulsefish_peaks[fish]['stdevs']
+    # generate waveform:
+    eodf = 10.0
+    rate = 100000.0
+    first_pulse = 0.5/eodf
+    data = pulsefish_eods(fish, eodf, rate, 1.0/eodf, noise_std=0.0,
+                          jitter_cv=0.0, first_pulse=first_pulse)
+    # maximum peak:
+    idx = np.argmax(np.abs(data))
+    # normalize amplitudes:
+    ampl = data[idx]
+    newamplitudes = np.array(peak_amplitudes)/ampl
+    # shift times:
+    deltat = idx/rate - first_pulse
+    newtimes = np.array(peak_times) - deltat
+    # store and return:
+    peaks = dict(times=newtimes,
+                 amplitudes=newamplitudes,
+                 stdevs=peak_stdevs)
+    return peaks
+
+
+def export_pulsefish(fish, name="Unknown_peaks", file=None):
+    """ Serialize pulsefish parameter to file.
+
+    Add output to the wavefish_harmonics dictionary!
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes and standard deviations Gaussians peaks that are
+        superimposed to simulate EOD waveforms of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_peaks` dictionary.
+        If dictionary then take pulse properties from the 'times', 'amlitudes'
+        and 'stdevs' keys.
+        If tuple then the first element is the list of peak positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
+    name: string
+        Name of the dictionary to be written.
+    file: string or file or None
+        File name or open file object where to write pulsefish dictionary.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with peak times, amplitudes and standard deviations.
+    """
+    # get peak properties:
+    if isinstance(fish, (tuple, list)):
+        peak_times = fish[0]
+        peak_amplitudes = fish[1]
+        peak_stds = fish[2]
+    elif isinstance(fish, dict):
+        peak_times = fish['times']
+        peak_amplitudes = fish['amplitudes']
+        peak_stdevs = fish['stdevs']
+    else:
+        if not fish in pulsefish_peaks:
+            raise KeyError('unknown pulse-type fish. Choose one of ' +
+                           ', '.join(pulsefish_peaks.keys()))
+        peak_times = pulsefish_peaks[fish]['times']
+        peak_amplitudes = pulsefish_peaks[fish]['amplitudes']
+        peak_stdevs = pulsefish_peaks[fish]['stdevs']
+    # write out dictionary:
+    if file is None:
+        file = sys.stdout
+    try:
+        file.write('')
+        closeit = False
+    except AttributeError:
+        file = open(file, 'w')
+        closeit = True
+    ds = name + ' = dict('
+    file.write(ds + 'times=(')
+    file.write(', '.join(['%.5g' % t for t in peak_times]))
+    file.write('),\n')
+    file.write(' ' * len(ds) + 'amplitudes=(')
+    file.write(', '.join(['%.5g' % a for a in peak_amplitudes]))
+    file.write('),\n')
+    file.write(' ' * len(ds) + 'stdevs=(')
+    file.write(', '.join(['%.5g' % a for a in peak_stdevs]))
+    file.write('))\n')
+    if closeit:
+        file.close()
+    # return dictionary:
+    peaks = dict(times=peak_times,
+                 amplitudes=peak_amplitudes,
+                 stdevs=peak_stdevs)
+    return peaks
 
 
 def generate_waveform(filename):
@@ -538,7 +676,7 @@ def demo():
     samplerate = 40000.0 # in Hz
     duration = 10.0      # in sec
 
-    inset_len = 0.01     # in sec
+    inset_len = 0.01    # in sec
     inset_indices = int(inset_len*samplerate)
     ws_fac = 0.1         # whitespace factor or ylim (between 0. and 1.)
 
@@ -549,7 +687,7 @@ def demo():
     wavefish += 0.5*wavefish_eods('Eigenmannia', eodf, samplerate, duration)
 
     pulsefish = pulsefish_eods('biphasic', 80.0, samplerate, duration,
-                               noise_std=0.02, jitter_cv=0.1)
+                               noise_std=0.02, jitter_cv=0.1, first_pulse=inset_len/2)
     time = np.arange(len(wavefish))/samplerate
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
@@ -586,7 +724,7 @@ def demo():
     # pulsefish zoom in:
     ax[1][1].set_title('Pulsefish ZOOM IN')
     ax[1][1].set_ylim(ymin, ymax)
-    ax[1][1].plot(time[:inset_indices/2], pulsefish[:inset_indices/2], '-o')
+    ax[1][1].plot(time[:inset_indices], pulsefish[:inset_indices], '-o')
 
     for row in ax:
         for c_ax in row:
@@ -645,5 +783,3 @@ def main():
             
 if __name__ == '__main__':
     main()
-    #fish = normalize_wavefish('Eigenmannia')
-    #export_wavefish(fish, 'Eigenmannia_harmonics')
