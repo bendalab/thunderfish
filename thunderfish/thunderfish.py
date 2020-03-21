@@ -40,6 +40,7 @@ from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
 from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, save_pulse_fish
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
+from .fakefish import normalize_wavefish, export_wavefish
 from .tabledata import TableData, add_write_table_config, write_table_args
 
 
@@ -234,9 +235,13 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
 def remove_eod_files(output_basename, verbose, cfg):
     """ Remove all files from previous runs of thunderfish
     """
-    fext = TableData.extensions[cfg.value('fileFormat')]
+    ff = cfg.value('fileFormat')
+    if ff == 'py':
+        fext = 'py'
+    else:
+        fext = TableData.extensions[cfg.value('fileFormat')]
     # remove all files from previous runs of thunderfish:
-    for fn in glob.glob('%s-*.%s' % (output_basename, fext)):
+    for fn in glob.glob('%s*.%s' % (output_basename, fext)):
         os.remove(fn)
         if verbose > 0:
             print('removed file %s' % fn)
@@ -246,44 +251,52 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
               unit, verbose, cfg):
     """ Save analysis results of all EODs to files.
     """
-    # for all wavetype fish in fishlist:
-    if len(wave_eodfs) > 0:
-        fp = save_wave_eodfs(wave_eodfs, wave_indices, output_basename,
-                             **write_table_args(cfg))
-        if verbose > 0:
-            print('wrote file %s' % fp)
-    # for each fish:
-    for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
-        fp = save_eod_waveform(mean_eod, unit, i, output_basename,
-                               **write_table_args(cfg))
-        if verbose > 0:
-            print('wrote file %s' % fp)
-        # power spectrum:
-        if len(sdata)>0:
-            if sdata.shape[1] == 2:
-                fp = save_pulse_spectrum(sdata, unit, i, output_basename,
-                                         **write_table_args(cfg))
-            else:
-                fp = save_wave_spectrum(sdata, unit, i, output_basename,
-                                        **write_table_args(cfg))
+    if write_table_args(cfg)['table_format'] == 'py':
+        with open(output_basename+'.py', 'w') as f:
+            name = os.path.basename(output_basename)
+            for k, sdata in enumerate(spec_data):
+                fish = dict(amplitudes=sdata[:7,3], phases=sdata[:7,5])
+                fish = normalize_wavefish(fish)
+                export_wavefish(fish, name+'-%d_harmonics' % k, f)
+    else:
+        # for all wavetype fish in fishlist:
+        if len(wave_eodfs) > 0:
+            fp = save_wave_eodfs(wave_eodfs, wave_indices, output_basename,
+                                 **write_table_args(cfg))
             if verbose > 0:
                 print('wrote file %s' % fp)
-        # peaks:
-        fp = save_pulse_peaks(pdata, unit, i, output_basename,
-                              **write_table_args(cfg))
-        if verbose > 0 and not fp is None:
-            print('wrote file %s' % fp)
-    # fish properties:
-    if wave_props:
-        fp = save_wave_fish(wave_props, unit, output_basename,
-                            **write_table_args(cfg))
-        if verbose > 0:
-            print('wrote file %s' % fp)
-    if pulse_props:
-        fp = save_pulse_fish(pulse_props, unit, output_basename,
-                             **write_table_args(cfg))
-        if verbose > 0:
-            print('wrote file %s' % fp)
+        # for each fish:
+        for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
+            fp = save_eod_waveform(mean_eod, unit, i, output_basename,
+                                   **write_table_args(cfg))
+            if verbose > 0:
+                print('wrote file %s' % fp)
+            # power spectrum:
+            if len(sdata)>0:
+                if sdata.shape[1] == 2:
+                    fp = save_pulse_spectrum(sdata, unit, i, output_basename,
+                                             **write_table_args(cfg))
+                else:
+                    fp = save_wave_spectrum(sdata, unit, i, output_basename,
+                                            **write_table_args(cfg))
+                if verbose > 0:
+                    print('wrote file %s' % fp)
+            # peaks:
+            fp = save_pulse_peaks(pdata, unit, i, output_basename,
+                                  **write_table_args(cfg))
+            if verbose > 0 and not fp is None:
+                print('wrote file %s' % fp)
+        # fish properties:
+        if wave_props:
+            fp = save_wave_fish(wave_props, unit, output_basename,
+                                **write_table_args(cfg))
+            if verbose > 0:
+                print('wrote file %s' % fp)
+        if pulse_props:
+            fp = save_pulse_fish(pulse_props, unit, output_basename,
+                                 **write_table_args(cfg))
+            if verbose > 0:
+                print('wrote file %s' % fp)
 
                             
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
@@ -648,7 +661,7 @@ def main():
     parser.add_argument('-s', dest='save_data', action='store_true',
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
-                        choices=TableData.formats,
+                        choices=TableData.formats + ['py'],
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot as pdf file')

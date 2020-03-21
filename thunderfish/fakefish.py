@@ -17,16 +17,21 @@ import sys
 import numpy as np
 
 
-""" Amplitudes and phases of Apteronotus leptorhynchus. """
-Alepto_harmonics = dict(amplitudes=(0.90062, 0.15311, 0.072049, 0.012609, 0.011708),
+""" Amplitudes and phases of various wavefish species. """
+Apteronotus_leptorhynchus_harmonics = dict(amplitudes=(0.90062, 0.15311, 0.072049, 0.012609, 0.011708),
                         phases=(1.3623, 2.3246, 0.9869, 2.6492, -2.6885))
-""" Amplitudes and phases of Eigenmannia. """
+Apteronotus_rostratus_harmonics = dict(amplitudes=(0.64707, 0.43874, 0.063592, 0.07379, 0.040199, 0.023073, 0.0097678),
+                                       phases=(2.2988, 0.78876, -1.316, 2.2416, 2.0413, 1.1022, -2.0513))
 Eigenmannia_harmonics = dict(amplitudes=(1.0087, 0.23201, 0.060524, 0.020175, 0.010087, 0.0080699),
                              phases=(1.3414, 1.3228, 2.9242, 2.8157, 2.6871, -2.8415))
+Sternopygus_dariensis_harmonics = dict(amplitudes=(0.98843, 0.41228, 0.047848, 0.11048, 0.022801, 0.030706, 0.019018),
+                                       phases=(1.4153, 1.3141, 3.1062, -2.3961, -1.9524, 0.54321, 1.6844))
 
 """ Amplitudes and phases of EOD waveforms of various species of wave-type electric fish. """
-wavefish_harmonics = dict(Alepto=Alepto_harmonics,
-                          Eigenmannia=Eigenmannia_harmonics)
+wavefish_harmonics = dict(Alepto=Apteronotus_leptorhynchus_harmonics,
+                          Arostratus=Apteronotus_rostratus_harmonics,
+                          Eigenmannia=Eigenmannia_harmonics,
+                          Sternopygus=Sternopygus_dariensis_harmonics)
 
 
 def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
