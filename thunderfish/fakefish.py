@@ -1,30 +1,34 @@
 """
 Simulate EOD waveforms.
 
-- `wavefish_eod()`: simulate EOD waveform of a wave-type fish.
+- `wavefish_eods()`: simulate EOD waveform of a wave-type fish.
+- `normalize_wavefish()`: normalize amplitudes and phases of EOD waveform.
+- `export_wavefish()`: serialize wavefish parameter to file.
 - `chirps()`: simulate frequency trace with chirps.
 - `rises()`: simulate frequency trace with rises.
-- `pulsefish_eod(): simulate EOD waveform of a pulse-type fish.
+- `pulsefish_eods(): simulate EOD waveform of a pulse-type fish.
 - `generate_waveform()`: interactively generate audio file with simulated EOD waveforms.
 """
 
+from __future__ import print_function
+import sys
 import numpy as np
 
 
 """ Amplitudes and phases of Apteronotus leptorhynchus. """
-Alepto_harmonics = dict(amplitudes=(1.0, 0.17, 0.08, 0.014, 0.013),
-                        phases=(1.4, 2.4, 1.1, 2.8, -2.5))
+Alepto_harmonics = dict(amplitudes=(0.90062, 0.15311, 0.072049, 0.012609, 0.011708),
+                        phases=(1.3623, 2.3246, 0.9869, 2.6492, -2.6885))
 """ Amplitudes and phases of Eigenmannia. """
-Eigenmannia_harmonics = dict(amplitudes=(1.0, 0.23, 0.06, 0.02, 0.01, 0.008),
-                             phases=(1.31, 1.26, 2.83, 2.69, 2.53, -3.03))
+Eigenmannia_harmonics = dict(amplitudes=(1.0087, 0.23201, 0.060524, 0.020175, 0.010087, 0.0080699),
+                             phases=(1.3414, 1.3228, 2.9242, 2.8157, 2.6871, -2.8415))
 
 """ Amplitudes and phases of EOD waveforms of various species of wave-type electric fish. """
 wavefish_harmonics = dict(Alepto=Alepto_harmonics,
                           Eigenmannia=Eigenmannia_harmonics)
 
 
-def wavefish_eod(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
-                 duration=1.0, phase0=0.0, noise_std=0.05):
+def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
+                  duration=1.0, phase0=0.0, noise_std=0.05):
     """
     Simulate EOD waveform of a wave-type fish.
 
@@ -40,9 +44,10 @@ def wavefish_eod(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
 
     Parameters
     ----------
-    fish: string or tuple of lists/arrays
+    fish: string, dict or tuple of lists/arrays
         Specify relative amplitudes and phases of the fundamental and its harmonics.
         If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
         If tuple then the first element is the list of amplitudes and
         the second one the list of relative phases in radians.
     frequency: float or array of floats
@@ -71,10 +76,13 @@ def wavefish_eod(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     if isinstance(fish, (tuple, list)):
         amplitudes = fish[0]
         phases = fish[1]
+    elif isinstance(fish, dict):
+        amplitudes = fish['amplitudes']
+        phases = fish['phases']
     else:
         if not fish in wavefish_harmonics:
             raise KeyError('unknown wavefish. Choose one of ' +
-                           ', '.join(wavefish_harmonics.key()))
+                           ', '.join(wavefish_harmonics.keys()))
         amplitudes = wavefish_harmonics[fish]['amplitudes']
         phases = wavefish_harmonics[fish]['phases']
     if len(amplitudes) != len(phases):
@@ -92,6 +100,119 @@ def wavefish_eod(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     # add noise:
     data += noise_std * np.random.randn(len(data))
     return data
+
+
+def normalize_wavefish(fish):
+    """ Normalize amplitudes and phases of EOD waveform.
+
+    The amplitudes and phases of the Fourier components are adjusted such
+    that the resulting EOD waveform has a peak-to-peak amplitude of two
+    and the peak of the waveform is a t time zero.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of lists/arrays
+        Specify relative amplitudes and phases of the fundamental and its harmonics.
+        If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
+        If tuple then the first element is the list of amplitudes and
+        the second one the list of relative phases in radians.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with adjusted amplitudes and phases.
+    """
+    # get relative amplitude and phases:
+    if isinstance(fish, (tuple, list)):
+        amplitudes = fish[0]
+        phases = fish[1]
+    elif isinstance(fish, dict):
+        amplitudes = fish['amplitudes']
+        phases = fish['phases']
+    else:
+        if not fish in wavefish_harmonics:
+            raise KeyError('unknown wavefish. Choose one of ' +
+                           ', '.join(wavefish_harmonics.keys()))
+        amplitudes = wavefish_harmonics[fish]['amplitudes']
+        phases = wavefish_harmonics[fish]['phases']
+    # generate waveform:
+    eodf = 100.0
+    rate = 100000.0
+    data = wavefish_eods(fish, eodf, rate, 2.0/eodf, noise_std=0.0)
+    # normalize amplitudes:
+    ampl = 0.5*(np.max(data) - np.min(data))
+    newamplitudes = amplitudes/ampl
+    # shift phases:
+    deltat = np.argmax(data[:int(rate/eodf)])/rate
+    deltap = 2.0*np.pi*deltat*eodf
+    newphases = np.array([p+(k+1)*deltap for k, p in enumerate(phases)])
+    newphases %= 2.0*np.pi
+    newphases[newphases>np.pi] -= 2.0*np.pi
+    # store and return:
+    harmonics = dict(amplitudes=newamplitudes,
+                     phases=newphases)
+    return harmonics
+
+
+def export_wavefish(fish, name="Unknown_harmonics", file=None):
+    """ Serialize wavefish parameter to file.
+
+    Add output to the wavefish_harmonics dictionary!
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of lists/arrays
+        Specify relative amplitudes and phases of the fundamental and its harmonics.
+        If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
+        If tuple then the first element is the list of amplitudes and
+        the second one the list of relative phases in radians.
+    name: string
+        Name of the dictionart to be written.
+    file: string or file or None
+        File name or open file object where to write wavefish dictionary.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with amplitudes and phases.
+    """
+    # get relative amplitude and phases:
+    if isinstance(fish, (tuple, list)):
+        amplitudes = fish[0]
+        phases = fish[1]
+    elif isinstance(fish, dict):
+        amplitudes = fish['amplitudes']
+        phases = fish['phases']
+    else:
+        if not fish in wavefish_harmonics:
+            raise KeyError('unknown wavefish. Choose one of ' +
+                           ', '.join(wavefish_harmonics.keys()))
+        amplitudes = wavefish_harmonics[fish]['amplitudes']
+        phases = wavefish_harmonics[fish]['phases']
+    # write out dictionary:
+    if file is None:
+        file = sys.stdout
+    try:
+        file.write('')
+        closeit = False
+    except AttributeError:
+        file = open(file, 'w')
+        closeit = True
+    ds = name + ' = dict('
+    file.write('%samplitudes=(' % ds)
+    file.write(', '.join(['%.5g' % a for a in amplitudes]))
+    file.write('),\n')
+    file.write(' ' * len(ds) + 'phases=(')
+    file.write(', '.join(['%.5g' % p for p in phases]))
+    file.write('))\n')
+    if closeit:
+        file.close()
+    # return dictionary:
+    harmonics = dict(amplitudes=amplitudes,
+                     phases=phases)
+    return harmonics
 
 
 def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
@@ -124,10 +245,10 @@ def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
     Returns
     -------
     frequency: array of floats
-        Generated frequency trace that can be passed on to wavefish_eod().
+        Generated frequency trace that can be passed on to wavefish_eods().
     amplitude: array of floats
         Generated amplitude modulation that can be used to multiply the trace generated by
-        wavefish_eod().
+        wavefish_eods().
     """
     # baseline eod frequency and amplitude modulation:
     n = int(duration*samplerate)
@@ -185,7 +306,7 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
     Returns
     -------
     data: array of floats
-        Generated frequency trace that can be passed on to wavefish_eod().
+        Generated frequency trace that can be passed on to wavefish_eods().
     """
     # baseline eod frequency:
     frequency = eodf * np.ones(int(duration*samplerate))
@@ -224,8 +345,8 @@ pulsefish_peaks = dict(monophasic=monophasic_peaks,
                        triphasic=triphasic_peaks)
                               
 
-def pulsefish_eod(fish='biphasic', frequency=100.0, samplerate=44100.0, duration=1.0,
-                  noise_std=0.01, jitter_cv=0.1):
+def pulsefish_eods(fish='biphasic', frequency=100.0, samplerate=44100.0, duration=1.0,
+                   noise_std=0.01, jitter_cv=0.1):
     """
     Simulate EOD waveform of a pulse-type fish.
 
@@ -239,11 +360,13 @@ def pulsefish_eod(fish='biphasic', frequency=100.0, samplerate=44100.0, duration
 
     Parameters
     ----------
-    fish: string or tuple of floats/lists/arrays
+    fish: string, dict or tuple of floats/lists/arrays
         Specify positions, amplitudes and standard deviations Gaussians peaks that are
         superimposed to simulate EOD waveforms of pulse-type electric fishes. 
         If string then take positions, amplitudes and standard deviations 
         from the `pulsefish_peaks` dictionary.
+        If dictionary then take pulse properties from the 'times', 'amlitudes'
+        and 'stdevs' keys.
         If tuple then the first element is the list of peak positions,
         the second is the list of corresponding amplitudes, and
         the third one the list of corresponding standard deviations.
@@ -280,10 +403,14 @@ def pulsefish_eod(fish='biphasic', frequency=100.0, samplerate=44100.0, duration
         peak_times = fish[0]
         peak_amplitudes = fish[1]
         peak_stds = fish[2]
+    elif isinstance(fish, dict):
+        peak_times = fish['times']
+        peak_amplitudes = fish['amplitudes']
+        peak_stdevs = fish['stdevs']
     else:
         if not fish in pulsefish_peaks:
             raise KeyError('unknown pulse-type fish. Choose one of ' +
-                           ', '.join(pulsefish_peaks.key()))
+                           ', '.join(pulsefish_peaks.keys()))
         peak_times = pulsefish_peaks[fish]['times']
         peak_amplitudes = pulsefish_peaks[fish]['amplitudes']
         peak_stdevs = pulsefish_peaks[fish]['stdevs']
@@ -379,22 +506,22 @@ def generate_waveform(filename):
                 eodfreq = rises_frequency(eodf, samplerate, duration,
                                           rise_freq, rise_size, rise_tau, rise_decay_tau)
             if eodt == 'a':
-                fishdata = eoda*wavefish_eod('Alepto', eodfreq, samplerate, duration,
-                                             phase0=0.0, noise_std=0.0)
+                fishdata = eoda*wavefish_eods('Alepto', eodfreq, samplerate, duration,
+                                              phase0=0.0, noise_std=0.0)
             elif eodt == 'e':
-                fishdata = eoda*wavefish_eod('Eigenmannia', eodfreq, samplerate,
-                                             duration, phase0=0.0, noise_std=0.0)
+                fishdata = eoda*wavefish_eods('Eigenmannia', eodfreq, samplerate,
+                                              duration, phase0=0.0, noise_std=0.0)
         else:
             pulse_jitter = read(fish + 'CV of pulse jitter', '%g'%pulse_jitter, float, 0.0, 2.0)
             if eodt == '1':
-                fishdata = eoda*pulsefish_eod('monophasic', eodf, samplerate, duration,
-                                              jitter_cv=pulse_jitter, noise_std=0.0)
+                fishdata = eoda*pulsefish_eods('monophasic', eodf, samplerate, duration,
+                                               jitter_cv=pulse_jitter, noise_std=0.0)
             elif eodt == '2':
-                fishdata = eoda*pulsefish_eod('biphasic', eodf, samplerate, duration,
-                                              jitter_cv=pulse_jitter, noise_std=0.0)
+                fishdata = eoda*pulsefish_eods('biphasic', eodf, samplerate, duration,
+                                               jitter_cv=pulse_jitter, noise_std=0.0)
             elif eodt == '3':
-                fishdata = eoda*pulsefish_eod('triphasic', eodf, samplerate, duration,
-                                              jitter_cv=pulse_jitter, noise_std=0.0)
+                fishdata = eoda*pulsefish_eods('triphasic', eodf, samplerate, duration,
+                                               jitter_cv=pulse_jitter, noise_std=0.0)
         i = fish_indices[k]
         for j in range(fish_spread):
             data[:, (i+j)%ndata] += fishdata*(0.2**j)
@@ -417,12 +544,12 @@ def demo():
 
     # generate data:
     eodf = 400.0
-    wavefish = wavefish_eod('Alepto', eodf, samplerate, duration, noise_std=0.02)
+    wavefish = wavefish_eods('Alepto', eodf, samplerate, duration, noise_std=0.02)
     eodf = 650.0
-    wavefish += 0.5*wavefish_eod('Eigenmannia', eodf, samplerate, duration)
+    wavefish += 0.5*wavefish_eods('Eigenmannia', eodf, samplerate, duration)
 
-    pulsefish = pulsefish_eod('biphasic', 80.0, samplerate, duration,
-                              noise_std=0.02, jitter_cv=0.1)
+    pulsefish = pulsefish_eods('biphasic', 80.0, samplerate, duration,
+                               noise_std=0.02, jitter_cv=0.1)
     time = np.arange(len(wavefish))/samplerate
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
@@ -470,11 +597,11 @@ def demo():
 
     # chirps:
     chirps_freq = chirps(600.0, samplerate, duration)
-    chirps_data = wavefish_eod('Alepto', chirps_freq, samplerate)
+    chirps_data = wavefish_eods('Alepto', chirps_freq, samplerate)
 
     # rises:
     rises_freq = rises(600.0, samplerate, duration, rise_size=20.0)
-    rises_data = wavefish_eod('Alepto', rises_freq, samplerate)
+    rises_data = wavefish_eods('Alepto', rises_freq, samplerate)
 
     nfft = 256
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(19, 10))
@@ -518,3 +645,5 @@ def main():
             
 if __name__ == '__main__':
     main()
+    #fish = normalize_wavefish('Eigenmannia')
+    #export_wavefish(fish, 'Eigenmannia_harmonics')

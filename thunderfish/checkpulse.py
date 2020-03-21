@@ -423,22 +423,22 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     from .bestwindow import best_window
     from .powerspectrum import psd
-    from .fakefish import wavefish_eod, pulsefish_eod
+    from .fakefish import wavefish_eods, pulsefish_eods
 
     print("\nChecking checkpulse module ...\n")
     
     # generate data:
     rate = 44100.0
     if len(sys.argv) < 2:
-        data = wavefish_eod('Eigenmannia', 80.0, rate, 8.0)
+        data = wavefish_eods('Eigenmannia', 80.0, rate, 8.0)
     elif sys.argv[1] == '-w':
-        data = wavefish_eod('Alepto', 600.0, rate, 8.0)
+        data = wavefish_eods('Alepto', 600.0, rate, 8.0)
     elif sys.argv[1] == '-m':
-        data = pulsefish_eod('monophasic', 80.0, rate, 8.0)
+        data = pulsefish_eods('monophasic', 80.0, rate, 8.0)
     elif sys.argv[1] == '-b':
-        data = pulsefish_eod('biphasic', 80.0, rate, 8.0)
+        data = pulsefish_eods('biphasic', 80.0, rate, 8.0)
     elif sys.argv[1] == '-t':
-        data = pulsefish_eod('triphasic', 80.0, rate, 8.0)
+        data = pulsefish_eods('triphasic', 80.0, rate, 8.0)
     else:  # load data given by the user
         from .dataloader import load_data
 

@@ -1688,7 +1688,7 @@ def harmonic_groups_args(cfg):
 if __name__ == "__main__":
     import sys
     import matplotlib.pyplot as plt
-    from .fakefish import wavefish_eod
+    from .fakefish import wavefish_eods
     from .powerspectrum import psd
 
     if len(sys.argv) < 2:
@@ -1696,10 +1696,10 @@ if __name__ == "__main__":
         title = 'simulation'
         samplerate = 44100.0
         eodfs = [123.0, 333.0, 666.0, 666.5]
-        fish1 = 0.5*wavefish_eod('Eigenmannia', eodfs[0], samplerate, duration=8.0, noise_std=0.01)
-        fish2 = 1.0*wavefish_eod('Eigenmannia', eodfs[1], samplerate, duration=8.0, noise_std=0.01)
-        fish3 = 10.0*wavefish_eod('Alepto', eodfs[2], samplerate, duration=8.0, noise_std=0.01)
-        fish4 = 6.0*wavefish_eod('Alepto', eodfs[3], samplerate, duration=8.0, noise_std=0.01)
+        fish1 = 0.5*wavefish_eods('Eigenmannia', eodfs[0], samplerate, duration=8.0, noise_std=0.01)
+        fish2 = 1.0*wavefish_eods('Eigenmannia', eodfs[1], samplerate, duration=8.0, noise_std=0.01)
+        fish3 = 10.0*wavefish_eods('Alepto', eodfs[2], samplerate, duration=8.0, noise_std=0.01)
+        fish4 = 6.0*wavefish_eods('Alepto', eodfs[3], samplerate, duration=8.0, noise_std=0.01)
         data = fish1 + fish2 + fish3 + fish4
     else:
         from .dataloader import load_data
