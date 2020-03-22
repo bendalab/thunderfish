@@ -18,18 +18,28 @@ import numpy as np
 
 
 """ Amplitudes and phases of various wavefish species. """
+Sine_harmonics = dict(amplitudes=(1.0,), phases=(0.0,))
+
 Apteronotus_leptorhynchus_harmonics = dict(amplitudes=(0.90062, 0.15311, 0.072049, 0.012609, 0.011708),
                         phases=(1.3623, 2.3246, 0.9869, 2.6492, -2.6885))
+
 Apteronotus_rostratus_harmonics = dict(amplitudes=(0.64707, 0.43874, 0.063592, 0.07379, 0.040199, 0.023073, 0.0097678),
                                        phases=(2.2988, 0.78876, -1.316, 2.2416, 2.0413, 1.1022, -2.0513))
+
+Sternarchella_terminalis_harmonics = dict(amplitudes=(0.11457, 0.4401, 0.41055, 0.20132, 0.061364, 0.011389, 0.0057985),
+                                          phases=(-2.7106, 2.4472, 1.6829, 0.79085, 0.119, -0.82355, -1.9956))
+
 Eigenmannia_harmonics = dict(amplitudes=(1.0087, 0.23201, 0.060524, 0.020175, 0.010087, 0.0080699),
                              phases=(1.3414, 1.3228, 2.9242, 2.8157, 2.6871, -2.8415))
+
 Sternopygus_dariensis_harmonics = dict(amplitudes=(0.98843, 0.41228, 0.047848, 0.11048, 0.022801, 0.030706, 0.019018),
                                        phases=(1.4153, 1.3141, 3.1062, -2.3961, -1.9524, 0.54321, 1.6844))
 
 """ Amplitudes and phases of EOD waveforms of various species of wave-type electric fish. """
-wavefish_harmonics = dict(Alepto=Apteronotus_leptorhynchus_harmonics,
+wavefish_harmonics = dict(Sine=Sine_harmonics,
+                          Alepto=Apteronotus_leptorhynchus_harmonics,
                           Arostratus=Apteronotus_rostratus_harmonics,
+                          Sternarchella=Sternarchella_terminalis_harmonics,
                           Eigenmannia=Eigenmannia_harmonics,
                           Sternopygus=Sternopygus_dariensis_harmonics)
 
@@ -258,7 +268,7 @@ def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
         wavefish_eods().
     """
     # baseline eod frequency and amplitude modulation:
-    n = int(duration*samplerate)
+    n = len(np.arange(0, duration, 1.0/samplerate))
     frequency = eodf * np.ones(n)
     am = np.ones(n)
     # time points for chirps:
@@ -315,8 +325,9 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
     data: array of floats
         Generated frequency trace that can be passed on to wavefish_eods().
     """
+    n = len(np.arange(0, duration, 1.0/samplerate))
     # baseline eod frequency:
-    frequency = eodf * np.ones(int(duration*samplerate))
+    frequency = eodf * np.ones(n)
     # time points for rises:
     rise_period = 1.0/rise_freq
     rise_times = np.arange(0.5*rise_period, duration, rise_period)
@@ -339,9 +350,9 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
 monophasic_peaks = dict(times=(0.0,), amplitudes=(1.0,), stdevs=(0.0003,))
 
 """ Positions, amplitudes and standard deviations of binophasic EOD waveforms. """
-biphasic_peaks = dict(times=(1e-05, 0.00031),
-                      amplitudes=(1.1053, -0.33158),
-                      stdevs=(0.0001, 0.0002))
+biphasic_peaks = dict(times=(9e-05, 0.00049),
+                      amplitudes=(1.1922, -0.95374),
+                      stdevs=(0.0003, 0.00025))
 
 """ Positions, amplitudes and standard deviations of trinophasic EOD waveforms. """
 triphasic_peaks = dict(times=(3e-05, 0.00018, 0.00043),
@@ -788,3 +799,5 @@ def main():
             
 if __name__ == '__main__':
     main()
+    #fish = normalize_pulsefish('biphasic')
+    #export_pulsefish(fish, 'biphasic_peaks')
