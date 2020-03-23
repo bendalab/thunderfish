@@ -17,8 +17,33 @@ import sys
 import numpy as np
 
 
+""" Translate species ids used by wavefish_harmonics and pulsefish_peaks to full species names.
+"""
+species_name = dict(Alepto='Apteronotus leptorhynchus',
+                    Arostratus='Apteronotus rostratus',
+                    Sternarchella='Sternarchella terminalis',
+                    Sternopygus='Sternopygus dariensis')
+
+
+def abbrv_genus(name):
+    """ Abbreviate genus in a species name.
+
+    Parameters
+    ----------
+    name: string
+        Full species name of the form 'Genus species subspecies'
+
+    Returns
+    -------
+    name: string
+        The species name with abbreviated genus, i.e. 'G. species subspecies'
+    """
+    ns = name.split()
+    return ns[0][0] + '. ' + ' '.join(ns[1:])
+
+
 """ Amplitudes and phases of various wavefish species. """
-Sine_harmonics = dict(amplitudes=(1.0,), phases=(0.0,))
+Sine_harmonics = dict(amplitudes=(1.0,), phases=(0.5*np.pi,))
 
 Apteronotus_leptorhynchus_harmonics = dict(amplitudes=(0.90062, 0.15311, 0.072049, 0.012609, 0.011708),
                         phases=(1.3623, 2.3246, 0.9869, 2.6492, -2.6885))
@@ -347,23 +372,23 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
 
 
 """ Positions, amplitudes and standard deviations of monophasic EOD waveforms. """
-monophasic_peaks = dict(times=(0.0,), amplitudes=(1.0,), stdevs=(0.0003,))
+Monophasic_peaks = dict(times=(0.0,), amplitudes=(1.0,), stdevs=(0.0003,))
 
 """ Positions, amplitudes and standard deviations of binophasic EOD waveforms. """
-biphasic_peaks = dict(times=(9e-05, 0.00049),
+Biphasic_peaks = dict(times=(9e-05, 0.00049),
                       amplitudes=(1.1922, -0.95374),
                       stdevs=(0.0003, 0.00025))
 
 """ Positions, amplitudes and standard deviations of trinophasic EOD waveforms. """
-triphasic_peaks = dict(times=(3e-05, 0.00018, 0.00043),
+Triphasic_peaks = dict(times=(3e-05, 0.00018, 0.00043),
                        amplitudes=(1.2382, -0.9906, 0.12382),
                        stdevs=(0.0001, 0.0001, 0.0002))
 
 """ Standard deviations, amplitudes and positions of Gaussians that make up
     EOD waveforms of pulse-type electric fish. """
-pulsefish_peaks = dict(monophasic=monophasic_peaks,
-                       biphasic=biphasic_peaks,
-                       triphasic=triphasic_peaks)
+pulsefish_peaks = dict(Monophasic=Monophasic_peaks,
+                       Biphasic=Biphasic_peaks,
+                       Triphasic=Triphasic_peaks)
                               
 
 def pulsefish_eods(fish='biphasic', frequency=100.0, samplerate=44100.0, duration=1.0,
@@ -799,5 +824,3 @@ def main():
             
 if __name__ == '__main__':
     main()
-    #fish = normalize_pulsefish('biphasic')
-    #export_pulsefish(fish, 'biphasic_peaks')
