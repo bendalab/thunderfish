@@ -255,7 +255,7 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
         with open(output_basename+'.py', 'w') as f:
             name = os.path.basename(output_basename)
             for k, sdata in enumerate(spec_data):
-                fish = dict(amplitudes=sdata[:7,3], phases=sdata[:7,5])
+                fish = dict(amplitudes=sdata[:,3], phases=sdata[:,5])
                 fish = normalize_wavefish(fish)
                 export_wavefish(fish, name+'-%d_harmonics' % k, f)
     else:

@@ -19,8 +19,10 @@ import numpy as np
 
 """ Translate species ids used by wavefish_harmonics and pulsefish_peaks to full species names.
 """
-species_name = dict(Alepto='Apteronotus leptorhynchus',
+species_name = dict(Sine='Sinewave',
+                    Alepto='Apteronotus leptorhynchus',
                     Arostratus='Apteronotus rostratus',
+                    Eigenmannia='Eigenmannia spec.',
                     Sternarchella='Sternarchella terminalis',
                     Sternopygus='Sternopygus dariensis')
 
@@ -45,27 +47,38 @@ def abbrv_genus(name):
 """ Amplitudes and phases of various wavefish species. """
 Sine_harmonics = dict(amplitudes=(1.0,), phases=(0.5*np.pi,))
 
-Apteronotus_leptorhynchus_harmonics = dict(amplitudes=(0.90062, 0.15311, 0.072049, 0.012609, 0.011708),
-                        phases=(1.3623, 2.3246, 0.9869, 2.6492, -2.6885))
+Apteronotus_leptorhynchus_harmonics = \
+    dict(amplitudes=(0.90062, 0.15311, 0.072049, 0.012609, 0.011708),
+         phases=(1.3623, 2.3246, 0.9869, 2.6492, -2.6885))
 
-Apteronotus_rostratus_harmonics = dict(amplitudes=(0.64707, 0.43874, 0.063592, 0.07379, 0.040199, 0.023073, 0.0097678),
-                                       phases=(2.2988, 0.78876, -1.316, 2.2416, 2.0413, 1.1022, -2.0513))
+Apteronotus_rostratus_harmonics = \
+    dict(amplitudes=(0.64707, 0.43874, 0.063592, 0.07379, 0.040199, 0.023073,
+                     0.0097678),
+         phases=(2.2988, 0.78876, -1.316, 2.2416, 2.0413, 1.1022,
+                 -2.0513))
 
-Sternarchella_terminalis_harmonics = dict(amplitudes=(0.11457, 0.4401, 0.41055, 0.20132, 0.061364, 0.011389, 0.0057985),
-                                          phases=(-2.7106, 2.4472, 1.6829, 0.79085, 0.119, -0.82355, -1.9956))
+Eigenmannia_harmonics = \
+    dict(amplitudes=(1.0087, 0.23201, 0.060524, 0.020175, 0.010087, 0.0080699),
+         phases=(1.3414, 1.3228, 2.9242, 2.8157, 2.6871, -2.8415))
 
-Eigenmannia_harmonics = dict(amplitudes=(1.0087, 0.23201, 0.060524, 0.020175, 0.010087, 0.0080699),
-                             phases=(1.3414, 1.3228, 2.9242, 2.8157, 2.6871, -2.8415))
+Sternarchella_terminalis_harmonics = \
+    dict(amplitudes=(0.11457, 0.4401, 0.41055, 0.20132, 0.061364, 0.011389,
+                     0.0057985),
+         phases=(-2.7106, 2.4472, 1.6829, 0.79085, 0.119, -0.82355,
+                 -1.9956))
 
-Sternopygus_dariensis_harmonics = dict(amplitudes=(0.98843, 0.41228, 0.047848, 0.11048, 0.022801, 0.030706, 0.019018),
-                                       phases=(1.4153, 1.3141, 3.1062, -2.3961, -1.9524, 0.54321, 1.6844))
+Sternopygus_dariensis_harmonics = \
+    dict(amplitudes=(0.98843, 0.41228, 0.047848, 0.11048, 0.022801, 0.030706,
+                     0.019018),
+         phases=(1.4153, 1.3141, 3.1062, -2.3961, -1.9524, 0.54321,
+                 1.6844))
 
 """ Amplitudes and phases of EOD waveforms of various species of wave-type electric fish. """
 wavefish_harmonics = dict(Sine=Sine_harmonics,
                           Alepto=Apteronotus_leptorhynchus_harmonics,
                           Arostratus=Apteronotus_rostratus_harmonics,
-                          Sternarchella=Sternarchella_terminalis_harmonics,
                           Eigenmannia=Eigenmannia_harmonics,
+                          Sternarchella=Sternarchella_terminalis_harmonics,
                           Sternopygus=Sternopygus_dariensis_harmonics)
 
 
@@ -197,7 +210,7 @@ def normalize_wavefish(fish):
     return harmonics
 
 
-def export_wavefish(fish, name="Unknown_harmonics", file=None):
+def export_wavefish(fish, name='Unknown_harmonics', file=None):
     """ Serialize wavefish parameter to file.
 
     Add output to the wavefish_harmonics dictionary!
@@ -242,12 +255,21 @@ def export_wavefish(fish, name="Unknown_harmonics", file=None):
     except AttributeError:
         file = open(file, 'w')
         closeit = True
-    ds = name + ' = dict('
-    file.write(ds + 'amplitudes=(')
-    file.write(', '.join(['%.5g' % a for a in amplitudes]))
+    n = 6
+    file.write(name + ' = \\\n')
+    file.write('    dict(amplitudes=(')
+    file.write(', '.join(['%.5g' % a for a in amplitudes[:n]]))
+    for k in range(n, len(amplitudes), n):
+        file.write(',\n')
+        file.write(' ' * (9+12))
+        file.write(', '.join(['%.5g' % a for a in amplitudes[k:k+n]]))
     file.write('),\n')
-    file.write(' ' * len(ds) + 'phases=(')
-    file.write(', '.join(['%.5g' % p for p in phases]))
+    file.write(' ' * 9 + 'phases=(')
+    file.write(', '.join(['%.5g' % p for p in phases[:n]]))
+    for k in range(n, len(phases), n):
+        file.write(',\n')
+        file.write(' ' * (9+8))
+        file.write(', '.join(['%.5g' % p for p in phases[k:k+n]]))
     file.write('))\n')
     if closeit:
         file.close()
@@ -371,18 +393,22 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
     return frequency
 
 
-""" Positions, amplitudes and standard deviations of monophasic EOD waveforms. """
-Monophasic_peaks = dict(times=(0.0,), amplitudes=(1.0,), stdevs=(0.0003,))
+""" Positions, amplitudes and standard deviations of peaks
+    of various pulsefish species. """
+Monophasic_peaks = \
+    dict(times=(0),
+         amplitudes=(1),
+         stdevs=(0.0003))
 
-""" Positions, amplitudes and standard deviations of binophasic EOD waveforms. """
-Biphasic_peaks = dict(times=(9e-05, 0.00049),
-                      amplitudes=(1.1922, -0.95374),
-                      stdevs=(0.0003, 0.00025))
+Biphasic_peaks = \
+    dict(times=(9e-05, 0.00049),
+         amplitudes=(1.1922, -0.95374),
+         stdevs=(0.0003, 0.00025))
 
-""" Positions, amplitudes and standard deviations of trinophasic EOD waveforms. """
-Triphasic_peaks = dict(times=(3e-05, 0.00018, 0.00043),
-                       amplitudes=(1.2382, -0.9906, 0.12382),
-                       stdevs=(0.0001, 0.0001, 0.0002))
+Triphasic_peaks = \
+    dict(times=(3e-05, 0.00018, 0.00043),
+         amplitudes=(1.2382, -0.9906, 0.12382),
+         stdevs=(0.0001, 0.0001, 0.0002))
 
 """ Standard deviations, amplitudes and positions of Gaussians that make up
     EOD waveforms of pulse-type electric fish. """
@@ -391,8 +417,9 @@ pulsefish_peaks = dict(Monophasic=Monophasic_peaks,
                        Triphasic=Triphasic_peaks)
                               
 
-def pulsefish_eods(fish='biphasic', frequency=100.0, samplerate=44100.0, duration=1.0,
-                   noise_std=0.01, jitter_cv=0.1, first_pulse=None):
+def pulsefish_eods(fish='biphasic', frequency=100.0, samplerate=44100.0,
+                   duration=1.0, noise_std=0.01, jitter_cv=0.1,
+                   first_pulse=None):
     """
     Simulate EOD waveform of a pulse-type fish.
 
@@ -551,7 +578,7 @@ def normalize_pulsefish(fish):
     return peaks
 
 
-def export_pulsefish(fish, name="Unknown_peaks", file=None):
+def export_pulsefish(fish, name='Unknown_peaks', file=None):
     """ Serialize pulsefish parameter to file.
 
     Add output to the wavefish_harmonics dictionary!
@@ -603,15 +630,28 @@ def export_pulsefish(fish, name="Unknown_peaks", file=None):
     except AttributeError:
         file = open(file, 'w')
         closeit = True
-    ds = name + ' = dict('
-    file.write(ds + 'times=(')
-    file.write(', '.join(['%.5g' % t for t in peak_times]))
+    n = 6
+    file.write(name + ' = \\\n')
+    file.write('    dict(times=(')
+    file.write(', '.join(['%.5g' % a for a in peak_times[:n]]))
+    for k in range(n, len(peak_times), n):
+        file.write(',\n')
+        file.write(' ' * (9+12))
+        file.write(', '.join(['%.5g' % a for a in peak_times[k:k+n]]))
     file.write('),\n')
-    file.write(' ' * len(ds) + 'amplitudes=(')
-    file.write(', '.join(['%.5g' % a for a in peak_amplitudes]))
+    file.write(' ' * 9 + 'amplitudes=(')
+    file.write(', '.join(['%.5g' % p for p in peak_amplitudes[:n]]))
+    for k in range(n, len(peak_amplitudes), n):
+        file.write(',\n')
+        file.write(' ' * (9+8))
+        file.write(', '.join(['%.5g' % p for p in peak_amplitudes[k:k+n]]))
     file.write('),\n')
-    file.write(' ' * len(ds) + 'stdevs=(')
-    file.write(', '.join(['%.5g' % a for a in peak_stdevs]))
+    file.write(' ' * 9 + 'stdevs=(')
+    file.write(', '.join(['%.5g' % p for p in peak_stdevs[:n]]))
+    for k in range(n, len(peak_stdevs), n):
+        file.write(',\n')
+        file.write(' ' * (9+8))
+        file.write(', '.join(['%.5g' % p for p in peak_stdevs[k:k+n]]))
     file.write('))\n')
     if closeit:
         file.close()
@@ -823,4 +863,5 @@ def main():
 
             
 if __name__ == '__main__':
-    main()
+    #main()
+    export_pulsefish('Triphasic', 'Triphasic_peaks')
