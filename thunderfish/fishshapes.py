@@ -700,7 +700,8 @@ def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
     ax.add_patch(Circle(pos, radius, **kwargs))
 
 
-def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0):
+def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
+                 gamma=1.0):
     """ Meshgrid of one side of the fish.
     
     Parameters
@@ -718,6 +719,10 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0):
         Size of the fish.
     bend: float
         Bending angle of the fish's tail in degree.
+    gamma: float
+        Gamma distortion of the ellipse. The ellipse equation is raised
+        to the power of gamma before it smaller diameter is scaled up
+        from one to the actual value.
 
     Returns
     -------
@@ -779,8 +784,7 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0):
     # apply ellipse:
     y = np.linspace(np.min(midline[:,1]-diamy), np.max(midline[:,1]+diamy), n//2)
     xx, yy = np.meshgrid(x ,y)
-    zz = diamz/diamy * np.sqrt(diamy**2 - (yy-midline[:,1])**2)
-    #zz = diamz * (np.sqrt(1.0 - ((yy-midline[:,1])/diamy)**2))**0.2
+    zz = diamz * (np.sqrt(1.0 - ((yy-midline[:,1])/diamy)**2))**gamma
     return xx, yy, zz
 
 
@@ -818,21 +822,20 @@ def surface_normals(xx, yy, zz):
     
 def main():
     bodykwargs=dict(lw=1, edgecolor='b', facecolor='none')
-    finkwargs=dict(lw=1, edgecolor='r', facecolor='c')
+    finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
     var = ['zz', 'nx', 'ny', 'nz']
     fig, ax = plt.subplots()
     for k in range(4):
         y = (1.5-k)*9
         fish = (('Alepto', 'side'), (0, y), (1, 0), 20.0, 0)
-        xx, yy, zz = fish_surface(*fish)
+        xx, yy, zz = fish_surface(*fish, gamma=0.5)
         nx, ny, nz = surface_normals(xx, yy, zz)
         a = [zz, nx, ny, nz]
         th = np.nanmax(np.abs(a[k]))
-        ax.contourf(xx[0,:], yy[:,0], a[k], 20, vmin=-th, vmax=th, cmap='RdYlBu')
+        ax.contourf(xx[0,:], yy[:,0], -a[k], 20, vmin=-th, vmax=th, cmap='RdYlBu')
         plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
         ax.text(-11, y+2, var[k])
     bodykwargs=dict(lw=1, edgecolor='k', facecolor='k')
-    finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
     fish = (('Alepto', 'top'), (23, -10), (2, 1), 16.0, -25)
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
     fish = (('Eigenmannia', 'top'), (23, 0), (1, 1), 16.0, -25)
