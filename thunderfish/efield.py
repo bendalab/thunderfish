@@ -518,12 +518,15 @@ def plot_fieldlines(ax, flines, pos=5, **kwargs):
         The position of the arrow on the field line in units of the coordinates.
     **kwargs: key word arguments
         Passed on to plot().
+        Applies optional zorder argument also to arrow.
     """
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
     dx = 0.05*np.abs(xmax-xmin)
     dy = 0.05*np.abs(ymax-ymin)
-    
+    akwargs = dict()
+    if 'zorder' in kwargs:
+        akwargs['zorder'] = kwargs['zorder']
     for fl in flines:
         ax.plot(fl[:,0], fl[:,1], **kwargs)
         # arrows:
@@ -542,7 +545,7 @@ def plot_fieldlines(ax, flines, pos=5, **kwargs):
             arrow = FancyArrowPatch(posA=posa, posB=posb, shrinkA=0, shrinkB=0,
                                     arrowstyle='fancy', mutation_scale=10,
                                     connectionstyle='arc3', fill=True,
-                                    color=kwargs['color'], zorder=30)
+                                    color=kwargs['color'], **akwargs)
             ax.add_patch(arrow)
 
 
