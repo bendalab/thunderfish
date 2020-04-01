@@ -527,6 +527,11 @@ def plot_fieldlines(ax, flines, pos=5, **kwargs):
     akwargs = dict()
     if 'zorder' in kwargs:
         akwargs['zorder'] = kwargs['zorder']
+    lw = 1
+    if 'lw' in kwargs:
+        lw = kwargs['lw']
+    if 'linewidth' in kwargs:
+        lw = kwargs['linewidth']
     for fl in flines:
         ax.plot(fl[:,0], fl[:,1], **kwargs)
         # arrows:
@@ -543,7 +548,7 @@ def plot_fieldlines(ax, flines, pos=5, **kwargs):
             posa = fl[idx,:]
             posb = fl[idx+1,:]
             arrow = FancyArrowPatch(posA=posa, posB=posb, shrinkA=0, shrinkB=0,
-                                    arrowstyle='fancy', mutation_scale=10,
+                                    arrowstyle='fancy', mutation_scale=8*lw,
                                     connectionstyle='arc3', fill=True,
                                     color=kwargs['color'], **akwargs)
             ax.add_patch(arrow)
