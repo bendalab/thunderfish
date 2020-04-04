@@ -202,7 +202,6 @@ def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
     samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
     n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
     noverlap = int(n_fft * overlap_frac)
-    print(n_fft, noverlap, len(data))
     if psdscipy:
         if detrend == 'none':
             detrend = lambda x: x
