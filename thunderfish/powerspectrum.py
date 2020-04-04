@@ -101,9 +101,9 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     ----------
     power: float or array
         Power values, for example from a power spectrum or spectrogram.
-    ref_power: float or None
+    ref_power: float or None or 'peak'
         Reference power for computing decibel.
-        If set to `None` the maximum power is used.
+        If set to `None` or 'peak', the maximum power is used.
     min_power: float
         Power values smaller than `min_power` are set to `-inf`.
 
@@ -118,7 +118,7 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
     else:
         tmp_power = np.array([power])
         decibel_psd = np.array([power])
-    if ref_power is None:
+    if ref_power is None or ref_power == 'peak':
         ref_power = np.max(decibel_psd)
     decibel_psd[tmp_power <= min_power] = float('-inf')
     decibel_psd[tmp_power > min_power] = 10.0 * np.log10(decibel_psd[tmp_power > min_power]/ref_power)
@@ -150,7 +150,7 @@ def power(decibel, ref_power=1.0):
     return ref_power * 10.0 ** (0.1 * decibel)
 
 
-def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
+def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
         overlap_frac=0.5, detrend='constant', window='hanning'):
     """Power spectrum density of a given frequency resolution.
 
@@ -170,8 +170,10 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
     
     data: 1-D array 
         Data from which power spectra are computed.
-    samplerate: float
-        Sampling rate of the data in Hertz.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
     freq_resolution: float
         Frequency resolution of the psd in Hertz.
     min_nfft: int
@@ -197,8 +199,10 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
     power: 1-D array
         Power spectral density in [data]^2/Hz.
     """
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
     n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
     noverlap = int(n_fft * overlap_frac)
+    print(n_fft, noverlap, len(data))
     if psdscipy:
         if detrend == 'none':
             detrend = lambda x: x
@@ -220,7 +224,7 @@ def psd(data, samplerate, freq_resolution, min_nfft=16, max_nfft=None,
     return freqs, np.squeeze(power)
 
 
-def multi_psd(data, samplerate, freq_resolution=0.5,
+def multi_psd(data, ratetime, freq_resolution=0.5,
               num_resolutions=1, num_windows=1,
               min_nfft=16, overlap_frac=0.5,
               detrend='constant', window='hanning'):
@@ -234,8 +238,10 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
     ----------
     data: 1-D array
         Data from which power spectra are computed.
-    samplerate: float
-        Sampling rate of the data in Hertz.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
     freq_resolution: float or 1-D array
         Frequency resolutions for one or multiple psds in Hertz.
     num_resolutions: int
@@ -265,6 +271,7 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
         List of the power spectra for each window and frequency resolution
         (`psd_data[i][freq, power]`).
     """
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
     if not isinstance(freq_resolution, (list, tuple, np.ndarray)):
         freq_resolution = [freq_resolution]
         for i in range(1, num_resolutions):
@@ -279,7 +286,7 @@ def multi_psd(data, samplerate, freq_resolution=0.5,
     return multi_psd_data
 
 
-def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
+def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
                 max_nfft=None, overlap_frac=0.5,
                 detrend='constant', window='hanning'):
     """
@@ -298,8 +305,10 @@ def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
     ----------
     data: array
         Data for the spectrogram.
-    samplerate: float
-        Samplerate of data in Hertz.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
     freq_resolution: float
         Frequency resolution for the spectrogram.
     min_nfft: int
@@ -326,6 +335,7 @@ def spectrogram(data, samplerate, freq_resolution=0.5, min_nfft=16,
     time: array
         Time of the nfft windows.
     """
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
     n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
     noverlap = int(n_fft * overlap_frac)
     if specgrammlab:
