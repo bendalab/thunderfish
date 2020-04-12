@@ -545,7 +545,9 @@ def plot_fieldlines(ax, flines, pos=5, **kwargs):
                 idx0 = np.argmin(np.abs(dist[-1]-dist-pos))
             idx1 = np.argmin(np.abs(dist-0.5*dist[-1]))
             idx = min(idx0, idx1)
-            posa = fl[idx,:]
+            adx = fl[idx+1,:] - fl[idx,:]
+            adx /= np.linalg.norm(adx)
+            posa = fl[idx+1,:] - 0.1*min(dx,dy)*adx
             posb = fl[idx+1,:]
             arrow = FancyArrowPatch(posA=posa, posB=posb, shrinkA=0, shrinkB=0,
                                     arrowstyle='fancy', mutation_scale=8*lw,
