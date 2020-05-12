@@ -1,5 +1,5 @@
 """
-Generate artificial EOD waveforms.
+Generate artificial EOD waveforms and fields.
 
 The two main functions are
 
@@ -24,9 +24,18 @@ rises_frequency() for rises.
 
 The returned frequency of these functions can then be directly passed on
 to generate_wavefish() for generating a frequency modulated EOD waveform.
+
+The spatial geometry of a fish's electric field is simulated by
+
+efield() .
+
+Electric field potententials can be transformed for nice contour plots via
+
+transform_efield() .
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def generate_wavefish(frequency=100.0, samplerate=44100., duration=1., noise_std=0.05,
@@ -110,7 +119,7 @@ def generate_eigenmannia(frequency=100.0, samplerate=44100., duration=1., noise_
     """
     return generate_wavefish(frequency=frequency, samplerate=samplerate, duration=duration,
                              noise_std=noise_std, amplitudes=[1.0, 0.25, 0.0, 0.01],
-                             phases=[0.0, 0.5*np.pi, 0.0, 0.0])
+                             phases=[0.0, -0.48*np.pi, 0.0, 0.0])
 
 
 def chirps_frequency(eodf=100.0, samplerate=44100., duration=1.,
@@ -327,6 +336,139 @@ def generate_triphasic_pulses(frequency=100.0, samplerate=44100., duration=1.,
                               peak_times=[0.0, 0.00015, 0.0004])
 
 
+def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0):
+    """ Monopoles for simulating the electric field of an electric fish.
+
+    This implements the model published in
+    Chen, House, Krahe, Nelson (2005) "Modeling signal and background
+    components of electrosensory scenes", J Comp Physiol A 191: 331-345
+
+    Ten monopoles are uniformly distributed for each size unit.
+    The first (tail) monopole gets a negative charge that equals
+    the sum of the positive unit charges of the other (head) monopoles.
+    The strength of the dipole increases linearly with fish size.
+
+    Pass the returned monopole positions and charges on to the efield() function
+    to simulate the resulting electric field.
+
+    Parameters
+    ----------
+    pos: tuple of floats
+        Coordinates of the fish's position (its center).
+    direction: tuple of floats
+        Coordinates of a vector defining the orientation of the fish.
+    size: float
+        Size of the fish.
+    bend: float
+        Bending angle of the fish's tail in degree.
+
+    Returns
+    -------
+    poles: 2D array of floats
+        Positions of the monopoles.
+    charges: array of floats
+        The charge of each monopole.
+    """
+    n = int(10*size)
+    nneg = 1
+    npos = n - nneg
+    ppx = 0.1
+    pos = np.asarray(pos)
+    charges = np.ones(n)
+    charges[:nneg] = -float(npos)/nneg
+    poles = np.array([(0, k*ppx) for k in range(-n//2, -n//2+n)])
+    if np.abs(bend) > 1.e-8:
+        ym = -np.min(poles[:,1])       # tip of fish tail
+        r = 180.0*ym/bend/np.pi        # radius of circle on which to bend the tail
+        yp = poles[poles[:,1]<0.0,1]   # all negative y coordinates of poles
+        beta = yp/r                    # angle on circle for each y coordinate
+        poles[poles[:,1]<0.0,0] = r*(1.0-np.cos(beta))    # transformed x corrdinates
+        poles[poles[:,1]<0.0,1] = -np.abs(r*np.sin(beta)) # transformed y coordinates
+    # rotation matrix:
+    theta = np.arctan2(*direction)
+    c = np.cos(theta)
+    s = np.sin(theta)
+    rm = np.array(((c, -s), (s, c)))
+    # rotation:
+    poles = np.dot(poles, rm)
+    # translation:
+    poles += pos
+    return poles, charges
+
+
+def efield(x, y, *args):
+    """ Electric field simulation given a set of electric monopoles.
+
+    Use efish_monopoles() to generate monopoles and corresponding charges.
+
+    Parameters
+    ----------
+    x: array of floats
+        1 to 3 dimensional array of x coordinates for which
+        the field should be calculated.
+    y: array of floats
+        1 to 3 dimensional array of y coordinates for which
+        the field should be calculated.
+    args: list of tuples
+        Each tuple contains as the first argument the position of monopoles
+        (2D array of floats), and as the second argument the corresponding charges
+        (array of floats).
+
+    Returns
+    -------
+    pot: array of float
+        The potential of the fish at the x and y coordinates.
+        Same shape as x or y.
+    """
+    pot = np.zeros(x.shape)
+    for poles, charges in args:
+        for p, c in zip(poles, charges):
+            xd = x-p[0]
+            yd = y-p[1]
+            r = np.concatenate((xd[..., np.newaxis], yd[..., np.newaxis]), axis=-1)
+            rnorm = np.linalg.norm(r, axis=-1)
+            rnorm[np.abs(rnorm) < 1e-12] = 1.0e-12
+            pot += c/rnorm
+    return pot
+
+
+def transform_efield(pot, thresh=1.0):
+    """ Transform spatial electric field for plotting.
+
+    Takes the square root of positive potentials.
+    Takes the square root of the absolute values of negative potentials
+    and negates it.
+    Then truncate symmetrically both positive and negative values to
+    a threshold.
+
+    The resulting transformed potential gives nice contour lines in a
+    contour plot.
+
+    Parameters
+    ----------
+    pot: array of float
+        The potential of the fish.
+    thresh: float or None
+        Maximum absolute value of the returned potential.
+        Must be positive!
+        If None, take the smaller of the maximum of the
+        positive values or of the absolute negative values. 
+
+    Returns
+    -------
+    pot: array of float
+        The transformed potential of the fish.
+    """
+    sel = pot>=0.0
+    pot[sel] = pot[sel]**0.5
+    pot[np.logical_not(sel)] = -((-pot[np.logical_not(sel)])**0.5)
+    if thresh is None:
+        thresh = min(np.max(pot), -np.min(pot))
+    pot[pot>thresh] = thresh
+    pot[pot<-thresh] = -thresh
+    return pot
+
+    
 def main():
     import sys
     import os
@@ -426,11 +568,11 @@ def main():
     else:
         # demo:
         samplerate = 40000.  # in Hz
-        duration = 10.0       # in sec
+        duration = 10.0      # in sec
 
-        inset_len = 0.01  # in sec
+        inset_len = 0.01     # in sec
         inset_indices = int(inset_len*samplerate)
-        ws_fac = 0.1  # whitespace factor or ylim (between 0. and 1.; preferably a small number)
+        ws_fac = 0.1         # whitespace factor or ylim (between 0. and 1.)
 
         # generate data:
         time = np.arange(0, duration, 1./samplerate)
