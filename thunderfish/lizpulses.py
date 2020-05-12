@@ -29,14 +29,14 @@ def extract_eod_times(data,peakwidth):
         peakindices, _, _ = pth.discardnearbyevents(peaks[0],peaks[2],peakwidth)
         return peaks[0][peakindices.astype('int')].astype('int'), peaks[-1][peakindices.astype('int')].astype('int'), peaks[2][peakindices.astype('int')],peaks[3][peakindices.astype('int')] 
 
-def cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,plot_steps=False):
+def cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_init,m_iter=100,plot_steps=False):
 
     l = np.ones(h_arr.shape)
     
     if ((np.max(h_arr) - np.min(h_arr))/np.max(h_arr)) > 0.25:
 
         # classify by height
-        bgm = BayesianGaussianMixture(ngaus,max_iter=100,n_init=10)
+        bgm = BayesianGaussianMixture(ngaus,max_iter=m_iter,n_init=n_init)
         l = bgm.fit_predict(h_arr.reshape(-1,1))
 
         # if any of the clusters merged have very little height difference, merge them.
@@ -92,7 +92,7 @@ def cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,plo
             if plot_steps == True:
                 mean_eods, eod_times = find_window(data,cidx_arr,c_ns,ch_arr,rm=False)
                 print('clustering on non-scaled eods')
-                plot_all(data,ts,samplerate,ms,vs)
+                plot_all(data,ts,samplerate,ms,vs)  
 
             # merge results for scaling and without scaling
             _,_,_,c = merge_clusters(c,c_ns,cidx_arr,cidx_arr,ch_arr,data,samplerate)
@@ -159,6 +159,12 @@ def find_window(data,idx_arr,c,h_arr,samplerate,sp=True,rm=True):
             if sp == True:
                 # check if any bigger peaks are within snippet selection
                 # are there any idxs from a different clusters in the selected windows?
+
+                # are there eods that appear at a fixed length before or after the current eod?
+                # for every peak, pick closest eod
+                # if all picked eod belong to the same cluster, determine the distances.
+                # if the distances are small enough and really similar, it is a sidepeak.
+
                 c_i = idx_arr[c== l][(idx_arr[c== l]>lw) & (idx_arr[c== l]<(len(data)-rw))]
                 cur_idxs = np.stack([np.arange(int(idx-lw*2),int(idx+rw*2)) for idx in c_i])
                 alien_peaks = idx_arr[(c!=-1) & (c!=l)]
@@ -171,8 +177,6 @@ def find_window(data,idx_arr,c,h_arr,samplerate,sp=True,rm=True):
                             if np.min(h_arr[i]/h_arr[(c!=-1) & (c!=l)][alien_peaks==ci]) < 0.2:
                                 if rm == True:                                
                                     sp_c = sp_c + 1
-
-                                #sidepeak = True
 
             # if the error is small enough, it is probably not noise
             c_i = idx_arr[c== l][(idx_arr[c== l]>lw*4) & (idx_arr[c== l]<(len(data)-rw*3))]
@@ -196,7 +200,7 @@ def find_window(data,idx_arr,c,h_arr,samplerate,sp=True,rm=True):
     
 def merge_clusters(c_p,c_t,idx_arr,idx_t_arr, h_arr, data, samplerate): 
 
-    # first remove all clusters with high variance or sidepeaks or artefacts from both clusters
+    # first remove all clusters with high variance or artefacts from both clusters
     _,_,remove_clusters = find_window(data,idx_arr,c_p,h_arr,samplerate,sp=False)
     for rc in remove_clusters:
         c_p[c_p==rc] = -1
@@ -328,7 +332,7 @@ def plot_all(data, eod_times, fs, mean_eods):
     plt.show()
 
 
-def extract_pulsefish(data, samplerate, percentile=75, npc=3, minp=10, ngaus=4, plot_steps=False):
+def extract_pulsefish(data, samplerate, pw=0.002, cw=0.001, percentile=75, npc=3, minp=10, ngaus=4, n_init=10, m_iter=100, plot_steps=False):
     """
     This is what you should implement! Don't worry about wavefish for now.
     
@@ -338,6 +342,26 @@ def extract_pulsefish(data, samplerate, percentile=75, npc=3, minp=10, ngaus=4, 
         The data to be analysed.
     samplerate: float
         Sampling rate of the data in Hertz.
+
+    OPTIONAL:
+    pw : float
+        peak width for peak detection in seconds.
+    cw : float
+        cut width for extracting snippets for clustering based on EOD shape
+    percentile: float
+        percentile for determining epsilon from knn distribution where k=minp
+    npc : int
+        number of PCs to use for PCA
+    minp : int
+        minimun number of point for core cluster (DBSCAN)
+    ngaus : int
+        maximun number of gaussians to fit for clustering on EOD hights
+    n_init: int
+        number of initializations for BayesianGaussianMixture method
+    m_iter: int
+        maximum number of iterations for BayesianGausssianMixture method
+    plot_steps : bool
+        plot each clustering step if True
         
     Returns
     -------
@@ -350,12 +374,6 @@ def extract_pulsefish(data, samplerate, percentile=75, npc=3, minp=10, ngaus=4, 
     
     mean_eods, eod_times = [], []
     
-    # this would be the maximum pulsewidth. (used for peak extraction) in seconds
-    pw=0.002
-    
-    # this is the cutwidth (used for snippet extraction) in seconds
-    cw=0.001
-    
     # 1. extract peaks
     idx_arr, idx_t_arr, h_arr, w_arr = extract_eod_times(data, pw*samplerate)
 
@@ -367,14 +385,14 @@ def extract_pulsefish(data, samplerate, percentile=75, npc=3, minp=10, ngaus=4, 
         w_arr = w_arr[i]
 
         # cluster on peaks
-        c_p, ch_p = cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,plot_steps) 
+        c_p, ch_p = cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_init,m_iter,plot_steps) 
         if plot_steps == True:
             mean_eods, eod_times, _ = find_window(data,idx_arr,c_p,h_arr,samplerate,rm=False)
             print('clustering on peaks')
             plot_all(data,ts,samplerate,ms,vs)
 
         #cluster on troughs
-        c_t, ch_t = cluster(idx_t_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,plot_steps)
+        c_t, ch_t = cluster(idx_t_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_init,m_iter,plot_steps)
         if plot_steps == True:
             mean_eods, eod_times, _ = find_window(data,idx_t_arr,c_t,h_arr,samplerate,rm=False)
             print('clustering on troughs')
@@ -405,22 +423,3 @@ def extract_pulsefish(data, samplerate, percentile=75, npc=3, minp=10, ngaus=4, 
             print('after deleting moving fish')
     
     return mean_eods, eod_times
-
-# load data:
-filename = sys.argv[1]
-channel = 0
-raw_data, samplerate, unit = load_data(filename, channel)
-
-# best_window:
-data, clipped = best_window(raw_data, samplerate, win_size=8.0)
-
-# plot the data you should analyze:
-time = np.arange(len(data))/samplerate  # in seconds
-plt.plot(time, data)
-plt.show()
-
-# pulse extraction:
-mean_eods, eod_times = extract_pulsefish(data, samplerate)
-
-# plot results
-plot_all(data,eod_times,samplerate, mean_eods)
