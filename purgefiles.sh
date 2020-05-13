@@ -22,3 +22,10 @@ git push origin --force --all
 git push origin --force --tags
 
 # then rebase all or remove and clone anew!
+
+# for details see:
+# https://help.github.com/en/github/authenticating-to-github/removing-sensitive-data-from-a-repository
+
+# https://stackoverflow.com/questions/11050265/remove-large-pack-file-created-by-git
+
+# https://stackoverflow.com/questions/460331/git-finding-a-filename-from-a-sha1

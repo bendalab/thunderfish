@@ -25,6 +25,7 @@ from .bestwindow import add_clip_config, add_best_window_config
 from .bestwindow import clip_args, best_window_args
 from .bestwindow import find_best_window, plot_best_data
 from .checkpulse import check_pulse_width, check_pulse_width_args
+from .lizpulses import extract_pulsefish
 from .powerspectrum import decibel, plot_decibel_psd, multi_psd
 from .powerspectrum import add_multi_psd_config, multi_psd_args
 from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
@@ -108,8 +109,15 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     """ Detect EODs of all fish present in the data.
     """
     # pulse-type fish?
+    """
     pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
                                                  **check_pulse_width_args(cfg))
+    """
+    pulse_fish = False
+    _, eod_times = extract_pulsefish(data, samplerate)
+    if len(eod_times) > 0:
+        pulse_fish = True
+        eod_times = eod_times[0]
 
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))

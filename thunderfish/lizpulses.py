@@ -1,18 +1,39 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from thunderfish.dataloader import load_data
-from thunderfish.bestwindow import best_window
-import pulse_tracker_helper as pth
-import thunderfish.eventdetection as ed
-
-from sklearn.decomposition import PCA
-from sklearn.cluster import DBSCAN
 
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import DBSCAN
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.metrics import pairwise_distances, silhouette_score
-from sklearn.cluster import DBSCAN, OPTICS
-import scipy.stats as stats
+
+from .eventdetection import detect_peaks
+from .pulse_tracker_helper import makeeventlist, discardnearbyevents, discard_connecting_eods
+
+
+# upgrade numpy fumctions:
+
+if not hasattr(np, 'isin'):
+    np.isin = np.in1d
+
+
+def unique_counts(ar):
+    """
+    Find the unique elements of an array and their counts, ignoring shape.
+
+    The following code is condensed from numpy version 1.17.0.
+    """
+    try:
+        return np.unique(ar, return_counts=True)
+    except TypeError:
+        #ar = np.asanyarray(ar).flatten()
+        ar.sort()
+        mask = np.empty(ar.shape, dtype=np.bool_)
+        mask[:1] = True
+        mask[1:] = ar[1:] != ar[:-1]
+        idx = np.concatenate(np.nonzero(mask) + ([mask.size],))
+        return ar[mask], np.diff(idx)  
+
 
 def extract_eod_times(data,peakwidth,cw,tf=2):
     '''
@@ -43,19 +64,20 @@ def extract_eod_times(data,peakwidth,cw,tf=2):
     # make this std and make 2 a factor.
     #thresh = np.std(data)*tf
     thresh = np.mean(np.abs(data))*tf
-    pk, tr = ed.detect_peaks(data, thresh)
+    pk, tr = detect_peaks(data, thresh)
 
     if len(pk)==0:
         return [], [], [], []
     else:
-        peaks = pth.makeeventlist(pk,tr,data,peakwidth)
-        peakindices, _, _ = pth.discardnearbyevents(peaks[0],peaks[2],peakwidth)
-        pk, tr, hs, ws = pth.discard_connecting_eods(peaks[0][peakindices.astype('int')].astype('int'), peaks[-1][peakindices.astype('int')].astype('int'), peaks[2][peakindices.astype('int')], peaks[3][peakindices.astype('int')])
+        peaks = makeeventlist(pk,tr,data,peakwidth)
+        peakindices, _, _ = discardnearbyevents(peaks[0],peaks[2],peakwidth)
+        pk, tr, hs, ws = discard_connecting_eods(peaks[0][peakindices.astype('int')].astype('int'), peaks[-1][peakindices.astype('int')].astype('int'), peaks[2][peakindices.astype('int')], peaks[3][peakindices.astype('int')])
         
         # only take those where the cutwidth does not casue issues
         i = np.where((pk>int(cw/2)) & (pk<(len(data)-int(cw/2))) & (tr>int(cw/2)) & (tr<(len(data)-int(cw/2))))[0]
 
         return pk[i], tr[i], hs[i], ws[i]
+
 
 def cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_init,m_iter=100):
     '''
@@ -118,7 +140,7 @@ def cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_i
     al = np.ones(len(l))*-1    
         
     # extract snippets
-    snippets = np.stack([data[int(idx-cw*samplerate/2):int(idx+cw*samplerate/2)] for idx in idx_arr]) 
+    snippets = np.vstack([data[int(idx-cw*samplerate/2):int(idx+cw*samplerate/2)] for idx in idx_arr]) 
     
     # keep track of the labels so that no labels are overwritten
     maxlab = 0
@@ -165,6 +187,7 @@ def cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_i
     # return the overall clusters (al) and the clusters based on hight (l)                
     return al
 
+
 def find_window(data,idx_arr,w_arr,c,samplerate):
     '''
     Select window for extracting mean EODs
@@ -199,16 +222,17 @@ def find_window(data,idx_arr,w_arr,c,samplerate):
             c_i = idx_arr[(idx_arr>cw) & (idx_arr<(len(data)-cw))]
             cc = c[(idx_arr>cw) & (idx_arr<(len(data)-cw))]
 
-            w = np.stack([data[int(idx-cw):int(idx+cw)] for idx in c_i[cc==l]])
+            w = np.vstack([data[int(idx-cw):int(idx+cw)] for idx in c_i[cc==l]])
             m = np.mean(w,axis=0)
             
             t = np.arange(len(m))/samplerate - cw/samplerate
-            m = np.stack([t,m,np.std(w,axis=0)])
+            m = np.vstack([t,m,np.std(w,axis=0)])
 
             ms.append(m)
             ts.append(idx_arr[c==l]/samplerate)
                 
     return ms, ts
+
     
 def remove_noise_and_artefacts(data,idx_arr,w_arr,c,o_cw,nt=0.003,at=0.8):
     '''
@@ -250,7 +274,7 @@ def remove_noise_and_artefacts(data,idx_arr,w_arr,c,o_cw,nt=0.003,at=0.8):
             c_i = idx_arr[(idx_arr>cw) & (idx_arr<(len(data)-cw))]
             cur_c = c[(idx_arr>cw) & (idx_arr<(len(data)-cw))]
 
-            snippets = np.stack([data[int(idx-cw):int(idx+cw)] for idx in c_i[cur_c==cc]])
+            snippets = np.vstack([data[int(idx-cw):int(idx+cw)] for idx in c_i[cur_c==cc]])
 
             m = np.mean(snippets,axis=0)
             v = np.std(snippets,axis=0)
@@ -300,8 +324,8 @@ def merge_clusters(c_p,c_t,idx_arr,idx_t_arr):
 
         # compute unique clusters and cluster sizes
         # of cluster that have not been iterated over
-        cu_p, clen_p = np.unique(c_p[(c_p!=-1) & (c_pd == 0)],return_counts=True)
-        cu_t, clen_t = np.unique(c_t[(c_t!=-1) & (c_td == 0)],return_counts=True)     
+        cu_p, clen_p = unique_counts(c_p[(c_p!=-1) & (c_pd == 0)])
+        cu_t, clen_t = unique_counts(c_t[(c_t!=-1) & (c_td == 0)])
 
         # if all clusters are done, break from loop
         if len(clen_p) == 0 and len(clen_t) == 0:
@@ -310,14 +334,14 @@ def merge_clusters(c_p,c_t,idx_arr,idx_t_arr):
         # if the biggest cluster is in c_p, keep this one and discard all clusters on the same indices in c_t
         elif np.argmax([np.max(np.append(clen_p,0)), np.max(np.append(clen_t,0))]) == 0:
             # remove all the mappings from the other indices
-            cm,ccount = np.unique(c_t[c_p==cu_p[np.argmax(clen_p)]],return_counts=True)
+            cm,ccount = unique_counts(c_t[c_p==cu_p[np.argmax(clen_p)]])
             for ccm in cm:
                 c_t[c_t==ccm] = -1
             c_pd[c_p==cu_p[np.argmax(clen_p)]] = 1
 
         # if the biggest cluster is in c_t, keep this one and discard all mappings in c_p
         elif np.argmax([np.max(np.append(clen_p,0)), np.max(np.append(clen_t,0))]) == 1:
-            cm, ccount = np.unique(c_p[c_t==cu_t[np.argmax(clen_t)]],return_counts=True)
+            cm, ccount = unique_counts(c_p[c_t==cu_t[np.argmax(clen_t)]])
             for ccm in cm:
                 c_p[c_p==ccm] = -1
             c_td[c_t==cu_t[np.argmax(clen_t)]] = 1
@@ -327,6 +351,7 @@ def merge_clusters(c_p,c_t,idx_arr,idx_t_arr):
     idx_arr = (idx_arr)*c_pd + (idx_t_arr)*c_td
 
     return c, idx_arr
+
 
 def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1, N=8):
     '''
@@ -364,7 +389,7 @@ def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1, N=8):
     keep_clus = []
 
     # only compute on clusters with minimum length of length N.
-    u,uc = np.unique(c,return_counts=True)
+    u,uc = unique_counts(c)
     m = np.isin(c,u[uc<N])
     c[m] = -1
 
@@ -389,6 +414,7 @@ def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1, N=8):
             c[c==cc] = -1
 
     return c
+
 
 def extract_pulsefish(data, samplerate, pw=0.002, cw=0.001, percentile=75, npc=3, minp=10, ngaus=4, n_init=1, m_iter=1000):
     """
