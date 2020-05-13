@@ -142,8 +142,25 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
     return event_indices.astype('int'), event_locations, event_heights
 
 def discard_connecting_eods(pks, trs, hs, ws):
-    # pk should be unique but tr is maybe not
-    # for each tr, select peaks that result in biggest hight.
+    '''
+    If two detected EODs share the same closest trough, keep only the highest peak
+
+    Input
+    -----------
+    pks : list of ints
+        indices of EOD peaks
+    trs : list of ints
+        indices of EOD troughs
+    hs : list of floats
+        EOD hights
+    ws : list of ints
+        EOD widths
+
+    Output
+    ----------
+    pks, trs, hs, ws : lists of ints and floats
+        EOD location and features of the non-discarded EODs
+    '''
     keep_idxs = np.ones(len(pks))
     for tr in np.unique(trs):
         if len(trs[trs==tr])>1:

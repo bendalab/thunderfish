@@ -91,14 +91,11 @@ def cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_i
         number of initializations for BayesianGaussianMixture method
     m_iter: int
         maximum number of iterations for BayesianGausssianMixture method
-    plot_steps : bool
-        plot each clustering step if True
 
-    Returns:
+    Returns
+    -------------------
     al : list of ints
-        EOD clusters based on hight and EOD waveform 
-    l : list of ints
-        EOD clusters based only on hight
+        EOD cluster labels based on hight and EOD waveform 
 
     '''
 
@@ -131,10 +128,7 @@ def cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_i
 
             # extract snippets, idxs and hs for this hight cluster
             csnippets = StandardScaler().fit_transform(snippets[l==hl])
-            cidx_arr = idx_arr[l==hl]
-            ch_arr = h_arr[l==hl]
-            cw_arr = w_arr[l==hl]
-
+            
             # extract relevant snippet features
             pca = PCA(npc).fit(csnippets).transform(csnippets)
             
@@ -153,15 +147,15 @@ def cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_i
             c_ns = DBSCAN(eps=eps, min_samples=minp).fit(pca).labels_
 
             # remove noise and artefacts from ns clusters
-            c_ns = remove_noise_and_artefacts(data,cidx_arr,cw_arr,c_ns,int(cw*samplerate))
+            c_ns = remove_noise_and_artefacts(data,idx_arr[l==hl],w_arr[l==hl],c_ns,int(cw*samplerate))
             # remove noise and artefacts from scaled clusters
-            c = remove_noise_and_artefacts(data,cidx_arr,cw_arr,c,int(cw*samplerate))
+            c = remove_noise_and_artefacts(data,idx_arr[l==hl],w_arr[l==hl],c,int(cw*samplerate))
               
             # merge results for scaling and without scaling
-            c, _ = merge_clusters(c,c_ns,cidx_arr,cidx_arr)
+            c, _ = merge_clusters(c,c_ns,idx_arr[l==hl],idx_arr[l==hl])
 
             # remove noise after merging
-            c = remove_noise_and_artefacts(data,cidx_arr,cw_arr,c,int(cw*samplerate))
+            c = remove_noise_and_artefacts(data,idx_arr[l==hl],w_arr[l==hl],c,int(cw*samplerate))
 
             # update maxlab so that no clusters are overwritten
             c[c==-1] = -maxlab-1
@@ -169,9 +163,33 @@ def cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_i
             maxlab = np.max(al)+1
 
     # return the overall clusters (al) and the clusters based on hight (l)                
-    return al, l
+    return al
 
 def find_window(data,idx_arr,w_arr,c,samplerate):
+    '''
+    Select window for extracting mean EODs
+
+    Input
+    --------------
+        data : list of floats
+            raw recording data
+        idx_arr : list of ints
+            EOD indices
+        w_arr : list of ints
+            EOD widths
+        c : list of ints
+            EOD cluster labels
+        samplerate : float
+            samplerate of recording                
+
+    Output
+    --------------
+        mean_eods: list of 2D arrays
+            For each detected fish the average of the EOD snippets. First column is time in seconds,
+            second column the mean eod, third column the standard error.
+        eod_times: list of 1D arrays
+            For each detected fish the times of EOD peaks in seconds.
+    '''
 
     ms,ts = [],[]
 
@@ -193,7 +211,35 @@ def find_window(data,idx_arr,w_arr,c,samplerate):
     return ms, ts
     
 def remove_noise_and_artefacts(data,idx_arr,w_arr,c,o_cw,nt=0.003,at=0.8):
-    # use w_arr to decide the cut width.
+    '''
+    remove EOD clusters that are too noisy or result from artefacts
+
+    Input
+    --------------
+        data : list of floats
+            raw recording data
+        idx_arr : list of ints
+            EOD indices
+        w_arr : list of ints
+            EOD widths
+        c : list of ints
+            EOD cluster labels
+        o_cw : int
+            original cutwidth that was used for feature extraction
+
+    Parameters
+    ---------------
+        nt : float
+            noise threshold
+        at : float
+            artefact threshold
+
+    Output
+    --------------
+        c : list of ints
+            cluster labels, where noisy cluster and 
+            clusters with artefacts have been set to zero
+    '''
 
     for cc in np.unique(c):
         if cc!=-1:
@@ -220,6 +266,27 @@ def remove_noise_and_artefacts(data,idx_arr,w_arr,c,o_cw,nt=0.003,at=0.8):
 
 
 def merge_clusters(c_p,c_t,idx_arr,idx_t_arr): 
+    '''
+    merge clusters of two clustering methods
+
+    Input
+    --------------
+        c_p : list of ints
+            EOD cluster labels for cluster method 1.
+        c_t : list of ints
+            EOD cluster labels for cluster method 2.
+        idx_arr : list of ints
+            indices of EODs for cluster method 1 (c_p)
+        idx_t_arr : list of ints
+            indices of EODs for cluster method 2 (c_t)
+
+    Output
+    --------------
+        c : list of ints
+            merged clusters
+        idx_arr : list of ints
+            merged cluster indices
+    '''
 
     # these arrays become 1 for each EOD that is chosen from that array
     c_pd = np.zeros(len(c_p))
@@ -257,12 +324,40 @@ def merge_clusters(c_p,c_t,idx_arr,idx_t_arr):
 
     # combine results    
     c = (c_p+1)*c_pd + (c_t+1)*c_td - 1
-    c_idx_arr = (idx_arr)*c_pd + (idx_t_arr)*c_td
+    idx_arr = (idx_arr)*c_pd + (idx_t_arr)*c_td
 
-    return c, c_idx_arr
+    return c, idx_arr
 
 def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1, N=8):
-    
+    '''
+    Use a sliding window to detect the minimum number of fish detected simultaneously.
+    Then delete all other EOD detections.
+
+    Input
+    --------------
+        c : list of ints
+            EOD cluster labels
+        ts : list of floats
+            timepoints of the EODs (in seconds)
+        T : float
+            length of recording (in seconds)
+        h_arr : list of floats
+            EOD amplitudes
+    Parameters
+    ------------------------------
+        dt : float
+            sliding window size (in seconds)
+        stepsize : float
+            sliding window stepsize (in seconds)
+        N : int
+            minimum cluster size
+
+    Output
+    --------------
+        c : list of ints
+            clusters, where deleted clusters have been set to -1
+    '''
+
     # initialize variables
     min_clus = 100
     av_hight = 0
@@ -297,7 +392,8 @@ def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1, N=8):
 
 def extract_pulsefish(data, samplerate, pw=0.002, cw=0.001, percentile=75, npc=3, minp=10, ngaus=4, n_init=1, m_iter=1000):
     """
-    This is what you should implement! Don't worry about wavefish for now.
+    Takes recording data containing one or more pulsefish 
+    and extracts the mean EOD for each fish present in the recording.
     
     Parameters
     ----------
@@ -335,16 +431,16 @@ def extract_pulsefish(data, samplerate, pw=0.002, cw=0.001, percentile=75, npc=3
     
     mean_eods, eod_times = [], []
     
-    # 1. extract peaks
+    # extract peaks
     idx_arr, idx_t_arr, h_arr, w_arr = extract_eod_times(data, pw*samplerate,cw*samplerate)
 
     if len(idx_arr)>0:
 
         # cluster on peaks
-        c_p, ch_p = cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_init,m_iter) 
+        c_p = cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_init,m_iter) 
 
         # cluster on troughs
-        c_t, ch_t = cluster(idx_t_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_init,m_iter)
+        c_t = cluster(idx_t_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_init,m_iter)
 
         # merge peak and trough clusters
         c, c_idx_arr = merge_clusters(c_p,c_t,idx_arr,idx_t_arr)
