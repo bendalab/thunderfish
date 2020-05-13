@@ -210,13 +210,13 @@ def cut_snippets(data,event_locations,cut_width,int_met="linear",int_fact=10,max
     Parameters
     ----------
     data: array
-F
+
     event_locations: array
 
     cut_width: [int, int]
         lower and upper limit of the intervals relative to the event locations.
         f.e. [-15,15] indicates an interval of 30 datapoints around each event location
-s
+
     int_met: string or int
         method of interpolation. (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used
 
