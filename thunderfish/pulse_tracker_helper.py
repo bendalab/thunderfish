@@ -21,8 +21,9 @@ def makeeventlist(main_event_positions,side_event_positions,data,event_width=20,
     Returns
     -------
     EOD_events: ndarray
-        2D array containing data with 'np.float' type, size (number_of_properties = 3, number_of_events).
-        Generated and combined data of the detected events in an array with arrays of x, y and height along the first axis.
+        2D array containing data with 'np.float' type, size (number_of_properties = 5, number_of_events).
+        Generated and combined data of the detected events in an array with arrays of:
+                x, y, height along the first axis, width and x of the most significant nearby trough.
 
     """
     mainfirst = int((min(main_event_positions[0],side_event_positions[0])<side_event_positions[0]))  # determines if there is a peak or through first. Evaluates to 1 if there is a peak first.
@@ -114,7 +115,8 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
     event_heights: array of int or float
         Heights of the returned events, indices refer to the same events as in
         event_locations.
-
+    event_indices: array of int
+        Indices of arrays which are not to be discarded
     """
     unchanged = False
     counter = 0

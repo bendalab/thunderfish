@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from thunderfish.dataloader import load_data
@@ -9,17 +8,41 @@ import thunderfish.eventdetection as ed
 from sklearn.decomposition import PCA
 from sklearn.cluster import DBSCAN
 
-from matplotlib.gridspec import GridSpec
-
 from sklearn.preprocessing import StandardScaler
 from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 from sklearn.metrics import pairwise_distances, silhouette_score
 from sklearn.cluster import DBSCAN, OPTICS
 import scipy.stats as stats
 
-def extract_eod_times(data,peakwidth):
+def extract_eod_times(data,peakwidth,cw,tf=2):
+    '''
+    Extract peaks from data which could be EODs.
+
+    Input
+    -------------------------------------------
+    data: list of floats
+        data to extract peaks from
+    peakwidth: int
+        maximum peakwidth for extracting single EODs
+    cw: int
+        cutwidth. Do not return peak indices that are don't
+        allow full extraction of this EOD waveform
+
+    Returns
+    --------------------------------------------
+    x_peak:     array of ints
+        indices of peaks in data
+    x_trough:   array of ints
+        indices of troughs in data for each x_peak
+    eod_hight:  array of floats
+        EOD hights for each x_peak
+    eod_width:  array of ints
+        EOD widths for each x_peak (in samples)
+    '''
     
-    thresh = np.mean(np.abs(data))*2
+    # make this std and make 2 a factor.
+    #thresh = np.std(data)*tf
+    thresh = np.mean(np.abs(data))*tf
     pk, tr = ed.detect_peaks(data, thresh)
 
     if len(pk)==0:
@@ -27,10 +50,59 @@ def extract_eod_times(data,peakwidth):
     else:
         peaks = pth.makeeventlist(pk,tr,data,peakwidth)
         peakindices, _, _ = pth.discardnearbyevents(peaks[0],peaks[2],peakwidth)
-        return peaks[0][peakindices.astype('int')].astype('int'), peaks[-1][peakindices.astype('int')].astype('int'), peaks[2][peakindices.astype('int')],peaks[3][peakindices.astype('int')] 
+        pk, tr, hs, ws = pth.discard_connecting_eods(peaks[0][peakindices.astype('int')].astype('int'), peaks[-1][peakindices.astype('int')].astype('int'), peaks[2][peakindices.astype('int')], peaks[3][peakindices.astype('int')])
+        
+        # only take those where the cutwidth does not casue issues
+        i = np.where((pk>int(cw/2)) & (pk<(len(data)-int(cw/2))) & (tr>int(cw/2)) & (tr<(len(data)-int(cw/2))))[0]
 
-def cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_init,m_iter=100,plot_steps=False):
+        return pk[i], tr[i], hs[i], ws[i]
 
+def cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_init,m_iter=100):
+    '''
+    Cluster EODs. First cluster on EOD hights using a Bayesian Gaussian Mixture model, 
+    then cluster on EOD wave shape using DBSCAN.
+
+    Input
+    ------------
+    idx_arr : list of ints
+        locations of EODs (as indices)
+    h_arr : list of floats
+        EOD hights
+    w_arr: list of ints
+        EOD widths
+    data : list of floats
+        raw recording data
+    samplerate : int or float
+        sample rate of raw data
+
+    Parameters
+    -----------------
+    cw : float
+        cut width for extracting snippets for clustering based on EOD shape
+    percentile: float
+        percentile for determining epsilon from knn distribution where k=minp
+    npc : int
+        number of PCs to use for PCA
+    minp : int
+        minimun number of point for core cluster (DBSCAN)
+    ngaus : int
+        maximun number of gaussians to fit for clustering on EOD hights
+    n_init: int
+        number of initializations for BayesianGaussianMixture method
+    m_iter: int
+        maximum number of iterations for BayesianGausssianMixture method
+    plot_steps : bool
+        plot each clustering step if True
+
+    Returns:
+    al : list of ints
+        EOD clusters based on hight and EOD waveform 
+    l : list of ints
+        EOD clusters based only on hight
+
+    '''
+
+    # initiate labels based on hight
     l = np.ones(h_arr.shape)
     
     if ((np.max(h_arr) - np.min(h_arr))/np.max(h_arr)) > 0.25:
@@ -44,11 +116,6 @@ def cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_i
             for ll in np.unique(l):
                 if ((np.max(h_arr[l!=ll]) - np.min(h_arr[l!=ll]))/np.max(h_arr[l!=ll])) < 0.25:
                     l[l!=ll] = np.max(l)+1
-
-    if plot_steps == True:
-        mean_eods, eod_times, _ = find_window(data,idx_arr,l,h_arr,rm=False)
-        print('clustering based on hight')
-        plot_all(data,ts,samplerate,ms,vs)
 
     # now cluster based on waveform
     al = np.ones(len(l))*-1    
@@ -66,6 +133,7 @@ def cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_i
             csnippets = StandardScaler().fit_transform(snippets[l==hl])
             cidx_arr = idx_arr[l==hl]
             ch_arr = h_arr[l==hl]
+            cw_arr = w_arr[l==hl]
 
             # extract relevant snippet features
             pca = PCA(npc).fit(csnippets).transform(csnippets)
@@ -77,30 +145,23 @@ def cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_i
             # cluster by EOD shape
             c = DBSCAN(eps=eps, min_samples=minp).fit(pca).labels_
 
-            if plot_steps == True:
-                mean_eods, eod_times, _ = find_window(data,cidx_arr,c,ch_arr,rm=False)
-                print('clustering on scaled eods')
-                plot_all(data,ts,samplerate,ms,vs)
-
             # cluster again without scaling (sometimes this works better wrt scaling)
             csnippets_ns = snippets[l==hl]
             pca = PCA(npc).fit(csnippets_ns).transform(csnippets_ns)
             knn = np.sort(pairwise_distances(pca,pca))[:,minp]        
             eps = np.percentile(knn,percentile)
             c_ns = DBSCAN(eps=eps, min_samples=minp).fit(pca).labels_
-            
-            if plot_steps == True:
-                mean_eods, eod_times = find_window(data,cidx_arr,c_ns,ch_arr,rm=False)
-                print('clustering on non-scaled eods')
-                plot_all(data,ts,samplerate,ms,vs)  
 
+            # remove noise and artefacts from ns clusters
+            c_ns = remove_noise_and_artefacts(data,cidx_arr,cw_arr,c_ns,int(cw*samplerate))
+            # remove noise and artefacts from scaled clusters
+            c = remove_noise_and_artefacts(data,cidx_arr,cw_arr,c,int(cw*samplerate))
+              
             # merge results for scaling and without scaling
-            _,_,_,c = merge_clusters(c,c_ns,cidx_arr,cidx_arr,ch_arr,data,samplerate)
+            c, _ = merge_clusters(c,c_ns,cidx_arr,cidx_arr)
 
-            if plot_steps == True:
-                mean_eods, eod_times = find_window(data,cidx_arr,c,ch_arr,rm=False)
-                print('merged scale and non-scaled')
-                plot_all(data,ts,samplerate,ms,vs)
+            # remove noise after merging
+            c = remove_noise_and_artefacts(data,cidx_arr,cw_arr,c,int(cw*samplerate))
 
             # update maxlab so that no clusters are overwritten
             c[c==-1] = -maxlab-1
@@ -109,179 +170,108 @@ def cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_i
 
     # return the overall clusters (al) and the clusters based on hight (l)                
     return al, l
-    
-def find_window(data,idx_arr,c,h_arr,samplerate,sp=True,rm=True):
-    
-    remove_clusters = []
-    ms,ts = [], []
-    
-    lw=10
-    
+
+def find_window(data,idx_arr,w_arr,c,samplerate):
+
+    ms,ts = [],[]
+
     for l in np.unique(c):
-        if l != -1:  
+        if l!=-1:
+            cw = np.mean(w_arr[c==l])*4
+            c_i = idx_arr[(idx_arr>cw) & (idx_arr<(len(data)-cw))]
+            cc = c[(idx_arr>cw) & (idx_arr<(len(data)-cw))]
 
-            rs = []
-
-            for rw in range(10,100):
-
-                # try different windows and different time shifts.
-                # use only indexes that fit with the cutwidth
-
-                c_i = idx_arr[c==l][(idx_arr[c==l]>lw) & (idx_arr[c==l]<(len(data)-rw))]
-
-                w = np.stack([data[int(idx-lw):int(idx+rw)] for idx in c_i])
-
-                m = np.mean(w,axis=0)
-                v = np.std(w,axis=0)
-                r = np.var(m)/np.mean(v)
-
-                rs.append(r)
-
-            rw = (np.argmax(rs) + 10)
-
-            rs = []
-
-            for lw in range(10,100):
-                # try different windows and different time shifts.
-                c_i = idx_arr[c== l][(idx_arr[c== l]>lw) & (idx_arr[c== l]<(len(data)-rw))]
-                w = np.stack([data[int(idx-lw):int(idx+rw)] for idx in c_i])
-
-                m = np.mean(w,axis=0)
-                v = np.std(w,axis=0)
-                r = np.var(m)/np.mean(v)
-
-                rs.append(r)
-
-            lw = (np.argmax(rs) + 10)
-            
-            sp_c = 0
-
-            if sp == True:
-                # check if any bigger peaks are within snippet selection
-                # are there any idxs from a different clusters in the selected windows?
-
-                # are there eods that appear at a fixed length before or after the current eod?
-                # for every peak, pick closest eod
-                # if all picked eod belong to the same cluster, determine the distances.
-                # if the distances are small enough and really similar, it is a sidepeak.
-
-                c_i = idx_arr[c== l][(idx_arr[c== l]>lw) & (idx_arr[c== l]<(len(data)-rw))]
-                cur_idxs = np.stack([np.arange(int(idx-lw*2),int(idx+rw*2)) for idx in c_i])
-                alien_peaks = idx_arr[(c!=-1) & (c!=l)]
-
-                for i,cii in enumerate(cur_idxs):
-                    for ci in cii:
-                        if ci in alien_peaks:
-
-                            # check if this foreign peak is significantly higher.
-                            if np.min(h_arr[i]/h_arr[(c!=-1) & (c!=l)][alien_peaks==ci]) < 0.2:
-                                if rm == True:                                
-                                    sp_c = sp_c + 1
-
-            # if the error is small enough, it is probably not noise
-            c_i = idx_arr[c== l][(idx_arr[c== l]>lw*4) & (idx_arr[c== l]<(len(data)-rw*3))]
-            w = np.stack([data[int(idx-lw*4):int(idx+rw*3)] for idx in c_i])
+            w = np.stack([data[int(idx-cw):int(idx+cw)] for idx in c_i[cc==l]])
             m = np.mean(w,axis=0)
+            
+            t = np.arange(len(m))/samplerate - cw/samplerate
+            m = np.stack([t,m,np.std(w,axis=0)])
+
+            ms.append(m)
+            ts.append(idx_arr[c==l]/samplerate)
+                
+    return ms, ts
+    
+def remove_noise_and_artefacts(data,idx_arr,w_arr,c,o_cw,nt=0.003,at=0.8):
+    # use w_arr to decide the cut width.
+
+    for cc in np.unique(c):
+        if cc!=-1:
+
+            cw = np.max([np.mean(w_arr[c==cc])*2,int(o_cw/2)])
+
+            # extract snippets
+            c_i = idx_arr[(idx_arr>cw) & (idx_arr<(len(data)-cw))]
+            cur_c = c[(idx_arr>cw) & (idx_arr<(len(data)-cw))]
+
+            snippets = np.stack([data[int(idx-cw):int(idx+cw)] for idx in c_i[cur_c==cc]])
+
+            m = np.mean(snippets,axis=0)
+            v = np.std(snippets,axis=0)
+            r = np.var(m)/np.mean(v)
             stop = int(len(np.fft.fft(m))/2)
 
-            # check if it is not either an artefact, noise or a sidepeak of a bigger EOD
-            if (np.max(rs) > 0.005 and (sp_c<2) and (np.sum(np.abs(np.fft.fft(m))[1:int(stop/2)])/np.sum(np.abs(np.fft.fft(m))[1:int(stop)]) > 0.75)) or (rm==False):
-                # time, mean, ste
-                t = np.arange(len(m))/samplerate - lw*4/samplerate
-                m = np.stack([t,m,stats.sem(w,axis=0)])
+            if r<nt:
+                c[c==cc] = -1
+            elif np.sum(np.abs(np.fft.fft(m))[1:int(stop/2)])/np.sum(np.abs(np.fft.fft(m))[1:int(stop)]) < at:
+                c[c==cc] = -1
 
-                ms.append(m)
-                ts.append(idx_arr[c==l]/samplerate)
-                
-            else:
-                remove_clusters.append(l)
-                
-    return ms, ts, remove_clusters
-    
-def merge_clusters(c_p,c_t,idx_arr,idx_t_arr, h_arr, data, samplerate): 
-
-    # first remove all clusters with high variance or artefacts from both clusters
-    _,_,remove_clusters = find_window(data,idx_arr,c_p,h_arr,samplerate,sp=False)
-    for rc in remove_clusters:
-        c_p[c_p==rc] = -1
-    _,_,remove_clusters = find_window(data,idx_t_arr,c_t,h_arr,samplerate,sp=False)
-    for rc in remove_clusters:
-        c_t[c_t==rc] = -1
+    return c
 
 
-    # now merge them.
+def merge_clusters(c_p,c_t,idx_arr,idx_t_arr): 
+
+    # these arrays become 1 for each EOD that is chosen from that array
     c_pd = np.zeros(len(c_p))
     c_td = np.zeros(len(c_t))
 
-    try:
-        c_t[c_t!=-1] = c_t[c_t!=-1] + np.max(c_p) + 1
-    except:
-        pass
+    # add n to one of the cluster lists to avoid overlap
+    c_t[c_t!=-1] = c_t[c_t!=-1] + np.max(c_p) + 1
     
-    c_pd = np.zeros(len(c_p))
-    c_td = np.zeros(len(c_t))   
-
+    # loop untill done
     while True:
+
+        # compute unique clusters and cluster sizes
+        # of cluster that have not been iterated over
         cu_p, clen_p = np.unique(c_p[(c_p!=-1) & (c_pd == 0)],return_counts=True)
         cu_t, clen_t = np.unique(c_t[(c_t!=-1) & (c_td == 0)],return_counts=True)     
 
+        # if all clusters are done, break from loop
         if len(clen_p) == 0 and len(clen_t) == 0:
             break
-        elif len(clen_p) == 0:
-            cm, ccount = np.unique(c_p[c_t==cu_t[np.argmax(clen_t)]],return_counts=True)
-            for ccm in cm:
-                c_p[c_p==ccm] = -1
-            c_td[c_t==cu_t[np.argmax(clen_t)]] = 1
 
-        elif len(clen_t) == 0:
+        # if the biggest cluster is in c_p, keep this one and discard all clusters on the same indices in c_t
+        elif np.argmax([np.max(np.append(clen_p,0)), np.max(np.append(clen_t,0))]) == 0:
             # remove all the mappings from the other indices
             cm,ccount = np.unique(c_t[c_p==cu_p[np.argmax(clen_p)]],return_counts=True)
             for ccm in cm:
                 c_t[c_t==ccm] = -1
             c_pd[c_p==cu_p[np.argmax(clen_p)]] = 1
 
-        elif np.argmax([np.max(clen_p), np.max(clen_t)]) == 0:
-
-            # remove all the mappings from the other indices
-            cm,ccount = np.unique(c_t[c_p==cu_p[np.argmax(clen_p)]],return_counts=True)
-            
-            for ccm in cm:
-                c_t[c_t==ccm] = -1
-            c_pd[c_p==cu_p[np.argmax(clen_p)]] = 1
-
-        else:
+        # if the biggest cluster is in c_t, keep this one and discard all mappings in c_p
+        elif np.argmax([np.max(np.append(clen_p,0)), np.max(np.append(clen_t,0))]) == 1:
             cm, ccount = np.unique(c_p[c_t==cu_t[np.argmax(clen_t)]],return_counts=True)
-
             for ccm in cm:
                 c_p[c_p==ccm] = -1
             c_td[c_t==cu_t[np.argmax(clen_t)]] = 1
 
-    i = np.argsort(np.append(idx_arr[c_p != -1],idx_t_arr[c_t != -1]))
-    c_idx_arr = np.append(idx_arr[c_p != -1],idx_t_arr[c_t != -1])[i]
-    c = np.append(c_p[c_p != -1],c_t[c_t != -1])[i]
-    c_h_arr = np.append(h_arr[c_p != -1],h_arr[c_t != -1])[i]
+    # combine results    
+    c = (c_p+1)*c_pd + (c_t+1)*c_td - 1
+    c_idx_arr = (idx_arr)*c_pd + (idx_t_arr)*c_td
+
+    return c, c_idx_arr
+
+def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1, N=8):
     
-    c_o = (c_p+1)*c_pd + (c_t+1)*c_td - 1
-
-    # now remove clusters that after merging have too much variance
-    _,_,remove_clusters = find_window(data,c_idx_arr,c,c_h_arr,samplerate)
-    for rc in remove_clusters:
-        c[c==rc] = -1
-
-    return c, c_idx_arr, c_h_arr, c_o
-
-def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1):
-    # initialize vars
+    # initialize variables
     min_clus = 100
     av_hight = 0
     keep_clus = []
 
-    # only compute on clusters with minimum length of 8.
+    # only compute on clusters with minimum length of length N.
     u,uc = np.unique(c,return_counts=True)
-    m = np.isin(c,u[uc>=8])
-    c = c[m]
-    ts = ts[m]
-    h_arr = h_arr[m]
+    m = np.isin(c,u[uc<N])
+    c[m] = -1
 
     # sliding window
     for t in np.arange(0,T-dt+stepsize,stepsize):
@@ -289,8 +279,7 @@ def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1):
         if len(np.unique(current_clusters)) <= min_clus:
             
             # only update keep_clus if min_clus is less than the last save
-            # or equal but the hights are hihger.
-
+            # or equal but the hights are higher.
             mask = np.isin(c,np.unique(current_clusters))
             c_hight = np.mean(h_arr[mask])
 
@@ -298,41 +287,15 @@ def delete_moving_fish(c, ts, T, h_arr, dt=1, stepsize=0.1):
                 keep_clus = np.unique(current_clusters)
                 min_clus = len(np.unique(current_clusters))
                 av_hight = c_hight
-    
-    return keep_clus
 
+    # delete all clusters that are not selected
+    for cc in np.unique(c):
+        if cc not in keep_clus:
+            c[c==cc] = -1
 
-def plot_all(data, eod_times, fs, mean_eods):
-    
-    cmap = plt.get_cmap("tab10")
-    
-    fig = plt.figure(constrained_layout=True,figsize=(10,5))
-    if len(eod_times) > 0:
-        gs = GridSpec(2, len(eod_times), figure=fig)
-        ax = fig.add_subplot(gs[0,:])
-        ax.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
-        
-        for i,t in enumerate(eod_times):
-            ax.plot(t,data[(t*fs).astype('int')],'o',label=i+1)
-        ax.set_xlabel('time [s]')
-        ax.set_ylabel('amplitude [V]')
-        #ax.axis('off')
+    return c
 
-        for i, m in enumerate(mean_eods):
-            ax = fig.add_subplot(gs[1,i])
-            ax.plot(1000*m[0], 1000*m[1], c='k')
-            ax.fill_between(1000*m[0],1000*m[1]-m[2],1000*m[1]+m[2],color=cmap(i))
-            ax.set_xlabel('time [ms]')
-            ax.set_ylabel('amplitude [mV]')    
-            #ax.axis('off')
-            #ax.set_ylim([np.min(data),np.max(data)])
-            #ax.set_xlim([np.min(),np.max()])
-    else:
-        plt.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
-    plt.show()
-
-
-def extract_pulsefish(data, samplerate, pw=0.002, cw=0.001, percentile=75, npc=3, minp=10, ngaus=4, n_init=10, m_iter=100, plot_steps=False):
+def extract_pulsefish(data, samplerate, pw=0.002, cw=0.001, percentile=75, npc=3, minp=10, ngaus=4, n_init=1, m_iter=1000):
     """
     This is what you should implement! Don't worry about wavefish for now.
     
@@ -360,8 +323,6 @@ def extract_pulsefish(data, samplerate, pw=0.002, cw=0.001, percentile=75, npc=3
         number of initializations for BayesianGaussianMixture method
     m_iter: int
         maximum number of iterations for BayesianGausssianMixture method
-    plot_steps : bool
-        plot each clustering step if True
         
     Returns
     -------
@@ -375,51 +336,26 @@ def extract_pulsefish(data, samplerate, pw=0.002, cw=0.001, percentile=75, npc=3
     mean_eods, eod_times = [], []
     
     # 1. extract peaks
-    idx_arr, idx_t_arr, h_arr, w_arr = extract_eod_times(data, pw*samplerate)
+    idx_arr, idx_t_arr, h_arr, w_arr = extract_eod_times(data, pw*samplerate,cw*samplerate)
 
     if len(idx_arr)>0:
-        i = np.where((idx_arr>int(cw*samplerate/2)) & (idx_arr<(len(data)-int(cw*samplerate/2))) & (idx_t_arr>int(cw*samplerate/2)) & (idx_t_arr<(len(data)-int(cw*samplerate/2))))[0]
-        idx_arr = idx_arr[i]
-        idx_t_arr = idx_t_arr[i]
-        h_arr = h_arr[i]
-        w_arr = w_arr[i]
 
         # cluster on peaks
-        c_p, ch_p = cluster(idx_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_init,m_iter,plot_steps) 
-        if plot_steps == True:
-            mean_eods, eod_times, _ = find_window(data,idx_arr,c_p,h_arr,samplerate,rm=False)
-            print('clustering on peaks')
-            plot_all(data,ts,samplerate,ms,vs)
+        c_p, ch_p = cluster(idx_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_init,m_iter) 
 
-        #cluster on troughs
-        c_t, ch_t = cluster(idx_t_arr,h_arr,w_arr,data,cw,samplerate,minp,percentile,npc,ngaus,n_init,m_iter,plot_steps)
-        if plot_steps == True:
-            mean_eods, eod_times, _ = find_window(data,idx_t_arr,c_t,h_arr,samplerate,rm=False)
-            print('clustering on troughs')
-            plot_all(data,ts,samplerate,ms,vs)
-
+        # cluster on troughs
+        c_t, ch_t = cluster(idx_t_arr,h_arr,w_arr,data,samplerate,cw,minp,percentile,npc,ngaus,n_init,m_iter)
 
         # merge peak and trough clusters
-        # windows can already be returned here.
-        c, c_idx_arr, c_h_arr, _ = merge_clusters(c_p,c_t,idx_arr,idx_t_arr,h_arr,data,samplerate)
-        if plot_steps==True:
-            print(np.unique(c))
-            mean_eods, eod_times, _ = find_window(data,c_idx_arr,c,c_h_arr,samplerate,rm=False)
-            print('after merging')
-            plot_all(data,ts,samplerate,ms,vs)
+        c, c_idx_arr = merge_clusters(c_p,c_t,idx_arr,idx_t_arr)
+
+        # remove noise from merged clusters
+        c = remove_noise_and_artefacts(data,c_idx_arr,w_arr,c,int(cw*samplerate))
 
         # delete the moving fish
-        keep_clus = delete_moving_fish(c,c_idx_arr/samplerate,len(data)/samplerate, c_h_arr)
-        mask = np.isin(c,keep_clus)
-        c = c[mask]
-        c_idx_arr = c_idx_arr[mask]
-        c_h_arr = c_h_arr[mask]
+        c = delete_moving_fish(c,c_idx_arr/samplerate,len(data)/samplerate, h_arr)
 
-        # find windows for each of the clusters that are kept for visualizing them.
-        # I could do this earlier, will save some computation time.
-        mean_eods, eod_times, _ = find_window(data,c_idx_arr,c,c_h_arr,samplerate,rm=False)
-
-        if plot_steps==True:
-            print('after deleting moving fish')
+        # extract mean eods
+        mean_eods, eod_times = find_window(data,c_idx_arr,w_arr,c,samplerate)
     
     return mean_eods, eod_times
