@@ -109,15 +109,12 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     """ Detect EODs of all fish present in the data.
     """
     # pulse-type fish?
-    """
     pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
                                                  **check_pulse_width_args(cfg))
+    eod_times = [eod_times] if pulse_fish else []
     """
-    pulse_fish = False
     _, eod_times = extract_pulsefish(data, samplerate)
-    if len(eod_times) > 0:
-        pulse_fish = True
-        eod_times = eod_times[0]
+    """
 
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
@@ -160,9 +157,9 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
     # analyse eod waveform of pulse-fish:
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
-    if pulse_fish:
+    for eod_ts in eod_times:
         mean_eod, eod_times0 = \
-            eod_waveform(data, samplerate, eod_times,
+            eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
                          **eod_waveform_args(cfg))
         mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
@@ -235,7 +232,7 @@ def detect_eods(data, samplerate, clipped, filename, verbose, cfg):
             if verbose > 0:
                 print('%d skip waveform of %6.1fHz fish: %s (%s)' %
                       (idx, props['EODf'], skips, msg))
-    return (pulse_fish, psd_data, fishlist, fish_indices, eod_props, wave_props,
+    return (psd_data, fishlist, fish_indices, eod_props, wave_props,
             pulse_props, mean_eods, spec_data, peak_data, power_thresh,
             skip_reason)
 
@@ -263,9 +260,11 @@ def save_eods(output_basename, mean_eods, spec_data, peak_data,
         with open(output_basename+'.py', 'w') as f:
             name = os.path.basename(output_basename)
             for k, sdata in enumerate(spec_data):
-                fish = dict(amplitudes=sdata[:,3], phases=sdata[:,5])
-                fish = normalize_wavefish(fish)
-                export_wavefish(fish, name+'-%d_harmonics' % k, f)
+                # save wave fish only:
+                if sdata.shape[1] > 2:
+                    fish = dict(amplitudes=sdata[:,3], phases=sdata[:,5])
+                    fish = normalize_wavefish(fish)
+                    export_wavefish(fish, name+'-%d_harmonics' % k, f)
     else:
         # for all wavetype fish in fishlist:
         if len(wave_eodfs) > 0:
@@ -579,11 +578,10 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
         print(filename + ': not enough data for requested best window length. You may want to adjust the bestWindowSize parameter in the configuration file.')
 
     # detect EODs in the data:
-    pulse_fish, psd_data, fishlist, fish_indices, eod_props, wave_props, \
+    psd_data, fishlist, fish_indices, eod_props, wave_props, \
     pulse_props, mean_eods, spec_data, peak_data, power_thresh, skip_reason = \
       detect_eods(data, samplerate, clipped, filename, verbose, cfg)
     if not found_bestwindow:
-        pulsefish = False
         fishlist = []
         fish_indices = []
         eod_props = []
