@@ -1231,7 +1231,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     eodfs = fundamental_freqs_and_power(wave_eodfs)
     td = TableData()
     if wave_indices is not None:
-        td.append('index', '', '%d', wave_indices)
+        td.append('index', '', '%d', [wi if wi >= 0 else np.nan for wi in wave_indices])
     td.append('EODf', 'Hz', '%7.2f', eodfs[:,0])
     td.append('power', 'dB', '%7.2f', eodfs[:,1])
     fp = basename + '-waveeodfs'
@@ -1239,13 +1239,14 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     return file_name
 
     
-def save_wave_fish(wave_props, unit, basename, **kwargs):
+def save_wave_fish(eod_props, unit, basename, **kwargs):
     """ Save properties of wave-type EODs to file.
 
     Parameters
     ----------
-    wave_props: list of dict
-        Properties of several wave-type EODs as returned by analyze_wave().
+    eod_props: list of dict
+        Properties of EODs as returned by analyze_wave() and analyze_pulse().
+        Only properties of wave fish are saved.
     unit: string
         Unit of the waveform data.
     basename: string
@@ -1256,9 +1257,13 @@ def save_wave_fish(wave_props, unit, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: string or None
         The path and full name of the written file.
+        None if no pulse fish are contained in eod_props and no file was written.
     """
+    wave_props = [p for p in eod_props if p['type'] == 'wave']
+    if len(wave_props) == 0:
+        return None
     td = TableData()
     td.append_section('waveform')
     td.append('index', '', '%d', wave_props, 'index')
@@ -1286,13 +1291,14 @@ def save_wave_fish(wave_props, unit, basename, **kwargs):
     return file_name
 
 
-def save_pulse_fish(pulse_props, unit, basename, **kwargs):
+def save_pulse_fish(eod_props, unit, basename, **kwargs):
     """ Save properties of pulse-type EODs to file.
 
     Parameters
     ----------
-    puls_props: list of dict
-        Properties of several pulse-type EODs as returned by analyze_pulse().
+    eod_props: list of dict
+        Properties of EODs as returned by analyze_wave() and analyze_pulse().
+        Only properties of wave fish are saved.
     unit: string
         Unit of the waveform data.
     basename: string
@@ -1303,9 +1309,13 @@ def save_pulse_fish(pulse_props, unit, basename, **kwargs):
 
     Returns
     -------
-    filename: string
+    filename: string or None
         The path and full name of the written file.
+        None if no pulse fish are contained in eod_props and no file was written.
     """
+    pulse_props = [p for p in eod_props if p['type'] == 'pulse']
+    if len(pulse_props) == 0:
+        return None
     td = TableData()
     td.append_section('waveform')
     td.append('index', '', '%d', pulse_props, 'index')
@@ -1410,7 +1420,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     Parameters
     ----------
     peak_data: 2D array of floats
-        Properties of peaks and troughs of pulse-tyoe EOD
+        Properties of peaks and troughs of pulse-type EOD
         as returned by analyze_pulse().
     unit: string
         Unit of the waveform data.
@@ -1427,18 +1437,17 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     filename: string
         The path and full name of the written file.
     """
-    if len(peak_data) > 0:
-        td = TableData(peak_data[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
-                       ['P', 'time', 'amplitude', 'relampl', 'width'],
-                       ['', 'ms', unit, '%', 'ms'],
-                       ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
-        fp = basename + '-pulsepeaks'
-        if idx is not None:
-            fp += '-%d' % idx
-        file_name = td.write(fp, **kwargs)
-        return file_name
-    else:
+    if len(peak_data) == 0:
         return None
+    td = TableData(peak_data[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
+                   ['P', 'time', 'amplitude', 'relampl', 'width'],
+                   ['', 'ms', unit, '%', 'ms'],
+                   ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
+    fp = basename + '-pulsepeaks'
+    if idx is not None:
+        fp += '-%d' % idx
+    file_name = td.write(fp, **kwargs)
+    return file_name
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
