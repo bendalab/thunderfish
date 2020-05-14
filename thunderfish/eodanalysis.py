@@ -12,11 +12,11 @@
 - `pulse_quality()`: asses quality of EOD waveform of a pulse-type fish.
 
 ## Visualization
-- `eod_recording_plot()`: plot a zoomed in range of the recorded trace.
-- `pulse_eods_plot()`: mark pulse-type EODs in a plot of an EOD recording.
-- `eod_waveform_plot()`: plot and annotate the averaged EOD-waveform with standard error.
-- `wave_spectrum_plot()`: plot and annotate spectrum of wave-type EODs.
-- `pulse_spectrum_plot()`: plot and annotate spectrum of single pulse-type EOD.
+- `plot_eod_recording()`: plot a zoomed in range of the recorded trace.
+- `plot_pulse_eods()`: mark pulse-type EODs in a plot of an EOD recording.
+- `plot_eod_waveform()`: plot and annotate the averaged EOD-waveform with standard error.
+- `plot_wave_spectrum()`: plot and annotate spectrum of wave-type EODs.
+- `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse-type EOD.
 
 ## Storage
 - `save_eod_waveform()`: save mean eod waveform to file.
@@ -855,19 +855,19 @@ def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
     return ', '.join(skip_reason), ', '.join(msg)
 
 
-def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
+def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
                        kwargs={'lw': 2, 'color': 'red'}):
     """
     Plot a zoomed in range of the recorded trace.
 
     Parameters
     ----------
+    ax: matplotlib axes
+        Axes used for plotting.
     data: 1D ndarray
         Recorded data.
     samplerate: float
         Sampling rate of the data in Hertz.
-    ax:
-        Axis for plot.
     width: float
         Width of data segment to be plotted in seconds.
     unit: string
@@ -903,7 +903,7 @@ def eod_recording_plot(data, samplerate, ax, width=0.1, unit=None, toffs=0.0,
         ax.set_ylabel('Amplitude [%s]' % unit)
 
 
-def pulse_eods_plot(ax, data, samplerate, eod_props, toffs=0.0,
+def plot_pulse_eods(ax, data, samplerate, eod_props, toffs=0.0,
                     colors=None, markers=None, marker_size=10,
                     legend_rows=8, **kwargs):
     """
@@ -911,8 +911,8 @@ def pulse_eods_plot(ax, data, samplerate, eod_props, toffs=0.0,
 
     Parameters
     ----------
-    ax: axis for plot
-            Axis used for plotting.
+    ax: matplotlib axes
+        Axes used for plotting.
     data: 1D ndarray
         Recorded data (these are not plotted!).
     samplerate: float
@@ -973,7 +973,7 @@ def pulse_eods_plot(ax, data, samplerate, eod_props, toffs=0.0,
             leg = ax.legend(numpoints=1, **kwargs)
 
 
-def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
+def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
                       mkwargs={'lw': 2, 'color': 'red'},
                       skwargs={'color': '#CCCCCC'},
                       fkwargs={'lw': 6, 'color': 'steelblue'},
@@ -983,6 +983,8 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
 
     Parameters
     ----------
+    ax: matplotlib axes
+        Axes used for plotting.
     eod_waveform: 2-D array
         EOD waveform. First column is time in seconds,
         second column the (mean) eod waveform. The optional third column is the
@@ -990,8 +992,6 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
     peaks: 2_D arrays or None
         List of peak properties (index, time, and amplitude) of a EOD pulse
         as returned by `analyze_pulse()`.
-    ax:
-        Axis for plot.
     unit: string
         Optional unit of the data used for y-label.
     tau: float
@@ -1070,11 +1070,15 @@ def eod_waveform_plot(eod_waveform, peaks, ax, unit=None, tau=None,
         ax.set_ylabel('Amplitude')
 
 
-def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, markersize=10):
+def plot_wave_spectrum(axa, axp, spec, props, unit=None, color='b', lw=2, markersize=10):
     """Plot and annotate spectrum of wave-type EOD.
 
     Parameters
     ----------
+    axa: matplotlib axes
+        Axes for amplitude plot.
+    axp: matplotlib axes
+        Axes for phase plot.
     spec: 2-D array
         The amplitude spectrum of a single pulse as returned by `analyze_wave()`.
         First column is the index of the harmonics, second column its frequency,
@@ -1084,10 +1088,6 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_wave()`.
-    axa:
-        Axis for amplitude plot.
-    axa:
-        Axis for phase plot.
     unit: string
         Optional unit of the data used for y-label.
     color:
@@ -1125,19 +1125,19 @@ def wave_spectrum_plot(spec, props, axa, axp, unit=None, color='b', lw=2, marker
     axp.set_ylabel('Phase')
 
 
-def pulse_spectrum_plot(power, props, ax, color='b', lw=3, markersize=80):
+def plot_pulse_spectrum(ax, power, props, color='b', lw=3, markersize=80):
     """Plot and annotate spectrum of single pulse-type EOD.
 
     Parameters
     ----------
+    ax: matplotlib axes
+        Axes used for plotting.
     power: 2-D array
         The power spectrum of a single pulse as returned by `analyze_pulse()`.
         First column are the frequencies, second column the power.
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_pulse()`.
-    ax:
-        Axis for plot.
     color:
         Color for line and points of spectrum.
     lw: float
@@ -1657,12 +1657,12 @@ if __name__ == '__main__':
     # plot:
     fig = plt.figure()
     ax = fig.add_subplot(1, 2, 1)
-    eod_waveform_plot(mean_eod, peaks, ax, unit=unit)
+    plot_eod_waveform(ax, mean_eod, peaks, unit=unit)
     props['unit'] = unit
     label = '{type}-type fish\nEODf = {EODf:.1f} Hz\np-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
     if props['flipped']:
         label += 'flipped\n'
     ax.text(0.03, 0.97, label, transform = ax.transAxes, va='top')
     ax = fig.add_subplot(1, 2, 2)
-    pulse_spectrum_plot(power, props, ax)
+    plot_pulse_spectrum(ax, power, props)
     plt.show()

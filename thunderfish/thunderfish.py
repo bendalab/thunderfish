@@ -33,8 +33,8 @@ from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection
 from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
-from .eodanalysis import eod_recording_plot, pulse_eods_plot, eod_waveform_plot
-from .eodanalysis import pulse_spectrum_plot, wave_spectrum_plot
+from .eodanalysis import plot_eod_recording, plot_pulse_eods, plot_eod_waveform
+from .eodanalysis import plot_pulse_spectrum, plot_wave_spectrum
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
@@ -209,7 +209,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         props['index'] = len(eod_props)
         props['clipped'] = clipped
         p_thresh = 5.0*props['EODf']**2.0 * power[:,1]
-        if not power_thresh:
+        if power_thresh is None:
             power_thresh = np.zeros(power.shape)
             power_thresh[:,0] = power[:,0]
             power_thresh[:,1] = p_thresh
@@ -233,7 +233,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                       (props['EODf'], skips, msg))
 
     # remove wavefish below pulse fish power:
-    if power_thresh:
+    if power_thresh is not None:
         n = len(wave_eodfs)
         for k, fish in enumerate(reversed(wave_eodfs)):
             df = power_thresh[1,0] - power_thresh[0,0]
@@ -388,8 +388,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     spec_data: list of 2_D arrays
         For each pulsefish a power spectrum of the single pulse and for
         each wavefish the relative amplitudes and phases of the harmonics.
-    indices: list of int
-        Indices of the fish to be plotted.
+    indices: list of int or None
+        Indices of the fish in eod_props to be plotted.
+        If None try to plot all.
     unit: string
         Unit of the trace and the mean EOD.
     psd_data: array
@@ -440,6 +441,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax1.get_yaxis().set_visible(False)
 
     # count number of fish types to be plotted:
+    if indices is None:
+        indices = list(range(len(eod_props)))
     nwave = 0
     npulse = 0
     for idx in indices:
@@ -451,12 +454,12 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ############
 
     # plot trace
-    plot_best_data(raw_data, samplerate, unit, idx0, idx1, clipped, ax2)
+    plot_best_data(ax2, raw_data, samplerate, unit, idx0, idx1, clipped)
     
     ############
 
     # plot psd
-    if power_thresh:
+    if power_thresh is not None:
         ax3.plot(power_thresh[:,0], decibel(power_thresh[:,1]), '#CCCCCC', lw=1)
     if len(wave_eodfs) > 0:
         if len(wave_eodfs) == 1:
@@ -487,7 +490,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ############
 
     # plot recording
-    if len(indices) == 1 and len(wave_eodfs) <= 1:
+    if len(wave_eodfs) <= 2:
         ax3.set_position([0.575, 0.6, 0.4, 0.3])
         width = 0.1
         if eod_props[indices[0]]['type'] == 'wave':
@@ -495,9 +498,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         else:
             width = 3.0/eod_props[indices[0]]['EODf']
         width = (1+width//0.005)*0.005
-        eod_recording_plot(raw_data[idx0:idx1], samplerate, ax8, width, unit,
+        plot_eod_recording(ax8, raw_data[idx0:idx1], samplerate, width, unit,
                            idx0/samplerate)
-        pulse_eods_plot(ax8, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate)
+        plot_pulse_eods(ax8, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate)
         ax8.set_title('Recording', fontsize=14, y=1.05)
     else:
         ax8.set_visible(False)        
@@ -523,7 +526,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
         tau = props['tau'] if 'tau' in props else None
-        eod_waveform_plot(mean_eod, peaks, axeod, unit, tau=tau)
+        plot_eod_waveform(axeod, mean_eod, peaks, unit, tau=tau)
         props['unit'] = unit
         props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
         label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} {eods}\n'.format(**props)
@@ -549,15 +552,14 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     if not usedax5 and len(eod_props) > 0:
         usedax5 = True
         if  eod_props[indices[0]]['type'] == 'pulse':
-            pulse_spectrum_plot(spec_data[indices[0]], eod_props[indices[0]],
-                                ax5)
+            plot_pulse_spectrum(ax5, spec_data[indices[0]], eod_props[indices[0]])
             ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
         else:
             ax5.set_visible(False)
             ax6.set_visible(True)
             ax7.set_visible(True)
-            wave_spectrum_plot(spec_data[indices[0]], eod_props[indices[0]],
-                               ax6, ax7, unit)
+            plot_wave_spectrum(ax6, ax7, spec_data[indices[0]], eod_props[indices[0]],
+                               unit)
             ax6.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
             ax6.set_xticklabels([])
 
@@ -569,7 +571,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
         ax4.set_position([0.075, 0.2, 0.9, 0.3])
         rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-        eod_recording_plot(rdata, samplerate, ax4, 0.1, unit, idx0/samplerate)
+        plot_eod_recording(ax4, rdata, samplerate, 0.1, unit, idx0/samplerate)
         ax4.set_title('Recording', fontsize=14, y=1.05)
         usedax4 = True
             
@@ -654,8 +656,8 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
     if save_plot or not save_data:
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
                         wave_eodfs, mean_eods, eod_props, peak_data, spec_data,
-                        list(range(len(eod_props))), unit, psd_data, power_thresh,
-                        True, 3000.0, interactive=not save_data)
+                        None, unit, psd_data, power_thresh, True, 3000.0,
+                        interactive=not save_data)
         if save_plot:
             # save figure as pdf:
             fig.savefig(output_basename + '.pdf')

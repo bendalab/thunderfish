@@ -3,7 +3,7 @@ Compare fishlists created by the harmonics module in order to create a fishlist 
 fishes present in all fishlists.
 
 - `consistent_fishes()`: Compares a list of fishlists and builds a consistent fishlist.
-- `consistent_fishes_plot()`: Visualize the algorithm of consisten_fishes().
+- `plot_consistent_fishes()`: Visualize the algorithm of consisten_fishes().
 """
 
 import numpy as np
@@ -108,7 +108,7 @@ def consistent_fishes(fishlists, verbose=0, plot_data_func=None, df_th=1.0, **kw
     return filtered_fishlist
 
 
-def consistent_fishes_plot(fishlists, filtered_fishlist, ax, fs):
+def plot_consistent_fishes(fishlists, filtered_fishlist, ax, fs):
     """
     Creates an axis for plotting all lists and the consistent values marked with a bar.
 
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     #
     
     fig, ax = plt.subplots()
-    filtered_fishlist = consistent_fishes(fishlists, verbose=1, plot_data_func=consistent_fishes_plot, ax=ax, fs=12)
+    filtered_fishlist = consistent_fishes(fishlists, verbose=1, plot_data_func=plot_consistent_fishes, ax=ax, fs=12)
     plt.show()
 
     # check almost empty fishlist:

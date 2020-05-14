@@ -510,12 +510,14 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
     ax[4].set_xlabel('Time [sec]')
 
 
-def plot_best_data(data, samplerate, unit, idx0, idx1, clipped, ax,
+def plot_best_data(ax, data, samplerate, unit, idx0, idx1, clipped,
                    data_color='blue', window_color='red'):
     """Plot the data and mark the best window.
 
     Parameters
     ----------
+    ax: matplotlib axes
+        Axes used for plotting.
     data: 1-D array
         The full data trace.
     samplerate: float
@@ -528,8 +530,6 @@ def plot_best_data(data, samplerate, unit, idx0, idx1, clipped, ax,
         Stop index of the best window.
     clipped: float
         Fraction of clipped peaks.
-    ax:
-        Axis for plotting.
     data_color:
         Color used for plotting the data trace.
     window_color:
