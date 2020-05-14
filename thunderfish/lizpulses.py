@@ -2,7 +2,7 @@
 # Extract pulse-type weakly electric fish
 Extract all timepoints where pulsefish EODs are present for each separate pulsefish in a recording.
 
-# Main function
+## Main function
 - `extract_pulsefish()`: checks for pulse-type fish based on the EOD amplitude and shape.
 
 Author: Liz Weerdmeester
@@ -22,12 +22,14 @@ from sklearn.metrics import pairwise_distances
 from .eventdetection import detect_peaks
 from .pulse_tracker_helper import makeeventlist, discardnearbyevents, discard_connecting_eods
 
-# upgrade numpy fumctions for backwards compatibility:
+# upgrade numpy functions for backwards compatibility:
 if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
+
 def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, **cluster_kwargs):
-    """
+    """ Extract and cluster pulse fish EODs from recording.
+    
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
     EOD and EOD timepoints for each fish present in the recording.
     
@@ -59,34 +61,40 @@ def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, **clust
     mean_eods, eod_times, eod_unreliability = [], [], []
     
     # extract peaks
-    x_peak, x_trough, eod_hights, eod_widths = extract_eod_times(data, peakwidth*samplerate,cutwidth*samplerate)
+    x_peak, x_trough, eod_hights, eod_widths = extract_eod_times(data,
+                                                                 int(peakwidth*samplerate),
+                                                                 int(cutwidth*samplerate))
 
     if len(x_peak)>0:
 
         # cluster on peaks
-        peak_clusters = cluster(x_peak, eod_hights, eod_widths, data, samplerate, cutwidth, **cluster_kwargs) 
+        peak_clusters = cluster(x_peak, eod_hights, eod_widths, data, samplerate,
+                                cutwidth, **cluster_kwargs) 
 
         # cluster on troughs
-        trough_clusters = cluster(x_trough, eod_hights, eod_widths, data, samplerate, cutwidth, **cluster_kwargs)
+        trough_clusters = cluster(x_trough, eod_hights, eod_widths, data, samplerate,
+                                  cutwidth, **cluster_kwargs)
 
         # merge peak and trough clusters
         clusters, x_merge = merge_clusters(peak_clusters, trough_clusters, x_peak, x_trough)
 
         # remove noise from merged clusters
-        clusters = remove_noise_and_artefacts(data, x_merge, eod_widths, clusters, int(cutwidth*samplerate))
+        clusters = remove_noise_and_artefacts(data, x_merge, eod_widths, clusters,
+                                              int(cutwidth*samplerate))
 
         # delete the moving fish
-        clusters = delete_moving_fish(clusters, x_merge/samplerate, len(data)/samplerate, eod_hights)
+        clusters = delete_moving_fish(clusters, x_merge/samplerate, len(data)/samplerate,
+                                      eod_hights)
 
         # extract mean eods
-        mean_eods, eod_times, eod_unreliability = find_window(data, x_merge, eod_widths, clusters, samplerate)
+        mean_eods, eod_times, eod_unreliability = find_window(data, x_merge, eod_widths,
+                                                              clusters, samplerate)
     
     return mean_eods, eod_times, eod_unreliability
 
 
 def extract_eod_times(data, peakwidth, cutwidth, threshold_factor=2):
-    """
-    Extract peaks from data which are potentially EODs.
+    """ Extract peaks from data which are potentially EODs.
 
     Parameters
     ----------
@@ -117,8 +125,8 @@ def extract_eod_times(data, peakwidth, cutwidth, threshold_factor=2):
     if len(x_peaks)==0:
         return [], [], [], []
     else:
-        peaks = makeeventlist(x_peaks,x_troughs,data,peakwidth)
-        peakindices, _, _ = discardnearbyevents(peaks[0],peaks[3],peakwidth)
+        peaks = makeeventlist(x_peaks, x_troughs, data, peakwidth)
+        peakindices, _, _ = discardnearbyevents(peaks[0], peaks[3], peakwidth)
         x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks[0][peakindices], peaks[1][peakindices], peaks[3][peakindices], peaks[4][peakindices])
         
         # only take those where the cutwidth does not casue issues
@@ -127,9 +135,11 @@ def extract_eod_times(data, peakwidth, cutwidth, threshold_factor=2):
         return x_peaks[cut_idx], x_troughs[cut_idx], eod_hights[cut_idx], eod_widths[cut_idx]
 
 
-def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, minp=10, percentile=75, n_pc=3, n_gaus=4, n_init=1, max_iter=200, subtract_slope=False):
-    """
-    Cluster EODs. First cluster on EOD hights using a Bayesian Gaussian Mixture model, 
+def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, minp=10,
+            percentile=75, n_pc=3, n_gaus=4, n_init=1, max_iter=200, subtract_slope=False):
+    """ Cluster EODs.
+
+    First cluster on EOD hights using a Bayesian Gaussian Mixture model, 
     then cluster on EOD waveform with DBSCAN. Clustering on EOD waveform is performed
     twice, once on scaled EODs and once on non-scaled EODs. Clusters are merged afterwards.
 
@@ -173,7 +183,6 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, minp=10, 
     -------
     labels : list of ints
         EOD cluster labels based on hight and EOD waveform.
-
     """
 
     # initiate labels based on hight
@@ -182,8 +191,8 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, minp=10, 
     if ((np.max(eod_hights) - np.min(eod_hights))/np.max(eod_hights)) > 0.25:
 
         # classify by height
-        BGM_model = BayesianGaussianMixture(n_gaus,max_iter=max_iter,n_init=n_init)
-        hight_labels = BGM_model.fit_predict(eod_hights.reshape(-1,1))
+        BGM_model = BayesianGaussianMixture(n_gaus, max_iter=max_iter, n_init=n_init)
+        hight_labels = BGM_model.fit_predict(eod_hights.reshape(-1, 1))
 
         # if any of the clusters merged have very little height difference, merge them.
         if len(np.unique(hight_labels))>1:
@@ -213,8 +222,8 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, minp=10, 
             features = PCA(n_pc).fit(current_snippets).transform(current_snippets)
             
             # determine good epsilon for DBSCAN  
-            knn = np.sort(pairwise_distances(features,features))[:,minp]        
-            eps = np.percentile(knn,percentile)
+            knn = np.sort(pairwise_distances(features, features))[:,minp]        
+            eps = np.percentile(knn, percentile)
 
             # cluster by EOD shape
             clusters_scaled = DBSCAN(eps=eps, min_samples=minp).fit(features).labels_
@@ -226,14 +235,14 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, minp=10, 
             # cluster again without scaling (sometimes this works better wrt scaling)
             current_snippets = snippets[hight_labels==hight_label]
             features = PCA(n_pc).fit(current_snippets).transform(current_snippets)
-            knn = np.sort(pairwise_distances(features,features))[:,minp]        
-            eps = np.percentile(knn,percentile)
+            knn = np.sort(pairwise_distances(features, features))[:,minp]        
+            eps = np.percentile(knn, percentile)
             clusters_unscaled = DBSCAN(eps=eps, min_samples=minp).fit(features).labels_
             clusters_unscaled = remove_noise_and_artefacts(data, eod_x[hight_labels==hight_label], 
                 eod_widths[hight_labels==hight_label], clusters_unscaled, int(cutwidth*samplerate))              
 
             # merge results for scaling and without scaling
-            clusters, _ = merge_clusters(clusters_scaled,clusters_unscaled,eod_x[hight_labels==hight_label],
+            clusters, _ = merge_clusters(clusters_scaled, clusters_unscaled, eod_x[hight_labels==hight_label],
                 eod_x[hight_labels==hight_label])
 
             # remove noise after merging
@@ -249,9 +258,8 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, minp=10, 
     return labels
 
 
-def find_window(data,eod_x,eod_widths,clusters,samplerate,w_factor=4):
-    """
-    Extract mean EODs, EOD timepoints and unreliability score for each EOD cluster.
+def find_window(data, eod_x, eod_widths, clusters, samplerate, w_factor=4):
+    """ Extract mean EODs, EOD timepoints and unreliability score for each EOD cluster.
 
     Parameters
     ----------
@@ -281,7 +289,7 @@ def find_window(data,eod_x,eod_widths,clusters,samplerate,w_factor=4):
             wavefish or unreliable pulsefish clusters.
     """
 
-    mean_eods, eod_times, eod_hights = [],[],[]
+    mean_eods, eod_times, eod_hights = [], [], []
     unreliability = []
 
     for cluster in np.unique(clusters):
@@ -291,10 +299,10 @@ def find_window(data,eod_x,eod_widths,clusters,samplerate,w_factor=4):
             current_clusters = clusters[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
 
             snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_x[current_clusters==cluster]])
-            mean_eod = np.mean(snippets,axis=0)
+            mean_eod = np.mean(snippets, axis=0)
             eod_time = np.arange(len(mean_eod))/samplerate - cutwidth/samplerate
 
-            mean_eod = np.vstack([eod_time,mean_eod,np.std(snippets,axis=0)])
+            mean_eod = np.vstack([eod_time, mean_eod, np.std(snippets, axis=0)])
 
             mean_eods.append(mean_eod)
             eod_times.append(eod_x[clusters==cluster]/samplerate)
@@ -305,9 +313,9 @@ def find_window(data,eod_x,eod_widths,clusters,samplerate,w_factor=4):
     return [m for _,m in sorted(zip(eod_hights,mean_eods))], [t for _,t in sorted(zip(eod_hights,eod_times))], [ur for _,ur in sorted(zip(eod_hights,unreliability))]
 
     
-def remove_noise_and_artefacts(data,eod_x,eod_widths,clusters,original_cutwidth,w_factor=2,noise_threshold=0.003,artefact_threshold=0.8):
-    """
-    remove EOD clusters that are too noisy or result from artefacts
+def remove_noise_and_artefacts(data, eod_x, eod_widths, clusters, original_cutwidth,
+                               w_factor=2, noise_threshold=0.003, artefact_threshold=0.8):
+    """ Remove EOD clusters that are too noisy or result from artefacts
 
     Parameters
     ----------
@@ -341,7 +349,7 @@ def remove_noise_and_artefacts(data,eod_x,eod_widths,clusters,original_cutwidth,
     for cluster in np.unique(clusters):
         if cluster!=-1:
 
-            cutwidth = np.max([np.mean(eod_widths[clusters==cluster])*w_factor,int(original_cutwidth/2)])
+            cutwidth = np.max([np.mean(eod_widths[clusters==cluster])*w_factor, int(original_cutwidth/2)])
 
             # extract snippets
             current_x = eod_x[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
@@ -349,8 +357,8 @@ def remove_noise_and_artefacts(data,eod_x,eod_widths,clusters,original_cutwidth,
 
             snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_x[current_clusters==cluster]])
 
-            mean_eod = np.mean(snippets,axis=0)
-            eod_std = np.std(snippets,axis=0)
+            mean_eod = np.mean(snippets, axis=0)
+            eod_std = np.std(snippets, axis=0)
             noise_ratio = np.var(mean_eod)/np.mean(eod_std)
 
             cut_fft = int(len(np.fft.fft(mean_eod))/2)
@@ -363,11 +371,13 @@ def remove_noise_and_artefacts(data,eod_x,eod_widths,clusters,original_cutwidth,
 
     return clusters
 
+
 def merge_clusters(clusters_1, clusters_2, x_1, x_2): 
-    """
-    Merge clusters resulting from two clustering methods. This method only works 
-    if clustering is performed on the same EODs with the same ordering, where there 
-    is a one to one mapping from clusters_1 to clusters_2. 
+    """ Merge clusters resulting from two clustering methods.
+
+    This method only works  if clustering is performed on the same EODs
+    with the same ordering, where there  is a one to one mapping from
+    clusters_1 to clusters_2. 
 
     Parameters
     ----------
@@ -413,17 +423,17 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2):
             # remove all the mappings from the other indices
             cluster_mappings, _ = unique_counts(clusters_2[clusters_1==c1_labels[np.argmax(c1_size)]])
             
-            clusters_2[np.isin(clusters_2,cluster_mappings)] = -1
+            clusters_2[np.isin(clusters_2, cluster_mappings)] = -1
             
             c1_keep[clusters_1==c1_labels[np.argmax(c1_size)]] = 1
 
         # if the biggest cluster is in c_t, keep this one and discard all mappings in c_p
-        elif np.argmax([np.max(np.append(c1_size,0)), np.max(np.append(c2_size,0))]) == 1:
+        elif np.argmax([np.max(np.append(c1_size, 0)), np.max(np.append(c2_size, 0))]) == 1:
             
             # remove all the mappings from the other indices
             cluster_mappings, _ = unique_counts(clusters_1[clusters_2==c2_labels[np.argmax(c2_size)]])
             
-            clusters_1[np.isin(clusters_1,cluster_mappings)] = -1
+            clusters_1[np.isin(clusters_1, cluster_mappings)] = -1
 
             c2_keep[clusters_2==c2_labels[np.argmax(c2_size)]] = 1
 
@@ -473,13 +483,13 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, dt=1, stepsize=0.1, min_e
     clusters[remove_clusters] = -1
 
     # sliding window
-    for t in np.arange(0,T-dt+stepsize,stepsize):
+    for t in np.arange(0, T-dt+stepsize, stepsize):
         current_clusters = clusters[(eod_t>=t)&(eod_t<t+dt)&(clusters!=-1)]
         if len(np.unique(current_clusters)) <= min_clusters:
             
             # only update keep_clus if min_clus is less than the last save
             # or equal but the hights are higher.
-            current_labels = np.isin(clusters,np.unique(current_clusters))
+            current_labels = np.isin(clusters, np.unique(current_clusters))
             current_hight = np.mean(eod_hights[current_labels])
 
             if (current_hight > average_hight) or (len(np.unique(current_clusters)) < min_clusters):
@@ -488,13 +498,14 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, dt=1, stepsize=0.1, min_e
                 average_hight = current_hight
 
     # delete all clusters that are not selected
-    clusters[np.invert(np.isin(clusters,keep_clusters))] = -1
+    clusters[np.invert(np.isin(clusters, keep_clusters))] = -1
 
     return clusters
 
+
 def subtract_slope(snippets):
-    """
-    Subtract underlying slope from all EOD snippets.
+    """ Subtract underlying slope from all EOD snippets.
+    
     Method still under revision.
 
     Parameters
@@ -509,8 +520,9 @@ def subtract_slope(snippets):
     """
     left_y = snippets[:,0]
     right_y = snippets[:,-1]
-    slopes = np.linspace(left_y,right_y,snippets.shape[1])
+    slopes = np.linspace(left_y, right_y, snippets.shape[1])
     return snippets - slopes.T
+
 
 def unique_counts(ar):
     """

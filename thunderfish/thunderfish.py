@@ -153,13 +153,13 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         Reasons, why an EOD was discarded.
     """
     # detect pulse fish:
+    """
     pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
                                                  **check_pulse_width_args(cfg))
     eod_times = [eod_times] if pulse_fish else []
     pulse_unreliabilities = [0.0]
     """
     _, eod_times, pulse_unreliabilities = extract_pulsefish(data, samplerate)
-    """
     
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
