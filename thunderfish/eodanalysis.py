@@ -926,9 +926,9 @@ def plot_pulse_eods(ax, data, samplerate, eod_props, toffs=0.0,
         Time of first data value in seconds that will be added
         to the pulse times in `eod_props`.
     colors: list of colors or None
-            If not None list of colors for plotting each group
+            If not None list of colors for plotting each cluster
     markers: list of markers or None
-            If not None list of markers for plotting each group
+            If not None list of markers for plotting each cluster
     marker_size: float
             Size of markers used to mark the pulses.
     legend_rows: int
