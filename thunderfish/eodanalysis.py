@@ -60,7 +60,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard error.
 
-    Retrieving the EOD waveform works under the following conditions.
+    Retrieving the EOD waveform of a wave fish works under the following conditions:
     (i) at a signal-to-noise ratio $SNR = P_s/P_n$, i.e. the power of the EOD
     of interest relative to the largest other EOD, we need to average over at least
     $n > (SNR c_s^2)^{-1}$ snippets to bring the standard error of the averaged EOD waveform
@@ -133,7 +133,8 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
 
     # optimal number of snippets:
     step = 10
-    if True and len(eod_snippets) > step:
+    # XXX make this an option!
+    if False and len(eod_snippets) > step:
         sems = [np.mean(np.std(eod_snippets[:k], axis=0, ddof=1)/np.sqrt(k))
                 for k in range(step, len(eod_snippets), step)]
         idx = np.argmin(sems)

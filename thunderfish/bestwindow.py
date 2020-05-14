@@ -28,6 +28,7 @@ from .eventdetection import percentile_threshold, detect_peaks, trim_to_peak
 from audioio import unwrap
 try:
     import matplotlib.pyplot as plt
+    import matplotlib.ticker as ticker
 except ImportError:
     pass
 
@@ -550,7 +551,7 @@ def plot_best_data(ax, data, samplerate, unit, idx0, idx1, clipped,
         ax.set_ylabel('Amplitude')
     else:
         ax.set_ylabel('Amplitude [%s]' % unit)
-    ax.locator_params('y', nbins=3)
+    ax.yaxis.set_major_locator(ticker.MaxNLocator(3))
 
         
 def add_best_window_config(cfg, expand=False, win_size=1., win_shift=0.5,

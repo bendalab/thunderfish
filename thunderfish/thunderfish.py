@@ -15,6 +15,7 @@ import glob
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 from matplotlib.transforms import Bbox
 from multiprocessing import Pool, freeze_support, cpu_count
 from audioio import play, fade
@@ -151,12 +152,13 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     skip_reason: list of string
         Reasons, why an EOD was discarded.
     """
-    # pulse-type fish?
+    # detect pulse fish:
     pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
                                                  **check_pulse_width_args(cfg))
     eod_times = [eod_times] if pulse_fish else []
+    pulse_unreliabilities = [0.0]
     """
-    _, eod_times = extract_pulsefish(data, samplerate)
+    _, eod_times, pulse_unreliabilities = extract_pulsefish(data, samplerate)
     """
     
     # calculate power spectra:
@@ -198,7 +200,9 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # analyse eod waveform of pulse-fish:
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
-    for eod_ts in eod_times:
+    for eod_ts, unreliability in zip(eod_times, pulse_unreliabilities):
+        if unreliability > 0.5:
+            continue
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
@@ -225,11 +229,11 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             spec_data.append(power)
             peak_data.append(peaks)
             if verbose > 0:
-                print('take %6.1fHz pulse-type fish: %s' % (props['EODf'], msg))
+                print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
         else:
-            skip_reason += ['%d %.1fHz pulse-type fish %s' % (0, props['EODf'], skips)]
+            skip_reason += ['%d %.1fHz pulse fish %s' % (0, props['EODf'], skips)]
             if verbose > 0:
-                print('skip %6.1fHz pulse-type fish: %s (%s)' %
+                print('skip %6.1fHz pulse fish: %s (%s)' %
                       (props['EODf'], skips, msg))
 
     # remove wavefish below pulse fish power:
@@ -270,10 +274,10 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             spec_data.append(sdata)
             peak_data.append([])
             if verbose > 0:
-                print('%d take %6.1fHz wave-type fish: %s' % (idx, props['EODf'], msg))
+                print('%d take %6.1fHz wave fish: %s' % (idx, props['EODf'], msg))
         else:
             wave_indices[idx] = -1
-            skip_reason += ['%d %.1fHz wave-type fish %s' % (idx, props['EODf'], skips)]
+            skip_reason += ['%d %.1fHz wave fish %s' % (idx, props['EODf'], skips)]
             if verbose > 0:
                 print('%d skip waveform of %6.1fHz fish: %s (%s)' %
                       (idx, props['EODf'], skips, msg))
@@ -432,10 +436,10 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording zoom-in
     
     # plot title:
-    ax1.text(0.0, .72, base_name, fontsize=22)
+    ax1.text(0.0, .64, base_name, fontsize=22)
         
-    ax1.text(1.0, .77, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
-    ax1.text(1.0, .5, 'Version %s' % __version__, fontsize=16, ha='right')
+    ax1.text(1.0, .72, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
+    ax1.text(1.0, .45, 'Version %s' % __version__, fontsize=16, ha='right')
     ax1.set_frame_on(False)
     ax1.get_xaxis().set_visible(False)
     ax1.get_yaxis().set_visible(False)
@@ -462,7 +466,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     colors, markers = colors_markers()
     
     # plot psd
-    if len(wave_eodfs) > 0:
+    if len(wave_eodfs) > 0 or len(eod_props) == 0:
         if power_thresh is not None:
             ax3.plot(power_thresh[:,0], decibel(power_thresh[:,1]), '#CCCCCC', lw=1)
         if len(wave_eodfs) > 0:
@@ -483,6 +487,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                                  bbox_to_anchor=bbox, loc=loc, title=title)
         plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], max_freq=max_freq,
                          color='blue')
+        ax3.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
             ax3.get_legend().set_visible(False)
             label = '%6.1f Hz' % wave_eodfs[0][0, 0]
@@ -496,16 +501,17 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ############
 
     # plot recording
-    if len(wave_eodfs) <= 2:
+    if len(wave_eodfs) <= 2 and len(eod_props) > 0:
         ax3.set_position([0.575, 0.6, 0.4, 0.3])
         width = 0.1
-        if eod_props[indices[0]]['type'] == 'wave':
-            width = 5.0/eod_props[indices[0]]['EODf']
-        else:
-            if len(wave_eodfs) > 0:
-                width = 3.0/eod_props[indices[0]]['EODf']
+        if len(indices) > 0:
+            if eod_props[indices[0]]['type'] == 'wave':
+                width = 5.0/eod_props[indices[0]]['EODf']
             else:
-                width = 10.0/eod_props[indices[0]]['EODf']
+                if len(wave_eodfs) > 0:
+                    width = 3.0/eod_props[indices[0]]['EODf']
+                else:
+                    width = 10.0/eod_props[indices[0]]['EODf']
         width = (1+width//0.005)*0.005
         plot_eod_recording(ax8, raw_data[idx0:idx1], samplerate, width, unit,
                            idx0/samplerate)
@@ -523,10 +529,15 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     usedax = [False, False, False, False]
     eodaxes = [ax4, ax5, ax6, ax7]
     if len(indices) > 2:
-        ax4.set_position([0.075, 0.38, 0.4, 0.12])
-        ax5.set_position([0.575, 0.38, 0.4, 0.12])
-        ax6.set_position([0.075, 0.2, 0.4, 0.12])
-        ax7.set_position([0.575, 0.2, 0.4, 0.12])
+        ax4.set_position([0.075, 0.39, 0.4, 0.13])
+        ax5.set_position([0.575, 0.39, 0.4, 0.13])
+        ax6.set_position([0.075, 0.2, 0.4, 0.13])
+        ax7.set_position([0.575, 0.2, 0.4, 0.13])
+        ty = 1.1
+        ny = 4
+    else:
+        ty = 1.08
+        ny = 6
 
     # plot mean EOD
     for k, (axeod, idx) in enumerate(zip(eodaxes, indices[pp_indices])):
@@ -534,9 +545,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         props = eod_props[idx]
         peaks = peak_data[idx]
         usedax[k] = True
-        axeod.text(-0.1, 1.08, '{EODf:.1f} Hz {type}-type fish'.format(**props),
+        axeod.text(-0.1, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
                    transform = axeod.transAxes, fontsize=14)
-        axeod.text(0.5, 1.08, 'Averaged EOD',
+        axeod.text(0.5, ty, 'Averaged EOD',
                    transform = axeod.transAxes, fontsize=14, ha='center')
         if len(unit) == 0 or unit == 'a.u.':
             unit = ''
@@ -552,6 +563,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                        va='top', ha='right')
         else:
             axeod.text(0.03, 0.97, label, transform = axeod.transAxes, va='top')
+        axeod.yaxis.set_major_locator(ticker.MaxNLocator(ny))
         if props['type'] == 'wave':
             lim = 750.0/props['EODf']
             axeod.set_xlim([-lim, +lim])
@@ -574,13 +586,13 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                                unit)
             ax5.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
             ax5.set_xticklabels([])
+            ax5.yaxis.set_major_locator(ticker.MaxNLocator(4))
 
     ################
 
     # plot data trace in case no fish was found:
     if not usedax[0]:
-        if len(wave_eodfs) < 2:
-            ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
+        ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
         ax4.set_position([0.075, 0.2, 0.9, 0.3])
         rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
         plot_eod_recording(ax4, rdata, samplerate, 0.1, unit, idx0/samplerate)

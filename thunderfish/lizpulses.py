@@ -22,7 +22,7 @@ from sklearn.metrics import pairwise_distances
 from .eventdetection import detect_peaks
 from .pulse_tracker_helper import makeeventlist, discardnearbyevents, discard_connecting_eods
 
-# upgrade numpy fumctions for backwards compatebility:
+# upgrade numpy fumctions for backwards compatibility:
 if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
