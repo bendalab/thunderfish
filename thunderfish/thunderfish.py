@@ -153,13 +153,13 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         Reasons, why an EOD was discarded.
     """
     # detect pulse fish:
-    """
     pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
                                                  **check_pulse_width_args(cfg))
     eod_times = [eod_times] if pulse_fish else []
     pulse_unreliabilities = [0.0]
     """
     _, eod_times, pulse_unreliabilities = extract_pulsefish(data, samplerate)
+    """
     
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
@@ -423,6 +423,27 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             fade(playdata, samplerate, 0.1)
             play(playdata, samplerate, blocking=False)
 
+    def recording_format_coord(x, y):
+        return 'recording: x=%.3f s, y=%.3f' % (x, y)
+
+    def recordingzoom_format_coord(x, y):
+        return 'recording zoom-in: x=%.3f s, y=%.3f' % (x, y)
+            
+    def psd_format_coord(x, y):
+        return 'power spectrum: x=%.1f Hz, y=%.1f dB' % (x, y)
+
+    def meaneod_format_coord(x, y):
+        return 'mean EOD waveform: x=%.2f ms, y=%.3f' % (x, y)
+
+    def ampl_format_coord(x, y):
+        return u'amplitude spectrum: x=%.0f, y=%.2f' % (x, y)
+
+    def phase_format_coord(x, y):
+        return u'phase spectrum: x=%.0f, y=%.2f \u03c0' % (x, y/np.pi)
+            
+    def pulsepsd_format_coord(x, y):
+        return 'single pulse power spectrum: x=%.1f Hz, y=%.1f dB' % (x, y)
+
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
     if interactive:
         fig.canvas.mpl_connect('key_press_event', keypress)
@@ -441,8 +462,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     ax1.text(1.0, .72, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
     ax1.text(1.0, .45, 'Version %s' % __version__, fontsize=16, ha='right')
     ax1.set_frame_on(False)
-    ax1.get_xaxis().set_visible(False)
-    ax1.get_yaxis().set_visible(False)
+    ax1.set_axis_off()
+    ax1.set_navigate(False)
 
     # count number of fish types to be plotted:
     if indices is None:
@@ -460,6 +481,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
 
     # plot trace
     plot_best_data(ax2, raw_data, samplerate, unit, idx0, idx1, clipped)
+    ax2.format_coord = recording_format_coord
     
     ############
 
@@ -494,6 +516,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             ax3.set_title('Powerspectrum: %s' % label, y=1.05, fontsize=14)
         else:
             ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
+        ax3.format_coord = psd_format_coord
     else:
         ax3.set_visible(False)        
         ax8.set_position([0.075, 0.6, 0.9, 0.3])
@@ -518,6 +541,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         plot_pulse_eods(ax8, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate,
                         colors=colors[3:], markers=markers[3:])
         ax8.set_title('Recording', fontsize=14, y=1.05)
+        ax8.format_coord = recordingzoom_format_coord
     else:
         ax8.set_visible(False)        
 
@@ -569,6 +593,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             axeod.set_xlim([-lim, +lim])
         if len(indices) > 2 and k < 2:
             axeod.set_xlabel('')
+        axeod.format_coord = meaneod_format_coord
             
 
     ################
@@ -579,6 +604,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         if  eod_props[indices[0]]['type'] == 'pulse':
             plot_pulse_spectrum(ax5, spec_data[indices[0]], eod_props[indices[0]])
             ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
+            ax5.format_coord = pulsepsd_format_coord
         else:
             usedax[3] = True
             ax5.set_position([0.575, 0.36, 0.4, 0.14])
@@ -587,6 +613,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             ax5.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
             ax5.set_xticklabels([])
             ax5.yaxis.set_major_locator(ticker.MaxNLocator(4))
+            ax5.format_coord = ampl_format_coord
+            ax7.format_coord = phase_format_coord
 
     ################
 
@@ -610,6 +638,12 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         ax.spines['right'].set_visible(False)
         ax.get_xaxis().tick_bottom()
         ax.get_yaxis().tick_left()
+
+    # remove invisible axes:
+    for ax in [ax3, ax6, ax7, ax8]:
+        if not ax.get_visible():
+            ax.set_position([0.99, 0.99, 0.01, 0.01])
+            ax.set_navigate(False)
         
     return fig
 
