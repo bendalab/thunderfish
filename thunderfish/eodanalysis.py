@@ -457,7 +457,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac = 0.5, fit_frac = 0.5,
                   freq_resolution=1.0, flip_pulse='none',
-                  ipi_cv_thresh=0.5, ipi_percentile=0.3):
+                  ipi_cv_thresh=0.5, ipi_percentile=30.0):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -493,7 +493,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         are used.
     ipi_percentile: float
         When computing the EOD frequency from a subset of the interpulse intervals,
-        only intervals smaller than this percentile (between 0 and 1) are used.
+        only intervals smaller than this percentile (between 0 and 100) are used.
     
     Returns
     -------
@@ -700,7 +700,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         period = np.mean(inter_pulse_intervals)
     else:
         period = np.mean(inter_pulse_intervals[inter_pulse_intervals <
-                                np.percentile(inter_pulse_intervals, 100*ipi_percentile)])
+                                np.percentile(inter_pulse_intervals, ipi_percentile)])
     
     # store properties:
     props = {}
@@ -1472,7 +1472,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
                             n_harm=10, min_pulse_win=0.001,
                             peak_thresh_fac=0.01, min_dist=50.0e-6,
                             width_frac = 0.5, fit_frac = 0.5,
-                            ipi_cv_thresh=0.5, ipi_percentile=0.3):
+                            ipi_cv_thresh=0.5, ipi_percentile=30.0):
     """ Add all parameters needed for the eod analysis functions as
     a new section to a configuration.
 

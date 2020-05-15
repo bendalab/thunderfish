@@ -203,8 +203,6 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
     for k, (eod_ts, unreliability) in enumerate(zip(eod_times, pulse_unreliabilities)):
-        if unreliability > 0.1:
-            continue
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
@@ -212,6 +210,13 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
                                                       freq_resolution=minfres,
                                                       **analyze_pulse_args(cfg))
+        # XXX make this a config parameter!
+        unrel_thresh = 0.2
+        if unreliability > unrel_thresh:
+            if verbose > 0:
+                print('%d skip %6.1fHz pulse fish: unreliability %.2f larger than %.2f' %
+                      (k, props['EODf'], unreliability, unrel_thresh))
+            continue
         props['index'] = len(eod_props)
         props['clipped'] = clipped
         p_thresh = 5.0*props['EODf']**2.0 * power[:,1]
@@ -246,7 +251,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         df = power_thresh[1,0] - power_thresh[0,0]
         for k, fish in enumerate(reversed(wave_eodfs)):
             hfrac = float(np.sum(fish[:maxh,1] < power_thresh[np.array(fish[:maxh,0]//df, dtype=int),1]))/float(len(fish[:maxh,1]))
-            #print('hfrac', hfrac)
+            # XXX make this fraction a config parameter!
             if hfrac >= 0.3:
                 wave_eodfs.pop(n-1-k)
                 if verbose > 0:
@@ -630,6 +635,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
         plot_eod_recording(ax4, rdata, samplerate, 0.1, unit, idx0/samplerate)
         ax4.set_title('Recording', fontsize=14, y=1.05)
+        ax4.format_coord = recordingzoom_format_coord
         usedax[0] = True
 
     # hide unused axes:
