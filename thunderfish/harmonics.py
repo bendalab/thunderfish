@@ -83,7 +83,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         Harmonic groups with larger overall power are preferred when comparing
         harmonic groups constructed from the same frequency. If min_group_size
         is larger than two, the overall power is divided by the relative power of
-        the `min_group_size`-th harmonics (relative to the power of the fundamental).
+        the `min_group_size`-th harmonics (relative to the maximum power).
         This way, harmonic groups with too strong higher harmonics are punished.
         The relative power for punishing too strong harmonics can be limited to range
         from `1/max_rel_power_weight` to `max_rel_power_weight`.
@@ -289,9 +289,9 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
 
         # 5. compare new group to best group:
         peaksum = np.sum(all_freqs[new_group, 1])
-        rel_power = all_freqs[new_group[-1], 1]/all_freqs[new_group[0], 1]
+        rel_power = all_freqs[new_group[-1], 1]/np.max(all_freqs[new_group, 1])
         new_group_value = peaksum
-        if min_group_size >= 3:
+        if min_group_size > 2:
             fac = rel_power
             if fac < 1.0/max_rel_power_weight:
                 fac = 1.0/max_rel_power_weight
