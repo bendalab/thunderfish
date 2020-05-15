@@ -307,7 +307,7 @@ def find_window(data, eod_x, eod_widths, clusters, samplerate, w_factor=4):
             mean_eods.append(mean_eod)
             eod_times.append(eod_x[clusters==cluster]/samplerate)
             eod_hights.append(np.min(mean_eod)-np.max(mean_eod))
-            
+
             unreliability.append(np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])))
     
     return [m for _,m in sorted(zip(eod_hights,mean_eods))], [t for _,t in sorted(zip(eod_hights,eod_times))], [ur for _,ur in sorted(zip(eod_hights,unreliability))]
@@ -533,7 +533,7 @@ def unique_counts(ar):
     try:
         return np.unique(ar, return_counts=True)
     except TypeError:
-        #ar = np.asanyarray(ar).flatten()
+        ar = np.asanyarray(ar).flatten()
         ar.sort()
         mask = np.empty(ar.shape, dtype=np.bool_)
         mask[:1] = True
