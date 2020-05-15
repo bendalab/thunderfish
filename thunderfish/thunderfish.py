@@ -45,6 +45,8 @@ from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_pea
 from .fakefish import normalize_wavefish, export_wavefish
 from .tabledata import TableData, add_write_table_config, write_table_args
 
+import matplotlib
+matplotlib.use('TkAgg')
 
 def configuration(config_file, save_config=False, file_name='', verbose=0):
     """
@@ -201,7 +203,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
     for eod_ts, unreliability in zip(eod_times, pulse_unreliabilities):
-        if unreliability > 0.5:
+        if unreliability > 0.1:
             continue
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
@@ -219,7 +221,8 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             power_thresh[:,1] = p_thresh
         else:
             p_thresh = np.interp(power_thresh[:,0], power[:,0], p_thresh)
-            power_thresh[:,1] = np.max(np.vstack(power_thresh[:,1], p_thresh), axis=1)
+            power_thresh[:,1] = np.max(np.vstack((power_thresh[:,1].T, p_thresh)), axis=0)
+            
         # add good waveforms only:
         skips, msg = pulse_quality(0, clipped, props['rmssem'],
                                    **pulse_quality_args(cfg))

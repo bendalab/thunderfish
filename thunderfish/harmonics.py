@@ -1413,15 +1413,17 @@ def colors_markers():
     colors = []
     markers = []
     mr2 = []
+
     # first color range:
-    cc0 = cm.gist_rainbow(np.linspace(0.0, 1.0, 8.0))
+    cc0 = cm.gist_rainbow(np.linspace(0.0, 1.0, 8))
+
     # shuffle it:
     for k in range((len(cc0) + 1) // 2):
         colors.extend(cc0[k::(len(cc0) + 1) // 2])
     markers.extend(len(cc0) * 'o')
     mr2.extend(len(cc0) * 'v')
     # second darker color range:
-    cc1 = cm.gist_rainbow(np.linspace(0.33 / 7.0, 1.0, 7.0))
+    cc1 = cm.gist_rainbow(np.linspace(0.33 / 7.0, 1.0, 7))
     cc1 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.9, 0.7]))[0]
     cc1 = np.hstack((cc1, np.ones((len(cc1),1))))
     # shuffle it:
@@ -1430,7 +1432,7 @@ def colors_markers():
     markers.extend(len(cc1) * '^')
     mr2.extend(len(cc1) * '*')
     # third lighter color range:
-    cc2 = cm.gist_rainbow(np.linspace(0.67 / 6.0, 1.0, 6.0))
+    cc2 = cm.gist_rainbow(np.linspace(0.67 / 6.0, 1.0, 6))
     cc2 = mc.hsv_to_rgb(mc.rgb_to_hsv(np.array([cc1[:, :3]])) * np.array([1.0, 0.5, 1.0]))[0]
     cc2 = np.hstack((cc2, np.ones((len(cc2),1))))
     # shuffle it:
