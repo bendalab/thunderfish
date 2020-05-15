@@ -202,7 +202,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # analyse eod waveform of pulse-fish:
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
-    for eod_ts, unreliability in zip(eod_times, pulse_unreliabilities):
+    for k, (eod_ts, unreliability) in enumerate(zip(eod_times, pulse_unreliabilities)):
         if unreliability > 0.1:
             continue
         mean_eod, eod_times0 = \
@@ -232,20 +232,22 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             spec_data.append(power)
             peak_data.append(peaks)
             if verbose > 0:
-                print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
+                print('%d take %6.1fHz pulse fish: %s' % (k, props['EODf'], msg))
         else:
-            skip_reason += ['%d %.1fHz pulse fish %s' % (0, props['EODf'], skips)]
+            skip_reason += ['%d %.1fHz pulse fish %s' % (k, props['EODf'], skips)]
             if verbose > 0:
-                print('skip %6.1fHz pulse fish: %s (%s)' %
-                      (props['EODf'], skips, msg))
+                print('%d skip %6.1fHz pulse fish: %s (%s)' %
+                      (k, props['EODf'], skips, msg))
 
     # remove wavefish below pulse fish power:
     if power_thresh is not None:
         n = len(wave_eodfs)
+        maxh = 6
+        df = power_thresh[1,0] - power_thresh[0,0]
         for k, fish in enumerate(reversed(wave_eodfs)):
-            df = power_thresh[1,0] - power_thresh[0,0]
-            hfrac = float(np.sum(fish[:,1] < power_thresh[np.array(fish[:,0]//df, dtype=int),1]))/float(len(fish[:,1]))
-            if hfrac >= 0.5:
+            hfrac = float(np.sum(fish[:maxh,1] < power_thresh[np.array(fish[:maxh,0]//df, dtype=int),1]))/float(len(fish[:maxh,1]))
+            #print('hfrac', hfrac)
+            if hfrac >= 0.3:
                 wave_eodfs.pop(n-1-k)
                 if verbose > 0:
                     print('removed frequency %.1f Hz, because %.0f%% of the harmonics where below pulsefish threshold' % (fish[0,0], 100.0*hfrac))        

@@ -456,7 +456,8 @@ def exp_decay(t, tau, ampl, offs):
 def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                   peak_thresh_fac=0.01, min_dist=50.0e-6,
                   width_frac = 0.5, fit_frac = 0.5,
-                  freq_resolution=1.0, flip_pulse='none'):
+                  freq_resolution=1.0, flip_pulse='none',
+                  ipi_cv_thresh=0.5, ipi_percentile=0.3):
     """
     Analyze the EOD waveform of a pulse-type fish.
     
@@ -485,6 +486,14 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - 'auto' flip waveform such that the first large extremum is positive.
         - 'flip' flip waveform.
         - 'none' do not flip waveform.
+    ipi_cv_thresh: float
+        If the coefficient of variation of the interpulse intervals are smaller than this
+        threshold, then the EOD frequency is computed as the inverse of the mean of
+        all interpulse intervals. Otherwise only intervals smaller than a certain quantile
+        are used.
+    ipi_percentile: float
+        When computing the EOD frequency from a subset of the interpulse intervals,
+        only intervals smaller than this percentile (between 0 and 1) are used.
     
     Returns
     -------
@@ -686,7 +695,12 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
 
     # analyze pulse timing:
     inter_pulse_intervals = np.diff(eod_times)
-    period = np.mean(inter_pulse_intervals)
+    ipi_cv = np.std(inter_pulse_intervals)/np.mean(inter_pulse_intervals)
+    if ipi_cv < ipi_cv_thresh:
+        period = np.mean(inter_pulse_intervals)
+    else:
+        period = np.mean(inter_pulse_intervals[inter_pulse_intervals <
+                                np.percentile(inter_pulse_intervals, 100*ipi_percentile)])
     
     # store properties:
     props = {}
@@ -1458,7 +1472,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
                             n_harm=10, min_pulse_win=0.001,
                             peak_thresh_fac=0.01, min_dist=50.0e-6,
                             width_frac = 0.5, fit_frac = 0.5,
-                            pulse_percentile=1.0):
+                            ipi_cv_thresh=0.5, ipi_percentile=0.3):
     """ Add all parameters needed for the eod analysis functions as
     a new section to a configuration.
 
@@ -1487,6 +1501,8 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
     cfg.add('eodPulseWidthFraction', width_frac, '', 'The width of a pulse is measured at this fraction of the pulse height.')
     cfg.add('eodExponentialFitFraction', fit_frac, '', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
+    cfg.add('ipiCVThresh', ipi_cv_thresh, '', 'If coefficient of variation of interpulse intervals is smaller than this threshold, then use all intervals for computing EOD frequency.')
+    cfg.add('ipiPercentile', ipi_percentile, '%', 'Use only interpulse intervals shorter than this percentile to compute EOD frequency.')
 
 
 def eod_waveform_args(cfg):
@@ -1558,7 +1574,9 @@ def analyze_pulse_args(cfg):
                  'min_dist': 'eodMinimumDistance',
                  'width_frac': 'eodPulseWidthFraction',
                  'fit_frac': 'eodExponentialFitFraction',
-                 'flip_pulse': 'flipPulseEOD'})
+                 'flip_pulse': 'flipPulseEOD',
+                 'ipi_cv_thresh': 'ipiCVThresh',
+                 'ipi_percentile': 'ipiPercentile'})
     return a
 
 
