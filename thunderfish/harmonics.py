@@ -124,7 +124,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     # container for harmonic groups
     best_group = []
     best_value = 0.0
-    best_diff = 1000*np.max(good_freqs[:,1])
+    best_diff = 1e9
     best_divisor = 0
     best_fzero = 0.0
     best_fzero_harmonics = 0
@@ -298,12 +298,12 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
             elif fac > max_rel_power_weight:
                 fac = max_rel_power_weight
             new_group_value = peaksum/fac
-        new_group_diff = np.std(np.diff(all_freqs[new_group, 1]))
+        new_group_diff = np.std(np.diff(all_freqs[new_group, 1]))/np.max(all_freqs[new_group, 1])
         if verbose > 0:
-            print('  new group:  fzero=%7.2fHz, value=%9.3g, peaksum=%9.3g, relpower=%6.3f, diff=%9.3g, best_diff=%9.3g'
+            print('  new group:  fzero=%7.2fHz, value=%9.3g, peaksum=%9.3g, relpower=%6.3f, diff=%7.3g, best_diff=%9.3g'
                   % (fzero, new_group_value, peaksum, rel_power, new_group_diff, best_diff), new_group)
             if verbose > 1:
-                print('  best group:     divisor=%d, fzero=%7.2fHz, value=%9.3g, diff=%9.3g'
+                print('  best group:     divisor=%d, fzero=%7.2fHz, value=%9.3g, diff=%7.3g'
                       % (best_divisor, best_fzero, best_value), best_group, best_diff)
         # select new group if sum of peak power is larger and
         # relative power is smaller:
