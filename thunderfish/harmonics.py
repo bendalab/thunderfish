@@ -160,7 +160,7 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
     ##     print('adjusted fzero to %.2fHz' % fzero)
 
     if verbose > 0:
-        ds =  'divisor: %d,' if dvs else ''
+        ds =  'divisor: %d,' % divisor if dvs else ''
         print('#%s fzero=%7.2fHz adjusted from harmonics %d'
               % (ds, fzero, fzero_harmonics))
 
@@ -743,13 +743,36 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         # check power hum:
         mains_ok = ((mains_freq <= 0.0) or
                     (m.fabs(harm_group[0,0] - mains_freq) > freq_tol))
+        # check smoothness:
+        db_powers = decibel(harm_group[:,1])
+        diff = np.std(np.diff(db_powers))
+        smooth_thresh = 15.0
+        smooth_ok = diff < smooth_thresh
+        """
         # check relative power of higher harmonics:
         rpowers = decibel(harm_group[min_group_size:,1], harm_group[0,1])
         amplitude_ok = ( (np.abs(max_harmonics_decibel) <= 1e-8) or \
                          np.all((rpowers < max_harmonics_decibel) | \
                                 (harm_group[min_group_size:,2] > 1)) )
+        """
+        # check power decline of harmonics:
+        db_powers[harm_group[min_group_size:,2] > 1] = np.nan
+        p_max = np.nanargmax(db_powers)
+        db_powers -= db_powers[p_max]
+        rel_harmonics = np.abs(np.arange(len(db_powers)) - p_max) - 1
+        rel_harmonics[rel_harmonics<p_max] = 0
+        decibel_decrease = 5.0
+        db_max = -decibel_decrease*np.log10(np.abs(rel_harmonics)+1)/np.log10(2.0)
+        #db_max = -decibel_decrease*rel_harmonics
+        amplitude_ok = np.all((db_powers[:2*min_group_size] <= db_max[:2*min_group_size]+0.1) |
+                              (harm_group[:2*min_group_size,2] > 1))
+        """
+        print(amplitude_ok, rel_harmonics)
+        for a, b, c in zip(db_powers, db_max, harm_group[:,2]):
+            print(a, b, a<=b+0.1, c)
+        """
         # check:
-        if fundamental_ok and mains_ok and amplitude_ok:
+        if fundamental_ok and mains_ok and smooth_ok and amplitude_ok:
             if verbose > 0:
                 print('Accepting  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g nharmonics=%2d, count=%d'
                       % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
@@ -758,14 +781,16 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             fzero_harmonics_list.append(fzero_harmonics)
         else:
             if verbose > 0:
-                fs = 'is ' if fundamental_ok else 'not'
-                ms = 'not ' if mains_ok else 'is'
-                ps = 'smaller' if amplitude_ok else 'larger '
-                pi = 0 if amplitude_ok else np.where(rpowers >= max_harmonics_decibel)[0][0]
-                rp = rpowers[pi] if pi < len(rpowers) else -1
-                print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, relpower[%d]=%6.1fdB %s than %6.1fdB'
+                fs = 'is ' if fundamental_ok else 'NOT'
+                ms = 'not ' if mains_ok else 'IS'
+                ss = 'smaller' if smooth_ok else 'LARGER '
+                ps = 'smaller' if amplitude_ok else 'LARGER '
+                pi = p_max+2 if amplitude_ok else np.where(db_powers > db_max+0.1)[0][0]
+                dp = db_powers[pi] if pi < len(db_powers) else 0.0
+                mp = db_max[pi] if pi < len(db_max) else 0.0
+                print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, smooth=%4.1fdB %s than %4.1fdB, relpower[%d]=%5.1fdB %s than %5.1fdB'
                       % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
-                         fs, ms, min_group_size+pi, rp, ps, max_harmonics_decibel))
+                         fs, ms, diff, ss, smooth_thresh, pi, dp, ps, mp))
                 
     # select most powerful harmonic groups:
     if max_groups > 0 and len(group_list) > max_groups:
