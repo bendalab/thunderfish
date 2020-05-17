@@ -64,10 +64,10 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     Parameters
     ----------
     good_freqs: 2-D array
-        List of frequency, power, and count of strong peaks
+        Frequency, power, and count (columns) of strong peaks detected
         in a power spectrum.
-    all_freqs:
-        List of frequency, power, and count of all peaks
+    all_freqs: 2-D array
+        Frequency, power, and count (columns) of all peaks detected
         in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
@@ -92,10 +92,11 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     Returns
     -------
     good_freqs: 2-D array
-        List of strong frequencies with frequencies of
-        the returned group removed.
+        Frequency, power, and count (columns) of strong peaks detected
+        in a power spectrum with frequencies of the returned harmonic group removed.
     all_freqs: 2-D array
-        List of all frequencies with updated double-use counts.
+        Frequency, power, and count (columns) of all peaks detected
+        in a power spectrum with updated double-use counts.
     group: 2-D array
         The detected harmonic group. Might be empty.
     best_fzero_harmonics: int
@@ -304,7 +305,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
                   % (fzero, new_group_value, peaksum, rel_power, new_group_diff, best_diff), new_group)
             if verbose > 1:
                 print('  best group:     divisor=%d, fzero=%7.2fHz, value=%9.3g, diff=%7.3g'
-                      % (best_divisor, best_fzero, best_value), best_group, best_diff)
+                      % (best_divisor, best_fzero, best_value, best_diff), best_group)
         # select new group if sum of peak power is larger and
         # relative power is smaller:
         if new_group_value >= best_value and new_group_diff <= best_diff:
@@ -316,7 +317,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
             best_fzero_harmonics = fzero_harmonics
             if verbose > 1:
                 print('  new best group: divisor=%d, fzero=%7.2fHz, value=%9.3g, diff=%9.3g'
-                      % (best_divisor, best_fzero, best_value), best_group, best_diff)
+                      % (best_divisor, best_fzero, best_value, best_diff), best_group)
             elif verbose > 0:
                 print('  took as new best group')
                 
@@ -424,13 +425,13 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
     Parameters
     ----------
     freq: float
-        Fundamental frequency for which harmonics are retrieved.
+        Fundamental frequency for which harmonics are to be retrieved.
     good_freqs: 2-D array
-        List of frequency, power, and count of strong peaks
+        Frequency, power, and count (columns) of strong peaks detected
         in a power spectrum. All harmonics of `freq` will be
         removed from `good_freqs`.
-    all_freqs:
-        List of frequency, power, and count of all peaks
+    all_freqs: 2-D array
+        Frequency, power, and count (columns) of all peaks detected
         in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
@@ -444,10 +445,11 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
     Returns
     -------
     good_freqs: 2-D array
-        List of strong frequencies with frequencies of
-        the returned group removed.
+        Frequency, power, and count (columns) of strong peaks detected
+        in a power spectrum with frequencies of the returned harmonic group removed.
     all_freqs: 2-D array
-        List of all frequencies with updated double-use counts.
+        Frequency, power, and count (columns) of all peaks detected
+        in a power spectrum with updated double-use counts.
     group: 2-D array
         The detected harmonic group. Might be empty.
     fzero_harmonics: int
@@ -634,11 +636,11 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
 
     Parameters
     ----------
-    group: ndarray
+    group: 2-D array
         Group of fundamental frequency and harmonics
         as returned by build_harmonic_group.
-    freqs: 2D array
-        List of frequency, power, and count of all peaks
+    freqs: 2-D array
+        Frequency, power, and count (columns) of all peaks detected
         in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
@@ -646,6 +648,11 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
         and not be smaller than half of the frequency resolution.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
+
+    Returns
+    -------
+    group: 2-D array
+        Expanded group of fundamental frequency and harmonics.
     """
     if len(group) == 0:
         return group
@@ -707,10 +714,10 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
     Parameters
     ----------
     good_freqs: 2-D array
-        List of frequency, power, and count of strong peaks
+        Frequency, power, and count (columns) of strong peaks detected
         in a power spectrum.
     all_freqs: 2-D array
-        List of frequency, power, and count of all peaks
+        Frequency, power, and count (columns) of all peaks detected
         in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
@@ -891,7 +898,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 
     Parameters
     ----------
-    psd_data: array
+    psd_data: 1-D array
         The power spectrum from which to estimate the thresholds.
     low_thresh_factor: float
         Factor by which the estimated standard deviation of the noise floor
@@ -935,15 +942,15 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
 
     Parameters
     ----------
-    psd_freqs: array
+    psd_freqs: 1-D array
         Frequencies of the power spectrum.
-    psd: array
+    psd: 1-D array
         Power spectrum (linear, not decible).
     verbose: int
         Verbosity level.
     check_freqs: list of float
-        List of fundamental frequencies that will be checked
-        first for being present and valid harmonic groups in the peak frequencies
+        List of fundamental frequencies that will be checked first for being
+        present and valid harmonic groups in the peak frequencies
         of the power spectrum.
     low_threshold: float
         The relative threshold for detecting all peaks in the decibel spectrum.
@@ -1003,11 +1010,11 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
         The harmonics from which the fundamental frequencies were computed.
     mains: 2-d array
         Frequencies and power of multiples of the mains frequency found in the power spectrum.
-    all_freqs: 2-d array
-        Peaks in the power spectrum detected with low threshold
-        [frequency, power, double use count].
-    good_freqs: 1-d array
-        Frequencies of peaks detected with high threshold.
+    all_freqs: 2-D array
+        Frequency, power, and double use count (columns) of all peaks detected
+        in the power spectrum.
+    good_freqs: 1-D array
+        Frequencies of strong peaks detected in the power spectrum.
     low_threshold: float
         The relative threshold for detecting all peaks in the decibel spectrum.
     high_threshold: float
@@ -1175,7 +1182,7 @@ def add_relative_power(freqs):
 
     Parameters
     ----------
-    freqs: list of 2D ndarrays
+    freqs: list of 2-D arrays
         First column in the ndarrays is fundamental frequency and
         second column the corresponding power.
         Further columns are optional and kept in the returned list.
@@ -1183,7 +1190,7 @@ def add_relative_power(freqs):
 
     Returns
     -------
-    power_freqs: list of 2D ndarrays
+    power_freqs: list of 2-D arrays
         Same as freqs, but with an added column containing the relative power.
     """
     return [np.column_stack((f, f[:,1] - np.max(f[:,1]))) for f in freqs]
@@ -1194,15 +1201,15 @@ def add_power_ranks(freqs):
 
     Parameters
     ----------
-    freqs: list of 2D ndarrays
-        First column in the ndarrays is fundamental frequency and
+    freqs: list of 2-D arrays
+        First column in the arrays is fundamental frequency and
         second column the corresponding power.
         Further columns are optional and kept in the returned list.
         fundamental_freqs_and_power() returns such a list.
 
     Returns
     -------
-    rank_freqs: list of 2D ndarrays
+    rank_freqs: list of 2-D arrays
         Same as freqs, but with an added column containing the ranks.
         The highest power is assinged to zero,
         lower powers are assigned negative integers.
@@ -1226,8 +1233,8 @@ def similar_indices(freqs, df_thresh, nextfs=0):
 
     Parameters
     ----------
-    freqs: (list of (list of ...)) list of 2D ndarrays
-        First column in the ndarrays is fundamental frequency.
+    freqs: (list of (list of ...)) list of 2-D arrays
+        First column in the arrays is fundamental frequency.
     df_thresh: float
         Fundamental frequencies closer than this threshold are considered
         equal.
@@ -1287,8 +1294,8 @@ def unique_mask(freqs, df_thresh, nextfs=0):
 
     Parameters
     ----------
-    freqs: list of 2D ndarrays
-        First column in the ndarrays is fundamental frequency and
+    freqs: list of 2-D arrays
+        First column in the arrays is fundamental frequency and
         second column the corresponding power or equivalent.
         If values in the second column are equal (e.g. they are the same ranks),
         and there is a third column (e.g. power),
@@ -1348,8 +1355,8 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
 
     Parameters
     ----------
-    freqs: (list of (list of ...)) list of 2D ndarrays
-        First column in the ndarrays is fundamental frequency and
+    freqs: (list of (list of ...)) list of 2-D arrays
+        First column in the arrays is fundamental frequency and
         second column the corresponding power, as returned by
         fundamental_freqs_and_power().
     df_thresh: float
@@ -1367,7 +1374,7 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
 
     Returns
     -------
-    uniqe_freqs: (list of (list of ...)) list of 2D ndarrays
+    uniqe_freqs: (list of (list of ...)) list of 2-D arrays
         Same as `freqs` but elements with similar fundamental frequencies
         removed.
     """
