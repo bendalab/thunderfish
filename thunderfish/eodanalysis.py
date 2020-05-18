@@ -821,12 +821,14 @@ def wave_quality(idx, clipped, rms_sem, rms_error, power, harm_relampl,
     if power < min_power:
         skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
                         (power, min_power)]
+    """
     # relative amplitude of harmonics:
     for k, max_relampl in enumerate([max_relampl_harm1, max_relampl_harm2, max_relampl_harm3]):
         msg += ['ampl%d=%5.1f%%' % (k+1, 100.0*harm_relampl[k])]
         if harm_relampl[k] >= max_relampl:
             skip_reason += ['distorted ampl%d=%5.1f%% (max %5.1f%%)' %
                             (k+1, 100.0*harm_relampl[k], 100.0*max_relampl)]
+    """
     return ', '.join(skip_reason), ', '.join(msg)
 
 

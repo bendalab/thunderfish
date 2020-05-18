@@ -203,7 +203,9 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # analyse eod waveform of pulse-fish:
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
+
     for k, (eod_ts, eod_pts, unreliability) in enumerate(zip(eod_times, eod_peaktimes, pulse_unreliabilities)):
+
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
@@ -215,8 +217,8 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         unrel_thresh = 0.2
         if unreliability > unrel_thresh:
             if verbose > 0:
-                print('%d skip %6.1fHz pulse fish: unreliability %.2f larger than %.2f' %
-                      (k, props['EODf'], unreliability, unrel_thresh))
+                print('skip %6.1fHz pulse fish: unreliability %.2f larger than %.2f' %
+                      (props['EODf'], unreliability, unrel_thresh))
             continue
 
         props['peaktimes'] = eod_pts
@@ -241,12 +243,12 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             spec_data.append(power)
             peak_data.append(peaks)
             if verbose > 0:
-                print('%d take %6.1fHz pulse fish: %s' % (k, props['EODf'], msg))
+                print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
         else:
-            skip_reason += ['%d %.1fHz pulse fish %s' % (k, props['EODf'], skips)]
+            skip_reason += ['%.1fHz pulse fish %s' % (props['EODf'], skips)]
             if verbose > 0:
-                print('%d skip %6.1fHz pulse fish: %s (%s)' %
-                      (k, props['EODf'], skips, msg))
+                print('skip %6.1fHz pulse fish: %s (%s)' %
+                      (props['EODf'], skips, msg))
 
     # remove wavefish below pulse fish power:
     if power_thresh is not None:
@@ -259,7 +261,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             if hfrac >= 0.3:
                 wave_eodfs.pop(n-1-k)
                 if verbose > 0:
-                    print('removed frequency %.1f Hz, because %.0f%% of the harmonics where below pulsefish threshold' % (fish[0,0], 100.0*hfrac))        
+                    print('skip %6.1fHz wave  fish: %.0f%% of the harmonics are below pulsefish threshold' % (fish[0,0], 100.0*hfrac))        
 
     # analyse EOD waveform of all wavefish:
     powers = np.array([np.sum(fish[:, 1]) for fish in wave_eodfs])
@@ -288,13 +290,13 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             spec_data.append(sdata)
             peak_data.append([])
             if verbose > 0:
-                print('%d take %6.1fHz wave fish: %s' % (idx, props['EODf'], msg))
+                print('take %6.1fHz wave  fish: %s' % (props['EODf'], msg))
         else:
             wave_indices[idx] = -1
-            skip_reason += ['%d %.1fHz wave fish %s' % (idx, props['EODf'], skips)]
+            skip_reason += ['%.1fHz wave fish %s' % (props['EODf'], skips)]
             if verbose > 0:
-                print('%d skip waveform of %6.1fHz fish: %s (%s)' %
-                      (idx, props['EODf'], skips, msg))
+                print('skip %6.1fHz wave  fish: %s (%s)' %
+                      (props['EODf'], skips, msg))
     return (psd_data, wave_eodfs, wave_indices, eod_props, mean_eods,
             spec_data, peak_data, power_thresh, skip_reason)
 
