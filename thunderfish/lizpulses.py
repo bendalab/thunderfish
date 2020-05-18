@@ -22,10 +22,6 @@ from sklearn.metrics import pairwise_distances
 from .eventdetection import detect_peaks
 from .pulse_tracker_helper import makeeventlist, discardnearbyevents, discard_connecting_eods
 
-from scipy.signal import argrelextrema
-
-from matplotlib.gridspec import GridSpec
-
 import warnings
 
 def warn(*args,**kwargs):
@@ -71,7 +67,7 @@ def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, thresho
     mean_eods, eod_times, eod_unreliability = [], [], []
     
     # extract peaks
-    if verbose:
+    if verbose>0:
         print('\n1. Extracting EOD times \n ========================')
     x_peak, x_trough, eod_hights, eod_widths = extract_eod_times(data,
                                                                  int(peakwidth*samplerate),
@@ -79,41 +75,41 @@ def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, thresho
 
     if len(x_peak)>0:
 
-        if verbose:
+        if verbose>0:
             print('\n2.a. Clustering on peaks \n ========================')
 
         # cluster on peaks
         peak_clusters = cluster(x_peak, eod_hights, eod_widths, data, samplerate,
                                 cutwidth, verbose, **cluster_kwargs) 
-        if verbose:
+        if verbose>0:
             print('\n2.a. Clustering on troughs \n ========================')
 
         # cluster on troughs
         trough_clusters = cluster(x_trough, eod_hights, eod_widths, data, samplerate,
                                   cutwidth, verbose, **cluster_kwargs)
 
-        if verbose:
+        if verbose>0:
             print('\n3. Merging peak and trough clusters \n ========================')
         # merge peak and trough clusters
         clusters, x_merge = merge_clusters(peak_clusters, trough_clusters, x_peak, x_trough)
 
-        if verbose:
+        if verbose>0:
             print('Amount of clusters after merge:                           %i'%(len(np.unique(clusters[clusters!=-1]))))
             print('\n4. Remove noise and artefacts \n ========================')
         # remove noise from merged clusters
         clusters = remove_noise_and_artefacts(data, x_merge, eod_widths, clusters,
                                               int(cutwidth*samplerate))
 
-        if verbose:
+        if verbose>0:
             print('Amount of clusters after removing noise and artefacts:    %i'%(len(np.unique(clusters[clusters!=-1]))))
             print('\n5. Remove duplicate EOD cluster due to movement \n ========================')
         # delete the moving fish
         clusters = delete_moving_fish(clusters, x_merge/samplerate, len(data)/samplerate,
                                       eod_hights)
 
-        if verbose:
-            print('Amount of clusters after merging moving fish:             %i'%(len(np.unique(clusters[clusters!=-1]))))
-            
+        if verbose>0:
+            print('Amount of clusters after merging moving fish:             %i\n'%(len(np.unique(clusters[clusters!=-1]))))
+
         # extract mean eods
         mean_eods, eod_times, eod_peaktimes, eod_unreliability = find_window(data, x_merge, x_peak, eod_widths,
                                                               clusters, samplerate)
@@ -151,7 +147,7 @@ def extract_eod_times(data, peakwidth, cutwidth, threshold_factor=2,verbose=Fals
     orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
 
     if len(orig_x_peaks)==0:
-        if verbose:
+        if verbose>0:
             print('No peaks detected.')
         return [], [], [], []
     else:
@@ -162,7 +158,7 @@ def extract_eod_times(data, peakwidth, cutwidth, threshold_factor=2,verbose=Fals
         # only take those where the cutwidth does not casue issues
         cut_idx = np.where((x_peaks>int(cutwidth/2)) & (x_peaks<(len(data)-int(cutwidth/2))) & (x_troughs>int(cutwidth/2)) & (x_troughs<(len(data)-int(cutwidth/2))))[0]
         
-        if verbose:
+        if verbose>0:
             print('Peaks detected:                        %i'%len(orig_x_peaks))
             print('Sidepeaks discarded:                   %i'%(len(orig_x_peaks)-len(peakindices)))
             print('Connecting eods discarded:             %i'%(len(peakindices)-len(x_peaks)))
@@ -238,11 +234,11 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, verbose=F
                 if ((np.max(eod_hights[hight_labels!=hight_label]) - np.min(eod_hights[hight_labels!=hight_label]))/np.max(eod_hights[hight_labels!=hight_label])) < 0.25:
                     hight_labels[hight_labels!=hight_label] = np.max(hight_labels) + 1
 
-    if verbose:
+    if verbose>0:
         if not BGM_model.converged_:
             print('\n!!! Gaussian mixture did not converge !!!')
 
-        print('%i clusters generated based on EOD amplitude'%len(np.unique(hight_labels)))
+        print('Clusters generated based on EOD amplitude:          %i'%len(np.unique(hight_labels)))
         
 
     # now cluster based on waveform
@@ -299,8 +295,8 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, verbose=F
             labels[hight_labels==hight_label] = clusters + max_label
             max_label = np.max(labels) + 1
 
-    if verbose:
-        print('%i clusters generated based on hight and shape.'%len(np.unique(labels[labels!=-1])))
+    if verbose>0:
+        print('Clusters generated based on hight and shape:        %i'%len(np.unique(labels[labels!=-1])))
 
     # return the cluster labels             
     return labels
