@@ -951,14 +951,15 @@ def plot_pulse_eods(ax, data, samplerate, eod_props, toffs=0.0,
     kwargs: 
             Key word arguments for the legend of the plot.
     """
+
     k = 0
     for eod in eod_props:
         if eod['type'] != 'pulse':
             continue
         if 'times' not in eod:
             continue
-        x = eod['times'] + toffs
-        y = data[np.round(eod['times']*samplerate).astype(np.int)]
+        x = eod['peaktimes'] + toffs
+        y = data[np.round(eod['peaktimes']*samplerate).astype(np.int)]
         color_kwargs = {}
         if colors is not None:
             color_kwargs['color'] = colors[k%len(colors)]

@@ -161,8 +161,9 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     eod_times = [eod_times] if pulse_fish else []
     pulse_unreliabilities = [0.0]
     """
-    _, eod_times, pulse_unreliabilities = extract_pulsefish(data, samplerate)
-    
+
+    _, eod_times, eod_peaktimes, pulse_unreliabilities = extract_pulsefish(data, samplerate, verbose=verbose)
+
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
             
@@ -202,7 +203,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # analyse eod waveform of pulse-fish:
     max_eods = cfg.value('eodMaxEODs')
     minfres = cfg.value('frequencyResolution')
-    for k, (eod_ts, unreliability) in enumerate(zip(eod_times, pulse_unreliabilities)):
+    for k, (eod_ts, eod_pts, unreliability) in enumerate(zip(eod_times, eod_peaktimes, pulse_unreliabilities)):
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
@@ -217,8 +218,11 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                 print('%d skip %6.1fHz pulse fish: unreliability %.2f larger than %.2f' %
                       (k, props['EODf'], unreliability, unrel_thresh))
             continue
+
+        props['peaktimes'] = eod_pts
         props['index'] = len(eod_props)
         props['clipped'] = clipped
+
         p_thresh = 5.0*props['EODf']**2.0 * power[:,1]
         if power_thresh is None:
             power_thresh = np.zeros(power.shape)

@@ -171,4 +171,5 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths):
     for tr in np.unique(x_trough):
         if len(x_trough[x_trough==tr]) > 1:
             keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
+            
     return x_peak[keep_idxs], x_trough[keep_idxs], hights[keep_idxs], widths[keep_idxs]
