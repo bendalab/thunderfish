@@ -160,8 +160,8 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
     ##     print('adjusted fzero to %.2fHz' % fzero)
 
     if verbose > 0:
-        ds =  'divisor: %d,' % divisor if dvs else ''
-        print('#%s fzero=%7.2fHz adjusted from harmonics %d'
+        ds =  'divisor: %d, ' % divisor if dvs else ''
+        print('# %sfzero=%7.2fHz adjusted from harmonics %d'
               % (ds, fzero, fzero_harmonics))
 
     # 2. check fzero:
@@ -730,8 +730,8 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         # nothing found:
         if len(harm_group) == 0:
             if verbose > 1 or first:
-                s = 'largest' if first else ''
-                print('No %-7s harmonic group %7.2fHz' % (s, fmax))
+                s = ' largest' if first else ''
+                print('No%-8s harmonic group for %7.2fHz' % (s, fmax))
             first = False
             continue
         first = False
@@ -1444,8 +1444,8 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
     # plot:
     for k, i in enumerate(idx):
         group = group_list[i]
-        x = np.array([harmonic[0] for harmonic in group])
-        y = np.array([harmonic[1] for harmonic in group])
+        x = group[:,0] # np.array([harmonic[0] for harmonic in group])
+        y = group[:,1] # np.array([harmonic[1] for harmonic in group])
         if max_freq > 0.0:
             y = y[x<=max_freq]
             x = x[x<=max_freq]
