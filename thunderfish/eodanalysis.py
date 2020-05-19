@@ -802,7 +802,7 @@ def wave_quality(idx, clipped, rms_sem, rms_error, power, harm_relampl,
     msg = []
     skip_reason = []
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
+    msg += ['clipped=%3.0f%%' % (100.0*clipped)]
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]
@@ -860,7 +860,7 @@ def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
     msg = []
     skip_reason = []
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
+    msg += ['clipped=%3.0f%%' % (100.0*clipped)]
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]

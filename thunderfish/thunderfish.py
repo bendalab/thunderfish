@@ -546,10 +546,10 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                 else:
                     width = 10.0/eod_props[indices[0]]['EODf']
         width = (1+width//0.005)*0.005
-        plot_eod_recording(ax8, raw_data[idx0:idx1], samplerate, width, unit,
-                           idx0/samplerate)
         plot_pulse_eods(ax8, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate,
                         colors=colors[3:], markers=markers[3:])
+        plot_eod_recording(ax8, raw_data[idx0:idx1], samplerate, width, unit,
+                           idx0/samplerate)
         ax8.set_title('Recording', fontsize=14, y=1.05)
         ax8.format_coord = recordingzoom_format_coord
     else:
