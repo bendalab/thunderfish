@@ -304,7 +304,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
                   % (fzero, new_group_value, peaksum, rel_power, new_group_diff, best_diff), new_group)
             if verbose > 1:
                 print('  best group:     divisor=%d, fzero=%7.2fHz, value=%9.3g, diff=%7.3g'
-                      % (best_divisor, best_fzero, best_value), best_group, best_diff)
+                      % (best_divisor, best_fzero, best_value, best_diff), best_group)
         # select new group if sum of peak power is larger and
         # relative power is smaller:
         if new_group_value >= best_value and new_group_diff <= best_diff:
@@ -316,7 +316,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
             best_fzero_harmonics = fzero_harmonics
             if verbose > 1:
                 print('  new best group: divisor=%d, fzero=%7.2fHz, value=%9.3g, diff=%9.3g'
-                      % (best_divisor, best_fzero, best_value), best_group, best_diff)
+                      % (best_divisor, best_fzero, best_value, best_diff), best_group)
             elif verbose > 0:
                 print('  took as new best group')
                 

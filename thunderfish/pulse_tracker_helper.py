@@ -1,6 +1,6 @@
 import numpy as np
 
-def makeeventlist(main_event_positions, side_event_positions, data, event_width=20, min_width=2):
+def makeeventlist(main_event_positions, side_event_positions, data, event_width=20, min_width=2,verbose=0):
     """
     Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs,
     the data and an optional width of an supposed EOD-event.
@@ -20,6 +20,8 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
         Maximum EOD width (in samples).
     min_width (optional): int
         Minimum EOD width (in samples).
+    verbose (optional): int
+        Verbosity level.
 
     Returns
     -------
@@ -91,9 +93,13 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
                 xt[...] = xp - l_distance
     # generate return array and discard all events that are not marked as real
     EOD_events = np.array([main_xp, main_xt, main_y, main_h, main_w])[:,main_real==1]
+
+    if verbose>0:
+        print('Possible EOD events detected:                           %5i'%len(EOD_events[0]))
+
     return EOD_events
 
-def discardnearbyevents(event_locations, event_heights, min_distance):
+def discardnearbyevents(event_locations, event_heights, min_distance,verbose=0):
     """
     Given a number of events with given location and heights, returns a selection
     of these events where  no event is closer than eventwidth to the next event.
@@ -112,6 +118,8 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
         event_locations.
     min_distance: int or float
         minimal distance between events before one of the events gets discarded.
+    verbose (optional): int
+        Verbosity level.
 
     Returns
     -------
@@ -145,9 +153,13 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
        if counter > 2000:
            print('Warning: unusual many discarding steps needed, unusually dense events')
            pass
+
+    if verbose>0:
+        print('Number of peaks after peak discarding:                  %5i'%(len(event_locations)))
+
     return event_indices, event_locations, event_heights
 
-def discard_connecting_eods(x_peak, x_trough, hights, widths):
+def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
     """
     If two detected EODs share the same closest trough, keep only the highest peak
 
@@ -161,6 +173,8 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths):
         EOD hights.
     widths: list of ints
         EOD widths.
+    verbose (optional): int
+        Verbosity level.
 
     Returns
     -------
@@ -171,5 +185,8 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths):
     for tr in np.unique(x_trough):
         if len(x_trough[x_trough==tr]) > 1:
             keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
+
+    if verbose>0:
+        print('Number of peaks after discarding connecting peaks:      %5i'%(len(keep_idxs)))
             
     return x_peak[keep_idxs], x_trough[keep_idxs], hights[keep_idxs], widths[keep_idxs]
