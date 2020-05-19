@@ -1444,8 +1444,8 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
     # plot:
     for k, i in enumerate(idx):
         group = group_list[i]
-        x = group[:,0] # np.array([harmonic[0] for harmonic in group])
-        y = group[:,1] # np.array([harmonic[1] for harmonic in group])
+        x = group[:,0]
+        y = group[:,1]
         if max_freq > 0.0:
             y = y[x<=max_freq]
             x = x[x<=max_freq]
