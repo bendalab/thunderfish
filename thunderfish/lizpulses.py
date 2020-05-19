@@ -22,8 +22,6 @@ from sklearn.metrics import pairwise_distances
 from .eventdetection import detect_peaks
 from .pulse_tracker_helper import makeeventlist, discardnearbyevents, discard_connecting_eods
 
-from matplotlib.gridspec import GridSpec
-
 import warnings
 
 def warn(*args,**kwargs):
@@ -617,38 +615,3 @@ def unique_counts(ar):
         mask[1:] = ar[1:] != ar[:-1]
         idx = np.concatenate(np.nonzero(mask) + ([mask.size],))
         return ar[mask], np.diff(idx)  
-
-def plot_all(data, eod_times, fs, mean_eods, rs):
-    
-    cmap = plt.get_cmap("tab10")
-    
-    fig = plt.figure(constrained_layout=True,figsize=(10,5))
-    if len(eod_times) > 0:
-        gs = GridSpec(2, len(eod_times), figure=fig)
-        ax = fig.add_subplot(gs[0,:])
-        ax.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
-        
-        for i,t in enumerate(eod_times):
-            ax.plot(t,data[(t*fs).astype('int')],'o',label=i+1,ms=10,c=cmap(i))
-            
-        #for i,t in enumerate(eod_p_times):
-        #    ax.plot(t,data[(t*fs).astype('int')],'o',label=i+1,c=cmap(i))
-        ax.set_xlabel('time [s]')
-        ax.set_ylabel('amplitude [V]')
-        #ax.axis('off')
-
-        for i, (m,r) in enumerate(zip(mean_eods,rs)):
-            ax = fig.add_subplot(gs[1,i])
-            ax.plot(1000*m[0], 1000*m[1], c='k')
-            ax.fill_between(1000*m[0],1000*(m[1]-m[2]),1000*(m[1]+m[2]),color=cmap(i))
-            ax.set_xlabel('time [ms]')
-            ax.set_ylabel('amplitude [mV]') 
-            print(r)
-            if r >0.1:
-                ax.set_title('unreliable or wave')
-            #ax.axis('off')
-            #ax.set_ylim([np.min(data),np.max(data)])
-            #ax.set_xlim([np.min(),np.max()])
-    else:
-        plt.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
-    plt.show()
