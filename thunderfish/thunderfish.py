@@ -458,13 +458,13 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     if interactive:
         fig.canvas.mpl_connect('key_press_event', keypress)
     ax1 = fig.add_axes([0.02, 0.9, 0.96, 0.1])   # title
-    ax2 = fig.add_axes([0.075, 0.06, 0.9, 0.09]) # whole trace
+    ax2 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording zoom-in
     ax3 = fig.add_axes([0.075, 0.6, 0.7, 0.3])   # psd
     ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])   # mean eod 1
     ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pulse/amplitude spectrum or mean eod 2
     ax6 = fig.add_axes([0.075, 0.2, 0.4, 0.14])  # mean eod 3
     ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum or mean eod 4
-    ax8 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording zoom-in
+    ax8 = fig.add_axes([0.075, 0.06, 0.9, 0.09]) # whole trace
     
     # plot title:
     ax1.text(0.0, .64, base_name, fontsize=22)
@@ -489,34 +489,34 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
     
     ############
 
-    # plot trace
-    plot_best_data(ax2, raw_data, samplerate, unit, idx0, idx1, clipped)
-    ax2.format_coord = recording_format_coord
-    
-    ############
-
     colors, markers = colors_markers()
     
     # plot psd
-    if len(wave_eodfs) > 0 or len(eod_props) == 0:
+    if len(indices) == 0 or len(wave_eodfs) > 0 or npulse == 0:
+        legend_inside = True
+        if len(indices) == 0:
+            ax3.set_position([0.075, 0.2, 0.9, 0.3]) # bottom, wide
+        elif len(wave_eodfs) <= 2 or npulse > 0:
+            ax3.set_position([0.575, 0.6, 0.4, 0.3]) # top, right
+        else:
+            ax3.set_position([0.075, 0.6, 0.7, 0.3]) # top, wide
+            legend_inside = False
         if power_thresh is not None:
             ax3.plot(power_thresh[:,0], decibel(power_thresh[:,1]), '#CCCCCC', lw=1)
         if len(wave_eodfs) > 0:
-            if len(wave_eodfs) == 1:
-                title = None
-                bbox = (1.0, 1.0)
-                loc = 'upper right'
-                legend_rows = 2
-            else:
+            kwargs = {}
+            if len(wave_eodfs) > 1:
                 title = '%d EOD frequencies' % len(wave_eodfs)
-                bbox = (1.0, 1.1)
-                loc = 'upper left'
-                legend_rows = 12
+                kwargs = {'title': title if len(wave_eodfs) > 2 else None }
+                if legend_inside:
+                    kwargs.update({'bbox_to_anchor': (1.05, 1.1),
+                                   'loc': 'upper right', 'legend_rows': 2})
+                else:
+                    kwargs.update({'bbox_to_anchor': (1.0, 1.1),
+                                   'loc': 'upper left', 'legend_rows': 12})
             plot_harmonic_groups(ax3, wave_eodfs, max_freq=max_freq, max_groups=0,
                                  sort_by_freq=True, label_power=label_power,
-                                 colors=colors, markers=markers,
-                                 legend_rows=legend_rows, frameon=False,
-                                 bbox_to_anchor=bbox, loc=loc, title=title)
+                                 colors=colors, markers=markers, frameon=False, **kwargs)
         plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], max_freq=max_freq,
                          color='blue')
         ax3.yaxis.set_major_locator(ticker.MaxNLocator(6))
@@ -529,13 +529,15 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         ax3.format_coord = psd_format_coord
     else:
         ax3.set_visible(False)        
-        ax8.set_position([0.075, 0.6, 0.9, 0.3])
     
     ############
 
     # plot recording
-    if len(wave_eodfs) <= 2 and len(eod_props) > 0:
-        ax3.set_position([0.575, 0.6, 0.4, 0.3])
+    if len(indices) == 0 or npulse > 0 or len(wave_eodfs) <= 2:
+        if len(indices) > 0 and (len(wave_eodfs) > 0 and len(wave_eodfs) <= 2):
+            ax2.set_position([0.075, 0.6, 0.4, 0.3]) # top, left
+        else:
+            ax2.set_position([0.075, 0.6, 0.9, 0.3]) # top, wide
         width = 0.1
         if len(indices) > 0:
             if eod_props[indices[0]]['type'] == 'wave':
@@ -545,23 +547,24 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                     width = 3.0/eod_props[indices[0]]['EODf']
                 else:
                     width = 10.0/eod_props[indices[0]]['EODf']
-        width = (1+width//0.005)*0.005
-        plot_pulse_eods(ax8, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate,
+            width = (1+width//0.005)*0.005
+        plot_pulse_eods(ax2, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate,
                         colors=colors[3:], markers=markers[3:])
-        plot_eod_recording(ax8, raw_data[idx0:idx1], samplerate, width, unit,
-                           idx0/samplerate)
-        ax8.set_title('Recording', fontsize=14, y=1.05)
-        ax8.format_coord = recordingzoom_format_coord
+        rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
+        plot_eod_recording(ax2, rdata, samplerate, width, unit, idx0/samplerate)
+        ax2.set_title('Recording', fontsize=14, y=1.05)
+        ax2.format_coord = recordingzoom_format_coord
     else:
-        ax8.set_visible(False)        
+        ax2.set_visible(False)        
 
     ##########
 
     # sort indices by p-p amplitude:
     pp_ampls = [eod_props[idx]['p-p-amplitude'] for idx in indices]
     pp_indices = np.argsort(pp_ampls)[::-1]
-    usedax = [False, False, False, False]
     eodaxes = [ax4, ax5, ax6, ax7]
+    for ax in eodaxes:
+        ax.set_visible(False)
     if len(indices) > 2:
         ax4.set_position([0.075, 0.39, 0.4, 0.13])
         ax5.set_position([0.575, 0.39, 0.4, 0.13])
@@ -578,7 +581,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         mean_eod = mean_eods[idx]
         props = eod_props[idx]
         peaks = peak_data[idx]
-        usedax[k] = True
+        axeod.set_visible(True)
         axeod.text(-0.1, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
                    transform = axeod.transAxes, fontsize=14)
         axeod.text(0.5, ty, 'Averaged EOD',
@@ -610,13 +613,13 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
 
     # plot spectra:
     if len(indices) == 1:
-        usedax[1] = True
+        ax5.set_visible(True)
         if  eod_props[indices[0]]['type'] == 'pulse':
             plot_pulse_spectrum(ax5, spec_data[indices[0]], eod_props[indices[0]])
             ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
             ax5.format_coord = pulsepsd_format_coord
         else:
-            usedax[3] = True
+            ax7.set_visible(True)
             ax5.set_position([0.575, 0.36, 0.4, 0.14])
             plot_wave_spectrum(ax5, ax7, spec_data[indices[0]], eod_props[indices[0]],
                                unit)
@@ -625,23 +628,14 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             ax5.yaxis.set_major_locator(ticker.MaxNLocator(4))
             ax5.format_coord = ampl_format_coord
             ax7.format_coord = phase_format_coord
+    
+    ############
 
-    ################
-
-    # plot data trace in case no fish was found:
-    if not usedax[0]:
-        ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
-        ax4.set_position([0.075, 0.2, 0.9, 0.3])
-        rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-        plot_eod_recording(ax4, rdata, samplerate, 0.1, unit, idx0/samplerate)
-        ax4.set_title('Recording', fontsize=14, y=1.05)
-        ax4.format_coord = recordingzoom_format_coord
-        usedax[0] = True
-
-    # hide unused axes:
-    for used, ax in zip(usedax, eodaxes):
-        if not used:
-            ax.set_visible(False)
+    # plot trace
+    plot_best_data(ax8, raw_data, samplerate, unit, idx0, idx1, clipped)
+    ax8.format_coord = recording_format_coord
+    
+    ############
             
     # cosmetics
     for ax in [ax2, ax3, ax4, ax5, ax6, ax7, ax8]:
@@ -651,7 +645,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         ax.get_yaxis().tick_left()
 
     # remove invisible axes:
-    for ax in [ax3, ax6, ax7, ax8]:
+    for ax in [ax2, ax3, ax4, ax5, ax6, ax7]:
         if not ax.get_visible():
             ax.set_position([0.99, 0.99, 0.01, 0.01])
             ax.set_navigate(False)
