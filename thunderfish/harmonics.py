@@ -1448,9 +1448,6 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_freq=2000.0, max_grou
         group = group_list[i]
         x = group[:,0]
         y = group[:,1]
-        if max_freq > 0.0:
-            y = y[x<=max_freq]
-            x = x[x<=max_freq]
         msize = 7.0 + 10.0*(powers[i]/max_power)**0.25
         color_kwargs = {}
         if colors is not None:
@@ -1472,8 +1469,7 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_freq=2000.0, max_grou
             if k >= len(markers):
                 break
             ax.plot(x, decibel(y), linestyle='None', marker=markers[k],
-                    mec=None, mew=0.0, ms=msize, label=label,
-                    clip_on=False, **color_kwargs)
+                    mec=None, mew=0.0, ms=msize, label=label, **color_kwargs)
 
     # legend:
     if legend_rows > 0:
