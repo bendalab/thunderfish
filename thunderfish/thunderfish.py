@@ -86,6 +86,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     add_eod_analysis_config(cfg, min_pulse_win=0.004)
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
+    del cfg['eodMinSem']
     add_eod_quality_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
                            align_columns=True, shrink_width=False)
@@ -201,15 +202,14 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     skip_reason = []
     
     # analyse eod waveform of pulse-fish:
-    max_eods = cfg.value('eodMaxEODs')
-    minfres = cfg.value('frequencyResolution')
+    min_fres = cfg.value('frequencyResolution')
     for eod_ts, unreliability in zip(eod_times, pulse_unreliabilities):
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
-                         **eod_waveform_args(cfg))
+                         min_sem=False, **eod_waveform_args(cfg))
         mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
-                                                      freq_resolution=minfres,
+                                                      freq_resolution=min_fres,
                                                       **analyze_pulse_args(cfg))
         # XXX make this a config parameter!
         unrel_thresh = 0.2
@@ -266,7 +266,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         eod_times = np.arange(0.0, len(data)/samplerate, 1.0/fish[0,0])
         mean_eod, eod_times = \
             eod_waveform(data, samplerate, eod_times, win_fac=3.0, min_win=0.0,
-                         **eod_waveform_args(cfg))
+                         min_sem=(k==0), **eod_waveform_args(cfg))
         mean_eod, props, sdata, error_str = \
             analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
         if error_str:
