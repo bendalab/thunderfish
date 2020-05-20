@@ -1390,7 +1390,7 @@ def colors_markers():
     return colors, markers
 
 
-def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
+def plot_harmonic_groups(ax, group_list, indices=None, max_freq=2000.0, max_groups=0,
                          sort_by_freq=True, label_power=False,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
@@ -1399,11 +1399,13 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
     Parameters
     ----------
     ax: axis for plot
-            Axis used for plotting.
+        Axis used for plotting.
     group_list: list of 2-D arrays
-            Lists of harmonic groups as returned by extract_fundamentals() and
-            harmonic_groups() with the element [0, 0] of the harmonic groups being the fundamental frequency,
-            and element[0, 1] being the corresponding power.
+        Lists of harmonic groups as returned by extract_fundamentals() and
+        harmonic_groups() with the element [0, 0] of the harmonic groups being
+        the fundamental frequency, and element[0, 1] being the corresponding power.
+    indices: list of int or None
+        If smaller than zero then set the legend label of the corresponding group in brackets.
     max_freq: float
         If greater than zero only mark peaks below this frequency.
     max_groups: int
@@ -1456,6 +1458,11 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
         label = '%6.1f Hz' % group[0, 0]
         if label_power:
             label += ' %6.1f dB' % decibel(np.array([np.sum(group[:,1])]))[0]
+        if indices is not None:
+            if indices[i] < 0:
+                label = '(' + label + ')'
+            else:
+                label = ' ' + label + ' '
         if legend_rows > 5 and k >= legend_rows:
             label = None
         if markers is None:

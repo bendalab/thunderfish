@@ -364,9 +364,9 @@ def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
             print('wrote file %s' % fp)
 
                             
-def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
-              clipped, wave_eodfs, mean_eods, eod_props, peak_data, spec_data,
-              indices, unit, psd_data, power_thresh, label_power,
+def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
+              wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
+              indices, unit, psd_data, power_thresh=None, label_power=True,
               max_freq=3000.0, interactive=True, verbose=0):
     """
     Creates an output plot for the thunderfish program.
@@ -393,6 +393,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         Fraction of clipped amplitudes.
     wave_eodfs: array
         Frequency and power of fundamental frequency/harmonics of several fish.
+    wave_indices: array of int
+        Indices of wave fish mapping from wave_eodfs to eod_props.
+        If negative, then that EOD frequency has no waveform described in eod_props.
     mean_eods: list of 2-D arrays with time, mean and std.
         Mean trace for the mean EOD plot.
     eod_props: list of dict
@@ -520,7 +523,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
                 else:
                     kwargs.update({'bbox_to_anchor': (1.0, 1.1),
                                    'loc': 'upper left', 'legend_rows': 12})
-            plot_harmonic_groups(ax3, wave_eodfs, max_freq=max_freq, max_groups=0,
+            plot_harmonic_groups(ax3, wave_eodfs, wave_indices,
+                                 max_freq=max_freq, max_groups=0,
                                  sort_by_freq=True, label_power=label_power,
                                  colors=wave_colors, markers=wave_markers,
                                  frameon=False, **kwargs)
@@ -590,7 +594,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
 
     # plot mean EOD
     w, _ = ax3.get_legend_handles_labels()
-    legend_eodfs = np.array([float(wi.get_label().split()[0]) for wi in w])
+    eodf_labels = [wi.get_label().split()[0] for wi in w]
+    legend_eodfs = np.array([float(f) if f[0] != '(' else np.nan for f in eodf_labels])
     p, _ = ax2.get_legend_handles_labels()
     for k, (axeod, idx) in enumerate(zip(eodaxes, indices[pp_indices])):
         mean_eod = mean_eods[idx]
@@ -609,7 +614,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
             mx = -0.14
         if props['type'] == 'wave':
             eodf = props['EODf']
-            wk = np.argmin(np.abs(legend_eodfs - eodf))
+            wk = np.nanargmin(np.abs(legend_eodfs - eodf))
             ma = ml.Line2D([mx], [my], color=w[wk].get_color(), marker=w[wk].get_marker(),
                            markersize=w[wk].get_markersize(), mec='none', clip_on=False,
                            label=w[wk].get_label(), transform=axeod.transAxes)
@@ -756,7 +761,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
 
     if save_plot or not save_data:
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
-                        wave_eodfs, mean_eods, eod_props, peak_data, spec_data,
+                        wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
                         None, unit, psd_data, power_thresh, True, 3000.0,
                         interactive=not save_data, verbose=verbose)
         if save_plot:
