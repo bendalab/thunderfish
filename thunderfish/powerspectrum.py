@@ -356,7 +356,7 @@ def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
 
 
 def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
-                     max_freq=2000.0, **kwargs):
+                     max_freq=2000.0, ymarg=0.0, **kwargs):
     """
     Plot the powerspectum in decibel relative to ref_power.
 
@@ -374,6 +374,8 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
         Power values smaller than `min_power` are set to `np.nan`.
     max_freq: float
         Limits of frequency axis are set to `(0, max_freq)` if `max_freq` is greater than zero
+    ymarg: float
+        Add this to the maximum decibel power for setting the ylim.
     kwargs: dict
         Plot parameter that are passed on to the `plot()` function.
     """
@@ -388,7 +390,7 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
     pmin = np.min(dpmf[np.isfinite(dpmf)])
     pmin = np.floor(pmin / 10.0) * 10.0
     pmax = np.max(dpmf[np.isfinite(dpmf)])
-    pmax = np.ceil(pmax / 10.0) * 10.0
+    pmax = np.ceil((pmax + ymarg) / 10.0) * 10.0
     ax.set_ylim(pmin, pmax)
     ax.set_ylabel('Power [dB]')
 

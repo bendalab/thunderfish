@@ -1036,8 +1036,9 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
     ax.plot(time, mean_eod, zorder=5, **mkwargs)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
-        ax.autoscale(False)
         std_eod = eod_waveform[:,2]
+        if np.mean(std_eod)/(np.max(mean_eod) - np.min(mean_eod)) > 0.1:
+            ax.autoscale(False)
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=1, **skwargs)
     # annotate fit:

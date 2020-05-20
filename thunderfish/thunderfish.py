@@ -529,7 +529,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                                  colors=wave_colors, markers=wave_markers,
                                  frameon=False, **kwargs)
         plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], max_freq=max_freq,
-                         color='blue')
+                         ymarg=5.0, color='blue')
         ax3.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
             ax3.get_legend().set_visible(False)
