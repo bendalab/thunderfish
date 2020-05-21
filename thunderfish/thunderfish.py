@@ -162,7 +162,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     eod_times = [eod_times] if pulse_fish else []
     pulse_unreliabilities = [0.0]
     """
-    _, eod_times, pulse_unreliabilities = extract_pulsefish(data, samplerate)
+    _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
     """
     
     # calculate power spectra:
@@ -202,8 +202,10 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     skip_reason = []
     
     # analyse eod waveform of pulse-fish:
-    min_fres = cfg.value('frequencyResolution')
-    for eod_ts, unreliability in zip(eod_times, pulse_unreliabilities):
+    max_eods = cfg.value('eodMaxEODs')
+    minfres = cfg.value('frequencyResolution')
+
+    for k, (eod_ts, eod_pts, unreliability) in enumerate(zip(eod_times, eod_peaktimes, pulse_unreliabilities)):
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
@@ -218,8 +220,11 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                 print('skip %6.1fHz pulse fish: unreliability %.2f larger than %.2f' %
                       (props['EODf'], unreliability, unrel_thresh))
             continue
+
+        props['peaktimes'] = eod_pts
         props['index'] = len(eod_props)
         props['clipped'] = clipped
+
         p_thresh = 5.0*props['EODf']**2.0 * power[:,1]
         if power_thresh is None:
             power_thresh = np.zeros(power.shape)
@@ -293,7 +298,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                 print('skip %6.1fHz wave  fish: %s (%s)' %
                       (props['EODf'], skips, msg))
     return (psd_data, wave_eodfs, wave_indices, eod_props, mean_eods,
-            spec_data, peak_data, power_thresh, skip_reason)
+            spec_data, peak_data, power_thresh, skip_reason, zoom_window)
 
 
 def remove_eod_files(output_basename, verbose, cfg):
@@ -366,7 +371,7 @@ def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
                             
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
               wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
-              indices, unit, psd_data, power_thresh=None, label_power=True,
+              indices, unit, zoom_window, psd_data, power_thresh=None, label_power=True,
               log_freq=False, min_freq=0.0, max_freq=3000.0, interactive=True, verbose=0):
     """
     Creates an output plot for the thunderfish program.
@@ -570,9 +575,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                 else:
                     width = 10.0/eod_props[indices[0]]['EODf']
             width = (1+width//0.005)*0.005
-        plot_pulse_eods(ax2, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate,
-                        colors=pulse_colors, markers=pulse_markers)
         rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
+        plot_pulse_eods(ax2, rdata, zoom_window, width, samplerate, eod_props, idx0/samplerate,
+                        colors=pulse_colors, markers=pulse_markers)
         plot_eod_recording(ax2, rdata, samplerate, width, unit, idx0/samplerate)
         ax2.set_title('Recording', fontsize=14, y=1.05)
         ax2.format_coord = recordingzoom_format_coord
@@ -737,7 +742,7 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
 
     # detect EODs in the data:
     psd_data, wave_eodfs, wave_indices, eod_props, \
-    mean_eods, spec_data, peak_data, power_thresh, skip_reason = \
+    mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
       detect_eods(data, samplerate, clipped, filename, verbose, cfg)
     if not found_bestwindow:
         wave_eodfs = []
@@ -780,7 +785,7 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
             log_freq = False
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
                         wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
-                        None, unit, psd_data, power_thresh, True, log_freq, min_freq, max_freq,
+                        None, unit, zoom_window, psd_data, power_thresh, True, log_freq, min_freq, max_freq,
                         interactive=not save_data, verbose=verbose)
         if save_plot:
             # save figure as pdf:

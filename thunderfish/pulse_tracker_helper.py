@@ -1,6 +1,6 @@
 import numpy as np
 
-def makeeventlist(main_event_positions, side_event_positions, data, event_width=20, min_width=2):
+def makeeventlist(main_event_positions, side_event_positions, data, event_width=20, min_width=2,verbose=0):
     """
     Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs,
     the data and an optional width of an supposed EOD-event.
@@ -20,6 +20,8 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
         Maximum EOD width (in samples).
     min_width (optional): int
         Minimum EOD width (in samples).
+    verbose (optional): int
+        Verbosity level.
 
     Returns
     -------
@@ -62,9 +64,21 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
             if min((l_distance),(r_distance)) > event_width or min((l_distance),(r_distance)) <= min_width:
                     r[...] = False
             elif max((l_distance),(r_distance)) <= event_width:
-                    h[...] = max(abs(y-l_side_y),abs(y-r_side_y))  #calculated using absolutes in case of for example troughs instead of peaks as main events 
-                    w[...] = [l_distance,r_distance][np.argmax([abs(y-l_side_y),abs(y-r_side_y)])]
-                    xt[...] = xp + [-l_distance,r_distance][np.argmax([abs(y-l_side_y),abs(y-r_side_y)])]
+                    
+                    # tr is were the slope is greatest.
+                    s_l = np.abs((y-l_side_y)/l_distance)
+                    s_r = np.abs((y-r_side_y)/r_distance)
+
+                    # if the slopes are too similar, pick the one where h is max.
+                    #if np.abs(s_l-s_r)/(0.5*s_l+0.5*s_r) < 0.25:
+                    #    i = np.argmax([abs(y-l_side_y),abs(y-r_side_y)])
+                    #
+                    #else:
+                    i = np.argmax([s_l,s_r])
+
+                    h[...] = [abs(y-l_side_y),abs(y-r_side_y)][i] #calculated using absolutes in case of for example troughs instead of peaks as main events 
+                    w[...] = [l_distance,r_distance][i]
+                    xt[...] = xp + [-l_distance,r_distance][i]
             else:
                     if (l_distance)<(r_distance): # evaluated only when exactly one side event is out of reach of the event width. Then the closer event will be the correct event
                         h[...] = abs(y-l_side_y)
@@ -91,9 +105,13 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
                 xt[...] = xp - l_distance
     # generate return array and discard all events that are not marked as real
     EOD_events = np.array([main_xp, main_xt, main_y, main_h, main_w])[:,main_real==1]
+
+    if verbose>0:
+        print('Possible EOD events detected:                           %5i'%len(EOD_events[0]))
+
     return EOD_events
 
-def discardnearbyevents(event_locations, event_heights, min_distance):
+def discardnearbyevents(event_locations, event_heights, event_slopes, min_distance,verbose=0):
     """
     Given a number of events with given location and heights, returns a selection
     of these events where  no event is closer than eventwidth to the next event.
@@ -112,6 +130,8 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
         event_locations.
     min_distance: int or float
         minimal distance between events before one of the events gets discarded.
+    verbose (optional): int
+        Verbosity level.
 
     Returns
     -------
@@ -131,11 +151,18 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
        x_diffs = np.diff(event_locations)
        events_delete = np.zeros(len(event_locations))
        for i, diff in enumerate(x_diffs):
-           if diff < min_distance:
-               if event_heights[i+1] > event_heights[i] :
-                   events_delete[i] = 1
-               else:
-                   events_delete[i+1] = 1
+           if diff < min_distance:     
+                #if np.abs(event_slopes[i+1]-event_slopes[i])/(0.5*event_slopes[i+1]-0.5*event_slopes[i]) > 0.25:
+                if event_slopes[i+1] > event_slopes[i]:
+                    events_delete[i] = 1
+                else:
+                    events_delete[i+1] = 1
+                #else:
+                #    if event_heights[i+1] > event_heights[i]:
+                #        events_delete[i] = 1
+                #    else:
+                #        events_delete[i+1] = 1
+
        event_heights = event_heights[events_delete!=1]
        event_locations = event_locations[events_delete!=1]
        event_indices = event_indices[np.where(events_delete!=1)[0]]
@@ -145,9 +172,13 @@ def discardnearbyevents(event_locations, event_heights, min_distance):
        if counter > 2000:
            print('Warning: unusual many discarding steps needed, unusually dense events')
            pass
+
+    if verbose>0:
+        print('Number of peaks after peak discarding:                  %5i'%(len(event_locations)))
+
     return event_indices, event_locations, event_heights
 
-def discard_connecting_eods(x_peak, x_trough, hights, widths):
+def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
     """
     If two detected EODs share the same closest trough, keep only the highest peak
 
@@ -161,6 +192,8 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths):
         EOD hights.
     widths: list of ints
         EOD widths.
+    verbose (optional): int
+        Verbosity level.
 
     Returns
     -------
@@ -170,5 +203,14 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths):
     keep_idxs = np.ones(len(x_peak), dtype='bool')
     for tr in np.unique(x_trough):
         if len(x_trough[x_trough==tr]) > 1:
-            keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
+            slopes = hights[x_trough==tr]/widths[x_trough==tr]
+
+            #if np.abs(np.max(slopes)-np.min(slopes))/(0.5*np.max(slopes)-0.5*np.min(slopes)) > 0.25:
+            keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr]/widths[x_trough==tr])]] = 0
+            #else:
+            #    keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
+
+    if verbose>0:
+        print('Number of peaks after discarding connecting peaks:      %5i'%(len(keep_idxs)))
+            
     return x_peak[keep_idxs], x_trough[keep_idxs], hights[keep_idxs], widths[keep_idxs]
