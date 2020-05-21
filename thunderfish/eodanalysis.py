@@ -55,8 +55,8 @@ from .harmonics import fundamental_freqs_and_power
 from .tabledata import TableData
 
 
-def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
-                 min_win=0.01, max_eods=None, unfilter_cutoff=0.0):
+def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
+                 min_sem=False, max_eods=None, unfilter_cutoff=0.0):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard error.
 
@@ -73,11 +73,11 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
     $n = 1/c_f$ periods moved the modified waveform through a whole period.
     This is in the range of hundreds or thousands waveforms.
 
-    The algorithm checks for a global minimum of the s.e.m. as a function of snippet number.
-    If there is one then the average is computed for this number of snippets,
-    otherwise all snippets are taken from the provided data segment. Note that this check
-    only works for the strongest EOD in a recording. For weaker EOD the s.e.m. always
-    decays with snippet number (empirical observation).
+    If `min_sem` is set, the algorithm checks for a global minimum of the s.e.m.
+    as a function of snippet number. If there is one then the average is computed
+    for this number of snippets, otherwise all snippets are taken from the provided
+    data segment. Note that this check only works for the strongest EOD in a recording.
+    For weaker EOD the s.e.m. always decays with snippet number (empirical observation).
 
     TODO: use power spectra to check for changes in EOD frequency!
 
@@ -95,6 +95,9 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
         as the minimum interval between EOD times.
     min_win: float
         The minimum size of the snippets in seconds.
+    min_sem: bool
+        If set, check for minimum in s.e.m. to set the maximum numbers of EODs to be used
+        for computing the average waveform.
     max_eods: int or None
         Maximum number of EODs to be used for averaging.
     unfilter_cutoff: float
@@ -133,8 +136,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
 
     # optimal number of snippets:
     step = 10
-    # XXX make this an option!
-    if False and len(eod_snippets) > step:
+    if min_sem and len(eod_snippets) > step:
         sems = [np.mean(np.std(eod_snippets[:k], axis=0, ddof=1)/np.sqrt(k))
                 for k in range(step, len(eod_snippets), step)]
         idx = np.argmin(sems)
@@ -802,7 +804,7 @@ def wave_quality(idx, clipped, rms_sem, rms_error, power, harm_relampl,
     msg = []
     skip_reason = []
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
+    msg += ['clipped=%3.0f%%' % (100.0*clipped)]
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]
@@ -860,7 +862,7 @@ def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
     msg = []
     skip_reason = []
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
+    msg += ['clipped=%3.0f%%' % (100.0*clipped)]
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]
@@ -1054,8 +1056,9 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
     ax.plot(time, mean_eod, zorder=5, **mkwargs)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
-        ax.autoscale(False)
         std_eod = eod_waveform[:,2]
+        if np.mean(std_eod)/(np.max(mean_eod) - np.min(mean_eod)) > 0.1:
+            ax.autoscale(False)
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=1, **skwargs)
     # annotate fit:
@@ -1489,7 +1492,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
                             win_fac=2.0, min_win=0.01, max_eods=None,
-                            unfilter_cutoff=0.0,
+                            min_sem=False, unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',
                             n_harm=10, min_pulse_win=0.001,
                             peak_thresh_fac=0.01, min_dist=50.0e-6,
@@ -1514,6 +1517,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     cfg.add('eodSnippetFac', win_fac, '', 'The duration of EOD snippets is the EOD period times this factor.')
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
+    cfg.add('eodMinSem', min_sem, '', 'Use minimum of s.e.m. to set maximum number of EODs used to compute the average EOD.')
     cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
     cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave-type fish to make largest extremum positive (flip, none, or auto).')
     cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse-type fish to make the first large peak positive (flip, none, or auto).')
@@ -1547,6 +1551,7 @@ def eod_waveform_args(cfg):
     a = cfg.map({'win_fac': 'eodSnippetFac',
                  'min_win': 'eodMinSnippet',
                  'max_eods': 'eodMaxEODs',
+                 'min_sem': 'eodMinSem', 
                  'unfilter_cutoff': 'unfilterCutoff'})
     return a
 
