@@ -162,7 +162,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     pulse_unreliabilities = [0.0]
     """
 
-    _, eod_times, eod_peaktimes, pulse_unreliabilities = extract_pulsefish(data, samplerate, verbose=verbose)
+    _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
 
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
@@ -298,7 +298,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                 print('skip %6.1fHz wave  fish: %s (%s)' %
                       (props['EODf'], skips, msg))
     return (psd_data, wave_eodfs, wave_indices, eod_props, mean_eods,
-            spec_data, peak_data, power_thresh, skip_reason)
+            spec_data, peak_data, power_thresh, skip_reason, zoom_window)
 
 
 def remove_eod_files(output_basename, verbose, cfg):
@@ -369,7 +369,7 @@ def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
             print('wrote file %s' % fp)
 
                             
-def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
+def plot_eods(base_name, raw_data, samplerate, zoom_window, idx0, idx1,
               clipped, wave_eodfs, mean_eods, eod_props, peak_data, spec_data,
               indices, unit, psd_data, power_thresh, label_power,
               max_freq=3000.0, interactive=True):
@@ -554,10 +554,10 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         width = (1+width//0.005)*0.005
         plot_eod_recording(ax8, raw_data[idx0:idx1], samplerate, width, unit,
                            idx0/samplerate)
-        plot_pulse_eods(ax8, raw_data[idx0:idx1], samplerate, eod_props, idx0/samplerate,
+        plot_pulse_eods(ax8, raw_data[idx0:idx1], zoom_window, width, samplerate, eod_props, idx0/samplerate,
                         colors=colors[3:], markers=markers[3:])
         ax8.set_title('Recording', fontsize=14, y=1.05)
-        ax8.format_coord = recordingzoom_format_coord
+        #ax8.format_coord = recordingzoom_format_coord
     else:
         ax8.set_visible(False)        
 
@@ -639,7 +639,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1,
         ax3.set_position([0.075, 0.6, 0.9, 0.3])   # enlarge psd
         ax4.set_position([0.075, 0.2, 0.9, 0.3])
         rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-        plot_eod_recording(ax4, rdata, samplerate, 0.1, unit, idx0/samplerate)
+        plot_eod_recording(ax4, 
+            rdata, samplerate, 0.1, unit, idx0/samplerate)
         ax4.set_title('Recording', fontsize=14, y=1.05)
         ax4.format_coord = recordingzoom_format_coord
         usedax[0] = True
@@ -700,7 +701,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
 
     # detect EODs in the data:
     psd_data, wave_eodfs, wave_indices, eod_props, \
-    mean_eods, spec_data, peak_data, power_thresh, skip_reason = \
+    mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
       detect_eods(data, samplerate, clipped, filename, verbose, cfg)
     if not found_bestwindow:
         wave_eodfs = []
@@ -731,7 +732,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                       wave_eodfs, wave_indices, unit, verbose, cfg)
 
     if save_plot or not save_data:
-        fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
+        fig = plot_eods(outfilename, raw_data, samplerate, zoom_window, idx0, idx1, clipped,
                         wave_eodfs, mean_eods, eod_props, peak_data, spec_data,
                         None, unit, psd_data, power_thresh, True, 3000.0,
                         interactive=not save_data)

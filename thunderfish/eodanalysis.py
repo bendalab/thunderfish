@@ -894,6 +894,7 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
     kwargs: dict
         Arguments passed on to the plot command for the recorded trace.
     """
+
     widx2 = int(width*samplerate)//2
     i0 = len(data)//2 - widx2
     i0 = (i0//widx2)*widx2
@@ -909,6 +910,7 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
         tunit = 'ms'
     ax.plot(time, data, **kwargs)
     ax.set_xlim(time[i0], time[i1])
+
     ax.set_xlabel('Time [%s]' % tunit)
     ymin = np.min(data[i0:i1])
     ymax = np.max(data[i0:i1])
@@ -919,8 +921,7 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
     else:
         ax.set_ylabel('Amplitude [%s]' % unit)
 
-
-def plot_pulse_eods(ax, data, samplerate, eod_props, toffs=0.0,
+def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0.0,
                     colors=None, markers=None, marker_size=10,
                     legend_rows=8, **kwargs):
     """
@@ -960,6 +961,13 @@ def plot_pulse_eods(ax, data, samplerate, eod_props, toffs=0.0,
             continue
         if 'times' not in eod:
             continue
+
+        width = min(width,np.diff(zoom_window))
+        print(width)
+        
+        while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
+            width = width*2
+
         x = eod['peaktimes'] + toffs
         y = data[np.round(eod['peaktimes']*samplerate).astype(np.int)]
         color_kwargs = {}
@@ -976,7 +984,8 @@ def plot_pulse_eods(ax, data, samplerate, eod_props, toffs=0.0,
             if k >= len(markers):
                 break
             ax.plot(x, y, linestyle='None', marker=markers[k],
-                    mec=None, mew=0.0, label=label, **color_kwargs)
+                    mec=None, mew=0.0, label=label,ms=10)#, **color_kwargs)
+        
         k += 1
 
     # legend:
@@ -989,6 +998,16 @@ def plot_pulse_eods(ax, data, samplerate, eod_props, toffs=0.0,
             leg = ax.legend(numpoints=1, ncol=ncol, **kwargs)
         else:
             leg = ax.legend(numpoints=1, **kwargs)
+
+    # reset window so at least one EOD of each cluster is visible
+    
+    ax.set_xlim(toffs+zoom_window[1]-width, toffs+zoom_window[1])
+    i0 = int((zoom_window[1]-width)*samplerate)
+    i1 = int(zoom_window[1]*samplerate)
+    ymin = np.min(data[i0:i1])
+    ymax = np.max(data[i0:i1])
+    dy = ymax - ymin
+    ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
 
 def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
