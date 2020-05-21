@@ -162,7 +162,9 @@ def extract_eod_times(data, peakwidth, cutwidth, threshold_factor=2,verbose=0):
     """
     
     threshold = np.mean(np.abs(data))*threshold_factor
-    orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold,verbose)
+    orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
+    if verbose>0:
+        print('\nPeaks detected:                                         %5i'%len(orig_x_peaks))
 
     if len(orig_x_peaks)==0:
         if verbose>0:
