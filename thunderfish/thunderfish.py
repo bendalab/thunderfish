@@ -702,9 +702,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     return fig
 
 
-def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
-                save_subplots=False, output_folder='.', keep_path=False,
-                show_bestwindow=False, verbose=0):
+def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
+                save_plot=False, save_subplots=False, output_folder='.',
+                keep_path=False, show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -768,9 +768,19 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
                       wave_eodfs, wave_indices, unit, verbose, cfg)
 
     if save_plot or not save_data:
+        min_freq = 0.0
+        max_freq = 3000.0
+        if log_freq > 0.0:
+            min_freq = log_freq
+            max_freq = min_freq*20
+            if max_freq < 2000:
+                max_freq = 2000
+            log_freq = True
+        else:
+            log_freq = False
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
                         wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
-                        None, unit, psd_data, power_thresh, True, False, 0.0, 3000.0,
+                        None, unit, psd_data, power_thresh, True, log_freq, min_freq, max_freq,
                         interactive=not save_data, verbose=verbose)
         if save_plot:
             # save figure as pdf:
@@ -828,6 +838,9 @@ def main():
                         help='save output plot as pdf file')
     parser.add_argument('-P', dest='save_subplots', action='store_true',
                         help='save subplots as separate pdf files')
+    parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
+                        nargs='?', const=100.0, default=0.0,
+                        help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures (defaults to current working directory)')
     parser.add_argument('-k', dest='keep_path', action='store_true',
@@ -886,7 +899,7 @@ def main():
             os.makedirs(args.outpath)
     # run on pool:
     global pool_args
-    pool_args = (cfg, args.channel, args.save_data,
+    pool_args = (cfg, args.channel, args.log_freq, args.save_data,
                  args.save_plot, args.save_subplots, args.outpath, args.keep_path,
                  args.show_bestwindow, verbose-1)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
