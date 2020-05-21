@@ -15,7 +15,7 @@ from scipy import stats
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.cluster import DBSCAN, OPTICS
+from sklearn.cluster import DBSCAN
 from sklearn.mixture import BayesianGaussianMixture
 from sklearn.metrics import pairwise_distances
 

@@ -157,13 +157,15 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         Reasons, why an EOD was discarded.
     """
     # detect pulse fish:
+    """
     pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
                                                  **check_pulse_width_args(cfg))
     eod_times = [eod_times] if pulse_fish else []
+    eod_peaktimes = eod_times
     pulse_unreliabilities = [0.0]
+    zoom_window = [0.0, len(data)/samplerate]
     """
     _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
-    """
     
     # calculate power spectra:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
@@ -202,8 +204,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     skip_reason = []
     
     # analyse eod waveform of pulse-fish:
-    max_eods = cfg.value('eodMaxEODs')
-    minfres = cfg.value('frequencyResolution')
+    min_freq_res = cfg.value('frequencyResolution')
 
     for k, (eod_ts, eod_pts, unreliability) in enumerate(zip(eod_times, eod_peaktimes, pulse_unreliabilities)):
         mean_eod, eod_times0 = \
@@ -211,7 +212,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
                          min_sem=False, **eod_waveform_args(cfg))
         mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
-                                                      freq_resolution=min_fres,
+                                                      freq_resolution=min_freq_res,
                                                       **analyze_pulse_args(cfg))
         # XXX make this a config parameter!
         unrel_thresh = 0.2
@@ -221,7 +222,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                       (props['EODf'], unreliability, unrel_thresh))
             continue
 
-        props['peaktimes'] = eod_pts
+        props['peaktimes'] = eod_pts      # XXX that should go into analyze pulse
         props['index'] = len(eod_props)
         props['clipped'] = clipped
 
@@ -576,7 +577,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                     width = 10.0/eod_props[indices[0]]['EODf']
             width = (1+width//0.005)*0.005
         rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-        plot_pulse_eods(ax2, rdata, zoom_window, width, samplerate, eod_props, idx0/samplerate,
+        plot_pulse_eods(ax2, rdata, samplerate, zoom_window, width, eod_props, idx0/samplerate,
                         colors=pulse_colors, markers=pulse_markers)
         plot_eod_recording(ax2, rdata, samplerate, width, unit, idx0/samplerate)
         ax2.set_title('Recording', fontsize=14, y=1.05)

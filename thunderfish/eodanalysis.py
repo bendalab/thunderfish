@@ -896,7 +896,6 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
     kwargs: dict
         Arguments passed on to the plot command for the recorded trace.
     """
-
     widx2 = int(width*samplerate)//2
     i0 = len(data)//2 - widx2
     i0 = (i0//widx2)*widx2
@@ -923,7 +922,8 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
     else:
         ax.set_ylabel('Amplitude [%s]' % unit)
 
-def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0.0,
+
+def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0.0,
                     colors=None, markers=None, marker_size=10,
                     legend_rows=8, **kwargs):
     """
@@ -956,7 +956,6 @@ def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0
     kwargs: 
             Key word arguments for the legend of the plot.
     """
-
     k = 0
     for eod in eod_props:
         if eod['type'] != 'pulse':
@@ -964,9 +963,7 @@ def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0
         if 'times' not in eod:
             continue
 
-        width = min(width,np.diff(zoom_window))
-        print(width)
-        
+        width = min(width, np.diff(zoom_window))
         while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
             width = width*2
 
