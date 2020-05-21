@@ -367,7 +367,7 @@ def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
               wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
               indices, unit, psd_data, power_thresh=None, label_power=True,
-              max_freq=3000.0, interactive=True, verbose=0):
+              log_freq=False, min_freq=0.0, max_freq=3000.0, interactive=True, verbose=0):
     """
     Creates an output plot for the thunderfish program.
 
@@ -419,6 +419,15 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     label_power: boolean
         If `True` put the power in decibel in addition to the frequency
         into the legend.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis of power spectrum of recording.
+    min_freq: float
+        Limits of frequency axis of power spectrum of recording
+        are set to `(min_freq, max_freq)` if `max_freq` is greater than zero
+    max_freq: float
+        Limits of frequency axis of power spectrum of recording
+        are set to `(min_freq, max_freq)` and limits of power axis are computed
+        from powers below max_freq if `max_freq` is greater than zero
     interactive: bool
         If True install some keyboard interaction.
     verbose: int
@@ -523,13 +532,12 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                 else:
                     kwargs.update({'bbox_to_anchor': (1.0, 1.1),
                                    'loc': 'upper left', 'legend_rows': 12})
-            plot_harmonic_groups(ax3, wave_eodfs, wave_indices,
-                                 max_freq=max_freq, max_groups=0,
+            plot_harmonic_groups(ax3, wave_eodfs, wave_indices, max_groups=0,
                                  sort_by_freq=True, label_power=label_power,
                                  colors=wave_colors, markers=wave_markers,
                                  frameon=False, **kwargs)
-        plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], max_freq=max_freq,
-                         ymarg=5.0, color='blue')
+        plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], log_freq=log_freq,
+                         min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
         ax3.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
             ax3.get_legend().set_visible(False)
@@ -762,7 +770,7 @@ def thunderfish(filename, cfg, channel=0, save_data=False, save_plot=False,
     if save_plot or not save_data:
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
                         wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
-                        None, unit, psd_data, power_thresh, True, 3000.0,
+                        None, unit, psd_data, power_thresh, True, False, 0.0, 3000.0,
                         interactive=not save_data, verbose=verbose)
         if save_plot:
             # save figure as pdf:

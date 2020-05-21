@@ -1390,7 +1390,7 @@ def colors_markers():
     return colors, markers
 
 
-def plot_harmonic_groups(ax, group_list, indices=None, max_freq=2000.0, max_groups=0,
+def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
                          sort_by_freq=True, label_power=False,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
@@ -1406,8 +1406,6 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_freq=2000.0, max_grou
         the fundamental frequency, and element[0, 1] being the corresponding power.
     indices: list of int or None
         If smaller than zero then set the legend label of the corresponding group in brackets.
-    max_freq: float
-        If greater than zero only mark peaks below this frequency.
     max_groups: int
             If not zero plot only the max_groups most powerful groups.
     sort_by_freq: boolean
@@ -1447,7 +1445,7 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_freq=2000.0, max_grou
     for k, i in enumerate(idx):
         group = group_list[i]
         x = group[:,0]
-        y = group[:,1]
+        y = decibel(group[:,1])
         msize = 7.0 + 10.0*(powers[i]/max_power)**0.25
         color_kwargs = {}
         if colors is not None:
@@ -1463,12 +1461,11 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_freq=2000.0, max_grou
         if legend_rows > 5 and k >= legend_rows:
             label = None
         if markers is None:
-            ax.plot(x, decibel(y), 'o', ms=msize, label=label,
-                    clip_on=False, **color_kwargs)
+            ax.plot(x, y, 'o', ms=msize, label=label, **color_kwargs)
         else:
             if k >= len(markers):
                 break
-            ax.plot(x, decibel(y), linestyle='None', marker=markers[k],
+            ax.plot(x, y, linestyle='None', marker=markers[k],
                     mec=None, mew=0.0, ms=msize, label=label, **color_kwargs)
 
     # legend:
@@ -1482,8 +1479,9 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_freq=2000.0, max_grou
         leg = ax.legend(numpoints=1, **kwargs)
 
 
-def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_freqs=None, good_freqs=None,
-                             max_freq=2000.0):
+def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
+                             mains=None, all_freqs=None, good_freqs=None,
+                             log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0):
     """
     Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
     
@@ -1503,8 +1501,17 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
         Peaks in the power spectrum detected with low threshold.
     good_freqs: 1-D array
         Frequencies of peaks detected with high threshold.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis.
+    min_freq: float
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        if `max_freq` is greater than zero
     max_freq: float
-        Limits of frequency axis are set to (0, max_freq) if max_freq is greater than zero.
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        and limits of power axis are computed from powers below max_freq
+        if `max_freq` is greater than zero
+    ymarg: float
+        Add this to the maximum decibel power for setting the ylim.
     """
     
     # mark all and good psd peaks:
@@ -1523,11 +1530,12 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
                 label='%3.0f Hz mains' % mains[0, 0])
     # mark harmonic groups:
     colors, markers = colors_markers()
-    plot_harmonic_groups(ax, group_list, max_freq=max_freq, max_groups=0, sort_by_freq=True,
+    plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
                          colors=colors, markers=markers, legend_rows=8,
                          loc='upper right')
     # plot power spectrum:
-    plot_decibel_psd(ax, psd_freqs, psd, max_freq=max_freq, color='blue')
+    plot_decibel_psd(ax, psd_freqs, psd, log_freq=log_freq, min_freq=min_freq,
+                     max_freq=max_freq, ymarg=ymarg, color='blue')
 
     
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
