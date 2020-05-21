@@ -207,13 +207,6 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     min_freq_res = cfg.value('frequencyResolution')
 
     for k, (eod_ts, eod_pts, unreliability) in enumerate(zip(eod_times, eod_peaktimes, pulse_unreliabilities)):
-        mean_eod, eod_times0 = \
-            eod_waveform(data, samplerate, eod_ts,
-                         win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
-                         min_sem=False, **eod_waveform_args(cfg))
-        mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
-                                                      freq_resolution=min_freq_res,
-                                                      **analyze_pulse_args(cfg))
         # XXX make this a config parameter!
         unrel_thresh = 0.2
         if unreliability > unrel_thresh:
@@ -221,22 +214,24 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                 print('skip %6.1fHz pulse fish: unreliability %.2f larger than %.2f' %
                       (props['EODf'], unreliability, unrel_thresh))
             continue
+        
+        mean_eod, eod_times0 = \
+            eod_waveform(data, samplerate, eod_ts,
+                         win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
+                         min_sem=False, **eod_waveform_args(cfg))
+        mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
+                                                      freq_resolution=min_freq_res,
+                                                      **analyze_pulse_args(cfg))
+        if len(peaks) == 0:
+            print('no peaks in pulse EOD detected')
+            continue
 
         props['peaktimes'] = eod_pts      # XXX that should go into analyze pulse
         props['index'] = len(eod_props)
         props['clipped'] = clipped
-
-        p_thresh = 5.0*props['EODf']**2.0 * power[:,1]
-        if power_thresh is None:
-            power_thresh = np.zeros(power.shape)
-            power_thresh[:,0] = power[:,0]
-            power_thresh[:,1] = p_thresh
-        else:
-            p_thresh = np.interp(power_thresh[:,0], power[:,0], p_thresh)
-            power_thresh[:,1] = np.max(np.vstack((power_thresh[:,1].T, p_thresh)), axis=0)
-            
+        
         # add good waveforms only:
-        skips, msg = pulse_quality(0, clipped, props['rmssem'],
+        skips, msg = pulse_quality(k, clipped, props['rmssem'], peaks,
                                    **pulse_quality_args(cfg))
         if len(skips) == 0:
             eod_props.append(props)
@@ -245,6 +240,15 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             peak_data.append(peaks)
             if verbose > 0:
                 print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
+            # single pulse spectra as threshold for wave fish peaks:
+            p_thresh = 5.0*props['EODf']**2.0 * power[:,1]
+            if power_thresh is None:
+                power_thresh = np.zeros(power.shape)
+                power_thresh[:,0] = power[:,0]
+                power_thresh[:,1] = p_thresh
+            else:
+                p_thresh = np.interp(power_thresh[:,0], power[:,0], p_thresh)
+                power_thresh[:,1] = np.max(np.vstack((power_thresh[:,1].T, p_thresh)), axis=0)
         else:
             skip_reason += ['%.1fHz pulse fish %s' % (props['EODf'], skips)]
             if verbose > 0:
@@ -254,7 +258,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # remove wavefish below pulse fish power:
     if power_thresh is not None:
         n = len(wave_eodfs)
-        maxh = 6
+        maxh = 2
         df = power_thresh[1,0] - power_thresh[0,0]
         for k, fish in enumerate(reversed(wave_eodfs)):
             hfrac = float(np.sum(fish[:maxh,1] < power_thresh[np.array(fish[:maxh,0]//df, dtype=int),1]))/float(len(fish[:maxh,1]))
@@ -513,14 +517,16 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
               % (len(indices), nwave, npulse, len(wave_eodfs)))
     
     ############
+
+    force_both = True
     
     # plot psd
     wave_colors, wave_markers = colors_markers()
-    if len(indices) == 0 or len(wave_eodfs) > 0 or npulse == 0:
+    if len(indices) == 0 or len(wave_eodfs) > 0 or npulse == 0 or force_both:
         legend_inside = True
-        if len(indices) == 0:
+        if len(indices) == 0 and not force_both:
             ax3.set_position([0.075, 0.2, 0.9, 0.3]) # bottom, wide
-        elif len(wave_eodfs) <= 2 or npulse > 0:
+        elif len(wave_eodfs) <= 2 or npulse > 0 or force_both:
             ax3.set_position([0.575, 0.6, 0.4, 0.3]) # top, right
         else:
             ax3.set_position([0.075, 0.6, 0.7, 0.3]) # top, wide
@@ -534,7 +540,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                 kwargs = {'title': title if len(wave_eodfs) > 2 else None }
                 if legend_inside:
                     kwargs.update({'bbox_to_anchor': (1.05, 1.1),
-                                   'loc': 'upper right', 'legend_rows': 2})
+                                   'loc': 'upper right', 'legend_rows': 10})
                 else:
                     kwargs.update({'bbox_to_anchor': (1.0, 1.1),
                                    'loc': 'upper left', 'legend_rows': 12})
@@ -561,8 +567,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     pulse_colors, pulse_markers = colors_markers()
     pulse_colors = pulse_colors[3:]
     pulse_markers = pulse_markers[3:]
-    if len(indices) == 0 or npulse > 0 or len(wave_eodfs) <= 2:
-        if len(indices) > 0 and (len(wave_eodfs) > 0 and len(wave_eodfs) <= 2):
+    if len(indices) == 0 or npulse > 0 or len(wave_eodfs) <= 2 or force_both:
+        if (len(indices) > 0 and (len(wave_eodfs) > 0 and len(wave_eodfs) <= 2)) or force_both:
             ax2.set_position([0.075, 0.6, 0.4, 0.3]) # top, left
         else:
             ax2.set_position([0.075, 0.6, 0.9, 0.3]) # top, wide

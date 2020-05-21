@@ -589,8 +589,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
     min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
+    if min_thresh > 0.5*(max_ampl + min_ampl):
+        return meod, {}, [], []
     threshold = max_ampl*peak_thresh_fac
-    if threshold < min_thresh:
+    if threshold < min_thresh and min_thresh < 0.5*(max_ampl + min_ampl):
         threshold = min_thresh
         
     # cut out relevant signal:
@@ -834,7 +836,7 @@ def wave_quality(idx, clipped, rms_sem, rms_error, power, harm_relampl,
     return ', '.join(skip_reason), ', '.join(msg)
 
 
-def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
+def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
                   max_rms_sem=0.0):
     """
     Assess the quality of an EOD waveform of a pulse-type fish.
@@ -847,6 +849,12 @@ def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
         Fraction of clipped data.
     rms_sem: float
         Standard error of the data relative to p-p amplitude.
+    peaks: 2-D array
+        Peaks and troughs (rows) of the EOD waveform:
+        5 columns: 0: the peak index (1 is P1, i.e. the largest positive peak),
+        1: time relative to largest positive peak, 2: amplitude,
+        3: amplitude normalized to largest postive peak,
+        and 4: width of peak/trough at half height.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_rms_sem: float
@@ -871,6 +879,20 @@ def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
     if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
         skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
                         (100.0*rms_sem, 100.0*max_rms_sem)]
+    # non decaying waveform:
+    if len(peaks) > 0:
+        pi = np.argmax(peaks[:,2])
+        ti = np.argmin(peaks[:,2])
+        rp = np.delete(peaks[:,2]/peaks[pi,2], pi)
+        rt = np.delete(peaks[:,2]/peaks[ti,2], ti)
+        max_rp = np.max(rp) if len(rp) > 0 else 0.0
+        max_rt = np.max(rt) if len(rt) > 0 else 0.0
+        msg += ['maximum side peak amplitude=%3.0f%%, maximum side trough amplitude=%3.0f%%'
+                % (100.0*max_rp, 100.0*max_rt)]
+        if max_rp > 0.5:
+            skip_reason += ['no decaying pulse fish EOD (peak %3.0f%%, max 50%%)' % (100.0*max_rp)]
+        if np.any(rt > 0.5):
+            skip_reason += ['no decaying pulse fish EOD (trough %3.0f%%, max 50%%)' % (100.0*max_rt)]
     return ', '.join(skip_reason), ', '.join(msg)
 
 
@@ -970,8 +992,8 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         x = eod['peaktimes'] + toffs
         y = data[np.round(eod['peaktimes']*samplerate).astype(np.int)]
         color_kwargs = {}
-        if colors is not None:
-            color_kwargs['color'] = colors[k%len(colors)]
+        #if colors is not None:
+        #    color_kwargs['color'] = colors[k%len(colors)]
         if marker_size is not None:
             color_kwargs['ms'] = marker_size
         label = '%6.1f Hz' % eod['EODf']
@@ -980,11 +1002,8 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         if markers is None:
             ax.plot(x, y, 'o', label=label, **color_kwargs)
         else:
-            if k >= len(markers):
-                break
-            ax.plot(x, y, linestyle='None', marker=markers[k],
-                    mec=None, mew=0.0, label=label,ms=10)#, **color_kwargs)
-        
+            ax.plot(x, y, linestyle='none', label=label,
+                    marker=markers[k%len(markers)], mec=None, mew=0.0, **color_kwargs)
         k += 1
 
     # legend:
@@ -994,9 +1013,9 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
                 ncol = 1
             else:
                 ncol = (len(idx)-1) // legend_rows + 1
-            leg = ax.legend(numpoints=1, ncol=ncol, **kwargs)
+            ax.legend(numpoints=1, ncol=ncol, **kwargs)
         else:
-            leg = ax.legend(numpoints=1, **kwargs)
+            ax.legend(numpoints=1, **kwargs)
 
     # reset window so at least one EOD of each cluster is visible
     
