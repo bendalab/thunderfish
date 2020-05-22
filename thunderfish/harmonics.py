@@ -674,9 +674,10 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         Within min_group_size no harmonics are allowed to be filled in.
     max_harmonics_decibel: float
         Maximum allowed power of the `min_group_size`-th and higher harmonics
-        (in decibel relative to power of fundamental, i.e. if harmonics are required
-        to be smaller than fundamental then this is a negative number).
-        If zero do not check for relative power.
+        after the peak (in decibel relative to power of fundamental,
+        i.e. if harmonics are required to be smaller than fundamental
+        then this is a negative number).
+        Make it a large positive number to effectively not check for relative power.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -756,30 +757,21 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         db_powers = decibel(harm_group[:,1])
         diff = np.std(np.diff(db_powers))
         smooth_ok = diff < max_db_diff
-        """
         # check relative power of higher harmonics:
-        rpowers = decibel(harm_group[min_group_size:,1], harm_group[0,1])
-        amplitude_ok = ( (np.abs(max_harmonics_decibel) <= 1e-8) or \
-                         np.all((rpowers < max_harmonics_decibel) | \
-                                (harm_group[min_group_size:,2] > 1)) )
-        """
-        # check power decline of harmonics:
-        db_powers[harm_group[min_group_size:,2] > 1] = np.nan
-        p_max = np.nanargmax(db_powers)
+        p_max = np.argmax(db_powers[:min_group_size])
         db_powers -= db_powers[p_max]
-        rel_harmonics = np.abs(np.arange(len(db_powers)) - p_max) - 1
-        rel_harmonics[rel_harmonics<p_max] = 0
-        decibel_decrease = 5.0
-        db_max = -decibel_decrease*np.log10(np.abs(rel_harmonics)+1)/np.log10(2.0)
-        #db_max = -decibel_decrease*rel_harmonics
-        amplitude_ok = np.all((db_powers[:2*min_group_size] <= db_max[:2*min_group_size]+0.1) |
-                              (harm_group[:2*min_group_size,2] > 1))
-        amplitude_ok = True
-        """
-        print(amplitude_ok, rel_harmonics)
-        for a, b, c in zip(db_powers, db_max, harm_group[:,2]):
-            print(a, b, a<=b+0.1, c)
-        """
+        amplitude_ok = len(db_powers[p_max+min_group_size:]) == 0
+        if amplitude_ok:
+            pi = len(db_powers) - 1
+        else:
+            amplitude_ok = np.all((db_powers[p_max+min_group_size:] < max_harmonics_decibel) | \
+                                  (harm_group[p_max+min_group_size:,2] > 1))
+            if amplitude_ok:
+                pi = p_max+min_group_size-1
+            else:
+                pi = np.where((db_powers[p_max+min_group_size:] < max_harmonics_decibel) | \
+                              (harm_group[p_max+min_group_size:,2] > 1))[0][0]
+                              
         # check:
         if fundamental_ok and mains_ok and smooth_ok and amplitude_ok:
             if verbose > 0:
@@ -794,12 +786,10 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
                 ms = 'not ' if mains_ok else 'IS'
                 ss = 'smaller' if smooth_ok else 'LARGER '
                 ps = 'smaller' if amplitude_ok else 'LARGER '
-                pi = p_max+2 if amplitude_ok else np.where(db_powers > db_max+0.1)[0][0]
-                dp = db_powers[pi] if pi < len(db_powers) else 0.0
-                mp = db_max[pi] if pi < len(db_max) else 0.0
                 print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, smooth=%4.1fdB %s than %4.1fdB, relpower[%d]=%5.1fdB %s than %5.1fdB'
                       % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
-                         fs, ms, diff, ss, max_db_diff, pi, dp, ps, mp))
+                         fs, ms, diff, ss, max_db_diff,
+                         pi, db_powers[pi], ps, max_harmonics_decibel))
                 
     # select most powerful harmonic groups:
     if max_groups > 0 and len(group_list) > max_groups:
@@ -1645,6 +1635,7 @@ def harmonic_groups_args(cfg):
                     'min_freq': 'minimumFrequency',
                     'max_freq': 'maximumFrequency',
                     'max_db_diff': 'maximumPowerDifference',
+                    'max_harmonics_decibel': 'maxRelativePower',                     
                     'max_harmonics': 'maxHarmonics',
                     'max_groups': 'maxGroups'})
 
