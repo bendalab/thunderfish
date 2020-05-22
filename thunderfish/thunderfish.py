@@ -524,7 +524,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     wave_colors, wave_markers = colors_markers()
     if len(indices) == 0 or len(wave_eodfs) > 0 or npulse == 0 or force_both:
         legend_inside = True
-        if len(indices) == 0 and not force_both:
+        if len(indices) == 0:
             ax3.set_position([0.075, 0.2, 0.9, 0.3]) # bottom, wide
         elif len(wave_eodfs) <= 2 or npulse > 0 or force_both:
             ax3.set_position([0.575, 0.6, 0.4, 0.3]) # top, right
@@ -568,7 +568,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     pulse_colors = pulse_colors[3:]
     pulse_markers = pulse_markers[3:]
     if len(indices) == 0 or npulse > 0 or len(wave_eodfs) <= 2 or force_both:
-        if (len(indices) > 0 and (len(wave_eodfs) > 0 and len(wave_eodfs) <= 2)) or force_both:
+        if len(indices) > 0 and ((len(wave_eodfs) > 0 and len(wave_eodfs) <= 2) or force_both):
             ax2.set_position([0.075, 0.6, 0.4, 0.3]) # top, left
         else:
             ax2.set_position([0.075, 0.6, 0.9, 0.3]) # top, wide
