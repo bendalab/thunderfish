@@ -1001,9 +1001,12 @@ def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0
 
     # reset window so at least one EOD of each cluster is visible
     
-    ax.set_xlim(toffs+zoom_window[1]-width, toffs+zoom_window[1])
-    i0 = int((zoom_window[1]-width)*samplerate)
+    ax.set_xlim(max(toffs,toffs+zoom_window[1]-width), toffs+zoom_window[1])
+    print(samplerate)
+
+    i0 = max(0,int((zoom_window[1]-width)*samplerate))
     i1 = int(zoom_window[1]*samplerate)
+
     ymin = np.min(data[i0:i1])
     ymax = np.max(data[i0:i1])
     dy = ymax - ymin

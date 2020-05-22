@@ -36,38 +36,6 @@ warnings.warn=warn
 if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
-def solve(m1,m2,std1,std2,s1,s2):
-  a = 1/(2*std1**2) - 1/(2*std2**2)
-  b = m2/(std2**2) - m1/(std1**2)
-  c = m1**2 /(2*std1**2) - m2**2 / (2*std2**2) - np.log((std2*s1)/(std1*s2))
-  return np.roots([a,b,c])
-
-def detect_artefacts(eods,dt,threshold=8000, cutoff=0.75):
-
-    xf = np.linspace(0.0, 1.0/(2.0*dt), int(len(eods)/2))
-    
-    fft = np.abs(np.fft.fft(eods.T))[:,:len(xf)]    
-    
-    LFP = fft[:,xf<threshold]
-    LFP_ratio = LFP.sum(axis=1)/fft.sum(axis=1)
-   
-    output = np.ones(eods.shape[1])
-    output[LFP_ratio<cutoff] = 0
-
-    return output
-
-def detect_wavefish(eods,lb=0.3,ub=0.75):
-    max_abs_slopes = np.max(np.abs(np.diff(eods,axis=0)),axis=0)
-    normalization = np.max(eods,axis=0)-np.min(eods,axis=0)
-
-    max_slope = max_abs_slopes/normalization
-    
-    output = np.ones(eods.shape[1])
-    output[max_slope<lb] = 0
-    output[max_slope>ub] = 0
-    
-    return output
-
 
 def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, threshold_factor=2, verbose=0, **cluster_kwargs):
     """ Extract and cluster pulse fish EODs from recording.
@@ -105,9 +73,8 @@ def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, thresho
     mean_eods, eod_times, eod_peaktimes,eod_unreliability,zoom_window = [], [], [], [], []
     
     # extract peaks
-    x_peak, x_trough, eod_hights, eod_widths = extract_eod_times(data,
-                                                                 int(peakwidth*samplerate),
-                                                                 int(cutwidth*samplerate),threshold_factor,verbose-1)
+    x_peak, x_trough, eod_hights, eod_widths, samplerate, data = extract_eod_times(data, samplerate,
+                                                                 peakwidth,cutwidth,threshold_factor,verbose-1)
     if len(x_peak)>0:
 
         # cluster on peaks
@@ -133,7 +100,7 @@ def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, thresho
     return mean_eods, eod_times, eod_peaktimes, eod_unreliability, zoom_window
 
 
-def extract_eod_times(data, peakwidth, cutwidth, threshold_factor=2,verbose=0):
+def extract_eod_times(data, samplerate, peakwidth, cutwidth, threshold_factor=2,verbose=0,interp_f=10):
     """ Extract peaks from data which are potentially EODs.
 
     Parameters
@@ -160,30 +127,61 @@ def extract_eod_times(data, peakwidth, cutwidth, threshold_factor=2,verbose=0):
     eod_widths: array of ints
         EOD widths for each x_peak (in samples).
     """
-    
-    threshold = np.mean(np.abs(data))*threshold_factor
-    orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold,verbose)
 
-    if len(orig_x_peaks)==0:
+    interp_f = int(200000/samplerate)
+    f = interp1d(range(len(data)),data,kind='quadratic')
+    data = f(np.arange(0,len(data)-1,1/interp_f))
+
+    orig_x_peaks = np.zeros(int(samplerate*2))
+    
+    while len(orig_x_peaks)>samplerate:
+        threshold = (np.mean(np.abs(data)))*threshold_factor
+        orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold, verbose)
+        threshold_factor = threshold_factor*1.5
+
+    if len(orig_x_peaks)==0 or len(orig_x_peaks)>samplerate:
         if verbose>0:
             print('No peaks detected.')
-        return [], [], [], []
+        return [], [], [], [], samplerate*interp_f,data
     else:
-        peaks = makeeventlist(orig_x_peaks, orig_x_troughs, data, peakwidth, verbose-1)
-        peakindices, _, _ = discardnearbyevents(peaks[0], peaks[3], peaks[3]/peaks[4], peakwidth,verbose-1)
-        x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks[0][peakindices], peaks[1][peakindices], peaks[3][peakindices], peaks[4][peakindices],verbose-1)
-        #x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks[0], peaks[1], peaks[3], peaks[4],verbose-1)
-        #peakindices, _, _ = discardnearbyevents(x_peaks[0], peaks[3], peakwidth,verbose-1)
+        peaks = makeeventlist(orig_x_peaks, orig_x_troughs, data, peakwidth*samplerate*interp_f, verbose-1)
+        
+        #plt.figure()
+        #plt.plot(data)
+        #plt.plot(peaks[0],data[peaks[0].astype('int')],'o')
+        #plt.plot(peaks[1],data[peaks[1].astype('int')],'o')
+        
+        #peakindices, _, _ = discardnearbyevents(peaks[0], peaks[3], peaks[3]/peaks[4], peakwidth,verbose-1)
+        #x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks[0][peakindices], peaks[1][peakindices], peaks[3][peakindices], peaks[4][peakindices],verbose-1)
+        x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks[0], peaks[1], peaks[3], peaks[4],verbose-1)
+        
+        #plt.plot(x_peaks,data[x_peaks.astype('int')],'x',ms=10)
+        #plt.plot(x_troughs,data[x_troughs.astype('int')],'x',ms=10)
+        
+        
+        peakindices, _, _ = discardnearbyevents(x_peaks, eod_hights, eod_hights/eod_widths, peakwidth*samplerate*interp_f, verbose-1)
+
+        x_peaks=x_peaks[peakindices]
+        x_troughs = x_troughs[peakindices]
+        eod_hights = eod_hights[peakindices]
+        eod_widths = eod_widths[peakindices]
+
+        
+        #plt.plot(x_peaks,data[x_peaks.astype('int')],'o',ms=10,alpha=0.5)
+        #plt.plot(x_troughs,data[x_troughs.astype('int')],'o',ms=10,alpha=0.5)
+        #plt.show()
+        
 
         # only take those where the cutwidth does not casue issues
-        cut_idx = np.where((x_peaks>int(cutwidth/2)) & (x_peaks<(len(data)-int(cutwidth/2))) & (x_troughs>int(cutwidth/2)) & (x_troughs<(len(data)-int(cutwidth/2))))[0]
+        cut_idx = np.where((x_peaks>int(cutwidth*samplerate*interp_f/2)) & (x_peaks<(len(data)-int(cutwidth*samplerate*interp_f/2))) & (x_troughs>int(cutwidth*samplerate*interp_f/2)) & (x_troughs<(len(data)-int(cutwidth*samplerate*interp_f/2))))[0]
         
         if verbose==1:
             print('Remaining peaks after EOD extraction                    %5i\n'%(len(cut_idx)))
         elif verbose>0:
             print('Remaining peaks after deletion due to cutwidth          %5i\n'%(len(cut_idx)))
 
-        return x_peaks[cut_idx], x_troughs[cut_idx], eod_hights[cut_idx], eod_widths[cut_idx]
+
+        return x_peaks[cut_idx], x_troughs[cut_idx], eod_hights[cut_idx], eod_widths[cut_idx], samplerate*interp_f, data
 
 
 def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, verbose=0, minp=10,
@@ -295,14 +293,14 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, verbose=0
         if len(hight_labels[hight_labels==hight_label]) > minp:
             
             # extract snippets, idxs and hs for this hight cluster
-            current_snippets_ui = StandardScaler().fit_transform(snippets[hight_labels==hight_label].T).T
+            current_snippets = StandardScaler().fit_transform(snippets[hight_labels==hight_label].T).T
 
-            f = interp1d(range(len(current_snippets_ui[0])),current_snippets_ui,kind='quadratic')
-            current_snippets = f(np.arange(0,len(current_snippets_ui[0])-1,0.1))
+            #f = interp1d(range(len(current_snippets_ui[0])),current_snippets_ui,kind='quadratic')
+            #current_snippets = f(np.arange(0,len(current_snippets_ui[0])-1,0.1))
 
             # recenter around max/min
-            mids = np.argmax(np.abs(current_snippets[:,int(len(current_snippets[0])/2-10):int(len(current_snippets[0])/2)+10]),axis=1) - 10
-            current_snippets = np.vstack([cs[10+mid:-10+mid] for (cs,mid) in zip(current_snippets,mids)])
+            #mids = np.argmax(np.abs(current_snippets[:,int(len(current_snippets[0])/2-10):int(len(current_snippets[0])/2)+10]),axis=1) - 10
+            #current_snippets = np.vstack([cs[10+mid:-10+mid] for (cs,mid) in zip(current_snippets,mids)])
             
             clusters = np.ones(len(current_snippets))*-1
             ceod_widths = eod_widths[hight_labels==hight_label]
@@ -370,7 +368,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, verbose=0
             else:
                 clusters[ceod_widths>=3*np.median(eod_widths)] = slow_clusters
 
-            '''            
+            '''    
             plt.subplot(3,len(np.unique(hight_labels)),len(np.unique(hight_labels))*2+i+1)
 
             for j,c in enumerate(np.unique(clusters)):
@@ -486,6 +484,8 @@ def find_window(data, eod_x, eod_peak_x, eod_widths, clusters, samplerate, verbo
             eod_hights.append(np.min(mean_eod)-np.max(mean_eod))
             eod_peak_times.append(eod_peak_x[clusters==cluster]/samplerate)
 
+            print(np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])))
+
             unreliability.append(np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])))
 
     return [m for _,m in sorted(zip(eod_hights,mean_eods))], [t for _,t in sorted(zip(eod_hights,eod_times))], [pt for _,pt in sorted(zip(eod_hights,eod_peak_times))], [ur for _,ur in sorted(zip(eod_hights,unreliability))]
@@ -513,7 +513,7 @@ def remove_sparse_detections(clusters,eod_widths, samplerate, factor = 0.004):
 
     
 def remove_noise_and_artefacts(data, eod_x, eod_widths, clusters, original_cutwidth, verbose=0,
-                               w_factor=2, noise_threshold=0.0025, artefact_threshold=0.8):
+                               w_factor=2, noise_threshold=0.03, artefact_threshold=0.75):
     """ Remove EOD clusters that are too noisy or result from artefacts
 
     Parameters
@@ -560,11 +560,19 @@ def remove_noise_and_artefacts(data, eod_x, eod_widths, clusters, original_cutwi
 
             mean_eod = np.mean(snippets, axis=0)
             eod_std = np.std(snippets, axis=0)
-            noise_ratio = np.var(mean_eod)/np.mean(eod_std)
+            noise_ratio = stats.sem(mean_eod)/np.mean(eod_std)
 
             cut_fft = int(len(np.fft.fft(mean_eod))/2)
-            low_frequency_ratio = np.sum(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft/2)])/np.sum(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft)])
+            low_frequency_ratio = np.sum(np.abs(np.fft.fft(mean_eod))[:int(cut_fft/10)])/np.sum(np.abs(np.fft.fft(mean_eod))[:int(cut_fft)])
+            
+            #plt.figure()
+            #plt.plot(mean_eod)
+            #plt.figure()
+            #plt.plot(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft)])
+            #plt.vlines(int(cut_fft/10),0,100)
+            #plt.show()
 
+            #print(noise_ratio)
             if noise_ratio < noise_threshold:
                 clusters[clusters==cluster] = -1
                 if verbose>0:
@@ -572,7 +580,7 @@ def remove_noise_and_artefacts(data, eod_x, eod_widths, clusters, original_cutwi
             elif low_frequency_ratio < artefact_threshold:
                 clusters[clusters==cluster] = -1
                 if verbose>0:
-                    print('Deleting cluster %i, which has a low frequency ratio of %f'(cluster,low_frequency_ratio))
+                    print('Deleting cluster %i, which has a low frequency ratio of %f'%(cluster,low_frequency_ratio))
 
     return clusters
 
