@@ -8,10 +8,14 @@ Extract and analyze harmonic frequencies from power spectra.
 - `expand_group()`: add more harmonics to harmonic group. 
 - `extract_fundamentals()`: collect harmonic groups from
                             lists of power spectrum peaks.
-- `build_harmonic_group()`: Find all the harmonics belonging to the largest peak in the power spectrum.
-- `retrieve_harmonic_group()`: Find all the harmonics belonging to a given fundamental..
 - `threshold_estimate()`: estimates thresholds for peak detection
                           in a power spectrum.
+                            
+## Helper functions for harmonic group extraction
+- `build_harmonic_group()`: find all the harmonics belonging to the largest peak in the power spectrum.
+- `retrieve_harmonic_group()`: find all the harmonics belonging to a given fundamental.
+- `group_candidate()`: candidate harmonic frequencies belonging to a fundamental frequency.
+- `update_group()`: update frequency lists and harmonic group.
 
 ## Handling of lists of harmonic groups
 - `fundamental_freqs()`: extract fundamental frequencies from
@@ -57,415 +61,54 @@ except ImportError:
     pass
 
 
-def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
-                         min_group_size=4, max_divisor=4, max_rel_power_weight=2.0):
-    """Find all the harmonics belonging to the largest peak in a list of frequency peaks.
+def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_size, verbose):
+    """ Candidate harmonic frequencies belonging to a fundamental frequency.
 
     Parameters
     ----------
     good_freqs: 2-D array
-        List of frequency, power, and count of strong peaks
+        Frequency, power, and use count (columns) of strong peaks detected
         in a power spectrum.
-    all_freqs:
-        List of frequency, power, and count of all peaks
-        in a power spectrum.
-    freq_tol: float
-        Harmonics need to fall within this frequency tolerance.
-        This should be in the range of the frequency resolution
-        and not be smaller than half of the frequency resolution.
-    verbose: int
-        Verbosity level.
-    min_group_size: int
-        Within min_group_size no harmonics are allowed to be filled in.
-    max_divisor: int
-        Maximum divisor used for checking for sub-harmonics.
-    max_rel_power_weight: float
-        Harmonic groups with larger overall power are preferred when comparing
-        harmonic groups constructed from the same frequency. If min_group_size
-        is larger than two, the overall power is divided by the relative power of
-        the `min_group_size`-th harmonics (relative to the power of the fundamental).
-        This way, harmonic groups with too strong higher harmonics are punished.
-        The relative power for punishing too strong harmonics can be limited to range
-        from `1/max_rel_power_weight` to `max_rel_power_weight`.
-        Set `max_rel_power_weight` to one to disable this.
-    
-    Returns
-    -------
-    good_freqs: 2-D array
-        List of strong frequencies with frequencies of
-        the returned group removed.
     all_freqs: 2-D array
-        List of all frequencies with updated double-use counts.
-    group: 2-D array
-        The detected harmonic group. Might be empty.
-    best_fzero_harmonics: int
-        The highest harmonics that was used to recompute
-        the fundamental frequency.
-    fmax: float
-        The frequency of the largest peak in good_freqs
-        for which the harmonic group was detected.
-    """
-    # check:
-    if max_divisor > min_group_size:
-        print('max_divisor=%d must not be larger than min_group_size=%d!'
-              % (max_divisor, min_group_size))
-        max_divisor = min_group_size
-    # select strongest frequency for building the harmonic group:
-    fmaxinx = np.argmax(good_freqs[:,1])
-    fmax = good_freqs[fmaxinx,0]
-    if verbose > 0:
-        print('')
-        print('%s build harmonic group %s' % (10*'#', 38*'#'))
-        print('%s fmax=%7.2fHz, power=%9.3g %s'
-              % (10*'#', fmax, good_freqs[fmaxinx,1], 27*'#'))
-        print('good_freqs: ', '[',
-              ', '.join(['%.2f' % f for f in good_freqs[:,0]]), ']')
-
-    # container for harmonic groups
-    best_group = []
-    best_value = 0.0
-    best_diff = 1e9
-    best_divisor = 0
-    best_fzero = 0.0
-    best_fzero_harmonics = 0
-
-    # check for integer fractions of the frequency:
-    for divisor in range(1, max_divisor + 1):
-        # 1. hypothesized fundamental:
-        fzero = fmax / divisor
-        fzero_harmonics = 1
-        
-        # 2. find harmonics in good_freqs and adjust fzero accordingly:
-        prev_freq = fmax
-        for h in range(divisor+1, 2*min_group_size+1):
-            ff = good_freqs[np.abs(good_freqs[:,0]/h - fzero)<freq_tol,0]
-            df = ff - prev_freq
-            dh = np.round(df/fzero)
-            if np.sum(dh>0) == 0:
-                if h > min_group_size:
-                    break
-                continue
-            ff = ff[dh>0]
-            dh = dh[dh>0]
-            df = ff - prev_freq
-            fe = np.abs(df/dh - fzero)
-            idx = np.argmin(fe)
-            if fe[idx] > 2.0*freq_tol:
-                if h > min_group_size:
-                    break
-                continue
-            # update fzero:
-            prev_freq = ff[idx]
-            fzero_harmonics = h
-            fzero = prev_freq/fzero_harmonics
-            if verbose > 1:
-                print('adjusted fzero to %.2fHz' % fzero)
-        
-        ## # this is not faster:
-        ## freqs = [fmax]
-        ## prev_h = divisor
-        ## prev_fe = 0.0
-        ## for f in good_freqs[good_freqs[:,0] > fmax + 0.6*fzero,0]:
-        ##     h = m.floor(f/fzero + 0.5)  # round
-        ##     #if h < 1:
-        ##     #    continue
-        ##     if h > min_group_size:
-        ##         if h - prev_h > 1 or h > 2*min_group_size:
-        ##             break
-        ##     if m.fabs(f/h - fzero) > freq_tol:
-        ##         continue
-        ##     df = f - freqs[-1]
-        ##     if df < 0.5*fzero and len(freqs)>1:
-        ##         df = f - freqs[-2]
-        ##     dh = m.floor(df/fzero + 0.5)
-        ##     fe = m.fabs(df/dh - fzero)
-        ##     if fe > 2.0*freq_tol:
-        ##         continue
-        ##     if h > prev_h or fe < prev_fe:
-        ##         prev_freq = f
-        ##         prev_h = h
-        ##         prev_fe = fe
-        ##         freqs.append(f)
-        ## # update fzero:
-        ## fzero_harmonics = prev_h
-        ## fzero = prev_freq/fzero_harmonics
-        ## if verbose > 1:
-        ##     print('adjusted fzero to %.2fHz' % fzero)
-        
-        if verbose > 0:
-            print('# divisor: %d, fzero=%7.2fHz adjusted from harmonics %d'
-                  % (divisor, fzero, fzero_harmonics))
-        # fmax might not be in our group anymore, because fzero was adjusted:
-        if np.abs(fmax/divisor - fzero) > freq_tol:
-            if verbose > 0:
-                print('  discarded: lost frequency')
-            continue
-
-        # 3. collect harmonics from all_freqs:
-        new_group = -np.ones(min_group_size, dtype=np.int)
-        ## # slower:
-        ## prev_freq = 0.0
-        ## freqs = all_freqs[all_freqs[:,0]<(min_group_size+0.5)*fzero,0]
-        ## for h in range(1, min_group_size+1):
-        ##     fac = 1.0 if h >= divisor else 2.0                
-        ##     sel = np.abs(freqs/h - fzero) < fac*freq_tol
-        ##     if sum(sel) == 0:
-        ##         if verbose > 1:
-        ##             print('no candidates at %d harmonics' % h)
-        ##         break
-        ##     ff = freqs[sel]
-        ##     df = np.abs(ff - prev_freq)
-        ##     fe = np.abs(df/np.round(df/fzero) - fzero)
-        ##     idx = np.argmin(fe)
-        ##     fac = 1.0 if h > divisor else 2.0                
-        ##     if fe[idx] > 2.0*fac*freq_tol:
-        ##         if verbose > 1:
-        ##             print('%d. harmonics is off %.2fHz' % (h, ff[idx]))
-        ##         break
-        ##     prev_freq = ff[idx]
-        ##     new_group[h-1] = np.where(sel)[0][idx]
-
-        # a little bit faster:
-        freqs = []
-        prev_h = 0
-        prev_fe = 0.0
-        fupper = (min_group_size+0.5)*fzero
-        for i, f in enumerate(all_freqs[all_freqs[:,0] < fupper,0]):
-            h = m.floor(f/fzero + 0.5)  # round
-            if h < 1:
-                continue
-            if h > min_group_size:
-                break
-            fac = 1.0 if h >= divisor else 2.0
-            if m.fabs(f/h - fzero) > fac*freq_tol:
-                if verbose > 1 and m.fabs(f/h - fzero) < 20.0*fac*freq_tol:
-                    print('    %d. harmonics at %7.2fHz is off by %7.2fHz (max %5.2fHz) from %7.2fHz'
-                          % (h, f, f-h*fzero, fac*freq_tol, h*fzero))
-                continue
-            if len(freqs) > 0:
-                pf = freqs[-1]
-                df = f - pf
-                if df < 0.5*fzero:
-                    if len(freqs)>1:
-                        pf = freqs[-2]
-                        df = f - pf
-                    else:
-                        pf = 0.0
-                        df = h*fzero
-                dh = m.floor(df/fzero + 0.5)
-                fe = m.fabs(df/dh - fzero)
-                fac = 1.0 if h > divisor else 2.0                
-                if fe > 2.0*fac*freq_tol:
-                    if verbose > 1:
-                        print('    %d. harmonics at %7.2fHz is off by %7.2fHz (max %5.2fHz) from previous harmonics at %7.2fHz'
-                              % (h, f, fe, 2.0*fac*freq_tol, pf))
-                    continue
-            else:
-                fe = 0.0
-            if h > prev_h or fe < prev_fe:
-                if h - prev_h > 1:
-                    break
-                if h == prev_h and len(freqs) > 0:
-                    freqs.pop()
-                freqs.append(f)
-                new_group[int(h)-1] = i
-                prev_h = h
-                prev_fe = fe
-                
-        # 4. check new group:
-        
-        # all harmonics in min_group_size required:
-        if np.any(new_group<0):
-            if verbose > 0:
-                print('  discarded group because %d smaller than min_group_size %d!' %
-                      (np.sum(new_group>=0), min_group_size), new_group)
-            continue
-        # check double use of frequencies:
-        double_use = np.sum(all_freqs[new_group, 2]>0)
-        if double_use > divisor:
-            if verbose > 0:
-                print('  discarded group because of double use = %d' % double_use)
-            continue
-
-        # 5. compare new group to best group:
-        peaksum = np.sum(all_freqs[new_group, 1])
-        rel_power = all_freqs[new_group[-1], 1]/all_freqs[new_group[0], 1]
-        new_group_value = peaksum
-        if min_group_size >= 3:
-            fac = rel_power
-            if fac < 1.0/max_rel_power_weight:
-                fac = 1.0/max_rel_power_weight
-            elif fac > max_rel_power_weight:
-                fac = max_rel_power_weight
-            new_group_value = peaksum/fac
-        new_group_diff = np.std(np.diff(all_freqs[new_group, 1]))/np.max(all_freqs[new_group, 1])
-        if verbose > 0:
-            print('  new group:  fzero=%7.2fHz, value=%9.3g, peaksum=%9.3g, relpower=%6.3f, diff=%7.3g, best_diff=%9.3g'
-                  % (fzero, new_group_value, peaksum, rel_power, new_group_diff, best_diff), new_group)
-            if verbose > 1:
-                print('  best group:     divisor=%d, fzero=%7.2fHz, value=%9.3g, diff=%7.3g'
-                      % (best_divisor, best_fzero, best_value, best_diff), best_group)
-        # select new group if sum of peak power is larger and
-        # relative power is smaller:
-        if new_group_value >= best_value and new_group_diff <= best_diff:
-            best_value = new_group_value
-            best_diff = new_group_diff
-            best_group = new_group
-            best_divisor = divisor
-            best_fzero = fzero
-            best_fzero_harmonics = fzero_harmonics
-            if verbose > 1:
-                print('  new best group: divisor=%d, fzero=%7.2fHz, value=%9.3g, diff=%9.3g'
-                      % (best_divisor, best_fzero, best_value, best_diff), best_group)
-            elif verbose > 0:
-                print('  took as new best group')
-                
-    # no group found:
-    if len(best_group) == 0:
-        # erase freq:
-        good_freqs = np.delete(good_freqs, fmaxinx, axis=0)
-        group = np.zeros((0, 3))
-        return good_freqs, all_freqs, group, 1, fmax
-
-    # increment double use count:
-    all_freqs[best_group, 2] += 1.0
-    
-    # fill up group:
-    group = all_freqs[best_group,:]
-    group[:,0] = np.arange(1,len(group)+1)*best_fzero
-
-    # indices of group in good_freqs:
-    ## indices = np.where(np.abs(good_freqs[:,0] - np.round(good_freqs[:,0]/best_fzero)*best_fzero) < 2.0*freq_tol)[0]
-    ##    
-    indices = []
-    freqs = []
-    prev_h = 0
-    prev_fe = 0.0
-    for i, f in enumerate(good_freqs[:,0]):
-        h = m.floor(f/best_fzero + 0.5)  # round
-        if h < 1:
-            continue
-        fac = 1.0 if h >= divisor else 2.0
-        if m.fabs(f/h - best_fzero) > fac*freq_tol:
-            continue
-        if len(freqs) > 0:
-            df = f - freqs[-1]
-            if df <= 0.5*best_fzero:
-                if len(freqs)>1:
-                    df = f - freqs[-2]
-                else:
-                    df = h*best_fzero
-            dh = m.floor(df/best_fzero + 0.5)
-            fe = m.fabs(df/dh - best_fzero)
-            fac = 1.0 if h > divisor else 2.0                
-            if fe > 2.0*fac*freq_tol:
-                continue
-        else:
-            fe = 0.0
-        if h > prev_h or fe < prev_fe:
-            if h == prev_h and len(freqs) > 0:
-                freqs.pop()
-                indices.pop()
-            freqs.append(f)
-            indices.append(i)
-            prev_h = h
-            prev_fe = fe
-    ##
-    ## # very slow:
-    ## indices = []
-    ## prev_freq = 0.0
-    ## freqs = all_freqs[:,0]
-    ## for h in range(1, int(m.floor(freqs[-1]/best_fzero+0.5))+1):
-    ##     fac = 1.0 if h >= divisor else 2.0                
-    ##     sel = np.abs(freqs/h - best_fzero) < fac*freq_tol
-    ##     if sum(sel) == 0:
-    ##         continue
-    ##     ff = freqs[sel]
-    ##     df = np.abs(ff - prev_freq)
-    ##     fe = np.abs(df/np.round(df/best_fzero) - best_fzero)
-    ##     idx = np.argmin(fe)
-    ##     fac = 1.0 if h > divisor else 2.0                
-    ##     if fe[idx] > 2.0*fac*freq_tol:
-    ##         continue
-    ##     prev_freq = ff[idx]
-    ##     indices.append(np.where(sel)[0][idx])
-
-    # report:
-    if verbose > 1:
-        print('')
-        print('# best group found for fmax=%.2fHz, fzero=%.2fHz, divisor=%d:'
-              % (fmax, best_fzero, best_divisor))
-        print('# best good freqs: ', indices,
-              '[', ', '.join(['%.2f' % f for f in good_freqs[indices,0]]), ']')
-        print('# best all freqs : ', best_group,
-              '[', ', '.join(['%.2f' % f for f in all_freqs[best_group,0]]), ']')
-    if verbose > 0:
-        refi = np.argmax(group[:,1] > 0.0)
-        print('')
-        print('#### resulting harmonic group for fmax=%.2fHz' % fmax)
-        for i in range(len(group)):
-            print('f=%8.2fHz n=%5.2f: power=%9.3g power/p0=%6.4f'
-                  % (group[i,0], group[i,0]/group[0,0],
-                     group[i,1], group[i,1]/group[refi,1]))
-        print('')
-            
-    # erase group from good_freqs:
-    good_freqs = np.delete(good_freqs, indices, axis=0)
-
-    # good_freqs: removed all frequencies of bestgroup
-    # all_freqs: updated double use count
-    return good_freqs, all_freqs, group, best_fzero_harmonics, fmax
-
-
-def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
-                            min_group_size=4):
-    """Find all the harmonics belonging to a given fundamental.
-
-    Parameters
-    ----------
+        Frequency, power, and use count (columns) of all peaks detected
+        in a power spectrum.
     freq: float
-        Fundamental frequency for which harmonics are retrieved.
-    good_freqs: 2-D array
-        List of frequency, power, and count of strong peaks
-        in a power spectrum. All harmonics of `freq` will be
-        removed from `good_freqs`.
-    all_freqs:
-        List of frequency, power, and count of all peaks
-        in a power spectrum.
+        Fundamental frequency for which a harmonic group should be assembled.
+    divisor: int
+        Fundamental frequency was obtained from a frequency divided by divisor.
+        0: Fundamental frequency is given as is.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
         This should be in the range of the frequency resolution
         and not be smaller than half of the frequency resolution.
-    verbose: int
-        Verbosity level.
     min_group_size: int
         Within min_group_size no harmonics are allowed to be filled in.
+    verbose: int
+        Verbosity level.
     
     Returns
     -------
-    good_freqs: 2-D array
-        List of strong frequencies with frequencies of
-        the returned group removed.
-    all_freqs: 2-D array
-        List of all frequencies with updated double-use counts.
-    group: 2-D array
-        The detected harmonic group. Might be empty.
+    new_group: 1-D aray of indices
+        Frequencies in all_freqs belonging to the candidate group.
+    fzero: float
+        Adjusted fundamental frequency. If negative, no group was found.
     fzero_harmonics: int
-        The highest harmonics that was used to recompute
-        the fundamental frequency.
+        The highest harmonics that was used to recompute the fundamental frequency.
     """
     if verbose > 0:
         print('')
-        print('%s retrieve harmonic group %s' % (10*'#', 35*'#'))
-        print('%s freq=%7.2fHz %s' % (10*'#', freq, 44*'#'))
-        print('good_freqs: ', '[',
-              ', '.join(['%.2f' % f for f in good_freqs[:,0]]), ']')
-
+        
+    dvs = True
+    if divisor <= 0:
+        divisor = 1
+        dvs = False
+    min_start = int(min_group_size//3)
+        
     # 1. find harmonics in good_freqs and adjust fzero accordingly:
     fzero = freq
     fzero_harmonics = 1
-    prev_freq = fzero
-    for h in range(2, 2*min_group_size+1):
+    prev_freq = divisor * freq
+    for h in range(divisor+1, 2*min_group_size+1):
         ff = good_freqs[np.abs(good_freqs[:,0]/h - fzero)<freq_tol,0]
         df = ff - prev_freq
         dh = np.round(df/fzero)
@@ -487,18 +130,77 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
         fzero_harmonics = h
         fzero = prev_freq/fzero_harmonics
         if verbose > 1:
-            print('adjusted fzero to %.2fHz' % fzero)
+            print('adjusted fzero to %.2fHz from %d-th harmonic' % (fzero, h))
+
+    ## # this is not faster:
+    ## freqs = [fmax]
+    ## prev_h = divisor
+    ## prev_fe = 0.0
+    ## for f in good_freqs[good_freqs[:,0] > fmax + 0.6*fzero,0]:
+    ##     h = m.floor(f/fzero + 0.5)  # round
+    ##     #if h < 1:
+    ##     #    continue
+    ##     if h > min_group_size:
+    ##         if h - prev_h > 1 or h > 2*min_group_size:
+    ##             break
+    ##     if m.fabs(f/h - fzero) > freq_tol:
+    ##         continue
+    ##     df = f - freqs[-1]
+    ##     if df < 0.5*fzero and len(freqs)>1:
+    ##         df = f - freqs[-2]
+    ##     dh = m.floor(df/fzero + 0.5)
+    ##     fe = m.fabs(df/dh - fzero)
+    ##     if fe > 2.0*freq_tol:
+    ##         continue
+    ##     if h > prev_h or fe < prev_fe:
+    ##         prev_freq = f
+    ##         prev_h = h
+    ##         prev_fe = fe
+    ##         freqs.append(f)
+    ## # update fzero:
+    ## fzero_harmonics = prev_h
+    ## fzero = prev_freq/fzero_harmonics
+    ## if verbose > 1:
+    ##     print('adjusted fzero to %.2fHz' % fzero)
+
     if verbose > 0:
-        print('# fzero=%7.2fHz adjusted from harmonics %d'
-              % (fzero, fzero_harmonics))
-    # freq might not be in our group anymore, because fzero was adjusted:
+        ds =  'divisor: %d, ' % divisor if dvs else ''
+        print('# %sfzero=%7.2fHz adjusted from harmonics %d'
+              % (ds, fzero, fzero_harmonics))
+
+    # 2. check fzero:
+    
+    # fmax might not be in our group anymore, because fzero was adjusted:
     if np.abs(freq - fzero) > freq_tol:
         if verbose > 0:
             print('  discarded: lost frequency')
-        return good_freqs, all_freqs, np.zeros((0, 2)), fzero_harmonics
+        return [], -1.0, fzero_harmonics
 
-    # 2. collect harmonics from all_freqs:
+    # 3. collect harmonics from all_freqs:
     new_group = -np.ones(min_group_size, dtype=np.int)
+    ## # slower:
+    ## prev_freq = 0.0
+    ## freqs = all_freqs[all_freqs[:,0]<(min_group_size+0.5)*fzero,0]
+    ## for h in range(1, min_group_size+1):
+    ##     fac = 1.0 if h >= divisor else 2.0                
+    ##     sel = np.abs(freqs/h - fzero) < fac*freq_tol
+    ##     if sum(sel) == 0:
+    ##         if verbose > 1:
+    ##             print('no candidates at %d harmonics' % h)
+    ##         break
+    ##     ff = freqs[sel]
+    ##     df = np.abs(ff - prev_freq)
+    ##     fe = np.abs(df/np.round(df/fzero) - fzero)
+    ##     idx = np.argmin(fe)
+    ##     fac = 1.0 if h > divisor else 2.0                
+    ##     if fe[idx] > 2.0*fac*freq_tol:
+    ##         if verbose > 1:
+    ##             print('%d. harmonics is off %.2fHz' % (h, ff[idx]))
+    ##         break
+    ##     prev_freq = ff[idx]
+    ##     new_group[h-1] = np.where(sel)[0][idx]
+
+    # a little bit faster:
     freqs = []
     prev_h = 0
     prev_fe = 0.0
@@ -509,7 +211,7 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
             continue
         if h > min_group_size:
             break
-        fac = 1.0 if h >= 1 else 2.0
+        fac = 1.0 if h >= divisor else 2.0
         if m.fabs(f/h - fzero) > fac*freq_tol:
             if verbose > 1 and m.fabs(f/h - fzero) < 20.0*fac*freq_tol:
                 print('    %d. harmonics at %7.2fHz is off by %7.2fHz (max %5.2fHz) from %7.2fHz'
@@ -527,7 +229,7 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
                     df = h*fzero
             dh = m.floor(df/fzero + 0.5)
             fe = m.fabs(df/dh - fzero)
-            fac = 1.0 if h > 1 else 2.0                
+            fac = 1.0 if h > divisor else 2.0                
             if fe > 2.0*fac*freq_tol:
                 if verbose > 1:
                     print('    %d. harmonics at %7.2fHz is off by %7.2fHz (max %5.2fHz) from previous harmonics at %7.2fHz'
@@ -536,7 +238,7 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
         else:
             fe = 0.0
         if h > prev_h or fe < prev_fe:
-            if h - prev_h > 1:
+            if prev_h > 0 and h - prev_h > 1:
                 break
             if h == prev_h and len(freqs) > 0:
                 freqs.pop()
@@ -544,23 +246,69 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
             new_group[int(h)-1] = i
             prev_h = h
             prev_fe = fe
+            if verbose > 1:
+                print('    %d. harmonics at %7.2fHz has been taken (peak %2d)' % (h, f, i))
 
-    # 3. check new group:
+    # 4. check new group:
 
     # all harmonics in min_group_size required:
-    if np.any(new_group<0):
+    if np.any(new_group[min_start:]<0):
         if verbose > 0:
-            print('  discarded group because %d smaller than min_group_size %d!' %
+            print('  discarded group because %d harmonics are less than min_group_size of %d! peaks:' %
                   (np.sum(new_group>=0), min_group_size), new_group)
-        return good_freqs, all_freqs, np.zeros((0, 2)), fzero_harmonics
-    # check double use of frequencies:
+        return [], -1.0, fzero_harmonics
+    new_group = new_group[new_group>=0]
+    
+    # check use count of frequencies:
     double_use = np.sum(all_freqs[new_group, 2]>0)
-    if double_use > 1:
+    if double_use > divisor:
         if verbose > 0:
-            print('  discarded group because of double use = %d' % double_use)
-        return good_freqs, all_freqs, np.zeros((0, 2)), fzero_harmonics
+            print('  discarded group because of use count = %d' % double_use)
+        return [], -1.0, fzero_harmonics
 
-    # increment double use count:
+    # 5. return results:
+    return new_group, fzero, fzero_harmonics
+
+
+def update_group(good_freqs, all_freqs, new_group, fzero, freq_tol, verbose, group_str):
+    """ Update frequency lists and harmonic group.
+
+    Parameters
+    ----------
+    good_freqs: 2-D array
+        Frequency, power, and use count (columns) of strong peaks detected
+        in a power spectrum.
+    all_freqs: 2-D array
+        Frequency, power, and use count (columns) of all peaks detected
+        in a power spectrum.
+    new_group: 1-D aray of indices
+        Frequencies in all_freqs of an harmonic group.
+    fzero: float
+        Fundamental frequency for which frequencies are collected in good_freqs.
+    freq_tol: float
+        Harmonics need to fall within this frequency tolerance.
+        This should be in the range of the frequency resolution
+        and not be smaller than half of the frequency resolution.
+    verbose: int
+        Verbosity level.
+    group_str: string
+        String for debug message.
+    
+    Returns
+    -------
+    good_freqs: 2-D array
+        Frequency, power, and use count (columns) of strong peaks detected
+        in a power spectrum with frequencies for harmonic group
+        of fundamental frequency fzero removed.
+    all_freqs: 2-D array
+        Frequency, power, and use count (columns) of all peaks detected
+        in a power spectrum with updated use counts.
+    group: 2-D array
+        Frequency, power, and use count (columns) of harmonic group
+        for fundamental frequency fzero.
+    """
+
+    # increment use count:
     all_freqs[new_group, 2] += 1.0
     
     # fill up group:
@@ -604,28 +352,209 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
 
     # report:
     if verbose > 1:
-        print('')
-        print('# group found for freq=%.2fHz, fzero=%.2fHz:'
-              % (freq, fzero))
-        print('# good freqs: ', indices,
+        print('#     good freqs: ', indices,
               '[', ', '.join(['%.2f' % f for f in good_freqs[indices,0]]), ']')
-        print('# all freqs : ', new_group,
+        print('#     all freqs : ', new_group,
               '[', ', '.join(['%.2f' % f for f in all_freqs[new_group,0]]), ']')
     if verbose > 0:
         refi = np.argmax(group[:,1] > 0.0)
         print('')
-        print('#### resulting harmonic group for freq=%.2fHz' % freq)
+        print(group_str)
         for i in range(len(group)):
-            print('f=%8.2fHz n=%5.2f: power=%9.3g power/p0=%6.4f'
+            print('f=%8.2fHz n=%5.2f: power=%9.3g power/pmax=%6.4f=%5.1fdB'
                   % (group[i,0], group[i,0]/group[0,0],
-                     group[i,1], group[i,1]/group[refi,1]))
+                     group[i,1], group[i,1]/group[refi,1], decibel(group[i,1], group[refi,1])))
         print('')
             
     # erase group from good_freqs:
     good_freqs = np.delete(good_freqs, indices, axis=0)
 
+    return good_freqs, all_freqs, group
+
+
+def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
+                         min_group_size=4, max_divisor=4):
+    """Find all the harmonics belonging to the largest peak in a list of frequency peaks.
+
+    Parameters
+    ----------
+    good_freqs: 2-D array
+        Frequency, power, and use count (columns) of strong peaks detected
+        in a power spectrum.
+    all_freqs: 2-D array
+        Frequency, power, and use count (columns) of all peaks detected
+        in a power spectrum.
+    freq_tol: float
+        Harmonics need to fall within this frequency tolerance.
+        This should be in the range of the frequency resolution
+        and not be smaller than half of the frequency resolution.
+    verbose: int
+        Verbosity level.
+    min_group_size: int
+        Within min_group_size no harmonics are allowed to be filled in.
+    max_divisor: int
+        Maximum divisor used for checking for sub-harmonics.
+    
+    Returns
+    -------
+    good_freqs: 2-D array
+        Frequency, power, and use count (columns) of strong peaks detected
+        in a power spectrum with frequencies of the returned harmonic group removed.
+    all_freqs: 2-D array
+        Frequency, power, and use count (columns) of all peaks detected
+        in a power spectrum with updated use counts.
+    group: 2-D array
+        The detected harmonic group. Might be empty.
+    best_fzero_harmonics: int
+        The highest harmonics that was used to recompute
+        the fundamental frequency.
+    fmax: float
+        The frequency of the largest peak in good_freqs
+        for which the harmonic group was detected.
+    """
+    # check:
+    if max_divisor > min_group_size:
+        print('max_divisor=%d must not be larger than min_group_size=%d!'
+              % (max_divisor, min_group_size))
+        max_divisor = min_group_size
+    # select strongest frequency for building the harmonic group:
+    fmaxinx = np.argmax(good_freqs[:,1])
+    fmax = good_freqs[fmaxinx,0]
+    if verbose > 0:
+        print('')
+        print('%s build_harmonic_group %s' % (10*'#', 38*'#'))
+        print('%s fmax=%7.2fHz, power=%9.3g %s'
+              % (10*'#', fmax, good_freqs[fmaxinx,1], 27*'#'))
+        print('good_freqs: ', '[',
+              ', '.join(['%.2f' % f for f in good_freqs[:,0]]), ']')
+
+    # container for harmonic groups
+    best_group = []
+    best_value = -1e6
+    best_divisor = 0
+    best_fzero = 0.0
+    best_fzero_harmonics = 0
+
+    # check for integer fractions of the frequency:
+    for divisor in range(1, max_divisor + 1):
+        # 1. hypothesized fundamental:
+        freq = fmax / divisor
+        
+        # 2. find harmonics in good_freqs and adjust fzero accordingly:
+        new_group, fzero, fzero_harmonics = group_candidate(good_freqs, all_freqs,
+                                                            freq, divisor, freq_tol,
+                                                            min_group_size, verbose)
+        # no group found:
+        if fzero < 0.0:
+            continue
+
+        # 3. compare new group to best group:
+        peaksum = decibel(np.sum(all_freqs[new_group, 1])*min_group_size/len(new_group))
+        diff = np.std(np.diff(decibel(all_freqs[new_group, 1])))
+        new_group_value = peaksum - diff
+        if verbose > 0:
+            print('  new group:                 fzero=%7.2fHz, value=%6.1fdB, peaksum=%5.1fdB, diff=%6.1fdB, peaks:'
+                  % (fzero, new_group_value, peaksum, diff), new_group)
+            if verbose > 1:
+                print('  best group:     divisor=%d, fzero=%7.2fHz, value=%6.1fdB, peaks:'
+                      % (best_divisor, best_fzero, best_value), best_group)
+        # select new group if sum of peak power minus diff is larger:
+        if new_group_value >= best_value:
+            best_value = new_group_value
+            best_group = new_group
+            best_divisor = divisor
+            best_fzero = fzero
+            best_fzero_harmonics = fzero_harmonics
+            if verbose > 1:
+                print('  new best group: divisor=%d, fzero=%7.2fHz, value=%6.1fdB, peaks:'
+                      % (best_divisor, best_fzero, best_value), best_group)
+            elif verbose > 0:
+                print('  took as new best group')
+                
+    # no group found:
+    if len(best_group) == 0:
+        # erase freq:
+        good_freqs = np.delete(good_freqs, fmaxinx, axis=0)
+        group = np.zeros((0, 3))
+        return good_freqs, all_freqs, group, 1, fmax
+
+    # update frequenies and group:
+    if verbose > 1:
+        print('')
+        print('# best group found for fmax=%.2fHz, fzero=%.2fHz, divisor=%d:'
+              % (fmax, best_fzero, best_divisor))
+    group_str = '%s resulting harmonic group for fmax=%.2fHz' % (10*'#', fmax)
+    good_freqs, all_freqs, group = update_group(good_freqs, all_freqs, best_group, best_fzero, freq_tol, verbose, group_str)
+
     # good_freqs: removed all frequencies of bestgroup
-    # all_freqs: updated double use count
+    # all_freqs: updated use count
+    return good_freqs, all_freqs, group, best_fzero_harmonics, fmax
+
+
+def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
+                            min_group_size=4):
+    """Find all the harmonics belonging to a given fundamental.
+
+    Parameters
+    ----------
+    freq: float
+        Fundamental frequency for which harmonics are to be retrieved.
+    good_freqs: 2-D array
+        Frequency, power, and use count (columns) of strong peaks detected
+        in a power spectrum. All harmonics of `freq` will be
+        removed from `good_freqs`.
+    all_freqs: 2-D array
+        Frequency, power, and use count (columns) of all peaks detected
+        in a power spectrum.
+    freq_tol: float
+        Harmonics need to fall within this frequency tolerance.
+        This should be in the range of the frequency resolution
+        and not be smaller than half of the frequency resolution.
+    verbose: int
+        Verbosity level.
+    min_group_size: int
+        Within min_group_size no harmonics are allowed to be filled in.
+    
+    Returns
+    -------
+    good_freqs: 2-D array
+        Frequency, power, and use count (columns) of strong peaks detected
+        in a power spectrum with frequencies of the returned harmonic group removed.
+    all_freqs: 2-D array
+        Frequency, power, and use count (columns) of all peaks detected
+        in a power spectrum with updated double-use counts.
+    group: 2-D array
+        The detected harmonic group. Might be empty.
+    fzero_harmonics: int
+        The highest harmonics that was used to recompute
+        the fundamental frequency.
+    """
+    if verbose > 0:
+        print('')
+        print('%s retrieve harmonic group %s' % (10*'#', 35*'#'))
+        print('%s freq=%7.2fHz %s' % (10*'#', freq, 44*'#'))
+        print('good_freqs: ', '[',
+              ', '.join(['%.2f' % f for f in good_freqs[:,0]]), ']')
+
+    # find harmonics in good_freqs and adjust fzero accordingly:
+    new_group, fzero, fzero_harmonics = group_candidate(good_freqs, all_freqs,
+                                                        freq, 0, freq_tol,
+                                                        min_group_size, verbose)
+
+    # no group found:
+    if fzero < 0.0:
+        return good_freqs, all_freqs, np.zeros((0, 2)), fzero_harmonics
+
+    if verbose > 1:
+        print('')
+        print('# group found for freq=%.2fHz, fzero=%.2fHz:'
+              % (freq, fzero))
+    group_str = '#### resulting harmonic group for freq=%.2fHz' % freq
+    good_freqs, all_freqs, group = update_group(good_freqs, all_freqs, new_group,
+                                                fzero, freq_tol, verbose, group_str)
+
+    # good_freqs: removed all frequencies of bestgroup
+    # all_freqs: updated use count
     return good_freqs, all_freqs, group, fzero_harmonics
 
 
@@ -634,11 +563,11 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
 
     Parameters
     ----------
-    group: ndarray
+    group: 2-D array
         Group of fundamental frequency and harmonics
         as returned by build_harmonic_group.
-    freqs: 2D array
-        List of frequency, power, and count of all peaks
+    freqs: 2-D array
+        Frequency, power, and use count (columns) of all peaks detected
         in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
@@ -646,6 +575,11 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
         and not be smaller than half of the frequency resolution.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
+
+    Returns
+    -------
+    group: 2-D array
+        Expanded group of fundamental frequency and harmonics.
     """
     if len(group) == 0:
         return group
@@ -698,19 +632,18 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
 
 def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
                          check_freqs=[], mains_freq=60.0, mains_freq_tol=1.0,
-                         min_freq=0.0, max_freq=2000.0,
-                         max_divisor=4, min_group_size=4,
-                         max_rel_power_weight=2.0, max_harmonics_decibel=0.0,
+                         min_freq=0.0, max_freq=2000.0, max_db_diff=15.0,
+                         max_divisor=4, min_group_size=4, max_harmonics_decibel=0.0,
                          max_harmonics=0, max_groups=0, **kwargs):
     """Extract fundamental frequencies from power-spectrum peaks.
                          
     Parameters
     ----------
     good_freqs: 2-D array
-        List of frequency, power, and count of strong peaks
+        Frequency, power, and use count (columns) of strong peaks detected
         in a power spectrum.
     all_freqs: 2-D array
-        List of frequency, power, and count of all peaks
+        Frequency, power, and use count (columns) of all peaks detected
         in a power spectrum.
     freq_tol: float
         Harmonics need to fall within this frequency tolerance.
@@ -731,24 +664,20 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         Minimum frequency accepted as a fundamental frequency.
     max_freq: float
         Maximum frequency accepted as a fundamental frequency.
+    max_db_diff: float
+        Maximum standard deviation of differences between logarithmic powers
+        of harmonics in decibel (larger than zero).
+        Low values enforce smoother power spectra.
     max_divisor: int
         Maximum divisor used for checking for sub-harmonics.
     min_group_size: int
         Within min_group_size no harmonics are allowed to be filled in.
-    max_rel_power_weight: float
-        Harmonic groups with larger overall power are preferred when comparing
-        harmonic groups constracted from the same frequency. If min_group_size
-        is larger than two, the overall power is divided by the relative power of
-        the `min_group_size`-th harmonics (relative to the power of the fundamental).
-        This way, harmonic groups with too strong higher harmonics are punished.
-        The relative power for punishing too strong harmonics can be limited to range
-        from `1/max_rel_power_weight` to `max_rel_power_weight`.
-        Set `max_rel_power_weight` to one to disable this.
     max_harmonics_decibel: float
         Maximum allowed power of the `min_group_size`-th and higher harmonics
-        (in decibel relative to power of fundamental, i.e. if harmonics are required
-        to be smaller than fundamental then this is a negative number).
-        If zero do not check for relative power.
+        after the peak (in decibel relative to power of fundamental,
+        i.e. if harmonics are required to be smaller than fundamental
+        then this is a negative number).
+        Make it a large positive number to effectively not check for relative power.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -769,7 +698,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
     if verbose > 0:
         print('')
 
-    # set double use count to zero:
+    # set use count to zero:
     all_freqs[:,2] = 0.0
 
     # remove power line harmonics from good_freqs:
@@ -804,13 +733,13 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             f0s = 'fmax'
             good_freqs, all_freqs, harm_group, fzero_harmonics, fmax = \
                 build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose-1,
-                                     min_group_size, max_divisor, max_rel_power_weight)
+                                     min_group_size, max_divisor)
 
         # nothing found:
         if len(harm_group) == 0:
             if verbose > 1 or first:
-                s = 'largest' if first else ''
-                print('No %-7s harmonic group %7.2fHz' % (s, fmax))
+                s = ' largest' if first else ''
+                print('No%-8s harmonic group for %7.2fHz' % (s, fmax))
             first = False
             continue
         first = False
@@ -824,37 +753,53 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         # check power hum:
         mains_ok = ((mains_freq <= 0.0) or
                     (m.fabs(harm_group[0,0] - mains_freq) > freq_tol))
+        # check smoothness:
+        db_powers = decibel(harm_group[:,1])
+        diff = np.std(np.diff(db_powers))
+        smooth_ok = diff < max_db_diff
         # check relative power of higher harmonics:
-        rpowers = decibel(harm_group[min_group_size:,1], harm_group[0,1])
-        amplitude_ok = ( (np.abs(max_harmonics_decibel) <= 1e-8) or \
-                         np.all((rpowers < max_harmonics_decibel) | \
-                                (harm_group[min_group_size:,2] > 1)) )
+        p_max = np.argmax(db_powers[:min_group_size])
+        db_powers -= db_powers[p_max]
+        amplitude_ok = len(db_powers[p_max+min_group_size:]) == 0
+        if amplitude_ok:
+            pi = len(db_powers) - 1
+        else:
+            amplitude_ok = np.all((db_powers[p_max+min_group_size:] < max_harmonics_decibel) | \
+                                  (harm_group[p_max+min_group_size:,2] > 1))
+            if amplitude_ok:
+                pi = p_max+min_group_size-1
+            else:
+                pi = np.where((db_powers[p_max+min_group_size:] < max_harmonics_decibel) | \
+                              (harm_group[p_max+min_group_size:,2] > 1))[0][0]
+                              
         # check:
-        if fundamental_ok and mains_ok and amplitude_ok:
+        if fundamental_ok and mains_ok and smooth_ok and amplitude_ok:
             if verbose > 0:
-                print('Accepting  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g'
-                      % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1])))
+                print('Accepting  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g nharmonics=%2d, count=%d'
+                      % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
+                         len(harm_group), np.sum(harm_group[:,2])-min_group_size))
             group_list.append(harm_group[:,0:2])
             fzero_harmonics_list.append(fzero_harmonics)
         else:
             if verbose > 0:
-                fs = 'is ' if fundamental_ok else 'not'
-                ms = 'not ' if mains_ok else 'is'
-                ps = 'smaller' if amplitude_ok else 'larger '
-                pi = 0 if amplitude_ok else np.where(rpowers >= max_harmonics_decibel)[0][0]
-                rp = rpowers[pi] if pi < len(rpowers) else -1
-                print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, relpower[%d]=%6.1fdB %s than %6.1fdB'
+                fs = 'is ' if fundamental_ok else 'NOT'
+                ms = 'not ' if mains_ok else 'IS'
+                ss = 'smaller' if smooth_ok else 'LARGER '
+                ps = 'smaller' if amplitude_ok else 'LARGER '
+                print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, smooth=%4.1fdB %s than %4.1fdB, relpower[%d]=%5.1fdB %s than %5.1fdB'
                       % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
-                         fs, ms, min_group_size+pi, rp, ps, max_harmonics_decibel))
+                         fs, ms, diff, ss, max_db_diff,
+                         pi, db_powers[pi], ps, max_harmonics_decibel))
                 
     # select most powerful harmonic groups:
-    if max_groups > 0:
+    if max_groups > 0 and len(group_list) > max_groups:
+        n = len(group_list)
         powers = [np.sum(group[:,1]) for group in group_list]
         powers_inx = np.argsort(powers)
         group_list = [group_list[pi] for pi in powers_inx[-max_groups:]]
         fzero_harmonics_list = [fzero_harmonics_list[pi] for pi in powers_inx[-max_groups:]]
         if verbose > 0:
-            print('Selected the %d most powerful groups.' % max_groups)
+            print('Selected from %d groups the %d most powerful groups.' % (n, max_groups))
         
     # sort groups by fundamental frequency:
     freqs = [group[0,0] for group in group_list]
@@ -891,7 +836,7 @@ def threshold_estimate(psd_data, low_thresh_factor=6.0, high_thresh_factor=10.0,
 
     Parameters
     ----------
-    psd_data: array
+    psd_data: 1-D array
         The power spectrum from which to estimate the thresholds.
     low_thresh_factor: float
         Factor by which the estimated standard deviation of the noise floor
@@ -928,22 +873,22 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
                     low_threshold=0.0, high_threshold=0.0, thresh_bins=100,
                     low_thresh_factor=6.0, high_thresh_factor=10.0,
                     freq_tol_fac=1.0, mains_freq=60.0, mains_freq_tol=1.0,
-                    min_freq=0.0, max_freq=2000.0, max_divisor=4,
-                    min_group_size=4, max_rel_power_weight=2.0, max_harmonics_decibel=0.0,
+                    min_freq=0.0, max_freq=2000.0, max_db_diff=15.0, max_divisor=4,
+                    min_group_size=4, max_harmonics_decibel=0.0,
                     max_harmonics=0, max_groups=0, **kwargs):
     """Detect peaks in power spectrum and group them according to their harmonic structure.
 
     Parameters
     ----------
-    psd_freqs: array
+    psd_freqs: 1-D array
         Frequencies of the power spectrum.
-    psd: array
+    psd: 1-D array
         Power spectrum (linear, not decible).
     verbose: int
         Verbosity level.
     check_freqs: list of float
-        List of fundamental frequencies that will be checked
-        first for being present and valid harmonic groups in the peak frequencies
+        List of fundamental frequencies that will be checked first for being
+        present and valid harmonic groups in the peak frequencies
         of the power spectrum.
     low_threshold: float
         The relative threshold for detecting all peaks in the decibel spectrum.
@@ -969,19 +914,14 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
         Minimum frequency accepted as a fundamental frequency.
     max_freq: float
         Maximum frequency accepted as a fundamental frequency.
+    max_db_diff: float
+        Maximum standard deviation of differences between logarithmic powers
+        of harmonics in decibel (larger than zero).
+        Low values enforce smoother power spectra.
     max_divisor: int
         Maximum divisor used for checking for sub-harmonics.
     min_group_size: int
         Within min_group_size no harmonics are allowed to be filled in.
-    max_rel_power_weight: float
-        Harmonic groups with larger overall power are preferred when comparing
-        harmonic groups constracted from the same frequency. If min_group_size
-        is larger than two, the overall power is divided by the relative power of
-        the `min_group_size`-th harmonics (relative to the power of the fundamental).
-        This way, harmonic groups with too strong higher harmonics are punished.
-        The relative power for punishing too strong harmonics can be limited to range
-        from `1/max_rel_power_weight` to `max_rel_power_weight`.
-        Set `max_rel_power_weight` to one to disable this.
     max_harmonics_decibel: float
         Maximum allowed power of the `min_group_size`-th and higher harmonics
         (in decibel relative to power of fundamental, i.e. if harmonics are required
@@ -1003,11 +943,11 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
         The harmonics from which the fundamental frequencies were computed.
     mains: 2-d array
         Frequencies and power of multiples of the mains frequency found in the power spectrum.
-    all_freqs: 2-d array
-        Peaks in the power spectrum detected with low threshold
-        [frequency, power, double use count].
-    good_freqs: 1-d array
-        Frequencies of peaks detected with high threshold.
+    all_freqs: 2-D array
+        Frequency, power, and use count (columns) of all peaks detected
+        in the power spectrum.
+    good_freqs: 1-D array
+        Frequencies of strong peaks detected in the power spectrum.
     low_threshold: float
         The relative threshold for detecting all peaks in the decibel spectrum.
     high_threshold: float
@@ -1059,9 +999,8 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
     groups, fzero_harmonics, mains = \
       extract_fundamentals(good_freqs, all_freqs, delta_f*freq_tol_fac,
                            verbose, check_freqs, mains_freq, mains_freq_tol,
-                           min_freq, max_freq, max_divisor, min_group_size,
-                           max_rel_power_weight, max_harmonics_decibel,
-                           max_harmonics, max_groups)
+                           min_freq, max_freq, max_db_diff, max_divisor, min_group_size,
+                           max_harmonics_decibel, max_harmonics, max_groups)
 
     return (groups, fzero_harmonics, mains, all_freqs, good_freqs[:,0],
             low_threshold, high_threshold, center)
@@ -1175,7 +1114,7 @@ def add_relative_power(freqs):
 
     Parameters
     ----------
-    freqs: list of 2D ndarrays
+    freqs: list of 2-D arrays
         First column in the ndarrays is fundamental frequency and
         second column the corresponding power.
         Further columns are optional and kept in the returned list.
@@ -1183,7 +1122,7 @@ def add_relative_power(freqs):
 
     Returns
     -------
-    power_freqs: list of 2D ndarrays
+    power_freqs: list of 2-D arrays
         Same as freqs, but with an added column containing the relative power.
     """
     return [np.column_stack((f, f[:,1] - np.max(f[:,1]))) for f in freqs]
@@ -1194,15 +1133,15 @@ def add_power_ranks(freqs):
 
     Parameters
     ----------
-    freqs: list of 2D ndarrays
-        First column in the ndarrays is fundamental frequency and
+    freqs: list of 2-D arrays
+        First column in the arrays is fundamental frequency and
         second column the corresponding power.
         Further columns are optional and kept in the returned list.
         fundamental_freqs_and_power() returns such a list.
 
     Returns
     -------
-    rank_freqs: list of 2D ndarrays
+    rank_freqs: list of 2-D arrays
         Same as freqs, but with an added column containing the ranks.
         The highest power is assinged to zero,
         lower powers are assigned negative integers.
@@ -1226,8 +1165,8 @@ def similar_indices(freqs, df_thresh, nextfs=0):
 
     Parameters
     ----------
-    freqs: (list of (list of ...)) list of 2D ndarrays
-        First column in the ndarrays is fundamental frequency.
+    freqs: (list of (list of ...)) list of 2-D arrays
+        First column in the arrays is fundamental frequency.
     df_thresh: float
         Fundamental frequencies closer than this threshold are considered
         equal.
@@ -1287,8 +1226,8 @@ def unique_mask(freqs, df_thresh, nextfs=0):
 
     Parameters
     ----------
-    freqs: list of 2D ndarrays
-        First column in the ndarrays is fundamental frequency and
+    freqs: list of 2-D arrays
+        First column in the arrays is fundamental frequency and
         second column the corresponding power or equivalent.
         If values in the second column are equal (e.g. they are the same ranks),
         and there is a third column (e.g. power),
@@ -1348,8 +1287,8 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
 
     Parameters
     ----------
-    freqs: (list of (list of ...)) list of 2D ndarrays
-        First column in the ndarrays is fundamental frequency and
+    freqs: (list of (list of ...)) list of 2-D arrays
+        First column in the arrays is fundamental frequency and
         second column the corresponding power, as returned by
         fundamental_freqs_and_power().
     df_thresh: float
@@ -1367,7 +1306,7 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
 
     Returns
     -------
-    uniqe_freqs: (list of (list of ...)) list of 2D ndarrays
+    uniqe_freqs: (list of (list of ...)) list of 2-D arrays
         Same as `freqs` but elements with similar fundamental frequencies
         removed.
     """
@@ -1448,7 +1387,7 @@ def colors_markers():
     return colors, markers
 
 
-def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
+def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
                          sort_by_freq=True, label_power=False,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """
@@ -1457,13 +1396,13 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
     Parameters
     ----------
     ax: axis for plot
-            Axis used for plotting.
+        Axis used for plotting.
     group_list: list of 2-D arrays
-            Lists of harmonic groups as returned by extract_fundamentals() and
-            harmonic_groups() with the element [0, 0] of the harmonic groups being the fundamental frequency,
-            and element[0, 1] being the corresponding power.
-    max_freq: float
-        If greater than zero only mark peaks below this frequency.
+        Lists of harmonic groups as returned by extract_fundamentals() and
+        harmonic_groups() with the element [0, 0] of the harmonic groups being
+        the fundamental frequency, and element[0, 1] being the corresponding power.
+    indices: list of int or None
+        If smaller than zero then set the legend label of the corresponding group in brackets.
     max_groups: int
             If not zero plot only the max_groups most powerful groups.
     sort_by_freq: boolean
@@ -1502,11 +1441,8 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
     # plot:
     for k, i in enumerate(idx):
         group = group_list[i]
-        x = np.array([harmonic[0] for harmonic in group])
-        y = np.array([harmonic[1] for harmonic in group])
-        if max_freq > 0.0:
-            y = y[x<=max_freq]
-            x = x[x<=max_freq]
+        x = group[:,0]
+        y = decibel(group[:,1])
         msize = 7.0 + 10.0*(powers[i]/max_power)**0.25
         color_kwargs = {}
         if colors is not None:
@@ -1514,17 +1450,20 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
         label = '%6.1f Hz' % group[0, 0]
         if label_power:
             label += ' %6.1f dB' % decibel(np.array([np.sum(group[:,1])]))[0]
+        if indices is not None:
+            if indices[i] < 0:
+                label = '(' + label + ')'
+            else:
+                label = ' ' + label + ' '
         if legend_rows > 5 and k >= legend_rows:
             label = None
         if markers is None:
-            ax.plot(x, decibel(y), 'o', ms=msize, label=label,
-                    clip_on=False, **color_kwargs)
+            ax.plot(x, y, 'o', ms=msize, label=label, **color_kwargs)
         else:
             if k >= len(markers):
                 break
-            ax.plot(x, decibel(y), linestyle='None', marker=markers[k],
-                    mec=None, mew=0.0, ms=msize, label=label,
-                    clip_on=False, **color_kwargs)
+            ax.plot(x, y, linestyle='None', marker=markers[k],
+                    mec=None, mew=0.0, ms=msize, label=label, **color_kwargs)
 
     # legend:
     if legend_rows > 0:
@@ -1532,13 +1471,14 @@ def plot_harmonic_groups(ax, group_list, max_freq=2000.0, max_groups=0,
             ncol = 1
         else:
             ncol = (len(idx)-1) // legend_rows + 1
-        leg = ax.legend(numpoints=1, ncol=ncol, **kwargs)
+        ax.legend(numpoints=1, ncol=ncol, **kwargs)
     else:
-        leg = ax.legend(numpoints=1, **kwargs)
+        ax.legend(numpoints=1, **kwargs)
 
 
-def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_freqs=None, good_freqs=None,
-                             max_freq=2000.0):
+def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
+                             mains=None, all_freqs=None, good_freqs=None,
+                             log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0):
     """
     Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
     
@@ -1558,8 +1498,17 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
         Peaks in the power spectrum detected with low threshold.
     good_freqs: 1-D array
         Frequencies of peaks detected with high threshold.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis.
+    min_freq: float
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        if `max_freq` is greater than zero
     max_freq: float
-        Limits of frequency axis are set to (0, max_freq) if max_freq is greater than zero.
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        and limits of power axis are computed from powers below max_freq
+        if `max_freq` is greater than zero
+    ymarg: float
+        Add this to the maximum decibel power for setting the ylim.
     """
     
     # mark all and good psd peaks:
@@ -1578,11 +1527,12 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list, mains=None, all_fre
                 label='%3.0f Hz mains' % mains[0, 0])
     # mark harmonic groups:
     colors, markers = colors_markers()
-    plot_harmonic_groups(ax, group_list, max_freq=max_freq, max_groups=0, sort_by_freq=True,
+    plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
                          colors=colors, markers=markers, legend_rows=8,
                          loc='upper right')
     # plot power spectrum:
-    plot_decibel_psd(ax, psd_freqs, psd, max_freq=max_freq, color='blue')
+    plot_decibel_psd(ax, psd_freqs, psd, log_freq=log_freq, min_freq=min_freq,
+                     max_freq=max_freq, ymarg=ymarg, color='blue')
 
     
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
@@ -1631,10 +1581,9 @@ def psd_peak_detection_args(cfg):
 
 
 def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
-                               max_divisor=4, freq_tol_fac=1.0,
-                               min_group_size=4, min_freq=20.0, max_freq=2000.0,
-                               max_rel_power_weight=2.0, max_harmonics_decibel=0.0,
-                               max_harmonics=0, max_groups=0):
+                               max_divisor=4, freq_tol_fac=1.0, min_group_size=4,
+                               min_freq=20.0, max_freq=2000.0, max_db_diff=15.0,
+                               max_harmonics_decibel=0.0, max_harmonics=0, max_groups=0):
     """ Add parameter needed for detection of harmonic groups as
     a new section to a configuration.
 
@@ -1656,7 +1605,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
     cfg.add_section('Acceptance of best harmonic groups:')
     cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
-    cfg.add('maxRelativePowerWeight', max_rel_power_weight, '', 'Maximum value of the power of the minimumGroupSize-th harmonic relative to fundamental used for punishing overall power of a harmonic group.')
+    cfg.add('maximumPowerDifference', max_db_diff, 'dB', 'Maximum standard deviation allowed for difference in logarithmic power between successive harmonics. Smaller values enforce smoother spectra.')
     cfg.add('maxRelativePower', max_harmonics_decibel, 'dB', 'Maximum allowed power of the minimumGroupSize-th and higher harmonics relative to fundamental. If zero do not check for relative power.')
     cfg.add('maxHarmonics', max_harmonics, '', '0: keep all, >0 only keep the first # harmonics.')
     cfg.add('maxGroups', max_groups, '', 'Maximum number of harmonic groups. If 0 process all.')
@@ -1685,8 +1634,8 @@ def harmonic_groups_args(cfg):
                     'min_group_size': 'minimumGroupSize',
                     'min_freq': 'minimumFrequency',
                     'max_freq': 'maximumFrequency',
-                    'max_rel_power_weight': 'maxRelativePowerWeight',
-                    'max_harmonics_decibel': 'maxRelativePower',
+                    'max_db_diff': 'maximumPowerDifference',
+                    'max_harmonics_decibel': 'maxRelativePower',                     
                     'max_harmonics': 'maxHarmonics',
                     'max_groups': 'maxGroups'})
 
@@ -1715,11 +1664,6 @@ if __name__ == "__main__":
 
     # retrieve fundamentals from power spectrum:
     psd_data = psd(data, samplerate, freq_resolution=0.5)
-    def call_harm():
-        harmonic_groups(psd_data[0], psd_data[1], max_divisor=4)
-    import timeit
-    n = 50
-    #print(timeit.timeit(call_harm, number=n)/n)
     groups, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(psd_data[0], psd_data[1], verbose=0, check_freqs=[123.0, 666.0])
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)

@@ -37,7 +37,7 @@ Detect and handle peaks and troughs as well as threshold crossings in data array
 import numpy as np
 
 
-def detect_peaks(data, threshold, verbose=0):
+def detect_peaks(data, threshold):
     """
     Detect peaks and troughs using a fixed, relative threshold according to
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
@@ -52,8 +52,6 @@ def detect_peaks(data, threshold, verbose=0):
         i.e. the minimum distance between peaks and troughs.
         In case of an array make sure that the threshold does not change faster
         than the expected intervals between peaks and troughs.
-    verbose (optional): int
-        Verbosity level.
     
     Returns
     -------
@@ -144,9 +142,6 @@ def detect_peaks(data, threshold, verbose=0):
                 min_inx = index
                 min_value = value
     
-    if verbose>0:
-        print('\nPeaks detected:                                         %5i'%len(peaks_list))
-
     return np.asarray(peaks_list, dtype=np.int), np.asarray(troughs_list, dtype=np.int)
 
 

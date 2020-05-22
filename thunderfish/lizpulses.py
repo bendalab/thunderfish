@@ -15,7 +15,7 @@ from scipy import stats
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.cluster import DBSCAN, OPTICS
+from sklearn.cluster import DBSCAN
 from sklearn.mixture import BayesianGaussianMixture
 from sklearn.metrics import pairwise_distances
 
@@ -768,7 +768,10 @@ def subtract_slope(snippets):
     #plt.plot(snippets.T,alpha=0.1,c='k')
     left_y = snippets[:,0]
     right_y = snippets[:,-1]
-    slopes = np.linspace(left_y, right_y, snippets.shape[1])
+    # sorry, my old numpy version ...
+    #slopes = np.linspace(left_y, right_y, snippets.shape[1])
+    delta = right_y - left_y
+    slopes = np.arange(0, snippets.shape[1], dtype=snippets.dtype).reshape((-1,) + (1,) * np.ndim(delta)) + left_y
     #plt.plot(slopes,alpha=0.1,c='r')
     #plt.subplot(122)
     #plt.plot((snippets - slopes.T).T,alpha=0.1,c='b')

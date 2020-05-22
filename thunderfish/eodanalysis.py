@@ -55,8 +55,8 @@ from .harmonics import fundamental_freqs_and_power
 from .tabledata import TableData
 
 
-def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
-                 min_win=0.01, max_eods=None, unfilter_cutoff=0.0):
+def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
+                 min_sem=False, max_eods=None, unfilter_cutoff=0.0):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard error.
 
@@ -73,11 +73,11 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
     $n = 1/c_f$ periods moved the modified waveform through a whole period.
     This is in the range of hundreds or thousands waveforms.
 
-    The algorithm checks for a global minimum of the s.e.m. as a function of snippet number.
-    If there is one then the average is computed for this number of snippets,
-    otherwise all snippets are taken from the provided data segment. Note that this check
-    only works for the strongest EOD in a recording. For weaker EOD the s.e.m. always
-    decays with snippet number (empirical observation).
+    If `min_sem` is set, the algorithm checks for a global minimum of the s.e.m.
+    as a function of snippet number. If there is one then the average is computed
+    for this number of snippets, otherwise all snippets are taken from the provided
+    data segment. Note that this check only works for the strongest EOD in a recording.
+    For weaker EOD the s.e.m. always decays with snippet number (empirical observation).
 
     TODO: use power spectra to check for changes in EOD frequency!
 
@@ -95,6 +95,9 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
         as the minimum interval between EOD times.
     min_win: float
         The minimum size of the snippets in seconds.
+    min_sem: bool
+        If set, check for minimum in s.e.m. to set the maximum numbers of EODs to be used
+        for computing the average waveform.
     max_eods: int or None
         Maximum number of EODs to be used for averaging.
     unfilter_cutoff: float
@@ -133,8 +136,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0,
 
     # optimal number of snippets:
     step = 10
-    # XXX make this an option!
-    if False and len(eod_snippets) > step:
+    if min_sem and len(eod_snippets) > step:
         sems = [np.mean(np.std(eod_snippets[:k], axis=0, ddof=1)/np.sqrt(k))
                 for k in range(step, len(eod_snippets), step)]
         idx = np.argmin(sems)
@@ -587,8 +589,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
     min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
+    if min_thresh > 0.5*(max_ampl + min_ampl):
+        return meod, {}, [], []
     threshold = max_ampl*peak_thresh_fac
-    if threshold < min_thresh:
+    if threshold < min_thresh and min_thresh < 0.5*(max_ampl + min_ampl):
         threshold = min_thresh
         
     # cut out relevant signal:
@@ -802,7 +806,7 @@ def wave_quality(idx, clipped, rms_sem, rms_error, power, harm_relampl,
     msg = []
     skip_reason = []
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
+    msg += ['clipped=%3.0f%%' % (100.0*clipped)]
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]
@@ -832,7 +836,7 @@ def wave_quality(idx, clipped, rms_sem, rms_error, power, harm_relampl,
     return ', '.join(skip_reason), ', '.join(msg)
 
 
-def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
+def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
                   max_rms_sem=0.0):
     """
     Assess the quality of an EOD waveform of a pulse-type fish.
@@ -845,6 +849,12 @@ def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
         Fraction of clipped data.
     rms_sem: float
         Standard error of the data relative to p-p amplitude.
+    peaks: 2-D array
+        Peaks and troughs (rows) of the EOD waveform:
+        5 columns: 0: the peak index (1 is P1, i.e. the largest positive peak),
+        1: time relative to largest positive peak, 2: amplitude,
+        3: amplitude normalized to largest postive peak,
+        and 4: width of peak/trough at half height.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_rms_sem: float
@@ -860,7 +870,7 @@ def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
     msg = []
     skip_reason = []
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*max_clipped_frac)]
+    msg += ['clipped=%3.0f%%' % (100.0*clipped)]
     if idx == 0 and clipped >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                         (100.0*clipped, 100.0*max_clipped_frac)]
@@ -869,6 +879,20 @@ def pulse_quality(idx, clipped, rms_sem, max_clipped_frac=0.1,
     if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
         skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
                         (100.0*rms_sem, 100.0*max_rms_sem)]
+    # non decaying waveform:
+    if len(peaks) > 0:
+        pi = np.argmax(peaks[:,2])
+        ti = np.argmin(peaks[:,2])
+        rp = np.delete(peaks[:,2]/peaks[pi,2], pi)
+        rt = np.delete(peaks[:,2]/peaks[ti,2], ti)
+        max_rp = np.max(rp) if len(rp) > 0 else 0.0
+        max_rt = np.max(rt) if len(rt) > 0 else 0.0
+        msg += ['maximum side peak amplitude=%3.0f%%, maximum side trough amplitude=%3.0f%%'
+                % (100.0*max_rp, 100.0*max_rt)]
+        if max_rp > 0.5:
+            skip_reason += ['no decaying pulse fish EOD (peak %3.0f%%, max 50%%)' % (100.0*max_rp)]
+        if np.any(rt > 0.5):
+            skip_reason += ['no decaying pulse fish EOD (trough %3.0f%%, max 50%%)' % (100.0*max_rt)]
     return ', '.join(skip_reason), ', '.join(msg)
 
 
@@ -894,7 +918,6 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
     kwargs: dict
         Arguments passed on to the plot command for the recorded trace.
     """
-
     widx2 = int(width*samplerate)//2
     i0 = len(data)//2 - widx2
     i0 = (i0//widx2)*widx2
@@ -921,7 +944,8 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
     else:
         ax.set_ylabel('Amplitude [%s]' % unit)
 
-def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0.0,
+
+def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0.0,
                     colors=None, markers=None, marker_size=10,
                     legend_rows=8, **kwargs):
     """
@@ -954,7 +978,6 @@ def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0
     kwargs: 
             Key word arguments for the legend of the plot.
     """
-
     k = 0
     for eod in eod_props:
         if eod['type'] != 'pulse':
@@ -962,17 +985,15 @@ def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0
         if 'times' not in eod:
             continue
 
-        width = min(width,np.diff(zoom_window))
-        print(width)
-        
+        width = min(width, np.diff(zoom_window))
         while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
             width = width*2
 
         x = eod['peaktimes'] + toffs
         y = data[np.round(eod['peaktimes']*samplerate).astype(np.int)]
         color_kwargs = {}
-        if colors is not None:
-            color_kwargs['color'] = colors[k%len(colors)]
+        #if colors is not None:
+        #    color_kwargs['color'] = colors[k%len(colors)]
         if marker_size is not None:
             color_kwargs['ms'] = marker_size
         label = '%6.1f Hz' % eod['EODf']
@@ -981,11 +1002,8 @@ def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0
         if markers is None:
             ax.plot(x, y, 'o', label=label, **color_kwargs)
         else:
-            if k >= len(markers):
-                break
-            ax.plot(x, y, linestyle='None', marker=markers[k],
-                    mec=None, mew=0.0, label=label,ms=10)#, **color_kwargs)
-        
+            ax.plot(x, y, linestyle='none', label=label,
+                    marker=markers[k%len(markers)], mec=None, mew=0.0, **color_kwargs)
         k += 1
 
     # legend:
@@ -995,12 +1013,11 @@ def plot_pulse_eods(ax, data, zoom_window, width, samplerate, eod_props, toffs=0
                 ncol = 1
             else:
                 ncol = (len(idx)-1) // legend_rows + 1
-            leg = ax.legend(numpoints=1, ncol=ncol, **kwargs)
+            ax.legend(numpoints=1, ncol=ncol, **kwargs)
         else:
-            leg = ax.legend(numpoints=1, **kwargs)
+            ax.legend(numpoints=1, **kwargs)
 
-    # reset window so at least one EOD of each cluster is visible
-    
+    # reset window so at least one EOD of each cluster is visible    
     ax.set_xlim(max(toffs,toffs+zoom_window[1]-width), toffs+zoom_window[1])
     print(samplerate)
 
@@ -1057,8 +1074,9 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
     ax.plot(time, mean_eod, zorder=5, **mkwargs)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
-        ax.autoscale(False)
         std_eod = eod_waveform[:,2]
+        if np.mean(std_eod)/(np.max(mean_eod) - np.min(mean_eod)) > 0.1:
+            ax.autoscale(False)
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=1, **skwargs)
     # annotate fit:
@@ -1492,7 +1510,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
                             win_fac=2.0, min_win=0.01, max_eods=None,
-                            unfilter_cutoff=0.0,
+                            min_sem=False, unfilter_cutoff=0.0,
                             flip_wave='none', flip_pulse='none',
                             n_harm=10, min_pulse_win=0.001,
                             peak_thresh_fac=0.01, min_dist=50.0e-6,
@@ -1517,6 +1535,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     cfg.add('eodSnippetFac', win_fac, '', 'The duration of EOD snippets is the EOD period times this factor.')
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
+    cfg.add('eodMinSem', min_sem, '', 'Use minimum of s.e.m. to set maximum number of EODs used to compute the average EOD.')
     cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
     cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave-type fish to make largest extremum positive (flip, none, or auto).')
     cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse-type fish to make the first large peak positive (flip, none, or auto).')
@@ -1550,6 +1569,7 @@ def eod_waveform_args(cfg):
     a = cfg.map({'win_fac': 'eodSnippetFac',
                  'min_win': 'eodMinSnippet',
                  'max_eods': 'eodMaxEODs',
+                 'min_sem': 'eodMinSem', 
                  'unfilter_cutoff': 'unfilterCutoff'})
     return a
 

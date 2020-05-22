@@ -356,7 +356,7 @@ def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
 
 
 def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
-                     max_freq=2000.0, **kwargs):
+                     log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0, **kwargs):
     """
     Plot the powerspectum in decibel relative to ref_power.
 
@@ -372,8 +372,17 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
         Reference power for computing decibel. If set to `None` the maximum power is used.
     min_power: float
         Power values smaller than `min_power` are set to `np.nan`.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis.
+    min_freq: float
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        if `max_freq` is greater than zero
     max_freq: float
-        Limits of frequency axis are set to `(0, max_freq)` if `max_freq` is greater than zero
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        and limits of power axis are computed from powers below max_freq
+        if `max_freq` is greater than zero
+    ymarg: float
+        Add this to the maximum decibel power for setting the ylim.
     kwargs: dict
         Plot parameter that are passed on to the `plot()` function.
     """
@@ -381,14 +390,18 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
     ax.plot(freqs, decibel_psd, **kwargs)
     ax.set_xlabel('Frequency [Hz]')
     if max_freq > 0.0:
-        ax.set_xlim(0, max_freq)
+        if log_freq and min_freq < 1.0:
+            min_freq = 1.0
+        ax.set_xlim(min_freq, max_freq)
     else:
         max_freq = freqs[-1]
+    if log_freq:
+        ax.set_xscale('log')
     dpmf = decibel_psd[freqs < max_freq]
     pmin = np.min(dpmf[np.isfinite(dpmf)])
     pmin = np.floor(pmin / 10.0) * 10.0
     pmax = np.max(dpmf[np.isfinite(dpmf)])
-    pmax = np.ceil(pmax / 10.0) * 10.0
+    pmax = np.ceil((pmax + ymarg) / 10.0) * 10.0
     ax.set_ylim(pmin, pmax)
     ax.set_ylabel('Power [dB]')
 

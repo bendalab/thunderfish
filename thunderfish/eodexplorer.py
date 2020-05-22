@@ -332,8 +332,9 @@ class EODExplorer(MultivariateExplorer):
                   'keymap.zoom', 'keymap.pan']:
             plt.rcParams[k] = self.plt_params[k]
         fig = plot_eods(basename, raw_data, samplerate, idx0, idx1, clipped,
-                        fishlist, mean_eods, eod_props, peak_data, spec_data,
-                        [idx], unit, psd_data, True, 3000.0, interactive=True)
+                        fishlist, None, mean_eods, eod_props, peak_data, spec_data,
+                        [idx], unit, psd_data, None, True, 3000.0,
+                        interactive=True, verbose=0)
         fig.canvas.set_window_title('thunderfish: %s' % basename)
         plt.show(block=False)
 
