@@ -1018,14 +1018,15 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
             ax.legend(numpoints=1, **kwargs)
 
     # reset window so at least one EOD of each cluster is visible
-    
-    ax.set_xlim(toffs+zoom_window[1]-width, toffs+zoom_window[1])
-    i0 = int((zoom_window[1]-width)*samplerate)
-    i1 = int(zoom_window[1]*samplerate)
-    ymin = np.min(data[i0:i1])
-    ymax = np.max(data[i0:i1])
-    dy = ymax - ymin
-    ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
+
+    if len(zoom_window) > 1:    # XXX Why?
+        ax.set_xlim(toffs+zoom_window[1]-width, toffs+zoom_window[1])
+        i0 = int((zoom_window[1]-width)*samplerate)
+        i1 = int(zoom_window[1]*samplerate)
+        ymin = np.min(data[i0:i1])
+        ymax = np.max(data[i0:i1])
+        dy = ymax - ymin
+        ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
 
 def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,

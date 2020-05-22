@@ -95,10 +95,14 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
     fzero_harmonics: int
         The highest harmonics that was used to recompute the fundamental frequency.
     """
+    if verbose > 0:
+        print('')
+        
     dvs = True
     if divisor <= 0:
         divisor = 1
         dvs = False
+    min_start = int(min_group_size//3)
         
     # 1. find harmonics in good_freqs and adjust fzero accordingly:
     fzero = freq
@@ -126,7 +130,7 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
         fzero_harmonics = h
         fzero = prev_freq/fzero_harmonics
         if verbose > 1:
-            print('adjusted fzero to %.2fHz' % fzero)
+            print('adjusted fzero to %.2fHz from %d-th harmonic' % (fzero, h))
 
     ## # this is not faster:
     ## freqs = [fmax]
@@ -234,7 +238,7 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
         else:
             fe = 0.0
         if h > prev_h or fe < prev_fe:
-            if h - prev_h > 1:
+            if prev_h > 0 and h - prev_h > 1:
                 break
             if h == prev_h and len(freqs) > 0:
                 freqs.pop()
@@ -242,15 +246,18 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
             new_group[int(h)-1] = i
             prev_h = h
             prev_fe = fe
+            if verbose > 1:
+                print('    %d. harmonics at %7.2fHz has been taken (peak %2d)' % (h, f, i))
 
     # 4. check new group:
 
     # all harmonics in min_group_size required:
-    if np.any(new_group<0):
+    if np.any(new_group[min_start:]<0):
         if verbose > 0:
             print('  discarded group because %d harmonics are less than min_group_size of %d! peaks:' %
                   (np.sum(new_group>=0), min_group_size), new_group)
         return [], -1.0, fzero_harmonics
+    new_group = new_group[new_group>=0]
     
     # check use count of frequencies:
     double_use = np.sum(all_freqs[new_group, 2]>0)
@@ -442,11 +449,11 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
             continue
 
         # 3. compare new group to best group:
-        peaksum = decibel(np.sum(all_freqs[new_group, 1]))
+        peaksum = decibel(np.sum(all_freqs[new_group, 1])*min_group_size/len(new_group))
         diff = np.std(np.diff(decibel(all_freqs[new_group, 1])))
         new_group_value = peaksum - diff
         if verbose > 0:
-            print('  new group:  fzero=%7.2fHz, value=%6.1fdB, peaksum=%5.1fdB, diff=%6.1fdB, peaks:'
+            print('  new group:                 fzero=%7.2fHz, value=%6.1fdB, peaksum=%5.1fdB, diff=%6.1fdB, peaks:'
                   % (fzero, new_group_value, peaksum, diff), new_group)
             if verbose > 1:
                 print('  best group:     divisor=%d, fzero=%7.2fHz, value=%6.1fdB, peaks:'

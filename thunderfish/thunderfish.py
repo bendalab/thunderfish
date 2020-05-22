@@ -212,7 +212,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         if unreliability > unrel_thresh:
             if verbose > 0:
                 print('skip %6.1fHz pulse fish: unreliability %.2f larger than %.2f' %
-                      (props['EODf'], unreliability, unrel_thresh))
+                      (1.0/np.mean(np.diff(eod_ts)), unreliability, unrel_thresh))
             continue
         
         mean_eod, eod_times0 = \
