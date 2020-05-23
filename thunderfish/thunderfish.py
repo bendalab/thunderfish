@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.lines as ml
 from matplotlib.transforms import Bbox
+from matplotlib.backends.backend_pdf import PdfPages
 from multiprocessing import Pool, freeze_support, cpu_count
 from audioio import play, fade
 from .version import __version__, __year__
@@ -715,8 +716,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
 
 
 def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
-                save_plot=False, save_subplots=False, output_folder='.',
-                keep_path=False, show_bestwindow=False, verbose=0):
+                save_plot=False, multi_pdf=None, save_subplots=False,
+                output_folder='.', keep_path=False, show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -795,11 +796,14 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
                         None, unit, zoom_window, psd_data, power_thresh, True, log_freq, min_freq, max_freq,
                         interactive=not save_data, verbose=verbose)
         if save_plot:
-            # save figure as pdf:
-            fig.savefig(output_basename + '.pdf')
-            if save_subplots:
-                # make figures and call plot functions on them individually
-                print('sorry, saving subplots separately is not implemented yet!')
+            if multi_pdf is not None:
+                multi_pdf.savefig(fig)
+            else:
+                # save figure as pdf:
+                fig.savefig(output_basename + '.pdf')
+                if save_subplots:
+                    # make figures and call plot functions on them individually
+                    print('sorry, saving subplots separately is not implemented yet!')
             plt.close()
         elif not save_data:
             fig.canvas.set_window_title('thunderfish')
@@ -847,9 +851,11 @@ def main():
                         choices=TableData.formats + ['py'],
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
-                        help='save output plot as pdf file')
+                        help='save output plot of each recording as pdf file')
     parser.add_argument('-P', dest='save_subplots', action='store_true',
                         help='save subplots as separate pdf files')
+    parser.add_argument('-m', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
+                        help='save all plots of all recordings in a multi pages pdf file.')
     parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
                         nargs='?', const=100.0, default=0.0,
                         help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')
@@ -903,6 +909,14 @@ def main():
     # save plots:
     if args.save_subplots:
         args.save_plot = True
+    multi_pdf = None
+    if len(args.multi_pdf) > 0:
+        args.save_plot = True
+        args.jobs = None
+        ext = os.path.splitext(args.multi_pdf)[1]
+        if ext != os.extsep + 'pdf':
+            args.multi_pdf += os.extsep + 'pdf'
+        multi_pdf = PdfPages(args.multi_pdf)
     # create output folder:
     if args.save_data or args.save_plot:
         if not os.path.exists(args.outpath):
@@ -912,8 +926,8 @@ def main():
     # run on pool:
     global pool_args
     pool_args = (cfg, args.channel, args.log_freq, args.save_data,
-                 args.save_plot, args.save_subplots, args.outpath, args.keep_path,
-                 args.show_bestwindow, verbose-1)
+                 args.save_plot, multi_pdf, args.save_subplots,
+                 args.outpath, args.keep_path, args.show_bestwindow, verbose-1)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
         if verbose > 1:
@@ -922,6 +936,8 @@ def main():
         p.map(run_thunderfish, args.file)
     else:
         list(map(run_thunderfish, args.file))
+    if multi_pdf is not None:
+        multi_pdf.close()
 
 
 if __name__ == '__main__':
