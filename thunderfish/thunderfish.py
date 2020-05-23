@@ -615,8 +615,10 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     # plot mean EOD
     w, _ = ax3.get_legend_handles_labels()
     eodf_labels = [wi.get_label().split()[0] for wi in w]
-    legend_eodfs = np.array([float(f) if f[0] != '(' else np.nan for f in eodf_labels])
+    legend_wave_eodfs = np.array([float(f) if f[0] != '(' else np.nan for f in eodf_labels])
     p, _ = ax2.get_legend_handles_labels()
+    eodf_labels = [pi.get_label().split()[0] for pi in p]
+    legend_pulse_eodfs = np.array([float(f) if f[0] != '(' else np.nan for f in eodf_labels])
     for k, (axeod, idx) in enumerate(zip(eodaxes, indices[pp_indices])):
         mean_eod = mean_eods[idx]
         props = eod_props[idx]
@@ -632,17 +634,15 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
             axeod.text(0.5, ty, 'Averaged EOD',
                        transform = axeod.transAxes, fontsize=14, ha='center')
             mx = -0.14
+        eodf = props['EODf']
         if props['type'] == 'wave':
-            eodf = props['EODf']
-            wk = np.nanargmin(np.abs(legend_eodfs - eodf))
+            wk = np.nanargmin(np.abs(legend_wave_eodfs - eodf))
             ma = ml.Line2D([mx], [my], color=w[wk].get_color(), marker=w[wk].get_marker(),
                            markersize=w[wk].get_markersize(), mec='none', clip_on=False,
                            label=w[wk].get_label(), transform=axeod.transAxes)
             axeod.add_line(ma)
         else:
-            #eodf = props['EODf']
-            #wk = np.argmin(np.abs(legend_eodfs - eodf))
-            pk = k
+            pk = np.argmin(np.abs(legend_pulse_eodfs - eodf))
             ma = ml.Line2D([mx], [my], color=p[pk].get_color(), marker=p[pk].get_marker(),
                            markersize=p[pk].get_markersize(), mec='none', clip_on=False,
                            label=p[pk].get_label(), transform=axeod.transAxes)
