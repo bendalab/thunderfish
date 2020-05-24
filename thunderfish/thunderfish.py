@@ -15,6 +15,7 @@ import glob
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 import matplotlib.lines as ml
 from matplotlib.transforms import Bbox
@@ -627,13 +628,13 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         axeod.set_visible(True)
         if len(indices) > 1:
             axeod.text(0.3, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
-                       transform = axeod.transAxes, fontsize=14)
+                       transform=axeod.transAxes, fontsize=14)
             mx = 0.25
         else:
             axeod.text(-0.1, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
-                       transform = axeod.transAxes, fontsize=14)
+                       transform=axeod.transAxes, fontsize=14)
             axeod.text(0.5, ty, 'Averaged EOD',
-                       transform = axeod.transAxes, fontsize=14, ha='center')
+                       transform=axeod.transAxes, fontsize=14, ha='center')
             mx = -0.14
         eodf = props['EODf']
         if props['type'] == 'wave':
@@ -698,9 +699,138 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         
     return fig
 
+                            
+def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, clipped,
+                      wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
+                      unit, zoom_window, psd_data, power_thresh=None, label_power=True,
+                      log_freq=False, min_freq=0.0, max_freq=3000.0):
+    """
+    Plot time traces and spectra into separate files.
+
+    Parameters
+    ----------
+    base_name: string
+        Basename of audio_file.
+    subplots: string
+        Specifies which subplots to plot:
+        r) recording with best window, t) data trace with detected pulse fish,
+        p) power spectrum with detected wave fish, m/M) mean EOD waveform,
+        s/S) EOD spectrum, e/E) EOD waveform and spectra. With capital letters
+        all fish are saved into a single pdf filem with small letters each fish
+        is saved into a separate file.
+    raw_data: array
+        Dataset.
+    samplerate: float
+        Sampling rate of the dataset.
+    idx0: float
+        Index of the beginning of the analysis window in the dataset.
+    idx1: float
+        Index of the end of the analysis window in the dataset.
+    clipped: float
+        Fraction of clipped amplitudes.
+    wave_eodfs: array
+        Frequency and power of fundamental frequency/harmonics of several fish.
+    wave_indices: array of int
+        Indices of wave fish mapping from wave_eodfs to eod_props.
+        If negative, then that EOD frequency has no waveform described in eod_props.
+    mean_eods: list of 2-D arrays with time, mean and std.
+        Mean trace for the mean EOD plot.
+    eod_props: list of dict
+        Properties for each waveform in mean_eods.
+    peak_data: list of 2_D arrays
+        For each pulsefish a list of peak properties
+        (index, time, and amplitude).
+    spec_data: list of 2_D arrays
+        For each pulsefish a power spectrum of the single pulse and for
+        each wavefish the relative amplitudes and phases of the harmonics.
+    unit: string
+        Unit of the trace and the mean EOD.
+    psd_data: array
+        Power spectrum of the analysed data for different frequency resolutions.
+    power_thresh:  2 D array or None
+        Frequency (first column) and power (second column) of threshold
+        derived from single pulse spectra to discard false wave fish.
+    label_power: boolean
+        If `True` put the power in decibel in addition to the frequency
+        into the legend.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis of power spectrum of recording.
+    min_freq: float
+        Limits of frequency axis of power spectrum of recording
+        are set to `(min_freq, max_freq)` if `max_freq` is greater than zero
+    max_freq: float
+        Limits of frequency axis of power spectrum of recording
+        are set to `(min_freq, max_freq)` and limits of power axis are computed
+        from powers below max_freq if `max_freq` is greater than zero
+    """
+    if 'r' in subplots:
+        fig, ax = plt.subplots(figsize=(10, 2))
+        fig.subplots_adjust(left=0.07, right=0.99, bottom=0.22, top=0.95)
+        plot_best_data(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(5))
+        fig.savefig(base_name + '-recording.pdf')
+    if 't' in subplots:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.text(0.5, 0.5, 'not implemented yet',
+                transform=axeod.transAxes, ha='center', va='center')
+        fig.savefig(base_name + '-trace.pdf')
+    if 'p' in subplots:
+        fig, ax = plt.subplots(figsize=(10, 6))
+        ax.text(0.5, 0.5, 'not implemented yet',
+                transform=axeod.transAxes, ha='center', va='center')
+        fig.savefig(base_name + '-psd.pdf')
+    if 'm' in subplots or 'M' in subplots:
+        mpdf = None
+        if 'M' in subplots:
+            mpdf = PdfPages(base_name + '-waveforms.pdf')
+        for meod, props, peaks in zip(mean_eods, eod_props, peak_data):
+            fig, ax = plt.subplots(figsize=(5, 3))
+            fig.subplots_adjust(left=0.18, right=0.98, bottom=0.15, top=0.9)
+            ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
+            plot_eod_waveform(ax, meod, props, peaks, unit)
+            ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
+            if mpdf is None:
+                fig.savefig(base_name + '-waveform-%d.pdf' % props['index'])
+            else:
+                mpdf.savefig(fig)
+        if mpdf is not None:
+            mpdf.close()
+    if 's' in subplots:
+        fig, ax = plt.subplots(figsize=(5, 3))
+        ax.text(0.5, 0.5, 'not implemented yet',
+                transform=axeod.transAxes, ha='center', va='center')
+        fig.savefig(base_name + '-spectrum.pdf')
+    if 'e' in subplots or 'E' in subplots:
+        mpdf = None
+        if 'E' in subplots:
+            mpdf = PdfPages(base_name + '-eods.pdf')
+        for meod, props, peaks in zip(mean_eods, eod_props, peak_data):
+            fig = plt.figure(figsize=(10, 3))
+            gs = gridspec.GridSpec(nrows=2, ncols=2,
+                                   left=0.09, right=0.98,
+                                   bottom=0.15, top=0.9, hspace=0.3)
+            ax1 = fig.add_subplot(gs[:,0])
+            ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
+            plot_eod_waveform(ax1, meod, props, peaks, unit)
+            ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
+            if props['type'] == 'wave':
+                ax2 = fig.add_subplot(gs[0,1])
+                ax3 = fig.add_subplot(gs[1,1])
+            else:
+                ax2 = fig.add_subplot(gs[:,1])
+            ax2.text(0.5, 0.5, 'spectrum not implemented yet',
+                     transform=ax2.transAxes, ha='center', va='center')
+            if mpdf is None:
+                fig.savefig(base_name + '-eod-%d.pdf' % props['index'])
+            else:
+                mpdf.savefig(fig)
+        if mpdf is not None:
+            mpdf.close()
+plt.close()
+
 
 def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
-                save_plot=False, multi_pdf=None, save_subplots=False,
+                save_plot=False, multi_pdf=None, save_subplots='',
                 output_folder='.', keep_path=False, show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
@@ -785,10 +915,12 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
             else:
                 # save figure as pdf:
                 fig.savefig(output_basename + '.pdf')
-                if save_subplots:
-                    # make figures and call plot functions on them individually
-                    print('sorry, saving subplots separately is not implemented yet!')
-            plt.close()
+            if len(save_subplots) > 0:
+                plot_eod_subplots(output_basename, save_subplots,
+                                  raw_data, samplerate, idx0, idx1, clipped,
+                                  wave_eodfs, wave_indices, mean_eods, eod_props,
+                                  peak_data, spec_data, unit, zoom_window,
+                                  psd_data, power_thresh, True, log_freq, min_freq, max_freq)
         elif not save_data:
             fig.canvas.set_window_title('thunderfish')
             plt.show()
@@ -836,8 +968,8 @@ def main():
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot of each recording as pdf file')
-    parser.add_argument('-P', dest='save_subplots', action='store_true',
-                        help='save subplots as separate pdf files')
+    parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpmse',
+                        help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, m) mean EOD waveform, s) EOD spectrum, e) EOD waveform and spectra')
     parser.add_argument('-m', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
                         help='save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.')
     parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
@@ -891,7 +1023,7 @@ def main():
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
     # save plots:
-    if args.save_subplots:
+    if len(args.save_subplots) > 0:
         args.save_plot = True
     multi_pdf = None
     if len(args.multi_pdf) > 0:
