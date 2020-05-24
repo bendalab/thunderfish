@@ -648,24 +648,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                            markersize=p[pk].get_markersize(), mec='none', clip_on=False,
                            label=p[pk].get_label(), transform=axeod.transAxes)
             axeod.add_line(ma)
-        if len(unit) == 0 or unit == 'a.u.':
-            unit = ''
-        tau = props['tau'] if 'tau' in props else None
-        plot_eod_waveform(axeod, mean_eod, peaks, unit, tau=tau)
-        props['unit'] = unit
-        props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
-        label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} {eods}\n'.format(**props)
-        if props['flipped']:
-            label += 'flipped\n'
-        if -mean_eod[0,0] < 0.6*mean_eod[-1,0]:
-            axeod.text(0.97, 0.97, label, transform = axeod.transAxes,
-                       va='top', ha='right')
-        else:
-            axeod.text(0.03, 0.97, label, transform = axeod.transAxes, va='top')
+        plot_eod_waveform(axeod, mean_eod, props, peaks, unit)
         axeod.yaxis.set_major_locator(ticker.MaxNLocator(ny))
-        if props['type'] == 'wave':
-            lim = 750.0/props['EODf']
-            axeod.set_xlim([-lim, +lim])
         if len(indices) > 2 and k < 2:
             axeod.set_xlabel('')
         axeod.format_coord = meaneod_format_coord
@@ -855,7 +839,7 @@ def main():
     parser.add_argument('-P', dest='save_subplots', action='store_true',
                         help='save subplots as separate pdf files')
     parser.add_argument('-m', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
-                        help='save all plots of all recordings in a multi pages pdf file.')
+                        help='save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.')
     parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
                         nargs='?', const=100.0, default=0.0,
                         help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')

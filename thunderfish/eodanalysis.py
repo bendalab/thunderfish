@@ -29,7 +29,7 @@
 
 ## Fit functions
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
-- `exp_decay()`: expontenial decay.
+- `exp_decay()`: exponential decay.
 
 ## Filter functions
 - `unfilter()`: apply inverse low-pass filter on data.
@@ -531,7 +531,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - powerlowcutoff: frequency at which the power reached half of the peak power
           relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
-        - n: number of pulses analyzed  (i.e. number of `eod_times`).
+        - n: number of pulses analyzed  (i.e. `len(eod_times)`).
         - times: the times of the detected EOD pulses (i.e. `eod_times`).
     peaks: 2-D array
         For each peak and trough (rows) of the EOD waveform
@@ -591,7 +591,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
     # XXX this is kind of important for having a succesful fit!
     # XXX but it removes too many pulses!
-    #if min_thresh > 0.5*(max_ampl + min_ampl):
+    if min_thresh > 0.5*(max_ampl + min_ampl):
+        fit_frac = None
     #    return meod, {}, [], []
     threshold = max_ampl*peak_thresh_fac
     if threshold < min_thresh and min_thresh < 0.5*(max_ampl + min_ampl):
@@ -1040,7 +1041,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
 
-def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
+def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
                       mkwargs={'lw': 2, 'color': 'red'},
                       skwargs={'color': '#CCCCCC'},
                       fkwargs={'lw': 6, 'color': 'steelblue'},
@@ -1056,13 +1057,14 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
         EOD waveform. First column is time in seconds,
         second column the (mean) eod waveform. The optional third column is the
         standard error, and the optional fourth column is a fit on the waveform.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform as
+        returned by `analyze_wave()` and `analyze_pulse()`.
     peaks: 2_D arrays or None
         List of peak properties (index, time, and amplitude) of a EOD pulse
         as returned by `analyze_pulse()`.
     unit: string
         Optional unit of the data used for y-label.
-    tau: float
-        Optional time constant of a fit.
     mkwargs: dict
         Arguments passed on to the plot command for the mean EOD.
     skwargs: dict
@@ -1090,7 +1092,8 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=1, **skwargs)
     # annotate fit:
-    if not tau is None and eod_waveform.shape[1] > 3:
+    tau = props['tau'] if 'tau' in props else None
+    if tau is not None and eod_waveform.shape[1] > 3:
         if tau < 0.001:
             label = u'\u03c4=%.0f\u00b5s' % (1.e6*tau)
         else:
@@ -1130,7 +1133,24 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
             else:
                 ax.text(1000.0*p[1]-dx, p[2]+y, label, ha='right', va=va,
                         zorder=10)
-    ax.set_xlim(time[0], time[-1])
+    # annotate plot:
+    if unit is None or len(unit) == 0 or unit == 'a.u.':
+        unit = ''
+    props['unit'] = unit
+    props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
+    label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} {eods}\n'.format(**props)
+    if props['flipped']:
+        label += 'flipped\n'
+    if -eod_waveform[0,0] < 0.6*eod_waveform[-1,0]:
+        ax.text(0.97, 0.97, label, transform = ax.transAxes, va='top', ha='right')
+    else:
+        ax.text(0.03, 0.97, label, transform = ax.transAxes, va='top')
+    # axis:                
+    if props['type'] == 'wave':
+        lim = 750.0/props['EODf']
+        ax.set_xlim([-lim, +lim])
+    else:
+        ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [msec]')
     if unit:
         ax.set_ylabel('Amplitude [%s]' % unit)
