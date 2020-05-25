@@ -151,15 +151,15 @@ def discardnearbyevents(event_locations, event_heights, event_slopes, min_distan
        for i, diff in enumerate(x_diffs):
            if diff < min_distance:     
                 #if np.abs(event_slopes[i+1]-event_slopes[i])/(0.5*event_slopes[i+1]-0.5*event_slopes[i]) > 0.25:
-                #    if event_slopes[i+1] > event_slopes[i]:
-                #        events_delete[i] = 1
-                #    else:
-                #        events_delete[i+1] = 1
-                #else:
-                if event_heights[i+1] > event_heights[i]:
-                    events_delete[i] = 1
+                if event_slopes[i+1] > event_slopes[i]:
+                     events_delete[i] = 1
                 else:
-                    events_delete[i+1] = 1
+                     events_delete[i+1] = 1
+                #else:
+                #if event_heights[i+1] > event_heights[i]:
+                #    events_delete[i] = 1
+                #else:
+                #    events_delete[i+1] = 1
 
        event_heights = event_heights[events_delete!=1]
        event_locations = event_locations[events_delete!=1]
@@ -204,9 +204,9 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
             slopes = hights[x_trough==tr]/widths[x_trough==tr]
 
             #if (np.max(slopes)!=np.min(slopes)) and (np.abs(np.max(slopes)-np.min(slopes))/(0.5*np.max(slopes)-0.5*np.min(slopes)) > 0.25):
-            #    keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr]/widths[x_trough==tr])]] = 0
+            keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr]/widths[x_trough==tr])]] = 0
             #else:
-            keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
+            #keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
 
     if verbose>0:
         print('Number of peaks after discarding connecting peaks:      %5i'%(len(keep_idxs)))

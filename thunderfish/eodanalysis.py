@@ -543,7 +543,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         The power spectrum of a single pulse. First column are the frequencies,
         second column the power.
     """
-        
+    
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:eod.shape[1]] = eod
@@ -588,12 +588,17 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     thl_min = np.min(meod[:n,1])
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
-    min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
-    if min_thresh > 0.5*(max_ampl + min_ampl):
+    min_thresh = (np.max([thl_max, thr_max]) - np.min([thl_min, thr_min])) #*2
+    
+    if min_thresh > (max_ampl + min_ampl):
+        print(min_thresh)
+        print(max_ampl + min_ampl)
         return meod, {}, [], []
+
     threshold = max_ampl*peak_thresh_fac
-    if threshold < min_thresh and min_thresh < 0.5*(max_ampl + min_ampl):
+    if threshold < min_thresh and min_thresh < (max_ampl + min_ampl):
         threshold = min_thresh
+        print(threshold)
         
     # cut out relevant signal:
     lidx = np.argmax(np.abs(meod[:,1])>threshold)
@@ -626,6 +631,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
+    
     if len(peak_idx) > 0:
         # and their width:
         peak_widths = peak_width(meod[:,0], meod[:,1], peak_idx, trough_idx,
@@ -687,7 +693,11 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     data = np.zeros(nn)
     n0 = max_idx if max_idx - n < 0 else n
     n1 = len(meod[:,1]) - max_idx if max_idx + n > len(meod[:,1]) else n
-    data[nn//2-n0:nn//2+n1] = meod[max_idx-n0:max_idx+n1,1]
+    
+    a = np.min([nn//2-n0,nn//2+n1])
+    b = np.max([nn//2-n0,nn//2+n1])
+
+    data[a:b] = meod[np.abs(max_idx-n0):np.abs(max_idx+n1),1]
     freqs, power = psd(data, samplerate, freq_resolution)
     ppower = np.zeros((len(freqs), 2))
     ppower[:,0] = freqs
@@ -880,6 +890,7 @@ def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
         skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
                         (100.0*rms_sem, 100.0*max_rms_sem)]
     # non decaying waveform:
+    '''
     if len(peaks) > 0:
         pi = np.argmax(peaks[:,2])
         ti = np.argmin(peaks[:,2])
@@ -893,6 +904,7 @@ def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
             skip_reason += ['no decaying pulse fish EOD (peak %3.0f%%, max 50%%)' % (100.0*max_rp)]
         if np.any(rt > 0.5):
             skip_reason += ['no decaying pulse fish EOD (trough %3.0f%%, max 50%%)' % (100.0*max_rt)]
+    '''
     return ', '.join(skip_reason), ', '.join(msg)
 
 
@@ -985,7 +997,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         if 'times' not in eod:
             continue
 
-        width = min(width, np.diff(zoom_window))
+        width = np.min([width, np.diff(zoom_window)])
         while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
             width = width*2
 
@@ -1000,10 +1012,10 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         if legend_rows > 5 and k >= legend_rows:
             label = None
         if markers is None:
-            ax.plot(x, y, 'o', label=label, **color_kwargs)
+            ax.plot(x, y, 'o', label=label, zorder=-1, **color_kwargs)
         else:
             ax.plot(x, y, linestyle='none', label=label,
-                    marker=markers[k%len(markers)], mec=None, mew=0.0, **color_kwargs)
+                    marker=markers[k%len(markers)], mec=None, mew=0.0, zorder=-1, **color_kwargs)
         k += 1
 
     # legend:
@@ -1018,16 +1030,16 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
             ax.legend(numpoints=1, **kwargs)
 
     # reset window so at least one EOD of each cluster is visible    
-    ax.set_xlim(max(toffs,toffs+zoom_window[1]-width), toffs+zoom_window[1])
-    print(samplerate)
+    if len(zoom_window)>0:
+        ax.set_xlim(max(toffs,toffs+zoom_window[1]-width), toffs+zoom_window[1])
 
-    i0 = max(0,int((zoom_window[1]-width)*samplerate))
-    i1 = int(zoom_window[1]*samplerate)
+        i0 = max(0,int((zoom_window[1]-width)*samplerate))
+        i1 = int(zoom_window[1]*samplerate)
 
-    ymin = np.min(data[i0:i1])
-    ymax = np.max(data[i0:i1])
-    dy = ymax - ymin
-    ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
+        ymin = np.min(data[i0:i1])
+        ymax = np.max(data[i0:i1])
+        dy = ymax - ymin
+        ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
 
 def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
