@@ -893,6 +893,7 @@ def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
     if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
         skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
                         (100.0*rms_sem, 100.0*max_rms_sem)]
+    """
     # non decaying waveform:
     if len(peaks) > 3:
         peak_ampls = peaks[:,2]
@@ -905,6 +906,7 @@ def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
                 % (100.0*np.max(rel_side_peaks), 100.0*np.max(rel_side_troughs))]
         if max_sidepeaks >= 0 and n_large > max_sidepeaks:
             skip_reason += ['no decaying pulse fish EOD (%d (max %d) side peaks and side troughs larger than %.0f%%)' % (n_large, max_sidepeaks, 100.0*max_sidepeak_ampl)]
+    """
     return ', '.join(skip_reason), ', '.join(msg)
 
 
@@ -1556,10 +1558,6 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     the remaining arguments.
     """
     cfg.add_section('EOD analysis:')
-    if not 'pulseWidthPercentile' in cfg:
-        cfg.add('pulseWidthPercentile', percentile, '%', 'The variance of the data is measured as the interpercentile range.')
-    if not 'pulseWidthThresholdFactor' in cfg:
-        cfg.add('pulseWidthThresholdFactor', thresh_fac, '', 'The threshold for detection of EOD peaks is this factor multiplied with the interpercentile range of the data.')
     cfg.add('eodSnippetFac', win_fac, '', 'The duration of EOD snippets is the EOD period times this factor.')
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')

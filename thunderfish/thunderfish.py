@@ -28,7 +28,7 @@ from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config
 from .bestwindow import clip_args, best_window_args
 from .bestwindow import find_best_window, plot_best_data
-from .checkpulse import check_pulse_width, check_pulse_width_args
+from .checkpulse import check_pulse, add_check_pulse_config, check_pulse_args
 from .lizpulses import extract_pulsefish
 from .powerspectrum import decibel, plot_decibel_psd, multi_psd
 from .powerspectrum import add_multi_psd_config, multi_psd_args
@@ -85,6 +85,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     add_clip_config(cfg)
     cfg.add('unwrapData', False, '', 'Unwrap scrambled wav-file data.')
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
+    add_check_pulse_config(cfg)
     add_eod_analysis_config(cfg, min_pulse_win=0.004)
     del cfg['eodSnippetFac']
     del cfg['eodMinSnippet']
@@ -161,18 +162,51 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # detect pulse fish:
     """
     pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
-                                                 **check_pulse_width_args(cfg))
+                                                 **check_pulse_args(cfg))
     eod_times = [eod_times] if pulse_fish else []
     eod_peaktimes = eod_times
     pulse_unreliabilities = [0.0]
     zoom_window = [0.0, len(data)/samplerate]
     """
     _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
-    
-    # calculate power spectra:
-    psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
+
+    # check pulse fish:
+    for k in reversed(range(len(eod_times))):
+        # average waveform on long window:
+        mean_eod, _ = eod_waveform(data, samplerate, eod_times[k], win_fac=0.0, min_win=0.05)
+        pulse_fish, ratio = check_pulse(mean_eod[:,1], mean_eod[:,2], samplerate,
+                                        verbose=verbose-1, **check_pulse_args(cfg))
+        if not pulse_fish:
+            if verbose > 0:
+                print('skip %6.1fHz pulse fish: peak-trough ratio %.2f LARGER than %.2f' %
+                      (1.0/np.median(np.diff(eod_times[k])), ratio,
+                       cfg.value('pulseWidthThresholdRatio')))
+            eod_times.pop(k)
+            eod_peaktimes.pop(k)
+            pulse_unreliabilities.pop(k)
+        else:
+            if verbose > 0:
+                print('take %6.1fHz pulse fish: peak-trough ratio %.2f smaller than %.2f' %
+                      (1.0/np.median(np.diff(eod_times[k])), ratio, 0.1))
+        plt.plot(mean_eod[:,0], mean_eod[:,1])
+        plt.plot(mean_eod[:,0], mean_eod[:,2])
+        plt.show()
             
-    # find the fishes in the different powerspectra:
+        """
+        # XXX make this a config parameter! it is already there: 'pulseWidthThresholdRatio'
+        unrel_thresh = 0.2
+        if pulse_unreliabilities[k] > unrel_thresh:
+            eod_times.pop(k)
+            eod_peaktimes.pop(k)
+            pulse_unreliabilities.pop(k)
+            if verbose > 0:
+                print('skip %6.1fHz pulse fish: oeak-trough ratio %.2f larger than %.2f' %
+                      (1.0/np.median(np.diff(eod_times[k])), pulse_unreliabilities[k],
+                       unrel_thresh))
+        """
+            
+    # detect wave fish:
+    psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
     h_kwargs = psd_peak_detection_args(cfg)
     h_kwargs.update(harmonic_groups_args(cfg))
     wave_eodfs_list = []
@@ -209,14 +243,6 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     min_freq_res = cfg.value('frequencyResolution')
 
     for k, (eod_ts, eod_pts, unreliability) in enumerate(zip(eod_times, eod_peaktimes, pulse_unreliabilities)):
-        # XXX make this a config parameter!
-        unrel_thresh = 0.2
-        if unreliability > unrel_thresh:
-            if verbose > 0:
-                print('skip %6.1fHz pulse fish: unreliability %.2f larger than %.2f' %
-                      (1.0/np.mean(np.diff(eod_ts)), unreliability, unrel_thresh))
-            continue
-        
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
