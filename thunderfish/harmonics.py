@@ -771,7 +771,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             else:
                 pi = np.where((db_powers[p_max+min_group_size:] >= max_harmonics_decibel) & \
                               (harm_group[p_max+min_group_size:,2] <= 1))[0][0]
-                              
+                             
         # check:
         if fundamental_ok and mains_ok and smooth_ok and amplitude_ok:
             if verbose > 0:

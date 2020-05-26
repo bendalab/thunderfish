@@ -543,7 +543,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         The power spectrum of a single pulse. First column are the frequencies,
         second column the power.
     """
-        
+    
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:eod.shape[1]] = eod
@@ -593,10 +593,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     # XXX but it removes too many pulses!
     if min_thresh > 0.5*(max_ampl + min_ampl):
         fit_frac = None
-    #    return meod, {}, [], []
     threshold = max_ampl*peak_thresh_fac
-    if threshold < min_thresh and min_thresh < 0.5*(max_ampl + min_ampl):
+    if threshold < min_thresh and min_thresh < (max_ampl + min_ampl):
         threshold = min_thresh
+        print(threshold)
         
     # cut out relevant signal:
     lidx = np.argmax(np.abs(meod[:,1])>threshold)
@@ -629,6 +629,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
+    
     if len(peak_idx) > 0:
         # and their width:
         peak_widths = peak_width(meod[:,0], meod[:,1], peak_idx, trough_idx,
@@ -695,7 +696,11 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     data = np.zeros(nn)
     n0 = max_idx if max_idx - n < 0 else n
     n1 = len(meod[:,1]) - max_idx if max_idx + n > len(meod[:,1]) else n
-    data[nn//2-n0:nn//2+n1] = meod[max_idx-n0:max_idx+n1,1]
+    
+    a = np.min([nn//2-n0,nn//2+n1])
+    b = np.max([nn//2-n0,nn//2+n1])
+
+    data[a:b] = meod[np.abs(max_idx-n0):np.abs(max_idx+n1),1]
     freqs, power = psd(data, samplerate, freq_resolution)
     ppower = np.zeros((len(freqs), 2))
     ppower[:,0] = freqs
@@ -709,9 +714,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     inter_pulse_intervals = np.diff(eod_times)
     ipi_cv = np.std(inter_pulse_intervals)/np.mean(inter_pulse_intervals)
     if ipi_cv < ipi_cv_thresh:
-        period = np.mean(inter_pulse_intervals)
+        period = np.median(inter_pulse_intervals)
     else:
-        period = np.mean(inter_pulse_intervals[inter_pulse_intervals <
+        period = np.median(inter_pulse_intervals[inter_pulse_intervals <
                                 np.percentile(inter_pulse_intervals, ipi_percentile)])
     
     # store properties:
@@ -999,7 +1004,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         if 'times' not in eod:
             continue
 
-        width = min(width, np.diff(zoom_window))
+        width = np.min([width, np.diff(zoom_window)])
         while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
             width = width*2
 
@@ -1014,10 +1019,10 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         if legend_rows > 5 and k >= legend_rows:
             label = None
         if markers is None:
-            ax.plot(x, y, 'o', label=label, **color_kwargs)
+            ax.plot(x, y, 'o', label=label, zorder=-1, **color_kwargs)
         else:
             ax.plot(x, y, linestyle='none', label=label,
-                    marker=markers[k%len(markers)], mec=None, mew=0.0, **color_kwargs)
+                    marker=markers[k%len(markers)], mec=None, mew=0.0, zorder=-1, **color_kwargs)
         k += 1
 
     # legend:
@@ -1031,12 +1036,13 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         else:
             ax.legend(numpoints=1, **kwargs)
 
-    # reset window so at least one EOD of each cluster is visible
+    # reset window so at least one EOD of each cluster is visible    
+    if len(zoom_window)>0:
+        ax.set_xlim(max(toffs,toffs+zoom_window[1]-width), toffs+zoom_window[1])
 
-    if len(zoom_window) > 1:    # XXX Why?
-        ax.set_xlim(toffs+zoom_window[1]-width, toffs+zoom_window[1])
-        i0 = int((zoom_window[1]-width)*samplerate)
+        i0 = max(0,int((zoom_window[1]-width)*samplerate))
         i1 = int(zoom_window[1]*samplerate)
+
         ymin = np.min(data[i0:i1])
         ymax = np.max(data[i0:i1])
         dy = ymax - ymin

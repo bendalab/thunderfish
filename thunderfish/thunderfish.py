@@ -257,10 +257,12 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         props['peaktimes'] = eod_pts      # XXX that should go into analyze pulse
         props['index'] = len(eod_props)
         props['clipped'] = clipped
-        
+
+
         # add good waveforms only:
         skips, msg = pulse_quality(k, clipped, props['rmssem'], peaks,
                                    **pulse_quality_args(cfg))
+
         if len(skips) == 0:
             eod_props.append(props)
             mean_eods.append(mean_eod)
@@ -611,9 +613,11 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                     width = 10.0/eod_props[indices[0]]['EODf']
             width = (1+width//0.005)*0.005
         rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
+
+        plot_eod_recording(ax2, rdata, samplerate, width, unit, idx0/samplerate)
         plot_pulse_eods(ax2, rdata, samplerate, zoom_window, width, eod_props, idx0/samplerate,
                         colors=pulse_colors, markers=pulse_markers)
-        plot_eod_recording(ax2, rdata, samplerate, width, unit, idx0/samplerate)
+
         ax2.set_title('Recording', fontsize=14, y=1.05)
         ax2.format_coord = recordingzoom_format_coord
     else:
