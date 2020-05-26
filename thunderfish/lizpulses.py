@@ -11,6 +11,7 @@ Email: weerdmeester.liz@gmail.com
 """
 
 # NOTE rename pulse_unreliability
+# or just remove at this point
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -154,7 +155,7 @@ def extract_eod_times(data, samplerate, peakwidth, cutwidth, threshold_factor=1,
             print('No peaks detected.')
         return [], [], [], [], samplerate*interp_f,data, interp_f
     else:
-        peaks = makeeventlist(orig_x_peaks, orig_x_troughs, data, peakwidth*samplerate*interp_f, verbose-1)
+        peaks = makeeventlist(orig_x_peaks, orig_x_troughs, data, 10*peakwidth*samplerate*interp_f, 2*interp_f, verbose-1)
         
         if plot_steps:
             plt.figure()
@@ -173,7 +174,7 @@ def extract_eod_times(data, samplerate, peakwidth, cutwidth, threshold_factor=1,
         
         
                 
-        peakindices, _, _ = discardnearbyevents(x_peaks, eod_hights, eod_hights/eod_widths, peakwidth*samplerate*interp_f, verbose-1)
+        peakindices = discardnearbyevents(x_peaks, x_troughs, eod_widths, eod_hights/eod_widths, 0.1*peakwidth*samplerate*interp_f, verbose-1)
 
         x_peaks=x_peaks[peakindices]
         x_troughs = x_troughs[peakindices]
@@ -466,6 +467,8 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, interp_f,
 
     labels = delete_unreliable_fish(labels,eod_widths,eod_x,verbose-1)
 
+    labels = delete_wavefish(data,labels,eod_x,eod_widths)
+
     # re-merge clusters incorrectly separated by hight
     #labels = remerge(labels,snippets)
 
@@ -560,7 +563,9 @@ def find_window(data, eod_x, eod_peak_x, eod_widths, clusters, samplerate, verbo
             eod_hights.append(np.min(mean_eod)-np.max(mean_eod))
             eod_peak_times.append(eod_peak_x[clusters==cluster]/samplerate)
 
-            unreliability.append(np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])))
+            # leave out unreliability, also in thunderfish!
+            unreliability.append(0)#np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])))
+           
             if verbose>0:
                 print('unreliability score: %f'%unreliability[-1])
 
@@ -568,11 +573,28 @@ def find_window(data, eod_x, eod_peak_x, eod_widths, clusters, samplerate, verbo
 
 def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose):
     for cluster in np.unique(clusters[clusters!=-1]):
-        if np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])) > 0.1:
+        
+        if np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])) > 0.5:
             if verbose>0:
                 print('deleting unreliable cluster %i, score=%f'%(cluster,np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters]))))
             clusters[clusters==cluster] = -1
     return clusters
+
+def delete_wavefish(data,clusters,eod_x,eod_widths,w_factor=8):
+    for cluster in np.unique(clusters):
+        if cluster!=-1:
+            cutwidth = np.mean(eod_widths[clusters==cluster])*w_factor
+            current_x = eod_x[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
+            current_clusters = clusters[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
+
+            snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_x[current_clusters==cluster]])
+            mean_eod = np.mean(snippets, axis=0)
+            pk, tr = detect_peaks(np.pad(mean_eod,(1,1)), 0.25*(np.max(mean_eod)-np.min(mean_eod)))
+            
+            if len(pk) + len(tr)>4:
+                clusters[clusters==cluster] = -1
+    return clusters
+
 
 def remove_double_detections(clusters,eod_widths,eod_x):
     for c in np.unique(clusters):
@@ -597,7 +619,7 @@ def remove_sparse_detections(clusters,eod_widths, samplerate, verbose, factor = 
 
     
 def remove_noise_and_artefacts(data, eod_x, eod_widths, clusters, original_cutwidth, int_f, verbose=0,
-                               w_factor=2, noise_threshold=0.75, artefact_threshold=0.5, cutoff_f=10000):
+                               w_factor=2, noise_threshold=0.75, artefact_threshold=0.75, cutoff_f=10000):
     """ Remove EOD clusters that are too noisy or result from artefacts
 
     Parameters
@@ -646,10 +668,10 @@ def remove_noise_and_artefacts(data, eod_x, eod_widths, clusters, original_cutwi
             mean_eod = np.mean(snippets, axis=0)
             eod_std = np.std(snippets, axis=0)
             noise_ratio = np.mean(np.abs(mean_eod)/np.mean(np.abs(np.diff(snippets,axis=0)),axis=0))
-            noise_ratio2 = np.var(mean_eod)/np.mean(eod_std)
+            noise_ratio2 = np.var(mean_eod)/(np.mean(eod_std))
+            noise_ratio3 = np.mean(stats.sem(snippets,axis=0))#/np.mean(eod_std)
 
             cut_fft = int(len(np.fft.fft(mean_eod))/2)
-            #xf = np.linspace(0.0, 1.0/(2.0*(1/samplerate)), int(len(mean_eod)/2))[1:]
             
             low_frequency_ratio = np.sum(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft/(2*int_f))])/np.sum(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft)])
             '''
@@ -660,12 +682,9 @@ def remove_noise_and_artefacts(data, eod_x, eod_widths, clusters, original_cutwi
             plt.plot(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft/(2*int_f))])
             
             plt.show()
-            '''
-        
+            '''           
 
-            #print(low_frequency_ratio)
-
-            if noise_ratio < noise_threshold or noise_ratio2 < 0.003:
+            if noise_ratio < noise_threshold: # or noise_ratio2>0.03:# or noise_ratio3 > 0.1:
                 clusters[clusters==cluster] = -1
                 if verbose>0:
                     print('Deleting cluster %i, which has an SNR of %f'%(cluster,noise_ratio))
@@ -916,7 +935,6 @@ def plot_all(data, eod_times, fs, mean_eods, rs):
             ax.fill_between(1000*m[0],1000*(m[1]-m[2]),1000*(m[1]+m[2]),color=cmap(i))
             ax.set_xlabel('time [ms]')
             ax.set_ylabel('amplitude [mV]') 
-            print(r)
             if r >0.1:
                 ax.set_title('unreliable or wave')
             #ax.axis('off')

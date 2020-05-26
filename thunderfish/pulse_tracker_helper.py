@@ -109,7 +109,7 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
 
     return EOD_events
 
-def discardnearbyevents(event_locations, event_heights, event_slopes, min_distance,verbose=0):
+def discardnearbyevents(event_locations, tr_locations, event_widths, event_slopes, min_distance,verbose=0):
     """
     Given a number of events with given location and heights, returns a selection
     of these events where  no event is closer than eventwidth to the next event.
@@ -146,23 +146,26 @@ def discardnearbyevents(event_locations, event_heights, event_slopes, min_distan
     counter = 0
     event_indices = np.arange(0,len(event_locations)+1,1)
     while unchanged == False:
-       x_diffs = np.diff(event_locations)
+
+       print(len(event_locations))
+       print(len(tr_locations))
+       
+       x_diffs = np.min(np.vstack([np.diff(event_locations),np.diff(tr_locations),np.abs(event_locations[1:]-tr_locations[:-1]),np.abs(event_locations[:-1]-tr_locations[1:])]),axis=0)
        events_delete = np.zeros(len(event_locations))
+
        for i, diff in enumerate(x_diffs):
-           if diff < min_distance:     
-                #if np.abs(event_slopes[i+1]-event_slopes[i])/(0.5*event_slopes[i+1]-0.5*event_slopes[i]) > 0.25:
+           if diff < max(min_distance,max(event_widths[i],event_widths[i+1])*3):     
                 if event_slopes[i+1] > event_slopes[i]:
+                    # the width has to be at least 3*int_fact
                      events_delete[i] = 1
                 else:
                      events_delete[i+1] = 1
-                #else:
-                #if event_heights[i+1] > event_heights[i]:
-                #    events_delete[i] = 1
-                #else:
-                #    events_delete[i+1] = 1
 
-       event_heights = event_heights[events_delete!=1]
+       event_widths = event_widths[events_delete!=1]
        event_locations = event_locations[events_delete!=1]
+       event_slopes = event_slopes[events_delete!=1]
+       tr_locations = tr_locations[events_delete!=1]
+
        event_indices = event_indices[np.where(events_delete!=1)[0]]
        if np.count_nonzero(events_delete)==0:
            unchanged = True
@@ -174,7 +177,7 @@ def discardnearbyevents(event_locations, event_heights, event_slopes, min_distan
     if verbose>0:
         print('Number of peaks after peak discarding:                  %5i'%(len(event_locations)))
 
-    return event_indices, event_locations, event_heights
+    return event_indices
 
 def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
     """

@@ -711,9 +711,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     inter_pulse_intervals = np.diff(eod_times)
     ipi_cv = np.std(inter_pulse_intervals)/np.mean(inter_pulse_intervals)
     if ipi_cv < ipi_cv_thresh:
-        period = np.mean(inter_pulse_intervals)
+        period = np.median(inter_pulse_intervals)
     else:
-        period = np.mean(inter_pulse_intervals[inter_pulse_intervals <
+        period = np.median(inter_pulse_intervals[inter_pulse_intervals <
                                 np.percentile(inter_pulse_intervals, ipi_percentile)])
     
     # store properties:
