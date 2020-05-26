@@ -3,33 +3,33 @@
 
 ## EOD analysis
 - `eod_waveform()`: compute an averaged EOD waveform.
-- `analyze_wave()`: analyze the EOD waveform of a wave-type fish.
-- `analyze_pulse()`: analyze the EOD waveform of a pulse-type fish.
+- `analyze_wave()`: analyze the EOD waveform of a wave fish.
+- `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
 ## Quality assessment
-- `wave_quality()`: asses quality of EOD waveform of a wave-type fish.
-- `pulse_quality()`: asses quality of EOD waveform of a pulse-type fish.
+- `wave_quality()`: asses quality of EOD waveform of a wave fish.
+- `pulse_quality()`: asses quality of EOD waveform of a pulse fish.
 
 ## Visualization
 - `plot_eod_recording()`: plot a zoomed in range of the recorded trace.
-- `plot_pulse_eods()`: mark pulse-type EODs in a plot of an EOD recording.
+- `plot_pulse_eods()`: mark pulse EODs in a plot of an EOD recording.
 - `plot_eod_waveform()`: plot and annotate the averaged EOD-waveform with standard error.
-- `plot_wave_spectrum()`: plot and annotate spectrum of wave-type EODs.
-- `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse-type EOD.
+- `plot_wave_spectrum()`: plot and annotate spectrum of wave EODs.
+- `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse EOD.
 
 ## Storage
 - `save_eod_waveform()`: save mean eod waveform to file.
-- `save_wave_eodfs()`: save frequencies of all wave-type EODs to file.
-- `save_wave_fish()`: save properties of wave-type EODs to file.
-- `save_pulse_fish()`: save properties of pulse-type EODs to file.
-- `save_wave_spectrum()`: save amplitude and phase spectrum of wave-type EOD to file.
-- `save_pulse_spectrum()`: save power spectrum of pulse-type EOD to file.
-- `save_pulse_peaks()`: save peak properties of pulse-type EOD to file.
+- `save_wave_eodfs()`: save frequencies of all wave EODs to file.
+- `save_wave_fish()`: save properties of wave EODs to file.
+- `save_pulse_fish()`: save properties of pulse EODs to file.
+- `save_wave_spectrum()`: save amplitude and phase spectrum of wave EOD to file.
+- `save_pulse_spectrum()`: save power spectrum of pulse EOD to file.
+- `save_pulse_peaks()`: save peak properties of pulse EOD to file.
 
 ## Fit functions
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
-- `exp_decay()`: expontenial decay.
+- `exp_decay()`: exponential decay.
 
 ## Filter functions
 - `unfilter()`: apply inverse low-pass filter on data.
@@ -67,7 +67,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
     down to $c_s$ relative to its amplitude. For a s.e.m. less than 5% ($c_s=0.05$) and
     an SNR of -10dB (the signal is 10 times smaller than the noise, SNR=0.1) we get
     $n > 0.00025^{-1} = 4000$ data snippets - a recording a couple of seconds long.
-    (ii) Very important for wave-type fish is that they keep their frequency constant.
+    (ii) Very important for wave fish is that they keep their frequency constant.
     Slight changes in the EOD frequency will corrupt the average waveform.
     If the period of the waveform changes by $c_f=\Delta T/T$, then after
     $n = 1/c_f$ periods moved the modified waveform through a whole period.
@@ -228,7 +228,7 @@ def fourier_series(t, freq, *ap):
 
 def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
     """
-    Analyze the EOD waveform of a wave-type fish.
+    Analyze the EOD waveform of a wave fish.
     
     Parameters
     ----------
@@ -348,12 +348,12 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
         up_time = ut[ut<0.0][-1]
     else:
         up_time = 0.0 
-        error_str += '%.1f Hz wave-type fish: no upward zero crossing. ' % freq0
+        error_str += '%.1f Hz wave fish: no upward zero crossing. ' % freq0
     if np.any(dt>0.0):
         down_time = dt[dt>0.0][0]
     else:
         down_time = 0.0
-        error_str += '%.1f Hz wave-type fish: no downward zero crossing. ' % freq0
+        error_str += '%.1f Hz wave fish: no downward zero crossing. ' % freq0
     peak_width = down_time - up_time
     trough_width = period - peak_width
     peak_time = 0.0
@@ -375,7 +375,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
                                    params, maxfev=2000)
             break
         except (RuntimeError, TypeError):
-            error_str += '%.1f Hz wave-type fish: fit of fourier series failed for %d harmonics. ' % (freq0, n_harm)
+            error_str += '%.1f Hz wave fish: fit of fourier series failed for %d harmonics. ' % (freq0, n_harm)
             n_harm //= 2
     for i in range(n_harm):
         # make all amplitudes positive:
@@ -461,7 +461,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                   freq_resolution=1.0, flip_pulse='none',
                   ipi_cv_thresh=0.5, ipi_percentile=30.0):
     """
-    Analyze the EOD waveform of a pulse-type fish.
+    Analyze the EOD waveform of a pulse fish.
     
     Parameters
     ----------
@@ -531,7 +531,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         - powerlowcutoff: frequency at which the power reached half of the peak power
           relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
-        - n: number of pulses analyzed  (i.e. number of `eod_times`).
+        - n: number of pulses analyzed  (i.e. `len(eod_times)`).
         - times: the times of the detected EOD pulses (i.e. `eod_times`).
     peaks: 2-D array
         For each peak and trough (rows) of the EOD waveform
@@ -588,13 +588,11 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     thl_min = np.min(meod[:n,1])
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
-    min_thresh = (np.max([thl_max, thr_max]) - np.min([thl_min, thr_min])) #*2
-    
-    if min_thresh > (max_ampl + min_ampl):
-        print(min_thresh)
-        print(max_ampl + min_ampl)
-        return meod, {}, [], []
-
+    min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
+    # XXX this is kind of important for having a succesful fit!
+    # XXX but it removes too many pulses!
+    if min_thresh > 0.5*(max_ampl + min_ampl):
+        fit_frac = None
     threshold = max_ampl*peak_thresh_fac
     if threshold < min_thresh and min_thresh < (max_ampl + min_ampl):
         threshold = min_thresh
@@ -674,16 +672,21 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
                 tau_inx = np.argmax(sign*meod[inx:ridx,1] < sign*thresh)
                 if tau_inx < 2:
                     tau_inx = 2
+                if inx+tau_inx >= len(meod[:,0]):
+                    tau_inx = len(meod[:,0]) - inx
                 tau = meod[inx+tau_inx,0]-meod[inx,0]
                 rridx = len(meod)-1 if inx + 6*tau_inx >= len(meod) else inx + 6*tau_inx
-                params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
-                popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], params)
-                if popt[0] > 1.2*tau:
-                    tau_inx = int(np.round(popt[0]/dt))
-                    rridx = len(meod)-1 if inx + 6*tau_inx >= len(meod) else inx + 6*tau_inx
-                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], popt)
-                tau = popt[0]
-                meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
+                if rridx - inx < 10:
+                    tau = None
+                else:
+                    params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
+                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], params)
+                    if popt[0] > 1.2*tau:
+                        tau_inx = int(np.round(popt[0]/dt))
+                        rridx = len(meod)-1 if inx + 6*tau_inx >= len(meod) else inx + 6*tau_inx
+                        popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], popt)
+                    tau = popt[0]
+                    meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
@@ -774,7 +777,7 @@ def wave_quality(idx, clipped, rms_sem, rms_error, power, harm_relampl,
                  min_power=-100.0, max_relampl_harm1=2.0,
                  max_relampl_harm2=1.0, max_relampl_harm3=0.8):
     """
-    Assess the quality of an EOD waveform of a wave-type fish.
+    Assess the quality of an EOD waveform of a wave fish.
     
     Parameters
     ----------
@@ -847,9 +850,9 @@ def wave_quality(idx, clipped, rms_sem, rms_error, power, harm_relampl,
 
 
 def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
-                  max_rms_sem=0.0):
+                  max_rms_sem=0.0, max_sidepeak_ampl=0.5, max_sidepeaks=1):
     """
-    Assess the quality of an EOD waveform of a pulse-type fish.
+    Assess the quality of an EOD waveform of a pulse fish.
     
     Parameters
     ----------
@@ -869,7 +872,13 @@ def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
         Maximum allowed fraction of clipped data.
     max_rms_sem: float
         If not zero, maximum allowed standard error of the data relative to p-p amplitude.
-                      
+    max_sidepeak_ampl: float
+        Maximum allowed amplitude of side peaks/troughs relative to
+        maximum peak/trough amplitude.
+    max_sidepeaks: int
+        Maximum allowed number of side peaks/troughs larger than `max_sidepeak_ampl`.
+        If negative do not check for large side peaks.
+
     Returns
     -------
     skip_reason: string
@@ -889,22 +898,20 @@ def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
     if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
         skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
                         (100.0*rms_sem, 100.0*max_rms_sem)]
+    """
     # non decaying waveform:
-    '''
-    if len(peaks) > 0:
-        pi = np.argmax(peaks[:,2])
-        ti = np.argmin(peaks[:,2])
-        rp = np.delete(peaks[:,2]/peaks[pi,2], pi)
-        rt = np.delete(peaks[:,2]/peaks[ti,2], ti)
-        max_rp = np.max(rp) if len(rp) > 0 else 0.0
-        max_rt = np.max(rt) if len(rt) > 0 else 0.0
+    if len(peaks) > 3:
+        peak_ampls = peaks[:,2]
+        peak_idx = np.argmax(peak_ampls)
+        trough_idx = np.argmin(peak_ampls)
+        rel_side_peaks = np.delete(peak_ampls/peak_ampls[peak_idx], peak_idx)
+        rel_side_troughs = np.delete(peak_ampls/peak_ampls[trough_idx], trough_idx)
+        n_large = np.sum(rel_side_peaks > max_sidepeak_ampl) + np.sum(rel_side_troughs > max_sidepeak_ampl)
         msg += ['maximum side peak amplitude=%3.0f%%, maximum side trough amplitude=%3.0f%%'
-                % (100.0*max_rp, 100.0*max_rt)]
-        if max_rp > 0.5:
-            skip_reason += ['no decaying pulse fish EOD (peak %3.0f%%, max 50%%)' % (100.0*max_rp)]
-        if np.any(rt > 0.5):
-            skip_reason += ['no decaying pulse fish EOD (trough %3.0f%%, max 50%%)' % (100.0*max_rt)]
-    '''
+                % (100.0*np.max(rel_side_peaks), 100.0*np.max(rel_side_troughs))]
+        if max_sidepeaks >= 0 and n_large > max_sidepeaks:
+            skip_reason += ['no decaying pulse fish EOD (%d (max %d) side peaks and side troughs larger than %.0f%%)' % (n_large, max_sidepeaks, 100.0*max_sidepeak_ampl)]
+    """
     return ', '.join(skip_reason), ', '.join(msg)
 
 
@@ -961,7 +968,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
                     colors=None, markers=None, marker_size=10,
                     legend_rows=8, **kwargs):
     """
-    Mark pulse-type EODs in a plot of an EOD recording.
+    Mark pulse EODs in a plot of an EOD recording.
 
     Parameters
     ----------
@@ -1042,7 +1049,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
 
-def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
+def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
                       mkwargs={'lw': 2, 'color': 'red'},
                       skwargs={'color': '#CCCCCC'},
                       fkwargs={'lw': 6, 'color': 'steelblue'},
@@ -1058,13 +1065,14 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
         EOD waveform. First column is time in seconds,
         second column the (mean) eod waveform. The optional third column is the
         standard error, and the optional fourth column is a fit on the waveform.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform as
+        returned by `analyze_wave()` and `analyze_pulse()`.
     peaks: 2_D arrays or None
         List of peak properties (index, time, and amplitude) of a EOD pulse
         as returned by `analyze_pulse()`.
     unit: string
         Optional unit of the data used for y-label.
-    tau: float
-        Optional time constant of a fit.
     mkwargs: dict
         Arguments passed on to the plot command for the mean EOD.
     skwargs: dict
@@ -1092,7 +1100,8 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=1, **skwargs)
     # annotate fit:
-    if not tau is None and eod_waveform.shape[1] > 3:
+    tau = props['tau'] if 'tau' in props else None
+    if tau is not None and eod_waveform.shape[1] > 3:
         if tau < 0.001:
             label = u'\u03c4=%.0f\u00b5s' % (1.e6*tau)
         else:
@@ -1132,7 +1141,24 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
             else:
                 ax.text(1000.0*p[1]-dx, p[2]+y, label, ha='right', va=va,
                         zorder=10)
-    ax.set_xlim(time[0], time[-1])
+    # annotate plot:
+    if unit is None or len(unit) == 0 or unit == 'a.u.':
+        unit = ''
+    props['unit'] = unit
+    props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
+    label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} {eods}\n'.format(**props)
+    if props['flipped']:
+        label += 'flipped\n'
+    if -eod_waveform[0,0] < 0.6*eod_waveform[-1,0]:
+        ax.text(0.97, 0.97, label, transform = ax.transAxes, va='top', ha='right')
+    else:
+        ax.text(0.03, 0.97, label, transform = ax.transAxes, va='top')
+    # axis:                
+    if props['type'] == 'wave':
+        lim = 750.0/props['EODf']
+        ax.set_xlim([-lim, +lim])
+    else:
+        ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [msec]')
     if unit:
         ax.set_ylabel('Amplitude [%s]' % unit)
@@ -1141,7 +1167,7 @@ def plot_eod_waveform(ax, eod_waveform, peaks, unit=None, tau=None,
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None, color='b', lw=2, markersize=10):
-    """Plot and annotate spectrum of wave-type EOD.
+    """Plot and annotate spectrum of wave EOD.
 
     Parameters
     ----------
@@ -1196,7 +1222,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None, color='b', lw=2, marker
 
 
 def plot_pulse_spectrum(ax, power, props, color='b', lw=3, markersize=80):
-    """Plot and annotate spectrum of single pulse-type EOD.
+    """Plot and annotate spectrum of single pulse EOD.
 
     Parameters
     ----------
@@ -1277,7 +1303,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
 
 
 def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
-    """ Save frequencies of all wave-type EODs to file.
+    """ Save frequencies of all wave EODs to file.
 
     Parameters
     ----------
@@ -1310,7 +1336,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
 
     
 def save_wave_fish(eod_props, unit, basename, **kwargs):
-    """ Save properties of wave-type EODs to file.
+    """ Save properties of wave EODs to file.
 
     Parameters
     ----------
@@ -1362,7 +1388,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
 
 
 def save_pulse_fish(eod_props, unit, basename, **kwargs):
-    """ Save properties of pulse-type EODs to file.
+    """ Save properties of pulse EODs to file.
 
     Parameters
     ----------
@@ -1418,13 +1444,12 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
 
 
 def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
-    """ Save amplitude and phase spectrum of wave-type EOD to file.
+    """ Save amplitude and phase spectrum of wave EOD to file.
 
     Parameters
     ----------
     spec_data: 2D array of floats
-        Amplitude and phase spectrum of wave-type EOD as
-        returned by analyze_wave().
+        Amplitude and phase spectrum of wave EOD as returned by analyze_wave().
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1454,7 +1479,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
 
                         
 def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
-    """ Save power spectrum of pulse-type EOD to file.
+    """ Save power spectrum of pulse EOD to file.
 
     Parameters
     ----------
@@ -1485,13 +1510,12 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
 
                         
 def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
-    """ Save peak properties of pulse-type EOD to file.
+    """ Save peak properties of pulse EOD to file.
 
     Parameters
     ----------
     peak_data: 2D array of floats
-        Properties of peaks and troughs of pulse-type EOD
-        as returned by analyze_pulse().
+        Properties of peaks and troughs of pulse EOD as returned by analyze_pulse().
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1540,20 +1564,16 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     the remaining arguments.
     """
     cfg.add_section('EOD analysis:')
-    if not 'pulseWidthPercentile' in cfg:
-        cfg.add('pulseWidthPercentile', percentile, '%', 'The variance of the data is measured as the interpercentile range.')
-    if not 'pulseWidthThresholdFactor' in cfg:
-        cfg.add('pulseWidthThresholdFactor', thresh_fac, '', 'The threshold for detection of EOD peaks is this factor multiplied with the interpercentile range of the data.')
     cfg.add('eodSnippetFac', win_fac, '', 'The duration of EOD snippets is the EOD period times this factor.')
     cfg.add('eodMinSnippet', min_win, 's', 'Minimum duration of cut out EOD snippets.')
     cfg.add('eodMaxEODs', max_eods or 0, '', 'The maximum number of EODs used to compute the average EOD. If 0 use all EODs.')
     cfg.add('eodMinSem', min_sem, '', 'Use minimum of s.e.m. to set maximum number of EODs used to compute the average EOD.')
     cfg.add('unfilterCutoff', unfilter_cutoff, 'Hz', 'If non-zero remove effect of high-pass filter with this cut-off frequency.')
-    cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave-type fish to make largest extremum positive (flip, none, or auto).')
-    cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse-type fish to make the first large peak positive (flip, none, or auto).')
+    cfg.add('flipWaveEOD', flip_wave, '', 'Flip EOD of wave fish to make largest extremum positive (flip, none, or auto).')
+    cfg.add('flipPulseEOD', flip_pulse, '', 'Flip EOD of pulse fish to make the first large peak positive (flip, none, or auto).')
     cfg.add('eodHarmonics', n_harm, '', 'Number of harmonics fitted to the EOD waveform.')
     cfg.add('eodMinPulseSnippet', min_pulse_win, 's', 'Minimum duration of cut out EOD snippets for a pulse fish.')
-    cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks in pulse-type EODs as a fraction of the pulse amplitude.')
+    cfg.add('eodPeakThresholdFactor', peak_thresh_fac, '', 'Threshold for detection of peaks in pulse EODs as a fraction of the pulse amplitude.')
     cfg.add('eodMinimumDistance', min_dist, 's', 'Minimum distance between peaks and troughs in a EOD pulse.')
     cfg.add('eodPulseWidthFraction', width_frac, '', 'The width of a pulse is measured at this fraction of the pulse height.')
     cfg.add('eodExponentialFitFraction', fit_frac, '', 'An exponential function is fitted on the tail of a pulse starting at this fraction of the height of the last peak.')
@@ -1640,7 +1660,7 @@ def analyze_pulse_args(cfg):
 def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
                            max_rms_error=0.05, min_power=-100.0,
                            max_relampl_harm1=2.0, max_relampl_harm2=1.0,
-                           max_relampl_harm3=0.8):
+                           max_relampl_harm3=0.8, max_sidepeak_ampl=0.5, max_sidepeaks=1):
     """Add parameters needed for assesing the quality of an EOD waveform.
 
     Parameters
@@ -1648,17 +1668,19 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
     cfg: ConfigFile
         The configuration.
         
-    See check_wave_quality( and check_pulse_quality() for details on
+    See wave_quality( and pulse_quality() for details on
     the remaining arguments.
     """
     cfg.add_section('Waveform selection:')
     cfg.add('maximumClippedFraction', max_clipped_frac, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
     cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard error of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
-    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave-type fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
-    cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave-type fish if its power is smaller than this value.')
-    cfg.add('maximumFirstHarmonicAmplitude', max_relampl_harm1, '', 'Skip waveform of wave-type fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
-    cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave-type fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
-    cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave-type fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental.')
+    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+    cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave fish if its power is smaller than this value.')
+    cfg.add('maximumFirstHarmonicAmplitude', max_relampl_harm1, '', 'Skip waveform of wave fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental.')
+    cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental.')
+    cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental.')
+    cfg.add('maximumSidepeakAmplitude', max_sidepeak_ampl, '', 'Maximum allowed amplitude of side peaks/troughs relative to maximum peak/trough amplitude in pulse fish EOD waveforms.')
+    cfg.add('maximumSidepeaks', max_sidepeaks, '', 'Skip waveform of pulse fish if number of side peaks/troughs larger than maximumSidepeakAmplitude exceeds this number. A negative number allows any sidepeak amplitudes.')
 
 
 def wave_quality_args(cfg):
@@ -1706,9 +1728,10 @@ def pulse_quality_args(cfg):
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
-                 'max_rms_sem': 'maximumRMSNoise'})
+                 'max_rms_sem': 'maximumRMSNoise',
+                 'max_sidepeak_ampl': 'maximumSidepeakAmplitude',
+                 'max_sidepeaks': 'maximumSidepeaks'})
     return a
-
 
 
 if __name__ == '__main__':
@@ -1735,7 +1758,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(1, 2, 1)
     plot_eod_waveform(ax, mean_eod, peaks, unit=unit)
     props['unit'] = unit
-    label = '{type}-type fish\nEODf = {EODf:.1f} Hz\np-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
+    label = '{type} fish\nEODf = {EODf:.1f} Hz\np-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} EODs\n'.format(**props)
     if props['flipped']:
         label += 'flipped\n'
     ax.text(0.03, 0.97, label, transform = ax.transAxes, va='top')

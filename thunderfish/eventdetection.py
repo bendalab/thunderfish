@@ -905,6 +905,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
         Size of window in which a threshold value is computed.
     percentile: float
         The interpercentile range is computed at percentile and 100.0-percentile.
+        If zero, compute maximum minus minimum data value as the interpercentile range.
     thresh_fac: float
         Factor by which the inter-percentile range of the data is multiplied to set the threshold.
 
@@ -913,10 +914,12 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
     threshold: float or 1-D array
         The computed threshold.
     """
+    if percentile < 1e-8:
+        return minmax_threshold(data, samplerate=samplerate, win_size=win_size,
+                                thresh_fac=thresh_fac)
     if samplerate and win_size:
         threshold = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
-
         for inx0 in range(0, len(data), win_size_indices//2):
             inx1 = inx0 + win_size_indices
             threshold[inx0:inx1] = np.squeeze(np.abs(np.diff(
