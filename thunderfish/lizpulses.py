@@ -580,30 +580,34 @@ def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose):
             clusters[clusters==cluster] = -1
     return clusters
 
-def delete_wavefish(data,clusters,eod_x,eod_widths,w_factor=8):
-    for cluster in np.unique(clusters):
-        if cluster!=-1:
-            cutwidth = np.mean(eod_widths[clusters==cluster])*w_factor
-            current_x = eod_x[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
-            current_clusters = clusters[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
 
-            snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_x[current_clusters==cluster]])
-            mean_eod = np.mean(snippets, axis=0)
-            pk, tr = detect_peaks(np.pad(mean_eod,(1,1)), 0.25*(np.max(mean_eod)-np.min(mean_eod)))
-            
-            if len(pk) + len(tr)>4:
-                clusters[clusters==cluster] = -1
+def delete_wavefish(data, clusters, eod_x, eod_widths, w_factor=8):
+    for cluster in np.unique(clusters):
+        if cluster < 0:
+            continue
+        cutwidth = np.mean(eod_widths[clusters==cluster])*w_factor
+        current_x = eod_x[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
+        current_clusters = clusters[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
+
+        snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_x[current_clusters==cluster]])
+        mean_eod = np.mean(snippets, axis=0)
+        pk, tr = detect_peaks(np.pad(mean_eod,(1,1), 'constant'),
+                              0.25*(np.max(mean_eod)-np.min(mean_eod)))
+
+        if len(pk) + len(tr)>4:
+            clusters[clusters==cluster] = -1
     return clusters
 
 
 def remove_double_detections(clusters,eod_widths,eod_x):
     for c in np.unique(clusters):
-        if c!=-1:
-            cc = clusters[clusters==c]
-            isi = np.append(np.diff(eod_x[clusters == c]),1000)
-            
-            cc[np.median(eod_widths[clusters==c])/isi > 0.9] = -1
-            clusters[clusters==c] = cc
+        if c < 0:
+            continue
+        cc = clusters[clusters==c]
+        isi = np.append(np.diff(eod_x[clusters == c]),1000)
+
+        cc[np.median(eod_widths[clusters==c])/isi > 0.9] = -1
+        clusters[clusters==c] = cc
     return clusters
 
 def remove_sparse_detections(clusters,eod_widths, samplerate, verbose, factor = 0.004):
@@ -885,11 +889,11 @@ def subtract_slope(snippets):
     
     left_y = snippets[:,0]
     right_y = snippets[:,-1]
-    # sorry, my old numpy version ...
-    slopes = np.linspace(left_y, right_y, snippets.shape[1])
-    delta = (right_y - left_y)/snippets.shape[1]
-    slopes = np.arange(0, snippets.shape[1], dtype=snippets.dtype).reshape((-1,) + (1,) * np.ndim(delta))*delta + left_y
-    
+    try:
+        slopes = np.linspace(left_y, right_y, snippets.shape[1])
+    except ValueError:
+        delta = (right_y - left_y)/snippets.shape[1]
+        slopes = np.arange(0, snippets.shape[1], dtype=snippets.dtype).reshape((-1,) + (1,) * np.ndim(delta))*delta + left_y
     return snippets - slopes.T
 
 

@@ -954,6 +954,8 @@ def snippets(data, indices, start=-10, stop=10):
     snippet_data = np.empty((len(idxs), stop-start))
     for k, idx in enumerate(idxs):
         snippet_data[k] = data[idx+start:idx+stop]
+    # XXX alternative: check speed and behavior for empty idxs
+    # snippets = np.vstack([data[idx+start:idx+stop] for idx in idxs])
     return snippet_data
 
 

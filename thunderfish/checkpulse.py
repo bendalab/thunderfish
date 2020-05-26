@@ -68,7 +68,7 @@ def check_pulse(data, sem, samplerate, thresh_fac=0.8, percentile=0.0,
         print('  check_pulse(): amplitude threshold for peak detection is %g' % threshold)
     # detect large peaks and troughs:
     peak_idx, trough_idx = detect_peaks(data, threshold)
-    XXX check here for les sthan 2 peaks + troughs XXX
+    # XXX check here for less than 2 peaks + troughs XXX
     if verbose > 1:
         print('  check_pulse(): detected %d peaks %d troughs' %
               (len(peak_idx), len(trough_idx)))

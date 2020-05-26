@@ -160,16 +160,9 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         Reasons, why an EOD was discarded.
     """
     # detect pulse fish:
-    """
-    pulse_fish, _, eod_times = check_pulse_width(data, samplerate, verbose=verbose,
-                                                 **check_pulse_args(cfg))
-    eod_times = [eod_times] if pulse_fish else []
-    eod_peaktimes = eod_times
-    pulse_unreliabilities = [0.0]
-    zoom_window = [0.0, len(data)/samplerate]
-    """
     _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
 
+    """
     # check pulse fish:
     for k in reversed(range(len(eod_times))):
         # average waveform on long window:
@@ -191,19 +184,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         plt.plot(mean_eod[:,0], mean_eod[:,1])
         plt.plot(mean_eod[:,0], mean_eod[:,2])
         plt.show()
-            
-        """
-        # XXX make this a config parameter! it is already there: 'pulseWidthThresholdRatio'
-        unrel_thresh = 0.2
-        if pulse_unreliabilities[k] > unrel_thresh:
-            eod_times.pop(k)
-            eod_peaktimes.pop(k)
-            pulse_unreliabilities.pop(k)
-            if verbose > 0:
-                print('skip %6.1fHz pulse fish: oeak-trough ratio %.2f larger than %.2f' %
-                      (1.0/np.median(np.diff(eod_times[k])), pulse_unreliabilities[k],
-                       unrel_thresh))
-        """
+    """
             
     # detect wave fish:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
