@@ -50,7 +50,7 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from .eventdetection import threshold_crossings, threshold_crossing_times
-from .powerspectrum import psd, nfft, decibel
+from .powerspectrum import next_power_of_two, nfft, decibel
 from .harmonics import fundamental_freqs_and_power
 from .tabledata import TableData
 
@@ -541,15 +541,15 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         and width of peak/trough at half height.
     power: 2-D array
         The power spectrum of a single pulse. First column are the frequencies,
-        second column the power.
+        second column the power in x^2/Hz such that the integral equals the variance.
     """
     
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:eod.shape[1]] = eod
-    meod[:,-1] = float('nan')
+    meod[:,-1] = np.nan
     
-    # subtract mean at the ends of the snippet:
+    # subtract mean computed from the ends of the snippet:
     n = len(meod)//20
     meod[:,1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:,1]))
 
@@ -691,24 +691,26 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
     n_fft = nfft(samplerate, freq_resolution)
-    n = len(meod)//4
-    nn = np.max([n_fft, 2*n])
-    data = np.zeros(nn)
-    n0 = max_idx if max_idx - n < 0 else n
-    n1 = len(meod[:,1]) - max_idx if max_idx + n > len(meod[:,1]) else n
-    
-    a = np.min([nn//2-n0,nn//2+n1])
-    b = np.max([nn//2-n0,nn//2+n1])
-
-    data[a:b] = meod[np.abs(max_idx-n0):np.abs(max_idx+n1),1]
-    freqs, power = psd(data, samplerate, freq_resolution)
-    ppower = np.zeros((len(freqs), 2))
+    n0 = max_idx
+    n1 = len(meod)-max_idx
+    n = 2*max(n0, n1)
+    if n_fft < n:
+        n_fft = next_power_of_two(n)
+    data = np.zeros(n_fft)
+    data[n_fft//2-n0:n_fft//2+n1] = meod[:,1]
+    nr = n//4
+    data[n_fft//2-n0:n_fft//2-n0+nr] *= np.arange(nr)/nr
+    data[n_fft//2+n1-nr:n_fft//2+n1] *= np.arange(nr)[::-1]/nr
+    freqs = np.fft.rfftfreq(n_fft, 1.0/samplerate)
+    fourier = np.fft.rfft(data)/n_fft/freqs[1]
+    power = np.abs(fourier)**2.0
+    ppower = np.zeros((len(power), 2))
     ppower[:,0] = freqs
     ppower[:,1] = power
     maxpower = np.max(power)
-    att5 = decibel(np.mean(power[freqs<5.0])/maxpower)
-    att50 = decibel(np.mean(power[freqs<50.0])/maxpower)
-    lowcutoff = freqs[decibel(power/maxpower) > 0.5*att5][0]
+    att5 = decibel(np.mean(power[freqs<5.0]), maxpower)
+    att50 = decibel(np.mean(power[freqs<50.0]), maxpower)
+    lowcutoff = freqs[decibel(power, maxpower) > 0.5*att5][0]
 
     # analyze pulse timing:
     inter_pulse_intervals = np.diff(eod_times)
