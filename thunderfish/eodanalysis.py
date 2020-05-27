@@ -691,6 +691,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     n = len(meod)//4
     nn = np.max([n_fft, 2*n])
     data = np.zeros(nn)
+    
     n0 = max_idx if max_idx - n < 0 else n
     n1 = len(meod[:,1]) - max_idx if max_idx + n > len(meod[:,1]) else n
     
@@ -698,6 +699,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     b = np.max([nn//2-n0,nn//2+n1])
 
     data[a:b] = meod[np.abs(max_idx-n0):np.abs(max_idx+n1),1]
+
     freqs, power = psd(data, samplerate, freq_resolution)
     ppower = np.zeros((len(freqs), 2))
     ppower[:,0] = freqs
