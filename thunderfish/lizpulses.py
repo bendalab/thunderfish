@@ -143,9 +143,12 @@ def extract_eod_times(data, samplerate, peakwidth, cutwidth, threshold_factor=1,
     """
 
     #NOTE: try to skip this.
-    interp_f = int(interp_freq/samplerate)
-    f = interp1d(range(len(data)),data,kind='quadratic')
-    data = f(np.arange(0,len(data)-1,1/interp_f))
+    try:
+        interp_f = int(interp_freq/samplerate)
+        f = interp1d(range(len(data)),data,kind='quadratic')
+        data = f(np.arange(0,len(data)-1,1/interp_f))
+    except MemoryError:
+        interp_f = 1
 
     orig_x_peaks = np.zeros(int(samplerate*interp_f))
 

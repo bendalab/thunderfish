@@ -158,34 +158,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         None if no pulse fish was detected.
     skip_reason: list of string
         Reasons, why an EOD was discarded.
-    """
-    # detect pulse fish:
-    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
-
-    """
-    # check pulse fish:
-    for k in reversed(range(len(eod_times))):
-        # average waveform on long window:
-        mean_eod, _ = eod_waveform(data, samplerate, eod_times[k], win_fac=0.0, min_win=0.05)
-        pulse_fish, ratio = check_pulse(mean_eod[:,1], mean_eod[:,2], samplerate,
-                                        verbose=verbose-1, **check_pulse_args(cfg))
-        if not pulse_fish:
-            if verbose > 0:
-                print('skip %6.1fHz pulse fish: peak-trough ratio %.2f LARGER than %.2f' %
-                      (1.0/np.median(np.diff(eod_times[k])), ratio,
-                       cfg.value('pulseWidthThresholdRatio')))
-            eod_times.pop(k)
-            eod_peaktimes.pop(k)
-            pulse_unreliabilities.pop(k)
-        else:
-            if verbose > 0:
-                print('take %6.1fHz pulse fish: peak-trough ratio %.2f smaller than %.2f' %
-                      (1.0/np.median(np.diff(eod_times[k])), ratio, 0.1))
-        plt.plot(mean_eod[:,0], mean_eod[:,1])
-        plt.plot(mean_eod[:,0], mean_eod[:,2])
-        plt.show()
-    """
-            
+    """            
     # detect wave fish:
     psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
     h_kwargs = psd_peak_detection_args(cfg)
@@ -212,6 +185,36 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         else:
             print('no fundamental frequencies are consistent in all power spectra')
 
+    # detect pulse fish:
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
+    # XXX example for getting psd input
+    # psd_data[0] is 2d numpy array with first column frequency and second column power
+    # _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, psd_data[0], verbose=verbose)
+
+    """
+    # check pulse fish:
+    for k in reversed(range(len(eod_times))):
+        # average waveform on long window:
+        mean_eod, _ = eod_waveform(data, samplerate, eod_times[k], win_fac=0.0, min_win=0.05)
+        pulse_fish, ratio = check_pulse(mean_eod[:,1], mean_eod[:,2], samplerate,
+                                        verbose=verbose-1, **check_pulse_args(cfg))
+        if not pulse_fish:
+            if verbose > 0:
+                print('skip %6.1fHz pulse fish: peak-trough ratio %.2f LARGER than %.2f' %
+                      (1.0/np.median(np.diff(eod_times[k])), ratio,
+                       cfg.value('pulseWidthThresholdRatio')))
+            eod_times.pop(k)
+            eod_peaktimes.pop(k)
+            pulse_unreliabilities.pop(k)
+        else:
+            if verbose > 0:
+                print('take %6.1fHz pulse fish: peak-trough ratio %.2f smaller than %.2f' %
+                      (1.0/np.median(np.diff(eod_times[k])), ratio, 0.1))
+        plt.plot(mean_eod[:,0], mean_eod[:,1])
+        plt.plot(mean_eod[:,0], mean_eod[:,2])
+        plt.show()
+    """
+            
     # analysis results:
     eod_props = []
     mean_eods = []
