@@ -596,7 +596,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     threshold = max_ampl*peak_thresh_fac
     if threshold < min_thresh and min_thresh < (max_ampl + min_ampl):
         threshold = min_thresh
-        print(threshold)
+    # XXX make sure threshold is smaller then p-p amplitude!
         
     # cut out relevant signal:
     lidx = np.argmax(np.abs(meod[:,1])>threshold)
@@ -660,33 +660,49 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
             peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i]]
 
         # fit exponential to last peak/trough:
+        pi = peak_list[-1]
+        # positive or negative decay:
+        sign = 1.0
+        if np.sum(meod[pi:] < -0.5*threshold) > np.sum(meod[pi:] > 0.5*threshold):
+            sign = -1.0
+        if sign*meod[pi,1] < 0.0:
+            pi += np.argmax(sign*meod[pi:])
+        pi_ampl = np.abs(meod[pi,1])
+        n = len(meod[pi:])
+        # no sufficiently large initial value:
+        if fit_frac and pi_ampl*fit_frac <= 0.5*threshold:
+            fit_frac = False
+        # no sufficiently long decay:
+        if n < 10:
+            fit_frac = False
+        # not decaying towards zero:
+        max_line = pi_ampl - (pi_ampl-threshold)*np.arange(n)/n + 1e-8
+        if np.any(np.abs(meod[pi+2:,1]) > max_line[2:]):
+            fit_frac = False
         if fit_frac:
-            pi = peak_list[-1]
-            if ridx >= len(meod)-1:
-                ridx = len(meod)-1
-            if ridx > pi + 2:
-                sign = 1.0 if meod[pi,1] > meod[ridx,1] else -1.0
-                thresh = meod[ridx,1]*(1.0-fit_frac) + meod[pi,1]*fit_frac
-                inx = pi + np.argmax(sign*meod[pi:ridx,1] < sign*thresh)
-                thresh = meod[ridx,1]*(1.0-np.exp(-1.0)) + meod[inx,1]*np.exp(-1.0)
-                tau_inx = np.argmax(sign*meod[inx:ridx,1] < sign*thresh)
-                if tau_inx < 2:
-                    tau_inx = 2
-                if inx+tau_inx >= len(meod[:,0]):
-                    tau_inx = len(meod[:,0]) - inx
+            thresh = meod[pi,1]*fit_frac
+            inx = pi + np.argmax(sign*meod[pi:,1] < sign*thresh)
+            thresh = meod[inx,1]*np.exp(-1.0)
+            tau_inx = np.argmax(sign*meod[inx:,1] < sign*thresh)
+            if tau_inx < 2:
+                tau_inx = 2
+            rridx = inx + 6*tau_inx
+            if rridx > len(meod)-1:
+                tau = None
+            else:
                 tau = meod[inx+tau_inx,0]-meod[inx,0]
-                rridx = len(meod)-1 if inx + 6*tau_inx >= len(meod) else inx + 6*tau_inx
-                if rridx - inx < 10:
-                    tau = None
-                else:
-                    params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
-                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], params)
-                    if popt[0] > 1.2*tau:
-                        tau_inx = int(np.round(popt[0]/dt))
-                        rridx = len(meod)-1 if inx + 6*tau_inx >= len(meod) else inx + 6*tau_inx
-                        popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0], meod[inx:rridx,1], popt)
-                    tau = popt[0]
-                    meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
+                params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
+                popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
+                                       meod[inx:rridx,1], params)
+                if popt[0] > 1.2*tau:
+                    tau_inx = int(np.round(popt[0]/dt))
+                    rridx = inx + 6*tau_inx
+                    if rridx > len(meod)-1:
+                        rridx = len(meod)-1
+                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
+                                           meod[inx:rridx,1], popt)
+                tau = popt[0]
+                meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
