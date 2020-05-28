@@ -639,6 +639,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         props = eod_props[idx]
         peaks = peak_data[idx]
         axeod.set_visible(True)
+        axeod.yaxis.set_major_locator(ticker.MaxNLocator(ny))
         if len(indices) > 1:
             axeod.text(0.3, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
                        transform=axeod.transAxes, fontsize=14)
@@ -663,7 +664,6 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                            label=p[pk].get_label(), transform=axeod.transAxes)
             axeod.add_line(ma)
         plot_eod_waveform(axeod, mean_eod, props, peaks, unit)
-        axeod.yaxis.set_major_locator(ticker.MaxNLocator(ny))
         if len(indices) > 2 and k < 2:
             axeod.set_xlabel('')
         axeod.format_coord = meaneod_format_coord

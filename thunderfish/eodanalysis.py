@@ -663,10 +663,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         pi = peak_list[-1]
         # positive or negative decay:
         sign = 1.0
-        if np.sum(meod[pi:] < -0.5*threshold) > np.sum(meod[pi:] > 0.5*threshold):
+        if np.sum(meod[pi:,1] < -0.5*threshold) > np.sum(meod[pi:,1] > 0.5*threshold):
             sign = -1.0
         if sign*meod[pi,1] < 0.0:
-            pi += np.argmax(sign*meod[pi:])
+            pi += np.argmax(sign*meod[pi:,1])
         pi_ampl = np.abs(meod[pi,1])
         n = len(meod[pi:])
         # no sufficiently large initial value:
@@ -1117,24 +1117,29 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
             ax.autoscale(False)
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
                         zorder=1, **skwargs)
+    # ax height dimensions:
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    ymin, ymax = ax.get_ylim()
+    unity = ymax - ymin
+    dyu = np.abs(unity)/pixely
+    font_size = plt.rcParams['font.size']*dyu
     # annotate fit:
     tau = props['tau'] if 'tau' in props else None
+    ty = 0.0
     if tau is not None and eod_waveform.shape[1] > 3:
         if tau < 0.001:
             label = u'\u03c4=%.0f\u00b5s' % (1.e6*tau)
         else:
             label = u'\u03c4=%.2fms' % (1.e3*tau)
         inx = np.argmin(np.isnan(eod_waveform[:,3]))
-        x = eod_waveform[inx,0] + tau
-        y = 0.7*eod_waveform[inx,3]
-        maxa = np.max(np.abs(mean_eod))
-        if np.abs(y) < 0.07*maxa:
-            y = -0.07*maxa*np.sign(y)
-        va = 'bottom' if y > 0.0 else 'top'
-        ax.text(1000.0*x, y, label, ha='left', va=va, zorder=10)
+        x = eod_waveform[inx,0] + 1.5*tau
+        ty = 0.7*eod_waveform[inx,3]
+        if np.abs(ty) < 0.5*font_size:
+            ty = 0.5*font_size*np.sign(ty)
+        va = 'bottom' if ty > 0.0 else 'top'
+        ax.text(1000.0*x, ty, label, ha='left', va=va, zorder=10)
     # annotate peaks:
     if peaks is not None and len(peaks)>0:
-        maxa = np.max(peaks[:,2])
         for p in peaks:
             ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False, zorder=4, alpha=0.4,
                        c=mkwargs['color'], edgecolors=mkwargs['color'])
@@ -1145,20 +1150,28 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
                 else:
                     label += u'(%.0f%% @ %.2gms)' % (100.0*p[3], 1.0e3*p[1])
             va = 'bottom'
-            y = 0.02*maxa
+            dy = 0.4*font_size
             if p[0] % 2 == 0:
                 va = 'top'
-                y = -y
-            if p[0] == 1 or p[0] == 2:
+                dy = -dy
+            if p[0] == 1:
+                dy = 0.0
+            """
+            if p[2] <= np.min(peaks[:,2]):
+                dy = -0.8*font_size
                 va = 'bottom'
-                y = 0.0
+            """
+            if p[2] + dy < ymin + 1.3*font_size:
+                dy = ymin + 1.3*font_size - p[2]
+            sign = np.sign(p[2])
+            if p[0] == np.max(peaks[:,0]) and ty*p[2] > 0.0 and \
+               sign*p[2]+dy < sign*ty+1.2*font_size:
+                dy = ty + sign*1.2*font_size - p[2]
             dx = 0.05*time[-1]
             if p[1] >= 0.0:
-                ax.text(1000.0*p[1]+dx, p[2]+y, label, ha='left', va=va,
-                        zorder=10)
+                ax.text(1000.0*p[1]+dx, p[2]+dy, label, ha='left', va=va, zorder=10)
             else:
-                ax.text(1000.0*p[1]-dx, p[2]+y, label, ha='right', va=va,
-                        zorder=10)
+                ax.text(1000.0*p[1]-dx, p[2]+dy, label, ha='right', va=va, zorder=10)
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
