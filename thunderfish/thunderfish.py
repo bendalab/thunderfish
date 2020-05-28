@@ -160,7 +160,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
         Reasons, why an EOD was discarded.
     """
     # detect pulse fish:
-    _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
 
     """
     # check pulse fish:
@@ -223,7 +223,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # analyse eod waveform of pulse-fish:
     min_freq_res = cfg.value('frequencyResolution')
 
-    for k, (eod_ts, eod_pts, unreliability) in enumerate(zip(eod_times, eod_peaktimes, pulse_unreliabilities)):
+    for k, (eod_ts, eod_pts) in enumerate(zip(eod_times, eod_peaktimes)):
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
@@ -837,6 +837,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
                 mpdf.savefig(fig)
         if mpdf is not None:
             mpdf.close()
+print('CLOSING PLOTS')
 plt.close()
 
 
@@ -925,7 +926,9 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
                 multi_pdf.savefig(fig)
             else:
                 # save figure as pdf:
+                print('SAVING PLOT')
                 fig.savefig(output_basename + '.pdf')
+                plt.close('all')
             if len(save_subplots) > 0:
                 plot_eod_subplots(output_basename, save_subplots,
                                   raw_data, samplerate, idx0, idx1, clipped,

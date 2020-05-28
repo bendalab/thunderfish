@@ -42,7 +42,7 @@ if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
 
-def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, threshold_factor=2, verbose=0, plot_steps=False, **cluster_kwargs):
+def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, threshold_factor=1, verbose=0, plot_steps=True, **cluster_kwargs):
     """ Extract and cluster pulse fish EODs from recording.
     
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
@@ -93,6 +93,12 @@ def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, thresho
         # merge peak and trough clusters
         clusters, x_merge = merge_clusters(peak_clusters, trough_clusters, x_peak, x_trough, verbose-1)
 
+        if plot_steps:
+            # extract mean eods
+            mean_eods, eod_times, eod_peaktimes, eod_unreliability = find_window(i_data, x_merge, x_peak, eod_widths,
+                                                              clusters, i_samplerate, verbose-1)
+            plot_all(data, eod_times, samplerate, mean_eods, eod_unreliability)
+
             
         # delete the moving fish
         clusters, zoom_window = delete_moving_fish(clusters, x_merge/i_samplerate, len(data)/samplerate,
@@ -105,10 +111,10 @@ def extract_pulsefish(data, samplerate, peakwidth=0.002, cutwidth=0.001, thresho
         if plot_steps:
             plot_all(data, eod_times, samplerate, mean_eods, eod_unreliability)
     
-    return mean_eods, eod_times, eod_peaktimes, eod_unreliability, zoom_window
+    return mean_eods, eod_times, eod_peaktimes, zoom_window
 
 
-def extract_eod_times(data, samplerate, peakwidth, cutwidth, threshold_factor=1,verbose=0,plot_steps=False,interp_freq=500000):
+def extract_eod_times(data, samplerate, peakwidth, cutwidth, threshold_factor=1,verbose=0,plot_steps=True,interp_freq=500000):
     """ Extract peaks from data which are potentially EODs.
 
     Parameters
@@ -144,12 +150,31 @@ def extract_eod_times(data, samplerate, peakwidth, cutwidth, threshold_factor=1,
     orig_x_peaks = np.zeros(int(samplerate*interp_f))
 
     factor=0.01
+    threshold_factor=0.1
+    # -> determine threshold by: compute fft on whole snippet
+    # -> the power in the high frequency is the noise floor.
+
+    #fft = np.fft.fft(data)
+    #cut_fft = int(len(fft)/2)
+    #fft = np.abs(fft[:cut_fft])
+    #x = np.linspace(0,interp_freq/2,cut_fft)
+    #threshold = np.sum(fft[:int(len(fft/2))][-:])
+
+    #plt.figure()
+    #plt.plot(x,fft)
+    #plt.show()
+
+    #print('threshold estimate by fft')
+    #threshold = np.sum(fft[-int((1/5)*len(fft)):])/((1/5)*(1/2)*interp_freq)/8
+    #print(threshold)
 
     while len(orig_x_peaks)>len(data)*factor: 
+        print('previous thresh estimate')
         threshold = (np.mean(np.abs(data)))*threshold_factor
+        print(threshold)    
         orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
         threshold_factor = threshold_factor*2
-
+    
     if len(orig_x_peaks)==0 or len(orig_x_peaks)>samplerate:
         if verbose>0:
             print('No peaks detected.')
@@ -254,7 +279,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, interp_f,
 
     hight_labels = np.ones(eod_hights.shape)
     
-    if ((np.max(eod_hights) - np.min(eod_hights))/np.max(eod_hights)) > 0.25:
+    if ((np.max(eod_hights) - np.min(eod_hights))/np.max(eod_hights)) > 0.25 and len(eod_hights) >= n_gaus:
 
         # classify by height
         BGM_model = BayesianGaussianMixture(n_gaus, max_iter=max_iter, n_init=n_init)
@@ -262,8 +287,9 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, interp_f,
         
         if plot_steps:
             plt.figure()
+            plt.subplot(1,3,1)
             plt.hist(eod_hights)
-            plt.figure()
+            plt.subplot(1,3,2)
             for h in np.unique(hight_labels):
                 plt.hist(eod_hights[hight_labels==h])
 
@@ -327,7 +353,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, interp_f,
                     hight_labels[hight_labels!=hight_label] = np.max(hight_labels) + 1
         '''
         if plot_steps:
-            plt.figure()
+            plt.subplot(1,3,3)
             for h in np.unique(hight_labels):
                 plt.hist(eod_hights[hight_labels==h])
 
@@ -457,7 +483,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, interp_f,
         [print('N_{} = {:>4}'.format(int(l),len(labels[labels==l]))) for l in np.unique(labels[labels!=-1])]
 
     # remove double detections
-    labels = remove_double_detections(labels,eod_widths,eod_x)
+    #labels = remove_double_detections(labels,eod_widths,eod_x)
 
     # remove noise
     labels = remove_noise_and_artefacts(data, eod_x, eod_widths, labels,
@@ -467,7 +493,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, cutwidth, interp_f,
 
     labels = delete_unreliable_fish(labels,eod_widths,eod_x,verbose-1)
 
-    labels = delete_wavefish(data,labels,eod_x,eod_widths)
+    labels = delete_wavefish(data,labels,eod_x,eod_widths,verbose-1)
 
     # re-merge clusters incorrectly separated by hight
     #labels = remerge(labels,snippets)
@@ -581,7 +607,7 @@ def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose):
     return clusters
 
 
-def delete_wavefish(data, clusters, eod_x, eod_widths, w_factor=8):
+def delete_wavefish(data, clusters, eod_x, eod_widths, verbose=0, w_factor=8):
     for cluster in np.unique(clusters):
         if cluster < 0:
             continue
@@ -591,10 +617,15 @@ def delete_wavefish(data, clusters, eod_x, eod_widths, w_factor=8):
 
         snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_x[current_clusters==cluster]])
         mean_eod = np.mean(snippets, axis=0)
-        pk, tr = detect_peaks(np.pad(mean_eod,(1,1), 'constant'),
-                              0.25*(np.max(mean_eod)-np.min(mean_eod)))
+        
+        pk, tr = detect_peaks(np.pad(mean_eod-np.mean(mean_eod),(1,1), 'constant'), 0.5*(np.max(mean_eod)-np.min(mean_eod)))
 
-        if len(pk) + len(tr)>4:
+        pk = pk[(pk>0)&(pk<len(mean_eod))]
+        tr = tr[(tr>0)&(tr<len(mean_eod))]
+
+        if len(pk) + len(tr)>5:
+            if verbose>0:
+                print('Deleting cluster %i, which is a wavefish'%cluster)
             clusters[clusters==cluster] = -1
     return clusters
 
@@ -671,7 +702,10 @@ def remove_noise_and_artefacts(data, eod_x, eod_widths, clusters, original_cutwi
 
             mean_eod = np.mean(snippets, axis=0)
             eod_std = np.std(snippets, axis=0)
-            noise_ratio = np.mean(np.abs(mean_eod)/np.mean(np.abs(np.diff(snippets,axis=0)),axis=0))
+
+            b = np.mean(np.abs(np.diff(snippets,axis=0)),axis=0)
+            a = np.abs(mean_eod)
+            noise_ratio = np.mean(np.divide(a,b, out=np.zeros_like(a),where=b!=0))
             noise_ratio2 = np.var(mean_eod)/(np.mean(eod_std))
             noise_ratio3 = np.mean(stats.sem(snippets,axis=0))#/np.mean(eod_std)
 

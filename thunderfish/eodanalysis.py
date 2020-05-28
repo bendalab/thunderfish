@@ -588,7 +588,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     thl_min = np.min(meod[:n,1])
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
+
+
     min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
+    
     # XXX this is kind of important for having a succesful fit!
     # XXX but it removes too many pulses!
     if min_thresh > 0.5*(max_ampl + min_ampl):
@@ -629,6 +632,14 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
+
+    if len(peak_idx)==0:
+        peak_idx, trough_idx = detect_peaks(meod[:,1], threshold/2)
+
+    plt.figure()
+    plt.plot(meod[:,1])
+    plt.plot(peak_idx,meod[peak_idx,1],'o')
+    plt.plot(trough_idx,meod[trough_idx,1],'o')
     
     if len(peak_idx) > 0:
         # and their width:
