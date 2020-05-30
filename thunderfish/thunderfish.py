@@ -417,9 +417,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
 
     This output contains the raw trace where the analysis window is
     marked, the power-spectrum of this analysis window where the
-    detected fish are marked, a mean EOD plot, a histogram of the inter
-    EOD interval and further information about the recording that is
-    analysed.
+    detected fish are marked, plots of averaged EOD plots, and
+    spectra of the EOD waveforms.
 
     Parameters
     ----------
@@ -815,9 +814,9 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
                 transform=axeod.transAxes, ha='center', va='center')
         axes_style(ax)
         fig.savefig(base_name + '-psd.pdf')
-    if 'm' in subplots or 'M' in subplots:
+    if 'w' in subplots or 'W' in subplots:
         mpdf = None
-        if 'M' in subplots:
+        if 'W' in subplots:
             mpdf = PdfPages(base_name + '-waveforms.pdf')
         for meod, props, peaks in zip(mean_eods, eod_props, peak_data):
             fig, ax = plt.subplots(figsize=(5, 3))
@@ -832,36 +831,59 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
                 mpdf.savefig(fig)
         if mpdf is not None:
             mpdf.close()
-    if 's' in subplots:
-        fig, ax = plt.subplots(figsize=(5, 3))
-        ax.text(0.5, 0.5, 'not implemented yet',
-                transform=axeod.transAxes, ha='center', va='center')
-        axes_style(ax)
-        fig.savefig(base_name + '-spectrum.pdf')
+    if 's' in subplots or 'S' in subplots:
+        mpdf = None
+        if 'S' in subplots:
+            mpdf = PdfPages(base_name + '-spectrum.pdf')
+        for props, peaks, spec in zip(eod_props, peak_data, spec_data):
+            if props['type'] == 'pulse':
+                fig, ax = plt.subplots(figsize=(5, 3.5))
+                fig.subplots_adjust(left=0.15, right=0.967, bottom=0.16, top=0.88)
+                axes_style(ax)
+                ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
+                plot_pulse_spectrum(ax, spec, props)
+            else:
+                fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 3.5))
+                fig.subplots_adjust(left=0.15, right=0.97, bottom=0.16, top=0.88, hspace=0.4)
+                axes_style(ax1)
+                axes_style(ax2)
+                ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.15)
+                plot_wave_spectrum(ax1, ax2, spec, props, unit)
+                ax1.set_xticklabels([])
+                ax1.yaxis.set_major_locator(ticker.MaxNLocator(4))
+            if mpdf is None:
+                fig.savefig(base_name + '-spectrum-%d.pdf' % props['index'])
+            else:
+                mpdf.savefig(fig)
+        if mpdf is not None:
+            mpdf.close()
     if 'e' in subplots or 'E' in subplots:
         mpdf = None
         if 'E' in subplots:
             mpdf = PdfPages(base_name + '-eods.pdf')
-        for meod, props, peaks in zip(mean_eods, eod_props, peak_data):
-            fig = plt.figure(figsize=(10, 3))
-            gs = gridspec.GridSpec(nrows=2, ncols=2,
-                                   left=0.09, right=0.98,
-                                   bottom=0.15, top=0.9, hspace=0.3)
+        for meod, props, peaks, spec in zip(mean_eods, eod_props, peak_data, spec_data):
+            fig = plt.figure(figsize=(10, 3.5))
+            gs = gridspec.GridSpec(nrows=2, ncols=2, left=0.09, right=0.98,
+                                   bottom=0.16, top=0.88, wspace=0.4, hspace=0.4)
             ax1 = fig.add_subplot(gs[:,0])
-            ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
+            ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
             plot_eod_waveform(ax1, meod, props, peaks, unit)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax1)
-            if props['type'] == 'wave':
+            if props['type'] == 'pulse':
+                ax2 = fig.add_subplot(gs[:,1])
+                axes_style(ax2)
+                plot_pulse_spectrum(ax2, spec, props)
+                ax2.set_title('Single pulse spectrum', y=1.07)
+            else:
                 ax2 = fig.add_subplot(gs[0,1])
                 ax3 = fig.add_subplot(gs[1,1])
                 axes_style(ax2)
                 axes_style(ax3)
-            else:
-                ax2 = fig.add_subplot(gs[:,1])
-                axes_style(ax2)
-            ax2.text(0.5, 0.5, 'spectrum not implemented yet',
-                     transform=ax2.transAxes, ha='center', va='center')
+                plot_wave_spectrum(ax2, ax3, spec, props, unit)
+                ax2.set_title('Amplitude and phase spectrum', y=1.15)
+                ax2.set_xticklabels([])
+                ax2.yaxis.set_major_locator(ticker.MaxNLocator(4))
             if mpdf is None:
                 fig.savefig(base_name + '-eod-%d.pdf' % props['index'])
             else:
@@ -1011,7 +1033,7 @@ def main():
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot of each recording as pdf file')
     parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpmse',
-                        help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, m) mean EOD waveform, s) EOD spectrum, e) EOD waveform and spectra')
+                        help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected fish')
     parser.add_argument('-m', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
                         help='save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.')
     parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
