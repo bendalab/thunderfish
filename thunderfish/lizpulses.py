@@ -151,7 +151,23 @@ def extract_eod_times(data, samplerate, peakwidth, cutwidth, threshold_factor=1,
     while len(orig_x_peaks)>len(data)*factor: 
         threshold = (np.mean(np.abs(data)))*threshold_factor
         orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
+        print('manual threshold:', threshold)
         threshold_factor = threshold_factor*2
+
+    # standard deviation of data in small snippets:
+    win_size = 0.001   # XXX make this a parameter
+    win_size_indices = int(win_size * samplerate)
+    stds = [np.std(data[k*win_size_indices:(k+1)*win_size_indices], ddof=1)
+            for k in range(len(data)//win_size_indices)]
+    # the distribution of stds will be a Gaussian with mean given by
+    # the standard deviation of the noise plus a tail introduced by
+    # the EOD pulses. We are interested in the mean standard deviation
+    # of the noise only. Taking the median of the standard deviations
+    # seems to be a good guess.
+    # XXX The factor 6 should be a parameter, i.e. threhsold_factor.
+    threshold = np.median(stds) * 6.0
+    print('median threshold:', threshold)
+    orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
 
     if len(orig_x_peaks)==0 or len(orig_x_peaks)>samplerate:
         if verbose>0:
