@@ -552,7 +552,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     
     ############
 
-    force_both = True
+    force_both = True   # XXX set to True for debugging pulse and wave detection
     
     # plot psd
     wave_colors, wave_markers = colors_markers()
@@ -809,10 +809,37 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
         axes_style(ax)
         fig.savefig(base_name + '-trace.pdf')
     if 'p' in subplots:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.text(0.5, 0.5, 'not implemented yet',
-                transform=axeod.transAxes, ha='center', va='center')
+        fig, ax = plt.subplots(figsize=(10, 5))
+        fig.subplots_adjust(left=0.08, right=0.975, bottom=0.11, top=0.9)
         axes_style(ax)
+        if power_thresh is not None:
+            ax.plot(power_thresh[:,0], decibel(power_thresh[:,1]), '#CCCCCC', lw=1)
+        if len(wave_eodfs) > 0:
+            kwargs = {}
+            if len(wave_eodfs) > 1:
+                title = '%d EOD frequencies' % len(wave_eodfs)
+                kwargs = {'title': title if len(wave_eodfs) > 2 else None }
+                if len(wave_eodfs) > 2:
+                    fig.subplots_adjust(left=0.08, right=0.72, bottom=0.11, top=0.9)
+                    kwargs.update({'bbox_to_anchor': (1.0, 1.1),
+                                   'loc': 'upper left', 'legend_rows': 12})
+                else:
+                    kwargs.update({'bbox_to_anchor': (1.05, 1.1),
+                                   'loc': 'upper right', 'legend_rows': 10})
+            wave_colors, wave_markers = colors_markers()
+            plot_harmonic_groups(ax, wave_eodfs, wave_indices, max_groups=0,
+                                 sort_by_freq=True, label_power=label_power,
+                                 colors=wave_colors, markers=wave_markers,
+                                 frameon=False, **kwargs)
+        plot_decibel_psd(ax, psd_data[0][:,0], psd_data[0][:,1], log_freq=log_freq,
+                         min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
+        if len(wave_eodfs) == 1:
+            ax.get_legend().set_visible(False)
+            label = '%6.1f Hz' % wave_eodfs[0][0, 0]
+            ax.set_title('Powerspectrum: %s' % label, y=1.05)
+        else:
+            ax.set_title('Powerspectrum', y=1.05)
         fig.savefig(base_name + '-psd.pdf')
     if 'w' in subplots or 'W' in subplots:
         mpdf = None
