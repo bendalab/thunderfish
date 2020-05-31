@@ -186,7 +186,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             print('no fundamental frequencies are consistent in all power spectra')
 
     # detect pulse fish:
-    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, psd_data[0], verbose=verbose)
     # XXX example for getting psd input
     # psd_data[0] is 2d numpy array with first column frequency and second column power
     # _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, psd_data[0], verbose=verbose)
@@ -840,7 +840,6 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
                 mpdf.savefig(fig)
         if mpdf is not None:
             mpdf.close()
-print('CLOSING PLOTS')
 plt.close()
 
 

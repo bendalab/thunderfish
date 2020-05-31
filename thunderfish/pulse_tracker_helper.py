@@ -70,9 +70,10 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
                     s_r = np.abs((y-r_side_y)/r_distance)
 
                     # if the slopes are too similar, pick the one where h is max.
-                    #if np.abs(s_l-s_r)/(0.5*s_l+0.5*s_r) < 0.25:
-                    i = np.argmax([abs(y-l_side_y),abs(y-r_side_y)])
-                    iw = np.argmax([s_l,s_r])
+                    if np.abs(s_l-s_r)/(0.5*s_l+0.5*s_r) > 0.25:
+                        iw = np.argmax([s_l,s_r])
+                    else:
+                        iw = np.argmax([abs(y-l_side_y),abs(y-r_side_y)])
 
                     h[...] = [abs(y-l_side_y),abs(y-r_side_y)][iw] #calculated using absolutes in case of for example troughs instead of peaks as main events 
                     w[...] = [l_distance,r_distance][iw]
@@ -206,10 +207,10 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
         if len(x_trough[x_trough==tr]) > 1:
             slopes = hights[x_trough==tr]/widths[x_trough==tr]
 
-            #if (np.max(slopes)!=np.min(slopes)) and (np.abs(np.max(slopes)-np.min(slopes))/(0.5*np.max(slopes)-0.5*np.min(slopes)) > 0.25):
-            keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr]/widths[x_trough==tr])]] = 0
-            #else:
-            #keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
+            if (np.max(slopes)!=np.min(slopes)) and (np.abs(np.max(slopes)-np.min(slopes))/(0.5*np.max(slopes)+0.5*np.min(slopes)) > 0.25):
+                keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr]/widths[x_trough==tr])]] = 0
+            else:
+                keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
 
     if verbose>0:
         print('Number of peaks after discarding connecting peaks:      %5i'%(len(keep_idxs)))

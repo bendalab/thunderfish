@@ -633,13 +633,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
 
-    if len(peak_idx)==0:
-        peak_idx, trough_idx = detect_peaks(meod[:,1], threshold/2)
-
-    plt.figure()
-    plt.plot(meod[:,1])
-    plt.plot(peak_idx,meod[peak_idx,1],'o')
-    plt.plot(trough_idx,meod[trough_idx,1],'o')
+    #if len(peak_idx)==0:
+    #    peak_idx, trough_idx = detect_peaks(meod[:,1], threshold/2)
     
     if len(peak_idx) > 0:
         # and their width:
