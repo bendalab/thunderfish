@@ -1066,12 +1066,48 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         dy = ymax - ymin
         ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
+        
+def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n=10,
+                      kwargs={'zorder': -5, 'scaley': False, 'lw': 0.5, 'color': '#CCCCCC'}):
+    """
+    Plot a few EOD waveform snippets.
 
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes used for plotting.
+    data: 1D ndarray
+        Recorded data from which the snippets are taken.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    tmin: float
+        Start time of each snippet.
+    tmax: float
+        End time of each snippet.
+    eod_times: 1-D array
+        EOD peak times from which a few are selected to be plotted.
+    n: int
+        Number of snippets to be plotted.
+    kwargs: dict
+        Arguments passed on to the plot command for plotting the snippets.
+    """
+    i0 = int(tmin*samplerate)
+    i1 = int(tmax*samplerate)
+    time = 1000.0*np.arange(i0, i1)/samplerate
+    step = len(eod_times)//n
+    if step < 1:
+        step = 1
+    for t in eod_times[n//2::step]:
+        idx = int(np.round(t*samplerate))
+        snippet = data[idx+i0:idx+i1]
+        ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]), **kwargs)
+
+        
 def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
-                      mkwargs={'lw': 2, 'color': 'red'},
-                      skwargs={'color': '#CCCCCC'},
-                      fkwargs={'lw': 6, 'color': 'steelblue'},
-                      zkwargs={'lw': 1, 'color': '#AAAAAA'}):
+                      mkwargs={'zorder': 10, 'lw': 2, 'color': 'red'},
+                      skwargs={'zorder': 5, 'color': '#CCCCCC'},
+                      fkwargs={'zorder': 0, 'lw': 6, 'color': 'steelblue'},
+                      zkwargs={'zorder': -10, 'lw': 1, 'color': '#AAAAAA'}):
     """
     Plot mean EOD, its standard error, and an optional fit to the EOD.
 
@@ -1103,20 +1139,19 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
     ax.autoscale(True)
     time = 1000.0 * eod_waveform[:,0]
     # plot zero line:
-    ax.plot([time[0], time[-1]], [0.0, 0.0], zorder=2, **zkwargs)
+    ax.plot([time[0], time[-1]], [0.0, 0.0], **zkwargs)
     # plot fit:
     if eod_waveform.shape[1] > 3:
-        ax.plot(time, eod_waveform[:,3], zorder=3, **fkwargs)
+        ax.plot(time, eod_waveform[:,3], **fkwargs)
     # plot waveform:
     mean_eod = eod_waveform[:,1]
-    ax.plot(time, mean_eod, zorder=5, **mkwargs)
+    ax.plot(time, mean_eod, **mkwargs)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
         std_eod = eod_waveform[:,2]
         if np.mean(std_eod)/(np.max(mean_eod) - np.min(mean_eod)) > 0.1:
             ax.autoscale(False)
-        ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
-                        zorder=1, **skwargs)
+        ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod, **skwargs)
     # ax height dimensions:
     pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
     ymin, ymax = ax.get_ylim()
@@ -1137,11 +1172,11 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
         if np.abs(ty) < 0.5*font_size:
             ty = 0.5*font_size*np.sign(ty)
         va = 'bottom' if ty > 0.0 else 'top'
-        ax.text(1000.0*x, ty, label, ha='left', va=va, zorder=10)
+        ax.text(1000.0*x, ty, label, ha='left', va=va, zorder=20)
     # annotate peaks:
     if peaks is not None and len(peaks)>0:
         for p in peaks:
-            ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False, zorder=4, alpha=0.4,
+            ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False, zorder=0, alpha=0.4,
                        c=mkwargs['color'], edgecolors=mkwargs['color'])
             label = u'P%d' % p[0]
             if p[0] != 1:
@@ -1169,9 +1204,9 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
                 dy = ty + sign*1.2*font_size - p[2]
             dx = 0.05*time[-1]
             if p[1] >= 0.0:
-                ax.text(1000.0*p[1]+dx, p[2]+dy, label, ha='left', va=va, zorder=10)
+                ax.text(1000.0*p[1]+dx, p[2]+dy, label, ha='left', va=va, zorder=20)
             else:
-                ax.text(1000.0*p[1]-dx, p[2]+dy, label, ha='right', va=va, zorder=10)
+                ax.text(1000.0*p[1]-dx, p[2]+dy, label, ha='right', va=va, zorder=20)
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''

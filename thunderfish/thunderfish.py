@@ -37,7 +37,8 @@ from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection
 from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
 from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
-from .eodanalysis import plot_eod_recording, plot_pulse_eods, plot_eod_waveform
+from .eodanalysis import plot_eod_recording, plot_pulse_eods
+from .eodanalysis import plot_eod_waveform, plot_eod_snippets
 from .eodanalysis import plot_pulse_spectrum, plot_wave_spectrum
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
@@ -553,6 +554,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     ############
 
     force_both = True   # XXX set to True for debugging pulse and wave detection
+
+    # best window data:
+    data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
     
     # plot psd
     wave_colors, wave_markers = colors_markers()
@@ -616,10 +620,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                 else:
                     width = 10.0/eod_props[indices[0]]['EODf']
             width = (1+width//0.005)*0.005
-        rdata = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-
-        plot_eod_recording(ax2, rdata, samplerate, width, unit, idx0/samplerate)
-        plot_pulse_eods(ax2, rdata, samplerate, zoom_window, width, eod_props, idx0/samplerate,
+        plot_eod_recording(ax2, data, samplerate, width, unit, idx0/samplerate)
+        plot_pulse_eods(ax2, data, samplerate, zoom_window, width, eod_props, idx0/samplerate,
                         colors=pulse_colors, markers=pulse_markers)
 
         ax2.set_title('Recording', fontsize=14, y=1.05)
@@ -685,6 +687,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                            label=p[pk].get_label(), transform=axeod.transAxes)
             axeod.add_line(ma)
         plot_eod_waveform(axeod, mean_eod, props, peaks, unit)
+        if props['type'] == 'pulse':
+            plot_eod_snippets(axeod, data, samplerate, mean_eod[0,0], mean_eod[-1,0],
+                              props['peaktimes'])
         if len(indices) > 2 and k < 2:
             axeod.set_xlabel('')
         axeod.format_coord = meaneod_format_coord
