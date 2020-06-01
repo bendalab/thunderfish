@@ -494,7 +494,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         all interpulse intervals. Otherwise only intervals smaller than a certain quantile
         are used.
     ipi_percentile: float
-        When computing the EOD frequency from a subset of the interpulse intervals,
+        When computing the EOD frequency, period, mean and standard deviation of
+        interpulse intervals from a subset of the interpulse intervals,
         only intervals smaller than this percentile (between 0 and 100) are used.
     
     Returns
@@ -507,8 +508,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     props: dict
         A dictionary with properties of the analyzed EOD waveform.
         - type: set to 'pulse'.
-        - EODf: the inverse of the mean interval between `eod_times`.
-        - period: the mean interval between `eod_times`.
+        - EODf: the inverse of the median interval between `eod_times`.
+        - period: the median interval between `eod_times`.
+        - IPI-mean: the mean interval between `eod_times`.
+        - IPI-std: the standard deviation of the intervals between `eod_times`.
         - max-amplitude: the amplitude of the largest positive peak (P1).
         - min-amplitude: the amplitude of the largest negative peak (P2).
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
@@ -733,15 +736,22 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     ipi_cv = np.std(inter_pulse_intervals)/np.mean(inter_pulse_intervals)
     if ipi_cv < ipi_cv_thresh:
         period = np.median(inter_pulse_intervals)
+        ipi_mean = np.mean(inter_pulse_intervals)
+        ipi_std = np.std(inter_pulse_intervals)
     else:
-        period = np.median(inter_pulse_intervals[inter_pulse_intervals <
-                                np.percentile(inter_pulse_intervals, ipi_percentile)])
+        intervals = inter_pulse_intervals[inter_pulse_intervals <
+                                np.percentile(inter_pulse_intervals, ipi_percentile)]
+        period = np.median(intervals)
+        ipi_mean = np.mean(intervals)
+        ipi_std = np.std(intervals)
     
     # store properties:
     props = {}
     props['type'] = 'pulse'
     props['EODf'] = 1.0/period
     props['period'] = period
+    props['IPI-mean'] = ipi_mean
+    props['IPI-std'] = ipi_std
     props['max-amplitude'] = max_ampl
     props['min-amplitude'] = min_ampl
     props['p-p-amplitude'] = ppampl
