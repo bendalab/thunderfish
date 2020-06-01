@@ -1067,7 +1067,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
         
-def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n=10,
+def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10,
                       kwargs={'zorder': -5, 'scaley': False, 'lw': 0.5, 'color': '#CCCCCC'}):
     """
     Plot a few EOD waveform snippets.
@@ -1086,18 +1086,20 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n=10,
         End time of each snippet.
     eod_times: 1-D array
         EOD peak times from which a few are selected to be plotted.
-    n: int
-        Number of snippets to be plotted.
+    n_snippets: int
+        Number of snippets to be plotted. If zero do not plot anything.
     kwargs: dict
         Arguments passed on to the plot command for plotting the snippets.
     """
+    if n_snippets <= 0:
+        return
     i0 = int(tmin*samplerate)
     i1 = int(tmax*samplerate)
     time = 1000.0*np.arange(i0, i1)/samplerate
-    step = len(eod_times)//n
+    step = len(eod_times)//n_snippets
     if step < 1:
         step = 1
-    for t in eod_times[n//2::step]:
+    for t in eod_times[n_snippets//2::step]:
         idx = int(np.round(t*samplerate))
         snippet = data[idx+i0:idx+i1]
         ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]), **kwargs)
