@@ -254,14 +254,36 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             peak_data.append(peaks)
             if verbose > 0:
                 print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
-            # single pulse spectra as threshold for wave fish peaks:
-            p_thresh = 5.0*props['EODf']**2.0 * power[:,1]
+            # threshold for wave fish peaks based on single pulse spectra:
+            
+            # In the time domain a Dirac comb is convolved with the
+            # single pulse waveform.  In Fourier domain this is a
+            # multiplication of a Dirac comb with the single pulse
+            # spectrum. The Fourier transform of a Dirac comp scales
+            # with its fundamental frequency. Thus the power spectrum
+            # should scale with EOD frequency squared.
+            # Emperically, on pulse fish with non-harmonic power spectra,
+            # a scaling with just EOD frequency seems more realistic.
+            p_fac = len(power)/len(psd_data[0])  # equals 1, usually. 
+            p_thresh = p_fac * power[:,1]
+            p_thresh *= props['EODf']**2.0
+            # Expected spectrum for Gaussian jitter of stochastic samples
+            # (from appendix A of Kartic Subr and Jan Kautz: Fourier
+            # Analysis of Stochastic Sampling Strategiesfor Assessing
+            # Bias and Variance in Integration. in  ACM TOG 32(4))
+            #print('STD', props['IPI-std'])
+            # p_thresh *= 1.0 - 2.0*(np.pi*2.0*np.pi*power[:,0]*props['IPI-std'])**2
+            # My theory: Dirac comb convolved with Gaussian jitter:
+            #p_thresh *= np.exp(-0.5*(2.0*np.pi*power[:,0]*props['IPI-std'])**2)
+            # effect of standard deviation much too strong!
+            p_thresh *= 5.0
+            # interpolate to the frequency resolution of psd_data[0]:
+            p_thresh = np.interp(psd_data[0][:,0], power[:,0], p_thresh)
             if power_thresh is None:
-                power_thresh = np.zeros(power.shape)
-                power_thresh[:,0] = power[:,0]
+                power_thresh = np.zeros(psd_data[0].shape)
+                power_thresh[:,0] = psd_data[0][:,0]
                 power_thresh[:,1] = p_thresh
             else:
-                p_thresh = np.interp(power_thresh[:,0], power[:,0], p_thresh)
                 power_thresh[:,1] = np.max(np.vstack((power_thresh[:,1].T, p_thresh)), axis=0)
         else:
             skip_reason += ['%.1fHz pulse fish %s' % (props['EODf'], skips)]

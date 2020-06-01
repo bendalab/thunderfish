@@ -1111,6 +1111,8 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10
         step = 1
     for t in eod_times[n_snippets//2::step]:
         idx = int(np.round(t*samplerate))
+        if idx+i0 < 0 or idx+i1 >= len(data):
+            continue
         snippet = data[idx+i0:idx+i1]
         ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]), **kwargs)
 
