@@ -253,33 +253,6 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             if verbose > 0:
                 print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
             # threshold for wave fish peaks based on single pulse spectra:
-
-            """
-            # In the time domain a Dirac comb is convolved with the
-            # single pulse waveform.  In Fourier domain this is a
-            # multiplication of a Dirac comb with the single pulse
-            # spectrum. The Fourier transform of a Dirac comp scales
-            # with its fundamental frequency. Thus the power spectrum
-            # should scale with EOD frequency squared.
-            # Emperically, on pulse fish with non-harmonic power spectra,
-            # a scaling with just EOD frequency seems more realistic.
-            p_fac = len(power)/len(psd_data[0])  # equals 1, usually. 
-            p_thresh = p_fac * power[:,1]
-            p_thresh *= props['EODf']**2.0
-            # Expected spectrum for Gaussian jitter of stochastic samples
-            # (from appendix A of Kartic Subr and Jan Kautz: Fourier
-            # Analysis of Stochastic Sampling Strategiesfor Assessing
-            # Bias and Variance in Integration. in  ACM TOG 32(4))
-            #print('STD', props['IPI-std'])
-            # p_thresh *= 1.0 - 2.0*(np.pi*2.0*np.pi*power[:,0]*props['IPI-std'])**2
-            # My theory: Dirac comb convolved with Gaussian jitter:
-            #p_thresh *= np.exp(-0.5*(2.0*np.pi*power[:,0]*props['IPI-std'])**2)
-            # effect of standard deviation much too strong!
-            p_thresh *= 5.0
-            # interpolate to the frequency resolution of psd_data[0]:
-            p_thresh = np.interp(psd_data[0][:,0], power[:,0], p_thresh)
-            """
-            # alternative approach: compute power spectrum given the eod times:
             i0 = np.argmin(np.abs(mean_eod[:,0]))
             i1 = len(mean_eod) - i0
             pulse_data = np.zeros(len(data))
@@ -289,15 +262,15 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
                 ii1 = i1 if idx+i1 < len(pulse_data) else len(pulse_data)-1-idx
                 pulse_data[idx-ii0:idx+ii1] = mean_eod[i0-ii0:i0+ii1,1]
             pulse_psd = multi_psd(pulse_data, samplerate, **multi_psd_args(cfg))
-            p_thresh = pulse_psd[0][:,1]
-            p_thresh *= 2.0
+            p_thresh = pulse_psd[0]
+            p_thresh[:,1] *= len(data)/samplerate/props['period']/len(props['peaktimes'])
+            p_thresh[:,1] *= 3.0
                 
             if power_thresh is None:
-                power_thresh = np.zeros(psd_data[0].shape)
-                power_thresh[:,0] = psd_data[0][:,0]
-                power_thresh[:,1] = p_thresh
+                power_thresh = p_thresh
             else:
-                power_thresh[:,1] = np.max(np.vstack((power_thresh[:,1].T, p_thresh)), axis=0)
+                power_thresh[:,1] = np.max(np.vstack((power_thresh[:,1].T, p_thresh[:,1])),
+                                           axis=0)
         else:
             skip_reason += ['%.1fHz pulse fish %s' % (props['EODf'], skips)]
             if verbose > 0:
@@ -307,15 +280,16 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # remove wavefish below pulse fish power:
     if power_thresh is not None:
         n = len(wave_eodfs)
-        maxh = 2
+        maxh = 3
         df = power_thresh[1,0] - power_thresh[0,0]
         for k, fish in enumerate(reversed(wave_eodfs)):
-            hfrac = float(np.sum(fish[:maxh,1] < power_thresh[np.array(fish[:maxh,0]//df, dtype=int),1]))/float(len(fish[:maxh,1]))
-            # XXX make this fraction a config parameter!
-            if hfrac >= 0.3:
-                wave_eodfs.pop(n-1-k)
-                if verbose > 0:
-                    print('skip %6.1fHz wave  fish: %.0f%% of the harmonics are below pulsefish threshold' % (fish[0,0], 100.0*hfrac))        
+            idx = np.array(fish[:maxh,0]//df, dtype=int)
+            for offs in range(-2, 3):
+                if np.any(fish[:maxh,1] < power_thresh[idx+offs,1]):
+                    wave_eodfs.pop(n-1-k)
+                    if verbose > 0:
+                        print('skip %6.1fHz wave  fish: some harmonics are below pulsefish threshold' % fish[0,0])
+                    break
 
     # analyse EOD waveform of all wavefish:
     powers = np.array([np.sum(fish[:, 1]) for fish in wave_eodfs])
