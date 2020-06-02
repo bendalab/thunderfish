@@ -188,8 +188,6 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
 
     # detect pulse fish:
     _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
-    # psd_data[0] is 2d numpy array with first column frequency and second column power
-    # _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, psd_data[0], verbose=verbose)
 
     """
     # check pulse fish:
@@ -255,7 +253,8 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             if verbose > 0:
                 print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
             # threshold for wave fish peaks based on single pulse spectra:
-            
+
+            """
             # In the time domain a Dirac comb is convolved with the
             # single pulse waveform.  In Fourier domain this is a
             # multiplication of a Dirac comb with the single pulse
@@ -279,6 +278,20 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             p_thresh *= 5.0
             # interpolate to the frequency resolution of psd_data[0]:
             p_thresh = np.interp(psd_data[0][:,0], power[:,0], p_thresh)
+            """
+            # alternative approach: compute power spectrum given the eod times:
+            i0 = np.argmin(np.abs(mean_eod[:,0]))
+            i1 = len(mean_eod) - i0
+            pulse_data = np.zeros(len(data))
+            for t in props['peaktimes']:
+                idx = int(t*samplerate)
+                ii0 = i0 if idx-i0 >= 0 else idx
+                ii1 = i1 if idx+i1 < len(pulse_data) else len(pulse_data)-1-idx
+                pulse_data[idx-ii0:idx+ii1] = mean_eod[i0-ii0:i0+ii1,1]
+            pulse_psd = multi_psd(pulse_data, samplerate, **multi_psd_args(cfg))
+            p_thresh = pulse_psd[0][:,1]
+            p_thresh *= 2.0
+                
             if power_thresh is None:
                 power_thresh = np.zeros(psd_data[0].shape)
                 power_thresh[:,0] = psd_data[0][:,0]
@@ -457,8 +470,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         Index of the end of the analysis window in the dataset.
     clipped: float
         Fraction of clipped amplitudes.
-    psd_data: array
-        Power spectrum of the analysed data for different frequency resolutions.
+    psd_data: 2D array
+        Power spectrum (frequencies and power) of the analysed data.
     wave_eodfs: array
         Frequency and power of fundamental frequency/harmonics of several fish.
     wave_indices: array of int
@@ -610,7 +623,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                                  sort_by_freq=True, label_power=label_power,
                                  colors=wave_colors, markers=wave_markers,
                                  frameon=False, **kwargs)
-        plot_decibel_psd(ax3, psd_data[0][:,0], psd_data[0][:,1], log_freq=log_freq,
+        plot_decibel_psd(ax3, psd_data[:,0], psd_data[:,1], log_freq=log_freq,
                          min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
         ax3.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
@@ -788,8 +801,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
         Index of the end of the analysis window in the dataset.
     clipped: float
         Fraction of clipped amplitudes.
-    psd_data: array
-        Power spectrum of the analysed data for different frequency resolutions.
+    psd_data: 2D array
+        Power spectrum (frequencies and power) of the analysed data.
     wave_eodfs: array
         Frequency and power of fundamental frequency/harmonics of several fish.
     wave_indices: array of int
@@ -862,7 +875,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
                                  sort_by_freq=True, label_power=label_power,
                                  colors=wave_colors, markers=wave_markers,
                                  frameon=False, **kwargs)
-        plot_decibel_psd(ax, psd_data[0][:,0], psd_data[0][:,1], log_freq=log_freq,
+        plot_decibel_psd(ax, psd_data[:,0], psd_data[:,1], log_freq=log_freq,
                          min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
         ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
@@ -1037,7 +1050,7 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
             log_freq = False
         n_snippets = 10
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
-                        psd_data, wave_eodfs, wave_indices, mean_eods, eod_props,
+                        psd_data[0], wave_eodfs, wave_indices, mean_eods, eod_props,
                         peak_data, spec_data, None, unit, zoom_window, n_snippets,
                         power_thresh, True, log_freq, min_freq, max_freq,
                         interactive=not save_data, verbose=verbose)
@@ -1049,8 +1062,8 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
                 fig.savefig(output_basename + '.pdf')
             if len(save_subplots) > 0:
                 plot_eod_subplots(output_basename, save_subplots,
-                                  raw_data, samplerate, idx0, idx1, clipped,
-                                  psd_data, wave_eodfs, wave_indices, mean_eods, eod_props,
+                                  raw_data, samplerate, idx0, idx1, clipped, psd_data[0],
+                                  wave_eodfs, wave_indices, mean_eods, eod_props,
                                   peak_data, spec_data, unit, zoom_window, n_snippets,
                                   power_thresh, True, log_freq, min_freq, max_freq)
         elif not save_data:
