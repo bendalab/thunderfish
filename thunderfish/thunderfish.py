@@ -113,7 +113,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     return cfg
 
 
-def detect_eods(data, samplerate, clipped, name, verbose, cfg):
+def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
     """ Detect EODs of all fish present in the data.
 
     Parameters
@@ -186,7 +186,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             print('no fundamental frequencies are consistent in all power spectra')
 
     # detect pulse fish:
-    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, psd_data[0], verbose=verbose)
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
     # XXX example for getting psd input
     # psd_data[0] is 2d numpy array with first column frequency and second column power
     # _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, psd_data[0], verbose=verbose)
@@ -387,7 +387,28 @@ def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
         if verbose > 0 and fp:
             print('wrote file %s' % fp)
 
-                            
+
+def plot_style():
+    """ Set style of plots.
+    """
+    plt.rcParams['axes.facecolor'] = 'none'
+    plt.rcParams['xtick.direction'] = 'out'
+    plt.rcParams['ytick.direction'] = 'out'
+
+
+def axes_style(ax):
+    """ Fix style of axes.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+    """
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.get_xaxis().tick_bottom()
+    ax.get_yaxis().tick_left()
+
+                                
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
               wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
               indices, unit, zoom_window, psd_data, power_thresh=None, label_power=True,
@@ -397,9 +418,8 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
 
     This output contains the raw trace where the analysis window is
     marked, the power-spectrum of this analysis window where the
-    detected fish are marked, a mean EOD plot, a histogram of the inter
-    EOD interval and further information about the recording that is
-    analysed.
+    detected fish are marked, plots of averaged EOD plots, and
+    spectra of the EOD waveforms.
 
     Parameters
     ----------
@@ -493,6 +513,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     def pulsepsd_format_coord(x, y):
         return 'single pulse power spectrum: x=%.1f Hz, y=%.1f dB' % (x, y)
 
+    plot_style()
     fig = plt.figure(facecolor='white', figsize=(14., 10.))
     if interactive:
         fig.canvas.mpl_connect('key_press_event', keypress)
@@ -532,7 +553,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     
     ############
 
-    force_both = True
+    force_both = True   # XXX set to True for debugging pulse and wave detection
     
     # plot psd
     wave_colors, wave_markers = colors_markers()
@@ -640,6 +661,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         props = eod_props[idx]
         peaks = peak_data[idx]
         axeod.set_visible(True)
+        axeod.yaxis.set_major_locator(ticker.MaxNLocator(ny))
         if len(indices) > 1:
             axeod.text(0.3, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
                        transform=axeod.transAxes, fontsize=14)
@@ -664,7 +686,6 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                            label=p[pk].get_label(), transform=axeod.transAxes)
             axeod.add_line(ma)
         plot_eod_waveform(axeod, mean_eod, props, peaks, unit)
-        axeod.yaxis.set_major_locator(ticker.MaxNLocator(ny))
         if len(indices) > 2 and k < 2:
             axeod.set_xlabel('')
         axeod.format_coord = meaneod_format_coord
@@ -700,10 +721,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
             
     # cosmetics
     for ax in [ax2, ax3, ax4, ax5, ax6, ax7, ax8]:
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-        ax.get_xaxis().tick_bottom()
-        ax.get_yaxis().tick_left()
+        axes_style(ax)
 
     # remove invisible axes:
     for ax in [ax2, ax3, ax4, ax5, ax6, ax7]:
@@ -777,25 +795,56 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
         are set to `(min_freq, max_freq)` and limits of power axis are computed
         from powers below max_freq if `max_freq` is greater than zero
     """
+    plot_style()
     if 'r' in subplots:
         fig, ax = plt.subplots(figsize=(10, 2))
         fig.subplots_adjust(left=0.07, right=0.99, bottom=0.22, top=0.95)
         plot_best_data(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
         ax.yaxis.set_major_locator(ticker.MaxNLocator(5))
+        axes_style(ax)
         fig.savefig(base_name + '-recording.pdf')
     if 't' in subplots:
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.text(0.5, 0.5, 'not implemented yet',
                 transform=axeod.transAxes, ha='center', va='center')
+        axes_style(ax)
         fig.savefig(base_name + '-trace.pdf')
     if 'p' in subplots:
-        fig, ax = plt.subplots(figsize=(10, 6))
-        ax.text(0.5, 0.5, 'not implemented yet',
-                transform=axeod.transAxes, ha='center', va='center')
+        fig, ax = plt.subplots(figsize=(10, 5))
+        fig.subplots_adjust(left=0.08, right=0.975, bottom=0.11, top=0.9)
+        axes_style(ax)
+        if power_thresh is not None:
+            ax.plot(power_thresh[:,0], decibel(power_thresh[:,1]), '#CCCCCC', lw=1)
+        if len(wave_eodfs) > 0:
+            kwargs = {}
+            if len(wave_eodfs) > 1:
+                title = '%d EOD frequencies' % len(wave_eodfs)
+                kwargs = {'title': title if len(wave_eodfs) > 2 else None }
+                if len(wave_eodfs) > 2:
+                    fig.subplots_adjust(left=0.08, right=0.72, bottom=0.11, top=0.9)
+                    kwargs.update({'bbox_to_anchor': (1.0, 1.1),
+                                   'loc': 'upper left', 'legend_rows': 12})
+                else:
+                    kwargs.update({'bbox_to_anchor': (1.05, 1.1),
+                                   'loc': 'upper right', 'legend_rows': 10})
+            wave_colors, wave_markers = colors_markers()
+            plot_harmonic_groups(ax, wave_eodfs, wave_indices, max_groups=0,
+                                 sort_by_freq=True, label_power=label_power,
+                                 colors=wave_colors, markers=wave_markers,
+                                 frameon=False, **kwargs)
+        plot_decibel_psd(ax, psd_data[0][:,0], psd_data[0][:,1], log_freq=log_freq,
+                         min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
+        if len(wave_eodfs) == 1:
+            ax.get_legend().set_visible(False)
+            label = '%6.1f Hz' % wave_eodfs[0][0, 0]
+            ax.set_title('Powerspectrum: %s' % label, y=1.05)
+        else:
+            ax.set_title('Powerspectrum', y=1.05)
         fig.savefig(base_name + '-psd.pdf')
-    if 'm' in subplots or 'M' in subplots:
+    if 'w' in subplots or 'W' in subplots:
         mpdf = None
-        if 'M' in subplots:
+        if 'W' in subplots:
             mpdf = PdfPages(base_name + '-waveforms.pdf')
         for meod, props, peaks in zip(mean_eods, eod_props, peak_data):
             fig, ax = plt.subplots(figsize=(5, 3))
@@ -803,44 +852,73 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
             ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
             plot_eod_waveform(ax, meod, props, peaks, unit)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
+            axes_style(ax)
             if mpdf is None:
                 fig.savefig(base_name + '-waveform-%d.pdf' % props['index'])
             else:
                 mpdf.savefig(fig)
         if mpdf is not None:
             mpdf.close()
-    if 's' in subplots:
-        fig, ax = plt.subplots(figsize=(5, 3))
-        ax.text(0.5, 0.5, 'not implemented yet',
-                transform=axeod.transAxes, ha='center', va='center')
-        fig.savefig(base_name + '-spectrum.pdf')
+    if 's' in subplots or 'S' in subplots:
+        mpdf = None
+        if 'S' in subplots:
+            mpdf = PdfPages(base_name + '-spectrum.pdf')
+        for props, peaks, spec in zip(eod_props, peak_data, spec_data):
+            if props['type'] == 'pulse':
+                fig, ax = plt.subplots(figsize=(5, 3.5))
+                fig.subplots_adjust(left=0.15, right=0.967, bottom=0.16, top=0.88)
+                axes_style(ax)
+                ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
+                plot_pulse_spectrum(ax, spec, props)
+            else:
+                fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 3.5))
+                fig.subplots_adjust(left=0.15, right=0.97, bottom=0.16, top=0.88, hspace=0.4)
+                axes_style(ax1)
+                axes_style(ax2)
+                ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.15)
+                plot_wave_spectrum(ax1, ax2, spec, props, unit)
+                ax1.set_xticklabels([])
+                ax1.yaxis.set_major_locator(ticker.MaxNLocator(4))
+            if mpdf is None:
+                fig.savefig(base_name + '-spectrum-%d.pdf' % props['index'])
+            else:
+                mpdf.savefig(fig)
+        if mpdf is not None:
+            mpdf.close()
     if 'e' in subplots or 'E' in subplots:
         mpdf = None
         if 'E' in subplots:
             mpdf = PdfPages(base_name + '-eods.pdf')
-        for meod, props, peaks in zip(mean_eods, eod_props, peak_data):
-            fig = plt.figure(figsize=(10, 3))
-            gs = gridspec.GridSpec(nrows=2, ncols=2,
-                                   left=0.09, right=0.98,
-                                   bottom=0.15, top=0.9, hspace=0.3)
+        for meod, props, peaks, spec in zip(mean_eods, eod_props, peak_data, spec_data):
+            fig = plt.figure(figsize=(10, 3.5))
+            gs = gridspec.GridSpec(nrows=2, ncols=2, left=0.09, right=0.98,
+                                   bottom=0.16, top=0.88, wspace=0.4, hspace=0.4)
             ax1 = fig.add_subplot(gs[:,0])
-            ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
+            ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
             plot_eod_waveform(ax1, meod, props, peaks, unit)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
-            if props['type'] == 'wave':
+            axes_style(ax1)
+            if props['type'] == 'pulse':
+                ax2 = fig.add_subplot(gs[:,1])
+                axes_style(ax2)
+                plot_pulse_spectrum(ax2, spec, props)
+                ax2.set_title('Single pulse spectrum', y=1.07)
+            else:
                 ax2 = fig.add_subplot(gs[0,1])
                 ax3 = fig.add_subplot(gs[1,1])
-            else:
-                ax2 = fig.add_subplot(gs[:,1])
-            ax2.text(0.5, 0.5, 'spectrum not implemented yet',
-                     transform=ax2.transAxes, ha='center', va='center')
+                axes_style(ax2)
+                axes_style(ax3)
+                plot_wave_spectrum(ax2, ax3, spec, props, unit)
+                ax2.set_title('Amplitude and phase spectrum', y=1.15)
+                ax2.set_xticklabels([])
+                ax2.yaxis.set_major_locator(ticker.MaxNLocator(4))
             if mpdf is None:
                 fig.savefig(base_name + '-eod-%d.pdf' % props['index'])
             else:
                 mpdf.savefig(fig)
         if mpdf is not None:
             mpdf.close()
-plt.close()
+    plt.close()
 
 
 def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
@@ -879,7 +957,7 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
     # detect EODs in the data:
     psd_data, wave_eodfs, wave_indices, eod_props, \
     mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-      detect_eods(data, samplerate, clipped, filename, verbose, cfg)
+      detect_eods(data, samplerate, clipped, filename, verbose, cfg,filename)
     if not found_bestwindow:
         wave_eodfs = []
         wave_indices = []
@@ -928,7 +1006,6 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
                 multi_pdf.savefig(fig)
             else:
                 # save figure as pdf:
-                print('SAVING PLOT')
                 fig.savefig(output_basename + '.pdf')
                 plt.close('all')
             if len(save_subplots) > 0:
@@ -985,7 +1062,7 @@ def main():
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot of each recording as pdf file')
     parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpmse',
-                        help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, m) mean EOD waveform, s) EOD spectrum, e) EOD waveform and spectra')
+                        help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected fish')
     parser.add_argument('-m', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
                         help='save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.')
     parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',

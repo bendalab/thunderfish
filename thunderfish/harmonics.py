@@ -82,7 +82,9 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
         This should be in the range of the frequency resolution
         and not be smaller than half of the frequency resolution.
     min_group_size: int
-        Within min_group_size no harmonics are allowed to be filled in.
+        Minimum number of harmonics of a harmonic group.
+        The harmonics from min_group_size/3 to max(min_group_size, divisor)
+        need to be in good_freqs.
     verbose: int
         Verbosity level.
     
@@ -102,7 +104,6 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
     if divisor <= 0:
         divisor = 1
         dvs = False
-    min_start = int(min_group_size//3)
         
     # 1. find harmonics in good_freqs and adjust fzero accordingly:
     fzero = freq
@@ -252,10 +253,11 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
     # 4. check new group:
 
     # all harmonics in min_group_size required:
-    if np.any(new_group[min_start:]<0):
+    n_skip = int(min_group_size//3)
+    if np.any(new_group[n_skip:]<0) and np.any(new_group[:len(new_group)-n_skip]<0):
         if verbose > 0:
-            print('  discarded group because %d harmonics are less than min_group_size of %d! peaks:' %
-                  (np.sum(new_group>=0), min_group_size), new_group)
+            print('  discarded group because %d harmonics are less than min_group_size of %d minus! peaks:' %
+                  (np.sum(new_group>=0), min_group_size), n_skip, new_group)
         return [], -1.0, fzero_harmonics
     new_group = new_group[new_group>=0]
     
@@ -373,7 +375,7 @@ def update_group(good_freqs, all_freqs, new_group, fzero, freq_tol, verbose, gro
 
 
 def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
-                         min_group_size=4, max_divisor=4):
+                         min_group_size=3, max_divisor=4):
     """Find all the harmonics belonging to the largest peak in a list of frequency peaks.
 
     Parameters
@@ -391,7 +393,9 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
     verbose: int
         Verbosity level.
     min_group_size: int
-        Within min_group_size no harmonics are allowed to be filled in.
+        Minimum number of harmonics of a harmonic group.
+        The harmonics from min_group_size/3 to max(min_group_size, divisor)
+        need to be in good_freqs.
     max_divisor: int
         Maximum divisor used for checking for sub-harmonics.
     
@@ -412,11 +416,6 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         The frequency of the largest peak in good_freqs
         for which the harmonic group was detected.
     """
-    # check:
-    if max_divisor > min_group_size:
-        print('max_divisor=%d must not be larger than min_group_size=%d!'
-              % (max_divisor, min_group_size))
-        max_divisor = min_group_size
     # select strongest frequency for building the harmonic group:
     fmaxinx = np.argmax(good_freqs[:,1])
     fmax = good_freqs[fmaxinx,0]
@@ -441,9 +440,10 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         freq = fmax / divisor
         
         # 2. find harmonics in good_freqs and adjust fzero accordingly:
+        group_size = min_group_size if divisor <= min_group_size else divisor
         new_group, fzero, fzero_harmonics = group_candidate(good_freqs, all_freqs,
                                                             freq, divisor, freq_tol,
-                                                            min_group_size, verbose)
+                                                            group_size, verbose)
         # no group found:
         if fzero < 0.0:
             continue
@@ -492,7 +492,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
 
 
 def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
-                            min_group_size=4):
+                            min_group_size=3):
     """Find all the harmonics belonging to a given fundamental.
 
     Parameters
@@ -513,7 +513,9 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs, freq_tol, verbose=0,
     verbose: int
         Verbosity level.
     min_group_size: int
-        Within min_group_size no harmonics are allowed to be filled in.
+        Minimum number of harmonics of a harmonic group.
+        The harmonics from min_group_size/3 to max(min_group_size, divisor)
+        need to be in good_freqs.
     
     Returns
     -------
@@ -633,7 +635,7 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
 def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
                          check_freqs=[], mains_freq=60.0, mains_freq_tol=1.0,
                          min_freq=0.0, max_freq=2000.0, max_db_diff=15.0,
-                         max_divisor=4, min_group_size=4, max_harmonics_decibel=0.0,
+                         max_divisor=4, min_group_size=3, max_harmonics_decibel=0.0,
                          max_harmonics=0, max_groups=0, **kwargs):
     """Extract fundamental frequencies from power-spectrum peaks.
                          
@@ -671,7 +673,9 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
     max_divisor: int
         Maximum divisor used for checking for sub-harmonics.
     min_group_size: int
-        Within min_group_size no harmonics are allowed to be filled in.
+        Minimum number of harmonics of a harmonic group.
+        The harmonics from min_group_size/3 to max(min_group_size, divisor)
+        need to be in good_freqs.
     max_harmonics_decibel: float
         Maximum allowed power of the `min_group_size`-th and higher harmonics
         after the peak (in decibel relative to power of fundamental,
@@ -874,7 +878,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
                     low_thresh_factor=6.0, high_thresh_factor=10.0,
                     freq_tol_fac=1.0, mains_freq=60.0, mains_freq_tol=1.0,
                     min_freq=0.0, max_freq=2000.0, max_db_diff=15.0, max_divisor=4,
-                    min_group_size=4, max_harmonics_decibel=0.0,
+                    min_group_size=3, max_harmonics_decibel=0.0,
                     max_harmonics=0, max_groups=0, **kwargs):
     """Detect peaks in power spectrum and group them according to their harmonic structure.
 
@@ -921,7 +925,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
     max_divisor: int
         Maximum divisor used for checking for sub-harmonics.
     min_group_size: int
-        Within min_group_size no harmonics are allowed to be filled in.
+        Minimum number of harmonics of a harmonic group.
+        The harmonics from min_group_size/3 to max(min_group_size, divisor)
+        need to be in good_freqs.
     max_harmonics_decibel: float
         Maximum allowed power of the `min_group_size`-th and higher harmonics
         (in decibel relative to power of fundamental, i.e. if harmonics are required
@@ -1581,7 +1587,7 @@ def psd_peak_detection_args(cfg):
 
 
 def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
-                               max_divisor=4, freq_tol_fac=1.0, min_group_size=4,
+                               max_divisor=4, freq_tol_fac=1.0, min_group_size=3,
                                min_freq=20.0, max_freq=2000.0, max_db_diff=15.0,
                                max_harmonics_decibel=0.0, max_harmonics=0, max_groups=0):
     """ Add parameter needed for detection of harmonic groups as
@@ -1597,7 +1603,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
     cfg.add('mainsFreq', mains_freq, 'Hz', 'Mains frequency to be excluded.')
     cfg.add('mainsFreqTolerance', mains_freq_tol, 'Hz', 'Exclude peaks within this tolerance around multiples of the mains frequency.')
     cfg.add('minimumGroupSize', min_group_size, '',
-'The number of harmonics (inclusively fundamental) that are allowed do be filled in.')
+'Minimum number of harmonics (inclusively fundamental) that make up a harmonic group.')
     cfg.add('maxDivisor', max_divisor, '', 'Maximum ratio between the frequency of the largest peak and its fundamental')
     cfg.add('freqTolerance', freq_tol_fac, '',
             'Harmonics need be within this factor times the frequency resolution of the power spectrum. Needs to be higher than 0.5!')

@@ -16,5 +16,5 @@ setup(name='thunderfish',
         ]},
       description='Algorithms and scripts for analyzing recordings of e-fish electric fields.',
       author='Jan Benda, Juan F. Sehuanes, Till Raab, Joerg Henninger, Jan Grewe, Fabian Sinz',
-      requires=['scipy', 'numpy', 'matplotlib', 'audioio']
+      requires=['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio']
       )
