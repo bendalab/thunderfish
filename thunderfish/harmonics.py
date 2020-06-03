@@ -320,16 +320,17 @@ def update_group(good_freqs, all_freqs, new_group, fzero, freq_tol, verbose, gro
     group = all_freqs[new_group,:]
 
     # indices of group in good_freqs:
+    freq_tol *= 1.1
     indices = []
     for f in group[:,0]:
         idx = np.argmin(np.abs(good_freqs[:,0]-f))
-        if np.abs(good_freqs[idx,0]-f) < freq_tol:
+        if np.abs(good_freqs[idx,0]-f) <= freq_tol:
             indices.append(idx)
     indices = np.asarray(indices, dtype=np.int)
 
     # harmonics in good_freqs:
     nharm = np.round(good_freqs[:,0]/fzero)
-    idxs = np.where(np.abs(good_freqs[:,0] - nharm*fzero) < freq_tol)[0]
+    idxs = np.where(np.abs(good_freqs[:,0] - nharm*fzero) <= freq_tol)[0]
     indices = np.unique(np.concatenate((indices, idxs)))
 
     # report:
@@ -356,7 +357,7 @@ def update_group(good_freqs, all_freqs, new_group, fzero, freq_tol, verbose, gro
 
     # insert missing fzero:
     if np.round(group[0,0]/fzero) != 1.0:
-        group = np.vstack(((fzero, 1e-16, 0.0), group))
+        group = np.vstack(((fzero, group[0,1], -2.0), group))
 
     return good_freqs, all_freqs, group
 
@@ -611,12 +612,6 @@ def expand_group(group, freqs, freq_tol, max_harmonics=0):
             prev_fe = fe
     # assemble group:
     new_group = freqs[indices,:group.shape[1]]
-    ## indices = np.array(indices)
-    ## new_group = np.zeros((len(indices),group.shape[1]))
-    ## new_group[indices>=0,:] = freqs[indices[indices>=0],:group.shape[1]]
-    ## fill_in = np.where(indices<0)[0]
-    ## new_group[indices<0,0] = fzero*(fill_in+1)
-    #group[:,0] = np.arange(1,len(group)+1)*fzero
     return np.vstack((group, new_group))
             
 
@@ -739,6 +734,9 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         # fill up harmonic group:
         harm_group = expand_group(harm_group, all_freqs, freq_tol, max_harmonics)
 
+        # check whether fundamental was filled in:
+        first_h = 0 if harm_group[0,2] > -2 else 1
+
         # check frequency range of fundamental:
         fundamental_ok = (harm_group[0, 0] >= min_freq and
                           harm_group[0, 0] <= max_freq)
@@ -746,7 +744,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         mains_ok = ((mains_freq <= 0.0) or
                     (m.fabs(harm_group[0,0] - mains_freq) > freq_tol))
         # check smoothness:
-        db_powers = decibel(harm_group[:,1])
+        db_powers = decibel(harm_group[first_h:,1])
         diff = np.std(np.diff(db_powers))
         smooth_ok = diff < max_db_diff
         # check relative power of higher harmonics:
@@ -757,19 +755,19 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
             pi = len(db_powers) - 1
         else:
             amplitude_ok = np.all((db_powers[p_max+min_group_size:] < max_harmonics_decibel) | \
-                                  (harm_group[p_max+min_group_size:,2] > 1))
+                                  (harm_group[first_h+p_max+min_group_size:,2] > 1))
             if amplitude_ok:
                 pi = p_max+min_group_size-1
             else:
                 pi = np.where((db_powers[p_max+min_group_size:] >= max_harmonics_decibel) & \
-                              (harm_group[p_max+min_group_size:,2] <= 1))[0][0]
+                              (harm_group[first_h+p_max+min_group_size:,2] <= 1))[0][0]
                              
         # check:
         if fundamental_ok and mains_ok and smooth_ok and amplitude_ok:
             if verbose > 0:
                 print('Accepting  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g nharmonics=%2d, count=%d'
-                      % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
-                         len(harm_group), np.sum(harm_group[:,2])-min_group_size))
+                      % (f0s, fmax, harm_group[0,0], np.sum(harm_group[first_h:,1]),
+                         len(harm_group), np.sum(harm_group[first_h:,2])-(min_group_size+first_h)))
             group_list.append(harm_group[:,0:2])
             fzero_harmonics_list.append(fzero_harmonics)
         else:
@@ -779,7 +777,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
                 ss = 'smaller' if smooth_ok else 'LARGER '
                 ps = 'smaller' if amplitude_ok else 'LARGER '
                 print('Discarded  harmonic group from %s=%7.2fHz: %7.2fHz power=%9.3g: %s in frequency range, %s mains frequency, smooth=%4.1fdB %s than %4.1fdB, relpower[%d]=%5.1fdB %s than %5.1fdB'
-                      % (f0s, fmax, harm_group[0,0], np.sum(harm_group[:,1]),
+                      % (f0s, fmax, harm_group[0,0], np.sum(harm_group[first_h:,1]),
                          fs, ms, diff, ss, max_db_diff,
                          pi, db_powers[pi], ps, max_harmonics_decibel))
                 
