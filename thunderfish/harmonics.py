@@ -315,7 +315,7 @@ def update_group(good_freqs, all_freqs, new_group, fzero, freq_tol, verbose, gro
     
     # fill up group:
     group = all_freqs[new_group,:]
-    group[:,0] = np.arange(1,len(group)+1)*fzero
+    group[:,0] = np.round(group[:,0]/fzero)*fzero
 
     # indices of group in good_freqs:
     indices = []
@@ -742,8 +742,8 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
         # nothing found:
         if len(harm_group) == 0:
             if verbose > 1 or first:
-                s = ' largest' if first else ''
-                print('No%-8s harmonic group for %7.2fHz' % (s, fmax))
+                s = ' (largest peak)' if first else ''
+                print('No harmonic group for %7.2fHz%s' % (fmax, s))
             first = False
             continue
         first = False

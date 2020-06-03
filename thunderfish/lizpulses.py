@@ -171,9 +171,13 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, cutw
 
     # standard deviation of data in small snippets:
     win_size_indices = int(win_size * samplerate)
+
+    if win_size_indices < 10:
+        win_size_indices = 10
+
     step = len(data)//n_stds
-    if step < 1:
-        step = 1
+    if step < win_size_indices//2:
+        step = win_size_indices//2
     stds = [np.std(data[i:i+win_size_indices], ddof=1)
             for i in range(0, len(data)-win_size_indices, step)]
 
