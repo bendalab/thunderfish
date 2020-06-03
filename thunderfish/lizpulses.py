@@ -221,7 +221,7 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, cutw
 
         return x_peaks[cut_idx], x_troughs[cut_idx], eod_hights[cut_idx], eod_widths[cut_idx], samplerate*interp_f, data, interp_f
 
-def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,verbose=1,plot_level=0):
+def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,verbose=0,plot_level=0):
     """ Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data. 
         Additional steps are used to merge clusters that are closer than merge_percentage.
         Broad gaussian fits that cover one or more other gaussian fits are split.
