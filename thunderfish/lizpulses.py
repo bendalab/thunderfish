@@ -43,7 +43,7 @@ warnings.warn=warn
 if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
-def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=1, **kwargs):
+def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, **kwargs):
     """ Extract and cluster pulse fish EODs from recording.
     
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
@@ -347,7 +347,7 @@ def merge_gaussians(x,labels,merge_threshold=0.1):
 
 def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth, width_factor=3, 
             n_gaus_hight=10, merge_threshold_hight=0.1, n_gaus_width=3, merge_threshold_width=0.5, 
-            n_pc=5, minp=10, percentile=75, max_epsilon=0.02, verbose=0, plot_level=0):
+            n_pc=5, minp=10, percentile=80, max_epsilon=0.02, verbose=0, plot_level=0):
     
     """ Cluster EODs.
 
@@ -898,7 +898,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, verbose=0, dt
             if verbose>0:
                 print('No pulsefish in recording at T=%.2f:%.2f'%(t,t+dt))
 
-    width_classes = merge_gaussians(eod_widths,np.copy(clusters),0.5)
+    width_classes = merge_gaussians(eod_widths,np.copy(clusters),0.75)
     all_keep_clusters = []
     all_windows = []
     
