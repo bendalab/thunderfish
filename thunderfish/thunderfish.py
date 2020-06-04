@@ -114,7 +114,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     return cfg
 
 
-def detect_eods(data, samplerate, clipped, name, verbose, cfg):
+def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
     """ Detect EODs of all fish present in the data.
 
     Parameters
@@ -187,7 +187,8 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
             print('no fundamental frequencies are consistent in all power spectra')
 
     # detect pulse fish:
-    _, eod_times, eod_peaktimes, pulse_unreliabilities, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
+
 
     """
     # check pulse fish:
@@ -224,7 +225,7 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg):
     # analyse eod waveform of pulse-fish:
     min_freq_res = cfg.value('frequencyResolution')
 
-    for k, (eod_ts, eod_pts, unreliability) in enumerate(zip(eod_times, eod_peaktimes, pulse_unreliabilities)):
+    for k, (eod_ts, eod_pts) in enumerate(zip(eod_times, eod_peaktimes)):
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts,
                          win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
@@ -982,7 +983,7 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
     # detect EODs in the data:
     psd_data, wave_eodfs, wave_indices, eod_props, \
     mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-      detect_eods(data, samplerate, clipped, filename, verbose, cfg)
+      detect_eods(data, samplerate, clipped, filename, verbose, cfg,filename)
     if not found_bestwindow:
         wave_eodfs = []
         wave_indices = []
@@ -1034,6 +1035,7 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
             else:
                 # save figure as pdf:
                 fig.savefig(output_basename + '.pdf')
+                plt.close('all')
             if len(save_subplots) > 0:
                 plot_eod_subplots(output_basename, save_subplots,
                                   raw_data, samplerate, idx0, idx1, clipped, psd_data[0],

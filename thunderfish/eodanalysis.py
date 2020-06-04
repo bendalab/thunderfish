@@ -591,7 +591,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     thl_min = np.min(meod[:n,1])
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
+
+
     min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
+    
     # XXX this is kind of important for having a succesful fit!
     # XXX but it removes too many pulses!
     if min_thresh > 0.5*(max_ampl + min_ampl):
@@ -632,6 +635,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
+
+    #if len(peak_idx)==0:
+    #    peak_idx, trough_idx = detect_peaks(meod[:,1], threshold/2)
     
     if len(peak_idx) > 0:
         # and their width:
@@ -710,6 +716,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     # power spectrum of single pulse:
     samplerate = 1.0/(meod[1,0]-meod[0,0])
     n_fft = nfft(samplerate, freq_resolution)
+
     n0 = max_idx
     n1 = len(meod)-max_idx
     n = 2*max(n0, n1)
@@ -724,6 +731,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     fourier = np.fft.rfft(data)/n_fft/freqs[1]
     power = np.abs(fourier)**2.0
     ppower = np.zeros((len(power), 2))
+
     ppower[:,0] = freqs
     ppower[:,1] = power
     maxpower = np.max(power)
