@@ -256,7 +256,6 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
     n_skip = int(min_group_size//3)
     if np.any(new_group[n_skip:]<0) and np.any(new_group[:len(new_group)-n_skip]<0):
         if verbose > 0:
-
             print('  discarded group because %d harmonics are less than min_group_size of %d minus %d! peaks:' %
                   (np.sum(new_group>=0), min_group_size, n_skip), new_group)
         return [], -1.0, fzero_harmonics
