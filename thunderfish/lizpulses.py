@@ -110,7 +110,6 @@ def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, 
 
         if plot_level>0:
             plot_all(data, eod_peaktimes, eod_troughtimes, samplerate, mean_eods)
-        #plt.show()
     
     return mean_eods, eod_times, eod_peaktimes, zoom_window
 
@@ -483,11 +482,6 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
             knn = np.sort(pairwise_distances(c_features,c_features),axis=0)[minpc] #[minpc]
             eps = min(max(1,4*np.median(sr/w_eod_hights))*0.01,np.percentile(knn,percentile))
 
-            print('EPS:')
-            print(eps)
-            print('Slope ratio')
-            print(np.median(sr/w_eod_hights))
-
             # cluster on EOD shape
             h_clusters = DBSCAN(eps=eps, min_samples=minpc).fit(c_features).labels_
             
@@ -536,10 +530,6 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
     all_clusters = remove_sparse_detections(all_clusters,eod_widths,samplerate,len(data)/samplerate,verbose=verbose-1)
     all_clusters = delete_unreliable_fish(all_clusters,eod_widths,eod_x,verbose=verbose-1)
     all_clusters = delete_wavefish_and_sidepeaks(data,all_clusters,eod_x,eod_widths,interp_f,verbose=verbose-1)
-    
-    #for ac in np.unique(all_clusters[all_clusters!=-1]):
-    #snippets = np.vstack([data[int(x-width):int(x+width)] for x in eod_x])
-    #all_clusters = remerge(all_clusters,snippets)
 
     if verbose>0:
         print('Clusters generated based on hight, width and shape: ')
