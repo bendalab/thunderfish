@@ -43,7 +43,7 @@ warnings.warn=warn
 if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
-def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=1, **kwargs):
+def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, **kwargs):
     """ Extract and cluster pulse fish EODs from recording.
     
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
