@@ -43,7 +43,7 @@ warnings.warn=warn
 if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
-def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, **kwargs):
+def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=1, **kwargs):
     """ Extract and cluster pulse fish EODs from recording.
     
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
@@ -102,7 +102,7 @@ def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, 
             
         # delete the moving fish
         clusters, zoom_window = delete_moving_fish(clusters, x_merge/i_samplerate, len(data)/samplerate,
-                                      eod_hights, eod_widths, verbose=verbose-1)
+                                      eod_hights, eod_widths/i_samplerate, verbose=verbose-1)
 
         # extract mean eods
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes = extract_means(i_data, x_merge, x_peak, x_trough, eod_widths,
@@ -482,6 +482,11 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
             knn = np.sort(pairwise_distances(c_features,c_features),axis=0)[minpc] #[minpc]
             eps = min(max(1,4*np.median(sr/w_eod_hights))*0.01,np.percentile(knn,percentile))
 
+            print('EPS:')
+            print(eps)
+            print('Slope ratio')
+            print(np.median(sr/w_eod_hights))
+
             # cluster on EOD shape
             h_clusters = DBSCAN(eps=eps, min_samples=minpc).fit(c_features).labels_
             
@@ -489,7 +494,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
             if plot_level>0:
                 cols = ['b','r','g','y','m','c']
 
-                plt.subplot(2,len(unique_hight_labels),wi+1)
+                plt.subplot(2,len(unique_hight_labels),hi+1)
 
                 for j,c in enumerate(np.unique(h_clusters)):
                     if c==-1:
@@ -498,7 +503,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
                         plt.scatter(c_features[h_clusters==c,0],c_features[h_clusters==c,1],alpha=0.1,c=cols[j%len(cols)],label=c+max_label)
                         plt.title('h = %.3f, w=%i'%(np.mean(h_eod_hights[h_clusters==c]),np.mean(h_eod_widths[h_clusters==c])))
 
-                plt.subplot(2,len(unique_hight_labels),len(unique_hight_labels)+wi+1)
+                plt.subplot(2,len(unique_hight_labels),len(unique_hight_labels)+hi+1)
 
                 for j,c in enumerate(np.unique(h_clusters)):
                     if c==-1:
@@ -856,7 +861,7 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2,verbose=0):
     return clusters, x_merged
 
 
-def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, verbose=0, dt=1, stepsize=0.1):
+def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, verbose=0, dt=1, stepsize=0.05):
     """
     Use a sliding window to detect the minimum number of fish detected simultaneously, 
     then delete all other EOD clusters. 
@@ -892,15 +897,6 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, verbose=0, dt
 
     if len(np.unique(clusters[clusters!=-1])) == 0:
         return clusters, [0,1]
-    
-    ignore_steps = np.zeros(len(np.arange(0, T-dt+stepsize, stepsize)))
-
-    for i,t in enumerate(np.arange(0, T-dt+stepsize, stepsize)):
-        current_clusters = clusters[(eod_t>=t)&(eod_t<t+dt)&(clusters!=-1)]
-        if len(np.unique(current_clusters))==0:
-            ignore_steps[i-int(dt/stepsize):i+int(dt/stepsize)] = 1
-            if verbose>0:
-                print('No pulsefish in recording at T=%.2f:%.2f'%(t,t+dt))
 
     width_classes = merge_gaussians(eod_widths,np.copy(clusters),0.75)
     all_keep_clusters = []
@@ -918,6 +914,19 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, verbose=0, dt
         wclusters = clusters[width_classes==w]
         weod_t = eod_t[width_classes==w]
         weod_hights = eod_hights[width_classes==w]
+
+        dt = np.median(eod_widths[width_classes==w])*2000
+        print('dt = %f'%dt)
+
+        # make W dependent on width??
+        ignore_steps = np.zeros(len(np.arange(0, T-dt+stepsize, stepsize)))
+
+        for i,t in enumerate(np.arange(0, T-dt+stepsize, stepsize)):
+            current_clusters = wclusters[(weod_t>=t)&(weod_t<t+dt)&(wclusters!=-1)]
+            if len(np.unique(current_clusters))==0:
+                ignore_steps[i-int(dt/stepsize):i+int(dt/stepsize)] = 1
+                if verbose>0:
+                    print('No pulsefish in recording at T=%.2f:%.2f'%(t,t+dt))
 
         # sliding window
         for t,ignore_step in zip(np.arange(0, T-dt+stepsize, stepsize), ignore_steps):
