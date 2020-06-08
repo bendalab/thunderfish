@@ -43,7 +43,7 @@ warnings.warn=warn
 if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
-def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=1, **kwargs):
+def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, **kwargs):
     """ Extract and cluster pulse fish EODs from recording.
     
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
@@ -114,7 +114,7 @@ def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=1, 
     return mean_eods, eod_times, eod_peaktimes, zoom_window
 
 
-def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, cutwidth=0.01, win_size = 0.0005, n_stds = 1000, threshold_factor=6, verbose=0, plot_level=2):
+def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, cutwidth=0.01, win_size = 0.0005, n_stds = 1000, threshold_factor=6, verbose=0, plot_level=0):
     """ Extract peaks from data which are potentially EODs.
 
     Parameters
@@ -479,13 +479,12 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
 
             # determine clustering threshold from data
             minpc = max(minp,int(len(c_features)*0.01))  
-            knn = np.sort(pairwise_distances(c_features,c_features),axis=0)[minpc] #[minpc]
+            knn = np.sort(pairwise_distances(c_features,c_features),axis=0)[minpc]
             eps = min(max(1,4*np.median(sr/w_eod_hights))*0.01,np.percentile(knn,percentile))
 
-            print('EPS:')
-            print(eps)
-            print('Slope ratio')
-            print(np.median(sr/w_eod_hights))
+            if verbose>1:
+                print('epsilon = %f'%eps)
+                print('Slope to EOD ratio = %f'%np.median(sr/w_eod_hights))
 
             # cluster on EOD shape
             h_clusters = DBSCAN(eps=eps, min_samples=minpc).fit(c_features).labels_
@@ -916,7 +915,9 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, verbose=0, dt
         weod_hights = eod_hights[width_classes==w]
 
         dt = np.median(eod_widths[width_classes==w])*2000
-        print('dt = %f'%dt)
+
+        if verbose>0:
+            print('dt = %f'%dt)
 
         # make W dependent on width??
         ignore_steps = np.zeros(len(np.arange(0, T-dt+stepsize, stepsize)))
