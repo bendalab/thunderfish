@@ -298,7 +298,7 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
     """
 
     # too little data:
-    if len(data) / samplerate <= win_size:
+    if len(data) / samplerate < win_size:
         raise UserWarning('not enough data (data=%gs, win=%gs)' %
                           (len(data) / samplerate, win_size))
 
@@ -317,6 +317,8 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
     win_size_indices = int(win_size * samplerate)
     win_start_inxs = np.arange(0, len(data) - win_size_indices,
                                int(0.5*win_shift*samplerate))
+    if len(win_start_inxs) == 0:
+        win_start_inxs = [0]
     cv_interv = np.zeros(len(win_start_inxs))
     mean_ampl = np.zeros(len(win_start_inxs))
     cv_ampl = np.zeros(len(win_start_inxs))
@@ -652,11 +654,11 @@ def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
     if show_bestwindow:
         fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
         try:
-            best_window_indices(raw_data, samplerate,
-                                min_clip=min_clip, max_clip=max_clip,
-                                win_size=best_window_size,
-                                plot_data_func=plot_best_window, ax=ax,
-                                **bwa)
+            idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
+                                                      min_clip=min_clip, max_clip=max_clip,
+                                                      win_size=best_window_size,
+                                                      plot_data_func=plot_best_window, ax=ax,
+                                                      **bwa)
             plt.show()
         except UserWarning as e:
             found_bestwindow = False
