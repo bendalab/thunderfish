@@ -546,11 +546,38 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         The power spectrum of a single pulse. First column are the frequencies,
         second column the power in x^2/Hz such that the integral equals the variance.
     """
-    
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:eod.shape[1]] = eod
     meod[:,-1] = np.nan
+    
+    # subtract mean computed from the ends of the snippet:
+    n = len(meod)//20
+    meod[:,1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:,1]))
+    
+    # cut out stable estimate:
+    if eod.shape[1] > 2:
+        idx0 = np.argmin(np.abs(meod[:,0]))
+        # minimum in standard deviation:
+        lstd_idx = np.argmin(meod[:idx0-2,2])
+        rstd_idx = np.argmin(meod[idx0+2:,2]) + idx0
+        # central, left, and right maximum of standard deviation:
+        max_std = np.max(meod[lstd_idx:rstd_idx,2])
+        l_std = np.max(meod[:lstd_idx,2])
+        r_std = np.max(meod[rstd_idx:,2])
+        lidx = 0
+        ridx = len(meod)
+        if l_std > max_std:
+            lidx = lstd_idx - np.argmax(meod[lstd_idx:0:-1,2] >= 0.25*l_std + 0.75*meod[lstd_idx,2])
+        if r_std > max_std:
+            ridx = rstd_idx + np.argmax(meod[rstd_idx:,2] >= 0.25*r_std + 0.75*meod[rstd_idx,2])
+        #plt.plot(meod[:,0], meod[:,1])
+        #plt.plot(meod[:,0], meod[:,2], '-r')
+        #plt.plot([meod[lidx,0], meod[lidx,0]], [-0.1, 0.1], '-k')
+        #if ridx < len(meod):
+        #    plt.plot([meod[ridx,0], meod[ridx,0]], [-0.1, 0.1], '-k')
+        #plt.show()
+        meod = meod[lidx:ridx,:]
     
     # subtract mean computed from the ends of the snippet:
     n = len(meod)//20

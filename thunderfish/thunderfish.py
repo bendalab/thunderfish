@@ -234,13 +234,12 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
                                                       freq_resolution=min_freq_res,
                                                       **analyze_pulse_args(cfg))
         if len(peaks) == 0:
-            print('no peaks in pulse EOD detected')
+            print('error: no peaks in pulse EOD detected')
             continue
 
         props['peaktimes'] = eod_pts      # XXX that should go into analyze pulse
         props['index'] = len(eod_props)
         props['clipped'] = clipped
-
 
         # add good waveforms only:
         skips, msg = pulse_quality(k, clipped, props['rmssem'], peaks,
@@ -566,6 +565,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     ############
 
     force_both = True   # XXX set to True for debugging pulse and wave detection
+    #force_both = False
 
     # best window data:
     data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
