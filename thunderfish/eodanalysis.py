@@ -551,12 +551,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     meod[:,:eod.shape[1]] = eod
     meod[:,-1] = np.nan
     
-    # subtract mean computed from the ends of the snippet:
-    n = len(meod)//20
-    meod[:,1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:,1]))
-    
-    # cut out stable estimate:
-    if eod.shape[1] > 2:
+    # cut out stable estimate if standard deviation:
+    if eod.shape[1] > 2 and np.max(meod[:,2]) > 3*np.min(meod[:,2]):
         idx0 = np.argmin(np.abs(meod[:,0]))
         # minimum in standard deviation:
         lstd_idx = np.argmin(meod[:idx0-2,2])
@@ -580,7 +576,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
         meod = meod[lidx:ridx,:]
     
     # subtract mean computed from the ends of the snippet:
-    n = len(meod)//20
+    n = len(meod)//20 if len(meod) >= 20 else 1
     meod[:,1] -= 0.5*(np.mean(meod[:n,1]) + np.mean(meod[-n:,1]))
 
     # largest positive and negative peak:
@@ -612,28 +608,24 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     # move peak of waveform to zero:
     meod[:,0] -= meod[max_idx,0]
 
-    # threshold for peak detection:
-    n = len(meod[:,1])//10
+    # minimum threshold for peak detection:
+    n = len(meod[:,1])//10 if len(meod) >= 20 else 2
     thl_max = np.max(meod[:n,1])
     thl_min = np.min(meod[:n,1])
     thr_max = np.max(meod[-n:,1])
     thr_min = np.min(meod[-n:,1])
-
-
-    min_thresh = 2.0*(np.max([thl_max, thr_max]) - np.min([thl_min, thr_min]))
-    
-    # XXX this is kind of important for having a succesful fit!
-    # XXX but it removes too many pulses!
+    min_thresh = np.max([thl_max, thr_max]) - np.min([thl_min, thr_min])
     if min_thresh > 0.5*(max_ampl + min_ampl):
+        min_thresh = 0.5*(max_ampl + min_ampl)
         fit_frac = None
+    # threshold for peak detection:
     threshold = max_ampl*peak_thresh_fac
-    if threshold < min_thresh and min_thresh < (max_ampl + min_ampl):
+    if threshold < min_thresh:
         threshold = min_thresh
-    # XXX make sure threshold is smaller then p-p amplitude!
         
     # cut out relevant signal:
-    lidx = np.argmax(np.abs(meod[:,1])>threshold)
-    ridx = len(meod) - 1 - np.argmax(np.abs(meod[::-1,1])>threshold)
+    lidx = np.argmax(np.abs(meod[:,1]) > threshold)
+    ridx = len(meod) - 1 - np.argmax(np.abs(meod[::-1,1]) > threshold)
     t0 = meod[lidx,0]
     t1 = meod[ridx,0]
     width = t1 - t0
@@ -662,9 +654,6 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
-
-    #if len(peak_idx)==0:
-    #    peak_idx, trough_idx = detect_peaks(meod[:,1], threshold/2)
     
     if len(peak_idx) > 0:
         # and their width:
