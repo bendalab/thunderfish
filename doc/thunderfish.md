@@ -7,9 +7,10 @@ Automatically detect and analyze all EOD waveforms in a short recording.
 
 The [Neuroethology-lab](https://uni-tuebingen.de/en/faculties/faculty-of-science/departments/biology/institutes/neurobiology/lehrbereiche/neuroethology/) at the Institute of Neuroscience at the University of T&uuml;bingen:
 - Jan Benda
-- J&ouml;rg Henninger
-- Juan Sehuanes
+- J&ouml;rg Henninger (harmonic groups)
+- Juan Sehuanes (best window)
 - Till Raab
+- Liz Weerdmeester (pulse clustering)
 
 
 ## Principles of operation
@@ -25,11 +26,11 @@ tank.
    in the recording (bestwindow module). In this segement the
    amplitude of the recording is largest while at the same time most
    stable and not clipped.
-2. EODs of pulse-type fish are detected.
-3. A powerspectrum of a given frequency resolution is computed
+2. A powerspectrum of a given frequency resolution is computed
    (powerspectrum module) and potential EOD frequencies of wave-type
    fish are detected in this power spectrum based on their harmonic
    structure (harmonics module).
+3. EODs of pulse-type fish are detected and clustered.
 4. For each pulse and wave-type fish detected in the recording an
    averaged waveform is computed and its properties are analyzed
    (eodanalysis module)
@@ -47,14 +48,16 @@ thunderfish --help
 returns
 ```
 usage: thunderfish [-h] [--version] [-v] [-c] [--channel CHANNEL] [-j [JOBS]]
-                   [-s] [-f {dat,ascii,csv,rtai,md,tex,html}] [-p]
-                   [-o OUTPATH] [-k] [-b]
+                   [-s] [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-p]
+                   [-P rtpmse] [-m PDFFILE] [-l [MINFREQ]] [-o OUTPATH] [-k]
+                   [-b]
                    [file [file ...]]
 
 Analyze EOD waveforms of weakly electric fish.
 
 positional arguments:
-  file                  name of a file with time series data of an EOD recording
+  file                  name of a file with time series data of an EOD
+                        recording
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -67,18 +70,28 @@ optional arguments:
   -j [JOBS]             number of jobs run in parallel. Without argument use
                         all CPU cores.
   -s                    save analysis results to files
-  -f {dat,ascii,csv,rtai,md,tex,html}
+  -f {dat,ascii,csv,rtai,md,tex,html,py}
                         file format used for saving analysis results, defaults
                         to the format specified in the configuration file or
                         "dat"
-  -p                    save output plot as pdf file
+  -p                    save output plot of each recording as pdf file
+  -P rtpwse             save subplots as separate pdf files: r) recording with
+                        best window, t) data trace with detected pulse fish,
+                        p) power spectrum with detected wave fish, w/W) mean
+                        EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and
+                        spectra. Capital letters produce a single multipage
+                        pdf containing plots of all detected fish
+  -m PDFFILE            save all plots of all recordings in a multi pages pdf
+                        file. Disables parallel jobs.
+  -l [MINFREQ]          logarithmic frequency axis in power spectrum with
+                        optional minimum frequency (defaults to 100 Hz)
   -o OUTPATH            path where to store results and figures (defaults to
                         current working directory)
   -k                    keep path of input file when saving analysis files,
                         i.e. append path of input file to OUTPATH
   -b                    show the cost function of the best window algorithm
 
-version 1.8 by Benda-Lab (2015-2019)
+version 1.9 by Benda-Lab (2015-2020)
 
 examples:
 - analyze the single file data.wav interactively:
@@ -300,6 +313,7 @@ The columns contain:
 4. `fit` A fit to the averaged waveform. In case of a wave fish this is
    a Fourier series, for pulse fish it is an exponential fit to the tail of the last peak.
 
+
 ### RECORDING-waveeodfs.EXT
 
 List of all detected EOD frequencies and powers of wave-type fish.
@@ -351,14 +365,13 @@ The columns contain:
 
 ### RECORDING-wavefish.EXT
 
-Fundamental EOD frequency and and other properties of each
+Fundamental EOD frequency and other properties of each
 wave-type fish detected in the recording.
-
 <table>
 <thead>
   <tr>
     <th align="left" colspan="9">waveform</th>
-    <th align="left" colspan="7">timing</th>
+    <th align="left" colspan="9">timing</th>
   </tr>
   <tr>
     <th align="left">index</th>
@@ -370,6 +383,7 @@ wave-type fish detected in the recording.
     <th align="left">clipped</th>
     <th align="left">flipped</th>
     <th align="left">n</th>
+    <th align="left">ncrossings</th>
     <th align="left">peakwidth</th>
     <th align="left">troughwidth</th>
     <th align="left">leftpeak</th>
@@ -377,6 +391,7 @@ wave-type fish detected in the recording.
     <th align="left">lefttrough</th>
     <th align="left">righttrough</th>
     <th align="left">p-p-distance</th>
+    <th align="left">reltroughampl</th>
   </tr>
   <tr>
     <th align="left">-</th>
@@ -388,6 +403,8 @@ wave-type fish detected in the recording.
     <th align="left">%</th>
     <th align="left">-</th>
     <th align="left">-</th>
+    <th align="left">-</th>
+    <th align="left">%</th>
     <th align="left">%</th>
     <th align="left">%</th>
     <th align="left">%</th>
@@ -401,74 +418,82 @@ wave-type fish detected in the recording.
   <tr>
     <td align="right">0</td>
     <td align="right">580.08</td>
-    <td align="right">-23.52</td>
-    <td align="right">0.153</td>
-    <td align="right">37.4</td>
-    <td align="right">0.32</td>
+    <td align="right">-21.26</td>
+    <td align="right">0.23105</td>
+    <td align="right">0.3</td>
+    <td align="right">1.00</td>
     <td align="right">0.0</td>
-    <td align="right">0</td>
-    <td align="right">4641</td>
-    <td align="right">72.50</td>
-    <td align="right">27.50</td>
-    <td align="right">63.64</td>
-    <td align="right">8.86</td>
-    <td align="right">12.90</td>
-    <td align="right">14.60</td>
-    <td align="right">21.75</td>
+    <td align="right">1</td>
+    <td align="right">3300</td>
+    <td align="right">2</td>
+    <td align="right">23.53</td>
+    <td align="right">76.47</td>
+    <td align="right">10.50</td>
+    <td align="right">13.03</td>
+    <td align="right">68.54</td>
+    <td align="right">7.93</td>
+    <td align="right">81.57</td>
+    <td align="right">37.72</td>
   </tr>
   <tr>
     <td align="right">1</td>
-    <td align="right">111.17</td>
-    <td align="right">-34.10</td>
-    <td align="right">0.040</td>
-    <td align="right">183.3</td>
-    <td align="right">0.36</td>
+    <td align="right">111.13</td>
+    <td align="right">-31.92</td>
+    <td align="right">0.04893</td>
+    <td align="right">4.9</td>
+    <td align="right">0.37</td>
     <td align="right">0.0</td>
-    <td align="right">0</td>
-    <td align="right">890</td>
-    <td align="right">51.31</td>
-    <td align="right">48.69</td>
-    <td align="right">28.69</td>
-    <td align="right">22.62</td>
-    <td align="right">26.71</td>
-    <td align="right">21.98</td>
-    <td align="right">49.33</td>
+    <td align="right">1</td>
+    <td align="right">886</td>
+    <td align="right">2</td>
+    <td align="right">45.01</td>
+    <td align="right">54.99</td>
+    <td align="right">20.77</td>
+    <td align="right">24.23</td>
+    <td align="right">33.07</td>
+    <td align="right">21.92</td>
+    <td align="right">57.30</td>
+    <td align="right">67.33</td>
   </tr>
   <tr>
     <td align="right">2</td>
-    <td align="right">133.02</td>
-    <td align="right">-32.77</td>
-    <td align="right">0.042</td>
-    <td align="right">171.7</td>
-    <td align="right">0.36</td>
+    <td align="right">133.00</td>
+    <td align="right">-38.45</td>
+    <td align="right">0.02287</td>
+    <td align="right">9.8</td>
+    <td align="right">0.67</td>
     <td align="right">0.0</td>
     <td align="right">0</td>
-    <td align="right">1065</td>
-    <td align="right">43.55</td>
-    <td align="right">56.45</td>
-    <td align="right">16.45</td>
-    <td align="right">27.10</td>
-    <td align="right">19.46</td>
-    <td align="right">36.99</td>
-    <td align="right">46.56</td>
+    <td align="right">1061</td>
+    <td align="right">2</td>
+    <td align="right">42.62</td>
+    <td align="right">57.38</td>
+    <td align="right">14.97</td>
+    <td align="right">27.65</td>
+    <td align="right">29.29</td>
+    <td align="right">28.09</td>
+    <td align="right">56.94</td>
+    <td align="right">64.28</td>
   </tr>
   <tr>
     <td align="right">3</td>
     <td align="right">608.64</td>
-    <td align="right">-46.03</td>
-    <td align="right">0.012</td>
-    <td align="right">602.5</td>
-    <td align="right">0.35</td>
+    <td align="right">-44.83</td>
+    <td align="right">0.01456</td>
+    <td align="right">7.2</td>
+    <td align="right">0.54</td>
     <td align="right">0.0</td>
-    <td align="right">0</td>
-    <td align="right">4870</td>
-    <td align="right">25.75</td>
-    <td align="right">74.25</td>
-    <td align="right">11.00</td>
-    <td align="right">14.76</td>
-    <td align="right">9.97</td>
-    <td align="right">64.28</td>
-    <td align="right">24.73</td>
+    <td align="right">1</td>
+    <td align="right">4866</td>
+    <td align="right">2</td>
+    <td align="right">29.92</td>
+    <td align="right">70.08</td>
+    <td align="right">10.25</td>
+    <td align="right">19.68</td>
+    <td align="right">54.50</td>
+    <td align="right">15.57</td>
+    <td align="right">74.18</td>
+    <td align="right">62.46</td>
   </tr>
 </tbody>
 </table>
@@ -485,13 +510,14 @@ The columns contain:
 7. `clipped` Percentage of recording that is clipped.
 8. `flipped` Whether the waveform was flipped.
 9. `n` Number of EODs used for computing the averaged EOD waveform.
-10. `peakwidth` Width of the peak at the averaged amplitude relative to EOD period.
-11. `troughwidth` Width of the trough at the averaged amplitude relative to EOD period.
-12. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
-13. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
-14. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
-15. `righttrough` Time from trough to positive zero crossing relative to EOD period.
-16. `p-p-distance` Time between peak and trough relative to EOD period.
+10. `ncrossings` Number of zero crossing per EOD period.
+11. `peakwidth` Width of the peak at the averaged amplitude relative to EOD period.
+12. `troughwidth` Width of the trough at the averaged amplitude relative to EOD period.
+13. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
+14. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
+15. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
+16. `righttrough` Time from trough to positive zero crossing relative to EOD period.
+17. `p-p-distance` Time between peak and trough relative to EOD period.
 
 
 ### RECORDING-wavespectrum-N.EXT

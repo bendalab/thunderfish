@@ -176,7 +176,6 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
             else:
                 print('  none')
         wave_eodfs_list.append(wave_eodfs)
-    # filter the different wave_eodfs_list to get a wave_eodfs with consistent fishes:
     wave_eodfs = consistent_fishes(wave_eodfs_list,
                                    df_th=cfg.value('frequencyThreshold'))
     if verbose > 0:
@@ -188,31 +187,6 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
 
     # detect pulse fish:
     _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
-
-
-    """
-    # check pulse fish:
-    for k in reversed(range(len(eod_times))):
-        # average waveform on long window:
-        mean_eod, _ = eod_waveform(data, samplerate, eod_times[k], win_fac=0.0, min_win=0.05)
-        pulse_fish, ratio = check_pulse(mean_eod[:,1], mean_eod[:,2], samplerate,
-                                        verbose=verbose-1, **check_pulse_args(cfg))
-        if not pulse_fish:
-            if verbose > 0:
-                print('skip %6.1fHz pulse fish: peak-trough ratio %.2f LARGER than %.2f' %
-                      (1.0/np.median(np.diff(eod_times[k])), ratio,
-                       cfg.value('pulseWidthThresholdRatio')))
-            eod_times.pop(k)
-            eod_peaktimes.pop(k)
-            pulse_unreliabilities.pop(k)
-        else:
-            if verbose > 0:
-                print('take %6.1fHz pulse fish: peak-trough ratio %.2f smaller than %.2f' %
-                      (1.0/np.median(np.diff(eod_times[k])), ratio, 0.1))
-        plt.plot(mean_eod[:,0], mean_eod[:,1])
-        plt.plot(mean_eod[:,0], mean_eod[:,2])
-        plt.show()
-    """
             
     # analysis results:
     eod_props = []
@@ -308,9 +282,9 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
         props['index'] = len(eod_props)
         props['clipped'] = clipped if k == 0 else 0.0
         # add good waveforms only:
-        skips, msg = wave_quality(k, clipped, props['rmssem'],
-                                  props['rmserror'], props['power'],
-                                  sdata[1:,3], **wave_quality_args(cfg))
+        skips, msg = wave_quality(k, clipped, props['ncrossings'],
+                                  props['rmssem'], props['rmserror'], props['power'],
+                                  **wave_quality_args(cfg))
         if len(skips) == 0:
             wave_indices[idx] = props['index']
             eod_props.append(props)
@@ -762,7 +736,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
     subplots: string
         Specifies which subplots to plot:
         r) recording with best window, t) data trace with detected pulse fish,
-        p) power spectrum with detected wave fish, m/M) mean EOD waveform,
+        p) power spectrum with detected wave fish, w/W) mean EOD waveform,
         s/S) EOD spectrum, e/E) EOD waveform and spectra. With capital letters
         all fish are saved into a single pdf filem with small letters each fish
         is saved into a separate file.
@@ -1089,7 +1063,7 @@ def main():
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot of each recording as pdf file')
-    parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpmse',
+    parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwse',
                         help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected fish')
     parser.add_argument('-m', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
                         help='save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.')
