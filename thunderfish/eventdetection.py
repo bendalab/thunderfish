@@ -35,7 +35,7 @@ Detect and handle peaks and troughs as well as threshold crossings in data array
 """
 
 import numpy as np
-
+from numba import jit
 
 def detect_peaks(data, threshold):
     """
@@ -143,6 +143,121 @@ def detect_peaks(data, threshold):
                 min_value = value
     
     return np.asarray(peaks_list, dtype=np.int), np.asarray(troughs_list, dtype=np.int)
+
+
+@jit(nopython=True)
+def detect_peaks_c(data, threshold):
+    """
+    Detect peaks and troughs using a fixed, relative threshold according to
+    Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
+    Computers and Biomedical Research 32, 322-335.
+
+    Parameters
+    ----------
+    data: array
+        An 1-D array of input data where peaks are detected.
+    threshold: float or array
+        A positive number or array of numbers setting the detection threshold,
+        i.e. the minimum distance between peaks and troughs.
+        In case of an array make sure that the threshold does not change faster
+        than the expected intervals between peaks and troughs.
+    
+    Returns
+    -------
+    peak_array: array of ints
+        A list of indices of detected peaks.
+    trough_array: array of ints
+        A list of indices of detected troughs.
+
+    Raises
+    ------
+    ValueError: If `threshold <= 0`.
+    IndexError: If `data` and `threshold` arrays differ in length.
+    """
+
+    thresh_array = True
+    thresh = 0.0
+    #if np.isscalar(threshold):
+    thresh_array = False
+    thresh = threshold
+    if threshold <= 0:
+        raise ValueError('input argument threshold must be positive!')
+    #elif len(data) != len(threshold):
+    #    raise IndexError('input arrays data and threshold must have same length!')
+
+
+    # initialize:
+    direction = 0
+    min_inx = 0
+    max_inx = 0
+    min_value = data[0]
+    max_value = min_value
+
+    peaks_list = np.zeros(len(data))
+    troughs_list = np.zeros(len(data))
+
+    pi = 0
+    ti = 0
+
+    # loop through the data:
+    for index, value in enumerate(data):
+
+        if thresh_array:
+            thresh = threshold[index]
+
+        # rising?
+        if direction > 0:
+            if value > max_value:
+                # update maximum element:
+                max_inx = index
+                max_value = value
+            # otherwise, if the new value is falling below
+            # the maximum value minus the threshold:
+            # the maximum is a peak!
+            elif value <= max_value - thresh:
+                peaks_list[pi] = max_inx
+                pi = pi + 1
+                # change direction:
+                direction = -1
+                # store minimum element:
+                min_inx = index
+                min_value = value
+
+        # falling?
+        elif direction < 0:
+            if value < min_value:
+                # update minimum element:
+                min_inx = index
+                min_value = value
+            # otherwise, if the new value is rising above
+            # the minimum value plus the threshold:
+            # the minimum is a trough!
+            elif value >= min_value + thresh:
+                troughs_list[ti] = min_inx
+                ti = ti + 1
+                # change direction:
+                direction = +1
+                # store maximum element:
+                max_inx = index
+                max_value = value
+
+        # don't know direction yet:
+        else:
+            if value <= max_value - thresh:
+                direction = -1  # falling
+            elif value >= min_value + thresh:
+                direction = 1  # rising
+                
+            if value > max_value:
+                # update maximum element:
+                max_inx = index
+                max_value = value
+            elif value < min_value:
+                # update minimum element:
+                min_inx = index
+                min_value = value
+    
+    return peaks_list[:pi], troughs_list[:ti]
 
 
 def detect_peaks_fast(data, threshold):
