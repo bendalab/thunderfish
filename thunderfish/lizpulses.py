@@ -17,6 +17,8 @@ from scipy import stats
 
 from scipy.signal import argrelextrema
 
+from numba import jit
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import DBSCAN
@@ -26,7 +28,7 @@ from sklearn.metrics import pairwise_distances
 from scipy.spatial import distance_matrix
 from scipy.interpolate import interp1d
 
-from .eventdetection import detect_peaks
+from .eventdetection import detect_peaks_c
 from .pulse_tracker_helper import makeeventlist, discardnearbyevents, discard_connecting_eods
 
 import warnings
@@ -112,8 +114,20 @@ def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, 
     
     return mean_eods, eod_times, eod_peaktimes, zoom_window
 
+@jit(nopython=True)
+def detect_threshold(data,win_size,samplerate,n_stds,threshold_factor):
+    win_size_indices = int(win_size * samplerate)
+    if win_size_indices < 10:
+        win_size_indices = 10
+    step = len(data)//n_stds
+    if step < win_size_indices//2:
+        step = win_size_indices//2
+    stds = [np.std(data[i:i+win_size_indices])
+            for i in range(0, len(data)-win_size_indices, step)]
 
-def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, cutwidth=0.01, win_size = 0.0005, n_stds = 1000, threshold_factor=6, verbose=0, plot_level=0):
+    return np.median(np.array(stds))*threshold_factor
+
+def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_peakwidth=None, cutwidth=0.01, win_size = 0.0005, n_stds = 1000, threshold_factor=6.0, verbose=0, plot_level=0):
     """ Extract peaks from data which are potentially EODs.
 
     Parameters
@@ -149,7 +163,6 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, cutw
         Set to >0 to plot intermediate steps. For debugging purposes only.
         Defaults is zero.
 
-
     Returns
     -------
     x_peak: array of ints
@@ -167,19 +180,13 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, cutw
     interpolation_factor: 
         Factor used for interpolation.
     """
-
+    
     # standard deviation of data in small snippets:
-    win_size_indices = int(win_size * samplerate)
-    if win_size_indices < 10:
-        win_size_indices = 10
-    step = len(data)//n_stds
-    if step < win_size_indices//2:
-        step = win_size_indices//2
-    stds = [np.std(data[i:i+win_size_indices], ddof=1)
-            for i in range(0, len(data)-win_size_indices, step)]
+    print('detect thresholds')
+    threshold = detect_threshold(np.array(data),win_size,samplerate,n_stds,threshold_factor)
 
-    threshold = np.median(stds) * threshold_factor
-
+    print('interpolation')
+    # try to do this on all channels at once to speed things up.
     try:
         interp_f = int(interp_freq/samplerate)
         f = interp1d(range(len(data)),data,kind='quadratic')
@@ -187,27 +194,37 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, cutw
     except MemoryError:
         interp_f = 1
 
-    orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
+    print('detect peaks')
+    orig_x_peaks, orig_x_troughs = detect_peaks_c(data, threshold)
+    orig_x_peaks = orig_x_peaks.astype('int')
+    orig_x_troughs = orig_x_troughs.astype('int')
 
     if len(orig_x_peaks)==0 or len(orig_x_peaks)>samplerate:
         if verbose>0:
             print('No peaks detected.')
         return [], [], [], [], samplerate*interp_f,data, interp_f
     else:
-
-        peaks = makeeventlist(orig_x_peaks, orig_x_troughs, data, peakwidth*samplerate*interp_f, 2*interp_f, verbose=verbose-1)
-        x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks[0], peaks[1], peaks[3], peaks[4],verbose=verbose-1)
+        print('make eventlist')
+        if min_peakwidth == None:
+            min_peakwidth = interp_f*2
+        print(peakwidth)
+        print(min_peakwidth)
+        print('inp')
+        peaks, troughs, hights, widths = makeeventlist(orig_x_peaks, orig_x_troughs, data, peakwidth*interp_freq, min_peakwidth*interp_freq, verbose=verbose-1)
+        print('discard connecting peaks')
+        x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks, troughs, hights, widths, verbose=verbose-1)
         
         if plot_level>0:
             plt.figure()
             plt.plot(data)
             plt.plot(orig_x_peaks,data[orig_x_peaks],'o',ms=10)
             plt.plot(orig_x_troughs,data[orig_x_troughs],'o',ms=10)
-            plt.plot(peaks[0],data[peaks[0].astype('int')],'o')
-            plt.plot(peaks[1],data[peaks[1].astype('int')],'o')
+            plt.plot(peaks,data[peaks.astype('int')],'o')
+            plt.plot(troughs,data[troughs.astype('int')],'o')
             plt.plot(x_peaks,data[x_peaks.astype('int')],'x',ms=10)
             plt.plot(x_troughs,data[x_troughs.astype('int')],'x',ms=10)        
-
+            plt.show()
+        print('cut idxs')
         # only take those where the maximum cutwidth does not casue issues
         cut_idx = np.where((x_peaks>int(cutwidth*samplerate*interp_f)) & (x_peaks<(len(data)-int(cutwidth*samplerate*interp_f))) & (x_troughs>int(cutwidth*samplerate*interp_f)) & (x_troughs<(len(data)-int(cutwidth*samplerate*interp_f))))[0]
         

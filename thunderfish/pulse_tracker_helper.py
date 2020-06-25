@@ -1,4 +1,9 @@
 import numpy as np
+from numba import jit
+import matplotlib.pyplot as plt
+
+
+# numba doesnt like lists.  convert everything to numpy.
 
 def makeeventlist(main_event_positions, side_event_positions, data, event_width=20, min_width=2,verbose=0):
     """
@@ -31,85 +36,49 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
                 x, y, height along the first axis, width and x of the most significant nearby trough.
 
     """
-
     mainfirst = int((min(main_event_positions[0],side_event_positions[0])<side_event_positions[0]))  # determines if there is a peak or through first. Evaluates to 1 if there is a peak first.
+    mainlast = int((max(main_event_positions[-1],side_event_positions[-1])>side_event_positions[-1]))  # determines if there is a peak or through last. Evaluates to 1 if there is a peak last.
+    xp = main_event_positions[mainfirst:len(main_event_positions)-mainlast]
+
+    ind = np.arange(len(xp))
+
+    #if len(xp)>len(side_event_positions):
+    #    xp = xp[:-1]
+
+    y = data[xp]
     
-    main_xp = main_event_positions
-    main_xt = np.zeros(len(main_event_positions))
-    main_y = data[main_event_positions]
-    main_h = np.zeros(len(main_event_positions))
-    main_w = np.zeros(len(main_event_positions))
+    l_side_ind = ind
+    r_side_ind = l_side_ind + 1
 
-    main_real = np.ones(len(main_event_positions))
-    # iteration over the properties of the single main
-    for ind, (xp, xt, y, h, w, r) in enumerate(np.nditer([main_xp, main_xt, main_y, main_h, main_w, main_real], op_flags=[["readonly"],['readwrite'],['readonly'],['readwrite'],['readwrite'],['readwrite']])):
-        
-        l_side_ind = ind - mainfirst
-        r_side_ind = l_side_ind + 1
+    r_side_x = side_event_positions[r_side_ind]
+    r_distance = np.abs(r_side_x - xp)
+    r_side_y = data[r_side_x]
 
-        try:
-            r_side_x = side_event_positions[r_side_ind]
-            r_distance = r_side_x - xp
-            r_side_y = data[r_side_x]
-        except:
-            pass
-        try:
-            l_side_x = side_event_positions[l_side_ind]
-            l_distance = xp - l_side_x
-            l_side_y = data[l_side_x]
-        except:
-            pass # ignore left or rightmost events which throw IndexError
-        # calculate distances to the two side events next to the main event and mark all events where the next side events are not closer than maximum event_width as unreal. If an event might be an EOD, then calculate its height.
-        if l_side_ind >= 0 and r_side_ind < len(side_event_positions):
-            if min((l_distance),(r_distance)) > event_width or min((l_distance),(r_distance)) <= min_width:
-                    r[...] = False
-            elif max((l_distance),(r_distance)) <= event_width:
-                    
-                    # tr is were the slope is greatest.
-                    s_l = np.abs((y-l_side_y)/l_distance)
-                    s_r = np.abs((y-r_side_y)/r_distance)
+    l_side_x = side_event_positions[l_side_ind]
+    l_distance = np.abs(xp - l_side_x)
+    l_side_y = data[l_side_x]
 
-                    # if the slopes are too similar, pick the one where h is max.
-                    if np.abs(s_l-s_r)/(0.5*s_l+0.5*s_r) > 0.25:
-                        iw = np.argmax([s_l,s_r])
-                    else:
-                        iw = np.argmax([abs(y-l_side_y),abs(y-r_side_y)])
+    s_l = np.abs((y-l_side_y)/l_distance)
+    s_r = np.abs((y-r_side_y)/r_distance)
 
-                    h[...] = [abs(y-l_side_y),abs(y-r_side_y)][iw] #calculated using absolutes in case of for example troughs instead of peaks as main events 
-                    w[...] = [l_distance,r_distance][iw]
-                    xt[...] = xp + [-l_distance,r_distance][iw]
-            else:
-                    if (l_distance)<(r_distance): # evaluated only when exactly one side event is out of reach of the event width. Then the closer event will be the correct event
-                        h[...] = abs(y-l_side_y)
-                        w[...] = l_distance
-                        xt[...] = xp + -l_distance
-                    else:
-                        h[...] = abs(y-r_side_y)
-                        w[...] = r_distance
-                        xt[...] = xp + r_distance
-        # check corner cases
-        elif l_side_ind == -1:
-            if r_distance > event_width:
-                r[...] = False
-            else:
-                h[...] = y-r_side_y
-                w[...] = r_distance
-                xt[...] = xp + r_distance
-        elif r_side_ind == len(side_event_positions):
-            if l_distance> event_width:
-                r[...] = False
-            else:
-                h[...] = y-l_side_y
-                w[...] = l_distance
-                xt[...] = xp - l_distance
-    # generate return array and discard all events that are not marked as real
-    EOD_events = np.array([main_xp, main_xt, main_y, main_h, main_w])[:,main_real==1]
+    iw = np.argmax(np.vstack([np.abs(y-l_side_y),np.abs(y-r_side_y)]),axis=0)
+    i = (np.abs(s_l-s_r)/(0.5*s_l+0.5*s_r) > 0.25)
+    iw[i] = np.argmax(np.array(np.vstack([s_l[i],s_r[i]])),axis=0)
 
-    if verbose>0:
-        print('Possible EOD events detected:                           %5i'%len(EOD_events[0]))
+    mp = np.vstack([np.abs(iw-1),iw])
+    h = np.sum(np.vstack([np.abs(y-l_side_y),np.abs(y-r_side_y)])*mp,axis=0) #calculated using absolutes in case of for example troughs instead of peaks as main events 
 
-    return EOD_events
+    w = np.sum(np.vstack([l_distance,r_distance])*mp,axis=0)
+    xt = np.sum((xp + np.vstack([-l_distance,r_distance]))*mp,axis=0)
 
+    print(min_width)
+    print(event_width)
+
+    r = ((w>min_width) & (w<event_width))
+
+    return xp[r], xt[r], h[r], w[r]
+
+#@jit(nopython=True)
 def discardnearbyevents(event_locations, tr_locations, event_widths, event_slopes, min_distance,verbose=0):
     """
     Given a number of events with given location and heights, returns a selection
@@ -180,6 +149,7 @@ def discardnearbyevents(event_locations, tr_locations, event_widths, event_slope
 
     return event_indices
 
+@jit(nopython=True)
 def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
     """
     If two detected EODs share the same closest trough, keep only the highest peak
@@ -202,7 +172,8 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
     x_peak, x_trough, hights, widths : lists of ints and floats
         EOD location and features of the non-discarded EODs
     """
-    keep_idxs = np.ones(len(x_peak), dtype='bool')
+    keep_idxs = np.ones(len(x_peak))
+
     for tr in np.unique(x_trough):
         if len(x_trough[x_trough==tr]) > 1:
             slopes = hights[x_trough==tr]/widths[x_trough==tr]
@@ -212,7 +183,7 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
             else:
                 keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
 
-    if verbose>0:
-        print('Number of peaks after discarding connecting peaks:      %5i'%(len(keep_idxs)))
+    #if verbose>0:
+        #print('Number of peaks after discarding connecting peaks:      %5i'%(len(keep_idxs)))
             
-    return x_peak[keep_idxs], x_trough[keep_idxs], hights[keep_idxs], widths[keep_idxs]
+    return x_peak[np.where(keep_idxs==1)[0]], x_trough[np.where(keep_idxs==1)[0]], hights[np.where(keep_idxs==1)[0]], widths[np.where(keep_idxs==1)[0]]
