@@ -652,6 +652,7 @@ def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
     found_bestwindow = True
     min_clip = cfg.value('minClipAmplitude')
     max_clip = cfg.value('maxClipAmplitude')
+    clipped = 0
     if min_clip == 0.0 or max_clip == 0.0:
         min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
     if cfg.value('unwrapData'):

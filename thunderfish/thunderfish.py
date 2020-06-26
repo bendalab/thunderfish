@@ -728,7 +728,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         if not ax.get_visible():
             ax.set_position([0.99, 0.99, 0.01, 0.01])
             ax.set_navigate(False)
-        
+
     return fig
 
                             
@@ -1039,15 +1039,14 @@ def run_thunderfish(file):
     """
     verbose = pool_args[-1]+1
     if verbose > 0:
+        print('analyze recording %s ...' % file)
+        
         if verbose > 1:
             print('='*60)
-        print('analyze recording %s ...' % file)
-    try:
-        msg = thunderfish(file, *pool_args)
-        if msg:
-            print(msg)
-    except:
-        print('THUNDEFISH ERROR!!!!!!!!')
+        
+    msg = thunderfish(file, *pool_args)
+    if msg:
+        print(msg)
 
 
 def main():
