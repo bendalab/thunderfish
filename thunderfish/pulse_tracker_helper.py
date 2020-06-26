@@ -71,9 +71,6 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
     w = np.sum(np.vstack([l_distance,r_distance])*mp,axis=0)
     xt = np.sum((xp + np.vstack([-l_distance,r_distance]))*mp,axis=0)
 
-    print(min_width)
-    print(event_width)
-
     r = ((w>min_width) & (w<event_width))
 
     return xp[r], xt[r], h[r], w[r]

@@ -202,8 +202,8 @@ def detect_peaks_c(data, threshold):
     # loop through the data:
     for index, value in enumerate(data):
 
-        if thresh_array:
-            thresh = threshold[index]
+        #if thresh_array:
+        #    thresh = threshold[index]
 
         # rising?
         if direction > 0:

@@ -28,7 +28,7 @@ from sklearn.metrics import pairwise_distances
 from scipy.spatial import distance_matrix
 from scipy.interpolate import interp1d
 
-from .eventdetection import detect_peaks_c
+from .eventdetection import detect_peaks, detect_peaks_c
 from .pulse_tracker_helper import makeeventlist, discardnearbyevents, discard_connecting_eods
 
 import warnings
@@ -41,7 +41,7 @@ warnings.warn=warn
 if not hasattr(np, 'isin'):
     np.isin = np.in1d
 
-def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, **kwargs):
+def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=8, width_factor_display=4, verbose=0, plot_level=0, **kwargs):
     """ Extract and cluster pulse fish EODs from recording.
     
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
@@ -53,9 +53,18 @@ def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, 
         The data to be analysed.
     samplerate: float
         Sampling rate of the data in Hertz.
-    cutwidth : float (optional)
-        Maximum EOD width in seconds.
-        Defaults to 10 ms.
+
+    width_factor_shape : int or float
+        Width multiplier used for EOD shape analysis.
+        EOD snippets are extracted based on width between the 
+        peak and trough multiplied by the width factor.
+        Defaults to 3.
+    width_factor_wave : int or float
+        Width multiplier used for wavefish detection.
+        Defaults to 8.
+    width_factor_display :  int or float
+        Width multiplier used for EOD mean extraction and display.
+        Defaults to 4.
     verbose : int (optional)
         Verbosity level.
         Defaults to 0.
@@ -85,33 +94,39 @@ def extract_pulsefish(data, samplerate, cutwidth=0.01, verbose=0, plot_level=0, 
     mean_eods, eod_times, eod_peaktimes, zoom_window = [], [], [], []
     
     # extract peaks and interpolated data
-    x_peak, x_trough, eod_hights, eod_widths, i_samplerate, i_data, interp_f = extract_eod_times(data, samplerate, cutwidth=cutwidth,verbose=verbose-1, plot_level=plot_level-1, **kwargs)
+    x_peak, x_trough, eod_hights, eod_widths, i_samplerate, i_data, interp_f = extract_eod_times(data, samplerate, width_factor=np.max([width_factor_shape,width_factor_display,width_factor_wave]),verbose=verbose-1, plot_level=plot_level-1, **kwargs)
     
     if len(x_peak)>0:
 
         # cluster on peaks
         peak_clusters = cluster(x_peak, eod_hights, eod_widths, i_data, i_samplerate,
-                                interp_f, cutwidth, verbose=verbose-1, plot_level=plot_level-1, **kwargs) 
+                                interp_f, width_factor_shape, width_factor_wave,verbose=verbose-1, plot_level=plot_level-1, **kwargs) 
 
         # cluster on troughs
         trough_clusters = cluster(x_trough, eod_hights, eod_widths, i_data, i_samplerate,
-                                 interp_f, cutwidth, verbose=verbose-1, plot_level=plot_level-1, **kwargs)
+                                 interp_f, width_factor_shape, width_factor_wave, verbose=verbose-1, plot_level=plot_level-1, **kwargs)
 
         # merge peak and trough clusters
         clusters, x_merge = merge_clusters(peak_clusters, trough_clusters, x_peak, x_trough, verbose=verbose-1)
 
-            
+        if plot_level>1:
+            # extract mean eods
+            mean_eods, eod_times, eod_peaktimes, eod_troughtimes = extract_means(i_data, x_merge, x_peak, x_trough, eod_widths,
+                                                              clusters, i_samplerate, width_factor_display, verbose=verbose-1)
+            plot_all(data, eod_peaktimes, eod_troughtimes, samplerate, mean_eods)
+
+
         # delete the moving fish
         clusters, zoom_window = delete_moving_fish(clusters, x_merge/i_samplerate, len(data)/samplerate,
                                       eod_hights, eod_widths/i_samplerate, verbose=verbose-1)
 
         # extract mean eods
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes = extract_means(i_data, x_merge, x_peak, x_trough, eod_widths,
-                                                              clusters, i_samplerate, verbose=verbose-1)
+                                                              clusters, i_samplerate, width_factor_display, verbose=verbose-1)
 
         if plot_level>0:
             plot_all(data, eod_peaktimes, eod_troughtimes, samplerate, mean_eods)
-    
+
     return mean_eods, eod_times, eod_peaktimes, zoom_window
 
 @jit(nopython=True)
@@ -127,7 +142,7 @@ def detect_threshold(data,win_size,samplerate,n_stds,threshold_factor):
 
     return np.median(np.array(stds))*threshold_factor
 
-def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_peakwidth=None, cutwidth=0.01, win_size = 0.0005, n_stds = 1000, threshold_factor=6.0, verbose=0, plot_level=0):
+def extract_eod_times(data, samplerate, width_factor, interp_freq=500000, max_peakwidth=0.01, min_peakwidth=None, win_size = 0.0005, n_stds = 1000, threshold_factor=6.0, verbose=0, plot_level=0):
     """ Extract peaks from data which are potentially EODs.
 
     Parameters
@@ -136,6 +151,8 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_
         The data to be analysed.
     samplerate: int or float
         Sampling rate of the data
+    width_factor: int or float
+        Factor for extracting EOD shapes. Only EODs are extracted that can fully be analysed with this width.
 
     interp_freq: int or float (optional)
         Desired resolution in Hz. Data will be interpolated to match this resolution.
@@ -143,9 +160,6 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_
     peakwidth: int (optional)
         Maximum width for peak detection in seconds.
         Defaults to 10 ms.
-    cutwidth: int (optional)
-        Maximum width for extracting snippets for clustering based on EOD shape in seconds.
-        Defaults to 10 ms
     win_size: float (optional)
         Window size for determining peak detection threshold in seconds.
         Defaults to 0.5 ms.
@@ -182,10 +196,8 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_
     """
     
     # standard deviation of data in small snippets:
-    print('detect thresholds')
     threshold = detect_threshold(np.array(data),win_size,samplerate,n_stds,threshold_factor)
 
-    print('interpolation')
     # try to do this on all channels at once to speed things up.
     try:
         interp_f = int(interp_freq/samplerate)
@@ -194,7 +206,6 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_
     except MemoryError:
         interp_f = 1
 
-    print('detect peaks')
     orig_x_peaks, orig_x_troughs = detect_peaks_c(data, threshold)
     orig_x_peaks = orig_x_peaks.astype('int')
     orig_x_troughs = orig_x_troughs.astype('int')
@@ -204,14 +215,12 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_
             print('No peaks detected.')
         return [], [], [], [], samplerate*interp_f,data, interp_f
     else:
-        print('make eventlist')
         if min_peakwidth == None:
             min_peakwidth = interp_f*2
-        print(peakwidth)
-        print(min_peakwidth)
-        print('inp')
-        peaks, troughs, hights, widths = makeeventlist(orig_x_peaks, orig_x_troughs, data, peakwidth*interp_freq, min_peakwidth*interp_freq, verbose=verbose-1)
-        print('discard connecting peaks')
+        else:
+            min_peakwidth = min_peakwidth*interp_freq
+
+        peaks, troughs, hights, widths = makeeventlist(orig_x_peaks, orig_x_troughs, data, max_peakwidth*interp_freq, min_peakwidth, verbose=verbose-1)
         x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks, troughs, hights, widths, verbose=verbose-1)
         
         if plot_level>0:
@@ -223,10 +232,10 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_
             plt.plot(troughs,data[troughs.astype('int')],'o')
             plt.plot(x_peaks,data[x_peaks.astype('int')],'x',ms=10)
             plt.plot(x_troughs,data[x_troughs.astype('int')],'x',ms=10)        
-            plt.show()
-        print('cut idxs')
+
         # only take those where the maximum cutwidth does not casue issues
-        cut_idx = np.where((x_peaks>int(cutwidth*samplerate*interp_f)) & (x_peaks<(len(data)-int(cutwidth*samplerate*interp_f))) & (x_troughs>int(cutwidth*samplerate*interp_f)) & (x_troughs<(len(data)-int(cutwidth*samplerate*interp_f))))[0]
+        # so if the width_factor times the width + x is more than length.
+        cut_idx = ((x_peaks + eod_widths*width_factor < len(data)) & (x_troughs + eod_widths*width_factor < len(data)) & (x_peaks - eod_widths*width_factor > 0) & (x_troughs - eod_widths*width_factor > 0))
         
         if verbose>0:
             print('Remaining peaks after EOD extraction                    %5i\n'%(len(cut_idx)))
@@ -235,7 +244,7 @@ def extract_eod_times(data, samplerate, interp_freq=500000, peakwidth=0.01, min_
 
         return x_peaks[cut_idx], x_troughs[cut_idx], eod_hights[cut_idx], eod_widths[cut_idx], samplerate*interp_f, data, interp_f
 
-def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,verbose=0,plot_level=0):
+def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,use_log=False,verbose=0,plot_level=0):
     """ Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data. 
         Additional steps are used to merge clusters that are closer than merge_percentage.
         Broad gaussian fits that cover one or more other gaussian fits are split.
@@ -257,6 +266,8 @@ def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,verbose=0,plot_leve
         n_init : int (optional)
             Number of initializations for the gaussian fit.
             Defaults to 5.
+        use_log: boolean
+            Defaults to False
         verbose : int (optional)
             Verbosity level.
             Defaults to 0.
@@ -272,9 +283,14 @@ def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,verbose=0,plot_leve
 
     """
 
+    use_log=False
+
     if len(np.unique(x))>n_gaus:
         BGM_model = BayesianGaussianMixture(n_gaus, max_iter=max_iter, n_init=n_init)
-        labels = BGM_model.fit_predict(stats.zscore(x).reshape(-1,1))
+        if use_log:
+            labels = BGM_model.fit_predict(stats.zscore(np.log(x)).reshape(-1,1))
+        else:
+            labels = BGM_model.fit_predict(stats.zscore(x).reshape(-1,1))
     else:
         return np.zeros(len(x))
     
@@ -289,7 +305,8 @@ def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,verbose=0,plot_leve
         plt.hist(x)
         plt.subplot(1,4,2)
         for l in np.unique(labels):
-            plt.hist(x[labels==l],alpha=0.3)
+            plt.hist(x[labels==l],alpha=0.7)
+
 
     # merge gaussian clusters that are closer than merge_threshold
     labels = merge_gaussians(x,labels,merge_threshold)
@@ -298,7 +315,7 @@ def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,verbose=0,plot_leve
     if plot_level>0:
         plt.subplot(1,4,3)
         for l in np.unique(labels):
-            plt.hist(x[labels==l],alpha=0.3)
+            plt.hist(x[labels==l],alpha=0.7)
     
     # separate gaussian clusters that can be split by other clusters
     unique_labels = np.unique(labels)
@@ -321,7 +338,7 @@ def BGM(x,merge_threshold=0.1,n_gaus=5,max_iter=200,n_init=5,verbose=0,plot_leve
     if plot_level>0:
         plt.subplot(2,4,8)
         for l in np.unique(labels):
-            plt.hist(x[labels==l],alpha=0.3)
+            plt.hist(x[labels==l],alpha=0.7)
 
     return labels
 
@@ -361,7 +378,7 @@ def merge_gaussians(x,labels,merge_threshold=0.1):
 
     return labels
 
-def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth, width_factor=3, 
+def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, width_factor_shape, width_factor_wave, 
             n_gaus_hight=10, merge_threshold_hight=0.1, n_gaus_width=3, merge_threshold_width=0.5, 
             n_pc=5, minp=10, percentile=80, max_epsilon=0.01, slope_ratio_factor=4, 
             min_cluster_percentage=0.01, verbose=0, plot_level=0):
@@ -386,14 +403,10 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
         Sample rate of raw data.
     interp_f: float
         Interpolation factor used to obtain input data.
-    cutwidth: float
-        Maximum width for extracting snippets for clustering based on EOD shape in seconds.
-        Has to be the same cutwidth as used for timepoint extraction.
-    
-    width_factor (optional) : int or float
+    width_factor : int or float
         Multiplier for snippet extraction width. This factor is multiplied with the width
         between the peak and through of a single EOD.
-        Defaults to 3.
+    
     n_gaus_hight (optional) : int
         Number of gaussians to use for the clustering based on EOD hight.
         Defaults to 10.
@@ -440,9 +453,6 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
         EOD cluster labels based on hight and EOD waveform.
     """
 
-    # cap the widths at the maximum cutwidth value for a better gaussian fit.
-    eod_widths[eod_widths>cutwidth*samplerate/width_factor] = cutwidth*samplerate/width_factor    
-
     all_clusters = np.ones(len(eod_x))*-1
     width_labels = BGM(eod_widths,merge_threshold_width,n_gaus_width,verbose=verbose-1,plot_level=plot_level-1)
 
@@ -465,7 +475,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
         w_clusters = np.ones(len(w_eod_x))*-1
 
         # extract snippets with corresponding width
-        width = width_factor*np.median(w_eod_widths)
+        width = width_factor_shape*np.median(w_eod_widths)
         snippets = np.vstack([data[int(x-width):int(x+width)] for x in w_eod_x])
 
         # subtract the slope and normalize the snippets
@@ -479,7 +489,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
         features = PCA(n_pc).fit(snippets).transform(snippets)
 
         # determine hight labels
-        hight_labels = BGM(w_eod_hights,min(merge_threshold_hight,np.median(slope_ratio/w_eod_hights)),n_gaus_hight,verbose=verbose-1,plot_level=plot_level-1)
+        hight_labels = BGM(w_eod_hights,min(merge_threshold_hight,np.median(slope_ratio/w_eod_hights)),n_gaus_hight,use_log=True,verbose=verbose-1,plot_level=plot_level-1)
         
         if verbose>0:
             print('Clusters generated based on EOD hight:')
@@ -556,7 +566,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
     # remove all non-reliable clusters
     all_clusters = remove_sparse_detections(all_clusters,eod_widths,samplerate,len(data)/samplerate,verbose=verbose-1)
     all_clusters = delete_unreliable_fish(all_clusters,eod_widths,eod_x,verbose=verbose-1)
-    all_clusters = delete_wavefish_and_sidepeaks(data,all_clusters,eod_x,eod_widths,interp_f,verbose=verbose-1)
+    all_clusters = delete_wavefish_and_sidepeaks(data,all_clusters,eod_x,eod_widths,interp_f,width_factor_wave,verbose=verbose-1)
 
     if verbose>0:
         print('Clusters generated based on hight, width and shape: ')
@@ -565,7 +575,7 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, cutwidth,
     return all_clusters
 
 
-def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, samplerate,  w_factor=4, verbose=0):
+def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, samplerate,  w_factor, verbose=0):
     """ Extract mean EODs, EOD timepoints and unreliability score for each EOD cluster.
 
     Parameters
@@ -584,9 +594,9 @@ def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, sampl
             EOD cluster labels
         samplerate: float
             samplerate of recording  
-        w_factor (optional): float
+        w_factor : float
             Multiplication factor for window used to extract EOD.
-            Defaults to 4.
+        
         verbose (optional): int   
             Verbosity level.
             Defaults to 0.           
@@ -657,10 +667,11 @@ def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose):
             if verbose>0:
                 print('deleting unreliable cluster %i, score=%f'%(cluster,np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters]))))
             clusters[clusters==cluster] = -1
+
     return clusters
 
 
-def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, max_phases=4, w_factor=8, verbose=0):
+def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w_factor, max_phases=4, verbose=0):
     """Delete EODs that are likely from wavefish, or sidepeaks of bigger EODs.
         Parameters
         ----------
@@ -697,6 +708,7 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, m
         cutwidth = np.mean(eod_widths[clusters==cluster])*w_factor
         current_x = eod_x[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
         current_clusters = clusters[(eod_x>cutwidth) & (eod_x<(len(data)-cutwidth))]
+        
         snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_x[current_clusters==cluster]])
         
         # extract information on main peaks and troughs
@@ -726,6 +738,10 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, m
 
             if np.abs(np.diff(idxs[m_slope:m_slope+2])) < np.mean(eod_widths[clusters==cluster])*0.5 or len(pk) + len(tr)>max_phases or np.min(w_diff)>2*cutwidth/w_factor or len(hdiffs[np.abs(hdiffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])>max_phases:
                 if verbose>0:
+                    #plt.figure()
+                    #plt.plot(mean_eod)
+                    #plt.plot(pk2,'o')
+                    #plt.plot(tr2,'o')
                     print('Deleting cluster %i, which is a wavefish'%cluster)
                 clusters[clusters==cluster] = -1
 
