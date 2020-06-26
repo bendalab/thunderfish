@@ -633,6 +633,21 @@ def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
         Configuration for clipping and best window.
     show_bestwindow: boolean
         If true show a plot with the best window cost functions.
+
+    Returns
+    -------
+    data: 1-D array
+        The data array of the best window
+    idx0: int
+        The start index of the best window in the original data.
+    idx1: int
+        The end index of the best window in the original data.
+    clipped: float
+        Fraction of clipped amplitudes.
+    min_clip: float
+        Minimum amplitude that is not clipped.
+    max_clip: float
+        Maximum amplitude that is not clipped.
     """
     found_bestwindow = True
     min_clip = cfg.value('minClipAmplitude')
@@ -672,9 +687,9 @@ def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
         except UserWarning as e:
             found_bestwindow = False
     if found_bestwindow:
-        return raw_data[idx0:idx1], idx0, idx1, clipped
+        return raw_data[idx0:idx1], idx0, idx1, clipped, min_clip, max_clip
     else:
-        return raw_data, 0, 0, 0.0
+        return raw_data, 0, 0, clipped, min_clip, max_clip
 
 
 if __name__ == "__main__":
