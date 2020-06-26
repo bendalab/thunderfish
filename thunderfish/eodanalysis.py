@@ -8,6 +8,7 @@
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
 ## Quality assessment
+- `clipped_fraction()`: compute fraction of clipped EOD waveform snippets.
 - `wave_quality()`: asses quality of EOD waveform of a wave fish.
 - `pulse_quality()`: asses quality of EOD waveform of a pulse fish.
 
@@ -145,7 +146,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
             maxn = step*(idx+1)
             eod_snippets = eod_snippets[:maxn]
             eod_times = eod_times[:maxn]
-
+    
     # mean and std of snippets:
     mean_eod = np.zeros((len(eod_snippets[0]), 3))
     mean_eod[:,1] = np.mean(eod_snippets, axis=0)
@@ -458,9 +459,8 @@ def exp_decay(t, tau, ampl, offs):
     return offs + ampl*np.exp(-t/tau)
 
 
-def analyze_pulse(eod, eod_times, min_pulse_win=0.001,
-                  peak_thresh_fac=0.01, min_dist=50.0e-6,
-                  width_frac = 0.5, fit_frac = 0.5,
+def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
+                  min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
                   freq_resolution=1.0, flip_pulse='none',
                   ipi_cv_thresh=0.5, ipi_percentile=30.0):
     """
@@ -827,7 +827,40 @@ def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
     return eodf * q10 ** ((temp_adjust - temp) / 10.0)
 
 
-def wave_quality(idx, clipped, ncrossings, rms_sem, rms_error, power,
+def clipped_fraction(data, samplerate, eod_times, mean_eod, min_clip=-np.inf, max_clip=np.inf):
+    """Compute fraction of clipped EOD waveform snippets.
+
+    Parameters
+    ----------
+    data: 1-D array of float
+        The data to be analysed.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    eod_times: 1-D array of float
+        Array of EOD times in seconds over which the waveform should be averaged.
+    min_clip: float
+        Minimum amplitude that is not clipped.
+    max_clip: float
+        Maximum amplitude that is not clipped.
+    
+    Returns
+    -------
+    clipped_frac: float
+        Fraction of snippets that are clipped.
+    """
+    # snippets:
+    idx0 = np.argmin(mean_eod[:,0]) # index of time zero
+    w0 = -idx0
+    w1 = len(mean_eod[:,0]) - idx0
+    eod_idx = np.round(eod_times * samplerate).astype(np.int)
+    eod_snippets = snippets(data, eod_idx, w0, w1)
+    # fraction of clipped snippets:
+    clipped_frac = 0.5*(np.sum(np.max(eod_snippets, axis=1) > max_clip)/len(eod_snippets) +
+                        np.sum(np.min(eod_snippets, axis=1) < min_clip)/len(eod_snippets))
+    return clipped_frac
+
+
+def wave_quality(clipped_frac, ncrossings, rms_sem, rms_error, power,
                  max_clipped_frac=0.1, max_crossings=4, max_rms_sem=0.0,
                  max_rms_error=0.05, min_power=-100.0):
     """
@@ -835,10 +868,8 @@ def wave_quality(idx, clipped, ncrossings, rms_sem, rms_error, power,
     
     Parameters
     ----------
-    idx: int
-        Index of the fish, zero indicates largest amplitude
-    clipped: float
-        Fraction of clipped data.
+    clipped_frac: float
+        Fraction of clipped snippets.
     ncrossings: int
         Number of zero crossings per EOD period.
     rms_sem: float
@@ -869,12 +900,12 @@ def wave_quality(idx, clipped, ncrossings, rms_sem, rms_error, power,
     msg = []
     skip_reason = []
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*clipped)]
-    if idx == 0 and clipped >= max_clipped_frac:
+    msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
+    if clipped_frac >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
-                        (100.0*clipped, 100.0*max_clipped_frac)]
+                        (100.0*clipped_frac, 100.0*max_clipped_frac)]
     # too many zero crossings:
-    msg += ['number of zero crossings=%d' % ncrossings]
+    msg += ['zero crossings=%d' % ncrossings]
     if ncrossings > 0 and ncrossings > max_crossings:
         skip_reason += ['too many zero crossings=%d (max %d)' %
                         (ncrossings, max_crossings)]
@@ -896,17 +927,15 @@ def wave_quality(idx, clipped, ncrossings, rms_sem, rms_error, power,
     return ', '.join(skip_reason), ', '.join(msg)
 
 
-def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
+def pulse_quality(clipped_frac, rms_sem, peaks, max_clipped_frac=0.1,
                   max_rms_sem=0.0):
     """
     Assess the quality of an EOD waveform of a pulse fish.
     
     Parameters
     ----------
-    idx: int
-        Index of the fish, zero indicates largest amplitude
-    clipped: float
-        Fraction of clipped data.
+    clipped_frac: float
+        Fraction of clipped snippets.
     rms_sem: float
         Standard error of the data relative to p-p amplitude.
     peaks: 2-D array
@@ -926,20 +955,24 @@ def pulse_quality(idx, clipped, rms_sem, peaks, max_clipped_frac=0.1,
         An empty string if the waveform is good, otherwise a string indicating the failure.
     msg: string
         A textual representation of the values tested.
+    skipped_clipped: bool
+        True if waveform was skipped because of clipping.
     """
     msg = []
     skip_reason = []
+    skipped_clipped = False
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*clipped)]
-    if idx == 0 and clipped >= max_clipped_frac:
+    msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
+    if clipped_frac >= max_clipped_frac:
         skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
-                        (100.0*clipped, 100.0*max_clipped_frac)]
+                        (100.0*clipped_frac, 100.0*max_clipped_frac)]
+        skipped_clipped = True
     # noise:
     msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
     if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
         skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
                         (100.0*rms_sem, 100.0*max_rms_sem)]
-    return ', '.join(skip_reason), ', '.join(msg)
+    return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
 
 
 def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,

@@ -36,7 +36,7 @@ from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
-from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
+from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse, clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_pulse_eods
 from .eodanalysis import plot_eod_waveform, plot_eod_snippets
 from .eodanalysis import plot_pulse_spectrum, plot_wave_spectrum
@@ -114,7 +114,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     return cfg
 
 
-def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
+def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cfg):
     """ Detect EODs of all fish present in the data.
 
     Parameters
@@ -125,6 +125,10 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
         Sampling rate of the dataset.
     clipped: float
         Fraction of clipped amplitudes.
+    min_clip: float
+        Minimum amplitude that is not clipped.
+    max_clip: float
+        Maximum amplitude that is not clipped.
     name: string
         Name of the recording (e.g. its filename).
     verbose: int
@@ -201,8 +205,8 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
 
     for k, (eod_ts, eod_pts) in enumerate(zip(eod_times, eod_peaktimes)):
         mean_eod, eod_times0 = \
-            eod_waveform(data, samplerate, eod_ts,
-                         win_fac=0.8, min_win=cfg.value('eodMinPulseSnippet'),
+            eod_waveform(data, samplerate, eod_ts, win_fac=0.8,
+                         min_win=cfg.value('eodMinPulseSnippet'),
                          min_sem=False, **eod_waveform_args(cfg))
         mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
                                                       freq_resolution=min_freq_res,
@@ -210,14 +214,16 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
         if len(peaks) == 0:
             print('error: no peaks in pulse EOD detected')
             continue
+        clipped_frac = clipped_fraction(data, samplerate, eod_times0, mean_eod,
+                                        min_clip, max_clip)
 
         props['peaktimes'] = eod_pts      # XXX that should go into analyze pulse
         props['index'] = len(eod_props)
-        props['clipped'] = clipped
+        props['clipped'] = clipped_frac
 
         # add good waveforms only:
-        skips, msg = pulse_quality(k, clipped, props['rmssem'], peaks,
-                                   **pulse_quality_args(cfg))
+        skips, msg, skipped_clipped = pulse_quality(clipped_frac, props['rmssem'], peaks,
+                                                    **pulse_quality_args(cfg))
 
         if len(skips) == 0:
             eod_props.append(props)
@@ -226,7 +232,14 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
             peak_data.append(peaks)
             if verbose > 0:
                 print('take %6.1fHz pulse fish: %s' % (props['EODf'], msg))
-            # threshold for wave fish peaks based on single pulse spectra:
+        else:
+            skip_reason += ['%.1fHz pulse fish %s' % (props['EODf'], skips)]
+            if verbose > 0:
+                print('skip %6.1fHz pulse fish: %s (%s)' %
+                      (props['EODf'], skips, msg))
+
+        # threshold for wave fish peaks based on single pulse spectra:
+        if len(skips) == 0 or skipped_clipped:
             i0 = np.argmin(np.abs(mean_eod[:,0]))
             i1 = len(mean_eod) - i0
             pulse_data = np.zeros(len(data))
@@ -239,18 +252,12 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
             p_thresh = pulse_psd[0]
             p_thresh[:,1] *= len(data)/samplerate/props['period']/len(props['peaktimes'])
             p_thresh[:,1] *= 3.0
-                
             if power_thresh is None:
                 power_thresh = p_thresh
             else:
                 power_thresh[:,1] = np.max(np.vstack((power_thresh[:,1].T, p_thresh[:,1])),
                                            axis=0)
-        else:
-            skip_reason += ['%.1fHz pulse fish %s' % (props['EODf'], skips)]
-            if verbose > 0:
-                print('skip %6.1fHz pulse fish: %s (%s)' %
-                      (props['EODf'], skips, msg))
-
+                
     # remove wavefish below pulse fish power:
     if power_thresh is not None:
         n = len(wave_eodfs)
@@ -259,10 +266,11 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
         for k, fish in enumerate(reversed(wave_eodfs)):
             idx = np.array(fish[:maxh,0]//df, dtype=int)
             for offs in range(-2, 3):
-                if np.any(fish[:maxh,1] < power_thresh[idx+offs,1]):
+                nbelow = np.sum(fish[:maxh,1] < power_thresh[idx+offs,1])
+                if nbelow > 0:
                     wave_eodfs.pop(n-1-k)
                     if verbose > 0:
-                        print('skip %6.1fHz wave  fish: some harmonics are below pulsefish threshold' % fish[0,0])
+                        print('skip %6.1fHz wave  fish: %2d harmonics are below pulsefish threshold' % (fish[0,0], nbelow))
                     break
 
     # analyse EOD waveform of all wavefish:
@@ -278,11 +286,13 @@ def detect_eods(data, samplerate, clipped, name, verbose, cfg,filename):
             analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
         if error_str:
             print(name + ': ' + error_str)
+        clipped_frac = clipped_fraction(data, samplerate, eod_times, mean_eod,
+                                        min_clip, max_clip)
         props['n'] = len(eod_times)
         props['index'] = len(eod_props)
-        props['clipped'] = clipped if k == 0 else 0.0
+        props['clipped'] = clipped_frac
         # add good waveforms only:
-        skips, msg = wave_quality(k, clipped, props['ncrossings'],
+        skips, msg = wave_quality(clipped_frac, props['ncrossings'],
                                   props['rmssem'], props['rmserror'], props['power'],
                                   **wave_quality_args(cfg))
         if len(skips) == 0:
@@ -946,8 +956,8 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
         return '%s: empty data file' % filename
 
     # best_window:
-    data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg,
-                                                 show_bestwindow)
+    data, idx0, idx1, clipped, min_clip, max_clip = find_best_window(raw_data, samplerate,
+                                                                     cfg, show_bestwindow)
     if show_bestwindow:
         return None
     found_bestwindow = idx1 > 0
@@ -957,7 +967,7 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
     # detect EODs in the data:
     psd_data, wave_eodfs, wave_indices, eod_props, \
     mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-      detect_eods(data, samplerate, clipped, filename, verbose, cfg,filename)
+      detect_eods(data, samplerate, clipped, min_clip, max_clip, filename, verbose, cfg)
     if not found_bestwindow:
         wave_eodfs = []
         wave_indices = []
