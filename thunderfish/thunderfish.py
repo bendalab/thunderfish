@@ -251,7 +251,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
             pulse_psd = multi_psd(pulse_data, samplerate, **multi_psd_args(cfg))
             p_thresh = pulse_psd[0]
             p_thresh[:,1] *= len(data)/samplerate/props['period']/len(props['peaktimes'])
-            p_thresh[:,1] *= 3.0
+            p_thresh[:,1] *= 5.0
             if power_thresh is None:
                 power_thresh = p_thresh
             else:

@@ -558,8 +558,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     if eod.shape[1] > 2 and np.max(meod[:,2]) > 3*np.min(meod[:,2]):
         idx0 = np.argmin(np.abs(meod[:,0]))
         # minimum in standard deviation:
-        lstd_idx = np.argmin(meod[:idx0-2,2])
-        rstd_idx = np.argmin(meod[idx0+2:,2]) + idx0
+        lstd_idx = np.argmin(meod[:idx0-5,2])
+        rstd_idx = np.argmin(meod[idx0+5:,2]) + idx0
         # central, left, and right maximum of standard deviation:
         max_std = np.max(meod[lstd_idx:rstd_idx,2])
         l_std = np.max(meod[:lstd_idx,2])
