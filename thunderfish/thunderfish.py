@@ -202,7 +202,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
     
     # analyse eod waveform of pulse-fish:
     min_freq_res = cfg.value('frequencyResolution')
-
+    max_pulse_amplitude = 0.0
     for k, (eod_ts, eod_pts) in enumerate(zip(eod_times, eod_peaktimes)):
         mean_eod, eod_times0 = \
             eod_waveform(data, samplerate, eod_ts, win_fac=0.8,
@@ -240,6 +240,8 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
 
         # threshold for wave fish peaks based on single pulse spectra:
         if len(skips) == 0 or skipped_clipped:
+            if max_pulse_amplitude < props['p-p-amplitude']:
+                max_pulse_amplitude = props['p-p-amplitude']
             i0 = np.argmin(np.abs(mean_eod[:,0]))
             i1 = len(mean_eod) - i0
             pulse_data = np.zeros(len(data))
@@ -249,19 +251,19 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
                 ii1 = i1 if idx+i1 < len(pulse_data) else len(pulse_data)-1-idx
                 pulse_data[idx-ii0:idx+ii1] = mean_eod[i0-ii0:i0+ii1,1]
             pulse_psd = multi_psd(pulse_data, samplerate, **multi_psd_args(cfg))
-            p_thresh = pulse_psd[0]
-            p_thresh[:,1] *= len(data)/samplerate/props['period']/len(props['peaktimes'])
-            p_thresh[:,1] *= 5.0
+            pulse_power = pulse_psd[0][:,1]
+            pulse_power *= len(data)/samplerate/props['period']/len(props['peaktimes'])
+            pulse_power *= 5.0
             if power_thresh is None:
-                power_thresh = p_thresh
+                power_thresh = pulse_psd[0]
+                power_thresh[:,1] = pulse_power
             else:
-                power_thresh[:,1] = np.max(np.vstack((power_thresh[:,1].T, p_thresh[:,1])),
-                                           axis=0)
+                power_thresh[:,1] += pulse_power
                 
     # remove wavefish below pulse fish power:
     if power_thresh is not None:
         n = len(wave_eodfs)
-        maxh = 3
+        maxh = 3  # XXX make parameter
         df = power_thresh[1,0] - power_thresh[0,0]
         for k, fish in enumerate(reversed(wave_eodfs)):
             idx = np.array(fish[:maxh,0]//df, dtype=int)
@@ -274,9 +276,10 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
                     break
 
     # analyse EOD waveform of all wavefish:
-    powers = np.array([np.sum(fish[:, 1]) for fish in wave_eodfs])
+    powers = np.array([np.sum(fish[:, 1]**2) for fish in wave_eodfs])
+    power_indices = np.argsort(-powers)
     wave_indices = np.zeros(len(wave_eodfs), dtype=np.int)
-    for k, idx in enumerate(np.argsort(-powers)):
+    for k, idx in enumerate(power_indices):
         fish = wave_eodfs[idx]
         eod_times = np.arange(0.0, len(data)/samplerate, 1.0/fish[0,0])
         mean_eod, eod_times = \
@@ -291,6 +294,19 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
         props['n'] = len(eod_times)
         props['index'] = len(eod_props)
         props['clipped'] = clipped_frac
+        # remove wave fish that are smaller than the largest pulse fish:
+        if props['p-p-amplitude'] < 0.01*max_pulse_amplitude:
+            rm_indices = power_indices[k:]
+            if verbose > 0:
+                print('skip %6.1fHz wave  fish: power=%5.1fdB, p-p amplitude=%5.1fdB smaller than pulse fish=%5.1dB - 20dB' %
+                      (props['EODf'], decibel(powers[idx]),
+                       decibel(props['p-p-amplitude']), decibel(max_pulse_amplitude)))
+                for idx in rm_indices[1:]:
+                    print('skip %6.1fHz wave  fish: power=%5.1fdB even smaller' %
+                          (wave_eodfs[idx][0,0], decibel(powers[idx])))
+            wave_eodfs = np.delete(wave_eodfs, rm_indices)
+            wave_indices = np.delete(wave_indices, rm_indices)
+            break
         # add good waveforms only:
         skips, msg = wave_quality(clipped_frac, props['ncrossings'],
                                   props['rmssem'], props['rmserror'], props['power'],
