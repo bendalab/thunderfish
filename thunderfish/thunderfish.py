@@ -36,7 +36,8 @@ from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
-from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse, clipped_fraction
+from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
+from .eodanalysis import wave_clipped_fraction, pulse_clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_pulse_eods
 from .eodanalysis import plot_eod_waveform, plot_eod_snippets
 from .eodanalysis import plot_pulse_spectrum, plot_wave_spectrum
@@ -214,9 +215,8 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
         if len(peaks) == 0:
             print('error: no peaks in pulse EOD detected')
             continue
-        clipped_frac = clipped_fraction(data, samplerate, eod_times0, mean_eod,
-                                        min_clip, max_clip)
-
+        clipped_frac = pulse_clipped_fraction(data, samplerate, eod_times0, mean_eod,
+                                              min_clip, max_clip)
         props['peaktimes'] = eod_pts      # XXX that should go into analyze pulse
         props['index'] = len(eod_props)
         props['clipped'] = clipped_frac
@@ -289,8 +289,8 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
             analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
         if error_str:
             print(name + ': ' + error_str)
-        clipped_frac = clipped_fraction(data, samplerate, eod_times, mean_eod,
-                                        min_clip, max_clip)
+        clipped_frac = wave_clipped_fraction(data, samplerate, eod_times, mean_eod,
+                                             min_clip, max_clip)
         props['n'] = len(eod_times)
         props['index'] = len(eod_props)
         props['clipped'] = clipped_frac
