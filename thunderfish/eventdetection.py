@@ -208,8 +208,8 @@ def detect_peaks_c(data, threshold):
     min_value = data[0]
     max_value = min_value
 
-    peaks_list = np.zeros(len(data),dtype=int64)
-    troughs_list = np.zeros(len(data),dtype=int64)
+    peaks_list = np.zeros(len(data)//2,dtype=int64)
+    troughs_list = np.zeros(len(data)//2,dtype=int64)
 
     pi = 0
     ti = 0
