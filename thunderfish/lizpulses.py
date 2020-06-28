@@ -17,7 +17,13 @@ from scipy import stats
 
 from scipy.signal import argrelextrema
 
-from numba import jit
+try:
+    from numba import jit
+except ImportError:
+    def jit(nopython):
+        def decorator_jit(func):
+            return func
+        return decorator_jit
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -29,7 +35,7 @@ from scipy.spatial import distance_matrix
 from scipy.interpolate import interp1d
 
 from .eventdetection import detect_peaks, detect_peaks_c
-from .pulse_tracker_helper import makeeventlist, discardnearbyevents, discard_connecting_eods
+from .pulse_tracker_helper import makeeventlist, discard_connecting_eods
 
 import warnings
 

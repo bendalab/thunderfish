@@ -35,7 +35,15 @@ Detect and handle peaks and troughs as well as threshold crossings in data array
 """
 
 import numpy as np
-from numba import jit
+import sys
+
+try:
+    from numba import jit, int64
+except ImportError:
+    def jit(nopython):
+        def decorator_jit(func):
+            return func
+        return decorator_jit
 
 def detect_peaks(data, threshold):
     """
@@ -73,6 +81,18 @@ def detect_peaks(data, threshold):
         thresh = threshold
         if threshold <= 0:
             raise ValueError('input argument threshold must be positive!')
+        
+        # if numba is imported, use the numba compiled version.
+        # this version can (for now) only be used with a scalar threshold.
+        # As the types need to be the same throughout the function, one could 
+        # make another numba function for peak detection using threshold arrays
+        # and call them in the elif statement.
+
+        # I need two functions because of the np.zeros dtype is different for both.
+        # Can't find another workaround now, as there is not a lot of documentation on numba yet.
+
+        if 'numba' in sys.modules:
+            return detect_peaks_c(data, threshold)
     elif len(data) != len(threshold):
         raise IndexError('input arrays data and threshold must have same length!')
 
@@ -175,17 +195,12 @@ def detect_peaks_c(data, threshold):
     IndexError: If `data` and `threshold` arrays differ in length.
     """
 
-    thresh_array = True
-    thresh = 0.0
-    #if np.isscalar(threshold):
     thresh_array = False
     thresh = threshold
+
     if threshold <= 0:
         raise ValueError('input argument threshold must be positive!')
-    #elif len(data) != len(threshold):
-    #    raise IndexError('input arrays data and threshold must have same length!')
-
-
+    
     # initialize:
     direction = 0
     min_inx = 0
@@ -193,8 +208,8 @@ def detect_peaks_c(data, threshold):
     min_value = data[0]
     max_value = min_value
 
-    peaks_list = np.zeros(len(data))
-    troughs_list = np.zeros(len(data))
+    peaks_list = np.zeros(len(data),dtype=int64)
+    troughs_list = np.zeros(len(data),dtype=int64)
 
     pi = 0
     ti = 0
@@ -202,8 +217,8 @@ def detect_peaks_c(data, threshold):
     # loop through the data:
     for index, value in enumerate(data):
 
-        #if thresh_array:
-        #    thresh = threshold[index]
+        if thresh_array:
+            thresh = threshold[index]
 
         # rising?
         if direction > 0:

@@ -1,5 +1,11 @@
 import numpy as np
-from numba import jit
+try:
+    from numba import jit
+except ImportError:
+    def jit(nopython):
+        def decorator_jit(func):
+            return func
+        return decorator_jit
 import matplotlib.pyplot as plt
 
 
@@ -74,77 +80,6 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
     r = ((w>min_width) & (w<event_width))
 
     return xp[r], xt[r], h[r], w[r]
-
-#@jit(nopython=True)
-def discardnearbyevents(event_locations, tr_locations, event_widths, event_slopes, min_distance,verbose=0):
-    """
-    Given a number of events with given location and heights, returns a selection
-    of these events where  no event is closer than eventwidth to the next event.
-    Among neighboring events closer than eventwidth the event with smaller height
-    is discarded.
-    Used to discard sidepeaks in detected multiple peaks of single EOD-pulses and
-    only keep the largest event_height and the corresponding location as
-    representative of the whole EOD pulse.
-
-    Parameters
-    ----------
-    event_locations: array of int or float
-        Positions of the given events in the data time series.
-    event_heights: array of int or float
-        Heights of the given events, indices refer to the same events as in
-        event_locations.
-    min_distance: int or float
-        minimal distance between events before one of the events gets discarded.
-    verbose (optional): int
-        Verbosity level.
-
-    Returns
-    -------
-    event_locations: array of int or float
-        Positions of the returned events in the data time series.
-    event_heights: array of int or float
-        Heights of the returned events, indices refer to the same events as in
-        event_locations.
-    event_indices: array of int
-        Indices of arrays which are not to be discarded
-    """
-
-    unchanged = False
-    counter = 0
-    event_indices = np.arange(0,len(event_locations)+1,1)
-    while unchanged == False:
-
-       print(len(event_locations))
-       print(len(tr_locations))
-       
-       x_diffs = np.min(np.vstack([np.diff(event_locations),np.diff(tr_locations),np.abs(event_locations[1:]-tr_locations[:-1]),np.abs(event_locations[:-1]-tr_locations[1:])]),axis=0)
-       events_delete = np.zeros(len(event_locations))
-
-       for i, diff in enumerate(x_diffs):
-           if diff < max(min_distance,max(event_widths[i],event_widths[i+1])*3):     
-                if event_slopes[i+1] > event_slopes[i]:
-                    # the width has to be at least 3*int_fact
-                     events_delete[i] = 1
-                else:
-                     events_delete[i+1] = 1
-
-       event_widths = event_widths[events_delete!=1]
-       event_locations = event_locations[events_delete!=1]
-       event_slopes = event_slopes[events_delete!=1]
-       tr_locations = tr_locations[events_delete!=1]
-
-       event_indices = event_indices[np.where(events_delete!=1)[0]]
-       if np.count_nonzero(events_delete)==0:
-           unchanged = True
-       counter += 1
-       if counter > 2000:
-           print('Warning: unusual many discarding steps needed, unusually dense events')
-           pass
-
-    if verbose>0:
-        print('Number of peaks after peak discarding:                  %5i'%(len(event_locations)))
-
-    return event_indices
 
 @jit(nopython=True)
 def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
