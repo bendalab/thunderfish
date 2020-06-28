@@ -304,8 +304,10 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
                 for idx in rm_indices[1:]:
                     print('skip %6.1fHz wave  fish: power=%5.1fdB even smaller' %
                           (wave_eodfs[idx][0,0], decibel(powers[idx])))
-            wave_eodfs = np.delete(wave_eodfs, rm_indices)
-            wave_indices = np.delete(wave_indices, rm_indices)
+            wave_eodfs = [eodfs for idx, eodfs in enumerate(wave_eodfs)
+                          if idx not in rm_indices]
+            wave_indices = [idcs for idx, idcs in enumerate(wave_indices)
+                            if idx not in rm_indices]
             break
         # add good waveforms only:
         skips, msg = wave_quality(clipped_frac, props['ncrossings'],

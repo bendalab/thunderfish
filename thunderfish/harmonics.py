@@ -724,7 +724,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, verbose=0,
 
         # nothing found:
         if len(harm_group) == 0:
-            if verbose > 1 or first:
+            if verbose > 1 - first:
                 s = ' (largest peak)' if first else ''
                 print('No harmonic group for %7.2fHz%s' % (fmax, s))
             first = False
