@@ -84,7 +84,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     add_psd_peak_detection_config(cfg)
     add_harmonic_groups_config(cfg)
     add_clip_config(cfg)
-    cfg.add('unwrapData', False, '', 'Unwrap scrambled wav-file data.')
+    cfg.add('unwrapData', False, '', 'Unwrap clipped voltage traces.')
     add_best_window_config(cfg, win_size=8.0, w_cv_ampl=10.0)
     add_check_pulse_config(cfg)
     add_eod_analysis_config(cfg, min_pulse_win=0.004)

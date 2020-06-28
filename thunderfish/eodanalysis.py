@@ -556,14 +556,15 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     
     # cut out stable estimate if standard deviation:
     if eod.shape[1] > 2 and np.max(meod[:,2]) > 3*np.min(meod[:,2]):
-        idx0 = np.argmin(np.abs(meod[:,0]))
+        idx0 = np.argmax(np.abs(meod[:,1]))
+        meod[:,0] -= meod[idx0,0]
         # minimum in standard deviation:
         lstd_idx = np.argmin(meod[:idx0-5,2])
         rstd_idx = np.argmin(meod[idx0+5:,2]) + idx0
         # central, left, and right maximum of standard deviation:
         max_std = np.max(meod[lstd_idx:rstd_idx,2])
-        l_std = np.max(meod[:lstd_idx,2])
-        r_std = np.max(meod[rstd_idx:,2])
+        l_std = np.max(meod[:len(meod)//4,2])
+        r_std = np.max(meod[len(meod)*3//4:,2])
         lidx = 0
         ridx = len(meod)
         if l_std > max_std:
@@ -573,8 +574,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
         #plt.plot(meod[:,0], meod[:,1])
         #plt.plot(meod[:,0], meod[:,2], '-r')
         #plt.plot([meod[lidx,0], meod[lidx,0]], [-0.1, 0.1], '-k')
-        #if ridx < len(meod):
-        #    plt.plot([meod[ridx,0], meod[ridx,0]], [-0.1, 0.1], '-k')
+        #plt.plot([meod[ridx-1,0], meod[ridx-1,0]], [-0.1, 0.1], '-b')
         #plt.show()
         meod = meod[lidx:ridx,:]
     
@@ -721,14 +721,16 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
                 tau = meod[inx+tau_inx,0]-meod[inx,0]
                 params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
                 popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                       meod[inx:rridx,1], params)
+                                       meod[inx:rridx,1], params,
+                                       bounds=([0.0, -np.inf, -np.inf], np.inf))
                 if popt[0] > 1.2*tau:
                     tau_inx = int(np.round(popt[0]/dt))
                     rridx = inx + 6*tau_inx
                     if rridx > len(meod)-1:
                         rridx = len(meod)-1
                     popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                           meod[inx:rridx,1], popt)
+                                           meod[inx:rridx,1], popt,
+                                           bounds=([0.0, -np.inf, -np.inf], np.inf))
                 tau = popt[0]
                 meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
