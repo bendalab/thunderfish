@@ -554,10 +554,12 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:eod.shape[1]] = eod
     meod[:,-1] = np.nan
+    toffs = 0
     
     # cut out stable estimate if standard deviation:
     if eod.shape[1] > 2 and np.max(meod[:,2]) > 3*np.min(meod[:,2]):
         idx0 = np.argmax(np.abs(meod[:,1]))
+        toffs += meod[idx0,0]
         meod[:,0] -= meod[idx0,0]
         # minimum in standard deviation:
         lstd_idx = np.argmin(meod[:idx0-5,2])
@@ -610,6 +612,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     min_ampl = np.abs(meod[min_idx,1])
                 
     # move peak of waveform to zero:
+    toffs += meod[max_idx,0]
     meod[:,0] -= meod[max_idx,0]
 
     # minimum threshold for peak detection:
@@ -801,7 +804,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     props['powerlowcutoff'] = lowcutoff
     props['flipped'] = flipped
     props['n'] = len(eod_times)
-    props['times'] = eod_times
+    props['times'] = eod_times + toffs
     
     return meod, props, peaks, ppower
 

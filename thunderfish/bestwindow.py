@@ -689,7 +689,7 @@ def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
     if found_bestwindow:
         return raw_data[idx0:idx1], idx0, idx1, clipped, min_clip, max_clip
     else:
-        return raw_data, 0, 0, clipped, min_clip, max_clip
+        return raw_data, 0, 0, False, min_clip, max_clip
 
 
 if __name__ == "__main__":

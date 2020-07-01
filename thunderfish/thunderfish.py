@@ -20,7 +20,7 @@ import matplotlib.ticker as ticker
 import matplotlib.lines as ml
 from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
-from multiprocessing import Pool, freeze_support, cpu_count
+from multiprocessing import Pool, Lock, freeze_support, cpu_count
 from audioio import play, fade
 from .version import __version__, __year__
 from .configfile import ConfigFile
@@ -703,7 +703,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         plot_eod_waveform(axeod, mean_eod, props, peaks, unit)
         if props['type'] == 'pulse':
             plot_eod_snippets(axeod, data, samplerate, mean_eod[0,0], mean_eod[-1,0],
-                              props['peaktimes'], n_snippets)
+                              props['times'], n_snippets)
         if len(indices) > 2 and k < 2:
             axeod.set_xlabel('')
         axeod.format_coord = meaneod_format_coord
@@ -874,7 +874,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
             if props['type'] == 'pulse':
                 plot_eod_snippets(ax, data, samplerate, meod[0,0], meod[-1,0],
-                                  props['peaktimes'], n_snippets)
+                                  props['times'], n_snippets)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
             if mpdf is None:
@@ -923,7 +923,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
             if props['type'] == 'pulse':
                 plot_eod_snippets(ax1, data, samplerate, meod[0,0], meod[-1,0],
-                                  props['peaktimes'], n_snippets)
+                                  props['times'], n_snippets)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax1)
             if props['type'] == 'pulse':
@@ -950,7 +950,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
 
 
 def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
-                save_plot=False, multi_pdf=None, save_subplots='',
+                save_plot=False, multi_pdf=None, lock=None, save_subplots='',
                 output_folder='.', keep_path=False, show_bestwindow=False, verbose=0):
     # check data file:
     if len(filename) == 0:
@@ -1033,7 +1033,11 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
                         interactive=not save_data, verbose=verbose)
         if save_plot:
             if multi_pdf is not None:
+                if lock is not None:
+                    lock.acquire()
                 multi_pdf.savefig(fig)
+                if lock is not None:
+                    lock.release()
             else:
                 # save figure as pdf:
                 fig.savefig(output_basename + '.pdf')
@@ -1149,9 +1153,12 @@ def main():
     if len(args.save_subplots) > 0:
         args.save_plot = True
     multi_pdf = None
+    lock = None
     if len(args.multi_pdf) > 0:
         args.save_plot = True
-        args.jobs = None
+        args.jobs = None  # PdfPages does not work yet with mutliprocessing
+        if args.jobs is not None:
+            lock = Lock()
         ext = os.path.splitext(args.multi_pdf)[1]
         if ext != os.extsep + 'pdf':
             args.multi_pdf += os.extsep + 'pdf'
@@ -1165,7 +1172,7 @@ def main():
     # run on pool:
     global pool_args
     pool_args = (cfg, args.channel, args.log_freq, args.save_data,
-                 args.save_plot, multi_pdf, args.save_subplots,
+                 args.save_plot, multi_pdf, lock, args.save_subplots,
                  args.outpath, args.keep_path, args.show_bestwindow, verbose-1)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
