@@ -16,6 +16,7 @@
 ## Visualization
 - `plot_eod_recording()`: plot a zoomed in range of the recorded trace.
 - `plot_pulse_eods()`: mark pulse EODs in a plot of an EOD recording.
+- `plot_eod_snippets()`: plot a few EOD waveform snippets.
 - `plot_eod_waveform()`: plot and annotate the averaged EOD-waveform with standard error.
 - `plot_wave_spectrum()`: plot and annotate spectrum of wave EODs.
 - `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse EOD.
@@ -1161,7 +1162,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
         
-def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10,
+def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10, flip=False,
                       kwargs={'zorder': -5, 'scaley': False, 'lw': 0.5, 'color': '#CCCCCC'}):
     """
     Plot a few EOD waveform snippets.
@@ -1182,6 +1183,8 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10
         EOD peak times from which a few are selected to be plotted.
     n_snippets: int
         Number of snippets to be plotted. If zero do not plot anything.
+    flip: bool
+        If True flip the snippets upside down.
     kwargs: dict
         Arguments passed on to the plot command for plotting the snippets.
     """
@@ -1198,6 +1201,8 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10
         if idx+i0 < 0 or idx+i1 >= len(data):
             continue
         snippet = data[idx+i0:idx+i1]
+        if flip:
+            snippet *= -1
         ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]), **kwargs)
 
         

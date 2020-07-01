@@ -703,7 +703,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         plot_eod_waveform(axeod, mean_eod, props, peaks, unit)
         if props['type'] == 'pulse':
             plot_eod_snippets(axeod, data, samplerate, mean_eod[0,0], mean_eod[-1,0],
-                              props['times'], n_snippets)
+                              props['times'], n_snippets, props['flipped'])
         if len(indices) > 2 and k < 2:
             axeod.set_xlabel('')
         axeod.format_coord = meaneod_format_coord
