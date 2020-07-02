@@ -8,13 +8,15 @@
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
 ## Quality assessment
-- `clipped_fraction()`: compute fraction of clipped EOD waveform snippets.
+- `wave_clipped_fraction()`: compute fraction of clipped wave fish waveform snippets.
+- `pulse_clipped_fraction()`: compute fraction of clipped pulse fish waveform snippets.
 - `wave_quality()`: asses quality of EOD waveform of a wave fish.
 - `pulse_quality()`: asses quality of EOD waveform of a pulse fish.
 
 ## Visualization
 - `plot_eod_recording()`: plot a zoomed in range of the recorded trace.
 - `plot_pulse_eods()`: mark pulse EODs in a plot of an EOD recording.
+- `plot_eod_snippets()`: plot a few EOD waveform snippets.
 - `plot_eod_waveform()`: plot and annotate the averaged EOD-waveform with standard error.
 - `plot_wave_spectrum()`: plot and annotate spectrum of wave EODs.
 - `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse EOD.
@@ -553,17 +555,20 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
     meod[:,:eod.shape[1]] = eod
     meod[:,-1] = np.nan
+    toffs = 0
     
     # cut out stable estimate if standard deviation:
     if eod.shape[1] > 2 and np.max(meod[:,2]) > 3*np.min(meod[:,2]):
-        idx0 = np.argmin(np.abs(meod[:,0]))
+        idx0 = np.argmax(np.abs(meod[:,1]))
+        toffs += meod[idx0,0]
+        meod[:,0] -= meod[idx0,0]
         # minimum in standard deviation:
-        lstd_idx = np.argmin(meod[:idx0-2,2])
-        rstd_idx = np.argmin(meod[idx0+2:,2]) + idx0
+        lstd_idx = np.argmin(meod[:idx0-5,2])
+        rstd_idx = np.argmin(meod[idx0+5:,2]) + idx0
         # central, left, and right maximum of standard deviation:
         max_std = np.max(meod[lstd_idx:rstd_idx,2])
-        l_std = np.max(meod[:lstd_idx,2])
-        r_std = np.max(meod[rstd_idx:,2])
+        l_std = np.max(meod[:len(meod)//4,2])
+        r_std = np.max(meod[len(meod)*3//4:,2])
         lidx = 0
         ridx = len(meod)
         if l_std > max_std:
@@ -573,8 +578,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
         #plt.plot(meod[:,0], meod[:,1])
         #plt.plot(meod[:,0], meod[:,2], '-r')
         #plt.plot([meod[lidx,0], meod[lidx,0]], [-0.1, 0.1], '-k')
-        #if ridx < len(meod):
-        #    plt.plot([meod[ridx,0], meod[ridx,0]], [-0.1, 0.1], '-k')
+        #plt.plot([meod[ridx-1,0], meod[ridx-1,0]], [-0.1, 0.1], '-b')
         #plt.show()
         meod = meod[lidx:ridx,:]
     
@@ -609,6 +613,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     min_ampl = np.abs(meod[min_idx,1])
                 
     # move peak of waveform to zero:
+    toffs += meod[max_idx,0]
     meod[:,0] -= meod[max_idx,0]
 
     # minimum threshold for peak detection:
@@ -721,14 +726,16 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
                 tau = meod[inx+tau_inx,0]-meod[inx,0]
                 params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
                 popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                       meod[inx:rridx,1], params)
+                                       meod[inx:rridx,1], params,
+                                       bounds=([0.0, -np.inf, -np.inf], np.inf))
                 if popt[0] > 1.2*tau:
                     tau_inx = int(np.round(popt[0]/dt))
                     rridx = inx + 6*tau_inx
                     if rridx > len(meod)-1:
                         rridx = len(meod)-1
                     popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                           meod[inx:rridx,1], popt)
+                                           meod[inx:rridx,1], popt,
+                                           bounds=([0.0, -np.inf, -np.inf], np.inf))
                 tau = popt[0]
                 meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
@@ -798,7 +805,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     props['powerlowcutoff'] = lowcutoff
     props['flipped'] = flipped
     props['n'] = len(eod_times)
-    props['times'] = eod_times
+    props['times'] = eod_times + toffs
     
     return meod, props, peaks, ppower
 
@@ -827,8 +834,54 @@ def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
     return eodf * q10 ** ((temp_adjust - temp) / 10.0)
 
 
-def clipped_fraction(data, samplerate, eod_times, mean_eod, min_clip=-np.inf, max_clip=np.inf):
-    """Compute fraction of clipped EOD waveform snippets.
+def wave_clipped_fraction(data, samplerate, eod_times, mean_eod,
+                          min_clip=-np.inf, max_clip=np.inf):
+    """Compute fraction of clipped wave fish waveform snippets.
+
+    Cut out snippets at each `eod_times` based on time axis of `mean_eod`.
+    Check which fraction of snippets exceeds clipping amplitude `min_clip` and `max_clip`.
+    Use mean of each snippet plus or minus maximum or minimum of `mean_eod` waveform.
+
+    Parameters
+    ----------
+    data: 1-D array of float
+        The data to be analysed.
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    eod_times: 1-D array of float
+        Array of EOD times in seconds over which the waveform should be averaged.
+    min_clip: float
+        Minimum amplitude that is not clipped.
+    max_clip: float
+        Maximum amplitude that is not clipped.
+    
+    Returns
+    -------
+    clipped_frac: float
+        Fraction of snippets that are clipped.
+    """
+    # snippets:
+    idx0 = np.argmin(mean_eod[:,0]) # index of time zero
+    w0 = -idx0
+    w1 = len(mean_eod[:,0]) - idx0
+    eod_idx = np.round(eod_times * samplerate).astype(np.int)
+    eod_snippets = snippets(data, eod_idx, w0, w1)
+    mean_snippets = np.mean(eod_snippets, axis=0)
+    # amplitudes of mean waveform:
+    max_ampl = np.max(mean_eod[:,1]) 
+    min_ampl = np.min(mean_eod[:,1]) 
+    # fraction of clipped snippets:
+    clipped_frac = np.sum((mean_snippets + max_ampl > max_clip) |
+                          (mean_snippets + min_ampl < min_clip))/len(eod_snippets)
+    return clipped_frac
+
+
+def pulse_clipped_fraction(data, samplerate, eod_times, mean_eod,
+                           min_clip=-np.inf, max_clip=np.inf):
+    """Compute fraction of clipped pulse fish waveform snippets.
+
+    Cut out snippets at each `eod_times` based on time axis of `mean_eod`.
+    Check which fraction of snippets exceeds clipping amplitude `min_clip` and `max_clip`.
 
     Parameters
     ----------
@@ -855,8 +908,8 @@ def clipped_fraction(data, samplerate, eod_times, mean_eod, min_clip=-np.inf, ma
     eod_idx = np.round(eod_times * samplerate).astype(np.int)
     eod_snippets = snippets(data, eod_idx, w0, w1)
     # fraction of clipped snippets:
-    clipped_frac = 0.5*(np.sum(np.max(eod_snippets, axis=1) > max_clip)/len(eod_snippets) +
-                        np.sum(np.min(eod_snippets, axis=1) < min_clip)/len(eod_snippets))
+    clipped_frac = np.sum((np.max(eod_snippets, axis=1) > max_clip) |
+                          (np.min(eod_snippets, axis=1) < min_clip))/len(eod_snippets)
     return clipped_frac
 
 
@@ -1113,7 +1166,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
         
-def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10,
+def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10, flip=False,
                       kwargs={'zorder': -5, 'scaley': False, 'lw': 0.5, 'color': '#CCCCCC'}):
     """
     Plot a few EOD waveform snippets.
@@ -1134,6 +1187,8 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10
         EOD peak times from which a few are selected to be plotted.
     n_snippets: int
         Number of snippets to be plotted. If zero do not plot anything.
+    flip: bool
+        If True flip the snippets upside down.
     kwargs: dict
         Arguments passed on to the plot command for plotting the snippets.
     """
@@ -1150,6 +1205,8 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10
         if idx+i0 < 0 or idx+i1 >= len(data):
             continue
         snippet = data[idx+i0:idx+i1]
+        if flip:
+            snippet *= -1
         ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]), **kwargs)
 
         
