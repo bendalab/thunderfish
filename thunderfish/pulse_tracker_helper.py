@@ -9,25 +9,22 @@ except ImportError:
 import matplotlib.pyplot as plt
 
 
-# numba doesnt like lists.  convert everything to numpy.
-
-def makeeventlist(main_event_positions, side_event_positions, data, event_width=20, min_width=2,verbose=0):
+def makeeventlist(main_event_positions, side_event_positions, data, max_width=20, min_width=2,verbose=0):
     """
     Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs,
-    the data and an optional width of an supposed EOD-event.
-    The generated event-array contains location and height of such events.
-    The height of the events is calculated by its height-difference to nearby troughs and main events that have no side events in a range closer than event_width are discarded and not considered as EOD event.
+    the data and the minimum and maximum width of an supposed EOD-event.
+    The generated event-arrays include the location, heights and widths of such events.
 
     Parameters
     ----------
     main_event_positions: array of int or float
-        Positions of the detected main events in the data time series. Either peaks or troughs.
+        Positions of the detected peaks in the data time series.
     side_event_positions: array of int or float
-        Positions of the detected 
-        side events in the data time series. The complimentary event to the main events.
+        Positions of the detected troughs in the data time series. 
+        The complimentary event to the main events.
     data: array of float
         The given data.
-    event_width (optional): int
+    max_width (optional): int
         Maximum EOD width (in samples).
     min_width (optional): int
         Minimum EOD width (in samples).
@@ -36,50 +33,59 @@ def makeeventlist(main_event_positions, side_event_positions, data, event_width=
 
     Returns
     -------
-    EOD_events: ndarray
-        2D array containing data with 'np.float' type, size (number_of_properties = 5, number_of_events).
-        Generated and combined data of the detected events in an array with arrays of:
-                x, y, height along the first axis, width and x of the most significant nearby trough.
-
+    x_peak: numpy array
+        Peak indices.
+    x_trough: numpy array
+        Trough indices.
+    hights: numpy array
+        Peak hights (distance between peak and trough amplitude)
+    widths: numpy array
+        Peak widths (distance between peak and trough indices)
     """
-    mainfirst = int((min(main_event_positions[0],side_event_positions[0])<side_event_positions[0]))  # determines if there is a peak or through first. Evaluates to 1 if there is a peak first.
-    mainlast = int((max(main_event_positions[-1],side_event_positions[-1])>side_event_positions[-1]))  # determines if there is a peak or through last. Evaluates to 1 if there is a peak last.
-    xp = main_event_positions[mainfirst:len(main_event_positions)-mainlast]
 
-    ind = np.arange(len(xp))
+    # determine if there is a peak or through first. Evaluate to 1 if there is a peak first.
+    mainfirst = int((min(main_event_positions[0],side_event_positions[0])<side_event_positions[0]))
+    # determine if there is a peak or through last. Evaluate to 1 if there is a peak last.
+    mainlast = int((max(main_event_positions[-1],side_event_positions[-1])>side_event_positions[-1]))
 
-    #if len(xp)>len(side_event_positions):
-    #    xp = xp[:-1]
-
-    y = data[xp]
+    x_peak = main_event_positions[mainfirst:len(main_event_positions)-mainlast]
+    ind = np.arange(len(x_peak))
+    y = data[x_peak]
     
+    # find indices of troughs on the right and left side of peaks
     l_side_ind = ind
     r_side_ind = l_side_ind + 1
 
+    # determine x values, distance to peak and amplitude of right troughs
     r_side_x = side_event_positions[r_side_ind]
-    r_distance = np.abs(r_side_x - xp)
+    r_distance = np.abs(r_side_x - x_peak)
     r_side_y = data[r_side_x]
 
+    # determine x values, distance to peak and amplitude of left troughs
     l_side_x = side_event_positions[l_side_ind]
-    l_distance = np.abs(xp - l_side_x)
+    l_distance = np.abs(x_peak - l_side_x)
     l_side_y = data[l_side_x]
 
-    s_l = np.abs((y-l_side_y)/l_distance)
-    s_r = np.abs((y-r_side_y)/r_distance)
+    # determine slope of lines connecting the peaks to the nearest troughs on the right and left.
+    l_slope = np.abs((y-l_side_y)/l_distance)
+    r_slope = np.abs((y-r_side_y)/r_distance)
 
-    iw = np.argmax(np.vstack([np.abs(y-l_side_y),np.abs(y-r_side_y)]),axis=0)
-    i = (np.abs(s_l-s_r)/(0.5*s_l+0.5*s_r) > 0.25)
-    iw[i] = np.argmax(np.array(np.vstack([s_l[i],s_r[i]])),axis=0)
+    # determine which trough to assign to the peak by taking either the steepest slope,
+    # or, when slopes are similar on both sides (within 25% difference), take the trough 
+    # with the maximum hight difference to the peak.
+    trough_idxs = np.argmax(np.vstack((np.abs(y-l_side_y),np.abs(y-r_side_y))),axis=0)
+    slope_idxs = (np.abs(l_slope-r_slope)/(0.5*l_slope+0.5*r_slope) > 0.25)
+    trough_idxs[slope_idxs] = np.argmax(np.array(np.vstack(np.array([l_slope[slope_idxs],r_slope[slope_idxs]]))),axis=0)
 
-    mp = np.vstack([np.abs(iw-1),iw])
-    h = np.sum(np.vstack([np.abs(y-l_side_y),np.abs(y-r_side_y)])*mp,axis=0) #calculated using absolutes in case of for example troughs instead of peaks as main events 
+    #calculated using absolutes in case of for example troughs instead of peaks as main events 
+    right_or_left = np.vstack([np.abs(trough_idxs-1),trough_idxs])
+    hights = np.sum(np.vstack([np.abs(y-l_side_y),np.abs(y-r_side_y)])*right_or_left,axis=0)
+    widths = np.sum(np.vstack([l_distance,r_distance])*right_or_left,axis=0)
+    x_trough = np.sum((x_peak + np.vstack([-l_distance,r_distance]))*right_or_left,axis=0)
 
-    w = np.sum(np.vstack([l_distance,r_distance])*mp,axis=0)
-    xt = np.sum((xp + np.vstack([-l_distance,r_distance]))*mp,axis=0)
+    keep_events = ((widths>min_width) & (widths<max_width))
 
-    r = ((w>min_width) & (w<event_width))
-
-    return xp[r], xt[r], h[r], w[r]
+    return x_peak[keep_events], x_trough[keep_events], hights[keep_events], widths[keep_events]
 
 @jit(nopython=True)
 def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
