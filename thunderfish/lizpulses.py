@@ -34,7 +34,7 @@ from sklearn.metrics import pairwise_distances
 from scipy.spatial import distance_matrix
 from scipy.interpolate import interp1d
 
-from .eventdetection import detect_peaks, detect_peaks_c
+from .eventdetection import detect_peaks
 from .pulse_tracker_helper import makeeventlist, discard_connecting_eods
 
 import warnings
@@ -229,7 +229,7 @@ def extract_eod_times(data, samplerate, width_factor, interp_freq=500000, max_pe
     except MemoryError:
         interp_f = 1
 
-    orig_x_peaks, orig_x_troughs = detect_peaks_c(data, threshold)
+    orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
     orig_x_peaks = orig_x_peaks.astype('int')
     orig_x_troughs = orig_x_troughs.astype('int')
 

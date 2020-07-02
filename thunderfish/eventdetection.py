@@ -39,15 +39,17 @@ import sys
 
 try:
     from numba import jit, int64
+    index_type = int64
 except ImportError:
     def jit(nopython):
         def decorator_jit(func):
             return func
         return decorator_jit
+    index_type = np.int
 
 def detect_peaks(data, threshold):
     """
-    Detect peaks and troughs using a fixed, relative threshold according to
+    Detect peaks and troughs using a relative threshold according to
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
     Computers and Biomedical Research 32, 322-335.
 
@@ -74,113 +76,31 @@ def detect_peaks(data, threshold):
     IndexError: If `data` and `threshold` arrays differ in length.
     """
 
-    thresh_array = True
-    thresh = 0.0
     if np.isscalar(threshold):
-        thresh_array = False
-        thresh = threshold
         if threshold <= 0:
             raise ValueError('input argument threshold must be positive!')
-        
-        # if numba is imported, use the numba compiled version.
-        # this version can (for now) only be used with a scalar threshold.
-        # As the types need to be the same throughout the function, one could 
-        # make another numba function for peak detection using threshold arrays
-        # and call them in the elif statement.
+        return detect_peaks_flat(data, threshold)
 
-        # I need two functions because of the np.zeros dtype is different for both.
-        # Can't find another workaround now, as there is not a lot of documentation on numba yet.
-
-        if 'numba' in sys.modules:
-            return detect_peaks_c(data, threshold)
     elif len(data) != len(threshold):
         raise IndexError('input arrays data and threshold must have same length!')
-
-    peaks_list = []
-    troughs_list = []
-
-    # initialize:
-    direction = 0
-    min_inx = 0
-    max_inx = 0
-    min_value = data[0]
-    max_value = min_value
-
-    # loop through the data:
-    for index, value in enumerate(data):
-
-        if thresh_array:
-            thresh = threshold[index]
-
-        # rising?
-        if direction > 0:
-            if value > max_value:
-                # update maximum element:
-                max_inx = index
-                max_value = value
-            # otherwise, if the new value is falling below
-            # the maximum value minus the threshold:
-            # the maximum is a peak!
-            elif value <= max_value - thresh:
-                peaks_list.append(max_inx)
-                # change direction:
-                direction = -1
-                # store minimum element:
-                min_inx = index
-                min_value = value
-
-        # falling?
-        elif direction < 0:
-            if value < min_value:
-                # update minimum element:
-                min_inx = index
-                min_value = value
-            # otherwise, if the new value is rising above
-            # the minimum value plus the threshold:
-            # the minimum is a trough!
-            elif value >= min_value + thresh:
-                troughs_list.append(min_inx)
-                # change direction:
-                direction = +1
-                # store maximum element:
-                max_inx = index
-                max_value = value
-
-        # don't know direction yet:
-        else:
-            if value <= max_value - thresh:
-                direction = -1  # falling
-            elif value >= min_value + thresh:
-                direction = 1  # rising
-                
-            if value > max_value:
-                # update maximum element:
-                max_inx = index
-                max_value = value
-            elif value < min_value:
-                # update minimum element:
-                min_inx = index
-                min_value = value
-    
-    return np.asarray(peaks_list, dtype=np.int), np.asarray(troughs_list, dtype=np.int)
+    elif np.min(threshold) <= 0:
+            raise ValueError('input argument threshold must be positive!')
+    else:
+        return detect_peaks_array(data, threshold)
 
 
 @jit(nopython=True)
-def detect_peaks_c(data, threshold):
+def detect_peaks_flat(data, thresh):
     """
-    Detect peaks and troughs using a fixed, relative threshold according to
-    Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
-    Computers and Biomedical Research 32, 322-335.
+    Detect peaks and troughs using a fixed, relative threshold.
 
     Parameters
     ----------
     data: array
         An 1-D array of input data where peaks are detected.
-    threshold: float or array
-        A positive number or array of numbers setting the detection threshold,
+    threshold: float
+        A positive number setting the detection threshold,
         i.e. the minimum distance between peaks and troughs.
-        In case of an array make sure that the threshold does not change faster
-        than the expected intervals between peaks and troughs.
     
     Returns
     -------
@@ -189,91 +109,170 @@ def detect_peaks_c(data, threshold):
     trough_array: array of ints
         A list of indices of detected troughs.
 
-    Raises
-    ------
-    ValueError: If `threshold <= 0`.
-    IndexError: If `data` and `threshold` arrays differ in length.
     """
 
-    thresh_array = False
-    thresh = threshold
-
-    if threshold <= 0:
-        raise ValueError('input argument threshold must be positive!')
-    
     # initialize:
-    direction = 0
-    min_inx = 0
-    max_inx = 0
-    min_value = data[0]
-    max_value = min_value
-
-    peaks_list = np.zeros(len(data)//2,dtype=int64)
-    troughs_list = np.zeros(len(data)//2,dtype=int64)
-
-    pi = 0
-    ti = 0
+    direction, min_inx, max_inx, pi, ti = 0, 0, 0, 0, 0
+    min_value, max_value = data[0], data[0]
+    peaks_list = np.zeros(len(data)//2,dtype=index_type)
+    troughs_list = np.zeros(len(data)//2,dtype=index_type)
 
     # loop through the data:
     for index, value in enumerate(data):
 
-        if thresh_array:
-            thresh = threshold[index]
-
-        # rising?
-        if direction > 0:
-            if value > max_value:
-                # update maximum element:
-                max_inx = index
-                max_value = value
-            # otherwise, if the new value is falling below
-            # the maximum value minus the threshold:
-            # the maximum is a peak!
-            elif value <= max_value - thresh:
-                peaks_list[pi] = max_inx
-                pi = pi + 1
-                # change direction:
-                direction = -1
-                # store minimum element:
-                min_inx = index
-                min_value = value
-
-        # falling?
-        elif direction < 0:
-            if value < min_value:
-                # update minimum element:
-                min_inx = index
-                min_value = value
-            # otherwise, if the new value is rising above
-            # the minimum value plus the threshold:
-            # the minimum is a trough!
-            elif value >= min_value + thresh:
-                troughs_list[ti] = min_inx
-                ti = ti + 1
-                # change direction:
-                direction = +1
-                # store maximum element:
-                max_inx = index
-                max_value = value
-
-        # don't know direction yet:
-        else:
-            if value <= max_value - thresh:
-                direction = -1  # falling
-            elif value >= min_value + thresh:
-                direction = 1  # rising
-                
-            if value > max_value:
-                # update maximum element:
-                max_inx = index
-                max_value = value
-            elif value < min_value:
-                # update minimum element:
-                min_inx = index
-                min_value = value
+        peaks_list, troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value = analyse_for_peaks(index, value, thresh, peaks_list, 
+            troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value)
     
     return peaks_list[:pi], troughs_list[:ti]
 
+@jit(nopython=True)
+def detect_peaks_array(data, threshold):
+    """
+    Detect peaks and troughs using a variable relative threshold.
+
+    Parameters
+    ----------
+    data: array
+        An 1-D array of input data where peaks are detected.
+    threshold: array
+        A positive array of numbers setting the detection threshold,
+        i.e. the minimum distance between peaks and troughs.
+    
+    Returns
+    -------
+    peak_array: array of ints
+        A list of indices of detected peaks.
+    trough_array: array of ints
+        A list of indices of detected troughs.
+
+    """    
+
+    # initialize:
+    direction, min_inx, max_inx, pi, ti = 0, 0, 0, 0, 0
+    min_value, max_value = data[0], data[0]
+    peaks_list = np.zeros(len(data)//2,dtype=index_type)
+    troughs_list = np.zeros(len(data)//2,dtype=index_type)
+
+
+    # loop through the data:
+    for index, value in enumerate(data):
+
+        thresh = threshold[index]
+        peaks_list, troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value = analyse_for_peaks(index, value, thresh, peaks_list, 
+            troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value)
+    
+    return peaks_list[:pi], troughs_list[:ti]
+
+
+@jit(nopython=True)
+def analyse_for_peaks(index, value, thresh, peaks_list, troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value):
+    """
+    Detect if the current datapoint is a peak or threshold and add it to the existing peak or trough list. Method is taken from:
+    Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
+    Computers and Biomedical Research 32, 322-335.
+
+    Parameters
+    ----------
+    index: int
+        Index of current datapoint.
+    value: float
+        Value of current datapoint.
+    thresh: float
+        Peak/trough threshold for current datapoint.
+    peaks_list: numpy array 
+        Numpy array with peak indices prior to current datapoint.
+    troughs_list: numpy array
+        Numpy array with trough indices prior to current datapoint.
+    pi: int
+        Index of next peak in peaks_list.
+    ti: int
+        Index of next trough in troughs_list.
+    direction: int
+        Direction of data derivative, e.g. +1 for up and -1 for down.
+    min_inx: int
+        Index of the minimum value in the current direction.
+    max_inx: int
+        Index of the maximum value in the current direction.
+    min_value: float
+        Minimum value in the current direction.
+    max_value: float
+        Maximum value in the current direction.
+    
+    Returns
+    -------
+    peaks_list: numpy array 
+        Numpy array with peak indices including current datapoint.
+    troughs_list: numpy array
+        Numpy array with trough indices including current datapoint.
+    pi: int
+        Index of next peak in peaks_list.
+    ti: int
+        Index of next trough in troughs_list.
+    direction: int
+        Direction of data derivative, e.g. +1 for up and -1 for down.
+    min_inx: int
+        Index of the minimum value in the current direction.
+    max_inx: int
+        Index of the maximum value in the current direction.
+    min_value: float
+        Minimum value in the current direction.
+    max_value: float
+        Maximum value in the current direction.
+    """
+
+    # rising?
+    if direction > 0:
+        if value > max_value:
+            # update maximum element:
+            max_inx = index
+            max_value = value
+        # otherwise, if the new value is falling below
+        # the maximum value minus the threshold:
+        # the maximum is a peak!
+        elif value <= max_value - thresh:
+            peaks_list[pi] = max_inx
+            pi = pi + 1
+            # change direction:
+            direction = -1
+            # store minimum element:
+            min_inx = index
+            min_value = value
+
+    # falling?
+    elif direction < 0:
+        if value < min_value:
+            # update minimum element:
+            min_inx = index
+            min_value = value
+        # otherwise, if the new value is rising above
+        # the minimum value plus the threshold:
+        # the minimum is a trough!
+        elif value >= min_value + thresh:
+            troughs_list[ti] = min_inx
+            ti = ti + 1
+            # change direction:
+            direction = +1
+            # store maximum element:
+            max_inx = index
+            max_value = value
+
+    # don't know direction yet:
+    else:
+        if value <= max_value - thresh:
+            direction = -1  # falling
+        elif value >= min_value + thresh:
+            direction = 1  # rising
+            
+        if value > max_value:
+            # update maximum element:
+            max_inx = index
+            max_value = value
+        elif value < min_value:
+            # update minimum element:
+            min_inx = index
+            min_value = value
+
+    return peaks_list, troughs_list, pi, ti ,direction, min_inx, max_inx,min_value, max_value
 
 def detect_peaks_fast(data, threshold):
     """Experimental. Try to make algorithm faster.
