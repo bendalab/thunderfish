@@ -1208,7 +1208,7 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10
         ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]), **kwargs)
 
         
-def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
+def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                       mkwargs={'zorder': 10, 'lw': 2, 'color': 'red'},
                       skwargs={'zorder': 5, 'color': '#CCCCCC'},
                       fkwargs={'zorder': 0, 'lw': 6, 'color': 'steelblue'},
@@ -1316,8 +1316,10 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks, unit=None,
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
     props['unit'] = unit
-    props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
-    label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\nn = {n} {eods}\n'.format(**props)
+    label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\n'.format(**props)
+    if 'n' in props:
+        props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
+        label += 'n = {n} {eods}\n'.format(**props)
     if props['flipped']:
         label += 'flipped\n'
     if -eod_waveform[0,0] < 0.6*eod_waveform[-1,0]:

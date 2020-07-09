@@ -162,7 +162,7 @@ def normalize_wavefish(fish):
 
     The amplitudes and phases of the Fourier components are adjusted such
     that the resulting EOD waveform has a peak-to-peak amplitude of two
-    and the peak of the waveform is a t time zero.
+    and the peak of the waveform is at time zero.
 
     Parameters
     ----------
@@ -211,7 +211,7 @@ def normalize_wavefish(fish):
 
 
 def export_wavefish(fish, name='Unknown_harmonics', file=None):
-    """ Serialize wavefish parameter to file.
+    """ Serialize wavefish parameter to python code.
 
     Add output to the wavefish_harmonics dictionary!
 
@@ -417,7 +417,7 @@ pulsefish_peaks = dict(Monophasic=Monophasic_peaks,
                        Triphasic=Triphasic_peaks)
                               
 
-def pulsefish_eods(fish='biphasic', frequency=100.0, samplerate=44100.0,
+def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
                    duration=1.0, noise_std=0.01, jitter_cv=0.1,
                    first_pulse=None):
     """
@@ -579,9 +579,9 @@ def normalize_pulsefish(fish):
 
 
 def export_pulsefish(fish, name='Unknown_peaks', file=None):
-    """ Serialize pulsefish parameter to file.
+    """ Serialize pulsefish parameter to python code.
 
-    Add output to the wavefish_harmonics dictionary!
+    Add output to the pulsefish_peaks dictionary!
 
     Parameters
     ----------
@@ -757,7 +757,7 @@ def demo():
     samplerate = 40000.0 # in Hz
     duration = 10.0      # in sec
 
-    inset_len = 0.01    # in sec
+    inset_len = 0.01     # in sec
     inset_indices = int(inset_len*samplerate)
     ws_fac = 0.1         # whitespace factor or ylim (between 0. and 1.)
 
@@ -863,5 +863,4 @@ def main():
 
             
 if __name__ == '__main__':
-    #main()
-    export_pulsefish('Triphasic', 'Triphasic_peaks')
+    main()
