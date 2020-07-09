@@ -396,9 +396,9 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
 """ Positions, amplitudes and standard deviations of peaks
     of various pulsefish species. """
 Monophasic_peaks = \
-    dict(times=(0),
-         amplitudes=(1),
-         stdevs=(0.0003))
+    dict(times=(0,),
+         amplitudes=(1,),
+         stdevs=(0.0003,))
 
 Biphasic_peaks = \
     dict(times=(9e-05, 0.00049),
@@ -472,7 +472,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
     if isinstance(fish, (tuple, list)):
         peak_times = fish[0]
         peak_amplitudes = fish[1]
-        peak_stds = fish[2]
+        peak_stdevs = fish[2]
     elif isinstance(fish, dict):
         peak_times = fish['times']
         peak_amplitudes = fish['amplitudes']
@@ -638,6 +638,8 @@ def export_pulsefish(fish, name='Unknown_peaks', file=None):
         file.write(',\n')
         file.write(' ' * (9+12))
         file.write(', '.join(['%.5g' % a for a in peak_times[k:k+n]]))
+    if len(peak_times) == 1:
+        file.write(',')
     file.write('),\n')
     file.write(' ' * 9 + 'amplitudes=(')
     file.write(', '.join(['%.5g' % p for p in peak_amplitudes[:n]]))
@@ -645,6 +647,8 @@ def export_pulsefish(fish, name='Unknown_peaks', file=None):
         file.write(',\n')
         file.write(' ' * (9+8))
         file.write(', '.join(['%.5g' % p for p in peak_amplitudes[k:k+n]]))
+    if len(peak_amplitudes) == 1:
+        file.write(',')
     file.write('),\n')
     file.write(' ' * 9 + 'stdevs=(')
     file.write(', '.join(['%.5g' % p for p in peak_stdevs[:n]]))
@@ -652,6 +656,8 @@ def export_pulsefish(fish, name='Unknown_peaks', file=None):
         file.write(',\n')
         file.write(' ' * (9+8))
         file.write(', '.join(['%.5g' % p for p in peak_stdevs[k:k+n]]))
+    if len(peak_stdevs) == 1:
+        file.write(',')
     file.write('))\n')
     if closeit:
         file.close()
