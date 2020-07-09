@@ -5,8 +5,9 @@ Automatically detect and analyze all EOD waveforms in a short recording
 and generate a summary plot and data tables.
 
 Run it from the thunderfish development directory as:
-python3 -m thunderfish.thunderfish audiofile.wav   or
-python -m thunderfish.thunderfish audiofile.wav
+```
+python3 -m thunderfish.thunderfish audiofile.wav
+```
 """
 
 import sys
@@ -185,13 +186,18 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
                                    df_th=cfg.value('frequencyThreshold'))
     if verbose > 0:
         if len(wave_eodfs) > 0:
-            print('fundamental frequencies consistent in all power spectra:')
+            print('found %2d EOD frequencies consistent in all power spectra:' % len(wave_eodfs))
             print('  ' + ' '.join(['%.1f' % freq[0, 0] for freq in wave_eodfs]))
         else:
             print('no fundamental frequencies are consistent in all power spectra')
 
     # detect pulse fish:
-    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose-1)
+    if verbose > 0:
+        if len(eod_times) > 0:
+            print('found %2d pulsefish EODs' % len(eod_times))
+        else:
+            print('no pulsefish EODs found')
             
     # analysis results:
     eod_props = []
@@ -1062,7 +1068,7 @@ def run_thunderfish(file):
     verbose = pool_args[-1]+1
     if verbose > 0:
         if verbose > 1:
-            print('='*60)
+            print('='*70)
         print('analyze recording %s ...' % file)
     msg = thunderfish(file, *pool_args)
     if msg:

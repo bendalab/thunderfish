@@ -559,7 +559,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     
     # cut out stable estimate if standard deviation:
     if eod.shape[1] > 2 and np.max(meod[:,2]) > 3*np.min(meod[:,2]):
-        idx0 = np.argmax(np.abs(meod[:,1]))
+        n = len(meod)
+        idx0 = np.argmax(np.abs(meod[n//10:9*n//10,1]))
         toffs += meod[idx0,0]
         meod[:,0] -= meod[idx0,0]
         # minimum in standard deviation:

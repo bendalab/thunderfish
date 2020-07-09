@@ -9,7 +9,7 @@ The [Neuroethology-lab](https://uni-tuebingen.de/en/faculties/faculty-of-science
 - Jan Benda
 - J&ouml;rg Henninger (harmonic groups)
 - Juan Sehuanes (best window)
-- Till Raab
+- Till Raab (annotation)
 - Liz Weerdmeester (pulse clustering)
 
 

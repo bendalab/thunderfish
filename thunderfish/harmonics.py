@@ -949,7 +949,8 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
     """
     if verbose > 0:
         print('')
-        print(70*'#')
+        if verbose > 1:
+            print(70*'#')
         print('##### harmonic_groups', 48*'#')
 
     # decibel power spectrum:
