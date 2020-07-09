@@ -1120,6 +1120,10 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         width = np.min([width, np.diff(zoom_window)])
         while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
             width = width*2
+            if zoom_window[1] - width < 0:
+                width = width/2
+                break  
+            print(width)
 
         x = eod['peaktimes'] + toffs
         y = data[np.round(eod['peaktimes']*samplerate).astype(np.int)]
