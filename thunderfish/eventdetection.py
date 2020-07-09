@@ -41,11 +41,12 @@ try:
     from numba import jit, int64
     index_type = int64
 except ImportError:
-    def jit(nopython):
+    def jit(*args, **kwargs):
         def decorator_jit(func):
             return func
         return decorator_jit
     index_type = np.int
+
 
 def detect_peaks(data, threshold):
     """
@@ -80,12 +81,11 @@ def detect_peaks(data, threshold):
         if threshold <= 0:
             raise ValueError('input argument threshold must be positive!')
         return detect_peaks_flat(data, threshold)
-
-    elif len(data) != len(threshold):
-        raise IndexError('input arrays data and threshold must have same length!')
-    elif np.min(threshold) <= 0:
-            raise ValueError('input argument threshold must be positive!')
     else:
+        if len(data) != len(threshold):
+            raise IndexError('input arrays data and threshold must have same length!')
+        if np.min(threshold) <= 0:
+            raise ValueError('input argument threshold must be positive!')
         return detect_peaks_array(data, threshold)
 
 
@@ -124,6 +124,7 @@ def detect_peaks_flat(data, thresh):
             troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value)
     
     return peaks_list[:pi], troughs_list[:ti]
+
 
 @jit(nopython=True)
 def detect_peaks_array(data, threshold):
@@ -273,6 +274,7 @@ def analyse_for_peaks(index, value, thresh, peaks_list, troughs_list, pi, ti, di
             min_value = value
 
     return peaks_list, troughs_list, pi, ti ,direction, min_inx, max_inx,min_value, max_value
+
 
 def detect_peaks_fast(data, threshold):
     """Experimental. Try to make algorithm faster.

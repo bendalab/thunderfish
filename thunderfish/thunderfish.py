@@ -1061,12 +1061,9 @@ def run_thunderfish(file):
     """
     verbose = pool_args[-1]+1
     if verbose > 0:
-        
         if verbose > 1:
             print('='*60)
-
         print('analyze recording %s ...' % file)
-        
     msg = thunderfish(file, *pool_args)
     if msg:
         print(msg)
