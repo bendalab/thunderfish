@@ -1,14 +1,32 @@
 """
 Simulate EOD waveforms.
 
+
+## Species names
+
+- `species_name`: translate species ids to full species names.
+- `abbrv_genus()`: abbreviate genus in a species name.
+
+
+## Wavefish
+
+- `wavefish_spectrum()`: amplitudes and phases of a wavefish EOD.
 - `wavefish_eods()`: simulate EOD waveform of a wave-type fish.
 - `normalize_wavefish()`: normalize amplitudes and phases of EOD wave-type waveform.
 - `export_wavefish()`: serialize wavefish parameter to file.
 - `chirps()`: simulate frequency trace with chirps.
 - `rises()`: simulate frequency trace with rises.
+
+
+## Pulsefish
+
 - `pulsefish_eods(): simulate EOD waveform of a pulse-type fish.
 - `normalize_pulsefish()`: normalize times and stdevs of pulse-type EOD waveform.
 - `export_pulsefish()`: serialize pulsefish parameter to file.
+
+
+## Interactive waveform generation
+
 - `generate_waveform()`: interactively generate audio file with simulated EOD waveforms.
 """
 
@@ -17,7 +35,7 @@ import sys
 import numpy as np
 
 
-""" Translate species ids used by wavefish_harmonics and pulsefish_peaks to full species names.
+""" Translate species ids used by wavefish_harmonics and pulsefish_eodpeaks to full species names.
 """
 species_name = dict(Sine='Sinewave',
                     Alepto='Apteronotus leptorhynchus',
@@ -82,6 +100,47 @@ wavefish_harmonics = dict(Sine=Sine_harmonics,
                           Sternopygus=Sternopygus_dariensis_harmonics)
 
 
+def wavefish_spectrum(fish):
+    """ Amplitudes and phases of a wavefish EOD.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of lists/arrays
+        Specify relative amplitudes and phases of the fundamental and its harmonics.
+        If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
+        If tuple then the first element is the list of amplitudes and
+        the second one the list of relative phases in radians.
+
+    Returns
+    -------
+    amplitudes: array of floats
+        The amplitudes of the fundamental and its harmonics.
+    phases: array of floats
+        The phases in radians of the fundamental and its harmonics.
+
+    Raises
+    ------
+    KeyError: unknown fish.
+    IndexError: amplitudes and phases differ in length.
+    """
+    if isinstance(fish, (tuple, list)):
+        amplitudes = fish[0]
+        phases = fish[1]
+    elif isinstance(fish, dict):
+        amplitudes = fish['amplitudes']
+        phases = fish['phases']
+    else:
+        if not fish in wavefish_harmonics:
+            raise KeyError('unknown wavefish. Choose one of ' +
+                           ', '.join(wavefish_harmonics.keys()))
+        amplitudes = wavefish_harmonics[fish]['amplitudes']
+        phases = wavefish_harmonics[fish]['phases']
+    if len(amplitudes) != len(phases):
+        raise IndexError('need exactly as many phases as amplitudes')
+    return amplitudes, phases
+
+
 def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
                   duration=1.0, phase0=0.0, noise_std=0.05):
     """
@@ -90,12 +149,12 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     The waveform is constructed by superimposing sinewaves of integral
     multiples of the fundamental frequency - the fundamental and its
     harmonics.  The fundamental frequency of the EOD (EODf) is given by
-    frequency. With 'fish' relative amplitudes and phases of the
+    `frequency`. With `fish` relative amplitudes and phases of the
     fundamental and its harmonics are specified.
 
-    The generated waveform is duration seconds long and is sampled with
-    samplerate Hertz.  Gaussian white noise with a standard deviation of
-    noise_std is added to the generated waveform.
+    The generated waveform is `duration` seconds long and is sampled with
+    `samplerate` Hertz.  Gaussian white noise with a standard deviation of
+    `noise_std` is added to the generated waveform.
 
     Parameters
     ----------
@@ -128,20 +187,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     IndexError: amplitudes and phases differ in length.
     """
     # get relative amplitude and phases:
-    if isinstance(fish, (tuple, list)):
-        amplitudes = fish[0]
-        phases = fish[1]
-    elif isinstance(fish, dict):
-        amplitudes = fish['amplitudes']
-        phases = fish['phases']
-    else:
-        if not fish in wavefish_harmonics:
-            raise KeyError('unknown wavefish. Choose one of ' +
-                           ', '.join(wavefish_harmonics.keys()))
-        amplitudes = wavefish_harmonics[fish]['amplitudes']
-        phases = wavefish_harmonics[fish]['phases']
-    if len(amplitudes) != len(phases):
-        raise IndexError('need exactly as many phases as amplitudes')
+    amplitudes, phases = wavefish_spectrum(fish)
     # compute phase:
     if np.isscalar(frequency):
         phase = np.arange(0, duration, 1.0/samplerate)
@@ -175,22 +221,13 @@ def normalize_wavefish(fish):
 
     Returns
     -------
-    fish: dict
-        Dictionary with adjusted amplitudes and phases.
+    amplitudes: array of floats
+        Adjusted amplitudes of the fundamental and its harmonics.
+    phases: array of floats
+        Adjusted phases in radians of the fundamental and its harmonics.
     """
     # get relative amplitude and phases:
-    if isinstance(fish, (tuple, list)):
-        amplitudes = fish[0]
-        phases = fish[1]
-    elif isinstance(fish, dict):
-        amplitudes = fish['amplitudes']
-        phases = fish['phases']
-    else:
-        if not fish in wavefish_harmonics:
-            raise KeyError('unknown wavefish. Choose one of ' +
-                           ', '.join(wavefish_harmonics.keys()))
-        amplitudes = wavefish_harmonics[fish]['amplitudes']
-        phases = wavefish_harmonics[fish]['phases']
+    amplitudes, phases = wavefish_spectrum(fish)
     # generate waveform:
     eodf = 100.0
     rate = 100000.0
@@ -204,10 +241,8 @@ def normalize_wavefish(fish):
     newphases = np.array([p+(k+1)*deltap for k, p in enumerate(phases)])
     newphases %= 2.0*np.pi
     newphases[newphases>np.pi] -= 2.0*np.pi
-    # store and return:
-    harmonics = dict(amplitudes=newamplitudes,
-                     phases=newphases)
-    return harmonics
+    # return:
+    return newamplitudes, newphases
 
 
 def export_wavefish(fish, name='Unknown_harmonics', file=None):
@@ -234,18 +269,7 @@ def export_wavefish(fish, name='Unknown_harmonics', file=None):
         Dictionary with amplitudes and phases.
     """
     # get relative amplitude and phases:
-    if isinstance(fish, (tuple, list)):
-        amplitudes = fish[0]
-        phases = fish[1]
-    elif isinstance(fish, dict):
-        amplitudes = fish['amplitudes']
-        phases = fish['phases']
-    else:
-        if not fish in wavefish_harmonics:
-            raise KeyError('unknown wavefish. Choose one of ' +
-                           ', '.join(wavefish_harmonics.keys()))
-        amplitudes = wavefish_harmonics[fish]['amplitudes']
-        phases = wavefish_harmonics[fish]['phases']
+    amplitudes, phases = wavefish_spectrum(fish)
     # write out dictionary:
     if file is None:
         file = sys.stdout
@@ -412,9 +436,59 @@ Triphasic_peaks = \
 
 """ Standard deviations, amplitudes and positions of Gaussians that make up
     EOD waveforms of pulse-type electric fish. """
-pulsefish_peaks = dict(Monophasic=Monophasic_peaks,
-                       Biphasic=Biphasic_peaks,
-                       Triphasic=Triphasic_peaks)
+pulsefish_eodpeaks = dict(Monophasic=Monophasic_peaks,
+                          Biphasic=Biphasic_peaks,
+                          Triphasic=Triphasic_peaks)
+
+
+def pulsefish_peaks(fish):
+    """ Position, amplitudes and standard deviations of peaks in pulsefish EOD waveforms.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes and standard deviations Gaussians peaks that are
+        superimposed to simulate EOD waveforms of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_eodpeaks` dictionary.
+        If dictionary then take pulse properties from the 'times', 'amlitudes'
+        and 'stdevs' keys.
+        If tuple then the first element is the list of peak positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
+
+    Returns
+    -------
+    times : array of floats
+        Positions of the peaks.
+    amplitudes : array of floats
+        Amplitudes of the peaks.
+    stdevs : array of floats
+        Standard deviations of the peaks.
+
+    Raises
+    ------
+    KeyError: unknown fish.
+    IndexError: peak positions, amplitudes, or standard deviations differ in length.
+    """
+    if isinstance(fish, (tuple, list)):
+        peak_times = fish[0]
+        peak_amplitudes = fish[1]
+        peak_stdevs = fish[2]
+    elif isinstance(fish, dict):
+        peak_times = fish['times']
+        peak_amplitudes = fish['amplitudes']
+        peak_stdevs = fish['stdevs']
+    else:
+        if not fish in pulsefish_eodpeaks:
+            raise KeyError('unknown pulse-type fish. Choose one of ' +
+                           ', '.join(pulsefish_eodpeaks.keys()))
+        peak_times = pulsefish_eodpeaks[fish]['times']
+        peak_amplitudes = pulsefish_eodpeaks[fish]['amplitudes']
+        peak_stdevs = pulsefish_eodpeaks[fish]['stdevs']
+    if len(peak_stdevs) != len(peak_amplitudes) or len(peak_stdevs) != len(peak_times):
+        raise IndexError('need exactly as many standard deviations as amplitudes and times')
+    return peak_times, peak_amplitudes, peak_stdevs
                               
 
 def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
@@ -437,7 +511,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
         Specify positions, amplitudes and standard deviations Gaussians peaks that are
         superimposed to simulate EOD waveforms of pulse-type electric fishes. 
         If string then take positions, amplitudes and standard deviations 
-        from the `pulsefish_peaks` dictionary.
+        from the `pulsefish_eodpeaks` dictionary.
         If dictionary then take pulse properties from the 'times', 'amlitudes'
         and 'stdevs' keys.
         If tuple then the first element is the list of peak positions,
@@ -469,24 +543,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
     IndexError: peak positions, amplitudes, or standard deviations differ in length.
     """
     # get peak properties:
-    if isinstance(fish, (tuple, list)):
-        peak_times = fish[0]
-        peak_amplitudes = fish[1]
-        peak_stdevs = fish[2]
-    elif isinstance(fish, dict):
-        peak_times = fish['times']
-        peak_amplitudes = fish['amplitudes']
-        peak_stdevs = fish['stdevs']
-    else:
-        if not fish in pulsefish_peaks:
-            raise KeyError('unknown pulse-type fish. Choose one of ' +
-                           ', '.join(pulsefish_peaks.keys()))
-        peak_times = pulsefish_peaks[fish]['times']
-        peak_amplitudes = pulsefish_peaks[fish]['amplitudes']
-        peak_stdevs = pulsefish_peaks[fish]['stdevs']
-    if len(peak_stdevs) != len(peak_amplitudes) or len(peak_stdevs) != len(peak_times):
-        raise IndexError('need exactly as many standard deviations as amplitudes and times')
-
+    peak_times, peak_amplitudes, peak_stdevs = pulsefish_peaks(fish)
     # time axis for single pulse:
     min_time_inx = np.argmin(peak_times)
     max_time_inx = np.argmax(peak_times)
@@ -529,7 +586,7 @@ def normalize_pulsefish(fish):
         Specify positions, amplitudes and standard deviations Gaussians peaks that are
         superimposed to simulate EOD waveforms of pulse-type electric fishes. 
         If string then take positions, amplitudes and standard deviations 
-        from the `pulsefish_peaks` dictionary.
+        from the `pulsefish_eodpeaks` dictionary.
         If dictionary then take pulse properties from the 'times', 'amlitudes'
         and 'stdevs' keys.
         If tuple then the first element is the list of peak positions,
@@ -542,21 +599,7 @@ def normalize_pulsefish(fish):
         Dictionary with adjusted times and standard deviations.
     """
     # get peak properties:
-    if isinstance(fish, (tuple, list)):
-        peak_times = fish[0]
-        peak_amplitudes = fish[1]
-        peak_stds = fish[2]
-    elif isinstance(fish, dict):
-        peak_times = fish['times']
-        peak_amplitudes = fish['amplitudes']
-        peak_stdevs = fish['stdevs']
-    else:
-        if not fish in pulsefish_peaks:
-            raise KeyError('unknown pulse-type fish. Choose one of ' +
-                           ', '.join(pulsefish_peaks.keys()))
-        peak_times = pulsefish_peaks[fish]['times']
-        peak_amplitudes = pulsefish_peaks[fish]['amplitudes']
-        peak_stdevs = pulsefish_peaks[fish]['stdevs']
+    peak_times, peak_amplitudes, peak_stdevs = pulsefish_peaks(fish)
     # generate waveform:
     eodf = 10.0
     rate = 100000.0
@@ -581,7 +624,7 @@ def normalize_pulsefish(fish):
 def export_pulsefish(fish, name='Unknown_peaks', file=None):
     """ Serialize pulsefish parameter to python code.
 
-    Add output to the pulsefish_peaks dictionary!
+    Add output to the pulsefish_eodpeaks dictionary!
 
     Parameters
     ----------
@@ -589,7 +632,7 @@ def export_pulsefish(fish, name='Unknown_peaks', file=None):
         Specify positions, amplitudes and standard deviations Gaussians peaks that are
         superimposed to simulate EOD waveforms of pulse-type electric fishes. 
         If string then take positions, amplitudes and standard deviations 
-        from the `pulsefish_peaks` dictionary.
+        from the `pulsefish_eodpeaks` dictionary.
         If dictionary then take pulse properties from the 'times', 'amlitudes'
         and 'stdevs' keys.
         If tuple then the first element is the list of peak positions,
@@ -606,21 +649,7 @@ def export_pulsefish(fish, name='Unknown_peaks', file=None):
         Dictionary with peak times, amplitudes and standard deviations.
     """
     # get peak properties:
-    if isinstance(fish, (tuple, list)):
-        peak_times = fish[0]
-        peak_amplitudes = fish[1]
-        peak_stds = fish[2]
-    elif isinstance(fish, dict):
-        peak_times = fish['times']
-        peak_amplitudes = fish['amplitudes']
-        peak_stdevs = fish['stdevs']
-    else:
-        if not fish in pulsefish_peaks:
-            raise KeyError('unknown pulse-type fish. Choose one of ' +
-                           ', '.join(pulsefish_peaks.keys()))
-        peak_times = pulsefish_peaks[fish]['times']
-        peak_amplitudes = pulsefish_peaks[fish]['amplitudes']
-        peak_stdevs = pulsefish_peaks[fish]['stdevs']
+    peak_times, peak_amplitudes, peak_stdevs = pulsefish_peaks(fish)
     # write out dictionary:
     if file is None:
         file = sys.stdout
