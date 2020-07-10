@@ -116,7 +116,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     return cfg
 
 
-def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cfg):
+def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, plot_level, cfg):
     """ Detect EODs of all fish present in the data.
 
     Parameters
@@ -135,6 +135,8 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
         Name of the recording (e.g. its filename).
     verbose: int
         Print out information about EOD detection if greater than zero.
+    plot_level : int
+        Similar to verbosity levels, but with plots. 
     cfg: ConfigFile
         Configuration parameters.
 
@@ -192,7 +194,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
             print('no fundamental frequencies are consistent in all power spectra')
 
     # detect pulse fish:
-    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose-1)
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose-1, plot_level=plot_level)
     if verbose > 0:
         if len(eod_times) > 0:
             print('found %2d pulsefish EODs' % len(eod_times))
@@ -957,7 +959,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
 
 def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
                 save_plot=False, multi_pdf=None, lock=None, save_subplots='',
-                output_folder='.', keep_path=False, show_bestwindow=False, verbose=0):
+                output_folder='.', keep_path=False, show_bestwindow=False,
+                verbose=0, plot_level=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -991,7 +994,8 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
     # detect EODs in the data:
     psd_data, wave_eodfs, wave_indices, eod_props, \
     mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-      detect_eods(data, samplerate, clipped, min_clip, max_clip, filename, verbose, cfg)
+      detect_eods(data, samplerate, clipped, min_clip, max_clip, filename,
+                  verbose, plot_level, cfg)
     if not found_bestwindow:
         wave_eodfs = []
         wave_indices = []
@@ -1088,6 +1092,8 @@ def main():
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose',
                         help='verbosity level. Increase by specifying -v multiple times, or like -vvv')
+    parser.add_argument('-V', action='count', dest='plotlevel',
+                        help='level for debugging plots. Increase by specifying -V multiple times, or like -VVV')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
@@ -1139,6 +1145,11 @@ def main():
     verbose = 0
     if args.verbose != None:
         verbose = args.verbose
+    plot_level = 0
+    if args.plotlevel != None:
+        plot_level = args.plotlevel
+    if verbose < plot_level+1:
+        verbose = plot_level+1
 
     # interactive plot:
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
@@ -1179,7 +1190,7 @@ def main():
     global pool_args
     pool_args = (cfg, args.channel, args.log_freq, args.save_data,
                  args.save_plot, multi_pdf, lock, args.save_subplots,
-                 args.outpath, args.keep_path, args.show_bestwindow, verbose-1)
+                 args.outpath, args.keep_path, args.show_bestwindow, verbose-1, plot_level)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
         if verbose > 1:

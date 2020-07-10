@@ -1230,12 +1230,18 @@ def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
     mean_eods: list of numpy arrays
         Mean EODs of each pulsefish found in the recording.
     '''
+
+    try:
+        cmap = plt.get_cmap("tab10")
+    except ValueError:
+        cmap = plt.get_cmap("jet")
     
-    cmap = plt.get_cmap("tab10")
-    
-    fig = plt.figure(constrained_layout=True,figsize=(10,5))
+    try:
+        fig = plt.figure(constrained_layout=True,figsize=(10,5))
+    except TypeError:
+        fig = plt.figure(figsize=(10,5))
     if len(eod_p_times) > 0:
-        gs = GridSpec(2, len(eod_p_times), figure=fig)
+        gs = GridSpec(2, len(eod_p_times))
         ax = fig.add_subplot(gs[0,:])
         ax.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
         
