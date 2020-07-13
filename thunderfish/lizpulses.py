@@ -835,13 +835,32 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w
             clusters[clusters==cluster] = -1
 
         elif len(pk)>0 and len(tr)>0:
-            w_diff = np.abs(np.diff(np.sort(np.concatenate((pk,tr)))))
-            n_phases = np.abs(np.diff(idxs[m_slope:m_slope+2])) < np.mean(eod_widths[clusters==cluster])*0.5 or len(pk) + len(tr)>max_phases or np.min(w_diff)>2*cutwidth/w_factor or len(hdiffs[np.abs(hdiffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])
+            max_width = np.abs(np.diff(idxs[m_slope:m_slope+2]))
+            mean_width = np.mean(eod_widths[clusters==cluster])*0.5
+            if max_width < mean_width:
+                if verbose>0:
+                    print('Deleting cluster %2i, which is a wavefish with width at maximum %.1f (max mean width %.1f)' % (cluster, max_width, mean_width))
+                clusters[clusters==cluster] = -1
+                continue
+            n_pks_trs = len(pk) + len(tr)
+            if n_pks_trs > max_phases:
+                if verbose>0:
+                    print('Deleting cluster %2i, which is a wavefish with %2i peaks and troughs (max=%d)' % (cluster, n_pks_trs, max_phases))
+                clusters[clusters==cluster] = -1
+                continue
+            mw_diff = np.min(np.abs(np.diff(np.sort(np.concatenate((pk,tr))))))
+            min_w_diff = 2*cutwidth/w_factor
+            if mw_diff > min_w_diff:
+                if verbose>0:
+                    print('Deleting cluster %2i, which is a wavefish with minimum width %.1f (min=%.1f)' % (cluster, mw_diff, min_w_diff))
+                clusters[clusters==cluster] = -1
+                continue
+            n_phases = len(hdiffs[np.abs(hdiffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])
             if n_phases > max_phases:
                 if verbose>0:
-                    print('Deleting cluster %2i, which is a wavefish with %2d phases (max=%d)' % (cluster, n_phases, max_phases))
+                    print('Deleting cluster %2i, which is a wavefish with %2i phases (max=%d)' % (cluster, n_phases, max_phases))
                 clusters[clusters==cluster] = -1
-
+                
     return clusters
 
 
