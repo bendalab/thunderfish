@@ -85,7 +85,7 @@ def makeeventlist(main_event_positions, side_event_positions, data, max_width=20
 
     keep_events = ((widths>min_width) & (widths<max_width))
 
-    return x_peak[keep_events], x_trough[keep_events], hights[keep_events], widths[keep_events]
+    return x_peak[keep_events], x_trough[keep_events], hights[keep_events], widths[keep_events], x_peak, x_trough, hights, widths
 
 @jit(nopython=True)
 def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):

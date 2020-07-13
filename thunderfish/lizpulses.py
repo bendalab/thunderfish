@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from scipy import stats
 
+from matplotlib.patches import Rectangle, ConnectionPatch
+
 try:
     from numba import jit
 except ImportError:
@@ -33,6 +35,7 @@ from scipy.interpolate import interp1d
 
 from .eventdetection import detect_peaks
 from .pulse_tracker_helper import makeeventlist, discard_connecting_eods
+from .plots_for_paper import *
 
 import warnings
 def warn(*args,**kwargs):
@@ -119,17 +122,9 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
     
     if len(x_peak) > 0:
 
-        # cluster on peaks
-        peak_clusters = cluster(x_peak, eod_hights, eod_widths, i_data, i_samplerate,
+        # cluster
+        clusters, x_merge = cluster(x_peak, x_trough, eod_hights, eod_widths, i_data, i_samplerate,
                                 interp_f, width_factor_shape, width_factor_wave,verbose=verbose-1, plot_level=plot_level-1, **kwargs) 
-
-        # cluster on troughs
-        trough_clusters = cluster(x_trough, eod_hights, eod_widths, i_data, i_samplerate,
-                                 interp_f, width_factor_shape, width_factor_wave, verbose=verbose-1, plot_level=plot_level-1, **kwargs)
-
-        # merge peak and trough clusters
-        clusters, x_merge = merge_clusters(peak_clusters, trough_clusters, x_peak, x_trough, verbose=verbose-1)
-
 
         # extract mean eods and times
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = extract_means(i_data, x_merge, x_peak, x_trough, eod_widths,
@@ -145,7 +140,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
 
         # delete the moving fish
         clusters, zoom_window = delete_moving_fish(clusters, x_merge/i_samplerate, len(data)/samplerate,
-                                      eod_hights, eod_widths/i_samplerate, i_samplerate, verbose=verbose-1)
+                                      eod_hights, eod_widths/i_samplerate, i_samplerate, verbose=verbose-1,plot_level=plot_level-1)
 
         clusters = remove_sparse_detections(clusters,eod_widths,i_samplerate,len(data)/samplerate,verbose=verbose-1)
 
@@ -163,6 +158,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
 
         if plot_level > 0:
             plot_all(data, eod_peaktimes, eod_troughtimes, samplerate, mean_eods)
+            plt.tight_layout()
             plt.show()
 
     return mean_eods, eod_times, eod_peaktimes, zoom_window
@@ -241,22 +237,15 @@ def extract_eod_times(data, samplerate, width_factor, interp_freq=500000, max_pe
         else:
             min_peakwidth = min_peakwidth*interp_freq
 
-        peaks, troughs, hights, widths = makeeventlist(orig_x_peaks, orig_x_troughs, data, max_peakwidth*interp_freq, min_peakwidth, verbose=verbose-1)
+        peaks, troughs, hights, widths, apeaks, atroughs, ahights, awidths = makeeventlist(orig_x_peaks, orig_x_troughs, data, max_peakwidth*interp_freq, min_peakwidth, verbose=verbose-1)
         x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks, troughs, hights, widths, verbose=verbose-1)
         
         if plot_level>0:
-            plt.figure()
-            plt.plot(data)
-            plt.plot(orig_x_peaks,data[orig_x_peaks],'o',ms=10)
-            plt.plot(orig_x_troughs,data[orig_x_troughs],'o',ms=10)
-            plt.plot(peaks,data[peaks.astype('int')],'o')
-            plt.plot(troughs,data[troughs.astype('int')],'o')
-            plt.plot(x_peaks,data[x_peaks.astype('int')],'x',ms=10)
-            plt.plot(x_troughs,data[x_troughs.astype('int')],'x',ms=10)        
+            plot_peak_detection(data,samplerate,interp_f,orig_x_peaks,orig_x_troughs,peaks,troughs,x_peaks,x_troughs,apeaks, atroughs)      
 
         # only take those where the maximum cutwidth does not casue issues
         # so if the width_factor times the width + x is more than length.
-        cut_idx = ((x_peaks + eod_widths*width_factor < len(data)) & (x_troughs + eod_widths*width_factor < len(data)) & (x_peaks - eod_widths*width_factor > 0) & (x_troughs - eod_widths*width_factor > 0))
+        cut_idx = ((x_peaks + np.max(eod_widths)*width_factor < len(data)) & (x_troughs + np.max(eod_widths)*width_factor < len(data)) & (x_peaks - np.max(eod_widths)*width_factor > 0) & (x_troughs - np.max(eod_widths)*width_factor > 0))
         
         if verbose>0:
             print('Remaining peaks after EOD extraction                    %5i\n'%(len(cut_idx)))
@@ -358,48 +347,33 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5, use_log=False,
     if verbose>0:
         if not BGM_model.converged_:
             print('!!! Gaussian mixture did not converge !!!')
+    
+    cur_labels = np.unique(labels)
+    
+    # map labels to be increasing for increasing values for x
+    maxlab = len(np.unique(labels))
+    aso = np.argsort([np.median(x[labels==l]) for l in cur_labels]) + 100
+    for i,a in zip(cur_labels,aso):
+        labels[labels==i] = a
+    labels = labels - 100
+    
+    # separate gaussian clusters that can be split by other clusters
+    splits = np.sort(np.copy(x))[1:][np.diff(labels[np.argsort(x)])!=0]
 
-    # plot gaussian mixtures
-    if plot_level>0:
-        plt.figure()
-        plt.subplot(1,4,1)
-        plt.hist(x)
-        plt.subplot(1,4,2)
-        for l in np.unique(labels):
-            plt.hist(x[labels==l],alpha=0.7)
+    labels[:] = 0
+    for i,split in enumerate(splits):
+        labels[x>=split] = i+1
 
+    labels_before_merge = np.copy(labels)
 
     # merge gaussian clusters that are closer than merge_threshold
     labels = merge_gaussians(x,labels,merge_threshold)
 
-    # plot labels after merging close clusters
     if plot_level>0:
-        plt.subplot(1,4,3)
-        for l in np.unique(labels):
-            plt.hist(x[labels==l],alpha=0.7)
-    
-    # separate gaussian clusters that can be split by other clusters
-    unique_labels = np.unique(labels)
-    thresholds = np.vstack([[np.max(x[labels==l]),np.min(x[labels==l])] for l in unique_labels])
-    all_thresholds = thresholds.flatten()
-
-    for thresh, label in zip(thresholds,unique_labels):
-
-        if len(all_thresholds[(all_thresholds>np.min(thresh)) & (all_thresholds<np.max(thresh))])>0:
-
-            c_label = labels[labels==label]
-            c_x = x[labels==label]
-            maxlab = np.max(labels)+1
-            for split in np.sort(all_thresholds[(all_thresholds>np.min(thresh)) & (all_thresholds<np.max(thresh))]):
-                c_label[c_x>split] = maxlab
-                maxlab = maxlab+1
-            labels[labels==label] = c_label
-    
-    # plot labels after separating clusters
-    if plot_level>0:
-        plt.subplot(2,4,8)
-        for l in np.unique(labels):
-            plt.hist(x[labels==l],alpha=0.7)
+        if use_log:
+            plot_bgm(BGM_model,x,stats.zscore(np.log(x)),labels,labels_before_merge,'z-scored log(hight)','hight [a.u.]',use_log)
+        else:
+            plot_bgm(BGM_model,x,stats.zscore(x),labels,labels_before_merge,'z-scored width','width [ms]',use_log)
 
     return labels
 
@@ -439,8 +413,8 @@ def merge_gaussians(x,labels,merge_threshold=0.1):
 
     return labels
 
-def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, width_factor_shape, width_factor_wave, 
-            n_gaus_hight=10, merge_threshold_hight=0.1, n_gaus_width=3, merge_threshold_width=0.5, 
+def cluster(eod_xp, eod_xt, eod_hights, eod_widths, data, samplerate, interp_f, width_factor_shape, width_factor_wave, 
+            n_gaus_hight=10, merge_threshold_hight=0.1, n_gaus_width=3, merge_threshold_width=0.5,
             n_pc=5, minp=10, percentile=80, max_epsilon=0.01, slope_ratio_factor=4, 
             min_cluster_fraction=0.01, verbose=0, plot_level=0):
     
@@ -516,16 +490,35 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, width_fac
         EOD cluster labels based on hight and EOD waveform.
     """
 
-    all_clusters = np.ones(len(eod_x))*-1
-    width_labels = BGM(eod_widths,merge_threshold_width,n_gaus_width,verbose=verbose-1,plot_level=plot_level-1)
+    all_hightlabels = []
+    all_shapelabels = []
+    all_snippets = []
+    all_features = []
 
+    all_u_hightlabels = []
+
+    all_p_clusters = np.ones(len(eod_xp))*-1
+    all_t_clusters = np.ones(len(eod_xp))*-1
+    artefact_masks_p = np.ones(len(eod_xp),dtype=bool)
+    artefact_masks_t = np.ones(len(eod_xp),dtype=bool)
+    mean_eods_p = []
+    mean_eods_t = []
+    ffts_p = []
+    ffts_t = []
+
+    x_merge = np.ones(len(eod_xp))*-1
+
+    max_label_p = 0   # keep track of the labels so that no labels are overwritten
+    max_label_t = 0
+
+    # loop only over hight clusters that are bigger than minp
+    # first cluster on width
+    width_labels = BGM(1000*eod_widths/samplerate,merge_threshold_width,n_gaus_width,use_log=False,verbose=verbose-1,plot_level=plot_level-1)
     if verbose>0:
         print('Clusters generated based on EOD width:')
         [print('N_{} = {:>4}      h_{} = {:.4f}'.format(l,len(width_labels[width_labels==l]),l,np.mean(eod_widths[width_labels==l]))) for l in np.unique(width_labels)]   
 
-    max_label = 0   # keep track of the labels so that no labels are overwritten
 
-    # loop only over hight clusters that are bigger than minp
     w_labels, w_counts = unique_counts(width_labels)
     unique_width_labels = w_labels[w_counts>minp]
 
@@ -534,26 +527,25 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, width_fac
         # select only features in one width cluster at a time
         w_eod_widths = eod_widths[width_labels==width_label]
         w_eod_hights = eod_hights[width_labels==width_label]
-        w_eod_x = eod_x[width_labels==width_label]
-        w_clusters = np.ones(len(w_eod_x))*-1
-
-        # extract snippets with corresponding width
-        width = width_factor_shape*np.median(w_eod_widths)
-        snippets = np.vstack([data[int(x-width):int(x+width)] for x in w_eod_x])
-
-        # subtract the slope and normalize the snippets
-        snippets, slope_ratio = subtract_slope(snippets)
-        snippets = StandardScaler().fit_transform(snippets.T).T
-
-        # scale so that the absolute integral = 1.
-        snippets = (snippets.T/np.sum(np.abs(snippets),axis=1)).T
-
-        # compute features for clustering on waveform
-        features = PCA(n_pc).fit(snippets).transform(snippets)
+        w_eod_xp = eod_xp[width_labels==width_label]
+        w_eod_xt = eod_xt[width_labels==width_label]
+        wp_clusters = np.ones(len(w_eod_xp))*-1
+        wt_clusters = np.ones(len(w_eod_xp))*-1
+        wartefact_mask = np.ones(len(w_eod_xp))
 
         # determine hight labels
-        hight_labels = BGM(w_eod_hights,min(merge_threshold_hight,np.median(slope_ratio/w_eod_hights)),n_gaus_hight,use_log=True,verbose=verbose-1,plot_level=plot_level-1)
-        
+        raw_p_snippets, p_snippets, p_features, p_slope_hights = extract_snippet_features(data, w_eod_xp, w_eod_widths, width_factor_shape, n_pc)
+        raw_t_snippets, t_snippets, t_features, t_slope_hights = extract_snippet_features(data, w_eod_xt, w_eod_widths, width_factor_shape, n_pc)
+
+        all_features.append([p_features,t_features])
+        all_snippets.append([p_snippets,t_snippets])
+
+        # make BGM so that if merge_thresholds has multiple inputs, it outputs the hight labels twice.
+        # this way the BGM only has to run once. The labels will also be similar, so these steps should overlap too.
+        # OR I just pick one of the slope_hights for evaluation. Smallest slope would work best I gues..
+        hight_labels = BGM(w_eod_hights,min(merge_threshold_hight,np.median(np.min(np.vstack([p_slope_hights,t_slope_hights]),axis=0)/w_eod_hights)),n_gaus_hight,use_log=True,verbose=verbose-1,plot_level=plot_level-1)
+        all_hightlabels.append(hight_labels)
+
         if verbose>0:
             print('Clusters generated based on EOD hight:')
             [print('N_{} = {:>4}      h_{} = {:.4f}'.format(l,len(hight_labels[hight_labels==l]),l,np.mean(w_eod_hights[hight_labels==l]))) for l in np.unique(hight_labels)]   
@@ -561,84 +553,140 @@ def cluster(eod_x, eod_hights, eod_widths, data, samplerate, interp_f, width_fac
         h_labels, h_counts = unique_counts(hight_labels)
         unique_hight_labels = h_labels[h_counts>minp]
 
-        if plot_level>0:
-            plt.figure()
+        all_u_hightlabels.append(unique_hight_labels)
+
+        asl = []
 
         for hi,hight_label in enumerate(unique_hight_labels):
 
             h_eod_widths = w_eod_widths[hight_labels==hight_label]
             h_eod_hights = w_eod_hights[hight_labels==hight_label]
-            h_eod_x = w_eod_x[hight_labels==hight_label]
+            h_eod_xp = w_eod_xp[hight_labels==hight_label]
+            h_eod_xt = w_eod_xt[hight_labels==hight_label]
 
-            c_snippets = snippets[hight_labels==hight_label]
-            c_features = features[hight_labels==hight_label]
-
-            # determine clustering threshold from data
-            minpc = max(minp,int(len(c_features)*min_cluster_fraction))  
-            knn = np.sort(pairwise_distances(c_features,c_features),axis=0)[minpc]
-            eps = min(max(1,slope_ratio_factor*np.median(slope_ratio/w_eod_hights))*max_epsilon,np.percentile(knn,percentile))
-
-            if verbose>1:
-                print('epsilon = %f'%eps)
-                print('Slope to EOD ratio = %f'%np.median(slope_ratio/w_eod_hights))
-
-            # cluster on EOD shape
-            h_clusters = DBSCAN(eps=eps, min_samples=minpc).fit(c_features).labels_
+            p_clusters = cluster_on_shape(p_features[hight_labels==hight_label],w_eod_hights,p_slope_hights,minp,min_cluster_fraction,slope_ratio_factor,max_epsilon,percentile,verbose=0)            
+            t_clusters = cluster_on_shape(t_features[hight_labels==hight_label],w_eod_hights,t_slope_hights,minp,min_cluster_fraction,slope_ratio_factor,max_epsilon,percentile,verbose=0)            
             
-            # plot clusters
             if plot_level>0:
-                cols = ['b','r','g','y','m','c']
+                plot_feature_extraction(raw_p_snippets[hight_labels==hight_label],p_snippets[hight_labels==hight_label],p_features[hight_labels==hight_label],p_clusters,1/samplerate)
+                plot_feature_extraction(raw_t_snippets[hight_labels==hight_label],t_snippets[hight_labels==hight_label],t_features[hight_labels==hight_label],t_clusters,1/samplerate)
 
-                plt.subplot(2,len(unique_hight_labels),hi+1)
+            asl.append([p_clusters,t_clusters])
 
-                for j,c in enumerate(np.unique(h_clusters)):
-                    if c==-1:
-                        plt.scatter(c_features[h_clusters==c,0],c_features[h_clusters==c,1],alpha=0.1,c='k',label='-1')
-                    else:
-                        plt.scatter(c_features[h_clusters==c,0],c_features[h_clusters==c,1],alpha=0.1,c=cols[j%len(cols)],label=c+max_label)
-                        plt.title('h = %.3f, w=%i'%(np.mean(h_eod_hights[h_clusters==c]),np.mean(h_eod_widths[h_clusters==c])))
+            p_clusters[p_clusters==-1] = -max_label_p - 1
+            wp_clusters[hight_labels==hight_label] = p_clusters + max_label_p
+            max_label_p = max(np.max(wp_clusters),np.max(all_p_clusters)) + 1
 
-                plt.subplot(2,len(unique_hight_labels),len(unique_hight_labels)+hi+1)
+            t_clusters[t_clusters==-1] = -max_label_t - 1
+            wt_clusters[hight_labels==hight_label] = t_clusters + max_label_t
+            max_label_t = max(np.max(wt_clusters),np.max(all_t_clusters)) + 1
 
-                for j,c in enumerate(np.unique(h_clusters)):
-                    if c==-1:
-                        plt.plot(c_snippets[h_clusters==c].T,alpha=0.1,c='k',label='-1')
-                    else:
-                        plt.plot(c_snippets[h_clusters==c].T,alpha=0.1,c=cols[j%len(cols)],label=c+max_label)
-                        plt.title('h = %.3f, w=%i'%(np.mean(h_eod_hights[h_clusters==c]),np.mean(h_eod_widths[h_clusters==c])))
-
-            h_clusters[h_clusters==-1] = -max_label - 1
-            w_clusters[hight_labels==hight_label] = h_clusters + max_label
-            max_label = max(np.max(w_clusters),np.max(all_clusters)) + 1
-
-            if plot_level>0:
-                plt.legend()
 
         if verbose > 0:
-            if np.max(w_clusters) == -1:
-                print('No EODs in width cluster %i'%width_label)
-            elif len(np.unique(w_clusters[w_clusters!=-1]))>1:
-                print('%i different EODs in width cluster %i'%(len(np.unique(w_clusters[w_clusters!=-1])),width_label))
+            if np.max(wp_clusters) == -1:
+                print('No EOD peaks in width cluster %i'%width_label)
+            elif len(np.unique(wp_clusters[wp_clusters!=-1]))>1:
+                print('%i different EOD peaks in width cluster %i'%(len(np.unique(wp_clusters[wp_clusters!=-1])),width_label))
         
+            if np.max(wt_clusters) == -1:
+                print('No EOD troughs in width cluster %i'%width_label)
+            elif len(np.unique(wt_clusters[wt_clusters!=-1]))>1:
+                print('%i different EOD troughs in width cluster %i'%(len(np.unique(wt_clusters[wt_clusters!=-1])),width_label))
+        
+        all_shapelabels.append(asl)
+
+        # if plot_level, visualize all remove... methods here?
+        # or do it at the end and make a table of N_EOD x 3 for each method?
+        # then, I need to save the clusters before removing the artefacts here.
+        # I also need to save the snippets in a good format.
+        # or I do all steps here if plot_level>0? and fill the table as the loop progresses?
+        # but then I dont know the size of the table. :(
+
+        # sooo save original clusters without the removed artefacts.
+        # maybe instead of directly removing artefacts, I can return a mask. 
+        # Same goes for other methods, and then multiply at the end.
+
         # remove artefacts here, based on the mean snippets ffts.
-        w_clusters = remove_artefacts(snippets, w_clusters, interp_f, verbose=verbose-1)
+        artefact_masks_p[width_labels==width_label], mean_eod_p, fft_p = remove_artefacts(p_snippets, wp_clusters, interp_f, samplerate, verbose=verbose-1)
+        artefact_masks_t[width_labels==width_label], mean_eod_t, fft_t = remove_artefacts(t_snippets, wt_clusters, interp_f, samplerate, verbose=verbose-1)
+        
+        mean_eods_p.append(mean_eod_p)
+        mean_eods_t.append(mean_eod_t)
+        ffts_p.append(fft_p)
+        ffts_t.append(fft_t)
 
         # update maxlab so that no clusters are overwritten
-        all_clusters[width_labels==width_label] = w_clusters
+        all_p_clusters[width_labels==width_label] = wp_clusters
+        all_t_clusters[width_labels==width_label] = wt_clusters
+
+    if plot_level>0:
+        fig,gs = plot_EOD_discarding(mean_eods_p,ffts_p,len(np.unique(all_p_clusters[all_p_clusters>=0])))
+        fig2,gs2 = plot_EOD_discarding(mean_eods_t,ffts_t,len(np.unique(all_t_clusters[all_t_clusters>=0])))
+    else:
+        gs=None
+        fig=None
+        fig2=None
+        gs2=None
 
     # remove all non-reliable clusters
-    all_clusters = delete_unreliable_fish(all_clusters,eod_widths,eod_x,verbose=verbose-1)
-    all_clusters = delete_wavefish_and_sidepeaks(data,all_clusters,eod_x,eod_widths,interp_f,width_factor_wave,verbose=verbose-1)
+    unreliable_fish_mask_p = delete_unreliable_fish(all_p_clusters,eod_widths,eod_xp,verbose=verbose-1,fig=fig,gs=gs)
+    unreliable_fish_mask_t = delete_unreliable_fish(all_t_clusters,eod_widths,eod_xt,verbose=verbose-1,fig=fig2,gs=gs2)
+    
+    wave_mask_p, sidepeak_mask_p = delete_wavefish_and_sidepeaks(data,all_p_clusters,eod_xp,eod_widths,interp_f,width_factor_wave,verbose=verbose-1,fig=fig,gs=gs)
+    wave_mask_t, sidepeak_mask_t = delete_wavefish_and_sidepeaks(data,all_t_clusters,eod_xt,eod_widths,interp_f,width_factor_wave,verbose=verbose-1,fig=fig2,gs=gs2)  
+
+    if plot_level>0:
+        plt.show()
+
+    all_p_clusters[(artefact_masks_p | unreliable_fish_mask_p | wave_mask_p | sidepeak_mask_p)] = -1
+    all_t_clusters[(artefact_masks_t | unreliable_fish_mask_t | wave_mask_t | sidepeak_mask_t)] = -1
+
+    # merge here.
+    all_clusters, x_merge, mask = merge_clusters(np.copy(all_p_clusters),np.copy(all_t_clusters), eod_xp, eod_xt,verbose=verbose-1,plot_level=plot_level-1)
+
+    if plot_level>0:
+        plot_clustering(all_clusters,np.vstack([all_p_clusters_aduf, all_t_clusters_aduf]).T, np.vstack([all_p_clusters_adwas, all_t_clusters_adwas]).T,mask.T,unique_width_labels,all_u_hightlabels,width_labels,all_hightlabels,all_shapelabels,all_shapelabels_ad, eod_widths,eod_hights,all_snippets,all_features)
 
     if verbose>0:
         print('Clusters generated based on hight, width and shape: ')
         [print('N_{} = {:>4}'.format(int(l),len(all_clusters[all_clusters==l]))) for l in np.unique(all_clusters[all_clusters!=-1])]
              
-    return all_clusters
+    return all_clusters, x_merge
+
+def extract_snippet_features(data,eod_x,eod_widths,width_factor,n_pc,verbose=0,plot_level=0):
+
+    # extract snippets with corresponding width
+    width = width_factor*np.median(eod_widths)
+    raw_snippets = np.vstack([data[int(x-width):int(x+width)] for x in eod_x])
+
+    # subtract the slope and normalize the snippets
+    snippets, slope_hights = subtract_slope(np.copy(raw_snippets))
+    snippets = StandardScaler().fit_transform(snippets.T).T
+
+    # scale so that the absolute integral = 1.
+    snippets = (snippets.T/np.sum(np.abs(snippets),axis=1)).T
+
+    # compute features for clustering on waveform
+    features = PCA(n_pc).fit(snippets).transform(snippets)
+
+    return raw_snippets, snippets, features, slope_hights
+
+def cluster_on_shape(features,eod_hights,slope_hights,minp,min_cluster_fraction,slope_ratio_factor,max_epsilon,percentile,verbose=0):
+    # determine clustering threshold from data
+    
+    minpc = max(minp,int(len(features)*min_cluster_fraction))  
+    knn = np.sort(pairwise_distances(features,features),axis=0)[minpc]
+    eps = min(max(1,slope_ratio_factor*np.median(slope_hights/eod_hights))*max_epsilon,np.percentile(knn,percentile))
+
+    if verbose>1:
+        print('epsilon = %f'%eps)
+        print('Slope to EOD ratio = %f'%np.median(slope_hight/eod_hights))
+
+    # cluster on EOD shape
+    return DBSCAN(eps=eps, min_samples=minpc).fit(features).labels_
 
 def subtract_slope(snippets):
     """ Subtract underlying slope from all EOD snippets.
-
 
     Parameters
     ----------
@@ -649,8 +697,8 @@ def subtract_slope(snippets):
     -------
         snippets: 2-D numpy array
             EOD snippets with underlying slope subtracted.
-        slope_ratio : 1-D numpy array
-            Ratio between the hight of the subtracted slope and the estimated EOD hight.
+        slope_hight : 1-D numpy array
+            Hight of subtracted slope.
     """
 
     left_y = snippets[:,0]
@@ -664,7 +712,7 @@ def subtract_slope(snippets):
     
     return snippets - slopes.T, np.abs(left_y-right_y)
 
-def remove_artefacts(all_snippets, clusters, int_f, artefact_threshold=0.75, cutoff_f=10000, verbose=0):
+def remove_artefacts(all_snippets, clusters, int_f, samplerate, artefact_threshold=0.75, verbose=0):
     """ Remove EOD clusters that result from artefacts based on power in low frequency spectrum.
 
     Parameters
@@ -678,10 +726,8 @@ def remove_artefacts(all_snippets, clusters, int_f, artefact_threshold=0.75, cut
 
         artefact_threshold (optional): float
             Threshold that separates artefact from clean pulsefish clusters.
-            Defaults to 0.75.
-        curoff_f (optional) : int or float
-            Cut-off frequency for low frequency estimation.
-            Defaults to 10kHz.
+            Defaults to 0.75
+        
         verbose (optional): int
             Verbosity level.
 
@@ -690,24 +736,31 @@ def remove_artefacts(all_snippets, clusters, int_f, artefact_threshold=0.75, cut
         clusters: list of ints
             Cluster labels, where noisy cluster and clusters with artefacts have been set to -1.
     """
+    mask = np.zeros(clusters.shape,dtype=bool)
+    mean_eods = []
+    ffts = []
 
-    for cluster in np.unique(clusters):
-        if cluster!=-1:
+    for cluster in np.sort(np.unique(clusters[clusters>=0])):
 
-            snippets = all_snippets[clusters==cluster]
-            mean_eod = np.mean(snippets, axis=0)
-            cut_fft = int(len(np.fft.fft(mean_eod))/2)
-            low_frequency_ratio = np.sum(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft/(2*int_f))])/np.sum(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft)])   
+        snippets = all_snippets[clusters==cluster]
+        mean_eod = np.mean(snippets, axis=0)
+        cut_fft = int(len(np.fft.fft(mean_eod))/2)
+        low_frequency_ratio = np.sum(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft/(2*int_f))])/np.sum(np.abs(np.fft.fft(mean_eod))[1:int(cut_fft)])   
+        
+        freqs = np.linspace(0,samplerate,cut_fft)
 
-            if low_frequency_ratio < artefact_threshold:
-                clusters[clusters==cluster] = -1
-                if verbose>0:
-                    print('Deleting cluster %i, which has a low frequency ratio of %f'%(cluster,low_frequency_ratio))
+        mean_eods.append(mean_eod)
+        ffts.append([freqs[1:],np.abs(np.fft.fft(mean_eod))[1:int(cut_fft)],int(cut_fft/(2*int_f))])
 
-    return clusters
+        if low_frequency_ratio < artefact_threshold:
+            mask[clusters==cluster] = True
+            if verbose>0:
+                print('Deleting cluster %i, which has a low frequency ratio of %f'%(cluster,low_frequency_ratio))
+
+    return mask, mean_eods, ffts
 
 
-def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose):
+def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose=0,fig=None,gs=None):
     """ Delete EOD clusters that are either mixed with noise or other fish, or wavefish.
         This is the case when the ration between the EODwidth and the ISI is too large.
 
@@ -730,15 +783,19 @@ def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose):
             Cluster labels where unreliable clusters have been set to -1.
 
     """
-    for cluster in np.unique(clusters[clusters!=-1]):
+    mask = np.zeros(clusters.shape,dtype=bool)
+    for i,cluster in enumerate(np.unique(np.sort(clusters[clusters>=0]))):
+        if gs is not None and fig is not None:
+            ax = fig.add_subplot(gs[i,2])
+            ax.hist(eod_widths[clusters==cluster][:-1]/np.diff(eod_x[cluster==clusters]))
         if np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])) > 0.5:
             if verbose>0:
                 print('deleting unreliable cluster %i, score=%f'%(cluster,np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters]))))
-            clusters[clusters==cluster] = -1
-    return clusters
+            mask[clusters==cluster] = True
+    return mask
 
 
-def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w_factor, detailed_threshold_factor=0.01, max_phases=4, verbose=0):
+def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w_factor, detailed_threshold_factor=0.01, max_phases=4, verbose=0, fig=None,gs=None):
     """Delete EODs that are likely from wavefish, or sidepeaks of bigger EODs.
         Parameters
         ----------
@@ -773,7 +830,10 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w
 
     """
 
-    for cluster in np.unique(clusters):
+    mask_wave = np.zeros(clusters.shape,dtype=bool)
+    mask_sidepeak = np.zeros(clusters.shape,dtype=bool)
+
+    for i,cluster in enumerate(np.sort(np.unique(clusters[clusters>=0]))):
         if cluster < 0:
             continue
         cutwidth = np.mean(eod_widths[clusters==cluster])*w_factor
@@ -803,23 +863,29 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w
         idxs = np.sort(np.concatenate((small_peaks, small_troughs)))
         hdiffs = np.diff(mean_eod[idxs])
 
+        if gs is not None and fig is not None:
+            ax = fig.add_subplot(gs[i,3])
+            ax.plot(mean_eod)
+            ax.plot(pk,mean_eod[pk],'o')
+            ax.plot(tr,mean_eod[tr],'o')
+
         if centered>interp_f*2:
             if verbose>0:
                 print('Deleting cluster %i, which is a sidepeak'%cluster)
-            clusters[clusters==cluster] = -1
+            mask_sidepeak[clusters==cluster] = True
 
-        elif len(pk)>0 and len(tr)>0:
+        if len(pk)>0 and len(tr)>0:
 
             w_diff = np.abs(np.diff(np.sort(np.concatenate((pk,tr)))))
 
             if np.abs(np.diff(idxs[m_slope:m_slope+2])) < np.mean(eod_widths[clusters==cluster])*0.5 or len(pk) + len(tr)>max_phases or np.min(w_diff)>2*cutwidth/w_factor or len(hdiffs[np.abs(hdiffs)>0.5*(np.max(mean_eod)-np.min(mean_eod))])>max_phases:
                 if verbose>0:
                     print('Deleting cluster %i, which is a wavefish'%cluster)
-                clusters[clusters==cluster] = -1
+                mask_wave[clusters==cluster] = True
 
-    return clusters
+    return mask_wave, mask_sidepeak
 
-def merge_clusters(clusters_1, clusters_2, x_1, x_2,verbose=0): 
+def merge_clusters(clusters_1, clusters_2, x_1, x_2,verbose=0,plot_level=0): 
     """ Merge clusters resulting from two clustering methods.
 
     This method only works  if clustering is performed on the same EODs
@@ -846,6 +912,8 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2,verbose=0):
         x_merged : list of ints
             Merged cluster indices.
     """
+    if plot_level>0:
+        plot_merge(clusters_1,clusters_2)
 
     # these arrays become 1 for each EOD that is chosen from that array
     c1_keep = np.zeros(len(clusters_1))
@@ -897,7 +965,7 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2,verbose=0):
     clusters = (clusters_1+1)*c1_keep + (clusters_2+1)*c2_keep - 1
     x_merged = (x_1)*c1_keep + (x_2)*c2_keep
 
-    return clusters, x_merged
+    return clusters, x_merged, np.vstack([c1_keep,c2_keep])
 
 def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, samplerate,  w_factor, verbose=0):
     """ Extract mean EODs, EOD timepoints and unreliability score for each EOD cluster.
@@ -1026,7 +1094,7 @@ def find_clipped_clusters(clusters, mean_eods, eod_times, eod_peaktimes, eod_tro
     return clusters, clipped_eods, clipped_times, clipped_peaktimes, clipped_troughtimes
 
 
-def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, dt=1, stepsize=0.05, verbose=0):
+def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, dt=1, stepsize=0.05, verbose=0,plot_level=0):
     """
     Use a sliding window to detect the minimum number of fish detected simultaneously, 
     then delete all other EOD clusters. 
@@ -1069,14 +1137,25 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, d
         return clusters, [0,1]
 
     all_keep_clusters = []
+    running_sums = []
+    xs = []
+    ys = []
+    med_widths = []
 
     width_classes = merge_gaussians(eod_widths,np.copy(clusters),0.75)   
     width_classes[np.isin(clusters,all_keep_clusters)] = -1 
 
     all_windows = []
     all_dts = []
-    
-    for w in np.unique(width_classes[width_classes!=-1]):
+    maxy = 0
+    ev_num = 0
+    wc_num = len(np.unique(width_classes[clusters>=0]))
+
+    if plot_level>0:
+        fig=plt.figure()
+        gs = gridspec.GridSpec(wc_num*2,1,figure=fig,wspace=0,hspace=0) 
+
+    for iw,w in enumerate(np.unique(width_classes[clusters>=0])):
 
         # initialize variables
         min_clusters = 100
@@ -1107,10 +1186,38 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, d
                 if verbose>0:
                     print('No pulsefish in recording at T=%.2f:%.2f'%(t,t+dt))
 
+        
+        x = np.arange(0, T-dt+stepsize, stepsize)
+        xplot = np.arange(0, T+stepsize, stepsize)
+        y = np.ones(len(x))
+        maxy = np.max(y)+1
+
+        xs.append(xplot)
+        med_widths.append(np.median(weod_widths))
+        running_sum = np.ones(len(np.arange(0, T+stepsize, stepsize)))
+
+        ulabs = np.unique(wclusters[wclusters>=0])
+
+        if plot_level>0:
+            ax1 = fig.add_subplot(gs[iw*2])
+            cnum = 0
+            for c in np.unique(wclusters[wclusters>=0]):
+                plt.eventplot(weod_t[wclusters==c],lineoffsets=ev_num,linelengths=0.5,color=cmap(iw))
+                ev_num = ev_num+1
+                cnum = cnum + 1
+
+            rect=Rectangle((0,ev_num-cnum-0.5),dt,cnum,linewidth=1,linestyle='--',edgecolor='k',facecolor='none')
+            # Add the patch to the Axes
+            ax1.add_patch(rect)
+            ax1.arrow(dt+0.1,ev_num-cnum-0.5, 0.5,0,head_width=0.1, head_length=0.1,facecolor='grey',edgecolor='grey')
+            ax1.set_title(r'$\tilde{w}_%i = %.3f ms$'%(iw,1000*np.median(weod_widths)))
+
         # sliding window
-        for t,ignore_step in zip(np.arange(0, T-dt+stepsize, stepsize), ignore_steps):
+        for j,(t,ignore_step) in enumerate(zip(x, ignore_steps)):
             current_clusters = wclusters[(weod_t>=t)&(weod_t<t+dt)&(wclusters!=-1)]
             current_widths = weod_widths[(weod_t>=t)&(weod_t<t+dt)&(wclusters!=-1)]
+
+            y[j] = len(np.unique(current_clusters))
 
             if (len(np.unique(current_clusters)) <= min_clusters) and (ignore_step==0) and (len(np.unique(current_clusters) !=1)):
 
@@ -1129,12 +1236,58 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, d
                     window_end = t+dt
                     sparse_clusters = current_sparse_clusters
 
+        ys.append(y.T)
         all_keep_clusters.append(keep_clusters)
         all_windows.append(window_end)
+        running_sums.append(running_sum)
+
+        if plot_level>0:
+            ax1.set_ylabel('cluster #')
+            ax1.set_yticks(range(ev_num-cnum,ev_num))
+            ax1.set_xlabel('time')
+            
+            #plt.legend(frameon=False)
+            ax1.set_xlim([0,T])
+            ax1.axes.xaxis.set_visible(False)
+            ax1.spines['bottom'].set_visible(False)
+            ax1.spines['top'].set_visible(False)
+            ax1.spines['right'].set_visible(False)
+            ax1.spines['left'].set_visible(False)
+
+            ax2 = fig.add_subplot(gs[2*iw+1])
+            ax2.spines['top'].set_visible(False)
+            ax2.spines['right'].set_visible(False)
+            ax2.spines['left'].set_visible(False)
+            ax2.spines['bottom'].set_visible(False)
+            
+            if iw < wc_num-1:
+                ax2.axes.xaxis.set_visible(False)
+            else:
+                ax2.set_xlabel('Time [ms]')
+            
+            yplot = np.copy(y)
+            yplot[ignore_steps.astype(bool)] = np.NaN
+            ax2.plot(x+dt/2,yplot,linestyle='-',marker='.',c=cmap(iw))
+            #ax2.plot(x[ignore_steps.astype(bool)]+dt/2,y[ignore_steps.astype(bool)],marker='.',c='w')
+
+            ax2.set_ylabel('Fish count')
+            ax2.set_yticks(range(int(np.min(y)),1+int(np.max(y))))
+
+            ax2.set_xlim([0,T])
+
+            con = ConnectionPatch([0,ev_num-cnum-0.5], [dt/2,y[0]], "data", "data",
+                axesA=ax1, axesB=ax2,color='grey')
+            ax2.add_artist(con)
+
+            con = ConnectionPatch([dt,ev_num-cnum-0.5], [dt/2,y[0]], "data", "data",
+                axesA=ax1, axesB=ax2,color='grey')
+            ax2.add_artist(con)
+
+            #plt.tight_layout()
+            plt.xlim([0,T])
 
     if verbose>0:
         print('Estimated nr of fish in recording: %i'%min_clusters)
-
 
     # delete all clusters that are not selected
     clusters[np.invert(np.isin(clusters, np.concatenate(all_keep_clusters)))] = -1
