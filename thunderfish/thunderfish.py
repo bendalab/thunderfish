@@ -1128,6 +1128,10 @@ def main():
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
                         help='channel to be analyzed (defaults to first channel)')
+    parser.add_argument('-a', dest='all_eods', action='store_true',
+                        help='plot all EOD waveforms')
+    parser.add_argument('-S', dest='spec_plots', action='store_true',
+                        help='plot spectra for all EOD waveforms')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-s', dest='save_data', action='store_true',
@@ -1137,10 +1141,6 @@ def main():
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot of each recording as pdf file')
-    parser.add_argument('-a', dest='all_eods', action='store_true',
-                        help='plot all EOD waveforms in pdf file')
-    parser.add_argument('-A', dest='spec_plots', action='store_true',
-                        help='plot all EOD waveforms and their spectra in pdf file')
     parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwse',
                         help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected fish')
     parser.add_argument('-m', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
@@ -1201,13 +1201,8 @@ def main():
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
     # save plots:
-    all_eods = False
     spec_plots = 'auto'
-    if args.save_plot and args.all_eods:
-        all_eods = True
     if args.spec_plots:
-        if args.save_plot:
-            all_eods = True
         spec_plots = True
     if len(args.save_subplots) > 0:
         args.save_plot = True
@@ -1228,7 +1223,7 @@ def main():
     # run on pool:
     global pool_args
     pool_args = (cfg, args.channel, args.log_freq, args.save_data,
-                 all_eods, spec_plots, args.save_plot, multi_pdf, args.save_subplots,
+                 args.all_eods, spec_plots, args.save_plot, multi_pdf, args.save_subplots,
                  args.outpath, args.keep_path, args.show_bestwindow, verbose-1, plot_level)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
