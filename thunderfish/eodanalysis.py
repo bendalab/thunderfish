@@ -560,7 +560,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     # cut out stable estimate if standard deviation:
     if eod.shape[1] > 2 and np.max(meod[:,2]) > 3*np.min(meod[:,2]):
         n = len(meod)
-        idx0 = np.argmax(np.abs(meod[n//10:9*n//10,1]))
+        idx0 = np.argmax(np.abs(meod[n//10:9*n//10,1])) + n//10
         toffs += meod[idx0,0]
         meod[:,0] -= meod[idx0,0]
         # minimum in standard deviation:
@@ -1395,7 +1395,8 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None, color='b', lw=2, marker
     axp.set_ylabel('Phase')
 
 
-def plot_pulse_spectrum(ax, power, props, color='b', lw=3, markersize=80):
+def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
+                        color='b', lw=3, markersize=80):
     """Plot and annotate spectrum of single pulse EOD.
 
     Parameters
@@ -1408,6 +1409,10 @@ def plot_pulse_spectrum(ax, power, props, color='b', lw=3, markersize=80):
     props: dict
         A dictionary with properties of the analyzed EOD waveform as
         returned by `analyze_pulse()`.
+    min_freq: float
+        Minimun frequency of the spectrum to be plotted (logscale!).
+    max_freq: float
+        Maximun frequency of the spectrum to be plotted (logscale!).
     color:
         Color for line and points of spectrum.
     lw: float
@@ -1419,23 +1424,31 @@ def plot_pulse_spectrum(ax, power, props, color='b', lw=3, markersize=80):
                              zorder=1)
     ax.add_patch(box)
     att = props['lowfreqattenuation50']
-    ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom', zorder=10)
+    if att < -5.0:
+        ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom', zorder=10)
+    else:
+        ax.text(10.0, att-1.0, '%.0f dB' % att, ha='left', va='top', zorder=10)
     box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='#CCCCCC',
                              zorder=2)
     ax.add_patch(box)
     att = props['lowfreqattenuation5']
-    ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom', zorder=10)
+    if att < -5.0:
+        ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom', zorder=10)
+    else:
+        ax.text(4.0, att-1.0, '%.0f dB' % att, ha='right', va='top', zorder=10)
     lowcutoff = props['powerlowcutoff']
-    ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB',
-            zorder=3)
-    ax.text(1.2*lowcutoff, 0.5*att-1.0, '%.0f Hz' % lowcutoff, ha='left', va='top', zorder=10)
+    if lowcutoff >= min_freq:
+        ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB',
+                zorder=3)
+        ax.text(1.2*lowcutoff, 0.5*att-1.0, '%.0f Hz' % lowcutoff, ha='left', va='top', zorder=10)
     db = decibel(power[:,1])
     smax = np.nanmax(db)
     ax.plot(power[:,0], db - smax, color, lw=lw, zorder=4)
     peakfreq = props['peakfrequency']
-    ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize, alpha=0.4, zorder=5)
-    ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom', zorder=10)
-    ax.set_xlim(1.0, 10000.0)
+    if peakfreq >= min_freq:
+        ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize, alpha=0.4, zorder=5)
+        ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom', zorder=10)
+    ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
     ax.set_ylim(-60.0, 2.0)
     ax.set_xlabel('Frequency [Hz]')
