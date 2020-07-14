@@ -1,4 +1,8 @@
 sudo: false
+dist: xenial
+
+services:
+  - xvfb
 
 language: python
 
@@ -27,14 +31,9 @@ install:
   - pip install nose nose-cov python-coveralls
   - pip install -r requirements.txt
 
-before_script: # configure a headless display to test plot generation
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-  - sleep 3
-
 # command to run tests
 script:
-  - nosetests -vv --with-coverage --cover-package=thunderfish
+  - xvfb-run nosetests -vv --with-coverage --cover-package=thunderfish
 
 after_success:
   - coveralls
