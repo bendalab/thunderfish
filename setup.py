@@ -10,11 +10,11 @@ setup(
     name='thunderfish',
     version=__version__,
     author='Jan Benda, Juan F. Sehuanes, Till Raab, Joerg Henninger, Jan Grewe, Fabian Sinz, Liz Weerdmeester',
-    author_email="jan.benda@uni-tuebingen.de"
+    author_email="jan.benda@uni-tuebingen.de",
     description='Algorithms and scripts for analyzing recordings of electric fish waveforms.',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/bendalab/thunderfish"
+    url="https://github.com/bendalab/thunderfish",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
@@ -34,5 +34,5 @@ setup(
             'eodexplorer = thunderfish.eodexplorer:main',
         ]},
     python_requires='>=3.6',
-    requires=['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio']
+    requires=['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio'],
 )
