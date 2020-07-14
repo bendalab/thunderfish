@@ -33,7 +33,7 @@ install:
 
 # command to run tests
 script:
-  - xvfb-run nosetests -vv --with-coverage --cover-package=thunderfish
+  - xvfb-run -a nosetests -vv --with-coverage --cover-package=thunderfish
 
 after_success:
   - coveralls
