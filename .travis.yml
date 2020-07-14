@@ -38,4 +38,4 @@ script:
   - xvfb-run -a nosetests -vv --with-coverage --cover-package=thunderfish
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - codecov
