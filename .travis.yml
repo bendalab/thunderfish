@@ -27,12 +27,15 @@ before_install:
 
 install:
   - pip install git+https://github.com/bendalab/audioio
-  - pip install nose nose-cov python-coveralls
+  - pip install nose nose-cov
+  - pip install codecov
   - pip install -r requirements.txt
+
+CODECOV_TOKEN="0cc9bebd-b669-49a1-b9d4-1c5d8d831d71"
 
 # command to run tests
 script:
   - xvfb-run -a nosetests -vv --with-coverage --cover-package=thunderfish
 
 after_success:
-  - coveralls
+  - bash <(curl -s https://codecov.io/bash)
