@@ -594,7 +594,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     ax.set_navigate(False)
 
     # layout of recording and psd plots:
-    #force_both = True   # XXX set to True for debugging pulse and wave detection
+    #force_both = True                    # set to True for debugging pulse and wave detection
     force_both = False
     posy = 1.0 - 4.0/height
     axr = None
@@ -605,7 +605,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         axr = fig.add_axes([leftx, posy, fullwidth, pheight])                    # top, wide
         axp = fig.add_axes([leftx, 2.0/height, fullwidth, pheight])              # bottom, wide
     else:
-        if npulse == 0 and len(wave_eodfs) > 2 and not force_both:
+        if npulse == 0 and nwave > 2 and not force_both:
             axp = fig.add_axes([leftx, posy, fullwidth-legendwidth, pheight])    # top, wide
             legend_inside = False
         elif npulse > 0 and len(wave_eodfs) == 0 and not force_both:

@@ -726,17 +726,25 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
             else:
                 tau = meod[inx+tau_inx,0]-meod[inx,0]
                 params = [tau, meod[inx,1]-meod[rridx,1], meod[rridx,1]]
-                popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                       meod[inx:rridx,1], params,
-                                       bounds=([0.0, -np.inf, -np.inf], np.inf))
+                try:
+                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
+                                           meod[inx:rridx,1], params,
+                                           bounds=([0.0, -np.inf, -np.inf], np.inf))
+                except TypeError:
+                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
+                                           meod[inx:rridx,1], params)
                 if popt[0] > 1.2*tau:
                     tau_inx = int(np.round(popt[0]/dt))
                     rridx = inx + 6*tau_inx
                     if rridx > len(meod)-1:
                         rridx = len(meod)-1
-                    popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
-                                           meod[inx:rridx,1], popt,
-                                           bounds=([0.0, -np.inf, -np.inf], np.inf))
+                    try:
+                        popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
+                                               meod[inx:rridx,1], popt,
+                                               bounds=([0.0, -np.inf, -np.inf], np.inf))
+                    except TypeError:
+                        popt, pcov = curve_fit(exp_decay, meod[inx:rridx,0]-meod[inx,0],
+                                               meod[inx:rridx,1], popt)
                 tau = popt[0]
                 meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
