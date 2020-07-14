@@ -11,5 +11,4 @@ __all__ = ['dataloader',
            'consistentfishes',
            'eodanalysis',
            'voronoi',
-           'fakefish',
-           'tracker']
+           'fakefish']

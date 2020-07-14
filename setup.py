@@ -12,9 +12,8 @@ setup(name='thunderfish',
             'fishfinder = thunderfish.fishfinder:main',
             'collectfish = thunderfish.collectfish:main',
             'eodexplorer = thunderfish.eodexplorer:main',
-            'tracker = thunderfish.tracker_v2:main',
         ]},
-      description='Algorithms and scripts for analyzing recordings of e-fish electric fields.',
-      author='Jan Benda, Juan F. Sehuanes, Till Raab, Joerg Henninger, Jan Grewe, Fabian Sinz',
+      description='Algorithms and scripts for analyzing recordings of electric fish waveforms.',
+      author='Jan Benda, Juan F. Sehuanes, Till Raab, Joerg Henninger, Jan Grewe, Fabian Sinz, Liz Weerdmeester',
       requires=['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio']
       )
