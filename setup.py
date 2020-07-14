@@ -1,5 +1,4 @@
-from distutils.core import setup
-from setuptools import find_packages
+from setuptools import setup, find_packages
 
 exec(open('thunderfish/version.py').read())
 
@@ -33,6 +32,6 @@ setup(
             'collectfish = thunderfish.collectfish:main',
             'eodexplorer = thunderfish.eodexplorer:main',
         ]},
-    python_requires='>=3.6',
+    python_requires='>=3.4',
     requires=['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio'],
 )
