@@ -9,8 +9,6 @@ matrix:
     include:
         - python: "3.6"
           os: linux
-        - python: "2.7"
-          os: linux
 
 addons:
   apt:
@@ -30,8 +28,6 @@ install:
   - pip install nose nose-cov
   - pip install codecov
   - pip install -r requirements.txt
-
-CODECOV_TOKEN="0cc9bebd-b669-49a1-b9d4-1c5d8d831d71"
 
 # command to run tests
 script:

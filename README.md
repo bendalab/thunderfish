@@ -1,15 +1,16 @@
 [![Build Status](https://travis-ci.org/bendalab/thunderfish.svg?branch=master)](https://travis-ci.org/bendalab/thunderfish)
-[![codecov](https://codecov.io/gh/janscience/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/janscience/thunderfish)
+[![codecov](https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/bendalab/thunderfish)
 
 # thunderfish
 
-This repository is a collection of algorithms and programs for
-analysing electric field recordings of weakly electric fish.
+Algorithms and programs for analysing electric field recordings of
+weakly electric fish.
 
 Weakly electric fish generate an electric organ discharge (EOD).  In
 wave-type fish the EOD resembles a sinewave of a specific frequency
 and with higher harmonics. In pulse-type fish EODs have a distinct
-waveform and are separated in time.
+waveform and are separated in time.THe thunderfish package provides
+tools for analysing both wavefish and pulsefish EODs.
 
 
 ## Software
