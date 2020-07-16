@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/bendalab/thunderfish.svg?branch=master)](https://travis-ci.org/bendalab/thunderfish)
+[![Build Status](https://travis-ci.com/bendalab/thunderfish.svg?branch=master)](https://travis-ci.com/bendalab/thunderfish)
 [![codecov](https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/bendalab/thunderfish)
 
 # thunderfish
