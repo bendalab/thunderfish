@@ -28,10 +28,22 @@ install:
   - pip install nose nose-cov
   - pip install codecov
   - pip install -r requirements.txt
+  - pip install pdoc3
+  - pip install markdown-include
+  - pip install mkdocs
 
 # command to run tests
 script:
-  - xvfb-run -a nosetests -vv --with-coverage --cover-package=thunderfish
+#  - xvfb-run -a nosetests -vv --with-coverage --cover-package=thunderfish
+  - ./build-docs.sh
 
 after_success:
   - codecov
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  local_dir: site
+  on:
+      branch: master
