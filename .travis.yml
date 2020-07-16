@@ -41,6 +41,11 @@ after_success:
   - codecov
 
 deploy:
+  # in github: user->Settings->Developer settings->Personal access tokes: generate new token
+  # in travis-ci: project->settings->environmental variables: add token as GITHUB_TOKEN
+  # commit and push
+  # in github: project->Settings->Options: verify githup pages source to be gh-pages and https switsched on
+  # push again
   provider: pages
   skip_cleanup: true
   github_token: $GITHUB_TOKEN

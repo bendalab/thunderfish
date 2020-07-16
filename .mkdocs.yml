@@ -13,7 +13,6 @@ markdown_extensions:
     
 nav:
     - Home: 'index.md'
-    - 'Plotting guidelines': 'guide.md'
     - 'User Guide':
         - 'thunderfish': 'thunderfish.md'
         - 'collectfish': 'collectfish.md'
