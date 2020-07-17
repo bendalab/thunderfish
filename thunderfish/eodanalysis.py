@@ -260,6 +260,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
         fit of the fourier series to the waveform.
     props: dict
         A dictionary with properties of the analyzed EOD waveform.
+
         - type: set to 'wave'.
         - EODf: is set to the EOD fundamental frequency.
         - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
@@ -512,6 +513,7 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
         As a last column the fit to the tail of the last peak is appended.
     props: dict
         A dictionary with properties of the analyzed EOD waveform.
+
         - type: set to 'pulse'.
         - EODf: the inverse of the median interval between `eod_times`.
         - period: the median interval between `eod_times`.
@@ -1002,9 +1004,13 @@ def pulse_quality(clipped_frac, rms_sem, peaks, max_clipped_frac=0.1,
         Standard error of the data relative to p-p amplitude.
     peaks: 2-D array
         Peaks and troughs (rows) of the EOD waveform:
+
         5 columns: 0: the peak index (1 is P1, i.e. the largest positive peak),
+
         1: time relative to largest positive peak, 2: amplitude,
+
         3: amplitude normalized to largest postive peak,
+
         and 4: width of peak/trough at half height.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.

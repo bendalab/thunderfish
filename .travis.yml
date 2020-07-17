@@ -34,7 +34,7 @@ install:
 
 # command to run tests
 script:
-#  - xvfb-run -a nosetests -vv --with-coverage --cover-package=thunderfish
+  - xvfb-run -a nosetests -vv --with-coverage --cover-package=thunderfish
   - ./build-docs.sh
 
 after_success:

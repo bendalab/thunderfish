@@ -12,6 +12,10 @@ and with higher harmonics. In pulse-type fish EODs have a distinct
 waveform and are separated in time.THe thunderfish package provides
 tools for analysing both wavefish and pulsefish EODs.
 
+[Documentation](https://bendalab.github.io/thunderfish)
+
+[Git Repository](https://github.com/bendalab/thunderfish)
+
 
 ## Software
 
