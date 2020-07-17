@@ -72,7 +72,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
     $n > 0.00025^{-1} = 4000$ data snippets - a recording a couple of seconds long.
     (ii) Very important for wave fish is that they keep their frequency constant.
     Slight changes in the EOD frequency will corrupt the average waveform.
-    If the period of the waveform changes by $c_f=\Delta T/T$, then after
+    If the period of the waveform changes by \\(c_f=\\Delta T/T\\), then after
     $n = 1/c_f$ periods moved the modified waveform through a whole period.
     This is in the range of hundreds or thousands waveforms.
 
@@ -169,11 +169,11 @@ def unfilter(data, samplerate, cutoff):
     """
     Apply inverse high-pass filter on data.
 
-    Assumes high-pass filter \[ \tau \dot y = -y + \tau \dot x \] has
-    been applied on the original data $x$, where $\tau=(2\pi
-    f_{cutoff})^{-1}$ is the time constant of the filter. To recover $x$
-    the ODE \[ \tau \dot x = y + \tau \dot y \] is applied on the
-    filtered data $y$.
+    Assumes high-pass filter \\[ \\tau \\dot y = -y + \\tau \\dot x \\] has
+    been applied on the original data \\(x\\), where \\(\tau=(2\\pi
+    f_{cutoff})^{-1}\\) is the time constant of the filter. To recover \\(x\\)
+    the ODE \\[ \\tau \\dot x = y + \\tau \\dot y \\] is applied on the
+    filtered data \\(y\\).
 
     Parameters:
     -----------

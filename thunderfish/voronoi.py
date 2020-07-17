@@ -1,7 +1,7 @@
 """
-Analye Voronoi diagrams based on scipy.spatial.
+Analyze Voronoi diagrams based on scipy.spatial.
 
-class Voronoi: Compute and analyse Voronoi diagrams.
+Voronoi: Compute and analyse Voronoi diagrams.
 """
 
 
@@ -13,7 +13,7 @@ except ImportError:
     pass
 
 
-class Voronoi:
+class Voronoi(object):
     """
     Input points
     ------------
@@ -640,8 +640,8 @@ class Voronoi:
         """
         Plot and optionally annotate the input points of the Voronoi diagram.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         text: string or None
@@ -668,8 +668,8 @@ class Voronoi:
         """
         Plot the center of mass of the input points.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If `None`, then the current axes is used.
         **kwargs:
@@ -684,8 +684,8 @@ class Voronoi:
         """
         Plot and optionally annotate the vertices of the Voronoi diagram.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         text: string or None
@@ -712,8 +712,8 @@ class Voronoi:
         """
         Plot lines connecting the nearest neighbors in the Voronoi diagram.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         **kwargs:
@@ -728,8 +728,8 @@ class Voronoi:
         """
         Plot the finite ridges of the Voronoi diagram.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         **kwargs:
@@ -745,8 +745,8 @@ class Voronoi:
         """
         Plot the infinite ridges of the Voronoi diagram.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         **kwargs:
@@ -765,8 +765,8 @@ class Voronoi:
         """
         Fill each finite region of the Voronoi diagram with a color.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         inside: boolean or None
@@ -798,8 +798,8 @@ class Voronoi:
         """
         Fill each infinite region of the Voronoi diagram with a color.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         colors: list of colors or None
@@ -830,8 +830,8 @@ class Voronoi:
         """
         Plot the hull line containing the input points.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         **kwargs:
@@ -846,8 +846,8 @@ class Voronoi:
         """
         Fill the hull containing the input points with a color.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         **kwargs:
@@ -862,8 +862,8 @@ class Voronoi:
         """
         Plot the center of mass of the convex hull of the input points.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         **kwargs:
@@ -877,8 +877,8 @@ class Voronoi:
         """
         Plot the hull line containing the input points and the vertices of the Voronoi diagram.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         **kwargs:
@@ -893,8 +893,8 @@ class Voronoi:
         """
         Fill the hull containing the input points and the vertices of the Voronoi diagram.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting. If None, then the current axes is used.
         **kwargs:

@@ -2,7 +2,7 @@ import os
 from collections import OrderedDict
 
 
-class ConfigFile:
+class ConfigFile(object):
     """Handling of configuration parameter.
 
     Configuration parameter have a name (key), a value, a unit and a
