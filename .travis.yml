@@ -16,6 +16,11 @@ addons:
     - libblas-dev
     - liblapack-dev
     - gfortran
+    - libsndfile1
+    - libsndfile1-dev
+    - libffi-dev
+    - libportaudio2
+    - portaudio19-dev
     - python-matplotlib
     - python-pandas
     - python-tk
