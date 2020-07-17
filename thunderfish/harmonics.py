@@ -587,7 +587,7 @@ def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
     prev_h = len(group_freqs)
     prev_fe = 0.0
     for i, f in enumerate(freqs[:,0]):
-        if f <= group[-1,0] + 0.5*fzero:
+        if f <= group_freqs[-1] + 0.5*fzero:
             continue
         h = m.floor(f/fzero + 0.5)  # round
         if h > max_harmonics:

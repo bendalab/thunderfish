@@ -683,8 +683,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
         # flatten and keep maximum peak:
         rmidx = np.unique([k for kk in rmidx for k in kk if peak_list[k] != max_idx])
         # delete:
-        peak_list = np.delete(peak_list, rmidx)
-        width_list = np.delete(width_list, rmidx)
+        if len(rmidx) > 0:
+            peak_list = np.delete(peak_list, rmidx)
+            width_list = np.delete(width_list, rmidx)
         # find P1:
         p1i = np.argmax(peak_list == max_idx)
         offs = 0 if p1i <= 2 else p1i - 2
