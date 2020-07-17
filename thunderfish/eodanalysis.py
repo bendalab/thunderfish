@@ -991,8 +991,7 @@ def wave_quality(clipped_frac, ncrossings, rms_sem, rms_error, power,
     return ', '.join(skip_reason), ', '.join(msg)
 
 
-def pulse_quality(clipped_frac, rms_sem, peaks, max_clipped_frac=0.1,
-                  max_rms_sem=0.0):
+def pulse_quality(clipped_frac, rms_sem, max_clipped_frac=0.1, max_rms_sem=0.0):
     """
     Assess the quality of an EOD waveform of a pulse fish.
     
@@ -1002,16 +1001,6 @@ def pulse_quality(clipped_frac, rms_sem, peaks, max_clipped_frac=0.1,
         Fraction of clipped snippets.
     rms_sem: float
         Standard error of the data relative to p-p amplitude.
-    peaks: 2-D array
-        Peaks and troughs (rows) of the EOD waveform:
-
-        5 columns: 0: the peak index (1 is P1, i.e. the largest positive peak),
-
-        1: time relative to largest positive peak, 2: amplitude,
-
-        3: amplitude normalized to largest postive peak,
-
-        and 4: width of peak/trough at half height.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_rms_sem: float

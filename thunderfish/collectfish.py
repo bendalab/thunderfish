@@ -13,6 +13,7 @@ from .eodanalysis import pulse_quality, pulse_quality_args
 
 
 def collect_fish(files, insert_file=True, append_file=False, simplify_file=False,
+                 meta_data=None, meta_recordings=None, skip_recordings=False,
                  max_fish=0, harmonics=None, peaks0=None, peaks1=None, cfg=None):
     """
     Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
@@ -31,6 +32,15 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         Overwrites `insert_file`.
     simplify_file: boolean
         Remove initial common directories from input files.
+    meta_data: TableData or None
+        Table with additional data for each of the recordings.
+        The meta data are inserted into the summary table according to
+        the name of the recording as specified in `meta_recordings`.
+    meta_recordings: array of strings
+        For each row in `meta_data` the name of the recording.
+        This name is matched agains the basename of input `files`.
+    skip_recordings: bool
+        If True skip recordings that are not found in `meta_recordings`.
     max_fish: int
         Maximum number of fish to be taken, if 0 take all.
     harmonics: int
@@ -54,6 +64,10 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
     """
     if append_file and insert_file:
         insert_file = False
+    # prepare meta recodings names:
+    if meta_recordings is not None:
+        for r in range(len(meta_recordings)):
+            meta_recordings[r] = os.path.splitext(os.path.basename(meta_recordings[r]))[0]
     # load data:    
     wave_table = None
     pulse_table = None
@@ -74,6 +88,20 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             base_path = base_path[2:]
         recording = base_path
         file_pathes.append(os.path.normpath(recording).split(os.path.sep))
+        # find row in meta_data:
+        mr = -1
+        if meta_data is not None:
+            rec = os.path.splitext(os.path.basename(recording))[0]
+            for i in range(len(meta_recordings)):
+                if rec == meta_recordings[i]:
+                    mr = i
+                    break
+            if mr < 0:
+                if skip_recordings:
+                    print('skip recording %s: no metadata found' % rec)
+                    continue
+                else:
+                    print('no metadata found for recording %s' % rec)
         # data:
         data = TableData(file_name)
         table = wave_table if fish_type == 'wave' else pulse_table
@@ -81,6 +109,11 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         if not table:
             df = TableData(data)
             df.clear_data()
+            if meta_data is not None:
+                for s in range(data.nsecs):
+                    df.insert_section(0, 'metadata')
+                for c in range(meta_data.columns()):
+                    df.insert(c, *meta_data.column_head(c))
             if insert_file:
                 df.insert(0, ['recording']*data.nsecs + ['file'], '', '%-s')
             if fish_type == 'wave':
@@ -132,13 +165,15 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                 wave_spec = TableData(base_path + '-wavespectrum-%d'%idx + file_ext)
                 if cfg is not None:
                     spec_data = wave_spec.array()
-                    skips, msg = wave_quality(idx, clipped, 0.01*data[r,'noise'],
-                                              0.01*data[r,'rmserror'],
-                                              data[r,'power'], 0.01*spec_data[1:,3],
+                    ncrossings = 0
+                    if 'ncrossings' in data:
+                        ncrossings = data[r,'ncrossings']
+                    skips, msg = wave_quality(clipped, ncrossings, 0.01*data[r,'noise'],
+                                              0.01*data[r,'rmserror'], data[r,'power'],
                                               **wave_quality_args(cfg))
             else:
                 if cfg is not None:
-                    skips, msg = pulse_quality(idx, clipped, 0.01*data[r,'noise'],
+                    skips, msg = pulse_quality(clipped, 0.01*data[r,'noise'],
                                                **pulse_quality_args(cfg))
             if len(skips) > 0:
                 print('skip fish %d from %s: %s' % (idx, recording, skips))
@@ -148,6 +183,12 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             if insert_file:
                 table.append_data(recording, data_col)
                 data_col += 1
+            if mr >= 0:
+                for c in range(meta_data.columns()):
+                    table.append_data(meta_data[mr,c], data_col)
+                    data_col += 1
+            elif meta_data is not None:
+                data_col += meta_data.columns()
             table.append_data(data[r,:].array(), data_col)
             if peaks0 is not None and fish_type == 'pulse':
                 pulse_peaks = TableData(base_path + '-pulsepeaks-%d'%idx + file_ext)
@@ -226,13 +267,17 @@ def main():
                         help='maximum number of fish to be taken from each recording')
     parser.add_argument('-p', dest='pulse_peaks', type=rangestr,
                         default=(None, None), metavar='N:M',
-                        help='add properties of peak PN to PM of pulse-type EODs to the table')
+                        help='add properties of peak N to M of pulse-type EODs to the table')
     parser.add_argument('-w', dest='harmonics', type=int, metavar='N',
                         help='add properties of first N harmonics of wave-type EODs to the table')
     parser.add_argument('-r', dest='remove_cols', action='append', default=[], metavar='COLUMN',
                         help='columns to be removed from output table')
     parser.add_argument('-s', dest='statistics', action='store_true',
                         help='also write table with statistics')
+    parser.add_argument('-i', dest='meta_file', metavar='FILE:REC', default='', type=str,
+                        help='insert rows from metadata table in FILE matching recording in colum REC')
+    parser.add_argument('-S', dest='skip', action='store_true',
+                        help='skip recordings that are not contained in metadata table')
     parser.add_argument('-n', dest='file_suffix', metavar='NAME', default='', type=str,
                         help='name for summary files that is appended to "wavefish" or "pulsefish"')
     parser.add_argument('-o', dest='out_path', metavar='PATH', default='.', type=str,
@@ -257,6 +302,7 @@ def main():
     table_type = args.table_type
     remove_cols = args.remove_cols
     statistics = args.statistics
+    meta_file = args.meta_file
     file_suffix = args.file_suffix
     out_path = args.out_path
     data_format = args.format
@@ -279,9 +325,23 @@ def main():
     # create output folder:
     if not os.path.exists(out_path):
         os.makedirs(out_path)
+    # read in meta file:
+    md = None
+    rec_data = None
+    if len(meta_file) > 0:
+        meta_data, rec_col = meta_file.split(':')
+        md = TableData(meta_data)
+        if rec_col not in md:
+            print('%s is not a valid key for the table in %s. Choose one of' % (rec_col, meta_data))
+            for k in md.keys():
+                print(' ', k)
+            exit()
+        else:
+            rec_data = md[:,rec_col]
+            del md[:,rec_col]
     # collect files:
     wave_table, pulse_table = collect_fish(args.file, True, args.append_file,
-                                           args.simplify_file,
+                                           args.simplify_file, md, rec_data, args.skip,
                                            args.max_fish, args.harmonics,
                                            args.pulse_peaks[0],  args.pulse_peaks[1], cfg)
     # write tables:
