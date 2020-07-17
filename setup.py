@@ -21,10 +21,9 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    packages=find_packages(exclude=['contrib', 'doc', 'tests*']),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests*']),
     entry_points={
         'console_scripts': [
             'thunderfish = thunderfish.thunderfish:main',
@@ -33,5 +32,5 @@ setup(
             'eodexplorer = thunderfish.eodexplorer:main',
         ]},
     python_requires='>=3.4',
-    requires=['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio'],
+    install_requires=['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio'],
 )
