@@ -321,20 +321,21 @@ class EODExplorer(MultivariateExplorer):
             cfg.set('flipWaveEOD', fs)
             cfg.set('flipPulseEOD', fs)
         # best_window:
-        data, idx0, idx1, clipped = find_best_window(raw_data, samplerate, cfg)
+        data, idx0, idx1, clipped, min_clip, max_clip = find_best_window(raw_data, samplerate,
+                                                                         cfg)
         # detect EODs in the data:
-        pulse_fish, psd_data, fishlist, _, eod_props, _, _, mean_eods, \
-          spec_data, peak_data, power_thresh, skip_reason = \
-          detect_eods(data, samplerate, clipped, recording, 0, cfg)
+        psd_data, fishlist, _, eod_props, mean_eods, \
+          spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
+          detect_eods(data, samplerate, clipped, min_clip, max_clip, recording, 0, 0, cfg)
         # plot EOD:
         idx = int(self.eoddata[index,'index']) if 'index' in self.eoddata else 0
         for k in ['toolbar', 'keymap.back', 'keymap.forward',
                   'keymap.zoom', 'keymap.pan']:
             plt.rcParams[k] = self.plt_params[k]
         fig = plot_eods(basename, raw_data, samplerate, idx0, idx1, clipped,
-                        fishlist, None, mean_eods, eod_props, peak_data, spec_data,
-                        [idx], unit, psd_data, None, True, 3000.0,
-                        interactive=True, verbose=0)
+                        psd_data[0], fishlist, None, mean_eods, eod_props, peak_data, spec_data,
+                        [idx], unit, zoom_window, 10, None, True, False, 'auto',
+                        False, 0.0, 3000.0, interactive=True, verbose=0)
         fig.canvas.set_window_title('thunderfish: %s' % basename)
         plt.show(block=False)
 
@@ -677,14 +678,15 @@ def main():
             clipped = 0.01*data[r,'clipped']
         skips = ''
         if wave_fish:
-            harm_rampl = np.array([data[r,'relampl%d'%(k+1)] for k in range(3)])
-            skips, msg = wave_quality(idx, clipped, 0.01*data[r,'noise'],
-                                      0.01*data[r,'rmserror'],
-                                      data[r,'power'], 0.01*harm_rampl,
+            ncrossings = 0
+            if 'ncrossings' in data:
+                ncrossings = data[r,'ncrossings']
+            skips, msg = wave_quality(clipped, ncrossings, 0.01*data[r,'noise'],
+                                      0.01*data[r,'rmserror'], data[r,'power'],
                                       **wave_quality_args(cfg))
         else:
-            skips, msg = pulse_quality(idx, clipped, 0.01*data[r,'noise'],
-                                       **pulse_quality_args(cfg))
+            skips, msg, _ = pulse_quality(clipped, 0.01*data[r,'noise'],
+                                          **pulse_quality_args(cfg))
         if len(skips) > 0:
             print('skip fish %d from %s: %s' % (idx, data[r,'file'], skips))
             del data[r,:]
