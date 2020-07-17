@@ -173,8 +173,8 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                                               **wave_quality_args(cfg))
             else:
                 if cfg is not None:
-                    skips, msg = pulse_quality(clipped, 0.01*data[r,'noise'],
-                                               **pulse_quality_args(cfg))
+                    skips, msg, _ = pulse_quality(clipped, 0.01*data[r,'noise'],
+                                                  **pulse_quality_args(cfg))
             if len(skips) > 0:
                 print('skip fish %d from %s: %s' % (idx, recording, skips))
                 continue
