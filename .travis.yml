@@ -24,7 +24,6 @@ before_install:
   - pip install -U pip
 
 install:
-  - pip install git+https://github.com/bendalab/audioio
   - pip install nose nose-cov
   - pip install codecov
   - pip install -r requirements.txt
