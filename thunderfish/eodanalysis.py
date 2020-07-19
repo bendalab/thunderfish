@@ -1,7 +1,7 @@
 """
-# Analysis of EOD waveforms.
+Analysis of EOD waveforms.
 
-## EOD analysis
+## EOD waveform analysis
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
@@ -37,14 +37,14 @@
 ## Filter functions
 - `unfilter()`: apply inverse low-pass filter on data.
 
-## Configuration parameter
+## Configuration
 - `add_eod_analysis_config()': add parameters for EOD analysis functions to configuration.
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 - `add_eod_quality_config()`: add parameters needed for assesing the quality of an EOD waveform.
-- `wave_quality_args(): retrieve parameters for `wave_quality()` from configuration.
-- `pulse_quality_args(): retrieve parameters for `pulse_quality()` from configuration.
+- `wave_quality_args()`: retrieve parameters for `wave_quality()` from configuration.
+- `pulse_quality_args()`: retrieve parameters for `pulse_quality()` from configuration.
 """
 
 import numpy as np
@@ -241,7 +241,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
         Further columns are optional but not used.
     freq: float or 2-D array
         The frequency of the EOD or the list of harmonics (rows)
-        with frequency and peak height (columns) as returned from `harmonic_groups()`.
+        with frequency and peak height (columns) as returned from `harmonics.harmonic_groups()`.
     n_harm: int
         Maximum number of harmonics used for the Fourier decomposition.
     power_n_harmonics: int
@@ -1097,7 +1097,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
     samplerate: float
         Sampling rate of the data in Hertz.
     eod_props: list of dictionaries
-            Lists of EOD properties as returned by analyze_pulse() and analyze_wave().
+            Lists of EOD properties as returned by `analyze_pulse()` and `analyze_wave()`.
             From the entries with 'type' == 'pulse' the properties 'EODf' and 'times'
             are used. 'EODf' is the averaged EOD frequency, and 'times' is a list of
             detected EOD pulse times.
@@ -1465,8 +1465,8 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     Parameters
     ----------
     mean_eod: 2D array of floats
-        Averaged EOD waveform as returned by eod_waveform(), analyze_wave(),
-        and analyze_pulse().
+        Averaged EOD waveform as returned by `eod_waveform()`, `analyze_wave()`,
+        and `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1475,7 +1475,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
         Path and basename of file.
         '-eodwaveform', the fish index, and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1500,7 +1500,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     ----------
     wave_eodfs: list of 2D arrays
         Each item is a matrix with the frequencies and powers (columns) of the
-        fundamental and harmonics (rwos) as returned by harmonic groups().
+        fundamental and harmonics (rwos) as returned by `harmonics.harmonic groups()`.
     wave_indices: array
         Indices identifying each fish or NaN.
         If None no index column is inserted.
@@ -1508,7 +1508,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
         Path and basename of file.
         '-waveeodfs' and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1532,7 +1532,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     Parameters
     ----------
     eod_props: list of dict
-        Properties of EODs as returned by analyze_wave() and analyze_pulse().
+        Properties of EODs as returned by `analyze_wave()` and `analyze_pulse()`.
         Only properties of wave fish are saved.
     unit: string
         Unit of the waveform data.
@@ -1540,7 +1540,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
         Path and basename of file.
         '-wavefish' and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1585,7 +1585,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     Parameters
     ----------
     eod_props: list of dict
-        Properties of EODs as returned by analyze_wave() and analyze_pulse().
+        Properties of EODs as returned by `analyze_wave()` and `analyze_pulse()`.
         Only properties of wave fish are saved.
     unit: string
         Unit of the waveform data.
@@ -1593,7 +1593,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
         Path and basename of file.
         '-pulsefish' and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1641,7 +1641,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     Parameters
     ----------
     spec_data: 2D array of floats
-        Amplitude and phase spectrum of wave EOD as returned by analyze_wave().
+        Amplitude and phase spectrum of wave EOD as returned by `analyze_wave()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1650,7 +1650,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
         Path and basename of file.
         '-wavespectrum', the fish index, and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1676,7 +1676,7 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     Parameters
     ----------
     spec_data: 2D array of floats
-        Power spectrum of single pulse as returned by analyze_pulse().
+        Power spectrum of single pulse as returned by `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1685,7 +1685,7 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
         Path and basename of file.
         '-pulsespectrum', the fish index, and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1707,7 +1707,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     Parameters
     ----------
     peak_data: 2D array of floats
-        Properties of peaks and troughs of pulse EOD as returned by analyze_pulse().
+        Properties of peaks and troughs of pulse EOD as returned by `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1716,7 +1716,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
         Path and basename of file.
         '-pulsepeaks', the fish index, and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1752,7 +1752,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     cfg: ConfigFile
         The configuration.
         
-    See eod_waveform(), analyze_wave(), and analyze_pulse() for details on
+    See `eod_waveform()`, `analyze_wave()`, and `analyze_pulse()` for details on
     the remaining arguments.
     """
     cfg.add_section('EOD analysis:')
@@ -1775,7 +1775,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
 
 def eod_waveform_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function eod_waveform().
+    respective parameter names of the function `eod_waveform()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1787,7 +1787,7 @@ def eod_waveform_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the eod_waveform() function
+        Dictionary with names of arguments of the `eod_waveform()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'win_fac': 'eodSnippetFac',
@@ -1800,7 +1800,7 @@ def eod_waveform_args(cfg):
 
 def analyze_wave_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function analyze_wave().
+    respective parameter names of the function `analyze_wave()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1812,7 +1812,7 @@ def analyze_wave_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the analyze_wave() function
+        Dictionary with names of arguments of the `analyze_wave()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'n_harm': 'eodHarmonics',
@@ -1823,7 +1823,7 @@ def analyze_wave_args(cfg):
 
 def analyze_pulse_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function analyze_pulse().
+    respective parameter names of the function `analyze_pulse()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1835,7 +1835,7 @@ def analyze_pulse_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the analyze_pulse() function
+        Dictionary with names of arguments of the `analyze_pulse()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'min_pulse_win': 'eodMinPulseSnippet',
@@ -1858,7 +1858,7 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
     cfg: ConfigFile
         The configuration.
         
-    See wave_quality( and pulse_quality() for details on
+    See `wave_quality()` and `pulse_quality()` for details on
     the remaining arguments.
     """
     cfg.add_section('Waveform selection:')
@@ -1871,7 +1871,7 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
 
 def wave_quality_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function wave_quality().
+    respective parameter names of the function `wave_quality()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1883,7 +1883,7 @@ def wave_quality_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the wave_quality() function
+        Dictionary with names of arguments of the `wave_quality()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
@@ -1896,7 +1896,7 @@ def wave_quality_args(cfg):
 
 def pulse_quality_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function pulse_quality().
+    respective parameter names of the function `pulse_quality()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1908,7 +1908,7 @@ def pulse_quality_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the pulse_quality() function
+        Dictionary with names of arguments of the `pulse_quality()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',

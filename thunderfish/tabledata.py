@@ -1,11 +1,10 @@
 """
-# tabledata module
-
 Provides `class TableData` for tables with a rich hierarchical header
-including units and formats. Kind of similar to a pandas data frame, but
-with intuitive numpy-style indexing and nicely formatted output to csv, html, and latex.
+including units and column-specific formats. Kind of similar to a
+pandas data frame, but with intuitive numpy-style indexing and nicely
+formatted output to csv, html, and latex.
 
-## helper functions
+## Helper functions
 - `write()`: shortcut for constructing and writing a TableData.
 - `latex_unit()`: translate unit string into SIunit LaTeX code.
 - `index2aa()`: convert an integer into an alphabetical representation.
@@ -14,6 +13,7 @@ with intuitive numpy-style indexing and nicely formatted output to csv, html, an
 ## Configuration parameter
 - `add_write_table_config()`: add parameter specifying how to write a table to a file as a new section to a configuration.
 - `write_table_args()`: translates a configuration to the respective parameter names for writing a table to a file.
+
 """
 
 import sys
@@ -25,13 +25,27 @@ if sys.version_info[0] < 3:
     from io import BytesIO as StringIO
 else:
     from io import StringIO
-    
+
+
+__pdoc__ = {}
+__pdoc__['TableData.__init__'] = True
+__pdoc__['TableData.__contains__'] = True
+__pdoc__['TableData.__len__'] = True
+__pdoc__['TableData.__iter__'] = True
+__pdoc__['TableData.__next__'] = True
+__pdoc__['TableData.__setupkey__'] = True
+__pdoc__['TableData.__getitem__'] = True
+__pdoc__['TableData.__setitem__'] = True
+__pdoc__['TableData.__delitem__'] = True
+__pdoc__['TableData.__str__'] = True
+
 
 class TableData(object):
     """
     Table with numpy-style indexing and a rich hierarchical header including units and formats.
-      
-    ## Manipulate table header
+
+    Manipulate table header
+    -----------------------
 
     Each column of the table has a label (the name of the column), a
     unit, and a format specifier. Sections group columns into a hierarchy.
@@ -62,20 +76,21 @@ class TableData(object):
     tf = TableData(np.random.randn(4,3), header=['aaa', 'bbb', 'ccc'], units=['m', 's', 'g'], formats='%.2f')    
     ```
     results in
-    ```
+    ``` plain
     aaa    bbb    ccc
     m      s      g    
      1.45   0.01   0.16
     -0.74  -0.58  -1.34
     -2.06   0.08   1.47
     -0.43   0.60   1.38
-   ```
+    ```
 
     A more elaborate way to construct a table is:
     ```
     df = TableData()
     # first column with section names and 3 data values:
-    df.append(["data", "partial information", "size"], "m", "%6.2f", [2.34, 56.7, 8.9])
+    df.append(["data", "partial information", "size"], "m", "%6.2f",
+              [2.34, 56.7, 8.9])
     # next columns with single data values:
     df.append("full weight", "kg", "%.0f", 122.8)
     df.append_section("complete reaction")
@@ -90,7 +105,7 @@ class TableData(object):
     df.append_data((43.21, 6789.1, 3405, 1.235e-4), 1) # next row
     ```
     results in
-    ```
+    ``` plain
     data
     partial information  complete reaction
     size    full weight  speed     median jitter  size
@@ -100,7 +115,8 @@ class TableData(object):
       8.90           43  6.79e+03         3405.0  1.23e-04
     ```
     
-    ## Table columns
+    Table columns
+    -------------
 
     Columns can be specified by an index or by the name of a column. In
     table headers with sections the colum can be specified by the
@@ -119,7 +135,8 @@ class TableData(object):
     'speed' in df                       # is True
     ```
 
-    ## Iterating over columns
+    Iterating over columns
+    ----------------------
 
     A table behaves like an ordered dictionary with column names as
     keys and the data of each column as values.
@@ -149,7 +166,7 @@ class TableData(object):
         print(v)
     ```
     results in
-    ```
+    ``` plain
     column specifications:
     data>partial information>size
     data>partial information>full weight
@@ -176,7 +193,8 @@ class TableData(object):
     [1.234, 123.5, 0.0001235]
     ```
 
-    ## Accessing data
+    Accessing data
+    --------------
 
     In contrast to the iterator functions the [] operator treats the table as a
     2D-array where the first index indicates the row and the second index the column.
@@ -233,7 +251,7 @@ class TableData(object):
     df.statistics()
     ```
     statistics() returns a table with standard descriptive statistics:
-    ```
+    ``` plain
     statistics  data
     -           partial information  complete reaction
     -           size    full weight  speed     median jitter  size
@@ -248,7 +266,8 @@ class TableData(object):
     count         3.00            2         3            3.0  3.00e+00
     ```
 
-    ## Write and load tables
+    Write and load tables
+    ---------------------
 
     Table data can be written to a variety of text-based formats
     including comma separated values, latex and html files.  Which
@@ -263,18 +282,28 @@ class TableData(object):
     - `write()`: write the table to a file or stream.
     - `__str__()`: write table to a string.
     - `load()`: load table from file or stream.
-    - formats: list of supported file formats for writing.
-    - descriptions: dictionary with descriptions of the supported file formats.
-    - extensions: dictionary with default filename extensions for each of the file formats.
-    - ext_formats: dictionary mapping filename extensions to file formats.
+    - `formats`: list of supported file formats for writing.
+    - `descriptions`: dictionary with descriptions of the supported file formats.
+    - `extensions`: dictionary with default filename extensions for each of the file formats.
+    - `ext_formats`: dictionary mapping filename extensions to file formats.
 
-    See documentation of the write() function for examples of the supported file formats.
+    See documentation of the `write()` function for examples of the supported file formats.
     """
     
     formats = ['dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html']
-    descriptions = {'dat': 'data text file', 'ascii': 'ascii-art table', 'csv': 'comma separated values', 'rtai': 'rtai-style table', 'md': 'markdown', 'tex': 'latex tabular', 'html': 'html markup'}
-    extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat', 'md': 'md', 'tex': 'tex', 'html': 'html'}
-    ext_formats = {'dat': 'dat', 'DAT': 'dat', 'txt': 'dat', 'TXT': 'dat', 'csv': 'csv', 'CSV': 'csv', 'md': 'md', 'MD': 'md', 'tex': 'tex', 'TEX': 'tex', 'html': 'html', 'HTML': 'html'}
+    """ list of strings: Supported output formats."""
+    descriptions = {'dat': 'data text file', 'ascii': 'ascii-art table',
+                    'csv': 'comma separated values', 'rtai': 'rtai-style table',
+                    'md': 'markdown', 'tex': 'latex tabular',
+                    'html': 'html markup'}
+    """ dict: Decription of output formats corresponding to `formats`."""
+    extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat',
+                  'md': 'md', 'tex': 'tex', 'html': 'html'}
+    """ dict: Default file extensions for the output `formats`. """
+    ext_formats = {'dat': 'dat', 'DAT': 'dat', 'txt': 'dat', 'TXT': 'dat',
+                   'csv': 'csv', 'CSV': 'csv', 'md': 'md', 'MD': 'md',
+                   'tex': 'tex', 'TEX': 'tex', 'html': 'html', 'HTML': 'html'}
+    """ dict: Mapping of file extensions to the output formats. """
 
     def __init__(self, data=None, header=None, units=None, formats=None,
                  missing='-'):
@@ -283,7 +312,7 @@ class TableData(object):
 
         Parameters
         ----------
-        data:
+        data: string, stream, array
             - a filename: load table from file with name `data`.
             - a stream/file handle: load table from that stream.
             - 1-D or 2-D array of data: the data of the table.
@@ -415,7 +444,8 @@ class TableData(object):
         ----------
         columns int or string
             Column before which to insert the new column.
-            Column can be specified by index or name, see index() for details.
+            Column can be specified by index or name,
+            see `index()` for details.
         label: string or list of string
             Optional section titles and the name of the column.
         unit: string
@@ -468,7 +498,8 @@ class TableData(object):
         Parameters
         -----------
         columns: int or string or list of int or string
-            Columns can be specified by index or name, see index() for details.
+            Columns can be specified by index or name,
+            see `index()` for details.
 
         Raises
         ------
@@ -593,7 +624,8 @@ class TableData(object):
         ----------
         columns int or string
             Column before which to insert the new section.
-            Column can be specified by index or name, see index() for details.
+            Column can be specified by index or name,
+            see `index()` for details.
         section: string
             The name of the section.
 
@@ -925,18 +957,33 @@ class TableData(object):
     def keys(self):
         """
         List of unique column keys for all available columns.
+
+        Returns
+        -------
+        keys: list of strings
+            List of unique column specifications.
         """
         return [self.column_spec(c) for c in range(self.columns())]
 
     def values(self):
         """
         List of column data corresponding to keys().
+
+        Returns
+        -------
+        data: list of list of values
+            The data of the table. First index is columns!
         """
         return self.data
 
     def items(self):
         """
-        List of tuples with unique column specifications and the corresponding data.
+        Column names and corresponding data.
+
+        Returns
+        -------
+        items: list of tuples
+            Unique column specifications and the corresponding data.
         """
         return [(self.column_spec(c), self.data[c]) for c in range(self.columns())]
         
@@ -960,7 +1007,12 @@ class TableData(object):
 
     def __next__(self):
         """
-        Return data of next column as a list.
+        Next column of data.
+
+        Returns:
+        --------
+        data: list of values
+            Table data of next column.
         """
         self.iter_counter += 1
         if self.iter_counter >= self.columns():
@@ -972,6 +1024,10 @@ class TableData(object):
         """
         Return next data columns.
         (python2 syntax)
+
+        See also:
+        ---------
+        `__next__()`
         """
         return self.__next__()
 
@@ -1095,7 +1151,8 @@ class TableData(object):
         -----------
         key:
             First key specifies row, (optional) second one the column.
-            Columns can be specified by index or name, see index() for details.
+            Columns can be specified by index or name,
+            see `index()` for details.
 
         Returns
         -------
@@ -1151,7 +1208,8 @@ class TableData(object):
         -----------
         key:
             First key specifies row, (optional) second one the column.
-            Columns can be specified by index or name, see index() for details.
+            Columns can be specified by index or name,
+            see `index()` for details.
         value: TableData, list, ndarray, float, ...
             Value(s) used to assing to the table elements as specified by `key`.
 
@@ -1196,7 +1254,8 @@ class TableData(object):
         -----------
         key:
             First key specifies row, (optional) second one the column.
-            Columns can be specified by index or name, see index() for details.
+            Columns can be specified by index or name,
+            see `index()` for details.
             If all rows are selected, then the specified columns are removed from the table.
             Otherwise only data values are removed.
             If all columns are selected than entire rows of data values are removed.
@@ -1623,114 +1682,114 @@ class TableData(object):
         Supported file formats
         ----------------------
         
-        - `dat`: data text file
-          ```
-          # info           reaction     
-          # size   weight  delay  jitter
-          # m      kg      ms     mm    
-             2.34     123   98.7      23
-            56.70    3457   54.3      45
-             8.90      43   67.9     345
-          ```
+        ## `dat`: data text file
+        ``` plain
+        # info           reaction     
+        # size   weight  delay  jitter
+        # m      kg      ms     mm    
+           2.34     123   98.7      23
+          56.70    3457   54.3      45
+           8.90      43   67.9     345
+        ```
 
-        - `ascii`: ascii-art table
-          ```
-          |---------------------------------|
-          | info           | reaction       |
-          | size  | weight | delay | jitter |
-          | m     | kg     | ms    | mm     |
-          |-------|--------|-------|--------|
-          |  2.34 |    123 |  98.7 |     23 |
-          | 56.70 |   3457 |  54.3 |     45 |
-          |  8.90 |     43 |  67.9 |    345 |
-          |---------------------------------|
-          ```
+        ## `ascii`: ascii-art table
+        ``` plain
+        |---------------------------------|
+        | info           | reaction       |
+        | size  | weight | delay | jitter |
+        | m     | kg     | ms    | mm     |
+        |-------|--------|-------|--------|
+        |  2.34 |    123 |  98.7 |     23 |
+        | 56.70 |   3457 |  54.3 |     45 |
+        |  8.90 |     43 |  67.9 |    345 |
+        |---------------------------------|
+        ```
 
-        - `csv`: comma separated values
-          ```
-          size/m,weight/kg,delay/ms,jitter/mm
-          2.34,123,98.7,23
-          56.70,3457,54.3,45
-          8.90,43,67.9,345
-          ```
+        ## `csv`: comma separated values
+        ``` plain
+        size/m,weight/kg,delay/ms,jitter/mm
+        2.34,123,98.7,23
+        56.70,3457,54.3,45
+        8.90,43,67.9,345
+        ```
 
-        - `rtai`: rtai-style table
-          ```
-          RTH| info         | reaction     
-          RTH| size | weight| delay| jitter
-          RTH| m    | kg    | ms   | mm    
-          RTD|  2.34|    123|  98.7|     23
-          RTD| 56.70|   3457|  54.3|     45
-          RTD|  8.90|     43|  67.9|    345
-          ```
+        ## `rtai`: rtai-style table
+        ``` plain
+        RTH| info         | reaction     
+        RTH| size | weight| delay| jitter
+        RTH| m    | kg    | ms   | mm    
+        RTD|  2.34|    123|  98.7|     23
+        RTD| 56.70|   3457|  54.3|     45
+        RTD|  8.90|     43|  67.9|    345
+        ```
 
-        - `md`: markdown
-          ```
-          | size/m | weight/kg | delay/ms | jitter/mm |
-          |------:|-------:|------:|-------:|
-          |  2.34 |    123 |  98.7 |     23 |
-          | 56.70 |   3457 |  54.3 |     45 |
-          |  8.90 |     43 |  67.9 |    345 |
-          ```
+        ## `md`: markdown
+        ``` plain
+        | size/m | weight/kg | delay/ms | jitter/mm |
+        |------:|-------:|------:|-------:|
+        |  2.34 |    123 |  98.7 |     23 |
+        | 56.70 |   3457 |  54.3 |     45 |
+        |  8.90 |     43 |  67.9 |    345 |
+        ```
 
-        - `tex`: latex tabular
-          ```
-          \\begin{tabular}{rrrr}
-            \\hline
-            \\multicolumn{2}{l}{info} & \\multicolumn{2}{l}{reaction} \\
-            \\multicolumn{1}{l}{size} & \\multicolumn{1}{l}{weight} & \\multicolumn{1}{l}{delay} & \\multicolumn{1}{l}{jitter} \\
-            \\multicolumn{1}{l}{m} & \\multicolumn{1}{l}{kg} & \\multicolumn{1}{l}{ms} & \\multicolumn{1}{l}{mm} \\
-            \\hline
-            2.34 & 123 & 98.7 & 23 \\
-            56.70 & 3457 & 54.3 & 45 \\
-            8.90 & 43 & 67.9 & 345 \\
-            \\hline
-          \\end{tabular}
-          ```
+        ## `tex`: latex tabular
+        ``` tex
+        \\begin{tabular}{rrrr}
+          \\hline
+          \\multicolumn{2}{l}{info} & \\multicolumn{2}{l}{reaction} \\
+          \\multicolumn{1}{l}{size} & \\multicolumn{1}{l}{weight} & \\multicolumn{1}{l}{delay} & \\multicolumn{1}{l}{jitter} \\
+          \\multicolumn{1}{l}{m} & \\multicolumn{1}{l}{kg} & \\multicolumn{1}{l}{ms} & \\multicolumn{1}{l}{mm} \\
+          \\hline
+          2.34 & 123 & 98.7 & 23 \\
+          56.70 & 3457 & 54.3 & 45 \\
+          8.90 & 43 & 67.9 & 345 \\
+          \\hline
+        \\end{tabular}
+        ```
 
-        - `html`: html
-          ```
-          <table>
-          <thead>
-            <tr class="header">
-              <th align="left" colspan="2">info</th>
-              <th align="left" colspan="2">reaction</th>
-            </tr>
-            <tr class="header">
-              <th align="left">size</th>
-              <th align="left">weight</th>
-              <th align="left">delay</th>
-              <th align="left">jitter</th>
-            </tr>
-            <tr class="header">
-              <th align="left">m</th>
-              <th align="left">kg</th>
-              <th align="left">ms</th>
-              <th align="left">mm</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr class"odd">
-              <td align="right">2.34</td>
-              <td align="right">123</td>
-              <td align="right">98.7</td>
-              <td align="right">23</td>
-            </tr>
-            <tr class"even">
-              <td align="right">56.70</td>
-              <td align="right">3457</td>
-              <td align="right">54.3</td>
-              <td align="right">45</td>
-            </tr>
-            <tr class"odd">
-              <td align="right">8.90</td>
-              <td align="right">43</td>
-              <td align="right">67.9</td>
-              <td align="right">345</td>
-            </tr>
-          </tbody>
-          </table>
-          ```
+        ## `html`: html
+        ``` html
+        <table>
+        <thead>
+          <tr class="header">
+            <th align="left" colspan="2">info</th>
+            <th align="left" colspan="2">reaction</th>
+          </tr>
+          <tr class="header">
+            <th align="left">size</th>
+            <th align="left">weight</th>
+            <th align="left">delay</th>
+            <th align="left">jitter</th>
+          </tr>
+          <tr class="header">
+            <th align="left">m</th>
+            <th align="left">kg</th>
+            <th align="left">ms</th>
+            <th align="left">mm</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class"odd">
+            <td align="right">2.34</td>
+            <td align="right">123</td>
+            <td align="right">98.7</td>
+            <td align="right">23</td>
+          </tr>
+          <tr class"even">
+            <td align="right">56.70</td>
+            <td align="right">3457</td>
+            <td align="right">54.3</td>
+            <td align="right">45</td>
+          </tr>
+          <tr class"odd">
+            <td align="right">8.90</td>
+            <td align="right">43</td>
+            <td align="right">67.9</td>
+            <td align="right">345</td>
+          </tr>
+        </tbody>
+        </table>
+        ```
         """
         # fix parameter:
         if table_format == 'auto':
@@ -2638,7 +2697,7 @@ def write(fh, data, header, units=None, formats=None, table_format=None, delimit
         Format strings for each column. If only a single format string is
         given, then all columns are initialized with this format string.
 
-    See TableData.write() for a description of all other parameters.
+    See `TableData.write()` for a description of all other parameters.
 
     Example
     -------
