@@ -14,6 +14,7 @@ import sys
 import os
 import glob
 import argparse
+import traceback
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -1104,9 +1105,15 @@ def run_thunderfish(file):
         if verbose > 1:
             print('='*70)
         print('analyze recording %s ...' % file)
-    msg = thunderfish(file, *pool_args)
-    if msg:
-        print(msg)
+    try:
+        msg = thunderfish(file, *pool_args)
+        if msg:
+            print(msg)
+    except (KeyboardInterrupt, SystemExit):
+        print('\nthunderfish interrupted by user... exit now.')
+        sys.exit(0)
+    except:
+        print(traceback.format_exc())
 
 
 def main():
