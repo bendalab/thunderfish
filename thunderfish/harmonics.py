@@ -1,8 +1,8 @@
 """
-# Harmonics
 Extract and analyze harmonic frequencies from power spectra.
 
 ## Harmonic group extraction
+
 - `harmonic_groups()`: detect peaks in power spectrum and group them
                        according to their harmonic structure.
 - `expand_group()`: add more harmonics to harmonic group. 
@@ -12,18 +12,21 @@ Extract and analyze harmonic frequencies from power spectra.
                           in a power spectrum.
                             
 ## Helper functions for harmonic group extraction
+
 - `build_harmonic_group()`: find all the harmonics belonging to the largest peak in the power spectrum.
 - `retrieve_harmonic_group()`: find all the harmonics belonging to a given fundamental.
 - `group_candidate()`: candidate harmonic frequencies belonging to a fundamental frequency.
 - `update_group()`: update frequency lists and harmonic group.
 
 ## Handling of lists of harmonic groups
+
 - `fundamental_freqs()`: extract fundamental frequencies from
                          lists of harmonic groups.
 - `fundamental_freqs_and_power()`: extract fundamental frequencies and their
                                    power in dB from lists of harmonic groups.
 
 ## Handling of lists of fundamental frequencies
+
 - `add_relative_power()`: add a column with relative power.
 - `add_power_ranks()`: add a column with power ranks.
 - `similar_indices()`: indices of similar frequencies.
@@ -31,13 +34,15 @@ Extract and analyze harmonic frequencies from power spectra.
 - `unique()`: remove similar frequencies from different recordings.
 
 ## Visualization
+
 - `colors_markers()`: Generate a list of colors and markers for plotting.
 - `plot_harmonic_groups()`: Mark decibel power of fundamentals and their
                             harmonics.
 - `plot_psd_harmonic_groups()`: Plot decibel power-spectrum with detected peaks,
                                 harmonic groups, and mains frequencies.
 
-## Configuration parameter
+## Configuration
+
 - `add_psd_peak_detection_config()`: add parameters for the detection of
                                      peaks in power spectra to configuration.
 - `psd_peak_detection_args()`: retrieve parameters for the detection of peaks
@@ -926,7 +931,6 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
         Maximum allowed power of the `min_group_size`-th and higher harmonics
         (in decibel relative to power of fundamental, i.e. if harmonics are required
         to be smaller than fundamental then this is a negative number).
-        If zero do not check for relative power.
     max_harmonics: int
         Maximum number of harmonics to be returned for each group.
     max_groups: int
@@ -1607,7 +1611,7 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
     cfg.add('minimumFrequency', min_freq, 'Hz', 'Minimum frequency allowed for the fundamental.')
     cfg.add('maximumFrequency', max_freq, 'Hz', 'Maximum frequency allowed for the fundamental.')
     cfg.add('maximumPowerDifference', max_db_diff, 'dB', 'Maximum standard deviation allowed for difference in logarithmic power between successive harmonics. Smaller values enforce smoother spectra.')
-    cfg.add('maxRelativePower', max_harmonics_decibel, 'dB', 'Maximum allowed power of the minimumGroupSize-th and higher harmonics relative to fundamental. If zero do not check for relative power.')
+    cfg.add('maxHarmonicsPower', max_harmonics_decibel, 'dB', 'Maximum allowed power of the minimumGroupSize-th and higher harmonics relative to fundamental.')
     cfg.add('maxHarmonics', max_harmonics, '', '0: keep all, >0 only keep the first # harmonics.')
     cfg.add('maxGroups', max_groups, '', 'Maximum number of harmonic groups. If 0 process all.')
 

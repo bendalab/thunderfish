@@ -673,20 +673,18 @@ def main():
         idx = 0
         if 'index' in data:
             idx = data[r,'index']
-        clipped = 0.0
-        if 'clipped' in data:
-            clipped = 0.01*data[r,'clipped']
         skips = ''
         if wave_fish:
-            ncrossings = 0
-            if 'ncrossings' in data:
-                ncrossings = data[r,'ncrossings']
-            skips, msg = wave_quality(clipped, ncrossings, 0.01*data[r,'noise'],
-                                      0.01*data[r,'rmserror'], data[r,'power'],
-                                      **wave_quality_args(cfg))
+            props = data.row_dict(r)
+            props['clipped'] *= 0.01 
+            props['rmssem'] *= 0.01 
+            props['rmserror'] *= 0.01 
+            skips, msg = wave_quality(props, **wave_quality_args(cfg))
         else:
-            skips, msg, _ = pulse_quality(clipped, 0.01*data[r,'noise'],
-                                          **pulse_quality_args(cfg))
+            props = data.row_dict(r)
+            props['clipped'] *= 0.01 
+            props['rmssem'] *= 0.01 
+            skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
         if len(skips) > 0:
             print('skip fish %d from %s: %s' % (idx, data[r,'file'], skips))
             del data[r,:]

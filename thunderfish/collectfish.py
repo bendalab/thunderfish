@@ -155,26 +155,22 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             idx = r
             if 'index' in data:
                 idx = data[r,'index']
-            # clipped:
-            clipped = 0.0
-            if 'clipped' in data:
-                clipped = 0.01*data[r,'clipped']
             # check quality:
             skips = ''
             if fish_type == 'wave':
                 wave_spec = TableData(base_path + '-wavespectrum-%d'%idx + file_ext)
                 if cfg is not None:
-                    spec_data = wave_spec.array()
-                    ncrossings = 0
-                    if 'ncrossings' in data:
-                        ncrossings = data[r,'ncrossings']
-                    skips, msg = wave_quality(clipped, ncrossings, 0.01*data[r,'noise'],
-                                              0.01*data[r,'rmserror'], data[r,'power'],
-                                              **wave_quality_args(cfg))
+                    props = data.row_dict(r)
+                    props['clipped'] *= 0.01 
+                    props['rmssem'] *= 0.01 
+                    props['rmserror'] *= 0.01 
+                    skips, msg = wave_quality(props, **wave_quality_args(cfg))
             else:
                 if cfg is not None:
-                    skips, msg, _ = pulse_quality(clipped, 0.01*data[r,'noise'],
-                                                  **pulse_quality_args(cfg))
+                    props = data.row_dict(r)
+                    props['clipped'] *= 0.01 
+                    props['rmssem'] *= 0.01 
+                    skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
             if len(skips) > 0:
                 print('skip fish %d from %s: %s' % (idx, recording, skips))
                 continue

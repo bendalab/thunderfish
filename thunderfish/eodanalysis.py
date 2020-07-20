@@ -2,18 +2,21 @@
 Analysis of EOD waveforms.
 
 ## EOD waveform analysis
+
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
 ## Quality assessment
+
 - `wave_clipped_fraction()`: compute fraction of clipped wave fish waveform snippets.
 - `pulse_clipped_fraction()`: compute fraction of clipped pulse fish waveform snippets.
 - `wave_quality()`: asses quality of EOD waveform of a wave fish.
 - `pulse_quality()`: asses quality of EOD waveform of a pulse fish.
 
 ## Visualization
+
 - `plot_eod_recording()`: plot a zoomed in range of the recorded trace.
 - `plot_pulse_eods()`: mark pulse EODs in a plot of an EOD recording.
 - `plot_eod_snippets()`: plot a few EOD waveform snippets.
@@ -22,6 +25,7 @@ Analysis of EOD waveforms.
 - `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse EOD.
 
 ## Storage
+
 - `save_eod_waveform()`: save mean eod waveform to file.
 - `save_wave_eodfs()`: save frequencies of all wave EODs to file.
 - `save_wave_fish()`: save properties of wave EODs to file.
@@ -31,13 +35,16 @@ Analysis of EOD waveforms.
 - `save_pulse_peaks()`: save peak properties of pulse EOD to file.
 
 ## Fit functions
+
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
 - `exp_decay()`: exponential decay.
 
 ## Filter functions
+
 - `unfilter()`: apply inverse low-pass filter on data.
 
 ## Configuration
+
 - `add_eod_analysis_config()': add parameters for EOD analysis functions to configuration.
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
@@ -229,7 +236,7 @@ def fourier_series(t, freq, *ap):
     return x
 
 
-def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
+def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_wave='none'):
     """
     Analyze the EOD waveform of a wave fish.
     
@@ -247,6 +254,9 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
     power_n_harmonics: int
         Sum over the first `power_n_harmonics` harmonics for computing the total power.
         If 0 sum over all harmonics.
+    n_harmonics: int
+        The maximum power of higher harmonics is computed from harmonics higher than the
+        maximum harmonics within the first three harmonics plus `n_harmonics`.
     flip_wave: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
@@ -280,6 +290,9 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
         - p-p-distance: time between peak and trough relative to EOD period.
         - reltroughampl: amplitude of trough relative to peak amplitude.
         - power: summed power of all harmonics in decibel relative to one.
+        - dbdiff: smoothness of power spectrum as standard deviation of differences in decibel power.
+        - maxdb: maximum power of higher harmonics relative to peak power in decibel.
+
     spec_data: 2-D array of floats
         First column is the index of the harmonics, second column its frequency,
         third column its amplitude, fourth column its amplitude relative to the fundamental,
@@ -392,7 +405,28 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
         popt[i*2+2] %= 2.0*np.pi
         if popt[i*2+2] > np.pi:
             popt[i*2+2] -= 2.0*np.pi
+    # store fourier fit:
     meod[:,-1] = fourier_series(meod[:,0], *popt)
+    # store fourier spectrum:
+    if hasattr(freq, 'shape'):
+        spec_data = np.zeros((n_harm, 7))
+        powers = freq[:n_harm, 1]
+        spec_data[:len(powers), 6] = powers
+    else:
+        spec_data = np.zeros((n_harm, 6))
+    for i in range(n_harm):
+        spec_data[i,:6] = [i, (i+1)*freq0, popt[i*2+1], popt[i*2+1]/popt[1],
+                           decibel((popt[i*2+1]/popt[1])**2.0), popt[i*2+2]]
+    # smoothness of power spectrum:
+    db_powers = decibel(spec_data[:,2]**2)
+    db_diff = np.std(np.diff(db_powers))
+    # maximum relative power of higher harmonics:
+    p_max = np.argmax(db_powers[:3])
+    db_powers -= db_powers[p_max]
+    if len(db_powers[p_max+n_harmonics:]) == 0:
+        max_harmonics_power = -100.0
+    else:
+        max_harmonics_power = np.max(db_powers[p_max+n_harmonics:])
 
     # peak and trough amplitudes:
     ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
@@ -421,17 +455,10 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
     props['righttrough'] = phase4/period
     props['p-p-distance'] = distance/period
     props['reltroughampl'] = np.abs(relptampl)
-    if hasattr(freq, 'shape'):
-        spec_data = np.zeros((n_harm, 7))
-        powers = freq[:n_harm, 1]
-        spec_data[:len(powers), 6] = powers
-    else:
-        spec_data = np.zeros((n_harm, 6))
-    for i in range(n_harm):
-        spec_data[i,:6] = [i, (i+1)*freq0, popt[i*2+1], popt[i*2+1]/popt[1],
-                           decibel((popt[i*2+1]/popt[1])**2.0), popt[i*2+2]]
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
+    props['dbdiff'] = db_diff
+    props['maxdb'] = max_harmonics_power
     
     return meod, props, spec_data, error_str
 
@@ -925,24 +952,21 @@ def pulse_clipped_fraction(data, samplerate, eod_times, mean_eod,
     return clipped_frac
 
 
-def wave_quality(clipped_frac, ncrossings, rms_sem, rms_error, power,
-                 max_clipped_frac=0.1, max_crossings=4, max_rms_sem=0.0,
-                 max_rms_error=0.05, min_power=-100.0):
+def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
+                 max_crossings=4, max_rms_sem=0.0, max_rms_error=0.05,
+                 min_power=-100.0, max_db_diff=20.0, max_harmonics_db=0.0):
     """
     Assess the quality of an EOD waveform of a wave fish.
     
     Parameters
     ----------
-    clipped_frac: float
-        Fraction of clipped snippets.
-    ncrossings: int
-        Number of zero crossings per EOD period.
-    rms_sem: float
-        Standard error of the data relative to p-p amplitude.
-    rms_error: float
-        Root-mean-square error between EOD waveform and Fourier fit relative to p-p amplitude.
-    power: float
-        Power of the EOD waveform in dB.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform
+        as returned by `analyze_wave()`.
+    min_freq: float
+        Minimum frequency accepted as a fundamental frequency.
+    max_freq: float
+        Maximum frequency accepted as a fundamental frequency.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_crossings: int
@@ -954,6 +978,12 @@ def wave_quality(clipped_frac, ncrossings, rms_sem, rms_error, power,
         Fourier fit relative to p-p amplitude.
     min_power: float
         Minimum power of the EOD in dB.
+    max_db_diff: float
+        Maximum standard deviation of differences between logarithmic powers
+        of harmonics in decibel (larger than zero).
+        Low values enforce smoother power spectra.
+    max_harmonics_db:
+        Maximum power of higher harmonics relative to peak power in decibel.
                                        
     Returns
     -------
@@ -964,44 +994,74 @@ def wave_quality(clipped_frac, ncrossings, rms_sem, rms_error, power,
     """
     msg = []
     skip_reason = []
+    # EOD frequency:
+    if 'EODf' in props:
+        eodf = props['EODf']
+        msg += ['EODf=%5.1fHz' % eodf]
+        if eodf is not None and (eodf < min_freq or eodf > max_freq):
+            skip_reason += ['invalid EODf=%5.1fHz (min %5.1fHz, max %5.1f))' %
+                            (eodf, min_freq, max_freq)]
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
-    if clipped_frac >= max_clipped_frac:
-        skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
-                        (100.0*clipped_frac, 100.0*max_clipped_frac)]
+    if 'clipped' in props:
+        clipped_frac = props['clipped']
+        msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
+        if clipped_frac is not None and clipped_frac >= max_clipped_frac:
+            skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
+                            (100.0*clipped_frac, 100.0*max_clipped_frac)]
     # too many zero crossings:
-    msg += ['zero crossings=%d' % ncrossings]
-    if ncrossings > 0 and ncrossings > max_crossings:
-        skip_reason += ['too many zero crossings=%d (max %d)' %
-                        (ncrossings, max_crossings)]
+    if 'ncrossings' in props:
+        ncrossings = props['ncrossings']
+        msg += ['zero crossings=%d' % ncrossings]
+        if ncrossings is not None and ncrossings > 0 and ncrossings > max_crossings:
+            skip_reason += ['too many zero crossings=%d (max %d)' %
+                            (ncrossings, max_crossings)]
     # noise:
-    msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
-    if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
-        skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
-                        (100.0*rms_sem, 100.0*max_rms_sem)]
+    if 'rmssem' in props:
+        rms_sem = props['rmssem']
+        msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
+        if rms_sem is not None and max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
+            skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
+                            (100.0*rms_sem, 100.0*max_rms_sem)]
     # fit error:
-    msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
-    if rms_error >= max_rms_error:
-        skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
-                        (100.0*rms_error, 100.0*max_rms_error)]
+    if 'rmserror' in props:
+        rms_error = props['rmserror']
+        msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
+        if rms_error is not None and max_rms_error > 0.0 and rms_error >= max_rms_error:
+            skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
+                            (100.0*rms_error, 100.0*max_rms_error)]
     # wave power:
-    msg += ['power=%6.1fdB' % power]
-    if power < min_power:
-        skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
-                        (power, min_power)]
+    if 'power' in props:
+        power = props['power']
+        msg += ['power=%6.1fdB' % power]
+        if power is not None and power < min_power:
+            skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
+                            (power, min_power)]
+    # smoothness of spectrum:
+    if 'dbdiff' in props:
+        db_diff = props['dbdiff']
+        msg += ['dBdiff=%5.1fdB' % db_diff]
+        if db_diff is not None and db_diff > max_db_diff:
+            skip_reason += ['not smooth s.d. diff=%5.1fdB (max %5.1fdB)' %
+                            (db_diff, max_db_diff)]
+    # maximum power of higher harmonics:
+    if 'maxdb' in props:
+        max_harmonics = props['maxdb']
+        msg += ['max harmonics=%5.1fdB' % max_harmonics]
+        if max_harmonics is not None and max_harmonics > max_harmonics_db:
+            skip_reason += ['too strong maximum harmonics=%5.1fdB (max %5.1fdB)' %
+                            (max_harmonics, max_harmonics_db)]
     return ', '.join(skip_reason), ', '.join(msg)
 
 
-def pulse_quality(clipped_frac, rms_sem, max_clipped_frac=0.1, max_rms_sem=0.0):
+def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
     """
     Assess the quality of an EOD waveform of a pulse fish.
     
     Parameters
     ----------
-    clipped_frac: float
-        Fraction of clipped snippets.
-    rms_sem: float
-        Standard error of the data relative to p-p amplitude.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform
+        as returned by `analyze_pulse()`.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_rms_sem: float
@@ -1020,16 +1080,20 @@ def pulse_quality(clipped_frac, rms_sem, max_clipped_frac=0.1, max_rms_sem=0.0):
     skip_reason = []
     skipped_clipped = False
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
-    if clipped_frac >= max_clipped_frac:
-        skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
-                        (100.0*clipped_frac, 100.0*max_clipped_frac)]
-        skipped_clipped = True
+    if 'clipped' in props:
+        clipped_frac = props['clipped']
+        msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
+        if clipped_frac >= max_clipped_frac:
+            skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
+                            (100.0*clipped_frac, 100.0*max_clipped_frac)]
+            skipped_clipped = True
     # noise:
-    msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
-    if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
-        skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
-                        (100.0*rms_sem, 100.0*max_rms_sem)]
+    if 'rmssem' in props:
+        rms_sem = props['rmssem']
+        msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
+        if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
+            skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
+                            (100.0*rms_sem, 100.0*max_rms_sem)]
     return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
 
 
@@ -1555,8 +1619,10 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append_section('waveform')
     td.append('index', '', '%d', wave_props, 'index')
     td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
-    td.append('power', 'dB', '%7.2f', wave_props, 'power')
     td.append('p-p-amplitude', unit, '%.5f', wave_props, 'p-p-amplitude')
+    td.append('power', 'dB', '%7.2f', wave_props, 'power')
+    td.append('dbdiff', 'dB', '%7.2f', wave_props, 'dbdiff')
+    td.append('maxdb', 'dB', '%7.2f', wave_props, 'maxdb')
     if 'rmssem' in wave_props[0]:
         td.append('noise', '%', '%.1f', wave_props, 'rmssem', 100.0)
     td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
@@ -1890,7 +1956,11 @@ def wave_quality_args(cfg):
                  'max_rms_sem': 'maximumRMSNoise',
                  'max_rms_error': 'maximumRMSError',
                  'min_power': 'minimumPower',
-                 'max_crossings': 'maximumCrossings'})
+                 'max_crossings': 'maximumCrossings',
+                 'min_freq': 'minimumFrequency',
+                 'max_freq': 'maximumFrequency',
+                 'max_db_diff': 'maximumPowerDifference',
+                 'max_harmonics_db': 'maxHarmonicsPower'})
     return a
 
 

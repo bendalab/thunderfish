@@ -234,8 +234,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
         props['clipped'] = clipped_frac
 
         # add good waveforms only:
-        skips, msg, skipped_clipped = pulse_quality(clipped_frac, props['rmssem'],
-                                                    **pulse_quality_args(cfg))
+        skips, msg, skipped_clipped = pulse_quality(props, **pulse_quality_args(cfg))
 
         if len(skips) == 0:
             eod_props.append(props)
@@ -322,9 +321,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
                             if idx not in rm_indices]
             break
         # add good waveforms only:
-        skips, msg = wave_quality(clipped_frac, props['ncrossings'],
-                                  props['rmssem'], props['rmserror'], props['power'],
-                                  **wave_quality_args(cfg))
+        skips, msg = wave_quality(props, **wave_quality_args(cfg))
         if len(skips) == 0:
             wave_indices[idx] = props['index']
             eod_props.append(props)
