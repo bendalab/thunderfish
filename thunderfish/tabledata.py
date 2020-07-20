@@ -207,8 +207,9 @@ class TableData(object):
     - `rows()`: the number of rows.
     - `columns()`: the number of columns.
     - `shape`: number of rows and columns.
-    - `row()`: a single row of the table.
-    - `col()`: a single column of the table.
+    - `row()`: a single row of the table as TableData.
+    - `row_dict()`: a single row of the table as dictionary.
+    - `col()`: a single column of the table as TableData.
     - `__getitem__()`: data elements specified by slice.
     - `__setitem__()`: assign values to data elements specified by slice.
     - `__delitem__()`: delete data elements or whole columns or rows.
@@ -536,7 +537,7 @@ class TableData(object):
 
         Parameters
         ----------
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
         level: int
@@ -569,7 +570,7 @@ class TableData(object):
         ----------
         label: string
             The new name to be used for the section.
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
         level: int
@@ -655,7 +656,7 @@ class TableData(object):
 
         Parameters
         ----------
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
 
@@ -675,7 +676,7 @@ class TableData(object):
         ----------
         label: string
             The new name to be used for the column.
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
         """        
@@ -689,7 +690,7 @@ class TableData(object):
 
         Parameters
         ----------
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
 
@@ -709,7 +710,7 @@ class TableData(object):
         ----------
         unit: string
             The new unit to be used for the column.
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
         """
@@ -735,7 +736,7 @@ class TableData(object):
 
         Parameters
         ----------
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
 
@@ -755,7 +756,7 @@ class TableData(object):
         ----------
         format: string
             The new format string to be used for the column.
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
         """
@@ -808,7 +809,7 @@ class TableData(object):
 
         Parameters
         ----------
-        col: None, int, or string
+        column: None, int, or string
             A specification of a column.
             See self.index() for more information on how to specify a column.
 
@@ -1078,6 +1079,26 @@ class TableData(object):
                     sec_indices[l] = i
             data.data[-1] = [self.data[c][index]]
         data.nsecs = self.nsecs
+        return data
+
+    def row_dict(self, index):
+        """
+        A single row of the table.
+
+        Parameters
+        ----------
+        index: int
+            The index of the row to be returned.
+
+        Return
+        ------
+        data: dict
+            A dictionary with column header as key and corresponding data value of row `index`
+            as value.
+        """
+        data = {}
+        for c in range(self.columns()):
+            data[self.label(c)] = self.data[c][index]
         return data
 
     def col(self, column):
