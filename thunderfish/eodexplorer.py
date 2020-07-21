@@ -412,8 +412,8 @@ class EODExplorer(MultivariateExplorer):
                 group_cols = []
             elif wave_fish:
                 if group == 'noise':
-                    group_cols.extend(['noise', 'rmserror',
-                                       'p-p-amplitude', 'power'])
+                    group_cols.extend(['noise', 'rmserror', 'p-p-amplitude',
+                                       'power', 'dbdiff', 'maxdb'])
                 elif group == 'timing' or group == 'time':
                     group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
                                        'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
@@ -679,7 +679,7 @@ def main():
             props['clipped'] *= 0.01 
             props['rmssem'] *= 0.01 
             props['rmserror'] *= 0.01 
-            skips, msg = wave_quality(props, **wave_quality_args(cfg))
+            _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
         else:
             props = data.row_dict(r)
             props['clipped'] *= 0.01 

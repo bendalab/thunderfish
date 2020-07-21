@@ -164,7 +164,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     props['clipped'] *= 0.01 
                     props['rmssem'] *= 0.01 
                     props['rmserror'] *= 0.01 
-                    skips, msg = wave_quality(props, **wave_quality_args(cfg))
+                    _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
             else:
                 if cfg is not None:
                     props = data.row_dict(r)

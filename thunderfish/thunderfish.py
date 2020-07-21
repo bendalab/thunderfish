@@ -143,10 +143,10 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
 
     Returns
     -------
-    psd_data: list of 2D array
+    psd_data: list of 2D arrays
         List of power spectra (frequencies and power) of the analysed data
         for different frequency resolutions.
-    wave_eodfs: array
+    wave_eodfs: list of 2D arrays
         Frequency and power of fundamental frequency/harmonics of all wave fish.
     wave_indices: array of int
         Indices of wave fish mapping from wave_eodfs to eod_props.
@@ -289,7 +289,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
     # analyse EOD waveform of all wavefish:
     powers = np.array([np.sum(fish[:, 1]**2) for fish in wave_eodfs])
     power_indices = np.argsort(-powers)
-    wave_indices = np.zeros(len(wave_eodfs), dtype=np.int)
+    wave_indices = np.zeros(len(wave_eodfs), dtype=np.int) - 3
     for k, idx in enumerate(power_indices):
         fish = wave_eodfs[idx]
         eod_times = np.arange(0.0, len(data)/samplerate, 1.0/fish[0,0])
@@ -317,11 +317,11 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
                           (wave_eodfs[idx][0,0], decibel(powers[idx])))
             wave_eodfs = [eodfs for idx, eodfs in enumerate(wave_eodfs)
                           if idx not in rm_indices]
-            wave_indices = [idcs for idx, idcs in enumerate(wave_indices)
-                            if idx not in rm_indices]
+            wave_indices = np.array([idcs for idx, idcs in enumerate(wave_indices)
+                                    if idx not in rm_indices], dtype=np.int)
             break
         # add good waveforms only:
-        skips, msg = wave_quality(props, **wave_quality_args(cfg))
+        remove, skips, msg = wave_quality(props, **wave_quality_args(cfg))
         if len(skips) == 0:
             wave_indices[idx] = props['index']
             eod_props.append(props)
@@ -329,13 +329,15 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
             spec_data.append(sdata)
             peak_data.append([])
             if verbose > 0:
-                print('take %6.1fHz wave  fish: %s' % (props['EODf'], msg))
+                print('take   %6.1fHz wave  fish: %s' % (props['EODf'], msg))
         else:
-            wave_indices[idx] = -1
+            wave_indices[idx] = -2 if remove else -1
             skip_reason += ['%.1fHz wave fish %s' % (props['EODf'], skips)]
             if verbose > 0:
-                print('skip %6.1fHz wave  fish: %s (%s)' %
-                      (props['EODf'], skips, msg))
+                print('%-6s %6.1fHz wave  fish: %s (%s)' %
+                      ('remove' if remove else 'skip', props['EODf'], skips, msg))
+    wave_eodfs = [eodfs for idx, eodfs in zip(wave_indices, wave_eodfs) if idx > -2]
+    wave_indices = np.array([idx for idx in wave_indices if idx > -2], dtype=np.int)
     return (psd_data, wave_eodfs, wave_indices, eod_props, mean_eods,
             spec_data, peak_data, power_thresh, skip_reason, zoom_window)
 

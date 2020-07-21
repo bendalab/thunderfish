@@ -59,7 +59,7 @@ from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
-from .eventdetection import threshold_crossings, threshold_crossing_times
+from .eventdetection import threshold_crossings, threshold_crossing_times, merge_events
 from .powerspectrum import next_power_of_two, nfft, decibel
 from .harmonics import fundamental_freqs_and_power
 from .tabledata import TableData
@@ -362,7 +362,8 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     # zero crossings:
     ui, di = threshold_crossings(meod[:,1], 0.0)
     ut, dt = threshold_crossing_times(meod[:,0], meod[:,1], 0.0, ui, di)
-    ncrossings = int(np.round((len(ui) + len(di))/(meod[-1,0]-meod[0,0])/freq0))
+    ut, dt = merge_events(ut, dt, 0.02/freq0)
+    ncrossings = int(np.round((len(ut) + len(dt))/(meod[-1,0]-meod[0,0])/freq0))
     if np.any(ut<0.0):    
         up_time = ut[ut<0.0][-1]
     else:
@@ -954,7 +955,7 @@ def pulse_clipped_fraction(data, samplerate, eod_times, mean_eod,
 
 def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
                  max_crossings=4, max_rms_sem=0.0, max_rms_error=0.05,
-                 min_power=-100.0, max_db_diff=20.0, max_harmonics_db=0.0):
+                 min_power=-100.0, max_db_diff=20.0, max_harmonics_db=-5.0):
     """
     Assess the quality of an EOD waveform of a wave fish.
     
@@ -964,93 +965,104 @@ def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
         A dictionary with properties of the analyzed EOD waveform
         as returned by `analyze_wave()`.
     min_freq: float
-        Minimum frequency accepted as a fundamental frequency.
+        Minimum EOD frequency (`props['EODf']`).
     max_freq: float
-        Maximum frequency accepted as a fundamental frequency.
+        Maximum EOD frequency (`props['EODf']`).
     max_clipped_frac: float
-        Maximum allowed fraction of clipped data.
+        If larger than zero, maximum allowed fraction of clipped data (`props['clipped']`).
     max_crossings: int
-        Maximum number of zero crossings per EOD period.
+        If larger than zero, maximum number of zero crossings per EOD period
+        (`props['ncrossings']`).
     max_rms_sem: float
-        If not zero, maximum allowed standard error of the data relative to p-p amplitude.
+        If larger than zero, maximum allowed standard error of the data relative
+        to p-p amplitude (`props['rmssem']`).
     max_rms_error: float
-        Maximum allowed root-mean-square error between EOD waveform and
-        Fourier fit relative to p-p amplitude.
+        If larger than zero, maximum allowed root-mean-square error between EOD waveform and
+        Fourier fit relative to p-p amplitude (`props['rmserror']`).
     min_power: float
-        Minimum power of the EOD in dB.
+        Minimum power of the EOD in dB (`props['power']`).
     max_db_diff: float
-        Maximum standard deviation of differences between logarithmic powers
-        of harmonics in decibel (larger than zero).
+        If larger than zero, maximum standard deviation of differences between
+        logarithmic powers of harmonics in decibel (`props['dbdiff']`).
         Low values enforce smoother power spectra.
     max_harmonics_db:
-        Maximum power of higher harmonics relative to peak power in decibel.
+        Maximum power of higher harmonics relative to peak power in decibel (`props['maxdb']`).
                                        
     Returns
     -------
+    remove: bool
+        If True then this is most likely not an electric fish. Remove it from
+        both the waveform properties and the list of EOD frequencies.
+        If False, keep it in the list of EOD frequencies, but remove it from the
+        waveform properties if `skip_reason` is not empty.
     skip_reason: string
         An empty string if the waveform is good, otherwise a string indicating the failure.
     msg: string
         A textual representation of the values tested.
     """
+    remove = False
     msg = []
     skip_reason = []
     # EOD frequency:
     if 'EODf' in props:
         eodf = props['EODf']
         msg += ['EODf=%5.1fHz' % eodf]
-        if eodf is not None and (eodf < min_freq or eodf > max_freq):
+        if eodf < min_freq or eodf > max_freq:
+            remove = True
             skip_reason += ['invalid EODf=%5.1fHz (min %5.1fHz, max %5.1f))' %
                             (eodf, min_freq, max_freq)]
     # clipped fraction:
     if 'clipped' in props:
         clipped_frac = props['clipped']
         msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
-        if clipped_frac is not None and clipped_frac >= max_clipped_frac:
+        if max_clipped_frac > 0 and clipped_frac >= max_clipped_frac:
             skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
                             (100.0*clipped_frac, 100.0*max_clipped_frac)]
     # too many zero crossings:
     if 'ncrossings' in props:
         ncrossings = props['ncrossings']
         msg += ['zero crossings=%d' % ncrossings]
-        if ncrossings is not None and ncrossings > 0 and ncrossings > max_crossings:
+        if max_crossings > 0 and ncrossings > max_crossings:
             skip_reason += ['too many zero crossings=%d (max %d)' %
                             (ncrossings, max_crossings)]
     # noise:
     if 'rmssem' in props:
         rms_sem = props['rmssem']
         msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
-        if rms_sem is not None and max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
+        if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
             skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
                             (100.0*rms_sem, 100.0*max_rms_sem)]
     # fit error:
     if 'rmserror' in props:
         rms_error = props['rmserror']
         msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
-        if rms_error is not None and max_rms_error > 0.0 and rms_error >= max_rms_error:
+        if max_rms_error > 0.0 and rms_error >= max_rms_error:
             skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
                             (100.0*rms_error, 100.0*max_rms_error)]
     # wave power:
     if 'power' in props:
         power = props['power']
         msg += ['power=%6.1fdB' % power]
-        if power is not None and power < min_power:
+        if power < min_power:
             skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
                             (power, min_power)]
     # smoothness of spectrum:
     if 'dbdiff' in props:
         db_diff = props['dbdiff']
         msg += ['dBdiff=%5.1fdB' % db_diff]
-        if db_diff is not None and db_diff > max_db_diff:
+        if max_db_diff > 0.0 and db_diff > max_db_diff:
+            remove = True
             skip_reason += ['not smooth s.d. diff=%5.1fdB (max %5.1fdB)' %
                             (db_diff, max_db_diff)]
     # maximum power of higher harmonics:
     if 'maxdb' in props:
         max_harmonics = props['maxdb']
         msg += ['max harmonics=%5.1fdB' % max_harmonics]
-        if max_harmonics is not None and max_harmonics > max_harmonics_db:
+        if max_harmonics > max_harmonics_db:
+            remove = True
             skip_reason += ['too strong maximum harmonics=%5.1fdB (max %5.1fdB)' %
                             (max_harmonics, max_harmonics_db)]
-    return ', '.join(skip_reason), ', '.join(msg)
+    return remove, ', '.join(skip_reason), ', '.join(msg)
 
 
 def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
@@ -1960,7 +1972,7 @@ def wave_quality_args(cfg):
                  'min_freq': 'minimumFrequency',
                  'max_freq': 'maximumFrequency',
                  'max_db_diff': 'maximumPowerDifference',
-                 'max_harmonics_db': 'maxHarmonicsPower'})
+                 'max_harmonics_db': 'maximumHarmonicsPower'})
     return a
 
 
