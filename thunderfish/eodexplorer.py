@@ -595,6 +595,8 @@ def main():
     parser.add_argument('-h', '--help', nargs=0, action=PrintHelp,
                         help='show this help message and exit')
     parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('-v', dest='verbose', action='store_true', default=False,
+                        help='verbose output')
     parser.add_argument('-l', dest='list_columns', action='store_true',
                         help='list all available data columns and exit')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
@@ -627,6 +629,7 @@ def main():
     args = parser.parse_args()
         
     # read in command line arguments:    
+    verbose = args.verbose
     list_columns = args.list_columns
     jobs = args.jobs
     file_name = args.file
@@ -682,7 +685,7 @@ def main():
             props = data.row_dict(r)
             props['clipped'] *= 0.01 
             props['noise'] *= 0.01 
-            props['rmserror'] *= 0.01 
+            props['rmserror'] *= 0.01
             _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
         else:
             props = data.row_dict(r)
@@ -690,10 +693,11 @@ def main():
             props['noise'] *= 0.01 
             skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
         if len(skips) > 0:
-            print('skip fish %2d from %s: %s' % (idx, data[r,'file'], skips))
+            if verbose:
+                print('skip fish %2d from %s: %s' % (idx, data[r,'file'], skips))
             del data[r,:]
             skipped += 1
-    if skipped > 0:
+    if verbose and skipped > 0:
         print('')
 
     # add species column (experimental):

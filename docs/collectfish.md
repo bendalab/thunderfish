@@ -10,7 +10,7 @@ collectfish --help
 ```
 returns
 ```plain
-usage: collectfish [-h] [--version] [-t {wave,pulse}] [-a] [-c] [-m N]
+usage: collectfish [-h] [--version] [-v] [-t {wave,pulse}] [-a] [-c] [-m N]
                    [-p N:M] [-w N] [-r COLUMN] [-s] [-i FILE:REC:TEMP]
                    [-q Q10] [-S] [-n NAME] [-o PATH]
                    [-f {dat,ascii,csv,rtai,md,tex,html,same}]
@@ -25,6 +25,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
+  -v                    verbose output
   -t {wave,pulse}       wave-type or pulse-type fish
   -a                    append the file name as the last column
   -c                    remove initial common directories from input files

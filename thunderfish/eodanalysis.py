@@ -1026,8 +1026,12 @@ def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
             skip_reason += ['too many zero crossings=%d (max %d)' %
                             (ncrossings, max_crossings)]
     # noise:
+    rms_sem = None
     if 'rmssem' in props:
         rms_sem = props['rmssem']
+    if 'noise' in props:
+        rms_sem = props['noise']
+    if rms_sem is not None:
         msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
         if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
             skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
@@ -1100,8 +1104,12 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
                             (100.0*clipped_frac, 100.0*max_clipped_frac)]
             skipped_clipped = True
     # noise:
+    rms_sem = None
     if 'rmssem' in props:
         rms_sem = props['rmssem']
+    if 'noise' in props:
+        rms_sem = props['noise']
+    if rms_sem is not None:
         msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
         if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
             skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
@@ -1942,7 +1950,7 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
     cfg.add_section('Waveform selection:')
     cfg.add('maximumClippedFraction', max_clipped_frac, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
     cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard error of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
-    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared error of the fit relative to the peak-to-peak amplitude is larger than this number.')
     cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave fish if its power is smaller than this value.')
     cfg.add('maximumCrossings', max_crossings, '', 'Maximum number of zero crossings per EOD period.')
 
@@ -1965,7 +1973,7 @@ def wave_quality_args(cfg):
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
-                 'max_rms_sem': 'maximumRMSNoise',
+                 'max_rms_sem': 'maximumVariance',
                  'max_rms_error': 'maximumRMSError',
                  'min_power': 'minimumPower',
                  'max_crossings': 'maximumCrossings',

@@ -10,7 +10,7 @@ eodexplorer --help
 ```
 returns
 ```plain
-usage: eodexplorer [-h] [--version] [-l] [-j [JOBS]]
+usage: eodexplorer [-h] [--version] [-v] [-l] [-j [JOBS]]
                    [-D {all,allpower,noise,timing,ampl,relampl,power,relpower,phase,time,width,peaks,none}]
                    [-d COLUMN] [-n MAX] [-w {first,second,ampl,power,phase}]
                    [-s] [-c COLUMN] [-m CMAP] [-p PATH] [-P PATH]
@@ -26,6 +26,7 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
+  -v                    verbose output
   -l                    list all available data columns and exit
   -j [JOBS]             number of jobs run in parallel for loading waveform
                         data. Without argument use all CPU cores.
