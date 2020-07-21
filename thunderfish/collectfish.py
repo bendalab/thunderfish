@@ -162,14 +162,14 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                 if cfg is not None:
                     props = data.row_dict(r)
                     props['clipped'] *= 0.01 
-                    props['rmssem'] *= 0.01 
+                    props['noise'] *= 0.01 
                     props['rmserror'] *= 0.01 
                     _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
             else:
                 if cfg is not None:
                     props = data.row_dict(r)
                     props['clipped'] *= 0.01 
-                    props['rmssem'] *= 0.01 
+                    props['noise'] *= 0.01 
                     skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
             if len(skips) > 0:
                 print('skip fish %d from %s: %s' % (idx, recording, skips))

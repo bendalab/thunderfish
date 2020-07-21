@@ -259,7 +259,7 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
 
     # all harmonics in min_group_size required:
     n_skip = int(min_group_size//3)
-    if np.any(new_group[n_skip:]<0) and np.any(new_group[:len(new_group)-n_skip]<0):
+    if np.sum(new_group<0) > n_skip:
         if verbose > 0:
             print('  discarded group because %d harmonics are less than min_group_size of %d minus %d! peaks:' %
                   (np.sum(new_group>=0), min_group_size, n_skip), new_group)
@@ -444,13 +444,13 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         new_group_value = peaksum - diff
         counts = np.sum(all_freqs[new_group, 2])
         if verbose > 0:
-            print('  new group:                 fzero=%7.2fHz, value=%6.1fdB, peaksum=%5.1fdB, diff=%6.1fdB, use count=%2d, peaks:'
-                  % (fzero, new_group_value, peaksum, diff, counts), new_group)
+            print('  new group:                 fzero=%7.2fHz, nharmonics=%d, value=%6.1fdB, peaksum=%5.1fdB, diff=%6.1fdB, use count=%2d, peaks:'
+                  % (fzero, len(new_group), new_group_value, peaksum, diff, counts), new_group)
             if verbose > 1:
-                print('  best group:     divisor=%d, fzero=%7.2fHz, value=%6.1fdB, peaks:'
-                      % (best_divisor, best_fzero, best_value), best_group)
+                print('  best group:     divisor=%d, fzero=%7.2fHz, nharmonics=%d, value=%6.1fdB, peaks:'
+                      % (best_divisor, best_fzero, len(best_group), best_value), best_group)
         # select new group if sum of peak power minus diff is larger:
-        if new_group_value >= best_value:
+        if len(new_group) >= len(best_group) and new_group_value >= best_value:
             best_value = new_group_value
             best_group = new_group
             best_divisor = divisor

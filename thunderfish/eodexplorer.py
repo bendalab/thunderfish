@@ -412,8 +412,8 @@ class EODExplorer(MultivariateExplorer):
                 group_cols = []
             elif wave_fish:
                 if group == 'noise':
-                    group_cols.extend(['noise', 'rmserror', 'p-p-amplitude',
-                                       'power', 'dbdiff', 'maxdb'])
+                    group_cols.extend(['noise', 'rmserror', 'power',
+                                       'dbdiff', 'maxdb', 'p-p-amplitude'])
                 elif group == 'timing' or group == 'time':
                     group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
                                        'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
@@ -677,13 +677,13 @@ def main():
         if wave_fish:
             props = data.row_dict(r)
             props['clipped'] *= 0.01 
-            props['rmssem'] *= 0.01 
+            props['noise'] *= 0.01 
             props['rmserror'] *= 0.01 
             _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
         else:
             props = data.row_dict(r)
             props['clipped'] *= 0.01 
-            props['rmssem'] *= 0.01 
+            props['noise'] *= 0.01 
             skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
         if len(skips) > 0:
             print('skip fish %d from %s: %s' % (idx, data[r,'file'], skips))
