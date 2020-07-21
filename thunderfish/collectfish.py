@@ -5,16 +5,20 @@
 import os
 import sys
 import argparse
+import numpy as np
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .tabledata import TableData, add_write_table_config, write_table_args
+from .harmonics import add_harmonic_groups_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
+from .eodanalysis import adjust_eodf
 
 
 def collect_fish(files, insert_file=True, append_file=False, simplify_file=False,
                  meta_data=None, meta_recordings=None, skip_recordings=False,
-                 max_fish=0, harmonics=None, peaks0=None, peaks1=None, cfg=None):
+                 temp_col=None, q10=1.62, max_fish=0, harmonics=None,
+                 peaks0=None, peaks1=None, cfg=None):
     """
     Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
 
@@ -41,6 +45,12 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         This name is matched agains the basename of input `files`.
     skip_recordings: bool
         If True skip recordings that are not found in `meta_recordings`.
+    temp_col: string or None
+        A column in `meta_data` with temperatures to which EOD frequences should be adjusted.
+    q10: float
+        Q10 value describing temperature dependence of EOD frequencies.
+        The default of 1.62 is from Dunlap, Smith, Yetka (2000) Brain Behav Evol,
+        measured for Apteronotus lepthorhynchus in the lab.
     max_fish: int
         Maximum number of fish to be taken, if 0 take all.
     harmonics: int
@@ -110,6 +120,12 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             df = TableData(data)
             df.clear_data()
             if meta_data is not None:
+                if temp_col is not None:
+                    temp_idx = meta_data.index(temp_col)
+                    temp = meta_data[:,temp_idx]
+                    mean_tmp = np.round(np.nanmean(temp)/0.1)*0.1
+                    meta_data.insert(temp_idx+1, 'T_adjust', 'C', '%.1f')
+                    meta_data.append_data_column([mean_tmp]*meta_data.rows(), temp_idx+1)
                 for s in range(data.nsecs):
                     df.insert_section(0, 'metadata')
                 for c in range(meta_data.columns()):
@@ -172,7 +188,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     props['noise'] *= 0.01 
                     skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
             if len(skips) > 0:
-                print('skip fish %d from %s: %s' % (idx, recording, skips))
+                print('skip fish %2d from %s: %s' % (idx, recording, skips))
                 continue
             # fill in data:
             data_col = 0
@@ -210,6 +226,18 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             if append_file:
                 table.append_data(recording)
             table.fill_data()
+    # adjust EODf to mean temperature:
+    if temp_col is not None:
+        eodf_idx = df.index('EODf')
+        df.insert(eodf_idx+1, 'EODf_adjust', 'Hz', '%.1f')
+        df.fill_data()
+        temp_idx = df.index(temp_col)
+        tadjust_idx = df.index('T_adjust')
+        for r in range(df.rows()):
+            eodf = df[r,eodf_idx]
+            if np.isfinite(df[r,temp_col]) and np.isfinite(df[r,tadjust_idx]):
+                eodf = adjust_eodf(eodf, df[r,temp_col], df[r,tadjust_idx], q10)
+            df[r,eodf_idx+1] = eodf
     # simplify pathes:
     if simplify_file and len(file_pathes) > 1:
         fp0 = file_pathes[0]
@@ -270,8 +298,10 @@ def main():
                         help='columns to be removed from output table')
     parser.add_argument('-s', dest='statistics', action='store_true',
                         help='also write table with statistics')
-    parser.add_argument('-i', dest='meta_file', metavar='FILE:REC', default='', type=str,
-                        help='insert rows from metadata table in FILE matching recording in colum REC')
+    parser.add_argument('-i', dest='meta_file', metavar='FILE:REC:TEMP', default='', type=str,
+                        help='insert rows from metadata table in FILE matching recording in colum REC. The optional TEMP specifies a column with temperatures to which EOD frequencies should be adjusted')
+    parser.add_argument('-q', dest='q10', metavar='Q10', default=1.62, type=float,
+                        help='Q10 value for adjusting EOD frequencies to a common temperature')
     parser.add_argument('-S', dest='skip', action='store_true',
                         help='skip recordings that are not contained in metadata table')
     parser.add_argument('-n', dest='file_suffix', metavar='NAME', default='', type=str,
@@ -305,6 +335,7 @@ def main():
     # read configuration:
     cfgfile = __package__ + '.cfg'
     cfg = ConfigFile()
+    add_harmonic_groups_config(cfg)
     add_eod_quality_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
                            align_columns=True, shrink_width=False)
@@ -325,8 +356,15 @@ def main():
     md = None
     rec_data = None
     if len(meta_file) > 0:
-        meta_data, rec_col = meta_file.split(':')
+        mds = meta_file.split(':')
+        meta_data = mds[0]
         md = TableData(meta_data)
+        if len(mds) < 2:
+            print('no recording column specified for the table in %s. Choose one of' % meta_data)
+            for k in md.keys():
+                print(' ', k)
+            exit()
+        rec_col = mds[1]
         if rec_col not in md:
             print('%s is not a valid key for the table in %s. Choose one of' % (rec_col, meta_data))
             for k in md.keys():
@@ -335,10 +373,18 @@ def main():
         else:
             rec_data = md[:,rec_col]
             del md[:,rec_col]
+        temp_col = None
+        if len(mds) > 2:
+            temp_col = mds[2]
+            if temp_col not in md:
+                print('%s is not a valid key for the table in %s. Choose one of' % (temp_col, meta_data))
+                for k in md.keys():
+                    print(' ', k)
+                exit()
     # collect files:
     wave_table, pulse_table = collect_fish(args.file, True, args.append_file,
                                            args.simplify_file, md, rec_data, args.skip,
-                                           args.max_fish, args.harmonics,
+                                           temp_col, args.q10, args.max_fish, args.harmonics,
                                            args.pulse_peaks[0],  args.pulse_peaks[1], cfg)
     # write tables:
     if len(file_suffix) > 0 and file_suffix[0] != '-':

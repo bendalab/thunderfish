@@ -441,6 +441,9 @@ class TableData(object):
         """
         Insert a table column at a given position.
 
+        .. WARNING::
+           If no `value` is given, the inserted column is an empty list.
+
         Parameters
         ----------
         columns int or string
@@ -1127,6 +1130,13 @@ class TableData(object):
         """
         Helper function that turns a key into row and column indices.
 
+        Returns
+        -------
+        rows: list of int, slice, None
+            Indices of selected rows.
+        cols: list of int
+            Indices of selected columns.
+
         Raises
         ------
         IndexError:
@@ -1254,18 +1264,32 @@ class TableData(object):
                 if isinstance(rows, (list, tuple, np.ndarray)):
                     if len(rows) == 1:
                         self.data[cols[0]][rows[0]] = value
-                    else:
+                    elif isinstance(value, (list, tuple, np.ndarray)):
                         for k, r in enumerate(rows):
                             self.data[cols[0]][r] = value[k]
-                else:
+                    else:
+                        for r in rows:
+                            self.data[cols[0]][r] = value
+                elif isinstance(value, (list, tuple, np.ndarray)):
                     self.data[cols[0]][rows] = value
+                elif isinstance(rows, (int, np.integer)):
+                    self.data[cols[0]][rows] = value
+                else:
+                    n = len(self.data[cols[0]][rows])
+                    if n > 1:
+                        self.data[cols[0]][rows] = [value]*n
+                    else:
+                        self.data[cols[0]][rows] = value
             else:
                 if isinstance(self.data[0][rows], (list, tuple, np.ndarray)):
                     for k, c in enumerate(cols):
                         self.data[c][rows] = value[:,k]
-                else:
+                elif isinstance(value, (list, tuple, np.ndarray)):
                     for k, c in enumerate(cols):
                         self.data[c][rows] = value[k]
+                else:
+                    for k, c in enumerate(cols):
+                        self.data[c][rows] = value
 
     def __delitem__(self, key):
         """

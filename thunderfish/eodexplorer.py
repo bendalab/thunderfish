@@ -16,6 +16,7 @@ from .configfile import ConfigFile
 from .tabledata import TableData, add_write_table_config, write_table_args
 from .dataloader import load_data
 from .multivariateexplorer import MultivariateExplorer
+from .harmonics import add_harmonic_groups_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
 from .powerspectrum import decibel
@@ -405,6 +406,8 @@ class EODExplorer(MultivariateExplorer):
 
         # default columns:
         group_cols = ['EODf']
+        if 'EODf_adjust' in data:
+            group_cols.append('EODf_adjust')
         if len(column_groups) == 0:
             column_groups = ['all']
         for group in column_groups:
@@ -642,6 +645,7 @@ def main():
     cfgfile = __package__ + '.cfg'
     cfg = ConfigFile()
     add_eod_quality_config(cfg)
+    add_harmonic_groups_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
                            align_columns=True, shrink_width=False)
     cfg.load_files(cfgfile, file_name, 3)
@@ -686,7 +690,7 @@ def main():
             props['noise'] *= 0.01 
             skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
         if len(skips) > 0:
-            print('skip fish %d from %s: %s' % (idx, data[r,'file'], skips))
+            print('skip fish %2d from %s: %s' % (idx, data[r,'file'], skips))
             del data[r,:]
             skipped += 1
     if skipped > 0:

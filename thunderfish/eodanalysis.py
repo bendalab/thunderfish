@@ -1060,7 +1060,7 @@ def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
         msg += ['max harmonics=%5.1fdB' % max_harmonics]
         if max_harmonics > max_harmonics_db:
             remove = True
-            skip_reason += ['too strong maximum harmonics=%5.1fdB (max %5.1fdB)' %
+            skip_reason += ['maximum harmonics=%5.1fdB too strong (max %5.1fdB)' %
                             (max_harmonics, max_harmonics_db)]
     return remove, ', '.join(skip_reason), ', '.join(msg)
 
