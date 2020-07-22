@@ -378,6 +378,7 @@ def main():
     # read in meta file:
     md = None
     rec_data = None
+    temp_col = None
     if len(meta_file) > 0:
         mds = meta_file.split(':')
         meta_data = mds[0]
@@ -396,7 +397,6 @@ def main():
         else:
             rec_data = md[:,rec_col]
             del md[:,rec_col]
-        temp_col = None
         if len(mds) > 2:
             temp_col = mds[2]
             if temp_col not in md:
