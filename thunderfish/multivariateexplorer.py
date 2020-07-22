@@ -86,7 +86,7 @@ class MultivariateExplorer(object):
                 if not isinstance(col[0], (int, float)):
                     # categorial data:
                     cats = sorted(set(col))
-                    idxcol = [cats.index(x) for x in col]
+                    idxcol = np.array([cats.index(x) for x in col], dtype=np.int)
                     data[:,c] = idxcol
                     self.categories.append(cats)
                 else:
@@ -110,7 +110,7 @@ class MultivariateExplorer(object):
                     if not isinstance(col[0], (int, float)):
                         # categorial data:
                         cats = sorted(set(col))
-                        idxcol = [cats.index(x) for x in col]
+                        idxcol = np.array([cats.index(x) for x in col], dtype=np.int)
                         data[c] = idxcol
                         self.categories.append(cats)
                     else:
@@ -264,7 +264,7 @@ class MultivariateExplorer(object):
             if not isinstance(colors[0], (int, float)):
                 # categorial data:
                 cats = sorted(set(colors))
-                idxcol = [cats.index(x) for x in colors]
+                idxcol = np.array([cats.index(x) for x in colors], dtype=np.int)
                 self.extra_colors = idxcol
                 self.extra_categories = cats
             else:

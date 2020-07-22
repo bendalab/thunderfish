@@ -17,7 +17,7 @@ from .eodanalysis import adjust_eodf
 
 def collect_fish(files, insert_file=True, append_file=False, simplify_file=False,
                  meta_data=None, meta_recordings=None, skip_recordings=False,
-                 temp_col=None, q10=1.62, max_fish=0, harmonics=None,
+                 temp_col=None, q10=1.62, add_species=False, max_fish=0, harmonics=None,
                  peaks0=None, peaks1=None, cfg=None, verbose=False):
     """
     Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
@@ -51,6 +51,8 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         Q10 value describing temperature dependence of EOD frequencies.
         The default of 1.62 is from Dunlap, Smith, Yetka (2000) Brain Behav Evol,
         measured for Apteronotus lepthorhynchus in the lab.
+    add_species: bool
+        If True add column with identified wavefish species (experimental).
     max_fish: int
         Maximum number of fish to be taken, if 0 take all.
     harmonics: int
@@ -188,7 +190,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                 if cfg is not None:
                     props = data.row_dict(r)
                     props['clipped'] *= 0.01 
-                    props['noise'] *= 0.01 
+                    props['noise'] *= 0.01
                     skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
             if len(skips) > 0:
                 if verbose:
@@ -231,17 +233,29 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                 table.append_data(recording)
             table.fill_data()
     # adjust EODf to mean temperature:
-    if temp_col is not None:
-        eodf_idx = df.index('EODf')
-        df.insert(eodf_idx+1, 'EODf_adjust', 'Hz', '%.1f')
-        df.fill_data()
-        temp_idx = df.index(temp_col)
-        tadjust_idx = df.index('T_adjust')
-        for r in range(df.rows()):
-            eodf = df[r,eodf_idx]
-            if np.isfinite(df[r,temp_col]) and np.isfinite(df[r,tadjust_idx]):
-                eodf = adjust_eodf(eodf, df[r,temp_col], df[r,tadjust_idx], q10)
-            df[r,eodf_idx+1] = eodf
+    for table in [wave_table, pulse_table]:
+        if table is not None and temp_col is not None:
+            eodf_idx = table.index('EODf')
+            table.insert(eodf_idx+1, 'EODf_adjust', 'Hz', '%.1f')
+            table.fill_data()
+            temp_idx = table.index(temp_col)
+            tadjust_idx = table.index('T_adjust')
+            for r in range(table.rows()):
+                eodf = table[r,eodf_idx]
+                if np.isfinite(table[r,temp_col]) and np.isfinite(table[r,tadjust_idx]):
+                    eodf = adjust_eodf(eodf, table[r,temp_col], table[r,tadjust_idx], q10)
+                table[r,eodf_idx+1] = eodf
+    # add wavefish species (experimental):
+    if add_species and wave_table is not None:
+        eodfs = 'EODf_adjust'
+        if eodfs not in wave_table:
+            eodfs = 'EODf'
+        species = np.zeros(wave_table.rows(), object)
+        species[wave_table[:,eodfs] < 250.0] = 'Sterno'
+        species[(wave_table[:,'reltroughampl'] < 72.0) & (wave_table[:,eodfs] > 250.0) & (wave_table[:,eodfs] < 600.0)] = 'Eigen'
+        species[(wave_table[:,eodfs] > 600.0) | ((wave_table[:,'reltroughampl'] > 72.0) & (wave_table[:,eodfs] > 500.0))] = 'Aptero'
+        species[(wave_table[:,'reltroughampl'] > 72.0) & (wave_table[:,eodfs] > 250.0) & (wave_table[:,eodfs] < 500.0)] = 'unknown'
+        wave_table.append('species', '', '%-s', species)
     # simplify pathes:
     if simplify_file and len(file_pathes) > 1:
         fp0 = file_pathes[0]
@@ -253,7 +267,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     break
             if not is_same:
                 break
-        for table in wave_table, pulse_table:
+        for table in [wave_table, pulse_table]:
             if table is not None:
                 for k in range(table.rows()):
                     idx = table.index('file')
@@ -308,6 +322,8 @@ def main():
                         help='insert rows from metadata table in FILE matching recording in colum REC. The optional TEMP specifies a column with temperatures to which EOD frequencies should be adjusted')
     parser.add_argument('-q', dest='q10', metavar='Q10', default=1.62, type=float,
                         help='Q10 value for adjusting EOD frequencies to a common temperature')
+    parser.add_argument('-g', dest='add_species', action='store_true', default=False,
+                        help='append column with genus/species name (for wavefish only, experimental)')
     parser.add_argument('-S', dest='skip', action='store_true',
                         help='skip recordings that are not contained in metadata table')
     parser.add_argument('-n', dest='file_suffix', metavar='NAME', default='', type=str,
@@ -391,7 +407,8 @@ def main():
     # collect files:
     wave_table, pulse_table = collect_fish(args.file, True, args.append_file,
                                            args.simplify_file, md, rec_data, args.skip,
-                                           temp_col, args.q10, args.max_fish, args.harmonics,
+                                           temp_col, args.q10, args.add_species,
+                                           args.max_fish, args.harmonics,
                                            args.pulse_peaks[0],  args.pulse_peaks[1],
                                            cfg, verbose)
     # write tables:

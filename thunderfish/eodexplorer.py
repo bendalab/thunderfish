@@ -700,16 +700,6 @@ def main():
     if verbose and skipped > 0:
         print('')
 
-    # add species column (experimental):
-    if wave_fish:
-        # wavefish species:
-        species = np.zeros(data.rows(), object)
-        species[data[:,'EODf'] < 250.0] = 'Sterno'
-        species[(data[:,'reltroughampl'] < 72.0) & (data[:,'EODf'] > 250.0)] = 'Eigen'
-        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 500.0)] = 'Aptero'
-        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 250.0) & (data[:,'EODf'] < 500.0)] = 'unknown'
-        data.append('species', '', '%s', species)
-
     # select columns (EOD properties) to be shown:
     data_cols, error = \
       EODExplorer.select_EOD_properties(data, wave_fish, max_n,
