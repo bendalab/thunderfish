@@ -98,7 +98,7 @@ class TableData(object):
     df.append("median jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
     # add a missing value to the second column:
-    df.append_data(float('NaN'), 1)
+    df.append_data(np.nan, 1)
     # fill up the remaining columns of the row:
     df.append_data((0.543, 45, 1.235e2))
     # append data to the next row starting at the second column:
@@ -1451,7 +1451,7 @@ class TableData(object):
         # fill up:
         for c in range(len(self.data)):
             while len(self.data[c]) < maxr:
-                self.data[c].append(float('NaN'))
+                self.data[c].append(np.nan)
         self.setcol = 0
         self.shape = (self.rows(), self.columns())
 
@@ -2479,7 +2479,7 @@ class TableData(object):
                     numc[k] = True
                 except ValueError:
                     if c == missing:
-                        v = float('NaN')
+                        v = np.nan
                     else:
                         strf[k] = True
                         if alld[k] < len(c):
@@ -3031,7 +3031,7 @@ if __name__ == "__main__":
     df.append("speed", "m/s", "%.3g", 98.7)
     df.append("median jitter", "mm", "%.1f", 23)
     df.append("size", "g", "%.2e", 1.234)
-    df.append_data(float('NaN'), 2)  # single value
+    df.append_data(np.nan, 2)  # single value
     df.append_data((0.543, 45, 1.235e2)) # remaining row
     df.append_data((43.21, 6789.1, 3405, 1.235e-4), 2) # next row
     a = 0.5*np.arange(1, 6)*np.random.randn(5, 5) + 10.0 + np.arange(5)
