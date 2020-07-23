@@ -1,5 +1,8 @@
 """
 Simple GUI for viewing and exploring multivariate data.
+
+- `class MultiVariateExplorer`: simple matplotlib-based GUI for viewing and exploring multivariate data.
+- `categorize()`: convert categorial string data into integer categories.
 """
 
 import numpy as np
@@ -85,9 +88,7 @@ class MultivariateExplorer(object):
             for c, col in enumerate(data):
                 if not isinstance(col[0], (int, float)):
                     # categorial data:
-                    cats = sorted(set(col))
-                    idxcol = np.array([cats.index(x) for x in col], dtype=np.int)
-                    data[:,c] = idxcol
+                    cats, data[:,c] = categorize(col)
                     self.categories.append(cats)
                 else:
                     self.categories.append(None)
@@ -109,9 +110,7 @@ class MultivariateExplorer(object):
                 for c, col in enumerate(data):
                     if not isinstance(col[0], (int, float)):
                         # categorial data:
-                        cats = sorted(set(col))
-                        idxcol = np.array([cats.index(x) for x in col], dtype=np.int)
-                        data[c] = idxcol
+                        cats, data[c] = categorize(col)
                         self.categories.append(cats)
                     else:
                         self.categories.append(None)
@@ -263,10 +262,7 @@ class MultivariateExplorer(object):
         else:
             if not isinstance(colors[0], (int, float)):
                 # categorial data:
-                cats = sorted(set(colors))
-                idxcol = np.array([cats.index(x) for x in colors], dtype=np.int)
-                self.extra_colors = idxcol
-                self.extra_categories = cats
+                self.extra_categories, self.extra_colors = categorize(colors)
             else:
                 self.extra_colors = colors
             self.extra_color_label = color_label
@@ -1276,6 +1272,27 @@ def main():
     expl.set_colors()
     expl.show()
 
+
+def categorize(data):
+    """ Convert categorial string data into integer categories.
+
+    Parameters:
+    -----------
+    data: list of string
+        A list of textual categories.
+
+    Returns:
+    --------
+    categories: list of strings
+        A sorted unique list of the strings in data.
+    cdata: list of integers
+        A copy of the input `data` where each string value is replaced
+        by an integer number that is an index into the reurned `categories`.
+    """
+    cats = sorted(set(data))
+    cdata = np.array([cats.index(x) for x in data], dtype=np.int)
+    return cats, cdata
+        
 
 if __name__ == '__main__':
     main()
