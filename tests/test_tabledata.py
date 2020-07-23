@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_false, assert_equal, assert_raises
+from nose.tools import assert_true, assert_false, assert_equal, assert_raises, nottest
 import os
 import sys
 import numpy as np
@@ -98,6 +98,12 @@ def test_removal():
             r = np.random.randint(df.rows())
             del df[r,:]
             assert_equal(df.rows(), k, 'after removal of row len should be %d' % k)
+    for i in range(20):
+        df = setup_table()
+        n = df.rows()
+        r = np.unique(np.random.randint(0, df.rows(), n//2))
+        del df[r,:]
+        assert_equal(df.rows(), n - len(r), 'after removal of row len should be %d' % k)
 
 def test_insertion():
     for i in range(20):

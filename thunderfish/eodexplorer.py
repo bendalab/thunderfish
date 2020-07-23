@@ -275,7 +275,10 @@ class EODExplorer(MultivariateExplorer):
         if 'index' in self.eoddata and \
            np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
             for i in indices:
-                print('%s : %d' % (self.eoddata[i,'file'], self.eoddata[i,'index']))
+                if np.isfinite(self.eoddata[i,'index']):
+                    print('%s : %d' % (self.eoddata[i,'file'], self.eoddata[i,'index']))
+                else:
+                    print(self.eoddata[i,'file'])
         else:
             for i in indices:
                 print(self.eoddata[i,'file'])
