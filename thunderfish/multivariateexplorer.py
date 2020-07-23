@@ -863,8 +863,9 @@ class MultivariateExplorer(object):
                             data = self.wave_data[idx][axdi]
                         else:
                             data = self.wave_data[idx]
-                        ax.plot(data[:,0], data[:,axti], c=self.data_colors[idx],
-                                picker=self.pick_radius)
+                        if data is not None:
+                            ax.plot(data[:,0], data[:,axti], c=self.data_colors[idx],
+                                    picker=self.pick_radius)
                 axti += 1
                 if self.wave_has_xticks[xi]:
                     ax.set_xlabel(self.wave_xlabels[axdi])

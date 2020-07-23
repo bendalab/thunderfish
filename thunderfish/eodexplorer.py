@@ -209,14 +209,15 @@ class EODExplorer(MultivariateExplorer):
             axs[0].text(0.5, 0.3, 'n = %d' % len(self.raw_data),
                         transform = axs[0].transAxes, ha='center', va='center')
         elif len(indices) == 1:
-            if 'index' in self.eoddata and \
+            if 'index' in self.eoddata and np.isfinite(self.eoddata[indices[0],'index']) and \
               np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
                 axs[0].set_title('%s: %d' % (self.eoddata[indices[0],'file'],
                                              self.eoddata[indices[0],'index']))
             else:
                 axs[0].set_title(self.eoddata[indices[0],'file'])
-            axs[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
-                        transform = axs[0].transAxes)
+            if np.isfinite(self.eoddata[indices[0],'index']):
+                axs[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
+                            transform = axs[0].transAxes)
         else:
             axs[0].set_title('%d EOD waveforms selected' % len(indices))
         for ax in axs:
@@ -561,6 +562,11 @@ data_path = None
 
 def load_waveform(idx):
     eodf = data[idx,'EODf']
+    if not np.isfinite(eodf):
+        if load_spec:
+            return None, None
+        else:
+            return None
     file_name = data[idx,'file']
     file_index = data[idx,'index'] if 'index' in data else 0
     eod_filename = os.path.join(data_path, '%s-eodwaveform-%d.csv' % (file_name, file_index))
