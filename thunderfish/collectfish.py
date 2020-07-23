@@ -85,6 +85,23 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
     pulse_table: TableData
         Summary table for all pulse-type fish.
     """
+    def find_recording(recording, meta_recordings):
+        """ Find row of a recording in meta data.
+
+        Parameters
+        ----------
+        recording: string
+            Base name of a recording.
+        meta_recordings: list of string
+            List of meta data recordings where to find `recording`.
+        """
+        if meta_data is not None:
+            rec = os.path.splitext(os.path.basename(recording))[0]
+            for i in range(len(meta_recordings)):
+                if rec == meta_recordings[i]:
+                    return i
+        return -1
+        
     if append_file and insert_file:
         insert_file = False
     # prepare meta recodings names:
@@ -124,18 +141,14 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         # find row in meta_data:
         mr = -1
         if meta_data is not None:
-            rec = os.path.splitext(os.path.basename(recording))[0]
-            for i in range(len(meta_recordings)):
-                if rec == meta_recordings[i]:
-                    mr = i
-                    break
+            mr = find_recording(recording, meta_recordings)
             if mr < 0:
                 if skip_recordings:
                     if verbose > 0:
-                        print('skip recording %s: no metadata found' % rec)
+                        print('skip recording %s: no metadata found' % recording)
                     continue
                 elif verbose > 0:
-                    print('no metadata found for recording %s' % rec)
+                    print('no metadata found for recording %s' % recording)
             else:
                 meta_recordings_used[mr] = True
         # data:
@@ -268,6 +281,29 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                 all_table.append_data(recording)
             table.fill_data()
             all_table.fill_data()
+    # check coverage of meta data:
+    if meta_recordings_used is not None:
+        if np.all(meta_recordings_used):
+            if verbose > 0:
+                print('found recordings for all meta data')
+        else:
+            if verbose > 0:
+                print('no recordings found for:')
+            for mr in range(len(meta_recordings)):
+                recording = meta_recordings[mr]
+                if not meta_recordings_used[mr]:
+                    if verbose > 0:
+                        print(recording)
+                    all_table.set_column(0)
+                    if insert_file:
+                        all_table.append_data(recording)
+                    for c in range(meta_data.columns()):
+                        all_table.append_data(meta_data[mr,c])
+                    all_table.append_data(np.nan) # index
+                    all_table.append_data(np.nan) # EODf
+                    all_table.append_data('none') # type
+                    if append_file:
+                        all_table.append_data(recording)
     # adjust EODf to mean temperature:
     for table in [wave_table, pulse_table, all_table]:
         if table is not None and temp_col is not None:
@@ -291,9 +327,15 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         species[(wave_table[:,'reltroughampl'] < 72.0) & (wave_table[:,eodfs] > 250.0) & (wave_table[:,eodfs] < 600.0)] = 'Eigen'
         species[(wave_table[:,eodfs] > 600.0) | ((wave_table[:,'reltroughampl'] > 72.0) & (wave_table[:,eodfs] > 500.0))] = 'Aptero'
         species[(wave_table[:,'reltroughampl'] > 72.0) & (wave_table[:,eodfs] > 250.0) & (wave_table[:,eodfs] < 500.0)] = 'unknown'
-        wave_table.append('species', '', '%-s', species)
+        if append_file:
+            wave_table.insert(wave_table.columns()-1, 'species', '', '%-s', species)
+        else:
+            wave_table.append('species', '', '%-s', species)
         if all_table:
-            sc = all_table.append('species', '', '%-s')
+            if append_file:
+                sc = all_table.insert(all_table.columns()-1, 'species', '', '%-s')
+            else:
+                sc = all_table.append('species', '', '%-s')
             tc = all_table.index('type')
             wi = 0
             for r in range(all_table.rows()):
@@ -301,7 +343,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     all_table.append_data(species[wi], sc)
                     wi += 1
                 else:
-                    all_table.append_data('pulse', sc)
+                    all_table.append_data(all_table[r,tc], sc)
     # simplify pathes:
     if simplify_file and len(file_pathes) > 1:
         fp0 = file_pathes[0]
@@ -319,15 +361,6 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     idx = table.index('file')
                     fps = os.path.normpath(table[k,idx]).split(os.path.sep)
                     table[k,idx] = os.path.sep.join(fps[fi:])
-    # check coverage of meta data:
-    if verbose > 0 and meta_recordings_used is not None:
-        if np.all(meta_recordings_used):
-            print('found recordings for all meta data')
-        else:
-            print('no recordings found for:')
-            for rec, used in zip(meta_recordings, meta_recordings_used):
-                if not used:
-                    print(rec)
     return wave_table, pulse_table, all_table
 
     
