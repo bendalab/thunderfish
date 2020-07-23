@@ -485,7 +485,7 @@ class EODExplorer(MultivariateExplorer):
         for c in group_cols:
             idx = data.index(c)
             if idx is None:
-                parser.error('"%s" is not a valid data column' % c)
+                print('"%s" is not a valid data column' % c)
             elif idx in data_cols:
                 data_cols.remove(idx)
             else:
