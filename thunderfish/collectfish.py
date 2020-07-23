@@ -103,6 +103,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
     # load data:    
     wave_table = None
     pulse_table = None
+    all_table = None
     file_pathes = []
     for file_name in files:
         # file name:
@@ -140,7 +141,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         # data:
         data = TableData(file_name)
         table = wave_table if fish_type == 'wave' else pulse_table
-        # prepare table:
+        # prepare tables:
         if not table:
             df = TableData(data)
             df.clear_data()
@@ -184,7 +185,20 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             else:
                 pulse_table = df
                 table = pulse_table
-        # fill table:
+            if not all_table:
+                df = TableData()
+                if insert_file:
+                    df.append('file', '', '%-s')
+                if meta_data is not None:
+                    for c in range(meta_data.columns()):
+                        df.append(*meta_data.column_head(c))
+                df.append('index', '', '%d')
+                df.append('EODf', 'Hz', '%.1f')
+                df.append('type', '', '%-5s')
+                if append_file:
+                    df.append('file', '', '%-s')
+                all_table = df
+        # fill tables:
         n = data.rows() if not max_fish or max_fish > data.rows() else max_fish
         for r in range(n):
             # fish index:
@@ -215,14 +229,19 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             data_col = 0
             if insert_file:
                 table.append_data(recording, data_col)
+                all_table.append_data(recording, data_col)
                 data_col += 1
             if mr >= 0:
                 for c in range(meta_data.columns()):
                     table.append_data(meta_data[mr,c], data_col)
+                    all_table.append_data(meta_data[mr,c], data_col)
                     data_col += 1
             elif meta_data is not None:
                 data_col += meta_data.columns()
             table.append_data(data[r,:].array(), data_col)
+            all_table.append_data(data[r,'index'], data_col)
+            all_table.append_data(data[r,'EODf'])
+            all_table.append_data(fish_type)
             if peaks0 is not None and fish_type == 'pulse':
                 pulse_peaks = TableData(base_path + '-pulsepeaks-%d'%idx + file_ext)
                 for p in range(peaks0, peaks1+1):
@@ -246,9 +265,11 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     table.append_data(wave_spec[h,'phase'])
             if append_file:
                 table.append_data(recording)
+                all_table.append_data(recording)
             table.fill_data()
+            all_table.fill_data()
     # adjust EODf to mean temperature:
-    for table in [wave_table, pulse_table]:
+    for table in [wave_table, pulse_table, all_table]:
         if table is not None and temp_col is not None:
             eodf_idx = table.index('EODf')
             table.insert(eodf_idx+1, 'EODf_adjust', 'Hz', '%.1f')
@@ -261,7 +282,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     eodf = adjust_eodf(eodf, table[r,temp_col], table[r,tadjust_idx], q10)
                 table[r,eodf_idx+1] = eodf
     # add wavefish species (experimental):
-    if add_species and wave_table is not None:
+    if add_species and wave_table:
         eodfs = 'EODf_adjust'
         if eodfs not in wave_table:
             eodfs = 'EODf'
@@ -271,6 +292,16 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         species[(wave_table[:,eodfs] > 600.0) | ((wave_table[:,'reltroughampl'] > 72.0) & (wave_table[:,eodfs] > 500.0))] = 'Aptero'
         species[(wave_table[:,'reltroughampl'] > 72.0) & (wave_table[:,eodfs] > 250.0) & (wave_table[:,eodfs] < 500.0)] = 'unknown'
         wave_table.append('species', '', '%-s', species)
+        if all_table:
+            sc = all_table.append('species', '', '%-s')
+            tc = all_table.index('type')
+            wi = 0
+            for r in range(all_table.rows()):
+                if all_table[r,tc] == 'wave':
+                    all_table.append_data(species[wi], sc)
+                    wi += 1
+                else:
+                    all_table.append_data('pulse', sc)
     # simplify pathes:
     if simplify_file and len(file_pathes) > 1:
         fp0 = file_pathes[0]
@@ -282,7 +313,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     break
             if not is_same:
                 break
-        for table in [wave_table, pulse_table]:
+        for table in [wave_table, pulse_table, all_table]:
             if table is not None:
                 for k in range(table.rows()):
                     idx = table.index('file')
@@ -297,7 +328,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             for rec, used in zip(meta_recordings, meta_recordings_used):
                 if not used:
                     print(rec)
-    return wave_table, pulse_table
+    return wave_table, pulse_table, all_table
 
     
 def rangestr(string):
@@ -429,7 +460,7 @@ def main():
                     print(' ', k)
                 exit()
     # collect files:
-    wave_table, pulse_table = collect_fish(args.file, True, args.append_file,
+    wave_table, pulse_table, all_table = collect_fish(args.file, True, args.append_file,
                                            args.simplify_file, md, rec_data, args.skip,
                                            temp_col, args.q10, args.add_species,
                                            args.max_fish, args.harmonics,
@@ -438,25 +469,26 @@ def main():
     # write tables:
     if len(file_suffix) > 0 and file_suffix[0] != '-':
         file_suffix = '-' + file_suffix
+    tables = []
+    table_names = []
     if pulse_table and (not table_type or table_type == 'pulse'):
-        for rc in remove_cols:
-            if rc in pulse_table:
-                pulse_table.remove(rc)
-        pulse_table.write(os.path.join(out_path, 'pulsefish%s' % file_suffix),
-                          **write_table_args(cfg))
-        if statistics:
-            s = pulse_table.statistics()
-            s.write(os.path.join(out_path, 'pulsefish%s-statistics' % file_suffix),
-                    **write_table_args(cfg))
+        tables.append(pulse_table)
+        table_names.append('pulse')
     if wave_table and (not table_type or table_type == 'wave'):
+        tables.append(wave_table)
+        table_names.append('wave')
+    if all_table and not table_type:
+        tables.append(all_table)
+        table_names.append('all')
+    for table, name in zip(tables, table_names):
         for rc in remove_cols:
-            if rc in wave_table:
-                wave_table.remove(rc)
-        wave_table.write(os.path.join(out_path, 'wavefish%s' % file_suffix),
-                         **write_table_args(cfg))
+            if rc in table:
+                table.remove(rc)
+        table.write(os.path.join(out_path, '%sfish%s' % (name, file_suffix)),
+                    **write_table_args(cfg))
         if statistics:
-            s = wave_table.statistics()
-            s.write(os.path.join(out_path, 'wavefish%s-statistics' % file_suffix),
+            s = table.statistics()
+            s.write(os.path.join(out_path, '%sfish%s-statistics' % (name, file_suffix)),
                     **write_table_args(cfg))
 
 

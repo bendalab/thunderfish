@@ -683,14 +683,19 @@ def main():
         skips = ''
         if wave_fish:
             props = data.row_dict(r)
-            props['clipped'] *= 0.01 
-            props['noise'] *= 0.01 
-            props['rmserror'] *= 0.01
+            if 'clipped' in props:
+                props['clipped'] *= 0.01 
+            if 'noise' in props:
+                props['noise'] *= 0.01 
+            if 'rmserror' in props:
+                props['rmserror'] *= 0.01
             _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
         else:
             props = data.row_dict(r)
-            props['clipped'] *= 0.01 
-            props['noise'] *= 0.01 
+            if 'clipped' in props:
+                props['clipped'] *= 0.01 
+            if 'noise' in props:
+                props['noise'] *= 0.01 
             skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
         if len(skips) > 0:
             if verbose:

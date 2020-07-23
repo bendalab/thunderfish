@@ -1053,9 +1053,9 @@ class MultivariateExplorer(object):
                     if self.show_mode < 0:
                         self.show_mode = len(self.all_data)-1
                 if self.show_mode == 1:
-                    print('PCA components')
+                    print('principal components')
                 elif self.show_mode == 2:
-                    print('scaled PCA components')
+                    print('scaled principal components')
                 else:
                     print('data')
                 if self.all_data[self.show_mode] is None:
