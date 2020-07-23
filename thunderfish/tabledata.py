@@ -375,7 +375,7 @@ class TableData(object):
             else:
                 self.load(data, missing)
         
-    def append(self, label, unit, formats=None, value=None, key=None, fac=None):
+    def append(self, label, unit=None, formats=None, value=None, key=None, fac=None):
         """
         Append column to the table.
 
@@ -383,9 +383,9 @@ class TableData(object):
         ----------
         label: string or list of string
             Optional section titles and the name of the column.
-        unit: string
+        unit: string or None
             The unit of the column contents.
-        formats: None or string
+        formats: string or None
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
             If None, the format is set to '%g'.
@@ -409,7 +409,7 @@ class TableData(object):
             else:
                 self.header.append([label])
             self.formats.append(formats or '%g')
-            self.units.append(unit)
+            self.units.append(unit or '')
             self.hidden.append(False)
             self.data.append([])
             if self.nsecs < len(self.header[-1])-1:
@@ -419,7 +419,7 @@ class TableData(object):
                 self.header[self.addcol] = list(reversed(label)) + self.header[self.addcol]
             else:
                 self.header[self.addcol] = [label] + self.header[self.addcol]
-            self.units[self.addcol] = unit
+            self.units[self.addcol] = unit or ''
             self.formats[self.addcol] = formats or '%g'
             if self.nsecs < len(self.header[self.addcol])-1:
                 self.nsecs = len(self.header[self.addcol])-1
@@ -437,7 +437,7 @@ class TableData(object):
         self.shape = (self.rows(), self.columns())
         return self.addcol-1
         
-    def insert(self, column, label, unit, formats=None, value=None):
+    def insert(self, column, label, unit=None, formats=None, value=None):
         """
         Insert a table column at a given position.
 
@@ -452,9 +452,9 @@ class TableData(object):
             see `index()` for details.
         label: string or list of string
             Optional section titles and the name of the column.
-        unit: string
+        unit: string or None
             The unit of the column contents.
-        formats: None or string
+        formats: string or None
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
             If None, the format is set to '%g'.
@@ -481,7 +481,7 @@ class TableData(object):
         else:
             self.header.insert(col, [label])
         self.formats.insert(col, formats or '%g')
-        self.units.insert(col, unit)
+        self.units.insert(col, unit or '')
         self.hidden.insert(col, False)
         self.data.insert(col, [])
         if self.nsecs < len(self.header[col])-1:
