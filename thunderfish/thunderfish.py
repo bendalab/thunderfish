@@ -1126,9 +1126,9 @@ def main():
     parser.add_argument('-h', '--help', action='store_true',
                         help='show this help message and exit')
     parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('-v', action='count', dest='verbose',
+    parser.add_argument('-v', action='count', dest='verbose', default=0,
                         help='verbosity level. Increase by specifying -v multiple times, or like -vvv')
-    parser.add_argument('-V', action='count', dest='plotlevel',
+    parser.add_argument('-V', action='count', dest='plot_level', default=0,
                         help='level for debugging plots. Increase by specifying -V multiple times, or like -VVV')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
@@ -1182,12 +1182,8 @@ def main():
         parser.exit()
 
     # set verbosity level from command line:
-    verbose = 0
-    if args.verbose != None:
-        verbose = args.verbose
-    plot_level = 0
-    if args.plotlevel != None:
-        plot_level = args.plotlevel
+    verbose = args.verbose
+    plot_level = args.plot_level
     if verbose < plot_level+1:
         verbose = plot_level+1
 
