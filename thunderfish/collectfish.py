@@ -93,6 +93,13 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
         meta_recordings_used = np.zeros(len(meta_recordings), dtype=np.bool)
         for r in range(len(meta_recordings)):
             meta_recordings[r] = os.path.splitext(os.path.basename(meta_recordings[r]))[0]
+    # prepare adjusted temperatures:
+    if meta_data is not None and temp_col is not None:
+        temp_idx = meta_data.index(temp_col)
+        temp = meta_data[:,temp_idx]
+        mean_tmp = np.round(np.nanmean(temp)/0.1)*0.1
+        meta_data.insert(temp_idx+1, 'T_adjust', 'C', '%.1f')
+        meta_data.append_data_column([mean_tmp]*meta_data.rows(), temp_idx+1)
     # load data:    
     wave_table = None
     pulse_table = None
@@ -138,12 +145,6 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             df = TableData(data)
             df.clear_data()
             if meta_data is not None:
-                if temp_col is not None:
-                    temp_idx = meta_data.index(temp_col)
-                    temp = meta_data[:,temp_idx]
-                    mean_tmp = np.round(np.nanmean(temp)/0.1)*0.1
-                    meta_data.insert(temp_idx+1, 'T_adjust', 'C', '%.1f')
-                    meta_data.append_data_column([mean_tmp]*meta_data.rows(), temp_idx+1)
                 for s in range(data.nsecs):
                     df.insert_section(0, 'metadata')
                 for c in range(meta_data.columns()):
@@ -155,7 +156,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                     wave_spec = TableData(base_path + '-wavespectrum-0' + file_ext)
                     if data.nsecs > 0:
                         df.append_section('harmonics')
-                    for h in range(harmonics+1):
+                    for h in range(min(harmonics, wave_spec.rows())+1):
                         df.append('ampl%d' % h, wave_spec.unit('amplitude'),
                                       wave_spec.format('amplitude'))
                         if h > 0:
@@ -179,9 +180,10 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                 df.append(['recording']*data.nsecs + ['file'], '', '%-s')
             if fish_type == 'wave':
                 wave_table = df
+                table = wave_table
             else:
                 pulse_table = df
-            table = wave_table if fish_type == 'wave' else pulse_table
+                table = pulse_table
         # fill table:
         n = data.rows() if not max_fish or max_fish > data.rows() else max_fish
         for r in range(n):
@@ -236,7 +238,7 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
                         table.append_data(pulse_peaks[pr,'relampl'], 'P%drelampl' % p)
                     table.append_data(pulse_peaks[pr,'width'], 'P%dwidth' % p)
             elif harmonics is not None and fish_type == 'wave':
-                for h in range(harmonics+1):
+                for h in range(min(harmonics, wave_spec.rows())+1):
                     table.append_data(wave_spec[h,'amplitude'])
                     if h > 0:
                         table.append_data(wave_spec[h,'relampl'])
