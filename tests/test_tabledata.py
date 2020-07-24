@@ -214,6 +214,7 @@ def test_read_access():
     for r in range(df.rows()):
         assert_true(np.array_equal(df[r,:].array(0), data[r,:]), 'slicing of full row failed')
         assert_true(np.array_equal(df.row(r)[0,:].array(0), data[r,:]), 'slicing of full row failed')
+        d = df.row_dict(r)
 
 
 def test_write_access():

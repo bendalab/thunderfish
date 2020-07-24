@@ -1,19 +1,22 @@
 """
-# Analysis of EOD waveforms.
+Analysis of EOD waveforms.
 
-## EOD analysis
+## EOD waveform analysis
+
 - `eod_waveform()`: compute an averaged EOD waveform.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
 
 ## Quality assessment
+
 - `wave_clipped_fraction()`: compute fraction of clipped wave fish waveform snippets.
 - `pulse_clipped_fraction()`: compute fraction of clipped pulse fish waveform snippets.
 - `wave_quality()`: asses quality of EOD waveform of a wave fish.
 - `pulse_quality()`: asses quality of EOD waveform of a pulse fish.
 
 ## Visualization
+
 - `plot_eod_recording()`: plot a zoomed in range of the recorded trace.
 - `plot_pulse_eods()`: mark pulse EODs in a plot of an EOD recording.
 - `plot_eod_snippets()`: plot a few EOD waveform snippets.
@@ -22,6 +25,7 @@
 - `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse EOD.
 
 ## Storage
+
 - `save_eod_waveform()`: save mean eod waveform to file.
 - `save_wave_eodfs()`: save frequencies of all wave EODs to file.
 - `save_wave_fish()`: save properties of wave EODs to file.
@@ -31,20 +35,23 @@
 - `save_pulse_peaks()`: save peak properties of pulse EOD to file.
 
 ## Fit functions
+
 - `fourier_series()`: Fourier series of sine waves with amplitudes and phases.
 - `exp_decay()`: exponential decay.
 
 ## Filter functions
+
 - `unfilter()`: apply inverse low-pass filter on data.
 
-## Configuration parameter
+## Configuration
+
 - `add_eod_analysis_config()': add parameters for EOD analysis functions to configuration.
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
 - `add_eod_quality_config()`: add parameters needed for assesing the quality of an EOD waveform.
-- `wave_quality_args(): retrieve parameters for `wave_quality()` from configuration.
-- `pulse_quality_args(): retrieve parameters for `pulse_quality()` from configuration.
+- `wave_quality_args()`: retrieve parameters for `wave_quality()` from configuration.
+- `pulse_quality_args()`: retrieve parameters for `pulse_quality()` from configuration.
 """
 
 import numpy as np
@@ -52,7 +59,7 @@ from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
-from .eventdetection import threshold_crossings, threshold_crossing_times
+from .eventdetection import threshold_crossings, threshold_crossing_times, merge_events
 from .powerspectrum import next_power_of_two, nfft, decibel
 from .harmonics import fundamental_freqs_and_power
 from .tabledata import TableData
@@ -229,7 +236,7 @@ def fourier_series(t, freq, *ap):
     return x
 
 
-def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
+def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_wave='none'):
     """
     Analyze the EOD waveform of a wave fish.
     
@@ -241,12 +248,15 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
         Further columns are optional but not used.
     freq: float or 2-D array
         The frequency of the EOD or the list of harmonics (rows)
-        with frequency and peak height (columns) as returned from `harmonic_groups()`.
+        with frequency and peak height (columns) as returned from `harmonics.harmonic_groups()`.
     n_harm: int
         Maximum number of harmonics used for the Fourier decomposition.
     power_n_harmonics: int
         Sum over the first `power_n_harmonics` harmonics for computing the total power.
         If 0 sum over all harmonics.
+    n_harmonics: int
+        The maximum power of higher harmonics is computed from harmonics higher than the
+        maximum harmonics within the first three harmonics plus `n_harmonics`.
     flip_wave: 'auto', 'none', 'flip'
         - 'auto' flip waveform such that the larger extremum is positive.
         - 'flip' flip waveform.
@@ -280,6 +290,9 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
         - p-p-distance: time between peak and trough relative to EOD period.
         - reltroughampl: amplitude of trough relative to peak amplitude.
         - power: summed power of all harmonics in decibel relative to one.
+        - dbdiff: smoothness of power spectrum as standard deviation of differences in decibel power.
+        - maxdb: maximum power of higher harmonics relative to peak power in decibel.
+
     spec_data: 2-D array of floats
         First column is the index of the harmonics, second column its frequency,
         third column its amplitude, fourth column its amplitude relative to the fundamental,
@@ -349,7 +362,8 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
     # zero crossings:
     ui, di = threshold_crossings(meod[:,1], 0.0)
     ut, dt = threshold_crossing_times(meod[:,0], meod[:,1], 0.0, ui, di)
-    ncrossings = int(np.round((len(ui) + len(di))/(meod[-1,0]-meod[0,0])/freq0))
+    ut, dt = merge_events(ut, dt, 0.02/freq0)
+    ncrossings = int(np.round((len(ut) + len(dt))/(meod[-1,0]-meod[0,0])/freq0))
     if np.any(ut<0.0):    
         up_time = ut[ut<0.0][-1]
     else:
@@ -392,7 +406,28 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
         popt[i*2+2] %= 2.0*np.pi
         if popt[i*2+2] > np.pi:
             popt[i*2+2] -= 2.0*np.pi
+    # store fourier fit:
     meod[:,-1] = fourier_series(meod[:,0], *popt)
+    # store fourier spectrum:
+    if hasattr(freq, 'shape'):
+        spec_data = np.zeros((n_harm, 7))
+        powers = freq[:n_harm, 1]
+        spec_data[:len(powers), 6] = powers
+    else:
+        spec_data = np.zeros((n_harm, 6))
+    for i in range(n_harm):
+        spec_data[i,:6] = [i, (i+1)*freq0, popt[i*2+1], popt[i*2+1]/popt[1],
+                           decibel((popt[i*2+1]/popt[1])**2.0), popt[i*2+2]]
+    # smoothness of power spectrum:
+    db_powers = decibel(spec_data[:,2]**2)
+    db_diff = np.std(np.diff(db_powers))
+    # maximum relative power of higher harmonics:
+    p_max = np.argmax(db_powers[:3])
+    db_powers -= db_powers[p_max]
+    if len(db_powers[p_max+n_harmonics:]) == 0:
+        max_harmonics_power = -100.0
+    else:
+        max_harmonics_power = np.max(db_powers[p_max+n_harmonics:])
 
     # peak and trough amplitudes:
     ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
@@ -421,17 +456,10 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, flip_wave='none'):
     props['righttrough'] = phase4/period
     props['p-p-distance'] = distance/period
     props['reltroughampl'] = np.abs(relptampl)
-    if hasattr(freq, 'shape'):
-        spec_data = np.zeros((n_harm, 7))
-        powers = freq[:n_harm, 1]
-        spec_data[:len(powers), 6] = powers
-    else:
-        spec_data = np.zeros((n_harm, 6))
-    for i in range(n_harm):
-        spec_data[i,:6] = [i, (i+1)*freq0, popt[i*2+1], popt[i*2+1]/popt[1],
-                           decibel((popt[i*2+1]/popt[1])**2.0), popt[i*2+2]]
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
+    props['dbdiff'] = db_diff
+    props['maxdb'] = max_harmonics_power
     
     return meod, props, spec_data, error_str
 
@@ -925,83 +953,131 @@ def pulse_clipped_fraction(data, samplerate, eod_times, mean_eod,
     return clipped_frac
 
 
-def wave_quality(clipped_frac, ncrossings, rms_sem, rms_error, power,
-                 max_clipped_frac=0.1, max_crossings=4, max_rms_sem=0.0,
-                 max_rms_error=0.05, min_power=-100.0):
+def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
+                 max_crossings=4, max_rms_sem=0.0, max_rms_error=0.05,
+                 min_power=-100.0, max_db_diff=20.0, max_harmonics_db=-5.0):
     """
     Assess the quality of an EOD waveform of a wave fish.
     
     Parameters
     ----------
-    clipped_frac: float
-        Fraction of clipped snippets.
-    ncrossings: int
-        Number of zero crossings per EOD period.
-    rms_sem: float
-        Standard error of the data relative to p-p amplitude.
-    rms_error: float
-        Root-mean-square error between EOD waveform and Fourier fit relative to p-p amplitude.
-    power: float
-        Power of the EOD waveform in dB.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform
+        as returned by `analyze_wave()`.
+    min_freq: float
+        Minimum EOD frequency (`props['EODf']`).
+    max_freq: float
+        Maximum EOD frequency (`props['EODf']`).
     max_clipped_frac: float
-        Maximum allowed fraction of clipped data.
+        If larger than zero, maximum allowed fraction of clipped data (`props['clipped']`).
     max_crossings: int
-        Maximum number of zero crossings per EOD period.
+        If larger than zero, maximum number of zero crossings per EOD period
+        (`props['ncrossings']`).
     max_rms_sem: float
-        If not zero, maximum allowed standard error of the data relative to p-p amplitude.
+        If larger than zero, maximum allowed standard error of the data relative
+        to p-p amplitude (`props['rmssem']`).
     max_rms_error: float
-        Maximum allowed root-mean-square error between EOD waveform and
-        Fourier fit relative to p-p amplitude.
+        If larger than zero, maximum allowed root-mean-square error between EOD waveform and
+        Fourier fit relative to p-p amplitude (`props['rmserror']`).
     min_power: float
-        Minimum power of the EOD in dB.
+        Minimum power of the EOD in dB (`props['power']`).
+    max_db_diff: float
+        If larger than zero, maximum standard deviation of differences between
+        logarithmic powers of harmonics in decibel (`props['dbdiff']`).
+        Low values enforce smoother power spectra.
+    max_harmonics_db:
+        Maximum power of higher harmonics relative to peak power in decibel (`props['maxdb']`).
                                        
     Returns
     -------
+    remove: bool
+        If True then this is most likely not an electric fish. Remove it from
+        both the waveform properties and the list of EOD frequencies.
+        If False, keep it in the list of EOD frequencies, but remove it from the
+        waveform properties if `skip_reason` is not empty.
     skip_reason: string
         An empty string if the waveform is good, otherwise a string indicating the failure.
     msg: string
         A textual representation of the values tested.
     """
+    remove = False
     msg = []
     skip_reason = []
+    # EOD frequency:
+    if 'EODf' in props:
+        eodf = props['EODf']
+        msg += ['EODf=%5.1fHz' % eodf]
+        if eodf < min_freq or eodf > max_freq:
+            remove = True
+            skip_reason += ['invalid EODf=%5.1fHz (min %5.1fHz, max %5.1f))' %
+                            (eodf, min_freq, max_freq)]
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
-    if clipped_frac >= max_clipped_frac:
-        skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
-                        (100.0*clipped_frac, 100.0*max_clipped_frac)]
+    if 'clipped' in props:
+        clipped_frac = props['clipped']
+        msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
+        if max_clipped_frac > 0 and clipped_frac >= max_clipped_frac:
+            skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
+                            (100.0*clipped_frac, 100.0*max_clipped_frac)]
     # too many zero crossings:
-    msg += ['zero crossings=%d' % ncrossings]
-    if ncrossings > 0 and ncrossings > max_crossings:
-        skip_reason += ['too many zero crossings=%d (max %d)' %
-                        (ncrossings, max_crossings)]
+    if 'ncrossings' in props:
+        ncrossings = props['ncrossings']
+        msg += ['zero crossings=%d' % ncrossings]
+        if max_crossings > 0 and ncrossings > max_crossings:
+            skip_reason += ['too many zero crossings=%d (max %d)' %
+                            (ncrossings, max_crossings)]
     # noise:
-    msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
-    if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
-        skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
-                        (100.0*rms_sem, 100.0*max_rms_sem)]
+    rms_sem = None
+    if 'rmssem' in props:
+        rms_sem = props['rmssem']
+    if 'noise' in props:
+        rms_sem = props['noise']
+    if rms_sem is not None:
+        msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
+        if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
+            skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
+                            (100.0*rms_sem, 100.0*max_rms_sem)]
     # fit error:
-    msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
-    if rms_error >= max_rms_error:
-        skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
-                        (100.0*rms_error, 100.0*max_rms_error)]
+    if 'rmserror' in props:
+        rms_error = props['rmserror']
+        msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
+        if max_rms_error > 0.0 and rms_error >= max_rms_error:
+            skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
+                            (100.0*rms_error, 100.0*max_rms_error)]
     # wave power:
-    msg += ['power=%6.1fdB' % power]
-    if power < min_power:
-        skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
-                        (power, min_power)]
-    return ', '.join(skip_reason), ', '.join(msg)
+    if 'power' in props:
+        power = props['power']
+        msg += ['power=%6.1fdB' % power]
+        if power < min_power:
+            skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
+                            (power, min_power)]
+    # smoothness of spectrum:
+    if 'dbdiff' in props:
+        db_diff = props['dbdiff']
+        msg += ['dBdiff=%5.1fdB' % db_diff]
+        if max_db_diff > 0.0 and db_diff > max_db_diff:
+            remove = True
+            skip_reason += ['not smooth s.d. diff=%5.1fdB (max %5.1fdB)' %
+                            (db_diff, max_db_diff)]
+    # maximum power of higher harmonics:
+    if 'maxdb' in props:
+        max_harmonics = props['maxdb']
+        msg += ['max harmonics=%5.1fdB' % max_harmonics]
+        if max_harmonics > max_harmonics_db:
+            remove = True
+            skip_reason += ['maximum harmonics=%5.1fdB too strong (max %5.1fdB)' %
+                            (max_harmonics, max_harmonics_db)]
+    return remove, ', '.join(skip_reason), ', '.join(msg)
 
 
-def pulse_quality(clipped_frac, rms_sem, max_clipped_frac=0.1, max_rms_sem=0.0):
+def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
     """
     Assess the quality of an EOD waveform of a pulse fish.
     
     Parameters
     ----------
-    clipped_frac: float
-        Fraction of clipped snippets.
-    rms_sem: float
-        Standard error of the data relative to p-p amplitude.
+    props: dict
+        A dictionary with properties of the analyzed EOD waveform
+        as returned by `analyze_pulse()`.
     max_clipped_frac: float
         Maximum allowed fraction of clipped data.
     max_rms_sem: float
@@ -1020,16 +1096,24 @@ def pulse_quality(clipped_frac, rms_sem, max_clipped_frac=0.1, max_rms_sem=0.0):
     skip_reason = []
     skipped_clipped = False
     # clipped fraction:
-    msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
-    if clipped_frac >= max_clipped_frac:
-        skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
-                        (100.0*clipped_frac, 100.0*max_clipped_frac)]
-        skipped_clipped = True
+    if 'clipped' in props:
+        clipped_frac = props['clipped']
+        msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
+        if clipped_frac >= max_clipped_frac:
+            skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
+                            (100.0*clipped_frac, 100.0*max_clipped_frac)]
+            skipped_clipped = True
     # noise:
-    msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
-    if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
-        skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
-                        (100.0*rms_sem, 100.0*max_rms_sem)]
+    rms_sem = None
+    if 'rmssem' in props:
+        rms_sem = props['rmssem']
+    if 'noise' in props:
+        rms_sem = props['noise']
+    if rms_sem is not None:
+        msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
+        if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
+            skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
+                            (100.0*rms_sem, 100.0*max_rms_sem)]
     return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
 
 
@@ -1097,7 +1181,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
     samplerate: float
         Sampling rate of the data in Hertz.
     eod_props: list of dictionaries
-            Lists of EOD properties as returned by analyze_pulse() and analyze_wave().
+            Lists of EOD properties as returned by `analyze_pulse()` and `analyze_wave()`.
             From the entries with 'type' == 'pulse' the properties 'EODf' and 'times'
             are used. 'EODf' is the averaged EOD frequency, and 'times' is a list of
             detected EOD pulse times.
@@ -1466,8 +1550,8 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     Parameters
     ----------
     mean_eod: 2D array of floats
-        Averaged EOD waveform as returned by eod_waveform(), analyze_wave(),
-        and analyze_pulse().
+        Averaged EOD waveform as returned by `eod_waveform()`, `analyze_wave()`,
+        and `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1476,7 +1560,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
         Path and basename of file.
         '-eodwaveform', the fish index, and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1501,7 +1585,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     ----------
     wave_eodfs: list of 2D arrays
         Each item is a matrix with the frequencies and powers (columns) of the
-        fundamental and harmonics (rwos) as returned by harmonic groups().
+        fundamental and harmonics (rwos) as returned by `harmonics.harmonic groups()`.
     wave_indices: array
         Indices identifying each fish or NaN.
         If None no index column is inserted.
@@ -1509,7 +1593,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
         Path and basename of file.
         '-waveeodfs' and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1533,7 +1617,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     Parameters
     ----------
     eod_props: list of dict
-        Properties of EODs as returned by analyze_wave() and analyze_pulse().
+        Properties of EODs as returned by `analyze_wave()` and `analyze_pulse()`.
         Only properties of wave fish are saved.
     unit: string
         Unit of the waveform data.
@@ -1541,7 +1625,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
         Path and basename of file.
         '-wavefish' and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1556,8 +1640,10 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append_section('waveform')
     td.append('index', '', '%d', wave_props, 'index')
     td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
-    td.append('power', 'dB', '%7.2f', wave_props, 'power')
     td.append('p-p-amplitude', unit, '%.5f', wave_props, 'p-p-amplitude')
+    td.append('power', 'dB', '%7.2f', wave_props, 'power')
+    td.append('dbdiff', 'dB', '%7.2f', wave_props, 'dbdiff')
+    td.append('maxdb', 'dB', '%7.2f', wave_props, 'maxdb')
     if 'rmssem' in wave_props[0]:
         td.append('noise', '%', '%.1f', wave_props, 'rmssem', 100.0)
     td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
@@ -1586,7 +1672,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     Parameters
     ----------
     eod_props: list of dict
-        Properties of EODs as returned by analyze_wave() and analyze_pulse().
+        Properties of EODs as returned by `analyze_wave()` and `analyze_pulse()`.
         Only properties of wave fish are saved.
     unit: string
         Unit of the waveform data.
@@ -1594,7 +1680,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
         Path and basename of file.
         '-pulsefish' and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1642,7 +1728,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     Parameters
     ----------
     spec_data: 2D array of floats
-        Amplitude and phase spectrum of wave EOD as returned by analyze_wave().
+        Amplitude and phase spectrum of wave EOD as returned by `analyze_wave()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1651,7 +1737,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
         Path and basename of file.
         '-wavespectrum', the fish index, and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1677,7 +1763,7 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     Parameters
     ----------
     spec_data: 2D array of floats
-        Power spectrum of single pulse as returned by analyze_pulse().
+        Power spectrum of single pulse as returned by `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1686,7 +1772,7 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
         Path and basename of file.
         '-pulsespectrum', the fish index, and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1708,7 +1794,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     Parameters
     ----------
     peak_data: 2D array of floats
-        Properties of peaks and troughs of pulse EOD as returned by analyze_pulse().
+        Properties of peaks and troughs of pulse EOD as returned by `analyze_pulse()`.
     unit: string
         Unit of the waveform data.
     idx: int or None
@@ -1717,7 +1803,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
         Path and basename of file.
         '-pulsepeaks', the fish index, and a file extension are appended.
     kwargs:
-        Arguments passed on to TableData.write()
+        Arguments passed on to `TableData.write()`.
 
     Returns
     -------
@@ -1753,7 +1839,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
     cfg: ConfigFile
         The configuration.
         
-    See eod_waveform(), analyze_wave(), and analyze_pulse() for details on
+    See `eod_waveform()`, `analyze_wave()`, and `analyze_pulse()` for details on
     the remaining arguments.
     """
     cfg.add_section('EOD analysis:')
@@ -1776,7 +1862,7 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
 
 def eod_waveform_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function eod_waveform().
+    respective parameter names of the function `eod_waveform()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1788,7 +1874,7 @@ def eod_waveform_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the eod_waveform() function
+        Dictionary with names of arguments of the `eod_waveform()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'win_fac': 'eodSnippetFac',
@@ -1801,7 +1887,7 @@ def eod_waveform_args(cfg):
 
 def analyze_wave_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function analyze_wave().
+    respective parameter names of the function `analyze_wave()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1813,7 +1899,7 @@ def analyze_wave_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the analyze_wave() function
+        Dictionary with names of arguments of the `analyze_wave()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'n_harm': 'eodHarmonics',
@@ -1824,7 +1910,7 @@ def analyze_wave_args(cfg):
 
 def analyze_pulse_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function analyze_pulse().
+    respective parameter names of the function `analyze_pulse()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1836,7 +1922,7 @@ def analyze_pulse_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the analyze_pulse() function
+        Dictionary with names of arguments of the `analyze_pulse()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'min_pulse_win': 'eodMinPulseSnippet',
@@ -1859,20 +1945,20 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
     cfg: ConfigFile
         The configuration.
         
-    See wave_quality( and pulse_quality() for details on
+    See `wave_quality()` and `pulse_quality()` for details on
     the remaining arguments.
     """
     cfg.add_section('Waveform selection:')
     cfg.add('maximumClippedFraction', max_clipped_frac, '', 'Take waveform of the fish with the highest power only if the fraction of clipped signals is below this value.')
     cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard error of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
-    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared error relative to the peak-to-peak amplitude is larger than this number.')
+    cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared error of the fit relative to the peak-to-peak amplitude is larger than this number.')
     cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave fish if its power is smaller than this value.')
     cfg.add('maximumCrossings', max_crossings, '', 'Maximum number of zero crossings per EOD period.')
 
 
 def wave_quality_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function wave_quality().
+    respective parameter names of the function `wave_quality()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1884,20 +1970,24 @@ def wave_quality_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the wave_quality() function
+        Dictionary with names of arguments of the `wave_quality()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',
-                 'max_rms_sem': 'maximumRMSNoise',
+                 'max_rms_sem': 'maximumVariance',
                  'max_rms_error': 'maximumRMSError',
                  'min_power': 'minimumPower',
-                 'max_crossings': 'maximumCrossings'})
+                 'max_crossings': 'maximumCrossings',
+                 'min_freq': 'minimumFrequency',
+                 'max_freq': 'maximumFrequency',
+                 'max_db_diff': 'maximumPowerDifference',
+                 'max_harmonics_db': 'maximumHarmonicsPower'})
     return a
 
 
 def pulse_quality_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function pulse_quality().
+    respective parameter names of the function `pulse_quality()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -1909,7 +1999,7 @@ def pulse_quality_args(cfg):
     Returns
     -------
     a: dict
-        Dictionary with names of arguments of the pulse_quality() function
+        Dictionary with names of arguments of the `pulse_quality()` function
         and their values as supplied by `cfg`.
     """
     a = cfg.map({'max_clipped_frac': 'maximumClippedFraction',

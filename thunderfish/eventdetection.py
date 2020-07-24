@@ -1,5 +1,4 @@
 """
-# Event detection
 Detect and handle peaks and troughs as well as threshold crossings in data arrays.
 
 ## Peak detection
@@ -27,7 +26,7 @@ Detect and handle peaks and troughs as well as threshold crossings in data array
 - `percentile_threshold()`: estimate detection threshold based on interpercentile range.
 
 ## Snippets
-- `snippets(): cut out data snippets around a list of indices.
+- `snippets()`: cut out data snippets around a list of indices.
 
 ## Peak detection with dynamic threshold:
 - `detect_dynamic_peaks()`: peak and trough detection with a dynamically adapted threshold.
@@ -279,7 +278,7 @@ def analyse_for_peaks(index, value, thresh, peaks_list, troughs_list, pi, ti, di
 def detect_peaks_fast(data, threshold):
     """Experimental. Try to make algorithm faster.
 
-    Yeah, this is more than three times as fast as detect_peaks() with the for loops!
+    Yeah, this is more than three times as fast as `detect_peaks()` with the for loops!
     """
 
     peaks_list = []
@@ -453,7 +452,7 @@ def peak_size_width(time, data, peak_indices, trough_indices,
         First dimension is the peak index. Second dimension is
         time, height (value of data at the peak),
         size (peak height minus height of closest trough),
-        width (at `peak_frac` size), 0.0 (count) of the peak. See peak_width().
+        width (at `peak_frac` size), 0.0 (count) of the peak. See `peak_width()`.
 
     Raises
     ------
@@ -1004,7 +1003,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
     For very small values of `percentile` the estimated threshold
     approaches the one returned by `minmax_threshold()` (for same values
     of `thresh_fac`). For `percentile=16.0` and Gaussian distributed data,
-    the returned theshold is twice the one returned by std_threshold()
+    the returned theshold is twice the one returned by `std_threshold()`
     or `hist_threshold()`, i.e. twice the standard deviation.
 
     If you have knowledge about how many data points are in the tails of
@@ -1292,7 +1291,7 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
                                min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02):
     """Accept each detected peak/trough and return its index or time.
     Adjust the threshold to the size of the detected peak.
-    To be passed to the detect_dynamic_peaks() function.
+    To be passed to the `detect_dynamic_peaks()` function.
 
     Parameters
     ----------

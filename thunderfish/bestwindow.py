@@ -1,26 +1,23 @@
 """
-# Best-window selection
-Select the region within a recording with the most stable signal of largest amplitude that is not clipped.
+Select the best region within a recording with the most stable signal of largest amplitude that is not clipped.
 
-## Main functions:
+## Main functions
 - `clip_amplitudes()`: estimated clipping amplitudes from the data.
 - `best_window_indices()`: select start- and end-indices of the best window
 - `best_window_times()`: select start end end-time of the best window
 - `best_window()`: return data of the best window
+- `find_best_window()`: set clipping amplitudes and find best window.
 
-## Configuration parameter
+## Configuration
 - `add_clip_config()`: add parameters for clip_amplitudes() to configuration.
 - `clip_args()`: retrieve parameters for clip_amplitudes() from configuration.
 - `add_best_window_config()`: add parameters for best_window() to configuration.
 - `best_window_args()`: retrieve parameters for best_window*() from configuration.
 
-## Visualization of the algorithms
+## Visualization
 - `plot_clipping()`: visualization of the algorithm for detecting clipped amplitudes in clip_amplitudes().
 - `plot_best_window()`: visualization of the algorithm used in best_window_indices().
 - `plot_best_data()`: plot the data and the selected best window.
-
-## Convenience function
-- `find_best_window()`: set clipping amplitudes and find best window.
 """
 
 import numpy as np
@@ -59,7 +56,7 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
         Maximum to be expected amplitude of the data
     plot_hist_func: function
         Function for visualizing the histograms, is called for every window.
-        plot_clipping() is a simple function that can be passed as `plot_hist_func`
+        `plot_clipping()` is a simple function that can be passed as `plot_hist_func`
         to quickly visualize what is going on in `clip_amplitudes()`.
         Signature:
         ```
@@ -132,7 +129,7 @@ def plot_clipping(data, winx0, winx1, bins,
 def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
                     window=1.0, min_fac=2.0, nbins=20,
                     min_ampl=-1.0, max_ampl=1.0):
-    """ Add parameter needed for clip_amplitudes() as
+    """ Add parameter needed for `clip_amplitudes()` as
     a new section to a configuration.
 
     Parameters
@@ -160,7 +157,7 @@ def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
 
 def clip_args(cfg, rate):
     """ Translates a configuration to the
-    respective parameter names of the function clip_amplitudes().
+    respective parameter names of the function `clip_amplitudes()`.
     The return value can then be passed as key-word arguments to this function.
 
     Parameters
@@ -240,7 +237,7 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
         `percentile` parameter for the `eventdetection.percentile_threshold()` function
         used to estimate thresholds for detecting peaks in the data.
     thresh_fac: float
-        `thresh_fac` parameter for the eventdetection.percentile_threshold() function
+        `thresh_fac` parameter for the `eventdetection.percentile_threshold()` function
         used to estimate thresholds for detecting peaks in the data.
     min_clip: float
         Minimum amplitude below which data are clipped.
@@ -462,7 +459,7 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
 
     Parameters
     ----------
-    See documentation of the best_window_indices() functions.
+    See documentation of the `best_window_indices()` functions.
     """
     # raw data:
     time = np.arange(0.0, len(data)) / rate
@@ -561,7 +558,7 @@ def add_best_window_config(cfg, expand=False, win_size=1., win_shift=0.5,
                            min_clip=-np.inf, max_clip=np.inf,
                            w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
                            tolerance=0.2):
-    """ Add parameter needed for the best_window() functions as
+    """ Add parameter needed for the `best_window()` functions as
     a new section to a configuration dictionary.
 
     Parameters

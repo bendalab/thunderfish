@@ -14,6 +14,7 @@ import sys
 import os
 import glob
 import argparse
+import traceback
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -142,10 +143,10 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
 
     Returns
     -------
-    psd_data: list of 2D array
+    psd_data: list of 2D arrays
         List of power spectra (frequencies and power) of the analysed data
         for different frequency resolutions.
-    wave_eodfs: array
+    wave_eodfs: list of 2D arrays
         Frequency and power of fundamental frequency/harmonics of all wave fish.
     wave_indices: array of int
         Indices of wave fish mapping from wave_eodfs to eod_props.
@@ -194,7 +195,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
             print('no fundamental frequencies are consistent in all power spectra')
 
     # detect pulse fish:
-    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, name, verbose=verbose)
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, name, verbose=verbose, plot_level=plot_level)
 
     #eod_times = []
     #eod_peaktimes = []
@@ -234,8 +235,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
         props['clipped'] = clipped_frac
 
         # add good waveforms only:
-        skips, msg, skipped_clipped = pulse_quality(clipped_frac, props['rmssem'],
-                                                    **pulse_quality_args(cfg))
+        skips, msg, skipped_clipped = pulse_quality(props, **pulse_quality_args(cfg))
 
         if len(skips) == 0:
             eod_props.append(props)
@@ -290,7 +290,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
     # analyse EOD waveform of all wavefish:
     powers = np.array([np.sum(fish[:, 1]**2) for fish in wave_eodfs])
     power_indices = np.argsort(-powers)
-    wave_indices = np.zeros(len(wave_eodfs), dtype=np.int)
+    wave_indices = np.zeros(len(wave_eodfs), dtype=np.int) - 3
     for k, idx in enumerate(power_indices):
         fish = wave_eodfs[idx]
         eod_times = np.arange(0.0, len(data)/samplerate, 1.0/fish[0,0])
@@ -318,13 +318,11 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
                           (wave_eodfs[idx][0,0], decibel(powers[idx])))
             wave_eodfs = [eodfs for idx, eodfs in enumerate(wave_eodfs)
                           if idx not in rm_indices]
-            wave_indices = [idcs for idx, idcs in enumerate(wave_indices)
-                            if idx not in rm_indices]
+            wave_indices = np.array([idcs for idx, idcs in enumerate(wave_indices)
+                                    if idx not in rm_indices], dtype=np.int)
             break
         # add good waveforms only:
-        skips, msg = wave_quality(clipped_frac, props['ncrossings'],
-                                  props['rmssem'], props['rmserror'], props['power'],
-                                  **wave_quality_args(cfg))
+        remove, skips, msg = wave_quality(props, **wave_quality_args(cfg))
         if len(skips) == 0:
             wave_indices[idx] = props['index']
             eod_props.append(props)
@@ -332,13 +330,15 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
             spec_data.append(sdata)
             peak_data.append([])
             if verbose > 0:
-                print('take %6.1fHz wave  fish: %s' % (props['EODf'], msg))
+                print('take   %6.1fHz wave  fish: %s' % (props['EODf'], msg))
         else:
-            wave_indices[idx] = -1
+            wave_indices[idx] = -2 if remove else -1
             skip_reason += ['%.1fHz wave fish %s' % (props['EODf'], skips)]
             if verbose > 0:
-                print('skip %6.1fHz wave  fish: %s (%s)' %
-                      (props['EODf'], skips, msg))
+                print('%-6s %6.1fHz wave  fish: %s (%s)' %
+                      ('remove' if remove else 'skip', props['EODf'], skips, msg))
+    wave_eodfs = [eodfs for idx, eodfs in zip(wave_indices, wave_eodfs) if idx > -2]
+    wave_indices = np.array([idx for idx in wave_indices if idx > -2], dtype=np.int)
     return (psd_data, wave_eodfs, wave_indices, eod_props, mean_eods,
             spec_data, peak_data, power_thresh, skip_reason, zoom_window)
 
@@ -1105,9 +1105,15 @@ def run_thunderfish(file):
         if verbose > 1:
             print('='*70)
         print('analyze recording %s ...' % file)
-    msg = thunderfish(file, *pool_args)
-    if msg:
-        print(msg)
+    try:
+        msg = thunderfish(file, *pool_args)
+        if msg:
+            print(msg)
+    except (KeyboardInterrupt, SystemExit):
+        print('\nthunderfish interrupted by user... exit now.')
+        sys.exit(0)
+    except:
+        print(traceback.format_exc())
 
 
 def main():
@@ -1121,9 +1127,9 @@ def main():
     parser.add_argument('-h', '--help', action='store_true',
                         help='show this help message and exit')
     parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('-v', action='count', dest='verbose',
+    parser.add_argument('-v', action='count', dest='verbose', default=0,
                         help='verbosity level. Increase by specifying -v multiple times, or like -vvv')
-    parser.add_argument('-V', action='count', dest='plotlevel',
+    parser.add_argument('-V', action='count', dest='plot_level', default=0,
                         help='level for debugging plots. Increase by specifying -V multiple times, or like -VVV')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
@@ -1177,12 +1183,8 @@ def main():
         parser.exit()
 
     # set verbosity level from command line:
-    verbose = 0
-    if args.verbose != None:
-        verbose = args.verbose
-    plot_level = 0
-    if args.plotlevel != None:
-        plot_level = args.plotlevel
+    verbose = args.verbose
+    plot_level = args.plot_level
     if verbose < plot_level+1:
         verbose = plot_level+1
 

@@ -16,6 +16,7 @@ from .configfile import ConfigFile
 from .tabledata import TableData, add_write_table_config, write_table_args
 from .dataloader import load_data
 from .multivariateexplorer import MultivariateExplorer
+from .harmonics import add_harmonic_groups_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
 from .powerspectrum import decibel
@@ -208,14 +209,15 @@ class EODExplorer(MultivariateExplorer):
             axs[0].text(0.5, 0.3, 'n = %d' % len(self.raw_data),
                         transform = axs[0].transAxes, ha='center', va='center')
         elif len(indices) == 1:
-            if 'index' in self.eoddata and \
+            if 'index' in self.eoddata and np.isfinite(self.eoddata[indices[0],'index']) and \
               np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
                 axs[0].set_title('%s: %d' % (self.eoddata[indices[0],'file'],
                                              self.eoddata[indices[0],'index']))
             else:
                 axs[0].set_title(self.eoddata[indices[0],'file'])
-            axs[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
-                        transform = axs[0].transAxes)
+            if np.isfinite(self.eoddata[indices[0],'index']):
+                axs[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
+                            transform = axs[0].transAxes)
         else:
             axs[0].set_title('%d EOD waveforms selected' % len(indices))
         for ax in axs:
@@ -405,6 +407,8 @@ class EODExplorer(MultivariateExplorer):
 
         # default columns:
         group_cols = ['EODf']
+        if 'EODf_adjust' in data:
+            group_cols.append('EODf_adjust')
         if len(column_groups) == 0:
             column_groups = ['all']
         for group in column_groups:
@@ -412,8 +416,8 @@ class EODExplorer(MultivariateExplorer):
                 group_cols = []
             elif wave_fish:
                 if group == 'noise':
-                    group_cols.extend(['noise', 'rmserror',
-                                       'p-p-amplitude', 'power'])
+                    group_cols.extend(['noise', 'rmserror', 'power',
+                                       'dbdiff', 'maxdb', 'p-p-amplitude'])
                 elif group == 'timing' or group == 'time':
                     group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
                                        'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
@@ -482,7 +486,7 @@ class EODExplorer(MultivariateExplorer):
         for c in group_cols:
             idx = data.index(c)
             if idx is None:
-                parser.error('"%s" is not a valid data column' % c)
+                print('"%s" is not a valid data column' % c)
             elif idx in data_cols:
                 data_cols.remove(idx)
             else:
@@ -558,6 +562,11 @@ data_path = None
 
 def load_waveform(idx):
     eodf = data[idx,'EODf']
+    if not np.isfinite(eodf):
+        if load_spec:
+            return None, None
+        else:
+            return None
     file_name = data[idx,'file']
     file_index = data[idx,'index'] if 'index' in data else 0
     eod_filename = os.path.join(data_path, '%s-eodwaveform-%d.csv' % (file_name, file_index))
@@ -592,6 +601,8 @@ def main():
     parser.add_argument('-h', '--help', nargs=0, action=PrintHelp,
                         help='show this help message and exit')
     parser.add_argument('--version', action='version', version=__version__)
+    parser.add_argument('-v', dest='verbose', action='store_true', default=False,
+                        help='verbose output')
     parser.add_argument('-l', dest='list_columns', action='store_true',
                         help='list all available data columns and exit')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
@@ -624,6 +635,7 @@ def main():
     args = parser.parse_args()
         
     # read in command line arguments:    
+    verbose = args.verbose
     list_columns = args.list_columns
     jobs = args.jobs
     file_name = args.file
@@ -642,6 +654,7 @@ def main():
     cfgfile = __package__ + '.cfg'
     cfg = ConfigFile()
     add_eod_quality_config(cfg)
+    add_harmonic_groups_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
                            align_columns=True, shrink_width=False)
     cfg.load_files(cfgfile, file_name, 3)
@@ -673,36 +686,30 @@ def main():
         idx = 0
         if 'index' in data:
             idx = data[r,'index']
-        clipped = 0.0
-        if 'clipped' in data:
-            clipped = 0.01*data[r,'clipped']
         skips = ''
         if wave_fish:
-            ncrossings = 0
-            if 'ncrossings' in data:
-                ncrossings = data[r,'ncrossings']
-            skips, msg = wave_quality(clipped, ncrossings, 0.01*data[r,'noise'],
-                                      0.01*data[r,'rmserror'], data[r,'power'],
-                                      **wave_quality_args(cfg))
+            props = data.row_dict(r)
+            if 'clipped' in props:
+                props['clipped'] *= 0.01 
+            if 'noise' in props:
+                props['noise'] *= 0.01 
+            if 'rmserror' in props:
+                props['rmserror'] *= 0.01
+            _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
         else:
-            skips, msg, _ = pulse_quality(clipped, 0.01*data[r,'noise'],
-                                          **pulse_quality_args(cfg))
+            props = data.row_dict(r)
+            if 'clipped' in props:
+                props['clipped'] *= 0.01 
+            if 'noise' in props:
+                props['noise'] *= 0.01 
+            skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
         if len(skips) > 0:
-            print('skip fish %d from %s: %s' % (idx, data[r,'file'], skips))
+            if verbose:
+                print('skip fish %2d from %s: %s' % (idx, data[r,'file'], skips))
             del data[r,:]
             skipped += 1
-    if skipped > 0:
+    if verbose and skipped > 0:
         print('')
-
-    # add species column (experimental):
-    if wave_fish:
-        # wavefish species:
-        species = np.zeros(data.rows(), object)
-        species[data[:,'EODf'] < 250.0] = 'Sterno'
-        species[(data[:,'reltroughampl'] < 72.0) & (data[:,'EODf'] > 250.0)] = 'Eigen'
-        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 500.0)] = 'Aptero'
-        species[(data[:,'reltroughampl'] > 72.0) & (data[:,'EODf'] > 250.0) & (data[:,'EODf'] < 500.0)] = 'unknown'
-        data.append('species', '', '%s', species)
 
     # select columns (EOD properties) to be shown:
     data_cols, error = \
