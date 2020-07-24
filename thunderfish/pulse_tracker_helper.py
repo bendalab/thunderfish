@@ -85,7 +85,11 @@ def makeeventlist(main_event_positions, side_event_positions, data, max_width=20
 
     keep_events = ((widths>min_width) & (widths<max_width))
 
-    return x_peak[keep_events], x_trough[keep_events], hights[keep_events], widths[keep_events]
+
+    if verbose>0:
+        print('Number of peaks after connecting to sidepeaks:          %5i'%(len(x_peak[keep_events])))
+
+    return x_peak[keep_events], x_trough[keep_events], hights[keep_events], widths[keep_events], x_peak, x_trough, hights, widths
 
 @jit(nopython=True)
 def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
@@ -120,8 +124,5 @@ def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
                 keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr]/widths[x_trough==tr])]] = 0
             else:
                 keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
-
-    #if verbose>0:
-        #print('Number of peaks after discarding connecting peaks:      %5i'%(len(keep_idxs)))
             
     return x_peak[np.where(keep_idxs==1)[0]], x_trough[np.where(keep_idxs==1)[0]], hights[np.where(keep_idxs==1)[0]], widths[np.where(keep_idxs==1)[0]]

@@ -1212,6 +1212,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
             if zoom_window[1] - width < 0:
                 width = width/2
                 break  
+
         x = eod['peaktimes'] + toffs
         y = data[np.round(eod['peaktimes']*samplerate).astype(np.int)]
         color_kwargs = {}
