@@ -1,0 +1,20 @@
+site_name: thunderfish
+
+repo_url: https://github.com/bendalab/thunderfish/
+
+edit_uri: ""
+
+site_author: Benda-Lab
+
+theme: readthedocs
+
+markdown_extensions:
+    - markdown_include.include
+    
+nav:
+    - Home: 'index.md'
+    - 'User Guide':
+        - 'thunderfish': 'thunderfish.md'
+        - 'collectfish': 'collectfish.md'
+        - 'eodexplorer': 'eodexplorer.md'
+    - API reference: 'api/index.html'

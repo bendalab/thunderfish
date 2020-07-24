@@ -1,13 +1,13 @@
-sudo: required
-dist: trusty
+dist: xenial
+
+services:
+  - xvfb
 
 language: python
 
 matrix:
     include:
         - python: "3.6"
-          os: linux
-        - python: "2.7"
           os: linux
 
 addons:
@@ -16,6 +16,11 @@ addons:
     - libblas-dev
     - liblapack-dev
     - gfortran
+    - libsndfile1
+    - libsndfile1-dev
+    - libffi-dev
+    - libportaudio2
+    - portaudio19-dev
     - python-matplotlib
     - python-pandas
     - python-tk
@@ -24,18 +29,30 @@ before_install:
   - pip install -U pip
 
 install:
-  - pip install git+https://github.com/bendalab/audioio
-  - pip install nose nose-cov python-coveralls
+  - pip install nose nose-cov
+  - pip install codecov
   - pip install -r requirements.txt
-
-before_script: # configure a headless display to test plot generation
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-  - sleep 3
+  - pip install pdoc3
+  - pip install markdown-include
+  - pip install mkdocs
 
 # command to run tests
 script:
-  - nosetests -vv --with-coverage --cover-package=thunderfish
+  - xvfb-run -a nosetests -vv --with-coverage --cover-package=thunderfish
+  - ./build-docs.sh
 
 after_success:
-  - coveralls
+  - codecov
+
+deploy:
+  # in github: user->Settings->Developer settings->Personal access tokes: generate new token
+  # in travis-ci: project->settings->environmental variables: add token as GITHUB_TOKEN
+  # commit and push
+  # in github: project->Settings->Options: verify githup pages source to be gh-pages and https switsched on
+  # push again
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  local_dir: site
+  on:
+      branch: master

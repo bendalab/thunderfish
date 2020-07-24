@@ -2,11 +2,6 @@
 
 View and explore properties of EOD waveforms.
 
-## Authors
-
-The [Neuroethology-lab](https://uni-tuebingen.de/en/faculties/faculty-of-science/departments/biology/institutes/neurobiology/lehrbereiche/neuroethology/) at the Institute of Neuroscience at the University of T&uuml;bingen:
-- Jan Benda
-
 
 ## Command line arguments
 

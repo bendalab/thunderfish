@@ -6,10 +6,11 @@ Automatically detect and analyze all EOD waveforms in a short recording.
 ## Authors
 
 The [Neuroethology-lab](https://uni-tuebingen.de/en/faculties/faculty-of-science/departments/biology/institutes/neurobiology/lehrbereiche/neuroethology/) at the Institute of Neuroscience at the University of T&uuml;bingen:
+
 - Jan Benda
 - J&ouml;rg Henninger (harmonic groups)
 - Juan Sehuanes (best window)
-- Till Raab
+- Till Raab (annotation)
 - Liz Weerdmeester (pulse clustering)
 
 

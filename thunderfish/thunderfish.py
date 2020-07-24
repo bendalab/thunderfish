@@ -5,8 +5,9 @@ Automatically detect and analyze all EOD waveforms in a short recording
 and generate a summary plot and data tables.
 
 Run it from the thunderfish development directory as:
-python3 -m thunderfish.thunderfish audiofile.wav   or
-python -m thunderfish.thunderfish audiofile.wav
+```
+python3 -m thunderfish.thunderfish audiofile.wav
+```
 """
 
 import sys
@@ -20,7 +21,7 @@ import matplotlib.ticker as ticker
 import matplotlib.lines as ml
 from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
-from multiprocessing import Pool, Lock, freeze_support, cpu_count
+from multiprocessing import Pool, freeze_support, cpu_count
 from audioio import play, fade
 from .version import __version__, __year__
 from .configfile import ConfigFile
@@ -115,7 +116,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     return cfg
 
 
-def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cfg):
+def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, plot_level, cfg):
     """ Detect EODs of all fish present in the data.
 
     Parameters
@@ -134,6 +135,8 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
         Name of the recording (e.g. its filename).
     verbose: int
         Print out information about EOD detection if greater than zero.
+    plot_level : int
+        Similar to verbosity levels, but with plots. 
     cfg: ConfigFile
         Configuration parameters.
 
@@ -185,13 +188,22 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
                                    df_th=cfg.value('frequencyThreshold'))
     if verbose > 0:
         if len(wave_eodfs) > 0:
-            print('fundamental frequencies consistent in all power spectra:')
+            print('found %2d EOD frequencies consistent in all power spectra:' % len(wave_eodfs))
             print('  ' + ' '.join(['%.1f' % freq[0, 0] for freq in wave_eodfs]))
         else:
             print('no fundamental frequencies are consistent in all power spectra')
 
     # detect pulse fish:
     _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, name, verbose=verbose)
+
+    #eod_times = []
+    #eod_peaktimes = []
+    #zoom_window = []
+    if verbose > 0:
+        if len(eod_times) > 0:
+            print('found %2d pulsefish EODs' % len(eod_times))
+        else:
+            print('no pulsefish EODs found')
             
     # analysis results:
     eod_props = []
@@ -222,7 +234,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
         props['clipped'] = clipped_frac
 
         # add good waveforms only:
-        skips, msg, skipped_clipped = pulse_quality(clipped_frac, props['rmssem'], peaks,
+        skips, msg, skipped_clipped = pulse_quality(clipped_frac, props['rmssem'],
                                                     **pulse_quality_args(cfg))
 
         if len(skips) == 0:
@@ -423,7 +435,8 @@ def axes_style(ax):
 def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
               psd_data, wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
               indices, unit, zoom_window, n_snippets=10, power_thresh=None, label_power=True,
-              log_freq=False, min_freq=0.0, max_freq=3000.0, interactive=True, verbose=0):
+              all_eods=False, spec_plots='auto', log_freq=False, min_freq=0.0, max_freq=3000.0,
+              interactive=True, verbose=0):
     """
     Creates an output plot for the thunderfish program.
 
@@ -476,6 +489,11 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     label_power: boolean
         If `True` put the power in decibel in addition to the frequency
         into the legend.
+    all_eods: bool
+        Plot all EOD waveforms.
+    spec_plots: bool or 'auto'
+        Plot amplitude spectra of EOD waveforms.
+        If 'auto', plot them if there is a singel waveform only.
     log_freq: boolean
         Logarithmic (True) or linear (False) frequency axis of power spectrum of recording.
     min_freq: float
@@ -526,28 +544,6 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     def pulsepsd_format_coord(x, y):
         return 'single pulse power spectrum: x=%.1f Hz, y=%.1f dB' % (x, y)
 
-    plot_style()
-    fig = plt.figure(facecolor='white', figsize=(14., 10.))
-    if interactive:
-        fig.canvas.mpl_connect('key_press_event', keypress)
-    ax1 = fig.add_axes([0.02, 0.9, 0.96, 0.1])   # title
-    ax2 = fig.add_axes([0.075, 0.6, 0.4, 0.3])   # recording zoom-in
-    ax3 = fig.add_axes([0.075, 0.6, 0.7, 0.3])   # psd
-    ax4 = fig.add_axes([0.075, 0.2, 0.4, 0.3])   # mean eod 1
-    ax5 = fig.add_axes([0.575, 0.2, 0.4, 0.3])   # pulse/amplitude spectrum or mean eod 2
-    ax6 = fig.add_axes([0.075, 0.2, 0.4, 0.14])  # mean eod 3
-    ax7 = fig.add_axes([0.575, 0.2, 0.4, 0.14])  # phase spectrum or mean eod 4
-    ax8 = fig.add_axes([0.075, 0.06, 0.9, 0.09]) # whole trace
-    
-    # plot title:
-    ax1.text(0.0, .64, base_name, fontsize=22)
-        
-    ax1.text(1.0, .72, 'thunderfish by Benda-Lab', fontsize=16, ha='right')
-    ax1.text(1.0, .45, 'Version %s' % __version__, fontsize=16, ha='right')
-    ax1.set_frame_on(False)
-    ax1.set_axis_off()
-    ax1.set_navigate(False)
-
     # count number of fish types to be plotted:
     if indices is None:
         indices = list(range(len(eod_props)))
@@ -559,32 +555,99 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
             npulse += 1
         elif eod_props[idx]['type'] == 'wave':
             nwave += 1
+    neods = nwave + npulse
 
     if verbose > 0:
         print('plot: %2d waveforms: %2d wave fish, %2d pulse fish and %2d EOD frequencies.'
               % (len(indices), nwave, npulse, len(wave_eodfs)))
+
+    # size and positions:
+    if spec_plots == 'auto':
+        spec_plots = len(indices) == 1
+    large_plots = spec_plots or len(indices) <= 2
+    width = 14.0
+    height = 10.0
+    if all_eods and len(indices) > 0:
+        nrows = len(indices) if spec_plots else (len(indices)+1)//2
+        if large_plots:
+            height = 6.0 + 4.0*nrows
+        else:
+            height = 6.4 + 1.9*nrows
+    leftx = 1.0/width
+    midx = 0.5 + leftx
+    fullwidth = 1.0-1.4/width
+    halfwidth = 0.5-1.4/width
+    pheight = 3.0/height
     
-    ############
+    # figure:
+    plot_style()
+    fig = plt.figure(facecolor='white', figsize=(width, height))
+    if interactive:
+        fig.canvas.mpl_connect('key_press_event', keypress)
+    
+    # plot title:
+    ax = fig.add_axes([0.2/width, 1.0-0.6/height, 1.0-0.4/width, 0.5/height])
+    ax.text(0.0, 1.0, base_name, fontsize=22, va='top')
+    ax.text(1.0, 1.0, 'thunderfish by Benda-Lab', fontsize=16, ha='right', va='top')
+    ax.text(1.0, 0.0, 'version %s' % __version__, fontsize=16, ha='right', va='bottom')
+    ax.set_frame_on(False)
+    ax.set_axis_off()
+    ax.set_navigate(False)
 
-    force_both = True   # XXX set to True for debugging pulse and wave detection
-    #force_both = False
-
+    # layout of recording and psd plots:
+    #force_both = True                    # set to True for debugging pulse and wave detection
+    force_both = False
+    posy = 1.0 - 4.0/height
+    axr = None
+    axp = None
+    legend_inside = True
+    legendwidth = 3.2/width if label_power else 2.2/width
+    if neods == 0:
+        axr = fig.add_axes([leftx, posy, fullwidth, pheight])                    # top, wide
+        axp = fig.add_axes([leftx, 2.0/height, fullwidth, pheight])              # bottom, wide
+    else:
+        if npulse == 0 and nwave > 2 and not force_both:
+            axp = fig.add_axes([leftx, posy, fullwidth-legendwidth, pheight])    # top, wide
+            legend_inside = False
+        elif npulse > 0 and len(wave_eodfs) == 0 and not force_both:
+            axr = fig.add_axes([leftx, posy, fullwidth, pheight])                # top, wide
+        else:
+            axr = fig.add_axes([leftx, posy, halfwidth, pheight])                # top left
+            label_power = False
+            legendwidth = 2.2/width
+            axp = fig.add_axes([midx, posy, halfwidth, pheight])                 # top, right
+        
     # best window data:
     data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
+
+    # plot recording
+    pulse_colors, pulse_markers = colors_markers()
+    pulse_colors = pulse_colors[3:]
+    pulse_markers = pulse_markers[3:]
+    if axr is not None:
+        axes_style(axr)
+        twidth = 0.1
+        if len(indices) > 0:
+            if eod_props[indices[0]]['type'] == 'wave':
+                twidth = 5.0/eod_props[indices[0]]['EODf']
+            else:
+                if len(wave_eodfs) > 0:
+                    twidth = 3.0/eod_props[indices[0]]['EODf']
+                else:
+                    twidth = 10.0/eod_props[indices[0]]['EODf']
+            twidth = (1+twidth//0.005)*0.005
+        plot_eod_recording(axr, data, samplerate, twidth, unit, idx0/samplerate)
+        plot_pulse_eods(axr, data, samplerate, zoom_window, twidth, eod_props, idx0/samplerate,
+                        colors=pulse_colors, markers=pulse_markers)
+        axr.set_title('Recording', fontsize=14, y=1.05)
+        axr.format_coord = recordingzoom_format_coord
     
     # plot psd
     wave_colors, wave_markers = colors_markers()
-    if len(indices) == 0 or len(wave_eodfs) > 0 or npulse == 0 or force_both:
-        legend_inside = True
-        if len(indices) == 0:
-            ax3.set_position([0.075, 0.2, 0.9, 0.3]) # bottom, wide
-        elif len(wave_eodfs) <= 2 or npulse > 0 or force_both:
-            ax3.set_position([0.575, 0.6, 0.4, 0.3]) # top, right
-        else:
-            ax3.set_position([0.075, 0.6, 0.7, 0.3]) # top, wide
-            legend_inside = False
+    if axp is not None:
+        axes_style(axp)
         if power_thresh is not None:
-            ax3.plot(power_thresh[:,0], decibel(power_thresh[:,1]), '#CCCCCC', lw=1)
+            axp.plot(power_thresh[:,0], decibel(power_thresh[:,1]), '#CCCCCC', lw=1)
         if len(wave_eodfs) > 0:
             kwargs = {}
             if len(wave_eodfs) > 1:
@@ -592,160 +655,139 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
                 kwargs = {'title': title if len(wave_eodfs) > 2 else None }
                 if legend_inside:
                     kwargs.update({'bbox_to_anchor': (1.05, 1.1),
-                                   'loc': 'upper right', 'legend_rows': 10})
+                                   'loc': 'upper right', 'legend_rows': 10,
+                                   'frameon': True})
                 else:
-                    kwargs.update({'bbox_to_anchor': (1.0, 1.1),
+                    kwargs.update({'bbox_to_anchor': (1.0, 1.1), 'frameon': False,
                                    'loc': 'upper left', 'legend_rows': 12})
-            plot_harmonic_groups(ax3, wave_eodfs, wave_indices, max_groups=0,
+            plot_harmonic_groups(axp, wave_eodfs, wave_indices, max_groups=0,
                                  sort_by_freq=True, label_power=label_power,
                                  colors=wave_colors, markers=wave_markers,
-                                 frameon=False, **kwargs)
-        plot_decibel_psd(ax3, psd_data[:,0], psd_data[:,1], log_freq=log_freq,
+                                 **kwargs)
+            if legend_inside:
+                axp.get_legend().get_frame().set_color('white')
+        plot_decibel_psd(axp, psd_data[:,0], psd_data[:,1], log_freq=log_freq,
                          min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
-        ax3.yaxis.set_major_locator(ticker.MaxNLocator(6))
+        axp.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
-            ax3.get_legend().set_visible(False)
+            axp.get_legend().set_visible(False)
             label = '%6.1f Hz' % wave_eodfs[0][0, 0]
-            ax3.set_title('Powerspectrum: %s' % label, y=1.05, fontsize=14)
+            axp.set_title('Powerspectrum: %s' % label, y=1.05, fontsize=14)
         else:
-            ax3.set_title('Powerspectrum', y=1.05, fontsize=14)
-        ax3.format_coord = psd_format_coord
-    else:
-        ax3.set_visible(False)
-    
-    ############
+            axp.set_title('Powerspectrum', y=1.05, fontsize=14)
+        axp.format_coord = psd_format_coord
 
-    # plot recording
-    pulse_colors, pulse_markers = colors_markers()
-    pulse_colors = pulse_colors[3:]
-    pulse_markers = pulse_markers[3:]
-    if len(indices) == 0 or npulse > 0 or len(wave_eodfs) <= 2 or force_both:
-        if len(indices) > 0 and ((len(wave_eodfs) > 0 and len(wave_eodfs) <= 2) or force_both):
-            ax2.set_position([0.075, 0.6, 0.4, 0.3]) # top, left
+    # get fish labels from legends:
+    if axp is not None:
+        w, _ = axp.get_legend_handles_labels()
+        eodf_labels = [wi.get_label().split()[0] for wi in w]
+        legend_wave_eodfs = np.array([float(f) if f[0] != '(' else np.nan for f in eodf_labels])
+    if axr is not None:
+        p, _ = axr.get_legend_handles_labels()
+        eodf_labels = [pi.get_label().split()[0] for pi in p]
+        legend_pulse_eodfs = np.array([float(f) if f[0] != '(' else np.nan for f in eodf_labels])
+
+    # layout:
+    sheight = 1.4/height
+    sstep = 1.6/height
+    max_plots = len(indices)
+    if not all_eods:
+        if large_plots:
+            max_plots = 1 if spec_plots else 2
         else:
-            ax2.set_position([0.075, 0.6, 0.9, 0.3]) # top, wide
-        width = 0.1
-        if len(indices) > 0:
-            if eod_props[indices[0]]['type'] == 'wave':
-                width = 5.0/eod_props[indices[0]]['EODf']
-            else:
-                if len(wave_eodfs) > 0:
-                    width = 3.0/eod_props[indices[0]]['EODf']
-                else:
-                    width = 10.0/eod_props[indices[0]]['EODf']
-            width = (1+width//0.005)*0.005
-        plot_eod_recording(ax2, data, samplerate, width, unit, idx0/samplerate)
-        plot_pulse_eods(ax2, data, samplerate, zoom_window, width, eod_props, idx0/samplerate,
-                        colors=pulse_colors, markers=pulse_markers)
-
-        ax2.set_title('Recording', fontsize=14, y=1.05)
-        ax2.format_coord = recordingzoom_format_coord
-    else:
-        ax2.set_visible(False)        
-
-    ##########
-
-    # sort indices by p-p amplitude:
-    pp_ampls = [eod_props[idx]['p-p-amplitude'] for idx in indices]
-    pp_indices = np.argsort(pp_ampls)[::-1]
-    eodaxes = [ax4, ax5, ax6, ax7]
-    for ax in eodaxes:
-        ax.set_visible(False)
-    if len(indices) > 2:
-        ax4.set_position([0.075, 0.39, 0.4, 0.13])
-        ax5.set_position([0.575, 0.39, 0.4, 0.13])
-        ax6.set_position([0.075, 0.2, 0.4, 0.13])
-        ax7.set_position([0.575, 0.2, 0.4, 0.13])
-        ty = 1.10
-        my = 1.16
-        ny = 4
-    else:
+            max_plots = 4
+    if large_plots:
+        pstep = pheight + 1.0/height
         ty = 1.08
         my = 1.10
         ny = 6
-
-    # plot mean EOD
-    w, _ = ax3.get_legend_handles_labels()
-    eodf_labels = [wi.get_label().split()[0] for wi in w]
-    legend_wave_eodfs = np.array([float(f) if f[0] != '(' else np.nan for f in eodf_labels])
-    p, _ = ax2.get_legend_handles_labels()
-    eodf_labels = [pi.get_label().split()[0] for pi in p]
-    legend_pulse_eodfs = np.array([float(f) if f[0] != '(' else np.nan for f in eodf_labels])
-    for k, (axeod, idx) in enumerate(zip(eodaxes, indices[pp_indices])):
+    else:
+        posy -= 0.2/height
+        pheight = 1.3/height
+        pstep = 1.9/height
+        ty = 1.10
+        my = 1.16
+        ny = 4
+    posy -= pstep
+            
+    # sort indices by p-p amplitude:
+    pp_ampls = [eod_props[idx]['p-p-amplitude'] for idx in indices]
+    pp_indices = np.argsort(pp_ampls)[::-1]
+        
+    # plot EOD waveform and spectra:
+    for k, idx in enumerate(indices[pp_indices]):
+        if k >= max_plots:
+            break
+        # plot EOD waveform:
         mean_eod = mean_eods[idx]
         props = eod_props[idx]
         peaks = peak_data[idx]
-        axeod.set_visible(True)
-        axeod.yaxis.set_major_locator(ticker.MaxNLocator(ny))
+        lx = leftx if spec_plots or k%2 == 0 else midx
+        ax = fig.add_axes([lx, posy, halfwidth, pheight])
+        axes_style(ax)
+        ax.yaxis.set_major_locator(ticker.MaxNLocator(ny))
         if len(indices) > 1:
-            axeod.text(0.3, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
-                       transform=axeod.transAxes, fontsize=14)
+            ax.text(0.3, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
+                       transform=ax.transAxes, fontsize=14)
             mx = 0.25
         else:
-            axeod.text(-0.1, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
-                       transform=axeod.transAxes, fontsize=14)
-            axeod.text(0.5, ty, 'Averaged EOD',
-                       transform=axeod.transAxes, fontsize=14, ha='center')
+            ax.text(-0.1, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
+                       transform=ax.transAxes, fontsize=14)
+            ax.text(0.5, ty, 'Averaged EOD',
+                       transform=ax.transAxes, fontsize=14, ha='center')
             mx = -0.14
         eodf = props['EODf']
         if props['type'] == 'wave':
-            wk = np.nanargmin(np.abs(legend_wave_eodfs - eodf))
-            ma = ml.Line2D([mx], [my], color=w[wk].get_color(), marker=w[wk].get_marker(),
-                           markersize=w[wk].get_markersize(), mec='none', clip_on=False,
-                           label=w[wk].get_label(), transform=axeod.transAxes)
-            axeod.add_line(ma)
+            if axp is not None:
+                wk = np.nanargmin(np.abs(legend_wave_eodfs - eodf))
+                ma = ml.Line2D([mx], [my], color=w[wk].get_color(), marker=w[wk].get_marker(),
+                               markersize=w[wk].get_markersize(), mec='none', clip_on=False,
+                               label=w[wk].get_label(), transform=ax.transAxes)
+                ax.add_line(ma)
         else:
-            pk = np.argmin(np.abs(legend_pulse_eodfs - eodf))
-            ma = ml.Line2D([mx], [my], color=p[pk].get_color(), marker=p[pk].get_marker(),
-                           markersize=p[pk].get_markersize(), mec='none', clip_on=False,
-                           label=p[pk].get_label(), transform=axeod.transAxes)
-            axeod.add_line(ma)
-        plot_eod_waveform(axeod, mean_eod, props, peaks, unit)
+            if axr is not None:
+                pk = np.argmin(np.abs(legend_pulse_eodfs - eodf))
+                ma = ml.Line2D([mx], [my], color=p[pk].get_color(), marker=p[pk].get_marker(),
+                               markersize=p[pk].get_markersize(), mec='none', clip_on=False,
+                               label=p[pk].get_label(), transform=ax.transAxes)
+                ax.add_line(ma)
+        plot_eod_waveform(ax, mean_eod, props, peaks, unit)
         if props['type'] == 'pulse':
-            plot_eod_snippets(axeod, data, samplerate, mean_eod[0,0], mean_eod[-1,0],
+            plot_eod_snippets(ax, data, samplerate, mean_eod[0,0], mean_eod[-1,0],
                               props['times'], n_snippets, props['flipped'])
-        if len(indices) > 2 and k < 2:
-            axeod.set_xlabel('')
-        axeod.format_coord = meaneod_format_coord
-            
+        if not large_plots and k < max_plots-2:
+            ax.set_xlabel('')
+        ax.format_coord = meaneod_format_coord
 
-    ################
+        # plot spectra:
+        if spec_plots:
+            spec = spec_data[idx]
+            if  props['type'] == 'pulse':
+                ax = fig.add_axes([midx, posy, halfwidth, pheight])
+                axes_style(ax)
+                plot_pulse_spectrum(ax, spec, props)
+                ax.set_title('Single pulse spectrum', fontsize=14, y=1.05)
+                ax.format_coord = pulsepsd_format_coord
+            else:
+                axa = fig.add_axes([midx, posy+sstep, halfwidth, sheight])
+                axes_style(axa)
+                axp = fig.add_axes([midx, posy, halfwidth, sheight])
+                axes_style(axp)
+                plot_wave_spectrum(axa, axp, spec, props, unit)
+                axa.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
+                axa.set_xticklabels([])
+                axa.yaxis.set_major_locator(ticker.MaxNLocator(4))
+                axa.format_coord = ampl_format_coord
+                axp.format_coord = phase_format_coord
 
-    # plot spectra:
-    if len(indices) == 1:
-        ax5.set_visible(True)
-        if  eod_props[indices[0]]['type'] == 'pulse':
-            plot_pulse_spectrum(ax5, spec_data[indices[0]], eod_props[indices[0]])
-            ax5.set_title('Single pulse spectrum', fontsize=14, y=1.05)
-            ax5.format_coord = pulsepsd_format_coord
-        else:
-            ax7.set_visible(True)
-            ax5.set_position([0.575, 0.36, 0.4, 0.14])
-            plot_wave_spectrum(ax5, ax7, spec_data[indices[0]], eod_props[indices[0]],
-                               unit)
-            ax5.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
-            ax5.set_xticklabels([])
-            ax5.yaxis.set_major_locator(ticker.MaxNLocator(4))
-            ax5.format_coord = ampl_format_coord
-            ax7.format_coord = phase_format_coord
-    
-    ############
+        if spec_plots or k%2 == 1:
+            posy -= pstep
 
-    # plot trace
-    plot_best_data(ax8, raw_data, samplerate, unit, idx0, idx1, clipped)
-    ax8.format_coord = recording_format_coord
-    
-    ############
-            
-    # cosmetics
-    for ax in [ax2, ax3, ax4, ax5, ax6, ax7, ax8]:
-        axes_style(ax)
-
-    # remove invisible axes:
-    for ax in [ax2, ax3, ax4, ax5, ax6, ax7]:
-        if not ax.get_visible():
-            ax.set_position([0.99, 0.99, 0.01, 0.01])
-            ax.set_navigate(False)
+    # whole trace:
+    ax = fig.add_axes([leftx, 0.6/height, fullwidth, 0.9/height])
+    axes_style(ax)
+    plot_best_data(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
+    ax.format_coord = recording_format_coord
 
     return fig
 
@@ -826,7 +868,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
     if 't' in subplots:
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.text(0.5, 0.5, 'not implemented yet',
-                transform=axeod.transAxes, ha='center', va='center')
+                transform=ax.transAxes, ha='center', va='center')
         axes_style(ax)
         fig.savefig(base_name + '-trace.pdf')
     if 'p' in subplots:
@@ -950,8 +992,10 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
 
 
 def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
-                save_plot=False, multi_pdf=None, lock=None, save_subplots='',
-                output_folder='.', keep_path=False, show_bestwindow=False, verbose=0):
+                all_eods=False, spec_plots='auto', save_plot=False,
+                multi_pdf=None, save_subplots='',
+                output_folder='.', keep_path=False, show_bestwindow=False,
+                verbose=0, plot_level=0):
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -985,7 +1029,8 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
     # detect EODs in the data:
     psd_data, wave_eodfs, wave_indices, eod_props, \
     mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-      detect_eods(data, samplerate, clipped, min_clip, max_clip, filename, verbose, cfg)
+      detect_eods(data, samplerate, clipped, min_clip, max_clip, filename,
+                  verbose, plot_level, cfg)
     if not found_bestwindow:
         wave_eodfs = []
         wave_indices = []
@@ -1029,15 +1074,11 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
         fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
                         psd_data[0], wave_eodfs, wave_indices, mean_eods, eod_props,
                         peak_data, spec_data, None, unit, zoom_window, n_snippets,
-                        power_thresh, True, log_freq, min_freq, max_freq,
+                        power_thresh, True, all_eods, spec_plots, log_freq, min_freq, max_freq,
                         interactive=not save_data, verbose=verbose)
         if save_plot:
             if multi_pdf is not None:
-                if lock is not None:
-                    lock.acquire()
                 multi_pdf.savefig(fig)
-                if lock is not None:
-                    lock.release()
             else:
                 # save figure as pdf:
                 fig.savefig(output_basename + '.pdf')
@@ -1059,14 +1100,11 @@ def run_thunderfish(file):
     """
     Helper function for mutlithreading Pool().map().
     """
-    verbose = pool_args[-1]+1
+    verbose = pool_args[-2]+1
     if verbose > 0:
-        
         if verbose > 1:
-            print('='*60)
-
+            print('='*70)
         print('analyze recording %s ...' % file)
-        
     msg = thunderfish(file, *pool_args)
     if msg:
         print(msg)
@@ -1085,10 +1123,16 @@ def main():
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose',
                         help='verbosity level. Increase by specifying -v multiple times, or like -vvv')
+    parser.add_argument('-V', action='count', dest='plotlevel',
+                        help='level for debugging plots. Increase by specifying -V multiple times, or like -VVV')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
                         help='channel to be analyzed (defaults to first channel)')
+    parser.add_argument('-a', dest='all_eods', action='store_true',
+                        help='plot all EOD waveforms')
+    parser.add_argument('-S', dest='spec_plots', action='store_true',
+                        help='plot spectra for all EOD waveforms')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-s', dest='save_data', action='store_true',
@@ -1136,6 +1180,11 @@ def main():
     verbose = 0
     if args.verbose != None:
         verbose = args.verbose
+    plot_level = 0
+    if args.plotlevel != None:
+        plot_level = args.plotlevel
+    if verbose < plot_level+1:
+        verbose = plot_level+1
 
     # interactive plot:
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
@@ -1153,15 +1202,15 @@ def main():
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
     # save plots:
+    spec_plots = 'auto'
+    if args.spec_plots:
+        spec_plots = True
     if len(args.save_subplots) > 0:
         args.save_plot = True
     multi_pdf = None
-    lock = None
     if len(args.multi_pdf) > 0:
         args.save_plot = True
         args.jobs = None  # PdfPages does not work yet with mutliprocessing
-        if args.jobs is not None:
-            lock = Lock()
         ext = os.path.splitext(args.multi_pdf)[1]
         if ext != os.extsep + 'pdf':
             args.multi_pdf += os.extsep + 'pdf'
@@ -1175,8 +1224,8 @@ def main():
     # run on pool:
     global pool_args
     pool_args = (cfg, args.channel, args.log_freq, args.save_data,
-                 args.save_plot, multi_pdf, lock, args.save_subplots,
-                 args.outpath, args.keep_path, args.show_bestwindow, verbose-1)
+                 args.all_eods, spec_plots, args.save_plot, multi_pdf, args.save_subplots,
+                 args.outpath, args.keep_path, args.show_bestwindow, verbose-1, plot_level)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
         if verbose > 1:

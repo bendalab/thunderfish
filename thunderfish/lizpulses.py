@@ -131,6 +131,11 @@ def extract_pulsefish(data, samplerate, fname, width_factor_shape=3, width_facto
     zoom_window: tuple of floats
         Start and endtime of suggested window for plotting EOD timepoints.
     """
+    if verbose > 0:
+        print('')
+        if verbose > 1:
+            print(70*'#')
+        print('##### extract_pulsefish', 46*'#')
 
     if save_plots or save_data:
         # create folder to save things in.
@@ -188,6 +193,7 @@ def extract_pulsefish(data, samplerate, fname, width_factor_shape=3, width_facto
     return mean_eods, eod_times, eod_peaktimes, zoom_window
 
 def extract_eod_times(data, samplerate, width_factor, interp_freq=500000, max_peakwidth=0.01, min_peakwidth=None, verbose=0, save_data=False, save_path=''):
+
     """ Extract peaks from data which are potentially EODs.
 
     Parameters
@@ -296,6 +302,7 @@ def extract_eod_times(data, samplerate, width_factor, interp_freq=500000, max_pe
 
         return x_peaks[cut_idx], x_troughs[cut_idx], eod_hights[cut_idx], eod_widths[cut_idx], samplerate*interp_f, data, interp_f
 
+    
 @jit(nopython=True)
 def detect_threshold(data, samplerate, win_size = 0.0005, n_stds = 1000, threshold_factor=6.0):
     """ Determine a suitable threshold for peak detection.
@@ -569,6 +576,7 @@ def cluster(eod_xp, eod_xt, eod_hights, eod_widths, data, samplerate, interp_f, 
     return all_clusters, x_merge
 
 def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5, use_log=False, verbose=0, plot_level=0, xlabel='x [a.u.]', save_plot=False, save_path='', save_name='', ftype='pdf'):
+
     """ Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data. 
         Additional steps are used to merge clusters that are closer than merge_threshold.
         Broad gaussian fits that cover one or more other gaussian fits are split by their intersections with the other gaussians.
@@ -669,7 +677,8 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5, use_log=False,
 
     return labels
 
-def merge_gaussians(x,labels,merge_threshold=0.1):
+
+def merge_gaussians(x, labels, merge_threshold=0.1):
     """ Merge all clusters which have medians which are near. Only works in 1D.
         
         Parameters
@@ -830,7 +839,9 @@ def subtract_slope(snippets,hights,plot_level=0):
     
     return snippets - slopes.T, np.abs(left_y-right_y)/hights
 
+
 def remove_artefacts(all_snippets, clusters, int_f, samplerate, artefact_threshold=0.75, verbose=0):
+
     """ Remove EOD clusters that result from artefacts based on power in low frequency spectrum.
 
     Parameters
@@ -876,6 +887,7 @@ def remove_artefacts(all_snippets, clusters, int_f, samplerate, artefact_thresho
 
 
 def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose=0):
+
     """ Delete EOD clusters that are either mixed with noise or other fish, or wavefish.
         This is the case when the ration between the EODwidth and the ISI is too large.
 
@@ -908,6 +920,7 @@ def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose=0):
 
 
 def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w_factor, max_phases=4, verbose=0):
+
     """Delete EODs that are likely from wavefish, or sidepeaks of bigger EODs.
         Parameters
         ----------
@@ -987,7 +1000,8 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w
 
     return mask_wave, mask_sidepeak
 
-def merge_clusters(clusters_1, clusters_2, x_1, x_2,verbose=0): 
+
+def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0): 
     """ Merge clusters resulting from two clustering methods.
 
     This method only works  if clustering is performed on the same EODs
@@ -1016,6 +1030,8 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2,verbose=0):
         mask : 2d numpy array of ints (N,2)
             Mask for clusters that are selected from clusters_1 (mask[:,0]) and from clusters_2 (mask[:,1]).
     """
+    if verbose > 0:
+        print('\nMerge cluster:')
 
     # these arrays become 1 for each EOD that is chosen from that array
     c1_keep = np.zeros(len(clusters_1))
@@ -1079,7 +1095,9 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2,verbose=0):
 
     return clusters, x_merged, np.vstack([c1_keep,c2_keep])
 
-def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, samplerate,  w_factor, verbose=0):
+
+def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, samplerate,
+                  w_factor, verbose=0):
     """ Extract mean EODs, EOD timepoints and unreliability score for each EOD cluster.
 
     Parameters
@@ -1146,7 +1164,8 @@ def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, sampl
     return [m for _,m in sorted(zip(eod_hights,mean_eods))], [t for _,t in sorted(zip(eod_hights,eod_times))], [pt for _,pt in sorted(zip(eod_hights,eod_peak_times))], [tt for _,tt in sorted(zip(eod_hights,eod_tr_times))], [c for _,c in sorted(zip(eod_hights,cluster_labels))]
 
 
-def find_clipped_clusters(clusters, mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels, width_factor, clip_threshold=0.9, verbose=0):
+def find_clipped_clusters(clusters, mean_eods, eod_times, eod_peaktimes, eod_troughtimes,
+                          cluster_labels, width_factor, clip_threshold=0.9, verbose=0):
     """ Detect EODs that are clipped and set all clusterlabels of these clipped EODs to -1. 
     Also return the mean EODs and timepoints of these clipped EODs.
 
@@ -1348,14 +1367,16 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, m
                 plt.savefig('%sdelete_moving_fish.%s'%(save_path,ftype))
 
     if verbose>0:
-        print('Estimated nr of fish in recording: %i'%min_clusters)
+        print('Estimated nr of pulsefish in recording: %i'%min_clusters)
 
     # delete all clusters that are not selected
     clusters[np.invert(np.isin(clusters, np.concatenate(all_keep_clusters)))] = -1
 
     return clusters, [np.max(all_windows)-np.max(all_dts), np.max(all_windows)]
 
-def remove_sparse_detections(clusters, eod_widths, samplerate, T, min_density=0.0005, verbose=0):
+
+def remove_sparse_detections(clusters, eod_widths, samplerate, T,
+                             min_density=0.0005, verbose=0):
     """ Remove all EOD clusters that are too sparse
 
         Parameters

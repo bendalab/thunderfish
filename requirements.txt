@@ -1,5 +1,7 @@
 numpy
 scipy
 matplotlib
+sklearn
+SoundFile
+PyAudio
 audioio
-

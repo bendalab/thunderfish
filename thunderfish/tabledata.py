@@ -27,7 +27,7 @@ else:
     from io import StringIO
     
 
-class TableData:
+class TableData(object):
     """
     Table with numpy-style indexing and a rich hierarchical header including units and formats.
       
@@ -1675,17 +1675,17 @@ class TableData:
 
         - `tex`: latex tabular
           ```
-          \begin{tabular}{rrrr}
-            \hline
-            \multicolumn{2}{l}{info} & \multicolumn{2}{l}{reaction} \\
-            \multicolumn{1}{l}{size} & \multicolumn{1}{l}{weight} & \multicolumn{1}{l}{delay} & \multicolumn{1}{l}{jitter} \\
-            \multicolumn{1}{l}{m} & \multicolumn{1}{l}{kg} & \multicolumn{1}{l}{ms} & \multicolumn{1}{l}{mm} \\
-            \hline
+          \\begin{tabular}{rrrr}
+            \\hline
+            \\multicolumn{2}{l}{info} & \\multicolumn{2}{l}{reaction} \\
+            \\multicolumn{1}{l}{size} & \\multicolumn{1}{l}{weight} & \\multicolumn{1}{l}{delay} & \\multicolumn{1}{l}{jitter} \\
+            \\multicolumn{1}{l}{m} & \\multicolumn{1}{l}{kg} & \\multicolumn{1}{l}{ms} & \\multicolumn{1}{l}{mm} \\
+            \\hline
             2.34 & 123 & 98.7 & 23 \\
             56.70 & 3457 & 54.3 & 45 \\
             8.90 & 43 & 67.9 & 345 \\
-            \hline
-          \end{tabular}
+            \\hline
+          \\end{tabular}
           ```
 
         - `html`: html
