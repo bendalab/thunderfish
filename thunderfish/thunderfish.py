@@ -191,7 +191,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, cf
             print('no fundamental frequencies are consistent in all power spectra')
 
     # detect pulse fish:
-    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, verbose=verbose)
+    _, eod_times, eod_peaktimes, zoom_window = extract_pulsefish(data, samplerate, name, verbose=verbose)
             
     # analysis results:
     eod_props = []
