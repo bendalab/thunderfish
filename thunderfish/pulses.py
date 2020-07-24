@@ -33,7 +33,8 @@ from sklearn.metrics import pairwise_distances
 from scipy.interpolate import interp1d
 
 from .eventdetection import detect_peaks
-from .pulseplots import *
+from .pulse_tracker_helper import makeeventlist, discard_connecting_eods
+from .plots_for_paper import *
 
 import pickle
 
@@ -271,7 +272,7 @@ def extract_eod_times(data, samplerate, width_factor, interp_freq=500000, max_pe
         else:
             min_peakwidth = min_peakwidth*interp_freq
 
-        peaks, troughs, hights, widths, apeaks, atroughs, ahights, awidths = detect_eod_peaks(orig_x_peaks, orig_x_troughs, data, max_peakwidth*interp_freq, min_peakwidth, verbose=verbose-1)
+        peaks, troughs, hights, widths, apeaks, atroughs, ahights, awidths = makeeventlist(orig_x_peaks, orig_x_troughs, data, max_peakwidth*interp_freq, min_peakwidth, verbose=verbose-1)
         x_peaks, x_troughs, eod_hights, eod_widths = discard_connecting_eods(peaks, troughs, hights, widths, verbose=verbose-1)
         
         if save_data:
@@ -342,123 +343,6 @@ def detect_threshold(data, samplerate, win_size = 0.0005, n_stds = 1000, thresho
 
     return np.median(np.array(stds))*threshold_factor
 
-def detect_eod_peaks(main_event_positions, side_event_positions, data, max_width=20, min_width=2,verbose=0):
-    """
-    Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs,
-    the data and the minimum and maximum width of an supposed EOD-event.
-    The generated event-arrays include the location, heights and widths of such events.
-
-    Parameters
-    ----------
-    main_event_positions: array of int or float
-        Positions of the detected peaks in the data time series.
-    side_event_positions: array of int or float
-        Positions of the detected troughs in the data time series. 
-        The complimentary event to the main events.
-    data: array of float
-        The given data.
-    max_width (optional): int
-        Maximum EOD width (in samples).
-    min_width (optional): int
-        Minimum EOD width (in samples).
-    verbose (optional): int
-        Verbosity level.
-
-    Returns
-    -------
-    x_peak: numpy array
-        Peak indices.
-    x_trough: numpy array
-        Trough indices.
-    hights: numpy array
-        Peak hights (distance between peak and trough amplitude)
-    widths: numpy array
-        Peak widths (distance between peak and trough indices)
-    """
-
-    # determine if there is a peak or through first. Evaluate to 1 if there is a peak first.
-    mainfirst = int((min(main_event_positions[0],side_event_positions[0])<side_event_positions[0]))
-    # determine if there is a peak or through last. Evaluate to 1 if there is a peak last.
-    mainlast = int((max(main_event_positions[-1],side_event_positions[-1])>side_event_positions[-1]))
-
-    x_peak = main_event_positions[mainfirst:len(main_event_positions)-mainlast]
-    ind = np.arange(len(x_peak))
-    y = data[x_peak]
-    
-    # find indices of troughs on the right and left side of peaks
-    l_side_ind = ind
-    r_side_ind = l_side_ind + 1
-
-    # determine x values, distance to peak and amplitude of right troughs
-    r_side_x = side_event_positions[r_side_ind]
-    r_distance = np.abs(r_side_x - x_peak)
-    r_side_y = data[r_side_x]
-
-    # determine x values, distance to peak and amplitude of left troughs
-    l_side_x = side_event_positions[l_side_ind]
-    l_distance = np.abs(x_peak - l_side_x)
-    l_side_y = data[l_side_x]
-
-    # determine slope of lines connecting the peaks to the nearest troughs on the right and left.
-    l_slope = np.abs((y-l_side_y)/l_distance)
-    r_slope = np.abs((y-r_side_y)/r_distance)
-
-    # determine which trough to assign to the peak by taking either the steepest slope,
-    # or, when slopes are similar on both sides (within 25% difference), take the trough 
-    # with the maximum hight difference to the peak.
-    trough_idxs = np.argmax(np.vstack((np.abs(y-l_side_y),np.abs(y-r_side_y))),axis=0)
-    slope_idxs = (np.abs(l_slope-r_slope)/(0.5*l_slope+0.5*r_slope) > 0.25)
-    trough_idxs[slope_idxs] = np.argmax(np.array(np.vstack(np.array([l_slope[slope_idxs],r_slope[slope_idxs]]))),axis=0)
-
-    #calculated using absolutes in case of for example troughs instead of peaks as main events 
-    right_or_left = np.vstack([np.abs(trough_idxs-1),trough_idxs])
-    hights = np.sum(np.vstack([np.abs(y-l_side_y),np.abs(y-r_side_y)])*right_or_left,axis=0)
-    widths = np.sum(np.vstack([l_distance,r_distance])*right_or_left,axis=0)
-    x_trough = np.sum((x_peak + np.vstack([-l_distance,r_distance]))*right_or_left,axis=0)
-
-    keep_events = ((widths>min_width) & (widths<max_width))
-
-
-    if verbose>0:
-        print('Number of peaks after connecting to sidepeaks:          %5i'%(len(x_peak[keep_events])))
-
-    return x_peak[keep_events], x_trough[keep_events], hights[keep_events], widths[keep_events], x_peak, x_trough, hights, widths
-
-@jit(nopython=True)
-def discard_connecting_eods(x_peak, x_trough, hights, widths, verbose=0):
-    """
-    If two detected EODs share the same closest trough, keep only the highest peak
-
-    Parameters
-    ----------
-    x_peak: list of ints
-        Indices of EOD peaks.
-    x_trough: list of ints
-        Indices of EOD troughs.
-    hights: list of floats
-        EOD hights.
-    widths: list of ints
-        EOD widths.
-    verbose (optional): int
-        Verbosity level.
-
-    Returns
-    -------
-    x_peak, x_trough, hights, widths : lists of ints and floats
-        EOD location and features of the non-discarded EODs
-    """
-    keep_idxs = np.ones(len(x_peak))
-
-    for tr in np.unique(x_trough):
-        if len(x_trough[x_trough==tr]) > 1:
-            slopes = hights[x_trough==tr]/widths[x_trough==tr]
-
-            if (np.max(slopes)!=np.min(slopes)) and (np.abs(np.max(slopes)-np.min(slopes))/(0.5*np.max(slopes)+0.5*np.min(slopes)) > 0.25):
-                keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr]/widths[x_trough==tr])]] = 0
-            else:
-                keep_idxs[np.where(x_trough==tr)[0][np.argmin(hights[x_trough==tr])]] = 0
-            
-    return x_peak[np.where(keep_idxs==1)[0]], x_trough[np.where(keep_idxs==1)[0]], hights[np.where(keep_idxs==1)[0]], widths[np.where(keep_idxs==1)[0]]
 
 def cluster(eod_xp, eod_xt, eod_hights, eod_widths, data, samplerate, interp_f, width_factor_shape, width_factor_wave, fname='',
             n_gaus_hight=10, merge_threshold_hight=0.1, n_gaus_width=3, merge_threshold_width=0.5, minp=10,
