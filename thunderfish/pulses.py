@@ -65,7 +65,7 @@ def unique_counts(ar):
 
 ###################################################################################
 
-def extract_pulsefish(data, samplerate, fname, width_factor_shape=3, width_factor_wave=8, width_factor_display=4, verbose=0, plot_level=0, save_plots=False,  ftype='pdf', save_data=False, **kwargs):
+def extract_pulsefish(data, samplerate, fname, width_factor_shape=3, width_factor_wave=8, width_factor_display=4, verbose=0, plot_level=0, save_plots=True,  ftype='pdf', save_data=False, **kwargs):
     """ Extract and cluster pulse fish EODs from recording.
     
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
@@ -611,10 +611,10 @@ def cluster(eod_xp, eod_xt, eod_hights, eod_widths, data, samplerate, interp_f, 
             t_clusters = cluster_on_shape(t_features[hight_labels==hight_label],t_bg_ratio,minp,verbose=0)            
             
             if plot_level>1:
-                plot_feature_extraction(raw_p_snippets[hight_labels==hight_label],p_snippets[hight_labels==hight_label],p_features[hight_labels==hight_label],p_clusters,1/samplerate)
-                plt.savefig('%spca_peak_w%i_h%i.%s'%(save_path,wi,hi,ftype))
-                plot_feature_extraction(raw_t_snippets[hight_labels==hight_label],t_snippets[hight_labels==hight_label],t_features[hight_labels==hight_label],t_clusters,1/samplerate)
-                plt.savefig('%spca_trough_w%i_h%i.%s'%(save_path,wi,hi,ftype))
+                plot_feature_extraction(raw_p_snippets[hight_labels==hight_label],p_snippets[hight_labels==hight_label],p_features[hight_labels==hight_label],p_clusters,1/samplerate,width_label,hight_label,'peak')
+                plt.savefig('%sDBSCAN_peak_w%i_h%i.%s'%(save_path,wi,hi,ftype))
+                plot_feature_extraction(raw_t_snippets[hight_labels==hight_label],t_snippets[hight_labels==hight_label],t_features[hight_labels==hight_label],t_clusters,1/samplerate,width_label,hight_label,'trough')
+                plt.savefig('%sDBSCAN_trough_w%i_h%i.%s'%(save_path,wi,hi,ftype))
 
             if plot_level>0:
                 asl.append([p_clusters,t_clusters])
@@ -1406,9 +1406,12 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, m
 
     if plot_level>0:
         fig=plt.figure()
-        gs = gridspec.GridSpec(wc_num*2,1,figure=fig,wspace=0,hspace=0) 
+        gs = gridspec.GridSpec(wc_num,1,figure=fig,wspace=0) 
 
     for iw,w in enumerate(np.unique(width_classes[clusters>=0])):
+
+        if plot_level>0:
+            ax = gridspec.GridSpecFromSubplotSpec(2,1,subplot_spec = gs[iw],hspace=0.0)
 
         # initialize variables
         min_clusters = 100
@@ -1448,7 +1451,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, m
         ulabs = np.unique(wclusters[wclusters>=0])
 
         if plot_level>0:
-            ax1, cnum = plot_moving_fish(fig,gs,iw,wclusters,weod_t,ev_num,dt,weod_widths)
+            ax1, cnum = plot_moving_fish(fig,ax,iw,wclusters,weod_t,ev_num,dt,weod_widths)
 
         # sliding window
         for j,(t,ignore_step) in enumerate(zip(x, ignore_steps)):
@@ -1478,7 +1481,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, m
         all_windows.append(window_end)
 
         if plot_level>0:
-            plot_fishcount(fig,ax1,ev_num,cnum,T,gs,iw,wc_num,x,y,dt,ignore_steps)
+            plot_fishcount(fig,ax1,ev_num,cnum,T,ax,iw,wc_num,x,y,dt,ignore_steps)
             if save_plot:
                 plt.savefig('%sdelete_moving_fish.%s'%(save_path,ftype))
 

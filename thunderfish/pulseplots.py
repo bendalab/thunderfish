@@ -38,7 +38,11 @@ cmap3 = plt.get_cmap('YlOrBr_r')
 def loghist(ax,x,bmin,bmax,n,c,orientation='vertical',label=''):
 	return ax.hist(x,bins=np.exp(np.linspace(np.log(bmin),np.log(bmax),n)),color=c,orientation=orientation,label=label)
 
-def plot_clustering(all_clusters,all_clusters_ad,clusters_merge,uwl,all_uhl,width_labels,all_hightlabels,all_shapelabels,eod_widths,eod_hights,all_snippets,all_features):
+def plot_clustering(all_clusters,all_clusters_ad,merge_mask,uwl,all_uhl,width_labels,all_hightlabels,all_shapelabels,eod_widths,eod_hights,all_snippets,all_features):
+
+	clusters_merge = np.copy(all_clusters)
+	clusters_merge[0,merge_mask[0]==0] = -1
+	clusters_merge[1,merge_mask[1]==0] = -1
 
 	ad_count = 0
 	merge_count = 0
@@ -57,7 +61,16 @@ def plot_clustering(all_clusters,all_clusters_ad,clusters_merge,uwl,all_uhl,widt
 	gl = len(all_hightlabels)*mh
 
 	# set up the figure layout
-	outer = gridspec.GridSpec(1,5,width_ratios=[1,1,2,1,2])
+	outer = gridspec.GridSpec(1,5,width_ratios=[1,1,2,1,2],left=0.05,right=0.95)
+
+	titles = ['1. Widths','2. Heights','3. Shape','4. Pulse EODs','5. Merge']
+	for i in range(5):
+		title1 = gridspec.GridSpecFromSubplotSpec(1,1,subplot_spec = outer[i])
+		ax = fig.add_subplot(title1[0])
+		ax.text(0,110,titles[i],ha='center',va='bottom',clip_on=False)
+		ax.set_xlim([-100,100])
+		ax.set_ylim([-100,100])
+		ax.axis('off')
 
 	width_hist_ax = gridspec.GridSpecFromSubplotSpec(1,1,subplot_spec = outer[0])
 	hight_hist_ax = gridspec.GridSpecFromSubplotSpec(len(uwl),1,subplot_spec = outer[1])
@@ -85,14 +98,14 @@ def plot_clustering(all_clusters,all_clusters_ad,clusters_merge,uwl,all_uhl,widt
 		ax1.spines['bottom'].set_visible(False)
 		ax1.axes.xaxis.set_visible(False)
 		ax1.axes.yaxis.set_visible(False)
-		ax1.set_title('1.')
+		#ax1.set_title('1. Cluster on width')
 
 		my,b = np.histogram(eod_hights,bins=np.exp(np.linspace(np.min(np.log(eod_hights)),np.max(np.log(eod_hights)),100)))
 		maxy = np.max(my)
 		
 		ax2 = fig.add_subplot(hight_hist_ax[len(uwl)-i-1])
-		if len(uwl)-i-1 == 0:
-			ax2.set_title('2.')
+		#if len(uwl)-i-1 == 0:
+			#ax2.set_title('2. Cluster on height')
 
 		ax2.set_yscale('log')
 		ax2.set_xscale('log')
@@ -137,8 +150,8 @@ def plot_clustering(all_clusters,all_clusters_ad,clusters_merge,uwl,all_uhl,widt
 			for pt in [0,1]:
 				
 				ax3 = fig.add_subplot(shape_windows[msum-1-newplot][pt,0])
-				if msum-1-newplot ==0:
-					ax3.set_title('3.')
+				#if msum-1-newplot + pt ==0:
+				#	ax3.set_title('3. Cluster on EOD shape')
 				ax4 = fig.add_subplot(shape_windows[msum-1-newplot][pt,1])
 				
 				ax3.axes.xaxis.set_visible(False)
@@ -161,8 +174,8 @@ def plot_clustering(all_clusters,all_clusters_ad,clusters_merge,uwl,all_uhl,widt
 							#npa = len(np.unique(c_ad[1][c_ad[1]>=0]))
 
 							ax = fig.add_subplot(EOD_delete_ax[del_ax_sum - n_block + ad_count])
-							if del_ax_sum - n_block + ad_count == 0:
-								ax.set_title('4.')
+							#if del_ax_sum - n_block + ad_count == 0:
+							#	ax.set_title('4. Select EODs')
 							
 							ax.axis('off')
 							ax.plot(np.mean(cs[pt][asll[pt]==c],axis=0),color=cmap1(colidxs[j]))
@@ -176,10 +189,10 @@ def plot_clustering(all_clusters,all_clusters_ad,clusters_merge,uwl,all_uhl,widt
 							fig.lines.append(line)	
 							axs.append(ax)
 
-							if np.sum(c_merge[pt,asll[pt]==c])>0:
+							if np.sum(c_merge[pt,asll[pt]==c])>=0:
 								ax = fig.add_subplot(EOD_merge_ax[merge_ax_sum-1-merge_count])
-								if merge_ax_sum-1-merge_count ==0:
-									ax.set_title('5.')
+								#if merge_ax_sum-1-merge_count ==0:
+								#	ax.set_title('5. Merge clusters')
 								ax.axis('off')
 								ax.plot(np.mean(cs[pt][asll[pt]==c],axis=0),color=cmap1(colidxs[j]))
 								merge_count = merge_count + 1
@@ -204,6 +217,7 @@ def plot_clustering(all_clusters,all_clusters_ad,clusters_merge,uwl,all_uhl,widt
 					fig.lines.append(line)
 				
 			newplot = newplot+1
+	#plt.suptitle('Pulse EOD clustering.')
 
 def plot_bgm(model,x,x_transform,labels,labels_before_merge, xlab,use_log):	
 	
@@ -309,8 +323,9 @@ def plot_bgm(model,x,x_transform,labels,labels_before_merge, xlab,use_log):
 		ax1.set_xscale('log')
 	ax1.set_xlabel(xlab)
 	plt.tight_layout()
+	#plt.suptitle('BGM on EOD %s'%xlab.split(' ')[0])
 
-def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels, dt):
+def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels, dt,wl,hl,pt):
 	# set up the figure layout
 	fig = plt.figure(figsize=(8,4))
 	outer = gridspec.GridSpec(1,2)
@@ -401,6 +416,8 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
            title='Cluster #'
            )
 	plt.subplots_adjust(right=0.85)
+	#plt.subplots_adjust(top=0.8)
+	#plt.suptitle('Feature extraction and DBSCAN.\n(%s centered, width class=%i, height class=%i)'%(pt,wl,hl))
 
 def plot_EOD_discarding(mean_eods, ffts, N):
 	fig = plt.figure(figsize=(5,5))
@@ -422,7 +439,7 @@ def plot_EOD_discarding(mean_eods, ffts, N):
 
 
 def plot_moving_fish(fig,gs,iw,wclusters,weod_t,ev_num,dt,weod_widths):
-	ax1 = fig.add_subplot(gs[iw*2])
+	ax1 = fig.add_subplot(gs[0])
 	cnum = 0
 	for c in np.unique(wclusters[wclusters>=0]):
 	    plt.eventplot(weod_t[wclusters==c],lineoffsets=ev_num,linelengths=0.5,color=cmap(iw))
@@ -438,7 +455,7 @@ def plot_moving_fish(fig,gs,iw,wclusters,weod_t,ev_num,dt,weod_widths):
 
 def plot_fishcount(fig,ax1,ev_num,cnum,T,gs,iw,wc_num,x,y,dt,ignore_steps):
     ax1.set_ylabel('cluster #')
-    ax1.set_yticks(range(ev_num-cnum,ev_num))
+    ax1.set_yticks(range(ev_num,-(ev_num-cnum)))
     ax1.set_xlabel('time')
     
     #plt.legend(frameon=False)
@@ -449,7 +466,7 @@ def plot_fishcount(fig,ax1,ev_num,cnum,T,gs,iw,wc_num,x,y,dt,ignore_steps):
     ax1.spines['right'].set_visible(False)
     ax1.spines['left'].set_visible(False)
 
-    ax2 = fig.add_subplot(gs[2*iw+1])
+    ax2 = fig.add_subplot(gs[1])
     ax2.spines['top'].set_visible(False)
     ax2.spines['right'].set_visible(False)
     ax2.spines['left'].set_visible(False)
@@ -468,14 +485,15 @@ def plot_fishcount(fig,ax1,ev_num,cnum,T,gs,iw,wc_num,x,y,dt,ignore_steps):
     ax2.set_yticks(range(int(np.min(y)),1+int(np.max(y))))
     ax2.set_xlim([0,T])
 
-    con = ConnectionPatch([0,ev_num-cnum-0.5], [dt/2,y[0]], "data", "data",
+    con = ConnectionPatch([0,ev_num-0.5], [dt/2,y[0]], "data", "data",
         axesA=ax1, axesB=ax2,color='k')
     ax2.add_artist(con)
-    con = ConnectionPatch([dt,ev_num-cnum-0.5], [dt/2,y[0]], "data", "data",
+    con = ConnectionPatch([dt,ev_num-0.5], [dt/2,y[0]], "data", "data",
         axesA=ax1, axesB=ax2,color='k')
     ax2.add_artist(con)
 
     plt.xlim([0,T])
+    #plt.suptitle('Moving fish detection.')
 
 def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
     '''
@@ -528,3 +546,5 @@ def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
             ax.set_ylabel('amplitude [mV]') 
     else:
         plt.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
+
+    #plt.suptitle('Pulse EOD detection results.')
