@@ -412,14 +412,14 @@ class EODExplorer(MultivariateExplorer):
         group_cols = ['EODf']
         if 'EODf_adjust' in data:
             group_cols.append('EODf_adjust')
-        if len(column_groups) == 0:
+            if len(column_groups) == 0:
             column_groups = ['all']
         for group in column_groups:
             if group == 'none':
                 group_cols = []
             elif wave_fish:
                 if group == 'noise':
-                    group_cols.extend(['noise', 'rmserror', 'power',
+                    group_cols.extend(['noise', 'rmserror', 'power', 'thd',
                                        'dbdiff', 'maxdb', 'p-p-amplitude'])
                 elif group == 'timing' or group == 'time':
                     group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
@@ -428,6 +428,7 @@ class EODExplorer(MultivariateExplorer):
                     for k in range(0, max_n):
                         group_cols.append('ampl%d' % k)
                 elif group == 'relampl':
+                    group_cols.append('thd')
                     group_cols.append('reltroughampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
@@ -438,11 +439,13 @@ class EODExplorer(MultivariateExplorer):
                     for k in range(0, max_n):
                         group_cols.append('phase%d' % k)
                 elif group == 'all':
+                    group_cols.append('thd')
                     group_cols.append('reltroughampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                         group_cols.append('phase%d' % k)
                 elif group == 'allpower':
+                    group_cols.append('thd')
                     for k in range(1, max_n):
                         group_cols.append('relpower%d' % k)
                         group_cols.append('phase%d' % k)

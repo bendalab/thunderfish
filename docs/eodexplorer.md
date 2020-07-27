@@ -55,7 +55,7 @@ mouse:
 left click              select data points
 left and drag           rectangular selection and zoom of data points
 shift + left click/drag add data points to selection
-ctrl + left click/drag  add/remove data points to/from selection
+ctrl + left click/drag  remove data points from selection
 double left click       run thunderfish on selected EOD waveform
 
 key shortcuts:

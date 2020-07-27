@@ -290,6 +290,8 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
         - p-p-distance: time between peak and trough relative to EOD period.
         - reltroughampl: amplitude of trough relative to peak amplitude.
         - power: summed power of all harmonics in decibel relative to one.
+        - thd: total harmonic distortion, i.e. square root of sum of amplitudes squared
+          of harmonics relative to amplitude of fundamental.  
         - dbdiff: smoothness of power spectrum as standard deviation of differences in decibel power.
         - maxdb: maximum power of higher harmonics relative to peak power in decibel.
 
@@ -428,6 +430,8 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
         max_harmonics_power = -100.0
     else:
         max_harmonics_power = np.max(db_powers[p_max+n_harmonics:])
+    # total harmonic distortion:
+    thd = np.sqrt(np.sum(spec_data[1:,3]))
 
     # peak and trough amplitudes:
     ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
@@ -458,6 +462,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     props['reltroughampl'] = np.abs(relptampl)
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
+    props['thd'] = thd
     props['dbdiff'] = db_diff
     props['maxdb'] = max_harmonics_power
     
@@ -1642,6 +1647,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
     td.append('p-p-amplitude', unit, '%.5f', wave_props, 'p-p-amplitude')
     td.append('power', 'dB', '%7.2f', wave_props, 'power')
+    td.append('thd', '%', '%.2f', wave_props, 'thd', 100.0)
     td.append('dbdiff', 'dB', '%7.2f', wave_props, 'dbdiff')
     td.append('maxdb', 'dB', '%7.2f', wave_props, 'maxdb')
     if 'rmssem' in wave_props[0]:
