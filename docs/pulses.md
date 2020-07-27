@@ -6,4 +6,4 @@ Automatically detect and classify pulse-type EODs.
 ### Clustering
 blabla
 ### 
-![lkj](file:img/clustering.PNG)
+![lkj](img/clustering.PNG)
