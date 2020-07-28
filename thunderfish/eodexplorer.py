@@ -412,7 +412,7 @@ class EODExplorer(MultivariateExplorer):
         group_cols = ['EODf']
         if 'EODf_adjust' in data:
             group_cols.append('EODf_adjust')
-            if len(column_groups) == 0:
+        if len(column_groups) == 0:
             column_groups = ['all']
         for group in column_groups:
             if group == 'none':
@@ -420,7 +420,8 @@ class EODExplorer(MultivariateExplorer):
             elif wave_fish:
                 if group == 'noise':
                     group_cols.extend(['noise', 'rmserror', 'power', 'thd',
-                                       'dbdiff', 'maxdb', 'p-p-amplitude'])
+                                       'dbdiff', 'maxdb', 'p-p-amplitude',
+                                       'relampl1', 'relampl2', 'relampl3'])
                 elif group == 'timing' or group == 'time':
                     group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
                                        'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
@@ -694,6 +695,8 @@ def main():
             idx = data[r,'index']
         skips = ''
         if wave_fish:
+            harm_rampl = np.array([0.01*data[r,'relampl%d'%(k+1)] for k in range(3)
+                                   if 'relampl%d'%(k+1) in data])
             props = data.row_dict(r)
             if 'clipped' in props:
                 props['clipped'] *= 0.01 
@@ -701,7 +704,9 @@ def main():
                 props['noise'] *= 0.01 
             if 'rmserror' in props:
                 props['rmserror'] *= 0.01
-            _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
+            if 'thd' in props:
+                props['thd'] *= 0.01 
+            _, skips, msg = wave_quality(props, harm_rampl, **wave_quality_args(cfg))
         else:
             props = data.row_dict(r)
             if 'clipped' in props:

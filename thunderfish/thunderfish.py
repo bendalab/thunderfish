@@ -322,7 +322,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
                                     if idx not in rm_indices], dtype=np.int)
             break
         # add good waveforms only:
-        remove, skips, msg = wave_quality(props, **wave_quality_args(cfg))
+        remove, skips, msg = wave_quality(props, sdata[1:,3], **wave_quality_args(cfg))
         if len(skips) == 0:
             wave_indices[idx] = props['index']
             eod_props.append(props)
