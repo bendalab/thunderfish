@@ -638,7 +638,7 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
             twidth = (1+twidth//0.005)*0.005
         plot_eod_recording(axr, data, samplerate, twidth, unit, idx0/samplerate)
         plot_pulse_eods(axr, data, samplerate, zoom_window, twidth, eod_props, idx0/samplerate,
-                        colors=pulse_colors, markers=pulse_markers, frameon=False)
+                        colors=pulse_colors, markers=pulse_markers, frameon=True, loc='upper right')
         if axr.get_legend() is not None:
             axr.get_legend().get_frame().set_color('white')
         axr.set_title('Recording', fontsize=14, y=1.05)
