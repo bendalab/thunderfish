@@ -31,7 +31,8 @@ tank.
    (powerspectrum module) and potential EOD frequencies of wave-type
    fish are detected in this power spectrum based on their harmonic
    structure (harmonics module).
-3. EODs of pulse-type fish are detected and clustered.
+3. EODs of pulse-type fish are detected and clustered according to
+   their width, amplitude, and shape.
 4. For each pulse and wave-type fish detected in the recording an
    averaged waveform is computed and its properties are analyzed
    (eodanalysis module)
@@ -125,6 +126,7 @@ This first reads in all configuration files found (see below) and then writes
 the file `thunderfish.cfg` into the current working directory.
 
 Whenever you run thunderfish it searches for configuration files in 
+
 1. the current working directory 
 2. the directory of each input file
 3. the parent directories of each input file, up to three levels up.
@@ -207,6 +209,7 @@ you do not need to touch at all. Here is a list of the few that matter
 ## Summary plot
 
 In the plot you can press
+
 - `q`: Close the plot and show the next one or quit.
 - `p`: Play the analyzed section of the reording on the default audio device.
 - `o`: Switch on zoom mode. You can draw a rectangle with the mouse to zoom in.
@@ -223,7 +226,7 @@ Output files are placed in the current working directory if no path is
 specified via the `-o` switch. If the path specified via `-o` does not
 exist it is created.
 
-With the -k switch the pathes of the input files are appended to the
+With the `-k` switch the pathes of the input files are appended to the
 output path. This allows you to analyse recordings organized in a
 nested directory structure in one step and write the files in the same
 structure. For example:
@@ -244,6 +247,7 @@ analysis/
 To make use of all the cores of your CPU apply the `-j` switch.
 
 The following files are generated:
+
 - `RECORDING-eodwaveform-N.EXT`: averaged EOD waveform
 - `RECORDING-waveeodfs.EXT`: list of all detected EOD frequencies and powers of wave-type fish
 - `RECORDING-wavefish.EXT`: list of properties of good EODs of wave-type fish
@@ -312,6 +316,7 @@ For each fish the average waveform with standard deviation and fit.
 </table>
 
 The columns contain:
+
 1. `time` Time in milliseconds.
 2. `mean` Averaged waveform in the unit of the input data.
 3. `std` Corresponding standard deviation.
@@ -362,6 +367,7 @@ These might be more than listed in `RECORDING-wavefish.EXT`.
 </table>
 
 The columns contain:
+
 1. `index` Index of the fish (the number that is also used to number the files).
 2. `EODf` EOD frequency in Hertz.
 3. `power` Power of this EOD in decibel (sum over all peaks in the power spectrum 
@@ -523,6 +529,7 @@ wave-type fish detected in the recording.
 </table>
 
 The columns contain:
+
 1. `index` Index of the fish (the number that is also used to number the files).
 2. `EODf` EOD frequency in Hertz.
 3. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
@@ -624,6 +631,7 @@ The parameter of the Fourier series fitted to the waveform of a wave-type fish.
 </table>
 
 The columns contain:
+
 1. `harmonics` Index of the harmonics. The first one with index 0 is the fundamental frequency.
 2. `frequency` Frequency of the harmonics in Hertz.
 3. `amplitude` Amplitude of each harmonics obtained by fitting a Fourier series to the data in the unit of the input data.
@@ -718,6 +726,7 @@ Properties of each pulse-type fish detected in the recording.
 </table>
 
 The columns contain:
+
 1. `index` Index of the fish (the number that is also used to number the files).
 2. `EODf` EOD frequency in Hertz.
 3. `period` Period between two pulses (1/EODf) in milliseconds.
@@ -782,6 +791,7 @@ Properties of peaks and troughs of a pulse-type fish's EOD.
 </table>
 
 The columns contain:
+
 1. `P` Name of the peak/trough. Peaks and troughs are numbered sequentially. P1 is the 
    largest peak with positive amplitude.
 2. `time` Time of the peak/trough relative to P1 in milliseconds.
@@ -834,6 +844,7 @@ The power spectrum of a single EOD pulse of a pulse-type fish:
 </table>
 
 The columns contain:
+
 1. `frequency` Frequency in Hertz.
 2. `power` Power spectral density.
 
