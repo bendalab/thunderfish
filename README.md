@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/bendalab/thunderfish.svg?branch=master)](https://travis-ci.org/bendalab/thunderfish)
 [![codecov](https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/bendalab/thunderfish)
+[![PyPI version](https://badge.fury.io/py/thunderfish.svg)](https://badge.fury.io/py/thunderfish)
 
 # thunderfish
 
@@ -15,6 +16,20 @@ tools for analysing both wavefish and pulsefish EODs.
 [Documentation](https://bendalab.github.io/thunderfish)
 
 [Git Repository](https://github.com/bendalab/thunderfish)
+
+[PyPI](https://pypi.org/project/thunderfish)
+
+
+## Installation
+
+Simply run (as superuser):
+```
+pip install thunderfish
+```
+
+If you have problems loading audio files with thunderfish, then you
+need to install further packages. Follow the installation instructions
+of the [audioio](https://bendalab.github.io/audioio/) package.
 
 
 ## Software
