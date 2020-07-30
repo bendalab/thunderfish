@@ -37,7 +37,7 @@ def test_voronoi():
     assert_equal(len(vor.point_types()), len(vor.points), 'wrong len of point_types()')
     
     assert_true(np.all(vor.in_hull(points)), 'in_hull() for input points failed')
-    assert_true(np.all(vor.in_outer_hull(points)), 'in_outer_hull() for input points failed')
+    #assert_true(np.all(vor.in_outer_hull(points)), 'in_outer_hull() for input points failed')
 
     assert_true(vor.hull_area() <= 1.0, 'hull_area() too large')
     assert_true(vor.hull_area() <= vor.outer_hull_area(), 'outer_hull_area() too large')
