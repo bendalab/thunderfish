@@ -70,24 +70,33 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard error.
 
-    Retrieving the EOD waveform of a wave fish works under the following conditions:
-    (i) at a signal-to-noise ratio $SNR = P_s/P_n$, i.e. the power of the EOD
-    of interest relative to the largest other EOD, we need to average over at least
-    $n > (SNR c_s^2)^{-1}$ snippets to bring the standard error of the averaged EOD waveform
-    down to $c_s$ relative to its amplitude. For a s.e.m. less than 5% ($c_s=0.05$) and
-    an SNR of -10dB (the signal is 10 times smaller than the noise, SNR=0.1) we get
-    $n > 0.00025^{-1} = 4000$ data snippets - a recording a couple of seconds long.
-    (ii) Very important for wave fish is that they keep their frequency constant.
-    Slight changes in the EOD frequency will corrupt the average waveform.
-    If the period of the waveform changes by \\(c_f=\\Delta T/T\\), then after
-    $n = 1/c_f$ periods moved the modified waveform through a whole period.
+    Retrieving the EOD waveform of a wave fish works under the following
+    conditions: (i) at a signal-to-noise ratio \\(SNR = P_s/P_n\\),
+    i.e. the power \\(P_s\\) of the EOD of interest relative to the
+    largest other EOD \\(P_n\\), we need to average over at least \\(n >
+    (SNR c_s^2)^{-1}\\) snippets to bring the standard error of the
+    averaged EOD waveform down to \\(c_s\\) relative to its
+    amplitude. For a s.e.m. less than 5% (\\(c_s=0.05\\)) and an SNR of
+    -10dB (the signal is 10 times smaller than the noise, SNR=0.1) we
+    get \\(n > 0.00025^{-1} = 4000\\) data snippets - a recording a
+    couple of seconds long.  (ii) Very important for wave fish is that
+    they keep their frequency constant.  Slight changes in the EOD
+    frequency will corrupt the average waveform.  If the period of the
+    waveform changes by \\\(c_f=\\Delta T/T\\\), then after \\(n =
+    1/c_f\\) periods moved the modified waveform through a whole period.
     This is in the range of hundreds or thousands waveforms.
 
-    If `min_sem` is set, the algorithm checks for a global minimum of the s.e.m.
-    as a function of snippet number. If there is one then the average is computed
-    for this number of snippets, otherwise all snippets are taken from the provided
-    data segment. Note that this check only works for the strongest EOD in a recording.
-    For weaker EOD the s.e.m. always decays with snippet number (empirical observation).
+    NOTE: we need to take into account a possible error in the estimate
+    of the EOD period. This will limit the maximum number of snippets to
+    be averaged.
+
+    If `min_sem` is set, the algorithm checks for a global minimum of
+    the s.e.m.  as a function of snippet number. If there is one then
+    the average is computed for this number of snippets, otherwise all
+    snippets are taken from the provided data segment. Note that this
+    check only works for the strongest EOD in a recording.  For weaker
+    EOD the s.e.m. always decays with snippet number (empirical
+    observation).
 
     TODO: use power spectra to check for changes in EOD frequency!
 
@@ -189,7 +198,7 @@ def unfilter(data, samplerate, cutoff):
     samplerate: float
         Sampling rate of `data` in Hertz.
     cutoff: float
-        Cutoff frequency $f_{cutoff}$ of the high-pass filter in Hertz.
+        Cutoff frequency \\(f_{cutoff}\\) of the high-pass filter in Hertz.
 
     Returns:
     --------
@@ -290,6 +299,8 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
         - p-p-distance: time between peak and trough relative to EOD period.
         - reltroughampl: amplitude of trough relative to peak amplitude.
         - power: summed power of all harmonics in decibel relative to one.
+        - thd: total harmonic distortion, i.e. square root of sum of amplitudes squared
+          of harmonics relative to amplitude of fundamental.  
         - dbdiff: smoothness of power spectrum as standard deviation of differences in decibel power.
         - maxdb: maximum power of higher harmonics relative to peak power in decibel.
 
@@ -428,6 +439,8 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
         max_harmonics_power = -100.0
     else:
         max_harmonics_power = np.max(db_powers[p_max+n_harmonics:])
+    # total harmonic distortion:
+    thd = np.sqrt(np.sum(spec_data[1:,3]))
 
     # peak and trough amplitudes:
     ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
@@ -458,6 +471,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     props['reltroughampl'] = np.abs(relptampl)
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
+    props['thd'] = thd
     props['dbdiff'] = db_diff
     props['maxdb'] = max_harmonics_power
     
@@ -953,9 +967,10 @@ def pulse_clipped_fraction(data, samplerate, eod_times, mean_eod,
     return clipped_frac
 
 
-def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
+def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
                  max_crossings=4, max_rms_sem=0.0, max_rms_error=0.05,
-                 min_power=-100.0, max_db_diff=20.0, max_harmonics_db=-5.0):
+                 min_power=-100.0, max_thd=0.0, max_db_diff=20.0, max_harmonics_db=-5.0,
+                 max_relampl_harm1=0.0, max_relampl_harm2=0.0, max_relampl_harm3=0.0):
     """
     Assess the quality of an EOD waveform of a wave fish.
     
@@ -964,6 +979,8 @@ def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
     props: dict
         A dictionary with properties of the analyzed EOD waveform
         as returned by `analyze_wave()`.
+    harm_relampl: 1-D array of floats or None
+        Relative amplitude of at least the first 3 harmonics without the fundamental.
     min_freq: float
         Minimum EOD frequency (`props['EODf']`).
     max_freq: float
@@ -981,12 +998,23 @@ def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
         Fourier fit relative to p-p amplitude (`props['rmserror']`).
     min_power: float
         Minimum power of the EOD in dB (`props['power']`).
+    max_thd: float
+        If larger than zero, then maximum total harmonic distortion (`props['thd']`).
     max_db_diff: float
         If larger than zero, maximum standard deviation of differences between
         logarithmic powers of harmonics in decibel (`props['dbdiff']`).
         Low values enforce smoother power spectra.
     max_harmonics_db:
         Maximum power of higher harmonics relative to peak power in decibel (`props['maxdb']`).
+    max_relampl_harm1: float
+        If larger than zero, maximum allowed amplitude of first harmonic
+        relative to fundamental.
+    max_relampl_harm2: float
+        If larger than zero, maximum allowed amplitude of second harmonic
+        relative to fundamental.
+    max_relampl_harm3: float
+        If larger than zero, maximum allowed amplitude of third harmonic
+        relative to fundamental.
                                        
     Returns
     -------
@@ -1050,6 +1078,13 @@ def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
         if power < min_power:
             skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
                             (power, min_power)]
+    # total harmonic distortion:
+    if 'thd' in props:
+        thd = props['thd']
+        msg += ['thd=%5.1f%%' % (100.0*thd)]
+        if max_thd > 0.0 and thd > max_thd:
+            skip_reason += ['large THD=%5.1f%% (max %5.1f%%)' %
+                            (100.0*thd, 100.0*max_thd)]
     # smoothness of spectrum:
     if 'dbdiff' in props:
         db_diff = props['dbdiff']
@@ -1066,6 +1101,13 @@ def wave_quality(props, min_freq=0.0, max_freq=2000.0, max_clipped_frac=0.1,
             remove = True
             skip_reason += ['maximum harmonics=%5.1fdB too strong (max %5.1fdB)' %
                             (max_harmonics, max_harmonics_db)]
+    # relative amplitude of harmonics:
+    if harm_relampl is not None:
+        for k, max_relampl in enumerate([max_relampl_harm1, max_relampl_harm2, max_relampl_harm3]):
+            msg += ['ampl%d=%5.1f%%' % (k+1, 100.0*harm_relampl[k])]
+            if max_relampl > 0.0 and k < len(harm_relampl) and harm_relampl[k] >= max_relampl:
+                skip_reason += ['distorted ampl%d=%5.1f%% (max %5.1f%%)' %
+                                (k+1, 100.0*harm_relampl[k], 100.0*max_relampl)]
     return remove, ', '.join(skip_reason), ', '.join(msg)
 
 
@@ -1642,6 +1684,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
     td.append('p-p-amplitude', unit, '%.5f', wave_props, 'p-p-amplitude')
     td.append('power', 'dB', '%7.2f', wave_props, 'power')
+    td.append('thd', '%', '%.2f', wave_props, 'thd', 100.0)
     td.append('dbdiff', 'dB', '%7.2f', wave_props, 'dbdiff')
     td.append('maxdb', 'dB', '%7.2f', wave_props, 'maxdb')
     if 'rmssem' in wave_props[0]:
@@ -1937,7 +1980,9 @@ def analyze_pulse_args(cfg):
 
 
 def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
-                           max_rms_error=0.05, min_power=-100.0, max_crossings=4):
+                           max_rms_error=0.05, min_power=-100.0, max_thd=0.0,
+                           max_crossings=4, max_relampl_harm1=0.0,
+                           max_relampl_harm2=0.0, max_relampl_harm3=0.0):
     """Add parameters needed for assesing the quality of an EOD waveform.
 
     Parameters
@@ -1953,7 +1998,11 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
     cfg.add('maximumVariance', max_variance, '', 'Skip waveform of fish if the standard error of the EOD waveform relative to the peak-to-peak amplitude is larger than this number. A value of zero allows any variance.')
     cfg.add('maximumRMSError', max_rms_error, '', 'Skip waveform of wave fish if the root-mean-squared error of the fit relative to the peak-to-peak amplitude is larger than this number.')
     cfg.add('minimumPower', min_power, 'dB', 'Skip waveform of wave fish if its power is smaller than this value.')
+    cfg.add('maximumTotalHarmonicDistortion', max_thd, '', 'Skip waveform of wave fish if its total harmonic distortion is larger than this value. If set to zero do not check.')
     cfg.add('maximumCrossings', max_crossings, '', 'Maximum number of zero crossings per EOD period.')
+    cfg.add('maximumFirstHarmonicAmplitude', max_relampl_harm1, '', 'Skip waveform of wave fish if the amplitude of the first harmonic is higher than this factor times the amplitude of the fundamental. If set to zero do not check.')
+    cfg.add('maximumSecondHarmonicAmplitude', max_relampl_harm2, '', 'Skip waveform of wave fish if the ampltude of the second harmonic is higher than this factor times the amplitude of the fundamental. That is, the waveform appears to have twice the frequency than the fundamental. If set to zero do not check.')
+    cfg.add('maximumThirdHarmonicAmplitude', max_relampl_harm3, '', 'Skip waveform of wave fish if the ampltude of the third harmonic is higher than this factor times the amplitude of the fundamental. If set to zero do not check.')
 
 
 def wave_quality_args(cfg):
@@ -1980,8 +2029,12 @@ def wave_quality_args(cfg):
                  'max_crossings': 'maximumCrossings',
                  'min_freq': 'minimumFrequency',
                  'max_freq': 'maximumFrequency',
+                 'max_thd': 'maximumTotalHarmonicDistortion',
                  'max_db_diff': 'maximumPowerDifference',
-                 'max_harmonics_db': 'maximumHarmonicsPower'})
+                 'max_harmonics_db': 'maximumHarmonicsPower',
+                 'max_relampl_harm1': 'maximumFirstHarmonicAmplitude',
+                 'max_relampl_harm2': 'maximumSecondHarmonicAmplitude',
+                 'max_relampl_harm3': 'maximumThirdHarmonicAmplitude'})
     return a
 
 

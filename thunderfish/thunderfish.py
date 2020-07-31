@@ -322,7 +322,7 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
                                     if idx not in rm_indices], dtype=np.int)
             break
         # add good waveforms only:
-        remove, skips, msg = wave_quality(props, **wave_quality_args(cfg))
+        remove, skips, msg = wave_quality(props, sdata[1:,3], **wave_quality_args(cfg))
         if len(skips) == 0:
             wave_indices[idx] = props['index']
             eod_props.append(props)
@@ -638,7 +638,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
             twidth = (1+twidth//0.005)*0.005
         plot_eod_recording(axr, data, samplerate, twidth, unit, idx0/samplerate)
         plot_pulse_eods(axr, data, samplerate, zoom_window, twidth, eod_props, idx0/samplerate,
-                        colors=pulse_colors, markers=pulse_markers)
+                        colors=pulse_colors, markers=pulse_markers, frameon=True, loc='upper right')
+        if axr.get_legend() is not None:
+            axr.get_legend().get_frame().set_color('white')
         axr.set_title('Recording', fontsize=14, y=1.05)
         axr.format_coord = recordingzoom_format_coord
     

@@ -48,7 +48,7 @@ class MultivariateExplorer(object):
     mouse_actions = (('left click', 'select data points'),
                      ('left and drag', 'rectangular selection and zoom of data points'),
                      ('shift + left click/drag', 'add data points to selection'),
-                     ('ctrl + left click/drag',  'add/remove data points to/from selection'))
+                     ('ctrl + left click/drag',  'remove data points from selection'))
         
     key_actions = (('l', 'list selected EOD waveforms on console'),
                    ('p,P', 'toggle between data columns, PC, and scaled PC axis'),
@@ -816,7 +816,7 @@ class MultivariateExplorer(object):
                         if ind in self.mark_data:
                             if key == 'control':
                                 self.mark_data.remove(ind)
-                        else:
+                        elif key != 'control':
                             self.mark_data.append(ind)
             else:
                 # from histogram:
@@ -825,7 +825,7 @@ class MultivariateExplorer(object):
                         if ind in self.mark_data:
                             if key == 'control':
                                 self.mark_data.remove(ind)
-                        else:
+                        elif key != 'control':
                             self.mark_data.append(ind)
         except ValueError:
             try:
@@ -836,7 +836,7 @@ class MultivariateExplorer(object):
                         if ind in self.mark_data:
                             if key == 'control':
                                 self.mark_data.remove(ind)
-                        else:
+                        elif key != 'control':
                             self.mark_data.append(ind)
             except ValueError:
                 return

@@ -969,6 +969,9 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
 
     # decibel power spectrum:
     log_psd = decibel(psd)
+    max_idx = np.argmax(~np.isfinite(log_psd))
+    if max_idx > 0:
+        log_psd = log_psd[:max_idx]
     delta_f = psd_freqs[1] - psd_freqs[0]
 
     # thresholds:

@@ -138,6 +138,8 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             base_path = base_path[2:]
         recording = base_path
         file_pathes.append(os.path.normpath(recording).split(os.path.sep))
+        if verbose > 2:
+            print('processing %s (%s):' % (file_name, recording))
         # find row in meta_data:
         mr = -1
         if meta_data is not None:
@@ -223,16 +225,25 @@ def collect_fish(files, insert_file=True, append_file=False, simplify_file=False
             if fish_type == 'wave':
                 wave_spec = TableData(base_path + '-wavespectrum-%d'%idx + file_ext)
                 if cfg is not None:
+                    spec_data = wave_spec.array()
                     props = data.row_dict(r)
-                    props['clipped'] *= 0.01 
-                    props['noise'] *= 0.01 
-                    props['rmserror'] *= 0.01 
-                    _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
+                    if 'clipped' in props:
+                        props['clipped'] *= 0.01 
+                    if 'noise' in props:
+                        props['noise'] *= 0.01 
+                    if 'rmserror' in props:
+                        props['rmserror'] *= 0.01 
+                    if 'thd' in props:
+                        props['thd'] *= 0.01 
+                    _, skips, msg = wave_quality(props, 0.01*spec_data[1:,3],
+                                                 **wave_quality_args(cfg))
             else:
                 if cfg is not None:
                     props = data.row_dict(r)
-                    props['clipped'] *= 0.01 
-                    props['noise'] *= 0.01
+                    if 'clipped' in props:
+                        props['clipped'] *= 0.01 
+                    if 'noise' in props:
+                        props['noise'] *= 0.01
                     skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
             if len(skips) > 0:
                 if verbose > 1:
@@ -470,6 +481,9 @@ def main():
     if len(meta_file) > 0:
         mds = meta_file.split(':')
         meta_data = mds[0]
+        if not os.path.isfile(meta_data):
+            print('meta data file "%s" not found.' % meta_data)
+            exit()
         md = TableData(meta_data)
         if len(mds) < 2:
             print('no recording column specified for the table in %s. Choose one of' % meta_data)

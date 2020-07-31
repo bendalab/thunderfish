@@ -275,7 +275,10 @@ class EODExplorer(MultivariateExplorer):
         if 'index' in self.eoddata and \
            np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
             for i in indices:
-                print('%s : %d' % (self.eoddata[i,'file'], self.eoddata[i,'index']))
+                if np.isfinite(self.eoddata[i,'index']):
+                    print('%s : %d' % (self.eoddata[i,'file'], self.eoddata[i,'index']))
+                else:
+                    print(self.eoddata[i,'file'])
         else:
             for i in indices:
                 print(self.eoddata[i,'file'])
@@ -416,8 +419,9 @@ class EODExplorer(MultivariateExplorer):
                 group_cols = []
             elif wave_fish:
                 if group == 'noise':
-                    group_cols.extend(['noise', 'rmserror', 'power',
-                                       'dbdiff', 'maxdb', 'p-p-amplitude'])
+                    group_cols.extend(['noise', 'rmserror', 'power', 'thd',
+                                       'dbdiff', 'maxdb', 'p-p-amplitude',
+                                       'relampl1', 'relampl2', 'relampl3'])
                 elif group == 'timing' or group == 'time':
                     group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
                                        'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
@@ -425,6 +429,7 @@ class EODExplorer(MultivariateExplorer):
                     for k in range(0, max_n):
                         group_cols.append('ampl%d' % k)
                 elif group == 'relampl':
+                    group_cols.append('thd')
                     group_cols.append('reltroughampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
@@ -435,11 +440,13 @@ class EODExplorer(MultivariateExplorer):
                     for k in range(0, max_n):
                         group_cols.append('phase%d' % k)
                 elif group == 'all':
+                    group_cols.append('thd')
                     group_cols.append('reltroughampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                         group_cols.append('phase%d' % k)
                 elif group == 'allpower':
+                    group_cols.append('thd')
                     for k in range(1, max_n):
                         group_cols.append('relpower%d' % k)
                         group_cols.append('phase%d' % k)
@@ -688,6 +695,8 @@ def main():
             idx = data[r,'index']
         skips = ''
         if wave_fish:
+            harm_rampl = np.array([0.01*data[r,'relampl%d'%(k+1)] for k in range(3)
+                                   if 'relampl%d'%(k+1) in data])
             props = data.row_dict(r)
             if 'clipped' in props:
                 props['clipped'] *= 0.01 
@@ -695,7 +704,9 @@ def main():
                 props['noise'] *= 0.01 
             if 'rmserror' in props:
                 props['rmserror'] *= 0.01
-            _, skips, msg = wave_quality(props, **wave_quality_args(cfg))
+            if 'thd' in props:
+                props['thd'] *= 0.01 
+            _, skips, msg = wave_quality(props, harm_rampl, **wave_quality_args(cfg))
         else:
             props = data.row_dict(r)
             if 'clipped' in props:

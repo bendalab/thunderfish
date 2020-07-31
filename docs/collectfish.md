@@ -25,7 +25,8 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit
   --version             show program's version number and exit
-  -v                    verbose output
+  -v                    verbosity level: -v for meta data coverage, -vv for
+                        additional info on discarded recordings.
   -t {wave,pulse}       wave-type or pulse-type fish
   -a                    append the file name as the last column
   -c                    remove initial common directories from input files
