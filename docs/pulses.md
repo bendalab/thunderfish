@@ -49,7 +49,7 @@ The clustering algorithm is composed of five steps. First of all, a Gaussian clu
 EOD width is the only feature that remains stable for individual fish, even when they are moving with respect to the recording electrode, and is therefore assumed to be Gaussian distributed for individual fish. 
 A <a href="https://scikit-learn.org/stable/modules/generated/sklearn.mixture.BayesianGaussianMixture.html" target="_blank">Bayesian Gaussian Mixture model (BGM)</a> is applied to all EOD widths, where a mixture of three Gaussians is fit to the distribution. BGM models are suitable when the number of clusters is unknown, as some of the Gaussian fit weights can be set to zero. Therefore, three is merely the maximum number of clusters, where cases with less underlying EOD width distributions should result in less EOD width clusters. A maximum of three width clusters is expected, as EOD width is species dependent, and even though more than three pulsetype fish could be present in one recording, the maximum number of pulse-type fish species found in one wild recording is expected not to exceed three. To prevent faulty EOD width clustering due to sparse data, an extra check is performed, where clusters with a median width similarity of over 50% are merged. 
 
-![lkj](img/BGM_width.png)
+![lkj](img/width_clusters.png)
 #### Feature extraction
 Not only is the EOD peak-trough width a useful feature for classifying EODs, it is also proportional to the entire EOD width, of which an estimate is desired to extract EOD waveforms. Therefore, after the first clustering step, EOD snippets are extracted around all EOD peaks and troughs for each width cluster, where the total snippet widths are proportional (3w&#771;) to the median peak-trough width of the EODs in that cluster.
 
@@ -66,7 +66,7 @@ The relation between distance to the recording electrode and recorded EOD amplit
 
 A BGM model is used to cluster on the logarithm of the EOD heights, where a mixture of ten Gaussians is fit to the distribution. Then, all EOD height clusters with a median height similarity of 10% are merged. If `1/SNR` is higher than 10%, the background noise could have influenced the EOD height distribution resulting in a higher EOD amplitude variance. To avoid splitting such clusters in half, additionally, all clusters with a median height similarity of `1/SNR` are merged.
 
-![lkj](img/BGM_height_0.png)
+![lkj](img/height_clusters.png)
 
 ### Shape
 There are two sets of EOD snippets, one that is EOD peak centered and one that is EOD trough centered. Depending on the relative orientation between pulsefish and electrode, EOD pulse activity could be centered either around the most significant EOD peak or trough, or around the midpoint of the most significant EOD peak and trough. Either of the snippet sets could convey most information on the EOD shape and result in the most reliable EOD clusters, thus clustering is performed on both snippets sets. The resulting clusters are merged later on.
@@ -84,7 +84,7 @@ Lastly, PCA is done on all snippets, and the first five PCs are used for cluster
 DBSCAN is a nearest-neighbor based clustering methods that requires two parameters: `epsilon` and `minp`. `minp` is the minimum amount of points that is needed to form a cluster, and `epsilon` is a value that determines the maximum distance between two points for them to be neighbors.
 Both parameters are automatically set based on the data properties. `minp` is set to be equal to 1% of the total number of datapoints in cluster space. If this number is less than 10, `minp` is set to 10, as with the current `thunderfish` settings, the length of the analysis window is 8 seconds. As all pulse-type electric fish species generally have EOD rates above 2 Hz, a minimum cluster size of 10 is deemed sufficient. `epsilon` is set based on the 80<sup>th</sup> percentile of the K-Nearest Neighbor distribution, where K is `minp`. This measure ensures that 80% of the datapoints in cluster space are connected to at least `minp` datapoints. With said method, clusters would be formed even for datapoints with great dissimilarities. To prevent `epsilon` from growing too large, an upper bound is set. Generally, the maximum value for `epsilon` (`eps_max`) would only allow for a certain variance within clusters. As all EOD snippets have their absolute integral set to 1, setting `eps_max` to 0.1 would result in EOD clusters with a maximum variance of 10%. However, for EODs with a low `SNR`, more EOD variance is expected. Therefore, if `1/SNR` is over 0.25, `eps_max = 0.4/SNR`.
 
-![lkj](img/DBSCAN_trough_w0_h2.png)
+![lkj](img/shape_clusters.png)
 
 ### Selecting pulse-type EOD clusters
 Now that all clusters are formed, all clusters that are composed of artefacts, noise, wavefish and/or wrongly centered pulse-type EODs should be deleted. To separate the desired pulse-type EOD clusters from the undesirable clusters, three measures are used.
@@ -119,7 +119,7 @@ To ensure that each fish is only represented once, the following method is used.
 As EOD widths are not changing for moving fish, EODs in different width clusters are treated separately, as they cannot possibly come from the same fish. To estimate the actual number of fish in a recording for each width cluster, a sliding window is used. The sliding window is slid over all timepoints in the recording and counts the number of EOD clusters in a width cluster. The minimum number of EOD clusters that are counted within any of these windows should give a lower bound on the actual number of fish present in a recording.  
 The stepsize of the sliding window is 0.1s. The width of this sliding window is either 0.25s, or, if the mean EOD peak-trough width is larger than 0.125ms, a factor of the mean EOD peak-trough width (2000w&#771;) of the width cluster. Sliding window size is adaptive to EOD width as pulsefish with longer EOD pulses typically also have lower EOD rates. With lower EOD rates, sliding window sizes should grow so that at least one EOD pulse is present in each window.
 
-![lkj](img/delete_moving_fish.png)
+![lkj](img/moving_fish.png)
 
 To account for gaps in the recordings due to malfunctioning of the recording devices, for all timepoints where zero EOD clusters are present, surrounding fishcounts (those that are within one sliding window size of these timepoints) are also set to zero and ignored for further analysis. This is done so that only sliding windows with sufficient data are used for fish count estimates.
 

@@ -429,6 +429,7 @@ def plot_bgm(mode,ccol):
 	ax1.legend(loc='upper left',frameon=False,bbox_to_anchor=(-0.05,1.2),ncol=len(np.unique(labels)))
 	plt.subplots_adjust(top=0.7)
 	plt.tight_layout()
+	plt.savefig('img/%s_clusters.png'%mode)
 	plt.show()
 
 def plot_feature_extraction():
@@ -514,6 +515,7 @@ def plot_feature_extraction():
 		sb.xscalebar(ax,0,0,wbar,wformat='%%.%if'%size)
 		sb.yscalebar(ax,0,0,wbar,hformat='%%.%if'%size)
 		ax.axis('off')
+	plt.savefig('img/shape_clusters.png')
 	plt.show()
 
 def plot_moving_fish():
@@ -594,6 +596,7 @@ def plot_moving_fish():
 		ax2.add_artist(con)
 
 		plt.xlim([0,T])
+	plt.savefig('img/moving_fish.png')
 	plt.show()
 
 def plot_eod_deletion():
@@ -700,8 +703,8 @@ def plot_eod_deletion():
 
 		ax.axis('off')
 	plt.tight_layout()
-	plt.show()
 	plt.savefig('img/EOD_assessment.png')
+	plt.show()
 
 plot_eod_properties()
 plot_peak_detection()
