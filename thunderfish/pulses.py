@@ -30,7 +30,7 @@ from sklearn.metrics import pairwise_distances
 from scipy.interpolate import interp1d
 
 from .eventdetection import detect_peaks
-from .pulseplots_new import *
+from .pulseplots import *
 
 import pickle
 
@@ -349,6 +349,9 @@ def extract_pulsefish(data, samplerate, fname, width_factor_shape=3, width_facto
         log_dict.update(pd_log_dict)
         log_dict.update(c_log_dict)
         log_dict['samplerate'] = i_samplerate
+
+    # reset font family for the main thunderfish plot
+    rcParams['font.family'] = 'sans-serif'
 
     return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
 

@@ -450,7 +450,6 @@ def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
 	ax2.legend(loc='lower left',frameon=False,bbox_to_anchor=(-0.05,1.3),ncol=len(np.unique(classes)))
 	ax1.legend(loc='upper left',frameon=False,bbox_to_anchor=(-0.05,1.3),ncol=len(np.unique(labels)))
 	plt.tight_layout()
-	plt.show()
 
 def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels, dt, pt):
 	"""Plot clustering step on EOD shape.
