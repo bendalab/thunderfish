@@ -1,18 +1,17 @@
 """
 Plot and save key steps in pulses.py for visualizing the alorithm.
-
 """
 
 import pickle, glob
-import plottools.scalebars as sb
+import numpy as np
+from scipy import stats
+
 from matplotlib import rcParams, gridspec
 import matplotlib.pyplot as plt
-import numpy as np
-from plottools import colors as cols
-import matplotlib
-from scipy import stats
 from matplotlib.patches import ConnectionPatch, Rectangle
+from matplotlib.lines import Line2D
 from matplotlib.ticker import NullFormatter
+
 import warnings
 def warn(*args,**kwargs):
     """
@@ -28,6 +27,278 @@ c_g = cmap(0)
 c_o = cmap(1)
 c_grey = cmap(7)
 cmap_pts = [cmap(2),cmap(3)]
+
+
+def lighter(color, lightness):
+    """ Make a color lighter.
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    color: dict or matplotlib color spec
+        A matplotlib color (hex string, name color string, rgb tuple)
+        or a dictionary with an 'color' or 'facecolor' key.
+    lightness: float
+        The smaller the lightness, the lighter the returned color.
+        A lightness of 0 returns white.
+        A lightness of 1 leaves the color untouched.
+        A lightness of 2 returns black.
+
+    Returns
+    -------
+    color: string or dict
+        The lighter color as a hexadecimal RGB string (e.g. '#rrggbb').
+        If `color` is a dictionary, a copy of the dictionary is returned
+        with the value of 'color' or 'facecolor' set to the lighter color.
+    """
+    try:
+        c = color['color']
+        cd = dict(**color)
+        cd['color'] = lighter(c, lightness)
+        return cd
+    except (KeyError, TypeError):
+        try:
+            c = color['facecolor']
+            cd = dict(**color)
+            cd['facecolor'] = lighter(c, lightness)
+            return cd
+        except (KeyError, TypeError):
+            if lightness > 2:
+                lightness = 2
+            if lightness > 1:
+                return darker(color, 2.0-lightness)
+            if lightness < 0:
+                lightness = 0
+            r, g, b = cc.to_rgb(color)
+            rl = r + (1.0-lightness)*(1.0 - r)
+            gl = g + (1.0-lightness)*(1.0 - g)
+            bl = b + (1.0-lightness)*(1.0 - b)
+            return to_hex((rl, gl, bl)).upper()
+
+
+def xscalebar(ax, x, y, width, wunit=None, wformat=None, ha='left', va='bottom',
+              lw=None, color=None, capsize=None, clw=None, **kwargs):
+    """ Horizontal scale bar with label.
+
+    From bendalab/plottools package.
+
+    Parameter
+    ---------
+    ax: matplotlib axes
+        Axes where to draw the scale bar.
+    x: float
+        x-coordinate where to draw the scale bar in relative units of the axes.
+    y: float
+        y-coordinate where to draw the scale bar in relative units of the axes.
+    width: float
+        Length of the scale bar in units of the data's x-values.
+    wunit: string or None
+        Optional unit of the data's x-values.
+    wformat: string or None
+        Optional format string for formatting the label of the scale bar
+        or simply a string used for labeling the scale bar.
+    ha: 'left', 'right', or 'center'
+        Scale bar aligned left, right, or centered to (x, y)
+    va: 'top' or 'bottom'
+        Label of the scale bar either above or below the scale bar.
+    lw: int, float, None
+        Line width of the scale bar.
+    color: matplotlib color
+        Color of the scalebar.
+    capsize: float or None
+        If larger then zero draw cap lines at the ends of the bar.
+        The length of the lines is given in points (same unit as linewidth).
+    clw: int, float, None
+        Line width of the cap lines.
+    kwargs: key-word arguments
+        Passed on to `ax.text()` used to print the scale bar label.
+    """
+    ax.autoscale(False)
+    # ax dimensions:
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    unitx = xmax - xmin
+    unity = ymax - ymin
+    dxu = np.abs(unitx)/pixelx
+    dyu = np.abs(unity)/pixely
+    # transform x, y from relative units to axis units:
+    x = xmin + x*unitx
+    y = ymin + y*unity
+    # bar length:
+    if wformat is None:
+        wformat = '%.0f'
+        if width < 1.0:
+            wformat = '%.1f'
+    try:
+        ls = wformat % width
+        width = float(ls)
+    except TypeError:
+        ls = wformat
+    # bar:
+    if ha == 'left':
+        x0 = x
+        x1 = x+width
+    elif ha == 'right':
+        x0 = x-width
+        x1 = x
+    else:
+        x0 = x-0.5*width
+        x1 = x+0.5*width
+    # line width:
+    if lw is None:
+        lw = 2
+    # color:
+    if color is None:
+        color = 'k'
+    # scalebar:
+    lh = ax.plot([x0, x1], [y, y], '-', color=color, lw=lw,
+                 solid_capstyle='butt', clip_on=False)
+    # get y position of line in figure pixel coordinates:
+    ly = np.array(lh[0].get_window_extent(ax.get_figure().canvas.get_renderer()))[0,1]
+    # caps:
+    if capsize is None:
+        capsize = 0
+    if clw is None:
+        clw = 0.5
+    if capsize > 0.0:
+        dy = capsize*dyu
+        ax.plot([x0, x0], [y-dy, y+dy], '-', color=color, lw=clw,
+                solid_capstyle='butt', clip_on=False)
+        ax.plot([x1, x1], [y-dy, y+dy], '-', color=color, lw=clw,
+                solid_capstyle='butt', clip_on=False)
+    # label:
+    if wunit:
+        ls += u'\u2009%s' % wunit
+    if va == 'top':
+        th = ax.text(0.5*(x0+x1), y, ls, clip_on=False,
+                     ha='center', va='bottom', **kwargs)
+        # get y coordinate of text bottom in figure pixel coordinates:
+        ty = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[0,1]
+        dty = ly+0.5*lw + 2.0 - ty
+    else:
+        th = ax.text(0.5*(x0+x1), y, ls, clip_on=False,
+                     ha='center', va='top', **kwargs)
+        # get y coordinate of text bottom in figure pixel coordinates:
+        ty = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[1,1]
+        dty = ly-0.5*lw - 2.0 - ty
+    th.set_position((0.5*(x0+x1), y+dyu*dty))
+    return x0, x1, y
+
+        
+def yscalebar(ax, x, y, height, hunit=None, hformat=None, ha='left', va='bottom',
+              lw=None, color=None, capsize=None, clw=None, **kwargs):
+    """ Vertical scale bar with label.
+
+    From bendalab/plottools package.
+
+    Parameter
+    ---------
+    ax: matplotlib axes
+        Axes where to draw the scale bar.
+    x: float
+        x-coordinate where to draw the scale bar in relative units of the axes.
+    y: float
+        y-coordinate where to draw the scale bar in relative units of the axes.
+    height: float
+        Length of the scale bar in units of the data's y-values.
+    hunit: string
+        Unit of the data's y-values.
+    hformat: string or None
+        Optional format string for formatting the label of the scale bar
+        or simply a string used for labeling the scale bar.
+    ha: 'left' or 'right'
+        Label of the scale bar either to the left or to the right
+        of the scale bar.
+    va: 'top', 'bottom', or 'center'
+        Scale bar aligned above, below, or centered on (x, y).
+    lw: int, float, None
+        Line width of the scale bar.
+    color: matplotlib color
+        Color of the scalebar.
+    capsize: float or None
+        If larger then zero draw cap lines at the ends of the bar.
+        The length of the lines is given in points (same unit as linewidth).
+    clw: int, float
+        Line width of the cap lines.
+    kwargs: key-word arguments
+        Passed on to `ax.text()` used to print the scale bar label.
+    """
+    ax.autoscale(False)
+    # ax dimensions:
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    unitx = xmax - xmin
+    unity = ymax - ymin
+    dxu = np.abs(unitx)/pixelx
+    dyu = np.abs(unity)/pixely
+    # transform x, y from relative units to axis units:
+    x = xmin + x*unitx
+    y = ymin + y*unity
+    # bar length:
+    if hformat is None:
+        hformat = '%.0f'
+        if height < 1.0:
+            hformat = '%.1f'
+    try:
+        ls = hformat % height
+        width = float(ls)
+    except TypeError:
+        ls = hformat
+    # bar:
+    if va == 'bottom':
+        y0 = y
+        y1 = y+height
+    elif va == 'top':
+        y0 = y-height
+        y1 = y
+    else:
+        y0 = y-0.5*height
+        y1 = y+0.5*height
+    # line width:
+    if lw is None:
+        lw = 2
+    # color:
+    if color is None:
+        color = 'k'
+    # scalebar:
+    lh = ax.plot([x, x], [y0, y1], '-', color=color, lw=lw,
+                 solid_capstyle='butt', clip_on=False)
+    # get x position of line in figure pixel coordinates:
+    lx = np.array(lh[0].get_window_extent(ax.get_figure().canvas.get_renderer()))[0,0]
+    # caps:
+    if capsize is None:
+        capsize = 0
+    if clw is None:
+        clw = 0.5
+    if capsize > 0.0:
+        dx = capsize*dxu
+        ax.plot([x-dx, x+dx], [y0, y0], '-', color=color, lw=clw, solid_capstyle='butt',
+                clip_on=False)
+        ax.plot([x-dx, x+dx], [y1, y1], '-', color=color, lw=clw, solid_capstyle='butt',
+                clip_on=False)
+    # label:
+    if hunit:
+        ls += u'\u2009%s' % hunit
+    if ha == 'right':
+        th = ax.text(x, 0.5*(y0+y1), ls, clip_on=False, rotation=90.0,
+                     ha='left', va='center', **kwargs)
+        # get x coordinate of text bottom in figure pixel coordinates:
+        tx = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[0,0]
+        dtx = lx+0.5*lw + 2.0 - tx
+    else:
+        th = ax.text(x, 0.5*(y0+y1), ls, clip_on=False, rotation=90.0,
+                     ha='right', va='center', **kwargs)
+        # get x coordinate of text bottom in figure pixel coordinates:
+        tx = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[1,0]
+        dtx = lx-0.5*lw - 1.0 - tx
+    th.set_position((x+dxu*dtx, 0.5*(y0+y1)))
+    return x, y0, y1
+
 
 def arrowed_spines(ax, ms=10):
 	""" Create an arrowed spine on the y-axis of a plot.
@@ -220,7 +491,7 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 	for i, (wl, colw, uhl, eod_h, eod_h_labs, w_snip, w_feat, w_lab, w_dm, w_mm) in enumerate(zip(eod_widths[0], colidxsw, eod_hights[0], eod_hights[1], eod_hights[2], eod_shapes[0], eod_shapes[1], eod_shapes[2], disc_masks, merge_masks)):
 
 		# plot width hist
-		hw, _, _ = ax1.hist(eod_widths[1][eod_widths[2]==wl], bins=np.linspace(np.min(eod_widths[1]),np.max(eod_widths[1]),100),color=cols.lighter(c_o,colw),orientation='horizontal')
+		hw, _, _ = ax1.hist(eod_widths[1][eod_widths[2]==wl], bins=np.linspace(np.min(eod_widths[1]),np.max(eod_widths[1]),100),color=lighter(c_o,colw),orientation='horizontal')
 		
 		# set arrow when the last hist is plot so the size of the axes are known.
 		if i == h_size-1:
@@ -248,7 +519,7 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 		for n, (hl, hcol, snippets, features, labels, dmasks, mmasks) in enumerate(zip(uhl, colidxsh, w_snip, w_feat, w_lab, w_dm, w_mm)):
 
 
-			hh,_,_=loghist(ax2,eod_h[eod_h_labs==hl],np.min(eod_h),np.max(eod_h),100,cols.lighter(c_g,hcol),orientation='horizontal')
+			hh,_,_=loghist(ax2,eod_h[eod_h_labs==hl],np.min(eod_h),np.max(eod_h),100,lighter(c_g,hcol),orientation='horizontal')
 
 			# set arrow spines only on last plot
 			if n==len(uhl)-1:
@@ -258,8 +529,8 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 			if n==0:
 				coord1 = transFigure.transform(ax1.transData.transform([np.median(hw[hw!=0]),np.median(eod_widths[1][eod_widths[2]==wl])]))
 				coord2 = transFigure.transform(ax2.transData.transform([0.9,np.mean(eod_h)]))
-				line = matplotlib.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
-				                               transform=fig.transFigure,color='grey',linewidth=0.5)
+				line = Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
+                              transform=fig.transFigure,color='grey',linewidth=0.5)
 				fig.lines.append(line)
 
 			# compute sizes of the eod_discarding and merge steps
@@ -298,8 +569,8 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 						ax4.plot(snippets[pt][labels[pt]==c].T,linewidth=0.1,color='lightgrey',label='-1',rasterized=True)
 					else:
 						# plot cluster features and snippets
-						ax3.plot(features[pt][labels[pt]==c,0],features[pt][labels[pt]==c,1],'.',color=cols.lighter(cmap_pt,colidxss[j]),label=c,rasterized=True)
-						ax4.plot(snippets[pt][labels[pt]==c].T,linewidth=0.1,color=cols.lighter(cmap_pt,colidxss[j]),label=c,rasterized=True)
+						ax3.plot(features[pt][labels[pt]==c,0],features[pt][labels[pt]==c,1],'.',color=lighter(cmap_pt,colidxss[j]),label=c,rasterized=True)
+						ax4.plot(snippets[pt][labels[pt]==c].T,linewidth=0.1,color=lighter(cmap_pt,colidxss[j]),label=c,rasterized=True)
 						
 						# check if the current cluster is an EOD, if yes, plot it.
 						if np.sum(dmasks[pt][labels[pt]==c]) == 0:
@@ -308,14 +579,14 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 							ax.axis('off')
 
 							# plot mean EOD snippet
-							ax.plot(np.mean(snippets[pt][labels[pt]==c],axis=0),color=cols.lighter(cmap_pt,colidxss[j]))
+							ax.plot(np.mean(snippets[pt][labels[pt]==c],axis=0),color=lighter(cmap_pt,colidxss[j]))
 							disc_count = disc_count + 1
 
 							# match colors and draw line..							
 							coord1 = transFigure.transform(ax4.transData.transform([ax4.get_xlim()[1], ax4.get_ylim()[0] + 0.5*(ax4.get_ylim()[1]-ax4.get_ylim()[0])]))
 							coord2 = transFigure.transform(ax.transData.transform([ax.get_xlim()[0],ax.get_ylim()[0] + 0.5*(ax.get_ylim()[1]-ax.get_ylim()[0])]))
-							line = matplotlib.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
-					                               transform=fig.transFigure,color='grey',linewidth=0.5)
+							line = Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
+                                          transform=fig.transFigure,color='grey',linewidth=0.5)
 							fig.lines.append(line)	
 							axs.append(ax)
 
@@ -326,7 +597,7 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 								ax = fig.add_subplot(EOD_merge_ax[merge_size-merge_block+merge_count])
 								ax.axis('off')
 								
-								ax.plot(np.mean(snippets[pt][labels[pt]==c],axis=0),color=cols.lighter(cmap_pt,colidxss[j]))
+								ax.plot(np.mean(snippets[pt][labels[pt]==c],axis=0),color=lighter(cmap_pt,colidxss[j]))
 								merge_count = merge_count + 1
 
 						j=j+1
@@ -335,8 +606,8 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 					# draw line from hight cluster to EOD shape clusters.
 					coord1 = transFigure.transform(ax2.transData.transform([np.median(hh[hh!=0]),np.median(eod_h[eod_h_labs==hl])]))
 					coord2 = transFigure.transform(ax3.transData.transform([ax3.get_xlim()[0],ax3.get_ylim()[0]]))
-					line = matplotlib.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
-					                               transform=fig.transFigure,color='grey',linewidth=0.5)
+					line = Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
+                                  transform=fig.transFigure,color='grey',linewidth=0.5)
 					fig.lines.append(line)
 
 			shape_count = shape_count + 1
@@ -345,8 +616,8 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 				# plot lines that indicate the merged clusters.
 				coord1 = transFigure.transform(axs[0].transData.transform([axs[0].get_xlim()[1]+0.1*(axs[0].get_xlim()[1]-axs[0].get_xlim()[0]), axs[0].get_ylim()[1]-0.25*(axs[0].get_ylim()[1]-axs[0].get_ylim()[0])]))
 				coord2 = transFigure.transform(axs[-1].transData.transform([axs[-1].get_xlim()[1]+0.1*(axs[-1].get_xlim()[1]-axs[-1].get_xlim()[0]), axs[-1].get_ylim()[0]+0.25*(axs[-1].get_ylim()[1]-axs[-1].get_ylim()[0])]))
-				line = matplotlib.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
-                               transform=fig.transFigure,color='grey',linewidth=1)
+				line = Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
+                              transform=fig.transFigure,color='grey',linewidth=1)
 				fig.lines.append(line)
 
 def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
@@ -424,7 +695,7 @@ def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
 
 	# plot the gaussians
 	for i,c in enumerate(np.unique(classes)):
-		ax2.plot(xplot,gaussians[c],c=cols.lighter(c_grey,colidxs[i]),linewidth=2,label=r'$N(\mu_%i,\sigma_%i)$'%(c,c))
+		ax2.plot(xplot,gaussians[c],c=lighter(c_grey,colidxs[i]),linewidth=2,label=r'$N(\mu_%i,\sigma_%i)$'%(c,c))
 	
 	# plot intersection lines
 	ax2.vlines(xplot[1:][np.diff(classes)!=0],0,gmax/gmin,color='k',linewidth=2,linestyle='--')
@@ -434,9 +705,9 @@ def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
 	colidxs = -np.linspace(-1.25,-0.5,len(np.unique(labels)))
 	for i,l in enumerate(np.unique(labels)):
 		if use_log:
-			h,binn,_=loghist(ax1,x[labels==l],np.min(x),np.max(x),100,cols.lighter(ccol,colidxs[i]),label=r'$x_%i$'%l)
+			h,binn,_=loghist(ax1,x[labels==l],np.min(x),np.max(x),100,lighter(ccol,colidxs[i]),label=r'$x_%i$'%l)
 		else:
-			h,binn,_=ax1.hist(x[labels==l],bins=np.linspace(np.min(x),np.max(x),100),color=cols.lighter(ccol,colidxs[i]),label=r'$x_%i$'%l)
+			h,binn,_=ax1.hist(x[labels==l],bins=np.linspace(np.min(x),np.max(x),100),color=lighter(ccol,colidxs[i]),label=r'$x_%i$'%l)
 
 	# annotate merged clusters
 	for l in np.unique(labels_am):
@@ -499,7 +770,7 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
 		if c<0:
 			color='lightgrey'
 		else:
-			color = cols.lighter(ccol,colidxs[j])
+			color = lighter(ccol,colidxs[j])
 			j=j+1
 
 		ax_raw_snip.plot(x,raw_snippets[labels==c].T,color=color,label='-1',rasterized=True,alpha=0.25)
@@ -547,8 +818,8 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
 		wbar = np.floor((np.max(features)-np.min(features))*10**size)/10**size
 
 		# should be smaller than the actual thing! so like x% of it?
-		sb.xscalebar(ax,0,0,wbar,wformat='%%.%if'%size)
-		sb.yscalebar(ax,0,0,wbar,hformat='%%.%if'%size)
+		xscalebar(ax,0,0,wbar,wformat='%%.%if'%size)
+		yscalebar(ax,0,0,wbar,hformat='%%.%if'%size)
 		ax.axis('off')
 
 def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
@@ -629,7 +900,7 @@ def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
 		    ax2.axes.xaxis.set_visible(False)
 		else:
 			ax2.axes.xaxis.set_visible(False)
-			sb.xscalebar(ax2,1,0,1,wunit='s',ha='right')
+			xscalebar(ax2,1,0,1,wunit='s',ha='right')
 
 		con = ConnectionPatch([0,-0.5], [dt/2,y[0]], "data", "data",
 		    axesA=ax1, axesB=ax2,color='k')

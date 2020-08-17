@@ -1,6 +1,5 @@
 """
 ## Load and save all data nessecary for visualizing the pulses.py alorithm
-
 """
 
 # This script only works if you have the right input data (pulseeods.) in the right filepath.
@@ -11,13 +10,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import matplotlib
-sys.path.append("../thunderfish/")
 
+sys.path.append("../thunderfish/")
 from thunderfish.pulses import extract_pulsefish
 from thunderfish.dataloader import load_data
 from thunderfish.bestwindow import find_best_window, plot_best_data
 from thunderfish.thunderfish import configuration
-import plottools.colors as cols
+
 import warnings
 def warn(*args,**kwargs):
     """
