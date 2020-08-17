@@ -13,8 +13,10 @@ markdown_extensions:
     
 nav:
     - Home: 'index.md'
-    - 'User Guide':
+    - 'User guide':
         - 'thunderfish': 'thunderfish.md'
         - 'collectfish': 'collectfish.md'
         - 'eodexplorer': 'eodexplorer.md'
+    - 'Algorithms':
+        - 'Pulse-fish EODs': 'pulses.md'
     - API reference: 'api/index.html'
