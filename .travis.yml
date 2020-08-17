@@ -53,7 +53,7 @@ deploy:
   # push again
   provider: pages
   strategy: git
-  cleanup: false
+  skip_cleanup: true
   token: $GITHUB_TOKEN
   local_dir: site
   on:

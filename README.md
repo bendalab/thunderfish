@@ -10,8 +10,8 @@ weakly electric fish.
 Weakly electric fish generate an electric organ discharge (EOD).  In
 wave-type fish the EOD resembles a sinewave of a specific frequency
 and with higher harmonics. In pulse-type fish EODs have a distinct
-waveform and are separated in time.THe thunderfish package provides
-tools for analysing both wavefish and pulsefish EODs.
+waveform and are separated in time. The thunderfish package provides
+algorithms and tools for analysing both wavefish and pulsefish EODs.
 
 [Documentation](https://bendalab.github.io/thunderfish)
 
@@ -27,9 +27,10 @@ Simply run (as superuser):
 pip install thunderfish
 ```
 
-If you have problems loading audio files with thunderfish, then you
-need to install further packages. Follow the installation instructions
-of the [audioio](https://bendalab.github.io/audioio/) package.
+If you have problems loading specific audio files with thunderfish,
+then you need to install further packages. Follow the installation
+instructions of the [audioio](https://bendalab.github.io/audioio/)
+package.
 
 
 ## Software
