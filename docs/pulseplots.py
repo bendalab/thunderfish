@@ -1,3 +1,8 @@
+"""
+## Plot and save key steps in pulses.py for visualizing the alorithm.
+
+"""
+
 import pickle, glob
 import plottools.scalebars as sb
 from matplotlib import rcParams, gridspec
@@ -8,33 +13,80 @@ import matplotlib
 from scipy import stats
 from matplotlib.patches import ConnectionPatch, Rectangle
 
+# plotting parameters and colors
 rcParams['font.family'] = 'monospace'
-
 cmap = plt.get_cmap("Dark2")
-c_g = cmap(1)
-c_o = cmap(0)
+c_g = cmap(0)
+c_o = cmap(1)
 c_grey = cmap(7)
 cmap_pts = [cmap(2),cmap(3)]
 
-def arrowed_spines(fig, ax, ms=10):
-    xmin, xmax = ax.get_xlim() 
-    ymin, ymax = ax.get_ylim()
-    ax.scatter([xmin],[ymax],s=ms,marker='^', clip_on=False,color='k')
-    ax.set_xlim([xmin,xmax])
-    ax.set_ylim([ymin,ymax])
+def arrowed_spines(ax, ms=10):
+	""" Create an arrowed spine on the y-axis of a plot.
+
+		Parameters
+		----------
+		ax : matplotlib figure axis
+			Axis on which the arrow should be plot. 
+	"""
+	xmin, xmax = ax.get_xlim() 
+	ymin, ymax = ax.get_ylim()
+	ax.scatter([xmin],[ymax],s=ms,marker='^', clip_on=False,color='k')
+	ax.set_xlim([xmin,xmax])
+	ax.set_ylim([ymin,ymax])
 
 def loghist(ax,x,bmin,bmax,n,c,orientation='vertical',label=''):
+	""" Plot histogram with logarithmic scale.
+
+		Parameters
+		----------
+		ax : matplotlib axis
+			Axis to plot the histogram on.
+		x : numpy array
+			Input data for histogram.
+		bmin : float
+			Minimum value for the histogram bins.
+		bmax : float
+			Maximum value for the histogram bins. 
+		n : int
+			Number of bins.
+		c : matplotlib color
+			Color of histogram.
+		orientation : string (optional)
+			Histogram orientation.
+			Defaults to 'vertical'.
+		label : string (optional)
+			Label for x. 
+			Defaults to '' (no label).
+
+		Returns
+		-------
+		n : array
+			The values of the histogram bins.
+		bins : array
+			The edges of the bins.
+		patches : BarContainer
+			Container of individual artists used to create the histogram.
+
+	"""
 	return ax.hist(x,bins=np.exp(np.linspace(np.log(bmin),np.log(bmax),n)),color=c,orientation=orientation,label=label)
 
 def plot_eod_properties():
+	""" Plot 3 pulse-type EODs, one artefact and one wave snippet to visualize raw data.
+		Plot is saved in img/eod_properties.png.
+	"""
+
+	# create figure and grid
 	fig=plt.figure(figsize=(6,3))
 	gs = gridspec.GridSpec(2,4)
-	# plot some EODs here to show they can have different heights and widths.
 
+	# define data files
 	np_files = ['data/pulse_eod_1','data/pulse_eod_2','data/pulse_eod_3','data/artefact_1','data/wave_eod_1']
 
+	# go through each data file and plot each snippet on a new axis.
 	for i, np_file in enumerate(np_files):
 
+		# plot the first snippet on a bigger axis
 		if i==0:
 			ax=fig.add_subplot(gs[:,:2])
 		elif i<3:
@@ -45,6 +97,7 @@ def plot_eod_properties():
 		[x,y] = np.load(np_file+'.npy')
 		ax.plot(x,y,c=cmap(i))
 		
+		# plot the lines and annotation to show EOD features on the first snippet.
 		if i==0:
 			ax.plot([x[np.argmin(y)],x[np.argmax(y)]],[np.min(y),np.max(y)],linestyle='--',marker='o',c='k')
 			ax.plot([x[np.argmin(y)],x[np.argmax(y)]],[np.min(y),np.min(y)],linestyle='--',c='k')
@@ -57,6 +110,8 @@ def plot_eod_properties():
 		w = np.abs(x[np.argmax(y)]-x[np.argmin(y)])
 		s = h/w
 
+
+		# annotate the EOD height, width and slope for each snippet.
 		if i==0:
 			ax.text(0.1, -0.04,u"h = $%.2f$" "\n" u"w = $%.2f\u2009ms$" "\n" u"s = $%.2f\u2009ms^{-1}$"%(h,w,s),
 		     horizontalalignment='left',
@@ -77,21 +132,29 @@ def plot_eod_properties():
 	plt.show()
 
 def plot_peak_detection():
+	""" Plot 2 pulse-type EOD snippet and all consecutive peak detection steps.
+		Plot is saved in img/peak_detection.png.
+	"""
+
 	# load variables to plot
 	np_files = ['data/peakdata_1','data/peakdata_2']
 
+	# create figure and grid
 	fig = plt.figure(figsize=(6,3))
 	gs = gridspec.GridSpec(2,4)
 
+	# go through each data file
 	for i,np_file in enumerate(np_files):
 
+		# load all peak data from the zipped numpy files
 		with np.load(np_file+'.npz') as npd:
-			data = npd['arr_0']
-			p1 = npd['arr_1']
-			p2 = npd['arr_2']
-			p3 = npd['arr_3']
-			p4 = npd['arr_4']
+			data = npd['data']
+			p1 = npd['p1']
+			p2 = npd['p2']
+			p3 = npd['p3']
+			p4 = npd['p4']
 
+		# plot peak detection step nr 1
 		ax = fig.add_subplot(gs[i,0])
 		ax.axis('off')
 		if i==0:
@@ -100,6 +163,7 @@ def plot_peak_detection():
 		ax.plot(p1[0],p1[1],'o', c=cmap(0), alpha=0.75)
 		ax.plot(p1[2],p1[3],'o', c=cmap(1), alpha=0.75)
 
+		# plot peak detection step nr 2
 		ax = fig.add_subplot(gs[i,1])
 		ax.axis('off')
 		if i==0:
@@ -109,6 +173,7 @@ def plot_peak_detection():
 		ax.plot(p2[2],p2[3],'o', c=cmap(1), alpha=0.75)
 		ax.plot(np.vstack((p2[0],p2[2])),np.vstack((p2[1],p2[3])),linestyle='--',c='k')
 
+		# plot peak detection step nr 3
 		ax = fig.add_subplot(gs[i,2])
 		ax.axis('off')
 		if i==0:
@@ -118,6 +183,7 @@ def plot_peak_detection():
 		ax.plot(p3[2],p3[3],'o', c=cmap(1), alpha=0.75)
 		ax.plot(np.vstack((p3[0],p3[2])),np.vstack((p3[1],p3[3])),linestyle='--',c='k')
 
+		# plot peak detection step nr 4
 		ax = fig.add_subplot(gs[i,3])
 		ax.axis('off')
 		if i==0:
@@ -133,6 +199,9 @@ def plot_peak_detection():
 
 
 def plot_clustering():
+	""" Plot all clustering steps for one wild recording.
+		Plot is saved in img/clustering.png.
+	"""
 	with np.load('data/clustering.npz',allow_pickle=True) as pd:
 		# extract all variables from the dictionary:
 		samplerate = pd['samplerate']
@@ -207,11 +276,11 @@ def plot_clustering():
 	for i, (wl, colw, uhl, eod_h, eod_h_labs, w_snip, w_feat, w_lab, w_dm, w_mm) in enumerate(zip(eod_widths[0], colidxsw, eod_hights[0], eod_hights[1], eod_hights[2], eod_shapes[0], eod_shapes[1], eod_shapes[2], disc_masks, merge_masks)):
 
 		# plot width hist
-		hw, _, _ = ax1.hist(eod_widths[1][eod_widths[2]==wl], bins=np.linspace(np.min(eod_widths[1]),np.max(eod_widths[1]),100),color=cols.lighter(c_g,colw),orientation='horizontal')
+		hw, _, _ = ax1.hist(eod_widths[1][eod_widths[2]==wl], bins=np.linspace(np.min(eod_widths[1]),np.max(eod_widths[1]),100),color=cols.lighter(c_o,colw),orientation='horizontal')
 		
 		# set arrow when the last hist is plot so the size of the axes are known.
 		if i == h_size-1:
-			arrowed_spines(fig,ax1,ms=20)
+			arrowed_spines(ax1,ms=20)
 
 		# determine total size of the hight historgams now.
 		my,b = np.histogram(eod_h,bins=np.exp(np.linspace(np.min(np.log(eod_h)),np.max(np.log(eod_h)),100)))
@@ -233,11 +302,11 @@ def plot_clustering():
 
 		for n, (hl, hcol, snippets, features, labels, dmasks, mmasks) in enumerate(zip(uhl, colidxsh, w_snip, w_feat, w_lab, w_dm, w_mm)):
 
-			hh,_,_=loghist(ax2,eod_h[eod_h_labs==hl],np.min(eod_h),np.max(eod_h),100,cols.lighter(c_o,hcol),orientation='horizontal')
+			hh,_,_=loghist(ax2,eod_h[eod_h_labs==hl],np.min(eod_h),np.max(eod_h),100,cols.lighter(c_g,hcol),orientation='horizontal')
 
 			# set arrow spines only on last plot
 			if n==len(uhl)-1:
-				arrowed_spines(fig,ax2,ms=10)
+				arrowed_spines(ax2,ms=10)
 
 			# plot line from the width histogram to the height histogram.
 			if n==0:
@@ -337,6 +406,16 @@ def plot_clustering():
 	plt.show()
 
 def plot_bgm(mode,ccol):
+	""" Plot a BGM clustering step either on EOD width or height.
+		Plot is saved in img/*mode*_clusters.png.
+
+		Parameters
+		----------
+		mode : string
+			Which cluster step to plot. Options are 'width' and 'height'. 
+		ccol : matplotlib color
+			Color to use for histogram.
+	"""
 	if mode == 'width':
 		with np.load('data/BGM_width.npz',allow_pickle=True) as pd:
 			# extract all variables from the dictionary:
@@ -348,7 +427,7 @@ def plot_bgm(mode,ccol):
 			labels = pd['labels']
 			xlab = pd['xlab']
 	elif mode == 'height':
-		with np.load('data/BGM_height_0.npz',allow_pickle=True) as pd:
+		with np.load('data/BGM_height.npz',allow_pickle=True) as pd:
 			# extract all variables from the dictionary:
 			x = pd['x']
 			means = pd['BGM'][1]
@@ -365,13 +444,9 @@ def plot_bgm(mode,ccol):
 	# get the transform that was used as BGM input
 	if use_log:
 		x_transform = stats.zscore(np.log(x))
-	else:
-		x_transform = stats.zscore(x)
-
-	# x values for plotting
-	if use_log:
 		xplot = np.exp(np.linspace(np.log(np.min(x)),np.log(np.max(x)),1000))
 	else:
+		x_transform = stats.zscore(x)
 		xplot = np.linspace(np.min(x),np.max(x),1000)
 
 	# compute the x values and gaussians
@@ -433,6 +508,9 @@ def plot_bgm(mode,ccol):
 	plt.show()
 
 def plot_feature_extraction():
+	""" Plot clustering step on EOD shape.
+		Plot is saved in img/shape_clusters.
+	"""
 
 	with np.load('data/feature_extraction.npz',allow_pickle=True) as pd:
 		# extract all variables from the dictionary:
@@ -519,6 +597,9 @@ def plot_feature_extraction():
 	plt.show()
 
 def plot_moving_fish():
+	""" Plot moving fish detection step.
+		Plot is saved in img/moving_fish.png.
+	"""
 	fig = plt.figure(figsize=(7,3))
 	with np.load('data/moving_fish.npz',allow_pickle=True) as pd:
 		# extract all variables from the dictionary:
@@ -600,10 +681,11 @@ def plot_moving_fish():
 	plt.show()
 
 def plot_eod_deletion():
+	""" Plot one pulse-type EOD,  one artefact, one wave-type EOD, one sidepeak, 
+		and the feature extraction steps for filtering out pulse-type EODs.
+		Plot is saved in img/eod_assessment.
+	"""
 
-	# plot the mean eods of the sidepeaks.
-	# so first create snippets.
-	# normal EOD, fft, isi distribution, peaks
 	fig = plt.figure()
 	gs = gridspec.GridSpec(5,4,figure=fig,height_ratios=[0.25,1,1,1,1]) 
 
@@ -634,20 +716,19 @@ def plot_eod_deletion():
 
 		with np.load('data/%s.npz'%fname,allow_pickle=True) as pd:
 			# extract all variables from the dictionary:
-			samplerates = pd['arr_0']
-			values = pd['arr_1']
+			samplerates = pd['samplerates']
+			values = pd['values']
 		
 		mean_eod = values[0]
 		fft = values[1]
-		samplerate = samplerates[0]
-		samplerate_og = samplerates[1]
 		isis = values[2]
-
 		ex_mean_eod = values[3][0]
 		pk = values[3][1][0]
 		tr = values[3][1][1]
-
 		hpk = values[3][2]
+
+		samplerate = samplerates[0]
+		samplerate_og = samplerates[1]
 
 		# plot original snippet
 		ax = fig.add_subplot(gs[i+1,0])

@@ -1,185 +1,308 @@
+"""
+Plot and save key steps in pulses.py for visualizing the alorithm.
+
+"""
+
+import pickle, glob
+import plottools.scalebars as sb
+from matplotlib import rcParams, gridspec
 import matplotlib.pyplot as plt
-from matplotlib import gridspec
 import numpy as np
-from scipy import stats
-
-from matplotlib.patches import ConnectionPatch, Rectangle
+from plottools import colors as cols
 import matplotlib
-from matplotlib.lines import Line2D
+from scipy import stats
+from matplotlib.patches import ConnectionPatch, Rectangle
+from matplotlib.ticker import NullFormatter
 
-# upgrade numpy functions for backwards compatibility:
-if not hasattr(np, 'isin'):
-    np.isin = np.in1d
-
-def unique_counts(ar):
-    """
-    Find the unique elements of an array and their counts, ignoring shape.
-
-    The following code is condensed from numpy version 1.17.0.
-    """
-    try:
-        return np.unique(ar, return_counts=True)
-    except TypeError:
-        ar = np.asanyarray(ar).flatten()
-        ar.sort()
-        mask = np.empty(ar.shape, dtype=np.bool_)
-        mask[:1] = True
-        mask[1:] = ar[1:] != ar[:-1]
-        idx = np.concatenate(np.nonzero(mask) + ([mask.size],))
-        return ar[mask], np.diff(idx)  
-
+# plotting parameters and colors
+rcParams['font.family'] = 'monospace'
 cmap = plt.get_cmap("Dark2")
-cmap1 = plt.get_cmap('Reds_r')
-cmap2 = plt.get_cmap('Blues_r')
-cmap3 = plt.get_cmap('YlOrBr_r')
+c_g = cmap(0)
+c_o = cmap(1)
+c_grey = cmap(7)
+cmap_pts = [cmap(2),cmap(3)]
 
-# add layers for artefact detection, wave, sidepeak, and finally merge :)
+def arrowed_spines(ax, ms=10):
+	""" Create an arrowed spine on the y-axis of a plot.
+
+		Parameters
+		----------
+		ax : matplotlib figure axis
+			Axis on which the arrow should be plot. 
+	"""
+	xmin, xmax = ax.get_xlim() 
+	ymin, ymax = ax.get_ylim()
+	ax.scatter([xmin],[ymax],s=ms,marker='^', clip_on=False,color='k')
+	ax.set_xlim([xmin,xmax])
+	ax.set_ylim([ymin,ymax])
 
 def loghist(ax,x,bmin,bmax,n,c,orientation='vertical',label=''):
+	""" Plot histogram with logarithmic scale.
+
+		Parameters
+		----------
+		ax : matplotlib axis
+			Axis to plot the histogram on.
+		x : numpy array
+			Input data for histogram.
+		bmin : float
+			Minimum value for the histogram bins.
+		bmax : float
+			Maximum value for the histogram bins. 
+		n : int
+			Number of bins.
+		c : matplotlib color
+			Color of histogram.
+		orientation : string (optional)
+			Histogram orientation.
+			Defaults to 'vertical'.
+		label : string (optional)
+			Label for x. 
+			Defaults to '' (no label).
+
+		Returns
+		-------
+		n : array
+			The values of the histogram bins.
+		bins : array
+			The edges of the bins.
+		patches : BarContainer
+			Container of individual artists used to create the histogram.
+
+	"""
 	return ax.hist(x,bins=np.exp(np.linspace(np.log(bmin),np.log(bmax),n)),color=c,orientation=orientation,label=label)
 
-def plot_clustering(all_clusters,all_clusters_ad,merge_mask,uwl,all_uhl,width_labels,all_hightlabels,all_shapelabels,eod_widths,eod_hights,all_snippets,all_features):
+def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
+    """Quick way to view the output of extract_pulsefish in a single plot.
 
-	clusters_merge = np.copy(all_clusters)
-	clusters_merge[0,merge_mask[0]==0] = -1
-	clusters_merge[1,merge_mask[1]==0] = -1
+    Parameters
+    ----------
+    data: array
+        Recording data.
+    eod_p_times: array of ints
+        EOD peak indices.
+    eod_tr_times: array of ints
+        EOD trough indices.
+    fs: float
+        Samplerate.
+    mean_eods: list of numpy arrays
+        Mean EODs of each pulsefish found in the recording.
+    """
 
-	ad_count = 0
-	merge_count = 0
-	n_block = 0
+    fig = plt.figure(figsize=(10,5))
 
-	newplot=0
-	mh = 0
-	msum = 0
-	for sl in all_shapelabels:
-		mh = max(mh,len(sl)*2)
-		msum = msum+len(sl)
+    if len(eod_p_times) > 0:
+        gs = gridspec.GridSpec(2, len(eod_p_times))
+        ax = fig.add_subplot(gs[0,:])
+        ax.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
+        
+        for i,(pt,tt) in enumerate(zip(eod_p_times,eod_tr_times)):
+            ax.plot(pt,data[(pt*fs).astype('int')],'o',label=i+1,ms=10,c=cmap(i))
+            ax.plot(tt,data[(tt*fs).astype('int')],'o',label=i+1,ms=10,c=cmap(i))
+            
+        ax.set_xlabel('time [s]')
+        ax.set_ylabel('amplitude [V]')
 
-	fig = plt.figure(figsize=(8,5))
+        for i, m in enumerate(mean_eods):
+            ax = fig.add_subplot(gs[1,i])
+            ax.plot(1000*m[0], 1000*m[1], c='k')
+
+            ax.fill_between(1000*m[0],1000*(m[1]-m[2]),1000*(m[1]+m[2]),color=cmap(i))
+            ax.set_xlabel('time [ms]')
+            ax.set_ylabel('amplitude [mV]') 
+    else:
+        plt.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
+
+    plt.tight_layout()
+
+
+def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_masks):
+	"""Plot all clustering steps.
+	Plot clustering steps on width, height and shape. Then plot the remaining EODs after 
+	the EOD assessment step and the EODs after the merge step.
+
+	Parameters
+	----------
+	samplerate : float
+		Samplerate of EOD snippets.
+	eod_widths : list of three 1D numpy arrays
+		The first list entry gives the unique labels of all width clusters as a list of ints.
+		The second list entry gives the width values for each EOD in samples as a 1D numpy array of ints.
+		The third list entry gives the width labels for each EOD as a 1D numpy array of ints.
+	eod_hights : nested lists (2 layers) of three 1D numpy arrays
+		The first list entry gives the unique labels of all height clusters as a list of ints for each width cluster.
+		The second list entry gives the height values for each EOD as a 1D numpy array of floats for each width cluster.
+		The third list entry gives the height labels for each EOD as a 1D numpy array of ints for each width cluster.
+	eod_shapes : nested lists (3 layers) of three 1D numpy arrays
+		The first list entry gives the raw EOD snippets as a 2D numpy array for each height cluster in a width cluster.
+		The second list entry gives the snippet PCA values for each EOD as a 2D numpy array of floats for each height cluster in a width cluster.
+		The third list entry gives the shape labels for each EOD as a 1D numpy array of ints for each height cluster in a width cluster.
+	disc_masks : Nested lists (two layers) of 1D numpy arrays
+		The masks of EODs that are discarded by the discarding step of the algorithm. The masks are 1D boolean arrays where 
+		instances that are set to True are discarded by the algorithm. Discarding masks are saved in nested lists that represent the width and height clusters.
+	merge_masks : Nested lists (two layers) of 2D numpy arrays
+		The masks of EODs that are discarded by the merging step of the algorithm. The masks are 2D boolean arrays where 
+		for each sample point `i` either `merge_mask[i,0]` or `merge_mask[i,1]` is set to True. Here, merge_mask[:,0] represents the 
+		peak-centered clusters and `merge_mask[:,1]` represents the trough-centered clusters. Merge masks are saved in nested lists 
+		that represent the width and height clusters.
+	"""
+
+	# create figure + transparant figure.
+	fig = plt.figure(figsize=(12,7))
 	transFigure = fig.transFigure.inverted()
-
-	gl = len(all_hightlabels)*mh
 
 	# set up the figure layout
 	outer = gridspec.GridSpec(1,5,width_ratios=[1,1,2,1,2],left=0.05,right=0.95)
 
+	# set titles for each clustering step
 	titles = ['1. Widths','2. Heights','3. Shape','4. Pulse EODs','5. Merge']
-	for i in range(5):
-		title1 = gridspec.GridSpecFromSubplotSpec(1,1,subplot_spec = outer[i])
-		ax = fig.add_subplot(title1[0])
-		ax.text(0,110,titles[i],ha='center',va='bottom',clip_on=False)
+	for i, title in enumerate(titles):
+		title_ax = gridspec.GridSpecFromSubplotSpec(1,1,subplot_spec = outer[i])
+		ax = fig.add_subplot(title_ax[0])
+		ax.text(0,110,title,ha='center',va='bottom',clip_on=False)
 		ax.set_xlim([-100,100])
 		ax.set_ylim([-100,100])
 		ax.axis('off')
 
-	width_hist_ax = gridspec.GridSpecFromSubplotSpec(1,1,subplot_spec = outer[0])
-	hight_hist_ax = gridspec.GridSpecFromSubplotSpec(len(uwl),1,subplot_spec = outer[1])
+	# compute sizes for each axis
+	w_size = 1
+	h_size = len(eod_hights[1])
 
-	shape_ax = gridspec.GridSpecFromSubplotSpec(msum,1, subplot_spec = outer[2])
-	shape_windows = [gridspec.GridSpecFromSubplotSpec(2,2, hspace=0.0, wspace=0.0, subplot_spec = shape_ax[i]) for i in range(msum)]
-    
-	del_ax_sum = len(np.unique(all_clusters_ad[0][all_clusters_ad[0]>=0])) + len(np.unique(all_clusters_ad[1][all_clusters_ad[1]>=0]))
+	shape_size = np.sum([len(sl) for sl in eod_shapes[0]])
 	
-	merge_ax_sum = len(np.unique(clusters_merge[clusters_merge>=0]))
+	# count required axes sized for the last two plot columns.
+	disc_size = 0
+	merge_size= 0
+	for shapelabel, dmasks, mmasks in zip(eod_shapes[2],disc_masks,merge_masks):
+		for sl, dm, mm in zip(shapelabel,dmasks,mmasks):
+			uld1 = np.unique((sl[0]+1)*np.invert(dm[0]))
+			uld2 = np.unique((sl[1]+1)*np.invert(dm[1]))
+			disc_size = disc_size+len(uld1[uld1>0])+len(uld2[uld2>0])
+			
+			uld1 = np.unique((sl[0]+1)*mm[0])
+			uld2 = np.unique((sl[1]+1)*mm[1])
+			merge_size = merge_size+len(uld1[uld1>0])+len(uld2[uld2>0])
 
-	EOD_delete_ax = gridspec.GridSpecFromSubplotSpec(del_ax_sum,1,subplot_spec=outer[3])
-	EOD_merge_ax = gridspec.GridSpecFromSubplotSpec(merge_ax_sum,1,subplot_spec=outer[4])
+	# set counters to keep track of the plot axes
+	disc_block = 0
+	merge_block = 0
+	shape_count = 0
+
+	# create all axes
+	width_hist_ax = gridspec.GridSpecFromSubplotSpec(w_size,1,subplot_spec = outer[0])
+	hight_hist_ax = gridspec.GridSpecFromSubplotSpec(h_size,1,subplot_spec = outer[1])
+	shape_ax = gridspec.GridSpecFromSubplotSpec(shape_size,1, subplot_spec = outer[2])
+	shape_windows = [gridspec.GridSpecFromSubplotSpec(2,2, hspace=0.0, wspace=0.0, subplot_spec = shape_ax[i]) for i in range(shape_size)]
+	
+	EOD_delete_ax = gridspec.GridSpecFromSubplotSpec(disc_size,1,subplot_spec=outer[3])
+	EOD_merge_ax = gridspec.GridSpecFromSubplotSpec(merge_size,1,subplot_spec=outer[4])
 
     # plot width labels histogram
 	ax1 = fig.add_subplot(width_hist_ax[0])
+	# set axes features.
+	ax1.set_xscale('log')
+	ax1.spines['top'].set_visible(False)
+	ax1.spines['right'].set_visible(False)
+	ax1.spines['bottom'].set_visible(False)
+	ax1.axes.xaxis.set_visible(False)
+	ax1.set_yticklabels([])
 
-	for i, (wl, uhl, ahl, asl, cfeat, csnip) in enumerate(zip(uwl,all_uhl,all_hightlabels,all_shapelabels,all_features,all_snippets)):
-		colidxs = np.linspace(0,155,len(uwl)).astype('int')
-		hw,_,_ = ax1.hist(eod_widths[width_labels==wl],bins=np.linspace(np.min(eod_widths),np.max(eod_widths),100),color=cmap3(colidxs[i]),orientation='horizontal')
+	# indices for plot colors (dark to light)
+	colidxsw = -np.linspace(-1.25, -0.5, h_size)
+
+	for i, (wl, colw, uhl, eod_h, eod_h_labs, w_snip, w_feat, w_lab, w_dm, w_mm) in enumerate(zip(eod_widths[0], colidxsw, eod_hights[0], eod_hights[1], eod_hights[2], eod_shapes[0], eod_shapes[1], eod_shapes[2], disc_masks, merge_masks)):
+
+		# plot width hist
+		hw, _, _ = ax1.hist(eod_widths[1][eod_widths[2]==wl], bins=np.linspace(np.min(eod_widths[1]),np.max(eod_widths[1]),100),color=cols.lighter(c_o,colw),orientation='horizontal')
 		
-		ax1.set_xscale('log')
-		ax1.spines['top'].set_visible(False)
-		ax1.spines['right'].set_visible(False)
-		ax1.spines['bottom'].set_visible(False)
-		ax1.axes.xaxis.set_visible(False)
-		ax1.axes.yaxis.set_visible(False)
-		#ax1.set_title('1. Cluster on width')
+		# set arrow when the last hist is plot so the size of the axes are known.
+		if i == h_size-1:
+			arrowed_spines(ax1,ms=20)
 
-		my,b = np.histogram(eod_hights,bins=np.exp(np.linspace(np.min(np.log(eod_hights)),np.max(np.log(eod_hights)),100)))
+		# determine total size of the hight historgams now.
+		my,b = np.histogram(eod_h,bins=np.exp(np.linspace(np.min(np.log(eod_h)),np.max(np.log(eod_h)),100)))
 		maxy = np.max(my)
-		
-		ax2 = fig.add_subplot(hight_hist_ax[len(uwl)-i-1])
-		#if len(uwl)-i-1 == 0:
-			#ax2.set_title('2. Cluster on height')
 
-		ax2.set_yscale('log')
+		# set axes features for hight hist.
+		ax2 = fig.add_subplot(hight_hist_ax[h_size-i-1])
 		ax2.set_xscale('log')
 		ax2.spines['top'].set_visible(False)
 		ax2.spines['right'].set_visible(False)
 		ax2.spines['bottom'].set_visible(False)
+		ax2.set_xlim([0.9,maxy])
 		ax2.axes.xaxis.set_visible(False)
-		ax2.axes.yaxis.set_visible(False)
-		i
+		ax2.set_yscale('log')
+		ax2.yaxis.set_major_formatter(NullFormatter())
+		ax2.yaxis.set_minor_formatter(NullFormatter())
 
-		ceodh = eod_hights[width_labels==wl]
-		cc_ad = [all_clusters_ad[0][width_labels==wl],all_clusters_ad[1][width_labels==wl]]
-		cc_merge = clusters_merge[:,width_labels==wl]
+		# define colors for plots
+		colidxsh = -np.linspace(-1.25,-0.5,len(uhl))
 
-		for n, (hl, asll) in enumerate(zip(uhl,asl)):
+		for n, (hl, hcol, snippets, features, labels, dmasks, mmasks) in enumerate(zip(uhl, colidxsh, w_snip, w_feat, w_lab, w_dm, w_mm)):
 
-			axs = []
-			axs_m = []
 
-			cf = [cfeat[0][ahl==hl],cfeat[1][ahl==hl]]
-			cs = [csnip[0][ahl==hl],csnip[1][ahl==hl]]
+			hh,_,_=loghist(ax2,eod_h[eod_h_labs==hl],np.min(eod_h),np.max(eod_h),100,cols.lighter(c_g,hcol),orientation='horizontal')
 
-			c_ad = [cc_ad[0][ahl==hl],cc_ad[1][ahl==hl]]
-			c_merge = cc_merge[:,ahl==hl]
+			# set arrow spines only on last plot
+			if n==len(uhl)-1:
+				arrowed_spines(ax2,ms=10)
 
-			colidxs = np.linspace(0,155,len(uhl)).astype('int')
-			hh,_,_=loghist(ax2,ceodh[ahl==hl],np.min(eod_hights),np.max(eod_hights),100,cmap2(colidxs[n]),orientation='horizontal')
-
-			ax2.set_xlim([0.9,maxy])
-
+			# plot line from the width histogram to the height histogram.
 			if n==0:
-				coord1 = transFigure.transform(ax1.transData.transform([np.median(hw[hw!=0]),np.median(eod_widths[width_labels==wl])]))
-				coord2 = transFigure.transform(ax2.transData.transform([0.9,np.mean(eod_hights)]))
+				coord1 = transFigure.transform(ax1.transData.transform([np.median(hw[hw!=0]),np.median(eod_widths[1][eod_widths[2]==wl])]))
+				coord2 = transFigure.transform(ax2.transData.transform([0.9,np.mean(eod_h)]))
 				line = matplotlib.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
 				                               transform=fig.transFigure,color='grey',linewidth=0.5)
 				fig.lines.append(line)
 
+			# compute sizes of the eod_discarding and merge steps
+			s1 = np.unique((labels[0]+1)*(~dmasks[0]))
+			s2 = np.unique((labels[1]+1)*(~dmasks[1]))
+			disc_block = disc_block + len(s1[s1>0]) + len(s2[s2>0])
 			
-			# begin bij tellen bij N - # unique clusters voor peak en trough
-			n_block = n_block + len(np.unique(c_ad[0][c_ad[0]>=0])) + len(np.unique(c_ad[1][c_ad[1]>=0]))
-			ad_count = 0
-			for pt in [0,1]:
+			s1 = np.unique((labels[0]+1)*(mmasks[0]))
+			s2 = np.unique((labels[1]+1)*(mmasks[1]))
+			merge_block = merge_block + len(s1[s1>0]) + len(s2[s2>0])
+
+			axs = []
+			disc_count = 0
+			merge_count = 0
+
+			# now plot the clusters for peak and trough centerings
+			for pt, cmap_pt in zip([0,1],cmap_pts):
 				
-				ax3 = fig.add_subplot(shape_windows[msum-1-newplot][pt,0])
-				#if msum-1-newplot + pt ==0:
-				#	ax3.set_title('3. Cluster on EOD shape')
-				ax4 = fig.add_subplot(shape_windows[msum-1-newplot][pt,1])
-				
+				ax3 = fig.add_subplot(shape_windows[shape_size-1-shape_count][pt,0])
+				ax4 = fig.add_subplot(shape_windows[shape_size-1-shape_count][pt,1])
+
+				# remove axes
 				ax3.axes.xaxis.set_visible(False)
 				ax4.axes.yaxis.set_visible(False)
 				ax3.axes.yaxis.set_visible(False)
 				ax4.axes.xaxis.set_visible(False)
 
-				colidxs = np.linspace(0,155,len(np.unique(asll[pt][asll[pt]>=0]))).astype('int')
+				# set color indices
+				colidxss = -np.linspace(-1.25,-0.5,len(np.unique(labels[pt][labels[pt]>=0])))
 				j=0
-
-				for c in np.unique(asll[pt]):
+				for c in np.unique(labels[pt]):
+					
 					if c<0:
-						ax3.plot(cf[pt][asll[pt]==c,0],cf[pt][asll[pt]==c,1],'.',color='lightgrey',label='-1',rasterized=True)
-						ax4.plot(cs[pt][asll[pt]==c].T,color='lightgrey',label='-1',rasterized=True)
+						# plot noise features + snippets
+						ax3.plot(features[pt][labels[pt]==c,0],features[pt][labels[pt]==c,1],'.',color='lightgrey',label='-1',rasterized=True)
+						ax4.plot(snippets[pt][labels[pt]==c].T,linewidth=0.1,color='lightgrey',label='-1',rasterized=True)
 					else:
-						ax3.plot(cf[pt][asll[pt]==c,0],cf[pt][asll[pt]==c,1],'.',color=cmap1(colidxs[j]),label=c,rasterized=True)
-						ax4.plot(cs[pt][asll[pt]==c].T,color=cmap1(colidxs[j]),label=c,rasterized=True)
+						# plot cluster features and snippets
+						ax3.plot(features[pt][labels[pt]==c,0],features[pt][labels[pt]==c,1],'.',color=cols.lighter(cmap_pt,colidxss[j]),label=c,rasterized=True)
+						ax4.plot(snippets[pt][labels[pt]==c].T,linewidth=0.1,color=cols.lighter(cmap_pt,colidxss[j]),label=c,rasterized=True)
 						
-						if np.sum(c_ad[pt][asll[pt]==c]) >=0:
-							#npa = len(np.unique(c_ad[1][c_ad[1]>=0]))
+						# check if the current cluster is an EOD, if yes, plot it.
+						if np.sum(dmasks[pt][labels[pt]==c]) == 0:
 
-							ax = fig.add_subplot(EOD_delete_ax[del_ax_sum - n_block + ad_count])
-							#if del_ax_sum - n_block + ad_count == 0:
-							#	ax.set_title('4. Select EODs')
-							
+							ax = fig.add_subplot(EOD_delete_ax[disc_size-disc_block+disc_count])
 							ax.axis('off')
-							ax.plot(np.mean(cs[pt][asll[pt]==c],axis=0),color=cmap1(colidxs[j]))
-							ad_count = ad_count + 1
+
+							# plot mean EOD snippet
+							ax.plot(np.mean(snippets[pt][labels[pt]==c],axis=0),color=cols.lighter(cmap_pt,colidxss[j]))
+							disc_count = disc_count + 1
 
 							# match colors and draw line..							
 							coord1 = transFigure.transform(ax4.transData.transform([ax4.get_xlim()[1], ax4.get_ylim()[0] + 0.5*(ax4.get_ylim()[1]-ax4.get_ylim()[0])]))
@@ -189,146 +312,170 @@ def plot_clustering(all_clusters,all_clusters_ad,merge_mask,uwl,all_uhl,width_la
 							fig.lines.append(line)	
 							axs.append(ax)
 
-							if np.sum(c_merge[pt,asll[pt]==c])>=0:
-								ax = fig.add_subplot(EOD_merge_ax[merge_ax_sum-1-merge_count])
-								#if merge_ax_sum-1-merge_count ==0:
-								#	ax.set_title('5. Merge clusters')
+							# check if the current EOD survives the merge step
+							# if so, plot it.
+							if np.sum(mmasks[pt,labels[pt]==c])>0:
+
+								ax = fig.add_subplot(EOD_merge_ax[merge_size-merge_block+merge_count])
 								ax.axis('off')
-								ax.plot(np.mean(cs[pt][asll[pt]==c],axis=0),color=cmap1(colidxs[j]))
+								
+								ax.plot(np.mean(snippets[pt][labels[pt]==c],axis=0),color=cols.lighter(cmap_pt,colidxss[j]))
 								merge_count = merge_count + 1
-								# match colors and draw line..
-								axs_m.append(ax)
+
 						j=j+1
 
-
 				if pt==0:
-					coord1 = transFigure.transform(ax2.transData.transform([np.median(hh[hh!=0]),np.median(ceodh[ahl==hl])]))
+					# draw line from hight cluster to EOD shape clusters.
+					coord1 = transFigure.transform(ax2.transData.transform([np.median(hh[hh!=0]),np.median(eod_h[eod_h_labs==hl])]))
 					coord2 = transFigure.transform(ax3.transData.transform([ax3.get_xlim()[0],ax3.get_ylim()[0]]))
 					line = matplotlib.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
 					                               transform=fig.transFigure,color='grey',linewidth=0.5)
-					fig.lines.append(line)	
-
-			for axp in axs:
-				for ax in axs_m:
-					coord1 = transFigure.transform(axp.transData.transform([axp.get_xlim()[1], axp.get_ylim()[0] + 0.5*(axp.get_ylim()[1]-axp.get_ylim()[0])]))
-					coord2 = transFigure.transform(ax.transData.transform([ax.get_xlim()[0],ax.get_ylim()[0] + 0.5*(ax.get_ylim()[1]-ax.get_ylim()[0])]))
-					line = matplotlib.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
-                               transform=fig.transFigure,color='grey',linewidth=0.5)
 					fig.lines.append(line)
-				
-			newplot = newplot+1
-	#plt.suptitle('Pulse EOD clustering.')
 
-def plot_bgm(model,x,x_transform,labels,labels_before_merge, xlab,use_log):	
-	
-	fig, ax1 = plt.subplots()
-	ax2 = ax1.twinx()
-	ax1.spines['top'].set_visible(False)
-	ax2.spines['top'].set_visible(False)
+			shape_count = shape_count + 1
+			
+			if len(axs)>0:
+				# plot lines that indicate the merged clusters.
+				coord1 = transFigure.transform(axs[0].transData.transform([axs[0].get_xlim()[1]+0.1*(axs[0].get_xlim()[1]-axs[0].get_xlim()[0]), axs[0].get_ylim()[1]-0.25*(axs[0].get_ylim()[1]-axs[0].get_ylim()[0])]))
+				coord2 = transFigure.transform(axs[-1].transData.transform([axs[-1].get_xlim()[1]+0.1*(axs[-1].get_xlim()[1]-axs[-1].get_xlim()[0]), axs[-1].get_ylim()[0]+0.25*(axs[-1].get_ylim()[1]-axs[-1].get_ylim()[0])]))
+				line = matplotlib.lines.Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
+                               transform=fig.transFigure,color='grey',linewidth=1)
+				fig.lines.append(line)
 
-	x2 = np.linspace(np.min(x_transform),np.max(x_transform),1000)
+def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
+	"""Plot a BGM clustering step either on EOD width or height.
+
+	Parameters
+	----------
+	x : 1D numpy array of floats
+		BGM input values.
+	means : list of floats
+		BGM Gaussian means
+	variances : list of floats
+		BGM Gaussian variances.
+	weights : list of floats
+		BGM Gaussian weights.
+	use_log : boolean
+		True if the z-scored logarithm of the data was used as BGM input.
+	labels : 1D numpy array of ints
+		Labels defined by BGM model (before merging based on merge factor).
+	labels_am : 1D numpy array of ints
+		Labels defined by BGM model (after merging based on merge factor).
+	xlab : string
+		Label for plot (defines the units of the BGM data).
+	"""
+
+	if 'width' in xlab:
+		ccol = c_o
+	elif 'height' in xlab:
+		ccol = c_g
+	else:
+		ccol = 'b'
+
+	# get the transform that was used as BGM input
 	if use_log:
+		x_transform = stats.zscore(np.log(x))
 		xplot = np.exp(np.linspace(np.log(np.min(x)),np.log(np.max(x)),1000))
 	else:
+		x_transform = stats.zscore(x)
 		xplot = np.linspace(np.min(x),np.max(x),1000)
-		bins2 = np.linspace(np.min(x),np.max(x),100)
 
+	# compute the x values and gaussians
+	x2 = np.linspace(np.min(x_transform),np.max(x_transform),1000)
 	gaussians = []
 	gmax = 0
-
-	ah, _, _ = loghist(ax1,x,np.min(x),np.max(x),100,'k')
-	ax1.clear()
-
-	#sort model attributes by model_means_
-	means = [m[0] for m in model.means_]
-	weights = [w for w in model.weights_]
-	variances = [v[0][0] for v in model.covariances_]
-	weights = [w for _,w in sorted(zip(means,weights))]
-	variances =  [v for _,v in sorted(zip(means,variances))]
-	means =  sorted(means)
-
 	for i, (w,m,std) in enumerate(zip(weights, means, variances)):
 		gaus = np.sqrt(w*stats.norm.pdf(x2,m,np.sqrt(std)))
 		gaussians.append(gaus)
-		gmax = max(gmax,np.max(gaus))
-		# plot where argmax changes.
+		gmax = max(np.max(gaus),gmax)
 	
+	# compute classes defined by gaussian intersections
 	classes = np.argmax(np.vstack(gaussians),axis=0)
-
-	# find the minimum of any gaussian that is within its class and set to 1
-	# but I only care about the ones that are labeled..
-
+	
+	# find the minimum of any gaussian that is within its class
 	gmin = 100
 	for i,c in enumerate(np.unique(classes)):
 		gmin=min(gmin,np.min(gaussians[c][classes==c]))
-	
-	colidxs = np.linspace(0,155,len(np.unique(classes))).astype('int')
 
-	for i,c in enumerate(np.unique(classes)):
-		ax2.plot(xplot,gaussians[c],c=cmap1(colidxs[i]),linewidth=2,label=r'$N(\mu_%i,\sigma_%i)$'%(c,c))
-	
-	ax2.vlines(xplot[1:][np.diff(classes)!=0],0,gmax/gmin,color='k',linewidth=2,linestyle='--')
-	ax2.set_ylim([gmin,gmax*1.1])
-
+	# set up the figure
+	fig, ax1 = plt.subplots(figsize=(8,4.8))
+	fig_ysize = 4
+	ax2 = ax1.twinx()
+	ax1.spines['top'].set_visible(False)
+	ax2.spines['top'].set_visible(False)
 	ax1.set_xlabel('x [a.u.]')
 	ax1.set_ylabel('#')
 	ax2.set_ylabel('Likelihood')
 	ax2.set_yscale('log')
-
-	colidxs = np.linspace(0,155,len(np.unique(labels_before_merge))).astype('int')
-
-	hs = []
-	bins = []
-
-	for i,l in enumerate(np.unique(labels_before_merge)):
-		if use_log:
-			h,binn,_=loghist(ax1,x[labels_before_merge==l],np.min(x),np.max(x),100,cmap2(colidxs[i]),label=r'$x_%i$'%l)
-			hs.append(h)
-			bins.append(binn)
-		else:
-			h,binn,_=ax1.hist(x[labels_before_merge==l],bins=bins2,color=cmap2(colidxs[i]),label=r'$x_%i$'%l)
-			hs.append(h)
-			bins.append(binn)
-
-	legend_loc = 1.2
-	
-	# if one label maps to two classes, blur out the line and gaussians for these
-	# maybe draw a line and write sth like median..=x~.. |mu1-mu2|/(mu1+mu2) < eta?
-	for l in np.unique(labels):
-		maps = np.unique(labels_before_merge[labels==l])
-		if len(maps) > 1:
-			x1 = x[labels_before_merge==maps[0]]
-			x2 = x[labels_before_merge==maps[1]]
-
-			#line = matplotlib.lines.Line2D([np.median(x1),np.median(x2)],[gmax,gmax],color='grey')
-			#line = matplotlib.lines.Line2D([np.median(x1),np.median(x2)],[gmax,gmax],color='grey')
-			ax2.plot([np.median(x1),np.median(x2)],[gmax*1.2,gmax*1.2],c='k',clip_on=False)
-			ax2.plot([np.median(x1),np.median(x1)],[gmax*1.2,gmax*1.1],c='k',clip_on=False)
-			ax2.plot([np.median(x2),np.median(x2)],[gmax*1.2,gmax*1.1],c='k',clip_on=False)
-
-			#ax2.text(np.median(x1)*1.1,gmax*1.35,r'$\frac{|{\tilde{x}_%i-\tilde{x}_%i}|}{max(\tilde{x}_%i,\tilde{x}_%i)} < \epsilon$'%(maps[0],maps[1],maps[0],maps[1]),fontsize=12)
-			ax2.annotate(r'$\frac{|{\tilde{x}_%i-\tilde{x}_%i}|}{max(\tilde{x}_%i,\tilde{x}_%i)} < \epsilon$'%(maps[0],maps[1],maps[0],maps[1]),[np.median(x1)*1.1,gmax*1.2], xytext=(0, 10), textcoords='offset points',fontsize=12,annotation_clip=False)
-			#line.set_clip_on(False)
-
-			#ax2.lines.append(line)
-
-			legend_loc = 1.4
-		
-			# line between these should be blurred.. so save it?
-
 	ax1.set_yscale('log')
-	ax2.legend(loc='lower left',frameon=False,bbox_to_anchor=(0,legend_loc),ncol=len(np.unique(classes)))
-	ax1.legend(loc='upper left',frameon=False,bbox_to_anchor=(0,legend_loc),ncol=len(np.unique(labels_before_merge)))
 	if use_log:
 		ax1.set_xscale('log')
 	ax1.set_xlabel(xlab)
-	plt.tight_layout()
-	#plt.suptitle('BGM on EOD %s'%xlab.split(' ')[0])
 
-def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels, dt,wl,hl,pt):
+	# define colors for plotting gaussians
+	colidxs = -np.linspace(-1.25,-0.5,len(np.unique(classes)))
+
+	# plot the gaussians
+	for i,c in enumerate(np.unique(classes)):
+		ax2.plot(xplot,gaussians[c],c=cols.lighter(c_grey,colidxs[i]),linewidth=2,label=r'$N(\mu_%i,\sigma_%i)$'%(c,c))
+	
+	# plot intersection lines
+	ax2.vlines(xplot[1:][np.diff(classes)!=0],0,gmax/gmin,color='k',linewidth=2,linestyle='--')
+	ax2.set_ylim([gmin,np.max(np.vstack(gaussians))*1.1])
+
+	# plot data distributions and classes
+	colidxs = -np.linspace(-1.25,-0.5,len(np.unique(labels)))
+	for i,l in enumerate(np.unique(labels)):
+		if use_log:
+			h,binn,_=loghist(ax1,x[labels==l],np.min(x),np.max(x),100,cols.lighter(ccol,colidxs[i]),label=r'$x_%i$'%l)
+		else:
+			h,binn,_=ax1.hist(x[labels==l],bins=np.linspace(np.min(x),np.max(x),100),color=cols.lighter(ccol,colidxs[i]),label=r'$x_%i$'%l)
+
+	# annotate merged clusters
+	for l in np.unique(labels_am):
+		maps = np.unique(labels[labels_am==l])
+		if len(maps) > 1:
+			x1 = x[labels==maps[0]]
+			x2 = x[labels==maps[1]]
+
+			print(np.median(x1))
+			print(np.median(x2))
+			print(gmax)
+			ax2.plot([np.median(x1),np.median(x2)],[1.2*gmax,1.2*gmax],c='k',clip_on=False)
+			ax2.plot([np.median(x1),np.median(x1)],[1.1*gmax,1.2*gmax],c='k',clip_on=False)
+			ax2.plot([np.median(x2),np.median(x2)],[1.1*gmax,1.2*gmax],c='k',clip_on=False)
+			ax2.annotate(r'$\frac{|{\tilde{x}_%i-\tilde{x}_%i}|}{max(\tilde{x}_%i,\tilde{x}_%i)} < \epsilon$'%(maps[0],maps[1],maps[0],maps[1]),[np.median(x1)*1.1,gmax*1.2], xytext=(10, 10), textcoords='offset points',fontsize=12,annotation_clip=False,ha='center')
+
+	# add legends and plot.
+	ax2.legend(loc='lower left',frameon=False,bbox_to_anchor=(-0.05,1.3),ncol=len(np.unique(classes)))
+	ax1.legend(loc='upper left',frameon=False,bbox_to_anchor=(-0.05,1.3),ncol=len(np.unique(labels)))
+	plt.tight_layout()
+	plt.show()
+
+def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels, dt, pt):
+	"""Plot clustering step on EOD shape.
+		
+	Parameters
+	----------
+	raw_snippets : 2D numpy array
+		Raw EOD snippets.
+	normalized_snippets : 2D numpy array
+		Normalized EOD snippets.
+	features : 2D numpy array
+		PCA values for each normalized EOD snippet.
+	labels : 1D numpy array of ints
+		Cluster labels.
+	dt : float
+		Sample interval of snippets.
+	pt : int
+		Set to 0 for peak-centered EODs and set to 1 for trough-centered EODs.
+	"""
+
+	ccol = cmap_pts[pt]
+
 	# set up the figure layout
-	fig = plt.figure(figsize=(8,4))
-	outer = gridspec.GridSpec(1,2)
+	fig = plt.figure(figsize=(((2+0.2)*4.8),4.8))
+	outer = gridspec.GridSpec(1,2,wspace=0.2,hspace=0)
 
 	x = np.arange(-dt*1000*raw_snippets.shape[1]/2,dt*1000*raw_snippets.shape[1]/2,dt*1000)
 
@@ -339,17 +486,14 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
 	ax_raw_snip = fig.add_subplot(snip_ax[0])
 	ax_normalized_snip = fig.add_subplot(snip_ax[1])
 
-	colidxs = np.arange(len(np.unique(labels[labels>=0]))).astype('int')#np.linspace(0,155,len(np.unique(labels))).astype('int')
+	colidxs = -np.linspace(-1.25,-0.5,len(np.unique(labels[labels>=0])))
 	j=0
-
-	legend_objects = []
-	legend_labels = []
 
 	for c in np.unique(labels):
 		if c<0:
 			color='lightgrey'
 		else:
-			color=cmap(colidxs[j])
+			color = cols.lighter(ccol,colidxs[j])
 			j=j+1
 
 		ax_raw_snip.plot(x,raw_snippets[labels==c].T,color=color,label='-1',rasterized=True,alpha=0.25)
@@ -365,6 +509,9 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
 		ax_normalized_snip.set_ylabel('Amplitude [a.u.]')
 		ax_normalized_snip.set_xlabel('Time [ms]')
 
+		ax_raw_snip.axis('off')
+		ax_normalized_snip.axis('off')
+
 		ax_overlay = fig.add_subplot(pc_ax[:,:])
 		ax_overlay.set_title('Features')
 		ax_overlay.axis('off')
@@ -372,9 +519,7 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
 		for n in range(features.shape[1]):
 			for m in range(n):
 				ax = fig.add_subplot(pc_ax[n-1,m])
-
-				ax.scatter(features[labels==c,n],features[labels==c,m],marker='.',color=color,alpha=0.25)
-				
+				ax.scatter(features[labels==c,m],features[labels==c,n],marker='.',color=color,alpha=0.25)				
 				ax.set_xlim([np.min(features),np.max(features)])
 				ax.set_ylim([np.min(features),np.max(features)])
 				ax.get_xaxis().set_ticklabels([])
@@ -389,162 +534,102 @@ def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels,
 					ax.set_xlabel('PC %i'%(m+1))
 
 		ax = fig.add_subplot(pc_ax[0,features.shape[1]-2])
-		ax.get_xaxis().set_ticklabels([])
-		ax.get_yaxis().set_ticklabels([])
-		ax.get_xaxis().set_ticks([])
-		ax.get_yaxis().set_ticks([])
-		ax.spines['top'].set_visible(False)
-		ax.spines['right'].set_visible(False)
-		ax.spines['bottom'].set_linewidth(2)
-		ax.spines['left'].set_linewidth(2)
-		ax.set_xlabel('%.3f'%(np.max(features)-np.min(features)))
-		ax.set_ylabel('%.3f'%(np.max(features)-np.min(features)))
-	
-	plt.tight_layout()
+		ax.set_xlim([np.min(features),np.max(features)])
+		ax.set_ylim([np.min(features),np.max(features)])
 
-	legend_elements = []
-	for i,ci in enumerate(colidxs):
-		legend_elements.append(Line2D([0], [0], marker='.', color='w', label=i+1,
-                  markerfacecolor=cmap(ci), markersize=15))
-	legend_elements.append(Line2D([0], [0], marker='.', color='w', label='noise',
-                  markerfacecolor='lightgrey', markersize=15))
-	
-	fig.legend(handles=legend_elements,   # The labels for each line
-           loc="center right",   # Position of legend
-           ncol= 1,
-           frameon=False,
-           title='Cluster #'
-           )
-	plt.subplots_adjust(right=0.85)
-	#plt.subplots_adjust(top=0.8)
-	#plt.suptitle('Feature extraction and DBSCAN.\n(%s centered, width class=%i, height class=%i)'%(pt,wl,hl))
+		size = max(1,int(np.ceil(-np.log10(np.max(features)-np.min(features)))))
+		wbar = np.floor((np.max(features)-np.min(features))*10**size)/10**size
 
-def plot_EOD_discarding(mean_eods, ffts, N):
-	fig = plt.figure(figsize=(5,5))
-	gs = gridspec.GridSpec(N,4,figure=fig) 
+		# should be smaller than the actual thing! so like x% of it?
+		sb.xscalebar(ax,0,0,wbar,wformat='%%.%if'%size)
+		sb.yscalebar(ax,0,0,wbar,hformat='%%.%if'%size)
+		ax.axis('off')
 
-    # plot
-	pnum = 0
-	for i,(mw,fw) in enumerate(zip(mean_eods,ffts)):
-		for j, (m,f) in enumerate(zip(mw,fw)):
-			ax = fig.add_subplot(gs[pnum,0])
-			ax.plot(m)
-			ax = fig.add_subplot(gs[pnum,1])
-			ax.plot(f[0][:2*f[2]],f[1][:2*f[2]])
-			ax.vlines(f[0][f[2]],0,np.max(f[1]))
-			ax.fill_between(f[0][:f[2]*2],f[1][:f[2]*2])
-			ax.fill_between(f[0][:f[2]],f[1][:f[2]])
-			pnum = pnum+1
-	return fig,gs
+def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
+	"""Plot moving fish detection step.
 
+	Parameters
+	----------
+	ws : list of floats
+		Median width for each width cluster that the moving fish algorithm is computed on (in seconds).
+	dts : list of floats
+		Sliding window size (in seconds) for each width cluster.
+	clusterss : list of 1D numpy int arrays
+		Cluster labels for each EOD cluster in a width cluster.
+	ts : list of 1D numpy float arrays
+		EOD emission times for each EOD in a width cluster.
+	fishcounts : list of lists
+		Sliding window timepoints and fishcounts for each width cluster.
+	T : float
+		Lenght of analyzed recording in seconds.
+	ignore_stepss : list of 1D int arrays
+		Mask for fishcounts that were ignored (ignored if True) in the moving_fish analysis.
+	"""
+	fig = plt.figure()
 
-def plot_moving_fish(fig,gs,iw,wclusters,weod_t,ev_num,dt,weod_widths):
-	ax1 = fig.add_subplot(gs[0])
-	cnum = 0
-	for c in np.unique(wclusters[wclusters>=0]):
-	    plt.eventplot(weod_t[wclusters==c],lineoffsets=ev_num,linelengths=0.5,color=cmap(iw))
-	    ev_num = ev_num+1
-	    cnum = cnum + 1
+	# create gridspec
+	outer = gridspec.GridSpec(len(ws),1)
 
-	rect=Rectangle((0,ev_num-cnum-0.5),dt,cnum,linewidth=1,linestyle='--',edgecolor='k',facecolor='none',clip_on=False)
-	# Add the patch to the Axes
-	ax1.add_patch(rect)
-	ax1.arrow(dt+0.1,ev_num-cnum-0.5, 0.5,0,head_width=0.1, head_length=0.1,facecolor='k',edgecolor='k')
-	ax1.set_title(r'$\tilde{w}_%i = %.3f ms$'%(iw,1000*np.median(weod_widths)))
-	return ax1, cnum
+	for i, (w, dt, clusters, t, fishcount, ignore_steps) in enumerate(zip(ws, dts, clusterss, ts, fishcounts, ignore_stepss)):
+		
+		gs = gridspec.GridSpecFromSubplotSpec(2,1,subplot_spec = outer[i])
+		
+		# axis for clusters
+		ax1 = fig.add_subplot(gs[0])
+		# axis for fishcount
+		ax2 = fig.add_subplot(gs[1])
 
-def plot_fishcount(fig,ax1,ev_num,cnum,T,gs,iw,wc_num,x,y,dt,ignore_steps):
-    ax1.set_ylabel('cluster #')
-    ax1.set_yticks(range(ev_num,-(ev_num-cnum)))
-    ax1.set_xlabel('time')
-    
-    #plt.legend(frameon=False)
-    ax1.set_xlim([0,T])
-    ax1.axes.xaxis.set_visible(False)
-    ax1.spines['bottom'].set_visible(False)
-    ax1.spines['top'].set_visible(False)
-    ax1.spines['right'].set_visible(False)
-    ax1.spines['left'].set_visible(False)
+		# plot clusters as eventplot
+		for cnum,c in enumerate(np.unique(clusters[clusters>=0])):
+			ax1.eventplot(t[clusters==c],lineoffsets=cnum,linelengths=0.5,color=cmap(i))
+			cnum = cnum + 1
 
-    ax2 = fig.add_subplot(gs[1])
-    ax2.spines['top'].set_visible(False)
-    ax2.spines['right'].set_visible(False)
-    ax2.spines['left'].set_visible(False)
-    ax2.spines['bottom'].set_visible(False)
-    
-    if iw < wc_num-1:
-        ax2.axes.xaxis.set_visible(False)
-    else:
-        ax2.set_xlabel('Time [ms]')
-    
-    yplot = np.copy(y)
-    ax2.plot(x+dt/2,yplot,linestyle='-',marker='.',c=cmap(iw),alpha=0.25)
-    yplot[ignore_steps.astype(bool)] = np.NaN
-    ax2.plot(x+dt/2,yplot,linestyle='-',marker='.',c=cmap(iw))
-    ax2.set_ylabel('Fish count')
-    ax2.set_yticks(range(int(np.min(y)),1+int(np.max(y))))
-    ax2.set_xlim([0,T])
+		# Plot the sliding window
+		rect=Rectangle((0,-0.5),dt,cnum,linewidth=1,linestyle='--',edgecolor='k',facecolor='none',clip_on=False)
+		ax1.add_patch(rect)
+		ax1.arrow(dt+0.1,-0.5, 0.5,0,head_width=0.1, head_length=0.1,facecolor='k',edgecolor='k')
+		
+		# plot parameters
+		ax1.set_title(r'$\tilde{w}_%i = %.3f ms$'%(i,1000*w))
+		ax1.set_ylabel('cluster #')
+		ax1.set_yticks(range(0,cnum))
+		ax1.set_xlabel('time')
+		ax1.set_xlim([0,T])
+		ax1.axes.xaxis.set_visible(False)
+		ax1.spines['bottom'].set_visible(False)
+		ax1.spines['top'].set_visible(False)
+		ax1.spines['right'].set_visible(False)
+		ax1.spines['left'].set_visible(False)
 
-    con = ConnectionPatch([0,ev_num-0.5], [dt/2,y[0]], "data", "data",
-        axesA=ax1, axesB=ax2,color='k')
-    ax2.add_artist(con)
-    con = ConnectionPatch([dt,ev_num-0.5], [dt/2,y[0]], "data", "data",
-        axesA=ax1, axesB=ax2,color='k')
-    ax2.add_artist(con)
+		# plot for fishcount
+		x = fishcount[0]
+		y = fishcount[1]
 
-    plt.xlim([0,T])
-    #plt.suptitle('Moving fish detection.')
+		ax2 = fig.add_subplot(gs[1])
+		ax2.spines['top'].set_visible(False)
+		ax2.spines['right'].set_visible(False)
+		ax2.spines['bottom'].set_visible(False)
+		ax2.axes.xaxis.set_visible(False)
 
-def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
-    '''
-    Quick way to view the output and intermediate steps of extract_pulsefish in a plot.
+		yplot = np.copy(y)
+		ax2.plot(x+dt/2,yplot,linestyle='-',marker='.',c=cmap(i),alpha=0.25)
+		yplot[ignore_steps.astype(bool)] = np.NaN
+		ax2.plot(x+dt/2,yplot,linestyle='-',marker='.',c=cmap(i))
+		ax2.set_ylabel('Fish count')
+		ax2.set_yticks(range(int(np.min(y)),1+int(np.max(y))))
+		ax2.set_xlim([0,T])
 
-    Parameters:
-    -----------
-    data: array
-        Recording data.
-    eod_p_times: array of ints
-        EOD peak indices.
-    eod_tr_times: array of ints
-        EOD trough indices.
-    fs: float
-        Samplerate.
-    mean_eods: list of numpy arrays
-        Mean EODs of each pulsefish found in the recording.
-    '''
+		if i < len(ws)-1:
+		    ax2.axes.xaxis.set_visible(False)
+		else:
+			ax2.axes.xaxis.set_visible(False)
+			sb.xscalebar(ax2,1,0,1,wunit='s',ha='right')
 
-    try:
-        cmap = plt.get_cmap("tab10")
-    except ValueError:
-        cmap = plt.get_cmap("jet")
+		con = ConnectionPatch([0,-0.5], [dt/2,y[0]], "data", "data",
+		    axesA=ax1, axesB=ax2,color='k')
+		ax2.add_artist(con)
+		con = ConnectionPatch([dt,-0.5], [dt/2,y[0]], "data", "data",
+		    axesA=ax1, axesB=ax2,color='k')
+		ax2.add_artist(con)
 
-    try:
-        fig = plt.figure(constrained_layout=True,figsize=(10,5))
-    except TypeError:
-        fig = plt.figure(figsize=(10,5))
-    if len(eod_p_times) > 0:
-        gs = gridspec.GridSpec(2, len(eod_p_times))
-        ax = fig.add_subplot(gs[0,:])
-        ax.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
-        
-        for i,(pt,tt) in enumerate(zip(eod_p_times,eod_tr_times)):
-            ax.plot(pt,data[(pt*fs).astype('int')],'o',label=i+1,ms=10,c=cmap(i))
-            ax.plot(tt,data[(tt*fs).astype('int')],'o',label=i+1,ms=10,c=cmap(i))
-            
-        #for i,t in enumerate(eod_p_times):
-        #    ax.plot(t,data[(t*fs).astype('int')],'o',label=i+1,c=cmap(i))
-        ax.set_xlabel('time [s]')
-        ax.set_ylabel('amplitude [V]')
-        #ax.axis('off')
-
-        for i, m in enumerate(mean_eods):
-            ax = fig.add_subplot(gs[1,i])
-            ax.plot(1000*m[0], 1000*m[1], c='k')
-
-            ax.fill_between(1000*m[0],1000*(m[1]-m[2]),1000*(m[1]+m[2]),color=cmap(i))
-            ax.set_xlabel('time [ms]')
-            ax.set_ylabel('amplitude [mV]') 
-    else:
-        plt.plot(np.arange(len(data))/fs,data,c='k',alpha=0.3)
-
-    #plt.suptitle('Pulse EOD detection results.')
+		plt.xlim([0,T])
