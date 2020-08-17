@@ -13,6 +13,13 @@ import matplotlib
 from scipy import stats
 from matplotlib.patches import ConnectionPatch, Rectangle
 from matplotlib.ticker import NullFormatter
+import warnings
+def warn(*args,**kwargs):
+    """
+    Ignore all warnings.
+    """
+    pass
+warnings.warn=warn
 
 # plotting parameters and colors
 rcParams['font.family'] = 'monospace'

@@ -31,9 +31,7 @@ from scipy.interpolate import interp1d
 
 from .eventdetection import detect_peaks
 from .pulseplots import *
-
 import pickle
-
 import warnings
 def warn(*args,**kwargs):
     """

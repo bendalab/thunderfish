@@ -18,6 +18,14 @@ from thunderfish.dataloader import load_data
 from thunderfish.bestwindow import find_best_window, plot_best_data
 from thunderfish.thunderfish import configuration
 import plottools.colors as cols
+import warnings
+def warn(*args,**kwargs):
+    """
+    Ignore all warnings.
+    """
+    pass
+warnings.warn=warn
+
 
 def get_peakdata(filename, return_data=[]):
 	""" Extract pulsefish data from a recording file.
@@ -326,10 +334,10 @@ def get_assesment_params():
 
 	np.savez('data/wave_eod_ad',**{'samplerates':[f_values['samplerate'],samplerate],'values':f_values['vals_'+wave_eod]})
 
-#get_bgm()
+get_bgm()
 get_eods()
-#get_peak_detection()
-#get_all_clustering_steps()
-#get_snippet_clusters()
-#get_moving_fish()
-#get_assesment_params()
+get_peak_detection()
+get_all_clustering_steps()
+get_snippet_clusters()
+get_moving_fish()
+get_assesment_params()
