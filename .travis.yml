@@ -1,3 +1,5 @@
+os: linux
+
 dist: xenial
 
 services:
@@ -5,10 +7,9 @@ services:
 
 language: python
 
-matrix:
+jobs:
     include:
         - python: "3.6"
-          os: linux
 
 addons:
   apt:
@@ -48,11 +49,12 @@ deploy:
   # in github: user->Settings->Developer settings->Personal access tokes: generate new token
   # in travis-ci: project->settings->environmental variables: add token as GITHUB_TOKEN
   # commit and push
-  # in github: project->Settings->Options: verify githup pages source to be gh-pages and https switsched on
+  # in github: project->Settings->Options: verify githup pages source to be gh-pages and https switched on
   # push again
   provider: pages
-  skip_cleanup: true
-  github_token: $GITHUB_TOKEN
+  strategy: git
+  cleanup: false
+  token: $GITHUB_TOKEN
   local_dir: site
   on:
       branch: master
