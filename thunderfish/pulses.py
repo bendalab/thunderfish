@@ -1131,7 +1131,7 @@ def cluster_on_shape(features, bg_ratio, minp, percentile=80, max_epsilon=0.01, 
         
         percentile : int (optional)
             Percentile of KNN distribution, where K=minp, to use as epsilon for DBSCAN.
-            Defaults to 75.
+            Defaults to 80.
         max_epsilon : float (optional)
             Maximum epsilon to use for DBSCAN clustering. This is used to avoid adding noisy clusters.
             Defaults to 0.01.

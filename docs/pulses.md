@@ -26,10 +26,10 @@ The peak detection algorithm consists of four steps:
 
 ![lkj](img/peak_detection.png)
 
-1. Detect all peaks and troughs
-2. Create peak-trough pairs
-3. Delete peak-trough pairs with unrealistic widths. (*w < 2/F<sub>s</sub> or w> 30ms*)
-4. Delete overlapping peak-trough pairs
+1. Detect all peaks and troughs.
+2. Create peak-trough pairs.
+3. Delete peak-trough pairs with unrealistic widths (*w < 2/F<sub>s</sub> or w> 30ms*).
+4. Delete overlapping peak-trough pairs.
 
 Peaks and troughs are detected by an algorithm for identifying peaks in physiological signals (Bryan S. Todd and David C. Andrews (1999)). The threshold for this peak detection is determined by the median of the standard deviation of the recording data. The standard deviation is taken on 1000 windows of 0.5ms in size, uniformly distributed over the recording data. Choosing said window size enables the detection of pulse-type EODs peaks that are superimposed on wave-type waveforms of up to 2000Hz.
 
@@ -60,7 +60,7 @@ Therefore, `SNR` is computed for each EOD snippet, by dividing the EOD height by
 
 #### Height
 
-Now that all EOD snippets are extracted, one could cluster the EODs by their shape and height. However, automating cluster parameters at this point is tricky. As all EOD snippets contain multiple datapoints, the cluster space becomes multi-dimensional. Computing another BGM model in this space is possible and would be suitable as this method handles variable cluster densities well, due to the sigma fit that can be different for each Gaussian. To actually perform this clustering method on multi-dimensional data, on the other hand, a lot of computing time is needed as increasing dimensionality increases the search space for the model. The model could easily be stuck in local optima and would need to be run multiple times to obtain reliable results. Another drawback is for using a BGM for this clustering step is that it does not account for noise and will either create a new cluster for noisy snippets or, even worse, include noise within the actual pulse EOD clusters. 
+Now that all EOD snippets are extracted, one could cluster the EODs by their shape and height. However, automating cluster parameters at this point is tricky. As all EOD snippets contain multiple datapoints, the cluster space becomes multi-dimensional. Computing another BGM model in this space is possible and would be suitable as this method handles variable cluster densities well, due to the sigma fit that can be different for each Gaussian. To actually perform this clustering method on multi-dimensional data, on the other hand, a lot of computing time is needed as increasing dimensionality increases the search space for the model. The model could easily be stuck in local optima and would need to be run multiple times to obtain reliable results. Another drawback of using a BGM for this clustering step is that it does not account for noise and will either create a new cluster for noisy snippets or, even worse, include noise within the actual pulse EOD clusters. 
 
 Consequently, regarding EOD shape, a distance-based clustering method is desired. DBSCAN is such a clustering method, which also performs well in discarding noise. For the DBSCAN method, two parameters are needed, of which one is the minimum distance between two points in cluster space for them to be identified as neighboring points. As this parameter is fixed for all clusters, all clusters should have similar densities. When taking the absolute distance between EOD snippets however, EODs with higher amplitudes will have be more distant in cluster space than EODs with lower amplitudes. This results in varying cluster densities, which complicates automating DBSCAN clustering. One could solve this issue by normalizing all EOD snippets. This again causes two problems. First of all, low amplitude EODs will show lower `SNR`s. If these EODs are normalized, the noise within these snippets scales linearly with the snippet. Cluster densities will now be variable not due to amplitude differences but due to `SNR` differences. Secondly, and most importantly, the EOD height is completely ignored when clustering, even though this contains valuable information on the pulsefish position. These issues are solved by computing two cascading clustering steps: one clustering step on height, which is a one-dimentional feature on which a BGM can be computed, and one further clustering step on EOD shape where DBSCAN is used.
 
@@ -83,7 +83,7 @@ Lastly, PCA is done on all snippets, and the first five PCs are used for cluster
 
 ##### DBSCAN parameters
 
-DBSCAN is a nearest-neighbor based clustering methods that requires two parameters: `epsilon` and `minp`. `minp` is the minimum amount of points that is needed to form a cluster, and `epsilon` is a value that determines the maximum distance between two points for them to be neighbors.
+DBSCAN is a nearest-neighbor based clustering method that requires two parameters: `epsilon` and `minp`. `minp` is the minimum amount of points that is needed to form a cluster, and `epsilon` is a value that determines the maximum distance between two points for them to be neighbors.
 Both parameters are automatically set based on the data properties. `minp` is set to be equal to 1% of the total number of datapoints in cluster space. If this number is less than 10, `minp` is set to 10, as with the current `thunderfish` settings, the length of the analysis window is 8 seconds. As all pulse-type electric fish species generally have EOD rates above 2 Hz, a minimum cluster size of 10 is deemed sufficient. `epsilon` is set based on the 80<sup>th</sup> percentile of the K-Nearest Neighbor distribution, where K is `minp`. This measure ensures that 80% of the datapoints in cluster space are connected to at least `minp` datapoints. With said method, clusters would be formed even for datapoints with great dissimilarities. To prevent `epsilon` from growing too large, an upper bound is set. Generally, the maximum value for `epsilon` (`eps_max`) would only allow for a certain variance within clusters. As all EOD snippets have their absolute integral set to 1, setting `eps_max` to 0.1 would result in EOD clusters with a maximum variance of 10%. However, for EODs with a low `SNR`, more EOD variance is expected. Therefore, if `1/SNR` is over 0.25, `eps_max = 0.4/SNR`.
 
 ![lkj](img/shape_clusters.png)
