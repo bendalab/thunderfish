@@ -74,7 +74,7 @@ def unique_counts(ar):
 ###################################################################################
 
 def extract_pulsefish(data, samplerate, fname, width_factor_shape=3, width_factor_wave=8, width_factor_display=4, verbose=0, plot_level=0, save_plots=False,  ftype='png', return_data = []):
-    """ Extract and cluster pulse fish EODs from recording.
+    """ Extract and cluster pulse-type fish EODs from a recording.
     
     Takes recording data containing an unknown number of pulsefish and extracts the mean 
     EOD and EOD timepoints for each fish present in the recording.
@@ -203,13 +203,13 @@ def extract_pulsefish(data, samplerate, fname, width_factor_shape=3, width_facto
 
         - 'snippet_clusters':
             This key adds a new dictionary for each height cluster.
-            - 'snippet_clusters_*n* _*m* _*p*' : dictionary, where *n* defines the width cluster (int), *m* defines the height cluster (int) 
+            - 'snippet_clusters*_n_m_p*' : dictionary, where *n* defines the width cluster (int), *m* defines the height cluster (int) 
                                                 and *p* defines shape clustering on peak or trough centered EOD snippets (string: 'peak' or 'trough').
-                - 'raw_snippets': 2D numpy array .
+                - 'raw_snippets': 2D numpy array (nsamples, nfeatures).
                     Raw EOD snippets.
                 - 'snippets': 2D numpy array.
                     Normalized EOD snippets.
-                - 'features': 2D numpy array.
+                - 'features': 2D numpy array.(nsamples, nfeatures)
                     PCA values for each normalized EOD snippet.
                 - 'clusters': 1D numpy array of ints.
                     Cluster labels.
@@ -262,7 +262,7 @@ def extract_pulsefish(data, samplerate, fname, width_factor_shape=3, width_facto
         
     Returns
     -------
-    mean_eods: list of 2D arrays
+    mean_eods: list of 2D arrays (3,eod_length)
         The average EOD for each detected fish. First column is time in seconds,
         second column the mean eod, third column the standard error.
     eod_times: list of 1D arrays
@@ -508,8 +508,7 @@ def detect_threshold(data, samplerate, win_size = 0.0005, n_stds = 1000, thresho
 
 def detect_eod_peaks(main_event_positions, side_event_positions, data, max_width=20, min_width=2,verbose=0):
     """
-    Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs,
-    the data and the minimum and maximum width of an supposed EOD-event.
+    Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs.
     The generated event-arrays include the location, heights and widths of such events.
 
     Parameters
@@ -629,10 +628,10 @@ def cluster(eod_xp, eod_xt, eod_hights, eod_widths, data, samplerate, interp_f, 
     
     """ Cluster EODs.
 
-    First cluster on EOD widths using a Bayesian Gaussian Mixture model, 
+    First cluster on EOD widths using a Bayesian Gaussian Mixture (BGM) model, 
     then cluster on EOD heights using a BGM model. Lastly, cluster on EOD waveform with DBSCAN. 
-    Clustering on EOD waveform is performed twice, once on scaled EODs and once on non-scaled EODs. 
-    Clusters are merged afterwards.
+    Clustering on EOD waveform is performed twice, once on peak-centered EODs and once on trough-centered EODs. 
+    Non-pulsetype EOD clusters are deleted, and clusters are merged afterwards.
 
     Parameters
     ----------
@@ -645,7 +644,7 @@ def cluster(eod_xp, eod_xt, eod_hights, eod_widths, data, samplerate, interp_f, 
     eod_widths: list of ints
         EOD widths in samples.
     data: list of floats
-        Raw recording data.
+        Recording data.
     samplerate : int or float
         Sample rate of raw data.
     interp_f: float
@@ -669,7 +668,7 @@ def cluster(eod_xp, eod_xt, eod_hights, eod_widths, data, samplerate, interp_f, 
         Threshold for merging clusters that are similar in width.
         Defaults to 0.5.
     minp : int (optional)
-        Minimum number of points for core cluster (DBSCAN).
+        Minimum number of points for core clusters (DBSCAN).
         Defaults to 10.
    
     verbose : int (optional)
@@ -912,7 +911,7 @@ def cluster(eod_xp, eod_xt, eod_hights, eod_widths, data, samplerate, interp_f, 
 def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5, use_log=False, verbose=0, plot_level=0, xlabel='x [a.u.]', save_plot=False, save_path='', save_name='', ftype='pdf', return_data=[]):
 
     """ Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data. 
-        Additional steps are used to merge clusters that are closer than merge_threshold.
+        Additional steps are used to merge clusters that are closer than `merge_threshold`.
         Broad gaussian fits that cover one or more other gaussian fits are split by their intersections with the other gaussians.
 
         Parameters
@@ -953,7 +952,7 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5, use_log=False,
             Path to location where data should be saved. Only used if save_plot==True.
             Defaults to ''.
         save_name : string (optional)
-            String to add to filename of the saved plot. Usefull as usually multiple BGM models are generated.
+            Filename of the saved plot. Usefull as usually multiple BGM models are generated.
             Defaults to ''.
         ftype : string (optional)
             Filetype of plot image if save_plots==True.
@@ -1123,8 +1122,8 @@ def cluster_on_shape(features, bg_ratio, minp, percentile=80, max_epsilon=0.01, 
 
         Parameters
         ----------
-        features : 2D numpy array of floats shape = (N,n_pc)
-            Recording data.
+        features : 2D numpy array of floats (N,n_pc)
+            PCA features of each EOD in a recording.
         bg_ratio : 1D array of floats
             Ratio of background activity slope the EOD is superimposed on.
         minp : int
@@ -1134,7 +1133,7 @@ def cluster_on_shape(features, bg_ratio, minp, percentile=80, max_epsilon=0.01, 
             Percentile of KNN distribution, where K=minp, to use as epsilon for DBSCAN.
             Defaults to 75.
         max_epsilon : float (optional)
-            Maximum epsilon to use for DBSCAN clustering. This is used to avoid adding noisy clusters
+            Maximum epsilon to use for DBSCAN clustering. This is used to avoid adding noisy clusters.
             Defaults to 0.01.
         slope_ratio_factor : int or float (optional)
             Influence of the slope-to-EOD ratio on the epsilon parameter.
@@ -1197,7 +1196,7 @@ def subtract_slope(snippets,hights):
 
 def remove_artefacts(all_snippets, clusters, int_f, samplerate, artefact_threshold=0.75, verbose=0,return_data=[]):
 
-    """ Remove EOD clusters that result from artefacts based on power in low frequency spectrum.
+    """ Create a mask for EOD clusters that result from artefacts, based on power in low frequency spectrum.
 
     Parameters
     ----------
@@ -1255,8 +1254,8 @@ def remove_artefacts(all_snippets, clusters, int_f, samplerate, artefact_thresho
 
 def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose=0,sdict={}):
 
-    """ Delete EOD clusters that are either mixed with noise or other fish, or wavefish.
-        This is the case when the ration between the EODwidth and the ISI is too large.
+    """ Create a mask for EOD clusters that are either mixed with noise or other fish, or wavefish.
+        This is the case when the ration between the EOD width and the ISI is too large.
 
         Parameters
         ----------
@@ -1270,17 +1269,17 @@ def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose=0,sdict={}):
         verbose : int (optional)
             Verbosity level.
             Defaults to 0.  
-        sdict : list of strings 
-            Keys that specify data to be logged. The key that can be used to log data in this function is
-            'eod_deletion' (see extract_pulsefish()).
-            Defaults to [].
+        sdict : dictionary
+            Dictionary that is used to log data. This is only used if a dictionary was created by remove_artefacts().
+            For logging data in noise and wavefish discarding steps, see remove_artefacts().
+            Defaults to {}.
 
         Returns
         -------
         mask : numpy array of booleans
             Set to True for every unreliable EOD.
         sdict : dictionary
-            Key value pairs of logged data. Data to be logged is specified by return_data.
+            Key value pairs of logged data. Data is only logged if a dictionary was instantiated by remove_artefacts().
 
     """
     mask = np.zeros(clusters.shape,dtype=bool)
@@ -1297,7 +1296,7 @@ def delete_unreliable_fish(clusters,eod_widths,eod_x,verbose=0,sdict={}):
 
 def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w_factor, max_phases=4, verbose=0,sdict={}):
 
-    """Delete EODs that are likely from wavefish, or sidepeaks of bigger EODs.
+    """Create a mask for EODs that are likely from wavefish, or sidepeaks of bigger EODs.
 
         Parameters
         ----------
@@ -1321,10 +1320,10 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w
         verbose : int (optional) 
             Verbosity level.
             Defaults to 0. 
-        sdict : list of strings
-            Keys that specify data to be logged. The key that can be used to log data in this function is
-            'eod_deletion' (see extract_pulsefish()).
-            Defaults to [].
+        sdict : dictionary
+            Dictionary that is used to log data. This is only used if a dictionary was created by remove_artefacts().
+            For logging data in noise and wavefish discarding steps, see remove_artefacts().
+            Defaults to {}.
 
         Returns
         -------
@@ -1333,7 +1332,7 @@ def delete_wavefish_and_sidepeaks(data, clusters, eod_x, eod_widths, interp_f, w
         mask_sidepeak: numpy array of booleans
             Set to True for every snippet which is centered around a sidepeak of an EOD.
         sdict : dictionary
-            Key value pairs of logged data. Data to be logged is specified by return_data.
+            Key value pairs of logged data. Data is only logged if a dictionary was instantiated by remove_artefacts().
 
     """
 
@@ -1485,7 +1484,7 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
 
 def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, samplerate,
                   w_factor, verbose=0):
-    """ Extract mean EODs, EOD timepoints and unreliability score for each EOD cluster.
+    """ Extract mean EODs and EOD timepoints for each EOD cluster.
 
     Parameters
     ----------
@@ -1512,7 +1511,7 @@ def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, sampl
 
     Returns
     -------
-    mean_eods: list of 2D arrays
+    mean_eods: list of 2D arrays (3,eod_length)
         The average EOD for each detected fish. First column is time in seconds,
         second column the mean eod, third column the standard error.
     eod_times: list of 1D arrays
@@ -1527,7 +1526,6 @@ def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, sampl
     """
 
     mean_eods, eod_times, eod_peak_times, eod_tr_times, eod_hights, cluster_labels = [], [], [], [], [], []
-    unreliability = []
 
     for cluster in np.unique(clusters):
         if cluster!=-1:
@@ -1615,7 +1613,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_hights, eod_widths, samplerate, m
     """
     Use a sliding window to detect the minimum number of fish detected simultaneously, 
     then delete all other EOD clusters. 
-    Do this only for EODs within the same width clusters, as a moving fish will contain its EOD width.
+    Do this only for EODs within the same width clusters, as a moving fish will preserve its EOD width.
 
     Parameters
     ----------
