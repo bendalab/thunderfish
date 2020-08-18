@@ -8,8 +8,6 @@ Extract all timepoints where pulsefish EODs are present for each separate pulsef
 """
 
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 from scipy import stats
 import os
 

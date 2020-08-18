@@ -5,13 +5,18 @@ Plot and save key steps in pulses.py for visualizing the alorithm.
 import pickle, glob
 import numpy as np
 from scipy import stats
-
-from matplotlib import rcParams, gridspec
+from matplotlib import rcParams, gridspec, ticker
 import matplotlib.pyplot as plt
+try:
+    from matplotlib.colors import colorConverter as cc
+except ImportError:
+    import matplotlib.colors as cc
+try:
+    from matplotlib.colors import to_hex
+except ImportError:
+    from matplotlib.colors import rgb2hex as to_hex
 from matplotlib.patches import ConnectionPatch, Rectangle
 from matplotlib.lines import Line2D
-from matplotlib.ticker import NullFormatter
-
 import warnings
 def warn(*args,**kwargs):
     """
@@ -28,6 +33,48 @@ c_o = cmap(1)
 c_grey = cmap(7)
 cmap_pts = [cmap(2),cmap(3)]
 
+def darker(color, saturation):
+    """ Make a color darker.
+    Parameters
+    ----------
+    color: dict or matplotlib color spec
+        A matplotlib color (hex string, name color string, rgb tuple)
+        or a dictionary with an 'color' or 'facecolor' key.
+    saturation: float
+        The smaller the saturation, the darker the returned color.
+        A saturation of 0 returns black.
+        A saturation of 1 leaves the color untouched.
+        A saturation of 2 returns white.
+    Returns
+    -------
+    color: string or dictionary
+        The darker color as a hexadecimal RGB string (e.g. '#rrggbb').
+        If `color` is a dictionary, a copy of the dictionary is returned
+        with the value of 'color' or 'facecolor' set to the darker color.
+    """
+    try:
+        c = color['color']
+        cd = dict(**color)
+        cd['color'] = darker(c, saturation)
+        return cd
+    except (KeyError, TypeError):
+        try:
+            c = color['facecolor']
+            cd = dict(**color)
+            cd['facecolor'] = darker(c, saturation)
+            return cd
+        except (KeyError, TypeError):
+            if saturation > 2:
+                sauration = 2
+            if saturation > 1:
+                return lighter(color, 2.0-saturation)
+            if saturation < 0:
+                saturation = 0
+            r, g, b = cc.to_rgb(color)
+            rd = r*saturation
+            gd = g*saturation
+            bd = b*saturation
+            return to_hex((rd, gd, bd)).upper()
 
 def lighter(color, lightness):
     """ Make a color lighter.
@@ -75,7 +122,6 @@ def lighter(color, lightness):
             gl = g + (1.0-lightness)*(1.0 - g)
             bl = b + (1.0-lightness)*(1.0 - b)
             return to_hex((rl, gl, bl)).upper()
-
 
 def xscalebar(ax, x, y, width, wunit=None, wformat=None, ha='left', va='bottom',
               lw=None, color=None, capsize=None, clw=None, **kwargs):
@@ -510,8 +556,8 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 		ax2.set_xlim([0.9,maxy])
 		ax2.axes.xaxis.set_visible(False)
 		ax2.set_yscale('log')
-		ax2.yaxis.set_major_formatter(NullFormatter())
-		ax2.yaxis.set_minor_formatter(NullFormatter())
+		ax2.yaxis.set_major_formatter(ticker.NullFormatter())
+		ax2.yaxis.set_minor_formatter(ticker.NullFormatter())
 
 		# define colors for plots
 		colidxsh = -np.linspace(-1.25,-0.5,len(uhl))

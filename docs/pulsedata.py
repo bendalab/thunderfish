@@ -7,9 +7,6 @@ path = '../../pulseeods/'
 
 import sys, glob, re
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
-import matplotlib
 
 sys.path.append("../thunderfish/")
 from thunderfish.pulses import extract_pulsefish
