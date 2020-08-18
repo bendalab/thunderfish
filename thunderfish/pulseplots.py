@@ -35,6 +35,9 @@ cmap_pts = [cmap(2),cmap(3)]
 
 def darker(color, saturation):
     """ Make a color darker.
+
+    From bendalab/plottools package.
+
     Parameters
     ----------
     color: dict or matplotlib color spec
@@ -45,6 +48,7 @@ def darker(color, saturation):
         A saturation of 0 returns black.
         A saturation of 1 leaves the color untouched.
         A saturation of 2 returns white.
+
     Returns
     -------
     color: string or dictionary
@@ -77,7 +81,7 @@ def darker(color, saturation):
             return to_hex((rd, gd, bd)).upper()
 
 def lighter(color, lightness):
-    """ Make a color lighter.
+    """Make a color lighter
 
     From bendalab/plottools package.
 
@@ -125,12 +129,12 @@ def lighter(color, lightness):
 
 def xscalebar(ax, x, y, width, wunit=None, wformat=None, ha='left', va='bottom',
               lw=None, color=None, capsize=None, clw=None, **kwargs):
-    """ Horizontal scale bar with label.
+    """Horizontal scale bar with label.
 
     From bendalab/plottools package.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     ax: matplotlib axes
         Axes where to draw the scale bar.
     x: float
@@ -236,12 +240,13 @@ def xscalebar(ax, x, y, width, wunit=None, wformat=None, ha='left', va='bottom',
         
 def yscalebar(ax, x, y, height, hunit=None, hformat=None, ha='left', va='bottom',
               lw=None, color=None, capsize=None, clw=None, **kwargs):
-    """ Vertical scale bar with label.
+    
+    """Vertical scale bar with label.
 
     From bendalab/plottools package.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     ax: matplotlib axes
         Axes where to draw the scale bar.
     x: float
@@ -272,6 +277,7 @@ def yscalebar(ax, x, y, height, hunit=None, hformat=None, ha='left', va='bottom'
     kwargs: key-word arguments
         Passed on to `ax.text()` used to print the scale bar label.
     """
+
     ax.autoscale(False)
     # ax dimensions:
     pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]

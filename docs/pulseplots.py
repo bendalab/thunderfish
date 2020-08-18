@@ -35,7 +35,10 @@ c_grey = cmap(7)
 cmap_pts = [cmap(2),cmap(3)]
 
 def darker(color, saturation):
-    """ Make a color darker.
+    """Make a color darker.
+
+    From bendalab/plottools package.
+
     Parameters
     ----------
     color: dict or matplotlib color spec
@@ -78,7 +81,7 @@ def darker(color, saturation):
             return to_hex((rd, gd, bd)).upper()
 
 def lighter(color, lightness):
-    """ Make a color lighter.
+    """Make a color lighter.
 
     From bendalab/plottools package.
 
@@ -127,12 +130,12 @@ def lighter(color, lightness):
 
 def xscalebar(ax, x, y, width, wunit=None, wformat=None, ha='left', va='bottom',
               lw=None, color=None, capsize=None, clw=None, **kwargs):
-    """ Horizontal scale bar with label.
+    """Horizontal scale bar with label.
 
     From bendalab/plottools package.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     ax: matplotlib axes
         Axes where to draw the scale bar.
     x: float
@@ -238,12 +241,12 @@ def xscalebar(ax, x, y, width, wunit=None, wformat=None, ha='left', va='bottom',
         
 def yscalebar(ax, x, y, height, hunit=None, hformat=None, ha='left', va='bottom',
               lw=None, color=None, capsize=None, clw=None, **kwargs):
-    """ Vertical scale bar with label.
+    """Vertical scale bar with label.
 
     From bendalab/plottools package.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     ax: matplotlib axes
         Axes where to draw the scale bar.
     x: float
