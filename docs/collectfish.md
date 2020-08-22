@@ -10,9 +10,9 @@ collectfish --help
 ```
 returns
 ```plain
-usage: collectfish [-h] [--version] [-v] [-t {wave,pulse}] [-a] [-c] [-m N]
+usage: collectfish [-h] [--version] [-v] [-t {wave,pulse}] [-c] [-m N]
                    [-p N:M] [-w N] [-r COLUMN] [-s] [-i FILE:REC:TEMP]
-                   [-q Q10] [-g] [-S] [-n NAME] [-o PATH]
+                   [-q Q10] [-S] [-n NAME] [-o PATH]
                    [-f {dat,ascii,csv,rtai,md,tex,html,same}]
                    file [file ...]
 
@@ -28,7 +28,6 @@ optional arguments:
   -v                    verbosity level: -v for meta data coverage, -vv for
                         additional info on discarded recordings.
   -t {wave,pulse}       wave-type or pulse-type fish
-  -a                    append the file name as the last column
   -c                    remove initial common directories from input files
   -m N                  maximum number of fish to be taken from each recording
   -p N:M                add properties of peak N to M of pulse-type EODs to
@@ -43,8 +42,6 @@ optional arguments:
                         should be adjusted
   -q Q10                Q10 value for adjusting EOD frequencies to a common
                         temperature
-  -g                    append column with genus/species name (for wavefish
-                        only, experimental)
   -S                    skip recordings that are not contained in metadata
                         table
   -n NAME               name for summary files that is appended to "wavefish"

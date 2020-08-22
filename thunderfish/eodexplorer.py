@@ -17,6 +17,7 @@ from .tabledata import TableData, add_write_table_config, write_table_args
 from .dataloader import load_data
 from .multivariateexplorer import MultivariateExplorer
 from .harmonics import add_harmonic_groups_config
+from .eodanalysis import add_species_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
 from .powerspectrum import decibel
@@ -256,7 +257,7 @@ class EODExplorer(MultivariateExplorer):
         else:
             for ax, xl in zip(axs, self.wave_ylabels):
                 if 'Voltage' in xl:
-                    ax.set_xlim(-0.5, 1.5)
+                    ax.set_xlim(-1.0, 1.5)
                 if 'Power' in xl:
                     ax.set_xlim(1.0, 2000.0)
                     ax.set_xscale('log')
@@ -662,6 +663,7 @@ def main():
     cfg = ConfigFile()
     add_eod_quality_config(cfg)
     add_harmonic_groups_config(cfg)
+    add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
                            align_columns=True, shrink_width=False)
     cfg.load_files(cfgfile, file_name, 3)

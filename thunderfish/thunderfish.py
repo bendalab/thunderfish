@@ -45,6 +45,7 @@ from .eodanalysis import plot_eod_waveform, plot_eod_snippets
 from .eodanalysis import plot_pulse_spectrum, plot_wave_spectrum
 from .eodanalysis import add_eod_analysis_config, eod_waveform_args
 from .eodanalysis import analyze_wave_args, analyze_pulse_args
+from .eodanalysis import add_species_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
 from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, save_pulse_fish
@@ -95,6 +96,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     del cfg['eodMinSnippet']
     del cfg['eodMinSem']
     add_eod_quality_config(cfg)
+    add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
                            align_columns=True, shrink_width=False)
     

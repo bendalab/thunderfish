@@ -7,6 +7,9 @@ Analysis of EOD waveforms.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
+- `load_species_waveforms()`: load template EOD waveforms for species matching.
+- `wave_similarity()`: root-mean squared difference between two wave fish EODs.
+- `pulse_similarity()`: root-mean squared difference between two pulse fish EODs.
 
 ## Quality assessment
 
@@ -49,11 +52,13 @@ Analysis of EOD waveforms.
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
+- `add_species_config()`: add parameters needed for assigning EOD waveforms to species.
 - `add_eod_quality_config()`: add parameters needed for assesing the quality of an EOD waveform.
 - `wave_quality_args()`: retrieve parameters for `wave_quality()` from configuration.
 - `pulse_quality_args()`: retrieve parameters for `pulse_quality()` from configuration.
 """
 
+import os
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
@@ -888,6 +893,253 @@ def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
     return eodf * q10 ** ((temp_adjust - temp) / 10.0)
 
 
+def load_species_waveforms(species_file='none'):
+    """ Load template EOD waveforms for species matching.
+    
+    Parameters
+    ----------
+    species_file: string
+        Name of file containing species definitions. The content of this file is as follows:
+        
+        - Empty lines and line starting with a hash ('#') are skipped.
+        - A line with the key-word 'wavefish' marks the beginning of the table for wave fish.
+        - A line with the key-word 'pulsefish' marks the beginning of the table for wave fish.
+        - Each line in a species table has three fields, separated by colons (':'):
+        
+          1. First field is an abbreviation of the species name.
+          2. Second field is the filename of the recording containing the EOD waveform.
+          3. The optional third field is the EOD frequency of the EOD waveform.
+
+          The EOD frequency is used to normalize the time axis of a wave
+          fish EOD to one EOD period. If it is not specified in the third field,
+          it is taken from the corresponding *-wavespectrun-* file, if present.
+          Otherwise the species is excluded and a warning is issued.
+
+        Example file content:
+        ``` plain
+        Wavefish
+        Aptero : F_91009L20-eodwaveform-0.csv : 823Hz
+        Eigen  : C_91008L01-eodwaveform-0.csv
+
+        Pulsefish
+        Gymnotus : pulsefish/gymnotus.csv
+        Brachy   : H_91009L11-eodwaveform-0.csv
+        ```
+    
+    Returns
+    -------
+    wave_names: list of strings
+        List of species names of wave-type fish.
+    wave_eods: list of 2-D arrays
+        List of EOD waveforms of wave-type fish corresponding to `wave_names`.
+        First column of a waveform is time in seconds, second column is the EOD waveform.
+        The waveforms contain exactly one EOD period.
+    pulse_names: list of strings
+        List of species names of pulse-type fish.
+    pulse_eods: list of 2-D arrays
+        List of EOD waveforms of pulse-type fish corresponding to `pulse_names`.
+        First column of a waveform is time in seconds, second column is the EOD waveform.
+    """
+    if len(species_file) == 0 or species_file == 'none' or not os.path.isfile(species_file):
+        return [], [], [], []
+    wave_names = []
+    wave_eods = []
+    pulse_names = []
+    pulse_eods = []
+    fish_type = 'wave'
+    with open(species_file, 'r') as sf:
+        for line in sf:
+            line = line.strip()
+            if len(line) == 0 or line[0] == '#':
+                continue
+            if line.lower() == 'wavefish':
+                fish_type = 'wave'
+            elif line.lower() == 'pulsefish':
+                fish_type = 'pulse'
+            else:
+                ls = [s.strip() for s in line.split(':')]
+                if len(ls) <  2:
+                    continue
+                name = ls[0]
+                waveform_file = ls[1]
+                eod = TableData(waveform_file).array()
+                eod[:,0] *= 0.001
+                if fish_type == 'wave':
+                    eodf = None
+                    if len(ls) >  2:
+                        eodf = float(ls[2].replace('Hz', '').strip())
+                    else:
+                        spectrum_file = waveform_file.replace('eodwaveform', 'wavespectrum')
+                        try:
+                            wave_spec = TableData(spectrum_file)
+                            eodf = wave_spec[0, 1]
+                        except FileNotFoundError:
+                            pass
+                    if eodf is None:
+                        print('warning: unknown EOD frequency of %s. Skip.' % name)
+                        continue
+                    eod[:,0] *= eodf
+                    wave_names.append(name)
+                    wave_eods.append(eod[:,:2])
+                elif fish_type == 'pulse':
+                    pulse_names.append(name)
+                    pulse_eods.append(eod[:,:2])
+    return wave_names, wave_eods, pulse_names, pulse_eods
+
+
+def wave_similarity(eod1, eod2, eod2f=1.0):
+    """ Root-mean squared difference between two wave fish EODs.
+
+    Compute the root-mean squared difference between two wave fish EODs
+    over one period. The better sampled signal is down-sampled to the
+    worse sampled one. Also compute the rms difference between the one
+    EOD and the other one inverted in amplitude. The smaller of the two
+    rms values is returned. 
+
+    Parameters
+    ----------
+    eod1: 2-D array
+        Time and amplitude of reference EOD.
+        Time is in units of the corresponding EOD period (inverse EOD frequency).
+    eod2: 2-D array
+        Time and amplitude of EOD that is to be compared to `eod1`.
+    eod2f: float
+        EOD frequency of `eod2` used to transform the time axis of `eod2`
+        to multiples of the EOD period.
+
+    Returns
+    -------
+    rmse: float
+        Root-mean-squared difference between the two EOD waveforms relative to
+        their standard deviation over one period.
+    """
+    # copy:
+    eod1 = np.array(eod1[:,:2])
+    eod2 = np.array(eod2[:,:2])
+    # scale to multiples of EOD period:
+    eod2[:,0] *= eod2f
+    # make eod1 the waveform with less samples per period:
+    n1 = int(1.0/(eod1[1,0]-eod1[0,0]))
+    n2 = int(1.0/(eod2[1,0]-eod2[0,0]))
+    if n1 > n2:
+        eod1, eod2 = eod2, eod1
+        n1, n2 = n2, n1
+    # one period around time zero:
+    i0 = np.argmin(np.abs(eod1[:,0]))
+    k0 = i0-n1//2
+    if k0 < 0:
+        k0 = 0
+    k1 = k0 + n1 + 1
+    if k1 >= len(eod1):
+        k1 = len(eod1)
+    # cut out one period from the reference EOD around maximum:
+    i = k0 + np.argmax(eod1[k0:k1,1])
+    k0 = i-n1//2
+    if k0 < 0:
+        k0 = 0
+    k1 = k0 + n1 + 1
+    if k1 >= len(eod1):
+        k1 = len(eod1)
+    eod1 = eod1[k0:k1,:]
+    # normalize amplitudes of first EOD:
+    eod1[:,1] -= np.min(eod1[:,1])
+    eod1[:,1] /= np.max(eod1[:,1])
+    sigma = np.std(eod1[:,1])
+    # set time zero to maximum of second EOD:
+    i0 = np.argmin(np.abs(eod2[:,0]))
+    k0 = i0-n2//2
+    if k0 < 0:
+        k0 = 0
+    k1 = k0 + n2 + 1
+    if k1 >= len(eod2):
+        k1 = len(eod2)
+    i = k0 + np.argmax(eod2[k0:k1,1])
+    eod2[:,0] -= eod2[i,0]
+    # interpolate eod2 to the time base of eod1:
+    eod2w = np.interp(eod1[:,0], eod2[:,0], eod2[:,1])
+    # normalize amplitudes of second EOD:
+    eod2w -= np.min(eod2w)
+    eod2w /= np.max(eod2w)
+    # root-mean-square difference:
+    rmse1 = np.sqrt(np.mean((eod1[:,1] - eod2w)**2))/sigma
+    # root-mean-square difference of the flipped signal:
+    i = k0 + np.argmin(eod2[k0:k1,1])
+    eod2[:,0] -= eod2[i,0]
+    eod2w = np.interp(eod1[:,0], eod2[:,0], -eod2[:,1])
+    eod2w -= np.min(eod2w)
+    eod2w /= np.max(eod2w)
+    rmse2 = np.sqrt(np.mean((eod1[:,1] - eod2w)**2))/sigma
+    # take the smaller value:
+    rmse = min(rmse1, rmse2)
+    return rmse
+
+
+def pulse_similarity(eod1, eod2, wfac=10.0):
+    """ Root-mean squared difference between two pulse fish EODs.
+
+    Compute the root-mean squared difference between two pulse fish EODs
+    over `wfac` times the distance between minimum and maximum of the
+    wider EOD. Also compute the rms difference between the one EOD and
+    the other one inverted in amplitude. The smaller of the two rms
+    values is returned. 
+
+    Parameters
+    ----------
+    eod1: 2-D array
+        Time and amplitude of reference EOD.
+    eod2: 2-D array
+        Time and amplitude of EOD that is to be compared to `eod1`.
+    wfac: float
+        Multiply the distance between minimum and maximum by this factor
+        to get the window size over which to compute the rms difference.
+
+    Returns
+    -------
+    rmse: float
+        Root-mean-squared difference between the two EOD waveforms relative to
+        their standard deviation over the analysis window.
+    """
+    # copy:
+    eod1 = np.array(eod1[:,:2])
+    eod2 = np.array(eod2[:,:2])
+    # width of the pulses:
+    imin1 = np.argmin(eod1[:,1])
+    imax1 = np.argmax(eod1[:,1])
+    w1 = np.abs(eod1[imax1,0]-eod1[imin1,0])
+    imin2 = np.argmin(eod2[:,1])
+    imax2 = np.argmax(eod2[:,1])
+    w2 = np.abs(eod2[imax2,0]-eod2[imin2,0])
+    w = wfac*max(w1, w2)
+    # cut out signal from the reference EOD:
+    n = int(w/(eod1[1,0]-eod1[0,0]))
+    i0 = imax1-n//2
+    if i0 < 0:
+        i0 = 0
+    i1 = imax1+n//2+1
+    if i1 >= len(eod1):
+        i1 = len(eod1)
+    eod1[:,0] -= eod1[imax1,0]
+    eod1 = eod1[i0:i1,:]
+    # normalize amplitude of first EOD:
+    eod1[:,1] /= np.max(eod1[:,1])
+    sigma = np.std(eod1[:,1])
+    # interpolate eod2 to the time base of eod1:
+    eod2[:,0] -= eod2[imax2,0]
+    eod2w = np.interp(eod1[:,0], eod2[:,0], eod2[:,1])
+    # normalize amplitude of second EOD:
+    eod2w /= np.max(eod2w)
+    # root-mean-square difference:
+    rmse1 = np.sqrt(np.mean((eod1[:,1] - eod2w)**2))/sigma
+    # root-mean-square difference of the flipped signal:
+    eod2[:,0] -= eod2[imin2,0]
+    eod2w = np.interp(eod1[:,0], eod2[:,0], -eod2[:,1])
+    eod2w /= np.max(eod2w)
+    rmse2 = np.sqrt(np.mean((eod1[:,1] - eod2w)**2))/sigma
+    # take the smaller value:
+    rmse = min(rmse1, rmse2)
+    return rmse
+
+
 def wave_clipped_fraction(data, samplerate, eod_times, mean_eod,
                           min_clip=-np.inf, max_clip=np.inf):
     """Compute fraction of clipped wave fish waveform snippets.
@@ -1104,6 +1356,8 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
     # relative amplitude of harmonics:
     if harm_relampl is not None:
         for k, max_relampl in enumerate([max_relampl_harm1, max_relampl_harm2, max_relampl_harm3]):
+            if k >= len(harm_relampl):
+                break
             msg += ['ampl%d=%5.1f%%' % (k+1, 100.0*harm_relampl[k])]
             if max_relampl > 0.0 and k < len(harm_relampl) and harm_relampl[k] >= max_relampl:
                 skip_reason += ['distorted ampl%d=%5.1f%% (max %5.1f%%)' %
@@ -1977,6 +2231,29 @@ def analyze_pulse_args(cfg):
                  'ipi_cv_thresh': 'ipiCVThresh',
                  'ipi_percentile': 'ipiPercentile'})
     return a
+
+
+def add_species_config(cfg, species_file='none', wave_max_rms=0.2, pulse_max_rms=0.2):
+    """Add parameters needed for assigning EOD waveforms to species.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+    species_file: string
+        File path to a file containing species names and corresponding file names
+        of EOD waveform templates. If 'none', no species assignemnt is performed.
+    wave_max_rms: float
+        Maximum allowed rms difference (relative to standard deviation of EOD waveform)
+        to an EOD waveform template for assignment to a wave fish species.
+    pulse_max_rms: float
+        Maximum allowed rms difference (relative to standard deviation of EOD waveform)
+        to an EOD waveform template for assignment to a pulse fish species.
+    """
+    cfg.add_section('Species assignment:')
+    cfg.add('speciesFile', species_file, '', 'File path to a file containing species names and corresponding file names of EOD waveform templates.')
+    cfg.add('maximumWaveSpeciesRMS', wave_max_rms, '', 'Maximum allowed rms difference (relative to standard deviation of EOD waveform) to an EOD waveform template for assignment to a wave fish species.')
+    cfg.add('maximumPulseSpeciesRMS', pulse_max_rms, '', 'Maximum allowed rms difference (relative to standard deviation of EOD waveform) to an EOD waveform template for assignment to a pulse fish species.')
 
 
 def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
