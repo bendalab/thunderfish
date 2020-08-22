@@ -413,9 +413,9 @@ def main():
     parser.add_argument('-m', dest='max_fish', type=int, metavar='N',
                         help='maximum number of fish to be taken from each recording')
     parser.add_argument('-p', dest='pulse_peaks', type=rangestr,
-                        default=(None, None), metavar='N:M',
+                        default=(0, 1), metavar='N:M',
                         help='add properties of peak N to M of pulse-type EODs to the table')
-    parser.add_argument('-w', dest='harmonics', type=int, metavar='N',
+    parser.add_argument('-w', dest='harmonics', type=int, default=3, metavar='N',
                         help='add properties of first N harmonics of wave-type EODs to the table')
     parser.add_argument('-r', dest='remove_cols', action='append', default=[], metavar='COLUMN',
                         help='columns to be removed from output table')
