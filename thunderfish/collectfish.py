@@ -278,7 +278,7 @@ def collect_fish(files, simplify_file=False,
             all_table.append_data(data[r,'index'], data_col)
             all_table.append_data(eodf)
             all_table.append_data(fish_type)
-            species_name = 'unkown'
+            species_name = 'unknown'
             species_rms = 1.0e12
             if fish_type == 'wave':
                 if harmonics is not None:

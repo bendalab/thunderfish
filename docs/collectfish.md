@@ -51,5 +51,5 @@ optional arguments:
                         file format used for saving summary tables ("same"
                         uses same format as input files)
 
-version 1.9.1 by Benda-Lab (2019-2020)
+version 1.9.3 by Benda-Lab (2019-2020)
 ```
