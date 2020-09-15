@@ -4,13 +4,17 @@ including units and column-specific formats. Kind of similar to a
 pandas data frame, but with intuitive numpy-style indexing and nicely
 formatted output to csv, html, and latex.
 
+
 ## Helper functions
+
 - `write()`: shortcut for constructing and writing a TableData.
 - `latex_unit()`: translate unit string into SIunit LaTeX code.
 - `index2aa()`: convert an integer into an alphabetical representation.
 - `aa2index()`: convert an alphabetical representation to an index.
 
+
 ## Configuration parameter
+
 - `add_write_table_config()`: add parameter specifying how to write a table to a file as a new section to a configuration.
 - `write_table_args()`: translates a configuration to the respective parameter names for writing a table to a file.
 
@@ -28,12 +32,12 @@ else:
 
 
 __pdoc__ = {}
-__pdoc__['TableData.__init__'] = True
 __pdoc__['TableData.__contains__'] = True
 __pdoc__['TableData.__len__'] = True
 __pdoc__['TableData.__iter__'] = True
 __pdoc__['TableData.__next__'] = True
 __pdoc__['TableData.__setupkey__'] = True
+__pdoc__['TableData.__call__'] = True
 __pdoc__['TableData.__getitem__'] = True
 __pdoc__['TableData.__setitem__'] = True
 __pdoc__['TableData.__delitem__'] = True
@@ -43,6 +47,23 @@ __pdoc__['TableData.__str__'] = True
 class TableData(object):
     """
     Table with numpy-style indexing and a rich hierarchical header including units and formats.
+    
+    Parameters
+    ----------
+    data: string, stream, array
+        - a filename: load table from file with name `data`.
+        - a stream/file handle: load table from that stream.
+        - 1-D or 2-D array of data: the data of the table.
+          Requires als a specified `header`.
+    header: list of string
+        Header labels for each column.
+    units: list of string, optional
+        Unit strings for each column.
+    formats: string or list of string, optional
+        Format strings for each column. If only a single format string is
+        given, then all columns are initialized with this format string.
+    missing: string
+        Missing data are indicated by this string.
 
     Manipulate table header
     -----------------------
@@ -210,6 +231,7 @@ class TableData(object):
     - `row()`: a single row of the table as TableData.
     - `row_dict()`: a single row of the table as dictionary.
     - `col()`: a single column of the table as TableData.
+    - `__call__()`: a single column of the table as numpy array.
     - `__getitem__()`: data elements specified by slice.
     - `__setitem__()`: assign values to data elements specified by slice.
     - `__delitem__()`: delete data elements or whole columns or rows.
@@ -227,6 +249,7 @@ class TableData(object):
     For example:
     ```
     # single column:    
+    df('size')     # data of 'size' column as numpy array
     df[:,'size']   # data of 'size' column as numpy array
     df.col('size') # table with the single column 'size'
 
@@ -235,11 +258,11 @@ class TableData(object):
     df.row(2)  # table with data of only the third row
 
     # slices:
-    df[2:5,['size','jitter']]          # sub table
+    df[2:5,['size','jitter']]          # sub-table
     df[2:5,['size','jitter']].array()  # numpy array with data only
 
     # logical indexing:
-    df[df[:,'speed'] > 100.0, 'size'] = 0.0 # set size to 0 if speed is > 100
+    df[df('speed') > 100.0, 'size'] = 0.0 # set size to 0 if speed is > 100
 
     # delete:
     del df[3:6, 'weight']  # delete rows 3-6 from column 'weight'
@@ -308,26 +331,6 @@ class TableData(object):
 
     def __init__(self, data=None, header=None, units=None, formats=None,
                  missing='-'):
-        """
-        Initialize a TableData from data or a file.
-
-        Parameters
-        ----------
-        data: string, stream, array
-            - a filename: load table from file with name `data`.
-            - a stream/file handle: load table from that stream.
-            - 1-D or 2-D array of data: the data of the table.
-              Requires als a specified `header`.
-        header: list of string
-            Header labels for each column.
-        units: list of string, optional
-            Unit strings for each column.
-        formats: string or list of string, optional
-            Format strings for each column. If only a single format string is
-            given, then all columns are initialized with this format string.
-        missing: string
-            Missing data are indicated by this string.
-        """
         self.data = []
         self.shape = (0, 0)
         self.header = []
@@ -1125,6 +1128,24 @@ class TableData(object):
         data.data = [self.data[c]]
         data.nsecs = 0
         return data
+
+    def __call__(self, column):
+        """
+        A single column of the table as a numpy array.
+
+        Parameters
+        ----------
+        column: None, int, or string
+            The column to be returned.
+            See self.index() for more information on how to specify a column.
+
+        Return
+        ------
+        data: 1-D array
+            Content of the specified column as a numpy array.
+        """
+        c = self.index(column)
+        return np.asarray(self.data[c])
 
     def __setupkey(self, key):
         """
