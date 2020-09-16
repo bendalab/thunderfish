@@ -15,6 +15,26 @@ except ImportError:
 
 class Voronoi(object):
     """
+    Parameters
+    ----------
+    points: ndarray of floats, shape (npoints, 2)
+        List of point coordinates.
+    radius: float or None
+        Radius for computing far points of infinite ridges.
+        If None twice the maximum extent of the input points is used.
+    qhull_options: string or None
+        Options to be passed on to QHull. From the manual:
+        Qbb  - scale last coordinate to [0,m] for Delaunay triangulations
+        Qc   - keep coplanar points with nearest facet      
+        Qx   - exact pre-merges (skips coplanar and anglomaniacs facets)
+        Qz   - add point-at-infinity to Delaunay triangulation
+        QJn  - randomly joggle input in range [-n,n]
+        Qs   - search all points for the initial simplex
+        Qz   - add point-at-infinity to Voronoi diagram
+        QGn  - Voronoi vertices if visible from point n, -n if not
+        QVn  - Voronoi vertices for input point n, -n if not
+        Default is: "Qbb Qc Qz Qx" for ndim > 4 and "Qbb Qc Qz" otherwise.
+            
     Input points
     ------------
     The points from which the Voronoi diagram is constructed.
@@ -90,7 +110,8 @@ class Voronoi(object):
     point of the convex hull away from the center of mass of the convex
     hull such that randomly placing the same number of points in this
     area results on average in the same mean nearest-neighbor
-    distance. This enlarged hull is needed for bootstrapping.
+    distance. This enlarged hull is needed for bootstrapping. Note that
+    in some cases the outer hull can be *smaller* than the convex hull.
     
     outer_hull_points: 2-d ndarray of floats
         Array of coordinates of the points of the outer hull.
@@ -160,29 +181,6 @@ class Voronoi(object):
     """
     
     def __init__(self, points, radius=None, qhull_options=None):
-        """
-        Compute and analyze the Voronoi diagram and the convex hull for some input points in 2D.
-
-        Parameters
-        ----------
-        points: ndarray of floats, shape (npoints, 2)
-            List of point coordinates.
-        radius: float or None
-            Radius for computing far points of infinite ridges.
-            If None twice the maximum extent of the input points is used.
-        qhull_options: string or None
-            Options to be passed on to QHull. From the manual:
-            Qbb  - scale last coordinate to [0,m] for Delaunay triangulations
-            Qc   - keep coplanar points with nearest facet      
-            Qx   - exact pre-merges (skips coplanar and anglomaniacs facets)
-            Qz   - add point-at-infinity to Delaunay triangulation
-            QJn  - randomly joggle input in range [-n,n]
-            Qs   - search all points for the initial simplex
-            Qz   - add point-at-infinity to Voronoi diagram
-            QGn  - Voronoi vertices if visible from point n, -n if not
-            QVn  - Voronoi vertices for input point n, -n if not
-            Default is: "Qbb Qc Qz Qx" for ndim > 4 and "Qbb Qc Qz" otherwise.
-        """
         self.vor = sp.Voronoi(points, furthest_site=False, incremental=False,
                               qhull_options=qhull_options)
         if self.vor.ndim != 2:
@@ -917,6 +915,8 @@ if __name__ == "__main__":
     #rs = 1718315706  # n=10
     #rs = 803645102   # n=10
     #rs = 2751318392  # double infinite ridges at vertex 0 (n=10)
+    #rs = 4226093154 out-hull fac < 1.0
+    
     print('random seed: %ld' % rs)
     np.random.seed(rs)
     n = 20    # number of points
@@ -926,7 +926,7 @@ if __name__ == "__main__":
     
     # calculate Voronoi diagram:
     vor = Voronoi(points)
-    
+        
     # what we get is:
     print('dimension: %d' % vor.ndim)
     print('number of points: %d' % vor.npoints)
@@ -994,7 +994,7 @@ if __name__ == "__main__":
     plt.ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
     plt.axes().set_aspect('equal')
     plt.legend()
-    
+        
     # bootstrap:
     def bootstrapped_nearest_distances(vor, n, poisson, mode, ax1, ax2, ax3, bins):
         ps = 'fixed'
