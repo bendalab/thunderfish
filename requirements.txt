@@ -3,5 +3,5 @@ scipy
 matplotlib
 sklearn
 SoundFile
-PyAudio
+simpleaudio
 audioio

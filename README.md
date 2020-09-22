@@ -1,23 +1,21 @@
+[![PyPI license](https://img.shields.io/pypi/l/thunderfish.svg)](https://pypi.python.org/pypi/thunderfish/)
 [![Build Status](https://travis-ci.org/bendalab/thunderfish.svg?branch=master)](https://travis-ci.org/bendalab/thunderfish)
 [![codecov](https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/bendalab/thunderfish)
 [![PyPI version](https://badge.fury.io/py/thunderfish.svg)](https://badge.fury.io/py/thunderfish)
 
-# thunderfish
+# ThunderFish
 
 Algorithms and programs for analysing electric field recordings of
 weakly electric fish.
+
+[Documentation](https://bendalab.github.io/thunderfish) |
+[API Reference](https://bendalab.github.io/thunderfish/api)
 
 Weakly electric fish generate an electric organ discharge (EOD).  In
 wave-type fish the EOD resembles a sinewave of a specific frequency
 and with higher harmonics. In pulse-type fish EODs have a distinct
 waveform and are separated in time. The thunderfish package provides
 algorithms and tools for analysing both wavefish and pulsefish EODs.
-
-[Documentation](https://bendalab.github.io/thunderfish)
-
-[Git Repository](https://github.com/bendalab/thunderfish)
-
-[PyPI](https://pypi.org/project/thunderfish)
 
 
 ## Installation
@@ -28,9 +26,9 @@ pip install thunderfish
 ```
 
 If you have problems loading specific audio files with thunderfish,
-then you need to install further packages. Follow the installation
-instructions of the [audioio](https://bendalab.github.io/audioio/)
-package.
+then you need to install further packages. Follow the [installation
+instructions](https://bendalab.github.io/audioio/installation/) of the
+[AudioIO](https://bendalab.github.io/audioio/) package.
 
 
 ## Software
