@@ -2,15 +2,18 @@
 Detect and handle peaks and troughs as well as threshold crossings in data arrays.
 
 ## Peak detection
+
 - `detect_peaks()`: peak and trough detection with a relative threshold.
 - `peak_width()`: compute width of each peak.
 - `peak_size_width()`: compute for each peak its size and width.
 
 ## Threshold crossings
+
 - `threshold_crossings()`: detect crossings of an absolute threshold.
 - `threshold_crossing_times()`: compute times of threshold crossings by linear interpolation.
 
 ## Event manipulation
+
 - `trim()`: make the list of peaks and troughs the same length.
 - `trim_to_peak()`: ensure that the peak is first.
 - `trim_closest()`: ensure that peaks minus troughs is smallest.
@@ -20,21 +23,25 @@ Detect and handle peaks and troughs as well as threshold crossings in data array
 - `widen_events()`: Enlarge events on both sides without overlap.
 
 ## Threshold estimation
+
 - `std_threshold()`: estimate detection threshold based on the standard deviation.
+- `median_std_threshold()`: estimate detection threshold based on the median standard deviation of data snippets.
 - `hist_threshold()`: esimate detection threshold based on a histogram of the data.
 - `minmax_threshold()`: estimate detection threshold based on maximum minus minimum value.
 - `percentile_threshold()`: estimate detection threshold based on interpercentile range.
 
 ## Snippets
+
 - `snippets()`: cut out data snippets around a list of indices.
 
 ## Peak detection with dynamic threshold:
+
 - `detect_dynamic_peaks()`: peak and trough detection with a dynamically adapted threshold.
 - `accept_peak_size_threshold()`: adapt the dection threshold to the size of the detected peaks.
 """
 
-import numpy as np
 import sys
+import numpy as np
 
 try:
     from numba import jit, int64
@@ -836,7 +843,7 @@ def widen_events(onsets, offsets, max_time, duration):
 
     
 def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
-    """Esimates a threshold for `detect_peaks()` based on the standard deviation of the data.
+    """Estimates a threshold for peak detection based on the standard deviation of the data.
 
     The threshold is computed as the standard deviation of the data
     multiplied with `thresh_fac`.
@@ -880,9 +887,46 @@ def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
         return np.std(data, ddof=1) * thresh_fac
 
     
+@jit(nopython=True)
+def median_std_threshold(data, samplerate, win_size=0.0005, n_snippets=1000, thresh_fac=6.0):
+    """Estimate a threshold for peak detection based on the median standard deviation of data snippets.
+
+    On `n_snippets` snippets of `win_size` duration the standard
+    deviation of the data is estimated. The returned threshold is the
+    median of these standard deviations multiplied by `thresh_fac`.
+
+    Parameters
+    ----------
+    data: 1-D array of float
+        The data to be analysed.
+    samplerate: int or float
+        Sampling rate of the data
+    win_size: float
+        Duration of windows on which standarad deviations are computed in seconds.
+    n_snippets: int
+        Number of snippets on which the standard deviations are estimated.
+    thresh_fac: float
+        Factor by which the median standard deviation is multiplied to set the threshold.
+
+    Returns
+    -------
+    threshold: float
+        The computed threshold.
+    """
+    win_size_indices = int(win_size * samplerate)
+    if win_size_indices < 10:
+        win_size_indices = 10
+    step = len(data)//n_snippets
+    if step < win_size_indices//2:
+        step = win_size_indices//2
+    stds = np.array([np.std(data[i:i+win_size_indices])
+                     for i in range(0, len(data)-win_size_indices, step)])
+    return np.median(stds)*thresh_fac
+
+    
 def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
                    nbins=100, hist_height=1.0/np.sqrt(np.e)):
-    """Esimate a threshold for `detect_peaks()` based on a histogram of the data.
+    """Estimate a threshold for peak detection based on a histogram of the data.
 
     The standard deviation of the data is estimated from half the
     width of the histogram of the data at `hist_height` relative height.
@@ -950,7 +994,7 @@ def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
 
     
 def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
-    """Esimate a threshold for `detect_peaks()` based on minimum and maximum values of the data.
+    """Estimate a threshold for peak detection based on minimum and maximum values of the data.
 
     The threshold is computed as the difference between maximum and
     minimum value of the data multiplied with `thresh_fac`.
@@ -994,7 +1038,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
 
 
 def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, percentile=1.0):
-    """Esimate a threshold for `detect_peaks()` based on an inter-percentile range of the data.
+    """Estimate a threshold for peak detection based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
     100.0-percentile percentiles of the data multiplied with
