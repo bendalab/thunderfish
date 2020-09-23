@@ -487,10 +487,12 @@ def extract_eod_times(data, samplerate, width_factor, interp_freq=500000,
 
         # only take those where the maximum cutwidth does not casue issues
         # so if the width_factor times the width + x is more than length.
-        cut_idx = ((x_peaks + np.max(eod_widths)*width_factor < len(data)) &
-                   (x_troughs + np.max(eod_widths)*width_factor < len(data)) &
-                   (x_peaks - np.max(eod_widths)*width_factor > 0) &
-                   (x_troughs - np.max(eod_widths)*width_factor > 0))
+        if len(eod_widths)==0:
+            if verbose>0:
+                print('No EOD peaks detected.')
+            return [], [], [], [], samplerate*interp_f,data, interp_f, peak_detection_result
+
+        cut_idx = ((x_peaks + np.max(eod_widths)*width_factor < len(data)) & (x_troughs + np.max(eod_widths)*width_factor < len(data)) & (x_peaks - np.max(eod_widths)*width_factor > 0) & (x_troughs - np.max(eod_widths)*width_factor > 0))
         
         if verbose>0:
             print('Remaining peaks after EOD extraction:                   %5i'%(len(cut_idx)))
