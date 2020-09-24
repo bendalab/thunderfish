@@ -5,7 +5,19 @@
 # This script only works if you have the right input data (pulseeods.) in the right filepath.
 path = '../../pulseeods/'
 
-import sys, glob, re
+# the following recordings in pulseeods/ are used:
+recordings = ['test/012_Leticia_2018-01-21_Jorge_Molina_2_pulsefish_eel.wav',
+              'test/013_Leticia_2018-01-21_Jorge_Molina_1_pulsefish_eel.wav',
+              'validation/008_Leticia_2018-01-21_Jorge_Molina_2_pulsefish.wav',
+              'validation/061_Leticia_2019-10-14_Jaqcui_Goebl_3_pulsefish.wav',
+              'validation/094_Lake-Nabugabo-Uganda_2019-0x-0x_Stefan_Mucha_1_pulsefish.wav',
+              'validation/106_Panama_2014-05-17_Ruediger_Krahe_1_pulsefish_1_wavefish.wav',
+              'validation/112_Panama_2014-05-18_Ruediger_Krahe_1_pulsefish_1_wavefish.wav',
+              'validation/119_Sanmartin_2019-10-11_Jaqcui_Goebl_1_pulsefish.wav']
+
+import sys
+import re
+import glob
 import numpy as np
 
 sys.path.append("../thunderfish/")
