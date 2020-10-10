@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="None">
+  <meta name="author" content="Benda-Lab">
+  
+  <link rel="shortcut icon" href="img/favicon.ico">
+  <title>thunderfish</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700" />
+
+  <link rel="stylesheet" href="css/theme.css" />
+  <link rel="stylesheet" href="css/theme_extra.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" />
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "Home";
+    var mkdocs_page_input_path = "index.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="js/jquery-2.1.1.min.js" defer></script>
+  <script src="js/modernizr-2.8.3.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+        <a href="." class="icon icon-home"> thunderfish</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="./search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current" href=".">Home</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#installation">Installation</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#software">Software</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#algorithms">Algorithms</a>
+        <ul>
+    <li class="toctree-l3"><a class="reference internal" href="#inputoutput">Input/output</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#basic-data-analysis">Basic data analysis</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#eod-analysis">EOD analysis</a>
+    </li>
+    <li class="toctree-l3"><a class="reference internal" href="#eod-simulations">EOD simulations</a>
+    </li>
+        </ul>
+    </li>
+    </ul>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">User guide</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="thunderfish/">thunderfish</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="collectfish/">collectfish</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal" href="eodexplorer/">eodexplorer</a>
+                    </li>
+                </ul>
+                <p class="caption"><span class="caption-text">Algorithms</span></p>
+                <ul>
+                    <li class="toctree-l1"><a class="reference internal" href="pulses/">Pulse-fish EODs</a>
+                    </li>
+                </ul>
+                <ul>
+                    <li class="toctree-l1"><a class="" href="api/index.html">API reference</a>
+                    </li>
+                </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href=".">thunderfish</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href=".">Docs</a> &raquo;</li>
+    
+      
+    
+    <li>Home</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <p><a href="https://pypi.python.org/pypi/thunderfish/"><img alt="PyPI license" src="https://img.shields.io/pypi/l/thunderfish.svg" /></a>
+<a href="https://travis-ci.org/bendalab/thunderfish"><img alt="Build Status" src="https://travis-ci.org/bendalab/thunderfish.svg?branch=master" /></a>
+<a href="https://codecov.io/gh/bendalab/thunderfish"><img alt="codecov" src="https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg" /></a>
+<a href="https://badge.fury.io/py/thunderfish"><img alt="PyPI version" src="https://badge.fury.io/py/thunderfish.svg" /></a></p>
+<h1 id="thunderfish">ThunderFish</h1>
+<p>Algorithms and programs for analysing electric field recordings of
+weakly electric fish.</p>
+<p><a href="https://bendalab.github.io/thunderfish">Documentation</a> |
+<a href="https://bendalab.github.io/thunderfish/api">API Reference</a></p>
+<p>Weakly electric fish generate an electric organ discharge (EOD).  In
+wave-type fish the EOD resembles a sinewave of a specific frequency
+and with higher harmonics. In pulse-type fish EODs have a distinct
+waveform and are separated in time. The thunderfish package provides
+algorithms and tools for analysing both wavefish and pulsefish EODs.</p>
+<h2 id="installation">Installation</h2>
+<p>Simply run (as superuser):</p>
+<pre><code>pip install thunderfish
+</code></pre>
+<p>If you have problems loading specific audio files with thunderfish,
+then you need to install further packages. Follow the <a href="https://bendalab.github.io/audioio/installation/">installation
+instructions</a> of the
+<a href="https://bendalab.github.io/audioio/">AudioIO</a> package.</p>
+<h2 id="software">Software</h2>
+<p>The thunderfish package provides the following software:</p>
+<ul>
+<li><em>fishfinder</em>: Browse EOD recordings and detect EOD frequencyies on the fly.</li>
+<li><em>thunderfish</em>: Automatically detect and analyze all EOD waveforms in a short recording and generate a summary plot and data tables. <a href="docs/thunderfish.md">Read documentation</a>.</li>
+<li><em>collectfish</em>: Collect data generated by thunderfish. <a href="docs/collectfish.md">Read documentation</a>.</li>
+<li><em>eodexplorer</em>: View and explore properties of EOD waveforms. <a href="docs/eodexplorer.md">Read documentation</a>.</li>
+</ul>
+<h2 id="algorithms">Algorithms</h2>
+<p>The following modules provide the algorithms for analyzing EOD recordings.
+Look into the modules for more information.</p>
+<h3 id="inputoutput">Input/output</h3>
+<ul>
+<li><em>configfile.py</em>: Configuration file with help texts for analysis parameter.</li>
+<li><em>consoleinput.py</em>: User input from console.</li>
+<li><em>dataloader.py</em>: Load time-series data from files.</li>
+<li><em>tabledata.py</em>: Read and write tables with a rich hierarchical header including units and formats.</li>
+</ul>
+<h3 id="basic-data-analysis">Basic data analysis</h3>
+<ul>
+<li><em>eventdetection.py</em>: Detect and hande peaks and troughs as well as threshold crossings in data arrays.</li>
+<li><em>powerspectrum.py</em>: Compute and plot powerspectra and spectrograms for a given minimum frequency resolution.</li>
+<li><em>voronoi.py</em>: Analyse Voronoi diagrams based on scipy.spatial.</li>
+<li><em>multivariateexplorer.py</em>: Simple GUI for viewing and exploring multivariate data.</li>
+</ul>
+<h3 id="eod-analysis">EOD analysis</h3>
+<ul>
+<li><em>bestwindow.py</em>: Select the region within a recording with the most stable signal of largest amplitude that is not clipped.</li>
+<li><em>checkpulse.py</em>: Check whether a pulse-type or a wave-type weakly electric fish is present in a recording.</li>
+<li><em>consistentfishes.py</em>: Create a list of EOD frequencies with fishes present in all provided fish lists.</li>
+<li><em>eodanalysis.py</em>: Analyse EOD waveforms.</li>
+<li><em>harmonics.py</em>: Extract and analyze harmonic frequencies from power spectra.</li>
+<li><em>pulses.py</em>: Extract and cluster EOD waverforms of pulse-type electric fish.</li>
+</ul>
+<h3 id="eod-simulations">EOD simulations</h3>
+<ul>
+<li><em>fakefish.py</em>: Simulate EOD waveforms.</li>
+<li><em>efield.py</em>: Simulations of spatial electric fields.</li>
+<li><em>fishshapes.py</em>: Plot fish outlines.</li>
+</ul>
+              
+            </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="thunderfish/" class="btn btn-neutral float-right" title="thunderfish">Next <span class="icon icon-circle-arrow-right"></span></a>
+      
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+          <a href="https://github.com/bendalab/thunderfish/" class="fa fa-github" style="float: left; color: #fcfcfc"> GitHub</a>
+      
+      
+      
+        <span style="margin-left: 15px"><a href="thunderfish/" style="color: #fcfcfc">Next &raquo;</a></span>
+      
+    </span>
+</div>
+    <script>var base_url = '.';</script>
+    <script src="js/theme.js" defer></script>
+      <script src="search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
+
+<!--
+MkDocs version : 1.1.2
+Build Date UTC : 2020-10-10 21:44:13.688660+00:00
+-->

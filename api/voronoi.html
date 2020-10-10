@@ -1,0 +1,3192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>thunderfish.voronoi API documentation</title>
+<meta name="description" content="Analyze Voronoi diagrams based on scipy.spatial …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.voronoi</code></h1>
+</header>
+<section id="section-intro">
+<p>Analyze Voronoi diagrams based on scipy.spatial.</p>
+<p>Voronoi: Compute and analyse Voronoi diagrams.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;
+Analyze Voronoi diagrams based on scipy.spatial.
+
+Voronoi: Compute and analyse Voronoi diagrams.
+&#34;&#34;&#34;
+
+
+import numpy as np
+import scipy.spatial as sp
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
+
+
+class Voronoi(object):
+    &#34;&#34;&#34;
+    Parameters
+    ----------
+    points: ndarray of floats, shape (npoints, 2)
+        List of point coordinates.
+    radius: float or None
+        Radius for computing far points of infinite ridges.
+        If None twice the maximum extent of the input points is used.
+    qhull_options: string or None
+        Options to be passed on to QHull. From the manual:
+        Qbb  - scale last coordinate to [0,m] for Delaunay triangulations
+        Qc   - keep coplanar points with nearest facet      
+        Qx   - exact pre-merges (skips coplanar and anglomaniacs facets)
+        Qz   - add point-at-infinity to Delaunay triangulation
+        QJn  - randomly joggle input in range [-n,n]
+        Qs   - search all points for the initial simplex
+        Qz   - add point-at-infinity to Voronoi diagram
+        QGn  - Voronoi vertices if visible from point n, -n if not
+        QVn  - Voronoi vertices for input point n, -n if not
+        Default is: &#34;Qbb Qc Qz Qx&#34; for ndim &gt; 4 and &#34;Qbb Qc Qz&#34; otherwise.
+            
+    Input points
+    ------------
+    The points from which the Voronoi diagram is constructed.
+    
+    ndim: int
+        The dimension of the input points, i.e. number of coordinates.
+    npoints: int
+        The number of input points.
+    points: 2-d ndarray
+        List of input point coordinates.
+    center: ndarray of floats
+        Center of mass of the input points (i.e. mean coordinates).
+    min_bound: ndarray of floats
+        Lower left corner of the bounding-box of the input points.
+    max_bound: ndarray of floats
+        Upper right corner of the bounding-box of the input points.
+    
+    Distances between input points
+    ------------------------------
+    ridge_points: 2-d ndarray of ints
+        List of pairs of indices to `points` enclosing a Voronoi ridge.
+    ridge_distances: ndarray of floats
+        For each ridge in `ridge_points` the distance between the enclosing points.
+    neighbor_points: list of ndarrays of ints
+        For each point in `points` a list of indices of the Voronoi-cell&#39;s neighboring points.
+    neighbor_distances: list of ndarrays of floats
+        For each point in `points` a list of distances to the Voronoi-cell&#39;s neighboring points,
+        matching `neighbor_points`.
+    nearest_points: list of ints
+        For each point in `points` the index of its nearest neighbor.
+    nearest_distances: ndarray of floats
+        For each point in `points` the distance to its nearest neighbor.
+    mean_nearest_distance: float
+        Unbiased estimate of the mean nearest-neighbor distance. This is
+        the average nearest-neighbor distance corrected by one s.e.m,
+        since points close to the border of the region have too large
+        nearest-neighbor distances.
+    
+    Voronoi diagram
+    ---------------
+    vertices: 2-d ndarray of floats
+        List of vertex coordinates enclosing the Voronoi regions.
+    regions: list of list of ints
+        List of lists of indices to vertices in `vertices` making up each Voronoi region.
+    ridge_vertices: list of list of ints
+        List of lists of indices to `vertices` making up a Voronoi ridge.
+        The pairs of `points` to poth sides of the ridge are listed in `ridge_points`.
+    ridge_lengths(): Length of Voronoi ridges between nearest neighbors.
+    areas(): The areas of the Voronoi regions for each input point in `points`.
+    point_types(): The type of Voronoi area (infinite, finite, inside) for each input point.
+    inside_vertices: list of ints
+        Indices of `vertices` that are inside the convex hull of the input points.
+    infinite_vertices: list of ndarrays of floats
+        For each ridge in `ridge_vertices` the coordinates of the far-point, if it is an infinite ridge.
+    infinite_regions: list of list of ints
+        List of Voronoi regions with infinite ridges. If positive, the indices are indices to `vertices`.
+        If negative they are indices into `infinite_vertices` (`-index-1`).
+    
+    Convex hull
+    -----------
+    hull_points: list of ints
+        List of indices of the points in `points` making up the convex hull.
+    hull_center: ndarray of floats
+        Center of mass of the points making up the convex hull.
+    inside_vertices: ndarray of boolean
+        Indicates for each vertex in `vertices` whether it is inside the convex hull.
+    in_hull(): Test if points are within the convex hull of the input points.
+    hull_area(): The area contained in the convex hull.
+    
+    Outer hull
+    ----------
+    The outer hull is constructed from the convex hull by expanding each
+    point of the convex hull away from the center of mass of the convex
+    hull such that randomly placing the same number of points in this
+    area results on average in the same mean nearest-neighbor
+    distance. This enlarged hull is needed for bootstrapping. Note that
+    in some cases the outer hull can be *smaller* than the convex hull.
+    
+    outer_hull_points: 2-d ndarray of floats
+        Array of coordinates of the points of the outer hull.
+    outer_min_bound: ndarray of floats
+        Lower left corner of the bounding-box of the outer hull.
+    outer_max_bound: ndarray of floats
+        Upper right corner of the bounding-box of the outer hull.
+    in_outer_hull(): Test if points are within the outer hull.
+    outer_hull_area(): The area contained in the outer hull.
+    
+    Bootstrap Voronoi diagrams
+    --------------------------
+    random_points(): Generate random points within the area defined by the input points.
+
+    Plotting the Voronoi diagram
+    ----------------------------
+    plot_points(): Plot and optionally annotate the input points of the Voronoi diagram.
+    plot_center(): Plot the center of mass of the input points.
+    plot_vertices(): Plot and optionally annotate the vertices of the Voronoi diagram.
+    plot_distances(): Plot lines connecting the neighbors in the Voronoi diagram.
+    plot_ridges(): Plot the finite ridges of the Voronoi diagram.
+    plot_infinite_ridges(): Plot the infinite ridges of the Voronoi diagram.
+    fill_regions(): Fill each finite region of the Voronoi diagram with a color.
+    fill_infinite_regions(): Fill each infinite region of the Voronoi diagram with a color.
+    
+    Plotting the convex hull
+    ------------------------
+    plot_hull(): Plot the convex hull line containing the input points.
+    fill_hull(): Fill the convex hull.
+    plot_hull_center(): Plot the center of mass of the convex hull.
+    plot_outer_hull(): Plot the outer hull edge.
+    fill_outer_hull(): Fill the outer hull.
+    
+    Usage
+    -----
+    Generate 20 random points in 2-D:
+    ```
+    import numpy as np
+    points = np.random.rand(20, 2)
+    ```
+    
+    Calculate the Voronoi diagram:
+    ```
+    from thunderfish.voronoi import Voronoi
+    vor = Voronoi(points)
+    ```
+    
+    Retrieve nearest-neighbor distances and compute Voronoi areas:
+    ```
+    dists = vor.nearest_distances
+    areas = vor.areas()
+    ```
+    
+    Generate random points drawn from a Poisson process with the same
+    intensity and mean nearest neighbor distance as the data:
+    ```
+    new_points = vor.random_points(poisson=True, mode=&#39;outer&#39;)
+    ```
+    
+    Plot Voronoi regions, distances, and input points:
+    ```
+    import matplotlib.pyplot as plt
+    vor.fill_regions(colors=[&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;, &#39;orange&#39;, &#39;cyan&#39;], alpha=0.3)
+    vor.plot_distances(color=&#39;red&#39;)
+    vor.plot_points(text=&#39;p%d&#39;, c=&#39;c&#39;, s=100)
+    ```
+    &#34;&#34;&#34;
+    
+    def __init__(self, points, radius=None, qhull_options=None):
+        self.vor = sp.Voronoi(points, furthest_site=False, incremental=False,
+                              qhull_options=qhull_options)
+        if self.vor.ndim != 2:
+            raise ValueError(&#34;Only 2D input points are supported.&#34;)
+        self.hull = sp.Delaunay(points, furthest_site=False, incremental=False,
+                                qhull_options=qhull_options)
+        self._compute_distances()
+        self._compute_infinite_vertices()
+        self._compute_hull(qhull_options)
+        self.ndim = self.vor.ndim
+        self.npoints = self.vor.npoints
+        self.points = self.vor.points
+        self.vertices = self.vor.vertices
+        self.regions = self.vor.regions
+        self.ridge_points = self.vor.ridge_points
+        self.ridge_vertices = self.vor.ridge_vertices
+        self.min_bound = self.vor.min_bound
+        self.max_bound = self.vor.max_bound
+        self.center = np.mean(self.points, axis=0)
+
+    def _compute_distances(self):
+        &#34;&#34;&#34;
+        Compute distances between points.
+        &#34;&#34;&#34;
+        # For each ridge the distance of the points enclosing the ridge:
+        p1 = self.vor.points[self.vor.ridge_points[:,0]]
+        p2 = self.vor.points[self.vor.ridge_points[:,1]]
+        self.ridge_distances =  sp.minkowski_distance(p1, p2)
+
+        # For each point all its Voronoi distances:
+        self.neighbor_points = [[] for k in range(len(self.vor.points))]
+        self.neighbor_distances = [[] for k in range(len(self.vor.points))]
+        for dist, points in zip(self.ridge_distances, self.vor.ridge_points):
+            self.neighbor_points[points[0]].append(points[1])
+            self.neighbor_points[points[1]].append(points[0])
+            self.neighbor_distances[points[0]].append(dist)
+            self.neighbor_distances[points[1]].append(dist)
+        for k in range(len(self.neighbor_points)):
+            inx = np.argsort(self.neighbor_distances[k])
+            self.neighbor_points[k] = np.array(self.neighbor_points[k])[inx]
+            self.neighbor_distances[k] = np.array(self.neighbor_distances[k])[inx]
+
+        # For each point the distance to its nearest neighbor:
+        self.nearest_points = []
+        self.nearest_distances = np.zeros(len(self.neighbor_distances))
+        for k in range(len(self.neighbor_distances)):
+            self.nearest_points.append(self.neighbor_points[k][0])
+            self.nearest_distances[k] = self.neighbor_distances[k][0]
+        self.mean_nearest_distance = np.mean(self.nearest_distances)
+        self.mean_nearest_distance *= 1.0-2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
+
+    def _compute_infinite_vertices(self, radius=None):
+        &#34;&#34;&#34;
+        Compute far points of infinite ridges.
+
+        Parameters
+        ----------
+        radius: float or None
+            Radius for computing far points of infinite ridges.
+            If None twice the maximum extent of the input points is used.
+
+        Note
+        ----
+        Code inspired by http://stackoverflow.com/questions/20515554/colorize-voronoi-diagram
+        &#34;&#34;&#34;
+        # For each ridge, compute far point:
+        center = self.vor.points.mean(axis=0)
+        if radius is None:
+            radius = 2.0*self.vor.points.ptp(axis=0).max()
+        self.infinite_vertices = []
+        for points, vertices in zip(self.vor.ridge_points, self.vor.ridge_vertices):
+            vertices = np.asarray(vertices)
+            if np.all(vertices &gt;= 0):
+                self.infinite_vertices.append(np.array([]))
+            else:
+                i = vertices[vertices &gt;= 0][0]  # finite end Voronoi vertex
+                t = self.vor.points[points[1]] - self.vor.points[points[0]]  # tangent
+                t /= np.linalg.norm(t)
+                n = np.array([-t[1], t[0]])  # normal
+                midpoint = self.vor.points[points].mean(axis=0)
+                direction = np.sign(np.dot(midpoint - center, n)) * n
+                far_point = self.vor.vertices[i] + direction * radius
+                self.infinite_vertices.append(far_point)
+        # Assemble list of infinite regions:
+        # Indices to self.infinite_vertices are negative minus one.
+        self.infinite_regions = []
+        for rvertices in self.vor.regions:
+            if -1 in rvertices:
+                new_rvertices = []
+                prev_vertex = rvertices[-1]
+                # find index of data point enclosed by the region:
+                ridge_points = []
+                for p, v in zip(self.vor.ridge_points, self.vor.ridge_vertices):
+                    if not -1 in v and set(v) &lt;= set(rvertices):
+                        ridge_points.extend(p)
+                region_point = None
+                for rp in ridge_points:
+                    if ridge_points.count(rp) &gt; 1:
+                        region_point = rp
+                        break
+                # fill in far points for each region:
+                for v_inx, v in enumerate(rvertices):
+                    if v &gt;= 0:
+                        new_rvertices.append(v)
+                    else:
+                        for v1_inx, (points, vertices) in enumerate(zip(self.vor.ridge_points,
+                                                                        self.vor.ridge_vertices)):
+                            if prev_vertex in vertices and -1 in vertices and \
+                              (region_point is None or region_point in points):
+                                new_rvertices.append(-v1_inx-1)
+                                break
+                        next_vertex = rvertices[0]
+                        if v_inx+1 &lt; len(rvertices):
+                            next_vertex = rvertices[v_inx+1]
+                        for v2_inx, (points, vertices) in enumerate(zip(self.vor.ridge_points,
+                                                                        self.vor.ridge_vertices)):
+                            if next_vertex in vertices and -1 in vertices and \
+                              (region_point is None or region_point in points) and \
+                              new_rvertices[-1] != -v2_inx-1:
+                                new_rvertices.append(-v2_inx-1)
+                                break
+                    prev_vertex = v
+                self.infinite_regions.append(new_rvertices)
+                
+    def _flatten_simplices(self, simplices):
+        &#34;&#34;&#34;
+        Transforms list of simplex indices to list of vertex indices.
+
+        In particular, transforms the Delaunay.convex_hull to a list of points
+        of the hull that can then be easily plotted.
+
+        Parameters
+        ----------
+        simplices: 2-D array of ints
+            List of pairs of indices of points forming each ridge of a polygon.
+
+        Returns
+        -------
+        indices: list of ints
+            Indices of vertices of the polygon.
+        &#34;&#34;&#34;
+        if len(simplices) == 0:
+            return []
+        indices = list(simplices[0])
+        simplices = np.delete(simplices, 0, 0)
+        while len(simplices) &gt; 0:
+            for i, s in enumerate(simplices):
+                if indices[-1] in s:
+                    if s[0] == indices[-1]:
+                        indices.append(s[1])
+                    else:
+                        indices.append(s[0])
+                    simplices = np.delete(simplices, i, 0)
+                    break
+        return indices
+
+    def _compute_hull(self, qhull_options):
+        &#34;&#34;&#34;
+        Compute properties of the convex hull and set up the outer hull.
+        &#34;&#34;&#34;
+        self.inside_vertices = self.in_hull(self.vor.vertices)
+        self.hull_points = self._flatten_simplices(self.hull.convex_hull)
+        self.hull_center = np.mean(self.hull.points[self.hull_points], axis=0)
+
+        # enlarge hull:
+        # estimate area needed for a poisson process with same mean distance:
+        new_area = 4.0 * self.mean_nearest_distance**2 * self.vor.npoints
+        fac = np.sqrt(new_area/self.hull_area())
+        self.outer_hull_points = np.zeros((len(self.hull_points), self.vor.ndim))
+        for k, point in enumerate(self.hull.points[self.hull_points]):
+            point -= self.hull_center
+            point *= fac
+            point += self.hull_center
+            self.outer_hull_points[k] = point
+        # compute outer hull:
+        self.outer_hull = sp.Delaunay(self.outer_hull_points,
+                                      furthest_site=False, incremental=False,
+                                      qhull_options=qhull_options)
+        self.outer_min_bound = np.min(self.outer_hull_points, axis=0)
+        self.outer_max_bound = np.max(self.outer_hull_points, axis=0)
+        
+    def in_hull(self, p):
+        &#34;&#34;&#34;
+        Test if points `p` are within convex hull of the input points.
+
+        Parameters
+        ----------
+        p: 2-d ndarray
+            Array of points to be tested.
+
+        Returns
+        -------
+        inside: ndarray of booleans
+            For each point in `p` whether it is inside the hull.
+        &#34;&#34;&#34;
+        inside = self.hull.find_simplex(p) &gt;= 0
+        return inside
+        
+    def in_outer_hull(self, p):
+        &#34;&#34;&#34;
+        Test if points `p` are within the outer hull.
+
+        Parameters
+        ----------
+        p: 2-d ndarray
+            Array of points to be tested.
+
+        Returns
+        -------
+        inside: ndarray of booleans
+            For each point in `p` whether it is inside the outer hull.
+        &#34;&#34;&#34;
+        inside = self.outer_hull.find_simplex(p) &gt;= 0
+        return inside
+
+    def point_types(self):
+        &#34;&#34;&#34;
+        The type of the Voronoi regions for each input point.
+
+        Returns
+        -------
+        points: ndarray of ints
+            Indicates the type of Voronoi region associated with each pint in `points`:
+            2: finite region with all vertices inside hull,
+            1: finite region,
+            0: infinite region.
+        &#34;&#34;&#34;
+        points = np.zeros(len(self.vor.points), dtype=int) + 2
+        for i in range(len(self.vor.points)):
+            for j, rp in enumerate(self.vor.ridge_points):
+                if i in rp:
+                    if not np.all(self.inside_vertices[self.vor.ridge_vertices[j]]) and\
+                      points[i] &gt; 0:
+                        points[i] = 1
+                    if not np.all(np.array(self.vor.ridge_vertices[j]) &gt;= 0) and\
+                      points[i] &gt; -1:
+                        points[i] = 0
+        return points
+
+    def ridge_lengths(self):
+        &#34;&#34;&#34;
+        Length of Voronoi ridges between nearest neighbors.
+
+        May be used, for example, as a weigth for `ridge_distances`.
+
+        Returns
+        -------
+        distances: ndarray of floats
+            The length of each ridge in `ridge_vertices`.
+            np.inf if one vertex is at infinity.
+        &#34;&#34;&#34;
+        ridges = np.zeros(len(self.vor.ridge_vertices))
+        for k, p in enumerate(self.vor.ridge_vertices):
+            if np.all(np.array(p)&gt;=0):
+                p1 = self.vor.vertices[p[0]]
+                p2 = self.vor.vertices[p[1]]
+                ridges[k] = sp.minkowski_distance(p1, p2)
+            else:
+                ridges[k] = np.inf
+        return ridges
+
+    def ridge_areas(self):
+        &#34;&#34;&#34;
+        For each ridge the triangular area of the Voronoi region
+        spanned by the center point and the ridge.
+
+        Returns
+        -------
+        areas: ndarray of floats
+            For each ridge in `ridge_points` or `ridge_vertices`
+            its corresponding triangular area.
+            np.inf for infinite ridges.
+        &#34;&#34;&#34;
+        ridges = self.ridge_lengths()
+        heights = 0.5*self.ridge_distances
+        # area of a triangle:
+        areas = 0.5*ridges*heights
+        return areas
+    
+    def areas(self, mode=&#39;finite&#39;):
+        &#34;&#34;&#34;
+        The areas of the Voronoi regions for each input point.
+
+        Parameters
+        ----------
+        mode: string
+            &#39;inside&#39;: Calculate area of finite Voronoi regions
+                      whose vertices are all inside the hull,
+                      set all other to zero.
+            &#39;finite_inside&#39;: Calculate area of all Voronoi regions.
+                    Consider only areas of finite ridges
+                    whose vertices are all inside the hull.
+            &#39;full&#39;: Calculate area of finite Voronoi regions only,
+                    set all other to zero.
+            &#39;finite&#39;: Calculate area of all Voronoi regions. From infinite regions
+                    only areas contributed by finite ridges are considered.
+
+        Returns
+        -------
+        areas: array of floats
+            For each point in `points` its corresponding area.
+        &#34;&#34;&#34;
+        ridge_areas = self.ridge_areas()
+        areas = np.zeros(len(self.vor.points))
+        if mode == &#39;inside&#39;:
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp:
+                        if ridge_areas[j] != np.inf and \
+                          np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
+                            a += ridge_areas[j]
+                        else:
+                            a = 0.0
+                            break
+                areas[i] = a
+        elif mode == &#39;full&#39;:
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp:
+                        if ridge_areas[j] != np.inf:
+                            a += ridge_areas[j]
+                        else:
+                            a = 0.0
+                            break
+                areas[i] = a
+        elif mode == &#39;finite_inside&#39;:
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp and ridge_areas[j] != np.inf and \
+                      np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
+                        a += ridge_areas[j]
+                areas[i] = a
+        elif mode == &#39;finite&#39;:
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp and ridge_areas[j] != np.inf:
+                        a += ridge_areas[j]
+                areas[i] = a
+        else:
+            print(&#39;&#39;)            
+            print(&#39;Voronoi.areas(): unknown value &#34;%s&#34; for the mode parameter:&#39; % mode)
+            print(&#39;Use one of the following values:&#39;)
+            print(&#39;  inside: Finite Voronoi regions whose vertices are all inside the hull.&#39;)
+            print(&#39;  finite_inside: Use all areas corresponding to finite ridges whose vertices are all inside the hull.&#39;)
+            print(&#39;  full: Finite Voronoi regions only.&#39;)
+            print(&#39;  finite: Use all areas corresponding to finite ridges.&#39;)
+            print(&#39;&#39;)            
+        return areas
+
+    def hull_area(self):
+        &#34;&#34;&#34;
+        The area of the convex hull of the input points.
+        
+        Returns
+        -------
+        area: float
+            The area of the convex hull.
+        &#34;&#34;&#34;
+        # two sides of the simplex triangles:
+        ab = self.hull.points[self.hull.simplices[:,0],:] - self.hull.points[self.hull.simplices[:,1],:]
+        cb = self.hull.points[self.hull.simplices[:,2],:] - self.hull.points[self.hull.simplices[:,1],:]
+        # area of each simplex is half of the absolute value of the cross product:
+        area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
+        return area
+
+    def outer_hull_area(self):
+        &#34;&#34;&#34;
+        The area of the outer hull.
+        
+        Returns
+        -------
+        area: float
+            The area of the outer hull.
+        &#34;&#34;&#34;
+        # two sides of the simplex triangles:
+        ab = self.outer_hull.points[self.outer_hull.simplices[:,0],:] - self.outer_hull.points[self.outer_hull.simplices[:,1],:]
+        cb = self.outer_hull.points[self.outer_hull.simplices[:,2],:] - self.outer_hull.points[self.outer_hull.simplices[:,1],:]
+        # area of each simplex is half of the absolute value of the cross product:
+        area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
+        return area
+
+    def random_points(self, n=None, poisson=True, mode=&#39;outer&#39;):
+        &#34;&#34;&#34;
+        Generate random points.
+
+        Parameters
+        ----------
+        n: int or None
+            Number of random points to be generated.
+            If None `n` is set to the number of input points.
+        poisson: boolean
+            If `True` then draw the number of points from a Poisson distribution
+            with mean number of points given by `n`.
+        mode: string
+            &#39;bbox&#39; place points randomly in rectangular bounding box of the Voronoi diagram.
+            &#39;hull&#39; place points randomly within convex hull of input data.
+            &#39;outer&#39; place points randomly within outer hull. The mean nearest-neighbor distance
+            between the generated points will be close to the observed one.
+
+        Returns
+        -------
+        points: 2-D array
+            List of randomly generated points.
+        &#34;&#34;&#34;
+        # number of points:
+        if n is None:
+            n = self.npoints
+        nn = n
+        if poisson:
+            nn = np.random.poisson(n)
+        m = nn//2
+        if m &lt; 5:
+            m = 5
+        # get bounding box:
+        if mode == &#39;outer&#39;:
+            min_bound = self.outer_min_bound
+            max_bound = self.outer_max_bound
+        else:
+            min_bound = self.min_bound
+            max_bound = self.max_bound
+        delta = np.max(max_bound - min_bound)
+        points = np.zeros((0, self.ndim))
+        while len(points) &lt; nn:
+            # random points within bounding box:
+            newpoints = np.random.rand(m, self.ndim)
+            newpoints *= delta
+            newpoints += min_bound
+            if mode == &#39;outer&#39;:
+                # only take the ones within outer hull:
+                inside = self.in_outer_hull(newpoints)
+                points = np.vstack((points, newpoints[inside]))
+            elif mode == &#39;hull&#39;:
+                # only take the ones within hull:
+                inside = self.in_hull(newpoints)
+                points = np.vstack((points, newpoints[inside]))
+            elif mode == &#39;bbox&#39;:
+                points = np.vstack((points, newpoints[np.all(newpoints&lt;max_bound, axis=1),:]))
+            else:
+                print(&#39;&#39;)
+                print(&#39;Voronoi.random_points(): unknown value &#34;%s&#34; for the mode parameter:&#39; % mode)
+                print(&#39;Use one of the following values:&#39;)
+                print(&#39;  bbox: Place points within rectangular bounding box.&#39;)
+                print(&#39;  hull: Place points inside the convex hull.&#39;)
+                print(&#39;  outer: Place points inside the outer hull.&#39;)
+                print(&#39;&#39;)
+                return
+        return points[:nn]
+
+    def plot_points(self, ax=None, text=None, text_offs=(0, 0.05), text_align=&#39;center&#39;,
+                    **kwargs):
+        &#34;&#34;&#34;
+        Plot and optionally annotate the input points of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        text: string or None
+            If not None the string that is placed at each point.
+            A &#39;%d&#39; is replaced by the index of the point.
+        text_offset: tuple of numbers
+            The offset of the point labels.
+        text_align: string
+            The horizontal alignment of the point labels.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.scatter() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.scatter(self.points[:,0], self.points[:,1], **kwargs)
+        if text is not None:
+            for i, p in enumerate(self.points):
+                s = text
+                if &#39;%&#39; in text:
+                    s = text % i
+                ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
+        
+    def plot_center(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the center of mass of the input points.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If `None`, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the `matplotlib.plot()` function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.center[0], self.center[1], &#39;o&#39;, **kwargs)
+        
+    def plot_vertices(self, ax=None, text=None, text_offs=(0, 0.05), text_align=&#39;center&#39;,
+                      **kwargs):
+        &#34;&#34;&#34;
+        Plot and optionally annotate the vertices of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        text: string or None
+            If not None the string that is placed at each vertex.
+            A &#39;%d&#39; is replaced by the index of the vertex.
+        text_offset: tuple of numbers
+            The offset of the vertex labels.
+        text_align: string
+            The horizontal alignment of the vertex labels.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.scatter() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.scatter(self.vertices[:,0], self.vertices[:,1], **kwargs)
+        if text is not None:
+            for i, p in enumerate(self.vertices):
+                s = text
+                if &#39;%&#39; in text:
+                    s = text % i
+                ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
+
+    def plot_distances(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot lines connecting the nearest neighbors in the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        for i, p in enumerate(self.ridge_points):
+            ax.plot(self.points[p, 0], self.points[p, 1], **kwargs)
+
+    def plot_ridges(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the finite ridges of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        for i, p in enumerate(self.ridge_vertices):
+            if np.all(np.array(p)&gt;=0):
+                ax.plot(self.vertices[p, 0], self.vertices[p, 1], **kwargs)
+
+    def plot_infinite_ridges(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the infinite ridges of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        for far_point, vertices in zip(self.infinite_vertices, self.vor.ridge_vertices):
+            vertices = np.asarray(vertices)
+            if not np.all(vertices &gt;= 0):
+                i = vertices[vertices &gt;= 0][0]  # finite end Voronoi vertex
+                ax.plot([self.vor.vertices[i][0], far_point[0]],
+                        [self.vor.vertices[i][1], far_point[1]], **kwargs)
+
+    def fill_regions(self, ax=None, inside=None, colors=None, **kwargs):
+        &#34;&#34;&#34;
+        Fill each finite region of the Voronoi diagram with a color.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        inside: boolean or None
+            True: plot only finite regions with all vertices inside the hull
+            False: plot only finite regions with at least one vertex outside the hull
+            None: plot all finite regions
+        colors: list of colors or None
+            If not None then these colors are used in turn to fill the regions.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.fill() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        c = 0
+        for region in self.regions:
+            if not -1 in region:
+                polygon = self.vertices[region]
+                if len(polygon) &gt; 0:
+                    inside_hull = self.in_hull(polygon)
+                    if inside is None or (inside and all(inside_hull)) or (not inside and any(inside_hull)):
+                        c += 1
+                        if colors is None:
+                            ax.fill(polygon[:, 0], polygon[:, 1], lw=0, **kwargs)
+                        else:
+                            ax.fill(polygon[:, 0], polygon[:, 1],
+                                    color=colors[c % len(colors)], lw=0, **kwargs)
+
+    def fill_infinite_regions(self, ax=None, colors=None, **kwargs):
+        &#34;&#34;&#34;
+        Fill each infinite region of the Voronoi diagram with a color.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        colors: list of colors or None
+            If not None then these colors are used in turn to fill the regions.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.fill() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        c = 0
+        for region in self.infinite_regions:
+            polygon = []
+            for p in region:
+                if p &gt;= 0:
+                    polygon.append(self.vertices[p])
+                else:
+                    polygon.append(self.infinite_vertices[-p-1])
+            if len(polygon) &gt; 0:
+                polygon = np.asarray(polygon)
+                c += 1
+                if colors is None:
+                    ax.fill(polygon[:, 0], polygon[:, 1], lw=0, **kwargs)
+                else:
+                    ax.fill(polygon[:, 0], polygon[:, 1],
+                            color=colors[c % len(colors)], lw=0, **kwargs)
+        
+    def plot_hull(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the hull line containing the input points.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.hull.points[self.hull_points, 0],
+                self.hull.points[self.hull_points, 1], **kwargs)
+
+    def fill_hull(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Fill the hull containing the input points with a color.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.fill() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.fill(self.hull.points[self.hull_points, 0],
+                self.hull.points[self.hull_points, 1], lw=0, **kwargs)
+        
+    def plot_hull_center(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the center of mass of the convex hull of the input points.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.hull_center[0], self.hull_center[1], &#39;o&#39;, **kwargs)
+        
+    def plot_outer_hull(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the hull line containing the input points and the vertices of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.outer_hull_points[:, 0],
+                self.outer_hull_points[:, 1], **kwargs)
+
+    def fill_outer_hull(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Fill the hull containing the input points and the vertices of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.fill() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.fill(self.outer_hull_points[:, 0],
+                self.outer_hull_points[:, 1], lw=0, **kwargs)
+
+        
+if __name__ == &#34;__main__&#34;:
+    import scipy.stats as st
+    import matplotlib.pyplot as plt
+    
+    print(&#34;Checking voronoi module ...&#34;)
+
+    # generate random points:
+    rs = np.random.randint(0xffffffff)
+    #rs = 1718315706  # n=10
+    #rs = 803645102   # n=10
+    #rs = 2751318392  # double infinite ridges at vertex 0 (n=10)
+    #rs = 4226093154 out-hull fac &lt; 1.0
+    
+    print(&#39;random seed: %ld&#39; % rs)
+    np.random.seed(rs)
+    n = 20    # number of points
+    ar = 1.0  # aspect ratio of area in which the points should be placed
+    points = np.random.rand(int(n//ar), 2)
+    points = points[points[:, 1] &lt; ar, :]
+    
+    # calculate Voronoi diagram:
+    vor = Voronoi(points)
+        
+    # what we get is:
+    print(&#39;dimension: %d&#39; % vor.ndim)
+    print(&#39;number of points: %d&#39; % vor.npoints)
+    print(&#39;&#39;)
+    print(&#39;distances of nearest neighbors:&#39;)
+    print(vor.nearest_distances)
+    print(&#39;for each point its nearest neighbor:&#39;)
+    print(vor.nearest_points)
+    print(&#39;for each point all Voronoi distances:&#39;)
+    print(vor.neighbor_distances)
+    print(&#39;for each point all its neighbors:&#39;)
+    print(vor.neighbor_points)
+    print(&#39;for each ridge distances of neighbors:&#39;)
+    print(vor.ridge_distances)
+    print(&#39;corresponding neighbors enclosing ridges:&#39;)
+    print(vor.ridge_points)
+    print(&#39;&#39;)
+    print(&#39;length of corresponding ridges:&#39;)
+    print(vor.ridge_lengths())
+    print(&#39;area of corresponding triangles:&#39;)
+    print(vor.ridge_areas())
+    for mode in [&#39;inside&#39;, &#39;finite_inside&#39;, &#39;full&#39;, &#39;finite&#39;]:
+        print(&#39;Voronoi area of each point (%s):&#39; % mode)
+        print(vor.areas(mode))
+    print(&#39;Comparison of sum of Voronoi areas (inside &lt; finite_inside &lt; full &lt; finit):&#39;)
+    a = [&#39;%.2f&#39; % np.sum(vor.areas(mode)) for mode in [&#39;inside&#39;, &#39;finite_inside&#39;, &#39;full&#39;, &#39;finite&#39;]]
+    print(&#39; &lt; &#39;.join(a))
+    print(&#39;Type of Voronoi area of each point:&#39;)
+    print(vor.point_types())
+
+    # plot Voronoi diagram:
+    plt.title(&#39;Voronoi&#39;)
+    vor.fill_regions(inside=True, colors=[&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;, &#39;orange&#39;, &#39;cyan&#39;, &#39;magenta&#39;], alpha=1.0, zorder=0)
+    vor.fill_regions(inside=False, colors=[&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;, &#39;orange&#39;, &#39;cyan&#39;, &#39;magenta&#39;], alpha=0.4, zorder=0)
+    vor.fill_infinite_regions(colors=[&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;, &#39;orange&#39;, &#39;cyan&#39;, &#39;magenta&#39;], alpha=0.1, zorder=0)
+    vor.plot_distances(color=&#39;red&#39;)
+    #vor.plot_ridges(c=&#39;k&#39;, lw=2)
+    #vor.plot_infinite_ridges(c=&#39;k&#39;, lw=2, linestyle=&#39;dashed&#39;)
+    vor.plot_points(text=&#39;p%d&#39;, c=&#39;c&#39;, s=100, zorder=10)
+    vor.plot_vertices(text=&#39;v%d&#39;, c=&#39;r&#39;, s=60)
+    ex = 0.3
+    plt.xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
+    plt.ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
+    plt.axes().set_aspect(&#39;equal&#39;)
+
+    # Convex hull:
+    print(&#39;Convex hull:&#39;)
+    print(&#39;Area of convex hull: %g&#39; % vor.hull_area())
+    print(&#39;Area of outer hull: %g&#39; % vor.outer_hull_area())
+    new_points = vor.random_points(poisson=True, mode=&#39;outer&#39;)
+
+    # plot convex hull:
+    plt.figure()
+    vor.fill_outer_hull(color=&#39;black&#39;, alpha=0.1)
+    vor.plot_outer_hull(color=&#39;m&#39;, lw=2, label=&#39;outer hull&#39;)
+    vor.fill_hull(color=&#39;black&#39;, alpha=0.2)
+    vor.plot_hull(color=&#39;r&#39;, lw=2, label=&#39;convex hull&#39;)
+    vor.plot_hull_center(color=&#39;r&#39;, ms=16)
+    vor.plot_hull_center(color=&#39;k&#39;, ms=4)
+    vor.plot_center(color=&#39;c&#39;, ms=16)
+    vor.plot_center(color=&#39;k&#39;, ms=4)
+    vor.plot_points(text=&#39;p%d&#39;, c=&#39;c&#39;, s=100, zorder=10, label=&#39;input points&#39;)
+    plt.plot(new_points[:, 0], new_points[:, 1], &#39;ob&#39;, ms=10, label=&#39;random points&#39;)
+    plt.xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
+    plt.ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
+    plt.axes().set_aspect(&#39;equal&#39;)
+    plt.legend()
+        
+    # bootstrap:
+    def bootstrapped_nearest_distances(vor, n, poisson, mode, ax1, ax2, ax3, bins):
+        ps = &#39;fixed&#39;
+        if poisson:
+            ps = &#39;poisson&#39;
+        print(&#39;bootstrap %s %s ...&#39; % (mode, ps))
+        hist_distances = np.zeros((n, len(bins)-1))
+        mean_distances = []
+        cvs = []
+        for j in range(n):
+            points = vor.random_points(poisson=poisson, mode=mode)
+            if len(points) &lt; 4:
+                continue
+            try:
+                bvor = Voronoi(points)
+            except:
+                continue
+            hist_distances[j,:] = np.histogram(bvor.nearest_distances, bins=bins, normed=True)[0]
+            mean_distances.append(np.mean(bvor.nearest_distances))
+            cvs.append(np.std(bvor.nearest_distances)/np.mean(bvor.nearest_distances))
+        ax1.set_title(&#39;bootstrap %s %s&#39; % (mode, ps))
+        ax1.hist(mean_distances, 30, normed=True, label=&#39;bootstrap&#39;)
+        de = np.mean(vor.nearest_distances)
+        sem = 2.1*0.26136*np.sqrt(vor.outer_hull_area())/vor.npoints # note factor 2.1!
+        h = 0.4/sem
+        x = np.linspace(de-4.0*sem, de+4.0*sem, 200)
+        p = st.norm.pdf(x, loc=de, scale=sem)
+        ax1.plot(x, p, &#39;r&#39;, lw=2, label=&#39;Gaussian&#39;)
+        ax1.plot([de, de], [0.0, h], &#39;r&#39;, lw=4, label=&#39;observed a.n.n.&#39;)
+        bmd = np.mean(mean_distances)
+        ax1.plot([bmd, bmd], [0.0, h], &#39;g&#39;, lw=4, label=&#39;bootstrapped a.n.n.&#39;)
+        ax1.set_xlabel(&#39;mean nearest-neighbor distance&#39;)
+        ax1.legend()
+        ax2.set_title(&#39;bootstrap %s %s&#39; % (mode, ps))
+        ax2.hist(cvs, 30, normed=True, label=&#39;bootstrap&#39;)
+        # observed cv:
+        cvo = np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)
+        # significance from bootstrap:
+        pb = 0.01*st.percentileofscore(cvs, cvo)
+        if pb &gt; 0.5:
+            pb = 1.0-pb
+        pb *= 2.0
+        # significance from z-score:
+        secv = 2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(vor.npoints)
+        zcv = (cvo - 2.0*0.26136)/secv
+        pz = 2.0*(1.0 - st.norm.cdf(np.abs(zcv)))
+        h = 0.4/secv
+        ax2.plot([cvo, cvo], [0.0, h], &#39;r&#39;, lw=4, label=r&#39;observed CV $\alpha=$%.0f%%&#39; % (100.0*pz))
+        cvb = np.mean(cvs)
+        x = np.linspace(cvb-4.0*secv, cvb+4.0*secv, 200)
+        p = st.norm.pdf(x, loc=cvb, scale=secv)
+        ax2.plot(x, p, &#39;g&#39;, lw=2, label=&#39;Gaussian&#39;)
+        ax2.plot([cvb, cvb], [0.0, h], &#39;g&#39;, lw=4, label=r&#39;bootstrapped CV $\alpha=$%.0f%%&#39; % (100.0*pb))
+        ax2.set_xlabel(&#39;CV&#39;)
+        ax2.legend()
+        # nearest-neighbor distance histogram:
+        ax3.set_title(&#39;bootstrap %s %s&#39; % (mode, ps))
+        ax3.fill_between(bins[:-1], *np.percentile(hist_distances, [2.5, 97.5], axis=0), facecolor=&#39;blue&#39;, alpha=0.5)
+        ax3.plot(bins[:-1], np.median(hist_distances, axis=0), &#39;b&#39;, lw=2)
+        hd = np.histogram(vor.nearest_distances, bins=bins, normed=True)[0]
+        ax3.plot(bins[:-1], hd, &#39;r&#39;, lw=2)
+        ax3.set_xlim(0.0, 0.5)
+        ax3.set_xlabel(&#39;nearest-neighbor distance&#39;)
+        
+    print(&#39;Mean distance: %g&#39; % np.mean(vor.nearest_distances))
+    print(&#39;CV: %g&#39; % (np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)))
+    bins = np.linspace(0.0, 1.0, 30)
+    nb = 300
+    fig1 = plt.figure()
+    ax11 = ax1 = fig1.add_subplot(2, 2, 1)
+    fig2 = plt.figure()
+    ax21 = ax2 = fig2.add_subplot(2, 2, 1)
+    fig3 = plt.figure()
+    ax31 = ax3 = fig3.add_subplot(2, 2, 1)
+    k = 1
+    for poisson in [False, True]:
+        for mode in [&#39;hull&#39;, &#39;outer&#39;]:
+            if k &gt; 1:
+                ax1 = fig1.add_subplot(2, 2, k, sharex=ax11)
+                ax2 = fig2.add_subplot(2, 2, k, sharex=ax21)
+                ax3 = fig3.add_subplot(2, 2, k, sharex=ax31)
+            bootstrapped_nearest_distances(vor, nb, poisson, mode, ax1, ax2, ax3, bins)
+            k += 1
+    for f in [fig1, fig2, fig3]:
+        f.tight_layout()
+    print(&#39;... done.&#39;)
+    plt.tight_layout()
+    plt.show()</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="thunderfish.voronoi.Voronoi"><code class="flex name class">
+<span>class <span class="ident">Voronoi</span></span>
+<span>(</span><span>points, radius=None, qhull_options=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>points</code></strong> :&ensp;<code>ndarray</code> of <code>floats, shape (npoints, 2)</code></dt>
+<dd>List of point coordinates.</dd>
+<dt><strong><code>radius</code></strong> :&ensp;<code>float</code> or <code>None</code></dt>
+<dd>Radius for computing far points of infinite ridges.
+If None twice the maximum extent of the input points is used.</dd>
+<dt><strong><code>qhull_options</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Options to be passed on to QHull. From the manual:
+Qbb
+- scale last coordinate to [0,m] for Delaunay triangulations
+Qc
+- keep coplanar points with nearest facet
+<br>
+Qx
+- exact pre-merges (skips coplanar and anglomaniacs facets)
+Qz
+- add point-at-infinity to Delaunay triangulation
+QJn
+- randomly joggle input in range [-n,n]
+Qs
+- search all points for the initial simplex
+Qz
+- add point-at-infinity to Voronoi diagram
+QGn
+- Voronoi vertices if visible from point n, -n if not
+QVn
+- Voronoi vertices for input point n, -n if not
+Default is: "Qbb Qc Qz Qx" for ndim &gt; 4 and "Qbb Qc Qz" otherwise.</dd>
+</dl>
+<h2 id="input-points">Input Points</h2>
+<p>The points from which the Voronoi diagram is constructed.</p>
+<p>ndim: int
+The dimension of the input points, i.e. number of coordinates.
+npoints: int
+The number of input points.
+points: 2-d ndarray
+List of input point coordinates.
+center: ndarray of floats
+Center of mass of the input points (i.e. mean coordinates).
+min_bound: ndarray of floats
+Lower left corner of the bounding-box of the input points.
+max_bound: ndarray of floats
+Upper right corner of the bounding-box of the input points.</p>
+<h2 id="distances-between-input-points">Distances Between Input Points</h2>
+<p>ridge_points: 2-d ndarray of ints
+List of pairs of indices to <code>points</code> enclosing a Voronoi ridge.
+ridge_distances: ndarray of floats
+For each ridge in <code>ridge_points</code> the distance between the enclosing points.
+neighbor_points: list of ndarrays of ints
+For each point in <code>points</code> a list of indices of the Voronoi-cell's neighboring points.
+neighbor_distances: list of ndarrays of floats
+For each point in <code>points</code> a list of distances to the Voronoi-cell's neighboring points,
+matching <code>neighbor_points</code>.
+nearest_points: list of ints
+For each point in <code>points</code> the index of its nearest neighbor.
+nearest_distances: ndarray of floats
+For each point in <code>points</code> the distance to its nearest neighbor.
+mean_nearest_distance: float
+Unbiased estimate of the mean nearest-neighbor distance. This is
+the average nearest-neighbor distance corrected by one s.e.m,
+since points close to the border of the region have too large
+nearest-neighbor distances.</p>
+<h2 id="voronoi-diagram">Voronoi Diagram</h2>
+<p>vertices: 2-d ndarray of floats
+List of vertex coordinates enclosing the Voronoi regions.
+regions: list of list of ints
+List of lists of indices to vertices in <code>vertices</code> making up each Voronoi region.
+ridge_vertices: list of list of ints
+List of lists of indices to <code>vertices</code> making up a Voronoi ridge.
+The pairs of <code>points</code> to poth sides of the ridge are listed in <code>ridge_points</code>.
+ridge_lengths(): Length of Voronoi ridges between nearest neighbors.
+areas(): The areas of the Voronoi regions for each input point in <code>points</code>.
+point_types(): The type of Voronoi area (infinite, finite, inside) for each input point.
+inside_vertices: list of ints
+Indices of <code>vertices</code> that are inside the convex hull of the input points.
+infinite_vertices: list of ndarrays of floats
+For each ridge in <code>ridge_vertices</code> the coordinates of the far-point, if it is an infinite ridge.
+infinite_regions: list of list of ints
+List of Voronoi regions with infinite ridges. If positive, the indices are indices to <code>vertices</code>.
+If negative they are indices into <code>infinite_vertices</code> (<code>-index-1</code>).</p>
+<h2 id="convex-hull">Convex Hull</h2>
+<p>hull_points: list of ints
+List of indices of the points in <code>points</code> making up the convex hull.
+hull_center: ndarray of floats
+Center of mass of the points making up the convex hull.
+inside_vertices: ndarray of boolean
+Indicates for each vertex in <code>vertices</code> whether it is inside the convex hull.
+in_hull(): Test if points are within the convex hull of the input points.
+hull_area(): The area contained in the convex hull.</p>
+<h2 id="outer-hull">Outer Hull</h2>
+<p>The outer hull is constructed from the convex hull by expanding each
+point of the convex hull away from the center of mass of the convex
+hull such that randomly placing the same number of points in this
+area results on average in the same mean nearest-neighbor
+distance. This enlarged hull is needed for bootstrapping. Note that
+in some cases the outer hull can be <em>smaller</em> than the convex hull.</p>
+<p>outer_hull_points: 2-d ndarray of floats
+Array of coordinates of the points of the outer hull.
+outer_min_bound: ndarray of floats
+Lower left corner of the bounding-box of the outer hull.
+outer_max_bound: ndarray of floats
+Upper right corner of the bounding-box of the outer hull.
+in_outer_hull(): Test if points are within the outer hull.
+outer_hull_area(): The area contained in the outer hull.</p>
+<h2 id="bootstrap-voronoi-diagrams">Bootstrap Voronoi Diagrams</h2>
+<p>random_points(): Generate random points within the area defined by the input points.</p>
+<h2 id="plotting-the-voronoi-diagram">Plotting The Voronoi Diagram</h2>
+<p>plot_points(): Plot and optionally annotate the input points of the Voronoi diagram.
+plot_center(): Plot the center of mass of the input points.
+plot_vertices(): Plot and optionally annotate the vertices of the Voronoi diagram.
+plot_distances(): Plot lines connecting the neighbors in the Voronoi diagram.
+plot_ridges(): Plot the finite ridges of the Voronoi diagram.
+plot_infinite_ridges(): Plot the infinite ridges of the Voronoi diagram.
+fill_regions(): Fill each finite region of the Voronoi diagram with a color.
+fill_infinite_regions(): Fill each infinite region of the Voronoi diagram with a color.</p>
+<h2 id="plotting-the-convex-hull">Plotting The Convex Hull</h2>
+<p>plot_hull(): Plot the convex hull line containing the input points.
+fill_hull(): Fill the convex hull.
+plot_hull_center(): Plot the center of mass of the convex hull.
+plot_outer_hull(): Plot the outer hull edge.
+fill_outer_hull(): Fill the outer hull.</p>
+<h2 id="usage">Usage</h2>
+<p>Generate 20 random points in 2-D:</p>
+<pre><code>import numpy as np
+points = np.random.rand(20, 2)
+</code></pre>
+<p>Calculate the Voronoi diagram:</p>
+<pre><code>from thunderfish.voronoi import Voronoi
+vor = Voronoi(points)
+</code></pre>
+<p>Retrieve nearest-neighbor distances and compute Voronoi areas:</p>
+<pre><code>dists = vor.nearest_distances
+areas = vor.areas()
+</code></pre>
+<p>Generate random points drawn from a Poisson process with the same
+intensity and mean nearest neighbor distance as the data:</p>
+<pre><code>new_points = vor.random_points(poisson=True, mode='outer')
+</code></pre>
+<p>Plot Voronoi regions, distances, and input points:</p>
+<pre><code>import matplotlib.pyplot as plt
+vor.fill_regions(colors=['red', 'green', 'blue', 'orange', 'cyan'], alpha=0.3)
+vor.plot_distances(color='red')
+vor.plot_points(text='p%d', c='c', s=100)
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Voronoi(object):
+    &#34;&#34;&#34;
+    Parameters
+    ----------
+    points: ndarray of floats, shape (npoints, 2)
+        List of point coordinates.
+    radius: float or None
+        Radius for computing far points of infinite ridges.
+        If None twice the maximum extent of the input points is used.
+    qhull_options: string or None
+        Options to be passed on to QHull. From the manual:
+        Qbb  - scale last coordinate to [0,m] for Delaunay triangulations
+        Qc   - keep coplanar points with nearest facet      
+        Qx   - exact pre-merges (skips coplanar and anglomaniacs facets)
+        Qz   - add point-at-infinity to Delaunay triangulation
+        QJn  - randomly joggle input in range [-n,n]
+        Qs   - search all points for the initial simplex
+        Qz   - add point-at-infinity to Voronoi diagram
+        QGn  - Voronoi vertices if visible from point n, -n if not
+        QVn  - Voronoi vertices for input point n, -n if not
+        Default is: &#34;Qbb Qc Qz Qx&#34; for ndim &gt; 4 and &#34;Qbb Qc Qz&#34; otherwise.
+            
+    Input points
+    ------------
+    The points from which the Voronoi diagram is constructed.
+    
+    ndim: int
+        The dimension of the input points, i.e. number of coordinates.
+    npoints: int
+        The number of input points.
+    points: 2-d ndarray
+        List of input point coordinates.
+    center: ndarray of floats
+        Center of mass of the input points (i.e. mean coordinates).
+    min_bound: ndarray of floats
+        Lower left corner of the bounding-box of the input points.
+    max_bound: ndarray of floats
+        Upper right corner of the bounding-box of the input points.
+    
+    Distances between input points
+    ------------------------------
+    ridge_points: 2-d ndarray of ints
+        List of pairs of indices to `points` enclosing a Voronoi ridge.
+    ridge_distances: ndarray of floats
+        For each ridge in `ridge_points` the distance between the enclosing points.
+    neighbor_points: list of ndarrays of ints
+        For each point in `points` a list of indices of the Voronoi-cell&#39;s neighboring points.
+    neighbor_distances: list of ndarrays of floats
+        For each point in `points` a list of distances to the Voronoi-cell&#39;s neighboring points,
+        matching `neighbor_points`.
+    nearest_points: list of ints
+        For each point in `points` the index of its nearest neighbor.
+    nearest_distances: ndarray of floats
+        For each point in `points` the distance to its nearest neighbor.
+    mean_nearest_distance: float
+        Unbiased estimate of the mean nearest-neighbor distance. This is
+        the average nearest-neighbor distance corrected by one s.e.m,
+        since points close to the border of the region have too large
+        nearest-neighbor distances.
+    
+    Voronoi diagram
+    ---------------
+    vertices: 2-d ndarray of floats
+        List of vertex coordinates enclosing the Voronoi regions.
+    regions: list of list of ints
+        List of lists of indices to vertices in `vertices` making up each Voronoi region.
+    ridge_vertices: list of list of ints
+        List of lists of indices to `vertices` making up a Voronoi ridge.
+        The pairs of `points` to poth sides of the ridge are listed in `ridge_points`.
+    ridge_lengths(): Length of Voronoi ridges between nearest neighbors.
+    areas(): The areas of the Voronoi regions for each input point in `points`.
+    point_types(): The type of Voronoi area (infinite, finite, inside) for each input point.
+    inside_vertices: list of ints
+        Indices of `vertices` that are inside the convex hull of the input points.
+    infinite_vertices: list of ndarrays of floats
+        For each ridge in `ridge_vertices` the coordinates of the far-point, if it is an infinite ridge.
+    infinite_regions: list of list of ints
+        List of Voronoi regions with infinite ridges. If positive, the indices are indices to `vertices`.
+        If negative they are indices into `infinite_vertices` (`-index-1`).
+    
+    Convex hull
+    -----------
+    hull_points: list of ints
+        List of indices of the points in `points` making up the convex hull.
+    hull_center: ndarray of floats
+        Center of mass of the points making up the convex hull.
+    inside_vertices: ndarray of boolean
+        Indicates for each vertex in `vertices` whether it is inside the convex hull.
+    in_hull(): Test if points are within the convex hull of the input points.
+    hull_area(): The area contained in the convex hull.
+    
+    Outer hull
+    ----------
+    The outer hull is constructed from the convex hull by expanding each
+    point of the convex hull away from the center of mass of the convex
+    hull such that randomly placing the same number of points in this
+    area results on average in the same mean nearest-neighbor
+    distance. This enlarged hull is needed for bootstrapping. Note that
+    in some cases the outer hull can be *smaller* than the convex hull.
+    
+    outer_hull_points: 2-d ndarray of floats
+        Array of coordinates of the points of the outer hull.
+    outer_min_bound: ndarray of floats
+        Lower left corner of the bounding-box of the outer hull.
+    outer_max_bound: ndarray of floats
+        Upper right corner of the bounding-box of the outer hull.
+    in_outer_hull(): Test if points are within the outer hull.
+    outer_hull_area(): The area contained in the outer hull.
+    
+    Bootstrap Voronoi diagrams
+    --------------------------
+    random_points(): Generate random points within the area defined by the input points.
+
+    Plotting the Voronoi diagram
+    ----------------------------
+    plot_points(): Plot and optionally annotate the input points of the Voronoi diagram.
+    plot_center(): Plot the center of mass of the input points.
+    plot_vertices(): Plot and optionally annotate the vertices of the Voronoi diagram.
+    plot_distances(): Plot lines connecting the neighbors in the Voronoi diagram.
+    plot_ridges(): Plot the finite ridges of the Voronoi diagram.
+    plot_infinite_ridges(): Plot the infinite ridges of the Voronoi diagram.
+    fill_regions(): Fill each finite region of the Voronoi diagram with a color.
+    fill_infinite_regions(): Fill each infinite region of the Voronoi diagram with a color.
+    
+    Plotting the convex hull
+    ------------------------
+    plot_hull(): Plot the convex hull line containing the input points.
+    fill_hull(): Fill the convex hull.
+    plot_hull_center(): Plot the center of mass of the convex hull.
+    plot_outer_hull(): Plot the outer hull edge.
+    fill_outer_hull(): Fill the outer hull.
+    
+    Usage
+    -----
+    Generate 20 random points in 2-D:
+    ```
+    import numpy as np
+    points = np.random.rand(20, 2)
+    ```
+    
+    Calculate the Voronoi diagram:
+    ```
+    from thunderfish.voronoi import Voronoi
+    vor = Voronoi(points)
+    ```
+    
+    Retrieve nearest-neighbor distances and compute Voronoi areas:
+    ```
+    dists = vor.nearest_distances
+    areas = vor.areas()
+    ```
+    
+    Generate random points drawn from a Poisson process with the same
+    intensity and mean nearest neighbor distance as the data:
+    ```
+    new_points = vor.random_points(poisson=True, mode=&#39;outer&#39;)
+    ```
+    
+    Plot Voronoi regions, distances, and input points:
+    ```
+    import matplotlib.pyplot as plt
+    vor.fill_regions(colors=[&#39;red&#39;, &#39;green&#39;, &#39;blue&#39;, &#39;orange&#39;, &#39;cyan&#39;], alpha=0.3)
+    vor.plot_distances(color=&#39;red&#39;)
+    vor.plot_points(text=&#39;p%d&#39;, c=&#39;c&#39;, s=100)
+    ```
+    &#34;&#34;&#34;
+    
+    def __init__(self, points, radius=None, qhull_options=None):
+        self.vor = sp.Voronoi(points, furthest_site=False, incremental=False,
+                              qhull_options=qhull_options)
+        if self.vor.ndim != 2:
+            raise ValueError(&#34;Only 2D input points are supported.&#34;)
+        self.hull = sp.Delaunay(points, furthest_site=False, incremental=False,
+                                qhull_options=qhull_options)
+        self._compute_distances()
+        self._compute_infinite_vertices()
+        self._compute_hull(qhull_options)
+        self.ndim = self.vor.ndim
+        self.npoints = self.vor.npoints
+        self.points = self.vor.points
+        self.vertices = self.vor.vertices
+        self.regions = self.vor.regions
+        self.ridge_points = self.vor.ridge_points
+        self.ridge_vertices = self.vor.ridge_vertices
+        self.min_bound = self.vor.min_bound
+        self.max_bound = self.vor.max_bound
+        self.center = np.mean(self.points, axis=0)
+
+    def _compute_distances(self):
+        &#34;&#34;&#34;
+        Compute distances between points.
+        &#34;&#34;&#34;
+        # For each ridge the distance of the points enclosing the ridge:
+        p1 = self.vor.points[self.vor.ridge_points[:,0]]
+        p2 = self.vor.points[self.vor.ridge_points[:,1]]
+        self.ridge_distances =  sp.minkowski_distance(p1, p2)
+
+        # For each point all its Voronoi distances:
+        self.neighbor_points = [[] for k in range(len(self.vor.points))]
+        self.neighbor_distances = [[] for k in range(len(self.vor.points))]
+        for dist, points in zip(self.ridge_distances, self.vor.ridge_points):
+            self.neighbor_points[points[0]].append(points[1])
+            self.neighbor_points[points[1]].append(points[0])
+            self.neighbor_distances[points[0]].append(dist)
+            self.neighbor_distances[points[1]].append(dist)
+        for k in range(len(self.neighbor_points)):
+            inx = np.argsort(self.neighbor_distances[k])
+            self.neighbor_points[k] = np.array(self.neighbor_points[k])[inx]
+            self.neighbor_distances[k] = np.array(self.neighbor_distances[k])[inx]
+
+        # For each point the distance to its nearest neighbor:
+        self.nearest_points = []
+        self.nearest_distances = np.zeros(len(self.neighbor_distances))
+        for k in range(len(self.neighbor_distances)):
+            self.nearest_points.append(self.neighbor_points[k][0])
+            self.nearest_distances[k] = self.neighbor_distances[k][0]
+        self.mean_nearest_distance = np.mean(self.nearest_distances)
+        self.mean_nearest_distance *= 1.0-2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
+
+    def _compute_infinite_vertices(self, radius=None):
+        &#34;&#34;&#34;
+        Compute far points of infinite ridges.
+
+        Parameters
+        ----------
+        radius: float or None
+            Radius for computing far points of infinite ridges.
+            If None twice the maximum extent of the input points is used.
+
+        Note
+        ----
+        Code inspired by http://stackoverflow.com/questions/20515554/colorize-voronoi-diagram
+        &#34;&#34;&#34;
+        # For each ridge, compute far point:
+        center = self.vor.points.mean(axis=0)
+        if radius is None:
+            radius = 2.0*self.vor.points.ptp(axis=0).max()
+        self.infinite_vertices = []
+        for points, vertices in zip(self.vor.ridge_points, self.vor.ridge_vertices):
+            vertices = np.asarray(vertices)
+            if np.all(vertices &gt;= 0):
+                self.infinite_vertices.append(np.array([]))
+            else:
+                i = vertices[vertices &gt;= 0][0]  # finite end Voronoi vertex
+                t = self.vor.points[points[1]] - self.vor.points[points[0]]  # tangent
+                t /= np.linalg.norm(t)
+                n = np.array([-t[1], t[0]])  # normal
+                midpoint = self.vor.points[points].mean(axis=0)
+                direction = np.sign(np.dot(midpoint - center, n)) * n
+                far_point = self.vor.vertices[i] + direction * radius
+                self.infinite_vertices.append(far_point)
+        # Assemble list of infinite regions:
+        # Indices to self.infinite_vertices are negative minus one.
+        self.infinite_regions = []
+        for rvertices in self.vor.regions:
+            if -1 in rvertices:
+                new_rvertices = []
+                prev_vertex = rvertices[-1]
+                # find index of data point enclosed by the region:
+                ridge_points = []
+                for p, v in zip(self.vor.ridge_points, self.vor.ridge_vertices):
+                    if not -1 in v and set(v) &lt;= set(rvertices):
+                        ridge_points.extend(p)
+                region_point = None
+                for rp in ridge_points:
+                    if ridge_points.count(rp) &gt; 1:
+                        region_point = rp
+                        break
+                # fill in far points for each region:
+                for v_inx, v in enumerate(rvertices):
+                    if v &gt;= 0:
+                        new_rvertices.append(v)
+                    else:
+                        for v1_inx, (points, vertices) in enumerate(zip(self.vor.ridge_points,
+                                                                        self.vor.ridge_vertices)):
+                            if prev_vertex in vertices and -1 in vertices and \
+                              (region_point is None or region_point in points):
+                                new_rvertices.append(-v1_inx-1)
+                                break
+                        next_vertex = rvertices[0]
+                        if v_inx+1 &lt; len(rvertices):
+                            next_vertex = rvertices[v_inx+1]
+                        for v2_inx, (points, vertices) in enumerate(zip(self.vor.ridge_points,
+                                                                        self.vor.ridge_vertices)):
+                            if next_vertex in vertices and -1 in vertices and \
+                              (region_point is None or region_point in points) and \
+                              new_rvertices[-1] != -v2_inx-1:
+                                new_rvertices.append(-v2_inx-1)
+                                break
+                    prev_vertex = v
+                self.infinite_regions.append(new_rvertices)
+                
+    def _flatten_simplices(self, simplices):
+        &#34;&#34;&#34;
+        Transforms list of simplex indices to list of vertex indices.
+
+        In particular, transforms the Delaunay.convex_hull to a list of points
+        of the hull that can then be easily plotted.
+
+        Parameters
+        ----------
+        simplices: 2-D array of ints
+            List of pairs of indices of points forming each ridge of a polygon.
+
+        Returns
+        -------
+        indices: list of ints
+            Indices of vertices of the polygon.
+        &#34;&#34;&#34;
+        if len(simplices) == 0:
+            return []
+        indices = list(simplices[0])
+        simplices = np.delete(simplices, 0, 0)
+        while len(simplices) &gt; 0:
+            for i, s in enumerate(simplices):
+                if indices[-1] in s:
+                    if s[0] == indices[-1]:
+                        indices.append(s[1])
+                    else:
+                        indices.append(s[0])
+                    simplices = np.delete(simplices, i, 0)
+                    break
+        return indices
+
+    def _compute_hull(self, qhull_options):
+        &#34;&#34;&#34;
+        Compute properties of the convex hull and set up the outer hull.
+        &#34;&#34;&#34;
+        self.inside_vertices = self.in_hull(self.vor.vertices)
+        self.hull_points = self._flatten_simplices(self.hull.convex_hull)
+        self.hull_center = np.mean(self.hull.points[self.hull_points], axis=0)
+
+        # enlarge hull:
+        # estimate area needed for a poisson process with same mean distance:
+        new_area = 4.0 * self.mean_nearest_distance**2 * self.vor.npoints
+        fac = np.sqrt(new_area/self.hull_area())
+        self.outer_hull_points = np.zeros((len(self.hull_points), self.vor.ndim))
+        for k, point in enumerate(self.hull.points[self.hull_points]):
+            point -= self.hull_center
+            point *= fac
+            point += self.hull_center
+            self.outer_hull_points[k] = point
+        # compute outer hull:
+        self.outer_hull = sp.Delaunay(self.outer_hull_points,
+                                      furthest_site=False, incremental=False,
+                                      qhull_options=qhull_options)
+        self.outer_min_bound = np.min(self.outer_hull_points, axis=0)
+        self.outer_max_bound = np.max(self.outer_hull_points, axis=0)
+        
+    def in_hull(self, p):
+        &#34;&#34;&#34;
+        Test if points `p` are within convex hull of the input points.
+
+        Parameters
+        ----------
+        p: 2-d ndarray
+            Array of points to be tested.
+
+        Returns
+        -------
+        inside: ndarray of booleans
+            For each point in `p` whether it is inside the hull.
+        &#34;&#34;&#34;
+        inside = self.hull.find_simplex(p) &gt;= 0
+        return inside
+        
+    def in_outer_hull(self, p):
+        &#34;&#34;&#34;
+        Test if points `p` are within the outer hull.
+
+        Parameters
+        ----------
+        p: 2-d ndarray
+            Array of points to be tested.
+
+        Returns
+        -------
+        inside: ndarray of booleans
+            For each point in `p` whether it is inside the outer hull.
+        &#34;&#34;&#34;
+        inside = self.outer_hull.find_simplex(p) &gt;= 0
+        return inside
+
+    def point_types(self):
+        &#34;&#34;&#34;
+        The type of the Voronoi regions for each input point.
+
+        Returns
+        -------
+        points: ndarray of ints
+            Indicates the type of Voronoi region associated with each pint in `points`:
+            2: finite region with all vertices inside hull,
+            1: finite region,
+            0: infinite region.
+        &#34;&#34;&#34;
+        points = np.zeros(len(self.vor.points), dtype=int) + 2
+        for i in range(len(self.vor.points)):
+            for j, rp in enumerate(self.vor.ridge_points):
+                if i in rp:
+                    if not np.all(self.inside_vertices[self.vor.ridge_vertices[j]]) and\
+                      points[i] &gt; 0:
+                        points[i] = 1
+                    if not np.all(np.array(self.vor.ridge_vertices[j]) &gt;= 0) and\
+                      points[i] &gt; -1:
+                        points[i] = 0
+        return points
+
+    def ridge_lengths(self):
+        &#34;&#34;&#34;
+        Length of Voronoi ridges between nearest neighbors.
+
+        May be used, for example, as a weigth for `ridge_distances`.
+
+        Returns
+        -------
+        distances: ndarray of floats
+            The length of each ridge in `ridge_vertices`.
+            np.inf if one vertex is at infinity.
+        &#34;&#34;&#34;
+        ridges = np.zeros(len(self.vor.ridge_vertices))
+        for k, p in enumerate(self.vor.ridge_vertices):
+            if np.all(np.array(p)&gt;=0):
+                p1 = self.vor.vertices[p[0]]
+                p2 = self.vor.vertices[p[1]]
+                ridges[k] = sp.minkowski_distance(p1, p2)
+            else:
+                ridges[k] = np.inf
+        return ridges
+
+    def ridge_areas(self):
+        &#34;&#34;&#34;
+        For each ridge the triangular area of the Voronoi region
+        spanned by the center point and the ridge.
+
+        Returns
+        -------
+        areas: ndarray of floats
+            For each ridge in `ridge_points` or `ridge_vertices`
+            its corresponding triangular area.
+            np.inf for infinite ridges.
+        &#34;&#34;&#34;
+        ridges = self.ridge_lengths()
+        heights = 0.5*self.ridge_distances
+        # area of a triangle:
+        areas = 0.5*ridges*heights
+        return areas
+    
+    def areas(self, mode=&#39;finite&#39;):
+        &#34;&#34;&#34;
+        The areas of the Voronoi regions for each input point.
+
+        Parameters
+        ----------
+        mode: string
+            &#39;inside&#39;: Calculate area of finite Voronoi regions
+                      whose vertices are all inside the hull,
+                      set all other to zero.
+            &#39;finite_inside&#39;: Calculate area of all Voronoi regions.
+                    Consider only areas of finite ridges
+                    whose vertices are all inside the hull.
+            &#39;full&#39;: Calculate area of finite Voronoi regions only,
+                    set all other to zero.
+            &#39;finite&#39;: Calculate area of all Voronoi regions. From infinite regions
+                    only areas contributed by finite ridges are considered.
+
+        Returns
+        -------
+        areas: array of floats
+            For each point in `points` its corresponding area.
+        &#34;&#34;&#34;
+        ridge_areas = self.ridge_areas()
+        areas = np.zeros(len(self.vor.points))
+        if mode == &#39;inside&#39;:
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp:
+                        if ridge_areas[j] != np.inf and \
+                          np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
+                            a += ridge_areas[j]
+                        else:
+                            a = 0.0
+                            break
+                areas[i] = a
+        elif mode == &#39;full&#39;:
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp:
+                        if ridge_areas[j] != np.inf:
+                            a += ridge_areas[j]
+                        else:
+                            a = 0.0
+                            break
+                areas[i] = a
+        elif mode == &#39;finite_inside&#39;:
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp and ridge_areas[j] != np.inf and \
+                      np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
+                        a += ridge_areas[j]
+                areas[i] = a
+        elif mode == &#39;finite&#39;:
+            for i in range(len(self.vor.points)):
+                a = 0.0
+                for j, rp in enumerate(self.vor.ridge_points):
+                    if i in rp and ridge_areas[j] != np.inf:
+                        a += ridge_areas[j]
+                areas[i] = a
+        else:
+            print(&#39;&#39;)            
+            print(&#39;Voronoi.areas(): unknown value &#34;%s&#34; for the mode parameter:&#39; % mode)
+            print(&#39;Use one of the following values:&#39;)
+            print(&#39;  inside: Finite Voronoi regions whose vertices are all inside the hull.&#39;)
+            print(&#39;  finite_inside: Use all areas corresponding to finite ridges whose vertices are all inside the hull.&#39;)
+            print(&#39;  full: Finite Voronoi regions only.&#39;)
+            print(&#39;  finite: Use all areas corresponding to finite ridges.&#39;)
+            print(&#39;&#39;)            
+        return areas
+
+    def hull_area(self):
+        &#34;&#34;&#34;
+        The area of the convex hull of the input points.
+        
+        Returns
+        -------
+        area: float
+            The area of the convex hull.
+        &#34;&#34;&#34;
+        # two sides of the simplex triangles:
+        ab = self.hull.points[self.hull.simplices[:,0],:] - self.hull.points[self.hull.simplices[:,1],:]
+        cb = self.hull.points[self.hull.simplices[:,2],:] - self.hull.points[self.hull.simplices[:,1],:]
+        # area of each simplex is half of the absolute value of the cross product:
+        area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
+        return area
+
+    def outer_hull_area(self):
+        &#34;&#34;&#34;
+        The area of the outer hull.
+        
+        Returns
+        -------
+        area: float
+            The area of the outer hull.
+        &#34;&#34;&#34;
+        # two sides of the simplex triangles:
+        ab = self.outer_hull.points[self.outer_hull.simplices[:,0],:] - self.outer_hull.points[self.outer_hull.simplices[:,1],:]
+        cb = self.outer_hull.points[self.outer_hull.simplices[:,2],:] - self.outer_hull.points[self.outer_hull.simplices[:,1],:]
+        # area of each simplex is half of the absolute value of the cross product:
+        area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
+        return area
+
+    def random_points(self, n=None, poisson=True, mode=&#39;outer&#39;):
+        &#34;&#34;&#34;
+        Generate random points.
+
+        Parameters
+        ----------
+        n: int or None
+            Number of random points to be generated.
+            If None `n` is set to the number of input points.
+        poisson: boolean
+            If `True` then draw the number of points from a Poisson distribution
+            with mean number of points given by `n`.
+        mode: string
+            &#39;bbox&#39; place points randomly in rectangular bounding box of the Voronoi diagram.
+            &#39;hull&#39; place points randomly within convex hull of input data.
+            &#39;outer&#39; place points randomly within outer hull. The mean nearest-neighbor distance
+            between the generated points will be close to the observed one.
+
+        Returns
+        -------
+        points: 2-D array
+            List of randomly generated points.
+        &#34;&#34;&#34;
+        # number of points:
+        if n is None:
+            n = self.npoints
+        nn = n
+        if poisson:
+            nn = np.random.poisson(n)
+        m = nn//2
+        if m &lt; 5:
+            m = 5
+        # get bounding box:
+        if mode == &#39;outer&#39;:
+            min_bound = self.outer_min_bound
+            max_bound = self.outer_max_bound
+        else:
+            min_bound = self.min_bound
+            max_bound = self.max_bound
+        delta = np.max(max_bound - min_bound)
+        points = np.zeros((0, self.ndim))
+        while len(points) &lt; nn:
+            # random points within bounding box:
+            newpoints = np.random.rand(m, self.ndim)
+            newpoints *= delta
+            newpoints += min_bound
+            if mode == &#39;outer&#39;:
+                # only take the ones within outer hull:
+                inside = self.in_outer_hull(newpoints)
+                points = np.vstack((points, newpoints[inside]))
+            elif mode == &#39;hull&#39;:
+                # only take the ones within hull:
+                inside = self.in_hull(newpoints)
+                points = np.vstack((points, newpoints[inside]))
+            elif mode == &#39;bbox&#39;:
+                points = np.vstack((points, newpoints[np.all(newpoints&lt;max_bound, axis=1),:]))
+            else:
+                print(&#39;&#39;)
+                print(&#39;Voronoi.random_points(): unknown value &#34;%s&#34; for the mode parameter:&#39; % mode)
+                print(&#39;Use one of the following values:&#39;)
+                print(&#39;  bbox: Place points within rectangular bounding box.&#39;)
+                print(&#39;  hull: Place points inside the convex hull.&#39;)
+                print(&#39;  outer: Place points inside the outer hull.&#39;)
+                print(&#39;&#39;)
+                return
+        return points[:nn]
+
+    def plot_points(self, ax=None, text=None, text_offs=(0, 0.05), text_align=&#39;center&#39;,
+                    **kwargs):
+        &#34;&#34;&#34;
+        Plot and optionally annotate the input points of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        text: string or None
+            If not None the string that is placed at each point.
+            A &#39;%d&#39; is replaced by the index of the point.
+        text_offset: tuple of numbers
+            The offset of the point labels.
+        text_align: string
+            The horizontal alignment of the point labels.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.scatter() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.scatter(self.points[:,0], self.points[:,1], **kwargs)
+        if text is not None:
+            for i, p in enumerate(self.points):
+                s = text
+                if &#39;%&#39; in text:
+                    s = text % i
+                ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
+        
+    def plot_center(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the center of mass of the input points.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If `None`, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the `matplotlib.plot()` function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.center[0], self.center[1], &#39;o&#39;, **kwargs)
+        
+    def plot_vertices(self, ax=None, text=None, text_offs=(0, 0.05), text_align=&#39;center&#39;,
+                      **kwargs):
+        &#34;&#34;&#34;
+        Plot and optionally annotate the vertices of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        text: string or None
+            If not None the string that is placed at each vertex.
+            A &#39;%d&#39; is replaced by the index of the vertex.
+        text_offset: tuple of numbers
+            The offset of the vertex labels.
+        text_align: string
+            The horizontal alignment of the vertex labels.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.scatter() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.scatter(self.vertices[:,0], self.vertices[:,1], **kwargs)
+        if text is not None:
+            for i, p in enumerate(self.vertices):
+                s = text
+                if &#39;%&#39; in text:
+                    s = text % i
+                ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
+
+    def plot_distances(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot lines connecting the nearest neighbors in the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        for i, p in enumerate(self.ridge_points):
+            ax.plot(self.points[p, 0], self.points[p, 1], **kwargs)
+
+    def plot_ridges(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the finite ridges of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        for i, p in enumerate(self.ridge_vertices):
+            if np.all(np.array(p)&gt;=0):
+                ax.plot(self.vertices[p, 0], self.vertices[p, 1], **kwargs)
+
+    def plot_infinite_ridges(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the infinite ridges of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        for far_point, vertices in zip(self.infinite_vertices, self.vor.ridge_vertices):
+            vertices = np.asarray(vertices)
+            if not np.all(vertices &gt;= 0):
+                i = vertices[vertices &gt;= 0][0]  # finite end Voronoi vertex
+                ax.plot([self.vor.vertices[i][0], far_point[0]],
+                        [self.vor.vertices[i][1], far_point[1]], **kwargs)
+
+    def fill_regions(self, ax=None, inside=None, colors=None, **kwargs):
+        &#34;&#34;&#34;
+        Fill each finite region of the Voronoi diagram with a color.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        inside: boolean or None
+            True: plot only finite regions with all vertices inside the hull
+            False: plot only finite regions with at least one vertex outside the hull
+            None: plot all finite regions
+        colors: list of colors or None
+            If not None then these colors are used in turn to fill the regions.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.fill() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        c = 0
+        for region in self.regions:
+            if not -1 in region:
+                polygon = self.vertices[region]
+                if len(polygon) &gt; 0:
+                    inside_hull = self.in_hull(polygon)
+                    if inside is None or (inside and all(inside_hull)) or (not inside and any(inside_hull)):
+                        c += 1
+                        if colors is None:
+                            ax.fill(polygon[:, 0], polygon[:, 1], lw=0, **kwargs)
+                        else:
+                            ax.fill(polygon[:, 0], polygon[:, 1],
+                                    color=colors[c % len(colors)], lw=0, **kwargs)
+
+    def fill_infinite_regions(self, ax=None, colors=None, **kwargs):
+        &#34;&#34;&#34;
+        Fill each infinite region of the Voronoi diagram with a color.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        colors: list of colors or None
+            If not None then these colors are used in turn to fill the regions.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.fill() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        c = 0
+        for region in self.infinite_regions:
+            polygon = []
+            for p in region:
+                if p &gt;= 0:
+                    polygon.append(self.vertices[p])
+                else:
+                    polygon.append(self.infinite_vertices[-p-1])
+            if len(polygon) &gt; 0:
+                polygon = np.asarray(polygon)
+                c += 1
+                if colors is None:
+                    ax.fill(polygon[:, 0], polygon[:, 1], lw=0, **kwargs)
+                else:
+                    ax.fill(polygon[:, 0], polygon[:, 1],
+                            color=colors[c % len(colors)], lw=0, **kwargs)
+        
+    def plot_hull(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the hull line containing the input points.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.hull.points[self.hull_points, 0],
+                self.hull.points[self.hull_points, 1], **kwargs)
+
+    def fill_hull(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Fill the hull containing the input points with a color.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.fill() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.fill(self.hull.points[self.hull_points, 0],
+                self.hull.points[self.hull_points, 1], lw=0, **kwargs)
+        
+    def plot_hull_center(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the center of mass of the convex hull of the input points.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.hull_center[0], self.hull_center[1], &#39;o&#39;, **kwargs)
+        
+    def plot_outer_hull(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Plot the hull line containing the input points and the vertices of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.plot() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(self.outer_hull_points[:, 0],
+                self.outer_hull_points[:, 1], **kwargs)
+
+    def fill_outer_hull(self, ax=None, **kwargs):
+        &#34;&#34;&#34;
+        Fill the hull containing the input points and the vertices of the Voronoi diagram.
+
+        Parameters
+        ----------
+        ax: matplotlib.Axes or None
+            The axes to be used for plotting. If None, then the current axes is used.
+        **kwargs:
+            Key-word arguments that are passed on to the matplotlib.fill() function.
+        &#34;&#34;&#34;
+        if ax is None:
+            ax = plt.gca()
+        ax.fill(self.outer_hull_points[:, 0],
+                self.outer_hull_points[:, 1], lw=0, **kwargs)</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="thunderfish.voronoi.Voronoi.areas"><code class="name flex">
+<span>def <span class="ident">areas</span></span>(<span>self, mode='finite')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The areas of the Voronoi regions for each input point.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>mode</code></strong> :&ensp;<code>string</code></dt>
+<dd>'inside': Calculate area of finite Voronoi regions
+whose vertices are all inside the hull,
+set all other to zero.
+'finite_inside': Calculate area of all Voronoi regions.
+Consider only areas of finite ridges
+whose vertices are all inside the hull.
+'full': Calculate area of finite Voronoi regions only,
+set all other to zero.
+'finite': Calculate area of all Voronoi regions. From infinite regions
+only areas contributed by finite ridges are considered.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>areas</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>For each point in <code>points</code> its corresponding area.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def areas(self, mode=&#39;finite&#39;):
+    &#34;&#34;&#34;
+    The areas of the Voronoi regions for each input point.
+
+    Parameters
+    ----------
+    mode: string
+        &#39;inside&#39;: Calculate area of finite Voronoi regions
+                  whose vertices are all inside the hull,
+                  set all other to zero.
+        &#39;finite_inside&#39;: Calculate area of all Voronoi regions.
+                Consider only areas of finite ridges
+                whose vertices are all inside the hull.
+        &#39;full&#39;: Calculate area of finite Voronoi regions only,
+                set all other to zero.
+        &#39;finite&#39;: Calculate area of all Voronoi regions. From infinite regions
+                only areas contributed by finite ridges are considered.
+
+    Returns
+    -------
+    areas: array of floats
+        For each point in `points` its corresponding area.
+    &#34;&#34;&#34;
+    ridge_areas = self.ridge_areas()
+    areas = np.zeros(len(self.vor.points))
+    if mode == &#39;inside&#39;:
+        for i in range(len(self.vor.points)):
+            a = 0.0
+            for j, rp in enumerate(self.vor.ridge_points):
+                if i in rp:
+                    if ridge_areas[j] != np.inf and \
+                      np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
+                        a += ridge_areas[j]
+                    else:
+                        a = 0.0
+                        break
+            areas[i] = a
+    elif mode == &#39;full&#39;:
+        for i in range(len(self.vor.points)):
+            a = 0.0
+            for j, rp in enumerate(self.vor.ridge_points):
+                if i in rp:
+                    if ridge_areas[j] != np.inf:
+                        a += ridge_areas[j]
+                    else:
+                        a = 0.0
+                        break
+            areas[i] = a
+    elif mode == &#39;finite_inside&#39;:
+        for i in range(len(self.vor.points)):
+            a = 0.0
+            for j, rp in enumerate(self.vor.ridge_points):
+                if i in rp and ridge_areas[j] != np.inf and \
+                  np.all(self.inside_vertices[self.vor.ridge_vertices[j]]):
+                    a += ridge_areas[j]
+            areas[i] = a
+    elif mode == &#39;finite&#39;:
+        for i in range(len(self.vor.points)):
+            a = 0.0
+            for j, rp in enumerate(self.vor.ridge_points):
+                if i in rp and ridge_areas[j] != np.inf:
+                    a += ridge_areas[j]
+            areas[i] = a
+    else:
+        print(&#39;&#39;)            
+        print(&#39;Voronoi.areas(): unknown value &#34;%s&#34; for the mode parameter:&#39; % mode)
+        print(&#39;Use one of the following values:&#39;)
+        print(&#39;  inside: Finite Voronoi regions whose vertices are all inside the hull.&#39;)
+        print(&#39;  finite_inside: Use all areas corresponding to finite ridges whose vertices are all inside the hull.&#39;)
+        print(&#39;  full: Finite Voronoi regions only.&#39;)
+        print(&#39;  finite: Use all areas corresponding to finite ridges.&#39;)
+        print(&#39;&#39;)            
+    return areas</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.fill_hull"><code class="name flex">
+<span>def <span class="ident">fill_hull</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Fill the hull containing the input points with a color.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.fill() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fill_hull(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Fill the hull containing the input points with a color.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.fill() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    ax.fill(self.hull.points[self.hull_points, 0],
+            self.hull.points[self.hull_points, 1], lw=0, **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.fill_infinite_regions"><code class="name flex">
+<span>def <span class="ident">fill_infinite_regions</span></span>(<span>self, ax=None, colors=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Fill each infinite region of the Voronoi diagram with a color.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+<dt><strong><code>colors</code></strong> :&ensp;<code>list</code> of <code>colors</code> or <code>None</code></dt>
+<dd>If not None then these colors are used in turn to fill the regions.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.fill() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fill_infinite_regions(self, ax=None, colors=None, **kwargs):
+    &#34;&#34;&#34;
+    Fill each infinite region of the Voronoi diagram with a color.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    colors: list of colors or None
+        If not None then these colors are used in turn to fill the regions.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.fill() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    c = 0
+    for region in self.infinite_regions:
+        polygon = []
+        for p in region:
+            if p &gt;= 0:
+                polygon.append(self.vertices[p])
+            else:
+                polygon.append(self.infinite_vertices[-p-1])
+        if len(polygon) &gt; 0:
+            polygon = np.asarray(polygon)
+            c += 1
+            if colors is None:
+                ax.fill(polygon[:, 0], polygon[:, 1], lw=0, **kwargs)
+            else:
+                ax.fill(polygon[:, 0], polygon[:, 1],
+                        color=colors[c % len(colors)], lw=0, **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.fill_outer_hull"><code class="name flex">
+<span>def <span class="ident">fill_outer_hull</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Fill the hull containing the input points and the vertices of the Voronoi diagram.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.fill() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fill_outer_hull(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Fill the hull containing the input points and the vertices of the Voronoi diagram.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.fill() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    ax.fill(self.outer_hull_points[:, 0],
+            self.outer_hull_points[:, 1], lw=0, **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.fill_regions"><code class="name flex">
+<span>def <span class="ident">fill_regions</span></span>(<span>self, ax=None, inside=None, colors=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Fill each finite region of the Voronoi diagram with a color.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+<dt><strong><code>inside</code></strong> :&ensp;<code>boolean</code> or <code>None</code></dt>
+<dd>True: plot only finite regions with all vertices inside the hull
+False: plot only finite regions with at least one vertex outside the hull
+None: plot all finite regions</dd>
+<dt><strong><code>colors</code></strong> :&ensp;<code>list</code> of <code>colors</code> or <code>None</code></dt>
+<dd>If not None then these colors are used in turn to fill the regions.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.fill() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fill_regions(self, ax=None, inside=None, colors=None, **kwargs):
+    &#34;&#34;&#34;
+    Fill each finite region of the Voronoi diagram with a color.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    inside: boolean or None
+        True: plot only finite regions with all vertices inside the hull
+        False: plot only finite regions with at least one vertex outside the hull
+        None: plot all finite regions
+    colors: list of colors or None
+        If not None then these colors are used in turn to fill the regions.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.fill() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    c = 0
+    for region in self.regions:
+        if not -1 in region:
+            polygon = self.vertices[region]
+            if len(polygon) &gt; 0:
+                inside_hull = self.in_hull(polygon)
+                if inside is None or (inside and all(inside_hull)) or (not inside and any(inside_hull)):
+                    c += 1
+                    if colors is None:
+                        ax.fill(polygon[:, 0], polygon[:, 1], lw=0, **kwargs)
+                    else:
+                        ax.fill(polygon[:, 0], polygon[:, 1],
+                                color=colors[c % len(colors)], lw=0, **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.hull_area"><code class="name flex">
+<span>def <span class="ident">hull_area</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The area of the convex hull of the input points.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>area</code></strong> :&ensp;<code>float</code></dt>
+<dd>The area of the convex hull.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def hull_area(self):
+    &#34;&#34;&#34;
+    The area of the convex hull of the input points.
+    
+    Returns
+    -------
+    area: float
+        The area of the convex hull.
+    &#34;&#34;&#34;
+    # two sides of the simplex triangles:
+    ab = self.hull.points[self.hull.simplices[:,0],:] - self.hull.points[self.hull.simplices[:,1],:]
+    cb = self.hull.points[self.hull.simplices[:,2],:] - self.hull.points[self.hull.simplices[:,1],:]
+    # area of each simplex is half of the absolute value of the cross product:
+    area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
+    return area</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.in_hull"><code class="name flex">
+<span>def <span class="ident">in_hull</span></span>(<span>self, p)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Test if points <code>p</code> are within convex hull of the input points.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>p</code></strong> :&ensp;<code>2-d ndarray</code></dt>
+<dd>Array of points to be tested.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>inside</code></strong> :&ensp;<code>ndarray</code> of <code>booleans</code></dt>
+<dd>For each point in <code>p</code> whether it is inside the hull.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def in_hull(self, p):
+    &#34;&#34;&#34;
+    Test if points `p` are within convex hull of the input points.
+
+    Parameters
+    ----------
+    p: 2-d ndarray
+        Array of points to be tested.
+
+    Returns
+    -------
+    inside: ndarray of booleans
+        For each point in `p` whether it is inside the hull.
+    &#34;&#34;&#34;
+    inside = self.hull.find_simplex(p) &gt;= 0
+    return inside</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.in_outer_hull"><code class="name flex">
+<span>def <span class="ident">in_outer_hull</span></span>(<span>self, p)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Test if points <code>p</code> are within the outer hull.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>p</code></strong> :&ensp;<code>2-d ndarray</code></dt>
+<dd>Array of points to be tested.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>inside</code></strong> :&ensp;<code>ndarray</code> of <code>booleans</code></dt>
+<dd>For each point in <code>p</code> whether it is inside the outer hull.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def in_outer_hull(self, p):
+    &#34;&#34;&#34;
+    Test if points `p` are within the outer hull.
+
+    Parameters
+    ----------
+    p: 2-d ndarray
+        Array of points to be tested.
+
+    Returns
+    -------
+    inside: ndarray of booleans
+        For each point in `p` whether it is inside the outer hull.
+    &#34;&#34;&#34;
+    inside = self.outer_hull.find_simplex(p) &gt;= 0
+    return inside</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.outer_hull_area"><code class="name flex">
+<span>def <span class="ident">outer_hull_area</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The area of the outer hull.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>area</code></strong> :&ensp;<code>float</code></dt>
+<dd>The area of the outer hull.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def outer_hull_area(self):
+    &#34;&#34;&#34;
+    The area of the outer hull.
+    
+    Returns
+    -------
+    area: float
+        The area of the outer hull.
+    &#34;&#34;&#34;
+    # two sides of the simplex triangles:
+    ab = self.outer_hull.points[self.outer_hull.simplices[:,0],:] - self.outer_hull.points[self.outer_hull.simplices[:,1],:]
+    cb = self.outer_hull.points[self.outer_hull.simplices[:,2],:] - self.outer_hull.points[self.outer_hull.simplices[:,1],:]
+    # area of each simplex is half of the absolute value of the cross product:
+    area = 0.5*np.sum(np.abs(np.cross(ab, cb)))
+    return area</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_center"><code class="name flex">
+<span>def <span class="ident">plot_center</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the center of mass of the input points.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If <code>None</code>, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the <code>matplotlib.plot()</code> function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_center(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Plot the center of mass of the input points.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If `None`, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the `matplotlib.plot()` function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(self.center[0], self.center[1], &#39;o&#39;, **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_distances"><code class="name flex">
+<span>def <span class="ident">plot_distances</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot lines connecting the nearest neighbors in the Voronoi diagram.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.plot() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_distances(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Plot lines connecting the nearest neighbors in the Voronoi diagram.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.plot() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    for i, p in enumerate(self.ridge_points):
+        ax.plot(self.points[p, 0], self.points[p, 1], **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_hull"><code class="name flex">
+<span>def <span class="ident">plot_hull</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the hull line containing the input points.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.plot() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_hull(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Plot the hull line containing the input points.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.plot() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(self.hull.points[self.hull_points, 0],
+            self.hull.points[self.hull_points, 1], **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_hull_center"><code class="name flex">
+<span>def <span class="ident">plot_hull_center</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the center of mass of the convex hull of the input points.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.plot() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_hull_center(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Plot the center of mass of the convex hull of the input points.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.plot() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(self.hull_center[0], self.hull_center[1], &#39;o&#39;, **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_infinite_ridges"><code class="name flex">
+<span>def <span class="ident">plot_infinite_ridges</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the infinite ridges of the Voronoi diagram.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.plot() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_infinite_ridges(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Plot the infinite ridges of the Voronoi diagram.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.plot() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    for far_point, vertices in zip(self.infinite_vertices, self.vor.ridge_vertices):
+        vertices = np.asarray(vertices)
+        if not np.all(vertices &gt;= 0):
+            i = vertices[vertices &gt;= 0][0]  # finite end Voronoi vertex
+            ax.plot([self.vor.vertices[i][0], far_point[0]],
+                    [self.vor.vertices[i][1], far_point[1]], **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_outer_hull"><code class="name flex">
+<span>def <span class="ident">plot_outer_hull</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the hull line containing the input points and the vertices of the Voronoi diagram.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.plot() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_outer_hull(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Plot the hull line containing the input points and the vertices of the Voronoi diagram.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.plot() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    ax.plot(self.outer_hull_points[:, 0],
+            self.outer_hull_points[:, 1], **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_points"><code class="name flex">
+<span>def <span class="ident">plot_points</span></span>(<span>self, ax=None, text=None, text_offs=(0, 0.05), text_align='center', **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot and optionally annotate the input points of the Voronoi diagram.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+<dt><strong><code>text</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>If not None the string that is placed at each point.
+A '%d' is replaced by the index of the point.</dd>
+<dt><strong><code>text_offset</code></strong> :&ensp;<code>tuple</code> of <code>numbers</code></dt>
+<dd>The offset of the point labels.</dd>
+<dt><strong><code>text_align</code></strong> :&ensp;<code>string</code></dt>
+<dd>The horizontal alignment of the point labels.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.scatter() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_points(self, ax=None, text=None, text_offs=(0, 0.05), text_align=&#39;center&#39;,
+                **kwargs):
+    &#34;&#34;&#34;
+    Plot and optionally annotate the input points of the Voronoi diagram.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    text: string or None
+        If not None the string that is placed at each point.
+        A &#39;%d&#39; is replaced by the index of the point.
+    text_offset: tuple of numbers
+        The offset of the point labels.
+    text_align: string
+        The horizontal alignment of the point labels.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.scatter() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    ax.scatter(self.points[:,0], self.points[:,1], **kwargs)
+    if text is not None:
+        for i, p in enumerate(self.points):
+            s = text
+            if &#39;%&#39; in text:
+                s = text % i
+            ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_ridges"><code class="name flex">
+<span>def <span class="ident">plot_ridges</span></span>(<span>self, ax=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the finite ridges of the Voronoi diagram.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.plot() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_ridges(self, ax=None, **kwargs):
+    &#34;&#34;&#34;
+    Plot the finite ridges of the Voronoi diagram.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.plot() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    for i, p in enumerate(self.ridge_vertices):
+        if np.all(np.array(p)&gt;=0):
+            ax.plot(self.vertices[p, 0], self.vertices[p, 1], **kwargs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.plot_vertices"><code class="name flex">
+<span>def <span class="ident">plot_vertices</span></span>(<span>self, ax=None, text=None, text_offs=(0, 0.05), text_align='center', **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot and optionally annotate the vertices of the Voronoi diagram.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib.Axes</code> or <code>None</code></dt>
+<dd>The axes to be used for plotting. If None, then the current axes is used.</dd>
+<dt><strong><code>text</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>If not None the string that is placed at each vertex.
+A '%d' is replaced by the index of the vertex.</dd>
+<dt><strong><code>text_offset</code></strong> :&ensp;<code>tuple</code> of <code>numbers</code></dt>
+<dd>The offset of the vertex labels.</dd>
+<dt><strong><code>text_align</code></strong> :&ensp;<code>string</code></dt>
+<dd>The horizontal alignment of the vertex labels.</dd>
+</dl>
+<p>**kwargs:
+Key-word arguments that are passed on to the matplotlib.scatter() function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_vertices(self, ax=None, text=None, text_offs=(0, 0.05), text_align=&#39;center&#39;,
+                  **kwargs):
+    &#34;&#34;&#34;
+    Plot and optionally annotate the vertices of the Voronoi diagram.
+
+    Parameters
+    ----------
+    ax: matplotlib.Axes or None
+        The axes to be used for plotting. If None, then the current axes is used.
+    text: string or None
+        If not None the string that is placed at each vertex.
+        A &#39;%d&#39; is replaced by the index of the vertex.
+    text_offset: tuple of numbers
+        The offset of the vertex labels.
+    text_align: string
+        The horizontal alignment of the vertex labels.
+    **kwargs:
+        Key-word arguments that are passed on to the matplotlib.scatter() function.
+    &#34;&#34;&#34;
+    if ax is None:
+        ax = plt.gca()
+    ax.scatter(self.vertices[:,0], self.vertices[:,1], **kwargs)
+    if text is not None:
+        for i, p in enumerate(self.vertices):
+            s = text
+            if &#39;%&#39; in text:
+                s = text % i
+            ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.point_types"><code class="name flex">
+<span>def <span class="ident">point_types</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The type of the Voronoi regions for each input point.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>points</code></strong> :&ensp;<code>ndarray</code> of <code>ints</code></dt>
+<dd>Indicates the type of Voronoi region associated with each pint in <code>points</code>:
+2: finite region with all vertices inside hull,
+1: finite region,
+0: infinite region.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def point_types(self):
+    &#34;&#34;&#34;
+    The type of the Voronoi regions for each input point.
+
+    Returns
+    -------
+    points: ndarray of ints
+        Indicates the type of Voronoi region associated with each pint in `points`:
+        2: finite region with all vertices inside hull,
+        1: finite region,
+        0: infinite region.
+    &#34;&#34;&#34;
+    points = np.zeros(len(self.vor.points), dtype=int) + 2
+    for i in range(len(self.vor.points)):
+        for j, rp in enumerate(self.vor.ridge_points):
+            if i in rp:
+                if not np.all(self.inside_vertices[self.vor.ridge_vertices[j]]) and\
+                  points[i] &gt; 0:
+                    points[i] = 1
+                if not np.all(np.array(self.vor.ridge_vertices[j]) &gt;= 0) and\
+                  points[i] &gt; -1:
+                    points[i] = 0
+    return points</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.random_points"><code class="name flex">
+<span>def <span class="ident">random_points</span></span>(<span>self, n=None, poisson=True, mode='outer')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Generate random points.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>n</code></strong> :&ensp;<code>int</code> or <code>None</code></dt>
+<dd>Number of random points to be generated.
+If None <code>n</code> is set to the number of input points.</dd>
+<dt><strong><code>poisson</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>If <code>True</code> then draw the number of points from a Poisson distribution
+with mean number of points given by <code>n</code>.</dd>
+<dt><strong><code>mode</code></strong> :&ensp;<code>string</code></dt>
+<dd>'bbox' place points randomly in rectangular bounding box of the Voronoi diagram.
+'hull' place points randomly within convex hull of input data.
+'outer' place points randomly within outer hull. The mean nearest-neighbor distance
+between the generated points will be close to the observed one.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>points</code></strong> :&ensp;<code>2-D array</code></dt>
+<dd>List of randomly generated points.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def random_points(self, n=None, poisson=True, mode=&#39;outer&#39;):
+    &#34;&#34;&#34;
+    Generate random points.
+
+    Parameters
+    ----------
+    n: int or None
+        Number of random points to be generated.
+        If None `n` is set to the number of input points.
+    poisson: boolean
+        If `True` then draw the number of points from a Poisson distribution
+        with mean number of points given by `n`.
+    mode: string
+        &#39;bbox&#39; place points randomly in rectangular bounding box of the Voronoi diagram.
+        &#39;hull&#39; place points randomly within convex hull of input data.
+        &#39;outer&#39; place points randomly within outer hull. The mean nearest-neighbor distance
+        between the generated points will be close to the observed one.
+
+    Returns
+    -------
+    points: 2-D array
+        List of randomly generated points.
+    &#34;&#34;&#34;
+    # number of points:
+    if n is None:
+        n = self.npoints
+    nn = n
+    if poisson:
+        nn = np.random.poisson(n)
+    m = nn//2
+    if m &lt; 5:
+        m = 5
+    # get bounding box:
+    if mode == &#39;outer&#39;:
+        min_bound = self.outer_min_bound
+        max_bound = self.outer_max_bound
+    else:
+        min_bound = self.min_bound
+        max_bound = self.max_bound
+    delta = np.max(max_bound - min_bound)
+    points = np.zeros((0, self.ndim))
+    while len(points) &lt; nn:
+        # random points within bounding box:
+        newpoints = np.random.rand(m, self.ndim)
+        newpoints *= delta
+        newpoints += min_bound
+        if mode == &#39;outer&#39;:
+            # only take the ones within outer hull:
+            inside = self.in_outer_hull(newpoints)
+            points = np.vstack((points, newpoints[inside]))
+        elif mode == &#39;hull&#39;:
+            # only take the ones within hull:
+            inside = self.in_hull(newpoints)
+            points = np.vstack((points, newpoints[inside]))
+        elif mode == &#39;bbox&#39;:
+            points = np.vstack((points, newpoints[np.all(newpoints&lt;max_bound, axis=1),:]))
+        else:
+            print(&#39;&#39;)
+            print(&#39;Voronoi.random_points(): unknown value &#34;%s&#34; for the mode parameter:&#39; % mode)
+            print(&#39;Use one of the following values:&#39;)
+            print(&#39;  bbox: Place points within rectangular bounding box.&#39;)
+            print(&#39;  hull: Place points inside the convex hull.&#39;)
+            print(&#39;  outer: Place points inside the outer hull.&#39;)
+            print(&#39;&#39;)
+            return
+    return points[:nn]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.ridge_areas"><code class="name flex">
+<span>def <span class="ident">ridge_areas</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>For each ridge the triangular area of the Voronoi region
+spanned by the center point and the ridge.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>areas</code></strong> :&ensp;<code>ndarray</code> of <code>floats</code></dt>
+<dd>For each ridge in <code>ridge_points</code> or <code>ridge_vertices</code>
+its corresponding triangular area.
+np.inf for infinite ridges.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ridge_areas(self):
+    &#34;&#34;&#34;
+    For each ridge the triangular area of the Voronoi region
+    spanned by the center point and the ridge.
+
+    Returns
+    -------
+    areas: ndarray of floats
+        For each ridge in `ridge_points` or `ridge_vertices`
+        its corresponding triangular area.
+        np.inf for infinite ridges.
+    &#34;&#34;&#34;
+    ridges = self.ridge_lengths()
+    heights = 0.5*self.ridge_distances
+    # area of a triangle:
+    areas = 0.5*ridges*heights
+    return areas</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.voronoi.Voronoi.ridge_lengths"><code class="name flex">
+<span>def <span class="ident">ridge_lengths</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Length of Voronoi ridges between nearest neighbors.</p>
+<p>May be used, for example, as a weigth for <code>ridge_distances</code>.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>distances</code></strong> :&ensp;<code>ndarray</code> of <code>floats</code></dt>
+<dd>The length of each ridge in <code>ridge_vertices</code>.
+np.inf if one vertex is at infinity.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ridge_lengths(self):
+    &#34;&#34;&#34;
+    Length of Voronoi ridges between nearest neighbors.
+
+    May be used, for example, as a weigth for `ridge_distances`.
+
+    Returns
+    -------
+    distances: ndarray of floats
+        The length of each ridge in `ridge_vertices`.
+        np.inf if one vertex is at infinity.
+    &#34;&#34;&#34;
+    ridges = np.zeros(len(self.vor.ridge_vertices))
+    for k, p in enumerate(self.vor.ridge_vertices):
+        if np.all(np.array(p)&gt;=0):
+            p1 = self.vor.vertices[p[0]]
+            p2 = self.vor.vertices[p[1]]
+            ridges[k] = sp.minkowski_distance(p1, p2)
+        else:
+            ridges[k] = np.inf
+    return ridges</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="thunderfish.voronoi.Voronoi" href="#thunderfish.voronoi.Voronoi">Voronoi</a></code></h4>
+<ul class="">
+<li><code><a title="thunderfish.voronoi.Voronoi.areas" href="#thunderfish.voronoi.Voronoi.areas">areas</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.fill_hull" href="#thunderfish.voronoi.Voronoi.fill_hull">fill_hull</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.fill_infinite_regions" href="#thunderfish.voronoi.Voronoi.fill_infinite_regions">fill_infinite_regions</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.fill_outer_hull" href="#thunderfish.voronoi.Voronoi.fill_outer_hull">fill_outer_hull</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.fill_regions" href="#thunderfish.voronoi.Voronoi.fill_regions">fill_regions</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.hull_area" href="#thunderfish.voronoi.Voronoi.hull_area">hull_area</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.in_hull" href="#thunderfish.voronoi.Voronoi.in_hull">in_hull</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.in_outer_hull" href="#thunderfish.voronoi.Voronoi.in_outer_hull">in_outer_hull</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.outer_hull_area" href="#thunderfish.voronoi.Voronoi.outer_hull_area">outer_hull_area</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_center" href="#thunderfish.voronoi.Voronoi.plot_center">plot_center</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_distances" href="#thunderfish.voronoi.Voronoi.plot_distances">plot_distances</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_hull" href="#thunderfish.voronoi.Voronoi.plot_hull">plot_hull</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_hull_center" href="#thunderfish.voronoi.Voronoi.plot_hull_center">plot_hull_center</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_infinite_ridges" href="#thunderfish.voronoi.Voronoi.plot_infinite_ridges">plot_infinite_ridges</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_outer_hull" href="#thunderfish.voronoi.Voronoi.plot_outer_hull">plot_outer_hull</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_points" href="#thunderfish.voronoi.Voronoi.plot_points">plot_points</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_ridges" href="#thunderfish.voronoi.Voronoi.plot_ridges">plot_ridges</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.plot_vertices" href="#thunderfish.voronoi.Voronoi.plot_vertices">plot_vertices</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.point_types" href="#thunderfish.voronoi.Voronoi.point_types">point_types</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.random_points" href="#thunderfish.voronoi.Voronoi.random_points">random_points</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.ridge_areas" href="#thunderfish.voronoi.Voronoi.ridge_areas">ridge_areas</a></code></li>
+<li><code><a title="thunderfish.voronoi.Voronoi.ridge_lengths" href="#thunderfish.voronoi.Voronoi.ridge_lengths">ridge_lengths</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>

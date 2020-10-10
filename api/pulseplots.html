@@ -1,0 +1,2425 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>thunderfish.pulseplots API documentation</title>
+<meta name="description" content="Plot and save key steps in pulses.py for visualizing the alorithm." />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.pulseplots</code></h1>
+</header>
+<section id="section-intro">
+<p>Plot and save key steps in pulses.py for visualizing the alorithm.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;
+Plot and save key steps in pulses.py for visualizing the alorithm.
+&#34;&#34;&#34;
+
+import glob
+import numpy as np
+from scipy import stats
+from matplotlib import rcParams, gridspec, ticker
+import matplotlib.pyplot as plt
+try:
+    from matplotlib.colors import colorConverter as cc
+except ImportError:
+    import matplotlib.colors as cc
+try:
+    from matplotlib.colors import to_hex
+except ImportError:
+    from matplotlib.colors import rgb2hex as to_hex
+from matplotlib.patches import ConnectionPatch, Rectangle
+from matplotlib.lines import Line2D
+import warnings
+def warn(*args, **kwargs):
+    &#34;&#34;&#34;
+    Ignore all warnings.
+    &#34;&#34;&#34;
+    pass
+warnings.warn=warn
+
+
+# plotting parameters and colors:
+rcParams[&#39;font.family&#39;] = &#39;monospace&#39;
+cmap = plt.get_cmap(&#34;Dark2&#34;)
+c_g = cmap(0)
+c_o = cmap(1)
+c_grey = cmap(7)
+cmap_pts = [cmap(2), cmap(3)]
+
+
+def darker(color, saturation):
+    &#34;&#34;&#34; Make a color darker.
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    color: dict or matplotlib color spec
+        A matplotlib color (hex string, name color string, rgb tuple)
+        or a dictionary with an &#39;color&#39; or &#39;facecolor&#39; key.
+    saturation: float
+        The smaller the saturation, the darker the returned color.
+        A saturation of 0 returns black.
+        A saturation of 1 leaves the color untouched.
+        A saturation of 2 returns white.
+
+    Returns
+    -------
+    color: string or dictionary
+        The darker color as a hexadecimal RGB string (e.g. &#39;#rrggbb&#39;).
+        If `color` is a dictionary, a copy of the dictionary is returned
+        with the value of &#39;color&#39; or &#39;facecolor&#39; set to the darker color.
+    &#34;&#34;&#34;
+    try:
+        c = color[&#39;color&#39;]
+        cd = dict(**color)
+        cd[&#39;color&#39;] = darker(c, saturation)
+        return cd
+    except (KeyError, TypeError):
+        try:
+            c = color[&#39;facecolor&#39;]
+            cd = dict(**color)
+            cd[&#39;facecolor&#39;] = darker(c, saturation)
+            return cd
+        except (KeyError, TypeError):
+            if saturation &gt; 2:
+                sauration = 2
+            if saturation &gt; 1:
+                return lighter(color, 2.0-saturation)
+            if saturation &lt; 0:
+                saturation = 0
+            r, g, b = cc.to_rgb(color)
+            rd = r*saturation
+            gd = g*saturation
+            bd = b*saturation
+            return to_hex((rd, gd, bd)).upper()
+
+
+def lighter(color, lightness):
+    &#34;&#34;&#34;Make a color lighter
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    color: dict or matplotlib color spec
+        A matplotlib color (hex string, name color string, rgb tuple)
+        or a dictionary with an &#39;color&#39; or &#39;facecolor&#39; key.
+    lightness: float
+        The smaller the lightness, the lighter the returned color.
+        A lightness of 0 returns white.
+        A lightness of 1 leaves the color untouched.
+        A lightness of 2 returns black.
+
+    Returns
+    -------
+    color: string or dict
+        The lighter color as a hexadecimal RGB string (e.g. &#39;#rrggbb&#39;).
+        If `color` is a dictionary, a copy of the dictionary is returned
+        with the value of &#39;color&#39; or &#39;facecolor&#39; set to the lighter color.
+    &#34;&#34;&#34;
+    try:
+        c = color[&#39;color&#39;]
+        cd = dict(**color)
+        cd[&#39;color&#39;] = lighter(c, lightness)
+        return cd
+    except (KeyError, TypeError):
+        try:
+            c = color[&#39;facecolor&#39;]
+            cd = dict(**color)
+            cd[&#39;facecolor&#39;] = lighter(c, lightness)
+            return cd
+        except (KeyError, TypeError):
+            if lightness &gt; 2:
+                lightness = 2
+            if lightness &gt; 1:
+                return darker(color, 2.0-lightness)
+            if lightness &lt; 0:
+                lightness = 0
+            r, g, b = cc.to_rgb(color)
+            rl = r + (1.0-lightness)*(1.0 - r)
+            gl = g + (1.0-lightness)*(1.0 - g)
+            bl = b + (1.0-lightness)*(1.0 - b)
+            return to_hex((rl, gl, bl)).upper()
+
+
+def xscalebar(ax, x, y, width, wunit=None, wformat=None, ha=&#39;left&#39;, va=&#39;bottom&#39;,
+              lw=None, color=None, capsize=None, clw=None, **kwargs):
+    &#34;&#34;&#34;Horizontal scale bar with label.
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the scale bar.
+    x: float
+        x-coordinate where to draw the scale bar in relative units of the axes.
+    y: float
+        y-coordinate where to draw the scale bar in relative units of the axes.
+    width: float
+        Length of the scale bar in units of the data&#39;s x-values.
+    wunit: string or None
+        Optional unit of the data&#39;s x-values.
+    wformat: string or None
+        Optional format string for formatting the label of the scale bar
+        or simply a string used for labeling the scale bar.
+    ha: &#39;left&#39;, &#39;right&#39;, or &#39;center&#39;
+        Scale bar aligned left, right, or centered to (x, y)
+    va: &#39;top&#39; or &#39;bottom&#39;
+        Label of the scale bar either above or below the scale bar.
+    lw: int, float, None
+        Line width of the scale bar.
+    color: matplotlib color
+        Color of the scalebar.
+    capsize: float or None
+        If larger then zero draw cap lines at the ends of the bar.
+        The length of the lines is given in points (same unit as linewidth).
+    clw: int, float, None
+        Line width of the cap lines.
+    kwargs: key-word arguments
+        Passed on to `ax.text()` used to print the scale bar label.
+    &#34;&#34;&#34;
+    ax.autoscale(False)
+    # ax dimensions:
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    unitx = xmax - xmin
+    unity = ymax - ymin
+    dxu = np.abs(unitx)/pixelx
+    dyu = np.abs(unity)/pixely
+    # transform x, y from relative units to axis units:
+    x = xmin + x*unitx
+    y = ymin + y*unity
+    # bar length:
+    if wformat is None:
+        wformat = &#39;%.0f&#39;
+        if width &lt; 1.0:
+            wformat = &#39;%.1f&#39;
+    try:
+        ls = wformat % width
+        width = float(ls)
+    except TypeError:
+        ls = wformat
+    # bar:
+    if ha == &#39;left&#39;:
+        x0 = x
+        x1 = x+width
+    elif ha == &#39;right&#39;:
+        x0 = x-width
+        x1 = x
+    else:
+        x0 = x-0.5*width
+        x1 = x+0.5*width
+    # line width:
+    if lw is None:
+        lw = 2
+    # color:
+    if color is None:
+        color = &#39;k&#39;
+    # scalebar:
+    lh = ax.plot([x0, x1], [y, y], &#39;-&#39;, color=color, lw=lw,
+                 solid_capstyle=&#39;butt&#39;, clip_on=False)
+    # get y position of line in figure pixel coordinates:
+    ly = np.array(lh[0].get_window_extent(ax.get_figure().canvas.get_renderer()))[0,1]
+    # caps:
+    if capsize is None:
+        capsize = 0
+    if clw is None:
+        clw = 0.5
+    if capsize &gt; 0.0:
+        dy = capsize*dyu
+        ax.plot([x0, x0], [y-dy, y+dy], &#39;-&#39;, color=color, lw=clw,
+                solid_capstyle=&#39;butt&#39;, clip_on=False)
+        ax.plot([x1, x1], [y-dy, y+dy], &#39;-&#39;, color=color, lw=clw,
+                solid_capstyle=&#39;butt&#39;, clip_on=False)
+    # label:
+    if wunit:
+        ls += u&#39;\u2009%s&#39; % wunit
+    if va == &#39;top&#39;:
+        th = ax.text(0.5*(x0+x1), y, ls, clip_on=False,
+                     ha=&#39;center&#39;, va=&#39;bottom&#39;, **kwargs)
+        # get y coordinate of text bottom in figure pixel coordinates:
+        ty = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[0,1]
+        dty = ly+0.5*lw + 2.0 - ty
+    else:
+        th = ax.text(0.5*(x0+x1), y, ls, clip_on=False,
+                     ha=&#39;center&#39;, va=&#39;top&#39;, **kwargs)
+        # get y coordinate of text bottom in figure pixel coordinates:
+        ty = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[1,1]
+        dty = ly-0.5*lw - 2.0 - ty
+    th.set_position((0.5*(x0+x1), y+dyu*dty))
+    return x0, x1, y
+
+        
+def yscalebar(ax, x, y, height, hunit=None, hformat=None, ha=&#39;left&#39;, va=&#39;bottom&#39;,
+              lw=None, color=None, capsize=None, clw=None, **kwargs):
+    
+    &#34;&#34;&#34;Vertical scale bar with label.
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the scale bar.
+    x: float
+        x-coordinate where to draw the scale bar in relative units of the axes.
+    y: float
+        y-coordinate where to draw the scale bar in relative units of the axes.
+    height: float
+        Length of the scale bar in units of the data&#39;s y-values.
+    hunit: string
+        Unit of the data&#39;s y-values.
+    hformat: string or None
+        Optional format string for formatting the label of the scale bar
+        or simply a string used for labeling the scale bar.
+    ha: &#39;left&#39; or &#39;right&#39;
+        Label of the scale bar either to the left or to the right
+        of the scale bar.
+    va: &#39;top&#39;, &#39;bottom&#39;, or &#39;center&#39;
+        Scale bar aligned above, below, or centered on (x, y).
+    lw: int, float, None
+        Line width of the scale bar.
+    color: matplotlib color
+        Color of the scalebar.
+    capsize: float or None
+        If larger then zero draw cap lines at the ends of the bar.
+        The length of the lines is given in points (same unit as linewidth).
+    clw: int, float
+        Line width of the cap lines.
+    kwargs: key-word arguments
+        Passed on to `ax.text()` used to print the scale bar label.
+    &#34;&#34;&#34;
+
+    ax.autoscale(False)
+    # ax dimensions:
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    unitx = xmax - xmin
+    unity = ymax - ymin
+    dxu = np.abs(unitx)/pixelx
+    dyu = np.abs(unity)/pixely
+    # transform x, y from relative units to axis units:
+    x = xmin + x*unitx
+    y = ymin + y*unity
+    # bar length:
+    if hformat is None:
+        hformat = &#39;%.0f&#39;
+        if height &lt; 1.0:
+            hformat = &#39;%.1f&#39;
+    try:
+        ls = hformat % height
+        width = float(ls)
+    except TypeError:
+        ls = hformat
+    # bar:
+    if va == &#39;bottom&#39;:
+        y0 = y
+        y1 = y+height
+    elif va == &#39;top&#39;:
+        y0 = y-height
+        y1 = y
+    else:
+        y0 = y-0.5*height
+        y1 = y+0.5*height
+    # line width:
+    if lw is None:
+        lw = 2
+    # color:
+    if color is None:
+        color = &#39;k&#39;
+    # scalebar:
+    lh = ax.plot([x, x], [y0, y1], &#39;-&#39;, color=color, lw=lw,
+                 solid_capstyle=&#39;butt&#39;, clip_on=False)
+    # get x position of line in figure pixel coordinates:
+    lx = np.array(lh[0].get_window_extent(ax.get_figure().canvas.get_renderer()))[0,0]
+    # caps:
+    if capsize is None:
+        capsize = 0
+    if clw is None:
+        clw = 0.5
+    if capsize &gt; 0.0:
+        dx = capsize*dxu
+        ax.plot([x-dx, x+dx], [y0, y0], &#39;-&#39;, color=color, lw=clw, solid_capstyle=&#39;butt&#39;,
+                clip_on=False)
+        ax.plot([x-dx, x+dx], [y1, y1], &#39;-&#39;, color=color, lw=clw, solid_capstyle=&#39;butt&#39;,
+                clip_on=False)
+    # label:
+    if hunit:
+        ls += u&#39;\u2009%s&#39; % hunit
+    if ha == &#39;right&#39;:
+        th = ax.text(x, 0.5*(y0+y1), ls, clip_on=False, rotation=90.0,
+                     ha=&#39;left&#39;, va=&#39;center&#39;, **kwargs)
+        # get x coordinate of text bottom in figure pixel coordinates:
+        tx = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[0,0]
+        dtx = lx+0.5*lw + 2.0 - tx
+    else:
+        th = ax.text(x, 0.5*(y0+y1), ls, clip_on=False, rotation=90.0,
+                     ha=&#39;right&#39;, va=&#39;center&#39;, **kwargs)
+        # get x coordinate of text bottom in figure pixel coordinates:
+        tx = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[1,0]
+        dtx = lx-0.5*lw - 1.0 - tx
+    th.set_position((x+dxu*dtx, 0.5*(y0+y1)))
+    return x, y0, y1
+
+
+def arrowed_spines(ax, ms=10):
+        &#34;&#34;&#34; Spine with arrow on the y-axis of a plot.
+
+    Parameters
+    ----------
+    ax : matplotlib figure axis
+        Axis on which the arrow should be plot. 
+        &#34;&#34;&#34;
+        xmin, xmax = ax.get_xlim() 
+        ymin, ymax = ax.get_ylim()
+        ax.scatter([xmin], [ymax], s=ms, marker=&#39;^&#39;, clip_on=False, color=&#39;k&#39;)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+    
+
+def loghist(ax, x, bmin, bmax, n, c, orientation=&#39;vertical&#39;, label=&#39;&#39;):
+        &#34;&#34;&#34; Plot histogram with logarithmic scale.
+
+    Parameters
+    ----------
+    ax : matplotlib axis
+        Axis to plot the histogram on.
+    x : numpy array
+        Input data for histogram.
+    bmin : float
+        Minimum value for the histogram bins.
+    bmax : float
+        Maximum value for the histogram bins. 
+    n : int
+        Number of bins.
+    c : matplotlib color
+        Color of histogram.
+    orientation : string (optional)
+        Histogram orientation.
+        Defaults to &#39;vertical&#39;.
+    label : string (optional)
+        Label for x. 
+        Defaults to &#39;&#39; (no label).
+
+    Returns
+    -------
+    n : array
+        The values of the histogram bins.
+    bins : array
+        The edges of the bins.
+    patches : BarContainer
+        Container of individual artists used to create the histogram.
+        &#34;&#34;&#34;
+        return ax.hist(x, bins=np.exp(np.linspace(np.log(bmin), np.log(bmax), n)),
+                   color=c, orientation=orientation, label=label)
+
+
+def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
+    &#34;&#34;&#34;Quick way to view the output of extract_pulsefish in a single plot.
+
+    Parameters
+    ----------
+    data: array
+        Recording data.
+    eod_p_times: array of ints
+        EOD peak indices.
+    eod_tr_times: array of ints
+        EOD trough indices.
+    fs: float
+        Samplerate.
+    mean_eods: list of numpy arrays
+        Mean EODs of each pulsefish found in the recording.
+    &#34;&#34;&#34;
+    fig = plt.figure(figsize=(10, 5))
+
+    if len(eod_p_times) &gt; 0:
+        gs = gridspec.GridSpec(2, len(eod_p_times))
+        ax = fig.add_subplot(gs[0,:])
+        ax.plot(np.arange(len(data))/fs, data, c=&#39;k&#39;, alpha=0.3)
+        
+        for i, (pt, tt) in enumerate(zip(eod_p_times, eod_tr_times)):
+            ax.plot(pt, data[(pt*fs).astype(&#39;int&#39;)], &#39;o&#39;, label=i+1, ms=10, c=cmap(i))
+            ax.plot(tt, data[(tt*fs).astype(&#39;int&#39;)], &#39;o&#39;, label=i+1, ms=10, c=cmap(i))
+            
+        ax.set_xlabel(&#39;time [s]&#39;)
+        ax.set_ylabel(&#39;amplitude [V]&#39;)
+
+        for i, m in enumerate(mean_eods):
+            ax = fig.add_subplot(gs[1,i])
+            ax.plot(1000*m[0], 1000*m[1], c=&#39;k&#39;)
+
+            ax.fill_between(1000*m[0], 1000*(m[1]-m[2]), 1000*(m[1]+m[2]), color=cmap(i))
+            ax.set_xlabel(&#39;time [ms]&#39;)
+            ax.set_ylabel(&#39;amplitude [mV]&#39;) 
+    else:
+        plt.plot(np.arange(len(data))/fs, data, c=&#39;k&#39;, alpha=0.3)
+
+    plt.tight_layout()
+
+
+def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_masks):
+        &#34;&#34;&#34;Plot all clustering steps.
+    
+        Plot clustering steps on width, height and shape. Then plot the remaining EODs after 
+        the EOD assessment step and the EODs after the merge step.
+
+        Parameters
+        ----------
+        samplerate : float
+                Samplerate of EOD snippets.
+        eod_widths : list of three 1D numpy arrays
+                The first list entry gives the unique labels of all width clusters as a list of ints.
+                The second list entry gives the width values for each EOD in samples as a
+        1D numpy array of ints.
+                The third list entry gives the width labels for each EOD as a 1D numpy array of ints.
+        eod_hights : nested lists (2 layers) of three 1D numpy arrays
+                The first list entry gives the unique labels of all height clusters as a list of ints
+        for each width cluster.
+                The second list entry gives the height values for each EOD as a 1D numpy array
+        of floats for each width cluster.
+                The third list entry gives the height labels for each EOD as a 1D numpy array
+        of ints for each width cluster.
+        eod_shapes : nested lists (3 layers) of three 1D numpy arrays
+                The first list entry gives the raw EOD snippets as a 2D numpy array for each
+        height cluster in a width cluster.
+                The second list entry gives the snippet PCA values for each EOD as a 2D numpy array
+        of floats for each height cluster in a width cluster.
+                The third list entry gives the shape labels for each EOD as a 1D numpy array of ints
+        for each height cluster in a width cluster.
+        disc_masks : Nested lists (two layers) of 1D numpy arrays
+                The masks of EODs that are discarded by the discarding step of the algorithm.
+        The masks are 1D boolean arrays where 
+                instances that are set to True are discarded by the algorithm. Discarding masks
+        are saved in nested lists that represent the width and height clusters.
+        merge_masks : Nested lists (two layers) of 2D numpy arrays
+                The masks of EODs that are discarded by the merging step of the algorithm.
+        The masks are 2D boolean arrays where 
+                for each sample point `i` either `merge_mask[i,0]` or `merge_mask[i,1]` is set to True.
+        Here, merge_mask[:,0] represents the 
+                peak-centered clusters and `merge_mask[:,1]` represents the trough-centered clusters.
+        Merge masks are saved in nested lists 
+                that represent the width and height clusters.
+        &#34;&#34;&#34;
+        # create figure + transparant figure.
+        fig = plt.figure(figsize=(12, 7))
+        transFigure = fig.transFigure.inverted()
+
+        # set up the figure layout
+        outer = gridspec.GridSpec(1, 5, width_ratios=[1, 1, 2, 1, 2], left=0.05, right=0.95)
+
+        # set titles for each clustering step
+        titles = [&#39;1. Widths&#39;, &#39;2. Heights&#39;, &#39;3. Shape&#39;, &#39;4. Pulse EODs&#39;, &#39;5. Merge&#39;]
+        for i, title in enumerate(titles):
+                title_ax = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec = outer[i])
+                ax = fig.add_subplot(title_ax[0])
+                ax.text(0, 110, title, ha=&#39;center&#39;, va=&#39;bottom&#39;, clip_on=False)
+                ax.set_xlim(-100, 100)
+                ax.set_ylim(-100, 100)
+                ax.axis(&#39;off&#39;)
+
+        # compute sizes for each axis
+        w_size = 1
+        h_size = len(eod_hights[1])
+
+        shape_size = np.sum([len(sl) for sl in eod_shapes[0]])
+        
+        # count required axes sized for the last two plot columns.
+        disc_size = 0
+        merge_size= 0
+        for shapelabel, dmasks, mmasks in zip(eod_shapes[2], disc_masks, merge_masks):
+                for sl, dm, mm in zip(shapelabel, dmasks, mmasks):
+                        uld1 = np.unique((sl[0]+1)*np.invert(dm[0]))
+                        uld2 = np.unique((sl[1]+1)*np.invert(dm[1]))
+                        disc_size = disc_size+len(uld1[uld1&gt;0])+len(uld2[uld2&gt;0])
+                        
+                        uld1 = np.unique((sl[0]+1)*mm[0])
+                        uld2 = np.unique((sl[1]+1)*mm[1])
+                        merge_size = merge_size+len(uld1[uld1&gt;0])+len(uld2[uld2&gt;0])
+
+        # set counters to keep track of the plot axes
+        disc_block = 0
+        merge_block = 0
+        shape_count = 0
+
+        # create all axes
+        width_hist_ax = gridspec.GridSpecFromSubplotSpec(w_size, 1, subplot_spec = outer[0])
+        hight_hist_ax = gridspec.GridSpecFromSubplotSpec(h_size, 1, subplot_spec = outer[1])
+        shape_ax = gridspec.GridSpecFromSubplotSpec(shape_size, 1,  subplot_spec = outer[2])
+        shape_windows = [gridspec.GridSpecFromSubplotSpec(2, 2, hspace=0.0, wspace=0.0,
+                                                      subplot_spec=shape_ax[i])
+                        for i in range(shape_size)]
+        
+        EOD_delete_ax = gridspec.GridSpecFromSubplotSpec(disc_size, 1, subplot_spec=outer[3])
+        EOD_merge_ax = gridspec.GridSpecFromSubplotSpec(merge_size, 1, subplot_spec=outer[4])
+
+    # plot width labels histogram
+        ax1 = fig.add_subplot(width_hist_ax[0])
+        # set axes features.
+        ax1.set_xscale(&#39;log&#39;)
+        ax1.spines[&#39;top&#39;].set_visible(False)
+        ax1.spines[&#39;right&#39;].set_visible(False)
+        ax1.spines[&#39;bottom&#39;].set_visible(False)
+        ax1.axes.xaxis.set_visible(False)
+        ax1.set_yticklabels([])
+
+        # indices for plot colors (dark to light)
+        colidxsw = -np.linspace(-1.25, -0.5, h_size)
+
+        for i, (wl, colw, uhl, eod_h, eod_h_labs, w_snip, w_feat, w_lab, w_dm, w_mm) in enumerate(zip(eod_widths[0], colidxsw, eod_hights[0], eod_hights[1], eod_hights[2], eod_shapes[0], eod_shapes[1], eod_shapes[2], disc_masks, merge_masks)):
+
+                # plot width hist
+                hw, _, _ = ax1.hist(eod_widths[1][eod_widths[2]==wl],
+                            bins=np.linspace(np.min(eod_widths[1]), np.max(eod_widths[1]), 100),
+                            color=lighter(c_o, colw), orientation=&#39;horizontal&#39;)
+                
+                # set arrow when the last hist is plot so the size of the axes are known.
+                if i == h_size-1:
+                        arrowed_spines(ax1, ms=20)
+
+                # determine total size of the hight historgams now.
+                my, b = np.histogram(eod_h, bins=np.exp(np.linspace(np.min(np.log(eod_h)),
+                                                            np.max(np.log(eod_h)), 100)))
+                maxy = np.max(my)
+
+                # set axes features for hight hist.
+                ax2 = fig.add_subplot(hight_hist_ax[h_size-i-1])
+                ax2.set_xscale(&#39;log&#39;)
+                ax2.spines[&#39;top&#39;].set_visible(False)
+                ax2.spines[&#39;right&#39;].set_visible(False)
+                ax2.spines[&#39;bottom&#39;].set_visible(False)
+                ax2.set_xlim(0.9, maxy)
+                ax2.axes.xaxis.set_visible(False)
+                ax2.set_yscale(&#39;log&#39;)
+                ax2.yaxis.set_major_formatter(ticker.NullFormatter())
+                ax2.yaxis.set_minor_formatter(ticker.NullFormatter())
+
+                # define colors for plots
+                colidxsh = -np.linspace(-1.25, -0.5, len(uhl))
+
+                for n, (hl, hcol, snippets, features, labels, dmasks, mmasks) in enumerate(zip(uhl, colidxsh, w_snip, w_feat, w_lab, w_dm, w_mm)):
+
+                        hh, _, _ = loghist(ax2, eod_h[eod_h_labs==hl], np.min(eod_h), np.max(eod_h), 100,
+                               lighter(c_g, hcol), orientation=&#39;horizontal&#39;)
+
+                        # set arrow spines only on last plot
+                        if n == len(uhl)-1:
+                                arrowed_spines(ax2, ms=10)
+
+                        # plot line from the width histogram to the height histogram.
+                        if n == 0:
+                                coord1 = transFigure.transform(ax1.transData.transform([np.median(hw[hw!=0]),
+                                                                        np.median(eod_widths[1][eod_widths[2]==wl])]))
+                                coord2 = transFigure.transform(ax2.transData.transform([0.9, np.mean(eod_h)]))
+                                line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                              transform=fig.transFigure, color=&#39;grey&#39;, linewidth=0.5)
+                                fig.lines.append(line)
+
+                        # compute sizes of the eod_discarding and merge steps
+                        s1 = np.unique((labels[0]+1)*(~dmasks[0]))
+                        s2 = np.unique((labels[1]+1)*(~dmasks[1]))
+                        disc_block = disc_block + len(s1[s1&gt;0]) + len(s2[s2&gt;0])
+                        
+                        s1 = np.unique((labels[0]+1)*(mmasks[0]))
+                        s2 = np.unique((labels[1]+1)*(mmasks[1]))
+                        merge_block = merge_block + len(s1[s1&gt;0]) + len(s2[s2&gt;0])
+
+                        axs = []
+                        disc_count = 0
+                        merge_count = 0
+
+                        # now plot the clusters for peak and trough centerings
+                        for pt, cmap_pt in zip([0, 1], cmap_pts):
+                                
+                                ax3 = fig.add_subplot(shape_windows[shape_size-1-shape_count][pt,0])
+                                ax4 = fig.add_subplot(shape_windows[shape_size-1-shape_count][pt,1])
+
+                                # remove axes
+                                ax3.axes.xaxis.set_visible(False)
+                                ax4.axes.yaxis.set_visible(False)
+                                ax3.axes.yaxis.set_visible(False)
+                                ax4.axes.xaxis.set_visible(False)
+
+                                # set color indices
+                                colidxss = -np.linspace(-1.25, -0.5, len(np.unique(labels[pt][labels[pt]&gt;=0])))
+                                j=0
+                                for c in np.unique(labels[pt]):
+                                        
+                                        if c&lt;0:
+                                                # plot noise features + snippets
+                                                ax3.plot(features[pt][labels[pt]==c,0], features[pt][labels[pt]==c,1],
+                                 &#39;.&#39;, color=&#39;lightgrey&#39;, label=&#39;-1&#39;, rasterized=True)
+                                                ax4.plot(snippets[pt][labels[pt]==c].T, linewidth=0.1,
+                                 color=&#39;lightgrey&#39;, label=&#39;-1&#39;, rasterized=True)
+                                        else:
+                                                # plot cluster features and snippets
+                                                ax3.plot(features[pt][labels[pt]==c,0], features[pt][labels[pt]==c,1],
+                                 &#39;.&#39;, color=lighter(cmap_pt, colidxss[j]), label=c,
+                                 rasterized=True)
+                                                ax4.plot(snippets[pt][labels[pt]==c].T, linewidth=0.1,
+                                 color=lighter(cmap_pt, colidxss[j]), label=c, rasterized=True)
+                                                
+                                                # check if the current cluster is an EOD, if yes, plot it.
+                                                if np.sum(dmasks[pt][labels[pt]==c]) == 0:
+
+                                                        ax = fig.add_subplot(EOD_delete_ax[disc_size-disc_block+disc_count])
+                                                        ax.axis(&#39;off&#39;)
+
+                                                        # plot mean EOD snippet
+                                                        ax.plot(np.mean(snippets[pt][labels[pt]==c], axis=0),
+                                    color=lighter(cmap_pt, colidxss[j]))
+                                                        disc_count = disc_count + 1
+
+                                                        # match colors and draw line..                                                  
+                                                        coord1 = transFigure.transform(ax4.transData.transform([ax4.get_xlim()[1],
+                                                                                    ax4.get_ylim()[0] + 0.5*(ax4.get_ylim()[1]-ax4.get_ylim()[0])]))
+                                                        coord2 = transFigure.transform(ax.transData.transform([ax.get_xlim()[0],ax.get_ylim()[0] + 0.5*(ax.get_ylim()[1]-ax.get_ylim()[0])]))
+                                                        line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                          transform=fig.transFigure, color=&#39;grey&#39;,
+                                          linewidth=0.5)
+                                                        fig.lines.append(line)  
+                                                        axs.append(ax)
+
+                                                        # check if the current EOD survives the merge step
+                                                        # if so, plot it.
+                                                        if np.sum(mmasks[pt, labels[pt]==c])&gt;0:
+
+                                                                ax = fig.add_subplot(EOD_merge_ax[merge_size-merge_block+merge_count])
+                                                                ax.axis(&#39;off&#39;)
+                                                                
+                                                                ax.plot(np.mean(snippets[pt][labels[pt]==c], axis=0),
+                                        color=lighter(cmap_pt, colidxss[j]))
+                                                                merge_count = merge_count + 1
+
+                                                j=j+1
+
+                                if pt==0:
+                                        # draw line from hight cluster to EOD shape clusters.
+                                        coord1 = transFigure.transform(ax2.transData.transform([np.median(hh[hh!=0]),
+                                                                            np.median(eod_h[eod_h_labs==hl])]))
+                                        coord2 = transFigure.transform(ax3.transData.transform([ax3.get_xlim()[0],
+                                                                            ax3.get_ylim()[0]]))
+                                        line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                  transform=fig.transFigure, color=&#39;grey&#39;, linewidth=0.5)
+                                        fig.lines.append(line)
+
+                        shape_count = shape_count + 1
+                        
+                        if len(axs)&gt;0:
+                                # plot lines that indicate the merged clusters.
+                                coord1 = transFigure.transform(axs[0].transData.transform([axs[0].get_xlim()[1]+0.1*(axs[0].get_xlim()[1]-axs[0].get_xlim()[0]),
+                                                                           axs[0].get_ylim()[1]-0.25*(axs[0].get_ylim()[1]-axs[0].get_ylim()[0])]))
+                                coord2 = transFigure.transform(axs[-1].transData.transform([axs[-1].get_xlim()[1]+0.1*(axs[-1].get_xlim()[1]-axs[-1].get_xlim()[0]),
+                                                                            axs[-1].get_ylim()[0]+0.25*(axs[-1].get_ylim()[1]-axs[-1].get_ylim()[0])]))
+                                line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                              transform=fig.transFigure, color=&#39;grey&#39;, linewidth=1)
+                                fig.lines.append(line)
+
+
+def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
+        &#34;&#34;&#34;Plot a BGM clustering step either on EOD width or height.
+
+        Parameters
+        ----------
+        x : 1D numpy array of floats
+                BGM input values.
+        means : list of floats
+                BGM Gaussian means
+        variances : list of floats
+                BGM Gaussian variances.
+        weights : list of floats
+                BGM Gaussian weights.
+        use_log : boolean
+                True if the z-scored logarithm of the data was used as BGM input.
+        labels : 1D numpy array of ints
+                Labels defined by BGM model (before merging based on merge factor).
+        labels_am : 1D numpy array of ints
+                Labels defined by BGM model (after merging based on merge factor).
+        xlab : string
+                Label for plot (defines the units of the BGM data).
+        &#34;&#34;&#34;
+        if &#39;width&#39; in xlab:
+                ccol = c_o
+        elif &#39;height&#39; in xlab:
+                ccol = c_g
+        else:
+                ccol = &#39;b&#39;
+
+        # get the transform that was used as BGM input
+        if use_log:
+                x_transform = stats.zscore(np.log(x))
+                xplot = np.exp(np.linspace(np.log(np.min(x)), np.log(np.max(x)), 1000))
+        else:
+                x_transform = stats.zscore(x)
+                xplot = np.linspace(np.min(x), np.max(x), 1000)
+
+        # compute the x values and gaussians
+        x2 = np.linspace(np.min(x_transform), np.max(x_transform), 1000)
+        gaussians = []
+        gmax = 0
+        for i, (w, m, std) in enumerate(zip(weights, means, variances)):
+                gaus = np.sqrt(w*stats.norm.pdf(x2, m, np.sqrt(std)))
+                gaussians.append(gaus)
+                gmax = max(np.max(gaus), gmax)
+        
+        # compute classes defined by gaussian intersections
+        classes = np.argmax(np.vstack(gaussians), axis=0)
+        
+        # find the minimum of any gaussian that is within its class
+        gmin = 100
+        for i, c in enumerate(np.unique(classes)):
+                gmin=min(gmin, np.min(gaussians[c][classes==c]))
+
+        # set up the figure
+        fig, ax1 = plt.subplots(figsize=(8, 4.8))
+        fig_ysize = 4
+        ax2 = ax1.twinx()
+        ax1.spines[&#39;top&#39;].set_visible(False)
+        ax2.spines[&#39;top&#39;].set_visible(False)
+        ax1.set_xlabel(&#39;x [a.u.]&#39;)
+        ax1.set_ylabel(&#39;#&#39;)
+        ax2.set_ylabel(&#39;Likelihood&#39;)
+        ax2.set_yscale(&#39;log&#39;)
+        ax1.set_yscale(&#39;log&#39;)
+        if use_log:
+                ax1.set_xscale(&#39;log&#39;)
+        ax1.set_xlabel(xlab)
+
+        # define colors for plotting gaussians
+        colidxs = -np.linspace(-1.25, -0.5, len(np.unique(classes)))
+
+        # plot the gaussians
+        for i, c in enumerate(np.unique(classes)):
+                ax2.plot(xplot, gaussians[c], c=lighter(c_grey, colidxs[i]), linewidth=2,
+                 label=r&#39;$N(\mu_%i, \sigma_%i)$&#39;%(c, c))
+        
+        # plot intersection lines
+        ax2.vlines(xplot[1:][np.diff(classes)!=0], 0, gmax/gmin, color=&#39;k&#39;, linewidth=2,
+               linestyle=&#39;--&#39;)
+        ax2.set_ylim(gmin, np.max(np.vstack(gaussians))*1.1)
+
+        # plot data distributions and classes
+        colidxs = -np.linspace(-1.25, -0.5, len(np.unique(labels)))
+        for i, l in enumerate(np.unique(labels)):
+                if use_log:
+                        h, binn, _ = loghist(ax1, x[labels==l], np.min(x), np.max(x), 100,
+                               lighter(ccol, colidxs[i]), label=r&#39;$x_%i$&#39;%l)
+                else:
+                        h, binn, _ = ax1.hist(x[labels==l], bins=np.linspace(np.min(x), np.max(x), 100),
+                                  color=lighter(ccol, colidxs[i]), label=r&#39;$x_%i$&#39;%l)
+
+        # annotate merged clusters
+        for l in np.unique(labels_am):
+                maps = np.unique(labels[labels_am==l])
+                if len(maps) &gt; 1:
+                        x1 = x[labels==maps[0]]
+                        x2 = x[labels==maps[1]]
+
+                        print(np.median(x1))
+                        print(np.median(x2))
+                        print(gmax)
+                        ax2.plot([np.median(x1), np.median(x2)], [1.2*gmax, 1.2*gmax], c=&#39;k&#39;, clip_on=False)
+                        ax2.plot([np.median(x1), np.median(x1)], [1.1*gmax, 1.2*gmax], c=&#39;k&#39;, clip_on=False)
+                        ax2.plot([np.median(x2), np.median(x2)], [1.1*gmax, 1.2*gmax], c=&#39;k&#39;, clip_on=False)
+                        ax2.annotate(r&#39;$\frac{|{\tilde{x}_%i-\tilde{x}_%i}|}{max(\tilde{x}_%i, \tilde{x}_%i)} &lt; \epsilon$&#39; % (maps[0], maps[1], maps[0], maps[1]), [np.median(x1)*1.1, gmax*1.2],  xytext=(10,  10),  textcoords=&#39;offset points&#39;, fontsize=12, annotation_clip=False, ha=&#39;center&#39;)
+
+        # add legends and plot.
+        ax2.legend(loc=&#39;lower left&#39;, frameon=False, bbox_to_anchor=(-0.05, 1.3),
+               ncol=len(np.unique(classes)))
+        ax1.legend(loc=&#39;upper left&#39;, frameon=False, bbox_to_anchor=(-0.05, 1.3),
+               ncol=len(np.unique(labels)))
+        plt.tight_layout()
+
+
+def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels, dt, pt):
+        &#34;&#34;&#34;Plot clustering step on EOD shape.
+                
+        Parameters
+        ----------
+        raw_snippets : 2D numpy array
+                Raw EOD snippets.
+        normalized_snippets : 2D numpy array
+                Normalized EOD snippets.
+        features : 2D numpy array
+                PCA values for each normalized EOD snippet.
+        labels : 1D numpy array of ints
+                Cluster labels.
+        dt : float
+                Sample interval of snippets.
+        pt : int
+                Set to 0 for peak-centered EODs and set to 1 for trough-centered EODs.
+        &#34;&#34;&#34;
+        ccol = cmap_pts[pt]
+
+        # set up the figure layout
+        fig = plt.figure(figsize=(((2+0.2)*4.8), 4.8))
+        outer = gridspec.GridSpec(1, 2, wspace=0.2, hspace=0)
+
+        x = np.arange(-dt*1000*raw_snippets.shape[1]/2, dt*1000*raw_snippets.shape[1]/2, dt*1000)
+
+        snip_ax = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = outer[0], hspace=0.35)
+        pc_ax = gridspec.GridSpecFromSubplotSpec(features.shape[1]-1, features.shape[1]-1,
+                                             subplot_spec = outer[1], hspace=0, wspace=0)
+        
+        # 3 plots: raw snippets, normalized, pcs.
+        ax_raw_snip = fig.add_subplot(snip_ax[0])
+        ax_normalized_snip = fig.add_subplot(snip_ax[1])
+
+        colidxs = -np.linspace(-1.25, -0.5, len(np.unique(labels[labels&gt;=0])))
+        j=0
+
+        for c in np.unique(labels):
+                if c&lt;0:
+                        color=&#39;lightgrey&#39;
+                else:
+                        color = lighter(ccol, colidxs[j])
+                        j=j+1
+
+                ax_raw_snip.plot(x, raw_snippets[labels==c].T, color=color, label=&#39;-1&#39;,
+                         rasterized=True, alpha=0.25)
+                ax_normalized_snip.plot(x, normalized_snippets[labels==c].T, color=color, alpha=0.25)
+                ax_raw_snip.spines[&#39;top&#39;].set_visible(False)
+                ax_raw_snip.spines[&#39;right&#39;].set_visible(False)
+                ax_raw_snip.get_xaxis().set_ticklabels([])
+                ax_raw_snip.set_title(&#39;Raw snippets&#39;)
+                ax_raw_snip.set_ylabel(&#39;Amplitude [a.u.]&#39;)
+                ax_normalized_snip.spines[&#39;top&#39;].set_visible(False)
+                ax_normalized_snip.spines[&#39;right&#39;].set_visible(False)
+                ax_normalized_snip.set_title(&#39;Normalized snippets&#39;)
+                ax_normalized_snip.set_ylabel(&#39;Amplitude [a.u.]&#39;)
+                ax_normalized_snip.set_xlabel(&#39;Time [ms]&#39;)
+
+                ax_raw_snip.axis(&#39;off&#39;)
+                ax_normalized_snip.axis(&#39;off&#39;)
+
+                ax_overlay = fig.add_subplot(pc_ax[:,:])
+                ax_overlay.set_title(&#39;Features&#39;)
+                ax_overlay.axis(&#39;off&#39;)
+
+                for n in range(features.shape[1]):
+                        for m in range(n):
+                                ax = fig.add_subplot(pc_ax[n-1,m])
+                                ax.scatter(features[labels==c,m], features[labels==c,n], marker=&#39;.&#39;,
+                           color=color, alpha=0.25)                             
+                                ax.set_xlim(np.min(features), np.max(features))
+                                ax.set_ylim(np.min(features), np.max(features))
+                                ax.get_xaxis().set_ticklabels([])
+                                ax.get_yaxis().set_ticklabels([])
+                                ax.get_xaxis().set_ticks([])
+                                ax.get_yaxis().set_ticks([])
+
+                                if m==0:
+                                        ax.set_ylabel(&#39;PC %i&#39;%(n+1))
+
+                                if n==features.shape[1]-1:
+                                        ax.set_xlabel(&#39;PC %i&#39;%(m+1))
+
+                ax = fig.add_subplot(pc_ax[0,features.shape[1]-2])
+                ax.set_xlim(np.min(features), np.max(features))
+                ax.set_ylim(np.min(features), np.max(features))
+
+                size = max(1, int(np.ceil(-np.log10(np.max(features)-np.min(features)))))
+                wbar = np.floor((np.max(features)-np.min(features))*10**size)/10**size
+
+                # should be smaller than the actual thing! so like x% of it?
+                xscalebar(ax, 0, 0, wbar, wformat=&#39;%%.%if&#39;%size)
+                yscalebar(ax, 0, 0, wbar, hformat=&#39;%%.%if&#39;%size)
+                ax.axis(&#39;off&#39;)
+
+def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
+        &#34;&#34;&#34;Plot moving fish detection step.
+
+        Parameters
+        ----------
+        ws : list of floats
+                Median width for each width cluster that the moving fish algorithm is computed on
+        (in seconds).
+        dts : list of floats
+                Sliding window size (in seconds) for each width cluster.
+        clusterss : list of 1D numpy int arrays
+                Cluster labels for each EOD cluster in a width cluster.
+        ts : list of 1D numpy float arrays
+                EOD emission times for each EOD in a width cluster.
+        fishcounts : list of lists
+                Sliding window timepoints and fishcounts for each width cluster.
+        T : float
+                Lenght of analyzed recording in seconds.
+        ignore_stepss : list of 1D int arrays
+                Mask for fishcounts that were ignored (ignored if True) in the moving_fish analysis.
+        &#34;&#34;&#34;
+        fig = plt.figure()
+
+        # create gridspec
+        outer = gridspec.GridSpec(len(ws), 1)
+
+        for i, (w, dt, clusters, t, fishcount, ignore_steps) in enumerate(zip(ws, dts, clusterss, ts, fishcounts, ignore_stepss)):
+                
+                gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = outer[i])
+                
+                # axis for clusters
+                ax1 = fig.add_subplot(gs[0])
+                # axis for fishcount
+                ax2 = fig.add_subplot(gs[1])
+
+                # plot clusters as eventplot
+                for cnum, c in enumerate(np.unique(clusters[clusters&gt;=0])):
+                        ax1.eventplot(t[clusters==c], lineoffsets=cnum, linelengths=0.5, color=cmap(i))
+                        cnum = cnum + 1
+
+                # Plot the sliding window
+                rect=Rectangle((0, -0.5), dt, cnum, linewidth=1, linestyle=&#39;--&#39;, edgecolor=&#39;k&#39;,
+                       facecolor=&#39;none&#39;, clip_on=False)
+                ax1.add_patch(rect)
+                ax1.arrow(dt+0.1, -0.5,  0.5, 0, head_width=0.1, head_length=0.1, facecolor=&#39;k&#39;,
+                  edgecolor=&#39;k&#39;)
+                
+                # plot parameters
+                ax1.set_title(r&#39;$\tilde{w}_%i = %.3f ms$&#39;%(i, 1000*w))
+                ax1.set_ylabel(&#39;cluster #&#39;)
+                ax1.set_yticks(range(0, cnum))
+                ax1.set_xlabel(&#39;time&#39;)
+                ax1.set_xlim(0, T)
+                ax1.axes.xaxis.set_visible(False)
+                ax1.spines[&#39;bottom&#39;].set_visible(False)
+                ax1.spines[&#39;top&#39;].set_visible(False)
+                ax1.spines[&#39;right&#39;].set_visible(False)
+                ax1.spines[&#39;left&#39;].set_visible(False)
+
+                # plot for fishcount
+                x = fishcount[0]
+                y = fishcount[1]
+
+                ax2 = fig.add_subplot(gs[1])
+                ax2.spines[&#39;top&#39;].set_visible(False)
+                ax2.spines[&#39;right&#39;].set_visible(False)
+                ax2.spines[&#39;bottom&#39;].set_visible(False)
+                ax2.axes.xaxis.set_visible(False)
+
+                yplot = np.copy(y)
+                ax2.plot(x+dt/2, yplot, linestyle=&#39;-&#39;, marker=&#39;.&#39;, c=cmap(i), alpha=0.25)
+                yplot[ignore_steps.astype(bool)] = np.NaN
+                ax2.plot(x+dt/2, yplot, linestyle=&#39;-&#39;, marker=&#39;.&#39;, c=cmap(i))
+                ax2.set_ylabel(&#39;Fish count&#39;)
+                ax2.set_yticks(range(int(np.min(y)), 1+int(np.max(y))))
+                ax2.set_xlim(0, T)
+
+                if i &lt; len(ws)-1:
+                    ax2.axes.xaxis.set_visible(False)
+                else:
+                        ax2.axes.xaxis.set_visible(False)
+                        xscalebar(ax2, 1, 0, 1, wunit=&#39;s&#39;, ha=&#39;right&#39;)
+
+                con = ConnectionPatch([0, -0.5],  [dt/2, y[0]], &#34;data&#34;, &#34;data&#34;,
+                    axesA=ax1, axesB=ax2, color=&#39;k&#39;)
+                ax2.add_artist(con)
+                con = ConnectionPatch([dt, -0.5], [dt/2, y[0]], &#34;data&#34;, &#34;data&#34;,
+                    axesA=ax1, axesB=ax2, color=&#39;k&#39;)
+                ax2.add_artist(con)
+
+                plt.xlim(0, T)</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.pulseplots.arrowed_spines"><code class="name flex">
+<span>def <span class="ident">arrowed_spines</span></span>(<span>ax, ms=10)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Spine with arrow on the y-axis of a plot.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib figure axis</code></dt>
+<dd>Axis on which the arrow should be plot.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def arrowed_spines(ax, ms=10):
+        &#34;&#34;&#34; Spine with arrow on the y-axis of a plot.
+
+    Parameters
+    ----------
+    ax : matplotlib figure axis
+        Axis on which the arrow should be plot. 
+        &#34;&#34;&#34;
+        xmin, xmax = ax.get_xlim() 
+        ymin, ymax = ax.get_ylim()
+        ax.scatter([xmin], [ymax], s=ms, marker=&#39;^&#39;, clip_on=False, color=&#39;k&#39;)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.darker"><code class="name flex">
+<span>def <span class="ident">darker</span></span>(<span>color, saturation)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Make a color darker.</p>
+<p>From bendalab/plottools package.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>color</code></strong> :&ensp;<code>dict</code> or <code>matplotlib color spec</code></dt>
+<dd>A matplotlib color (hex string, name color string, rgb tuple)
+or a dictionary with an 'color' or 'facecolor' key.</dd>
+<dt><strong><code>saturation</code></strong> :&ensp;<code>float</code></dt>
+<dd>The smaller the saturation, the darker the returned color.
+A saturation of 0 returns black.
+A saturation of 1 leaves the color untouched.
+A saturation of 2 returns white.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>color</code></strong> :&ensp;<code>string</code> or <code>dictionary</code></dt>
+<dd>The darker color as a hexadecimal RGB string (e.g. '#rrggbb').
+If <code>color</code> is a dictionary, a copy of the dictionary is returned
+with the value of 'color' or 'facecolor' set to the darker color.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def darker(color, saturation):
+    &#34;&#34;&#34; Make a color darker.
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    color: dict or matplotlib color spec
+        A matplotlib color (hex string, name color string, rgb tuple)
+        or a dictionary with an &#39;color&#39; or &#39;facecolor&#39; key.
+    saturation: float
+        The smaller the saturation, the darker the returned color.
+        A saturation of 0 returns black.
+        A saturation of 1 leaves the color untouched.
+        A saturation of 2 returns white.
+
+    Returns
+    -------
+    color: string or dictionary
+        The darker color as a hexadecimal RGB string (e.g. &#39;#rrggbb&#39;).
+        If `color` is a dictionary, a copy of the dictionary is returned
+        with the value of &#39;color&#39; or &#39;facecolor&#39; set to the darker color.
+    &#34;&#34;&#34;
+    try:
+        c = color[&#39;color&#39;]
+        cd = dict(**color)
+        cd[&#39;color&#39;] = darker(c, saturation)
+        return cd
+    except (KeyError, TypeError):
+        try:
+            c = color[&#39;facecolor&#39;]
+            cd = dict(**color)
+            cd[&#39;facecolor&#39;] = darker(c, saturation)
+            return cd
+        except (KeyError, TypeError):
+            if saturation &gt; 2:
+                sauration = 2
+            if saturation &gt; 1:
+                return lighter(color, 2.0-saturation)
+            if saturation &lt; 0:
+                saturation = 0
+            r, g, b = cc.to_rgb(color)
+            rd = r*saturation
+            gd = g*saturation
+            bd = b*saturation
+            return to_hex((rd, gd, bd)).upper()</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.lighter"><code class="name flex">
+<span>def <span class="ident">lighter</span></span>(<span>color, lightness)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Make a color lighter</p>
+<p>From bendalab/plottools package.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>color</code></strong> :&ensp;<code>dict</code> or <code>matplotlib color spec</code></dt>
+<dd>A matplotlib color (hex string, name color string, rgb tuple)
+or a dictionary with an 'color' or 'facecolor' key.</dd>
+<dt><strong><code>lightness</code></strong> :&ensp;<code>float</code></dt>
+<dd>The smaller the lightness, the lighter the returned color.
+A lightness of 0 returns white.
+A lightness of 1 leaves the color untouched.
+A lightness of 2 returns black.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>color</code></strong> :&ensp;<code>string</code> or <code>dict</code></dt>
+<dd>The lighter color as a hexadecimal RGB string (e.g. '#rrggbb').
+If <code>color</code> is a dictionary, a copy of the dictionary is returned
+with the value of 'color' or 'facecolor' set to the lighter color.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def lighter(color, lightness):
+    &#34;&#34;&#34;Make a color lighter
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    color: dict or matplotlib color spec
+        A matplotlib color (hex string, name color string, rgb tuple)
+        or a dictionary with an &#39;color&#39; or &#39;facecolor&#39; key.
+    lightness: float
+        The smaller the lightness, the lighter the returned color.
+        A lightness of 0 returns white.
+        A lightness of 1 leaves the color untouched.
+        A lightness of 2 returns black.
+
+    Returns
+    -------
+    color: string or dict
+        The lighter color as a hexadecimal RGB string (e.g. &#39;#rrggbb&#39;).
+        If `color` is a dictionary, a copy of the dictionary is returned
+        with the value of &#39;color&#39; or &#39;facecolor&#39; set to the lighter color.
+    &#34;&#34;&#34;
+    try:
+        c = color[&#39;color&#39;]
+        cd = dict(**color)
+        cd[&#39;color&#39;] = lighter(c, lightness)
+        return cd
+    except (KeyError, TypeError):
+        try:
+            c = color[&#39;facecolor&#39;]
+            cd = dict(**color)
+            cd[&#39;facecolor&#39;] = lighter(c, lightness)
+            return cd
+        except (KeyError, TypeError):
+            if lightness &gt; 2:
+                lightness = 2
+            if lightness &gt; 1:
+                return darker(color, 2.0-lightness)
+            if lightness &lt; 0:
+                lightness = 0
+            r, g, b = cc.to_rgb(color)
+            rl = r + (1.0-lightness)*(1.0 - r)
+            gl = g + (1.0-lightness)*(1.0 - g)
+            bl = b + (1.0-lightness)*(1.0 - b)
+            return to_hex((rl, gl, bl)).upper()</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.loghist"><code class="name flex">
+<span>def <span class="ident">loghist</span></span>(<span>ax, x, bmin, bmax, n, c, orientation='vertical', label='')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot histogram with logarithmic scale.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axis</code></dt>
+<dd>Axis to plot the histogram on.</dd>
+<dt><strong><code>x</code></strong> :&ensp;<code>numpy array</code></dt>
+<dd>Input data for histogram.</dd>
+<dt><strong><code>bmin</code></strong> :&ensp;<code>float</code></dt>
+<dd>Minimum value for the histogram bins.</dd>
+<dt><strong><code>bmax</code></strong> :&ensp;<code>float</code></dt>
+<dd>Maximum value for the histogram bins.</dd>
+<dt><strong><code>n</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of bins.</dd>
+<dt><strong><code>c</code></strong> :&ensp;<code>matplotlib color</code></dt>
+<dd>Color of histogram.</dd>
+<dt><strong><code>orientation</code></strong> :&ensp;<code>string (optional)</code></dt>
+<dd>Histogram orientation.
+Defaults to 'vertical'.</dd>
+<dt><strong><code>label</code></strong> :&ensp;<code>string (optional)</code></dt>
+<dd>Label for x.
+Defaults to '' (no label).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>n</code></strong> :&ensp;<code>array</code></dt>
+<dd>The values of the histogram bins.</dd>
+<dt><strong><code>bins</code></strong> :&ensp;<code>array</code></dt>
+<dd>The edges of the bins.</dd>
+<dt><strong><code>patches</code></strong> :&ensp;<code>BarContainer</code></dt>
+<dd>Container of individual artists used to create the histogram.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def loghist(ax, x, bmin, bmax, n, c, orientation=&#39;vertical&#39;, label=&#39;&#39;):
+        &#34;&#34;&#34; Plot histogram with logarithmic scale.
+
+    Parameters
+    ----------
+    ax : matplotlib axis
+        Axis to plot the histogram on.
+    x : numpy array
+        Input data for histogram.
+    bmin : float
+        Minimum value for the histogram bins.
+    bmax : float
+        Maximum value for the histogram bins. 
+    n : int
+        Number of bins.
+    c : matplotlib color
+        Color of histogram.
+    orientation : string (optional)
+        Histogram orientation.
+        Defaults to &#39;vertical&#39;.
+    label : string (optional)
+        Label for x. 
+        Defaults to &#39;&#39; (no label).
+
+    Returns
+    -------
+    n : array
+        The values of the histogram bins.
+    bins : array
+        The edges of the bins.
+    patches : BarContainer
+        Container of individual artists used to create the histogram.
+        &#34;&#34;&#34;
+        return ax.hist(x, bins=np.exp(np.linspace(np.log(bmin), np.log(bmax), n)),
+                   color=c, orientation=orientation, label=label)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.plot_all"><code class="name flex">
+<span>def <span class="ident">plot_all</span></span>(<span>data, eod_p_times, eod_tr_times, fs, mean_eods)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Quick way to view the output of extract_pulsefish in a single plot.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code></dt>
+<dd>Recording data.</dd>
+<dt><strong><code>eod_p_times</code></strong> :&ensp;<code>array</code> of <code>ints</code></dt>
+<dd>EOD peak indices.</dd>
+<dt><strong><code>eod_tr_times</code></strong> :&ensp;<code>array</code> of <code>ints</code></dt>
+<dd>EOD trough indices.</dd>
+<dt><strong><code>fs</code></strong> :&ensp;<code>float</code></dt>
+<dd>Samplerate.</dd>
+<dt><strong><code>mean_eods</code></strong> :&ensp;<code>list</code> of <code>numpy arrays</code></dt>
+<dd>Mean EODs of each pulsefish found in the recording.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
+    &#34;&#34;&#34;Quick way to view the output of extract_pulsefish in a single plot.
+
+    Parameters
+    ----------
+    data: array
+        Recording data.
+    eod_p_times: array of ints
+        EOD peak indices.
+    eod_tr_times: array of ints
+        EOD trough indices.
+    fs: float
+        Samplerate.
+    mean_eods: list of numpy arrays
+        Mean EODs of each pulsefish found in the recording.
+    &#34;&#34;&#34;
+    fig = plt.figure(figsize=(10, 5))
+
+    if len(eod_p_times) &gt; 0:
+        gs = gridspec.GridSpec(2, len(eod_p_times))
+        ax = fig.add_subplot(gs[0,:])
+        ax.plot(np.arange(len(data))/fs, data, c=&#39;k&#39;, alpha=0.3)
+        
+        for i, (pt, tt) in enumerate(zip(eod_p_times, eod_tr_times)):
+            ax.plot(pt, data[(pt*fs).astype(&#39;int&#39;)], &#39;o&#39;, label=i+1, ms=10, c=cmap(i))
+            ax.plot(tt, data[(tt*fs).astype(&#39;int&#39;)], &#39;o&#39;, label=i+1, ms=10, c=cmap(i))
+            
+        ax.set_xlabel(&#39;time [s]&#39;)
+        ax.set_ylabel(&#39;amplitude [V]&#39;)
+
+        for i, m in enumerate(mean_eods):
+            ax = fig.add_subplot(gs[1,i])
+            ax.plot(1000*m[0], 1000*m[1], c=&#39;k&#39;)
+
+            ax.fill_between(1000*m[0], 1000*(m[1]-m[2]), 1000*(m[1]+m[2]), color=cmap(i))
+            ax.set_xlabel(&#39;time [ms]&#39;)
+            ax.set_ylabel(&#39;amplitude [mV]&#39;) 
+    else:
+        plt.plot(np.arange(len(data))/fs, data, c=&#39;k&#39;, alpha=0.3)
+
+    plt.tight_layout()</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.plot_bgm"><code class="name flex">
+<span>def <span class="ident">plot_bgm</span></span>(<span>x, means, variances, weights, use_log, labels, labels_am, xlab)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot a BGM clustering step either on EOD width or height.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>x</code></strong> :&ensp;<code>1D numpy array</code> of <code>floats</code></dt>
+<dd>BGM input values.</dd>
+<dt><strong><code>means</code></strong> :&ensp;<code>list</code> of <code>floats</code></dt>
+<dd>BGM Gaussian means</dd>
+<dt><strong><code>variances</code></strong> :&ensp;<code>list</code> of <code>floats</code></dt>
+<dd>BGM Gaussian variances.</dd>
+<dt><strong><code>weights</code></strong> :&ensp;<code>list</code> of <code>floats</code></dt>
+<dd>BGM Gaussian weights.</dd>
+<dt><strong><code>use_log</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>True if the z-scored logarithm of the data was used as BGM input.</dd>
+<dt><strong><code>labels</code></strong> :&ensp;<code>1D numpy array</code> of <code>ints</code></dt>
+<dd>Labels defined by BGM model (before merging based on merge factor).</dd>
+<dt><strong><code>labels_am</code></strong> :&ensp;<code>1D numpy array</code> of <code>ints</code></dt>
+<dd>Labels defined by BGM model (after merging based on merge factor).</dd>
+<dt><strong><code>xlab</code></strong> :&ensp;<code>string</code></dt>
+<dd>Label for plot (defines the units of the BGM data).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_bgm(x, means, variances, weights, use_log, labels, labels_am, xlab):
+        &#34;&#34;&#34;Plot a BGM clustering step either on EOD width or height.
+
+        Parameters
+        ----------
+        x : 1D numpy array of floats
+                BGM input values.
+        means : list of floats
+                BGM Gaussian means
+        variances : list of floats
+                BGM Gaussian variances.
+        weights : list of floats
+                BGM Gaussian weights.
+        use_log : boolean
+                True if the z-scored logarithm of the data was used as BGM input.
+        labels : 1D numpy array of ints
+                Labels defined by BGM model (before merging based on merge factor).
+        labels_am : 1D numpy array of ints
+                Labels defined by BGM model (after merging based on merge factor).
+        xlab : string
+                Label for plot (defines the units of the BGM data).
+        &#34;&#34;&#34;
+        if &#39;width&#39; in xlab:
+                ccol = c_o
+        elif &#39;height&#39; in xlab:
+                ccol = c_g
+        else:
+                ccol = &#39;b&#39;
+
+        # get the transform that was used as BGM input
+        if use_log:
+                x_transform = stats.zscore(np.log(x))
+                xplot = np.exp(np.linspace(np.log(np.min(x)), np.log(np.max(x)), 1000))
+        else:
+                x_transform = stats.zscore(x)
+                xplot = np.linspace(np.min(x), np.max(x), 1000)
+
+        # compute the x values and gaussians
+        x2 = np.linspace(np.min(x_transform), np.max(x_transform), 1000)
+        gaussians = []
+        gmax = 0
+        for i, (w, m, std) in enumerate(zip(weights, means, variances)):
+                gaus = np.sqrt(w*stats.norm.pdf(x2, m, np.sqrt(std)))
+                gaussians.append(gaus)
+                gmax = max(np.max(gaus), gmax)
+        
+        # compute classes defined by gaussian intersections
+        classes = np.argmax(np.vstack(gaussians), axis=0)
+        
+        # find the minimum of any gaussian that is within its class
+        gmin = 100
+        for i, c in enumerate(np.unique(classes)):
+                gmin=min(gmin, np.min(gaussians[c][classes==c]))
+
+        # set up the figure
+        fig, ax1 = plt.subplots(figsize=(8, 4.8))
+        fig_ysize = 4
+        ax2 = ax1.twinx()
+        ax1.spines[&#39;top&#39;].set_visible(False)
+        ax2.spines[&#39;top&#39;].set_visible(False)
+        ax1.set_xlabel(&#39;x [a.u.]&#39;)
+        ax1.set_ylabel(&#39;#&#39;)
+        ax2.set_ylabel(&#39;Likelihood&#39;)
+        ax2.set_yscale(&#39;log&#39;)
+        ax1.set_yscale(&#39;log&#39;)
+        if use_log:
+                ax1.set_xscale(&#39;log&#39;)
+        ax1.set_xlabel(xlab)
+
+        # define colors for plotting gaussians
+        colidxs = -np.linspace(-1.25, -0.5, len(np.unique(classes)))
+
+        # plot the gaussians
+        for i, c in enumerate(np.unique(classes)):
+                ax2.plot(xplot, gaussians[c], c=lighter(c_grey, colidxs[i]), linewidth=2,
+                 label=r&#39;$N(\mu_%i, \sigma_%i)$&#39;%(c, c))
+        
+        # plot intersection lines
+        ax2.vlines(xplot[1:][np.diff(classes)!=0], 0, gmax/gmin, color=&#39;k&#39;, linewidth=2,
+               linestyle=&#39;--&#39;)
+        ax2.set_ylim(gmin, np.max(np.vstack(gaussians))*1.1)
+
+        # plot data distributions and classes
+        colidxs = -np.linspace(-1.25, -0.5, len(np.unique(labels)))
+        for i, l in enumerate(np.unique(labels)):
+                if use_log:
+                        h, binn, _ = loghist(ax1, x[labels==l], np.min(x), np.max(x), 100,
+                               lighter(ccol, colidxs[i]), label=r&#39;$x_%i$&#39;%l)
+                else:
+                        h, binn, _ = ax1.hist(x[labels==l], bins=np.linspace(np.min(x), np.max(x), 100),
+                                  color=lighter(ccol, colidxs[i]), label=r&#39;$x_%i$&#39;%l)
+
+        # annotate merged clusters
+        for l in np.unique(labels_am):
+                maps = np.unique(labels[labels_am==l])
+                if len(maps) &gt; 1:
+                        x1 = x[labels==maps[0]]
+                        x2 = x[labels==maps[1]]
+
+                        print(np.median(x1))
+                        print(np.median(x2))
+                        print(gmax)
+                        ax2.plot([np.median(x1), np.median(x2)], [1.2*gmax, 1.2*gmax], c=&#39;k&#39;, clip_on=False)
+                        ax2.plot([np.median(x1), np.median(x1)], [1.1*gmax, 1.2*gmax], c=&#39;k&#39;, clip_on=False)
+                        ax2.plot([np.median(x2), np.median(x2)], [1.1*gmax, 1.2*gmax], c=&#39;k&#39;, clip_on=False)
+                        ax2.annotate(r&#39;$\frac{|{\tilde{x}_%i-\tilde{x}_%i}|}{max(\tilde{x}_%i, \tilde{x}_%i)} &lt; \epsilon$&#39; % (maps[0], maps[1], maps[0], maps[1]), [np.median(x1)*1.1, gmax*1.2],  xytext=(10,  10),  textcoords=&#39;offset points&#39;, fontsize=12, annotation_clip=False, ha=&#39;center&#39;)
+
+        # add legends and plot.
+        ax2.legend(loc=&#39;lower left&#39;, frameon=False, bbox_to_anchor=(-0.05, 1.3),
+               ncol=len(np.unique(classes)))
+        ax1.legend(loc=&#39;upper left&#39;, frameon=False, bbox_to_anchor=(-0.05, 1.3),
+               ncol=len(np.unique(labels)))
+        plt.tight_layout()</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.plot_clustering"><code class="name flex">
+<span>def <span class="ident">plot_clustering</span></span>(<span>samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_masks)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot all clustering steps.</p>
+<p>Plot clustering steps on width, height and shape. Then plot the remaining EODs after
+the EOD assessment step and the EODs after the merge step.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Samplerate of EOD snippets.</dd>
+<dt><strong><code>eod_widths</code></strong> :&ensp;<code>list</code> of <code>three 1D numpy arrays</code></dt>
+<dd>The first list entry gives the unique labels of all width clusters as a list of ints.
+The second list entry gives the width values for each EOD in samples as a</dd>
+<dt>1D numpy array of ints.</dt>
+<dt>The third list entry gives the width labels for each EOD as a 1D numpy array of ints.</dt>
+<dt><strong><code>eod_hights</code></strong> :&ensp;<code>nested lists (2 layers)</code> of <code>three 1D numpy arrays</code></dt>
+<dd>The first list entry gives the unique labels of all height clusters as a list of ints</dd>
+<dt>for each width cluster.</dt>
+<dt>The second list entry gives the height values for each EOD as a 1D numpy array</dt>
+<dt>of floats for each width cluster.</dt>
+<dt>The third list entry gives the height labels for each EOD as a 1D numpy array</dt>
+<dt>of ints for each width cluster.</dt>
+<dt><strong><code>eod_shapes</code></strong> :&ensp;<code>nested lists (3 layers)</code> of <code>three 1D numpy arrays</code></dt>
+<dd>The first list entry gives the raw EOD snippets as a 2D numpy array for each</dd>
+<dt>height cluster in a width cluster.</dt>
+<dt>The second list entry gives the snippet PCA values for each EOD as a 2D numpy array</dt>
+<dt>of floats for each height cluster in a width cluster.</dt>
+<dt>The third list entry gives the shape labels for each EOD as a 1D numpy array of ints</dt>
+<dt>for each height cluster in a width cluster.</dt>
+<dt><strong><code>disc_masks</code></strong> :&ensp;<code>Nested lists (two layers)</code> of <code>1D numpy arrays</code></dt>
+<dd>The masks of EODs that are discarded by the discarding step of the algorithm.</dd>
+<dt>The masks are 1D boolean arrays where</dt>
+<dt>instances that are set to True are discarded by the algorithm. Discarding masks</dt>
+<dt>are saved in nested lists that represent the width and height clusters.</dt>
+<dt><strong><code>merge_masks</code></strong> :&ensp;<code>Nested lists (two layers)</code> of <code>2D numpy arrays</code></dt>
+<dd>The masks of EODs that are discarded by the merging step of the algorithm.</dd>
+</dl>
+<p>The masks are 2D boolean arrays where
+for each sample point <code>i</code> either <code>merge_mask[i,0]</code> or <code>merge_mask[i,1]</code> is set to True.
+Here, merge_mask[:,0] represents the
+peak-centered clusters and <code>merge_mask[:,1]</code> represents the trough-centered clusters.
+Merge masks are saved in nested lists
+that represent the width and height clusters.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_masks):
+        &#34;&#34;&#34;Plot all clustering steps.
+    
+        Plot clustering steps on width, height and shape. Then plot the remaining EODs after 
+        the EOD assessment step and the EODs after the merge step.
+
+        Parameters
+        ----------
+        samplerate : float
+                Samplerate of EOD snippets.
+        eod_widths : list of three 1D numpy arrays
+                The first list entry gives the unique labels of all width clusters as a list of ints.
+                The second list entry gives the width values for each EOD in samples as a
+        1D numpy array of ints.
+                The third list entry gives the width labels for each EOD as a 1D numpy array of ints.
+        eod_hights : nested lists (2 layers) of three 1D numpy arrays
+                The first list entry gives the unique labels of all height clusters as a list of ints
+        for each width cluster.
+                The second list entry gives the height values for each EOD as a 1D numpy array
+        of floats for each width cluster.
+                The third list entry gives the height labels for each EOD as a 1D numpy array
+        of ints for each width cluster.
+        eod_shapes : nested lists (3 layers) of three 1D numpy arrays
+                The first list entry gives the raw EOD snippets as a 2D numpy array for each
+        height cluster in a width cluster.
+                The second list entry gives the snippet PCA values for each EOD as a 2D numpy array
+        of floats for each height cluster in a width cluster.
+                The third list entry gives the shape labels for each EOD as a 1D numpy array of ints
+        for each height cluster in a width cluster.
+        disc_masks : Nested lists (two layers) of 1D numpy arrays
+                The masks of EODs that are discarded by the discarding step of the algorithm.
+        The masks are 1D boolean arrays where 
+                instances that are set to True are discarded by the algorithm. Discarding masks
+        are saved in nested lists that represent the width and height clusters.
+        merge_masks : Nested lists (two layers) of 2D numpy arrays
+                The masks of EODs that are discarded by the merging step of the algorithm.
+        The masks are 2D boolean arrays where 
+                for each sample point `i` either `merge_mask[i,0]` or `merge_mask[i,1]` is set to True.
+        Here, merge_mask[:,0] represents the 
+                peak-centered clusters and `merge_mask[:,1]` represents the trough-centered clusters.
+        Merge masks are saved in nested lists 
+                that represent the width and height clusters.
+        &#34;&#34;&#34;
+        # create figure + transparant figure.
+        fig = plt.figure(figsize=(12, 7))
+        transFigure = fig.transFigure.inverted()
+
+        # set up the figure layout
+        outer = gridspec.GridSpec(1, 5, width_ratios=[1, 1, 2, 1, 2], left=0.05, right=0.95)
+
+        # set titles for each clustering step
+        titles = [&#39;1. Widths&#39;, &#39;2. Heights&#39;, &#39;3. Shape&#39;, &#39;4. Pulse EODs&#39;, &#39;5. Merge&#39;]
+        for i, title in enumerate(titles):
+                title_ax = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec = outer[i])
+                ax = fig.add_subplot(title_ax[0])
+                ax.text(0, 110, title, ha=&#39;center&#39;, va=&#39;bottom&#39;, clip_on=False)
+                ax.set_xlim(-100, 100)
+                ax.set_ylim(-100, 100)
+                ax.axis(&#39;off&#39;)
+
+        # compute sizes for each axis
+        w_size = 1
+        h_size = len(eod_hights[1])
+
+        shape_size = np.sum([len(sl) for sl in eod_shapes[0]])
+        
+        # count required axes sized for the last two plot columns.
+        disc_size = 0
+        merge_size= 0
+        for shapelabel, dmasks, mmasks in zip(eod_shapes[2], disc_masks, merge_masks):
+                for sl, dm, mm in zip(shapelabel, dmasks, mmasks):
+                        uld1 = np.unique((sl[0]+1)*np.invert(dm[0]))
+                        uld2 = np.unique((sl[1]+1)*np.invert(dm[1]))
+                        disc_size = disc_size+len(uld1[uld1&gt;0])+len(uld2[uld2&gt;0])
+                        
+                        uld1 = np.unique((sl[0]+1)*mm[0])
+                        uld2 = np.unique((sl[1]+1)*mm[1])
+                        merge_size = merge_size+len(uld1[uld1&gt;0])+len(uld2[uld2&gt;0])
+
+        # set counters to keep track of the plot axes
+        disc_block = 0
+        merge_block = 0
+        shape_count = 0
+
+        # create all axes
+        width_hist_ax = gridspec.GridSpecFromSubplotSpec(w_size, 1, subplot_spec = outer[0])
+        hight_hist_ax = gridspec.GridSpecFromSubplotSpec(h_size, 1, subplot_spec = outer[1])
+        shape_ax = gridspec.GridSpecFromSubplotSpec(shape_size, 1,  subplot_spec = outer[2])
+        shape_windows = [gridspec.GridSpecFromSubplotSpec(2, 2, hspace=0.0, wspace=0.0,
+                                                      subplot_spec=shape_ax[i])
+                        for i in range(shape_size)]
+        
+        EOD_delete_ax = gridspec.GridSpecFromSubplotSpec(disc_size, 1, subplot_spec=outer[3])
+        EOD_merge_ax = gridspec.GridSpecFromSubplotSpec(merge_size, 1, subplot_spec=outer[4])
+
+    # plot width labels histogram
+        ax1 = fig.add_subplot(width_hist_ax[0])
+        # set axes features.
+        ax1.set_xscale(&#39;log&#39;)
+        ax1.spines[&#39;top&#39;].set_visible(False)
+        ax1.spines[&#39;right&#39;].set_visible(False)
+        ax1.spines[&#39;bottom&#39;].set_visible(False)
+        ax1.axes.xaxis.set_visible(False)
+        ax1.set_yticklabels([])
+
+        # indices for plot colors (dark to light)
+        colidxsw = -np.linspace(-1.25, -0.5, h_size)
+
+        for i, (wl, colw, uhl, eod_h, eod_h_labs, w_snip, w_feat, w_lab, w_dm, w_mm) in enumerate(zip(eod_widths[0], colidxsw, eod_hights[0], eod_hights[1], eod_hights[2], eod_shapes[0], eod_shapes[1], eod_shapes[2], disc_masks, merge_masks)):
+
+                # plot width hist
+                hw, _, _ = ax1.hist(eod_widths[1][eod_widths[2]==wl],
+                            bins=np.linspace(np.min(eod_widths[1]), np.max(eod_widths[1]), 100),
+                            color=lighter(c_o, colw), orientation=&#39;horizontal&#39;)
+                
+                # set arrow when the last hist is plot so the size of the axes are known.
+                if i == h_size-1:
+                        arrowed_spines(ax1, ms=20)
+
+                # determine total size of the hight historgams now.
+                my, b = np.histogram(eod_h, bins=np.exp(np.linspace(np.min(np.log(eod_h)),
+                                                            np.max(np.log(eod_h)), 100)))
+                maxy = np.max(my)
+
+                # set axes features for hight hist.
+                ax2 = fig.add_subplot(hight_hist_ax[h_size-i-1])
+                ax2.set_xscale(&#39;log&#39;)
+                ax2.spines[&#39;top&#39;].set_visible(False)
+                ax2.spines[&#39;right&#39;].set_visible(False)
+                ax2.spines[&#39;bottom&#39;].set_visible(False)
+                ax2.set_xlim(0.9, maxy)
+                ax2.axes.xaxis.set_visible(False)
+                ax2.set_yscale(&#39;log&#39;)
+                ax2.yaxis.set_major_formatter(ticker.NullFormatter())
+                ax2.yaxis.set_minor_formatter(ticker.NullFormatter())
+
+                # define colors for plots
+                colidxsh = -np.linspace(-1.25, -0.5, len(uhl))
+
+                for n, (hl, hcol, snippets, features, labels, dmasks, mmasks) in enumerate(zip(uhl, colidxsh, w_snip, w_feat, w_lab, w_dm, w_mm)):
+
+                        hh, _, _ = loghist(ax2, eod_h[eod_h_labs==hl], np.min(eod_h), np.max(eod_h), 100,
+                               lighter(c_g, hcol), orientation=&#39;horizontal&#39;)
+
+                        # set arrow spines only on last plot
+                        if n == len(uhl)-1:
+                                arrowed_spines(ax2, ms=10)
+
+                        # plot line from the width histogram to the height histogram.
+                        if n == 0:
+                                coord1 = transFigure.transform(ax1.transData.transform([np.median(hw[hw!=0]),
+                                                                        np.median(eod_widths[1][eod_widths[2]==wl])]))
+                                coord2 = transFigure.transform(ax2.transData.transform([0.9, np.mean(eod_h)]))
+                                line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                              transform=fig.transFigure, color=&#39;grey&#39;, linewidth=0.5)
+                                fig.lines.append(line)
+
+                        # compute sizes of the eod_discarding and merge steps
+                        s1 = np.unique((labels[0]+1)*(~dmasks[0]))
+                        s2 = np.unique((labels[1]+1)*(~dmasks[1]))
+                        disc_block = disc_block + len(s1[s1&gt;0]) + len(s2[s2&gt;0])
+                        
+                        s1 = np.unique((labels[0]+1)*(mmasks[0]))
+                        s2 = np.unique((labels[1]+1)*(mmasks[1]))
+                        merge_block = merge_block + len(s1[s1&gt;0]) + len(s2[s2&gt;0])
+
+                        axs = []
+                        disc_count = 0
+                        merge_count = 0
+
+                        # now plot the clusters for peak and trough centerings
+                        for pt, cmap_pt in zip([0, 1], cmap_pts):
+                                
+                                ax3 = fig.add_subplot(shape_windows[shape_size-1-shape_count][pt,0])
+                                ax4 = fig.add_subplot(shape_windows[shape_size-1-shape_count][pt,1])
+
+                                # remove axes
+                                ax3.axes.xaxis.set_visible(False)
+                                ax4.axes.yaxis.set_visible(False)
+                                ax3.axes.yaxis.set_visible(False)
+                                ax4.axes.xaxis.set_visible(False)
+
+                                # set color indices
+                                colidxss = -np.linspace(-1.25, -0.5, len(np.unique(labels[pt][labels[pt]&gt;=0])))
+                                j=0
+                                for c in np.unique(labels[pt]):
+                                        
+                                        if c&lt;0:
+                                                # plot noise features + snippets
+                                                ax3.plot(features[pt][labels[pt]==c,0], features[pt][labels[pt]==c,1],
+                                 &#39;.&#39;, color=&#39;lightgrey&#39;, label=&#39;-1&#39;, rasterized=True)
+                                                ax4.plot(snippets[pt][labels[pt]==c].T, linewidth=0.1,
+                                 color=&#39;lightgrey&#39;, label=&#39;-1&#39;, rasterized=True)
+                                        else:
+                                                # plot cluster features and snippets
+                                                ax3.plot(features[pt][labels[pt]==c,0], features[pt][labels[pt]==c,1],
+                                 &#39;.&#39;, color=lighter(cmap_pt, colidxss[j]), label=c,
+                                 rasterized=True)
+                                                ax4.plot(snippets[pt][labels[pt]==c].T, linewidth=0.1,
+                                 color=lighter(cmap_pt, colidxss[j]), label=c, rasterized=True)
+                                                
+                                                # check if the current cluster is an EOD, if yes, plot it.
+                                                if np.sum(dmasks[pt][labels[pt]==c]) == 0:
+
+                                                        ax = fig.add_subplot(EOD_delete_ax[disc_size-disc_block+disc_count])
+                                                        ax.axis(&#39;off&#39;)
+
+                                                        # plot mean EOD snippet
+                                                        ax.plot(np.mean(snippets[pt][labels[pt]==c], axis=0),
+                                    color=lighter(cmap_pt, colidxss[j]))
+                                                        disc_count = disc_count + 1
+
+                                                        # match colors and draw line..                                                  
+                                                        coord1 = transFigure.transform(ax4.transData.transform([ax4.get_xlim()[1],
+                                                                                    ax4.get_ylim()[0] + 0.5*(ax4.get_ylim()[1]-ax4.get_ylim()[0])]))
+                                                        coord2 = transFigure.transform(ax.transData.transform([ax.get_xlim()[0],ax.get_ylim()[0] + 0.5*(ax.get_ylim()[1]-ax.get_ylim()[0])]))
+                                                        line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                          transform=fig.transFigure, color=&#39;grey&#39;,
+                                          linewidth=0.5)
+                                                        fig.lines.append(line)  
+                                                        axs.append(ax)
+
+                                                        # check if the current EOD survives the merge step
+                                                        # if so, plot it.
+                                                        if np.sum(mmasks[pt, labels[pt]==c])&gt;0:
+
+                                                                ax = fig.add_subplot(EOD_merge_ax[merge_size-merge_block+merge_count])
+                                                                ax.axis(&#39;off&#39;)
+                                                                
+                                                                ax.plot(np.mean(snippets[pt][labels[pt]==c], axis=0),
+                                        color=lighter(cmap_pt, colidxss[j]))
+                                                                merge_count = merge_count + 1
+
+                                                j=j+1
+
+                                if pt==0:
+                                        # draw line from hight cluster to EOD shape clusters.
+                                        coord1 = transFigure.transform(ax2.transData.transform([np.median(hh[hh!=0]),
+                                                                            np.median(eod_h[eod_h_labs==hl])]))
+                                        coord2 = transFigure.transform(ax3.transData.transform([ax3.get_xlim()[0],
+                                                                            ax3.get_ylim()[0]]))
+                                        line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                                  transform=fig.transFigure, color=&#39;grey&#39;, linewidth=0.5)
+                                        fig.lines.append(line)
+
+                        shape_count = shape_count + 1
+                        
+                        if len(axs)&gt;0:
+                                # plot lines that indicate the merged clusters.
+                                coord1 = transFigure.transform(axs[0].transData.transform([axs[0].get_xlim()[1]+0.1*(axs[0].get_xlim()[1]-axs[0].get_xlim()[0]),
+                                                                           axs[0].get_ylim()[1]-0.25*(axs[0].get_ylim()[1]-axs[0].get_ylim()[0])]))
+                                coord2 = transFigure.transform(axs[-1].transData.transform([axs[-1].get_xlim()[1]+0.1*(axs[-1].get_xlim()[1]-axs[-1].get_xlim()[0]),
+                                                                            axs[-1].get_ylim()[0]+0.25*(axs[-1].get_ylim()[1]-axs[-1].get_ylim()[0])]))
+                                line = Line2D((coord1[0], coord2[0]), (coord1[1], coord2[1]),
+                              transform=fig.transFigure, color=&#39;grey&#39;, linewidth=1)
+                                fig.lines.append(line)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.plot_feature_extraction"><code class="name flex">
+<span>def <span class="ident">plot_feature_extraction</span></span>(<span>raw_snippets, normalized_snippets, features, labels, dt, pt)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot clustering step on EOD shape.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>raw_snippets</code></strong> :&ensp;<code>2D numpy array</code></dt>
+<dd>Raw EOD snippets.</dd>
+<dt><strong><code>normalized_snippets</code></strong> :&ensp;<code>2D numpy array</code></dt>
+<dd>Normalized EOD snippets.</dd>
+<dt><strong><code>features</code></strong> :&ensp;<code>2D numpy array</code></dt>
+<dd>PCA values for each normalized EOD snippet.</dd>
+<dt><strong><code>labels</code></strong> :&ensp;<code>1D numpy array</code> of <code>ints</code></dt>
+<dd>Cluster labels.</dd>
+<dt><strong><code>dt</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sample interval of snippets.</dd>
+<dt><strong><code>pt</code></strong> :&ensp;<code>int</code></dt>
+<dd>Set to 0 for peak-centered EODs and set to 1 for trough-centered EODs.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_feature_extraction(raw_snippets, normalized_snippets, features, labels, dt, pt):
+        &#34;&#34;&#34;Plot clustering step on EOD shape.
+                
+        Parameters
+        ----------
+        raw_snippets : 2D numpy array
+                Raw EOD snippets.
+        normalized_snippets : 2D numpy array
+                Normalized EOD snippets.
+        features : 2D numpy array
+                PCA values for each normalized EOD snippet.
+        labels : 1D numpy array of ints
+                Cluster labels.
+        dt : float
+                Sample interval of snippets.
+        pt : int
+                Set to 0 for peak-centered EODs and set to 1 for trough-centered EODs.
+        &#34;&#34;&#34;
+        ccol = cmap_pts[pt]
+
+        # set up the figure layout
+        fig = plt.figure(figsize=(((2+0.2)*4.8), 4.8))
+        outer = gridspec.GridSpec(1, 2, wspace=0.2, hspace=0)
+
+        x = np.arange(-dt*1000*raw_snippets.shape[1]/2, dt*1000*raw_snippets.shape[1]/2, dt*1000)
+
+        snip_ax = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = outer[0], hspace=0.35)
+        pc_ax = gridspec.GridSpecFromSubplotSpec(features.shape[1]-1, features.shape[1]-1,
+                                             subplot_spec = outer[1], hspace=0, wspace=0)
+        
+        # 3 plots: raw snippets, normalized, pcs.
+        ax_raw_snip = fig.add_subplot(snip_ax[0])
+        ax_normalized_snip = fig.add_subplot(snip_ax[1])
+
+        colidxs = -np.linspace(-1.25, -0.5, len(np.unique(labels[labels&gt;=0])))
+        j=0
+
+        for c in np.unique(labels):
+                if c&lt;0:
+                        color=&#39;lightgrey&#39;
+                else:
+                        color = lighter(ccol, colidxs[j])
+                        j=j+1
+
+                ax_raw_snip.plot(x, raw_snippets[labels==c].T, color=color, label=&#39;-1&#39;,
+                         rasterized=True, alpha=0.25)
+                ax_normalized_snip.plot(x, normalized_snippets[labels==c].T, color=color, alpha=0.25)
+                ax_raw_snip.spines[&#39;top&#39;].set_visible(False)
+                ax_raw_snip.spines[&#39;right&#39;].set_visible(False)
+                ax_raw_snip.get_xaxis().set_ticklabels([])
+                ax_raw_snip.set_title(&#39;Raw snippets&#39;)
+                ax_raw_snip.set_ylabel(&#39;Amplitude [a.u.]&#39;)
+                ax_normalized_snip.spines[&#39;top&#39;].set_visible(False)
+                ax_normalized_snip.spines[&#39;right&#39;].set_visible(False)
+                ax_normalized_snip.set_title(&#39;Normalized snippets&#39;)
+                ax_normalized_snip.set_ylabel(&#39;Amplitude [a.u.]&#39;)
+                ax_normalized_snip.set_xlabel(&#39;Time [ms]&#39;)
+
+                ax_raw_snip.axis(&#39;off&#39;)
+                ax_normalized_snip.axis(&#39;off&#39;)
+
+                ax_overlay = fig.add_subplot(pc_ax[:,:])
+                ax_overlay.set_title(&#39;Features&#39;)
+                ax_overlay.axis(&#39;off&#39;)
+
+                for n in range(features.shape[1]):
+                        for m in range(n):
+                                ax = fig.add_subplot(pc_ax[n-1,m])
+                                ax.scatter(features[labels==c,m], features[labels==c,n], marker=&#39;.&#39;,
+                           color=color, alpha=0.25)                             
+                                ax.set_xlim(np.min(features), np.max(features))
+                                ax.set_ylim(np.min(features), np.max(features))
+                                ax.get_xaxis().set_ticklabels([])
+                                ax.get_yaxis().set_ticklabels([])
+                                ax.get_xaxis().set_ticks([])
+                                ax.get_yaxis().set_ticks([])
+
+                                if m==0:
+                                        ax.set_ylabel(&#39;PC %i&#39;%(n+1))
+
+                                if n==features.shape[1]-1:
+                                        ax.set_xlabel(&#39;PC %i&#39;%(m+1))
+
+                ax = fig.add_subplot(pc_ax[0,features.shape[1]-2])
+                ax.set_xlim(np.min(features), np.max(features))
+                ax.set_ylim(np.min(features), np.max(features))
+
+                size = max(1, int(np.ceil(-np.log10(np.max(features)-np.min(features)))))
+                wbar = np.floor((np.max(features)-np.min(features))*10**size)/10**size
+
+                # should be smaller than the actual thing! so like x% of it?
+                xscalebar(ax, 0, 0, wbar, wformat=&#39;%%.%if&#39;%size)
+                yscalebar(ax, 0, 0, wbar, hformat=&#39;%%.%if&#39;%size)
+                ax.axis(&#39;off&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.plot_moving_fish"><code class="name flex">
+<span>def <span class="ident">plot_moving_fish</span></span>(<span>ws, dts, clusterss, ts, fishcounts, T, ignore_stepss)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot moving fish detection step.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ws</code></strong> :&ensp;<code>list</code> of <code>floats</code></dt>
+<dd>Median width for each width cluster that the moving fish algorithm is computed on</dd>
+<dt>(in seconds).</dt>
+<dt><strong><code>dts</code></strong> :&ensp;<code>list</code> of <code>floats</code></dt>
+<dd>Sliding window size (in seconds) for each width cluster.</dd>
+<dt><strong><code>clusterss</code></strong> :&ensp;<code>list</code> of <code>1D numpy int arrays</code></dt>
+<dd>Cluster labels for each EOD cluster in a width cluster.</dd>
+<dt><strong><code>ts</code></strong> :&ensp;<code>list</code> of <code>1D numpy float arrays</code></dt>
+<dd>EOD emission times for each EOD in a width cluster.</dd>
+<dt><strong><code>fishcounts</code></strong> :&ensp;<code>list</code> of <code>lists</code></dt>
+<dd>Sliding window timepoints and fishcounts for each width cluster.</dd>
+<dt><strong><code>T</code></strong> :&ensp;<code>float</code></dt>
+<dd>Lenght of analyzed recording in seconds.</dd>
+<dt><strong><code>ignore_stepss</code></strong> :&ensp;<code>list</code> of <code>1D int arrays</code></dt>
+<dd>Mask for fishcounts that were ignored (ignored if True) in the moving_fish analysis.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
+        &#34;&#34;&#34;Plot moving fish detection step.
+
+        Parameters
+        ----------
+        ws : list of floats
+                Median width for each width cluster that the moving fish algorithm is computed on
+        (in seconds).
+        dts : list of floats
+                Sliding window size (in seconds) for each width cluster.
+        clusterss : list of 1D numpy int arrays
+                Cluster labels for each EOD cluster in a width cluster.
+        ts : list of 1D numpy float arrays
+                EOD emission times for each EOD in a width cluster.
+        fishcounts : list of lists
+                Sliding window timepoints and fishcounts for each width cluster.
+        T : float
+                Lenght of analyzed recording in seconds.
+        ignore_stepss : list of 1D int arrays
+                Mask for fishcounts that were ignored (ignored if True) in the moving_fish analysis.
+        &#34;&#34;&#34;
+        fig = plt.figure()
+
+        # create gridspec
+        outer = gridspec.GridSpec(len(ws), 1)
+
+        for i, (w, dt, clusters, t, fishcount, ignore_steps) in enumerate(zip(ws, dts, clusterss, ts, fishcounts, ignore_stepss)):
+                
+                gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = outer[i])
+                
+                # axis for clusters
+                ax1 = fig.add_subplot(gs[0])
+                # axis for fishcount
+                ax2 = fig.add_subplot(gs[1])
+
+                # plot clusters as eventplot
+                for cnum, c in enumerate(np.unique(clusters[clusters&gt;=0])):
+                        ax1.eventplot(t[clusters==c], lineoffsets=cnum, linelengths=0.5, color=cmap(i))
+                        cnum = cnum + 1
+
+                # Plot the sliding window
+                rect=Rectangle((0, -0.5), dt, cnum, linewidth=1, linestyle=&#39;--&#39;, edgecolor=&#39;k&#39;,
+                       facecolor=&#39;none&#39;, clip_on=False)
+                ax1.add_patch(rect)
+                ax1.arrow(dt+0.1, -0.5,  0.5, 0, head_width=0.1, head_length=0.1, facecolor=&#39;k&#39;,
+                  edgecolor=&#39;k&#39;)
+                
+                # plot parameters
+                ax1.set_title(r&#39;$\tilde{w}_%i = %.3f ms$&#39;%(i, 1000*w))
+                ax1.set_ylabel(&#39;cluster #&#39;)
+                ax1.set_yticks(range(0, cnum))
+                ax1.set_xlabel(&#39;time&#39;)
+                ax1.set_xlim(0, T)
+                ax1.axes.xaxis.set_visible(False)
+                ax1.spines[&#39;bottom&#39;].set_visible(False)
+                ax1.spines[&#39;top&#39;].set_visible(False)
+                ax1.spines[&#39;right&#39;].set_visible(False)
+                ax1.spines[&#39;left&#39;].set_visible(False)
+
+                # plot for fishcount
+                x = fishcount[0]
+                y = fishcount[1]
+
+                ax2 = fig.add_subplot(gs[1])
+                ax2.spines[&#39;top&#39;].set_visible(False)
+                ax2.spines[&#39;right&#39;].set_visible(False)
+                ax2.spines[&#39;bottom&#39;].set_visible(False)
+                ax2.axes.xaxis.set_visible(False)
+
+                yplot = np.copy(y)
+                ax2.plot(x+dt/2, yplot, linestyle=&#39;-&#39;, marker=&#39;.&#39;, c=cmap(i), alpha=0.25)
+                yplot[ignore_steps.astype(bool)] = np.NaN
+                ax2.plot(x+dt/2, yplot, linestyle=&#39;-&#39;, marker=&#39;.&#39;, c=cmap(i))
+                ax2.set_ylabel(&#39;Fish count&#39;)
+                ax2.set_yticks(range(int(np.min(y)), 1+int(np.max(y))))
+                ax2.set_xlim(0, T)
+
+                if i &lt; len(ws)-1:
+                    ax2.axes.xaxis.set_visible(False)
+                else:
+                        ax2.axes.xaxis.set_visible(False)
+                        xscalebar(ax2, 1, 0, 1, wunit=&#39;s&#39;, ha=&#39;right&#39;)
+
+                con = ConnectionPatch([0, -0.5],  [dt/2, y[0]], &#34;data&#34;, &#34;data&#34;,
+                    axesA=ax1, axesB=ax2, color=&#39;k&#39;)
+                ax2.add_artist(con)
+                con = ConnectionPatch([dt, -0.5], [dt/2, y[0]], &#34;data&#34;, &#34;data&#34;,
+                    axesA=ax1, axesB=ax2, color=&#39;k&#39;)
+                ax2.add_artist(con)
+
+                plt.xlim(0, T)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.warn"><code class="name flex">
+<span>def <span class="ident">warn</span></span>(<span>*args, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Ignore all warnings.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def warn(*args, **kwargs):
+    &#34;&#34;&#34;
+    Ignore all warnings.
+    &#34;&#34;&#34;
+    pass</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.xscalebar"><code class="name flex">
+<span>def <span class="ident">xscalebar</span></span>(<span>ax, x, y, width, wunit=None, wformat=None, ha='left', va='bottom', lw=None, color=None, capsize=None, clw=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Horizontal scale bar with label.</p>
+<p>From bendalab/plottools package.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axes</code></dt>
+<dd>Axes where to draw the scale bar.</dd>
+<dt><strong><code>x</code></strong> :&ensp;<code>float</code></dt>
+<dd>x-coordinate where to draw the scale bar in relative units of the axes.</dd>
+<dt><strong><code>y</code></strong> :&ensp;<code>float</code></dt>
+<dd>y-coordinate where to draw the scale bar in relative units of the axes.</dd>
+<dt><strong><code>width</code></strong> :&ensp;<code>float</code></dt>
+<dd>Length of the scale bar in units of the data's x-values.</dd>
+<dt><strong><code>wunit</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Optional unit of the data's x-values.</dd>
+<dt><strong><code>wformat</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Optional format string for formatting the label of the scale bar
+or simply a string used for labeling the scale bar.</dd>
+<dt><strong><code>ha</code></strong> :&ensp;<code>'left', 'right',</code> or <code>'center'</code></dt>
+<dd>Scale bar aligned left, right, or centered to (x, y)</dd>
+<dt><strong><code>va</code></strong> :&ensp;<code>'top'</code> or <code>'bottom'</code></dt>
+<dd>Label of the scale bar either above or below the scale bar.</dd>
+<dt><strong><code>lw</code></strong> :&ensp;<code>int, float, None</code></dt>
+<dd>Line width of the scale bar.</dd>
+<dt><strong><code>color</code></strong> :&ensp;<code>matplotlib color</code></dt>
+<dd>Color of the scalebar.</dd>
+<dt><strong><code>capsize</code></strong> :&ensp;<code>float</code> or <code>None</code></dt>
+<dd>If larger then zero draw cap lines at the ends of the bar.
+The length of the lines is given in points (same unit as linewidth).</dd>
+<dt><strong><code>clw</code></strong> :&ensp;<code>int, float, None</code></dt>
+<dd>Line width of the cap lines.</dd>
+<dt><strong><code>kwargs</code></strong> :&ensp;<code>key-word arguments</code></dt>
+<dd>Passed on to <code>ax.text()</code> used to print the scale bar label.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def xscalebar(ax, x, y, width, wunit=None, wformat=None, ha=&#39;left&#39;, va=&#39;bottom&#39;,
+              lw=None, color=None, capsize=None, clw=None, **kwargs):
+    &#34;&#34;&#34;Horizontal scale bar with label.
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the scale bar.
+    x: float
+        x-coordinate where to draw the scale bar in relative units of the axes.
+    y: float
+        y-coordinate where to draw the scale bar in relative units of the axes.
+    width: float
+        Length of the scale bar in units of the data&#39;s x-values.
+    wunit: string or None
+        Optional unit of the data&#39;s x-values.
+    wformat: string or None
+        Optional format string for formatting the label of the scale bar
+        or simply a string used for labeling the scale bar.
+    ha: &#39;left&#39;, &#39;right&#39;, or &#39;center&#39;
+        Scale bar aligned left, right, or centered to (x, y)
+    va: &#39;top&#39; or &#39;bottom&#39;
+        Label of the scale bar either above or below the scale bar.
+    lw: int, float, None
+        Line width of the scale bar.
+    color: matplotlib color
+        Color of the scalebar.
+    capsize: float or None
+        If larger then zero draw cap lines at the ends of the bar.
+        The length of the lines is given in points (same unit as linewidth).
+    clw: int, float, None
+        Line width of the cap lines.
+    kwargs: key-word arguments
+        Passed on to `ax.text()` used to print the scale bar label.
+    &#34;&#34;&#34;
+    ax.autoscale(False)
+    # ax dimensions:
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    unitx = xmax - xmin
+    unity = ymax - ymin
+    dxu = np.abs(unitx)/pixelx
+    dyu = np.abs(unity)/pixely
+    # transform x, y from relative units to axis units:
+    x = xmin + x*unitx
+    y = ymin + y*unity
+    # bar length:
+    if wformat is None:
+        wformat = &#39;%.0f&#39;
+        if width &lt; 1.0:
+            wformat = &#39;%.1f&#39;
+    try:
+        ls = wformat % width
+        width = float(ls)
+    except TypeError:
+        ls = wformat
+    # bar:
+    if ha == &#39;left&#39;:
+        x0 = x
+        x1 = x+width
+    elif ha == &#39;right&#39;:
+        x0 = x-width
+        x1 = x
+    else:
+        x0 = x-0.5*width
+        x1 = x+0.5*width
+    # line width:
+    if lw is None:
+        lw = 2
+    # color:
+    if color is None:
+        color = &#39;k&#39;
+    # scalebar:
+    lh = ax.plot([x0, x1], [y, y], &#39;-&#39;, color=color, lw=lw,
+                 solid_capstyle=&#39;butt&#39;, clip_on=False)
+    # get y position of line in figure pixel coordinates:
+    ly = np.array(lh[0].get_window_extent(ax.get_figure().canvas.get_renderer()))[0,1]
+    # caps:
+    if capsize is None:
+        capsize = 0
+    if clw is None:
+        clw = 0.5
+    if capsize &gt; 0.0:
+        dy = capsize*dyu
+        ax.plot([x0, x0], [y-dy, y+dy], &#39;-&#39;, color=color, lw=clw,
+                solid_capstyle=&#39;butt&#39;, clip_on=False)
+        ax.plot([x1, x1], [y-dy, y+dy], &#39;-&#39;, color=color, lw=clw,
+                solid_capstyle=&#39;butt&#39;, clip_on=False)
+    # label:
+    if wunit:
+        ls += u&#39;\u2009%s&#39; % wunit
+    if va == &#39;top&#39;:
+        th = ax.text(0.5*(x0+x1), y, ls, clip_on=False,
+                     ha=&#39;center&#39;, va=&#39;bottom&#39;, **kwargs)
+        # get y coordinate of text bottom in figure pixel coordinates:
+        ty = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[0,1]
+        dty = ly+0.5*lw + 2.0 - ty
+    else:
+        th = ax.text(0.5*(x0+x1), y, ls, clip_on=False,
+                     ha=&#39;center&#39;, va=&#39;top&#39;, **kwargs)
+        # get y coordinate of text bottom in figure pixel coordinates:
+        ty = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[1,1]
+        dty = ly-0.5*lw - 2.0 - ty
+    th.set_position((0.5*(x0+x1), y+dyu*dty))
+    return x0, x1, y</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulseplots.yscalebar"><code class="name flex">
+<span>def <span class="ident">yscalebar</span></span>(<span>ax, x, y, height, hunit=None, hformat=None, ha='left', va='bottom', lw=None, color=None, capsize=None, clw=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Vertical scale bar with label.</p>
+<p>From bendalab/plottools package.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axes</code></dt>
+<dd>Axes where to draw the scale bar.</dd>
+<dt><strong><code>x</code></strong> :&ensp;<code>float</code></dt>
+<dd>x-coordinate where to draw the scale bar in relative units of the axes.</dd>
+<dt><strong><code>y</code></strong> :&ensp;<code>float</code></dt>
+<dd>y-coordinate where to draw the scale bar in relative units of the axes.</dd>
+<dt><strong><code>height</code></strong> :&ensp;<code>float</code></dt>
+<dd>Length of the scale bar in units of the data's y-values.</dd>
+<dt><strong><code>hunit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data's y-values.</dd>
+<dt><strong><code>hformat</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Optional format string for formatting the label of the scale bar
+or simply a string used for labeling the scale bar.</dd>
+<dt><strong><code>ha</code></strong> :&ensp;<code>'left'</code> or <code>'right'</code></dt>
+<dd>Label of the scale bar either to the left or to the right
+of the scale bar.</dd>
+<dt><strong><code>va</code></strong> :&ensp;<code>'top', 'bottom',</code> or <code>'center'</code></dt>
+<dd>Scale bar aligned above, below, or centered on (x, y).</dd>
+<dt><strong><code>lw</code></strong> :&ensp;<code>int, float, None</code></dt>
+<dd>Line width of the scale bar.</dd>
+<dt><strong><code>color</code></strong> :&ensp;<code>matplotlib color</code></dt>
+<dd>Color of the scalebar.</dd>
+<dt><strong><code>capsize</code></strong> :&ensp;<code>float</code> or <code>None</code></dt>
+<dd>If larger then zero draw cap lines at the ends of the bar.
+The length of the lines is given in points (same unit as linewidth).</dd>
+<dt><strong><code>clw</code></strong> :&ensp;<code>int, float</code></dt>
+<dd>Line width of the cap lines.</dd>
+<dt><strong><code>kwargs</code></strong> :&ensp;<code>key-word arguments</code></dt>
+<dd>Passed on to <code>ax.text()</code> used to print the scale bar label.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def yscalebar(ax, x, y, height, hunit=None, hformat=None, ha=&#39;left&#39;, va=&#39;bottom&#39;,
+              lw=None, color=None, capsize=None, clw=None, **kwargs):
+    
+    &#34;&#34;&#34;Vertical scale bar with label.
+
+    From bendalab/plottools package.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the scale bar.
+    x: float
+        x-coordinate where to draw the scale bar in relative units of the axes.
+    y: float
+        y-coordinate where to draw the scale bar in relative units of the axes.
+    height: float
+        Length of the scale bar in units of the data&#39;s y-values.
+    hunit: string
+        Unit of the data&#39;s y-values.
+    hformat: string or None
+        Optional format string for formatting the label of the scale bar
+        or simply a string used for labeling the scale bar.
+    ha: &#39;left&#39; or &#39;right&#39;
+        Label of the scale bar either to the left or to the right
+        of the scale bar.
+    va: &#39;top&#39;, &#39;bottom&#39;, or &#39;center&#39;
+        Scale bar aligned above, below, or centered on (x, y).
+    lw: int, float, None
+        Line width of the scale bar.
+    color: matplotlib color
+        Color of the scalebar.
+    capsize: float or None
+        If larger then zero draw cap lines at the ends of the bar.
+        The length of the lines is given in points (same unit as linewidth).
+    clw: int, float
+        Line width of the cap lines.
+    kwargs: key-word arguments
+        Passed on to `ax.text()` used to print the scale bar label.
+    &#34;&#34;&#34;
+
+    ax.autoscale(False)
+    # ax dimensions:
+    pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+    pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    unitx = xmax - xmin
+    unity = ymax - ymin
+    dxu = np.abs(unitx)/pixelx
+    dyu = np.abs(unity)/pixely
+    # transform x, y from relative units to axis units:
+    x = xmin + x*unitx
+    y = ymin + y*unity
+    # bar length:
+    if hformat is None:
+        hformat = &#39;%.0f&#39;
+        if height &lt; 1.0:
+            hformat = &#39;%.1f&#39;
+    try:
+        ls = hformat % height
+        width = float(ls)
+    except TypeError:
+        ls = hformat
+    # bar:
+    if va == &#39;bottom&#39;:
+        y0 = y
+        y1 = y+height
+    elif va == &#39;top&#39;:
+        y0 = y-height
+        y1 = y
+    else:
+        y0 = y-0.5*height
+        y1 = y+0.5*height
+    # line width:
+    if lw is None:
+        lw = 2
+    # color:
+    if color is None:
+        color = &#39;k&#39;
+    # scalebar:
+    lh = ax.plot([x, x], [y0, y1], &#39;-&#39;, color=color, lw=lw,
+                 solid_capstyle=&#39;butt&#39;, clip_on=False)
+    # get x position of line in figure pixel coordinates:
+    lx = np.array(lh[0].get_window_extent(ax.get_figure().canvas.get_renderer()))[0,0]
+    # caps:
+    if capsize is None:
+        capsize = 0
+    if clw is None:
+        clw = 0.5
+    if capsize &gt; 0.0:
+        dx = capsize*dxu
+        ax.plot([x-dx, x+dx], [y0, y0], &#39;-&#39;, color=color, lw=clw, solid_capstyle=&#39;butt&#39;,
+                clip_on=False)
+        ax.plot([x-dx, x+dx], [y1, y1], &#39;-&#39;, color=color, lw=clw, solid_capstyle=&#39;butt&#39;,
+                clip_on=False)
+    # label:
+    if hunit:
+        ls += u&#39;\u2009%s&#39; % hunit
+    if ha == &#39;right&#39;:
+        th = ax.text(x, 0.5*(y0+y1), ls, clip_on=False, rotation=90.0,
+                     ha=&#39;left&#39;, va=&#39;center&#39;, **kwargs)
+        # get x coordinate of text bottom in figure pixel coordinates:
+        tx = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[0,0]
+        dtx = lx+0.5*lw + 2.0 - tx
+    else:
+        th = ax.text(x, 0.5*(y0+y1), ls, clip_on=False, rotation=90.0,
+                     ha=&#39;right&#39;, va=&#39;center&#39;, **kwargs)
+        # get x coordinate of text bottom in figure pixel coordinates:
+        tx = np.array(th.get_window_extent(ax.get_figure().canvas.get_renderer()))[1,0]
+        dtx = lx-0.5*lw - 1.0 - tx
+    th.set_position((x+dxu*dtx, 0.5*(y0+y1)))
+    return x, y0, y1</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.pulseplots.arrowed_spines" href="#thunderfish.pulseplots.arrowed_spines">arrowed_spines</a></code></li>
+<li><code><a title="thunderfish.pulseplots.darker" href="#thunderfish.pulseplots.darker">darker</a></code></li>
+<li><code><a title="thunderfish.pulseplots.lighter" href="#thunderfish.pulseplots.lighter">lighter</a></code></li>
+<li><code><a title="thunderfish.pulseplots.loghist" href="#thunderfish.pulseplots.loghist">loghist</a></code></li>
+<li><code><a title="thunderfish.pulseplots.plot_all" href="#thunderfish.pulseplots.plot_all">plot_all</a></code></li>
+<li><code><a title="thunderfish.pulseplots.plot_bgm" href="#thunderfish.pulseplots.plot_bgm">plot_bgm</a></code></li>
+<li><code><a title="thunderfish.pulseplots.plot_clustering" href="#thunderfish.pulseplots.plot_clustering">plot_clustering</a></code></li>
+<li><code><a title="thunderfish.pulseplots.plot_feature_extraction" href="#thunderfish.pulseplots.plot_feature_extraction">plot_feature_extraction</a></code></li>
+<li><code><a title="thunderfish.pulseplots.plot_moving_fish" href="#thunderfish.pulseplots.plot_moving_fish">plot_moving_fish</a></code></li>
+<li><code><a title="thunderfish.pulseplots.warn" href="#thunderfish.pulseplots.warn">warn</a></code></li>
+<li><code><a title="thunderfish.pulseplots.xscalebar" href="#thunderfish.pulseplots.xscalebar">xscalebar</a></code></li>
+<li><code><a title="thunderfish.pulseplots.yscalebar" href="#thunderfish.pulseplots.yscalebar">yscalebar</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>

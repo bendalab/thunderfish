@@ -1,0 +1,1445 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>thunderfish.powerspectrum API documentation</title>
+<meta name="description" content="Powerspectra and spectrograms for a given frequency resolution …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.powerspectrum</code></h1>
+</header>
+<section id="section-intro">
+<h1 id="powerspectra-and-spectrograms-for-a-given-frequency-resolution">Powerspectra and spectrograms for a given frequency resolution</h1>
+<h2 id="computation-of-nfft">Computation of nfft</h2>
+<ul>
+<li><code><a title="thunderfish.powerspectrum.next_power_of_two" href="#thunderfish.powerspectrum.next_power_of_two">next_power_of_two()</a></code>: round an integer up to the next power of two.</li>
+<li><code>nfff()</code>: compute nfft based on a given frequency resolution.</li>
+</ul>
+<h2 id="decibel">Decibel</h2>
+<ul>
+<li><code><a title="thunderfish.powerspectrum.decibel" href="#thunderfish.powerspectrum.decibel">decibel()</a></code>: transform power to decibel.</li>
+<li><code><a title="thunderfish.powerspectrum.power" href="#thunderfish.powerspectrum.power">power()</a></code>: transform decibel to power.</li>
+</ul>
+<h2 id="power-spectra">Power spectra</h2>
+<ul>
+<li><code><a title="thunderfish.powerspectrum.psd" href="#thunderfish.powerspectrum.psd">psd()</a></code>: power spectrum for a given frequency resolution.</li>
+<li><code><a title="thunderfish.powerspectrum.multi_psd" href="#thunderfish.powerspectrum.multi_psd">multi_psd()</a></code>: power spectra for consecutive data windows and mutiple frequency resolutions.</li>
+<li><code><a title="thunderfish.powerspectrum.spectrogram" href="#thunderfish.powerspectrum.spectrogram">spectrogram()</a></code>: spectrogram of a given frequency resolution and overlap fraction.</li>
+</ul>
+<h2 id="power-spectrum-analysis">Power spectrum analysis</h2>
+<ul>
+<li><code><a title="thunderfish.powerspectrum.peak_freqs" href="#thunderfish.powerspectrum.peak_freqs">peak_freqs()</a></code>: peak frequencies computed for each of the data snippets.</li>
+</ul>
+<h2 id="visualization">Visualization</h2>
+<ul>
+<li><code><a title="thunderfish.powerspectrum.plot_decibel_psd" href="#thunderfish.powerspectrum.plot_decibel_psd">plot_decibel_psd()</a></code>: plot power spectrum in decibel.</li>
+</ul>
+<h2 id="configuration-parameter">Configuration parameter</h2>
+<ul>
+<li>`add_multi_psd_config()': add parameters for multi_psd() to configuration.</li>
+<li><code><a title="thunderfish.powerspectrum.multi_psd_args" href="#thunderfish.powerspectrum.multi_psd_args">multi_psd_args()</a></code>: retrieve parameters for mulit_psd() from configuration.</li>
+</ul>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;
+# Powerspectra and spectrograms for a given frequency resolution
+
+## Computation of nfft
+- `next_power_of_two()`: round an integer up to the next power of two.
+- `nfff()`: compute nfft based on a given frequency resolution.
+
+## Decibel
+- `decibel()`: transform power to decibel.
+- `power()`: transform decibel to power.
+
+## Power spectra                
+- `psd()`: power spectrum for a given frequency resolution.
+- `multi_psd()`: power spectra for consecutive data windows and mutiple frequency resolutions.
+- `spectrogram()`: spectrogram of a given frequency resolution and overlap fraction.
+
+## Power spectrum analysis
+- `peak_freqs()`: peak frequencies computed for each of the data snippets.
+
+## Visualization
+- `plot_decibel_psd()`: plot power spectrum in decibel.
+
+## Configuration parameter
+- `add_multi_psd_config()&#39;: add parameters for multi_psd() to configuration.
+- `multi_psd_args()`: retrieve parameters for mulit_psd() from configuration.
+&#34;&#34;&#34;
+
+import numpy as np
+from scipy.signal import get_window
+try:
+    from scipy.signal import welch
+    psdscipy  = True
+except ImportError:
+    from matplotlib.mlab import psd as mpsd
+    from matplotlib.mlab import detrend_linear, detrend_mean, detrend_none
+    psdscipy  = False
+try:
+    from matplotlib.mlab import specgram as mspecgram
+    specgrammlab = True
+except ImportError:
+    specgrammlab = False
+from .eventdetection import detect_peaks
+
+
+def next_power_of_two(n):
+    &#34;&#34;&#34;The next integer power of two.
+    
+    Parameters
+    ----------
+    n: int
+        A positive number.
+
+    Returns
+    -------
+    m: int
+        The next integer power of two equal or larger than `n`.
+    &#34;&#34;&#34;
+    return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))
+
+
+def nfft(samplerate, freq_resolution, min_nfft=16, max_nfft=None):
+    &#34;&#34;&#34;Required number of samples for an FFT of a given frequency resolution.
+
+    Note that the returned number of FFT samples results
+    in frequency intervals that are smaller or equal to `freq_resolution`.
+
+    Parameters
+    ----------
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    freq_resolution: float
+        Minimum frequency resolution in Hertz.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
+
+    Returns
+    -------
+    nfft: int
+        Number of FFT points.
+    &#34;&#34;&#34;
+    nfft = next_power_of_two(samplerate / freq_resolution)
+    if not max_nfft is None:
+        if nfft &gt; max_nfft:
+            nfft = next_power_of_two(max_nfft//2 + 1)
+    if nfft &lt; min_nfft:
+        nfft = min_nfft
+    return nfft
+
+
+def decibel(power, ref_power=1.0, min_power=1e-20):
+    &#34;&#34;&#34;
+    Transform power to decibel relative to ref_power.
+    ```
+    decibel = 10 * log10(power/ref_power)
+    ```
+    Power values smaller than `min_power` are set to `-np.inf`.
+
+    Parameters
+    ----------
+    power: float or array
+        Power values, for example from a power spectrum or spectrogram.
+    ref_power: float or None or &#39;peak&#39;
+        Reference power for computing decibel.
+        If set to `None` or &#39;peak&#39;, the maximum power is used.
+    min_power: float
+        Power values smaller than `min_power` are set to `-inf`.
+
+    Returns
+    -------
+    decibel_psd: array
+        Power values in decibel relative to `ref_power`.
+    &#34;&#34;&#34;
+    if isinstance(power, (list, tuple, np.ndarray)):
+        tmp_power = power
+        decibel_psd = power.copy()
+    else:
+        tmp_power = np.array([power])
+        decibel_psd = np.array([power])
+    if ref_power is None or ref_power == &#39;peak&#39;:
+        ref_power = np.max(decibel_psd)
+    decibel_psd[tmp_power &lt;= min_power] = float(&#39;-inf&#39;)
+    decibel_psd[tmp_power &gt; min_power] = 10.0 * np.log10(decibel_psd[tmp_power &gt; min_power]/ref_power)
+    if isinstance(power, (list, tuple, np.ndarray)):
+        return decibel_psd
+    else:
+        return decibel_psd[0]
+
+
+def power(decibel, ref_power=1.0):
+    &#34;&#34;&#34;
+    Transform decibel back to power relative to ref_power.
+    ```
+    power = ref_power * 10**(0.1 * decibel)
+    ```
+    
+    Parameters
+    ----------
+    decibel: array
+        Decibel values of the power spectrum or spectrogram.
+    ref_power: float
+        Reference power for computing power.
+
+    Returns
+    -------
+    power: array
+        Power values of the power spectrum or spectrogram.
+    &#34;&#34;&#34;
+    return ref_power * 10.0 ** (0.1 * decibel)
+
+
+def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
+        overlap_frac=0.5, detrend=&#39;constant&#39;, window=&#39;hanning&#39;):
+    &#34;&#34;&#34;Power spectrum density of a given frequency resolution.
+
+    NFFT is computed from the requested frequency resolution and the
+    samplerate.  Check the returned frequency array for the actually
+    used frequency resolution.  The frequency intervals are smaller or
+    equal to `freq_resolution`.  NFFT can be retrieved by dividing
+    `samplerate` by the actual frequency resolution:
+    ```
+    freq, power = psd(data, samplerate, 0.1)
+    df = np.mean(np.diff(freq))  # the actual frequency resolution
+    nfft = int(samplerate/df)
+    ```
+
+    Uses scipy signal.welch() if available, otherwise
+    matplotlib.mlab.psd().
+    
+    data: 1-D array 
+        Data from which power spectra are computed.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
+    freq_resolution: float
+        Frequency resolution of the psd in Hertz.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
+    overlap_frac: float
+        Fraction of overlap for the fft windows.
+    detrend: string
+        If &#39;constant&#39; subtract mean of data.
+        If &#39;linear&#39; subtract line fitted to the data.
+        If &#39;none&#39; do not deternd the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
+
+    Returns
+    -------
+    freq: 1-D array
+        Frequencies corresponding to power array.
+    power: 1-D array
+        Power spectral density in [data]^2/Hz.
+    &#34;&#34;&#34;
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
+    n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
+    noverlap = int(n_fft * overlap_frac)
+    if psdscipy:
+        if detrend == &#39;none&#39;:
+            detrend = lambda x: x
+        freqs, power = welch(data, fs=samplerate, nperseg=n_fft, nfft=None,
+                             noverlap=noverlap, detrend=detrend,
+                             window=window, scaling=&#39;density&#39;)
+    else:
+        if detrend == &#39;linear&#39;:
+            detrend_func = detrend_linear
+        elif detrend == &#39;none&#39;:
+            detrend_func = detrend_none
+        else:
+            detrend_func = detrend_mean
+        power, freqs = mpsd(data, Fs=samplerate, NFFT=n_fft,
+                                noverlap=noverlap, detrend=detrend_func,
+                                window=get_window(window, n_fft),
+                                scale_by_freq=True)
+    # squeeze is necessary when n_fft is to large with respect to the data:
+    return freqs, np.squeeze(power)
+
+
+def multi_psd(data, ratetime, freq_resolution=0.5,
+              num_resolutions=1, num_windows=1,
+              min_nfft=16, overlap_frac=0.5,
+              detrend=&#39;constant&#39;, window=&#39;hanning&#39;):
+    &#34;&#34;&#34;Power spectra computed for consecutive data windows and
+    mutiple frequency resolutions.
+
+    See also psd() for more information on power spectra with given
+    frequency resolution.
+
+    Parameters
+    ----------
+    data: 1-D array
+        Data from which power spectra are computed.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
+    freq_resolution: float or 1-D array
+        Frequency resolutions for one or multiple psds in Hertz.
+    num_resolutions: int
+        If freq_resolution is a single number,
+        then generate `num_resolutions` frequency resolutions
+        starting with `freq_resolution` und subsequently multiplied by two.
+    num_windows: int
+        Data are chopped into `num_windows` segments that overlap by half
+        for which power spectra are computed.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    overlap_frac: float
+        Fraction of overlap for the fft windows within a single power spectrum.
+    detrend: string
+        If &#39;constant&#39; subtract mean of data.
+        If &#39;linear&#39; subtract line fitted to the data.
+        If &#39;none&#39; do not deternd the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
+
+    Returns
+    -------
+    multi_psd_data: list of 2-D arrays
+        List of the power spectra for each window and frequency resolution
+        (`psd_data[i][freq, power]`).
+    &#34;&#34;&#34;
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
+    if not isinstance(freq_resolution, (list, tuple, np.ndarray)):
+        freq_resolution = [freq_resolution]
+        for i in range(1, num_resolutions):
+            freq_resolution.append(2*freq_resolution[-1])
+    n_incr = len(data)//(num_windows+1)  # overlap by half a window
+    multi_psd_data = []
+    for k in range(num_windows):
+        for fres in freq_resolution:
+            freq, power = psd(data[k*n_incr:(k+2)*n_incr], samplerate, fres,
+                              min_nfft, 2*n_incr, overlap_frac, detrend, window)
+            multi_psd_data.append(np.column_stack((freq, power)))
+    return multi_psd_data
+
+
+def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
+                max_nfft=None, overlap_frac=0.5,
+                detrend=&#39;constant&#39;, window=&#39;hanning&#39;):
+    &#34;&#34;&#34;
+    Spectrogram of a given frequency resolution.
+
+    Check the returned frequency array for the actually used frequency resolution.
+    The frequency intervals are smaller or equal to `freq_resolution`.
+    NFFT is `samplerate` divided by the actual frequency resolution.
+    ```
+    spec, freq, time = spectrum(data, samplerate, 0.1)
+    df = np.mean(np.diff(freq))  # the actual frequency resolution
+    nfft = int(samplerate/df)
+    ```
+    
+    Parameters
+    ----------
+    data: array
+        Data for the spectrogram.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
+    freq_resolution: float
+        Frequency resolution for the spectrogram.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
+    overlap_frac: float
+        Overlap of the nffts (0 = no overlap; 1 = total overlap).
+    detrend: string
+        If &#39;constant&#39; subtract mean of data.
+        If &#39;linear&#39; subtract line fitted to the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
+
+    Returns
+    -------
+    spectrum: 2D array
+        Power spectral density for each time and frequency.
+    freqs: array
+        Frequencies of the spectrogram.
+    time: array
+        Time of the nfft windows.
+    &#34;&#34;&#34;
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
+    n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
+    noverlap = int(n_fft * overlap_frac)
+    if specgrammlab:
+        try:
+            spec, freqs, time = mspecgram(data, NFFT=n_fft, Fs=samplerate,
+                                          noverlap=noverlap, detrend=detrend,
+                                          scale_by_freq=True, scale=&#39;linear&#39;,
+                                          mode=&#39;psd&#39;,
+                                          window=get_window(window, n_fft))
+        except TypeError:
+            spec, freqs, time = mspecgram(data, NFFT=n_fft, Fs=samplerate,
+                                          noverlap=noverlap, detrend=detrend,
+                                          scale_by_freq=True,
+                                          window=get_window(window, n_fft))
+        return spec, freqs, time
+    else:
+        # ... some alternative implementation ...
+        return None, None, None
+
+
+def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
+                     log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0, **kwargs):
+    &#34;&#34;&#34;
+    Plot the powerspectum in decibel relative to ref_power.
+
+    Parameters
+    ----------
+    ax:
+        Axis for plot.
+    freqs: 1-D array
+        Frequency array of the power spectrum.
+    power: 1-D array
+        Power values of the power spectrum.
+    ref_power: float
+        Reference power for computing decibel. If set to `None` the maximum power is used.
+    min_power: float
+        Power values smaller than `min_power` are set to `np.nan`.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis.
+    min_freq: float
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        if `max_freq` is greater than zero
+    max_freq: float
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        and limits of power axis are computed from powers below max_freq
+        if `max_freq` is greater than zero
+    ymarg: float
+        Add this to the maximum decibel power for setting the ylim.
+    kwargs: dict
+        Plot parameter that are passed on to the `plot()` function.
+    &#34;&#34;&#34;
+    decibel_psd = decibel(power, ref_power=ref_power, min_power=min_power)
+    ax.plot(freqs, decibel_psd, **kwargs)
+    ax.set_xlabel(&#39;Frequency [Hz]&#39;)
+    if max_freq &gt; 0.0:
+        if log_freq and min_freq &lt; 1.0:
+            min_freq = 1.0
+        ax.set_xlim(min_freq, max_freq)
+    else:
+        max_freq = freqs[-1]
+    if log_freq:
+        ax.set_xscale(&#39;log&#39;)
+    dpmf = decibel_psd[freqs &lt; max_freq]
+    pmin = np.min(dpmf[np.isfinite(dpmf)])
+    pmin = np.floor(pmin / 10.0) * 10.0
+    pmax = np.max(dpmf[np.isfinite(dpmf)])
+    pmax = np.ceil((pmax + ymarg) / 10.0) * 10.0
+    ax.set_ylim(pmin, pmax)
+    ax.set_ylabel(&#39;Power [dB]&#39;)
+
+
+def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=1.0,
+               thresh=None, **kwargs):
+    &#34;&#34;&#34;Peak frequencies computed for each of the data snippets.
+
+    Parameters
+    ----------
+    onsets: array of ints
+        Indices indicating the onsets of the snippets in `data`.
+    offsets: array of ints
+        Indices indicating the offsets of the snippets in `data`.
+    data: 1-D array
+        Data array that contains the data snippets defined by `onsets` and `offsets`.
+    samplerate: float
+        Samplerate of data in Hertz.
+    freq_resolution: float
+        Desired frequency resolution of the computed power spectra in Hertz.
+    thresh: None or float
+        If not None than this is the threshold required for the minimum hight of the peak
+        in the power spectrum. If the peak is too small than the peak frequency of
+        that snippet is set to NaN.
+    kwargs: dict
+        Further arguments passed on to psd().
+
+    Returns
+    -------
+    freqs: array of floats
+        For each data snippet the frequency of the maximum power.
+    &#34;&#34;&#34;
+    freqs = []
+    for i0, i1 in zip(onsets, offsets):
+        if &#39;max_nfft&#39; in kwargs:
+            del kwargs[&#39;max_nfft&#39;]
+        f, power = psd(data[i0:i1], samplerate, freq_resolution,
+                       max_nfft=i1-i0, **kwargs)
+        if thresh is None:
+            fpeak = f[np.argmax(power)]
+        else:
+            p, _ = detect_peaks(decibel(power, None), thresh)
+            if len(p) &gt; 0:
+                ipeak = np.argmax(power[p])
+                fpeak = f[p[ipeak]]
+            else:
+                fpeak = float(&#39;NaN&#39;)
+        freqs.append(fpeak)
+    return np.array(freqs)
+
+
+def add_multi_psd_config(cfg, freq_resolution=0.5,
+                         num_resolutions=1, num_windows=1):
+    &#34;&#34;&#34; Add all parameters needed for the multi_psd() function as
+    a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+        
+    See multi_psd() for details on the remaining arguments.
+    &#34;&#34;&#34;
+    cfg.add_section(&#39;Power spectrum estimation:&#39;)
+    cfg.add(&#39;frequencyResolution&#39;, freq_resolution, &#39;Hz&#39;, &#39;Frequency resolution of the power spectrum.&#39;)
+    cfg.add(&#39;numberPSDWindows&#39;, num_resolutions, &#39;&#39;, &#39;Number of windows on which power spectra are computed.&#39;)
+    cfg.add(&#39;numberPSDResolutions&#39;, num_windows, &#39;&#39;, &#39;Number of power spectra computed within each window with decreasing resolution.&#39;)
+
+
+def multi_psd_args(cfg):
+    &#34;&#34;&#34; Translates a configuration to the
+    respective parameter names of the multi_psd() function.
+    
+    The return value can then be passed as key-word arguments to
+    this functions.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the multi_psd() function
+        and their values as supplied by `cfg`.
+    &#34;&#34;&#34;
+    a = cfg.map({&#39;freq_resolution&#39;: &#39;frequencyResolution&#39;,
+                 &#39;num_resolutions&#39;: &#39;numberPSDWindows&#39;,
+                 &#39;num_windows&#39;: &#39;numberPSDResolutions&#39;})
+    return a
+
+
+if __name__ == &#39;__main__&#39;:
+    import matplotlib.pyplot as plt
+
+    print(&#39;Compute powerspectra of two sine waves (300 and 450 Hz)&#39;)
+
+    # generate data:
+    fundamentals = [300, 450]  # Hz
+    samplerate = 100000.0      # Hz
+    time = np.arange(0.0, 8.0, 1.0/samplerate)
+    data = np.sin(2*np.pi*fundamentals[0]*time) + 0.5*np.sin(2*np.pi*fundamentals[1]*time)
+
+    # compute power spectra:
+    fr = [0.5, 1]
+    psd_data = multi_psd(data, samplerate, freq_resolution=fr, detrend=&#39;none&#39;, window=&#39;hanning&#39;)
+
+    # plot power spectra:
+    fig, ax = plt.subplots()
+    for k in range(len(psd_data)):
+        df = np.mean(np.diff(psd_data[k][:,0]))
+        nfft = int(samplerate/df)
+        plot_decibel_psd(ax, psd_data[k][:,0], psd_data[k][:,1], lw=2,
+                         label=&#39;$\\Delta f = %.1f$ Hz, nnft=%d&#39; % (df, nfft))
+    ax.legend(loc=&#39;upper right&#39;)
+    plt.show()</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.powerspectrum.add_multi_psd_config"><code class="name flex">
+<span>def <span class="ident">add_multi_psd_config</span></span>(<span>cfg, freq_resolution=0.5, num_resolutions=1, num_windows=1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Add all parameters needed for the multi_psd() function as
+a new section to a configuration.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+</dl>
+<p>See multi_psd() for details on the remaining arguments.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_multi_psd_config(cfg, freq_resolution=0.5,
+                         num_resolutions=1, num_windows=1):
+    &#34;&#34;&#34; Add all parameters needed for the multi_psd() function as
+    a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+        
+    See multi_psd() for details on the remaining arguments.
+    &#34;&#34;&#34;
+    cfg.add_section(&#39;Power spectrum estimation:&#39;)
+    cfg.add(&#39;frequencyResolution&#39;, freq_resolution, &#39;Hz&#39;, &#39;Frequency resolution of the power spectrum.&#39;)
+    cfg.add(&#39;numberPSDWindows&#39;, num_resolutions, &#39;&#39;, &#39;Number of windows on which power spectra are computed.&#39;)
+    cfg.add(&#39;numberPSDResolutions&#39;, num_windows, &#39;&#39;, &#39;Number of power spectra computed within each window with decreasing resolution.&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.decibel"><code class="name flex">
+<span>def <span class="ident">decibel</span></span>(<span>power, ref_power=1.0, min_power=1e-20)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Transform power to decibel relative to ref_power.</p>
+<pre><code>decibel = 10 * log10(power/ref_power)
+</code></pre>
+<p>Power values smaller than <code>min_power</code> are set to <code>-np.inf</code>.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>power</code></strong> :&ensp;<code>float</code> or <code>array</code></dt>
+<dd>Power values, for example from a power spectrum or spectrogram.</dd>
+<dt><strong><code>ref_power</code></strong> :&ensp;<code>float</code> or <code>None</code> or <code>'peak'</code></dt>
+<dd>Reference power for computing decibel.
+If set to <code>None</code> or 'peak', the maximum power is used.</dd>
+<dt><strong><code>min_power</code></strong> :&ensp;<code>float</code></dt>
+<dd>Power values smaller than <code>min_power</code> are set to <code>-inf</code>.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>decibel_psd</code></strong> :&ensp;<code>array</code></dt>
+<dd>Power values in decibel relative to <code>ref_power</code>.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def decibel(power, ref_power=1.0, min_power=1e-20):
+    &#34;&#34;&#34;
+    Transform power to decibel relative to ref_power.
+    ```
+    decibel = 10 * log10(power/ref_power)
+    ```
+    Power values smaller than `min_power` are set to `-np.inf`.
+
+    Parameters
+    ----------
+    power: float or array
+        Power values, for example from a power spectrum or spectrogram.
+    ref_power: float or None or &#39;peak&#39;
+        Reference power for computing decibel.
+        If set to `None` or &#39;peak&#39;, the maximum power is used.
+    min_power: float
+        Power values smaller than `min_power` are set to `-inf`.
+
+    Returns
+    -------
+    decibel_psd: array
+        Power values in decibel relative to `ref_power`.
+    &#34;&#34;&#34;
+    if isinstance(power, (list, tuple, np.ndarray)):
+        tmp_power = power
+        decibel_psd = power.copy()
+    else:
+        tmp_power = np.array([power])
+        decibel_psd = np.array([power])
+    if ref_power is None or ref_power == &#39;peak&#39;:
+        ref_power = np.max(decibel_psd)
+    decibel_psd[tmp_power &lt;= min_power] = float(&#39;-inf&#39;)
+    decibel_psd[tmp_power &gt; min_power] = 10.0 * np.log10(decibel_psd[tmp_power &gt; min_power]/ref_power)
+    if isinstance(power, (list, tuple, np.ndarray)):
+        return decibel_psd
+    else:
+        return decibel_psd[0]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.multi_psd"><code class="name flex">
+<span>def <span class="ident">multi_psd</span></span>(<span>data, ratetime, freq_resolution=0.5, num_resolutions=1, num_windows=1, min_nfft=16, overlap_frac=0.5, detrend='constant', window='hanning')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Power spectra computed for consecutive data windows and
+mutiple frequency resolutions.</p>
+<p>See also psd() for more information on power spectra with given
+frequency resolution.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>Data from which power spectra are computed.</dd>
+<dt><strong><code>ratetime</code></strong> :&ensp;<code>float</code> or <code>array</code></dt>
+<dd>If float, sampling rate of the data in Hertz.
+If array, assume <code>ratetime</code> to be the time vector corresponding to the data.
+Compute sampling rate as <code>1/(ratetime[1]-ratetime[0])</code>.</dd>
+<dt><strong><code>freq_resolution</code></strong> :&ensp;<code>float</code> or <code>1-D array</code></dt>
+<dd>Frequency resolutions for one or multiple psds in Hertz.</dd>
+<dt><strong><code>num_resolutions</code></strong> :&ensp;<code>int</code></dt>
+<dd>If freq_resolution is a single number,
+then generate <code>num_resolutions</code> frequency resolutions
+starting with <code>freq_resolution</code> und subsequently multiplied by two.</dd>
+<dt><strong><code>num_windows</code></strong> :&ensp;<code>int</code></dt>
+<dd>Data are chopped into <code>num_windows</code> segments that overlap by half
+for which power spectra are computed.</dd>
+<dt><strong><code>min_nfft</code></strong> :&ensp;<code>int</code></dt>
+<dd>Smallest value of nfft to be used.</dd>
+<dt><strong><code>overlap_frac</code></strong> :&ensp;<code>float</code></dt>
+<dd>Fraction of overlap for the fft windows within a single power spectrum.</dd>
+<dt><strong><code>detrend</code></strong> :&ensp;<code>string</code></dt>
+<dd>If 'constant' subtract mean of data.
+If 'linear' subtract line fitted to the data.
+If 'none' do not deternd the data.</dd>
+<dt><strong><code>window</code></strong> :&ensp;<code>string</code></dt>
+<dd>Function used for windowing data segements.
+One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+bohman, blackmanharris, nuttall, fattop, barthann
+(see scipy.signal window functions).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>multi_psd_data</code></strong> :&ensp;<code>list</code> of <code>2-D arrays</code></dt>
+<dd>List of the power spectra for each window and frequency resolution
+(<code>psd_data[i][freq, <a title="thunderfish.powerspectrum.power" href="#thunderfish.powerspectrum.power">power()</a>]</code>).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def multi_psd(data, ratetime, freq_resolution=0.5,
+              num_resolutions=1, num_windows=1,
+              min_nfft=16, overlap_frac=0.5,
+              detrend=&#39;constant&#39;, window=&#39;hanning&#39;):
+    &#34;&#34;&#34;Power spectra computed for consecutive data windows and
+    mutiple frequency resolutions.
+
+    See also psd() for more information on power spectra with given
+    frequency resolution.
+
+    Parameters
+    ----------
+    data: 1-D array
+        Data from which power spectra are computed.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
+    freq_resolution: float or 1-D array
+        Frequency resolutions for one or multiple psds in Hertz.
+    num_resolutions: int
+        If freq_resolution is a single number,
+        then generate `num_resolutions` frequency resolutions
+        starting with `freq_resolution` und subsequently multiplied by two.
+    num_windows: int
+        Data are chopped into `num_windows` segments that overlap by half
+        for which power spectra are computed.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    overlap_frac: float
+        Fraction of overlap for the fft windows within a single power spectrum.
+    detrend: string
+        If &#39;constant&#39; subtract mean of data.
+        If &#39;linear&#39; subtract line fitted to the data.
+        If &#39;none&#39; do not deternd the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
+
+    Returns
+    -------
+    multi_psd_data: list of 2-D arrays
+        List of the power spectra for each window and frequency resolution
+        (`psd_data[i][freq, power]`).
+    &#34;&#34;&#34;
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
+    if not isinstance(freq_resolution, (list, tuple, np.ndarray)):
+        freq_resolution = [freq_resolution]
+        for i in range(1, num_resolutions):
+            freq_resolution.append(2*freq_resolution[-1])
+    n_incr = len(data)//(num_windows+1)  # overlap by half a window
+    multi_psd_data = []
+    for k in range(num_windows):
+        for fres in freq_resolution:
+            freq, power = psd(data[k*n_incr:(k+2)*n_incr], samplerate, fres,
+                              min_nfft, 2*n_incr, overlap_frac, detrend, window)
+            multi_psd_data.append(np.column_stack((freq, power)))
+    return multi_psd_data</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.multi_psd_args"><code class="name flex">
+<span>def <span class="ident">multi_psd_args</span></span>(<span>cfg)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Translates a configuration to the
+respective parameter names of the multi_psd() function.</p>
+<p>The return value can then be passed as key-word arguments to
+this functions.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>a</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary with names of arguments of the multi_psd() function
+and their values as supplied by <code>cfg</code>.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def multi_psd_args(cfg):
+    &#34;&#34;&#34; Translates a configuration to the
+    respective parameter names of the multi_psd() function.
+    
+    The return value can then be passed as key-word arguments to
+    this functions.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the multi_psd() function
+        and their values as supplied by `cfg`.
+    &#34;&#34;&#34;
+    a = cfg.map({&#39;freq_resolution&#39;: &#39;frequencyResolution&#39;,
+                 &#39;num_resolutions&#39;: &#39;numberPSDWindows&#39;,
+                 &#39;num_windows&#39;: &#39;numberPSDResolutions&#39;})
+    return a</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.next_power_of_two"><code class="name flex">
+<span>def <span class="ident">next_power_of_two</span></span>(<span>n)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The next integer power of two.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>n</code></strong> :&ensp;<code>int</code></dt>
+<dd>A positive number.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>m</code></strong> :&ensp;<code>int</code></dt>
+<dd>The next integer power of two equal or larger than <code>n</code>.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def next_power_of_two(n):
+    &#34;&#34;&#34;The next integer power of two.
+    
+    Parameters
+    ----------
+    n: int
+        A positive number.
+
+    Returns
+    -------
+    m: int
+        The next integer power of two equal or larger than `n`.
+    &#34;&#34;&#34;
+    return int(2 ** np.floor(np.log(n) / np.log(2.0) + 1.0-1e-8))</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.nfft"><code class="name flex">
+<span>def <span class="ident">nfft</span></span>(<span>samplerate, freq_resolution, min_nfft=16, max_nfft=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Required number of samples for an FFT of a given frequency resolution.</p>
+<p>Note that the returned number of FFT samples results
+in frequency intervals that are smaller or equal to <code>freq_resolution</code>.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>freq_resolution</code></strong> :&ensp;<code>float</code></dt>
+<dd>Minimum frequency resolution in Hertz.</dd>
+<dt><strong><code>min_nfft</code></strong> :&ensp;<code>int</code></dt>
+<dd>Smallest value of nfft to be used.</dd>
+<dt><strong><code>max_nfft</code></strong> :&ensp;<code>int</code> or <code>None</code></dt>
+<dd>If not None, largest value of nfft to be used.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>nfft</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of FFT points.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def nfft(samplerate, freq_resolution, min_nfft=16, max_nfft=None):
+    &#34;&#34;&#34;Required number of samples for an FFT of a given frequency resolution.
+
+    Note that the returned number of FFT samples results
+    in frequency intervals that are smaller or equal to `freq_resolution`.
+
+    Parameters
+    ----------
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    freq_resolution: float
+        Minimum frequency resolution in Hertz.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
+
+    Returns
+    -------
+    nfft: int
+        Number of FFT points.
+    &#34;&#34;&#34;
+    nfft = next_power_of_two(samplerate / freq_resolution)
+    if not max_nfft is None:
+        if nfft &gt; max_nfft:
+            nfft = next_power_of_two(max_nfft//2 + 1)
+    if nfft &lt; min_nfft:
+        nfft = min_nfft
+    return nfft</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.peak_freqs"><code class="name flex">
+<span>def <span class="ident">peak_freqs</span></span>(<span>onsets, offsets, data, samplerate, freq_resolution=1.0, thresh=None, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Peak frequencies computed for each of the data snippets.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>onsets</code></strong> :&ensp;<code>array</code> of <code>ints</code></dt>
+<dd>Indices indicating the onsets of the snippets in <code>data</code>.</dd>
+<dt><strong><code>offsets</code></strong> :&ensp;<code>array</code> of <code>ints</code></dt>
+<dd>Indices indicating the offsets of the snippets in <code>data</code>.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>Data array that contains the data snippets defined by <code>onsets</code> and <code>offsets</code>.</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Samplerate of data in Hertz.</dd>
+<dt><strong><code>freq_resolution</code></strong> :&ensp;<code>float</code></dt>
+<dd>Desired frequency resolution of the computed power spectra in Hertz.</dd>
+<dt><strong><code>thresh</code></strong> :&ensp;<code>None</code> or <code>float</code></dt>
+<dd>If not None than this is the threshold required for the minimum hight of the peak
+in the power spectrum. If the peak is too small than the peak frequency of
+that snippet is set to NaN.</dd>
+<dt><strong><code>kwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Further arguments passed on to psd().</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>freqs</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>For each data snippet the frequency of the maximum power.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=1.0,
+               thresh=None, **kwargs):
+    &#34;&#34;&#34;Peak frequencies computed for each of the data snippets.
+
+    Parameters
+    ----------
+    onsets: array of ints
+        Indices indicating the onsets of the snippets in `data`.
+    offsets: array of ints
+        Indices indicating the offsets of the snippets in `data`.
+    data: 1-D array
+        Data array that contains the data snippets defined by `onsets` and `offsets`.
+    samplerate: float
+        Samplerate of data in Hertz.
+    freq_resolution: float
+        Desired frequency resolution of the computed power spectra in Hertz.
+    thresh: None or float
+        If not None than this is the threshold required for the minimum hight of the peak
+        in the power spectrum. If the peak is too small than the peak frequency of
+        that snippet is set to NaN.
+    kwargs: dict
+        Further arguments passed on to psd().
+
+    Returns
+    -------
+    freqs: array of floats
+        For each data snippet the frequency of the maximum power.
+    &#34;&#34;&#34;
+    freqs = []
+    for i0, i1 in zip(onsets, offsets):
+        if &#39;max_nfft&#39; in kwargs:
+            del kwargs[&#39;max_nfft&#39;]
+        f, power = psd(data[i0:i1], samplerate, freq_resolution,
+                       max_nfft=i1-i0, **kwargs)
+        if thresh is None:
+            fpeak = f[np.argmax(power)]
+        else:
+            p, _ = detect_peaks(decibel(power, None), thresh)
+            if len(p) &gt; 0:
+                ipeak = np.argmax(power[p])
+                fpeak = f[p[ipeak]]
+            else:
+                fpeak = float(&#39;NaN&#39;)
+        freqs.append(fpeak)
+    return np.array(freqs)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.plot_decibel_psd"><code class="name flex">
+<span>def <span class="ident">plot_decibel_psd</span></span>(<span>ax, freqs, power, ref_power=1.0, min_power=1e-20, log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot the powerspectum in decibel relative to ref_power.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt>ax:</dt>
+<dt>Axis for plot.</dt>
+<dt><strong><code>freqs</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>Frequency array of the power spectrum.</dd>
+<dt><strong><code>power</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>Power values of the power spectrum.</dd>
+<dt><strong><code>ref_power</code></strong> :&ensp;<code>float</code></dt>
+<dd>Reference power for computing decibel. If set to <code>None</code> the maximum power is used.</dd>
+<dt><strong><code>min_power</code></strong> :&ensp;<code>float</code></dt>
+<dd>Power values smaller than <code>min_power</code> are set to <code>np.nan</code>.</dd>
+<dt><strong><code>log_freq</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>Logarithmic (True) or linear (False) frequency axis.</dd>
+<dt><strong><code>min_freq</code></strong> :&ensp;<code>float</code></dt>
+<dd>Limits of frequency axis are set to <code>(min_freq, max_freq)</code>
+if <code>max_freq</code> is greater than zero</dd>
+<dt><strong><code>max_freq</code></strong> :&ensp;<code>float</code></dt>
+<dd>Limits of frequency axis are set to <code>(min_freq, max_freq)</code>
+and limits of power axis are computed from powers below max_freq
+if <code>max_freq</code> is greater than zero</dd>
+<dt><strong><code>ymarg</code></strong> :&ensp;<code>float</code></dt>
+<dd>Add this to the maximum decibel power for setting the ylim.</dd>
+<dt><strong><code>kwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Plot parameter that are passed on to the <code>plot()</code> function.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
+                     log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0, **kwargs):
+    &#34;&#34;&#34;
+    Plot the powerspectum in decibel relative to ref_power.
+
+    Parameters
+    ----------
+    ax:
+        Axis for plot.
+    freqs: 1-D array
+        Frequency array of the power spectrum.
+    power: 1-D array
+        Power values of the power spectrum.
+    ref_power: float
+        Reference power for computing decibel. If set to `None` the maximum power is used.
+    min_power: float
+        Power values smaller than `min_power` are set to `np.nan`.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis.
+    min_freq: float
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        if `max_freq` is greater than zero
+    max_freq: float
+        Limits of frequency axis are set to `(min_freq, max_freq)`
+        and limits of power axis are computed from powers below max_freq
+        if `max_freq` is greater than zero
+    ymarg: float
+        Add this to the maximum decibel power for setting the ylim.
+    kwargs: dict
+        Plot parameter that are passed on to the `plot()` function.
+    &#34;&#34;&#34;
+    decibel_psd = decibel(power, ref_power=ref_power, min_power=min_power)
+    ax.plot(freqs, decibel_psd, **kwargs)
+    ax.set_xlabel(&#39;Frequency [Hz]&#39;)
+    if max_freq &gt; 0.0:
+        if log_freq and min_freq &lt; 1.0:
+            min_freq = 1.0
+        ax.set_xlim(min_freq, max_freq)
+    else:
+        max_freq = freqs[-1]
+    if log_freq:
+        ax.set_xscale(&#39;log&#39;)
+    dpmf = decibel_psd[freqs &lt; max_freq]
+    pmin = np.min(dpmf[np.isfinite(dpmf)])
+    pmin = np.floor(pmin / 10.0) * 10.0
+    pmax = np.max(dpmf[np.isfinite(dpmf)])
+    pmax = np.ceil((pmax + ymarg) / 10.0) * 10.0
+    ax.set_ylim(pmin, pmax)
+    ax.set_ylabel(&#39;Power [dB]&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.power"><code class="name flex">
+<span>def <span class="ident">power</span></span>(<span>decibel, ref_power=1.0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Transform decibel back to power relative to ref_power.</p>
+<pre><code>power = ref_power * 10**(0.1 * decibel)
+</code></pre>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>decibel</code></strong> :&ensp;<code>array</code></dt>
+<dd>Decibel values of the power spectrum or spectrogram.</dd>
+<dt><strong><code>ref_power</code></strong> :&ensp;<code>float</code></dt>
+<dd>Reference power for computing power.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>power</code></strong> :&ensp;<code>array</code></dt>
+<dd>Power values of the power spectrum or spectrogram.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def power(decibel, ref_power=1.0):
+    &#34;&#34;&#34;
+    Transform decibel back to power relative to ref_power.
+    ```
+    power = ref_power * 10**(0.1 * decibel)
+    ```
+    
+    Parameters
+    ----------
+    decibel: array
+        Decibel values of the power spectrum or spectrogram.
+    ref_power: float
+        Reference power for computing power.
+
+    Returns
+    -------
+    power: array
+        Power values of the power spectrum or spectrogram.
+    &#34;&#34;&#34;
+    return ref_power * 10.0 ** (0.1 * decibel)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.psd"><code class="name flex">
+<span>def <span class="ident">psd</span></span>(<span>data, ratetime, freq_resolution, min_nfft=16, max_nfft=None, overlap_frac=0.5, detrend='constant', window='hanning')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Power spectrum density of a given frequency resolution.</p>
+<p>NFFT is computed from the requested frequency resolution and the
+samplerate.
+Check the returned frequency array for the actually
+used frequency resolution.
+The frequency intervals are smaller or
+equal to <code>freq_resolution</code>.
+NFFT can be retrieved by dividing
+<code>samplerate</code> by the actual frequency resolution:</p>
+<pre><code>freq, power = psd(data, samplerate, 0.1)
+df = np.mean(np.diff(freq))  # the actual frequency resolution
+nfft = int(samplerate/df)
+</code></pre>
+<p>Uses scipy signal.welch() if available, otherwise
+matplotlib.mlab.psd().</p>
+<p>data: 1-D array
+Data from which power spectra are computed.
+ratetime: float or array
+If float, sampling rate of the data in Hertz.
+If array, assume <code>ratetime</code> to be the time vector corresponding to the data.
+Compute sampling rate as <code>1/(ratetime[1]-ratetime[0])</code>.
+freq_resolution: float
+Frequency resolution of the psd in Hertz.
+min_nfft: int
+Smallest value of nfft to be used.
+max_nfft: int or None
+If not None, largest value of nfft to be used.
+overlap_frac: float
+Fraction of overlap for the fft windows.
+detrend: string
+If 'constant' subtract mean of data.
+If 'linear' subtract line fitted to the data.
+If 'none' do not deternd the data.
+window: string
+Function used for windowing data segements.
+One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+bohman, blackmanharris, nuttall, fattop, barthann
+(see scipy.signal window functions).</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>freq</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>Frequencies corresponding to power array.</dd>
+<dt><strong><code>power</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>Power spectral density in [data]^2/Hz.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
+        overlap_frac=0.5, detrend=&#39;constant&#39;, window=&#39;hanning&#39;):
+    &#34;&#34;&#34;Power spectrum density of a given frequency resolution.
+
+    NFFT is computed from the requested frequency resolution and the
+    samplerate.  Check the returned frequency array for the actually
+    used frequency resolution.  The frequency intervals are smaller or
+    equal to `freq_resolution`.  NFFT can be retrieved by dividing
+    `samplerate` by the actual frequency resolution:
+    ```
+    freq, power = psd(data, samplerate, 0.1)
+    df = np.mean(np.diff(freq))  # the actual frequency resolution
+    nfft = int(samplerate/df)
+    ```
+
+    Uses scipy signal.welch() if available, otherwise
+    matplotlib.mlab.psd().
+    
+    data: 1-D array 
+        Data from which power spectra are computed.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
+    freq_resolution: float
+        Frequency resolution of the psd in Hertz.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
+    overlap_frac: float
+        Fraction of overlap for the fft windows.
+    detrend: string
+        If &#39;constant&#39; subtract mean of data.
+        If &#39;linear&#39; subtract line fitted to the data.
+        If &#39;none&#39; do not deternd the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
+
+    Returns
+    -------
+    freq: 1-D array
+        Frequencies corresponding to power array.
+    power: 1-D array
+        Power spectral density in [data]^2/Hz.
+    &#34;&#34;&#34;
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
+    n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
+    noverlap = int(n_fft * overlap_frac)
+    if psdscipy:
+        if detrend == &#39;none&#39;:
+            detrend = lambda x: x
+        freqs, power = welch(data, fs=samplerate, nperseg=n_fft, nfft=None,
+                             noverlap=noverlap, detrend=detrend,
+                             window=window, scaling=&#39;density&#39;)
+    else:
+        if detrend == &#39;linear&#39;:
+            detrend_func = detrend_linear
+        elif detrend == &#39;none&#39;:
+            detrend_func = detrend_none
+        else:
+            detrend_func = detrend_mean
+        power, freqs = mpsd(data, Fs=samplerate, NFFT=n_fft,
+                                noverlap=noverlap, detrend=detrend_func,
+                                window=get_window(window, n_fft),
+                                scale_by_freq=True)
+    # squeeze is necessary when n_fft is to large with respect to the data:
+    return freqs, np.squeeze(power)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.powerspectrum.spectrogram"><code class="name flex">
+<span>def <span class="ident">spectrogram</span></span>(<span>data, ratetime, freq_resolution=0.5, min_nfft=16, max_nfft=None, overlap_frac=0.5, detrend='constant', window='hanning')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Spectrogram of a given frequency resolution.</p>
+<p>Check the returned frequency array for the actually used frequency resolution.
+The frequency intervals are smaller or equal to <code>freq_resolution</code>.
+NFFT is <code>samplerate</code> divided by the actual frequency resolution.</p>
+<pre><code>spec, freq, time = spectrum(data, samplerate, 0.1)
+df = np.mean(np.diff(freq))  # the actual frequency resolution
+nfft = int(samplerate/df)
+</code></pre>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code></dt>
+<dd>Data for the spectrogram.</dd>
+<dt><strong><code>ratetime</code></strong> :&ensp;<code>float</code> or <code>array</code></dt>
+<dd>If float, sampling rate of the data in Hertz.
+If array, assume <code>ratetime</code> to be the time vector corresponding to the data.
+Compute sampling rate as <code>1/(ratetime[1]-ratetime[0])</code>.</dd>
+<dt><strong><code>freq_resolution</code></strong> :&ensp;<code>float</code></dt>
+<dd>Frequency resolution for the spectrogram.</dd>
+<dt><strong><code>min_nfft</code></strong> :&ensp;<code>int</code></dt>
+<dd>Smallest value of nfft to be used.</dd>
+<dt><strong><code>max_nfft</code></strong> :&ensp;<code>int</code> or <code>None</code></dt>
+<dd>If not None, largest value of nfft to be used.</dd>
+<dt><strong><code>overlap_frac</code></strong> :&ensp;<code>float</code></dt>
+<dd>Overlap of the nffts (0 = no overlap; 1 = total overlap).</dd>
+<dt><strong><code>detrend</code></strong> :&ensp;<code>string</code></dt>
+<dd>If 'constant' subtract mean of data.
+If 'linear' subtract line fitted to the data.</dd>
+<dt><strong><code>window</code></strong> :&ensp;<code>string</code></dt>
+<dd>Function used for windowing data segements.
+One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+bohman, blackmanharris, nuttall, fattop, barthann
+(see scipy.signal window functions).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>spectrum</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>Power spectral density for each time and frequency.</dd>
+<dt><strong><code>freqs</code></strong> :&ensp;<code>array</code></dt>
+<dd>Frequencies of the spectrogram.</dd>
+<dt><strong><code>time</code></strong> :&ensp;<code>array</code></dt>
+<dd>Time of the nfft windows.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
+                max_nfft=None, overlap_frac=0.5,
+                detrend=&#39;constant&#39;, window=&#39;hanning&#39;):
+    &#34;&#34;&#34;
+    Spectrogram of a given frequency resolution.
+
+    Check the returned frequency array for the actually used frequency resolution.
+    The frequency intervals are smaller or equal to `freq_resolution`.
+    NFFT is `samplerate` divided by the actual frequency resolution.
+    ```
+    spec, freq, time = spectrum(data, samplerate, 0.1)
+    df = np.mean(np.diff(freq))  # the actual frequency resolution
+    nfft = int(samplerate/df)
+    ```
+    
+    Parameters
+    ----------
+    data: array
+        Data for the spectrogram.
+    ratetime: float or array
+        If float, sampling rate of the data in Hertz.
+        If array, assume `ratetime` to be the time vector corresponding to the data.
+        Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
+    freq_resolution: float
+        Frequency resolution for the spectrogram.
+    min_nfft: int
+        Smallest value of nfft to be used.
+    max_nfft: int or None
+        If not None, largest value of nfft to be used.
+    overlap_frac: float
+        Overlap of the nffts (0 = no overlap; 1 = total overlap).
+    detrend: string
+        If &#39;constant&#39; subtract mean of data.
+        If &#39;linear&#39; subtract line fitted to the data.
+    window: string
+        Function used for windowing data segements.
+        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        bohman, blackmanharris, nuttall, fattop, barthann
+        (see scipy.signal window functions).
+
+    Returns
+    -------
+    spectrum: 2D array
+        Power spectral density for each time and frequency.
+    freqs: array
+        Frequencies of the spectrogram.
+    time: array
+        Time of the nfft windows.
+    &#34;&#34;&#34;
+    samplerate = ratetime if np.isscalar(ratetime) else 1.0/(ratetime[1]-ratetime[0])
+    n_fft = nfft(samplerate, freq_resolution, min_nfft, max_nfft)
+    noverlap = int(n_fft * overlap_frac)
+    if specgrammlab:
+        try:
+            spec, freqs, time = mspecgram(data, NFFT=n_fft, Fs=samplerate,
+                                          noverlap=noverlap, detrend=detrend,
+                                          scale_by_freq=True, scale=&#39;linear&#39;,
+                                          mode=&#39;psd&#39;,
+                                          window=get_window(window, n_fft))
+        except TypeError:
+            spec, freqs, time = mspecgram(data, NFFT=n_fft, Fs=samplerate,
+                                          noverlap=noverlap, detrend=detrend,
+                                          scale_by_freq=True,
+                                          window=get_window(window, n_fft))
+        return spec, freqs, time
+    else:
+        # ... some alternative implementation ...
+        return None, None, None</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul>
+<li><a href="#powerspectra-and-spectrograms-for-a-given-frequency-resolution">Powerspectra and spectrograms for a given frequency resolution</a><ul>
+<li><a href="#computation-of-nfft">Computation of nfft</a></li>
+<li><a href="#decibel">Decibel</a></li>
+<li><a href="#power-spectra">Power spectra</a></li>
+<li><a href="#power-spectrum-analysis">Power spectrum analysis</a></li>
+<li><a href="#visualization">Visualization</a></li>
+<li><a href="#configuration-parameter">Configuration parameter</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.powerspectrum.add_multi_psd_config" href="#thunderfish.powerspectrum.add_multi_psd_config">add_multi_psd_config</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.decibel" href="#thunderfish.powerspectrum.decibel">decibel</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.multi_psd" href="#thunderfish.powerspectrum.multi_psd">multi_psd</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.multi_psd_args" href="#thunderfish.powerspectrum.multi_psd_args">multi_psd_args</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.next_power_of_two" href="#thunderfish.powerspectrum.next_power_of_two">next_power_of_two</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.nfft" href="#thunderfish.powerspectrum.nfft">nfft</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.peak_freqs" href="#thunderfish.powerspectrum.peak_freqs">peak_freqs</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.plot_decibel_psd" href="#thunderfish.powerspectrum.plot_decibel_psd">plot_decibel_psd</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.power" href="#thunderfish.powerspectrum.power">power</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.psd" href="#thunderfish.powerspectrum.psd">psd</a></code></li>
+<li><code><a title="thunderfish.powerspectrum.spectrogram" href="#thunderfish.powerspectrum.spectrogram">spectrogram</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>
