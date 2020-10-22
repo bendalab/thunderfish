@@ -258,7 +258,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     ----------
     eod: 2-D array
         The eod waveform. First column is time in seconds, second column the EOD waveform,
-        third column, if present, is the standarad error of the EOD waveform,
+        third column, if present, is the standard error of the EOD waveform,
         Further columns are optional but not used.
     freq: float or 2-D array
         The frequency of the EOD or the list of harmonics (rows)
@@ -509,7 +509,7 @@ def exp_decay(t, tau, ampl, offs):
     return offs + ampl*np.exp(-t/tau)
 
 
-def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
+def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01,
                   min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
                   freq_resolution=1.0, flip_pulse='none',
                   ipi_cv_thresh=0.5, ipi_percentile=30.0):
@@ -520,9 +520,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     ----------
     eod: 2-D array
         The eod waveform. First column is time in seconds, second column the EOD waveform,
-        third column, if present, is the standarad error of the EOD waveform,
+        third column, if present, is the standard error of the EOD waveform,
         Further columns are optional but not used.
-    eod_times: 1-D array
+    eod_times: 1-D array or None
         List of times of detected EOD peaks.
     min_pulse_win: float
         The minimum size of cut-out EOD waveform.
@@ -562,10 +562,10 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
         A dictionary with properties of the analyzed EOD waveform.
 
         - type: set to 'pulse'.
-        - EODf: the inverse of the median interval between `eod_times`.
-        - period: the median interval between `eod_times`.
-        - IPI-mean: the mean interval between `eod_times`.
-        - IPI-std: the standard deviation of the intervals between `eod_times`.
+        - EODf: the inverse of the median interval between `eod_times`, if provided.
+        - period: the median interval between `eod_times`, if provided.
+        - IPI-mean: the mean interval between `eod_times`, if provided.
+        - IPI-std: the standard deviation of the intervals between `eod_times`, if provided.
         - max-amplitude: the amplitude of the largest positive peak (P1).
         - min-amplitude: the amplitude of the largest negative peak (P2).
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
@@ -588,8 +588,8 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
         - powerlowcutoff: frequency at which the power reached half of the peak power
           relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
-        - n: number of pulses analyzed  (i.e. `len(eod_times)`).
-        - times: the times of the detected EOD pulses (i.e. `eod_times`).
+        - n: number of pulses analyzed  (i.e. `len(eod_times)`), if provided.
+        - times: the times of the detected EOD pulses (i.e. `eod_times`), if provided.
     peaks: 2-D array
         For each peak and trough (rows) of the EOD waveform
         5 columns: the peak index (1 is P1, i.e. the largest positive peak),
@@ -825,26 +825,28 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     lowcutoff = freqs[decibel(power, maxpower) > 0.5*att5][0]
 
     # analyze pulse timing:
-    inter_pulse_intervals = np.diff(eod_times)
-    ipi_cv = np.std(inter_pulse_intervals)/np.mean(inter_pulse_intervals)
-    if ipi_cv < ipi_cv_thresh:
-        period = np.median(inter_pulse_intervals)
-        ipi_mean = np.mean(inter_pulse_intervals)
-        ipi_std = np.std(inter_pulse_intervals)
-    else:
-        intervals = inter_pulse_intervals[inter_pulse_intervals <
-                                np.percentile(inter_pulse_intervals, ipi_percentile)]
-        period = np.median(intervals)
-        ipi_mean = np.mean(intervals)
-        ipi_std = np.std(intervals)
+    if eod_times is not None:
+        inter_pulse_intervals = np.diff(eod_times)
+        ipi_cv = np.std(inter_pulse_intervals)/np.mean(inter_pulse_intervals)
+        if ipi_cv < ipi_cv_thresh:
+            period = np.median(inter_pulse_intervals)
+            ipi_mean = np.mean(inter_pulse_intervals)
+            ipi_std = np.std(inter_pulse_intervals)
+        else:
+            intervals = inter_pulse_intervals[inter_pulse_intervals <
+                                    np.percentile(inter_pulse_intervals, ipi_percentile)]
+            period = np.median(intervals)
+            ipi_mean = np.mean(intervals)
+            ipi_std = np.std(intervals)
     
     # store properties:
     props = {}
     props['type'] = 'pulse'
-    props['EODf'] = 1.0/period
-    props['period'] = period
-    props['IPI-mean'] = ipi_mean
-    props['IPI-std'] = ipi_std
+    if eod_times is not None:
+        props['EODf'] = 1.0/period
+        props['period'] = period
+        props['IPI-mean'] = ipi_mean
+        props['IPI-std'] = ipi_std
     props['max-amplitude'] = max_ampl
     props['min-amplitude'] = min_ampl
     props['p-p-amplitude'] = ppampl
@@ -863,8 +865,9 @@ def analyze_pulse(eod, eod_times, min_pulse_win=0.001, peak_thresh_fac=0.01,
     props['lowfreqattenuation50'] = att50
     props['powerlowcutoff'] = lowcutoff
     props['flipped'] = flipped
-    props['n'] = len(eod_times)
-    props['times'] = eod_times + toffs
+    if eod_times is not None:
+        props['n'] = len(eod_times)
+        props['times'] = eod_times + toffs
     
     return meod, props, peaks, ppower
 
@@ -1672,9 +1675,14 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
             label = u'P%d' % p[0]
             if p[0] != 1:
                 if p[1] < 0.001:
-                    label += u'(%.0f%% @ %.0f\u00b5s)' % (100.0*p[3], 1.0e6*p[1])
+                    ts = u'%.0f\u00b5s' % (1.0e6*p[1])
                 else:
-                    label += u'(%.0f%% @ %.2gms)' % (100.0*p[3], 1.0e3*p[1])
+                    ts = u'(%.2gms)' % (1.0e3*p[1])
+                if p[3] < 0.05:
+                    ps = u'%.1f%%' % (100*p[3])
+                else:
+                    ps = u'%.0f%%' % (100*p[3])
+                label += u'(%s @ %s)' % (ps, ts)
             va = 'bottom'
             dy = 0.4*font_size
             if p[0] % 2 == 0:
