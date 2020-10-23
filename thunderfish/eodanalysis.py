@@ -1674,11 +1674,13 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                        c=mkwargs['color'], edgecolors=mkwargs['color'])
             label = u'P%d' % p[0]
             if p[0] != 1:
-                if p[1] < 0.001:
+                if np.abs(p[1]) < 0.001:
                     ts = u'%.0f\u00b5s' % (1.0e6*p[1])
+                elif np.abs(p[1]) < 0.01:
+                    ts = u'%.2fms' % (1.0e3*p[1])
                 else:
-                    ts = u'(%.2gms)' % (1.0e3*p[1])
-                if p[3] < 0.05:
+                    ts = u'%.3gms' % (1.0e3*p[1])
+                if np.abs(p[3]) < 0.05:
                     ps = u'%.1f%%' % (100*p[3])
                 else:
                     ps = u'%.0f%%' % (100*p[3])
