@@ -1016,8 +1016,8 @@ class TableData(object):
         """
         Next column of data.
 
-        Returns:
-        --------
+        Returns
+        -------
         data: list of values
             Table data of next column.
         """

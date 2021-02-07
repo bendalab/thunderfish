@@ -7,9 +7,12 @@ Analysis of EOD waveforms.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
-- `load_species_waveforms()`: load template EOD waveforms for species matching.
+
+## Similarity of EOD waveforms
+
 - `wave_similarity()`: root-mean squared difference between two wave fish EODs.
 - `pulse_similarity()`: root-mean squared difference between two pulse fish EODs.
+- `load_species_waveforms()`: load template EOD waveforms for species matching.
 
 ## Quality assessment
 
@@ -196,8 +199,8 @@ def unfilter(data, samplerate, cutoff):
     the ODE \\[ \\tau \\dot x = y + \\tau \\dot y \\] is applied on the
     filtered data \\(y\\).
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data: ndarray
         High-pass filtered original data.
     samplerate: float
@@ -205,8 +208,8 @@ def unfilter(data, samplerate, cutoff):
     cutoff: float
         Cutoff frequency \\(f_{cutoff}\\) of the high-pass filter in Hertz.
 
-    Returns:
-    --------
+    Returns
+    -------
     data: ndarray
         Recovered original data.
     """
@@ -915,7 +918,7 @@ def load_species_waveforms(species_file='none'):
 
           The EOD frequency is used to normalize the time axis of a wave
           fish EOD to one EOD period. If it is not specified in the third field,
-          it is taken from the corresponding *-wavespectrun-* file, if present.
+          it is taken from the corresponding *-wavespectrum-* file, if present.
           Otherwise the species is excluded and a warning is issued.
 
         Example file content:

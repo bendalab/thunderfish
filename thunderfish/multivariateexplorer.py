@@ -1277,13 +1277,13 @@ def main():
 def categorize(data):
     """ Convert categorial string data into integer categories.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     data: list of string
         A list of textual categories.
 
-    Returns:
-    --------
+    Returns
+    -------
     categories: list of strings
         A sorted unique list of the strings in data.
     cdata: list of integers

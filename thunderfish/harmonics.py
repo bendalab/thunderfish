@@ -1492,8 +1492,8 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
     """
     Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
     
-    Parameters:
-    -----------
+    Parameters
+    ----------
     psd_freqs: array
         Frequencies of the power spectrum.
     psd: array
