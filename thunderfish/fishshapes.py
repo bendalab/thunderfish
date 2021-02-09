@@ -1,35 +1,53 @@
 """
-Plot fish outlines.
+Manipulate and plot fish outlines.
+
+## Fish shapes
+
+All fish shapes of this module are accessible via these dictionaries:
+- `fish_shapes`: dictionary holding all electric fish shapes.
+- `fish_top_shapes`: dictionary holding electric fish shapes viewed from top.
+- `fish_side_shapes`: dictionary holding electric fish shapes viewed from the side.
+
+These are the shapes of various fish species:
+- `Alepto_top`: *Apteronotus leptorhynchus* viewed from top.
+- `Alepto_male_side`: Male *Apteronotus leptorhynchus* viewed from the side.
+- `Eigenmannia_top`: *Eigenmannia virescens* viewed from top.
+- `Eigenmannia_side`: *Eigenmannia virescens* viewed from the side.
 
 ## Plotting
 
 - `plot_fish()`: plot body and fin of an electric fish.
-- `fish_shapes`: dictionary holding all known electric fish shapes.
 - `plot_object()`: plot circular object.
+- `plot_pathes()`: plot pathes.
 
 ## Fish surface and normals from shapes
 
-- `fish_surface()`: meshgrid of one side of the fish.
+- `fish_surface()`: generate meshgrid of one side of the fish from shape.
 - `surface_normals()`: normal vectors on a surface.
 
-## Importing fish outlines
+## General path manipulations
 
-- `extract_fish()`: convert SVG coordinates to numpy array.
+You may use these functions to extract and fine tune pathes from SVG files in order
+to assemble fish shapes for this module. See `export_fish_demo()` for a use case.
+
+- `extract_path()`: convert SVG coordinates to numpy array with path coordinates.
 - `bbox_pathes()`: common bounding box of pathes.
-- `plot_pathes()`: plot pathes.
 - `translate_pathes()`: translate pathes in place.
 - `center_pathes()`: translate pathes to their common origin in place.
 - `rotate_pathes()`: rotate pathes in place.
 - `flipy_pathes()`: flip pathes in y-direction in place.
 - `flipx_pathes()`: flip pathes in x-direction in place.
-- `mirror_fish()`: complete path of half a fish outline by appending the mirrored path.
-- `normalize_fish()`: normalize fish outline to unit length.
 - `export_path()`: print coordinates of path for import as numpy array.
-- `export_fish()`: print coordinates of fish outlines in dictionary for import.
-- `export_fish_demo(): code demonstrating how to export fish outlines from SVG.
+- `mirror_path()`: complete path of half a fish outline by appending the mirrored path.
+- `normalize_path()`: normalize fish outline to unit length.
+- `bend_path()`: bend and scale a path.
+
+## Exporting fish outlines from pathes
+
+- `export_fish()`: serialize coordinates of fish outlines as a dictionary.
+- `export_fish_demo()`: code demonstrating how to export fish outlines from SVG.
 """
 
-from __future__ import print_function
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -37,329 +55,6 @@ from matplotlib.path import Path
 from matplotlib.patches import PathPatch, Circle
 
 
-def extract_fish(data):
-    """ Convert SVG coordinates to numpy array.
-
-    Draw a fish outline in inkscape. Open the XML Editor (shift+ctrl+x)
-    and copy the value of the data field ('d') into a variable that you
-    pass to this function.
-    Alternatively, try the 'inkscape:original-d' variable.
-
-    Parameters
-    ----------
-    data: string
-        Space separated coordinate pairs describing the outline of a fish.
-        The coordinates are separated by commas. Coordinate pairs without a comma are ignored.
-
-    Returns
-    -------
-    vertices: 2D array
-        The coordinates of the outline of a fish.
-    """
-    coords = data.split(' ')
-    vertices = []
-    relative = False
-    xc = yc = 0
-    for c in coords:
-        if ',' in c:
-            xs, ys = c.split(',')
-            x = float(xs)
-            y = float(ys)
-            if relative:
-                xc += x
-                yc += y
-            else:
-                xc = x
-                yc = y
-            vertices.append((xc, yc))
-        else:
-            if c in 'MLC':
-                relative = False
-            elif c in 'mlc':
-                relative = True
-    vertices = np.array(vertices)
-    return vertices
-
-
-def bbox_pathes(*vertices):
-    """ Common bounding box of pathes.
-
-    Parameters
-    ----------
-    vertices: one or more 2D arrays
-        The coordinates of pathes.
-
-    Returns
-    -------
-    bbox: 2D array
-        Bounding box of the pathes: [[x0, y0], [x1, y1]]
-    """
-    # get bounding box of all pathes:
-    bbox = np.zeros((2, 2))
-    first = True
-    for verts in vertices:
-        vbbox = np.array([[np.min(verts[:,0]), np.min(verts[:,1])],
-                          [np.max(verts[:,0]), np.max(verts[:,1])]])
-        if first:
-            bbox = vbbox
-            first = False
-        else:
-            bbox[0,0] = min(bbox[0,0], vbbox[0,0])
-            bbox[0,1] = min(bbox[0,1], vbbox[0,1])
-            bbox[1,0] = max(bbox[1,0], vbbox[1,0])
-            bbox[1,1] = max(bbox[1,1], vbbox[1,1])
-    return bbox
-
-
-def plot_pathes(ax, *vertices, **kwargs):
-    """ Plot pathes.
-
-    Parameters
-    ----------
-    ax: matplotlib axes
-        Axes where to draw the fish.
-    vertices: 2D array
-        The coordinates of pathes to be plotted.
-    kwargs: key word arguments
-        Arguments for PathPatch used to draw the path.
-    """
-    for verts in vertices:
-        codes = np.zeros(len(verts))
-        codes[:] = Path.LINETO
-        codes[0] = Path.MOVETO
-        codes[-1] = Path.CLOSEPOLY
-        path = Path(verts, codes)
-        ax.add_patch(PathPatch(path, **kwargs))
-    bbox = bbox_pathes(*vertices)
-    center = np.mean(bbox, axis=0)
-    bbox -= center
-    bbox *= 1.2
-    bbox += center
-    ax.set_xlim(*bbox[:,0])
-    ax.set_ylim(*bbox[:,1])
-
-
-def translate_pathes(dx, dy, *vertices):
-    """ Translate pathes in place.
-
-    Parameters
-    ----------
-    dx: float
-        Shift in x direction.
-    dy: float
-        Shift in y direction.
-    vertices: one or more 2D arrays
-        The coordinates of pathes to be translated.
-    """
-    for verts in vertices:
-        verts[:,0] += dx
-        verts[:,1] += dy
-
-
-def center_pathes(*vertices):
-    """ Translate pathes to their common origin in place.
-
-    Parameters
-    ----------
-    vertices: one or more 2D arrays
-        The coordinates of pathes to be centered.
-    """
-    center = np.mean(bbox_pathes(*vertices), axis=1)
-    # shift:
-    for verts in vertices:
-        verts[:,0] -= center[0]
-        verts[:,1] -= center[1]
-
-
-def rotate_pathes(theta, *vertices):
-    """ Rotate pathes in place.
-
-    Parameters
-    ----------
-    theta: float
-        Rotation angle in degrees.
-    vertices: one or more 2D arrays
-        The coordinates of pathes to be rotated.
-    """
-    theta *= np.pi/180.0
-    # rotation matrix:
-    c = np.cos(theta)
-    s = np.sin(theta)
-    rm = np.array(((c, -s), (s, c)))
-    # rotation:
-    for verts in vertices:
-        verts[:,:] = np.dot(verts, rm)
-
-
-def flipx_pathes(*vertices):
-    """ Flip pathes in x-direction in place.
-
-    Parameters
-    ----------
-    vertices: one or more 2D arrays
-        The coordinates of pathes to be flipped.
-    """
-    for verts in vertices:
-        verts[:,0] = -verts[:,0]
-
-
-def flipy_pathes(*vertices):
-    """ Flip pathes in y-direction in place.
-
-    Parameters
-    ----------
-    vertices: one or more 2D arrays
-        The coordinates of pathes to be flipped.
-    """
-    for verts in vertices:
-        verts[:,1] = -verts[:,1]
-
-
-def mirror_fish(vertices1):
-    """ Complete path of half a fish outline by appending the mirrored path.
-
-    It is sufficient to draw half of a top view of a fish. Import with
-    extract_fish() and use this function to add the missing half of the
-    outline to the path. The outline is mirrored on the x-axis.
-
-    Parameters
-    ----------
-    vertices1: 2D array
-        The coordinates of one half of the outline of a fish.
-
-    Returns
-    -------
-    vertices: 2D array
-        The coordinates of the complete outline of a fish.
-    """
-    vertices2 = np.array(vertices1[::-1,:])
-    vertices2[:,1] *= -1
-    vertices = np.concatenate((vertices1, vertices2))
-    return vertices
-
-
-def normalize_fish(*vertices):
-    """ Normalize and shift fish outline in place.
-
-    The fish extend in x direction is normalized to one and its center
-    is shifted to the origin.
-
-    Parameters
-    ----------
-    vertices: one or more 2D arrays
-        The coordinates of the outline of a fish.
-    """
-    bbox = bbox_pathes(*vertices)
-    # normalize:
-    for verts in vertices:
-        verts[:,1] -= np.mean(bbox[:,1])
-        verts[:,0] -= bbox[0,0]
-        verts /= bbox[1,0] - bbox[0,0]
-        verts[:,0] -= 0.5
-
-
-def export_path(vertices):
-    """ Print coordinates of path for import as numpy array.
-
-    The variable name, a leading 'np.array([' and the closing '])'
-    are not printed.
-
-    Parameters
-    ----------
-    vertices: 2D array
-        The coordinates of the path.
-    """
-    n = 2
-    for k, v in enumerate(vertices):
-        if k%n == 0:
-            print('   ', end='')
-        print(' [%.8e, %.8e],' % (v[0], v[1]), end='')
-        if k%n == n-1 and k < len(vertices)-1:
-            print('')
-
-
-def export_fish(name, body, *fins):
-    """ Print coordinates of fish outlines in dictionary for import.
-
-    Writes a dictionary with name 'name' and keys 'body', 'fin0', 'fin1', ...
-    holding the pathes.
-
-    Copy these coordinates from the console and paste them into this module.
-    Give it a proper name and don't forget to add it to the fish_shapes dictionary
-    to make it know to plot_fish().
-
-    Parameters
-    ----------
-    name: string
-        Name of the variable.
-    body: 2D array
-        The coordinates of fish's body.
-    fins: zero or more 2D array
-        The coordinates of the fish's fins.
-
-    Returns
-    -------
-    fish: dict
-        A dictionary holding the pathes that can be passed directly to plot_fish().
-    """
-    print('%s = dict(body=np.array([' % name)
-    export_path(body)
-    fish = dict(body=body)
-    for k, f in enumerate(fins):
-        print(']),')
-        print('    fin%d=np.array([' % k)
-        export_path(f)
-        fish['fin%d' % k] = f
-    print(']))')
-    return fish
-
-
-def export_fish_demo():
-    """ Code demonstrating how to export a fish outline from SVG.
-    """
-    data = "m 84.013672,21.597656 0.0082,83.002434 0.113201,-0.0145 0.1238,-0.32544 0.06532,-0.80506 0.06836,-0.87696 0.0332,-4.298823 v -8.625 l 0.06836,-1.724609 0.06836,-1.722657 0.07032,-1.726562 0.06836,-1.726563 0.06641,-1.693359 0.03439,-1.293583 0.06912,-1.30798 0.10547,-1.724609 0.10156,-1.724609 0.10352,-1.726563 0.10352,-1.724609 0.13867,-1.72461 0.171876,-2.572265 0.13672,-1.72461 0.13672,-1.726562 0.10352,-1.724609 0.06836,-1.722657 0.103515,-2.574219 0.06836,-1.722656 0.10352,-1.728515 0.07032,-1.722657 0.06836,-1.724609 0.240234,-1.724609 0.34375,-1.72461 0.134766,-1.726562 0.10352,-1.69336 0.03516,-0.875 0.07031,-1.728515 v -0.847657 l -0.07273,-2.246267 -0.0172,-0.184338 0.15636,0.09441 0.384252,1.019739 0.748821,0.905562 1.028854,0.647532 1.356377,-0.03149 0.362644,-0.347764 -0.264138,-0.736289 -1.268298,-1.126614 -1.363988,-0.922373 -0.927443,-0.451153 -0.228986,-0.07018 -0.0015,-0.21624 0.03663,-0.660713 0.480469,-0.847657 -0.101563,-0.876953 -0.103515,-0.845703 -0.103516,-0.876953 -0.207031,-1.695313 -0.273438,-1.724609 -0.308594,-1.726562 -0.27539,-1.72461 -0.310547,-1.722656 -0.240234,-0.878906 -0.400196,-0.877344 -0.53927,-0.596268 -0.486573,-0.216683 z"
-    verts = extract_fish(data)
-    # look at the path:
-    fig, ax = plt.subplots()
-    plot_pathes(ax, verts)
-    ax.set_aspect('equal')
-    plt.show()
-    # fix path:
-    center_pathes(verts)
-    rotate_pathes(-90.0, verts)
-    verts[:,1] *= 0.8               # change aspect ratio
-    verts = verts[1:,:]             # remove first point
-    translate_pathes(0.0, -np.min(verts[:,1]), verts)
-    # mirrow, normalize and export path:
-    verts = mirror_fish(verts)
-    normalize_fish(verts)
-    fish = export_fish('Alepto_top', verts)
-    # plot outline:
-    fig, ax = plt.subplots()
-    plot_fish(ax, fish, size=1.0/1.1,
-              bodykwargs=dict(lw=1, edgecolor='k', facecolor='r'),
-              finkwargs=dict(lw=1, edgecolor='k', facecolor='b'))
-    ax.set_xlim(-1.5, 1.5)
-    ax.set_ylim(-1, 1)
-    plt.show()
-
-
-def bend_path(path, bend, size, size_fac=1.0):
-    path = np.array(path)
-    path *= size_fac*size
-    if np.abs(bend) > 1.e-8:
-        sel = path[:,0]<0.0
-        xp = path[sel,0]   # x coordinates of all negative y coordinates of path
-        yp = path[sel,1]   # all negative y coordinates of path
-        r = -180.0*0.5*size/bend/np.pi        # radius of circle on which to bend the tail
-        beta = xp/r                           # angle on circle for each y coordinate
-        R = r-yp                              # radius of point
-        path[sel,0] = -np.abs(R*np.sin(beta)) # transformed x coordinates
-        path[sel,1] = r-R*np.cos(beta)        # transformed y coordinates
-    return path
-        
-
-""" Outline of an Apteronotus viewd from top, modified from Krahe 2004. """
 Alepto_top = dict(body=np.array([
     [-5.00000000e-01, 0.00000000e+00], [-4.99802704e-01, 1.23222860e-03],
     [-4.95374557e-01, 2.57983066e-03], [-4.84420392e-01, 3.29085947e-03],
@@ -423,6 +118,7 @@ Alepto_top = dict(body=np.array([
     [-4.13995354e-01, -4.39637211e-03], [-4.72487909e-01, -4.03497963e-03],
     [-4.84420392e-01, -3.29085947e-03], [-4.95374557e-01, -2.57983066e-03],
     [-4.99802704e-01, -1.23222860e-03], [-5.00000000e-01, -0.00000000e+00],]))
+""" Outline of an *Apteronotus leptorhynchus* viewed from top, modified from Krahe 2004. """
 
 Alepto_male_side = dict(body=np.array([
     [2.80332097e-01, 5.51361973e-02], [2.41127905e-01, 5.93460338e-02],
@@ -486,6 +182,7 @@ Alepto_male_side = dict(body=np.array([
     [1.21071140e-01, -7.25104674e-02], [1.78723549e-01, -7.85286909e-02],
     [2.32100395e-01, -8.40268652e-02], [2.74938812e-01, -8.74456073e-02],
     [3.10041908e-01, -8.43007220e-02],]))
+""" Outline of an *Apteronotus leptorhynchus* male viewed from the side. """
 
 Eigenmannia_top = dict(body=np.array([
     [-5.00000000e-01, 0.00000000e+00], [-4.84515329e-01, 4.41536208e-03],
@@ -525,6 +222,7 @@ Eigenmannia_top = dict(body=np.array([
     [-1.35145770e-01, -1.09559947e-02], [-2.74106007e-01, -8.94059314e-03],
     [-3.94680346e-01, -8.25734868e-03], [-4.76913801e-01, -5.34924846e-03],
     [-4.84515329e-01, -4.41536208e-03], [-5.00000000e-01, -0.00000000e+00],]))
+""" Outline of an *Eigenmannia virescens* viewed from top. """
 
 Eigenmannia_side = dict(body=np.array([
     [7.39835590e-02, 4.57421567e-02], [1.36190672e-01, 5.20008556e-02],
@@ -602,20 +300,21 @@ Eigenmannia_side = dict(body=np.array([
     [-1.51874267e-01, -2.50855445e-02], [-2.01943420e-01, -2.02074944e-02],
     [-2.61607516e-01, -1.41653476e-02], [-3.02124016e-01, -9.83478430e-03],
     [-3.12840355e-01, -9.28491550e-03],]))
+""" Outline of an *Eigenmannia virescens* viewed from the side. """
 
-""" Dictionary holding all known electric fish shapes. """
 fish_shapes = dict(Alepto_top=Alepto_top,
                    Alepto_male_side=Alepto_male_side,
                    Eigenmannia_top=Eigenmannia_top,
                    Eigenmannia_side=Eigenmannia_side)
+""" Dictionary holding all electric fish shapes. """
 
-""" Dictionary holding all known electric fish shapes viewed from top. """
 fish_top_shapes = dict(Alepto=Alepto_top,
                        Eigenmannia=Eigenmannia_top)
+""" Dictionary holding electric fish shapes viewed from top. """
 
-""" Dictionary holding all known electric fish shapes viewed from the side. """
-fish_side_shapes = dict(Alepto=Alepto_male_side,
+fish_side_shapes = dict(Alepto_male=Alepto_male_side,
                    Eigenmannia=Eigenmannia_side)
+""" Dictionary holding electric fish shapes viewed from the side. """
     
 
 def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=1,
@@ -723,9 +422,38 @@ def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
     ax.add_patch(Circle(pos, radius, **kwargs))
 
 
+def plot_pathes(ax, *vertices, **kwargs):
+    """ Plot pathes.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the fish.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be plotted
+        (first column x-coordinates, second colum y-coordinates).
+    kwargs: key word arguments
+        Arguments for PathPatch used to draw the path.
+    """
+    for verts in vertices:
+        codes = np.zeros(len(verts))
+        codes[:] = Path.LINETO
+        codes[0] = Path.MOVETO
+        codes[-1] = Path.CLOSEPOLY
+        path = Path(verts, codes)
+        ax.add_patch(PathPatch(path, **kwargs))
+    bbox = bbox_pathes(*vertices)
+    center = np.mean(bbox, axis=0)
+    bbox -= center
+    bbox *= 1.2
+    bbox += center
+    ax.set_xlim(*bbox[:,0])
+    ax.set_ylim(*bbox[:,1])
+
+
 def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
                  gamma=1.0):
-    """ Meshgrid of one side of the fish.
+    """ Generate meshgrid of one side of the fish from shape.
     
     Parameters
     ----------
@@ -744,7 +472,7 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
         Bending angle of the fish's tail in degree.
     gamma: float
         Gamma distortion of the ellipse. The ellipse equation is raised
-        to the power of gamma before it smaller diameter is scaled up
+        to the power of gamma before its smaller diameter is scaled up
         from one to the actual value.
 
     Returns
@@ -754,7 +482,7 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
     yy: 2D array of floats
         y-coordinates in direction upwards from body axis.
     zz: 2D array of floats
-        z-coordinates of fish surface, outside of fish nan.
+        z-coordinates of fish surface, outside of fish NaN.
     """
     if direction != (1, 0):
         raise ValueError('rotation not supported by fish_surface yet.')
@@ -814,6 +542,8 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
 def surface_normals(xx, yy, zz):
     """ Normal vectors on a surface.
 
+    Compute surface normals on a surface as returned by `fish_surface()`.
+
     Parameters
     ----------
     xx: 2D array of floats
@@ -821,7 +551,7 @@ def surface_normals(xx, yy, zz):
     yy: 2D array of floats
         Mesh grid of y coordinates.
     zz: 2D array of floats
-        z-coordinates of surface on the xx and yy cordinates.
+        z-coordinates of surface on the xx and yy coordinates.
 
     Returns
     -------
@@ -842,15 +572,340 @@ def surface_normals(xx, yy, zz):
     norm = np.sqrt(nx*nx+ny*ny+1)
     return nx/norm, ny/norm, nz/norm
 
+
+def extract_path(data):
+    """ Convert SVG coordinates to numpy array with path coordinates.
+
+    Draw a fish outline in inkscape. Open the XML Editor (shift+ctrl+x)
+    and copy the value of the data field ('d') into a variable that you
+    pass to this function.
+    Alternatively, try the 'inkscape:original-d' variable.
+
+    Parameters
+    ----------
+    data: string
+        Space separated coordinate pairs describing the outline of a fish.
+        The coordinates are separated by commas. Coordinate pairs without a comma are ignored.
+
+    Returns
+    -------
+    vertices: 2D array
+        The coordinates of the outline of a fish.
+    """
+    coords = data.split(' ')
+    vertices = []
+    relative = False
+    xc = yc = 0
+    for c in coords:
+        if ',' in c:
+            xs, ys = c.split(',')
+            x = float(xs)
+            y = float(ys)
+            if relative:
+                xc += x
+                yc += y
+            else:
+                xc = x
+                yc = y
+            vertices.append((xc, yc))
+        else:
+            if c in 'MLC':
+                relative = False
+            elif c in 'mlc':
+                relative = True
+    vertices = np.array(vertices)
+    return vertices
+
+
+def bbox_pathes(*vertices):
+    """ Common bounding box of pathes.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    bbox: 2D array
+        Bounding box of the pathes: [[x0, y0], [x1, y1]]
+    """
+    # get bounding box of all pathes:
+    bbox = np.zeros((2, 2))
+    first = True
+    for verts in vertices:
+        vbbox = np.array([[np.min(verts[:,0]), np.min(verts[:,1])],
+                          [np.max(verts[:,0]), np.max(verts[:,1])]])
+        if first:
+            bbox = vbbox
+            first = False
+        else:
+            bbox[0,0] = min(bbox[0,0], vbbox[0,0])
+            bbox[0,1] = min(bbox[0,1], vbbox[0,1])
+            bbox[1,0] = max(bbox[1,0], vbbox[1,0])
+            bbox[1,1] = max(bbox[1,1], vbbox[1,1])
+    return bbox
+
+
+def translate_pathes(dx, dy, *vertices):
+    """ Translate pathes in place.
+
+    Parameters
+    ----------
+    dx: float
+        Shift in x direction.
+    dy: float
+        Shift in y direction.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be translated
+        (first column x-coordinates, second colum y-coordinates).
+    """
+    for verts in vertices:
+        verts[:,0] += dx
+        verts[:,1] += dy
+
+
+def center_pathes(*vertices):
+    """ Translate pathes to their common origin in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be centered
+        (first column x-coordinates, second colum y-coordinates).
+    """
+    center = np.mean(bbox_pathes(*vertices), axis=1)
+    # shift:
+    for verts in vertices:
+        verts[:,0] -= center[0]
+        verts[:,1] -= center[1]
+
+
+def rotate_pathes(theta, *vertices):
+    """ Rotate pathes in place.
+
+    Parameters
+    ----------
+    theta: float
+        Rotation angle in degrees.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be rotated
+        (first column x-coordinates, second colum y-coordinates).
+    """
+    theta *= np.pi/180.0
+    # rotation matrix:
+    c = np.cos(theta)
+    s = np.sin(theta)
+    rm = np.array(((c, -s), (s, c)))
+    # rotation:
+    for verts in vertices:
+        verts[:,:] = np.dot(verts, rm)
+
+
+def flipx_pathes(*vertices):
+    """ Flip pathes in x-direction in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be flipped
+        (first column x-coordinates, second colum y-coordinates).
+    """
+    for verts in vertices:
+        verts[:,0] = -verts[:,0]
+
+
+def flipy_pathes(*vertices):
+    """ Flip pathes in y-direction in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be flipped
+        (first column x-coordinates, second colum y-coordinates).
+    """
+    for verts in vertices:
+        verts[:,1] = -verts[:,1]
+
+
+def mirror_path(vertices1):
+    """ Complete path of half a fish outline by appending the mirrored path.
+
+    It is sufficient to draw half of a top view of a fish. Import with
+    extract_path() and use this function to add the missing half of the
+    outline to the path. The outline is mirrored on the x-axis.
+
+    Parameters
+    ----------
+    vertices1: 2D array
+        The coordinates of one half of the outline of a fish
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    vertices: 2D array
+        The coordinates of the complete outline of a fish.
+    """
+    vertices2 = np.array(vertices1[::-1,:])
+    vertices2[:,1] *= -1
+    vertices = np.concatenate((vertices1, vertices2))
+    return vertices
+
+
+def normalize_path(*vertices):
+    """ Normalize and shift path in place.
+
+    The path extent in x direction is normalized to one and its center
+    is shifted to the origin.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of the outline of a fish
+        (first column x-coordinates, second colum y-coordinates).
+    """
+    bbox = bbox_pathes(*vertices)
+    for verts in vertices:
+        verts[:,1] -= np.mean(bbox[:,1])
+        verts[:,0] -= bbox[0,0]
+        verts /= bbox[1,0] - bbox[0,0]
+        verts[:,0] -= 0.5
+
+
+def bend_path(path, bend, size, size_fac=1.0):
+    """ Bend and scale a path.
+
+    Parameters
+    ----------
+    path: 2D array
+        The coordinates of a path.
+    bend: float
+        Angle for bending in degrees.
+    size: float
+        Scale path to this size.
+    size_fac: float
+        Scale path even more, but keep size for calculating the bending.
+
+    Returns
+    -------
+    path: 2D array
+        The coordinates of the bent and scaled path.
+    """
+    path = np.array(path)
+    path *= size_fac*size
+    if np.abs(bend) > 1.e-8:
+        sel = path[:,0]<0.0
+        xp = path[sel,0]   # all negative x coordinates of path
+        yp = path[sel,1]   # y coordinates of all negative x coordinates of path
+        r = -180.0*0.5*size/bend/np.pi        # radius of circle on which to bend the tail
+        beta = xp/r                           # angle on circle for each y coordinate
+        R = r-yp                              # radius of point
+        path[sel,0] = -np.abs(R*np.sin(beta)) # transformed x coordinates
+        path[sel,1] = r-R*np.cos(beta)        # transformed y coordinates
+    return path
+        
+
+def export_path(vertices):
+    """ Print coordinates of path for import as numpy array.
+
+    The variable name, a leading 'np.array([' and the closing '])'
+    are not printed.
+
+    Parameters
+    ----------
+    vertices: 2D array
+        The coordinates of the path
+        (first column x-coordinates, second colum y-coordinates).
+    """
+    n = 2
+    for k, v in enumerate(vertices):
+        if k%n == 0:
+            print('   ', end='')
+        print(' [%.8e, %.8e],' % (v[0], v[1]), end='')
+        if k%n == n-1 and k < len(vertices)-1:
+            print('')
+
+
+def export_fish(name, body, *fins):
+    """ Serialize coordinates of fish outlines as a dictionary.
+
+    Writes a dictionary with name 'name' and keys 'body', 'fin0', 'fin1', ...
+    holding the pathes.
+
+    Copy these coordinates from the console and paste them into this module.
+    Give it a proper name and don't forget to add it to the fish_shapes dictionary
+    to make it know to plot_fish().
+
+    Parameters
+    ----------
+    name: string
+        Name of the variable.
+    body: 2D array
+        The coordinates of fish's body
+        (first column x-coordinates, second colum y-coordinates).
+    fins: zero or more 2D arrays
+        The coordinates of the fish's fins
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    fish: dict
+        A dictionary holding the pathes that can be passed directly to plot_fish().
+    """
+    print('%s = dict(body=np.array([' % name)
+    export_path(body)
+    fish = dict(body=body)
+    for k, f in enumerate(fins):
+        print(']),')
+        print('    fin%d=np.array([' % k)
+        export_path(f)
+        fish['fin%d' % k] = f
+    print(']))')
+    return fish
+
+
+def export_fish_demo():
+    """ Code demonstrating how to export a fish outline from SVG.
+    """
+    # copy the path specification from an SVG object:
+    data = "m 84.013672,21.597656 0.0082,83.002434 0.113201,-0.0145 0.1238,-0.32544 0.06532,-0.80506 0.06836,-0.87696 0.0332,-4.298823 v -8.625 l 0.06836,-1.724609 0.06836,-1.722657 0.07032,-1.726562 0.06836,-1.726563 0.06641,-1.693359 0.03439,-1.293583 0.06912,-1.30798 0.10547,-1.724609 0.10156,-1.724609 0.10352,-1.726563 0.10352,-1.724609 0.13867,-1.72461 0.171876,-2.572265 0.13672,-1.72461 0.13672,-1.726562 0.10352,-1.724609 0.06836,-1.722657 0.103515,-2.574219 0.06836,-1.722656 0.10352,-1.728515 0.07032,-1.722657 0.06836,-1.724609 0.240234,-1.724609 0.34375,-1.72461 0.134766,-1.726562 0.10352,-1.69336 0.03516,-0.875 0.07031,-1.728515 v -0.847657 l -0.07273,-2.246267 -0.0172,-0.184338 0.15636,0.09441 0.384252,1.019739 0.748821,0.905562 1.028854,0.647532 1.356377,-0.03149 0.362644,-0.347764 -0.264138,-0.736289 -1.268298,-1.126614 -1.363988,-0.922373 -0.927443,-0.451153 -0.228986,-0.07018 -0.0015,-0.21624 0.03663,-0.660713 0.480469,-0.847657 -0.101563,-0.876953 -0.103515,-0.845703 -0.103516,-0.876953 -0.207031,-1.695313 -0.273438,-1.724609 -0.308594,-1.726562 -0.27539,-1.72461 -0.310547,-1.722656 -0.240234,-0.878906 -0.400196,-0.877344 -0.53927,-0.596268 -0.486573,-0.216683 z"
+    verts = extract_path(data)
+    # look at the path:
+    fig, ax = plt.subplots()
+    plot_pathes(ax, verts)
+    ax.set_aspect('equal')
+    plt.show()
+    # fix path:
+    center_pathes(verts)
+    rotate_pathes(-90.0, verts)
+    verts[:,1] *= 0.8               # change aspect ratio
+    verts = verts[1:,:]             # remove first point
+    translate_pathes(0.0, -np.min(verts[:,1]), verts)
+    # mirror, normalize and export path:
+    verts = mirror_path(verts)
+    normalize_path(verts)
+    fish = export_fish('Alepto_top', verts)
+    # plot outline:
+    fig, ax = plt.subplots()
+    plot_fish(ax, fish, size=1.0/1.1,
+              bodykwargs=dict(lw=1, edgecolor='k', facecolor='r'),
+              finkwargs=dict(lw=1, edgecolor='k', facecolor='b'))
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1, 1)
+    plt.show()
+
     
 def main():
+    """ Plot some fish shapes and surface normals.
+    """
     bodykwargs=dict(lw=1, edgecolor='b', facecolor='none')
     finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
     var = ['zz', 'nx', 'ny', 'nz']
     fig, ax = plt.subplots()
     for k in range(4):
         y = (1.5-k)*9
-        fish = (('Alepto', 'side'), (0, y), (1, 0), 20.0, 0)
+        fish = (('Alepto_male', 'side'), (0, y), (1, 0), 20.0, 0)
         xx, yy, zz = fish_surface(*fish, gamma=0.5)
         nx, ny, nz = surface_normals(xx, yy, zz)
         a = [zz, nx, ny, nz]

@@ -70,9 +70,10 @@ Look into the modules for more information.
 - *pulses.py*: Extract and cluster EOD waverforms of pulse-type electric fish.
 
 ### EOD simulations
+
 - *fakefish.py*: Simulate EOD waveforms.
 - *efield.py*: Simulations of spatial electric fields.
-- *fishshapes.py*: Plot fish outlines.
+- *fishshapes.py*: Manipulate and plot fish outlines.
 
 
 
