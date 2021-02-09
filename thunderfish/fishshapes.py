@@ -1,10 +1,19 @@
 """
 Plot fish outlines.
 
-- `plot_fish()`: plot outline of an electric fish.
-- `fish_surface()`: meshgrid of one side of the fish.
+## Plotting
 
-For importing fish outlines use the following functions:
+- `plot_fish()`: plot body and fin of an electric fish.
+- `fish_shapes`: dictionary holding all known electric fish shapes.
+- `plot_object()`: plot circular object.
+
+## Fish surface and normals from shapes
+
+- `fish_surface()`: meshgrid of one side of the fish.
+- `surface_normals()`: normal vectors on a surface.
+
+## Importing fish outlines
+
 - `extract_fish()`: convert SVG coordinates to numpy array.
 - `bbox_pathes()`: common bounding box of pathes.
 - `plot_pathes()`: plot pathes.
@@ -611,7 +620,7 @@ fish_side_shapes = dict(Alepto=Alepto_male_side,
 
 def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=1,
               bodykwargs={}, finkwargs={}):
-    """ Plot outline of an electric fish.
+    """ Plot body and fin of an electric fish.
 
     Parameters
     ----------
@@ -620,7 +629,7 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
     fish: string or tuple or dict
         Specifies a fish to show:
         - any of the strings defining a shape contained in the `fish_shapes` dictionary,
-        - a tuple with the name of the fish and 'top' or 'side',
+        - a tuple with the name of the fish as the first element and 'top' or 'side' as the second element,
         - a dictionary with at least a 'body' key holding pathes to be drawn.
     pos: tuple of floats
         Coordinates of the fish's position (its center).
@@ -632,7 +641,7 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
         Bending angle of the fish's tail in degree.
     scaley: float
         Scale factor applied in y direction after bending and rotation to
-        compensate for differntly scaled axes.
+        compensate for differently scaled axes.
     bodykwargs: dict
         Key-word arguments for PathPatch used to draw the fish's body.
     finkwargs: dict
@@ -642,6 +651,20 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
     -------
     bpatch: matplotlib.patches.PathPatch
         The fish's body. Can be used for set_clip_path().
+
+    Example
+    -------
+
+    ```
+    fig, ax = plt.subplots()
+    bodykwargs=dict(lw=1, edgecolor='k', facecolor='k')
+    finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
+    fish = (('Eigenmannia', 'side'), (0, 0), (1, 0), 20.0, -25)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+    ax.set_xlim(-15, 15)
+    ax.set_ylim(-10, 10)
+    plt.show()
+    ```
     """
     # retrieve fish shape:
     if not isinstance(fish, dict):
