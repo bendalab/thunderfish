@@ -51,7 +51,7 @@ Analysis of EOD waveforms.
 
 ## Configuration
 
-- `add_eod_analysis_config()': add parameters for EOD analysis functions to configuration.
+- `add_eod_analysis_config()`: add parameters for EOD analysis functions to configuration.
 - `eod_waveform_args()`: retrieve parameters for `eod_waveform()` from configuration.
 - `analyze_wave_args()`: retrieve parameters for `analyze_wave()` from configuration.
 - `analyze_pulse_args()`: retrieve parameters for `analyze_pulse()` from configuration.
@@ -82,15 +82,15 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
     conditions: (i) at a signal-to-noise ratio \\(SNR = P_s/P_n\\),
     i.e. the power \\(P_s\\) of the EOD of interest relative to the
     largest other EOD \\(P_n\\), we need to average over at least \\(n >
-    (SNR c_s^2)^{-1}\\) snippets to bring the standard error of the
+    (SNR \\cdot c_s^2)^{-1}\\) snippets to bring the standard error of the
     averaged EOD waveform down to \\(c_s\\) relative to its
-    amplitude. For a s.e.m. less than 5% (\\(c_s=0.05\\)) and an SNR of
-    -10dB (the signal is 10 times smaller than the noise, SNR=0.1) we
+    amplitude. For a s.e.m. less than 5% ( \\(c_s=0.05\\) ) and an SNR of
+    -10dB (the signal is 10 times smaller than the noise, \\(SNR=0.1\\) ) we
     get \\(n > 0.00025^{-1} = 4000\\) data snippets - a recording a
     couple of seconds long.  (ii) Very important for wave fish is that
     they keep their frequency constant.  Slight changes in the EOD
     frequency will corrupt the average waveform.  If the period of the
-    waveform changes by \\\(c_f=\\Delta T/T\\\), then after \\(n =
+    waveform changes by \\(c_f=\\Delta T/T\\), then after \\(n =
     1/c_f\\) periods moved the modified waveform through a whole period.
     This is in the range of hundreds or thousands waveforms.
 
@@ -194,7 +194,7 @@ def unfilter(data, samplerate, cutoff):
     Apply inverse high-pass filter on data.
 
     Assumes high-pass filter \\[ \\tau \\dot y = -y + \\tau \\dot x \\] has
-    been applied on the original data \\(x\\), where \\(\tau=(2\\pi
+    been applied on the original data \\(x\\), where \\(\\tau=(2\\pi
     f_{cutoff})^{-1}\\) is the time constant of the filter. To recover \\(x\\)
     the ODE \\[ \\tau \\dot x = y + \\tau \\dot y \\] is applied on the
     filtered data \\(y\\).

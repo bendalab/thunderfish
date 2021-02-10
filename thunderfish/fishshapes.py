@@ -4,11 +4,13 @@ Manipulate and plot fish outlines.
 ## Fish shapes
 
 All fish shapes of this module are accessible via these dictionaries:
+
 - `fish_shapes`: dictionary holding all electric fish shapes.
 - `fish_top_shapes`: dictionary holding electric fish shapes viewed from top.
 - `fish_side_shapes`: dictionary holding electric fish shapes viewed from the side.
 
 These are the shapes of various fish species:
+
 - `Alepto_top`: *Apteronotus leptorhynchus* viewed from top.
 - `Alepto_male_side`: Male *Apteronotus leptorhynchus* viewed from the side.
 - `Eigenmannia_top`: *Eigenmannia virescens* viewed from top.

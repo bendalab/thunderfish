@@ -1,13 +1,16 @@
 """
-# Check for pulse-type weakly electric fish
+Check for pulse-type weakly electric fish
+
 Check whether a pulse-type or a wave-type weakly electric fish is present in a recording.
 
-# Main functions
+## Main functions
+
 - `check_pulse()`: checks for pulse-type fish.
 
 ## Configuration parameter
-- `add_check_pulse_config()': add parameters for check_pulse() to configuration.
-- `check_pulse_args()`: retrieve parameters for check_pulse() from configuration.
+
+- `add_check_pulse_config()`: add parameters for `check_pulse()` to configuration.
+- `check_pulse_args()`: retrieve parameters for `check_pulse()` from configuration.
 
 """
 
@@ -96,7 +99,7 @@ def check_pulse(data, sem, samplerate, thresh_fac=0.8, percentile=0.0,
 
 def add_check_pulse_config(cfg, thresh_fac=0.4, percentile=0.0,
                            sem_fac=0.05, pulse_thresh=0.1):
-    """ Add parameter needed for check_pulse() as a new section to a configuration.
+    """ Add parameter needed for `check_pulse()` as a new section to a configuration.
 
     Parameters
     ----------
@@ -114,7 +117,7 @@ def add_check_pulse_config(cfg, thresh_fac=0.4, percentile=0.0,
 
 def check_pulse_args(cfg):
     """ Translates a configuration to the
-    respective parameter names of the function check_pulse().
+    respective parameter names of the function `check_pulse()`.
     The return value can then be passed as key-word arguments to this function.
 
     Parameters

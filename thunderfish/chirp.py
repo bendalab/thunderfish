@@ -1,9 +1,9 @@
 """
 Detection of chirps in weakly electric fish recordings.
 
-chirp_analysis(): calculates spectrogram, detects fishes and extracts chirp times(combined for all fishes).
+- `chirp_analysis()`: calculates spectrogram, detects fishes and extracts chirp times(combined for all fishes).
                   !!! recommended for short recordings (up to 5 min) where only the chirp times shall be extracted !!!
-chirp_detection(): extracts chirp times with help of given spectrogram and fishlist.
+- `chirp_detection()`: extracts chirp times with help of given spectrogram and fishlist.
 """
 
 import numpy as np

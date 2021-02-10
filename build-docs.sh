@@ -1,10 +1,11 @@
 #!/bin/bash
 
-die () { echo "ERROR: $*" >&2; exit 2; }
+die() { echo "ERROR: $*"; exit 2; }
+warn() { echo "WARNING: $*"; }
 
 for cmd in mkdocs pdoc3; do
     command -v "$cmd" >/dev/null ||
-        die "Missing $cmd; \`pip install $cmd\`"
+        warn "missing $cmd: run \`pip install $cmd\`"
 done
 
 PACKAGE="thunderfish"
@@ -18,22 +19,26 @@ echo
 rm -rf "$BUILDROOT" 2> /dev/null || true
 mkdir -p "$BUILDROOT"
 
-echo "Building general documentation for $PACKAGE"
-echo
+if command -v mkdocs >/dev/null; then
+    echo "Building general documentation for $PACKAGE"
+    echo
 
-cd "$PACKAGEROOT"
-mkdocs build --config-file .mkdocs.yml --site-dir "$BUILDROOT" 
-cd - > /dev/null
+    cd "$PACKAGEROOT"
+    mkdocs build --config-file .mkdocs.yml --site-dir "$BUILDROOT" 
+    cd - > /dev/null
+fi
 
-echo
-echo "Building API reference docs for $PACKAGE"
-echo
+if command -v pdoc3 >/dev/null; then
+    echo
+    echo "Building API reference docs for $PACKAGE"
+    echo
 
-cd "$PACKAGEROOT"
-pdoc3 --html --config latex_math=True --output-dir "$BUILDROOT/api-tmp" $PACKAGE
-mv "$BUILDROOT/api-tmp/$PACKAGE" "$BUILDROOT/api"
-rmdir "$BUILDROOT/api-tmp"
-cd - > /dev/null
+    cd "$PACKAGEROOT"
+    pdoc3 --html --config latex_math=True --output-dir "$BUILDROOT/api-tmp" $PACKAGE
+    mv "$BUILDROOT/api-tmp/$PACKAGE" "$BUILDROOT/api"
+    rmdir "$BUILDROOT/api-tmp"
+    cd - > /dev/null
+fi
 
 echo
 echo "Done. Docs in:"

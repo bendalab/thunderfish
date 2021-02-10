@@ -20,7 +20,7 @@ Simulate EOD waveforms.
 
 ## Pulsefish
 
-- `pulsefish_eods(): simulate EOD waveform of a pulse-type fish.
+- `pulsefish_eods()`: simulate EOD waveform of a pulse-type fish.
 - `normalize_pulsefish()`: normalize times and stdevs of pulse-type EOD waveform.
 - `export_pulsefish()`: serialize pulsefish parameter to file.
 
@@ -35,14 +35,14 @@ import sys
 import numpy as np
 
 
-""" Translate species ids used by wavefish_harmonics and pulsefish_eodpeaks to full species names.
-"""
 species_name = dict(Sine='Sinewave',
                     Alepto='Apteronotus leptorhynchus',
                     Arostratus='Apteronotus rostratus',
                     Eigenmannia='Eigenmannia spec.',
                     Sternarchella='Sternarchella terminalis',
                     Sternopygus='Sternopygus dariensis')
+""" Translate species ids used by wavefish_harmonics and pulsefish_eodpeaks to full species names.
+"""
 
 
 def abbrv_genus(name):
@@ -62,7 +62,8 @@ def abbrv_genus(name):
     return ns[0][0] + '. ' + ' '.join(ns[1:])
 
 
-""" Amplitudes and phases of various wavefish species. """
+# Amplitudes and phases of various wavefish species:
+
 Sine_harmonics = dict(amplitudes=(1.0,), phases=(0.5*np.pi,))
 
 Apteronotus_leptorhynchus_harmonics = \
@@ -91,13 +92,13 @@ Sternopygus_dariensis_harmonics = \
          phases=(1.4153, 1.3141, 3.1062, -2.3961, -1.9524, 0.54321,
                  1.6844))
 
-""" Amplitudes and phases of EOD waveforms of various species of wave-type electric fish. """
 wavefish_harmonics = dict(Sine=Sine_harmonics,
                           Alepto=Apteronotus_leptorhynchus_harmonics,
                           Arostratus=Apteronotus_rostratus_harmonics,
                           Eigenmannia=Eigenmannia_harmonics,
                           Sternarchella=Sternarchella_terminalis_harmonics,
                           Sternopygus=Sternopygus_dariensis_harmonics)
+""" Amplitudes and phases of EOD waveforms of various species of wave-type electric fish. """
 
 
 def wavefish_spectrum(fish):
@@ -115,14 +116,16 @@ def wavefish_spectrum(fish):
     Returns
     -------
     amplitudes: array of floats
-        The amplitudes of the fundamental and its harmonics.
+        Amplitudes of the fundamental and its harmonics.
     phases: array of floats
-        The phases in radians of the fundamental and its harmonics.
+        Phases in radians of the fundamental and its harmonics.
 
     Raises
     ------
-    KeyError: unknown fish.
-    IndexError: amplitudes and phases differ in length.
+    KeyError:
+        Unknown fish.
+    IndexError:
+        Amplitudes and phases differ in length.
     """
     if isinstance(fish, (tuple, list)):
         amplitudes = fish[0]
@@ -143,9 +146,8 @@ def wavefish_spectrum(fish):
 
 def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
                   duration=1.0, phase0=0.0, noise_std=0.05):
-    """
-    Simulate EOD waveform of a wave-type fish.
-
+    """ Simulate EOD waveform of a wave-type fish.
+                  
     The waveform is constructed by superimposing sinewaves of integral
     multiples of the fundamental frequency - the fundamental and its
     harmonics.  The fundamental frequency of the EOD (EODf) is given by
@@ -172,7 +174,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     duration: float
         Duration of the generated data in seconds. Only used if frequency is scalar.
     phase0: float
--        Phase offset of the EOD waveform in radians.
+        Phase offset of the EOD waveform in radians.
     noise_std: float
         Standard deviation of additive Gaussian white noise.
 
@@ -183,8 +185,10 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
 
     Raises
     ------
-    KeyError: unknown fish.
-    IndexError: amplitudes and phases differ in length.
+    KeyError:
+        Unknown fish.
+    IndexError:
+        Amplitudes and phases differ in length.
     """
     # get relative amplitude and phases:
     amplitudes, phases = wavefish_spectrum(fish)
@@ -305,8 +309,7 @@ def export_wavefish(fish, name='Unknown_harmonics', file=None):
 
 def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
            chirp_size=100.0, chirp_width=0.01, chirp_kurtosis=1.0, chirp_contrast=0.05):
-    """
-    Simulate frequency trace with chirps.
+    """ Simulate frequency trace with chirps.
 
     A chirp is modeled as a Gaussian frequency modulation.
     The first chirp is placed at 0.5/chirp_freq.
@@ -369,8 +372,7 @@ def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
 
 def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
           rise_size=10.0, rise_tau=1.0, decay_tau=10.0):
-    """
-    Simulate frequency trace with rises.
+    """ Simulate frequency trace with rises.
 
     A rise is modeled as a double exponential frequency modulation.
 
@@ -417,8 +419,8 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
     return frequency
 
 
-""" Positions, amplitudes and standard deviations of peaks
-    of various pulsefish species. """
+# Positions, amplitudes and standard deviations of peaks of various pulsefish species:
+
 Monophasic_peaks = \
     dict(times=(0,),
          amplitudes=(1,),
@@ -434,11 +436,11 @@ Triphasic_peaks = \
          amplitudes=(1.2382, -0.9906, 0.12382),
          stdevs=(0.0001, 0.0001, 0.0002))
 
-""" Standard deviations, amplitudes and positions of Gaussians that make up
-    EOD waveforms of pulse-type electric fish. """
 pulsefish_eodpeaks = dict(Monophasic=Monophasic_peaks,
                           Biphasic=Biphasic_peaks,
                           Triphasic=Triphasic_peaks)
+""" Standard deviations, amplitudes and positions of Gaussians that make up
+    EOD waveforms of pulse-type electric fish. """
 
 
 def pulsefish_peaks(fish):
@@ -468,8 +470,10 @@ def pulsefish_peaks(fish):
 
     Raises
     ------
-    KeyError: unknown fish.
-    IndexError: peak positions, amplitudes, or standard deviations differ in length.
+    KeyError:
+        Unknown fish.
+    IndexError:
+        Peak positions, amplitudes, or standard deviations differ in length.
     """
     if isinstance(fish, (tuple, list)):
         peak_times = fish[0]
@@ -494,8 +498,7 @@ def pulsefish_peaks(fish):
 def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
                    duration=1.0, noise_std=0.01, jitter_cv=0.1,
                    first_pulse=None):
-    """
-    Simulate EOD waveform of a pulse-type fish.
+    """ Simulate EOD waveform of a pulse-type fish.
 
     Pulses are spaced by 1/frequency, jittered as determined by jitter_cv. Each pulse is
     a combination of Gaussian peaks, whose positions, amplitudes and widths are
@@ -539,8 +542,10 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
 
     Raises
     ------
-    KeyError: unknown fish.
-    IndexError: peak positions, amplitudes, or standard deviations differ in length.
+    KeyError:
+        Unknown fish.
+    IndexError:
+        Peak positions, amplitudes, or standard deviations differ in length.
     """
     # get peak properties:
     peak_times, peak_amplitudes, peak_stdevs = pulsefish_peaks(fish)

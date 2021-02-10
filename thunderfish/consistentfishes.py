@@ -112,8 +112,8 @@ def plot_consistent_fishes(fishlists, filtered_fishlist, ax, fs):
     """
     Creates an axis for plotting all lists and the consistent values marked with a bar.
 
-    Parameter
-    ---------
+    Parameters
+    ----------
     filtered_fishlist: 3-D array
         Contains power and frequency of these fishes that hve been detected in
         several powerspectra using different resolutions.

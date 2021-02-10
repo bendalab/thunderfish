@@ -1,7 +1,9 @@
 """
 Analyze Voronoi diagrams based on scipy.spatial.
 
-Voronoi: Compute and analyse Voronoi diagrams.
+## Classes
+
+- `class Voronoi`: Compute and analyse Voronoi diagrams.
 """
 
 
@@ -24,15 +26,17 @@ class Voronoi(object):
         If None twice the maximum extent of the input points is used.
     qhull_options: string or None
         Options to be passed on to QHull. From the manual:
-        Qbb  - scale last coordinate to [0,m] for Delaunay triangulations
-        Qc   - keep coplanar points with nearest facet      
-        Qx   - exact pre-merges (skips coplanar and anglomaniacs facets)
-        Qz   - add point-at-infinity to Delaunay triangulation
-        QJn  - randomly joggle input in range [-n,n]
-        Qs   - search all points for the initial simplex
-        Qz   - add point-at-infinity to Voronoi diagram
-        QGn  - Voronoi vertices if visible from point n, -n if not
-        QVn  - Voronoi vertices for input point n, -n if not
+        
+        - Qbb  - scale last coordinate to [0,m] for Delaunay triangulations
+        - Qc   - keep coplanar points with nearest facet      
+        - Qx   - exact pre-merges (skips coplanar and anglomaniacs facets)
+        - Qz   - add point-at-infinity to Delaunay triangulation
+        - QJn  - randomly joggle input in range [-n,n]
+        - Qs   - search all points for the initial simplex
+        - Qz   - add point-at-infinity to Voronoi diagram
+        - QGn  - Voronoi vertices if visible from point n, -n if not
+        - QVn  - Voronoi vertices for input point n, -n if not
+        
         Default is: "Qbb Qc Qz Qx" for ndim > 4 and "Qbb Qc Qz" otherwise.
             
     Input points

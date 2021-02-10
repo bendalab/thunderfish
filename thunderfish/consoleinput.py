@@ -1,10 +1,10 @@
 """
 User input from console.
 
-read(): read a single value from console.
-select(): select a menue option.
-
-recorded_inputs: list of strings with all inputs received by read() and select().
+- `read()`: read a single value from console.
+- `select()`: select a menue option.
+- `save_inputs()`: write all inputs from `read()` and `select()` into a file.
+- `recorded_inputs`: list of strings with all inputs received by `read()` and `select()`.
 """
 
 try:
@@ -17,8 +17,7 @@ recorded_inputs = []
 
     
 def read(prompt, default=None, dtype=str, min=None, max=None):
-    """
-    Read a single input value from the console.
+    """ Read a single input value from the console.
     
     Parameters
     ----------
@@ -60,8 +59,7 @@ def read(prompt, default=None, dtype=str, min=None, max=None):
 
             
 def select(prompt, default, options, descriptions):
-    """
-    Print a menue from which the user can select an entry.
+    """ Print a menue from which the user can select an entry.
     
     Parameters
     ----------
@@ -95,8 +93,7 @@ def select(prompt, default, options, descriptions):
 
 
 def save_inputs(file):
-    """
-    Write all inputs from read() and select() into a file.
+    """ Write all inputs from `read()` and `select()` into a file.
 
     This file can then be used to pipe these inputs to the program
     instead of typing them in manually.

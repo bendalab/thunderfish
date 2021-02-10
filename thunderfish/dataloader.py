@@ -51,7 +51,6 @@ def relacs_samplerate_unit(filename, channel=0):
     ValueError:
         stimuli.dat file does not contain sampling rate.
     """
-
     trace = channel+1
     relacs_dir = filename
     # check for relacs data directory:
@@ -99,7 +98,6 @@ def relacs_metadata(filename):
     IOError/FileNotFoundError:
         If filename cannot be opened.
     """
-    
     data = {}
     with open(filename, 'r') as sf:
         for line in sf:
@@ -125,12 +123,12 @@ def check_relacs(filepathes):
 
     Returns
     -------
-    If filepathes is a single path, then returns True if it is a or is a file in
-    a valid relacs data directory.
-    If filepathes are more than one path, then returns True if filepathes
-    are trace-*.raw files in a valid relacs data directory.
+    is_relacs: boolean
+      If filepathes is a single path, then returns `True` if it is a or is a file in
+      a valid relacs data directory.
+      If filepathes are more than one path, then returns `True` if filepathes
+      are 'trace-*.raw' files in a valid relacs data directory.
     """
-
     path = filepathes
     # filepathes must be trace-*.raw:
     if type(filepathes) is list:
@@ -173,7 +171,6 @@ def relacs_files(filepathes, channel):
     ------
     ValueError: invalid name of relacs trace file
     """
-    
     if type(filepathes) is not list:
         filepathes = [filepathes]
     if len(filepathes) == 1:
@@ -245,7 +242,6 @@ def load_relacs(filepathes, channel=-1, verbose=0):
         - Sampling rates of traces differ.
         - Unit of traces differ.
     """
-
     filepathes = relacs_files(filepathes, channel)
     if len(filepathes) > 1:
         channel = -1
@@ -302,7 +298,6 @@ def fishgrid_samplerate(filename):
     ValueError:
         fishgrid.cfg file does not contain sampling rate.
     """
-
     # check for fishgrid data directory:
     fishgrid_dir = filename
     if not os.path.isdir(filename):
@@ -349,8 +344,7 @@ def fishgrid_spacings(filename):
 
 
 def fishgrid_grids(filename):
-    """
-    Retrieve grid sizes from a fishgrid.cfg file.
+    """ Retrieve grid sizes from a fishgrid.cfg file.
 
     Parameters
     ----------
@@ -368,7 +362,6 @@ def fishgrid_grids(filename):
     IOError/FileNotFoundError:
         If the fishgrid.cfg file does not exist.
     """
-
     # check for fishgrid data directory:
     fishgrid_dir = filename
     if not os.path.isdir(filename):
@@ -407,12 +400,12 @@ def check_fishgrid(filepathes):
 
     Returns
     -------
-    If filepathes is a single path, then returns True if it is a file in
-    a valid fishgrid data directory.
-    If filepathes are more than one path, then returns True if filepathes
-    are trace-*.raw files in a valid fishgrid data directory.
+    is_fishgrid: bool
+        If filepathes is a single path, then returns `True` if it is a file in
+        a valid fishgrid data directory.
+        If filepathes are more than one path, then returns `True` if filepathes
+        are 'trace-*.raw' files in a valid fishgrid data directory.
     """
-
     path = filepathes
     # filepathes must be traces-*.raw:
     if type(filepathes) is list:
@@ -457,7 +450,6 @@ def fishgrid_files(filepathes, channel, grid_sizes):
     ------
     IndexError: invalid channel.
     """
-
     # find grids:
     grid = -1
     if channel >= 0:
@@ -535,7 +527,6 @@ def load_fishgrid(filepathes, channel=-1, verbose=0):
     unit: string
         the unit of the data
     """
-
     if type(filepathes) is not list:
         filepathes = [filepathes]
     grids = fishgrid_grids(filepathes[0])
@@ -578,20 +569,19 @@ def load_fishgrid(filepathes, channel=-1, verbose=0):
 
 
 def check_pickle(filepath):
-    """
-    Check if filepath is a pickle file.
+    """ Check if filepath is a pickle file.
     
     Returns
     -------
-    True, if fielpath is a pickle file.
+    is_pickle: bool
+        `True`, if filepath is a pickle file.
     """
     ext = os.path.splitext(filepath)[1]
     return ext == 'pkl'
 
 
 def load_pickle(filename, channel=-1, verbose=0):
-    """
-    Load Joerg's pickle files.
+    """ Load Joerg's pickle files.
 
     Parameters
     ----------
@@ -629,8 +619,7 @@ def load_pickle(filename, channel=-1, verbose=0):
 
 
 def load_data(filepath, channel=-1, verbose=0):
-    """
-    Call this function to load time-series data from a file of arbitrary format.
+    """ Call this function to load time-series data from a file of arbitrary format.
 
     Parameters
     ----------
@@ -660,7 +649,6 @@ def load_data(filepath, channel=-1, verbose=0):
     IndexError:
         Invalid channel requested.
     """
-    
     # check values:
     data = np.array([])
     samplerate = 0.0
@@ -689,8 +677,8 @@ def load_data(filepath, channel=-1, verbose=0):
 
 
 class DataLoader(aio.AudioLoader):
-    """
-    Buffered reading of time-series data for random access of the data in the file.
+    """ Buffered reading of time-series data for random access of the data in the file.
+    
     This allows for reading very large data files that do not fit into memory.
     An `DataLoader` instance can be used like a huge read-only numpy array, i.e.
     ```
@@ -754,8 +742,7 @@ class DataLoader(aio.AudioLoader):
     """
 
     def __init__(self, filepath=None, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
-        """
-        Initialize the DataLoader instance. If filepath is not None open the file.
+        """ Initialize the DataLoader instance. If filepath is not None open the file.
 
         Parameters
         ----------
@@ -791,8 +778,7 @@ class DataLoader(aio.AudioLoader):
     
     # relacs interface:        
     def open_relacs(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
-        """
-        Open relacs data files (www.relacs.net) for reading.
+        """ Open relacs data files (www.relacs.net) for reading.
 
         Parameters
         ----------
@@ -808,7 +794,6 @@ class DataLoader(aio.AudioLoader):
         verbose: int
             If > 0 show detailed error/warning messages.
         """
-
         self.verbose = verbose
         
         if self.sf is not None:
@@ -867,18 +852,15 @@ class DataLoader(aio.AudioLoader):
         return self
 
     def _close_relacs(self):
+        """ Close the relacs data files.
         """
-        Close the relacs data files.
-        """
-        
         if self.sf is not None:
             for file in self.sf:
                 file.close()
             self.sf = None
 
     def _update_buffer_relacs(self, start, stop):
-        """
-        Make sure that the buffer contains the data between
+        """ Make sure that the buffer contains the data between
         start and stop for relacs files.
         """
         if start < self.offset or stop > self.offset + self.buffer.shape[0]:
@@ -899,8 +881,7 @@ class DataLoader(aio.AudioLoader):
     
     # fishgrid interface:        
     def open_fishgrid(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
-        """
-        Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
+        """ Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
 
         Parameters
         ----------
@@ -916,7 +897,6 @@ class DataLoader(aio.AudioLoader):
         verbose: int
             If > 0 show detailed error/warning messages.
         """
-
         self.verbose = verbose
         
         if self.sf is not None:
@@ -985,18 +965,15 @@ class DataLoader(aio.AudioLoader):
         return self
 
     def _close_fishgrid(self):
+        """ Close the fishgrid data files.
         """
-        Close the fishgrid data files.
-        """
-        
         if self.sf is not None:
             for file in self.sf:
                 file.close()
             self.sf = None
 
     def _update_buffer_fishgrid(self, start, stop):
-        """
-        Make sure that the buffer contains the data between
+        """ Make sure that the buffer contains the data between
         start and stop for fishgrid files.
         """
         if start < self.offset or stop > self.offset + self.buffer.shape[0]:
@@ -1016,8 +993,7 @@ class DataLoader(aio.AudioLoader):
         
 
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0, verbose=0):
-        """
-        Open file with time-series data for reading.
+        """ Open file with time-series data for reading.
 
         Parameters
         ----------

@@ -1,8 +1,12 @@
 """
-Provides `class TableData` for tables with a rich hierarchical header
-including units and column-specific formats. Kind of similar to a
-pandas data frame, but with intuitive numpy-style indexing and nicely
-formatted output to csv, html, and latex.
+Tables with hierarchical headers and units
+
+## Classes
+
+- `class TableData`: tables with a rich hierarchical header
+  including units and column-specific formats. Kind of similar to a
+  pandas data frame, but with intuitive numpy-style indexing and nicely
+  formatted output to csv, html, and latex.
 
 
 ## Helper functions
@@ -13,7 +17,7 @@ formatted output to csv, html, and latex.
 - `aa2index()`: convert an alphabetical representation to an index.
 
 
-## Configuration parameter
+## Configuration
 
 - `add_write_table_config()`: add parameter specifying how to write a table to a file as a new section to a configuration.
 - `write_table_args()`: translates a configuration to the respective parameter names for writing a table to a file.

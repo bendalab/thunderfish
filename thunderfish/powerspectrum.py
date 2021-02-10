@@ -1,27 +1,33 @@
 """
-# Powerspectra and spectrograms for a given frequency resolution
+Powerspectra and spectrograms for a given frequency resolution
 
 ## Computation of nfft
+
 - `next_power_of_two()`: round an integer up to the next power of two.
-- `nfff()`: compute nfft based on a given frequency resolution.
+- `nfft()`: compute nfft based on a given frequency resolution.
 
 ## Decibel
+
 - `decibel()`: transform power to decibel.
 - `power()`: transform decibel to power.
 
 ## Power spectra                
+
 - `psd()`: power spectrum for a given frequency resolution.
 - `multi_psd()`: power spectra for consecutive data windows and mutiple frequency resolutions.
 - `spectrogram()`: spectrogram of a given frequency resolution and overlap fraction.
 
 ## Power spectrum analysis
+
 - `peak_freqs()`: peak frequencies computed for each of the data snippets.
 
 ## Visualization
+
 - `plot_decibel_psd()`: plot power spectrum in decibel.
 
 ## Configuration parameter
-- `add_multi_psd_config()': add parameters for multi_psd() to configuration.
+
+- `add_multi_psd_config()`: add parameters for multi_psd() to configuration.
 - `multi_psd_args()`: retrieve parameters for mulit_psd() from configuration.
 """
 
@@ -92,9 +98,7 @@ def nfft(samplerate, freq_resolution, min_nfft=16, max_nfft=None):
 def decibel(power, ref_power=1.0, min_power=1e-20):
     """
     Transform power to decibel relative to ref_power.
-    ```
-    decibel = 10 * log10(power/ref_power)
-    ```
+    \\[ decibel = 10 \\cdot \\log_{10}(power/ref\\_power) \\]
     Power values smaller than `min_power` are set to `-np.inf`.
 
     Parameters
@@ -105,7 +109,7 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
         Reference power for computing decibel.
         If set to `None` or 'peak', the maximum power is used.
     min_power: float
-        Power values smaller than `min_power` are set to `-inf`.
+        Power values smaller than `min_power` are set to `-np.inf`.
 
     Returns
     -------
@@ -131,9 +135,7 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
 def power(decibel, ref_power=1.0):
     """
     Transform decibel back to power relative to ref_power.
-    ```
-    power = ref_power * 10**(0.1 * decibel)
-    ```
+    \\[ power = ref\\_power \\cdot 10^{decibel/10} \\]
     
     Parameters
     ----------
@@ -165,9 +167,11 @@ def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
     nfft = int(samplerate/df)
     ```
 
-    Uses scipy signal.welch() if available, otherwise
-    matplotlib.mlab.psd().
-    
+    Uses `scipy signal.welch()` if available, otherwise
+    `matplotlib.mlab.psd()`.
+
+    Parameters
+    ----------
     data: 1-D array 
         Data from which power spectra are computed.
     ratetime: float or array

@@ -9,14 +9,14 @@ Select the best region within a recording with the most stable signal of largest
 - `find_best_window()`: set clipping amplitudes and find best window.
 
 ## Configuration
-- `add_clip_config()`: add parameters for clip_amplitudes() to configuration.
-- `clip_args()`: retrieve parameters for clip_amplitudes() from configuration.
-- `add_best_window_config()`: add parameters for best_window() to configuration.
-- `best_window_args()`: retrieve parameters for best_window*() from configuration.
+- `add_clip_config()`: add parameters for `clip_amplitudes()` to configuration.
+- `clip_args()`: retrieve parameters for `clip_amplitudes()` from configuration.
+- `add_best_window_config()`: add parameters for `best_window()` to configuration.
+- `best_window_args()`: retrieve parameters for `best_window*()` from configuration.
 
 ## Visualization
-- `plot_clipping()`: visualization of the algorithm for detecting clipped amplitudes in clip_amplitudes().
-- `plot_best_window()`: visualization of the algorithm used in best_window_indices().
+- `plot_clipping()`: visualization of the algorithm for detecting clipped amplitudes in `clip_amplitudes()`.
+- `plot_best_window()`: visualization of the algorithm used in `best_window_indices()`.
 - `plot_best_data()`: plot the data and the selected best window.
 """
 
@@ -58,11 +58,14 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
         Function for visualizing the histograms, is called for every window.
         `plot_clipping()` is a simple function that can be passed as `plot_hist_func`
         to quickly visualize what is going on in `clip_amplitudes()`.
+        
         Signature:
-        ```
-        plot_hist_func(data, winx0, winx1, bins, h,
-                       min_clip, max_clip, min_ampl, max_ampl, kwargs):
-        ```
+
+        `plot_hist_func(data, winx0, winx1, bins, h, min_clip, max_clip,
+        min_ampl, max_ampl, kwargs)`
+
+        with the arguments:
+        
         - `data` (array): the full data array.
         - `winx0` (int): the start index of the current window.
         - `winx1` (int): the end index of the current window.
@@ -257,12 +260,17 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
         the cost function and the selected best window.
         `plot_best_window()` is a simple function that can be passed as the `plot_data_func`
         parameter to quickly visualize what is going on in selecting the best window.
+        
         Signature:
+        
         ````
         plot_data_func(data, rate, peak_thresh, peak_idx, trough_idx, idx0, idx1,
                        win_start_times, cv_interv, mean_ampl, cv_ampl, clipped_frac, cost_thresh,
                        thresh, valid_wins, **kwargs)
         ```
+
+        with the arguments:
+        
         - `data` (array): raw data.
         - `rate` (float): sampling rate of the data.
         - `peak_thresh` (array): thresholds used for detecting peaks and troughs in each data window.
