@@ -1336,25 +1336,19 @@ class TableData(object):
         if rows is None:
             return
         row_indices = np.arange(self.rows(), dtype=np.int)[rows]
-        if isinstance(row_indices, (list, tuple, np.ndarray)) and \
-           len(row_indices) == self.rows():
-            # delete whole columns:
-            self.remove(cols)
-        else:
-            if len(cols) == len(self.header):
-                # delete whole rows:
-                if isinstance(row_indices, (list, tuple, np.ndarray)) and len(row_indices) > 1:
-                    for r in reversed(sorted(row_indices)):
-                        for c in cols:
-                            del self.data[c][r]
-                else:
+        if isinstance(row_indices, np.ndarray):
+            if len(row_indices) == self.rows():
+                # delete whole columns:
+                self.remove(cols)
+            elif len(row_indices) > 0:
+                for r in reversed(sorted(row_indices)):
                     for c in cols:
-                        del self.data[c][rows]
+                        del self.data[c][r]
                 self.shape = (self.rows(), self.columns())
-            else:
-                # delete part of a row:
-                for c in cols:
-                    del self.data[c][rows]
+        else:
+            for c in cols:
+                del self.data[c][row_indices]
+            self.shape = (self.rows(), self.columns())
 
     def array(self, row=None):
         """
