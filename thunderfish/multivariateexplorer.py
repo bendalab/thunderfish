@@ -6,8 +6,8 @@ Simple GUI for viewing and exploring multivariate data.
 """
 
 import numpy as np
-#from sklearn import decomposition
-#from sklearn import preprocessing
+from sklearn import decomposition
+from sklearn import preprocessing
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import matplotlib.widgets as widgets

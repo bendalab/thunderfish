@@ -14,10 +14,10 @@ import matplotlib.pyplot as plt
 from thunderfish.dataloader import open_data
 from thunderfish.eventdetection import detect_peaks
 from scipy.interpolate import interp1d
-#from sklearn.preprocessing import StandardScaler
-#from sklearn.decomposition import PCA
-#from sklearn.cluster import DBSCAN
-#from sklearn.cluster import AgglomerativeClustering
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import DBSCAN
+from sklearn.cluster import AgglomerativeClustering
 from collections import deque
 import ntpath
 import time
