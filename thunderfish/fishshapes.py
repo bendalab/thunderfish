@@ -183,7 +183,8 @@ Alepto_male_side = dict(body=np.array([
     [2.75299392e-02, -6.53080983e-02], [7.71390030e-02, -6.85205021e-02],
     [1.21071140e-01, -7.25104674e-02], [1.78723549e-01, -7.85286909e-02],
     [2.32100395e-01, -8.40268652e-02], [2.74938812e-01, -8.74456073e-02],
-    [3.10041908e-01, -8.43007220e-02],]))
+    [3.10041908e-01, -8.43007220e-02],]),
+    eye=np.array([0.4, 0.0, 0.01]))
 """ Outline of an *Apteronotus leptorhynchus* male viewed from the side. """
 
 Eigenmannia_top = dict(body=np.array([
@@ -301,7 +302,8 @@ Eigenmannia_side = dict(body=np.array([
     [-5.20302500e-02, -3.81131387e-02], [-1.01805114e-01, -3.16101258e-02],
     [-1.51874267e-01, -2.50855445e-02], [-2.01943420e-01, -2.02074944e-02],
     [-2.61607516e-01, -1.41653476e-02], [-3.02124016e-01, -9.83478430e-03],
-    [-3.12840355e-01, -9.28491550e-03],]))
+    [-3.12840355e-01, -9.28491550e-03],]),
+    eye=np.array([0.46, -0.03, 0.005]))
 """ Outline of an *Eigenmannia virescens* viewed from the side. """
 
 fish_shapes = dict(Alepto_top=Alepto_top,
@@ -320,7 +322,7 @@ fish_side_shapes = dict(Alepto_male=Alepto_male_side,
     
 
 def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=1,
-              bodykwargs={}, finkwargs={}):
+              bodykwargs={}, finkwargs={}, eyekwargs=None):
     """ Plot body and fin of an electric fish.
 
     Parameters
@@ -379,7 +381,21 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
     bpatch = None
     size_fac = 1.1
     bbox = bbox_pathes(*fish.values())
+    trans = mpl.transforms.Affine2D()
+    angle = np.arctan2(direction[1], direction[0])
+    trans.rotate(angle)
+    #trans.scale(dxu/dyu, dyu/dxu)   # what is the right scaling????
+    trans.scale(1, scaley)
+    trans.translate(*pos)
     for part, verts in fish.items():
+        if part == 'eye':
+            if eyekwargs is not None:
+                verts = np.array(verts)*size*size_fac
+                verts[:2] = trans.transform_point(verts[:2])
+                if not 'zorder' in eyekwargs:
+                    eyekwargs['zorder'] = 20
+                ax.add_patch(Circle(verts[:2], verts[2], **eyekwargs))
+            continue
         verts = bend_path(verts, bend, size, size_fac)
         codes = np.zeros(len(verts))
         codes[:] = Path.LINETO
@@ -392,14 +408,10 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
         #ymin, ymax = ax.get_ylim()
         #dxu = np.abs(xmax - xmin)/pixelx
         #dyu = np.abs(ymax - ymin)/pixely
-        trans = mpl.transforms.Affine2D()
-        angle = np.arctan2(direction[1], direction[0])
-        trans.rotate(angle)
-        #trans.scale(dxu/dyu, dyu/dxu)   # what is the right scaling????
-        trans.scale(1, scaley)
-        trans.translate(*pos)
         path = path.transformed(trans)
         kwargs = bodykwargs if part == 'body' else finkwargs
+        if not 'zorder' in kwargs:
+            kwargs['zorder'] = 0 if part == 'body' else 10
         patch = PathPatch(path, **kwargs)
         if part == 'body':
             bpatch = patch
@@ -637,6 +649,8 @@ def bbox_pathes(*vertices):
     bbox = np.zeros((2, 2))
     first = True
     for verts in vertices:
+        if len(verts.shape) != 2:
+            continue
         vbbox = np.array([[np.min(verts[:,0]), np.min(verts[:,1])],
                           [np.max(verts[:,0]), np.max(verts[:,1])]])
         if first:
@@ -903,6 +917,7 @@ def main():
     """
     bodykwargs=dict(lw=1, edgecolor='b', facecolor='none')
     finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
+    eyekwargs=dict(lw=1, edgecolor='white', facecolor='grey')
     var = ['zz', 'nx', 'ny', 'nz']
     fig, ax = plt.subplots()
     for k in range(4):
@@ -913,7 +928,7 @@ def main():
         a = [zz, nx, ny, nz]
         th = np.nanmax(np.abs(a[k]))
         ax.contourf(xx[0,:], yy[:,0], -a[k], 20, vmin=-th, vmax=th, cmap='RdYlBu')
-        plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+        plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
         ax.text(-11, y+2, var[k])
     bodykwargs=dict(lw=1, edgecolor='k', facecolor='k')
     fish = (('Alepto', 'top'), (23, -10), (2, 1), 16.0, -25)
@@ -921,7 +936,7 @@ def main():
     fish = (('Eigenmannia', 'top'), (23, 0), (1, 1), 16.0, -25)
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
     fish = (('Eigenmannia', 'side'), (20, 18), (1, 0), 20.0, -25)
-    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
     ax.set_xlim(-15, 35)
     ax.set_ylim(-20, 24)
     plt.show()
