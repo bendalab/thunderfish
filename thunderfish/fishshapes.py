@@ -498,7 +498,7 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
     zz: 2D array of floats
         z-coordinates of fish surface, outside of fish NaN.
     """
-    if direction != (1, 0):
+    if direction[1] != 0:
         raise ValueError('rotation not supported by fish_surface yet.')
     # retrieve fish shape:
     if not isinstance(fish, dict):
