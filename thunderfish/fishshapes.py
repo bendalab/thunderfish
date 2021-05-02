@@ -534,6 +534,7 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
     path1 += pos[:2]
     # interpolate:
     n = 5*max(len(path0), len(path1))
+    #n = 200
     x = np.linspace(minx, maxx, n)
     upperpath = np.zeros((len(x), 2))
     upperpath[:,0] = x
@@ -915,7 +916,7 @@ def export_fish_demo():
 def main():
     """ Plot some fish shapes and surface normals.
     """
-    bodykwargs=dict(lw=1, edgecolor='b', facecolor='none')
+    bodykwargs=dict(lw=1, edgecolor='k', facecolor='none')
     finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
     eyekwargs=dict(lw=1, edgecolor='white', facecolor='grey')
     var = ['zz', 'nx', 'ny', 'nz']
@@ -930,10 +931,20 @@ def main():
         ax.contourf(xx[0,:], yy[:,0], -a[k], 20, vmin=-th, vmax=th, cmap='RdYlBu')
         plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
         ax.text(-11, y+2, var[k])
+    fish = (('Alepto_male', 'side'), (20, -9), (1, 0), 23.0, 10)
+    xx, yy, zz = fish_surface(*fish, gamma=0.8)
+    nv = surface_normals(xx, yy, zz)
+    ilumn = [-0.05, 0.1, 1.0]
+    dv = np.zeros(nv[0].shape)
+    for nc, ic in zip(nv, ilumn):
+        dv += nc*ic
+    #ax.contourf(xx[0,:], yy[:,0], dv, 20, cmap='gist_gray')
+    ax.contourf(xx[0,:], yy[:,0], dv, levels=[np.nanmin(dv), np.nanmin(dv)+0.99*(np.nanmax(dv)-np.nanmin(dv)), np.nanmax(dv)], cmap='gist_gray')
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
     bodykwargs=dict(lw=1, edgecolor='k', facecolor='k')
-    fish = (('Alepto', 'top'), (23, -10), (2, 1), 16.0, -25)
+    fish = (('Alepto', 'top'), (23, 0), (2, 1), 16.0, -25)
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
-    fish = (('Eigenmannia', 'top'), (23, 0), (1, 1), 16.0, -25)
+    fish = (('Eigenmannia', 'top'), (23, 8), (1, 0.3), 16.0, -15)
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
     fish = (('Eigenmannia', 'side'), (20, 18), (1, 0), 20.0, -25)
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
