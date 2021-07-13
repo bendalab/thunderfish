@@ -172,8 +172,9 @@ def object_monopoles(pos=(0, 0), radius=1.0, chi=1.0, *args):
     charges = np.ones(2)*chi*radius**3*eobjnorm/eps
     charges[0] = -charges[0]
     poles = np.zeros((2, len(pos)))
-    poles[1,:] = eobj*eps/eobjnorm   # distance between monopoles
-    poles += pos                     # translation to required position
+    poles[0,:] = -eobj*0.5*eps/eobjnorm   # distance between monopoles
+    poles[1,:] = +eobj*0.5*eps/eobjnorm   # distance between monopoles
+    poles += pos                          # translation to required position
     return poles, charges
 
 
