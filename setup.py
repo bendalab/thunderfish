@@ -43,6 +43,7 @@ setup(
     entry_points = {
         'console_scripts': [
             'thunderfish = thunderfish.thunderfish:main',
+            'thunderlogger = thunderfish.thunderlogger:main',
             'fishfinder = thunderfish.fishfinder:main',
             'collectfish = thunderfish.collectfish:main',
             'eodexplorer = thunderfish.eodexplorer:main',

@@ -732,6 +732,7 @@ class DataLoader(aio.AudioLoader):
                    If negative, all channels are returned.
     frames (int): the number of frames in the file.
     shape (tuple): number of frames and channels of the data.
+    unit (string): unit of the data.
 
     Some member functions:
     ----------------------
