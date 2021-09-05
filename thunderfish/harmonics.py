@@ -417,7 +417,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, verbose=0,
         print('good_freqs: ', '[',
               ', '.join(['%.2f' % f for f in good_freqs[:,0]]), ']')
 
-    # container for harmonic groups
+    # container for harmonic groups:
     best_group = []
     best_value = -1e6
     best_divisor = 0
@@ -619,6 +619,9 @@ def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
             prev_fe = fe
     # assemble group:
     new_group = freqs[indices,:group.shape[1]]
+    # keep filled in fundamental:
+    if group[0,2] == -2:
+        new_group = np.vstack((group[0,:], new_group))
     return new_group, np.array(indices, dtype=np.int)
             
 
