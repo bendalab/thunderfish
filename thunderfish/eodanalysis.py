@@ -579,6 +579,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
         - tend: time in seconds where the pulse ends,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
+        - dist: distance between P2 and P1 in seconds.
         - tau: time constant of exponential decay of pulse tail in seconds.
         - firstpeak: index of the first peak in the pulse (i.e. -1 for P-1)
         - lastpeak: index of the last peak in the pulse (i.e. 3 for P3)
@@ -738,14 +739,17 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
             width_list = np.delete(width_list, rmidx)
         # find P1:
         p1i = np.argmax(peak_list == max_idx)
+        # truncate peaks to the left: XXX REALLY? WHY?
         offs = 0 if p1i <= 2 else p1i - 2
         peak_list = peak_list[offs:]
         width_list = width_list[offs:]
+        p1i -= offs
         # store peaks:
         peaks = np.zeros((len(peak_list), 5))
         for i, pi in enumerate(peak_list):
-            peaks[i,:] = [i+1-p1i+offs, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i]]
-
+            peaks[i,:] = [i+1-p1i, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i]]
+        # P2 - P1 distance:
+        dist = peaks[p1i+1,1] - peaks[p1i,1] if p1i+1 < len(peaks) else 0.0
         # fit exponential to last peak/trough:
         pi = peak_list[-1]
         # positive or negative decay:
@@ -858,6 +862,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0
+    props['dist'] = dist
     if tau:
         props['tau'] = tau
     props['firstpeak'] = peaks[0, 0] if len(peaks) > 0 else 1
@@ -2017,6 +2022,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
     td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
     td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
+    td.append('P2-P1-dist', 'ms', '%.3f', pulse_props, 'dist', 1000.0)
     td.append('tau', 'ms', '%.3f', pulse_props, 'tau', 1000.0)
     td.append('firstpeak', '', '%d', pulse_props, 'firstpeak')
     td.append('lastpeak', '', '%d', pulse_props, 'lastpeak')

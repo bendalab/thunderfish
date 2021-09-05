@@ -648,7 +648,7 @@ Properties of each pulse-type fish detected in the recording.
 <table>
 <thead>
   <tr>
-    <th align="left" colspan="16">waveform</th>
+    <th align="left" colspan="17">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
   </tr>
   <tr>
@@ -664,6 +664,7 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">tstart</th>
     <th align="left">tend</th>
     <th align="left">width</th>
+    <th align="left">P2-P1-dist</th>
     <th align="left">tau</th>
     <th align="left">firstpeak</th>
     <th align="left">lastpeak</th>
@@ -688,6 +689,7 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">ms</th>
     <th align="left">ms</th>
     <th align="left">ms</th>
+    <th align="left">ms</th>
     <th align="left">-</th>
     <th align="left">-</th>
     <th align="left">-</th>
@@ -701,26 +703,27 @@ Properties of each pulse-type fish detected in the recording.
 <tbody>
   <tr>
     <td align="right">0</td>
-    <td align="right">30.72</td>
-    <td align="right">32.55</td>
-    <td align="right">0.797</td>
-    <td align="right">0.838</td>
-    <td align="right">1.635</td>
-    <td align="right">0.7</td>
+    <td align="right">32.22</td>
+    <td align="right">31.04</td>
+    <td align="right">0.27687</td>
+    <td align="right">0.20424</td>
+    <td align="right">0.48111</td>
+    <td align="right">0.1</td>
     <td align="right">0.0</td>
     <td align="right">0</td>
-    <td align="right">-0.295</td>
-    <td align="right">0.884</td>
-    <td align="right">1.179</td>
-    <td align="right">0.118</td>
+    <td align="right">-0.375</td>
+    <td align="right">0.938</td>
+    <td align="right">1.312</td>
+    <td align="right">0.281</td>
+    <td align="right">0.086</td>
     <td align="right">1</td>
     <td align="right">2</td>
-    <td align="right">100</td>
-    <td align="right">895.98</td>
-    <td align="right">-66.31</td>
-    <td align="right">-20.14</td>
-    <td align="right">-18.71</td>
-    <td align="right">159.14</td>
+    <td align="right">236</td>
+    <td align="right">1127.08</td>
+    <td align="right">-81.58</td>
+    <td align="right">-13.53</td>
+    <td align="right">-13.33</td>
+    <td align="right">271.12</td>
   </tr>
 </tbody>
 </table>
@@ -740,6 +743,7 @@ The columns contain:
 10. `tstart` Time where the pulse starts relative to P1 in milliseconds.
 11. `tend` Time where the pulse ends relative to P1 in milliseconds.
 12. `width` Total width of the pulse in milliseconds.
+13. `P2-P1-dist`: Distance between P2 and P1 in milliseconds. Zero if p2 is not present.
 13. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
 14. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1)
 15. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3)
