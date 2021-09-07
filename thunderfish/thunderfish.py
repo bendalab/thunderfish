@@ -101,7 +101,7 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
                            align_columns=True, shrink_width=False)
     
     # load configuration from working directory and data directories:
-    cfg.load_files(config_file, file_name, 3, verbose)
+    cfg.load_files(config_file, file_name, 4, verbose)
 
     # save configuration:
     if save_config:
