@@ -1,9 +1,6 @@
-"""
-# thunderlogger
+"""# thunderlogger
 
-Detect segments of interest in large data files and analyze them for
-EOD waveforms.
-
+Detect segments of interest in large data files and extract EOD waveforms.
 """
 
 import sys
@@ -11,10 +8,13 @@ import os
 import glob
 import argparse
 import traceback
+import datetime as dt
 import numpy as np
 from scipy.signal import butter, lfilter
 from types import SimpleNamespace
 import matplotlib.pyplot as plt
+import matplotlib.transforms as transforms
+import matplotlib.dates as mdates
 from matplotlib.backends.backend_pdf import PdfPages
 from .version import __version__, __year__
 from .configfile import ConfigFile
@@ -26,10 +26,14 @@ from .thunderfish import configuration, detect_eods, remove_eod_files, save_eods
 def thunderlogger(files, cfg, verbose, plot_level):
     wave_fishes = []
     pulse_fishes = []
-    t1 = 0
+    # XXX we should read this from the meta data:
+    times = os.path.splitext(os.path.basename(files[0]))[0].split('-')[1]
+    tstart = dt.datetime.strptime(times, '%Y%m%dT%H%M%S')
+    toffs = tstart
+    t1 = tstart
     for file in files:
-        # XXX we need to keep track of a time offset!
         with DataLoader(file) as sf:
+            sys.stdout.write(file + ': ')
             best_window_size = cfg.value('bestWindowSize')
             ndata = int(best_window_size * sf.samplerate)
             step = ndata//2
@@ -38,8 +42,10 @@ def thunderlogger(files, cfg, verbose, plot_level):
             stds = []
             channel = 0
             for k, data in enumerate(sf.blocks(ndata, step)):
-                t0 = k*step/sf.samplerate
-                t1 = t0 + ndata/sf.samplerate
+                sys.stdout.write('.')
+                sys.stdout.flush()
+                t0 = toffs + dt.timedelta(seconds=k*step/sf.samplerate)
+                t1 = t0 + dt.timedelta(seconds=ndata/sf.samplerate)
                 fdata = lfilter(b, a, data[:,channel] - np.mean(data[:ndata//20,channel]))
                 sd = np.std(fdata)
                 stds.append(sd)
@@ -55,6 +61,7 @@ def thunderlogger(files, cfg, verbose, plot_level):
                       detect_eods(data[:,channel], sf.samplerate,
                                   clipped, min_clip, max_clip,
                                   name, verbose, plot_level, cfg)
+                    first_fish = True
                     for props, eod, spec, peaks in zip(eod_props, mean_eods,
                                                        spec_data, peak_data):
                         pulse_fish = None
@@ -104,56 +111,71 @@ def thunderlogger(files, cfg, verbose, plot_level):
                                 pulse_fishes.append(new_fish)
                             else:
                                 wave_fishes.append(new_fish)
-                            print('%6.1fHz %5s-fish @ %.0fs' %
-                                  (props['EODf'], props['type'], t0))
-                #if len(pulse_fishes) + len(wave_fishes) > 1:
-                #    break
-        # plot results:
-        n = len(pulse_fishes) + len(wave_fishes)
-        h = n*2.5
-        fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
-                                gridspec_kw=dict(width_ratios=(1,2)))
-        fig.subplots_adjust(left=0.02, right=0.97, top=1-0.2/h, bottom=1.2/h)
-        pi = 0
-        pulse_fishes = [pulse_fishes[i] for i in
-                        np.argsort([fish.props['EODf'] for fish in pulse_fishes])]
-        wave_fishes = [wave_fishes[i] for i in
-                       np.argsort([fish.props['EODf'] for fish in wave_fishes])]
-        for ax, fish in zip(axs, pulse_fishes + wave_fishes):
-            # EOD waveform:
-            time = 1000.0 * fish.waveform[:,0]
-            ax[0].plot([time[0], time[-1]], [0.0, 0.0],
-                       zorder=-10, lw=1, color='#AAAAAA')
-            ax[0].plot(time, fish.waveform[:,1],
-                       zorder=10, lw=2, color='#C02717')
-            ax[0].text(0.0, 1.0, 'EODf=%.1fHz' % fish.props['EODf'],
-                       transform=ax[0].transAxes, va='top')
-            if fish.props['type'] == 'wave':
-                lim = 750.0/fish.props['EODf']
-                ax[0].set_xlim([-lim, +lim])
-            else:
-                ax[0].set_xlim(time[0], time[-1])
-            if ax[0] is axs[-1,0]:
-                ax[0].set_xlabel('Time [msec]')
-            ax[0].spines['left'].set_visible(False)
-            ax[0].spines['right'].set_visible(False)
-            ax[0].yaxis.set_visible(False)
-            ax[0].spines['top'].set_visible(False)
-            # time bar:
-            for time in fish.times:
-                ax[1].plot(time, [1, 1], lw=5, color='#2060A7')
-            ax[1].set_xlim(0, t1)
-            ax[1].spines['left'].set_visible(False)
-            ax[1].spines['right'].set_visible(False)
-            ax[1].yaxis.set_visible(False)
-            ax[1].spines['top'].set_visible(False)
-            if ax[1] is not axs[-1,1]:
-                ax[1].spines['bottom'].set_visible(False)
-                ax[1].xaxis.set_visible(False)
-            else:
-                ax[1].set_xlabel('Time [s]')
-        fig.savefig('plot.pdf')
-        plt.show()
+                            if first_fish:
+                                sys.stdout.write('\n  ')
+                                first_fish = False
+                            sys.stdout.write('%6.1fHz %5s-fish @ %s\n  ' %
+                                             (props['EODf'], props['type'],
+                                              t0.strftime('%Y-%m-%dT%H:%M:%S')))
+            toffs += dt.timedelta(seconds=len(sf)/sf.samplerate)
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+    # plot results:
+    n = len(pulse_fishes) + len(wave_fishes)
+    h = n*2.5
+    fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
+                            gridspec_kw=dict(width_ratios=(1,2)))
+    fig.subplots_adjust(left=0.02, right=0.97, top=1-0.2/h, bottom=2.5/h)
+    pi = 0
+    pulse_fishes = [pulse_fishes[i] for i in
+                    np.argsort([fish.props['EODf'] for fish in pulse_fishes])]
+    wave_fishes = [wave_fishes[i] for i in
+                   np.argsort([fish.props['EODf'] for fish in wave_fishes])]
+    for ax, fish in zip(axs, pulse_fishes + wave_fishes):
+        # EOD waveform:
+        time = 1000.0 * fish.waveform[:,0]
+        #ax[0].plot([time[0], time[-1]], [0.0, 0.0],
+        #           zorder=-10, lw=1, color='#AAAAAA')
+        ax[0].plot(time, fish.waveform[:,1],
+                   zorder=10, lw=2, color='#C02717')
+        ax[0].text(0.0, 1.0, '%.1fHz' % fish.props['EODf'],
+                   transform=ax[0].transAxes, va='top')
+        if fish.props['type'] == 'wave':
+            lim = 750.0/fish.props['EODf']
+            ax[0].set_xlim([-lim, +lim])
+            tmax = lim
+        else:
+            ax[0].set_xlim(time[0], time[-1])
+            tmax = time[-1]
+        trans = transforms.blended_transform_factory(ax[0].transData,
+                                                     ax[0].transAxes)
+        ax[0].plot((tmax-1.0, tmax), (-0.05, -0.05),
+                   'k', lw=3, transform=trans, clip_on=False)
+        if ax[0] is axs[-1,0]:
+            ax[0].text(tmax-0.5, -0.13, '1 ms', transform=trans, ha='center', va='top')
+        ax[0].spines['left'].set_visible(False)
+        ax[0].spines['right'].set_visible(False)
+        ax[0].spines['top'].set_visible(False)
+        ax[0].spines['bottom'].set_visible(False)
+        ax[0].xaxis.set_visible(False)
+        ax[0].yaxis.set_visible(False)
+        # time bar:
+        ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%dT%H:%M'))
+        for time in fish.times:
+            ax[1].plot(time, [1, 1], lw=5, color='#2060A7')
+        ax[1].set_xlim(tstart, toffs)
+        ax[1].spines['left'].set_visible(False)
+        ax[1].spines['right'].set_visible(False)
+        ax[1].yaxis.set_visible(False)
+        ax[1].spines['top'].set_visible(False)
+        if ax[1] is not axs[-1,1]:
+            ax[1].spines['bottom'].set_visible(False)
+            ax[1].xaxis.set_visible(False)
+        else:
+            plt.setp(ax[1].get_xticklabels(), ha='right',
+                     rotation=30, rotation_mode='anchor')
+    fig.savefig('plot.pdf')
+    plt.show()
 
         
 def main():
