@@ -19,21 +19,33 @@ from matplotlib.backends.backend_pdf import PdfPages
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import DataLoader
-from .tabledata import TableData
-from .thunderfish import configuration, detect_eods, remove_eod_files, save_eods
+from .tabledata import TableData, write_table_args
+from .eodanalysis import save_eod_waveform, save_wave_fish, save_pulse_fish
+from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
+from .thunderfish import configuration, detect_eods, remove_eod_files
 
 
 def extract_eods(files, cfg, verbose, plot_level):
     wave_fishes = []
     pulse_fishes = []
     # XXX we should read this from the meta data:
-    times = os.path.splitext(os.path.basename(files[0]))[0].split('-')[1]
+    filename = os.path.splitext(os.path.basename(files[0]))[0]
+    times = filename.split('-')[1]
     tstart = dt.datetime.strptime(times, '%Y%m%dT%H%M%S')
     toffs = tstart
     t1 = tstart
+    unit = None
     for file in files:
         with DataLoader(file) as sf:
+            # common prefix:
+            fn = os.path.splitext(os.path.basename(file))[0]
+            for i, c in enumerate(fn):
+                if c != filename[i]:
+                    filename = filename[:i]
+                    break
+            # analyze:
             sys.stdout.write(file + ': ')
+            unit = sf.unit
             best_window_size = cfg.value('bestWindowSize')
             ndata = int(best_window_size * sf.samplerate)
             step = ndata//2
@@ -94,7 +106,10 @@ def extract_eods(files, cfg, verbose, plot_level):
                             # XXX we need to know where the largest amplitude was!
                             fish.EODf = props['EODf']
                             fish.t1 = t1
-                            fish.times.append((t0, t1))
+                            if fish.times[-1][1] == t0:
+                                fish.times[-1][1] = t1
+                            else:
+                                fish.times.append((t0, t1))
                             if props['p-p-amplitude'] > fish.props['p-p-amplitude']:
                                 fish.props = props
                                 fish.waveform = eod
@@ -120,20 +135,69 @@ def extract_eods(files, cfg, verbose, plot_level):
             toffs += dt.timedelta(seconds=len(sf)/sf.samplerate)
             sys.stdout.write('\n')
             sys.stdout.flush()
-    return pulse_fishes, wave_fishes, tstart, toffs
+    pulse_fishes = [pulse_fishes[i] for i in
+                    np.argsort([fish.props['EODf'] for fish in pulse_fishes])]
+    wave_fishes = [wave_fishes[i] for i in
+                   np.argsort([fish.props['EODf'] for fish in wave_fishes])]
+    return pulse_fishes, wave_fishes, tstart, toffs, unit, filename
 
 
-def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, toffs):
+def save_times(times, idx, output_basename, **kwargs):
+    td = TableData()
+    td.append('tstart', '', '%s',
+              [t[0].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
+    td.append('tend', '', '%s',
+              [t[1].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
+    fp = output_basename + '-times'
+    if idx is not None:
+        fp += '-%d' % idx
+    td.write(fp, **kwargs)
+    
+
+def save_data(output_basename, pulse_fishes, wave_fishes,
+              tstart, tend, unit, cfg):
+    idx = 0
+    # pulse fish:
+    pulse_props = []
+    for fish in pulse_fishes:
+        save_eod_waveform(fish.waveform, unit, idx, output_basename,
+                          **write_table_args(cfg))
+        save_pulse_spectrum(fish.spec, unit, idx, output_basename,
+                            **write_table_args(cfg))
+        save_pulse_peaks(fish.peaks, unit, idx, output_basename,
+                         **write_table_args(cfg))
+        save_times(fish.times, idx, output_basename,
+                   **write_table_args(cfg))
+        pulse_props.append(fish.props)
+        idx += 1
+    save_pulse_fish(pulse_props, unit, output_basename,
+                    **write_table_args(cfg))
+    # wave fish:
+    wave_props = []
+    for fish in wave_fishes:
+        save_eod_waveform(fish.waveform, unit, idx, output_basename,
+                          **write_table_args(cfg))
+        save_wave_spectrum(fish.spec, unit, idx, output_basename,
+                           **write_table_args(cfg))
+        save_times(fish.times, idx, output_basename,
+                   **write_table_args(cfg))
+        wave_props.append(fish.props)
+        idx += 1
+    save_wave_fish(wave_props, unit, output_basename,
+                   **write_table_args(cfg))
+    # recording time window:
+    save_times([(tstart, tend)], None, output_basename,
+               **write_table_args(cfg))
+
+
+def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
+                        save_plot):
     n = len(pulse_fishes) + len(wave_fishes)
     h = n*2.5
     fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
                             gridspec_kw=dict(width_ratios=(1,2)))
     fig.subplots_adjust(left=0.02, right=0.97, top=1-0.2/h, bottom=2.5/h)
     pi = 0
-    pulse_fishes = [pulse_fishes[i] for i in
-                    np.argsort([fish.props['EODf'] for fish in pulse_fishes])]
-    wave_fishes = [wave_fishes[i] for i in
-                   np.argsort([fish.props['EODf'] for fish in wave_fishes])]
     for ax, fish in zip(axs, pulse_fishes + wave_fishes):
         # EOD waveform:
         time = 1000.0 * fish.waveform[:,0]
@@ -166,7 +230,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, toffs):
         ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%dT%H:%M'))
         for time in fish.times:
             ax[1].plot(time, [1, 1], lw=5, color='#2060A7')
-        ax[1].set_xlim(tstart, toffs)
+        ax[1].set_xlim(tstart, tend)
         ax[1].spines['left'].set_visible(False)
         ax[1].spines['right'].set_visible(False)
         ax[1].yaxis.set_visible(False)
@@ -177,8 +241,10 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, toffs):
         else:
             plt.setp(ax[1].get_xticklabels(), ha='right',
                      rotation=30, rotation_mode='anchor')
-    fig.savefig('plot.pdf')
-    plt.show()
+    if save_plot:
+        fig.savefig('plot.pdf')
+    else:
+        plt.show()
 
         
 def main():
@@ -206,11 +272,9 @@ def main():
                         choices=TableData.formats + ['py'],
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
-                        help='plot previously analyzed data')
+                        help='plot analyzed data')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures (defaults to current working directory)')
-    parser.add_argument('-k', dest='keep_path', action='store_true',
-                        help='keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH')
     parser.add_argument('file', nargs='*', default='', type=str,
                         help='name of a file with time series data of an EOD recording')
     args = parser.parse_args()
@@ -259,19 +323,23 @@ def main():
         if verbose > 1:
             print('mkdir %s' % args.outpath)
         os.makedirs(args.outpath)
+    output_folder = args.outpath
     # analyze data:
-    if args.save_data and args.save_plot:
-        pulse_fishes, wave_fishes, tstart, toffs = \
-            extract_eods(args.file, cfg, verbose, plot_level)
-        plot_eod_occurances(pulse_fishes, wave_fishes, tstart, toffs)
-    else:
-        if args.save_data:
-            extract_eods(args.file, cfg, verbose, plot_level)
-        """
-        if args.save_plot:
-            pulse_fishes, wave_fishes, tstart, toffs = load_data()
-            plot_eod_occurances(pulse_fishes, wave_fishes, tstart, toffs)
-        """
+    pulse_fishes, wave_fishes, tstart, tend, unit, filename = \
+        extract_eods(args.file, cfg, verbose, plot_level)
+    if len(filename) == 0:
+        filename = 'logger'
+    elif filename[-1] == '-':
+        filename = filename[:,-1]
+    output_basename = os.path.join(output_folder, filename)
+    if args.save_data:
+        remove_eod_files(output_basename, verbose, cfg)
+        save_data(output_basename, pulse_fishes, wave_fishes,
+                  tstart, tend, unit, cfg)
+    if not args.save_data or args.save_plot:
+        plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
+                            args.save_plot)
+
 
 if __name__ == '__main__':
     main()

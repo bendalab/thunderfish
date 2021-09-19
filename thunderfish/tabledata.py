@@ -396,14 +396,14 @@ class TableData(object):
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
             If None, the format is set to '%g'.
-        val: None, float, int, string, etc. or list thereof, or list of dict
+        value: None, float, int, string, etc. or list thereof, or list of dict
             If not None, data for the column.
         key: None or key of a dictionary
             If not None and `value` is a list of dictionaries,
             extract from each dictionary in the list the value specified
             by `key` and assign the resulting list as data to the column.
         fac: float
-            If not None, multiply the dta values by this number.
+            If not None, multiply the data values by this number.
 
         Returns
         -------
@@ -465,7 +465,7 @@ class TableData(object):
             The C-style format string used for printing out the column content, e.g.
             '%g', '%.2f', '%s', etc.
             If None, the format is set to '%g'.
-        val: None, float, int, string, etc. or list thereof
+        value: None, float, int, string, etc. or list thereof
             If not None, data for the column.
 
         Returns
