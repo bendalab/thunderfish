@@ -23,7 +23,7 @@ from .tabledata import TableData
 from .thunderfish import configuration, detect_eods, remove_eod_files, save_eods
 
 
-def thunderlogger(files, cfg, verbose, plot_level):
+def extract_eods(files, cfg, verbose, plot_level):
     wave_fishes = []
     pulse_fishes = []
     # XXX we should read this from the meta data:
@@ -120,7 +120,10 @@ def thunderlogger(files, cfg, verbose, plot_level):
             toffs += dt.timedelta(seconds=len(sf)/sf.samplerate)
             sys.stdout.write('\n')
             sys.stdout.flush()
-    # plot results:
+    return pulse_fishes, wave_fishes, tstart, toffs
+
+
+def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, toffs):
     n = len(pulse_fishes) + len(wave_fishes)
     h = n*2.5
     fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
@@ -197,30 +200,17 @@ def main():
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
                         help='channel to be analyzed (defaults to first channel)')
-    parser.add_argument('-a', dest='all_eods', action='store_true',
-                        help='plot all EOD waveforms')
-    parser.add_argument('-S', dest='spec_plots', action='store_true',
-                        help='plot spectra for all EOD waveforms')
     parser.add_argument('-s', dest='save_data', action='store_true',
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         choices=TableData.formats + ['py'],
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
-                        help='save output plot of each recording as pdf file')
-    parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwse',
-                        help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected fish')
-    parser.add_argument('-m', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
-                        help='save all plots of all recordings in a multi pages pdf file.')
-    parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
-                        nargs='?', const=100.0, default=0.0,
-                        help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')
+                        help='plot previously analyzed data')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures (defaults to current working directory)')
     parser.add_argument('-k', dest='keep_path', action='store_true',
                         help='keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH')
-    parser.add_argument('-b', dest='show_bestwindow', action='store_true',
-                        help='show the cost function of the best window algorithm')
     parser.add_argument('file', nargs='*', default='', type=str,
                         help='name of a file with time series data of an EOD recording')
     args = parser.parse_args()
@@ -264,31 +254,24 @@ def main():
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
 
-    # save plots:
-    spec_plots = 'auto'
-    if args.spec_plots:
-        spec_plots = True
-    if len(args.save_subplots) > 0:
-        args.save_plot = True
-    multi_pdf = None
-    if len(args.multi_pdf) > 0:
-        args.save_plot = True
-        ext = os.path.splitext(args.multi_pdf)[1]
-        if ext != os.extsep + 'pdf':
-            args.multi_pdf += os.extsep + 'pdf'
-        multi_pdf = PdfPages(args.multi_pdf)
-    # create output folder:
-    if args.save_data or args.save_plot:
-        if not os.path.exists(args.outpath):
-            if verbose > 1:
-                print('mkdir %s' % args.outpath)
-            os.makedirs(args.outpath)
+    # create output folder for data and plots:
+    if not os.path.exists(args.outpath):
+        if verbose > 1:
+            print('mkdir %s' % args.outpath)
+        os.makedirs(args.outpath)
     # analyze data:
-    thunderlogger(args.file, cfg, verbose, plot_level)
-    """
-    if multi_pdf is not None:
-        multi_pdf.close()
-    """
+    if args.save_data and args.save_plot:
+        pulse_fishes, wave_fishes, tstart, toffs = \
+            extract_eods(args.file, cfg, verbose, plot_level)
+        plot_eod_occurances(pulse_fishes, wave_fishes, tstart, toffs)
+    else:
+        if args.save_data:
+            extract_eods(args.file, cfg, verbose, plot_level)
+        """
+        if args.save_plot:
+            pulse_fishes, wave_fishes, tstart, toffs = load_data()
+            plot_eod_occurances(pulse_fishes, wave_fishes, tstart, toffs)
+        """
 
 if __name__ == '__main__':
     main()
