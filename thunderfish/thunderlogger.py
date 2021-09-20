@@ -106,10 +106,11 @@ def extract_eods(files, cfg, verbose, plot_level):
                             # XXX we need to know where the largest amplitude was!
                             fish.EODf = props['EODf']
                             fish.t1 = t1
-                            if fish.times[-1][1] == t0:
+                            if fish.times[-1][1] >= t0 and \
+                               fish.times[-1][2] == file:
                                 fish.times[-1][1] = t1
                             else:
-                                fish.times.append((t0, t1))
+                                fish.times.append([t0, t1, file])
                             if props['p-p-amplitude'] > fish.props['p-p-amplitude']:
                                 fish.props = props
                                 fish.waveform = eod
@@ -121,7 +122,7 @@ def extract_eods(files, cfg, verbose, plot_level):
                                                        spec=spec, peaks=peaks,
                                                        EODf=props['EODf'],
                                                        t0=t0, t1=t1,
-                                                       times=[(t0, t1)])
+                                                       times=[[t0, t1, file]])
                             if props['type'] == 'pulse':
                                 pulse_fishes.append(new_fish)
                             else:
@@ -148,6 +149,8 @@ def save_times(times, idx, output_basename, **kwargs):
               [t[0].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
     td.append('tend', '', '%s',
               [t[1].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
+    if len(times[0]) > 2:
+        td.append('file', '', '%s', [t[2] for t in times])
     fp = output_basename + '-times'
     if idx is not None:
         fp += '-%d' % idx
@@ -169,6 +172,7 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
         save_times(fish.times, idx, output_basename,
                    **write_table_args(cfg))
         pulse_props.append(fish.props)
+        pulse_props[-1]['index'] = idx
         idx += 1
     save_pulse_fish(pulse_props, unit, output_basename,
                     **write_table_args(cfg))
@@ -182,6 +186,7 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
         save_times(fish.times, idx, output_basename,
                    **write_table_args(cfg))
         wave_props.append(fish.props)
+        wave_props[-1]['index'] = idx
         idx += 1
     save_wave_fish(wave_props, unit, output_basename,
                    **write_table_args(cfg))
@@ -323,14 +328,14 @@ def main():
         cfg.set('fileFormat', args.format)
 
     # create output folder for data and plots:
-    if not os.path.exists(args.outpath):
-        if verbose > 1:
-            print('mkdir %s' % args.outpath)
-        os.makedirs(args.outpath)
     output_folder = args.outpath
     if args.keep_path:
         output_folder = os.path.join(output_folder,
                                      os.path.split(args.file[0])[0])
+    if not os.path.exists(output_folder):
+        if verbose > 1:
+            print('mkdir %s' % output_folder)
+        os.makedirs(output_folder)
     # analyze data:
     pulse_fishes, wave_fishes, tstart, tend, unit, filename = \
         extract_eods(args.file, cfg, verbose, plot_level)
