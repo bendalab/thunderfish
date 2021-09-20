@@ -714,6 +714,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
     max_idx -= leidx
     min_idx -= leidx
     tau = None
+    dist = 0.0
     peaks = []
 
     # amplitude and variance:

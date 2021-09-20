@@ -41,8 +41,8 @@ def extract_eods(files, cfg, verbose, plot_level):
         with DataLoader(file) as sf:
             # common prefix:
             fn = os.path.splitext(os.path.basename(file))[0]
-            for i, c in enumerate(fn):
-                if c != filename[i]:
+            for i, c in enumerate(filename):
+                if c != fn[i]:
                     filename = filename[:i]
                     break
             # analyze:
