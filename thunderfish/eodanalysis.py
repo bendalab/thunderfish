@@ -34,7 +34,8 @@ Analysis of EOD waveforms.
 
 - `save_eod_waveform()`: save mean EOD waveform to file.
 - `load_eod_waveform()`: load EOD waveform from file.
-- `save_wave_eodfs()`: save frequencies of all wave EODs to file.
+- `save_wave_eodfs()`: save frequencies of wave EODs to file.
+- `load_wave_eodfs()`: load frequencies of wave EODs from file.
 - `save_wave_fish()`: save properties of wave EODs to file.
 - `load_wave_fish()`: load properties of wave EODs from file.
 - `save_pulse_fish()`: save properties of pulse EODs to file.
@@ -1929,13 +1930,13 @@ def load_eod_waveform(file_path):
 
 
 def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
-    """ Save frequencies of all wave EODs to file.
+    """ Save frequencies of wave EODs to file.
 
     Parameters
     ----------
     wave_eodfs: list of 2D arrays
         Each item is a matrix with the frequencies and powers (columns) of the
-        fundamental and harmonics (rwos) as returned by `harmonics.harmonic groups()`.
+        fundamental and harmonics (rows) as returned by `harmonics.harmonic groups()`.
     wave_indices: array
         Indices identifying each fish or NaN.
         If None no index column is inserted.
@@ -1949,6 +1950,10 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     -------
     filename: string
         The path and full name of the written file.
+
+    See Also
+    --------
+    load_wave_eodfs()
     """
     eodfs = fundamental_freqs_and_power(wave_eodfs)
     td = TableData()
@@ -1959,6 +1964,33 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     fp = basename + '-waveeodfs'
     file_name = td.write(fp, **kwargs)
     return file_name
+
+
+def load_wave_eodfs(file_path):
+    """ Load frequencies of wave EODs from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    eodfs: 2D array of floats
+        Indices, EODfs, and power of wave type fish.
+        Indices can contain NaNs.
+
+    See Also
+    --------
+    save_wave_eodfs()
+    """
+    data = TableData(file_path)
+    eodfs = data.array()
+    if not 'index' in data:
+        indices = np.empty(data.rows())
+        indices[:] = np.nan
+        eodfs = np.column_stack((indices, eodfs))
+    return eodfs
 
     
 def save_wave_fish(eod_props, unit, basename, **kwargs):
