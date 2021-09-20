@@ -275,6 +275,10 @@ def main():
                         help='plot analyzed data')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures (defaults to current working directory)')
+    parser.add_argument('-k', dest='keep_path', action='store_true',
+                        help='keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH')
+    parser.add_argument('-n', dest='name', default='', type=str,
+                        help='base name of all output files')
     parser.add_argument('file', nargs='*', default='', type=str,
                         help='name of a file with time series data of an EOD recording')
     args = parser.parse_args()
@@ -324,11 +328,16 @@ def main():
             print('mkdir %s' % args.outpath)
         os.makedirs(args.outpath)
     output_folder = args.outpath
+    if args.keep_path:
+        output_folder = os.path.join(output_folder,
+                                     os.path.split(args.file[0])[0])
     # analyze data:
     pulse_fishes, wave_fishes, tstart, tend, unit, filename = \
         extract_eods(args.file, cfg, verbose, plot_level)
+    if len(args.name) > 0:
+        filename = args.name
     if len(filename) == 0:
-        filename = 'logger'
+        filename = 'thunder'
     elif filename[-1] == '-':
         filename = filename[:,-1]
     output_basename = os.path.join(output_folder, filename)
