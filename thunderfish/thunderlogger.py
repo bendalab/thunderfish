@@ -22,6 +22,8 @@ from .dataloader import DataLoader
 from .tabledata import TableData, write_table_args
 from .eodanalysis import save_eod_waveform, save_wave_fish, save_pulse_fish
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
+from .eodanalysis import load_eod_waveform, load_wave_fish, load_pulse_fish
+from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
 from .thunderfish import configuration, detect_eods, remove_eod_files
 
 
@@ -145,6 +147,7 @@ def extract_eods(files, cfg, verbose, plot_level):
 
 def save_times(times, idx, output_basename, **kwargs):
     td = TableData()
+    td.append('index', '', '%d', list(range(len(times))))
     td.append('tstart', '', '%s',
               [t[0].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
     td.append('tend', '', '%s',
@@ -155,6 +158,20 @@ def save_times(times, idx, output_basename, **kwargs):
     if idx is not None:
         fp += '-%d' % idx
     td.write(fp, **kwargs)
+    
+
+def load_times(file_path):
+    data = TableData(file_path)
+    times = []
+    for row in range(data.rows()):
+        tstart = dt.datetime.strptime(data[row,'tstart'], '%Y-%m-%dT%H:%M:%S')
+        tend = dt.datetime.strptime(data[row,'tend'], '%Y-%m-%dT%H:%M:%S')
+        if 'file' in data:
+            filename = data[row,'file']
+            times.append([tstart, tend, filename])
+        else:
+            times.append([tstart, tend])
+    return times
     
 
 def save_data(output_basename, pulse_fishes, wave_fishes,
@@ -195,6 +212,52 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
                **write_table_args(cfg))
 
 
+def load_data(files):
+    pulse_fishes = []
+    wave_fishes = []
+    for file in files:
+        if 'pulse' in os.path.basename(file):
+            pulse_props = load_pulse_fish(file)
+            base_file, ext = os.path.splitext(file)
+            base_file = base_file[:base_file.rfind('pulse')]
+            for props in pulse_props:
+                idx = props['index']
+                waveform, unit = \
+                    load_eod_waveform(base_file + 'eodwaveform-%d'%idx + ext)
+                times = load_times(base_file + 'times-%d'%idx + ext)
+                peaks, unit = \
+                    load_pulse_peaks(base_file + 'pulsepeaks-%d'%idx + ext)
+                #spec = \
+                #    load_pulse_spectrum(base_file + 'pulsespectrum-%d'%idx + ext)
+                fish = SimpleNamespace(props=props,
+                                       waveform=waveform,
+                                       EODf=props['EODf'],
+                                       t0=times[0][0], t1=times[-1][1],
+                                       times=times)
+                pulse_fishes.append(fish)
+        elif 'wave' in os.path.basename(file):
+            wave_props = load_wave_fish(file)
+            base_file, ext = os.path.splitext(file)
+            base_file = base_file[:base_file.rfind('wave')]
+            for props in wave_props:
+                idx = props['index']
+                waveform, unit = \
+                    load_eod_waveform(base_file + 'eodwaveform-%d'%idx + ext)
+                times = load_times(base_file + 'times-%d'%idx + ext)
+                #spec, unit = \
+                #    load_wave_spectrum(base_file + 'wavespectrum-%d'%idx + ext)
+                fish = SimpleNamespace(props=props,
+                                       waveform=waveform,
+                                       EODf=props['EODf'],
+                                       t0=times[0][0], t1=times[-1][1],
+                                       times=times)
+                wave_fishes.append(fish)
+    times = load_times(base_file + 'times' + ext)
+    tstart = times[0][0]
+    tend = times[0][1]
+    return pulse_fishes, wave_fishes, tstart, tend
+    
+
 def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
                         save_plot):
     n = len(pulse_fishes) + len(wave_fishes)
@@ -234,7 +297,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         # time bar:
         ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%dT%H:%M'))
         for time in fish.times:
-            ax[1].plot(time, [1, 1], lw=5, color='#2060A7')
+            ax[1].plot(time[:2], [1, 1], lw=5, color='#2060A7')
         ax[1].set_xlim(tstart, tend)
         ax[1].spines['left'].set_visible(False)
         ax[1].spines['right'].set_visible(False)
@@ -271,8 +334,6 @@ def main():
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
                         help='channel to be analyzed (defaults to first channel)')
-    parser.add_argument('-s', dest='save_data', action='store_true',
-                        help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         choices=TableData.formats + ['py'],
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
@@ -336,23 +397,29 @@ def main():
         if verbose > 1:
             print('mkdir %s' % output_folder)
         os.makedirs(output_folder)
-    # analyze data:
-    pulse_fishes, wave_fishes, tstart, tend, unit, filename = \
-        extract_eods(args.file, cfg, verbose, plot_level)
-    if len(args.name) > 0:
-        filename = args.name
-    if len(filename) == 0:
-        filename = 'thunder'
-    elif filename[-1] == '-':
-        filename = filename[:,-1]
-    output_basename = os.path.join(output_folder, filename)
-    if args.save_data:
+    # analyze and save data:
+    if not args.save_plot:
+        pulse_fishes, wave_fishes, tstart, tend, unit, filename = \
+            extract_eods(args.file, cfg, verbose, plot_level)
+        if len(args.name) > 0:
+            filename = args.name
+        if len(filename) == 0:
+            filename = 'thunder'
+        elif filename[-1] == '-':
+            filename = filename[:,-1]
+        output_basename = os.path.join(output_folder, filename)
         remove_eod_files(output_basename, verbose, cfg)
         save_data(output_basename, pulse_fishes, wave_fishes,
                   tstart, tend, unit, cfg)
-    if not args.save_data or args.save_plot:
-        plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
-                            args.save_plot)
+        sys.stdout.write('DONE!\n')
+        sys.stdout.write('Extracted EOD waveforms saved in %s\n' % output_folder)
+        sys.stdout.write('To generate plots run thunderlogger with the -p flag on the generated files:\n')
+        sys.stdout.write('> thunderlogger -p -o %s%s %s\n' %
+                         (args.outpath, ' -k' if args.keep_path else '',
+                          output_basename))
+    else:
+        pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
+        plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend, True)
 
 
 if __name__ == '__main__':

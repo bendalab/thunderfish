@@ -240,6 +240,7 @@ class TableData(object):
     - `__setitem__()`: assign values to data elements specified by slice.
     - `__delitem__()`: delete data elements or whole columns or rows.
     - `array()`: the table data as a numpy array.
+    - `dicts()`: the table as a list of dictionaries.
     - `append_data()`: append data elements to successive columns.
     - `append_data_column()`: append data elements to a column.
     - `set_column()`: set the column where to add data.
@@ -1374,6 +1375,41 @@ class TableData(object):
             return np.array(self.data).T
         else:
             return np.array([d[row] for d in self.data])
+
+    def dicts(self, raw_values=True, missing='-'):
+        """
+        The table as a list of dictionaries.
+
+        Parameters
+        ----------
+        raw_values: bool
+            If True, use raw table values as values,
+            else format the values and add unit string.
+        missing: string
+            String indicating non-existing data elements.
+
+        Returns
+        -------
+        table: list of dict
+            For each row of the table a dictionary with header as key.
+        """
+        table = []
+        for row in range(self.rows()):
+            data = {}
+            for col in range(len(self.header)):
+                if raw_values:
+                    v = self.data[col][row];
+                else:
+                    if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
+                        v = missing
+                    else:
+                        u = ''
+                        if not self.units[col] in '1-' and self.units[col] != 'a.u.':
+                            u = self.units[col]
+                        v = (self.formats[col] % self.data[col][row]) + u
+                data[self.header[col][0]] = v
+            table.append(data)
+        return table
 
     def append_data(self, data, column=None):
         """
