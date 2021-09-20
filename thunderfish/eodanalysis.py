@@ -32,13 +32,19 @@ Analysis of EOD waveforms.
 
 ## Storage
 
-- `save_eod_waveform()`: save mean eod waveform to file.
+- `save_eod_waveform()`: save mean EOD waveform to file.
+- `load_eod_waveform()`: load EOD waveform from file.
 - `save_wave_eodfs()`: save frequencies of all wave EODs to file.
 - `save_wave_fish()`: save properties of wave EODs to file.
+- `load_wave_fish()`: load properties of wave EODs from file.
 - `save_pulse_fish()`: save properties of pulse EODs to file.
+- `load_pulse_fish()`: load properties of pulse EODs from file.
 - `save_wave_spectrum()`: save amplitude and phase spectrum of wave EOD to file.
+- `load_wave_spectrum()`: load amplitude and phase spectrum of wave EOD from file.
 - `save_pulse_spectrum()`: save power spectrum of pulse EOD to file.
+- `load_pulse_spectrum()`: load power spectrum of pulse EOD from file.
 - `save_pulse_peaks()`: save peak properties of pulse EOD to file.
+- `load_pulse_peaks()`: load peak properties of pulse EOD from file.
 
 ## Fit functions
 
@@ -1859,7 +1865,7 @@ def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
 
 
 def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
-    """ Save mean eod waveform to file.
+    """ Save mean EOD waveform to file.
 
     Parameters
     ----------
@@ -1880,6 +1886,10 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     -------
     filename: string
         The path and full name of the written file.
+
+    See Also
+    --------
+    load_eod_waveform()
     """
     td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'sem'],
                    ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
@@ -1890,6 +1900,31 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
         fp += '-%d' % idx
     file_name = td.write(fp, **kwargs)
     return file_name
+
+
+def load_eod_waveform(file_path):
+    """ Load EOD waveform from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    mean_eod: 2D array of floats
+        Averaged EOD waveform: time in seconds, mean, standard deviation, fit.
+    unit: string
+        Unit of EOD waveform.
+
+    See Also
+    --------
+    save_eod_waveform()
+    """
+    data = TableData(file_path)
+    mean_eod = data.array()
+    mean_eod[:,0] *= 0.001
+    return mean_eod, data.unit('mean')
 
 
 def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
@@ -1946,6 +1981,10 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     filename: string or None
         The path and full name of the written file.
         None if no pulse fish are contained in eod_props and no file was written.
+
+    See Also
+    --------
+    load_wave_fish()
     """
     wave_props = [p for p in eod_props if p['type'] == 'wave']
     if len(wave_props) == 0:
@@ -1981,6 +2020,43 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     return file_name
 
 
+def load_wave_fish(file_path):
+    """ Load properties of wave EODs from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    eod_props: list of dict
+        Properties of EODs.
+
+    See Also
+    --------
+    save_wave_fish()
+    """
+    data = TableData(file_path)
+    eod_props = data.dicts()
+    for props in eod_props:
+        props['thd'] /= 100
+        if 'rmssem' in props:
+            props['rmssem'] /= 100
+        props['rmserror'] /= 100
+        if 'clipped' in props:
+            props['clipped'] /= 100
+        props['peakwidth'] /= 100
+        props['troughwidth'] /= 100
+        props['leftpeak'] /= 100
+        props['rightpeak'] /= 100
+        props['lefttrough'] /= 100
+        props['righttrough'] /= 100
+        props['p-p-distance'] /= 100
+        props['reltroughampl'] /= 100
+    return eod_props
+
+
 def save_pulse_fish(eod_props, unit, basename, **kwargs):
     """ Save properties of pulse EODs to file.
 
@@ -1988,7 +2064,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     ----------
     eod_props: list of dict
         Properties of EODs as returned by `analyze_wave()` and `analyze_pulse()`.
-        Only properties of wave fish are saved.
+        Only properties of pulse fish are saved.
     unit: string
         Unit of the waveform data.
     basename: string
@@ -2002,6 +2078,10 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     filename: string or None
         The path and full name of the written file.
         None if no pulse fish are contained in eod_props and no file was written.
+
+    See Also
+    --------
+    load_pulse_fish()
     """
     pulse_props = [p for p in eod_props if p['type'] == 'pulse']
     if len(pulse_props) == 0:
@@ -2038,6 +2118,39 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     return file_name
 
 
+def load_pulse_fish(file_path):
+    """ Load properties of pulse EODs from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    eod_props: list of dict
+        Properties of EODs.
+
+    See Also
+    --------
+    save_pulse_fish()
+    """
+    data = TableData(file_path)
+    eod_props = data.dicts()
+    for props in eod_props:
+        if 'rmssem' in props:
+            props['rmssem'] /= 100
+        if 'clipped' in props:
+            props['clipped'] /= 100
+        props['period'] /= 1000
+        props['tstart'] /= 1000
+        props['tend'] /= 1000
+        props['width'] /= 1000
+        props['P2-P1-dist'] /= 1000
+        props['tau'] /= 1000
+    return eod_props
+
+
 def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     """ Save amplitude and phase spectrum of wave EOD to file.
 
@@ -2059,6 +2172,10 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     -------
     filename: string
         The path and full name of the written file.
+
+    See Also
+    --------
+    load_wave_spectrum()
     """
     td = TableData(spec_data[:,:6]*[1.0, 1.0, 1.0, 100.0, 1.0, 1.0],
                    ['harmonics', 'frequency', 'amplitude', 'relampl', 'relpower', 'phase'],
@@ -2071,6 +2188,32 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
         fp += '-%d' % idx
     file_name = td.write(fp, **kwargs)
     return file_name
+
+
+def load_wave_spectrum(file_path):
+    """ Load amplitude and phase spectrum of wave EOD from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    spec: 2D array of floats
+        Amplitude and phase spectrum of wave EOD:
+        harmonics, frequency, amplitude, relampl, relpower, phase
+    unit: string
+        Unit of amplitudes.
+
+    See Also
+    --------
+    save_wave_spectrum()
+    """
+    data = TableData(file_path)
+    spec = data.array()
+    spec[:,3] *= 0.01
+    return spec, data.unit('amplitude')
 
                         
 def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
@@ -2094,6 +2237,10 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     -------
     filename: string
         The path and full name of the written file.
+
+    See Also
+    --------
+    load_pulse_spectrum()
     """
     td = TableData(spec_data[:,:2], ['frequency', 'power'],
                    ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
@@ -2102,6 +2249,28 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
         fp += '-%d' % idx
     file_name = td.write(fp, **kwargs)
     return file_name
+
+
+def load_pulse_spectrum(file_path):
+    """ Load power spectrum of pulse EOD from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    spec: 2D array of floats
+        Power spectrum of single pulse: frequency, power
+
+    See Also
+    --------
+    save_pulse_spectrum()
+    """
+    data = TableData(file_path)
+    spec = data.array()
+    return spec
 
                         
 def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
@@ -2125,6 +2294,10 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     -------
     filename: string
         The path and full name of the written file.
+
+    See Also
+    --------
+    load_pulse_peaks()
     """
     if len(peak_data) == 0:
         return None
@@ -2137,6 +2310,34 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
         fp += '-%d' % idx
     file_name = td.write(fp, **kwargs)
     return file_name
+
+
+def load_pulse_peaks(file_path):
+    """ Load peak properties of pulse EOD from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    peak_data: 2D array of floats
+        Properties of peaks and troughs of pulse EOD:
+        P, time, amplitude, relampl, width
+    unit: string
+        Unit of peak amplitudes.
+
+    See Also
+    --------
+    save_pulse_peaks()
+    """
+    data = TableData(file_path)
+    peaks = data.array()
+    peaks[:,1] *= 0.001
+    peaks[:,3] *= 0.01
+    peaks[:,4] *= 0.001
+    return peaks, data.unit('amplitude')
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
