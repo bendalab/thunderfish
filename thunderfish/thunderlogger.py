@@ -80,8 +80,7 @@ def extract_eods(files, cfg, verbose, plot_level):
                                       clipped, min_clip, max_clip,
                                       name, verbose, plot_level, cfg)
                         first_fish = True
-                        for props, eod, spec, peaks in zip(eod_props, mean_eods,
-                                                           spec_data, peak_data):
+                        for props, eod in zip(eod_props, mean_eods):
                             fish_deltaf = 100000.0
                             if props['type'] == 'wave':
                                 wave_fish = None
@@ -104,7 +103,7 @@ def extract_eods(files, cfg, verbose, plot_level):
                                         fish_deltaf = np.abs(fish.EODf -
                                                              props['EODf'])
                                         pulse_fish = fish
-                                if fish_dist > 0.00005 or fish_deltaf > 10.0: # XXX Parameter
+                                if fish_dist > 0.00005 or fish_deltaf > 10.0: # XXX Parameter - not smaller than sampling rate!
                                     pulse_fish = None
                                 fish = pulse_fish
                             if fish is not None:
@@ -120,12 +119,9 @@ def extract_eods(files, cfg, verbose, plot_level):
                                 if props['p-p-amplitude'] > fish.props['p-p-amplitude']:
                                     fish.props = props
                                     fish.waveform = eod
-                                    fish.spec = spec
-                                    fish.peaks = peaks
                             else:
                                 new_fish = SimpleNamespace(props=props,
                                                            waveform=eod,
-                                                           spec=spec, peaks=peaks,
                                                            EODf=props['EODf'],
                                                            t0=t0, t1=t1,
                                                            times=[[t0, t1, file]])
@@ -182,7 +178,7 @@ def load_times(file_path):
 
 def save_data(output_basename, pulse_fishes, wave_fishes,
               tstart, tend, unit, cfg):
-    for c in len(pulse_fishes):
+    for c in range(len(pulse_fishes)):
         out_path = output_basename + '-c%d' % c
         idx = 0
         # pulse fish:
@@ -190,10 +186,6 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
         for fish in pulse_fishes[c]:
             save_eod_waveform(fish.waveform, unit, idx, out_path,
                               **write_table_args(cfg))
-            save_pulse_spectrum(fish.spec, unit, idx, out_path,
-                                **write_table_args(cfg))
-            save_pulse_peaks(fish.peaks, unit, idx, out_path,
-                             **write_table_args(cfg))
             save_times(fish.times, idx, out_path,
                        **write_table_args(cfg))
             pulse_props.append(fish.props)
@@ -206,8 +198,6 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
         for fish in wave_fishes[c]:
             save_eod_waveform(fish.waveform, unit, idx, out_path,
                               **write_table_args(cfg))
-            save_wave_spectrum(fish.spec, unit, idx, out_path,
-                               **write_table_args(cfg))
             save_times(fish.times, idx, out_path,
                        **write_table_args(cfg))
             wave_props.append(fish.props)
@@ -233,10 +223,6 @@ def load_data(files):
                 waveform, unit = \
                     load_eod_waveform(base_file + 'eodwaveform-%d'%idx + ext)
                 times = load_times(base_file + 'times-%d'%idx + ext)
-                peaks, unit = \
-                    load_pulse_peaks(base_file + 'pulsepeaks-%d'%idx + ext)
-                #spec = \
-                #    load_pulse_spectrum(base_file + 'pulsespectrum-%d'%idx + ext)
                 fish = SimpleNamespace(props=props,
                                        waveform=waveform,
                                        EODf=props['EODf'],
@@ -252,8 +238,6 @@ def load_data(files):
                 waveform, unit = \
                     load_eod_waveform(base_file + 'eodwaveform-%d'%idx + ext)
                 times = load_times(base_file + 'times-%d'%idx + ext)
-                #spec, unit = \
-                #    load_wave_spectrum(base_file + 'wavespectrum-%d'%idx + ext)
                 fish = SimpleNamespace(props=props,
                                        waveform=waveform,
                                        EODf=props['EODf'],
