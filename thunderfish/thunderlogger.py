@@ -112,10 +112,11 @@ def extract_eods(files, cfg, verbose, plot_level):
                                 fish.EODf = props['EODf']
                                 fish.t1 = t1
                                 if fish.times[-1][1] >= t0 and \
-                                   fish.times[-1][2] == file:
+                                   fish.times[-1][2] == channel and \
+                                   fish.times[-1][3] == file:
                                     fish.times[-1][1] = t1
                                 else:
-                                    fish.times.append([t0, t1, file])
+                                    fish.times.append([t0, t1, channel, file])
                                 if props['p-p-amplitude'] > fish.props['p-p-amplitude']:
                                     fish.props = props
                                     fish.waveform = eod
@@ -124,7 +125,7 @@ def extract_eods(files, cfg, verbose, plot_level):
                                                            waveform=eod,
                                                            EODf=props['EODf'],
                                                            t0=t0, t1=t1,
-                                                           times=[[t0, t1, file]])
+                                                           times=[[t0, t1, channel, file]])
                                 if props['type'] == 'pulse':
                                     pulse_fishes[channel].append(new_fish)
                                 else:
@@ -155,7 +156,8 @@ def save_times(times, idx, output_basename, **kwargs):
     td.append('tend', '', '%s',
               [t[1].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
     if len(times[0]) > 2:
-        td.append('file', '', '%s', [t[2] for t in times])
+        td.append('channel', '', '%d', [t[2] for t in times])
+        td.append('file', '', '%s', [t[3] for t in times])
     fp = output_basename + '-times'
     if idx is not None:
         fp += '-%d' % idx
@@ -170,7 +172,11 @@ def load_times(file_path):
         tend = dt.datetime.strptime(data[row,'tend'], '%Y-%m-%dT%H:%M:%S')
         if 'file' in data:
             filename = data[row,'file']
-            times.append([tstart, tend, filename])
+            if 'channel' in data:
+                channel = data[row,'channel']
+                times.append([tstart, tend, channel, filename])
+            else:
+                times.append([tstart, tend, 0, filename])
         else:
             times.append([tstart, tend])
     return times
@@ -211,9 +217,15 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
 
 
 def load_data(files):
+    all_files = []
+    for file in files:
+        if os.path.isdir(file):
+            all_files.extend(glob.glob(os.path.join(file, '*fish*')))
+        else:
+            all_files.append(file)
     pulse_fishes = []
     wave_fishes = []
-    for file in files:
+    for file in all_files:
         if 'pulse' in os.path.basename(file):
             pulse_props = load_pulse_fish(file)
             base_file, ext = os.path.splitext(file)
