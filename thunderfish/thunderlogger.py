@@ -256,14 +256,38 @@ def load_data(files):
                                        t0=times[0][0], t1=times[-1][1],
                                        times=times)
                 wave_fishes.append(fish)
+    base_file = base_file[:base_file.rfind('-c')+1]
     times = load_times(base_file + 'times' + ext)
     tstart = times[0][0]
     tend = times[0][1]
     return pulse_fishes, wave_fishes, tstart, tend
-    
+
+
+def compress_fish(pulse_fishes, wave_fishes,
+                  max_noise=0.1, max_deltaf=1.0, max_dist=0.00002):
+    pulse_eods = []
+    wave_eods = []
+    for i in np.argsort([fish.props['EODf'] for fish in pulse_fishes]):
+        if pulse_fishes[i].props['noise'] > max_noise:
+            continue
+        if len(pulse_eods) > 0 and \
+           np.abs(pulse_fishes[i].props['P2-P1-dist'] - pulse_eods[-1].props['P2-P1-dist']) < max_dist:
+            pulse_eods[-1].times.extend(pulse_fishes[i].times)
+            continue
+        pulse_eods.append(pulse_fishes[i])
+    for i in np.argsort([fish.props['EODf'] for fish in wave_fishes]):
+        if wave_fishes[i].props['noise'] > max_noise:
+            continue
+        if len(wave_eods) > 0 and \
+           np.abs(wave_fishes[i].EODf - wave_eods[-1].EODf) < max_deltaf:
+            wave_eods[-1].times.extend(wave_fishes[i].times)
+            continue
+        wave_eods.append(wave_fishes[i])
+    return pulse_eods, wave_eods
+
 
 def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
-                        save_plot):
+                        save_plot, output_folder):
     n = len(pulse_fishes) + len(wave_fishes)
     h = n*2.5
     fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
@@ -277,7 +301,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         #           zorder=-10, lw=1, color='#AAAAAA')
         ax[0].plot(time, fish.waveform[:,1],
                    zorder=10, lw=2, color='#C02717')
-        ax[0].text(0.0, 1.0, '%.1fHz' % fish.props['EODf'],
+        ax[0].text(0.0, 1.0, '%.1f\u2009Hz' % fish.props['EODf'],
                    transform=ax[0].transAxes, va='top')
         if fish.props['type'] == 'wave':
             lim = 750.0/fish.props['EODf']
@@ -291,7 +315,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         ax[0].plot((tmax-1.0, tmax), (-0.05, -0.05),
                    'k', lw=3, transform=trans, clip_on=False)
         if ax[0] is axs[-1,0]:
-            ax[0].text(tmax-0.5, -0.13, '1 ms', transform=trans, ha='center', va='top')
+            ax[0].text(tmax-0.5, -0.13, '1\u2009ms', transform=trans, ha='center', va='top')
         ax[0].spines['left'].set_visible(False)
         ax[0].spines['right'].set_visible(False)
         ax[0].spines['top'].set_visible(False)
@@ -314,7 +338,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
             plt.setp(ax[1].get_xticklabels(), ha='right',
                      rotation=30, rotation_mode='anchor')
     if save_plot:
-        fig.savefig('plot.pdf')
+        fig.savefig(os.path.join(output_folder, 'plot.pdf'))
     else:
         plt.show()
 
@@ -423,7 +447,9 @@ def main():
                           output_basename))
     else:
         pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
-        plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend, True)
+        pulse_fishes, wave_fishes = compress_fish(pulse_fishes, wave_fishes)
+        plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
+                            True, output_folder)
 
 
 if __name__ == '__main__':

@@ -2075,6 +2075,7 @@ def load_wave_fish(file_path):
     for props in eod_props:
         props['type'] = 'wave'
         props['thd'] /= 100
+        props['noise'] /= 100
         if 'rmssem' in props:
             props['rmssem'] /= 100
         props['rmserror'] /= 100
@@ -2177,6 +2178,7 @@ def load_pulse_fish(file_path):
             props['rmssem'] /= 100
         if 'clipped' in props:
             props['clipped'] /= 100
+        props['noise'] /= 100
         props['period'] /= 1000
         props['tstart'] /= 1000
         props['tend'] /= 1000
