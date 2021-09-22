@@ -80,7 +80,8 @@ def extract_eods(files, cfg, verbose, plot_level):
                                       clipped, min_clip, max_clip,
                                       name, verbose, plot_level, cfg)
                         first_fish = True
-                        for props, eod in zip(eod_props, mean_eods):
+                        for props, eod, spec, peaks in zip(eod_props, mean_eods,
+                                                           spec_data, peak_data):
                             fish_deltaf = 100000.0
                             if props['type'] == 'wave':
                                 wave_fish = None
@@ -92,6 +93,7 @@ def extract_eods(files, cfg, verbose, plot_level):
                                 if fish_deltaf > 2.0: # XXX Parameter
                                     wave_fish = None
                                 fish = wave_fish
+                                peaks = None
                             else:
                                 pulse_fish = None
                                 fish_dist = 10000.0
@@ -106,6 +108,7 @@ def extract_eods(files, cfg, verbose, plot_level):
                                 if fish_dist > 0.00005 or fish_deltaf > 10.0: # XXX Parameter - not smaller than sampling rate!
                                     pulse_fish = None
                                 fish = pulse_fish
+                                spec = None
                             if fish is not None:
                                 # XXX we should have a maximum temporal distance
                                 # XXX we need to know where the largest amplitude was!
@@ -120,9 +123,13 @@ def extract_eods(files, cfg, verbose, plot_level):
                                 if props['p-p-amplitude'] > fish.props['p-p-amplitude']:
                                     fish.props = props
                                     fish.waveform = eod
+                                    fish.spec = spec
+                                    fish.peaks = peaks
                             else:
                                 new_fish = SimpleNamespace(props=props,
                                                            waveform=eod,
+                                                           spec=spec,
+                                                           peaks=peaks,
                                                            EODf=props['EODf'],
                                                            t0=t0, t1=t1,
                                                            times=[[t0, t1, channel, file]])
@@ -192,6 +199,9 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
         for fish in pulse_fishes[c]:
             save_eod_waveform(fish.waveform, unit, idx, out_path,
                               **write_table_args(cfg))
+            if fish.peaks is not None:
+                save_pulse_peaks(fish.peaks, unit, idx, out_path,
+                                 **write_table_args(cfg))
             save_times(fish.times, idx, out_path,
                        **write_table_args(cfg))
             pulse_props.append(fish.props)
@@ -204,6 +214,9 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
         for fish in wave_fishes[c]:
             save_eod_waveform(fish.waveform, unit, idx, out_path,
                               **write_table_args(cfg))
+            if fish.spec is not None:
+                save_wave_spectrum(fish.spec, unit, idx, out_path,
+                                   **write_table_args(cfg))
             save_times(fish.times, idx, out_path,
                        **write_table_args(cfg))
             wave_props.append(fish.props)
@@ -237,9 +250,16 @@ def load_data(files):
                 times = load_times(base_file + 'times-%d'%idx + ext)
                 fish = SimpleNamespace(props=props,
                                        waveform=waveform,
+                                       unit=unit,
                                        EODf=props['EODf'],
                                        t0=times[0][0], t1=times[-1][1],
                                        times=times)
+                try:
+                    peaks, unit = \
+                        load_pulse_peaks(base_file + 'pulsepeaks-%d'%idx + ext)
+                    fish.peaks = peaks
+                except FileNotFoundError:
+                    fish.peaks = None
                 pulse_fishes.append(fish)
         elif 'wave' in os.path.basename(file):
             wave_props = load_wave_fish(file)
@@ -252,9 +272,16 @@ def load_data(files):
                 times = load_times(base_file + 'times-%d'%idx + ext)
                 fish = SimpleNamespace(props=props,
                                        waveform=waveform,
+                                       unit=unit,
                                        EODf=props['EODf'],
                                        t0=times[0][0], t1=times[-1][1],
                                        times=times)
+                try:
+                    spec, unit = \
+                        load_wave_spectrum(base_file + 'wavespectrum-%d'%idx + ext)
+                    fish.spec = spec
+                except FileNotFoundError:
+                    fish.spec = None
                 wave_fishes.append(fish)
     base_file = base_file[:base_file.rfind('-c')+1]
     times = load_times(base_file + 'times' + ext)

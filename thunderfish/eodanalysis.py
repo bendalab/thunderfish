@@ -1919,6 +1919,11 @@ def load_eod_waveform(file_path):
     unit: string
         Unit of EOD waveform.
 
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
+
     See Also
     --------
     save_eod_waveform()
@@ -1979,6 +1984,11 @@ def load_wave_eodfs(file_path):
     eodfs: 2D array of floats
         Indices, EODfs, and power of wave type fish.
         Indices can contain NaNs.
+
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
 
     See Also
     --------
@@ -2065,6 +2075,11 @@ def load_wave_fish(file_path):
     -------
     eod_props: list of dict
         Properties of EODs.
+
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
 
     See Also
     --------
@@ -2166,6 +2181,11 @@ def load_pulse_fish(file_path):
     eod_props: list of dict
         Properties of EODs.
 
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
+
     See Also
     --------
     save_pulse_fish()
@@ -2243,6 +2263,11 @@ def load_wave_spectrum(file_path):
     unit: string
         Unit of amplitudes.
 
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
+
     See Also
     --------
     save_wave_spectrum()
@@ -2300,6 +2325,11 @@ def load_pulse_spectrum(file_path):
     -------
     spec: 2D array of floats
         Power spectrum of single pulse: frequency, power
+
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
 
     See Also
     --------
@@ -2364,6 +2394,11 @@ def load_pulse_peaks(file_path):
         P, time, amplitude, relampl, width
     unit: string
         Unit of peak amplitudes.
+
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
 
     See Also
     --------

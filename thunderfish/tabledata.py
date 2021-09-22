@@ -2464,6 +2464,11 @@ class TableData(object):
             If not a stream, the file with name `fh` is opened for reading.
         missing: string
             Missing data are indicated by this string.
+
+        Raises
+        ------
+        FileNotFoundError:
+            If `fh` is a path that does not exist.
         """
 
         def read_key_line(line, sep, table_format):
