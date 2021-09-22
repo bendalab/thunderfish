@@ -155,13 +155,15 @@ def extract_eods(files, cfg, verbose, plot_level):
     return pulse_fishes, wave_fishes, tstart, toffs, unit, filename
 
 
-def save_times(times, idx, output_basename, **kwargs):
+def save_times(times, idx, output_basename, name, **kwargs):
     td = TableData()
     td.append('index', '', '%d', list(range(len(times))))
     td.append('tstart', '', '%s',
               [t[0].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
     td.append('tend', '', '%s',
               [t[1].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
+    td.append('device', '', '%s',
+              [name for t in times])
     if len(times[0]) > 2:
         td.append('channel', '', '%d', [t[2] for t in times])
         td.append('file', '', '%s', [t[3] for t in times])
@@ -177,20 +179,20 @@ def load_times(file_path):
     for row in range(data.rows()):
         tstart = dt.datetime.strptime(data[row,'tstart'], '%Y-%m-%dT%H:%M:%S')
         tend = dt.datetime.strptime(data[row,'tend'], '%Y-%m-%dT%H:%M:%S')
+        t = [tstart, tend]
+        if 'device' in data:
+            t.append(data[row, 'device'])
+        channel = data[row,'channel'] if 'channel' in data else 0
+        t.append(channel)
         if 'file' in data:
-            filename = data[row,'file']
-            if 'channel' in data:
-                channel = data[row,'channel']
-                times.append([tstart, tend, channel, filename])
-            else:
-                times.append([tstart, tend, 0, filename])
-        else:
-            times.append([tstart, tend])
+            t.append(data[row,'file'])
+        times.append(t)
     return times
     
 
-def save_data(output_basename, pulse_fishes, wave_fishes,
+def save_data(output_folder, name, pulse_fishes, wave_fishes,
               tstart, tend, unit, cfg):
+    output_basename = os.path.join(output_folder, name)
     for c in range(len(pulse_fishes)):
         out_path = output_basename + '-c%d' % c
         idx = 0
@@ -202,7 +204,7 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
             if fish.peaks is not None:
                 save_pulse_peaks(fish.peaks, unit, idx, out_path,
                                  **write_table_args(cfg))
-            save_times(fish.times, idx, out_path,
+            save_times(fish.times, idx, out_path, name,
                        **write_table_args(cfg))
             pulse_props.append(fish.props)
             pulse_props[-1]['index'] = idx
@@ -217,7 +219,7 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
             if fish.spec is not None:
                 save_wave_spectrum(fish.spec, unit, idx, out_path,
                                    **write_table_args(cfg))
-            save_times(fish.times, idx, out_path,
+            save_times(fish.times, idx, out_path, name,
                        **write_table_args(cfg))
             wave_props.append(fish.props)
             wave_props[-1]['index'] = idx
@@ -225,7 +227,7 @@ def save_data(output_basename, pulse_fishes, wave_fishes,
         save_wave_fish(wave_props, unit, out_path,
                        **write_table_args(cfg))
     # recording time window:
-    save_times([(tstart, tend)], None, output_basename,
+    save_times([(tstart, tend)], None, output_basename, name,
                **write_table_args(cfg))
 
 
@@ -464,7 +466,7 @@ def main():
             filename = filename[:,-1]
         output_basename = os.path.join(output_folder, filename)
         remove_eod_files(output_basename, verbose, cfg)
-        save_data(output_basename, pulse_fishes, wave_fishes,
+        save_data(output_folder, filename, pulse_fishes, wave_fishes,
                   tstart, tend, unit, cfg)
         sys.stdout.write('DONE!\n')
         sys.stdout.write('Extracted EOD waveforms saved in %s\n' % output_folder)
