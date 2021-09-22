@@ -295,15 +295,19 @@ def load_data(files):
 def compress_fish(pulse_fishes, wave_fishes,
                   max_noise=0.1, max_deltaf=1.0, max_dist=0.00002):
     pulse_eods = []
-    wave_eods = []
-    for i in np.argsort([fish.props['EODf'] for fish in pulse_fishes]):
+    for i in np.argsort([fish.props['P2-P1-dist'] for fish in pulse_fishes]):
         if pulse_fishes[i].props['noise'] > max_noise:
             continue
+        if pulse_fishes[i].props['P2-P1-dist'] <= 0.0:
+            continue
         if len(pulse_eods) > 0 and \
-           np.abs(pulse_fishes[i].props['P2-P1-dist'] - pulse_eods[-1].props['P2-P1-dist']) < max_dist:
+           np.abs(pulse_fishes[i].props['P2-P1-dist'] - pulse_eods[-1].props['P2-P1-dist']) <= max_dist:
             pulse_eods[-1].times.extend(pulse_fishes[i].times)
             continue
         pulse_eods.append(pulse_fishes[i])
+    pulse_eods = [pulse_eods[i] for i in np.argsort([fish.props['EODf'] for fish in pulse_eods])]
+    
+    wave_eods = []
     for i in np.argsort([fish.props['EODf'] for fish in wave_fishes]):
         if wave_fishes[i].props['noise'] > max_noise:
             continue
