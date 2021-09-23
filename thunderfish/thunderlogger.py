@@ -3,6 +3,9 @@
 Detect segments of interest in large data files and extract EOD waveforms.
 """
 
+import matplotlib
+matplotlib.use('TkAgg')  # for headless system
+
 import sys
 import os
 import glob
@@ -15,7 +18,7 @@ from types import SimpleNamespace
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 import matplotlib.dates as mdates
-from matplotlib.backends.backend_pdf import PdfPages
+#from matplotlib.backends.backend_pdf import PdfPages
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import DataLoader

@@ -10,6 +10,9 @@ python3 -m thunderfish.thunderfish audiofile.wav
 ```
 """
 
+import matplotlib
+matplotlib.use('TkAgg')  # for headless system
+
 import sys
 import os
 import glob
@@ -52,9 +55,6 @@ from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, sav
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .fakefish import normalize_wavefish, export_wavefish
 from .tabledata import TableData, add_write_table_config, write_table_args
-
-import matplotlib
-matplotlib.use('TkAgg')
 
 def configuration(config_file, save_config=False, file_name='', verbose=0):
     """
