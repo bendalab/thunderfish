@@ -1312,6 +1312,7 @@ def delete_unreliable_fish(clusters, eod_widths, eod_x, verbose=0, sdict={}):
     """
     mask = np.zeros(clusters.shape, dtype=bool)
     for i, cluster in enumerate(np.unique(np.sort(clusters[clusters>=0]))):
+        # XXX ValueError: zero-size array to reduction operation maximum which has no identity :
         if np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])) > 0.5:
             if verbose>0:
                 print('deleting unreliable cluster %i, score=%f'%(cluster, np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters]))))
