@@ -3,9 +3,6 @@
 Detect segments of interest in large data files and extract EOD waveforms.
 """
 
-import matplotlib
-matplotlib.use('TkAgg')  # for headless system
-
 import sys
 import os
 import glob
@@ -15,6 +12,8 @@ import datetime as dt
 import numpy as np
 from scipy.signal import butter, lfilter
 from types import SimpleNamespace
+#import matplotlib
+#matplotlib.use('Agg')  # for headless system
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 import matplotlib.dates as mdates
