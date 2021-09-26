@@ -67,8 +67,6 @@ def extract_eods(files, cfg, verbose, plot_level, sd_thresh=0.0015,
             if pulse_fishes is None:
                 pulse_fishes = [[] for c in range(sf.channels)]
             for k, data in enumerate(sf.blocks(ndata, step)):
-                if k > 2:
-                    break
                 sys.stdout.write('.')
                 sys.stdout.flush()
                 t0 = toffs + dt.timedelta(seconds=k*step/sf.samplerate)
