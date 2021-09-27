@@ -1317,7 +1317,7 @@ def delete_unreliable_fish(clusters, eod_widths, eod_x, verbose=0, sdict={}):
             mask[clusters==cluster] = True
             if verbose>0:
                 print('deleting unreliable cluster %i, number of EOD times %d < 2'%(cluster, len(eod_x[cluster==clusters])))
-        if np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])) > 0.5:
+        elif np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])) > 0.5:
             if verbose>0:
                 print('deleting unreliable cluster %i, score=%f'%(cluster, np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters]))))
             mask[clusters==cluster] = True
