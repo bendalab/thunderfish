@@ -24,7 +24,10 @@ from .powerspectrum import decibel
 from .bestwindow import find_best_window, plot_best_data
 from .thunderfish import configuration, detect_eods, plot_eods
 
-            
+
+basename = ''
+
+
 class EODExplorer(MultivariateExplorer):
     """Simple GUI for viewing and exploring properties of EOD waveforms.
 
@@ -157,7 +160,8 @@ class EODExplorer(MultivariateExplorer):
         - Species labels are rotated.
         """
         if any(l in label for l in ['ampl', 'power', 'width',
-                                    'time', 'tau', 'var', 'peak', 'trough',
+                                    'time', 'tau', 'P2-P1-dist',
+                                    'var', 'peak', 'trough',
                                     'dist', 'rms', 'noise']):
             if np.all(data[np.isfinite(data)] >= 0.0):
                 if axis == 'x':
@@ -210,12 +214,13 @@ class EODExplorer(MultivariateExplorer):
             axs[0].text(0.5, 0.3, 'n = %d' % len(self.raw_data),
                         transform = axs[0].transAxes, ha='center', va='center')
         elif len(indices) == 1:
+            file_name = self.eoddata[indices[0],'file'] if 'file' in self.eoddata else basename
             if 'index' in self.eoddata and np.isfinite(self.eoddata[indices[0],'index']) and \
               np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
-                axs[0].set_title('%s: %d' % (self.eoddata[indices[0],'file'],
+                axs[0].set_title('%s: %d' % (file_name,
                                              self.eoddata[indices[0],'index']))
             else:
-                axs[0].set_title(self.eoddata[indices[0],'file'])
+                axs[0].set_title(file_name)
             if np.isfinite(self.eoddata[indices[0],'index']):
                 axs[0].text(0.05, 0.85, '%.1fHz' % self.eoddata[indices[0],'EODf'],
                             transform = axs[0].transAxes)
@@ -276,11 +281,12 @@ class EODExplorer(MultivariateExplorer):
         if 'index' in self.eoddata and \
            np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
             for i in indices:
+                file_name = self.eoddata[i,'file'] if 'file' in self.eoddata else basename
                 if np.isfinite(self.eoddata[i,'index']):
-                    print('%s : %d' % (self.eoddata[i,'file'], self.eoddata[i,'index']))
+                    print('%s : %d' % (file_name, self.eoddata[i,'index']))
                 else:
-                    print(self.eoddata[i,'file'])
-        else:
+                    print(file_name)
+        elif 'file' in self.eoddata:
             for i in indices:
                 print(self.eoddata[i,'file'])
         if len(indices) == 1:
@@ -303,8 +309,8 @@ class EODExplorer(MultivariateExplorer):
         """ Launch thunderfish on the selected EOD.
         """
         # load data:
-        basename = self.eoddata[index,'file']
-        bp = os.path.join(self.path, basename)
+        file_base = self.eoddata[index,'file'] if 'file' in self.eoddata else basename
+        bp = os.path.join(self.path, file_base)
         fn = glob.glob(bp + '.*')
         if len(fn) == 0:
             print('no recording found for %s' % bp)
@@ -338,11 +344,11 @@ class EODExplorer(MultivariateExplorer):
         for k in ['toolbar', 'keymap.back', 'keymap.forward',
                   'keymap.zoom', 'keymap.pan']:
             plt.rcParams[k] = self.plt_params[k]
-        fig = plot_eods(basename, raw_data, samplerate, idx0, idx1, clipped,
+        fig = plot_eods(file_base, raw_data, samplerate, idx0, idx1, clipped,
                         psd_data[0], fishlist, None, mean_eods, eod_props, peak_data, spec_data,
                         [idx], unit, zoom_window, 10, None, True, False, 'auto',
                         False, 0.0, 3000.0, interactive=True, verbose=0)
-        fig.canvas.set_window_title('thunderfish: %s' % basename)
+        fig.canvas.set_window_title('thunderfish: %s' % file_base)
         plt.show(block=False)
 
 
@@ -457,7 +463,7 @@ class EODExplorer(MultivariateExplorer):
                 if group == 'noise':
                     group_cols.extend(['noise', 'p-p-amplitude', 'min-ampl', 'max-ampl'])
                 elif group == 'timing':
-                    group_cols.extend(['tstart', 'tend', 'width', 'tau', 'firstpeak', 'lastpeak'])
+                    group_cols.extend(['tstart', 'tend', 'width', 'tau', 'P2-P1-dist', 'firstpeak', 'lastpeak'])
                 elif group == 'power':
                     group_cols.extend(['peakfreq', 'peakpower', 'poweratt5', 'poweratt50', 'lowcutoff'])
                 elif group == 'time':
@@ -484,7 +490,7 @@ class EODExplorer(MultivariateExplorer):
                             group_cols.append('P%drelampl' % k)
                             group_cols.append('P%dtime' % k)
                         group_cols.append('P%dwidth' % k)
-                    group_cols.extend(['tau', 'peakfreq', 'poweratt5'])
+                    group_cols.extend(['tau', 'P2-P1-dist', 'peakfreq', 'poweratt5'])
                 else:
                     return None, '"%s" is not a valid data group for pulsefish' % group
         # additional data columns:
@@ -575,7 +581,7 @@ def load_waveform(idx):
             return None, None
         else:
             return None
-    file_name = data[idx,'file']
+    file_name = data[idx,'file'] if 'file' in data else '-'.join(basename.split('-')[:-1])
     file_index = data[idx,'index'] if 'index' in data else 0
     eod_filename = os.path.join(data_path, '%s-eodwaveform-%d.csv' % (file_name, file_index))
     eod_table = TableData(eod_filename)
@@ -601,6 +607,7 @@ def main():
     global wave_fish
     global load_spec
     global data_path
+    global basename
 
     # command line arguments:
     parser = argparse.ArgumentParser(add_help=False,
@@ -718,7 +725,7 @@ def main():
             skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
         if len(skips) > 0:
             if verbose:
-                print('skip fish %2d from %s: %s' % (idx, data[r,'file'], skips))
+                print('skip fish %2d from %s: %s' % (idx, data[r,'file'] if 'file' in data else basename, skips))
             del data[r,:]
             skipped += 1
     if verbose and skipped > 0:
