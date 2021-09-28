@@ -878,7 +878,8 @@ def median_std_threshold(data, samplerate, win_size=0.0005, n_snippets=1000, thr
 
     On `n_snippets` snippets of `win_size` duration the standard
     deviation of the data is estimated. The returned threshold is the
-    median of these standard deviations multiplied by `thresh_fac`.
+    median of these standard deviations that are larger than zero
+    multiplied by `thresh_fac`.
 
     Parameters
     ----------
@@ -906,7 +907,7 @@ def median_std_threshold(data, samplerate, win_size=0.0005, n_snippets=1000, thr
         step = win_size_indices//2
     stds = np.array([np.std(data[i:i+win_size_indices])
                      for i in range(0, len(data)-win_size_indices, step)])
-    return np.median(stds)*thresh_fac
+    return np.median(stds[stds>0])*thresh_fac
 
     
 def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
