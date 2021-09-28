@@ -29,8 +29,8 @@ from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_pea
 from .thunderfish import configuration, detect_eods, remove_eod_files
 
 
-def extract_eods(files, cfg, verbose, plot_level, sd_thresh=0.0015,
-                 max_deltaf=1.0, max_dist=0.00005,
+def extract_eods(files, stds_only, cfg, verbose, plot_level,
+                 sd_thresh=0.0018, max_deltaf=1.0, max_dist=0.00005,
                  deltat_max=dt.timedelta(minutes=5)):
     t0s = []
     stds = None
@@ -76,6 +76,8 @@ def extract_eods(files, cfg, verbose, plot_level, sd_thresh=0.0015,
                     fdata = lfilter(b, a, data[:,channel] - np.mean(data[:ndata//20,channel]))
                     sd = np.std(fdata)
                     stds[channel].append(sd)
+                    if stds_only:
+                        continue
                     if sd > sd_thresh:
                         # clipping:
                         # XXX TODO:
@@ -196,6 +198,27 @@ def load_times(file_path):
         times.append(t)
     return times
     
+def save_power(times, stds, unit, output_basename, **kwargs):
+    td = TableData()
+    td.append('index', '', '%d', list(range(len(times))))
+    td.append('time', '', '%s',
+              [t.strftime('%Y-%m-%dT%H:%M:%S') for t in times])
+    for c, std in enumerate(stds):
+        td.append('channel%d'%c, unit, '%g', std)
+    fp = output_basename + '-stdevs'
+    td.write(fp, **kwargs)
+
+def load_power(file_path):
+    data = TableData(file_path)
+    times = []
+    for row in range(data.rows()):
+        times.append(dt.datetime.strptime(data[row,'time'],
+                                          '%Y-%m-%dT%H:%M:%S'))
+    channels = data.columns()-2
+    stds = np.zeros((len(times), channels))
+    for c in range(channels):
+        stds[:,c] = data[:,'channel%d'%c]
+    return times, stds
 
 def save_data(output_folder, name, pulse_fishes, wave_fishes,
               tstart, tend, t0s, stds, unit, cfg):
@@ -237,14 +260,7 @@ def save_data(output_folder, name, pulse_fishes, wave_fishes,
     save_times([(tstart, tend)], None, output_basename, name,
                **write_table_args(cfg))
     # signal power:
-    td = TableData()
-    td.append('index', '', '%d', list(range(len(t0s))))
-    td.append('time', '', '%s',
-              [t.strftime('%Y-%m-%dT%H:%M:%S') for t in t0s])
-    for c, std in enumerate(stds):
-        td.append('channel%d'%c, unit, '%g', std)
-    fp = output_basename + '-stdevs'
-    td.write(fp, **write_table_args(cfg))
+    save_power(t0s, stds, unit, output_basename, **write_table_args(cfg))
 
 
 def load_data(files):
@@ -303,6 +319,19 @@ def load_data(files):
     tend = times[0][1]
     return pulse_fishes, wave_fishes, tstart, tend
 
+def plot_signal_power(times, stds, output_folder):
+    n = stds.shape[1]
+    h = n*3
+    fig, axs = plt.subplots(n, 1, figsize=(16/2.54, h/2.54),
+                            sharex=True, sharey=True)
+    fig.subplots_adjust(left=0.05, right=0.97, top=1-0.2/h, bottom=2.5/h)
+    for ax, std in zip(axs, stds.T):
+        ax.plot(times, std)
+    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%dT%H:%M'))
+    plt.setp(axs[-1].get_xticklabels(), ha='right',
+             rotation=30, rotation_mode='anchor')
+    fig.savefig(os.path.join(output_folder, 'signalpowers.pdf'))
+    plt.show()
 
 def compress_fish(pulse_fishes, wave_fishes,
                   max_noise=0.1, max_deltaf=1.0, max_dist=0.00002):
@@ -337,7 +366,8 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
     h = n*2.5
     fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
                             gridspec_kw=dict(width_ratios=(1,2)))
-    fig.subplots_adjust(left=0.02, right=0.97, top=1-0.2/h, bottom=2.5/h)
+    fig.subplots_adjust(left=0.02, right=0.97, top=1-0.2/h, bottom=2.5/h,
+                        hspace=0)
     pi = 0
     for ax, fish in zip(axs, pulse_fishes + wave_fishes):
         # EOD waveform:
@@ -412,6 +442,8 @@ def main():
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='plot analyzed data')
+    parser.add_argument('-s', dest='stds_only', action='store_true',
+                        help='analyze or plot standard deviation of data only')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures (defaults to current working directory)')
     parser.add_argument('-k', dest='keep_path', action='store_true',
@@ -445,9 +477,6 @@ def main():
     if verbose < plot_level:
         verbose = plot_level
 
-    # interactive plot:
-    plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
-
     if args.save_config:
         # save configuration:
         file_name = args.file[0] if len(args.file) else ''
@@ -473,7 +502,7 @@ def main():
     # analyze and save data:
     if not args.save_plot:
         pulse_fishes, wave_fishes, tstart, tend, t0s, stds, unit, filename = \
-            extract_eods(args.file, cfg, verbose, plot_level)
+            extract_eods(args.file, args.stds_only, cfg, verbose, plot_level)
         if len(args.name) > 0:
             filename = args.name
         if len(filename) == 0:
@@ -485,16 +514,25 @@ def main():
         save_data(output_folder, filename, pulse_fishes, wave_fishes,
                   tstart, tend, t0s, stds, unit, cfg)
         sys.stdout.write('DONE!\n')
-        sys.stdout.write('Extracted EOD waveforms saved in %s\n' % output_folder)
-        sys.stdout.write('To generate plots run thunderlogger with the -p flag on the generated files:\n')
-        sys.stdout.write('> thunderlogger -p -o %s%s %s\n' %
+        if args.stds_only:
+            sys.stdout.write('Signal powers saved in %s\n' % (output_folder+'-stdevs.csv'))
+            sys.stdout.write('To generate plots run thunderlogger with the -p and -s flags on the generated file:\n')
+            sys.stdout.write('> thunderlogger -p -s %s\n' % (output_folder+'-stdevs.csv'))
+        else:
+            sys.stdout.write('Extracted EOD waveforms saved in %s\n' % output_folder)
+            sys.stdout.write('To generate plots run thunderlogger with the -p flag on the generated files:\n')
+            sys.stdout.write('> thunderlogger -p -o %s%s %s\n' %
                          (args.outpath, ' -k' if args.keep_path else '',
                           output_basename))
     else:
-        pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
-        pulse_fishes, wave_fishes = compress_fish(pulse_fishes, wave_fishes)
-        plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
-                            True, output_folder)
+        if args.stds_only:
+            times, stds = load_power(args.file[0])
+            plot_signal_power(times, stds, output_folder)
+        else:
+            pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
+            pulse_fishes, wave_fishes = compress_fish(pulse_fishes, wave_fishes)
+            plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
+                                True, output_folder)
 
 
 if __name__ == '__main__':
