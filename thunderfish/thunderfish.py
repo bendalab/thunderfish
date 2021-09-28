@@ -16,9 +16,9 @@ import glob
 import argparse
 import traceback
 import numpy as np
-import matplotlib
+#import matplotlib
 #matplotlib.use('Agg')  # for headless system
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
 import matplotlib.lines as ml
