@@ -44,113 +44,117 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
     t1 = tstart
     unit = None
     for file in files:
-        with DataLoader(file) as sf:
-            # common prefix:
-            fn = os.path.splitext(os.path.basename(file))[0]
-            for i, c in enumerate(filename):
-                if c != fn[i]:
-                    filename = filename[:i]
-                    break
-            # analyze:
-            sys.stdout.write(file + ': ')
-            unit = sf.unit
-            if max_dist < 1.1/sf.samplerate:
-                max_dist = 1.1/sf.samplerate
-            best_window_size = cfg.value('bestWindowSize')
-            ndata = int(best_window_size * sf.samplerate)
-            step = ndata//2
-            b, a = butter(1, 10.0, 'hp', fs=sf.samplerate, output='ba')
-            if stds is None:
-                stds = [[] for c in range(sf.channels)]
-            if wave_fishes is None:
-                wave_fishes = [[] for c in range(sf.channels)]
-            if pulse_fishes is None:
-                pulse_fishes = [[] for c in range(sf.channels)]
-            for k, data in enumerate(sf.blocks(ndata, step)):
-                sys.stdout.write('.')
+        try:
+            with DataLoader(file) as sf:
+                # common prefix:
+                fn = os.path.splitext(os.path.basename(file))[0]
+                for i, c in enumerate(filename):
+                    if c != fn[i]:
+                        filename = filename[:i]
+                        break
+                # analyze:
+                sys.stdout.write(file + ': ')
+                unit = sf.unit
+                if max_dist < 1.1/sf.samplerate:
+                    max_dist = 1.1/sf.samplerate
+                best_window_size = cfg.value('bestWindowSize')
+                ndata = int(best_window_size * sf.samplerate)
+                step = ndata//2
+                b, a = butter(1, 10.0, 'hp', fs=sf.samplerate, output='ba')
+                if stds is None:
+                    stds = [[] for c in range(sf.channels)]
+                if wave_fishes is None:
+                    wave_fishes = [[] for c in range(sf.channels)]
+                if pulse_fishes is None:
+                    pulse_fishes = [[] for c in range(sf.channels)]
+                for k, data in enumerate(sf.blocks(ndata, step)):
+                    sys.stdout.write('.')
+                    sys.stdout.flush()
+                    t0 = toffs + dt.timedelta(seconds=k*step/sf.samplerate)
+                    t1 = t0 + dt.timedelta(seconds=ndata/sf.samplerate)
+                    t0s.append(t0)
+                    for channel in range(sf.channels):
+                        fdata = lfilter(b, a, data[:,channel] - np.mean(data[:ndata//20,channel]))
+                        sd = np.std(fdata)
+                        stds[channel].append(sd)
+                        if stds_only:
+                            continue
+                        if sd > sd_thresh:
+                            # clipping:
+                            # XXX TODO:
+                            clipped = False
+                            min_clip = -1.0
+                            max_clip = 1.0
+                            name = file
+                            # detect EODs in the data:
+                            _, _, _, eod_props, mean_eods, spec_data, peak_data, _, _, _ = \
+                              detect_eods(data[:,channel], sf.samplerate,
+                                          clipped, min_clip, max_clip,
+                                          name, verbose, plot_level, cfg)
+                            first_fish = True
+                            for props, eod, spec, peaks in zip(eod_props, mean_eods,
+                                                               spec_data, peak_data):
+                                fish = None
+                                fish_deltaf = 100000.0
+                                if props['type'] == 'wave':
+                                    for wfish in wave_fishes[channel]:
+                                        deltaf = np.abs(wfish.props['EODf'] - props['EODf'])
+                                        if deltaf < fish_deltaf:
+                                            fish_deltaf = deltaf
+                                            fish = wfish
+                                    if fish_deltaf > max_deltaf:
+                                        fish = None
+                                    peaks = None
+                                else:
+                                    fish_dist = 10000.0
+                                    for pfish in pulse_fishes[channel]:
+                                        ddist = np.abs(pfish.props['dist'] -
+                                                       props['dist'])
+                                        if ddist < fish_dist:
+                                            fish_dist = ddist
+                                            fish_deltaf = np.abs(pfish.props['EODf'] -
+                                                                 props['EODf'])
+                                            fish = pfish
+                                    if fish_dist > max_dist or \
+                                       fish_deltaf > max_deltaf:
+                                        fish = None
+                                    spec = None
+                                if fish is not None and \
+                                   t0 - fish.times[-1][1] < deltat_max:
+                                    if fish.times[-1][1] >= t0 and \
+                                       np.abs(fish.times[-1][2] - props['EODf']) < 0.5 and \
+                                       fish.times[-1][3] == channel and \
+                                       fish.times[-1][4] == file:
+                                        fish.times[-1][1] = t1
+                                    else:
+                                        fish.times.append([t0, t1, props['EODf'], channel, file])
+                                    if props['p-p-amplitude'] > fish.props['p-p-amplitude']:
+                                        fish.props = props
+                                        fish.waveform = eod
+                                        fish.spec = spec
+                                        fish.peaks = peaks
+                                else:
+                                    new_fish = SimpleNamespace(props=props,
+                                                               waveform=eod,
+                                                               spec=spec,
+                                                               peaks=peaks,
+                                                               times=[[t0, t1, props['EODf'], channel, file]])
+                                    if props['type'] == 'pulse':
+                                        pulse_fishes[channel].append(new_fish)
+                                    else:
+                                        wave_fishes[channel].append(new_fish)
+                                    if first_fish:
+                                        sys.stdout.write('\n  ')
+                                        first_fish = False
+                                    sys.stdout.write('%6.1fHz %5s-fish @ %s\n  ' %
+                                                     (props['EODf'], props['type'],
+                                                      t0.strftime('%Y-%m-%dT%H:%M:%S')))
+                toffs += dt.timedelta(seconds=len(sf)/sf.samplerate)
+                sys.stdout.write('\n')
                 sys.stdout.flush()
-                t0 = toffs + dt.timedelta(seconds=k*step/sf.samplerate)
-                t1 = t0 + dt.timedelta(seconds=ndata/sf.samplerate)
-                t0s.append(t0)
-                for channel in range(sf.channels):
-                    fdata = lfilter(b, a, data[:,channel] - np.mean(data[:ndata//20,channel]))
-                    sd = np.std(fdata)
-                    stds[channel].append(sd)
-                    if stds_only:
-                        continue
-                    if sd > sd_thresh:
-                        # clipping:
-                        # XXX TODO:
-                        clipped = False
-                        min_clip = -1.0
-                        max_clip = 1.0
-                        name = file
-                        # detect EODs in the data:
-                        _, _, _, eod_props, mean_eods, spec_data, peak_data, _, _, _ = \
-                          detect_eods(data[:,channel], sf.samplerate,
-                                      clipped, min_clip, max_clip,
-                                      name, verbose, plot_level, cfg)
-                        first_fish = True
-                        for props, eod, spec, peaks in zip(eod_props, mean_eods,
-                                                           spec_data, peak_data):
-                            fish = None
-                            fish_deltaf = 100000.0
-                            if props['type'] == 'wave':
-                                for wfish in wave_fishes[channel]:
-                                    deltaf = np.abs(wfish.props['EODf'] - props['EODf'])
-                                    if deltaf < fish_deltaf:
-                                        fish_deltaf = deltaf
-                                        fish = wfish
-                                if fish_deltaf > max_deltaf:
-                                    fish = None
-                                peaks = None
-                            else:
-                                fish_dist = 10000.0
-                                for pfish in pulse_fishes[channel]:
-                                    ddist = np.abs(pfish.props['dist'] -
-                                                   props['dist'])
-                                    if ddist < fish_dist:
-                                        fish_dist = ddist
-                                        fish_deltaf = np.abs(pfish.props['EODf'] -
-                                                             props['EODf'])
-                                        fish = pfish
-                                if fish_dist > max_dist or \
-                                   fish_deltaf > max_deltaf:
-                                    fish = None
-                                spec = None
-                            if fish is not None and \
-                               t0 - fish.times[-1][1] < deltat_max:
-                                if fish.times[-1][1] >= t0 and \
-                                   np.abs(fish.times[-1][2] - props['EODf']) < 0.5 and \
-                                   fish.times[-1][3] == channel and \
-                                   fish.times[-1][4] == file:
-                                    fish.times[-1][1] = t1
-                                else:
-                                    fish.times.append([t0, t1, props['EODf'], channel, file])
-                                if props['p-p-amplitude'] > fish.props['p-p-amplitude']:
-                                    fish.props = props
-                                    fish.waveform = eod
-                                    fish.spec = spec
-                                    fish.peaks = peaks
-                            else:
-                                new_fish = SimpleNamespace(props=props,
-                                                           waveform=eod,
-                                                           spec=spec,
-                                                           peaks=peaks,
-                                                           times=[[t0, t1, props['EODf'], channel, file]])
-                                if props['type'] == 'pulse':
-                                    pulse_fishes[channel].append(new_fish)
-                                else:
-                                    wave_fishes[channel].append(new_fish)
-                                if first_fish:
-                                    sys.stdout.write('\n  ')
-                                    first_fish = False
-                                sys.stdout.write('%6.1fHz %5s-fish @ %s\n  ' %
-                                                 (props['EODf'], props['type'],
-                                                  t0.strftime('%Y-%m-%dT%H:%M:%S')))
-            toffs += dt.timedelta(seconds=len(sf)/sf.samplerate)
-            sys.stdout.write('\n')
-            sys.stdout.flush()
+        except EOFError as error:
+            # XXX we need to update toffs by means of the metadata of the next file!
+            sys.stdout.write(file + ': ' + str(e) + '\n')
     pulse_fishes = [[pulse_fishes[c][i] for i in
                      np.argsort([fish.props['EODf'] for fish in pulse_fishes[c]])]
                     for c in range(len(pulse_fishes))]
