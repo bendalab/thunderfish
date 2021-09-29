@@ -154,13 +154,15 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
                 sys.stdout.flush()
         except EOFError as error:
             # XXX we need to update toffs by means of the metadata of the next file!
-            sys.stdout.write(file + ': ' + str(e) + '\n')
-    pulse_fishes = [[pulse_fishes[c][i] for i in
-                     np.argsort([fish.props['EODf'] for fish in pulse_fishes[c]])]
-                    for c in range(len(pulse_fishes))]
-    wave_fishes = [[wave_fishes[c][i] for i in
-                    np.argsort([fish.props['EODf'] for fish in wave_fishes[c]])]
-                   for c in range(len(wave_fishes))]
+            sys.stdout.write(file + ': ' + str(error) + '\n')
+    if pulse_fishes is not None and len(pulse_fishes) > 0:
+        pulse_fishes = [[pulse_fishes[c][i] for i in
+                         np.argsort([fish.props['EODf'] for fish in pulse_fishes[c]])]
+                        for c in range(len(pulse_fishes))]
+    if wave_fishes is not None and len(wave_fishes) > 0:
+        wave_fishes = [[wave_fishes[c][i] for i in
+                        np.argsort([fish.props['EODf'] for fish in wave_fishes[c]])]
+                       for c in range(len(wave_fishes))]
     return pulse_fishes, wave_fishes, tstart, toffs, t0s, stds, unit, filename
 
 
@@ -227,44 +229,47 @@ def load_power(file_path):
 def save_data(output_folder, name, pulse_fishes, wave_fishes,
               tstart, tend, t0s, stds, unit, cfg):
     output_basename = os.path.join(output_folder, name)
-    for c in range(len(pulse_fishes)):
-        out_path = output_basename + '-c%d' % c
-        idx = 0
-        # pulse fish:
-        pulse_props = []
-        for fish in pulse_fishes[c]:
-            save_eod_waveform(fish.waveform, unit, idx, out_path,
-                              **write_table_args(cfg))
-            if fish.peaks is not None:
-                save_pulse_peaks(fish.peaks, unit, idx, out_path,
-                                 **write_table_args(cfg))
-            save_times(fish.times, idx, out_path, name,
-                       **write_table_args(cfg))
-            pulse_props.append(fish.props)
-            pulse_props[-1]['index'] = idx
-            idx += 1
-        save_pulse_fish(pulse_props, unit, out_path,
-                        **write_table_args(cfg))
+    if pulse_fishes is not None:
+        for c in range(len(pulse_fishes)):
+            out_path = output_basename + '-c%d' % c
+            idx = 0
+            # pulse fish:
+            pulse_props = []
+            for fish in pulse_fishes[c]:
+                save_eod_waveform(fish.waveform, unit, idx, out_path,
+                                  **write_table_args(cfg))
+                if fish.peaks is not None:
+                    save_pulse_peaks(fish.peaks, unit, idx, out_path,
+                                     **write_table_args(cfg))
+                save_times(fish.times, idx, out_path, name,
+                           **write_table_args(cfg))
+                pulse_props.append(fish.props)
+                pulse_props[-1]['index'] = idx
+                idx += 1
+            save_pulse_fish(pulse_props, unit, out_path,
+                            **write_table_args(cfg))
         # wave fish:
         wave_props = []
-        for fish in wave_fishes[c]:
-            save_eod_waveform(fish.waveform, unit, idx, out_path,
-                              **write_table_args(cfg))
-            if fish.spec is not None:
-                save_wave_spectrum(fish.spec, unit, idx, out_path,
-                                   **write_table_args(cfg))
-            save_times(fish.times, idx, out_path, name,
-                       **write_table_args(cfg))
-            wave_props.append(fish.props)
-            wave_props[-1]['index'] = idx
-            idx += 1
-        save_wave_fish(wave_props, unit, out_path,
-                       **write_table_args(cfg))
+        if wave_fishes is not None:
+            for fish in wave_fishes[c]:
+                save_eod_waveform(fish.waveform, unit, idx, out_path,
+                                  **write_table_args(cfg))
+                if fish.spec is not None:
+                    save_wave_spectrum(fish.spec, unit, idx, out_path,
+                                       **write_table_args(cfg))
+                save_times(fish.times, idx, out_path, name,
+                           **write_table_args(cfg))
+                wave_props.append(fish.props)
+                wave_props[-1]['index'] = idx
+                idx += 1
+            save_wave_fish(wave_props, unit, out_path,
+                           **write_table_args(cfg))
     # recording time window:
     save_times([(tstart, tend)], None, output_basename, name,
                **write_table_args(cfg))
     # signal power:
-    save_power(t0s, stds, unit, output_basename, **write_table_args(cfg))
+    if stds is not None and len(stds) > 0:
+        save_power(t0s, stds, unit, output_basename, **write_table_args(cfg))
 
 
 def load_data(files):
