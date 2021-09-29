@@ -17,7 +17,6 @@ from types import SimpleNamespace
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 import matplotlib.dates as mdates
-#from matplotlib.backends.backend_pdf import PdfPages
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import DataLoader
@@ -34,6 +33,7 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
                  deltat_max=dt.timedelta(minutes=5)):
     t0s = []
     stds = None
+    supra_thresh = None
     wave_fishes = None
     pulse_fishes = None
     # XXX we should read this from the meta data:
@@ -63,6 +63,7 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
                 b, a = butter(1, 10.0, 'hp', fs=sf.samplerate, output='ba')
                 if stds is None:
                     stds = [[] for c in range(sf.channels)]
+                    supra_thresh = [[] for c in range(sf.channels)]
                 if wave_fishes is None:
                     wave_fishes = [[] for c in range(sf.channels)]
                 if pulse_fishes is None:
@@ -77,6 +78,7 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
                         fdata = lfilter(b, a, data[:,channel] - np.mean(data[:ndata//20,channel]))
                         sd = np.std(fdata)
                         stds[channel].append(sd)
+                        supra_thresh[channel].append(1 if sd > sd_thresh else 0)
                         if stds_only:
                             continue
                         if sd > sd_thresh:
@@ -163,7 +165,7 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
         wave_fishes = [[wave_fishes[c][i] for i in
                         np.argsort([fish.props['EODf'] for fish in wave_fishes[c]])]
                        for c in range(len(wave_fishes))]
-    return pulse_fishes, wave_fishes, tstart, toffs, t0s, stds, unit, filename
+    return pulse_fishes, wave_fishes, tstart, toffs, t0s, stds, supra_thresh, unit, filename
 
 
 def save_times(times, idx, output_basename, name, **kwargs):
@@ -204,13 +206,14 @@ def load_times(file_path):
         times.append(t)
     return times
     
-def save_power(times, stds, unit, output_basename, **kwargs):
+def save_power(times, stds, supra_thresh, unit, output_basename, **kwargs):
     td = TableData()
     td.append('index', '', '%d', list(range(len(times))))
     td.append('time', '', '%s',
               [t.strftime('%Y-%m-%dT%H:%M:%S') for t in times])
-    for c, std in enumerate(stds):
+    for c, (std, thresh) in enumerate(zip(stds, supra_thresh)):
         td.append('channel%d'%c, unit, '%g', std)
+        td.append('thresh%d'%c, '', '%d', thresh)
     fp = output_basename + '-stdevs'
     td.write(fp, **kwargs)
 
@@ -220,14 +223,16 @@ def load_power(file_path):
     for row in range(data.rows()):
         times.append(dt.datetime.strptime(data[row,'time'],
                                           '%Y-%m-%dT%H:%M:%S'))
-    channels = data.columns()-2
+    channels = (data.columns()-2)//2
     stds = np.zeros((len(times), channels))
+    supra_thresh = np.zeros((len(times), channels), dtype=np.int)
     for c in range(channels):
         stds[:,c] = data[:,'channel%d'%c]
-    return times, stds
+        supra_thresh[:,c] = data[:,'thresh%d'%c]
+    return np.array(times), stds, supra_thresh
 
 def save_data(output_folder, name, pulse_fishes, wave_fishes,
-              tstart, tend, t0s, stds, unit, cfg):
+              tstart, tend, t0s, stds, supra_thresh, unit, cfg):
     output_basename = os.path.join(output_folder, name)
     if pulse_fishes is not None:
         for c in range(len(pulse_fishes)):
@@ -269,7 +274,8 @@ def save_data(output_folder, name, pulse_fishes, wave_fishes,
                **write_table_args(cfg))
     # signal power:
     if stds is not None and len(stds) > 0:
-        save_power(t0s, stds, unit, output_basename, **write_table_args(cfg))
+        save_power(t0s, stds, supra_thresh, unit, output_basename,
+                   **write_table_args(cfg))
 
 
 def load_data(files):
@@ -328,14 +334,16 @@ def load_data(files):
     tend = times[0][1]
     return pulse_fishes, wave_fishes, tstart, tend
 
-def plot_signal_power(times, stds, output_folder):
+def plot_signal_power(times, stds, supra_thresh, output_folder):
     n = stds.shape[1]
     h = n*3
     fig, axs = plt.subplots(n, 1, figsize=(16/2.54, h/2.54),
                             sharex=True, sharey=True)
     fig.subplots_adjust(left=0.05, right=0.97, top=1-0.2/h, bottom=2.5/h)
-    for ax, std in zip(axs, stds.T):
+    for ax, std, thresh in zip(axs, stds.T, supra_thresh.T):
         ax.plot(times, std)
+        stdm = np.ma.masked_where(thresh < 1, std)
+        ax.plot(times, stdm)
     axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%dT%H:%M'))
     plt.setp(axs[-1].get_xticklabels(), ha='right',
              rotation=30, rotation_mode='anchor')
@@ -510,7 +518,8 @@ def main():
         os.makedirs(output_folder)
     # analyze and save data:
     if not args.save_plot:
-        pulse_fishes, wave_fishes, tstart, tend, t0s, stds, unit, filename = \
+        pulse_fishes, wave_fishes, tstart, tend, t0s, \
+            stds, supra_thresh, unit, filename = \
             extract_eods(args.file, args.stds_only, cfg, verbose, plot_level)
         if len(args.name) > 0:
             filename = args.name
@@ -521,7 +530,7 @@ def main():
         output_basename = os.path.join(output_folder, filename)
         remove_eod_files(output_basename, verbose, cfg)
         save_data(output_folder, filename, pulse_fishes, wave_fishes,
-                  tstart, tend, t0s, stds, unit, cfg)
+                  tstart, tend, t0s, stds, supra_thresh, unit, cfg)
         sys.stdout.write('DONE!\n')
         if args.stds_only:
             sys.stdout.write('Signal powers saved in %s\n' % (output_folder+'-stdevs.csv'))
@@ -535,8 +544,8 @@ def main():
                           output_basename))
     else:
         if args.stds_only:
-            times, stds = load_power(args.file[0])
-            plot_signal_power(times, stds, output_folder)
+            times, stds, supra_thresh = load_power(args.file[0])
+            plot_signal_power(times, stds, supra_thresh, output_folder)
         else:
             pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
             pulse_fishes, wave_fishes = compress_fish(pulse_fishes, wave_fishes)
