@@ -205,7 +205,8 @@ def load_times(file_path):
             t.append(data[row,'file'])
         times.append(t)
     return times
-    
+
+
 def save_power(times, stds, supra_thresh, unit, output_basename, **kwargs):
     td = TableData()
     td.append('index', '', '%d', list(range(len(times))))
@@ -217,7 +218,10 @@ def save_power(times, stds, supra_thresh, unit, output_basename, **kwargs):
     fp = output_basename + '-stdevs'
     td.write(fp, **kwargs)
 
+
 def load_power(file_path):
+    base = os.path.basename(file_path)
+    device = base[0:base.find('-stdevs')]
     data = TableData(file_path)
     times = []
     for row in range(data.rows()):
@@ -229,7 +233,8 @@ def load_power(file_path):
     for c in range(channels):
         stds[:,c] = data[:,'channel%d'%c]
         supra_thresh[:,c] = data[:,'thresh%d'%c]
-    return np.array(times), stds, supra_thresh
+    return np.array(times), stds, supra_thresh, device
+
 
 def save_data(output_folder, name, pulse_fishes, wave_fishes,
               tstart, tend, t0s, stds, supra_thresh, unit, cfg):
@@ -334,21 +339,34 @@ def load_data(files):
     tend = times[0][1]
     return pulse_fishes, wave_fishes, tstart, tend
 
-def plot_signal_power(times, stds, supra_thresh, output_folder):
+
+def plot_signal_power(times, stds, supra_thresh, device, title, output_folder):
+    plt.rcParams['axes.xmargin'] = 0
+    plt.rcParams['axes.ymargin'] = 0
     n = stds.shape[1]
-    h = n*3
+    h = n*4.0
+    t = 0.8 if title else 0.1
     fig, axs = plt.subplots(n, 1, figsize=(16/2.54, h/2.54),
                             sharex=True, sharey=True)
-    fig.subplots_adjust(left=0.05, right=0.97, top=1-0.2/h, bottom=2.5/h)
-    for ax, std, thresh in zip(axs, stds.T, supra_thresh.T):
+    fig.subplots_adjust(left=0.1, right=0.99, top=1-t/h, bottom=1.6/h,
+                        hspace=0)
+    for c, (ax, std, thresh) in enumerate(zip(axs, stds.T, supra_thresh.T)):
         ax.plot(times, std)
-        stdm = np.ma.masked_where(thresh < 1, std)
-        ax.plot(times, stdm)
-    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%dT%H:%M'))
+        thresh = np.max(std[thresh<1])
+        ax.axhline(thresh, color='k', lw=0.5)
+        #stdm = np.ma.masked_where(thresh < 1, std)
+        #ax.plot(times, stdm)
+        #ax.set_ylim(bottom=0)
+        ax.set_yscale('log')
+        ax.set_ylabel('%s-c%d' % (device, c))
+    if title:
+        axs[0].set_title(title)
+    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%b %d %Hh'))
     plt.setp(axs[-1].get_xticklabels(), ha='right',
              rotation=30, rotation_mode='anchor')
     fig.savefig(os.path.join(output_folder, 'signalpowers.pdf'))
     plt.show()
+    
 
 def compress_fish(pulse_fishes, wave_fishes,
                   max_noise=0.1, max_deltaf=1.0, max_dist=0.00002):
@@ -379,6 +397,8 @@ def compress_fish(pulse_fishes, wave_fishes,
 
 def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
                         save_plot, output_folder):
+    plt.rcParams['axes.xmargin'] = 0
+    plt.rcParams['axes.ymargin'] = 0
     n = len(pulse_fishes) + len(wave_fishes)
     h = n*2.5
     fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
@@ -415,7 +435,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         ax[0].xaxis.set_visible(False)
         ax[0].yaxis.set_visible(False)
         # time bar:
-        ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%dT%H:%M'))
+        ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%b %d %Hh'))
         for time in fish.times:
             ax[1].plot(time[:2], [time[3], time[3]], lw=5, color='#2060A7')
         ax[1].set_xlim(tstart, tend)
@@ -544,8 +564,9 @@ def main():
                           output_basename))
     else:
         if args.stds_only:
-            times, stds, supra_thresh = load_power(args.file[0])
-            plot_signal_power(times, stds, supra_thresh, output_folder)
+            times, stds, supra_thresh, device = load_power(args.file[0])
+            plot_signal_power(times, stds, supra_thresh, device, args.name,
+                              output_folder)
         else:
             pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
             pulse_fishes, wave_fishes = compress_fish(pulse_fishes, wave_fishes)
