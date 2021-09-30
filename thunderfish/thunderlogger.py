@@ -340,25 +340,32 @@ def load_data(files):
     return pulse_fishes, wave_fishes, tstart, tend
 
 
-def plot_signal_power(times, stds, supra_thresh, device, title, output_folder):
+def plot_signal_power(times, stds, supra_threshs, devices,
+                      title, output_folder):
     plt.rcParams['axes.xmargin'] = 0
     plt.rcParams['axes.ymargin'] = 0
-    n = stds.shape[1]
+    n = 0
+    for s in stds:
+        n += s.shape[1]
     h = n*4.0
     t = 0.8 if title else 0.1
     fig, axs = plt.subplots(n, 1, figsize=(16/2.54, h/2.54),
                             sharex=True, sharey=True)
     fig.subplots_adjust(left=0.1, right=0.99, top=1-t/h, bottom=1.6/h,
                         hspace=0)
-    for c, (ax, std, thresh) in enumerate(zip(axs, stds.T, supra_thresh.T)):
-        ax.plot(times, std)
-        thresh = np.max(std[thresh<1])
-        ax.axhline(thresh, color='k', lw=0.5)
-        #stdm = np.ma.masked_where(thresh < 1, std)
-        #ax.plot(times, stdm)
-        #ax.set_ylim(bottom=0)
-        ax.set_yscale('log')
-        ax.set_ylabel('%s-c%d' % (device, c))
+    i = 0
+    for time, cstds, threshs, device in zip(times, stds, supra_threshs, devices):
+        for c, (std, thresh) in enumerate(zip(cstds.T, threshs.T)):
+            ax = axs[i]
+            ax.plot(time, std)
+            thresh = np.max(std[thresh<1])
+            ax.axhline(thresh, color='k', lw=0.5)
+            #stdm = np.ma.masked_where(thresh < 1, std)
+            #ax.plot(time, stdm)
+            #ax.set_ylim(bottom=0)
+            ax.set_yscale('log')
+            ax.set_ylabel('%s-c%d' % (device, c))
+            i += 1
     if title:
         axs[0].set_title(title)
     axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%b %d %Hh'))
@@ -564,8 +571,17 @@ def main():
                           output_basename))
     else:
         if args.stds_only:
-            times, stds, supra_thresh, device = load_power(args.file[0])
-            plot_signal_power(times, stds, supra_thresh, device, args.name,
+            times = []
+            stds = []
+            supra_threshs = []
+            devices = []
+            for file in args.file:
+                t, p, s, d = load_power(file)
+                times.append(t)
+                stds.append(p)
+                supra_threshs.append(s)
+                devices.append(d)
+            plot_signal_power(times, stds, supra_threshs, devices, args.name,
                               output_folder)
         else:
             pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
