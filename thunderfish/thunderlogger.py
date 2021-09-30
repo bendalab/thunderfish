@@ -358,8 +358,9 @@ def plot_signal_power(times, stds, supra_threshs, devices,
         for c, (std, thresh) in enumerate(zip(cstds.T, threshs.T)):
             ax = axs[i]
             ax.plot(time, std)
-            thresh = np.max(std[thresh<1])
-            ax.axhline(thresh, color='k', lw=0.5)
+            if len(std[thresh<1]) > 0:
+                thresh = np.max(std[thresh<1])
+                ax.axhline(thresh, color='k', lw=0.5)
             #stdm = np.ma.masked_where(thresh < 1, std)
             #ax.plot(time, stdm)
             #ax.set_ylim(bottom=0)
