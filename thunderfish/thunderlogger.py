@@ -21,6 +21,7 @@ from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import DataLoader
 from .tabledata import TableData, write_table_args
+from .eventdetection import hist_threshold
 from .eodanalysis import save_eod_waveform, save_wave_fish, save_pulse_fish
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .eodanalysis import load_eod_waveform, load_wave_fish, load_pulse_fish
@@ -28,8 +29,8 @@ from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_pea
 from .thunderfish import configuration, detect_eods, remove_eod_files
 
 
-def extract_eods(files, stds_only, cfg, verbose, plot_level,
-                 sd_thresh=0.0018, max_deltaf=1.0, max_dist=0.00005,
+def extract_eods(files, thresolds, stds_only, cfg, verbose, plot_level,
+                 thresh=0.002, max_deltaf=1.0, max_dist=0.00005,
                  deltat_max=dt.timedelta(minutes=5)):
     t0s = []
     stds = None
@@ -46,12 +47,6 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
     for file in files:
         try:
             with DataLoader(file) as sf:
-                # common prefix:
-                fn = os.path.splitext(os.path.basename(file))[0]
-                for i, c in enumerate(filename):
-                    if c != fn[i]:
-                        filename = filename[:i]
-                        break
                 # analyze:
                 sys.stdout.write(file + ': ')
                 unit = sf.unit
@@ -75,13 +70,15 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
                     t1 = t0 + dt.timedelta(seconds=ndata/sf.samplerate)
                     t0s.append(t0)
                     for channel in range(sf.channels):
+                        if thresholds:
+                            thresh = thresholds[channel]
                         fdata = lfilter(b, a, data[:,channel] - np.mean(data[:ndata//20,channel]))
                         sd = np.std(fdata)
                         stds[channel].append(sd)
-                        supra_thresh[channel].append(1 if sd > sd_thresh else 0)
+                        supra_thresh[channel].append(1 if sd > thresh else 0)
                         if stds_only:
                             continue
-                        if sd > sd_thresh:
+                        if sd > thresh:
                             # clipping:
                             # XXX TODO:
                             clipped = False
@@ -165,7 +162,7 @@ def extract_eods(files, stds_only, cfg, verbose, plot_level,
         wave_fishes = [[wave_fishes[c][i] for i in
                         np.argsort([fish.props['EODf'] for fish in wave_fishes[c]])]
                        for c in range(len(wave_fishes))]
-    return pulse_fishes, wave_fishes, tstart, toffs, t0s, stds, supra_thresh, unit, filename
+    return pulse_fishes, wave_fishes, tstart, toffs, t0s, stds, supra_thresh, unit
 
 
 def save_times(times, idx, output_basename, name, **kwargs):
@@ -340,7 +337,7 @@ def load_data(files):
     return pulse_fishes, wave_fishes, tstart, tend
 
 
-def plot_signal_power(times, stds, supra_threshs, devices,
+def plot_signal_power(times, stds, supra_threshs, devices, thresholds,
                       title, output_folder):
     plt.rcParams['axes.xmargin'] = 0
     plt.rcParams['axes.ymargin'] = 0
@@ -358,13 +355,15 @@ def plot_signal_power(times, stds, supra_threshs, devices,
         for c, (std, thresh) in enumerate(zip(cstds.T, threshs.T)):
             ax = axs[i]
             ax.plot(time, std)
-            if len(std[thresh<1]) > 0:
+            if thresholds:
+                ax.axhline(thresholds[i], color='k', lw=0.5)
+            elif len(std[thresh<1]) > 0:
                 thresh = np.max(std[thresh<1])
                 ax.axhline(thresh, color='k', lw=0.5)
             #stdm = np.ma.masked_where(thresh < 1, std)
             #ax.plot(time, stdm)
-            #ax.set_ylim(bottom=0)
             ax.set_yscale('log')
+            #ax.set_ylim(bottom=0)
             ax.set_ylabel('%s-c%d' % (device, c))
             i += 1
     if title:
@@ -546,18 +545,27 @@ def main():
         os.makedirs(output_folder)
     # analyze and save data:
     if not args.save_plot:
-        pulse_fishes, wave_fishes, tstart, tend, t0s, \
-            stds, supra_thresh, unit, filename = \
-            extract_eods(args.file, args.stds_only, cfg, verbose, plot_level)
+        # assemble device name and output file:
         if len(args.name) > 0:
-            filename = args.name
-        if len(filename) == 0:
-            filename = 'thunder'
-        elif filename[-1] == '-':
-            filename = filename[:,-1]
-        output_basename = os.path.join(output_folder, filename)
+            device_name = args.name
+        else:
+            device_name = os.path.basename(args.file[0])
+            device_name = device_name[:device_name.find('-')]
+        output_basename = os.path.join(output_folder, device_name)
+        # compute thresholds:
+        thresholds = []
+        power_file = output_basename + '-stdevs.csv'
+        if os.path.isfile(power_file):
+            _, powers, _, _ = load_power(power_file)
+            for std in powers.T:
+                ss, cc = hist_threshold(std, thresh_fac=3.0, nbins=500)
+                thresholds.append(cc + ss)
+        pulse_fishes, wave_fishes, tstart, tend, t0s, \
+            stds, supra_thresh, unit = \
+            extract_eods(args.file, thresholds,
+                         args.stds_only, cfg, verbose, plot_level)
         remove_eod_files(output_basename, verbose, cfg)
-        save_data(output_folder, filename, pulse_fishes, wave_fishes,
+        save_data(output_folder, device_name, pulse_fishes, wave_fishes,
                   tstart, tend, t0s, stds, supra_thresh, unit, cfg)
         sys.stdout.write('DONE!\n')
         if args.stds_only:
@@ -576,14 +584,20 @@ def main():
             stds = []
             supra_threshs = []
             devices = []
+            thresholds = []
             for file in args.file:
                 t, p, s, d = load_power(file)
                 times.append(t)
                 stds.append(p)
                 supra_threshs.append(s)
                 devices.append(d)
-            plot_signal_power(times, stds, supra_threshs, devices, args.name,
-                              output_folder)
+                # compute detection thresholds:
+                for std in p.T:
+                    ss, cc = hist_threshold(std, thresh_fac=3.0,
+                                            nbins=500)
+                    thresholds.append(cc + ss)
+            plot_signal_power(times, stds, supra_threshs, devices, thresholds,
+                              args.name, output_folder)
         else:
             pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
             pulse_fishes, wave_fishes = compress_fish(pulse_fishes, wave_fishes)
