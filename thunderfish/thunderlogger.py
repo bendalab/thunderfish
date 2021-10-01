@@ -58,22 +58,24 @@ def add_thunderlogger_config(cfg, detection_thresh='auto',
     cfg.add('detectionThresholdDefault', default_thresh, '', 'Threshold that is used if "detectionThreshold" is set to "auto" and no data are available.')
     cfg.add('detectionThresholdStdFac', thresh_fac, '', 'An automatically computed threshold for analysing data segments is set to the mean of the most-likely standard deviations plus this factor times the corresponding standard deviation.')
     cfg.add('detectionThresholdNBins', thresh_nbins, '', 'The number of bins used to compute a histogram of the standard deviations of the data segments, from which the mean and standard deviation are estimated for automatically computing a threshold.')
+    cfg.add('startTime', 'none', '', 'Provide a start time for the recordings overwriting the meta data of the data files (YYYY-mm-ddTHH:MM:SS format).')
 
 
 def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                  thresh=0.002, max_deltaf=1.0, max_dist=0.00005,
-                 deltat_max=dt.timedelta(minutes=5)):
+                 deltat_max=dt.timedelta(minutes=5), start_time=None):
     t0s = []
     stds = None
     supra_thresh = None
     wave_fishes = None
     pulse_fishes = None
-    # XXX we should read this from the meta data:
-    filename = os.path.splitext(os.path.basename(files[0]))[0]
-    times = filename.split('-')[1]
-    tstart = dt.datetime.strptime(times, '%Y%m%dT%H%M%S')
-    toffs = tstart
-    t1 = tstart
+    if start_time is None:
+        # XXX we should read this from the meta data:
+        filename = os.path.splitext(os.path.basename(files[0]))[0]
+        times = filename.split('-')[1]
+        start_time = dt.datetime.strptime(times, '%Y%m%dT%H%M%S')
+    toffs = start_time
+    t1 = start_time
     unit = None
     for file in files:
         try:
@@ -193,7 +195,7 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
         wave_fishes = [[wave_fishes[c][i] for i in
                         np.argsort([fish.props['EODf'] for fish in wave_fishes[c]])]
                        for c in range(len(wave_fishes))]
-    return pulse_fishes, wave_fishes, tstart, toffs, t0s, stds, supra_thresh, unit
+    return pulse_fishes, wave_fishes, start_time, toffs, t0s, stds, supra_thresh, unit
 
 
 def save_times(times, idx, output_basename, name, **kwargs):
@@ -247,7 +249,7 @@ def save_power(times, stds, supra_thresh, unit, output_basename, **kwargs):
     td.write(fp, **kwargs)
 
 
-def load_power(file_path):
+def load_power(file_path, start_time=None):
     base = os.path.basename(file_path)
     device = base[0:base.find('-stdevs')]
     data = TableData(file_path)
@@ -255,6 +257,10 @@ def load_power(file_path):
     for row in range(data.rows()):
         times.append(dt.datetime.strptime(data[row,'time'],
                                           '%Y-%m-%dT%H:%M:%S'))
+    if start_time is not None:
+        deltat = start_time - times[0]
+        for k in range(len(times)):
+            times[k] += deltat
     channels = (data.columns()-2)//2
     stds = np.zeros((len(times), channels))
     supra_thresh = np.zeros((len(times), channels), dtype=np.int)
@@ -311,7 +317,7 @@ def save_data(output_folder, name, pulse_fishes, wave_fishes,
                    **write_table_args(cfg))
 
 
-def load_data(files):
+def load_data(files, start_time=None):
     all_files = []
     for file in files:
         if os.path.isdir(file):
@@ -365,6 +371,14 @@ def load_data(files):
     times = load_times(base_file + 'times' + ext)
     tstart = times[0][0]
     tend = times[0][1]
+    if start_time is not None:
+        deltat = start_time - tstart
+        tstart += deltat
+        tend += deltat
+        for fish in pulse_fishes + wave_fishes:
+            for t in fish.times:
+                t[0] += deltat
+                t[1] += deltat
     return pulse_fishes, wave_fishes, tstart, tend
 
 
@@ -539,7 +553,7 @@ def main():
         print('- compute standard deviations of data segments:')
         print('  > thunderlogger -o results -k -n logger1 -s river1/logger1-*.wav')
         print('- plot the standard deviations and the computed threshold:')
-        print('  > thunderlogger -o plots -k -s -p -n river1 results/river1/logger1-stdevs.csv')
+        print('  > thunderlogger -o plots -k -s -p -n river1 results/river1/logger1-stdevs.*')
         print('  you may adapt the settings in the configureation file "thunderfish.cfg"')
         print('- extract EODs from the data:')
         print('  > thunderlogger -o results -k river1/logger1-*.wav')
@@ -580,6 +594,11 @@ def main():
         if verbose > 1:
             print('mkdir %s' % output_folder)
         os.makedirs(output_folder)
+    # start time:
+    start_time = None
+    if cfg.value('startTime') != 'none':
+        cfg.value('startTime')
+        start_time = dt.datetime.strptime(cfg.value('startTime'), '%Y-%m-%dT%H:%M:%S')
     # analyze and save data:
     if not args.save_plot:
         # assemble device name and output file:
@@ -608,7 +627,7 @@ def main():
             stds, supra_thresh, unit = \
             extract_eods(args.file, thresholds,
                          args.stds_only, cfg, verbose, plot_level,
-                         thresh=thresh)
+                         thresh=thresh, start_time=start_time)
         remove_eod_files(output_basename, verbose, cfg)
         save_data(output_folder, device_name, pulse_fishes, wave_fishes,
                   tstart, tend, t0s, stds, supra_thresh, unit, cfg)
@@ -631,7 +650,7 @@ def main():
             devices = []
             thresholds = []
             for file in args.file:
-                t, p, s, d = load_power(file)
+                t, p, s, d = load_power(file, start_time)
                 times.append(t)
                 stds.append(p)
                 supra_threshs.append(s)
@@ -648,7 +667,8 @@ def main():
             plot_signal_power(times, stds, supra_threshs, devices, thresholds,
                               args.name, output_folder)
         else:
-            pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
+            pulse_fishes, wave_fishes, tstart, tend = load_data(args.file,
+                                                                start_time)
             if args.merge:
                 pulse_fishes, wave_fishes = merge_fish(pulse_fishes, wave_fishes)
             plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
