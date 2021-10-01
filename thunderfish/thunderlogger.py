@@ -406,8 +406,8 @@ def plot_signal_power(times, stds, supra_threshs, devices, thresholds,
     plt.show()
     
 
-def compress_fish(pulse_fishes, wave_fishes,
-                  max_noise=0.1, max_deltaf=1.0, max_dist=0.00002):
+def merge_fish(pulse_fishes, wave_fishes,
+               max_noise=0.1, max_deltaf=1.0, max_dist=0.00002):
     pulse_eods = []
     for i in np.argsort([fish.props['P2-P1-dist'] for fish in pulse_fishes]):
         if pulse_fishes[i].props['noise'] > max_noise:
@@ -515,6 +515,8 @@ def main():
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "csv"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='plot analyzed data')
+    parser.add_argument('-M', dest='merge', action='store_true',
+                        help='merge similar EODs before plotting')
     parser.add_argument('-s', dest='stds_only', action='store_true',
                         help='analyze or plot standard deviation of data only')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
@@ -541,8 +543,8 @@ def main():
         print('  you may adapt the settings in the configureation file "thunderfish.cfg"')
         print('- extract EODs from the data:')
         print('  > thunderlogger -o results -k river1/logger1-*.wav')
-        print('- plot extracted EODs:')
-        print('  > thunderlogger -o plots -k results/river1/*-pulsefish.wav results/river1/*-wavefish.wav')
+        print('- merge and plot extracted EODs:')
+        print('  > thunderlogger -o plots -k -p -m results/river*/*fish.*')
         parser.exit()
 
     # set verbosity level from command line:
@@ -647,7 +649,8 @@ def main():
                               args.name, output_folder)
         else:
             pulse_fishes, wave_fishes, tstart, tend = load_data(args.file)
-            pulse_fishes, wave_fishes = compress_fish(pulse_fishes, wave_fishes)
+            if args.merge:
+                pulse_fishes, wave_fishes = merge_fish(pulse_fishes, wave_fishes)
             plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
                                 True, output_folder)
 
