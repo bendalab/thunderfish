@@ -56,23 +56,9 @@ from .fakefish import normalize_wavefish, export_wavefish
 from .tabledata import TableData, add_write_table_config, write_table_args
 
 
-def configuration(config_file, save_config=False, file_name='', verbose=0):
+def configuration():
     """
-    Assemble, save, and load configuration parameter for thunderfish.
-
-    Parameters
-    ----------
-    config_file: string
-        Name of the configuration file to be loaded.
-    save_config: boolean
-        If True write the configuration file to the current working directory
-        after loading existing configuration files.
-    file_name: string
-        Data file to be analyzed. Config files will be loaded from this path
-        and up to three levels up.
-    verbose: int
-        Print out information about loaded configuration files
-        if greater than zero.
+    Assemble configuration parameter for thunderfish.
 
     Returns
     -------
@@ -99,24 +85,31 @@ def configuration(config_file, save_config=False, file_name='', verbose=0):
     add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
                            align_columns=True, shrink_width=False)
-    
-    # load configuration from working directory and data directories:
-    cfg.load_files(config_file, file_name, 4, verbose)
-
-    # save configuration:
-    if save_config:
-        ext = os.path.splitext(config_file)[1]
-        if ext != os.extsep + 'cfg':
-            print('configuration file name must have .cfg as extension!')
-        else:
-            print('write configuration to %s ...' % config_file)
-            del cfg['fileColumnNumbers']
-            del cfg['fileShrinkColumnWidth']
-            del cfg['fileMissing']
-            del cfg['fileLaTeXLabelCommand']
-            del cfg['fileLaTeXMergeStd']
-            cfg.dump(config_file)
     return cfg
+
+
+def save_configuration(cfg, config_file):
+    """
+    Save configuration parameter for thunderfish to a file.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        Configuration parameters and their values.
+    config_file: string
+        Name of the configuration file to be loaded.
+    """
+    ext = os.path.splitext(config_file)[1]
+    if ext != os.extsep + 'cfg':
+        print('configuration file name must have .cfg as extension!')
+    else:
+        print('write configuration to %s ...' % config_file)
+        del cfg['fileColumnNumbers']
+        del cfg['fileShrinkColumnWidth']
+        del cfg['fileMissing']
+        del cfg['fileLaTeXLabelCommand']
+        del cfg['fileLaTeXMergeStd']
+        cfg.dump(config_file)
 
 
 def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, plot_level, cfg):
@@ -1198,13 +1191,16 @@ def main():
     if args.save_config:
         # save configuration:
         file_name = args.file[0] if len(args.file) else ''
-        configuration(cfgfile, args.save_config, file_name, verbose)
+        cfg = configuration()
+        cfg.load_files(cfgfile, file_name, 4, verbose)
+        save_configuration(cfg, cfgfile)
         exit()
     elif len(args.file) == 0:
         parser.error('you need to specify at least one file for the analysis')
 
     # analyze data files:
-    cfg = configuration(cfgfile, False, args.file[0], verbose-1)
+    cfg = configuration()
+    cfg.load_files(cfgfile, args.file[0], 4, verbose-1)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
     # save plots:

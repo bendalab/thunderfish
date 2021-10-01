@@ -26,10 +26,43 @@ from .eodanalysis import save_eod_waveform, save_wave_fish, save_pulse_fish
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .eodanalysis import load_eod_waveform, load_wave_fish, load_pulse_fish
 from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
-from .thunderfish import configuration, detect_eods, remove_eod_files
+from .thunderfish import configuration, save_configuration
+from .thunderfish import detect_eods, remove_eod_files
 
 
-def extract_eods(files, thresolds, stds_only, cfg, verbose, plot_level,
+def add_thunderlogger_config(cfg, detection_thresh='auto',
+                             default_thresh=0.002, thresh_fac=3.0,
+                             thresh_nbins=500):
+    """Add parameters needed for by thunderlogger.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+    detection_thresh: float or 'auto'
+        Only data segments with standard deviation larger than this value
+        are analyzed for EODs. If set to 'auto' a threshold is computed
+        from all the data segments of a recording channel.
+    default_thresh: float
+        Threshold that is used if "detection_thresh" is set to "auto" and
+        no data are available.
+    thresh_fac: float
+        The threshold for analysing data segments is set to the mean of the
+        most-likely standard deviations plus this factor times the corresponding
+        standard deviation.
+    thresh_nbins: int
+        The number of bins used to compute a histogram of the standard
+        deviations of the data segments, from which the mean and standard
+        deviation are estimated for automatically computing a threshold.
+    """
+    cfg.add_section('Thunderlogger:')
+    cfg.add('detectionThreshold', detection_thresh, '', 'Only analyse data segements with a standard deviation that is larger than this threshold. If set to "auto" compute threshold from all the standard deviations of a recording channel.')
+    cfg.add('defaultThreshold', default_thresh, '', 'Threshold that is used if "detectionThreshold" is set to "auto" and no data are available.')
+    cfg.add('detectionThresholdStdFac', thresh_fac, '', 'An automatically computed threshold for analysing data segments is set to the mean of the most-likely standard deviations plus this factor times the corresponding standard deviation.')
+    cfg.add('detectionThresholdNBins', thresh_nbins, '', 'The number of bins used to compute a histogram of the standard deviations of the data segments, from which the mean and standard deviation are estimated for automatically computing a threshold.')
+
+
+def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                  thresh=0.002, max_deltaf=1.0, max_dist=0.00005,
                  deltat_max=dt.timedelta(minutes=5)):
     t0s = []
@@ -524,13 +557,18 @@ def main():
     if args.save_config:
         # save configuration:
         file_name = args.file[0] if len(args.file) else ''
-        configuration(cfgfile, args.save_config, file_name, verbose)
+        cfg = configuration()
+        add_thunderlogger_config(cfg)
+        cfg.load_files(cfgfile, file_name, 4, verbose)
+        save_configuration(cfg, cfgfile)
         exit()
     elif len(args.file) == 0:
         parser.error('you need to specify at least one file for the analysis')
 
     # analyze data files:
-    cfg = configuration(cfgfile, False, args.file[0], verbose-1)
+    cfg = configuration()
+    add_thunderlogger_config(cfg)
+    cfg.load_files(cfgfile, args.file[0], 4, verbose-1)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
 
@@ -555,15 +593,23 @@ def main():
         # compute thresholds:
         thresholds = []
         power_file = output_basename + '-stdevs.csv'
-        if os.path.isfile(power_file):
-            _, powers, _, _ = load_power(power_file)
-            for std in powers.T:
-                ss, cc = hist_threshold(std, thresh_fac=3.0, nbins=500)
-                thresholds.append(cc + ss)
+        thresh = cfg.value('detectionThreshold')
+        if thresh == 'auto':
+            thresh = cfg.value('defaultThreshold')
+            if os.path.isfile(power_file):
+                _, powers, _, _ = load_power(power_file)
+                for std in powers.T:
+                    ss, cc = hist_threshold(std,
+                        thresh_fac=cfg.value('detectionThresholdStdFac'),
+                        nbins=cfg.value('detectionThresholdNBins'))
+                    thresholds.append(cc + ss)
+        else:
+            thresh = float(thresh)
         pulse_fishes, wave_fishes, tstart, tend, t0s, \
             stds, supra_thresh, unit = \
             extract_eods(args.file, thresholds,
-                         args.stds_only, cfg, verbose, plot_level)
+                         args.stds_only, cfg, verbose, plot_level,
+                         thresh=thresh)
         remove_eod_files(output_basename, verbose, cfg)
         save_data(output_folder, device_name, pulse_fishes, wave_fishes,
                   tstart, tend, t0s, stds, supra_thresh, unit, cfg)
@@ -593,9 +639,13 @@ def main():
                 devices.append(d)
                 # compute detection thresholds:
                 for std in p.T:
-                    ss, cc = hist_threshold(std, thresh_fac=3.0,
-                                            nbins=500)
-                    thresholds.append(cc + ss)
+                    if cfg.value('detectionThreshold') == 'auto':
+                        ss, cc = hist_threshold(std,
+                            thresh_fac=cfg.value('detectionThresholdStdFac'),
+                            nbins=cfg.value('detectionThresholdNBins'))
+                        thresholds.append(cc + ss)
+                    else:
+                        thresholds.append(float(cfg.value('detectionThreshold')))
             plot_signal_power(times, stds, supra_threshs, devices, thresholds,
                               args.name, output_folder)
         else:

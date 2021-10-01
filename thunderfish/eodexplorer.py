@@ -328,6 +328,7 @@ class EODExplorer(MultivariateExplorer):
         # load configuration:
         cfgfile = __package__ + '.cfg'
         cfg = configuration(cfgfile, False, recording)
+        cfg.load_files(cfgfile, recording, 4)
         if 'flipped' in self.eoddata:
             fs = 'flip' if self.eoddata[index,'flipped'] else 'none'
             cfg.set('flipWaveEOD', fs)
@@ -673,7 +674,7 @@ def main():
     add_species_config(cfg)
     add_write_table_config(cfg, table_format='csv', unit_style='row',
                            align_columns=True, shrink_width=False)
-    cfg.load_files(cfgfile, file_name, 3)
+    cfg.load_files(cfgfile, file_name, 4)
     
     # output format:
     if data_format == 'same':

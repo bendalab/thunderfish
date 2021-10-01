@@ -15,7 +15,7 @@ from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection
 from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
 from .bestwindow import add_clip_config, add_best_window_config, best_window_args
-from .thunderfish import configuration
+from .thunderfish import configuration, save_configuration
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
 
@@ -730,13 +730,16 @@ def main():
 
     if len(args.save_config):
         # save configuration:
-        configuration(cfgfile, args.save_config, filepath, verbose)
+        cfg = configuration()
+        cfg.load_files(cfgfile, filepath, 4, verbose)
+        save_configuration(cfg, cfgfile)
         return
     elif len(filepath) == 0:
         parser.error('you need to specify a file containing some data')
 
     # load configuration:
-    cfg = configuration(cfgfile, False, filepath, verbose-1)
+    cfg = configuration()
+    cfg.load_files(cfgfile, filepath, 4, verbose-1)
 
     # load data:
     filename = os.path.basename(filepath)
