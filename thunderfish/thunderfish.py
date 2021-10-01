@@ -1140,7 +1140,7 @@ def main():
                         help='save analysis results to files')
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         choices=TableData.formats + ['py'],
-                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
+                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "csv"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='save output plot of each recording as pdf file')
     parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwse',

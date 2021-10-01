@@ -499,7 +499,7 @@ def main():
 
     # command line arguments:
     parser = argparse.ArgumentParser(add_help=False,
-        description='Analyze EOD waveforms of weakly electric fish.',
+        description='Extract EOD waveforms of weakly electric fish from logger data.',
         epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
     parser.add_argument('-h', '--help', action='store_true',
                         help='show this help message and exit')
@@ -510,11 +510,9 @@ def main():
                         help='level for debugging plots. Increase by specifying -V multiple times, or like -VVV')
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
-    parser.add_argument('--channel', default=0, type=int,
-                        help='channel to be analyzed (defaults to first channel)')
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         choices=TableData.formats + ['py'],
-                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "dat"')
+                        help='file format used for saving analysis results, defaults to the format specified in the configuration file or "csv"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='plot analyzed data')
     parser.add_argument('-s', dest='stds_only', action='store_true',
@@ -524,7 +522,7 @@ def main():
     parser.add_argument('-k', dest='keep_path', action='store_true',
                         help='keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH')
     parser.add_argument('-n', dest='name', default='', type=str,
-                        help='base name of all output files')
+                        help='base name of all output files or title of plots')
     parser.add_argument('file', nargs='*', default='', type=str,
                         help='name of a file with time series data of an EOD recording')
     args = parser.parse_args()
@@ -534,16 +532,17 @@ def main():
         parser.print_help()
         print('')
         print('examples:')
-        print('- analyze the single file data.wav interactively:')
-        print('  > thunderfish data.wav')
-        print('- automatically analyze all wav files in the current working directory and save analysis results and plot to files:')
-        print('  > thunderfish -s -p *.wav')
-        print('- analyze all wav files in the river1/ directory, use all CPUs, and write files directly to "results/":')
-        print('  > thunderfish -j -s -p -o results/ river1/*.wav')
-        print('- analyze all wav files in the river1/ directory and write files to "results/river1/":')
-        print('  > thunderfish -s -p -o results/ -k river1/*.wav')
         print('- write configuration file:')
-        print('  > thunderfish -c')
+        print('  > thunderlogger -c')
+        print('- compute standard deviations of data segments:')
+        print('  > thunderlogger -o results -k -n logger1 -s river1/logger1-*.wav')
+        print('- plot the standard deviations and the computed threshold:')
+        print('  > thunderlogger -o plots -k -s -p -n river1 results/river1/logger1-stdevs.csv')
+        print('  you may adapt the settings in the configureation file "thunderfish.cfg"')
+        print('- extract EODs from the data:')
+        print('  > thunderlogger -o results -k river1/logger1-*.wav')
+        print('- plot extracted EODs:')
+        print('  > thunderlogger -o plots -k results/river1/*-pulsefish.wav results/river1/*-wavefish.wav')
         parser.exit()
 
     # set verbosity level from command line:
