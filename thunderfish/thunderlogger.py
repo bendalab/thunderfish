@@ -55,7 +55,7 @@ def add_thunderlogger_config(cfg, detection_thresh='auto',
     """
     cfg.add_section('Thunderlogger:')
     cfg.add('detectionThreshold', detection_thresh, '', 'Only analyse data segements with a standard deviation that is larger than this threshold. If set to "auto" compute threshold from all the standard deviations of a recording channel.')
-    cfg.add('defaultThreshold', default_thresh, '', 'Threshold that is used if "detectionThreshold" is set to "auto" and no data are available.')
+    cfg.add('detectionThresholdDefault', default_thresh, '', 'Threshold that is used if "detectionThreshold" is set to "auto" and no data are available.')
     cfg.add('detectionThresholdStdFac', thresh_fac, '', 'An automatically computed threshold for analysing data segments is set to the mean of the most-likely standard deviations plus this factor times the corresponding standard deviation.')
     cfg.add('detectionThresholdNBins', thresh_nbins, '', 'The number of bins used to compute a histogram of the standard deviations of the data segments, from which the mean and standard deviation are estimated for automatically computing a threshold.')
 
@@ -594,7 +594,7 @@ def main():
         power_file = output_basename + '-stdevs.csv'
         thresh = cfg.value('detectionThreshold')
         if thresh == 'auto':
-            thresh = cfg.value('defaultThreshold')
+            thresh = cfg.value('detectionThresholdDefault')
             if os.path.isfile(power_file):
                 _, powers, _, _ = load_power(power_file)
                 for std in powers.T:
