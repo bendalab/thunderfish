@@ -12,8 +12,6 @@ import datetime as dt
 import numpy as np
 from scipy.signal import butter, lfilter
 from types import SimpleNamespace
-#import matplotlib
-#matplotlib.use('Agg')  # for headless system
 import matplotlib.pyplot as plt
 import matplotlib.transforms as transforms
 import matplotlib.dates as mdates
