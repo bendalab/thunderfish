@@ -23,7 +23,7 @@ import matplotlib.lines as ml
 from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
 from multiprocessing import Pool, freeze_support, cpu_count
-from audioio import play, fade
+from audioio.playaudio import play, fade
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import load_data

@@ -515,7 +515,7 @@ def main():
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "csv"')
     parser.add_argument('-p', dest='save_plot', action='store_true',
                         help='plot analyzed data')
-    parser.add_argument('-M', dest='merge', action='store_true',
+    parser.add_argument('-m', dest='merge', action='store_true',
                         help='merge similar EODs before plotting')
     parser.add_argument('-s', dest='stds_only', action='store_true',
                         help='analyze or plot standard deviation of data only')

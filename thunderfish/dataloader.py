@@ -22,7 +22,7 @@ data can be used like a read-only numpy array of floats.
 import os
 import glob
 import numpy as np
-import audioio as aio
+from audioio.audioloader import AudioLoader
 
 
 def relacs_samplerate_unit(filename, channel=0):
@@ -676,7 +676,7 @@ def load_data(filepath, channel=-1, verbose=0):
         return data, samplerate, unit
 
 
-class DataLoader(aio.AudioLoader):
+class DataLoader(AudioLoader):
     """ Buffered reading of time-series data for random access of the data in the file.
     
     This allows for reading very large data files that do not fit into memory.

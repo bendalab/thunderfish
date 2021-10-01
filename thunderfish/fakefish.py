@@ -714,7 +714,7 @@ def generate_waveform(filename):
         used to store the simulated EOD waveforms.
     """
     import os
-    from audioio import write_audio
+    from audioio.audiowriter import write_audio
     from .consoleinput import read, select, save_inputs
     # generate file:
     samplerate = read('Sampling rate in Hz', '44100', float, 1.0)
