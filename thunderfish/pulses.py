@@ -1010,7 +1010,7 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
         else:
             labels = BGM_model.fit_predict(stats.zscore(x).reshape(-1, 1))
     else:
-        return np.zeros(len(x))
+        return np.zeros(len(x)), bgm_dict
     
     if verbose>0:
         if not BGM_model.converged_:
