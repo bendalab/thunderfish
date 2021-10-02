@@ -436,8 +436,11 @@ def merge_fish(pulse_fishes, wave_fishes,
            np.abs(pulse_fishes[i].props['P2-P1-dist'] - pulse_eods[-1].props['P2-P1-dist']) <= max_dist:
             pulse_eods[-1].times.extend(pulse_fishes[i].times)
             if not hasattr(pulse_eods[-1], 'othereods'):
-                pulse_eods[-1].othereods = []
+                pulse_eods[-1].othereods = [pulse_eods[-1].waveform]
             pulse_eods[-1].othereods.append(pulse_fishes[i].waveform)
+            if pulse_fishes[i].props['p-p-amplitude'] > pulse_eods[-1].props['p-p-amplitude']:
+                pulse_eods[-1].waveform = pulse_fishes[i].waveform
+                pulse_eods[-1].props = pulse_fishes[i].props
             continue
         pulse_eods.append(pulse_fishes[i])
     pulse_eods = [pulse_eods[i] for i in np.argsort([fish.props['EODf'] for fish in pulse_eods])]
@@ -452,6 +455,9 @@ def merge_fish(pulse_fishes, wave_fishes,
             if not hasattr(wave_eods[-1], 'othereods'):
                 wave_eods[-1].othereods = []
             wave_eods[-1].othereods.append(wave_fishes[i].waveform)
+            if wave_fishes[i].props['p-p-amplitude'] > wave_eods[-1].props['p-p-amplitude']:
+                wave_eods[-1].waveform = wave_fishes[i].waveform
+                wave_eods[-1].props = wave_fishes[i].props
             continue
         wave_eods.append(wave_fishes[i])
     return pulse_eods, wave_eods
