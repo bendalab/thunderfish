@@ -632,9 +632,9 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
         r_std = np.max(meod[len(meod)*3//4:,2])
         lidx = 0
         ridx = len(meod)
-        if l_std > max_std:
+        if l_std > max_std and lstd_idx > lidx:
             lidx = lstd_idx - np.argmax(meod[lstd_idx:0:-1,2] >= 0.25*l_std + 0.75*meod[lstd_idx,2])
-        if r_std > max_std:
+        if r_std > max_std and rstd_idx < ridx:
             ridx = rstd_idx + np.argmax(meod[rstd_idx:,2] >= 0.25*r_std + 0.75*meod[rstd_idx,2])
         #plt.plot(meod[:,0], meod[:,1])
         #plt.plot(meod[:,0], meod[:,2], '-r')
