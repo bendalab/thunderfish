@@ -13,7 +13,6 @@ import numpy as np
 from scipy.signal import butter, lfilter
 from types import SimpleNamespace
 import matplotlib.pyplot as plt
-import matplotlib.transforms as transforms
 import matplotlib.dates as mdates
 from .version import __version__, __year__
 from .configfile import ConfigFile
@@ -449,17 +448,25 @@ def merge_fish(pulse_fishes, wave_fishes,
 
 def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
                         save_plot, output_folder):
+    plt.rcParams['axes.facecolor'] = 'none'
     plt.rcParams['axes.xmargin'] = 0
-    plt.rcParams['axes.ymargin'] = 0
+    plt.rcParams['axes.ymargin'] = 0.05
     n = len(pulse_fishes) + len(wave_fishes)
     h = n*2.5
     fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
                             gridspec_kw=dict(width_ratios=(1,2)))
     fig.subplots_adjust(left=0.02, right=0.97, top=1-0.2/h, bottom=2.5/h,
-                        hspace=0)
+                        hspace=0.2)
     pi = 0
+    prev_xscale = 0.0
     for ax, fish in zip(axs, pulse_fishes + wave_fishes):
         # EOD waveform:
+        ax[0].spines['left'].set_visible(False)
+        ax[0].spines['right'].set_visible(False)
+        ax[0].spines['top'].set_visible(False)
+        ax[0].spines['bottom'].set_visible(False)
+        ax[0].xaxis.set_visible(False)
+        ax[0].yaxis.set_visible(False)
         time = 1000.0 * fish.waveform[:,0]
         #ax[0].plot([time[0], time[-1]], [0.0, 0.0],
         #           zorder=-10, lw=1, color='#AAAAAA')
@@ -474,18 +481,25 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         else:
             ax[0].set_xlim(time[0], time[-1])
             tmax = time[-1]
-        trans = transforms.blended_transform_factory(ax[0].transData,
-                                                     ax[0].transAxes)
-        ax[0].plot((tmax-1.0, tmax), (-0.05, -0.05),
-                   'k', lw=3, transform=trans, clip_on=False)
-        if ax[0] is axs[-1,0]:
-            ax[0].text(tmax-0.5, -0.13, '1\u2009ms', transform=trans, ha='center', va='top')
-        ax[0].spines['left'].set_visible(False)
-        ax[0].spines['right'].set_visible(False)
-        ax[0].spines['top'].set_visible(False)
-        ax[0].spines['bottom'].set_visible(False)
-        ax[0].xaxis.set_visible(False)
-        ax[0].yaxis.set_visible(False)
+        xscale = 1.0
+        if tmax < 1.0:
+            xscale = 0.5
+        elif tmax > 10.0:
+            xscale = 5.0
+        ymin = np.min(fish.waveform[:,1])
+        ymax = np.max(fish.waveform[:,1])
+        ax[0].plot((tmax-xscale, tmax), (ymin - 0.04*(ymax-ymin),)*2,
+                   'k', lw=3, clip_on=False)
+        if ax[0] is axs[-1,0] or xscale != prev_xscale:
+            if xscale < 1.0:
+                ax[0].text(tmax-0.5*xscale, ymin - 0.1*(ymax-ymin),
+                           '%.0f\u2009\u00b5s' % (1000.0*xscale),
+                           ha='center', va='top')
+            else:
+                ax[0].text(tmax-0.5*xscale, ymin - 0.1*(ymax-ymin),
+                           '%.0f\u2009ms' % xscale,
+                           ha='center', va='top')
+        prev_xscale = xscale
         # time bar:
         ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%b %d %Hh'))
         for time in fish.times:
