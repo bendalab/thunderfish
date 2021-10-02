@@ -229,7 +229,7 @@ def load_times(file_path):
         if 'device' in data:
             t.append(data[row, 'device'])
         if 'channel' in data:
-            t.append(data[row,'channel'])
+            t.append(int(data[row,'channel']))
         if 'file' in data:
             t.append(data[row,'file'])
         times.append(t)
@@ -325,6 +325,7 @@ def load_data(files, start_time=None):
             all_files.append(file)
     pulse_fishes = []
     wave_fishes = []
+    channels = set()
     for file in all_files:
         if 'pulse' in os.path.basename(file):
             pulse_props = load_pulse_fish(file)
@@ -339,6 +340,8 @@ def load_data(files, start_time=None):
                                        waveform=waveform,
                                        unit=unit,
                                        times=times)
+                for t in times:
+                    channels.add((t[3], t[4]))
                 try:
                     peaks, unit = \
                         load_pulse_peaks(base_file + 'pulsepeaks-%d'%idx + ext)
@@ -359,6 +362,8 @@ def load_data(files, start_time=None):
                                        waveform=waveform,
                                        unit=unit,
                                        times=times)
+                for t in times:
+                    channels.add((t[3], t[4]))
                 try:
                     spec, unit = \
                         load_wave_spectrum(base_file + 'wavespectrum-%d'%idx + ext)
@@ -378,7 +383,7 @@ def load_data(files, start_time=None):
             for t in fish.times:
                 t[0] += deltat
                 t[1] += deltat
-    return pulse_fishes, wave_fishes, tstart, tend
+    return pulse_fishes, wave_fishes, tstart, tend, sorted(channels)
 
 
 def plot_signal_power(times, stds, supra_threshs, devices, thresholds,
@@ -430,6 +435,9 @@ def merge_fish(pulse_fishes, wave_fishes,
         if len(pulse_eods) > 0 and \
            np.abs(pulse_fishes[i].props['P2-P1-dist'] - pulse_eods[-1].props['P2-P1-dist']) <= max_dist:
             pulse_eods[-1].times.extend(pulse_fishes[i].times)
+            if not hasattr(pulse_eods[-1], 'othereods'):
+                pulse_eods[-1].othereods = []
+            pulse_eods[-1].othereods.append(pulse_fishes[i].waveform)
             continue
         pulse_eods.append(pulse_fishes[i])
     pulse_eods = [pulse_eods[i] for i in np.argsort([fish.props['EODf'] for fish in pulse_eods])]
@@ -441,19 +449,26 @@ def merge_fish(pulse_fishes, wave_fishes,
         if len(wave_eods) > 0 and \
            np.abs(wave_fishes[i].props['EODf'] - wave_eods[-1].props['EODf']) < max_deltaf:
             wave_eods[-1].times.extend(wave_fishes[i].times)
+            if not hasattr(wave_eods[-1], 'othereods'):
+                wave_eods[-1].othereods = []
+            wave_eods[-1].othereods.append(wave_fishes[i].waveform)
             continue
         wave_eods.append(wave_fishes[i])
     return pulse_eods, wave_eods
 
 
 def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
-                        save_plot, output_folder):
+                        channels, save_plot, output_folder):
+
+    channel_colors = ['#2060A7', '#40A787', '#478010', '#F0D730',
+                      '#C02717', '#873770', '#008797', '#007030',
+                      '#AAB71B', '#F78017', '#D03050', '#53379B']
     plt.rcParams['axes.facecolor'] = 'none'
     plt.rcParams['axes.xmargin'] = 0
     plt.rcParams['axes.ymargin'] = 0.05
     n = len(pulse_fishes) + len(wave_fishes)
-    h = n*2.5
-    fig, axs = plt.subplots(n, 2, figsize=(16/2.54, h/2.54),
+    h = n*2.5 + 2.5 + 0.2
+    fig, axs = plt.subplots(n, 2, squeeze=False, figsize=(16/2.54, h/2.54),
                             gridspec_kw=dict(width_ratios=(1,2)))
     fig.subplots_adjust(left=0.02, right=0.97, top=1-0.2/h, bottom=2.5/h,
                         hspace=0.2)
@@ -470,6 +485,10 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         time = 1000.0 * fish.waveform[:,0]
         #ax[0].plot([time[0], time[-1]], [0.0, 0.0],
         #           zorder=-10, lw=1, color='#AAAAAA')
+        if hasattr(fish, 'othereods'):
+            for eod in fish.othereods:
+                ax[0].plot(1000.0*eod[:,0], eod[:,1],
+                           zorder=5, lw=1, color='#AAAAAA')
         ax[0].plot(time, fish.waveform[:,1],
                    zorder=10, lw=2, color='#C02717')
         if fish.props['EODf'] < 1000.0:
@@ -507,7 +526,8 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         # time bar:
         ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%b %d %Hh'))
         for time in fish.times:
-            ax[1].plot(time[:2], [time[3], time[3]], lw=5, color='#2060A7')
+            ax[1].plot(time[:2], [time[2], time[2]],
+                       lw=5, color=channel_colors[channels.index((time[3], time[4]))%len(channel_colors)])
         ax[1].set_xlim(tstart, tend)
         ax[1].spines['left'].set_visible(False)
         ax[1].spines['right'].set_visible(False)
@@ -685,12 +705,12 @@ def main():
             plot_signal_power(times, stds, supra_threshs, devices, thresholds,
                               args.name, output_folder)
         else:
-            pulse_fishes, wave_fishes, tstart, tend = load_data(args.file,
-                                                                start_time)
+            pulse_fishes, wave_fishes, tstart, tend, channels = \
+                load_data(args.file, start_time)
             if args.merge:
                 pulse_fishes, wave_fishes = merge_fish(pulse_fishes, wave_fishes)
             plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
-                                True, output_folder)
+                                channels, True, output_folder)
 
 
 if __name__ == '__main__':
