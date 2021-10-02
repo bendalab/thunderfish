@@ -492,10 +492,12 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         ax[0].plot(time, fish.waveform[:,1],
                    zorder=10, lw=2, color='#C02717')
         if fish.props['EODf'] < 1000.0:
-            ax[0].text(0.0, 1.0, '%.1f\u2009Hz' % fish.props['EODf'],
+            ax[0].text(0.0, 1.1, '%d: %.1f\u2009Hz' %
+                       (fish.props['index'], fish.props['EODf']),
                        transform=ax[0].transAxes, va='top', zorder=20)
         else:
-            ax[0].text(0.0, 1.0, '%.0f\u2009Hz' % fish.props['EODf'],
+            ax[0].text(0.0, 1.1, '%d: %.0f\u2009Hz' %
+                       (fish.props['index'], fish.props['EODf']),
                        transform=ax[0].transAxes, va='top', zorder=20)
         if fish.props['type'] == 'wave':
             lim = 750.0/fish.props['EODf']
