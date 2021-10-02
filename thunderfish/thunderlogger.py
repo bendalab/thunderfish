@@ -472,8 +472,12 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         #           zorder=-10, lw=1, color='#AAAAAA')
         ax[0].plot(time, fish.waveform[:,1],
                    zorder=10, lw=2, color='#C02717')
-        ax[0].text(0.0, 1.0, '%.1f\u2009Hz' % fish.props['EODf'],
-                   transform=ax[0].transAxes, va='top')
+        if fish.props['EODf'] < 1000.0:
+            ax[0].text(0.0, 1.0, '%.1f\u2009Hz' % fish.props['EODf'],
+                       transform=ax[0].transAxes, va='top', zorder=20)
+        else:
+            ax[0].text(0.0, 1.0, '%.0f\u2009Hz' % fish.props['EODf'],
+                       transform=ax[0].transAxes, va='top', zorder=20)
         if fish.props['type'] == 'wave':
             lim = 750.0/fish.props['EODf']
             ax[0].set_xlim([-lim, +lim])
@@ -489,16 +493,16 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         ymin = np.min(fish.waveform[:,1])
         ymax = np.max(fish.waveform[:,1])
         ax[0].plot((tmax-xscale, tmax), (ymin - 0.04*(ymax-ymin),)*2,
-                   'k', lw=3, clip_on=False)
+                   'k', lw=3, clip_on=False, zorder=0)
         if ax[0] is axs[-1,0] or xscale != prev_xscale:
             if xscale < 1.0:
                 ax[0].text(tmax-0.5*xscale, ymin - 0.1*(ymax-ymin),
                            '%.0f\u2009\u00b5s' % (1000.0*xscale),
-                           ha='center', va='top')
+                           ha='center', va='top', zorder=0)
             else:
                 ax[0].text(tmax-0.5*xscale, ymin - 0.1*(ymax-ymin),
                            '%.0f\u2009ms' % xscale,
-                           ha='center', va='top')
+                           ha='center', va='top', zorder=0)
         prev_xscale = xscale
         # time bar:
         ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%b %d %Hh'))
