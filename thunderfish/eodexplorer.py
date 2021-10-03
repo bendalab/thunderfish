@@ -339,7 +339,7 @@ class EODExplorer(MultivariateExplorer):
         # detect EODs in the data:
         psd_data, fishlist, _, eod_props, mean_eods, \
           spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-          detect_eods(data, samplerate, clipped, min_clip, max_clip, recording, 0, 0, cfg)
+          detect_eods(data, samplerate, min_clip, max_clip, recording, 0, 0, cfg)
         # plot EOD:
         idx = int(self.eoddata[index,'index']) if 'index' in self.eoddata else 0
         for k in ['toolbar', 'keymap.back', 'keymap.forward',

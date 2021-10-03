@@ -112,15 +112,17 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                             continue
                         if sd > thresh:
                             # clipping:
-                            # XXX TODO:
-                            clipped = False
-                            min_clip = -1.0
-                            max_clip = 1.0
+                            min_clip = cfg.value('minClipAmplitude')
+                            if min_clip == 0.0:
+                                min_clip = cfg.value('minDataAmplitude')
+                            max_clip = cfg.value('maxClipAmplitude')
+                            if max_clip == 0.0:
+                                max_clip = cfg.value('maxDataAmplitude')
                             name = file
                             # detect EODs in the data:
                             _, _, _, eod_props, mean_eods, spec_data, peak_data, _, _, _ = \
                               detect_eods(data[:,channel], sf.samplerate,
-                                          clipped, min_clip, max_clip,
+                                          min_clip, max_clip,
                                           name, verbose, plot_level, cfg)
                             first_fish = True
                             for props, eod, spec, peaks in zip(eod_props, mean_eods,

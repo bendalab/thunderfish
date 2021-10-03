@@ -1007,13 +1007,14 @@ def load_species_waveforms(species_file='none'):
 
 
 def wave_similarity(eod1, eod2, eod2f=1.0):
-    """ Root-mean squared difference between two wave fish EODs.
+    """Root-mean squared difference between two wave fish EODs.
 
-    Compute the root-mean squared difference between two wave fish EODs
-    over one period. The better sampled signal is down-sampled to the
-    worse sampled one. Also compute the rms difference between the one
-    EOD and the other one inverted in amplitude. The smaller of the two
-    rms values is returned. 
+    Compute the root-mean squared difference between two wave fish
+    EODs over one period. The better sampled signal is down-sampled to
+    the worse sampled one. Amplitude are normalized to peak-to-peak
+    amplitude before computing rms difference.  Also compute the rms
+    difference between the one EOD and the other one inverted in
+    amplitude. The smaller of the two rms values is returned.
 
     Parameters
     ----------
@@ -1031,6 +1032,7 @@ def wave_similarity(eod1, eod2, eod2f=1.0):
     rmse: float
         Root-mean-squared difference between the two EOD waveforms relative to
         their standard deviation over one period.
+
     """
     # copy:
     eod1 = np.array(eod1[:,:2])
@@ -1094,13 +1096,14 @@ def wave_similarity(eod1, eod2, eod2f=1.0):
 
 
 def pulse_similarity(eod1, eod2, wfac=10.0):
-    """ Root-mean squared difference between two pulse fish EODs.
+    """Root-mean squared difference between two pulse fish EODs.
 
-    Compute the root-mean squared difference between two pulse fish EODs
-    over `wfac` times the distance between minimum and maximum of the
-    wider EOD. Also compute the rms difference between the one EOD and
-    the other one inverted in amplitude. The smaller of the two rms
-    values is returned. 
+    Compute the root-mean squared difference between two pulse fish
+    EODs over `wfac` times the distance between minimum and maximum of
+    the wider EOD. The waveforms are normalized to their maxima prior
+    to computing the rms difference.  Also compute the rms difference
+    between the one EOD and the other one inverted in amplitude. The
+    smaller of the two rms values is returned.
 
     Parameters
     ----------
@@ -1117,6 +1120,7 @@ def pulse_similarity(eod1, eod2, wfac=10.0):
     rmse: float
         Root-mean-squared difference between the two EOD waveforms relative to
         their standard deviation over the analysis window.
+
     """
     # copy:
     eod1 = np.array(eod1[:,:2])
@@ -1175,6 +1179,9 @@ def wave_clipped_fraction(data, samplerate, eod_times, mean_eod,
         Sampling rate of the data in Hertz.
     eod_times: 1-D array of float
         Array of EOD times in seconds over which the waveform should be averaged.
+    mean_eod: 2-D array with time, mean, sem, and fit.
+        Averaged EOD waveform of wave fish. Only the time axis is used
+        to set width of snippets.
     min_clip: float
         Minimum amplitude that is not clipped.
     max_clip: float
@@ -1216,6 +1223,9 @@ def pulse_clipped_fraction(data, samplerate, eod_times, mean_eod,
         Sampling rate of the data in Hertz.
     eod_times: 1-D array of float
         Array of EOD times in seconds over which the waveform should be averaged.
+    mean_eod: 2-D array with time, mean, sem, and fit.
+        Averaged EOD waveform of pulse fish. Only the time axis is used
+        to set width of snippets.
     min_clip: float
         Minimum amplitude that is not clipped.
     max_clip: float

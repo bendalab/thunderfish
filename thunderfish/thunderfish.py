@@ -110,7 +110,7 @@ def save_configuration(cfg, config_file):
         cfg.dump(config_file)
 
 
-def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, plot_level, cfg):
+def detect_eods(data, samplerate, min_clip, max_clip, name, verbose, plot_level, cfg):
     """ Detect EODs of all fish present in the data.
 
     Parameters
@@ -119,8 +119,6 @@ def detect_eods(data, samplerate, clipped, min_clip, max_clip, name, verbose, pl
         The recording in which to detect EODs.
     samplerate: float
         Sampling rate of the dataset.
-    clipped: float
-        Fraction of clipped amplitudes.
     min_clip: float
         Minimum amplitude that is not clipped.
     max_clip: float
@@ -1024,7 +1022,7 @@ def thunderfish(filename, cfg, channel=0, log_freq=0.0, save_data=False,
     # detect EODs in the data:
     psd_data, wave_eodfs, wave_indices, eod_props, \
     mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-      detect_eods(data, samplerate, clipped, min_clip, max_clip, filename,
+      detect_eods(data, samplerate, min_clip, max_clip, filename,
                   verbose, plot_level, cfg)
     if not found_bestwindow:
         wave_eodfs = []
