@@ -464,8 +464,7 @@ def merge_fish(pulse_fishes, wave_fishes,
 
 
 def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
-                        channels, save_plot, output_folder):
-
+                        channels, output_folder):
     channel_colors = ['#2060A7', '#40A787', '#478010', '#F0D730',
                       '#C02717', '#873770', '#008797', '#007030',
                       '#AAB71B', '#F78017', '#D03050', '#53379B']
@@ -473,10 +472,10 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
     plt.rcParams['axes.xmargin'] = 0
     plt.rcParams['axes.ymargin'] = 0.05
     n = len(pulse_fishes) + len(wave_fishes)
-    h = n*2.5 + 2.5 + 0.2
+    h = n*2.5 + 2.5 + 0.3
     fig, axs = plt.subplots(n, 2, squeeze=False, figsize=(16/2.54, h/2.54),
                             gridspec_kw=dict(width_ratios=(1,2)))
-    fig.subplots_adjust(left=0.02, right=0.97, top=1-0.2/h, bottom=2.5/h,
+    fig.subplots_adjust(left=0.02, right=0.97, top=1-0.3/h, bottom=2.5/h,
                         hspace=0.2)
     pi = 0
     prev_xscale = 0.0
@@ -497,14 +496,8 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
                            zorder=5, lw=1, color='#AAAAAA')
         ax[0].plot(time, fish.waveform[:,1],
                    zorder=10, lw=2, color='#C02717')
-        if fish.props['EODf'] < 1000.0:
-            ax[0].text(0.0, 1.1, '%d: %.1f\u2009Hz' %
-                       (fish.props['index'], fish.props['EODf']),
-                       transform=ax[0].transAxes, va='top', zorder=20)
-        else:
-            ax[0].text(0.0, 1.1, '%d: %.0f\u2009Hz' %
-                       (fish.props['index'], fish.props['EODf']),
-                       transform=ax[0].transAxes, va='top', zorder=20)
+        ax[0].text(0.0, 1.0, '%.0f\u2009Hz' % fish.props['EODf'],
+                   transform=ax[0].transAxes, va='baseline', zorder=20)
         if fish.props['type'] == 'wave':
             lim = 750.0/fish.props['EODf']
             ax[0].set_xlim([-lim, +lim])
@@ -533,9 +526,18 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         prev_xscale = xscale
         # time bar:
         ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%b %d %Hh'))
+        min_eodf = 10000
+        max_eodf = 0
         for time in fish.times:
+            if time[2] < min_eodf:
+                min_eodf = time[2]
+            if time[2] > max_eodf:
+                max_eodf = time[2]
             ax[1].plot(time[:2], [time[2], time[2]],
                        lw=5, color=channel_colors[channels.index((time[3], time[4]))%len(channel_colors)])
+        if max_eodf > min_eodf + 10.0:
+            ax[1].text(0.0, 1.0, '%.0f - %.0f\u2009Hz' % (min_eodf, max_eodf),
+                       transform=ax[1].transAxes, va='baseline', zorder=20)
         ax[1].set_xlim(tstart, tend)
         ax[1].spines['left'].set_visible(False)
         ax[1].spines['right'].set_visible(False)
@@ -547,10 +549,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         else:
             plt.setp(ax[1].get_xticklabels(), ha='right',
                      rotation=30, rotation_mode='anchor')
-    if save_plot:
-        fig.savefig(os.path.join(output_folder, 'plot.pdf'))
-    else:
-        plt.show()
+    fig.savefig(os.path.join(output_folder, 'eodwaveforms.pdf'))
 
         
 def main():
@@ -718,7 +717,7 @@ def main():
             if args.merge:
                 pulse_fishes, wave_fishes = merge_fish(pulse_fishes, wave_fishes)
             plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
-                                channels, True, output_folder)
+                                channels, output_folder)
 
 
 if __name__ == '__main__':
