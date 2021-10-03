@@ -1006,7 +1006,7 @@ def load_species_waveforms(species_file='none'):
     return wave_names, wave_eods, pulse_names, pulse_eods
 
 
-def wave_similarity(eod1, eod2, eod2f=1.0):
+def wave_similarity(eod1, eod2, eod1f=1.0, eod2f=1.0):
     """Root-mean squared difference between two wave fish EODs.
 
     Compute the root-mean squared difference between two wave fish
@@ -1020,12 +1020,18 @@ def wave_similarity(eod1, eod2, eod2f=1.0):
     ----------
     eod1: 2-D array
         Time and amplitude of reference EOD.
-        Time is in units of the corresponding EOD period (inverse EOD frequency).
     eod2: 2-D array
         Time and amplitude of EOD that is to be compared to `eod1`.
+    eod1f: float
+        EOD frequency of `eod1` used to transform the time axis of `eod1`
+        to multiples of the EOD period. If already normalized to EOD period,
+        as for example by the `load_species_waveforms()` function, then
+        set the EOD frequency to one (default).
     eod2f: float
         EOD frequency of `eod2` used to transform the time axis of `eod2`
-        to multiples of the EOD period.
+        to multiples of the EOD period. If already normalized to EOD period,
+        as for example by the `load_species_waveforms()` function, then
+        set the EOD frequency to one (default).
 
     Returns
     -------
@@ -1038,6 +1044,7 @@ def wave_similarity(eod1, eod2, eod2f=1.0):
     eod1 = np.array(eod1[:,:2])
     eod2 = np.array(eod2[:,:2])
     # scale to multiples of EOD period:
+    eod1[:,0] *= eod1f
     eod2[:,0] *= eod2f
     # make eod1 the waveform with less samples per period:
     n1 = int(1.0/(eod1[1,0]-eod1[0,0]))

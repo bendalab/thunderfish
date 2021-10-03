@@ -292,7 +292,7 @@ def collect_fish(files, simplify_file=False,
                     wave_eod = TableData(base_path + '-eodwaveform-%d'%idx + file_ext).array()
                     wave_eod[:,0] *= 0.001
                     for species, eod in zip(wave_names, wave_eods):
-                        rms = wave_similarity(eod, wave_eod, eodf)
+                        rms = wave_similarity(eod, wave_eod, 1.0, eodf)
                         if rms < species_rms and rms < wave_max_rms:
                             species_name = species
                             species_rms = rms

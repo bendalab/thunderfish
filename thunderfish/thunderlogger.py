@@ -23,6 +23,7 @@ from .eodanalysis import save_eod_waveform, save_wave_fish, save_pulse_fish
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .eodanalysis import load_eod_waveform, load_wave_fish, load_pulse_fish
 from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
+from .eodanalysis import wave_similarity, pulse_similarity
 from .thunderfish import configuration, save_configuration
 from .thunderfish import detect_eods, remove_eod_files
 
@@ -333,6 +334,7 @@ def load_data(files, start_time=None):
             pulse_props = load_pulse_fish(file)
             base_file, ext = os.path.splitext(file)
             base_file = base_file[:base_file.rfind('pulse')]
+            count = 0
             for props in pulse_props:
                 idx = props['index']
                 waveform, unit = \
@@ -351,10 +353,14 @@ def load_data(files, start_time=None):
                 except FileNotFoundError:
                     fish.peaks = None
                 pulse_fishes.append(fish)
+                count += 1
+                if count > 300: # XXX REMOVE
+                    break
         elif 'wave' in os.path.basename(file):
             wave_props = load_wave_fish(file)
             base_file, ext = os.path.splitext(file)
             base_file = base_file[:base_file.rfind('wave')]
+            count = 0
             for props in wave_props:
                 idx = props['index']
                 waveform, unit = \
@@ -373,6 +379,9 @@ def load_data(files, start_time=None):
                 except FileNotFoundError:
                     fish.spec = None
                 wave_fishes.append(fish)
+                count += 1
+                if count > 300: # XXX REMOVE
+                    break
     base_file = base_file[:base_file.rfind('-c')+1]
     times = load_times(base_file + 'times' + ext)
     tstart = times[0][0]
@@ -427,7 +436,7 @@ def plot_signal_power(times, stds, supra_threshs, devices, thresholds,
     
 
 def merge_fish(pulse_fishes, wave_fishes,
-               max_noise=0.1, max_deltaf=1.0, max_dist=0.00002):
+               max_noise=0.1, max_deltaf=10.0, max_dist=0.0002, max_rms=0.3):
     pulse_eods = []
     for i in np.argsort([fish.props['P2-P1-dist'] for fish in pulse_fishes]):
         if pulse_fishes[i].props['noise'] > max_noise:
@@ -435,7 +444,8 @@ def merge_fish(pulse_fishes, wave_fishes,
         if pulse_fishes[i].props['P2-P1-dist'] <= 0.0:
             continue
         if len(pulse_eods) > 0 and \
-           np.abs(pulse_fishes[i].props['P2-P1-dist'] - pulse_eods[-1].props['P2-P1-dist']) <= max_dist:
+           np.abs(pulse_fishes[i].props['P2-P1-dist'] - pulse_eods[-1].props['P2-P1-dist']) <= max_dist and \
+           pulse_similarity(pulse_fishes[i].waveform, pulse_eods[-1].waveform, 4) < max_rms:
             pulse_eods[-1].times.extend(pulse_fishes[i].times)
             if not hasattr(pulse_eods[-1], 'othereods'):
                 pulse_eods[-1].othereods = [pulse_eods[-1].waveform]
@@ -452,7 +462,9 @@ def merge_fish(pulse_fishes, wave_fishes,
         if wave_fishes[i].props['noise'] > max_noise:
             continue
         if len(wave_eods) > 0 and \
-           np.abs(wave_fishes[i].props['EODf'] - wave_eods[-1].props['EODf']) < max_deltaf:
+           np.abs(wave_fishes[i].props['EODf'] - wave_eods[-1].props['EODf']) < max_deltaf and \
+           wave_similarity(wave_fishes[i].waveform, wave_eods[-1].waveform,
+                           wave_fishes[i].props['EODf'], wave_eods[-1].props['EODf']) < max_rms:
             wave_eods[-1].times.extend(wave_fishes[i].times)
             if not hasattr(wave_eods[-1], 'othereods'):
                 wave_eods[-1].othereods = []
