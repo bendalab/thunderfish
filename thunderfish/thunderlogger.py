@@ -97,8 +97,6 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                 if pulse_fishes is None:
                     pulse_fishes = [[] for c in range(sf.channels)]
                 for k, data in enumerate(sf.blocks(ndata, step)):
-                    if k < 130:    # XXXX REMOVE
-                        continue
                     sys.stdout.write('.')
                     sys.stdout.flush()
                     t0 = toffs + dt.timedelta(seconds=k*step/sf.samplerate)
@@ -356,8 +354,6 @@ def load_data(files, start_time=None):
                     fish.peaks = None
                 pulse_fishes.append(fish)
                 count += 1
-                if count > 300: # XXX REMOVE
-                    break
         elif 'wave' in os.path.basename(file):
             wave_props = load_wave_fish(file)
             base_file, ext = os.path.splitext(file)
@@ -382,8 +378,6 @@ def load_data(files, start_time=None):
                     fish.spec = None
                 wave_fishes.append(fish)
                 count += 1
-                if count > 300: # XXX REMOVE
-                    break
     base_file = base_file[:base_file.rfind('-c')+1]
     times = load_times(base_file + 'times' + ext)
     tstart = times[0][0]
