@@ -97,6 +97,8 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                 if pulse_fishes is None:
                     pulse_fishes = [[] for c in range(sf.channels)]
                 for k, data in enumerate(sf.blocks(ndata, step)):
+                    if k < 130:    # XXXX REMOVE
+                        continue
                     sys.stdout.write('.')
                     sys.stdout.flush()
                     t0 = toffs + dt.timedelta(seconds=k*step/sf.samplerate)
@@ -485,11 +487,12 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
     plt.rcParams['axes.facecolor'] = 'none'
     plt.rcParams['axes.xmargin'] = 0
     plt.rcParams['axes.ymargin'] = 0.05
+    plt.rcParams['font.family'] = 'sans-serif'
     n = len(pulse_fishes) + len(wave_fishes)
     h = n*2.5 + 2.5 + 0.3
     fig, axs = plt.subplots(n, 2, squeeze=False, figsize=(16/2.54, h/2.54),
                             gridspec_kw=dict(width_ratios=(1,2)))
-    fig.subplots_adjust(left=0.02, right=0.97, top=1-0.3/h, bottom=2.5/h,
+    fig.subplots_adjust(left=0.02, right=0.97, top=1-0.3/h, bottom=2.2/h,
                         hspace=0.2)
     pi = 0
     prev_xscale = 0.0
@@ -550,7 +553,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
             ax[1].plot(time[:2], [time[2], time[2]],
                        lw=5, color=channel_colors[channels.index((time[3], time[4]))%len(channel_colors)])
         if max_eodf > min_eodf + 10.0:
-            ax[1].text(0.0, 1.0, '%.0f - %.0f\u2009Hz' % (min_eodf, max_eodf),
+            ax[1].text(0.0, 1.0, '%.0f \u2013 %.0f\u2009Hz' % (min_eodf, max_eodf),
                        transform=ax[1].transAxes, va='baseline', zorder=20)
         ax[1].set_xlim(tstart, tend)
         ax[1].spines['left'].set_visible(False)

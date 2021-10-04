@@ -601,15 +601,19 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
         - flipped: True if the waveform was flipped.
         - n: number of pulses analyzed  (i.e. `len(eod_times)`), if provided.
         - times: the times of the detected EOD pulses (i.e. `eod_times`), if provided.
+
+        Empty if waveform is not a pulse EOD.
     peaks: 2-D array
         For each peak and trough (rows) of the EOD waveform
         5 columns: the peak index (1 is P1, i.e. the largest positive peak),
         time relative to largest positive peak, amplitude,
         amplitude normalized to largest postive peak,
         and width of peak/trough at half height.
+        Empty if waveform is not a pulse EOD.
     power: 2-D array
         The power spectrum of a single pulse. First column are the frequencies,
         second column the power in x^2/Hz such that the integral equals the variance.
+        Empty if waveform is not a pulse EOD.
     """
     # storage:
     meod = np.zeros((eod.shape[0], eod.shape[1]+1))
@@ -691,6 +695,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
     threshold = max_ampl*peak_thresh_fac
     if threshold < min_thresh:
         threshold = min_thresh
+    if threshold <= 0.0:
+        return meod, {}, [], []
         
     # cut out relevant signal:
     lidx = np.argmax(np.abs(meod[:,1]) > threshold)
