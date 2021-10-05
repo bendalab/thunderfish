@@ -751,6 +751,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
         if len(rmidx) > 0:
             peak_list = np.delete(peak_list, rmidx)
             width_list = np.delete(width_list, rmidx)
+        if len(peak_list) == 0:
+            return meod, {}, [], []
         # find P1:
         p1i = np.argmax(peak_list == max_idx)
         # truncate peaks to the left: XXX REALLY? WHY?
