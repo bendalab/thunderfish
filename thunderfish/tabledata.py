@@ -33,6 +33,10 @@ if sys.version_info[0] < 3:
     from io import BytesIO as StringIO
 else:
     from io import StringIO
+try:
+    import pandas as pd
+except ImportError:
+    pass
 
 
 __pdoc__ = {}
@@ -240,7 +244,9 @@ class TableData(object):
     - `__setitem__()`: assign values to data elements specified by slice.
     - `__delitem__()`: delete data elements or whole columns or rows.
     - `array()`: the table data as a numpy array.
+    - `data_frame()`: the table data as a pandas DataFrame.
     - `dicts()`: the table as a list of dictionaries.
+    - `dict()`: the table as a dictionary.
     - `append_data()`: append data elements to successive columns.
     - `append_data_column()`: append data elements to a column.
     - `set_column()`: set the column where to add data.
@@ -1376,6 +1382,17 @@ class TableData(object):
         else:
             return np.array([d[row] for d in self.data])
 
+    def data_frame(self):
+        """
+        The table data as a pandas DataFrame.
+
+        Return
+        ------
+        data: pandas.DataFrame
+            A pandas DataFrame of the whole table.
+        """
+        return pd.DataFrame(self.dict())
+
     def dicts(self, raw_values=True, missing='-'):
         """
         The table as a list of dictionaries.
@@ -1409,6 +1426,19 @@ class TableData(object):
                         v = (self.formats[col] % self.data[col][row]) + u
                 data[self.header[col][0]] = v
             table.append(data)
+        return table
+
+    def dict(self):
+        """
+        The table as a dictionary.
+
+        Returns
+        -------
+        table: dict
+            A dictionary with keys being the column headers and
+            values the list of data elements of the corresponding column.
+        """
+        table = {k: v for k, v in self.items()}
         return table
 
     def append_data(self, data, column=None):

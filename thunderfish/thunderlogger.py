@@ -10,6 +10,7 @@ import argparse
 import traceback
 import datetime as dt
 import numpy as np
+import pandas as pd
 from scipy.signal import butter, lfilter
 from types import SimpleNamespace
 import matplotlib.pyplot as plt
@@ -202,7 +203,7 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
 
 def save_times(times, idx, output_basename, name, **kwargs):
     td = TableData()
-    td.append('index', '', '%d', list(range(len(times))))
+    td.append('index', '', '%d', [idx] * len(times))
     td.append('tstart', '', '%s',
               [t[0].strftime('%Y-%m-%dT%H:%M:%S') for t in times])
     td.append('tend', '', '%s',
@@ -221,22 +222,15 @@ def save_times(times, idx, output_basename, name, **kwargs):
     
 
 def load_times(file_path):
-    data = TableData(file_path)
-    times = []
-    for row in range(data.rows()):
-        tstart = dt.datetime.strptime(data[row,'tstart'], '%Y-%m-%dT%H:%M:%S')
-        tend = dt.datetime.strptime(data[row,'tend'], '%Y-%m-%dT%H:%M:%S')
-        t = [tstart, tend]
-        if 'EODf' in data:
-            t.append(data[row, 'EODf'])
-        if 'device' in data:
-            t.append(data[row, 'device'])
-        if 'channel' in data:
-            t.append(int(data[row,'channel']))
-        if 'file' in data:
-            t.append(data[row,'file'])
-        times.append(t)
-    return times
+    data = TableData(file_path).data_frame()
+    data['index'] = data['index'].astype(np.int)
+    data['tstart'] = pd.to_datetime(data['tstart'])
+    data['tstart'] = pd.Series(data['tstart'].dt.to_pydatetime(), dtype=object)
+    data['tend'] = pd.to_datetime(data['tend'])
+    data['tend'] = pd.Series(data['tend'].dt.to_pydatetime(), dtype=object)
+    if 'channel' in data:
+        data['channel'] = data['channel'].astype(np.int)
+    return data
 
 
 def save_power(times, stds, supra_thresh, unit, output_basename, **kwargs):
@@ -340,12 +334,13 @@ def load_data(files, start_time=None):
                 waveform, unit = \
                     load_eod_waveform(base_file + 'eodwaveform-%d'%idx + ext)
                 times = load_times(base_file + 'times-%d'%idx + ext)
+                times['index'] = idx
                 fish = SimpleNamespace(props=props,
                                        waveform=waveform,
                                        unit=unit,
                                        times=times)
-                for t in times:
-                    channels.add((t[3], t[4]))
+                for i, t in times.iterrows():
+                    channels.add((t['device'], t['channel']))
                 try:
                     peaks, unit = \
                         load_pulse_peaks(base_file + 'pulsepeaks-%d'%idx + ext)
@@ -354,6 +349,8 @@ def load_data(files, start_time=None):
                     fish.peaks = None
                 pulse_fishes.append(fish)
                 count += 1
+                #if count > 300: # XXX REMOVE
+                #    break
         elif 'wave' in os.path.basename(file):
             wave_props = load_wave_fish(file)
             base_file, ext = os.path.splitext(file)
@@ -364,12 +361,13 @@ def load_data(files, start_time=None):
                 waveform, unit = \
                     load_eod_waveform(base_file + 'eodwaveform-%d'%idx + ext)
                 times = load_times(base_file + 'times-%d'%idx + ext)
+                times['index'] = idx
                 fish = SimpleNamespace(props=props,
                                        waveform=waveform,
                                        unit=unit,
                                        times=times)
-                for t in times:
-                    channels.add((t[3], t[4]))
+                for i, t in times.iterrows():
+                    channels.add((t['device'], t['channel']))
                 try:
                     spec, unit = \
                         load_wave_spectrum(base_file + 'wavespectrum-%d'%idx + ext)
@@ -378,18 +376,19 @@ def load_data(files, start_time=None):
                     fish.spec = None
                 wave_fishes.append(fish)
                 count += 1
+                #if count > 300: # XXX REMOVE
+                #    break
     base_file = base_file[:base_file.rfind('-c')+1]
     times = load_times(base_file + 'times' + ext)
-    tstart = times[0][0]
-    tend = times[0][1]
+    tstart = times.tstart[0]
+    tend = times.tend[0]
     if start_time is not None:
         deltat = start_time - tstart
         tstart += deltat
         tend += deltat
         for fish in pulse_fishes + wave_fishes:
-            for t in fish.times:
-                t[0] += deltat
-                t[1] += deltat
+            fish.times.tstart += deltat
+            fish.times.tend += deltat
     return pulse_fishes, wave_fishes, tstart, tend, sorted(channels)
 
 
@@ -442,7 +441,7 @@ def merge_fish(pulse_fishes, wave_fishes,
         if len(pulse_eods) > 0 and \
            np.abs(pulse_fishes[i].props['P2-P1-dist'] - pulse_eods[-1].props['P2-P1-dist']) <= max_dist and \
            pulse_similarity(pulse_fishes[i].waveform, pulse_eods[-1].waveform, 4) < max_rms:
-            pulse_eods[-1].times.extend(pulse_fishes[i].times)
+            pulse_eods[-1].times.append(pulse_fishes[i].times)
             if not hasattr(pulse_eods[-1], 'othereods'):
                 pulse_eods[-1].othereods = [pulse_eods[-1].waveform]
             pulse_eods[-1].othereods.append(pulse_fishes[i].waveform)
@@ -461,7 +460,7 @@ def merge_fish(pulse_fishes, wave_fishes,
            np.abs(wave_fishes[i].props['EODf'] - wave_eods[-1].props['EODf']) < max_deltaf and \
            wave_similarity(wave_fishes[i].waveform, wave_eods[-1].waveform,
                            wave_fishes[i].props['EODf'], wave_eods[-1].props['EODf']) < max_rms:
-            wave_eods[-1].times.extend(wave_fishes[i].times)
+            wave_eods[-1].times.append(wave_fishes[i].times)
             if not hasattr(wave_eods[-1], 'othereods'):
                 wave_eods[-1].othereods = []
             wave_eods[-1].othereods.append(wave_fishes[i].waveform)
@@ -539,13 +538,14 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
         ax[1].xaxis.set_major_formatter(mdates.DateFormatter('%b %d %Hh'))
         min_eodf = 10000
         max_eodf = 0
-        for time in fish.times:
-            if time[2] < min_eodf:
-                min_eodf = time[2]
-            if time[2] > max_eodf:
-                max_eodf = time[2]
-            ax[1].plot(time[:2], [time[2], time[2]],
-                       lw=5, color=channel_colors[channels.index((time[3], time[4]))%len(channel_colors)])
+        for index, time in fish.times.iterrows():
+            if time['EODf'] < min_eodf:
+                min_eodf = time['EODf']
+            if time['EODf'] > max_eodf:
+                max_eodf = time['EODf']
+            ax[1].plot([time['tstart'], time['tend']],
+                       [time['EODf'], time['EODf']],
+                       lw=5, color=channel_colors[channels.index((time['device'], time['channel']))%len(channel_colors)])
         if max_eodf > min_eodf + 10.0:
             ax[1].text(0.0, 1.0, '%.0f \u2013 %.0f\u2009Hz' % (min_eodf, max_eodf),
                        transform=ax[1].transAxes, va='baseline', zorder=20)
