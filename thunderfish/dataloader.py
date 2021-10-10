@@ -22,7 +22,7 @@ data can be used like a read-only numpy array of floats.
 import os
 import glob
 import numpy as np
-from audioio.audioloader import AudioLoader
+from audioio.audioloader import load_audio, AudioLoader
 
 
 def relacs_samplerate_unit(filename, channel=0):
@@ -667,7 +667,7 @@ def load_data(filepath, channel=-1, verbose=0):
         if check_pickle(filepath):
             return load_pickle(filepath, channel, verbose)
         else:
-            data, samplerate = aio.load_audio(filepath, verbose)
+            data, samplerate = load_audio(filepath, verbose)
             if channel >= 0:
                 if channel >= data.shape[1]:
                     raise IndexError('invalid channel number %d requested' % channel)
