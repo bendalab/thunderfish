@@ -5,7 +5,7 @@ Detect and handle peaks and troughs as well as threshold crossings in data array
 
 - `detect_peaks()`: detect peaks and troughs using a relative threshold.
 - `peak_width()`: compute width of each peak.
-- `peak_size_width()`: compute for each peak its size and width.
+- `peak_size_width()`: compute size and width of each peak.
 
 ## Threshold crossings
 
@@ -61,10 +61,6 @@ def detect_peaks(data, threshold):
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
     Computers and Biomedical Research 32, 322-335.
 
-    Liz's version with analyse_for_peaks() takes 
-    1.494 without numba
-    0.058 with numba
-
     Parameters
     ----------
     data: array
@@ -102,8 +98,10 @@ def detect_peaks(data, threshold):
 
 
 @jit(nopython=True)
-def detect_peaks_fixed(data, thresh):
+def detect_peaks_fixed(data, threshold):
     """ Detect peaks and troughs using a fixed, relative threshold.
+
+    Helper function for detect_peaks().
 
     Parameters
     ----------
@@ -119,33 +117,85 @@ def detect_peaks_fixed(data, thresh):
         An array of indices of detected peaks.
     troughs: array of ints
         An array of indices of detected troughs.
-
     """
+    peaks = []
+    troughs = []
+
     # initialize:
-    direction, min_inx, max_inx, pi, ti = 0, 0, 0, 0, 0
-    min_value, max_value = data[0], data[0]
-    peaks_list = np.zeros(len(data)//2,dtype=index_type)
-    troughs_list = np.zeros(len(data)//2,dtype=index_type)
+    direction = 0
+    min_inx = 0
+    max_inx = 0
+    min_value = data[0]
+    max_value = min_value
 
     # loop through the data:
     for index, value in enumerate(data):
+        # rising?
+        if direction > 0:
+            if value > max_value:
+                # update maximum element:
+                max_inx = index
+                max_value = value
+            # otherwise, if the new value is falling below
+            # the maximum value minus the threshold:
+            # the maximum is a peak!
+            elif value <= max_value - threshold:
+                peaks.append(max_inx)
+                # change direction:
+                direction = -1
+                # store minimum element:
+                min_inx = index
+                min_value = value
 
-        peaks_list, troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value = analyse_for_peaks(index, value, thresh, peaks_list, 
-            troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value)
-    
-    return peaks_list[:pi], troughs_list[:ti]
+        # falling?
+        elif direction < 0:
+            if value < min_value:
+                # update minimum element:
+                min_inx = index
+                min_value = value
+            # otherwise, if the new value is rising above
+            # the minimum value plus the threshold:
+            # the minimum is a trough!
+            elif value >= min_value + threshold:
+                troughs.append(min_inx)
+                # change direction:
+                direction = +1
+                # store maximum element:
+                max_inx = index
+                max_value = value
+
+        # don't know direction yet:
+        else:
+            if value <= max_value - threshold:
+                direction = -1  # falling
+            elif value >= min_value + threshold:
+                direction = 1  # rising
+                
+            if value > max_value:
+                # update maximum element:
+                max_inx = index
+                max_value = value
+            elif value < min_value:
+                # update minimum element:
+                min_inx = index
+                min_value = value
+
+    return np.asarray(peaks, dtype=index_type), \
+           np.asarray(troughs, dtype=index_type)
 
 
 @jit(nopython=True)
 def detect_peaks_array(data, threshold):
     """ Detect peaks and troughs using a variable relative threshold.
 
+    Helper function for detect_peaks().
+
     Parameters
     ----------
     data: array
         An 1-D array of input data where peaks are detected.
     threshold: array
-        A positive array of numbers setting the detection threshold,
+        A array of positive numbers setting the detection threshold,
         i.e. the minimum distance between peaks and troughs.
     
     Returns
@@ -155,176 +205,70 @@ def detect_peaks_array(data, threshold):
     troughs: array of ints
         An array of indices of detected troughs.
     """    
-    # initialize:
-    direction, min_inx, max_inx, pi, ti = 0, 0, 0, 0, 0
-    min_value, max_value = data[0], data[0]
-    peaks_list = np.zeros(len(data)//2,dtype=index_type)
-    troughs_list = np.zeros(len(data)//2,dtype=index_type)
+    peaks = []
+    troughs = []
 
+    # initialize:
+    direction = 0
+    min_inx = 0
+    max_inx = 0
+    min_value = data[0]
+    max_value = min_value
 
     # loop through the data:
     for index, value in enumerate(data):
-
-        thresh = threshold[index]
-        peaks_list, troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value = analyse_for_peaks(index, value, thresh, peaks_list, 
-            troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value)
-    
-    return peaks_list[:pi], troughs_list[:ti]
-
-
-@jit(nopython=True)
-def analyse_for_peaks(index, value, thresh, peaks_list, troughs_list, pi, ti, direction, min_inx, max_inx, min_value, max_value):
-    """ Detect if the current datapoint is a peak or threshold and add it to the existing peak or trough list. Method is taken from:
-    Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
-    Computers and Biomedical Research 32, 322-335.
-
-    Parameters
-    ----------
-    index: int
-        Index of current datapoint.
-    value: float
-        Value of current datapoint.
-    thresh: float
-        Peak/trough threshold for current datapoint.
-    peaks_list: numpy array 
-        Numpy array with peak indices prior to current datapoint.
-    troughs_list: numpy array
-        Numpy array with trough indices prior to current datapoint.
-    pi: int
-        Index of next peak in peaks_list.
-    ti: int
-        Index of next trough in troughs_list.
-    direction: int
-        Direction of data derivative, e.g. +1 for up and -1 for down.
-    min_inx: int
-        Index of the minimum value in the current direction.
-    max_inx: int
-        Index of the maximum value in the current direction.
-    min_value: float
-        Minimum value in the current direction.
-    max_value: float
-        Maximum value in the current direction.
-    
-    Returns
-    -------
-    peaks_list: numpy array 
-        Numpy array with peak indices including current datapoint.
-    troughs_list: numpy array
-        Numpy array with trough indices including current datapoint.
-    pi: int
-        Index of next peak in peaks_list.
-    ti: int
-        Index of next trough in troughs_list.
-    direction: int
-        Direction of data derivative, e.g. +1 for up and -1 for down.
-    min_inx: int
-        Index of the minimum value in the current direction.
-    max_inx: int
-        Index of the maximum value in the current direction.
-    min_value: float
-        Minimum value in the current direction.
-    max_value: float
-        Maximum value in the current direction.
-    """
-    # rising?
-    if direction > 0:
-        if value > max_value:
-            # update maximum element:
-            max_inx = index
-            max_value = value
-        # otherwise, if the new value is falling below
-        # the maximum value minus the threshold:
-        # the maximum is a peak!
-        elif value <= max_value - thresh:
-            peaks_list[pi] = max_inx
-            pi = pi + 1
-            # change direction:
-            direction = -1
-            # store minimum element:
-            min_inx = index
-            min_value = value
-
-    # falling?
-    elif direction < 0:
-        if value < min_value:
-            # update minimum element:
-            min_inx = index
-            min_value = value
-        # otherwise, if the new value is rising above
-        # the minimum value plus the threshold:
-        # the minimum is a trough!
-        elif value >= min_value + thresh:
-            troughs_list[ti] = min_inx
-            ti = ti + 1
-            # change direction:
-            direction = +1
-            # store maximum element:
-            max_inx = index
-            max_value = value
-
-    # don't know direction yet:
-    else:
-        if value <= max_value - thresh:
-            direction = -1  # falling
-        elif value >= min_value + thresh:
-            direction = 1  # rising
-            
-        if value > max_value:
-            # update maximum element:
-            max_inx = index
-            max_value = value
-        elif value < min_value:
-            # update minimum element:
-            min_inx = index
-            min_value = value
-
-    return peaks_list, troughs_list, pi, ti ,direction, min_inx, max_inx,min_value, max_value
-
-
-def detect_peaks_fast(data, threshold):
-    """Experimental. Try to make algorithm faster.
-
-    Yeah, this is more than three times as fast as `detect_peaks()` with the for loops!
-    """
-    peaks_list = []
-    troughs_list = []
-
-    # initialize:
-    max_value = np.maximum.accumulate(data)
-    min_value = np.minimum.accumulate(data)
-    falling_idx = np.where(data <= max_value - threshold)[0]
-    raising_idx = np.where(data >= min_value + threshold)[0]
-    direction = 1
-    if len(falling_idx) > 0 and (len(raising_idx) == 0 or falling_idx[0] < raising_idx[0]):
-        direction = -1
-        index = falling_idx[0]
-    else:
-        index = raising_idx[0]
-    # find peaks and troughs:
-    while index < len(data):
+        # rising?
         if direction > 0:
-            max_value = np.maximum.accumulate(data[index:])
-            idx = np.argmax(data[index:] <= max_value - threshold)
-            if data[index+idx] <= max_value[idx] - threshold:
-                indices = np.where(max_value[:idx] != max_value[idx])[0]
-                if len(indices) > 0:
-                    index += indices[-1] + 1
-                    peaks_list.append(index)
-                    direction = -1
-                    continue
-        else:
-            min_value = np.minimum.accumulate(data[index:])
-            idx = np.argmax(data[index:] >= min_value + threshold)
-            if data[index+idx] >= min_value[idx] + threshold:
-                indices = np.where(min_value[:idx] != min_value[idx])[0]
-                if len(indices) > 0:
-                    index += indices[-1] + 1
-                    troughs_list.append(index)
-                    direction = +1
-                    continue
-        break
+            if value > max_value:
+                # update maximum element:
+                max_inx = index
+                max_value = value
+            # otherwise, if the new value is falling below
+            # the maximum value minus the threshold:
+            # the maximum is a peak!
+            elif value <= max_value - threshold[index]:
+                peaks.append(max_inx)
+                # change direction:
+                direction = -1
+                # store minimum element:
+                min_inx = index
+                min_value = value
 
-    return np.asarray(peaks_list), np.asarray(troughs_list)
+        # falling?
+        elif direction < 0:
+            if value < min_value:
+                # update minimum element:
+                min_inx = index
+                min_value = value
+            # otherwise, if the new value is rising above
+            # the minimum value plus the threshold:
+            # the minimum is a trough!
+            elif value >= min_value + threshold[index]:
+                troughs.append(min_inx)
+                # change direction:
+                direction = +1
+                # store maximum element:
+                max_inx = index
+                max_value = value
+
+        # don't know direction yet:
+        else:
+            if value <= max_value - threshold[index]:
+                direction = -1  # falling
+            elif value >= min_value + threshold[index]:
+                direction = 1  # rising
+                
+            if value > max_value:
+                # update maximum element:
+                max_inx = index
+                max_value = value
+            elif value < min_value:
+                # update minimum element:
+                min_inx = index
+                min_value = value
+
+    return np.asarray(peaks, dtype=index_type), \
+           np.asarray(troughs, dtype=index_type)
 
     
 def peak_width(time, data, peak_indices, trough_indices,
@@ -426,7 +370,7 @@ def peak_width(time, data, peak_indices, trough_indices,
     
 def peak_size_width(time, data, peak_indices, trough_indices,
                     peak_frac=0.75, base='closest'):
-    """ Compute for each peak its size and width.
+    """ Compute size and width of each peak.
 
     Parameters
     ----------
@@ -1395,11 +1339,6 @@ if __name__ == "__main__":
     print('')
     print('check detect_peaks(data, 1.0)...')
     peaks, troughs = detect_peaks(data, 1.0)
-    print(peaks)
-    print(troughs)
-    p, t = detect_peaks_fast(data, 1.0)
-    print(p)
-    print(t)
     # print peaks:
     print('detected %d peaks with period %g that differs from the real frequency by %g' % (
         len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks)) / np.mean(np.diff(time))))
@@ -1421,7 +1360,7 @@ if __name__ == "__main__":
     plt.ylim(-0.5, 4.0)
     plt.show()
 
-    # check the faster algorithm:
+    # timing of the detect_peaks() algorithm:
     import timeit
     def wrapper(func, *args, **kwargs):
         def wrapped():
@@ -1430,7 +1369,3 @@ if __name__ == "__main__":
     wrapped = wrapper(detect_peaks, data, 1.0)
     t1 = timeit.timeit(wrapped, number=200)
     print(t1)
-    wrapped = wrapper(detect_peaks_fast, data, 1.0)
-    t2 = timeit.timeit(wrapped, number=200)
-    print(t2)
-    print('new algorithm takes %.0f%% of old algorithm' % (100.0*t2/t1))
