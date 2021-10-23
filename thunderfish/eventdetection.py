@@ -3,7 +3,7 @@ Detect and handle peaks and troughs as well as threshold crossings in data array
 
 ## Peak detection
 
-- `detect_peaks()`: peak and trough detection with a relative threshold.
+- `detect_peaks()`: detect peaks and troughs using a relative threshold.
 - `peak_width()`: compute width of each peak.
 - `peak_size_width()`: compute for each peak its size and width.
 
@@ -55,26 +55,32 @@ except ImportError:
 
 
 def detect_peaks(data, threshold):
-    """ Detect peaks and troughs using a relative threshold according to
+    """ Detect peaks and troughs using a relative threshold.
+
+    This is an implementation of the algorithm by
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
     Computers and Biomedical Research 32, 322-335.
+
+    Liz's version with analyse_for_peaks() takes 
+    1.494 without numba
+    0.058 with numba
 
     Parameters
     ----------
     data: array
         An 1-D array of input data where peaks are detected.
-    threshold: float or array
+    threshold: float or array of floats
         A positive number or array of numbers setting the detection threshold,
         i.e. the minimum distance between peaks and troughs.
         In case of an array make sure that the threshold does not change faster
-        than the expected intervals between peaks and troughs.
+        than the expected intervals between peaks and troughs. 
     
     Returns
     -------
-    peak_array: array of ints
-        A list of indices of detected peaks.
-    trough_array: array of ints
-        A list of indices of detected troughs.
+    peaks: array of ints
+        An array of indices of detected peaks.
+    troughs: array of ints
+        An array of indices of detected troughs.
 
     Raises
     ------
@@ -85,18 +91,18 @@ def detect_peaks(data, threshold):
     """
     if np.isscalar(threshold):
         if threshold <= 0:
-            raise ValueError('input argument threshold must be positive!')
-        return detect_peaks_flat(data, threshold)
+            raise ValueError('threshold value must be positive!')
+        return detect_peaks_fixed(data, threshold)
     else:
         if len(data) != len(threshold):
             raise IndexError('input arrays data and threshold must have same length!')
         if np.min(threshold) <= 0:
-            raise ValueError('input argument threshold must be positive!')
+            raise ValueError('threshold values must be positive!')
         return detect_peaks_array(data, threshold)
 
 
 @jit(nopython=True)
-def detect_peaks_flat(data, thresh):
+def detect_peaks_fixed(data, thresh):
     """ Detect peaks and troughs using a fixed, relative threshold.
 
     Parameters
@@ -109,10 +115,10 @@ def detect_peaks_flat(data, thresh):
     
     Returns
     -------
-    peak_array: array of ints
-        A list of indices of detected peaks.
-    trough_array: array of ints
-        A list of indices of detected troughs.
+    peaks: array of ints
+        An array of indices of detected peaks.
+    troughs: array of ints
+        An array of indices of detected troughs.
 
     """
     # initialize:
@@ -144,10 +150,10 @@ def detect_peaks_array(data, threshold):
     
     Returns
     -------
-    peak_array: array of ints
-        A list of indices of detected peaks.
-    trough_array: array of ints
-        A list of indices of detected troughs.
+    peaks: array of ints
+        An array of indices of detected peaks.
+    troughs: array of ints
+        An array of indices of detected troughs.
     """    
     # initialize:
     direction, min_inx, max_inx, pi, ti = 0, 0, 0, 0, 0
