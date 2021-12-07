@@ -812,8 +812,7 @@ def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
     if samplerate and win_size:
         threshold = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
-
-        for inx0 in range(0, len(data), win_size_indices//2):
+        for inx0 in range(0, len(data)-win_size_indices//2, win_size_indices//2):
             inx1 = inx0 + win_size_indices
             std = np.std(data[inx0:inx1], ddof=1)
             threshold[inx0:inx1] = std * thresh_fac
@@ -902,8 +901,7 @@ def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
         threshold = np.zeros(len(data))
         centers = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
-
-        for inx0 in range(0, len(data), win_size_indices//2):
+        for inx0 in range(0, len(data)-win_size_indices//2, win_size_indices//2):
             inx1 = inx0 + win_size_indices
             std, center = hist_threshold(data[inx0:inx1], samplerate=None, win_size=None,
                                          thresh_fac=thresh_fac, nbins=nbins,
@@ -960,8 +958,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
     if samplerate and win_size:
         threshold = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
-
-        for inx0 in range(0, len(data), win_size_indices//2):
+        for inx0 in range(0, len(data)-win_size_indices//2, win_size_indices//2):
             inx1 = inx0 + win_size_indices
             window_min = np.min(data[inx0:inx1])
             window_max = np.max(data[inx0:inx1])
@@ -973,7 +970,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
 
 
 def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, percentile=1.0):
-    """ Estimate a threshold for peak detection based on an inter-percentile range of the data.
+    """Estimate a threshold for peak detection based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
     100.0-percentile percentiles of the data multiplied with
@@ -987,7 +984,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
 
     If you have knowledge about how many data points are in the tails of
     the distribution, then this method is preferred over
-    `hist_threhsold()`. For example, if you expect peaks that you want
+    `hist_threshold()`. For example, if you expect peaks that you want
     to detect using `detect_peaks()` at an average rate of 10Hz and
     these peaks are about 1ms wide, then you have a 1ms peak per 100ms
     period, i.e. the peaks make up 1% of the distribution. So you should
@@ -998,11 +995,11 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
     noise floor with a large density, but you may want to set
     `thresh_fac` larger than one to reduce false detections.
 
-    If `samplerate` and `win_size` is given, then the threshold is computed for
-    each half-overlapping window of duration `win_size` separately.
-    In this case the returned threshold is an array of the same size as data.
-    Without a samplerate and win_size a single threshold value determined from
-    the whole data array is returned.
+    If `samplerate` and `win_size` is given, then the threshold is
+    computed for each half-overlapping window of duration `win_size`
+    separately.  In this case the returned threshold is an array of
+    the same size as data.  Without a samplerate and win_size a single
+    threshold value determined from the whole data array is returned.
 
     Parameters
     ----------
@@ -1022,6 +1019,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
     -------
     threshold: float or 1-D array
         The computed threshold.
+
     """
     if percentile < 1e-8:
         return minmax_threshold(data, samplerate=samplerate, win_size=win_size,
@@ -1029,7 +1027,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
     if samplerate and win_size:
         threshold = np.zeros(len(data))
         win_size_indices = int(win_size * samplerate)
-        for inx0 in range(0, len(data), win_size_indices//2):
+        for inx0 in range(0, len(data)-win_size_indices//2, win_size_indices//2):
             inx1 = inx0 + win_size_indices
             threshold[inx0:inx1] = np.squeeze(np.abs(np.diff(
                 np.percentile(data[inx0:inx1], [100.0 - percentile, percentile])))) * thresh_fac
