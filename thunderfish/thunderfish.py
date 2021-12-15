@@ -1202,6 +1202,7 @@ def main():
 
     # interactive plot:
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
+    plt.ioff()
 
     if args.save_config:
         # save configuration:

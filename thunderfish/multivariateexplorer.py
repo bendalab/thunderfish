@@ -274,6 +274,7 @@ class MultivariateExplorer(object):
     def show(self):
         """ Show interactive scatter plots for exploration.
         """
+        plt.ioff()
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
         self.fig = plt.figure(facecolor='white')
