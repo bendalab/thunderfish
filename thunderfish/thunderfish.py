@@ -1172,7 +1172,7 @@ def main():
     parser.add_argument('-b', dest='show_bestwindow', action='store_true',
                         help='show the cost function of the best window algorithm')
     parser.add_argument('file', nargs='*', default='', type=str,
-                        help='name of a file with time series data of an EOD recording')
+                        help='name of a file with time series data of an EOD recording, may include wildcards')
     args = parser.parse_args()
 
     # help:
@@ -1204,21 +1204,30 @@ def main():
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
     plt.ioff()
 
+    # expand wildcard patterns:
+    files = []
+    if os.name == 'nt':
+        for fn in args.file:
+            files.extend(glob.glob(fn))
+    else:
+        files = args.file
+
     if args.save_config:
         # save configuration:
-        file_name = args.file[0] if len(args.file) else ''
+        file_name = files[0] if len(files) else ''
         cfg = configuration()
         cfg.load_files(cfgfile, file_name, 4, verbose)
         save_configuration(cfg, cfgfile)
         exit()
-    elif len(args.file) == 0:
+    elif len(files) == 0:
         parser.error('you need to specify at least one file for the analysis')
 
-    # analyze data files:
+    # configure:
     cfg = configuration()
-    cfg.load_files(cfgfile, args.file[0], 4, verbose-1)
+    cfg.load_files(cfgfile, files[0], 4, verbose-1)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
+        
     # save plots:
     spec_plots = 'auto'
     if args.spec_plots:
@@ -1233,25 +1242,27 @@ def main():
         if ext != os.extsep + 'pdf':
             args.multi_pdf += os.extsep + 'pdf'
         multi_pdf = PdfPages(args.multi_pdf)
+        
     # create output folder:
     if args.save_data or args.save_plot:
         if not os.path.exists(args.outpath):
             if verbose > 1:
                 print('mkdir %s' % args.outpath)
             os.makedirs(args.outpath)
+            
     # run on pool:
     global pool_args
     pool_args = (cfg, args.channel, args.mode, args.log_freq, args.save_data,
                  args.all_eods, spec_plots, args.save_plot, multi_pdf, args.save_subplots,
                  args.outpath, args.keep_path, args.show_bestwindow, verbose-1, plot_level)
-    if args.jobs is not None and (args.save_data or args.save_plot) and len(args.file) > 1:
+    if args.jobs is not None and (args.save_data or args.save_plot) and len(files) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
         if verbose > 1:
             print('run on %d cpus' % cpus)
         p = Pool(cpus)
-        p.map(run_thunderfish, args.file)
+        p.map(run_thunderfish, files)
     else:
-        list(map(run_thunderfish, args.file))
+        list(map(run_thunderfish, files))
     if multi_pdf is not None:
         multi_pdf.close()
 

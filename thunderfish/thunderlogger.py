@@ -596,7 +596,7 @@ def main():
     parser.add_argument('-n', dest='name', default='', type=str,
                         help='base name of all output files or title of plots')
     parser.add_argument('file', nargs='*', default='', type=str,
-                        help='name of a file with time series data of an EOD recording')
+                        help='name of a file with time series data of an EOD recording, may include wildcards')
     args = parser.parse_args()
 
     # help:
@@ -623,21 +623,29 @@ def main():
     if verbose < plot_level:
         verbose = plot_level
 
+    # expand wildcard patterns:
+    files = []
+    if os.name == 'nt':
+        for fn in args.file:
+            files.extend(glob.glob(fn))
+    else:
+        files = args.file
+
     if args.save_config:
         # save configuration:
-        file_name = args.file[0] if len(args.file) else ''
+        file_name = files[0] if len(files) else ''
         cfg = configuration()
         add_thunderlogger_config(cfg)
         cfg.load_files(cfgfile, file_name, 4, verbose)
         save_configuration(cfg, cfgfile)
         exit()
-    elif len(args.file) == 0:
+    elif len(files) == 0:
         parser.error('you need to specify at least one file for the analysis')
 
-    # analyze data files:
+    # configure:
     cfg = configuration()
     add_thunderlogger_config(cfg)
-    cfg.load_files(cfgfile, args.file[0], 4, verbose-1)
+    cfg.load_files(cfgfile, files[0], 4, verbose-1)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
 
@@ -645,23 +653,26 @@ def main():
     output_folder = args.outpath
     if args.keep_path:
         output_folder = os.path.join(output_folder,
-                                     os.path.split(args.file[0])[0])
+                                     os.path.split(files[0])[0])
     if not os.path.exists(output_folder):
         if verbose > 1:
             print('mkdir %s' % output_folder)
         os.makedirs(output_folder)
+        
     # start time:
     start_time = None
     if cfg.value('startTime') != 'none':
         cfg.value('startTime')
         start_time = dt.datetime.strptime(cfg.value('startTime'), '%Y-%m-%dT%H:%M:%S')
+        
     # analyze and save data:
+    plt.ioff()
     if not args.save_plot:
         # assemble device name and output file:
         if len(args.name) > 0:
             device_name = args.name
         else:
-            device_name = os.path.basename(args.file[0])
+            device_name = os.path.basename(files[0])
             device_name = device_name[:device_name.find('-')]
         output_basename = os.path.join(output_folder, device_name)
         # compute thresholds:
@@ -681,7 +692,7 @@ def main():
             thresh = float(thresh)
         pulse_fishes, wave_fishes, tstart, tend, t0s, \
             stds, supra_thresh, unit = \
-            extract_eods(args.file, thresholds,
+            extract_eods(files, thresholds,
                          args.stds_only, cfg, verbose, plot_level,
                          thresh=thresh, start_time=start_time)
         remove_eod_files(output_basename, verbose, cfg)
@@ -705,7 +716,7 @@ def main():
             supra_threshs = []
             devices = []
             thresholds = []
-            for file in args.file:
+            for file in files:
                 t, p, s, d = load_power(file, start_time)
                 times.append(t)
                 stds.append(p)
@@ -724,7 +735,7 @@ def main():
                               args.name, output_folder)
         else:
             pulse_fishes, wave_fishes, tstart, tend, channels = \
-                load_data(args.file, start_time)
+                load_data(files, start_time)
             if args.merge:
                 pulse_fishes, wave_fishes = merge_fish(pulse_fishes, wave_fishes)
             plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
