@@ -1333,21 +1333,21 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
         msg += ['EODf=%5.1fHz' % eodf]
         if eodf < min_freq or eodf > max_freq:
             remove = True
-            skip_reason += ['invalid EODf=%5.1fHz (min %5.1fHz, max %5.1f))' %
+            skip_reason += ['invalid EODf=%5.1fHz (minimumFrequency=%5.1fHz, maximumFrequency=%5.1f))' %
                             (eodf, min_freq, max_freq)]
     # clipped fraction:
     if 'clipped' in props:
         clipped_frac = props['clipped']
         msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
         if max_clipped_frac > 0 and clipped_frac >= max_clipped_frac:
-            skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
+            skip_reason += ['clipped=%3.0f%% (maximimClippedFraction=%3.0f%%)' %
                             (100.0*clipped_frac, 100.0*max_clipped_frac)]
     # too many zero crossings:
     if 'ncrossings' in props:
         ncrossings = props['ncrossings']
         msg += ['zero crossings=%d' % ncrossings]
         if max_crossings > 0 and ncrossings > max_crossings:
-            skip_reason += ['too many zero crossings=%d (max %d)' %
+            skip_reason += ['too many zero crossings=%d (maximumCrossings=%d)' %
                             (ncrossings, max_crossings)]
     # noise:
     rms_sem = None
@@ -1365,21 +1365,21 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
         rms_error = props['rmserror']
         msg += ['rmserror=%6.2f%%' % (100.0*rms_error)]
         if max_rms_error > 0.0 and rms_error >= max_rms_error:
-            skip_reason += ['noisy rmserror=%6.2f%% (max %6.2f%%)' %
+            skip_reason += ['noisy rmserror=%6.2f%% (maximumVariance=%6.2f%%)' %
                             (100.0*rms_error, 100.0*max_rms_error)]
     # wave power:
     if 'power' in props:
         power = props['power']
         msg += ['power=%6.1fdB' % power]
         if power < min_power:
-            skip_reason += ['small power=%6.1fdB (min %6.1fdB)' %
+            skip_reason += ['small power=%6.1fdB (minimumPower=%6.1fdB)' %
                             (power, min_power)]
     # total harmonic distortion:
     if 'thd' in props:
         thd = props['thd']
         msg += ['thd=%5.1f%%' % (100.0*thd)]
         if max_thd > 0.0 and thd > max_thd:
-            skip_reason += ['large THD=%5.1f%% (max %5.1f%%)' %
+            skip_reason += ['large THD=%5.1f%% (maxximumTotalHarmonicDistortion=%5.1f%%)' %
                             (100.0*thd, 100.0*max_thd)]
     # smoothness of spectrum:
     if 'dbdiff' in props:
@@ -1387,7 +1387,7 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
         msg += ['dBdiff=%5.1fdB' % db_diff]
         if max_db_diff > 0.0 and db_diff > max_db_diff:
             remove = True
-            skip_reason += ['not smooth s.d. diff=%5.1fdB (max %5.1fdB)' %
+            skip_reason += ['not smooth s.d. diff=%5.1fdB (maxximumPowerDifference=%5.1fdB)' %
                             (db_diff, max_db_diff)]
     # maximum power of higher harmonics:
     if 'maxdb' in props:
@@ -1395,7 +1395,7 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
         msg += ['max harmonics=%5.1fdB' % max_harmonics]
         if max_harmonics > max_harmonics_db:
             remove = True
-            skip_reason += ['maximum harmonics=%5.1fdB too strong (max %5.1fdB)' %
+            skip_reason += ['maximum harmonics=%5.1fdB too strong (maximumHarmonicsPower=%5.1fdB)' %
                             (max_harmonics, max_harmonics_db)]
     # relative amplitude of harmonics:
     if harm_relampl is not None:
@@ -1404,8 +1404,9 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
                 break
             msg += ['ampl%d=%5.1f%%' % (k+1, 100.0*harm_relampl[k])]
             if max_relampl > 0.0 and k < len(harm_relampl) and harm_relampl[k] >= max_relampl:
-                skip_reason += ['distorted ampl%d=%5.1f%% (max %5.1f%%)' %
-                                (k+1, 100.0*harm_relampl[k], 100.0*max_relampl)]
+                num_str = ['First', 'Second', 'Third']
+                skip_reason += ['distorted ampl%d=%5.1f%% (maximum%sHarmonicAmplitude=%5.1f%%)' %
+                                (k+1, 100.0*harm_relampl[k], num_str[k], 100.0*max_relampl)]
     return remove, ', '.join(skip_reason), ', '.join(msg)
 
 
@@ -1440,7 +1441,7 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
         clipped_frac = props['clipped']
         msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
         if clipped_frac >= max_clipped_frac:
-            skip_reason += ['clipped=%3.0f%% (max %3.0f%%)' %
+            skip_reason += ['clipped=%3.0f%% (maximumClippedFraction=%3.0f%%)' %
                             (100.0*clipped_frac, 100.0*max_clipped_frac)]
             skipped_clipped = True
     # noise:
@@ -1452,7 +1453,7 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
     if rms_sem is not None:
         msg += ['rms sem waveform=%6.2f%%' % (100.0*rms_sem)]
         if max_rms_sem > 0.0 and rms_sem >= max_rms_sem:
-            skip_reason += ['noisy waveform s.e.m.=%6.2f%% (max %6.2f%%)' %
+            skip_reason += ['noisy waveform s.e.m.=%6.2f%% (maximumRMSNoise=%6.2f%%)' %
                             (100.0*rms_sem, 100.0*max_rms_sem)]
     return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
 
