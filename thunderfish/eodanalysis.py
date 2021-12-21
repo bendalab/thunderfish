@@ -1763,11 +1763,12 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None, color='b', lw=2, marker
     """
     n = 9 if len(spec) > 9 else len(spec)
     # amplitudes:
-    markers, stemlines, baseline = axa.stem(spec[:n,0], spec[:n,2])
+    markers, stemlines, _ = axa.stem(spec[:n,0]+1, spec[:n,2], basefmt='none')
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
     plt.setp(stemlines, color=color, lw=lw)
-    axa.set_xlim(-0.5, n-0.5)
-    axa.set_xticks(np.arange(0, n, 1))
+    axa.set_xlim(0.5, n+0.5)
+    axa.set_ylim(bottom=0)
+    axa.xaxis.set_major_locator(plt.MultipleLocator(1))
     axa.tick_params('x', direction='out')
     if unit:
         axa.set_ylabel('Amplitude [%s]' % unit)
@@ -1776,11 +1777,11 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None, color='b', lw=2, marker
     # phases:
     phases = spec[:,5]
     phases[phases<0.0] = phases[phases<0.0] + 2.0*np.pi
-    markers, stemlines, baseline = axp.stem(spec[:n,0], phases[:n])
+    markers, stemlines, _ = axp.stem(spec[:n,0]+1, phases[:n], basefmt='none')
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
     plt.setp(stemlines, color=color, lw=lw)
-    axp.set_xlim(-0.5, n-0.5)
-    axp.set_xticks(np.arange(0, n, 1))
+    axp.set_xlim(0.5, n+0.5)
+    axp.xaxis.set_major_locator(plt.MultipleLocator(1))
     axp.tick_params('x', direction='out')
     axp.set_ylim(0, 2.0*np.pi)
     axp.set_yticks([0, np.pi, 2.0*np.pi])
