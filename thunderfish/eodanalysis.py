@@ -1215,7 +1215,7 @@ def clipped_fraction(data, samplerate, eod_times, mean_eod,
     eod_snippets = snippets(data, eod_idx, w0, w1)
     # fraction of clipped snippets:
     clipped_frac = np.sum(np.any((eod_snippets > max_clip) |
-                                 (eod_snippets < min_clip), axis=0))\
+                                 (eod_snippets < min_clip), axis=1))\
                    / len(eod_snippets)
     return clipped_frac
 
@@ -1297,7 +1297,7 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
         clipped_frac = props['clipped']
         msg += ['clipped=%3.0f%%' % (100.0*clipped_frac)]
         if max_clipped_frac > 0 and clipped_frac >= max_clipped_frac:
-            skip_reason += ['clipped=%3.0f%% (maximimClippedFraction=%3.0f%%)' %
+            skip_reason += ['clipped=%3.0f%% (maximumClippedFraction=%3.0f%%)' %
                             (100.0*clipped_frac, 100.0*max_clipped_frac)]
     # too many zero crossings:
     if 'ncrossings' in props:
