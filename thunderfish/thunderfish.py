@@ -417,6 +417,7 @@ def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
 def plot_style():
     """ Set style of plots.
     """
+    plt.rcParams['figure.facecolor'] = 'white'
     plt.rcParams['axes.facecolor'] = 'none'
     plt.rcParams['xtick.direction'] = 'out'
     plt.rcParams['ytick.direction'] = 'out'
@@ -584,12 +585,12 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
     
     # figure:
     plot_style()
-    fig = plt.figure(facecolor='white', figsize=(width, height))
+    fig = plt.figure(figsize=(width, height))
     if interactive:
         fig.canvas.mpl_connect('key_press_event', keypress)
     
     # plot title:
-    ax = fig.add_axes([0.2/width, 1.0-0.6/height, 1.0-0.4/width, 0.5/height])
+    ax = fig.add_axes([0.2/width, 1.0-0.6/height, 1.0-0.4/width, 0.55/height])
     ax.text(0.0, 1.0, base_name, fontsize=22, va='top')
     ax.text(1.0, 1.0, 'thunderfish by Benda-Lab', fontsize=16, ha='right', va='top')
     ax.text(1.0, 0.0, 'version %s' % __version__, fontsize=16, ha='right', va='bottom')

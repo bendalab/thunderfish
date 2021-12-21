@@ -27,7 +27,7 @@ warnings.warn=warn
 
 
 # plotting parameters and colors:
-rcParams['font.family'] = 'monospace'
+#rcParams['font.family'] = 'monospace'
 cmap = plt.get_cmap("Dark2")
 c_g = cmap(0)
 c_o = cmap(1)
