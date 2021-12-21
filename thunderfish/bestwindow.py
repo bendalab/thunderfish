@@ -94,12 +94,12 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
     win_tinxs = np.arange(0, len(data) - win_indices, win_indices)
     for wtinx in win_tinxs:
         h, b = np.histogram(data[wtinx:wtinx + win_indices], bins)
-        if h[0] > min_fac * h[2] and b[0] < -0.4:
+        if h[0] > min_fac * h[2] and b[0] < 0.4*min_ampl:
             if h[1] > min_fac * h[2] and b[2] > min_clipa:
                 min_clipa = b[2]
             elif b[1] > min_clipa:
                 min_clipa = b[1]
-        if h[-1] > min_fac * h[-3] and b[-1] > 0.4:
+        if h[-1] > min_fac * h[-3] and b[-1] > 0.4*max_ampl:
             if h[-2] > min_fac * h[-3] and b[-3] < max_clipa:
                 max_clipa = b[-3]
             elif b[-2] < max_clipa:
@@ -662,8 +662,8 @@ def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
         min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
     if cfg.value('unwrapData'):
         raw_data = unwrap(raw_data)
-        min_clip = -2.0
-        max_clip = 2.0
+        min_clip *= 2
+        max_clip *= 2
     # best window size parameter:
     bwa = best_window_args(cfg)
     if 'win_size' in bwa:

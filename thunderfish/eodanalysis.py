@@ -16,8 +16,7 @@ Analysis of EOD waveforms.
 
 ## Quality assessment
 
-- `wave_clipped_fraction()`: compute fraction of clipped wave fish waveform snippets.
-- `pulse_clipped_fraction()`: compute fraction of clipped pulse fish waveform snippets.
+- `clipped_fraction()`: compute fraction of clipped EOD waveform snippets.
 - `wave_quality()`: asses quality of EOD waveform of a wave fish.
 - `pulse_quality()`: asses quality of EOD waveform of a pulse fish.
 
@@ -1178,13 +1177,13 @@ def pulse_similarity(eod1, eod2, wfac=10.0):
     return rmse
 
 
-def wave_clipped_fraction(data, samplerate, eod_times, mean_eod,
-                          min_clip=-np.inf, max_clip=np.inf):
-    """Compute fraction of clipped wave fish waveform snippets.
+def clipped_fraction(data, samplerate, eod_times, mean_eod,
+                     min_clip=-np.inf, max_clip=np.inf):
+    """Compute fraction of clipped EOD waveform snippets.
 
-    Cut out snippets at each `eod_times` based on time axis of `mean_eod`.
-    Check which fraction of snippets exceeds clipping amplitude `min_clip` and `max_clip`.
-    Use mean of each snippet plus or minus maximum or minimum of `mean_eod` waveform.
+    Cut out snippets at each `eod_times` based on time axis of
+    `mean_eod`.  Check which fraction of snippets exceeds clipping
+    amplitude `min_clip` and `max_clip`.
 
     Parameters
     ----------
@@ -1193,7 +1192,7 @@ def wave_clipped_fraction(data, samplerate, eod_times, mean_eod,
     samplerate: float
         Sampling rate of the data in Hertz.
     eod_times: 1-D array of float
-        Array of EOD times in seconds over which the waveform should be averaged.
+        Array of EOD times in seconds.
     mean_eod: 2-D array with time, mean, sem, and fit.
         Averaged EOD waveform of wave fish. Only the time axis is used
         to set width of snippets.
@@ -1206,60 +1205,18 @@ def wave_clipped_fraction(data, samplerate, eod_times, mean_eod,
     -------
     clipped_frac: float
         Fraction of snippets that are clipped.
+
     """
     # snippets:
-    idx0 = np.argmin(mean_eod[:,0]) # index of time zero
-    w0 = -idx0
-    w1 = len(mean_eod[:,0]) - idx0
-    eod_idx = np.round(eod_times * samplerate).astype(np.int)
-    eod_snippets = snippets(data, eod_idx, w0, w1)
-    mean_snippets = np.mean(eod_snippets, axis=0)
-    # amplitudes of mean waveform:
-    max_ampl = np.max(mean_eod[:,1]) 
-    min_ampl = np.min(mean_eod[:,1]) 
-    # fraction of clipped snippets:
-    clipped_frac = np.sum((mean_snippets + max_ampl > max_clip) |
-                          (mean_snippets + min_ampl < min_clip))/len(eod_snippets)
-    return clipped_frac
-
-
-def pulse_clipped_fraction(data, samplerate, eod_times, mean_eod,
-                           min_clip=-np.inf, max_clip=np.inf):
-    """Compute fraction of clipped pulse fish waveform snippets.
-
-    Cut out snippets at each `eod_times` based on time axis of `mean_eod`.
-    Check which fraction of snippets exceeds clipping amplitude `min_clip` and `max_clip`.
-
-    Parameters
-    ----------
-    data: 1-D array of float
-        The data to be analysed.
-    samplerate: float
-        Sampling rate of the data in Hertz.
-    eod_times: 1-D array of float
-        Array of EOD times in seconds over which the waveform should be averaged.
-    mean_eod: 2-D array with time, mean, sem, and fit.
-        Averaged EOD waveform of pulse fish. Only the time axis is used
-        to set width of snippets.
-    min_clip: float
-        Minimum amplitude that is not clipped.
-    max_clip: float
-        Maximum amplitude that is not clipped.
-    
-    Returns
-    -------
-    clipped_frac: float
-        Fraction of snippets that are clipped.
-    """
-    # snippets:
-    idx0 = np.argmin(mean_eod[:,0]) # index of time zero
+    idx0 = np.argmin(np.abs(mean_eod[:,0])) # index of time zero
     w0 = -idx0
     w1 = len(mean_eod[:,0]) - idx0
     eod_idx = np.round(eod_times * samplerate).astype(np.int)
     eod_snippets = snippets(data, eod_idx, w0, w1)
     # fraction of clipped snippets:
-    clipped_frac = np.sum((np.max(eod_snippets, axis=1) > max_clip) |
-                          (np.min(eod_snippets, axis=1) < min_clip))/len(eod_snippets)
+    clipped_frac = np.sum(np.any((eod_snippets > max_clip) |
+                                 (eod_snippets < min_clip), axis=0))\
+                   / len(eod_snippets)
     return clipped_frac
 
 
