@@ -1929,26 +1929,26 @@ class TableData(object):
         """
         # fix parameter:
         if table_format == 'auto':
-            table_format =None
+            table_format = None
         if delimiter == 'auto':
-            delimiter=None
+            delimiter = None
         if unit_style == 'auto':
-            unit_style=None
+            unit_style = None
         if column_numbers == 'none':
-            column_numbers=None
+            column_numbers = None
         if sections == 'auto':
-            sections=None
+            sections = None
         if align_columns == 'auto':
-            align_columns=None
+            align_columns = None
         # open file:
         own_file = False
         file_name = None
         if not hasattr(fh, 'write'):
             _, ext = os.path.splitext(fh)
             if table_format is None:
-                if len(ext) > 1:
+                if len(ext) > 1 and ext[1:] in self.ext_formats:
                     table_format = self.ext_formats[ext[1:]]
-            elif not ext:
+            elif not ext or not ext[1:].lower() in self.ext_formats:
                 fh += '.' + self.extensions[table_format]
             file_name = fh
             fh = open(fh, 'w')
