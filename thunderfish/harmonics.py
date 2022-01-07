@@ -184,45 +184,29 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
 
     # 3. collect harmonics from all_freqs:
     new_group = -np.ones(min_group_size, dtype=np.int)
-    ## # slower:
-    ## prev_freq = 0.0
-    ## freqs = all_freqs[all_freqs[:,0]<(min_group_size+0.5)*fzero,0]
-    ## for h in range(1, min_group_size+1):
-    ##     fac = 1.0 if h >= divisor else 2.0                
-    ##     sel = np.abs(freqs/h - fzero) < fac*freq_tol
-    ##     if sum(sel) == 0:
-    ##         if verbose > 1:
-    ##             print('no candidates at %d harmonics' % h)
-    ##         break
-    ##     ff = freqs[sel]
-    ##     df = np.abs(ff - prev_freq)
-    ##     fe = np.abs(df/np.round(df/fzero) - fzero)
-    ##     idx = np.argmin(fe)
-    ##     fac = 1.0 if h > divisor else 2.0                
-    ##     if fe[idx] > 2.0*fac*freq_tol:
-    ##         if verbose > 1:
-    ##             print('%d. harmonics is off %.2fHz' % (h, ff[idx]))
-    ##         break
-    ##     prev_freq = ff[idx]
-    ##     new_group[h-1] = np.where(sel)[0][idx]
-
-    # a little bit faster:
+    new_penalties = np.ones(min_group_size)
     freqs = []
     prev_h = 0
     prev_fe = 0.0
     fupper = (min_group_size+0.5)*fzero
     for i, f in enumerate(all_freqs[all_freqs[:,0] < fupper,0]):
+        penalty = 0
         h = m.floor(f/fzero + 0.5)  # round
+        if verbose > 2:
+            print('    check %7.2fHz as %d. harmonics' % (f, h))
         if h < 1:
             continue
         if h > min_group_size:
             break
         fac = 1.0 if h >= divisor else 2.0
-        if m.fabs(f/h - fzero) > fac*freq_tol:
-            if verbose > 1 and m.fabs(f/h - fzero) < 20.0*fac*freq_tol:
+        fe = m.fabs(f/h - fzero)
+        if fe > 10*fac*freq_tol:
+            if verbose > 1 and fe < 20*fac*freq_tol:
                 print('    %d. harmonics at %7.2fHz is off by %7.2fHz (max %5.2fHz) from %7.2fHz'
-                      % (h, f, f-h*fzero, fac*freq_tol, h*fzero))
+                      % (h, f, h*fe, h*fac*freq_tol, h*fzero))
             continue
+        if fe > fac*freq_tol:
+            penalty = np.interp(fe, [1*fac*freq_tol, 10*fac*freq_tol], [0.0, 1.0])
         if len(freqs) > 0:
             pf = freqs[-1]
             df = f - pf
@@ -235,34 +219,40 @@ def group_candidate(good_freqs, all_freqs, freq, divisor, freq_tol, min_group_si
                     df = h*fzero
             dh = m.floor(df/fzero + 0.5)
             fe = m.fabs(df/dh - fzero)
-            fac = 1.0 if h > divisor else 2.0                
-            if fe > 2.0*fac*freq_tol:
+            fac = 1 if h > divisor else 2                
+            if fe > 2*10*dh*fac*freq_tol:
                 if verbose > 1:
                     print('    %d. harmonics at %7.2fHz is off by %7.2fHz (max %5.2fHz) from previous harmonics at %7.2fHz'
-                          % (h, f, fe, 2.0*fac*freq_tol, pf))
+                          % (h, f, dh*fe, 2*10*fac*dh*freq_tol, pf))
                 continue
+            if fe > 2*dh*fac*freq_tol:
+                penalty = np.interp(fe, [2*dh*fac*freq_tol, 2*10*dh*fac*freq_tol], [0.0, 1.0])
         else:
             fe = 0.0
         if h > prev_h or fe < prev_fe:
             if prev_h > 0 and h - prev_h > 1:
+                if verbose > 1:
+                    print('    previous harmonics %d more than 1 away from %d. harmonics at %7.2fHz'
+                          % (prev_h, h, f))
                 break
             if h == prev_h and len(freqs) > 0:
                 freqs.pop()
             freqs.append(f)
             new_group[int(h)-1] = i
+            new_penalties[int(h)-1] = penalty
             prev_h = h
             prev_fe = fe
             if verbose > 1:
-                print('    %d. harmonics at %7.2fHz has been taken (peak %2d)' % (h, f, i))
+                print('    %d. harmonics at %7.2fHz has been taken (peak %2d) with penalty %3.1f' % (h, f, i, penalty))
 
     # 4. check new group:
 
-    # all harmonics in min_group_size required:
-    n_skip = int(min_group_size//3)
-    if np.sum(new_group<0) > n_skip:
+    # almost all harmonics in min_group_size required:
+    max_penalties = min_group_size/3
+    if np.sum(new_penalties) > max_penalties:
         if verbose > 0:
-            print('  discarded group because %d harmonics are less than min_group_size of %d minus %d! peaks:' %
-                  (np.sum(new_group>=0), min_group_size, n_skip), new_group)
+            print('  discarded group because sum of penalties %3.1f is more than %3.1f: indices' %
+                  (np.sum(new_penalties), max_penalties), new_group, ' penalties', new_penalties)
         return [], -1.0, fzero_harmonics
     new_group = new_group[new_group>=0]
     
