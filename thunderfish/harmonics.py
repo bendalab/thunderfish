@@ -517,7 +517,7 @@ def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
         Group of fundamental frequency and harmonics
         as returned by build_harmonic_group.
     indices: 1-D array of indices
-        Indices of the harmonics in group in all_freqs.
+        Indices of the harmonics in group in `freqs`.
     freqs: 2-D array
         Frequency, power, and use count (columns) of all peaks detected
         in a power spectrum.
@@ -537,41 +537,26 @@ def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
     """
     if len(group) == 0:
         return group
+    fzero = group[0,0]
     if max_harmonics <= 0:
-        max_harmonics = 10000
+        max_harmonics = m.floor(freqs[-1,0]/fzero + 0.5) # round
     if max_harmonics <= len(group):
         return group
-    fzero = group[0,0]
     group_freqs = list(group[:,0])
     indices = list(indices)
-    prev_h = len(group_freqs)
-    prev_fe = 0.0
-    for i, f in enumerate(freqs[:,0]):
-        if f <= group_freqs[-1] + 0.5*fzero:
-            continue
-        h = m.floor(f/fzero + 0.5)  # round
-        if h > max_harmonics:
-            break
+    last_h = m.floor(group_freqs[-1]/fzero + 0.5) # round
+    for h in range(last_h+1, max_harmonics+1):
+        i = np.argmin(np.abs(freqs[:,0]/h - fzero))
+        f = freqs[i,0]
         if m.fabs(f/h - fzero) > freq_tol:
             continue
         df = f - group_freqs[-1]
-        if df <= 0.5*fzero:
-            if len(group_freqs)>1:
-                df = f - group_freqs[-2]
-            else:
-                df = h*fzero
-        dh = m.floor(df/fzero + 0.5)
+        dh = m.floor(df/fzero + 0.5) # round
         fe = m.fabs(df/dh - fzero)
-        if fe > 2.0*freq_tol:
+        if fe > 2*freq_tol:
             continue
-        if h > prev_h or fe < prev_fe:
-            if h == prev_h and len(group_freqs) > 0:
-                group_freqs.pop()
-                indices.pop()
-            group_freqs.append(f)
-            indices.append(i)
-            prev_h = h
-            prev_fe = fe
+        group_freqs.append(f)
+        indices.append(i)
     # assemble group:
     new_group = freqs[indices,:group.shape[1]]
     # keep filled in fundamental:
