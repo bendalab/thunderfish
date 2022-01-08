@@ -85,7 +85,7 @@ optional arguments:
   -k                    keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH
   -b                    show the cost function of the best window algorithm
 
-version 1.9.3 by Benda-Lab (2015-2021)
+version 1.9.6 by Benda-Lab (2015-2021)
 
 examples:
 - analyze the single file data.wav interactively:
