@@ -348,9 +348,6 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, max_freq_tol,
     good_freqs: 2-D array
         Frequency, power, and use count (columns) of strong peaks detected
         in a power spectrum with frequencies of the returned harmonic group removed.
-    all_freqs: 2-D array
-        Frequency, power, and use count (columns) of all peaks detected
-        in a power spectrum with updated use counts.
     group: 2-D array
         The detected harmonic group. Might be empty.
     indices: 1-D array of indices
@@ -424,7 +421,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, max_freq_tol,
         # erase freq:
         good_freqs = np.delete(good_freqs, fmaxinx, axis=0)
         group = np.zeros((0, 3))
-        return good_freqs, all_freqs, group, best_group, 1, fmax
+        return good_freqs, group, best_group, 1, fmax
 
     # update frequencies and group:
     if verbose > 1:
@@ -435,8 +432,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, max_freq_tol,
     good_freqs, group = update_group(good_freqs, all_freqs, best_group, best_fzero, freq_tol, verbose, group_str)
 
     # good_freqs: removed all frequencies of bestgroup
-    # all_freqs: updated use count
-    return good_freqs, all_freqs, group, best_group, best_fzero_harmonics, fmax
+    return good_freqs, group, best_group, best_fzero_harmonics, fmax
 
 
 def retrieve_harmonic_group(freq, good_freqs, all_freqs,
@@ -475,9 +471,6 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs,
     good_freqs: 2-D array
         Frequency, power, and use count (columns) of strong peaks detected
         in a power spectrum with frequencies of the returned harmonic group removed.
-    all_freqs: 2-D array
-        Frequency, power, and use count (columns) of all peaks detected
-        in a power spectrum with updated double-use counts.
     group: 2-D array
         The detected harmonic group. Might be empty.
     indices: 1-D array of indices
@@ -501,7 +494,7 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs,
 
     # no group found:
     if fzero < 0.0:
-        return good_freqs, all_freqs, np.zeros((0, 2)), fzero_harmonics
+        return good_freqs, np.zeros((0, 2)), fzero_harmonics
 
     if verbose > 1:
         print('')
@@ -512,8 +505,7 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs,
                                      fzero, freq_tol, verbose, group_str)
 
     # good_freqs: removed all frequencies of bestgroup
-    # all_freqs: updated use count
-    return good_freqs, all_freqs, group, new_group, fzero_harmonics
+    return good_freqs, group, new_group, fzero_harmonics
 
 
 def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
@@ -689,7 +681,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, max_freq_tol,
             # check for harmonic group of a given fundamental frequency:
             fmax = check_freqs[fi]
             f0s = 'freq'
-            good_freqs, all_freqs, harm_group, harm_indices, fzero_harmonics = \
+            good_freqs, harm_group, harm_indices, fzero_harmonics = \
                 retrieve_harmonic_group(fmax, good_freqs, all_freqs,
                                         freq_tol, max_freq_tol,
                                         verbose-1, min_group_size)
@@ -697,7 +689,7 @@ def extract_fundamentals(good_freqs, all_freqs, freq_tol, max_freq_tol,
         else:
             # check for harmonic groups:
             f0s = 'fmax'
-            good_freqs, all_freqs, harm_group, harm_indices, fzero_harmonics, fmax = \
+            good_freqs, harm_group, harm_indices, fzero_harmonics, fmax = \
                 build_harmonic_group(good_freqs, all_freqs,
                                      freq_tol, max_freq_tol, verbose-1,
                                      min_group_size, max_divisor)
