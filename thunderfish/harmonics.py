@@ -233,7 +233,7 @@ def group_candidate(good_freqs, all_freqs, freq, divisor,
 
 def update_group(good_freqs, all_freqs, new_group, fzero,
                  freq_tol, verbose, group_str):
-    """ Update frequency lists and harmonic group.
+    """ Update good frequencies and harmonic group.
 
     Remove frequencies from good_freqs, add missing fundamental to group.
 
@@ -264,9 +264,6 @@ def update_group(good_freqs, all_freqs, new_group, fzero,
         Frequency, power, and use count (columns) of strong peaks detected
         in a power spectrum with frequencies for harmonic group
         of fundamental frequency fzero removed.
-    all_freqs: 2-D array
-        Frequency, power, and use count (columns) of all peaks detected
-        in a power spectrum with updated use counts.
     group: 2-D array
         Frequency, power, and use count (columns) of harmonic group
         for fundamental frequency fzero.
@@ -314,7 +311,7 @@ def update_group(good_freqs, all_freqs, new_group, fzero,
     if np.round(group[0,0]/fzero) != 1.0:
         group = np.vstack(((fzero, group[0,1], -2.0), group))
 
-    return good_freqs, all_freqs, group
+    return good_freqs, group
 
 
 def build_harmonic_group(good_freqs, all_freqs, freq_tol, max_freq_tol,
@@ -435,7 +432,7 @@ def build_harmonic_group(good_freqs, all_freqs, freq_tol, max_freq_tol,
         print('# best group found for fmax=%.2fHz, fzero=%.2fHz, divisor=%d:'
               % (fmax, best_fzero, best_divisor))
     group_str = '%s resulting harmonic group for fmax=%.2fHz' % (10*'#', fmax)
-    good_freqs, all_freqs, group = update_group(good_freqs, all_freqs, best_group, best_fzero, freq_tol, verbose, group_str)
+    good_freqs, group = update_group(good_freqs, all_freqs, best_group, best_fzero, freq_tol, verbose, group_str)
 
     # good_freqs: removed all frequencies of bestgroup
     # all_freqs: updated use count
@@ -511,8 +508,8 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs,
         print('# group found for freq=%.2fHz, fzero=%.2fHz:'
               % (freq, fzero))
     group_str = '#### resulting harmonic group for freq=%.2fHz' % freq
-    good_freqs, all_freqs, group = update_group(good_freqs, all_freqs, new_group,
-                                                fzero, freq_tol, verbose, group_str)
+    good_freqs, group = update_group(good_freqs, all_freqs, new_group,
+                                     fzero, freq_tol, verbose, group_str)
 
     # good_freqs: removed all frequencies of bestgroup
     # all_freqs: updated use count
