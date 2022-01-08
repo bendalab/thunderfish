@@ -1102,19 +1102,17 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
             plt.show()
 
 
-pool_args = None
-
-def run_thunderfish(file):
+def run_thunderfish(file_args):
     """
     Helper function for mutlithreading Pool().map().
     """
-    verbose = pool_args[-2]+1
+    verbose = file_args[1][-2]+1
     if verbose > 0:
         if verbose > 1:
             print('='*70)
-        print('analyze recording %s ...' % file)
+        print('analyze recording %s ...' % file_args[0])
     try:
-        msg = thunderfish(file, *pool_args)
+        msg = thunderfish(file_args[0], *file_args[1])
         if msg:
             print(msg)
     except (KeyboardInterrupt, SystemExit):
@@ -1252,7 +1250,6 @@ def main():
             os.makedirs(args.outpath)
             
     # run on pool:
-    global pool_args
     pool_args = (cfg, args.channel, args.mode, args.log_freq, args.save_data,
                  args.all_eods, spec_plots, args.save_plot, multi_pdf, args.save_subplots,
                  args.outpath, args.keep_path, args.show_bestwindow, verbose-1, plot_level)
@@ -1261,9 +1258,9 @@ def main():
         if verbose > 1:
             print('run on %d cpus' % cpus)
         p = Pool(cpus)
-        p.map(run_thunderfish, files)
+        p.map(run_thunderfish, zip(files, [pool_args]*len(files)))
     else:
-        list(map(run_thunderfish, files))
+        list(map(run_thunderfish, zip(files, [pool_args]*len(files))))
     if multi_pdf is not None:
         multi_pdf.close()
 
