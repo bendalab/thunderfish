@@ -494,7 +494,7 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs,
 
     # no group found:
     if fzero < 0.0:
-        return good_freqs, np.zeros((0, 2)), fzero_harmonics
+        return good_freqs, np.zeros((0, 2)), np.zeros(0), fzero_harmonics
 
     if verbose > 1:
         print('')
@@ -536,12 +536,12 @@ def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
         Indices of the harmonics in the expanded group in all_freqs.
     """
     if len(group) == 0:
-        return group
+        return group, indices
     fzero = group[0,0]
     if max_harmonics <= 0:
         max_harmonics = m.floor(freqs[-1,0]/fzero + 0.5) # round
     if max_harmonics <= len(group):
-        return group
+        return group, indices
     group_freqs = list(group[:,0])
     indices = list(indices)
     last_h = m.floor(group_freqs[-1]/fzero + 0.5) # round
