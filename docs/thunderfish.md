@@ -324,7 +324,7 @@ These might be more than listed in `RECORDING-wavefish.EXT`.
   <tr>
     <th align="left">index</th>
     <th align="left">EODf</th>
-    <th align="left">power</th>
+    <th align="left">datapower</th>
   </tr>
   <tr>
     <th align="left">-</th>
@@ -360,8 +360,7 @@ The columns contain:
 
 1. `index` Index of the fish (the number that is also used to number the files).
 2. `EODf` EOD frequency in Hertz.
-3. `power` Power of this EOD in decibel (sum over all peaks in the power spectrum 
-   of the recording).
+3. `datapower` Power of this EOD in decibel (sum over all peaks in the power spectrum of the recording).
 
 
 ### RECORDING-wavefish.EXT
@@ -372,7 +371,7 @@ wave-type fish detected in the recording.
 <table>
 <thead>
   <tr>
-    <th align="left" colspan="12">waveform</th>
+    <th align="left" colspan="13">waveform</th>
     <th align="left" colspan="9">timing</th>
   </tr>
   <tr>
@@ -380,6 +379,7 @@ wave-type fish detected in the recording.
     <th align="left">EODf</th>
     <th align="left">p-p-amplitude</th>
     <th align="left">power</th>
+    <th align="left">datapower</th>
     <th align="left">thd</th>
     <th align="left">dbdiff</th>
     <th align="left">maxdb</th>
@@ -402,6 +402,7 @@ wave-type fish detected in the recording.
     <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">a.u.</th>
+    <th align="left">dB</th>
     <th align="left">dB</th>
     <th align="left">%</th>
     <th align="left">dB</th>
@@ -428,6 +429,7 @@ wave-type fish detected in the recording.
     <td align="right">580.08</td>
     <td align="right">0.22755</td>
     <td align="right">-21.28</td>
+    <td align="right">-22.01</td>
     <td align="right">149.81</td>
     <td align="right">2.93</td>
     <td align="right">-9.22</td>
@@ -451,6 +453,7 @@ wave-type fish detected in the recording.
     <td align="right">111.33</td>
     <td align="right">0.00713</td>
     <td align="right">-50.80</td>
+    <td align="right">-34.09</td>
     <td align="right">67.60</td>
     <td align="right">7.18</td>
     <td align="right">-29.48</td>
@@ -474,6 +477,7 @@ wave-type fish detected in the recording.
     <td align="right">132.81</td>
     <td align="right">0.01029</td>
     <td align="right">-46.47</td>
+    <td align="right">-37.87</td>
     <td align="right">46.49</td>
     <td align="right">8.40</td>
     <td align="right">-32.48</td>
@@ -497,6 +501,7 @@ wave-type fish detected in the recording.
     <td align="right">608.89</td>
     <td align="right">0.00258</td>
     <td align="right">-59.51</td>
+    <td align="right">-45.45</td>
     <td align="right">100.84</td>
     <td align="right">15.01</td>
     <td align="right">-22.24</td>
@@ -515,6 +520,30 @@ wave-type fish detected in the recording.
     <td align="right">57.08</td>
     <td align="right">91.60</td>
   </tr>
+  <tr>
+    <td align="right">4</td>
+    <td align="right">1979.49</td>
+    <td align="right">0.00177</td>
+    <td align="right">-61.18</td>
+    <td align="right">-61.72</td>
+    <td align="right">58.05</td>
+    <td align="right">13.10</td>
+    <td align="right">-24.18</td>
+    <td align="right">33.0</td>
+    <td align="right">2.08</td>
+    <td align="right">0.0</td>
+    <td align="right">0</td>
+    <td align="right">15833</td>
+    <td align="right">2</td>
+    <td align="right">53.94</td>
+    <td align="right">46.06</td>
+    <td align="right">22.94</td>
+    <td align="right">31.00</td>
+    <td align="right">24.67</td>
+    <td align="right">21.38</td>
+    <td align="right">55.67</td>
+    <td align="right">131.60</td>
+  </tr>
 </tbody>
 </table>
 
@@ -522,28 +551,29 @@ The columns contain:
 
 1. `index` Index of the fish (the number that is also used to number the files).
 2. `EODf` EOD frequency in Hertz.
-3. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
-4. `power` Power of this EOD in decibel.
-5. `thd`: Total harmonic distortion, i.e. square root of sum of amplitudes squared
+3. `p-p-amplitude` Peak-to-peak amplitude of the extracted waveform in the units of the input data.
+4. `power` Power of the extracted EOD waveform, i.e. sum of the squared Fourier amplitudes, in decibel.
+5. `datapower` Power of the EOD waveform from the spectrum of the original data in decibel.
+6. `thd`: Total harmonic distortion, i.e. square root of sum of amplitudes squared
    of harmonics relative to amplitude of fundamental.
-6. `dbdiff` Smoothness of power spectrum as standard deviation of differences in decibel power.
-7. `maxdb` Maximum power of higher harmonics relative to peak power in decibel.
-8. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
+7. `dbdiff` Smoothness of power spectrum as standard deviation of differences in decibel power.
+8. `maxdb` Maximum power of higher harmonics relative to peak power in decibel.
+9. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-9. `rmserror` Root-mean-squared difference between the averaged EOD waveform and 
+10. `rmserror` Root-mean-squared difference between the averaged EOD waveform and 
    the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
-10. `clipped` Percentage of recording that is clipped.
-11. `flipped` Whether the waveform was flipped.
-12. `n` Number of EODs used for computing the averaged EOD waveform.
-13. `ncrossings` Number of zero crossing per EOD period.
-14. `peakwidth` Width of the peak at the averaged amplitude relative to EOD period.
-15. `troughwidth` Width of the trough at the averaged amplitude relative to EOD period.
-16. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
-17. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
-18. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
-19. `righttrough` Time from trough to positive zero crossing relative to EOD period.
-20. `p-p-distance` Time between peak and trough relative to EOD period.
-21. `reltroughampl` Amplitude of trough relative to peak amplitude.
+11. `clipped` Percentage of recording that is clipped.
+12. `flipped` Whether the waveform was flipped.
+13. `n` Number of EODs used for computing the averaged EOD waveform.
+14. `ncrossings` Number of zero crossing per EOD period.
+15. `peakwidth` Width of the peak at the averaged amplitude relative to EOD period.
+16. `troughwidth` Width of the trough at the averaged amplitude relative to EOD period.
+17. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
+18. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
+19. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
+20. `righttrough` Time from trough to positive zero crossing relative to EOD period.
+21. `p-p-distance` Time between peak and trough relative to EOD period.
+22. `reltroughampl` Amplitude of trough relative to peak amplitude.
 
 
 ### RECORDING-wavespectrum-N.EXT
@@ -559,7 +589,7 @@ The parameter of the Fourier series fitted to the waveform of a wave-type fish.
     <th align="left">relampl</th>
     <th align="left">relpower</th>
     <th align="left">phase</th>
-    <th align="left">power</th>
+    <th align="left">datapower</th>
   </tr>
   <tr>
     <th align="left">-</th>
@@ -628,7 +658,7 @@ The columns contain:
 4. `relampl` Amplitude of each harmonics relative to the amplitude of the fundamental in percent.
 5. `relpower` Power of each harmonics relative to fundamental in decibel.
 6. `phase` Phase of each harmonics obtained by fitting a Fourier series to the data in radians ranging from 0 to 2 pi.
-7. `power` Power spectral density of the harmonics from the original power spectrum of the data.
+7. `datapower` Power spectral density of the harmonics from the original power spectrum of the data.
 
 
 ### RECORDING-pulsefish.EXT

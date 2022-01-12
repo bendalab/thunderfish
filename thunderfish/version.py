@@ -1,4 +1,4 @@
-__version__='1.9.7'
+__version__='1.9.8'
 """ Current version of the thunderfish package. """
 
 __year__ = '2022'

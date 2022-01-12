@@ -312,13 +312,15 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
         - righttrough: time from trough to positive zero crossing relative to EOD period.
         - p-p-distance: time between peak and trough relative to EOD period.
         - reltroughampl: amplitude of trough relative to peak amplitude.
-        - power: summed power of all harmonics in decibel relative to one.
+        - power: summed power of all harmonics of the extracted EOD waveform in decibel relative to one.
+        - datapower: summed power of all harmonics of the original data in decibel relative to one. Only if `freq` is a list of harmonics.
         - thd: total harmonic distortion, i.e. square root of sum of amplitudes squared
           of harmonics relative to amplitude of fundamental.  
         - dbdiff: smoothness of power spectrum as standard deviation of differences in decibel power.
         - maxdb: maximum power of higher harmonics relative to peak power in decibel.
 
     spec_data: 2-D array of floats
+        First size columns are from the spectrum of the extracted waveform.
         First column is the index of the harmonics, second column its frequency,
         third column its amplitude, fourth column its amplitude relative to the fundamental,
         fifth column is power of harmonics relative to fundamental in decibel,
@@ -328,10 +330,6 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
         raw data.
         Rows are the harmonics, first row is the fundamental frequency with index 0,
         relative amplitude of one, relative power of 0dB, and phase shift of zero.
-        If the relative amplitude of the first harmonic (spec-data[1,3]) is larger than 2,
-        or the relative amplitude of the second harmonic (spec-data[2,3]) is larger than 0.2,
-        then this probably is not a proper EOD waveform and
-        should not be used for further analysis.
     error_str: string
         If fitting of the fourier series failed,
         this is reported in this string.
@@ -485,6 +483,8 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     props['reltroughampl'] = np.abs(relptampl)
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
+    if hasattr(freq, 'shape'):
+        props['datapower'] = decibel(np.sum(freq[:pnh,1]))
     props['thd'] = thd
     props['dbdiff'] = db_diff
     props['maxdb'] = max_harmonics_power
@@ -1925,7 +1925,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     ----------
     wave_eodfs: list of 2D arrays
         Each item is a matrix with the frequencies and powers (columns) of the
-        fundamental and harmonics (rows) as returned by `harmonics.harmonic groups()`.
+        fundamental and harmonics (rows) as returned by `harmonics.harmonic_groups()`.
     wave_indices: array
         Indices identifying each fish or NaN.
         If None no index column is inserted.
@@ -1949,7 +1949,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     if wave_indices is not None:
         td.append('index', '', '%d', [wi if wi >= 0 else np.nan for wi in wave_indices])
     td.append('EODf', 'Hz', '%7.2f', eodfs[:,0])
-    td.append('power', 'dB', '%7.2f', eodfs[:,1])
+    td.append('datapower', 'dB', '%7.2f', eodfs[:,1])
     fp = basename + '-waveeodfs'
     file_name = td.write(fp, **kwargs)
     return file_name
@@ -2022,6 +2022,8 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
     td.append('p-p-amplitude', unit, '%.5f', wave_props, 'p-p-amplitude')
     td.append('power', 'dB', '%7.2f', wave_props, 'power')
+    if 'datapower' in wave_props[0]:
+        td.append('datapower', 'dB', '%7.2f', wave_props, 'datapower')
     td.append('thd', '%', '%.2f', wave_props, 'thd', 100.0)
     td.append('dbdiff', 'dB', '%7.2f', wave_props, 'dbdiff')
     td.append('maxdb', 'dB', '%7.2f', wave_props, 'maxdb')
@@ -2223,7 +2225,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
                    ['', 'Hz', unit, '%', 'dB', 'rad'],
                    ['%.0f', '%.2f', '%.5f', '%10.2f', '%6.2f', '%8.4f'])
     if spec_data.shape[1] > 6:
-        td.append('power', '%s^2/Hz' % unit, '%11.4e', spec_data[:,6])
+        td.append('datapower', '%s^2/Hz' % unit, '%11.4e', spec_data[:,6])
     fp = basename + '-wavespectrum'
     if idx is not None:
         fp += '-%d' % idx
@@ -2243,7 +2245,8 @@ def load_wave_spectrum(file_path):
     -------
     spec: 2D array of floats
         Amplitude and phase spectrum of wave EOD:
-        harmonics, frequency, amplitude, relampl, relpower, phase
+        harmonics, frequency, amplitude, relative amplitude in dB,
+        relative power in dB, phase, data power in unit squared.
     unit: string
         Unit of amplitudes.
 
