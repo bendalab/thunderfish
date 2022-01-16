@@ -19,7 +19,7 @@ class SignalPlot:
         self.unit = unit
         self.tmax = (len(self.data)-1)/self.samplerate
         self.toffset = 0.0
-        self.twindow = 8.0
+        self.twindow = 10.0
         if self.twindow > self.tmax:
             self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
         self.ymin = -1.0
@@ -211,7 +211,8 @@ class SignalPlot:
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
         playdata = 1.0 * np.mean(self.data[t0:t1], 1)
-        fade(playdata, self.samplerate, 0.1)
+        f = 0.1 if self.twindow > 0.5 else 0.1*self.twindow
+        fade(playdata, self.samplerate, f)
         self.audio.play(playdata, self.samplerate, blocking=False)
         
     def play_all(self):
