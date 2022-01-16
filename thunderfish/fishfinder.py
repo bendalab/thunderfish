@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 from audioio.playaudio import PlayAudio, fade
 from audioio.audiowriter import write_audio
-from .version import __version__
+from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import open_data
 from .powerspectrum import nfft, decibel, psd, spectrogram
@@ -712,7 +712,7 @@ def main():
     # command line arguments:
     parser = argparse.ArgumentParser(
         description='Display waveform, and power spectrum with detected fundamental frequencies of EOD recordings.',
-        epilog='by Jan Benda (2015-2017)')
+        epilog='version %s by Jan Benda (2015-%s)' % (__version__, __year__))
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose')
     parser.add_argument('-c', '--save-config', nargs='?', default='', const=cfgfile,
