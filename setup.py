@@ -47,6 +47,7 @@ setup(
             'fishfinder = thunderfish.fishfinder:main',
             'collectfish = thunderfish.collectfish:main',
             'eodexplorer = thunderfish.eodexplorer:main',
+            'thunderbrowse = thunderfish.thunderbrowse:main',
         ]},
     python_requires = '>=3.4',
     install_requires = ['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio'],
