@@ -42,8 +42,9 @@ class SignalPlot:
 
         # the figure:
         plt.ioff()
-        self.fig, self.axs = plt.subplots(self.channels, 1,
+        self.fig, self.axs = plt.subplots(self.channels, 1, squeeze=False,
                                           figsize=(15, 9))
+        self.axs = self.axs.ravel()
         self.fig.canvas.set_window_title(self.filename)
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
         self.fig.canvas.mpl_connect('resize_event', self.resize)
@@ -227,7 +228,8 @@ class SignalPlot:
         print('saved segment to: ' , segment_filename)
 
     def plot_waveform(self):
-        fig, axs = plt.subplots(self.channels, 1)
+        fig, axs = plt.subplots(self.channels, 1, squeeze=False)
+        axs = axs.ravel()
         fig.subplots_adjust(left=0.12, right=0.98, bottom=0.1, top=0.95,
                             hspace=0)
         name = self.filename.split('.')[0]
