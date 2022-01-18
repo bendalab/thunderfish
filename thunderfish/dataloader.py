@@ -415,11 +415,11 @@ def check_fishgrid(filepathes):
                 if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
                     return False
         path = filepathes[0]
-    # relacs data directory:
+    # fishgrid data directory:
     fishgrid_dir = path
     if not os.path.isdir(path):
         fishgrid_dir = os.path.dirname(path)
-    # check for a valid relacs data directory:
+    # check for a valid fishgrid data directory:
     if (os.path.isfile(os.path.join(fishgrid_dir, 'fishgrid.cfg')) and
         os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw'))):
         return True
@@ -707,8 +707,8 @@ class DataLoader(AudioLoader):
     import thunderfish.dataloader as dl
     with dl.open_data(filepath, -1, 60.0, 10.0) as data:
         # do something with the content of the file:
-        x = data[0:10000, 0]
-        y = data[10000:20000, 0]
+        x = data[0:10000,0]
+        y = data[10000:20000,0]
         z = x + y
     ```
     
@@ -801,10 +801,6 @@ class DataLoader(AudioLoader):
             self._close_relacs()
 
         filepathes = relacs_files(filepathes, channel)
-        if len(filepathes) > 1:
-            channel = -1
-        else:
-            channel = 0
 
         # open trace files:
         self.sf = []
@@ -908,8 +904,6 @@ class DataLoader(AudioLoader):
         grids = fishgrid_grids(filepathes[0])
         grid_sizes = [r*c for r,c in grids]
         filepathes = fishgrid_files(filepathes, channel, grid_sizes)
-        if len(filepathes) > 1:
-            channel = -1
 
         # open grid files:
         self.channels = 0
