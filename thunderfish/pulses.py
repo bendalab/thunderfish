@@ -328,11 +328,11 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
     # log_dict["interp_fac"] = interp_fac  # TODO: is not set anymore
                                          
     
-    # extract peaks and interpolated data
+    # extract peaks:
     x_peak, x_trough, eod_heights, eod_widths, pd_log_dict = \
-      extract_eod_times(i_data, i_samplerate,
-                        np.max([width_factor_shape, width_factor_display, width_factor_wave]),
-                        verbose=verbose-1, return_data=return_data, save_path=save_path)
+      detect_pulse_candidates(i_data, i_samplerate,
+                              np.max([width_factor_shape, width_factor_display, width_factor_wave]),
+                              verbose=verbose-1, return_data=return_data)
     
     if len(x_peak) > 0:
         # cluster
@@ -399,10 +399,10 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
     return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
 
 
-def extract_eod_times(data, samplerate, width_factor,
-                      max_peakwidth=0.01, min_peakwidth=0.00005,
-                      verbose=0, return_data=[], save_path=''):
-    """Extract peaks from data which are potentially EODs.
+def detect_pulse_candidates(data, samplerate, width_factor,
+                            min_peakwidth=0.00005, max_peakwidth=0.01,
+                            verbose=0, return_data=[]):
+    """ Detect potential pulse EODs in data.
 
     Was `def extract_eod_times(data, samplerate, width_factor, interp_freq=500000,
                       max_peakwidth=0.01, min_peakwidth=None, verbose=0,
@@ -418,18 +418,16 @@ def extract_eod_times(data, samplerate, width_factor,
         Factor for extracting EOD shapes.
         Only EODs are extracted that can fully be analysed with this width.
 
-    max_peakwidth: float (optional)
-        Maximum width for peak detection in seconds.
     min_peakwidth: float (optional)
         Minimum width for peak detection in seconds.
+    max_peakwidth: float (optional)
+        Maximum width for peak detection in seconds.
 
     verbose : int (optional)
         Verbosity level.
     return_data : list of strings (optional)
         Keys that specify data to be logged. If 'peak_detection' is in `return_data`, 
         data of this function is logged (see extract_pulsefish()).
-    save_path : string (optional)
-        Path to save data to. Only important if you wish to save data (save_data==True).
 
     Returns
     -------
@@ -445,7 +443,6 @@ def extract_eod_times(data, samplerate, width_factor,
         Key value pairs of logged data. Data to be logged is specified by return_data.
 
     """
-
     peak_detection_result = {}
     
     # standard deviation of data in small snippets:
@@ -453,49 +450,51 @@ def extract_eod_times(data, samplerate, width_factor,
 
     orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
 
-    if verbose>0:
-        print('Peaks extracted:                                        %5i'%(len(orig_x_peaks)))
+    if verbose > 0:
+        print('Peaks/troughs detected in data:                         %5d %5d' % (len(orig_x_peaks), len(orig_x_troughs)))
 
-    if len(orig_x_peaks)<2 or len(orig_x_troughs)<2 or len(orig_x_peaks)>samplerate:
-        if verbose>0:
-            print('No peaks detected.')
+    if len(orig_x_peaks)<2 or len(orig_x_troughs)<2 or len(orig_x_peaks) > len(data)/20:
+        if verbose > 0:
+            print('No or too many peaks/troughs detected in data.')
         return [], [], [], [], peak_detection_result
-    else:
-        peaks, troughs, heights, widths, apeaks, atroughs, aheights, awidths = \
-          detect_eod_peaks(orig_x_peaks, orig_x_troughs, data,
-                           max_peakwidth*samplerate, min_peakwidth*samplerate,
-                           verbose=verbose-1)
-        x_peaks, x_troughs, eod_heights, eod_widths = \
-          discard_connecting_eods(peaks, troughs, heights, widths,
-                                  verbose=verbose-1)
-        
-        if 'peak_detection' in return_data:
-            peak_detection_result = {"peaks_1": orig_x_peaks,
-                                     "troughs_1": orig_x_troughs,
-                                     "peaks_2": apeaks,
-                                     "troughs_2": atroughs,
-                                     "peaks_3": peaks,
-                                     "troughs_3": troughs,
-                                     "peaks_4": x_peaks,
-                                     "troughs_4": x_troughs
-                                    }
 
-        # only take those where the maximum cutwidth does not cause issues -
-        # if the width_factor times the width + x is more than length.
-        if len(eod_widths)==0:
-            if verbose>0:
-                print('No EOD peaks detected.')
-            return [], [], [], [], peak_detection_result
+    peaks, troughs, heights, widths, apeaks, atroughs, aheights, awidths = \
+      detect_eod_peaks(orig_x_peaks, orig_x_troughs, data,
+                       max_peakwidth*samplerate, min_peakwidth*samplerate,
+                       verbose=verbose-1)
+    x_peaks, x_troughs, eod_heights, eod_widths = \
+      discard_connecting_eods(peaks, troughs, heights, widths,
+                              verbose=verbose-1)
 
-        cut_idx = ((x_peaks + np.max(eod_widths)*width_factor < len(data)) & (x_troughs + np.max(eod_widths)*width_factor < len(data)) & (x_peaks - np.max(eod_widths)*width_factor > 0) & (x_troughs - np.max(eod_widths)*width_factor > 0))
-        
-        if verbose>0:
-            print('Remaining peaks after EOD extraction:                   %5i'%(len(cut_idx)))
-            if verbose>1:
-                print('Remaining peaks after deletion due to cutwidth:         %5i'%(len(cut_idx)))
-            print('')
+    if 'peak_detection' in return_data:
+        peak_detection_result = {"peaks_1": orig_x_peaks,
+                                 "troughs_1": orig_x_troughs,
+                                 "peaks_2": apeaks,
+                                 "troughs_2": atroughs,
+                                 "peaks_3": peaks,
+                                 "troughs_3": troughs,
+                                 "peaks_4": x_peaks,
+                                 "troughs_4": x_troughs
+                                }
 
-        return x_peaks[cut_idx], x_troughs[cut_idx], eod_heights[cut_idx], eod_widths[cut_idx], peak_detection_result
+    if len(eod_widths) == 0:
+        if verbose > 0:
+            print('No EOD candidates remain.')
+        return [], [], [], [], peak_detection_result
+
+    # only take those where the maximum cutwidth does not cause issues -
+    # if the width_factor times the width + x is more than length.
+    max_width = np.max(eod_widths)*width_factor
+    cut_idx = ((x_peaks - max_width > 0) &
+               (x_peaks + max_width < len(data)) &
+               (x_troughs - max_width > 0) &
+               (x_troughs + max_width < len(data)))
+
+    if verbose > 0:
+        print('Remaining peaks after EOD extraction:                   %5d' % (p.sum(cut_idx)))
+        print('')
+
+    return x_peaks[cut_idx], x_troughs[cut_idx], eod_heights[cut_idx], eod_widths[cut_idx], peak_detection_result
 
 
 def detect_eod_peaks(main_event_positions, side_event_positions, data,
@@ -508,7 +507,7 @@ def detect_eod_peaks(main_event_positions, side_event_positions, data,
         Positions of the detected peaks in the data time series.
     side_event_positions: array of int or float
         Positions of the detected troughs in the data time series. 
-        The complimentary event to the main events.
+        The complementary event to the main events.
     data: array of float
         The data in which the events were detected.
     max_width : int
