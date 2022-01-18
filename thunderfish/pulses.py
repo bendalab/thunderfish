@@ -392,10 +392,6 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
         log_dict.update(c_log_dict)
         log_dict['samplerate'] = i_samplerate
 
-    if plot_level > 0:
-        # reset font family for the main thunderfish plot
-        rcParams['font.family'] = 'sans-serif'
-
     return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
 
 

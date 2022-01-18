@@ -5,7 +5,7 @@ Plot and save key steps in pulses.py for visualizing the alorithm.
 import glob
 import numpy as np
 from scipy import stats
-from matplotlib import rcParams, gridspec, ticker
+from matplotlib import gridspec, ticker
 import matplotlib.pyplot as plt
 try:
     from matplotlib.colors import colorConverter as cc
@@ -27,7 +27,6 @@ warnings.warn=warn
 
 
 # plotting parameters and colors:
-#rcParams['font.family'] = 'monospace'
 cmap = plt.get_cmap("Dark2")
 c_g = cmap(0)
 c_o = cmap(1)
