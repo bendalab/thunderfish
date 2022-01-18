@@ -552,6 +552,8 @@ def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
             continue
         df = f - group_freqs[-1]
         dh = m.floor(df/fzero + 0.5) # round
+        if dh < 1:
+            continue
         fe = m.fabs(df/dh - fzero)
         if fe > 2*freq_tol:
             continue
