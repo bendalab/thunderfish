@@ -322,7 +322,8 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
     except MemoryError:
         i_samplerate = samplerate
         i_data = data
-    log_dict['data'] = i_data   # TODO: could be removed
+    log_dict['data'] = i_data               # TODO: could be removed
+    log_dict['samplerate'] = i_samplerate   # TODO: could be removed
     log_dict['i_data'] = i_data
     log_dict['i_samplerate'] = i_samplerate
     # log_dict["interp_fac"] = interp_fac  # TODO: is not set anymore
@@ -380,7 +381,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
         if plot_level > 0:
             plot_all(data, eod_peaktimes, eod_troughtimes, samplerate, mean_eods)
             if save_plots:
-                plt.savefig('%sextract_pulsefish_results.%s'%(save_path, ftype))
+                plt.savefig('%sextract_pulsefish_results.%s' % (save_path, ftype))
         if save_plots:
             plt.close('all')
     
@@ -390,7 +391,6 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
         
         log_dict.update(pd_log_dict)
         log_dict.update(c_log_dict)
-        log_dict['samplerate'] = i_samplerate
 
     return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
 
@@ -442,7 +442,7 @@ def detect_pulse_candidates(data, samplerate, width_factor,
     peak_detection_result = {}
     
     # standard deviation of data in small snippets:
-    threshold = median_std_threshold(data, samplerate)  # TODO pass parameters
+    threshold = median_std_threshold(data, samplerate)  # TODO make this a parameter
 
     orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
 
@@ -454,10 +454,18 @@ def detect_pulse_candidates(data, samplerate, width_factor,
             print('No or too many peaks/troughs detected in data.')
         return [], [], [], [], peak_detection_result
 
-    peaks, troughs, heights, widths, apeaks, atroughs, aheights, awidths = \
-      detect_eod_peaks(orig_x_peaks, orig_x_troughs, data,
-                       max_peakwidth*samplerate, min_peakwidth*samplerate,
-                       verbose=verbose-1)
+    apeaks, atroughs, aheights, awidths = \
+      assign_side_peaks(data, orig_x_peaks, orig_x_troughs, 0.25,
+                        verbose=verbose-1)
+
+    # check widths:
+    keep_events = ((awidths>min_peakwidth*samplerate) &
+                   (awidths<max_peakwidth*samplerate))
+    peaks = apeaks[keep_events]
+    troughs = atroughs[keep_events]
+    heights = aheights[keep_events]
+    widths = awidths[keep_events]
+    
     x_peaks, x_troughs, eod_heights, eod_widths = \
       discard_connecting_eods(peaks, troughs, heights, widths,
                               verbose=verbose-1)
@@ -493,88 +501,83 @@ def detect_pulse_candidates(data, samplerate, width_factor,
     return x_peaks[cut_idx], x_troughs[cut_idx], eod_heights[cut_idx], eod_widths[cut_idx], peak_detection_result
 
 
-def detect_eod_peaks(main_event_positions, side_event_positions, data,
-                     max_width=20, min_width=2, verbose=0):
+def assign_side_peaks(data, main_indices, side_indices,
+                      min_rel_slope_diff=0.25, verbose=0):
     """ Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs.
+
+    Was `def detect_eod_peaks(data, main_indices, side_indices,
+                              max_width=20, min_width=2, verbose=0)` before.
+
 
     Parameters
     ----------
-    main_event_positions: array of int or float
-        Positions of the detected peaks in the data time series.
-    side_event_positions: array of int or float
-        Positions of the detected troughs in the data time series. 
-        The complementary event to the main events.
-    data: array of float
+    data: array of floats
         The data in which the events were detected.
-    max_width : int
-        Maximum EOD width (in samples).
-    min_width : int
-        Minimum EOD width (in samples).
+    main_indices: array of ints
+        Indices of the detected peaks in the data time series.
+    side_indices: array of ints
+        Indices of the detected troughs in the data time series. 
+        The complementary event to the main events.
+    min_rel_slope_diff: float
+        Minimum required difference of left and right slope relative
+        to mean slope.
     verbose : int
         Verbosity level.
 
     Returns
     -------
-    x_peak: numpy array of ints
+    x_peak: array of ints
         Peak indices.
-    x_trough: numpy array of ints
-        Trough indices.
-    heights: numpy array of floats
+    x_trough: array of ints
+        Corresponding trough indices.
+    heights: array of floats
         Peak heights (distance between peak and trough amplitude)
-    widths: numpy array of ints
+    widths: array of ints
         Peak widths (distance between peak and trough indices)
+
     """
+    # is a main or side peak first?
+    main_first = int(main_indices[0] < side_indices[0])
+    # is a main or side peak last?
+    main_last = int(main_indices[-1] > side_indices[-1])
 
-    # determine if there is a peak or through first (evaluates to 1 if there is a peak first):
-    mainfirst = int((min(main_event_positions[0], side_event_positions[0]) <
-                     side_event_positions[0]))
-    # determine if there is a peak or through last (evaluates to 1 if there is a peak last):
-    mainlast = int((max(main_event_positions[-1], side_event_positions[-1]) >
-                    side_event_positions[-1]))
-
-    x_peak = main_event_positions[mainfirst:len(main_event_positions)-mainlast]
-    ind = np.arange(len(x_peak))
+    x_peak = main_indices[main_first:len(main_indices)-main_last]
     y = data[x_peak]
     
-    # find indices of troughs on the right and left side of peaks:
-    l_side_ind = ind
+    # find indices of troughs on the left and right side of main peaks:
+    l_side_ind = np.arange(len(x_peak))
     r_side_ind = l_side_ind + 1
 
-    # compute x values, distance to peak and amplitude of right troughs:
-    r_side_x = side_event_positions[r_side_ind]
-    r_distance = np.abs(r_side_x - x_peak)
-    r_side_y = data[r_side_x]
-
-    # compute x values, distance to peak and amplitude of left troughs:
-    l_side_x = side_event_positions[l_side_ind]
+    # compute x values, distance to peak, and height over left troughs:
+    l_side_x = side_indices[l_side_ind]
     l_distance = np.abs(x_peak - l_side_x)
-    l_side_y = data[l_side_x]
+    l_height = np.abs(y - data[l_side_x])
 
-    # compute slope of lines connecting the peaks to the nearest troughs on the right and left:
-    l_slope = np.abs((y-l_side_y)/l_distance)
-    r_slope = np.abs((y-r_side_y)/r_distance)
+    # compute x values, distance to peak, and height over right troughs:
+    r_side_x = side_indices[r_side_ind]
+    r_distance = np.abs(r_side_x - x_peak)
+    r_height = np.abs(y - data[r_side_x])
 
-    # determine which trough to assign to the peak by taking either the steepest slope,
-    # or, when slopes are similar on both sides (within 25% difference), take the trough 
-    # with the maximum height difference to the peak.
-    trough_idxs = np.argmax(np.vstack((np.abs(y-l_side_y), np.abs(y-r_side_y))), axis=0)
-    slope_idxs = (np.abs(l_slope-r_slope)/(0.5*l_slope+0.5*r_slope) > 0.25)
-    trough_idxs[slope_idxs] = np.argmax(np.array(np.vstack(np.array([l_slope[slope_idxs],
-                                                                     r_slope[slope_idxs]]))),
-                                                                     axis=0)
+    # slope of lines connecting the peaks to the nearest troughs:
+    l_slope = np.abs(l_height/l_distance)
+    r_slope = np.abs(r_height/r_distance)
 
-    # calculated using absolutes in case of for example troughs instead of peaks as main events:
-    right_or_left = np.vstack([np.abs(trough_idxs-1), trough_idxs])
-    heights = np.sum(np.vstack([np.abs(y-l_side_y), np.abs(y-r_side_y)])*right_or_left, axis=0)
-    widths = np.sum(np.vstack([l_distance, r_distance])*right_or_left, axis=0)
-    x_trough = np.sum((x_peak + np.vstack([-l_distance, r_distance]))*right_or_left, axis=0)
+    # which trough to assign to the peak?
+    # - either the one with the steepest slope, or
+    # - when slopes are similar on both sides (within 25% difference),
+    #   the trough with the maximum height difference to the peak:
+    slopes = np.abs(l_slope-r_slope)/(0.5*(l_slope+r_slope)) > min_rel_slope_diff
+    left_or_right = l_height > r_height
+    left_or_right[slopes] = l_slope[slopes] > r_slope[slopes]
+    heights = np.where(left_or_right, l_height, r_height)
+    widths = np.where(left_or_right, l_distance, r_distance)
+    x_trough = np.where(left_or_right, side_indices[:-1], side_indices[1:])
 
-    keep_events = ((widths>min_width) & (widths<max_width))
+    if verbose > 0:
+        print('Number of peaks after assigning sidepeaks:          %5d'
+              % (np.len(x_peaks)))
 
-    if verbose>0:
-        print('Number of peaks after connecting to sidepeaks:          %5i'%(len(x_peak[keep_events])))
-
-    return x_peak[keep_events], x_trough[keep_events], heights[keep_events], widths[keep_events], x_peak, x_trough, heights, widths
+    return x_peak, x_trough, heights, widths
 
 
 @jit(nopython=True)
@@ -783,21 +786,21 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
                                         p_snippets[height_labels==height_label],
                                         p_features[height_labels==height_label],
                                         p_clusters, 1/samplerate, 0)
-                plt.savefig('%sDBSCAN_peak_w%i_h%i.%s'%(save_path, wi, hi, ftype))
+                plt.savefig('%sDBSCAN_peak_w%i_h%i.%s' % (save_path, wi, hi, ftype))
                 plot_feature_extraction(raw_t_snippets[height_labels==height_label],
                                         t_snippets[height_labels==height_label],
                                         t_features[height_labels==height_label],
                                         t_clusters, 1/samplerate, 1)
-                plt.savefig('%sDBSCAN_trough_w%i_h%i.%s'%(save_path, wi, hi, ftype))
+                plt.savefig('%sDBSCAN_trough_w%i_h%i.%s' % (save_path, wi, hi, ftype))
 
             if 'snippet_clusters' in return_data:
-                saved_data['snippet_clusters_%i_%i_peak'%(width_label, height_label)] = {
+                saved_data['snippet_clusters_%i_%i_peak' % (width_label, height_label)] = {
                     'raw_snippets':raw_p_snippets[height_labels==height_label],
                     'snippets':p_snippets[height_labels==height_label],
                     'features':p_features[height_labels==height_label],
                     'clusters':p_clusters,
                     'samplerate':samplerate}
-                saved_data['snippet_clusters_%i_%i_trough'%(width_label, height_label)] = {
+                saved_data['snippet_clusters_%i_%i_trough' % (width_label, height_label)] = {
                     'raw_snippets':raw_t_snippets[height_labels==height_label],
                     'snippets':t_snippets[height_labels==height_label],
                     'features':t_features[height_labels==height_label],
@@ -909,7 +912,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
                             [all_snippets, all_features, all_shapelabels],
                             all_dmasks, all_mmasks)
             if save_plots:
-                plt.savefig('%sclustering.%s'%(save_path, ftype))
+                plt.savefig('%sclustering.%s' % (save_path, ftype))
 
         if 'all_cluster_steps' in return_data:
             saved_data = {'samplerate': samplerate,
@@ -1037,7 +1040,7 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
             plot_bgm(x, means, variances, weights, use_log, labels_before_merge,
                      labels, xlabel)
             if save_plot:
-                plt.savefig('%sBGM_%s.%s'%(save_path, save_name, ftype))
+                plt.savefig('%sBGM_%s.%s' % (save_path, save_name, ftype))
     
         if 'BGM_'+save_name.split('_')[0] in return_data:
             bgm_dict['BGM_'+save_name] = {'x':x,
@@ -1302,10 +1305,10 @@ def delete_unreliable_fish(clusters, eod_widths, eod_x, verbose=0, sdict={}):
         if len(eod_x[cluster == clusters]) < 2:
             mask[clusters == cluster] = True
             if verbose>0:
-                print('deleting unreliable cluster %i, number of EOD times %d < 2'%(cluster, len(eod_x[cluster==clusters])))
+                print('deleting unreliable cluster %i, number of EOD times %d < 2' % (cluster, len(eod_x[cluster==clusters])))
         elif np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters])) > 0.5:
             if verbose>0:
-                print('deleting unreliable cluster %i, score=%f'%(cluster, np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters]))))
+                print('deleting unreliable cluster %i, score=%f' % (cluster, np.max(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters]))))
             mask[clusters==cluster] = True
         if 'vals_%d' % cluster in sdict:
             sdict['vals_%d' % cluster].append(np.median(eod_widths[clusters==cluster])/np.diff(eod_x[cluster==clusters]))
@@ -1479,7 +1482,7 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
             keep_clusters.append(c1_labels[np.argmax(c1_size)])
 
             if verbose > 0:
-                print('Keep cluster %i of group 1, delete clusters %s of group 2'%(c1_labels[np.argmax(c1_size)], str(cluster_mappings[cluster_mappings!=-1] - ovl)))
+                print('Keep cluster %i of group 1, delete clusters %s of group 2' % (c1_labels[np.argmax(c1_size)], str(cluster_mappings[cluster_mappings!=-1] - ovl)))
 
         # if the biggest cluster is in c_t, keep this one and discard all mappings in c_p
         elif np.argmax([np.max(np.append(c1_size, 0)), np.max(np.append(c2_size, 0))]) == 1:
@@ -1495,7 +1498,7 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
             keep_clusters.append(c2_labels[np.argmax(c2_size)])
 
             if verbose > 0:
-                print('Keep cluster %i of group 2, delete clusters %s of group 1'%(c2_labels[np.argmax(c2_size)] - ovl, str(cluster_mappings[cluster_mappings!=-1])))
+                print('Keep cluster %i of group 2, delete clusters %s of group 1' % (c2_labels[np.argmax(c2_size)] - ovl, str(cluster_mappings[cluster_mappings!=-1])))
     
     # combine results    
     clusters = (clusters_1+1)*c1_keep + (clusters_2+1)*c2_keep - 1
@@ -1723,7 +1726,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths, samplerate,
             if len(np.unique(current_clusters))==0:
                 ignore_steps[i-int(dt/stepsize):i+int(dt/stepsize)] = 1
                 if verbose>0:
-                    print('No pulsefish in recording at T=%.2f:%.2f'%(t, t+dt))
+                    print('No pulsefish in recording at T=%.2f:%.2f' % (t, t+dt))
 
         
         x = np.arange(0, T-dt+stepsize, stepsize)
@@ -1790,7 +1793,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths, samplerate,
         plot_moving_fish(mf_dict['w'], mf_dict['dt'], mf_dict['clusters'],mf_dict['t'],
                          mf_dict['fishcount'], T, mf_dict['ignore_steps'])
         if save_plot:
-            plt.savefig('%sdelete_moving_fish.%s'%(save_path, ftype))
+            plt.savefig('%sdelete_moving_fish.%s' % (save_path, ftype))
         # empty dict
         if 'moving_fish' not in return_data:
             mf_dict = {}
