@@ -1504,7 +1504,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         if 'times' not in eod:
             continue
 
-        width = np.min([width, np.diff(zoom_window)])
+        width = np.min([width, np.diff(zoom_window)[0]])
         while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
             width = width*2
             if zoom_window[1] - width < 0:

@@ -444,145 +444,180 @@ def detect_pulse_candidates(data, samplerate, width_factor,
     # standard deviation of data in small snippets:
     threshold = median_std_threshold(data, samplerate)  # TODO make this a parameter
 
-    orig_x_peaks, orig_x_troughs = detect_peaks(data, threshold)
-
+    # detect peaks and troughs in the data:
+    peak_indices, trough_indices = detect_peaks(data, threshold)
     if verbose > 0:
-        print('Peaks/troughs detected in data:                         %5d %5d' % (len(orig_x_peaks), len(orig_x_troughs)))
-
-    if len(orig_x_peaks)<2 or len(orig_x_troughs)<2 or len(orig_x_peaks) > len(data)/20:
+        print('Peaks/troughs detected in data:                      %5d %5d'
+              % (len(peak_indices), len(trough_indices)))
+    if 'peak_detection' in return_data:
+        peak_detection_result.update(peaks_1=np.array(peak_indices),
+                                     troughs_1=np.array(trough_indices))
+    if len(peak_indices)<2 or \
+       len(trough_indices)<2 or \
+       len(peak_indices) > len(data)/20:
         if verbose > 0:
             print('No or too many peaks/troughs detected in data.')
-        return [], [], [], [], peak_detection_result
+        return np.array([]), np.array([]), np.array([]), np.array([]), \
+            peak_detection_result
 
-    apeaks, atroughs, aheights, awidths = \
-      assign_side_peaks(data, orig_x_peaks, orig_x_troughs, 0.25,
-                        verbose=verbose-1)
+    # assign troughs to peaks:
+    peak_indices, trough_indices, heights, widths = \
+      assign_side_peaks(data, peak_indices, trough_indices, 0.25)
+    # TODO: make 0.25 a parameter
+    if verbose > 1:
+        print('Number of peaks after assigning side-peaks:          %5d'
+              % (len(peak_indices)))
+    if 'peak_detection' in return_data:
+        peak_detection_result.update(peaks_2=np.array(peak_indices),
+                                     troughs_2=np.array(trough_indices))
 
     # check widths:
-    keep_events = ((awidths>min_peakwidth*samplerate) &
-                   (awidths<max_peakwidth*samplerate))
-    peaks = apeaks[keep_events]
-    troughs = atroughs[keep_events]
-    heights = aheights[keep_events]
-    widths = awidths[keep_events]
-    
-    x_peaks, x_troughs, eod_heights, eod_widths = \
-      discard_connecting_eods(peaks, troughs, heights, widths,
-                              verbose=verbose-1)
-
+    keep_events = ((widths>min_peakwidth*samplerate) &
+                   (widths<max_peakwidth*samplerate))
+    peak_indices = peak_indices[keep_events]
+    trough_indices = trough_indices[keep_events]
+    heights = heights[keep_events]
+    widths = widths[keep_events]
+    if verbose > 1:
+        print('Number of peaks after checking pulse width:          %5d'
+              % (len(peak_indices)))
     if 'peak_detection' in return_data:
-        peak_detection_result = {"peaks_1": orig_x_peaks,
-                                 "troughs_1": orig_x_troughs,
-                                 "peaks_2": apeaks,
-                                 "troughs_2": atroughs,
-                                 "peaks_3": peaks,
-                                 "troughs_3": troughs,
-                                 "peaks_4": x_peaks,
-                                 "troughs_4": x_troughs
-                                }
+        peak_detection_result.update(peaks_3=np.array(peak_indices),
+                                     troughs_3=np.array(trough_indices))
 
-    if len(eod_widths) == 0:
+    """"
+    # merge connected peaks:
+    peak_indices, trough_indices, heights, widths = \
+      discard_connecting_eods(peak_indices, trough_indices, heights, widths)
+    if verbose > 1:
+        print('Number of peaks after merging pulses:                %5d'
+              % (len(peak_indices)))
+    if 'peak_detection' in return_data:
+        peak_detection_result.update(peaks_4=np.array(peak_indices),
+                                     troughs_4=np.array(trough_indices))
+    if len(peak_indices) == 0:
         if verbose > 0:
-            print('No EOD candidates remain.')
-        return [], [], [], [], peak_detection_result
-
+            print('No peaks remain as pulse candidates.')
+        return np.array([]), np.array([]), np.array([]), np.array([]), \
+            peak_detection_result
+    """
+    
     # only take those where the maximum cutwidth does not cause issues -
     # if the width_factor times the width + x is more than length.
-    max_width = np.max(eod_widths)*width_factor
-    cut_idx = ((x_peaks - max_width > 0) &
-               (x_peaks + max_width < len(data)) &
-               (x_troughs - max_width > 0) &
-               (x_troughs + max_width < len(data)))
+    max_width = np.max(widths)*width_factor
+    cut_idx = ((peak_indices - max_width > 0) &
+               (peak_indices + max_width < len(data)) &
+               (trough_indices - max_width > 0) &
+               (trough_indices + max_width < len(data)))
 
     if verbose > 0:
-        print('Remaining peaks after EOD extraction:                   %5d' % (p.sum(cut_idx)))
+        print('Remaining peaks after EOD extraction:                %5d'
+              % (p.sum(cut_idx)))
         print('')
 
-    return x_peaks[cut_idx], x_troughs[cut_idx], eod_heights[cut_idx], eod_widths[cut_idx], peak_detection_result
+    return peak_indices[cut_idx], trough_indices[cut_idx], heights[cut_idx], widths[cut_idx], peak_detection_result
 
 
-def assign_side_peaks(data, main_indices, side_indices,
-                      min_rel_slope_diff=0.25, verbose=0):
-    """ Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs.
+def assign_side_peaks(data, peak_indices, trough_indices,
+                      min_rel_slope_diff=0.25):
+    """Assign to each peak the trough resulting in a pulse with the steepest slope or largest height.
+
+    The slope between a peak and a trough is computed as the height
+    difference divided by the distance between peak and trough. If the
+    slopes between the left and the right trough differ by less than
+    `min_rel_slope_diff`, then just the heigths between and the two
+    troughs relative to the peak are compared.
 
     Was `def detect_eod_peaks(data, main_indices, side_indices,
                               max_width=20, min_width=2, verbose=0)` before.
 
-
     Parameters
     ----------
     data: array of floats
-        The data in which the events were detected.
-    main_indices: array of ints
+        Data in which the events were detected.
+    peak_indices: array of ints
         Indices of the detected peaks in the data time series.
-    side_indices: array of ints
+    trough_indices: array of ints
         Indices of the detected troughs in the data time series. 
-        The complementary event to the main events.
     min_rel_slope_diff: float
         Minimum required difference of left and right slope relative
         to mean slope.
-    verbose : int
-        Verbosity level.
 
     Returns
     -------
-    x_peak: array of ints
-        Peak indices.
-    x_trough: array of ints
-        Corresponding trough indices.
+    peak_indices: array of ints
+        Peak indices. Same as input `peak_indices` but potentially shorter
+        by one or two elements.
+    trough_indices: array of ints
+        Corresponding trough indices of trough to the left or right
+        of the peaks.
     heights: array of floats
-        Peak heights (distance between peak and trough amplitude)
+        Peak heights (distance between peak and corresponding trough amplitude)
     widths: array of ints
-        Peak widths (distance between peak and trough indices)
+        Peak widths (distance between peak and corresponding trough indices)
 
     """
     # is a main or side peak first?
-    main_first = int(main_indices[0] < side_indices[0])
+    peak_first = int(peak_indices[0] < trough_indices[0])
     # is a main or side peak last?
-    main_last = int(main_indices[-1] > side_indices[-1])
-
-    x_peak = main_indices[main_first:len(main_indices)-main_last]
-    y = data[x_peak]
+    peak_last = int(peak_indices[-1] > trough_indices[-1])
+    # ensure main peaks to have side peaks at both sides:
+    peak_indices = peak_indices[peak_first:len(peak_indices)-peak_last]
+    y = data[peak_indices]
     
-    # find indices of troughs on the left and right side of main peaks:
-    l_side_ind = np.arange(len(x_peak))
-    r_side_ind = l_side_ind + 1
+    # indices of troughs on the left and right side of main peaks:
+    l_indices = np.arange(len(peak_indices))
+    r_indices = l_indices + 1
 
-    # compute x values, distance to peak, and height over left troughs:
-    l_side_x = side_indices[l_side_ind]
-    l_distance = np.abs(x_peak - l_side_x)
-    l_height = np.abs(y - data[l_side_x])
-
-    # compute x values, distance to peak, and height over right troughs:
-    r_side_x = side_indices[r_side_ind]
-    r_distance = np.abs(r_side_x - x_peak)
-    r_height = np.abs(y - data[r_side_x])
-
-    # slope of lines connecting the peaks to the nearest troughs:
+    # indices, distance to peak, height, and slope of left troughs:
+    l_side_indices = trough_indices[l_indices]
+    l_distance = np.abs(peak_indices - l_side_indices)
+    l_height = np.abs(y - data[l_side_indices])
     l_slope = np.abs(l_height/l_distance)
+
+    # indices, distance to peak, height, and slope of right troughs:
+    r_side_indices = trough_indices[r_indices]
+    r_distance = np.abs(r_side_indices - peak_indices)
+    r_height = np.abs(y - data[r_side_indices])
     r_slope = np.abs(r_height/r_distance)
 
     # which trough to assign to the peak?
     # - either the one with the steepest slope, or
     # - when slopes are similar on both sides (within 25% difference),
     #   the trough with the maximum height difference to the peak:
-    slopes = np.abs(l_slope-r_slope)/(0.5*(l_slope+r_slope)) > min_rel_slope_diff
-    left_or_right = l_height > r_height
-    left_or_right[slopes] = l_slope[slopes] > r_slope[slopes]
-    heights = np.where(left_or_right, l_height, r_height)
-    widths = np.where(left_or_right, l_distance, r_distance)
-    x_trough = np.where(left_or_right, side_indices[:-1], side_indices[1:])
+    rel_slopes = np.abs(l_slope-r_slope)/(0.5*(l_slope+r_slope))
+    take_slopes = rel_slopes > min_rel_slope_diff
+    take_left = l_height > r_height
+    take_left[take_slopes] = l_slope[take_slopes] > r_slope[take_slopes]
 
-    if verbose > 0:
-        print('Number of peaks after assigning sidepeaks:          %5d'
-              % (np.len(x_peaks)))
+    # assign troughs, heights, and widths:
+    trough_indices = np.where(take_left,
+                              trough_indices[:-1], trough_indices[1:])
+    heights = np.where(take_left, l_height, r_height)
+    widths = np.where(take_left, l_distance, r_distance)
+    slopes = np.where(take_left, l_slope, r_slope)
 
-    return x_peak, x_trough, heights, widths
+    ## TODO: check for width here?
+    
+    # discard connected peaks:
+    same = np.nonzero(trough_indices[:-1] == trough_indices[1:])[0]
+    keep = np.ones(len(trough_indices), dtype=np.bool)
+    for i in same:
+        # same troughs at trough_indices[i] and trough_indices[i+1]:
+        s = slopes[i:i+2]
+        rel_slopes = np.abs(np.diff(s))[0]/np.mean(s)
+        if rel_slopes > min_rel_slope_diff:
+            keep[i+(s[1]<s[0])] = False
+        else:
+            keep[i+(heights[i+1]<heights[i])] = False
+    
+    return peak_indices[keep], trough_indices[keep], heights[keep], widths[keep]
 
 
 @jit(nopython=True)
-def discard_connecting_eods(x_peak, x_trough, heights, widths, verbose=0):
-    """ If two detected EODs share the same closest trough, keep only the highest peak.
+def discard_connecting_eods(x_peak, x_trough, heights, widths):
+    """If two detected EODs share the same closest trough, keep only the
+highest peak.
 
     Parameters
     ----------
@@ -594,8 +629,6 @@ def discard_connecting_eods(x_peak, x_trough, heights, widths, verbose=0):
         EOD heights.
     widths: list of ints
         EOD widths.
-    verbose : int (optional)
-        Verbosity level.
 
     Returns
     -------
