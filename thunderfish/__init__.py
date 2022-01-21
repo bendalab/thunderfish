@@ -8,6 +8,7 @@ from .version import __version__
 # somehow pdoc3 gets confused by this:
 #__all__ = ['thunderfish',
 #           'dataloader',
+#           'datawriter',
 #           'tabledata',
 #           'configfile',
 #           'eventdetection',

@@ -53,6 +53,7 @@ Look into the modules for more information.
 - *configfile.py*: Configuration file with help texts for analysis parameter.
 - *consoleinput.py*: User input from console.
 - *dataloader.py*: Load time-series data from files.
+- *datawriter.py*: Write time-series data to files.
 - *tabledata.py*: Read and write tables with a rich hierarchical header including units and formats.
 
 ### Basic data analysis
