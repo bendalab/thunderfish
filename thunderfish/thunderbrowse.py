@@ -272,7 +272,7 @@ def short_user_warning(message, category, filename, lineno, file=None, line=''):
         file.write(s)
 
 
-def main():
+def main(cargs):
     warnings.showwarning = short_user_warning
 
     # config file name:
@@ -286,7 +286,7 @@ def main():
     parser.add_argument('-v', action='count', dest='verbose')
     parser.add_argument('file', nargs=1, default='', type=str,
                         help='name of the file with the time series data')
-    args = parser.parse_args()
+    args = parser.parse_args(cargs)
     filepath = args.file[0]
 
     # set verbosity level from command line:
@@ -301,4 +301,4 @@ def main():
 
         
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

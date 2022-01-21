@@ -703,7 +703,7 @@ def short_user_warning(message, category, filename, lineno, file=None, line=''):
         file.write(s)
 
 
-def main():
+def main(cargs):
     warnings.showwarning = short_user_warning
 
     # config file name:
@@ -722,7 +722,7 @@ def main():
                         help='name of the file with the time series data')
     parser.add_argument('channel', nargs='?', default=0, type=int,
                         help='channel to be displayed')
-    args = parser.parse_args()
+    args = parser.parse_args(cargs)
     filepath = args.file
 
     # set verbosity level from command line:
@@ -757,7 +757,7 @@ def main():
 
         
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])
 
 
 # 50301L02.WAV t=9 bis 9.15 sec

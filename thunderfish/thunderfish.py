@@ -1,12 +1,20 @@
 """
 # thunderfish
 
-Automatically detect and analyze all EOD waveforms in a short recording
-and generate a summary plot and data tables.
+Automatically detect and analyze all EOD waveforms in short recordings
+and generated summary plots and data tables.
 
 Run it from the thunderfish development directory as:
 ```
 python3 -m thunderfish.thunderfish audiofile.wav
+```
+Or install thunderfish
+```
+sudo pip3 install .
+```
+Then you can run it directly from every directory:
+```
+thunderfish audiofile.wav
 ```
 """
 
@@ -1004,6 +1012,56 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
                 multi_pdf=None, save_subplots='',
                 output_folder='.', keep_path=False, show_bestwindow=False,
                 verbose=0, plot_level=0):
+    """Automatically detect and analyze all EOD waveforms in a short recording.
+
+    Parameters
+    ----------
+    filename: string
+        Path of the data file to be analyzed.
+    cfg: dict
+    channel: int
+        Channel to be analyzed.
+    mode: 'w', 'p', 'P', 'wp', or 'wP'
+        Analyze wavefish ('w'), all pulse fish ('p'), or largest pulse
+        fish only ('P').
+    log_freq: float
+        If not 0 plot spectra with logarithmic frequency axis.
+        Minimum frequency for the logarithmic spectra.
+    save_data: bool
+        If True save analysis results in files. If False, just plot the data.
+    all_eods: bool
+        If True, plot all EOD waveforms.
+    spec_plots: bool or 'auto'
+        Plot amplitude spectra of EOD waveforms.
+        If 'auto', plot them if there is a singel waveform only.
+    save_plot: bool
+        If True, save plots as pdf file.
+    multi_pdf: matplotlib.PdfPages or None
+        PdfPages instance in which to save plots.
+    save_subplots: string
+        If not empty, specifies subplots to be saved as separate pdf
+        files: r) recording with best window, t) data trace with
+        detected pulse fish, p) power spectrum with detected wave
+        fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD
+        waveform and spectra. Capital letters produce a single
+        multipage pdf containing plots of all detected fish.
+    output_folder: string
+        Folder where to save results.
+    keep_path: bool
+        Add relative path of data files to output path.
+    show_bestwindow: bool
+        Just show how the best window is determined and exit.
+    verbose: int
+       Verbosity level (for debugging).
+    plot_level: int
+       Plot intermediate results.
+
+    Returns
+    -------
+    msg: string or None
+        In case of errors, an error message.
+
+    """
     # check data file:
     if len(filename) == 0:
         return 'you need to specify a file containing some data'
@@ -1100,6 +1158,7 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
         elif not save_data:
             fig.canvas.set_window_title('thunderfish')
             plt.show()
+    return None
 
 
 def run_thunderfish(file_args):
@@ -1122,7 +1181,7 @@ def run_thunderfish(file_args):
         print(traceback.format_exc())
 
 
-def main():
+def main(cargs):
     # config file name:
     cfgfile = __package__ + '.cfg'
 
@@ -1172,7 +1231,7 @@ def main():
                         help='show the cost function of the best window algorithm')
     parser.add_argument('file', nargs='*', default='', type=str,
                         help='name of a file with time series data of an EOD recording, may include wildcards')
-    args = parser.parse_args()
+    args = parser.parse_args(cargs)
 
     # help:
     if args.help:
@@ -1267,4 +1326,4 @@ def main():
 
 if __name__ == '__main__':
     freeze_support()  # needed by multiprocessing for some weired windows stuff
-    main()
+    main(sys.argv[1:])
