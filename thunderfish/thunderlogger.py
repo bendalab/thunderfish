@@ -563,7 +563,7 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
     fig.savefig(os.path.join(output_folder, 'eodwaveforms.pdf'))
 
         
-def main():
+def main(cargs):
     # config file name:
     cfgfile = __package__ + '.cfg'
 
@@ -597,7 +597,7 @@ def main():
                         help='base name of all output files or title of plots')
     parser.add_argument('file', nargs='*', default='', type=str,
                         help='name of a file with time series data of an EOD recording, may include wildcards')
-    args = parser.parse_args()
+    args = parser.parse_args(cargs)
 
     # help:
     if args.help:
@@ -743,4 +743,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv[1:])

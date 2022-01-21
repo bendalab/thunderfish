@@ -25,17 +25,17 @@ import numpy as np
 from audioio.audioloader import load_audio, AudioLoader
 
 
-def relacs_samplerate_unit(filename, channel=0):
+def relacs_samplerate_unit(filepath, channel=0):
     """
     Retrieve sampling rate and unit from a relacs stimuli.dat file.
 
     Parameters
     ----------
-    filename: string
+    filepath: string
         path to a relacs data directory, a file in a relacs data directory,
         or a relacs trace-*.raw file.
     channel: int
-        the channel (trace) number, if filename does not specify a trace-*.raw file.
+        the channel (trace) number, if `filepath` does not specify a trace-*.raw file.
 
     Returns
     -------
@@ -52,11 +52,11 @@ def relacs_samplerate_unit(filename, channel=0):
         stimuli.dat file does not contain sampling rate.
     """
     trace = channel+1
-    relacs_dir = filename
+    relacs_dir = filepath
     # check for relacs data directory:
-    if not os.path.isdir(filename):
-        relacs_dir = os.path.dirname(filename)
-        bn = os.path.basename(filename)
+    if not os.path.isdir(filepath):
+        relacs_dir = os.path.dirname(filepath)
+        bn = os.path.basename(filepath).lower()
         if (len(bn) > 5 and bn[0:5] == 'trace' and bn[-4:] == '.raw'):
             trace = int(bn[6:].replace('.raw', ''))
 
@@ -79,13 +79,13 @@ def relacs_samplerate_unit(filename, channel=0):
     raise ValueError('could not retrieve sampling rate from ' + stimuli_file)
 
 
-def relacs_metadata(filename):
+def relacs_metadata(filepath):
     """
     Reads header of a relacs *.dat file.
 
     Parameters
     ----------
-    filename: string
+    filepath: string
         a relacs *.dat file.
 
     Returns
@@ -96,10 +96,10 @@ def relacs_metadata(filename):
     Raises
     ------
     IOError/FileNotFoundError:
-        If filename cannot be opened.
+        If `filepath` cannot be opened.
     """
     data = {}
-    with open(filename, 'r') as sf:
+    with open(filepath, 'r') as sf:
         for line in sf:
             if len(line) == 0 or line[0] != '#':
                 break
@@ -124,14 +124,14 @@ def check_relacs(filepathes):
     Returns
     -------
     is_relacs: boolean
-      If filepathes is a single path, then returns `True` if it is a or is a file in
+      If `filepathes` is a single path, then returns `True` if it is a or is a file in
       a valid relacs data directory.
-      If filepathes are more than one path, then returns `True` if filepathes
+      If filepathes are more than one path, then returns `True` if `filepathes`
       are 'trace-*.raw' files in a valid relacs data directory.
     """
     path = filepathes
     # filepathes must be trace-*.raw:
-    if type(filepathes) is list:
+    if isinstance(filepathes, (list, tuple, np.ndarray)):
         if len(filepathes) > 1:
             for file in filepathes:
                 bn = os.path.basename(file)
@@ -171,7 +171,7 @@ def relacs_files(filepathes, channel):
     ------
     ValueError: invalid name of relacs trace file
     """
-    if type(filepathes) is not list:
+    if not isinstance(filepathes, (list, tuple, np.ndarray)):
         filepathes = [filepathes]
     if len(filepathes) == 1:
         if os.path.isdir(filepathes[0]):
@@ -276,13 +276,13 @@ def load_relacs(filepathes, channel=-1, verbose=0):
         return data[:, 0], samplerate, unit
 
 
-def fishgrid_samplerate(filename):
+def fishgrid_samplerate(filepath):
     """
     Retrieve the sampling rate from a fishgrid.cfg file.
 
     Parameters
     ----------
-    filename: string
+    filepath: string
         path to a fishgrid data directory, a file in a fishgrid data directory,
         or a fishgrid traces-*.raw file.
 
@@ -299,9 +299,9 @@ def fishgrid_samplerate(filename):
         fishgrid.cfg file does not contain sampling rate.
     """
     # check for fishgrid data directory:
-    fishgrid_dir = filename
-    if not os.path.isdir(filename):
-        fishgrid_dir = os.path.dirname(filename)
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
 
     # retreive sampling rate from fishgrid.cfg file:
     samplerate = None
@@ -317,10 +317,10 @@ def fishgrid_samplerate(filename):
     raise ValueError('could not retrieve sampling rate from ' + fishgrid_file)
 
 
-def fishgrid_spacings(filename):
-    fishgrid_dir = filename
-    if not os.path.isdir(filename):
-        fishgrid_dir = os.path.dirname(filename)
+def fishgrid_spacings(filepath):
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
 
     # retreive grids from fishgrid.cfg file:
     grids_dist = []
@@ -343,12 +343,12 @@ def fishgrid_spacings(filename):
     return grids_dist
 
 
-def fishgrid_grids(filename):
+def fishgrid_grids(filepath):
     """ Retrieve grid sizes from a fishgrid.cfg file.
 
     Parameters
     ----------
-    filename: string
+    filepath: string
         path to a fishgrid data directory, a file in a fishgrid data directory,
         or a fishgrid traces-*.raw file.
 
@@ -363,9 +363,9 @@ def fishgrid_grids(filename):
         If the fishgrid.cfg file does not exist.
     """
     # check for fishgrid data directory:
-    fishgrid_dir = filename
-    if not os.path.isdir(filename):
-        fishgrid_dir = os.path.dirname(filename)
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
 
     # retreive grids from fishgrid.cfg file:
     grids = []
@@ -401,17 +401,17 @@ def check_fishgrid(filepathes):
     Returns
     -------
     is_fishgrid: bool
-        If filepathes is a single path, then returns `True` if it is a file in
+        If `filepathes` is a single path, then returns `True` if it is a file in
         a valid fishgrid data directory.
-        If filepathes are more than one path, then returns `True` if filepathes
+        If `filepathes` are more than one path, then returns `True` if `filepathes`
         are 'trace-*.raw' files in a valid fishgrid data directory.
     """
     path = filepathes
     # filepathes must be traces-*.raw:
-    if type(filepathes) is list:
+    if isinstance(filepathes, (list, tuple, np.ndarray)):
         if len(filepathes) > 1:
             for file in filepathes:
-                bn = os.path.basename(file)
+                bn = os.path.basename(file).lower()
                 if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
                     return False
         path = filepathes[0]
@@ -420,11 +420,8 @@ def check_fishgrid(filepathes):
     if not os.path.isdir(path):
         fishgrid_dir = os.path.dirname(path)
     # check for a valid fishgrid data directory:
-    if (os.path.isfile(os.path.join(fishgrid_dir, 'fishgrid.cfg')) and
-        os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw'))):
-        return True
-    else:
-        return False
+    return (os.path.isfile(os.path.join(fishgrid_dir, 'fishgrid.cfg')) and
+            os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw')))
 
     
 def fishgrid_files(filepathes, channel, grid_sizes):
@@ -463,7 +460,7 @@ def fishgrid_files(filepathes, channel, grid_sizes):
         if grid < 0:
             raise IndexError("invalid channel")
             
-    if type(filepathes) is not list:
+    if not isinstance(filepathes, (list, tuple, np.ndarray)):
         filepathes = [filepathes]
     if len(filepathes) == 1:
         if os.path.isdir(filepathes[0]):
@@ -527,7 +524,7 @@ def load_fishgrid(filepathes, channel=-1, verbose=0):
     unit: string
         the unit of the data
     """
-    if type(filepathes) is not list:
+    if not isinstance(filepathes, (list, tuple, np.ndarray)):
         filepathes = [filepathes]
     grids = fishgrid_grids(filepathes[0])
     grid_sizes = [r*c for r,c in grids]
@@ -569,67 +566,187 @@ def load_fishgrid(filepathes, channel=-1, verbose=0):
 
 
 def check_pickle(filepath):
-    """ Check if filepath is a pickle file.
-    
-    Returns
-    -------
-    is_pickle: bool
-        `True`, if filepath is a pickle file.
-    """
-    ext = os.path.splitext(filepath)[1]
-    return ext == 'pkl'
-
-
-def load_pickle(filename, channel=-1, verbose=0):
-    """ Load Joerg's pickle files.
+    """ Check if file is a pickle file.
 
     Parameters
     ----------
     filepath: string
-        The full path and name of the file to load.
+        Path of the file to check.
+    
+    Returns
+    -------
+    is_pickle: bool
+        `True`, if `filepath` is a pickle file.
+    """
+    ext = os.path.splitext(filepath)[1]
+    return ext.lower() == '.pkl'
+
+
+def load_pickle(filepath, channel=-1, verbose=0, datakey='EOD',
+                samplekey='Fs', timekey='time', unitkey=''):
+    """Load data from a pickle file.
+
+    Parameters
+    ----------
+    filepath: string
+        Path of the file to load.
     channel: int
         The data channel. If negative all channels are selected.
     verbose: int
         if > 0 show detailed error/warning messages
+    datakey: string
+        Name of the variable holding the data.
+    samplekey: string
+        Name of the variable holding the sampling rate.
+    timekey: string
+        Name of the variable holding sampling times.
+        If no sampling rate is available, the samplingrate is retrieved
+        from the sampling times.
+    unitkey: string
+        Name of the variable holding the unit of the data.
+        If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
 
     Returns
     -------
-    data: 1-D or 2-D array
-        If channel is negative, a 2-D array with data of all channels is returned,
-        where first dimension is time and second dimension is channel number.
-        Otherwise an 1-D array with the data of that channel is returned.
+    data: 1-D or 2-D array of floats
+        If channel is negative, a 2-D array with data of all channels
+        is returned, where first dimension is time and second
+        dimension is channel number.  Otherwise an 1-D array with the
+        data of that channel is returned.
     samplerate: float
-        The sampling rate of the data in Hz.
+        Sampling rate of the data in Hz.
     unit: string
-        The unit of the data.
+        Unit of the data.
+
+    Raises
+    ------
+    IndexError: invalid channel requested
+    ValueError: invalid key requested.
     """
     import pickle
-    with open(filename, 'rb') as f:
+    with open(filepath, 'rb') as f:
         data = pickle.load(f)
     if verbose > 0:
-        print( 'loaded %s' % filename)
-    time = data['time_trace']
-    samplerate = 1000.0 / (time[1] - time[0])
+        print( 'loaded %s' % filepath)
+    samplerate = 0.0
+    if samplekey in data:
+        samplerate = float(data[samplekey])
+    elif timekey in data:
+        samplerate = 1.0/(data[timekey][1] - data[timekey][0])
+    else:
+        raise ValueError('invalid keys %s and %s for requesting sampling rate or sampling times'
+                         % (samplekey, timekey))
+    unit = data[unitkey] if unitkey in data else unitkey
+    if not datakey in data:
+        raise ValueError('invalid key %s for requesting data' % datakey)
+    data = data[datakey]
+    if np.argmax(data.shape) > 0:
+        data = data.T
     if channel >= 0:
         if channel >= data.shape[1]:
             raise IndexError('invalid channel number %d requested' % channel)
-        data = data[:, channel]
-        return data['raw_data'][:, channel], samplerate, 'mV'
-    return data['raw_data'], samplerate, 'mV'
+        data = data[:,channel]
+    return data, samplerate, unit
 
 
-def load_data(filepath, channel=-1, verbose=0):
-    """ Call this function to load time-series data from a file of arbitrary format.
+def check_mat(filepath):
+    """ Check if file is a .mat file (matlab).
+
+    Parameters
+    ----------
+    filepath: string
+        Path of the file to check.
+    
+    Returns
+    -------
+    is_mat: bool
+        `True`, if `filepath` is a .mat file.
+    """
+    ext = os.path.splitext(filepath)[1]
+    return ext.lower() == '.mat'
+
+
+def load_mat(filepath, channel=-1, verbose=0, datakey='EOD',
+             samplekey='Fs', timekey='time', unitkey=''):
+    """Load data from a .mat file (matlab).
+
+    Parameters
+    ----------
+    filepath: string
+        Path of the file to load.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        If > 0 show detailed error/warning messages
+    datakey: string
+        Name of the variable holding the data.
+    samplekey: string
+        Name of the variable holding the sampling rate.
+    timekey: string
+        Name of the variable holding sampling times.
+        If no sampling rate is available, the samplingrate is retrieved
+        from the sampling times.
+    unitkey: string
+        Name of the variable holding the unit of the data.
+        If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
+
+    Returns
+    -------
+    data: 1-D or 2-D array of floats
+        If channel is negative, a 2-D array with data of all channels
+        is returned, where first dimension is time and second
+        dimension is channel number.  Otherwise an 1-D array with the
+        data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data.
+
+    Raises
+    ------
+    IndexError: invalid channel requested
+    ValueError: invalid key requested.
+    """
+    from scipy.io import loadmat
+    data = loadmat(filepath, squeeze_me=True)
+    if verbose > 0:
+        print( 'loaded %s' % filepath)
+    samplerate = 0.0
+    if samplekey in data:
+        samplerate = float(data[samplekey])
+    elif timekey in data:
+        samplerate = 1.0/(data[timekey][1] - data[timekey][0])
+    else:
+        raise ValueError('invalid keys %s and %s for requesting sampling rate or sampling times'
+                         % (samplekey, timekey))
+    unit = data[unitkey] if unitkey in data else unitkey
+    if not datakey in data:
+        raise ValueError('invalid key %s for requesting data' % datakey)
+    data = data[datakey]
+    if np.argmax(data.shape) > 0:
+        data = data.T
+    if channel >= 0:
+        if channel >= data.shape[1]:
+            raise IndexError('invalid channel number %d requested' % channel)
+        data = data[:,channel]
+    return data, samplerate, unit
+
+
+def load_data(filepath, channel=-1, verbose=0, **kwargs):
+    """ Load time-series data from a file of arbitrary format.
 
     Parameters
     ----------
     filepath: string or list of strings
         The full path and name of the file to load. For some file
-        formats several files can be provided.
+        formats several files can be provided in a list.
     channel: int
         The data channel. If negative all channels are selected.
     verbose: int
-        if > 0 show detailed error/warning messages
+        If > 0 show detailed error/warning messages.
+    **kwargs: dict
+        Further keyword arguments that are passed on to the 
+        format specific loading functions.
 
     Returns
     -------
@@ -638,14 +755,14 @@ def load_data(filepath, channel=-1, verbose=0):
         where first dimension is time and second dimension is channel number.
         Otherwise an 1-D array with the data of that channel is returned.
     samplerate: float
-        the sampling rate of the data in Hz
+        Sampling rate of the data in Hz.
     unit: string
-        the unit of the data
+        Unit of the data.
 
     Raises
     ------
     ValueError:
-        Input argument filepath is empty string or list.
+        Input argument `filepath` is empty string or list.
     IndexError:
         Invalid channel requested.
     """
@@ -662,10 +779,12 @@ def load_data(filepath, channel=-1, verbose=0):
     elif check_fishgrid(filepath):
         return load_fishgrid(filepath, channel, verbose)
     else:
-        if type(filepath) is list:
+        if isinstance(filepath, (list, tuple, np.ndarray)):
             filepath = filepath[0]
         if check_pickle(filepath):
-            return load_pickle(filepath, channel, verbose)
+            return load_pickle(filepath, channel, verbose=verbose, **kwargs)
+        elif check_mat(filepath):
+            return load_mat(filepath, channel, verbose=verbose, **kwargs)
         else:
             data, samplerate = load_audio(filepath, verbose)
             if channel >= 0:
@@ -899,7 +1018,7 @@ class DataLoader(AudioLoader):
         if self.sf is not None:
             self._close_fishgrid()
 
-        if type(filepathes) is not list:
+        if not isinstance(filepathes, (list, tuple, np.ndarray)):
             filepathes = [filepathes]
         grids = fishgrid_grids(filepathes[0])
         grid_sizes = [r*c for r,c in grids]
@@ -992,7 +1111,7 @@ class DataLoader(AudioLoader):
 
         Parameters
         ----------
-        filepathes: string or list of string
+        filepath: string or list of string
             Path to a data files or directory.
         channel: int
             The requested data channel. If negative all channels are selected.
@@ -1008,7 +1127,7 @@ class DataLoader(AudioLoader):
         elif check_fishgrid(filepath):
             self.open_fishgrid(filepath, channel, buffersize, backsize, verbose)
         else:
-            if type(filepath) is list:
+            if isinstance(filepath, (list, tuple, np.ndarray)):
                 filepath = filepath[0]
             super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
             if channel > self.channels:
@@ -1048,7 +1167,7 @@ if __name__ == "__main__":
     filepath = sys.argv[n:]
         
     print("try load_data:")
-    data, samplerate, unit = load_data(filepath, channel, 2)
+    data, samplerate, unit = load_data(filepath, channel, verbose=2)
     if plot:
         if channel < 0:
             time = np.arange(len(data)) / samplerate
