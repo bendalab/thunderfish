@@ -600,7 +600,7 @@ def check_container(filepath):
 
 def load_container(filepath, channel=-1, verbose=0, datakey=None,
                    samplekey=['rate', 'Fs', 'fs'],
-                   timekey=['time'], unitkey=''):
+                   timekey=['time'], unitkey='unit'):
     """Load data from a generic container file.
 
     Supported file formats are:
@@ -682,7 +682,12 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
     if samplerate == 0.0:
         raise ValueError('invalid keys %s and %s for requesting sampling rate or sampling times'
                          % (', '.join(samplekey), ', '.join(timekey)))
-    unit = data[unitkey] if unitkey in data else unitkey
+    unit = ''
+    if unitkey in data:
+        unit = data[unitkey]
+    elif unitkey != 'unit':
+        unit = unitkey
+    unit = str(unit)
     # get data array:
     raw_data = np.array([])
     if datakey:
@@ -1133,40 +1138,20 @@ class DataLoader(AudioLoader):
 open_data = DataLoader
 
 
-if __name__ == "__main__":
-    import sys
-    import matplotlib.pyplot as plt
-
-    print("Checking dataloader module ...")
-    print('')
-    print('Usage:')
-    print('  python dataloader.py [-p] [-c <channel>] <datafile> <channel>')
-    print('  -p: plot data')
-    print('')
-
-    n = 1
-    plot = False
-    if len(sys.argv) > n and sys.argv[n] == '-p':
-        plot = True
-        n += 1
-    channel = 0
-    if len(sys.argv) > n+1 and sys.argv[n] == '-c':
-        channel = int(sys.argv[n+1])
-        n += 2
-    filepath = sys.argv[n:]
-        
+def demo(filepath, plot=False, channel=-1):
     print("try load_data:")
     data, samplerate, unit = load_data(filepath, channel, verbose=2)
     if plot:
+        time = np.arange(len(data))/samplerate
         if channel < 0:
-            time = np.arange(len(data)) / samplerate
             for c in range(data.shape[1]):
-                plt.plot(time, data[:, c])
+                plt.plot(time, data[:,c])
         else:
-            plt.plot(np.arange(len(data)) / samplerate, data)
+            plt.plot(time, data)
         plt.xlabel('Time [s]')
         plt.ylabel('[' + unit + ']')
         plt.show()
+        return
 
     print('')
     print("try DataLoader for channel=%d:" % channel)
@@ -1199,3 +1184,30 @@ if __name__ == "__main__":
                 plt.ylabel('[' + data.unit + ']')
                 plt.show()
                 
+
+    
+def main(cargs):
+    """Call demo with command line arguments.
+
+    Parameters
+    ----------
+    cargs: list of strings
+        Command line arguments as provided by sys.argv[1:]
+    """
+    import argparse
+    parser = argparse.ArgumentParser(description=
+                                     'Checking thunderfish.dataloader module.')
+    parser.add_argument('-p', dest='plot', action='store_true',
+                        help='plot loaded data')
+    parser.add_argument('-c', dest='channel', default=-1, type=int,
+                        help='channel to be loaded')
+    parser.add_argument('file', nargs=1, default='', type=str,
+                        help='name of data file')
+    args = parser.parse_args(cargs)
+    demo(args.file[0], args.plot, args.channel)
+    
+
+if __name__ == "__main__":
+    import sys
+    import matplotlib.pyplot as plt
+    main(sys.argv[1:])

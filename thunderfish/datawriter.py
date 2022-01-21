@@ -385,6 +385,7 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
                     print('  sampling rate: %g Hz' % samplerate)
                     print('  channels     : %d' % (data.shape[1] if len(data.shape) > 1 else 1))
                     print('  frames       : %d' % len(data))
+                    print('  unit         : %s' % unit)
             return
     raise IOError('file format "%s" not supported.' % format) 
 
@@ -404,10 +405,10 @@ def demo(file_path, channels=2, format=None):
     t = np.arange(0.0, 1.0, 1.0/samplerate)
     data = np.zeros((len(t), channels))
     for c in range(channels):
-        data[:,c] = 0.1*(c+1)*np.sin(2.0*np.pi*(440.0+c*8.0)*t)
+        data[:,c] = 0.1*(channels-c)*np.sin(2.0*np.pi*(440.0+c*8.0)*t)
         
     print("write_data(%s) ..." % file_path)
-    write_data(file_path, data, samplerate, format=format, verbose=2)
+    write_data(file_path, data, samplerate, 'mV', format=format, verbose=2)
 
     print('done.')
     
@@ -422,7 +423,7 @@ def main(cargs):
     """
     import argparse
     parser = argparse.ArgumentParser(description=
-                                     'Test thunderfish.dataloader module.')
+                                     'Checking thunderfish.datawriter module.')
     parser.add_argument('-c', dest='channels', default=2, type=int,
                         help='number of channels to be written')
     parser.add_argument('-f', dest='format', default=None, type=str,
@@ -430,7 +431,9 @@ def main(cargs):
     parser.add_argument('file', nargs=1, default='test.npz', type=str,
                         help='name of data file')
     args = parser.parse_args(cargs)
-    demo(args.file[0], args.channels, args.format.upper())
+    if args.format:
+        args.format = args.format.upper()
+    demo(args.file[0], args.channels, args.format)
     
 
 if __name__ == "__main__":
