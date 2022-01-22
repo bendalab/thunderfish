@@ -49,15 +49,14 @@ thunderfish --help
 ```
 returns
 ```plain
-usage: thunderfish.py [-h] [--version] [-v] [-V] [-c] [--channel CHANNEL] [-m {w,p,wp}] [-a] [-S] [-j [JOBS]] [-s]
-                      [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-p] [-P rtpwse] [-M PDFFILE] [-l [MINFREQ]] [-o OUTPATH]
-                      [-k] [-b]
-                      [file [file ...]]
+usage: thunderfish [-h] [--version] [-v] [-V] [-c] [--channel CHANNEL] [-m {w,p,wp}] [-a] [-S] [-j [JOBS]] [-s]
+                   [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-p] [-P rtpwse] [-M PDFFILE] [-l [MINFREQ]] [-o OUTPATH] [-k] [-b]
+                   [file [file ...]]
 
 Analyze EOD waveforms of weakly electric fish.
 
 positional arguments:
-  file                  name of a file with time series data of an EOD recording
+  file                  name of a file with time series data of an EOD recording, may include wildcards
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -65,27 +64,27 @@ optional arguments:
   -v                    verbosity level. Increase by specifying -v multiple times, or like -vvv
   -V                    level for debugging plots. Increase by specifying -V multiple times, or like -VVV
   -c                    save configuration to file thunderfish.cfg after reading all configuration files
-  --channel CHANNEL     channel to be analyzed (defaults to first channel)
+  --channel CHANNEL     channel to be analyzed (defaults to first channel, negative channel selects all channels)
   -m {w,p,wp}           extract wave "w" and/or pulse "p" fish EODs
   -a                    plot all EOD waveforms
   -S                    plot spectra for all EOD waveforms
   -j [JOBS]             number of jobs run in parallel. Without argument use all CPU cores.
   -s                    save analysis results to files
   -f {dat,ascii,csv,rtai,md,tex,html,py}
-                        file format used for saving analysis results, defaults to the format specified in the configuration
-                        file or "csv"
+                        file format used for saving analysis results, defaults to the format specified in the configuration file
+                        or "csv"
   -p                    save output plot of each recording as pdf file
-  -P rtpwse             save subplots as separate pdf files: r) recording with best window, t) data trace with detected
-                        pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum,
-                        e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of
-                        all detected fish
+  -P rtpwse             save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse
+                        fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD
+                        waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected
+                        fish
   -M PDFFILE            save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.
   -l [MINFREQ]          logarithmic frequency axis in power spectrum with optional minimum frequency (defaults to 100 Hz)
   -o OUTPATH            path where to store results and figures (defaults to current working directory)
   -k                    keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH
   -b                    show the cost function of the best window algorithm
 
-version 1.9.6 by Benda-Lab (2015-2021)
+version 1.9.9 by Benda-Lab (2015-2022)
 
 examples:
 - analyze the single file data.wav interactively:

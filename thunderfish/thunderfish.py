@@ -1077,101 +1077,108 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
 
     # load data:
     try:
-        raw_data, samplerate, unit = load_data(filename, -1,
+        all_data, samplerate, unit = load_data(filename, -1,
                                                verbose=verbose)
     except IOError as e:
         return '%s: failed to open file: %s' % (filename, str(e))
     # select channel:
-    channels = raw_data.shape[1]
-    if channel < 0 or channel >= channels:
-        return '%s: invalid channel %d' % (filename, channel)
-    raw_data = raw_data[:,channel]
-    if len(raw_data) <= 1:
-        return '%s: empty data file' % filename
+    channels = all_data.shape[1]
+    chan_list = [channel]
+    if channel < 0:
+        chan_list = range(channels)
+    elif channel >= channels:
+        return '%s: invalid channel %d (%d channels)' % (filename, channel, channels)
+    # process all channels:
+    for chan in chan_list:
+        raw_data = all_data[:,chan]
+        if len(raw_data) <= 1:
+            return '%s: empty data file' % filename
+        if verbose >= 0 and len(chan_list) > 1:
+            print('  channel %d' % chan)
 
-    # best_window:
-    data, idx0, idx1, clipped, min_clip, max_clip = find_best_window(raw_data, samplerate,
-                                                                     cfg, show_bestwindow)
-    if show_bestwindow:
-        return None
-    found_bestwindow = idx1 > 0
-    if not found_bestwindow:
-        print(filename + ': not enough data for requested best window length. You may want to adjust the bestWindowSize parameter in the configuration file.')
+        # best_window:
+        data, idx0, idx1, clipped, min_clip, max_clip = find_best_window(raw_data, samplerate,
+                                                                         cfg, show_bestwindow)
+        if show_bestwindow:
+            return None
+        found_bestwindow = idx1 > 0
+        if not found_bestwindow:
+            print(filename + ': not enough data for requested best window length. You may want to adjust the bestWindowSize parameter in the configuration file.')
 
-    # detect EODs in the data:
-    psd_data, wave_eodfs, wave_indices, eod_props, \
-    mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-      detect_eods(data, samplerate, min_clip, max_clip, filename,
-                  mode, verbose, plot_level, cfg)
-    if not found_bestwindow:
-        wave_eodfs = []
-        wave_indices = []
-        eod_props = []
-        mean_eods = []
+        # detect EODs in the data:
+        psd_data, wave_eodfs, wave_indices, eod_props, \
+        mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
+          detect_eods(data, samplerate, min_clip, max_clip, filename,
+                      mode, verbose, plot_level, cfg)
+        if not found_bestwindow:
+            wave_eodfs = []
+            wave_indices = []
+            eod_props = []
+            mean_eods = []
 
-    # warning message in case no fish has been found:
-    if found_bestwindow and not eod_props :
-        msg = ', '.join(skip_reason)
-        if msg:
-            print(filename + ': no fish found: %s' % msg)
-        else:
-            print(filename + ': no fish found.')
-
-    # save results to files:
-    output_basename = os.path.join(output_folder, outfilename)
-    if channels > 1:
-        if channels > 100:
-            output_basename += '-c%03d' % channel
-        elif channels > 10:
-            output_basename += '-c%02d' % channel
-        else:
-            output_basename += '-c%d' % channel
-    if save_data:
-        remove_eod_files(output_basename, verbose, cfg)
-        if found_bestwindow:
-            if keep_path:
-                outpath = os.path.dirname(output_basename)
-                if not os.path.exists(outpath):
-                    if verbose > 0:
-                        print('mkdir %s' % outpath)
-                    os.makedirs(outpath)
-            save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
-                      wave_eodfs, wave_indices, unit, verbose, cfg)
-
-    if save_plot or not save_data:
-        min_freq = 0.0
-        max_freq = 3000.0
-        if log_freq > 0.0:
-            min_freq = log_freq
-            max_freq = min_freq*20
-            if max_freq < 2000:
-                max_freq = 2000
-            log_freq = True
-        else:
-            log_freq = False
-        n_snippets = 10
-        chan = channel if channels > 1 else None
-        fig = plot_eods(outfilename, raw_data, samplerate, chan, idx0, idx1, clipped,
-                        psd_data[0], wave_eodfs, wave_indices, mean_eods, eod_props,
-                        peak_data, spec_data, None, unit, zoom_window, n_snippets,
-                        power_thresh, True, all_eods, spec_plots, log_freq, min_freq, max_freq,
-                        interactive=not save_data, verbose=verbose)
-        if save_plot:
-            if multi_pdf is not None:
-                multi_pdf.savefig(fig)
+        # warning message in case no fish has been found:
+        if found_bestwindow and not eod_props :
+            msg = ', '.join(skip_reason)
+            if msg:
+                print(filename + ': no fish found: %s' % msg)
             else:
-                # save figure as pdf:
-                fig.savefig(output_basename + '.pdf')
-                plt.close('all')
-            if len(save_subplots) > 0:
-                plot_eod_subplots(output_basename, save_subplots,
-                                  raw_data, samplerate, idx0, idx1, clipped, psd_data[0],
-                                  wave_eodfs, wave_indices, mean_eods, eod_props,
-                                  peak_data, spec_data, unit, zoom_window, n_snippets,
-                                  power_thresh, True, log_freq, min_freq, max_freq)
-        elif not save_data:
-            fig.canvas.set_window_title('thunderfish')
-            plt.show()
+                print(filename + ': no fish found.')
+
+        # save results to files:
+        output_basename = os.path.join(output_folder, outfilename)
+        if channels > 1:
+            if channels > 100:
+                output_basename += '-c%03d' % chan
+            elif channels > 10:
+                output_basename += '-c%02d' % chan
+            else:
+                output_basename += '-c%d' % chan
+        if save_data:
+            remove_eod_files(output_basename, verbose, cfg)
+            if found_bestwindow:
+                if keep_path:
+                    outpath = os.path.dirname(output_basename)
+                    if not os.path.exists(outpath):
+                        if verbose > 0:
+                            print('mkdir %s' % outpath)
+                        os.makedirs(outpath)
+                save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
+                          wave_eodfs, wave_indices, unit, verbose, cfg)
+
+        if save_plot or not save_data:
+            min_freq = 0.0
+            max_freq = 3000.0
+            if log_freq > 0.0:
+                min_freq = log_freq
+                max_freq = min_freq*20
+                if max_freq < 2000:
+                    max_freq = 2000
+                log_freq = True
+            else:
+                log_freq = False
+            n_snippets = 10
+            chl = chan if channels > 1 else None
+            fig = plot_eods(outfilename, raw_data, samplerate, chl, idx0, idx1, clipped,
+                            psd_data[0], wave_eodfs, wave_indices, mean_eods, eod_props,
+                            peak_data, spec_data, None, unit, zoom_window, n_snippets,
+                            power_thresh, True, all_eods, spec_plots, log_freq, min_freq, max_freq,
+                            interactive=not save_data, verbose=verbose)
+            if save_plot:
+                if multi_pdf is not None:
+                    multi_pdf.savefig(fig)
+                else:
+                    # save figure as pdf:
+                    fig.savefig(output_basename + '.pdf')
+                    plt.close('all')
+                if len(save_subplots) > 0:
+                    plot_eod_subplots(output_basename, save_subplots,
+                                      raw_data, samplerate, idx0, idx1, clipped, psd_data[0],
+                                      wave_eodfs, wave_indices, mean_eods, eod_props,
+                                      peak_data, spec_data, unit, zoom_window, n_snippets,
+                                      power_thresh, True, log_freq, min_freq, max_freq)
+            elif not save_data:
+                fig.canvas.set_window_title('thunderfish')
+                plt.show()
     return None
 
 
@@ -1215,7 +1222,7 @@ def main(cargs=None):
     parser.add_argument('-c', dest='save_config', action='store_true',
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
-                        help='channel to be analyzed (defaults to first channel)')
+                        help='channel to be analyzed (defaults to first channel, negative channel selects all channels)')
     parser.add_argument('-m', dest='mode', default='wp', type=str,
                         choices=['w', 'p', 'wp'],
                         help='extract wave "w" and/or pulse "p" fish EODs')
