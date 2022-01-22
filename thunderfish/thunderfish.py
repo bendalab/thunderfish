@@ -1011,7 +1011,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
     plt.close()
 
 
-def thunderfish(filename, cfg, channel=0, time=None, time_file=False,
+def thunderfish(filename, load_kwargs, cfg, channel=0,
+                time=None, time_file=False,
                 mode='wp', log_freq=0.0, save_data=False,
                 all_eods=False, spec_plots='auto', save_plot=False,
                 multi_pdf=None, save_subplots='',
@@ -1023,6 +1024,8 @@ def thunderfish(filename, cfg, channel=0, time=None, time_file=False,
     ----------
     filename: string
         Path of the data file to be analyzed.
+    load_kwargs: dict
+        Key-word arguments for the `load_data()` function.
     cfg: dict
     channel: int
         Channel to be analyzed.
@@ -1083,7 +1086,7 @@ def thunderfish(filename, cfg, channel=0, time=None, time_file=False,
     # load data:
     try:
         all_data, samplerate, unit = load_data(filename, -1,
-                                               verbose=verbose)
+                                               verbose=verbose, **load_kwargs)
     except IOError as e:
         return '%s: failed to open file: %s' % (filename, str(e))
     # select channel:
@@ -1269,6 +1272,9 @@ def main(cargs=None):
                         help='path where to store results and figures (defaults to current working directory)')
     parser.add_argument('-k', dest='keep_path', action='store_true',
                         help='keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH')
+    parser.add_argument('-i', dest='load_kwargs', default=[],
+                        action='append', metavar='KWARGS',
+                        help='key-word arguments for the data loader function')
     parser.add_argument('-b', dest='show_bestwindow', action='store_true',
                         help='show the cost function of the best window algorithm')
     parser.add_argument('file', nargs='*', default='', type=str,
@@ -1349,9 +1355,17 @@ def main(cargs=None):
             if verbose > 1:
                 print('mkdir %s' % args.outpath)
             os.makedirs(args.outpath)
+
+    # kwargs fro data loader:
+    load_kwargs = {}
+    for s in args.load_kwargs:
+        for kw in s.split(','):
+            kws = kw.split(':')
+            if len(kws) == 2:
+                load_kwargs[kws[0].strip()] = kws[1].strip()
             
     # run on pool:
-    pool_args = (cfg, args.channel, args.time, args.time_file,
+    pool_args = (load_kwargs, cfg, args.channel, args.time, args.time_file,
                  args.mode, args.log_freq, args.save_data,
                  args.all_eods, spec_plots, args.save_plot, multi_pdf,
                  args.save_subplots, args.outpath, args.keep_path,
