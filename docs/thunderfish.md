@@ -23,8 +23,8 @@ with a fishfinder (a stick with two electrodes used to find electric
 fish in the field) or standaradized head-tail recordings in a little
 tank.
 
-1. A segement best suited for further waveform analysis is identified
-   in the recording (bestwindow module). In this segement the
+1. A segment for further waveform analysis is identified
+   in the recording (bestwindow module). In this segment the
    amplitude of the recording is largest while at the same time most
    stable and not clipped.
 2. A powerspectrum of a given frequency resolution is computed
@@ -166,11 +166,15 @@ you do not need to touch at all. Here is a list of the few that matter
   set these two parameter to the limits, so that clipped recordings
   are detected as such.
 
-- `bestWindowSize`: How much of the data should be used for analysis.
-  If you have stationary data (from a restrained fish, not from a
+- `windowSize`: How much of the data should be used for analysis.  If
+  you have stationary data (from a restrained fish, not from a
   fishfinder) you may want to use the full recording by setting this
-  to zero. Otherwise thunderfish searches for the most stationary data
-  segment of the requested length.
+  to zero.
+
+- `windowPosition`: Where to place the analysis window: at the
+  "beginning", "center", or "end" of the recording. If set to "best"
+  (default) thunderfish searches for the most stationary data segment
+  of the requested length.
 
 - `pulseWidthPercentile`: If low frequency pulse fish are missed then
   reduce this number.
@@ -180,7 +184,7 @@ you do not need to touch at all. Here is a list of the few that matter
   you do not want to set this number too high (10 to 100 is enough for
   reducing noise). If you have several fish on your recording then
   this number needs to be high (1000) to average away the other fish.
-  Set it to zero in order to use all EODs in the data segement
+  Set it to zero in order to use all EODs in the data segment
   selected for analysis.
 
 - `flipWaveEOD`, `flipPulseEOD`: In case if fishfinder recordings you

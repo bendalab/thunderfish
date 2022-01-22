@@ -86,8 +86,8 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                 unit = sf.unit
                 if max_dist < 1.1/sf.samplerate:
                     max_dist = 1.1/sf.samplerate
-                best_window_size = cfg.value('bestWindowSize')
-                ndata = int(best_window_size * sf.samplerate)
+                window_size = cfg.value('windowSize')
+                ndata = int(window_size * sf.samplerate)
                 step = ndata//2
                 b, a = butter(1, 10.0, 'hp', fs=sf.samplerate, output='ba')
                 if stds is None:

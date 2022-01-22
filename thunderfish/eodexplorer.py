@@ -21,7 +21,7 @@ from .eodanalysis import add_species_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
 from .powerspectrum import decibel
-from .bestwindow import find_best_window, plot_best_data
+from .bestwindow import analysis_window
 from .thunderfish import configuration, detect_eods, plot_eods
 
 
@@ -334,8 +334,7 @@ class EODExplorer(MultivariateExplorer):
             cfg.set('flipWaveEOD', fs)
             cfg.set('flipPulseEOD', fs)
         # best_window:
-        data, idx0, idx1, clipped, min_clip, max_clip = find_best_window(raw_data, samplerate,
-                                                                         cfg)
+        data, idx0, idx1, clipped, min_clip, max_clip = analysis_window(raw_data, samplerate, cfg.value('windowPosition'), cfg)
         # detect EODs in the data:
         psd_data, fishlist, _, eod_props, mean_eods, \
           spec_data, peak_data, power_thresh, skip_reason, zoom_window = \

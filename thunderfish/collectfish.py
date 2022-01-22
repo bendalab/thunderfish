@@ -147,12 +147,18 @@ def collect_fish(files, simplify_file=False,
         if base_path.startswith('./'):
             base_path = base_path[2:]
         recording = base_path
+        # extract time:
+        start_time = None
+        rs = recording.split('-')
+        if len(rs) > 0 and rs[-1][0] == 't':
+            start_time = float(rs[-1][1:-1])
+            rs = rs[:-1]
         # extract channel:
         channel = None
-        rs = recording.split('-')
         if len(rs) > 0 and rs[-1][0] == 'c':
             channel = int(rs[-1][1:])
-            recording = '-'.join(rs[:-1])
+            rs = rs[:-1]
+        recording = '-'.join(rs)
         file_pathes.append(os.path.normpath(recording).split(os.path.sep))
         if verbose > 2:
             print('processing %s (%s):' % (file_name, recording))
@@ -182,6 +188,8 @@ def collect_fish(files, simplify_file=False,
                 for c in range(meta_data.columns()):
                     df.insert(c, *meta_data.column_head(c))
             df.insert(0, ['recording']*data.nsecs + ['file'], '', '%-s')
+            if start_time is not None:
+                df.insert(1, 'time', 's', '%.1f')
             if channel is not None:
                 df.insert(1, 'channel', '', '%d')
             if fish_type == 'wave':
@@ -230,6 +238,8 @@ def collect_fish(files, simplify_file=False,
             if not all_table:
                 df = TableData()
                 df.append('file', '', '%-s')
+                if start_time is not None:
+                    df.append('time', 's', '%.1f')
                 if channel is not None:
                     df.append('channel', '', '%d')
                 if meta_data is not None:
@@ -285,6 +295,10 @@ def collect_fish(files, simplify_file=False,
             if channel is not None:
                 table.append_data(channel, data_col)
                 all_table.append_data(channel, data_col)
+                data_col += 1
+            if start_time is not None:
+                table.append_data(start_time, data_col)
+                all_table.append_data(start_time, data_col)
                 data_col += 1
             # meta data:
             if mr >= 0:

@@ -15,7 +15,7 @@ from .powerspectrum import add_multi_psd_config, multi_psd_args
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices
-from .bestwindow import add_clip_config, add_best_window_config, best_window_args
+from .bestwindow import best_window_args
 from .thunderfish import configuration, save_configuration
 # check: import logging https://docs.python.org/2/howto/logging.html#logging-basic-tutorial
 
@@ -363,8 +363,8 @@ class SignalPlot:
                 self.min_clip, self.max_clip = clip_amplitudes(
                     self.data, **clip_args(self.cfg, self.samplerate))
             try:
-                if self.cfg.value('bestWindowSize') <= 0.0:
-                    self.cfg.set('bestWindowSize', (len(self.data)-1)/self.samplerate)
+                if self.cfg.value('windowSize') <= 0.0:
+                    self.cfg.set('windowSize', (len(self.data)-1)/self.samplerate)
                 idx0, idx1, clipped = best_window_indices(
                     self.data, self.samplerate, min_clip=self.min_clip,
                     max_clip=self.max_clip, **best_window_args(self.cfg))

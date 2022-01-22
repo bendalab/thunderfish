@@ -37,7 +37,7 @@ from .configfile import ConfigFile
 from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config
 from .bestwindow import clip_args, best_window_args
-from .bestwindow import find_best_window, plot_best_data
+from .bestwindow import analysis_window, plot_data_window
 from .checkpulse import check_pulse, add_check_pulse_config, check_pulse_args
 from .pulses import extract_pulsefish
 from .powerspectrum import decibel, plot_decibel_psd, multi_psd
@@ -806,7 +806,7 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
     # whole trace:
     ax = fig.add_axes([leftx, 0.6/height, fullwidth, 0.9/height])
     axes_style(ax)
-    plot_best_data(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
+    plot_data_window(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
     ax.format_coord = recording_format_coord
 
     return fig
@@ -881,7 +881,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
     if 'r' in subplots:
         fig, ax = plt.subplots(figsize=(10, 2))
         fig.subplots_adjust(left=0.07, right=0.99, bottom=0.22, top=0.95)
-        plot_best_data(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
+        plot_data_window(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
         ax.yaxis.set_major_locator(ticker.MaxNLocator(5))
         axes_style(ax)
         fig.savefig(base_name + '-recording.pdf')
@@ -1011,8 +1011,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
     plt.close()
 
 
-def thunderfish(filename, cfg, channel=0, mode='wp',
-                log_freq=0.0, save_data=False,
+def thunderfish(filename, cfg, channel=0, time=None, time_file=False,
+                mode='wp', log_freq=0.0, save_data=False,
                 all_eods=False, spec_plots='auto', save_plot=False,
                 multi_pdf=None, save_subplots='',
                 output_folder='.', keep_path=False, show_bestwindow=False,
@@ -1026,6 +1026,12 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
     cfg: dict
     channel: int
         Channel to be analyzed.
+    time: string, float, or None
+        Start time of analysis window: "beginning", "center", "end",
+        "best", or time in seconds (as float or string). If not None
+        overwrites "windowPosition" in cofiguration file.
+    time_file: bool
+        If `True` add time of analysis window to output file names.
     mode: 'w', 'p', 'P', 'wp', or 'wP'
         Analyze wavefish ('w'), all pulse fish ('p'), or largest pulse
         fish only ('P').
@@ -1096,14 +1102,17 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
         if verbose >= 0 and len(chan_list) > 1:
             print('  channel %d' % chan)
 
-        # best_window:
-        data, idx0, idx1, clipped, min_clip, max_clip = find_best_window(raw_data, samplerate,
-                                                                         cfg, show_bestwindow)
+        # analysis window:
+        win_pos = cfg.value('windowPosition')
+        if time is not None:
+            win_pos = time
+        data, idx0, idx1, clipped, min_clip, max_clip = analysis_window(raw_data, samplerate, win_pos,
+                                                                        cfg, show_bestwindow)
         if show_bestwindow:
             return None
         found_bestwindow = idx1 > 0
         if not found_bestwindow:
-            print(filename + ': not enough data for requested best window length. You may want to adjust the bestWindowSize parameter in the configuration file.')
+            return '%s: not enough data for requested window length. You may want to adjust the windowSize parameter in the configuration file.' % filename
 
         # detect EODs in the data:
         psd_data, wave_eodfs, wave_indices, eod_props, \
@@ -1133,6 +1142,8 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
                 output_basename += '-c%02d' % chan
             else:
                 output_basename += '-c%d' % chan
+        if time_file:
+            output_basename += '-t%.0fs' % (idx0/samplerate)
         if save_data:
             remove_eod_files(output_basename, verbose, cfg)
             if found_bestwindow:
@@ -1223,6 +1234,10 @@ def main(cargs=None):
                         help='save configuration to file {0} after reading all configuration files'.format(cfgfile))
     parser.add_argument('--channel', default=0, type=int,
                         help='channel to be analyzed (defaults to first channel, negative channel selects all channels)')
+    parser.add_argument('-t', dest='time', default=None, type=str, metavar='TIME',
+                        help='start time of analysis window in recording: "beginning", "center", "end", "best", or time in seconds (overwrites "windowPosition" in cofiguration file)')
+    parser.add_argument('-T', dest='time_file', action='store_true',
+                        help='add start time of analysis file to output file names')
     parser.add_argument('-m', dest='mode', default='wp', type=str,
                         choices=['w', 'p', 'wp'],
                         help='extract wave "w" and/or pulse "p" fish EODs')
@@ -1332,9 +1347,11 @@ def main(cargs=None):
             os.makedirs(args.outpath)
             
     # run on pool:
-    pool_args = (cfg, args.channel, args.mode, args.log_freq, args.save_data,
-                 args.all_eods, spec_plots, args.save_plot, multi_pdf, args.save_subplots,
-                 args.outpath, args.keep_path, args.show_bestwindow, verbose-1, plot_level)
+    pool_args = (cfg, args.channel, args.time, args.time_file,
+                 args.mode, args.log_freq, args.save_data,
+                 args.all_eods, spec_plots, args.save_plot, multi_pdf,
+                 args.save_subplots, args.outpath, args.keep_path,
+                 args.show_bestwindow, verbose-1, plot_level)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(files) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
         if verbose > 1:

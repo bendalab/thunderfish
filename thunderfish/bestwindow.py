@@ -6,7 +6,7 @@ Select the best region within a recording with the most stable signal of largest
 - `best_window_indices()`: select start- and end-indices of the best window
 - `best_window_times()`: select start end end-time of the best window
 - `best_window()`: return data of the best window
-- `find_best_window()`: set clipping amplitudes and find best window.
+- `analysis_window()`: set clipping amplitudes and find analysis window.
 
 ## Configuration
 - `add_clip_config()`: add parameters for `clip_amplitudes()` to configuration.
@@ -17,7 +17,7 @@ Select the best region within a recording with the most stable signal of largest
 ## Visualization
 - `plot_clipping()`: visualization of the algorithm for detecting clipped amplitudes in `clip_amplitudes()`.
 - `plot_best_window()`: visualization of the algorithm used in `best_window_indices()`.
-- `plot_best_data()`: plot the data and the selected best window.
+- `plot_data_window()`: plot the data and the selected analysis window.
 """
 
 import numpy as np
@@ -33,8 +33,9 @@ except ImportError:
 def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
                     min_ampl=-1.0, max_ampl=1.0,
                     plot_hist_func=None, **kwargs):
-    """Find the amplitudes where the signal clips by looking at
-    the histograms in data segements of win_indices length.
+    """Find the amplitudes where the signal clips.
+
+    Histograms in data segements of win_indices length are analyzed.
     If the bins at the edges are more than min_fac times as large as
     the neighboring bins, clipping at the bin's amplitude is assumed.
 
@@ -114,6 +115,7 @@ def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
 def plot_clipping(data, winx0, winx1, bins,
                   h, min_clip, max_clip, min_ampl, max_ampl):
     """Visualize the data histograms and the detected clipping amplitudes.
+
     Pass this function as the `plot_hist_func` argument to `clip_amplitudes()`.
     """
     plt.subplot(2, 1, 1)
@@ -132,8 +134,7 @@ def plot_clipping(data, winx0, winx1, bins,
 def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
                     window=1.0, min_fac=2.0, nbins=20,
                     min_ampl=-1.0, max_ampl=1.0):
-    """ Add parameter needed for `clip_amplitudes()` as
-    a new section to a configuration.
+    """Add parameter needed for `clip_amplitudes()` as a new section to a configuration.
 
     Parameters
     ----------
@@ -145,6 +146,7 @@ def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
         Default maximum clip amplitude.
         
     See `clip_amplitudes()` for details on the remaining arguments.
+
     """
 
     cfg.add_section('Clipping amplitudes:')
@@ -159,9 +161,10 @@ def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
 
 
 def clip_args(cfg, rate):
-    """ Translates a configuration to the
-    respective parameter names of the function `clip_amplitudes()`.
-    The return value can then be passed as key-word arguments to this function.
+    """Translates a configuration to the respective parameter names of `clip_amplitudes()`.
+
+    The return value can then be passed as key-word arguments to this
+    function.
 
     Parameters
     ----------
@@ -175,6 +178,7 @@ def clip_args(cfg, rate):
     a: dict
         Dictionary with names of arguments of the `clip_amplitudes()` function
         and their values as supplied by `cfg`.
+
     """
     a = cfg.map({'min_fac': 'minClipFactor',
                  'nbins': 'clipBins',
@@ -300,8 +304,16 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
         Index of the end of the best window.
     clipped: float.
         The fraction of clipped peaks or troughs.
-    """
 
+    Raises
+    ------
+    UserWarning
+        - Not enough data for requested `win_size`.
+        - No peaks detected.
+        - No finite amplitudes detected.
+        - No valid interval CV detected.
+        - No valid amplitude CV detected.
+    """
     # too little data:
     if len(data) / samplerate < win_size:
         raise UserWarning('not enough data (data=%gs, win=%gs)' %
@@ -468,6 +480,7 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
     Parameters
     ----------
     See documentation of the `best_window_indices()` functions.
+
     """
     # raw data:
     time = np.arange(0.0, len(data)) / rate
@@ -518,9 +531,9 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
     ax[4].set_xlabel('Time [sec]')
 
 
-def plot_best_data(ax, data, samplerate, unit, idx0, idx1, clipped,
-                   data_color='blue', window_color='red'):
-    """Plot the data and mark the best window.
+def plot_data_window(ax, data, samplerate, unit, idx0, idx1, clipped,
+                     data_color='blue', window_color='red'):
+    """Plot the data and mark the analysis window.
 
     Parameters
     ----------
@@ -561,13 +574,12 @@ def plot_best_data(ax, data, samplerate, unit, idx0, idx1, clipped,
     ax.yaxis.set_major_locator(ticker.MaxNLocator(3))
 
         
-def add_best_window_config(cfg, expand=False, win_size=1., win_shift=0.5,
+def add_best_window_config(cfg, win_pos='best', win_size=1., win_shift=0.5,
                            thresh_fac=0.8, percentile=0.1,
                            min_clip=-np.inf, max_clip=np.inf,
                            w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
-                           tolerance=0.2):
-    """ Add parameter needed for the `best_window()` functions as
-    a new section to a configuration dictionary.
+                           tolerance=0.2, expand=False):
+    """ Add parameter needed for the `best_window()` functions as a new section to a configuration.
 
     Parameters
     ----------
@@ -577,8 +589,9 @@ def add_best_window_config(cfg, expand=False, win_size=1., win_shift=0.5,
     See `best_window_indices()` for details on the remaining arguments.
     """
 
-    cfg.add_section('Best window detection:')
-    cfg.add('bestWindowSize', win_size, 's', 'Size of the best window. This should be much larger than the expected period of the signal. If 0 select the whole time series.')
+    cfg.add_section('Analysis window:')
+    cfg.add('windowPosition', win_pos, '', 'Position of the analysis window: "beginning", "center", "end", "best", or a time in seconds.')
+    cfg.add('windowSize', win_size, 's', 'Size of the best window. This should be much larger than the expected period of the signal. If 0 select the whole time series.')
     cfg.add('bestWindowShift', win_shift, 's',
             'Increment for shifting the analysis windows trough the data. Should be larger than the expected period of the signal.')
     cfg.add('bestWindowThresholdPercentile', percentile, '%',
@@ -598,9 +611,10 @@ def add_best_window_config(cfg, expand=False, win_size=1., win_shift=0.5,
 
 
 def best_window_args(cfg):
-    """ Translates a configuration to the
-    respective parameter names of the functions `best_window*()`.
-    The return value can then be passed as key-word arguments to these functions.
+    """Translates a configuration to the respective parameter names of the functions `best_window*()`.
+
+    The return value can then be passed as key-word arguments to these
+    functions.
 
     Parameters
     ----------
@@ -613,7 +627,7 @@ def best_window_args(cfg):
         Dictionary with names of arguments of the `best_window*()` functions
         and their values as supplied by `cfg`.
     """
-    return cfg.map({'win_size': 'bestWindowSize',
+    return cfg.map({'win_size': 'windowSize',
                     'win_shift': 'bestWindowShift',
                     'percentile': 'bestWindowThresholdPercentile',
                     'thresh_fac': 'bestWindowThresholdFactor',
@@ -624,9 +638,8 @@ def best_window_args(cfg):
                     'expand': 'expandBestWindow'})
 
         
-def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
-    """
-    Set clipping amplitudes and find best window.
+def analysis_window(data, samplerate, win_pos, cfg, show_bestwindow=False):
+    """Set clipping amplitudes and find analysis window.
 
     Parameters
     ----------
@@ -634,6 +647,9 @@ def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
         The data to be analyzed.
     samplerate: float
         Sampling rate of the data in Hertz.
+    win_pos: string or float
+        Position of the analysis window: "beginning", "center", "end" or "best".
+        Alternatively the beginning of the analysis window in seconds.
     cfg: ConfigFile
         Configuration for clipping and best window.
     show_bestwindow: boolean
@@ -659,43 +675,81 @@ def find_best_window(raw_data, samplerate, cfg, show_bestwindow=False):
     max_clip = cfg.value('maxClipAmplitude')
     clipped = 0
     if min_clip == 0.0 or max_clip == 0.0:
-        min_clip, max_clip = clip_amplitudes(raw_data, **clip_args(cfg, samplerate))
+        min_clip, max_clip = clip_amplitudes(data, **clip_args(cfg, samplerate))
     if cfg.value('unwrapData'):
-        raw_data = unwrap(raw_data)
+        data = unwrap(data)
         min_clip *= 2
         max_clip *= 2
-    # best window size parameter:
+    # window size parameter:
     bwa = best_window_args(cfg)
     if 'win_size' in bwa:
         del bwa['win_size']
-    best_window_size = cfg.value('bestWindowSize')
-    if best_window_size <= 0.0:
-        best_window_size = (len(raw_data)-1)/samplerate
+    window_size = cfg.value('windowSize')
+    if window_size <= 0.0:
+        window_size = (len(data)-1)/samplerate
     # show cost function:
-    if show_bestwindow:
+    if win_pos == 'best' and show_bestwindow:
         fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
         try:
-            idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
+            idx0, idx1, clipped = best_window_indices(data, samplerate,
                                                       min_clip=min_clip, max_clip=max_clip,
-                                                      win_size=best_window_size,
+                                                      win_size=window_size,
                                                       plot_data_func=plot_best_window, ax=ax,
                                                       **bwa)
             plt.show()
         except UserWarning as e:
             found_bestwindow = False
     else:
-        try:
-            idx0, idx1, clipped = best_window_indices(raw_data, samplerate,
-                                                      min_clip=min_clip,
-                                                      max_clip=max_clip,
-                                                      win_size=best_window_size,
-                                                      **bwa)
-        except UserWarning as e:
-            found_bestwindow = False
+        # too little data:
+        n_win = int(window_size*samplerate)
+        if len(data) < n_win:
+            return data, 0, 0, False, min_clip, max_clip
+        if win_pos == 'best':
+            try:
+                idx0, idx1, clipped = best_window_indices(data, samplerate,
+                                                          min_clip=min_clip,
+                                                          max_clip=max_clip,
+                                                          win_size=window_size,
+                                                          **bwa)
+            except UserWarning as e:
+                found_bestwindow = False
+        else:
+            if win_pos[:5] == 'begin':
+                idx0 = 0
+            elif win_pos == 'end':
+                idx0 = len(data) - n_win
+            elif win_pos == 'center':
+                idx0 = (len(data) - n_win)//2
+            else:
+                try:
+                    if win_pos[-1] == 's':
+                        win_pos = win_pos[:-1]
+                    t0 = float(win_pos)
+                except ValueError:
+                    found_bestwindow = False
+                    t0 = 0.0
+                idx0 = int(t0*samplerate)
+            idx1 = idx0 + n_win
+            if not found_bestwindow or idx1 > len(data):
+                return data, 0, 0, False, min_clip, max_clip
+            data_seg = data[idx0:idx1]
+            # check for clipping:
+            win_shift = cfg.value('bestWindowShift')
+            thresh_fac = cfg.value('bestWindowThresholdFactor')
+            percentile = cfg.value('bestWindowThresholdPercentile')
+            threshold = percentile_threshold(data_seg, samplerate,
+                                             win_shift, thresh_fac=thresh_fac,
+                                             percentile=percentile)
+            peak_idx, trough_idx = detect_peaks(data_seg, threshold)
+            p_idx, t_idx = trim_to_peak(peak_idx, trough_idx)
+            if len(p_idx) > 0:
+                p2t_ampl = data_seg[p_idx] - data_seg[t_idx]
+                clipped = float(np.sum(data_seg[p_idx] > max_clip) +
+                                np.sum(data_seg[t_idx] < min_clip))/2/len(p2t_ampl)
     if found_bestwindow:
-        return raw_data[idx0:idx1], idx0, idx1, clipped, min_clip, max_clip
+        return data[idx0:idx1], idx0, idx1, clipped, min_clip, max_clip
     else:
-        return raw_data, 0, 0, False, min_clip, max_clip
+        return data, 0, 0, False, min_clip, max_clip
 
 
 if __name__ == "__main__":
