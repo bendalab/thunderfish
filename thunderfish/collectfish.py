@@ -149,6 +149,7 @@ def collect_fish(files, simplify_file=False,
         recording = base_path
         # extract time:
         start_time = None
+        window_time = None
         rs = recording.split('-')
         if len(rs) > 0 and rs[-1][0] == 't':
             start_time = float(rs[-1][1:-1])
@@ -177,6 +178,10 @@ def collect_fish(files, simplify_file=False,
                 meta_recordings_used[mr] = True
         # data:
         data = TableData(file_name)
+        if 'tstart' in data:
+            start_time = data[0, 'tstart']
+            window_time = data[0, 'twindow']
+            data.remove(['tstart', 'twindow'])
         table = wave_table if fish_type == 'wave' else pulse_table
         # prepare tables:
         if not table:
@@ -188,8 +193,10 @@ def collect_fish(files, simplify_file=False,
                 for c in range(meta_data.columns()):
                     df.insert(c, *meta_data.column_head(c))
             df.insert(0, ['recording']*data.nsecs + ['file'], '', '%-s')
+            if window_time is not None:
+                df.insert(1, 'window', 's', '%.2f')
             if start_time is not None:
-                df.insert(1, 'time', 's', '%.1f')
+                df.insert(1, 'time', 's', '%.2f')
             if channel is not None:
                 df.insert(1, 'channel', '', '%d')
             if fish_type == 'wave':
@@ -240,6 +247,8 @@ def collect_fish(files, simplify_file=False,
                 df.append('file', '', '%-s')
                 if start_time is not None:
                     df.append('time', 's', '%.1f')
+                if window_time is not None:
+                    df.append('window', 's', '%.1f')
                 if channel is not None:
                     df.append('channel', '', '%d')
                 if meta_data is not None:
@@ -299,6 +308,10 @@ def collect_fish(files, simplify_file=False,
             if start_time is not None:
                 table.append_data(start_time, data_col)
                 all_table.append_data(start_time, data_col)
+                data_col += 1
+            if window_time is not None:
+                table.append_data(window_time, data_col)
+                all_table.append_data(window_time, data_col)
                 data_col += 1
             # meta data:
             if mr >= 0:

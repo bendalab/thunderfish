@@ -1071,7 +1071,6 @@ def thunderfish(filename, cfg, channel=0, time=None, time_file=False,
     -------
     msg: string or None
         In case of errors, an error message.
-
     """
     # check data file:
     if len(filename) == 0:
@@ -1124,6 +1123,11 @@ def thunderfish(filename, cfg, channel=0, time=None, time_file=False,
             wave_indices = []
             eod_props = []
             mean_eods = []
+
+        # add analysis window to EOD properties:
+        for props in eod_props:
+            props['tstart'] = idx0/samplerate
+            props['twindow'] = (idx1 - idx0)/samplerate
 
         # warning message in case no fish has been found:
         if found_bestwindow and not eod_props :
