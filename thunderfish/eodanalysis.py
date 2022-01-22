@@ -2127,10 +2127,10 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     if len(pulse_props) == 0:
         return None
     td = TableData()
-    if 'tstart' in wave_props[0]:
+    if 'tstart' in pulse_props[0]:
         td.append_section('recording')
-        td.append('tstart', 's', '%7.2f', wave_props, 'tstart')
-        td.append('twindow', 's', '%7.2f', wave_props, 'twindow')
+        td.append('tstart', 's', '%7.2f', pulse_props, 'tstart')
+        td.append('twindow', 's', '%7.2f', pulse_props, 'twindow')
     td.append_section('waveform')
     td.append('index', '', '%d', pulse_props, 'index')
     td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')

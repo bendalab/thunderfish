@@ -49,9 +49,10 @@ thunderfish --help
 ```
 returns
 ```plain
-usage: thunderfish [-h] [--version] [-v] [-V] [-c] [--channel CHANNEL] [-m {w,p,wp}] [-a] [-S] [-j [JOBS]] [-s]
-                   [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-p] [-P rtpwse] [-M PDFFILE] [-l [MINFREQ]] [-o OUTPATH] [-k] [-b]
-                   [file [file ...]]
+usage: thunderfish.py [-h] [--version] [-v] [-V] [-c] [--channel CHANNEL] [-t TIME] [-T] [-m {w,p,wp}] [-a] [-S] [-j [JOBS]]
+                      [-s] [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-p] [-P rtpwse] [-M PDFFILE] [-l [MINFREQ]] [-o OUTPATH]
+                      [-k] [-i KWARGS] [-b]
+                      [file [file ...]]
 
 Analyze EOD waveforms of weakly electric fish.
 
@@ -65,6 +66,9 @@ optional arguments:
   -V                    level for debugging plots. Increase by specifying -V multiple times, or like -VVV
   -c                    save configuration to file thunderfish.cfg after reading all configuration files
   --channel CHANNEL     channel to be analyzed (defaults to first channel, negative channel selects all channels)
+  -t TIME               start time of analysis window in recording: "beginning", "center", "end", "best", or time in seconds
+                        (overwrites "windowPosition" in cofiguration file)
+  -T                    add start time of analysis file to output file names
   -m {w,p,wp}           extract wave "w" and/or pulse "p" fish EODs
   -a                    plot all EOD waveforms
   -S                    plot spectra for all EOD waveforms
@@ -82,6 +86,7 @@ optional arguments:
   -l [MINFREQ]          logarithmic frequency axis in power spectrum with optional minimum frequency (defaults to 100 Hz)
   -o OUTPATH            path where to store results and figures (defaults to current working directory)
   -k                    keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH
+  -i KWARGS             key-word arguments for the data loader function
   -b                    show the cost function of the best window algorithm
 
 version 1.9.9 by Benda-Lab (2015-2022)
@@ -123,9 +128,9 @@ Whenever you run thunderfish it searches for configuration files in
 Best practice is to move the configuration file at the root of the file tree
 where data files of a recording session are stored.
 
-Use the `-vv` switch to see which configuration files are loaded:
+Use the `-v` switch to see which configuration files are loaded:
 ```
-thunderfish -vv data.wav
+thunderfish -v data.wav
 ```
 
 Open the configuration file in your favourite editor and edit the settings.
@@ -174,7 +179,8 @@ you do not need to touch at all. Here is a list of the few that matter
 - `windowPosition`: Where to place the analysis window: at the
   "beginning", "center", or "end" of the recording. If set to "best"
   (default) thunderfish searches for the most stationary data segment
-  of the requested length.
+  of the requested length. Can be overwritten from the command line
+  with the `-t` argument.
 
 - `pulseWidthPercentile`: If low frequency pulse fish are missed then
   reduce this number.
@@ -376,10 +382,13 @@ wave-type fish detected in the recording.
 <table>
 <thead>
   <tr>
+    <th align="left" colspan="2">recording</th>
     <th align="left" colspan="13">waveform</th>
     <th align="left" colspan="9">timing</th>
   </tr>
   <tr>
+    <th align="left">tstart</th>
+    <th align="left">twindow</th>
     <th align="left">index</th>
     <th align="left">EODf</th>
     <th align="left">p-p-amplitude</th>
@@ -404,6 +413,8 @@ wave-type fish detected in the recording.
     <th align="left">reltroughampl</th>
   </tr>
   <tr>
+    <th align="left">s</th>
+    <th align="left">s</th>
     <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">a.u.</th>
@@ -430,6 +441,8 @@ wave-type fish detected in the recording.
 </thead>
 <tbody>
   <tr>
+    <td align="right">4.25</td>
+    <td align="right">8.00</td>
     <td align="right">0</td>
     <td align="right">580.08</td>
     <td align="right">0.22755</td>
@@ -454,6 +467,8 @@ wave-type fish detected in the recording.
     <td align="right">312.11</td>
   </tr>
   <tr>
+    <td align="right">4.25</td>
+    <td align="right">8.00</td>
     <td align="right">1</td>
     <td align="right">111.33</td>
     <td align="right">0.00713</td>
@@ -478,6 +493,8 @@ wave-type fish detected in the recording.
     <td align="right">73.54</td>
   </tr>
   <tr>
+    <td align="right">4.25</td>
+    <td align="right">8.00</td>
     <td align="right">2</td>
     <td align="right">132.81</td>
     <td align="right">0.01029</td>
@@ -502,6 +519,8 @@ wave-type fish detected in the recording.
     <td align="right">103.40</td>
   </tr>
   <tr>
+    <td align="right">4.25</td>
+    <td align="right">8.00</td>
     <td align="right">3</td>
     <td align="right">608.89</td>
     <td align="right">0.00258</td>
@@ -526,6 +545,8 @@ wave-type fish detected in the recording.
     <td align="right">91.60</td>
   </tr>
   <tr>
+    <td align="right">4.25</td>
+    <td align="right">8.00</td>
     <td align="right">4</td>
     <td align="right">1979.49</td>
     <td align="right">0.00177</td>
@@ -554,31 +575,33 @@ wave-type fish detected in the recording.
 
 The columns contain:
 
-1. `index` Index of the fish (the number that is also used to number the files).
-2. `EODf` EOD frequency in Hertz.
-3. `p-p-amplitude` Peak-to-peak amplitude of the extracted waveform in the units of the input data.
-4. `power` Power of the extracted EOD waveform, i.e. sum of the squared Fourier amplitudes, in decibel.
-5. `datapower` Power of the EOD waveform from the spectrum of the original data in decibel.
-6. `thd`: Total harmonic distortion, i.e. square root of sum of amplitudes squared
+1. `tstart` Start time of the analysis window in the recording in seconds.
+2. `twindow` Duration of the analysis window in seconds.
+3. `index` Index of the fish (the number that is also used to number the files).
+4. `EODf` EOD frequency in Hertz.
+5. `p-p-amplitude` Peak-to-peak amplitude of the extracted waveform in the units of the input data.
+6. `power` Power of the extracted EOD waveform, i.e. sum of the squared Fourier amplitudes, in decibel.
+7. `datapower` Power of the EOD waveform from the spectrum of the original data in decibel.
+8. `thd`: Total harmonic distortion, i.e. square root of sum of amplitudes squared
    of harmonics relative to amplitude of fundamental.
-7. `dbdiff` Smoothness of power spectrum as standard deviation of differences in decibel power.
-8. `maxdb` Maximum power of higher harmonics relative to peak power in decibel.
-9. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
+9. `dbdiff` Smoothness of power spectrum as standard deviation of differences in decibel power.
+10. `maxdb` Maximum power of higher harmonics relative to peak power in decibel.
+11. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-10. `rmserror` Root-mean-squared difference between the averaged EOD waveform and 
+12. `rmserror` Root-mean-squared difference between the averaged EOD waveform and 
    the fit of the Fourier series relative to the peak-to_peak amplitude in percent.
-11. `clipped` Percentage of recording that is clipped.
-12. `flipped` Whether the waveform was flipped.
-13. `n` Number of EODs used for computing the averaged EOD waveform.
-14. `ncrossings` Number of zero crossing per EOD period.
-15. `peakwidth` Width of the peak at the averaged amplitude relative to EOD period.
-16. `troughwidth` Width of the trough at the averaged amplitude relative to EOD period.
-17. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
-18. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
-19. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
-20. `righttrough` Time from trough to positive zero crossing relative to EOD period.
-21. `p-p-distance` Time between peak and trough relative to EOD period.
-22. `reltroughampl` Amplitude of trough relative to peak amplitude.
+13. `clipped` Percentage of recording that is clipped.
+14. `flipped` Whether the waveform was flipped.
+15. `n` Number of EODs used for computing the averaged EOD waveform.
+16. `ncrossings` Number of zero crossing per EOD period.
+17. `peakwidth` Width of the peak at the averaged amplitude relative to EOD period.
+18. `troughwidth` Width of the trough at the averaged amplitude relative to EOD period.
+19. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
+20. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
+21. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
+22. `righttrough` Time from trough to positive zero crossing relative to EOD period.
+23. `p-p-distance` Time between peak and trough relative to EOD period.
+24. `reltroughampl` Amplitude of trough relative to peak amplitude.
 
 
 ### RECORDING-CH-wavespectrum-N.EXT
@@ -673,10 +696,13 @@ Properties of each pulse-type fish detected in the recording.
 <table>
 <thead>
   <tr>
+    <th align="left" colspan="2">recording</th>
     <th align="left" colspan="17">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
   </tr>
   <tr>
+    <th align="left">tstart</th>
+    <th align="left">twindow</th>
     <th align="left">index</th>
     <th align="left">EODf</th>
     <th align="left">period</th>
@@ -701,6 +727,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">lowcutoff</th>
   </tr>
   <tr>
+    <th align="left">s</th>
+    <th align="left">s</th>
     <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">ms</th>
@@ -727,57 +755,61 @@ Properties of each pulse-type fish detected in the recording.
 </thead>
 <tbody>
   <tr>
+    <td align="right">4.00</td>
+    <td align="right">8.00</td>
     <td align="right">0</td>
     <td align="right">32.22</td>
-    <td align="right">31.04</td>
-    <td align="right">0.27687</td>
-    <td align="right">0.20424</td>
-    <td align="right">0.48111</td>
+    <td align="right">31.03</td>
+    <td align="right">0.26557</td>
+    <td align="right">0.21912</td>
+    <td align="right">0.48469</td>
     <td align="right">0.1</td>
     <td align="right">0.0</td>
     <td align="right">0</td>
-    <td align="right">-0.375</td>
-    <td align="right">0.938</td>
-    <td align="right">1.312</td>
-    <td align="right">0.281</td>
-    <td align="right">0.086</td>
+    <td align="right">4000.000</td>
+    <td align="right">1.344</td>
+    <td align="right">1.687</td>
+    <td align="right">0.250</td>
+    <td align="right">0.087</td>
     <td align="right">1</td>
     <td align="right">2</td>
-    <td align="right">236</td>
-    <td align="right">1127.08</td>
-    <td align="right">-81.58</td>
-    <td align="right">-13.53</td>
-    <td align="right">-13.33</td>
-    <td align="right">271.12</td>
+    <td align="right">235</td>
+    <td align="right">1130.86</td>
+    <td align="right">-81.56</td>
+    <td align="right">-27.84</td>
+    <td align="right">-22.84</td>
+    <td align="right">98.14</td>
   </tr>
 </tbody>
 </table>
 
 The columns contain:
 
-1. `index` Index of the fish (the number that is also used to number the files).
-2. `EODf` EOD frequency in Hertz.
-3. `period` Period between two pulses (1/EODf) in milliseconds.
-4. `max-ampl` Amplitude of the largest peak (P1 peak) in the units of the input data.
-5. `min-ampl` Amplitude of the largest trough in the units of the input data.
-6. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
-7. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
+1. `tstart` Start time of the analysis window in the recording in seconds.
+2. `twindow` Duration of the analysis window in seconds.
+3. `index` Index of the fish (the number that is also used to number the files).
+4. `EODf` EOD frequency in Hertz.
+5. `period` Period between two pulses (1/EODf) in milliseconds.
+6. `max-ampl` Amplitude of the largest peak (P1 peak) in the units of the input data.
+7. `min-ampl` Amplitude of the largest trough in the units of the input data.
+8. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
+9. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-8. `clipped` Percentage of recording that is clipped.
-9. `flipped` Whether the waveform was flipped.
-10. `tstart` Time where the pulse starts relative to P1 in milliseconds.
-11. `tend` Time where the pulse ends relative to P1 in milliseconds.
-12. `width` Total width of the pulse in milliseconds.
-13. `P2-P1-dist`: Distance between P2 and P1 in milliseconds. Zero if p2 is not present.
-13. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
-14. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1)
-15. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3)
-16. `n` Number of EODs used for computing the averaged EOD waveform.
-17. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
-18. `peakpower` Peak power of the single pulse spectrum in decibel.
-19. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-20. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-21. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+10. `clipped` Percentage of recording that is clipped.
+11. `flipped` Whether the waveform was flipped.
+12. `tstart` Time where the pulse starts relative to P1 in milliseconds.
+13. `tend` Time where the pulse ends relative to P1 in milliseconds.
+14. `width` Total width of the pulse in milliseconds.
+15. `P2-P1-dist`: Distance between P2 and P1 in milliseconds. Zero if p2 is not present.
+16. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
+17. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1)
+18. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3)
+19. `n` Number of EODs used for computing the averaged EOD waveform.
+20. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
+21. `peakpower` Peak power of the single pulse spectrum in decibel.
+22. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+23. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+24. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
 ### RECORDING-CH-pulsepeaks-N.EXT

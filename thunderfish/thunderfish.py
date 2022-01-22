@@ -1330,7 +1330,7 @@ def main(cargs=None):
 
     # configure:
     cfg = configuration()
-    cfg.load_files(cfgfile, files[0], 4, verbose-1)
+    cfg.load_files(cfgfile, files[0], 4, verbose)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
         
