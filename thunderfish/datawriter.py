@@ -98,6 +98,11 @@ def write_pickle(filepath, data, samplerate, unit=None, meta=None):
     meta: dict
         Additional metadata saved into the pickle.
 
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
     Raises
     ------
     ImportError
@@ -111,7 +116,7 @@ def write_pickle(filepath, data, samplerate, unit=None, meta=None):
         raise ValueError('no file specified!')
     ext = os.path.splitext(filepath)[1]
     if len(ext) <= 1 or ext[1].upper() != 'P':
-        filepath += '.pkl'
+        filepath += os.extsep + 'pkl'
     ddict = dict(data=data, rate=samplerate)
     if unit:
         ddict['unit'] = unit
@@ -119,6 +124,7 @@ def write_pickle(filepath, data, samplerate, unit=None, meta=None):
         ddict.update(meta)
     with open(filepath, 'wb') as df:
         pickle.dump(ddict, df)
+    return filepath
 
 
 def formats_numpy():
@@ -155,6 +161,11 @@ def write_numpy(filepath, data, samplerate, unit=None, meta=None):
     meta: dict
         Additional metadata saved into the numpy file.
 
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
     Raises
     ------
     ImportError
@@ -168,13 +179,14 @@ def write_numpy(filepath, data, samplerate, unit=None, meta=None):
         raise ValueError('no file specified!')
     ext = os.path.splitext(filepath)[1]
     if len(ext) <= 1 or ext[1].upper() != 'N':
-        filepath += '.npz'
+        filepath += os.extsep + 'npz'
     ddict = dict(data=data, rate=samplerate)
     if unit:
         ddict['unit'] = unit
     if meta:
         ddict.update(meta)
     np.savez(filepath, **ddict)
+    return filepath
 
 
 def formats_mat():
@@ -211,6 +223,11 @@ def write_mat(filepath, data, samplerate, unit=None, meta=None):
     meta: dict
         Additional metadata saved into the mat file.
 
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
     Raises
     ------
     ImportError
@@ -224,13 +241,14 @@ def write_mat(filepath, data, samplerate, unit=None, meta=None):
         raise ValueError('no file specified!')
     ext = os.path.splitext(filepath)[1]
     if len(ext) <= 1 or ext[1].upper() != 'M':
-        filepath += '.mat'
+        filepath += os.extsep + 'mat'
     ddict = dict(data=data, rate=samplerate)
     if unit:
         ddict['unit'] = unit
     if meta:
         ddict.update(meta)
     sio.savemat(filepath, ddict)
+    return filepath
 
 
 def formats_audioio():
@@ -269,6 +287,11 @@ def write_audioio(filepath, data, samplerate, unit=None, meta=None):
         Additional metadata saved into the audio file.
         Currently ignored.
 
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
     Raises
     ------
     ImportError
@@ -281,6 +304,7 @@ def write_audioio(filepath, data, samplerate, unit=None, meta=None):
     if not filepath:
         raise ValueError('no file specified!')
     aw.audio_writer(filepath, data, samplerate)
+    return filepath
 
 
 data_formats_funcs = (
@@ -347,6 +371,11 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
     verbose: int
         If >0 show detailed error/warning messages.
 
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
     Raises
     ------
     ValueError
@@ -377,7 +406,7 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
             continue
         if format in formats_func():
             writer_func = data_writer_funcs[fmt]
-            writer_func(filepath, data, samplerate, unit, meta)
+            filepath = writer_func(filepath, data, samplerate, unit, meta)
             if verbose > 0:
                 print('wrote data to file "%s" using %s module' %
                       (filepath, lib))
@@ -386,7 +415,7 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
                     print('  channels     : %d' % (data.shape[1] if len(data.shape) > 1 else 1))
                     print('  frames       : %d' % len(data))
                     print('  unit         : %s' % unit)
-            return
+            return filepath
     raise IOError('file format "%s" not supported.' % format) 
 
 
@@ -407,7 +436,7 @@ def demo(file_path, channels=2, format=None):
     for c in range(channels):
         data[:,c] = 0.1*(channels-c)*np.sin(2.0*np.pi*(440.0+c*8.0)*t)
         
-    print("write_data(%s) ..." % file_path)
+    print("write_data('%s') ..." % file_path)
     write_data(file_path, data, samplerate, 'mV', format=format, verbose=2)
 
     print('done.')
