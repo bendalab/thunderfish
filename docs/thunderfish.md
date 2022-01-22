@@ -238,21 +238,23 @@ To make use of all the cores of your CPU apply the `-j` switch.
 
 The following files are generated:
 
-- `RECORDING-eodwaveform-N.EXT`: averaged EOD waveform
-- `RECORDING-waveeodfs.EXT`: list of all detected EOD frequencies and powers of wave-type fish
-- `RECORDING-wavefish.EXT`: list of properties of good EODs of wave-type fish
-- `RECORDING-wavespectrum-N.EXT`: for each wave-type fish the Fourier spectrum
-- `RECORDING-pulsefish.EXT`: list of properties of good EODs of pulse-type fish
-- `RECORDING-pulsepeaks-N.EXT`: for each pulse-type fish properties of peaks and troughs
-- `RECORDING-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a single pulse
+- `RECORDING-CH-eodwaveform-N.EXT`: averaged EOD waveform
+- `RECORDING-CH-waveeodfs.EXT`: list of all detected EOD frequencies and powers of wave-type fish
+- `RECORDING-CH-wavefish.EXT`: list of properties of good EODs of wave-type fish
+- `RECORDING-CH-wavespectrum-N.EXT`: for each wave-type fish the Fourier spectrum
+- `RECORDING-CH-pulsefish.EXT`: list of properties of good EODs of pulse-type fish
+- `RECORDING-CH-pulsepeaks-N.EXT`: for each pulse-type fish properties of peaks and troughs
+- `RECORDING-CH-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a single pulse
 
-Filenames are composed of the basename of the input file (`RECORDING`).
-Fish detected in the recordings are numbered, starting with 0 (`N`).
-The file extension depends on the chosen file format (`EXT`).
+Filenames are composed of the basename of the input file (`RECORDING`)
+and in case the input files contain more than a single channel with an
+appended channel specification (`CH`), a 'c' followed by the channel
+number.  Fish detected in the recordings are numbered, starting with 0
+(`N`).  The file extension depends on the chosen file format (`EXT`).
 The following sections describe the content of the generated files.
 
 
-### RECORDING-eodwaveform-N.EXT
+### RECORDING-CH-eodwaveform-N.EXT
 
 For each fish the average waveform with standard deviation and fit.
 
@@ -314,10 +316,10 @@ The columns contain:
    a Fourier series, for pulse fish it is an exponential fit to the tail of the last peak.
 
 
-### RECORDING-waveeodfs.EXT
+### RECORDING-CH-waveeodfs.EXT
 
 List of all detected EOD frequencies and powers of wave-type fish.
-These might be more than listed in `RECORDING-wavefish.EXT`.
+These might be more than listed in `RECORDING-CH-wavefish.EXT`.
 
 <table>
 <thead>
@@ -363,7 +365,7 @@ The columns contain:
 3. `datapower` Power of this EOD in decibel (sum over all peaks in the power spectrum of the recording).
 
 
-### RECORDING-wavefish.EXT
+### RECORDING-CH-wavefish.EXT
 
 Fundamental EOD frequency and other properties of each
 wave-type fish detected in the recording.
@@ -576,7 +578,7 @@ The columns contain:
 22. `reltroughampl` Amplitude of trough relative to peak amplitude.
 
 
-### RECORDING-wavespectrum-N.EXT
+### RECORDING-CH-wavespectrum-N.EXT
 
 The parameter of the Fourier series fitted to the waveform of a wave-type fish.
 
@@ -661,7 +663,7 @@ The columns contain:
 7. `datapower` Power spectral density of the harmonics from the original power spectrum of the data.
 
 
-### RECORDING-pulsefish.EXT
+### RECORDING-CH-pulsefish.EXT
 
 Properties of each pulse-type fish detected in the recording.
 
@@ -775,7 +777,7 @@ The columns contain:
 21. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
-### RECORDING-pulsepeaks-N.EXT
+### RECORDING-CH-pulsepeaks-N.EXT
 
 Properties of peaks and troughs of a pulse-type fish's EOD.
 
@@ -824,7 +826,7 @@ The columns contain:
 5. `width` Width of the peak/trough at half height in milliseconds. 
 
 
-### RECORDING-pulsespectrum-N.EXT
+### RECORDING-CH-pulsespectrum-N.EXT
 
 The power spectrum of a single EOD pulse of a pulse-type fish:
 

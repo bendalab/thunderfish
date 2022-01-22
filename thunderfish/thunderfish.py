@@ -1083,7 +1083,7 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
         return '%s: failed to open file: %s' % (filename, str(e))
     # select channel:
     channels = raw_data.shape[1]
-    if channel < 0 or channel >= channels-1:
+    if channel < 0 or channel >= channels:
         return '%s: invalid channel %d' % (filename, channel)
     raw_data = raw_data[:,channel]
     if len(raw_data) <= 1:
