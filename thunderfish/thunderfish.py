@@ -444,13 +444,12 @@ def axes_style(ax):
     ax.get_yaxis().tick_left()
 
                                 
-def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
+def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
               psd_data, wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
               indices, unit, zoom_window, n_snippets=10, power_thresh=None, label_power=True,
               all_eods=False, spec_plots='auto', log_freq=False, min_freq=0.0, max_freq=3000.0,
               interactive=True, verbose=0):
-    """
-    Creates an output plot for the thunderfish program.
+    """Creates an output plot for the thunderfish program.
 
     This output contains the raw trace where the analysis window is
     marked, the power-spectrum of this analysis window where the
@@ -465,6 +464,9 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         Dataset.
     samplerate: float
         Sampling rate of the dataset.
+    channel: int or None
+        Channel of the recording to be put into the plot title.
+        If None, do not write the channel into the title.
     idx0: float
         Index of the beginning of the analysis window in the dataset.
     idx1: float
@@ -598,8 +600,11 @@ def plot_eods(base_name, raw_data, samplerate, idx0, idx1, clipped,
         fig.canvas.mpl_connect('key_press_event', keypress)
     
     # plot title:
+    title = base_name
+    if channel is not None:
+        title += ' c%d' % channel
     ax = fig.add_axes([0.2/width, 1.0-0.6/height, 1.0-0.4/width, 0.55/height])
-    ax.text(0.0, 1.0, base_name, fontsize=22, va='top')
+    ax.text(0.0, 1.0, title, fontsize=22, va='top')
     ax.text(1.0, 1.0, 'thunderfish by Benda-Lab', fontsize=16, ha='right', va='top')
     ax.text(1.0, 0.0, 'version %s' % __version__, fontsize=16, ha='right', va='bottom')
     ax.set_frame_on(False)
@@ -1070,16 +1075,17 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
     fn = filename if keep_path else os.path.basename(filename)
     outfilename = os.path.splitext(fn)[0]
 
-    # check channel:
-    if channel < 0:
-        return '%s: invalid channel %d' % (filename, channel)
-
     # load data:
     try:
-        raw_data, samplerate, unit = load_data(filename, channel,
+        raw_data, samplerate, unit = load_data(filename, -1,
                                                verbose=verbose)
     except IOError as e:
         return '%s: failed to open file: %s' % (filename, str(e))
+    # select channel:
+    channels = raw_data.shape[1]
+    if channel < 0 or channel >= channels-1:
+        return '%s: invalid channel %d' % (filename, channel)
+    raw_data = raw_data[:,channel]
     if len(raw_data) <= 1:
         return '%s: empty data file' % filename
 
@@ -1113,6 +1119,13 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
 
     # save results to files:
     output_basename = os.path.join(output_folder, outfilename)
+    if channels > 1:
+        if channels > 100:
+            output_basename += '-c%03d' % channel
+        elif channels > 10:
+            output_basename += '-c%02d' % channel
+        else:
+            output_basename += '-c%d' % channel
     if save_data:
         remove_eod_files(output_basename, verbose, cfg)
         if found_bestwindow:
@@ -1137,7 +1150,8 @@ def thunderfish(filename, cfg, channel=0, mode='wp',
         else:
             log_freq = False
         n_snippets = 10
-        fig = plot_eods(outfilename, raw_data, samplerate, idx0, idx1, clipped,
+        chan = channel if channels > 1 else None
+        fig = plot_eods(outfilename, raw_data, samplerate, chan, idx0, idx1, clipped,
                         psd_data[0], wave_eodfs, wave_indices, mean_eods, eod_props,
                         peak_data, spec_data, None, unit, zoom_window, n_snippets,
                         power_thresh, True, all_eods, spec_plots, log_freq, min_freq, max_freq,
@@ -1181,11 +1195,13 @@ def run_thunderfish(file_args):
         print(traceback.format_exc())
 
 
-def main(cargs):
+def main(cargs=None):
     # config file name:
     cfgfile = __package__ + '.cfg'
 
     # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
     parser = argparse.ArgumentParser(add_help=False,
         description='Analyze EOD waveforms of weakly electric fish.',
         epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
@@ -1326,4 +1342,4 @@ def main(cargs):
 
 if __name__ == '__main__':
     freeze_support()  # needed by multiprocessing for some weired windows stuff
-    main(sys.argv[1:])
+    main()

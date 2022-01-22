@@ -563,11 +563,13 @@ def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
     fig.savefig(os.path.join(output_folder, 'eodwaveforms.pdf'))
 
         
-def main(cargs):
+def main(cargs=None):
     # config file name:
     cfgfile = __package__ + '.cfg'
 
     # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
     parser = argparse.ArgumentParser(add_help=False,
         description='Extract EOD waveforms of weakly electric fish from logger data.',
         epilog='version %s by Benda-Lab (2015-%s)' % (__version__, __year__))
@@ -743,4 +745,4 @@ def main(cargs):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

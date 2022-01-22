@@ -703,13 +703,15 @@ def short_user_warning(message, category, filename, lineno, file=None, line=''):
         file.write(s)
 
 
-def main(cargs):
+def main(cargs=None):
     warnings.showwarning = short_user_warning
 
     # config file name:
     cfgfile = __package__ + '.cfg'
 
     # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description='Display waveform, and power spectrum with detected fundamental frequencies of EOD recordings.',
         epilog='version %s by Jan Benda (2015-%s)' % (__version__, __year__))
@@ -757,7 +759,7 @@ def main(cargs):
 
         
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
 
 
 # 50301L02.WAV t=9 bis 9.15 sec

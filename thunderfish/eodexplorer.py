@@ -345,10 +345,12 @@ class EODExplorer(MultivariateExplorer):
         for k in ['toolbar', 'keymap.back', 'keymap.forward',
                   'keymap.zoom', 'keymap.pan']:
             plt.rcParams[k] = self.plt_params[k]
-        fig = plot_eods(file_base, raw_data, samplerate, idx0, idx1, clipped,
-                        psd_data[0], fishlist, None, mean_eods, eod_props, peak_data, spec_data,
-                        [idx], unit, zoom_window, 10, None, True, False, 'auto',
-                        False, 0.0, 3000.0, interactive=True, verbose=0)
+        fig = plot_eods(file_base, raw_data, samplerate, None, idx0, idx1,
+                        clipped, psd_data[0], fishlist, None,
+                        mean_eods, eod_props, peak_data, spec_data,
+                        [idx], unit, zoom_window, 10, None, True, False,
+                        'auto', False, 0.0, 3000.0,
+                        interactive=True, verbose=0)
         fig.canvas.set_window_title('thunderfish: %s' % file_base)
         plt.show(block=False)
 
@@ -603,7 +605,7 @@ def load_waveform(idx):
     return (eod, spec_data)
         
 
-def main(cargs):
+def main(cargs=None):
     global data
     global wave_fish
     global load_spec
@@ -611,6 +613,8 @@ def main(cargs):
     global basename
 
     # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
     parser = argparse.ArgumentParser(add_help=False,
         description='View and explore properties of EOD waveforms.',
         epilog='version %s by Benda-Lab (2019-%s)' % (__version__, __year__))
@@ -782,4 +786,4 @@ def main(cargs):
 
 if __name__ == '__main__':
     freeze_support()  # needed by multiprocessing for some weired windows stuff
-    main(sys.argv[1:])
+    main()

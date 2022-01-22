@@ -272,13 +272,15 @@ def short_user_warning(message, category, filename, lineno, file=None, line=''):
         file.write(s)
 
 
-def main(cargs):
+def main(cargs=None):
     warnings.showwarning = short_user_warning
 
     # config file name:
     cfgfile = __package__ + '.cfg'
 
     # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
     parser = argparse.ArgumentParser(
         description='Browse mutlichannel EOD recordings.',
         epilog='version %s by Benda-Lab (2022-%s)' % (__version__, __year__))
@@ -301,4 +303,4 @@ def main(cargs):
 
         
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

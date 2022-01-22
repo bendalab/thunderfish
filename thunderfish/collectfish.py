@@ -22,8 +22,7 @@ def collect_fish(files, simplify_file=False,
                  meta_data=None, meta_recordings=None, skip_recordings=False,
                  temp_col=None, q10=1.62, max_fish=0, harmonics=None,
                  peaks0=None, peaks1=None, cfg=None, verbose=0):
-    """
-    Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
+    """Combine all *-wavefish.* and/or *-pulsefish.* files into respective summary tables.
 
     Data from the *-wavespectrum-*.* and the *-pulsepeaks-*.* files can be added
     as specified by `harmonics`, `peaks0`, and `peaks1`.
@@ -53,24 +52,30 @@ def collect_fish(files, simplify_file=False,
     skip_recordings: bool
         If True skip recordings that are not found in `meta_recordings`.
     temp_col: string or None
-        A column in `meta_data` with temperatures to which EOD frequences should be adjusted.
+        A column in `meta_data` with temperatures to which EOD
+        frequences should be adjusted.
     q10: float
-        Q10 value describing temperature dependence of EOD frequencies.
-        The default of 1.62 is from Dunlap, Smith, Yetka (2000) Brain Behav Evol,
-        measured for Apteronotus lepthorhynchus in the lab.
+        Q10 value describing temperature dependence of EOD
+        frequencies.  The default of 1.62 is from Dunlap, Smith, Yetka
+        (2000) Brain Behav Evol, measured for Apteronotus
+        lepthorhynchus in the lab.
     max_fish: int
         Maximum number of fish to be taken, if 0 take all.
     harmonics: int
-        Number of harmonic to be added to the wave-type fish table (amplitude, relampl, phase).
-        This data is read in from the corresponding *-wavespectrum-*.* files.
+        Number of harmonic to be added to the wave-type fish table
+        (amplitude, relampl, phase).  This data is read in from the
+        corresponding *-wavespectrum-*.* files.
     peaks0: int
-        Index of the first peak of a EOD pulse to be added to the pulse-type fish table.
-        This data is read in from the corresponding *-pulsepeaks-*.* files.
+        Index of the first peak of a EOD pulse to be added to the
+        pulse-type fish table.  This data is read in from the
+        corresponding *-pulsepeaks-*.* files.
     peaks1: int
-        Index of the last peak of a EOD pulse to be added to the pulse-type fish table.
-        This data is read in from the corresponding *-pulsepeaks-*.* files.
+        Index of the last peak of a EOD pulse to be added to the
+        pulse-type fish table.  This data is read in from the
+        corresponding *-pulsepeaks-*.* files.
     cfg: ConfigFile
-        Configuration parameter for EOD quality assessment and species assignment.
+        Configuration parameter for EOD quality assessment and species
+        assignment.
     verbose: int
         Verbose output:
         
@@ -85,6 +90,7 @@ def collect_fish(files, simplify_file=False,
         Summary table for all pulse-type fish.
     all_table: TableData
         Summary table for all wave-type and pulse-type fish.
+
     """
     def find_recording(recording, meta_recordings):
         """ Find row of a recording in meta data.
@@ -141,6 +147,12 @@ def collect_fish(files, simplify_file=False,
         if base_path.startswith('./'):
             base_path = base_path[2:]
         recording = base_path
+        # extract channel:
+        channel = None
+        rs = recording.split('-')
+        if len(rs) > 0 and rs[-1][0] == 'c':
+            channel = int(rs[-1][1:])
+            recording = '-'.join(rs[:-1])
         file_pathes.append(os.path.normpath(recording).split(os.path.sep))
         if verbose > 2:
             print('processing %s (%s):' % (file_name, recording))
@@ -170,6 +182,8 @@ def collect_fish(files, simplify_file=False,
                 for c in range(meta_data.columns()):
                     df.insert(c, *meta_data.column_head(c))
             df.insert(0, ['recording']*data.nsecs + ['file'], '', '%-s')
+            if channel is not None:
+                df.insert(1, 'channel', '', '%d')
             if fish_type == 'wave':
                 if harmonics is not None:
                     wave_spec = TableData(base_path + '-wavespectrum-0' + file_ext)
@@ -216,6 +230,8 @@ def collect_fish(files, simplify_file=False,
             if not all_table:
                 df = TableData()
                 df.append('file', '', '%-s')
+                if channel is not None:
+                    df.append('channel', '', '%d')
                 if meta_data is not None:
                     for c in range(meta_data.columns()):
                         df.append(*meta_data.column_head(c))
@@ -266,6 +282,10 @@ def collect_fish(files, simplify_file=False,
             table.append_data(recording, data_col)
             all_table.append_data(recording, data_col)
             data_col += 1
+            if channel is not None:
+                table.append_data(channel, data_col)
+                all_table.append_data(channel, data_col)
+                data_col += 1
             # meta data:
             if mr >= 0:
                 for c in range(meta_data.columns()):
@@ -399,8 +419,10 @@ def rangestr(string):
     return (v0, v1)
 
 
-def main(cargs):
+def main(cargs=None):
     # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
     parser = argparse.ArgumentParser(add_help=True,
         description='Collect data generated by thunderfish in a wavefish and a pulsefish table.',
         epilog='version %s by Benda-Lab (2019-%s)' % (__version__, __year__))
@@ -553,4 +575,4 @@ def main(cargs):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()
