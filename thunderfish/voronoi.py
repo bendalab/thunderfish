@@ -1,5 +1,4 @@
-"""
-Analyze Voronoi diagrams based on scipy.spatial.
+"""Analyze Voronoi diagrams based on scipy.spatial.
 
 ## Classes
 
@@ -206,8 +205,7 @@ class Voronoi(object):
         self.center = np.mean(self.points, axis=0)
 
     def _compute_distances(self):
-        """
-        Compute distances between points.
+        """Compute distances between points.
         """
         # For each ridge the distance of the points enclosing the ridge:
         p1 = self.vor.points[self.vor.ridge_points[:,0]]
@@ -237,8 +235,7 @@ class Voronoi(object):
         self.mean_nearest_distance *= 1.0-2.0*np.sqrt(1.0/np.pi-0.25)/np.sqrt(self.vor.npoints)
 
     def _compute_infinite_vertices(self, radius=None):
-        """
-        Compute far points of infinite ridges.
+        """Compute far points of infinite ridges.
 
         Parameters
         ----------
@@ -310,8 +307,7 @@ class Voronoi(object):
                 self.infinite_regions.append(new_rvertices)
                 
     def _flatten_simplices(self, simplices):
-        """
-        Transforms list of simplex indices to list of vertex indices.
+        """Transforms list of simplex indices to list of vertex indices.
 
         In particular, transforms the Delaunay.convex_hull to a list of points
         of the hull that can then be easily plotted.
@@ -342,8 +338,7 @@ class Voronoi(object):
         return indices
 
     def _compute_hull(self, qhull_options):
-        """
-        Compute properties of the convex hull and set up the outer hull.
+        """Compute properties of the convex hull and set up the outer hull.
         """
         self.inside_vertices = self.in_hull(self.vor.vertices)
         self.hull_points = self._flatten_simplices(self.hull.convex_hull)
@@ -367,8 +362,7 @@ class Voronoi(object):
         self.outer_max_bound = np.max(self.outer_hull_points, axis=0)
         
     def in_hull(self, p):
-        """
-        Test if points `p` are within convex hull of the input points.
+        """Test if points `p` are within convex hull of the input points.
 
         Parameters
         ----------
@@ -384,8 +378,7 @@ class Voronoi(object):
         return inside
         
     def in_outer_hull(self, p):
-        """
-        Test if points `p` are within the outer hull.
+        """Test if points `p` are within the outer hull.
 
         Parameters
         ----------
@@ -401,8 +394,7 @@ class Voronoi(object):
         return inside
 
     def point_types(self):
-        """
-        The type of the Voronoi regions for each input point.
+        """The type of the Voronoi regions for each input point.
 
         Returns
         -------
@@ -425,8 +417,7 @@ class Voronoi(object):
         return points
 
     def ridge_lengths(self):
-        """
-        Length of Voronoi ridges between nearest neighbors.
+        """Length of Voronoi ridges between nearest neighbors.
 
         May be used, for example, as a weigth for `ridge_distances`.
 
@@ -447,8 +438,7 @@ class Voronoi(object):
         return ridges
 
     def ridge_areas(self):
-        """
-        For each ridge the triangular area of the Voronoi region
+        """For each ridge the triangular area of the Voronoi region
         spanned by the center point and the ridge.
 
         Returns
@@ -465,8 +455,7 @@ class Voronoi(object):
         return areas
     
     def areas(self, mode='finite'):
-        """
-        The areas of the Voronoi regions for each input point.
+        """The areas of the Voronoi regions for each input point.
 
         Parameters
         ----------
@@ -539,8 +528,7 @@ class Voronoi(object):
         return areas
 
     def hull_area(self):
-        """
-        The area of the convex hull of the input points.
+        """The area of the convex hull of the input points.
         
         Returns
         -------
@@ -555,8 +543,7 @@ class Voronoi(object):
         return area
 
     def outer_hull_area(self):
-        """
-        The area of the outer hull.
+        """The area of the outer hull.
         
         Returns
         -------
@@ -571,8 +558,7 @@ class Voronoi(object):
         return area
 
     def random_points(self, n=None, poisson=True, mode='outer'):
-        """
-        Generate random points.
+        """Generate random points.
 
         Parameters
         ----------
@@ -639,8 +625,7 @@ class Voronoi(object):
 
     def plot_points(self, ax=None, text=None, text_offs=(0, 0.05), text_align='center',
                     **kwargs):
-        """
-        Plot and optionally annotate the input points of the Voronoi diagram.
+        """Plot and optionally annotate the input points of the Voronoi diagram.
 
         Parameters
         ----------
@@ -667,8 +652,7 @@ class Voronoi(object):
                 ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
         
     def plot_center(self, ax=None, **kwargs):
-        """
-        Plot the center of mass of the input points.
+        """Plot the center of mass of the input points.
 
         Parameters
         ----------
@@ -683,8 +667,7 @@ class Voronoi(object):
         
     def plot_vertices(self, ax=None, text=None, text_offs=(0, 0.05), text_align='center',
                       **kwargs):
-        """
-        Plot and optionally annotate the vertices of the Voronoi diagram.
+        """Plot and optionally annotate the vertices of the Voronoi diagram.
 
         Parameters
         ----------
@@ -711,8 +694,7 @@ class Voronoi(object):
                 ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
 
     def plot_distances(self, ax=None, **kwargs):
-        """
-        Plot lines connecting the nearest neighbors in the Voronoi diagram.
+        """Plot lines connecting the nearest neighbors in the Voronoi diagram.
 
         Parameters
         ----------
@@ -727,8 +709,7 @@ class Voronoi(object):
             ax.plot(self.points[p, 0], self.points[p, 1], **kwargs)
 
     def plot_ridges(self, ax=None, **kwargs):
-        """
-        Plot the finite ridges of the Voronoi diagram.
+        """Plot the finite ridges of the Voronoi diagram.
 
         Parameters
         ----------
@@ -744,8 +725,7 @@ class Voronoi(object):
                 ax.plot(self.vertices[p, 0], self.vertices[p, 1], **kwargs)
 
     def plot_infinite_ridges(self, ax=None, **kwargs):
-        """
-        Plot the infinite ridges of the Voronoi diagram.
+        """Plot the infinite ridges of the Voronoi diagram.
 
         Parameters
         ----------
@@ -764,8 +744,7 @@ class Voronoi(object):
                         [self.vor.vertices[i][1], far_point[1]], **kwargs)
 
     def fill_regions(self, ax=None, inside=None, colors=None, **kwargs):
-        """
-        Fill each finite region of the Voronoi diagram with a color.
+        """Fill each finite region of the Voronoi diagram with a color.
 
         Parameters
         ----------
@@ -797,8 +776,7 @@ class Voronoi(object):
                                     color=colors[c % len(colors)], lw=0, **kwargs)
 
     def fill_infinite_regions(self, ax=None, colors=None, **kwargs):
-        """
-        Fill each infinite region of the Voronoi diagram with a color.
+        """Fill each infinite region of the Voronoi diagram with a color.
 
         Parameters
         ----------
@@ -829,8 +807,7 @@ class Voronoi(object):
                             color=colors[c % len(colors)], lw=0, **kwargs)
         
     def plot_hull(self, ax=None, **kwargs):
-        """
-        Plot the hull line containing the input points.
+        """Plot the hull line containing the input points.
 
         Parameters
         ----------
@@ -845,8 +822,7 @@ class Voronoi(object):
                 self.hull.points[self.hull_points, 1], **kwargs)
 
     def fill_hull(self, ax=None, **kwargs):
-        """
-        Fill the hull containing the input points with a color.
+        """Fill the hull containing the input points with a color.
 
         Parameters
         ----------
@@ -861,8 +837,7 @@ class Voronoi(object):
                 self.hull.points[self.hull_points, 1], lw=0, **kwargs)
         
     def plot_hull_center(self, ax=None, **kwargs):
-        """
-        Plot the center of mass of the convex hull of the input points.
+        """Plot the center of mass of the convex hull of the input points.
 
         Parameters
         ----------
@@ -876,8 +851,7 @@ class Voronoi(object):
         ax.plot(self.hull_center[0], self.hull_center[1], 'o', **kwargs)
         
     def plot_outer_hull(self, ax=None, **kwargs):
-        """
-        Plot the hull line containing the input points and the vertices of the Voronoi diagram.
+        """Plot the hull line containing the input points and the vertices of the Voronoi diagram.
 
         Parameters
         ----------
@@ -892,8 +866,7 @@ class Voronoi(object):
                 self.outer_hull_points[:, 1], **kwargs)
 
     def fill_outer_hull(self, ax=None, **kwargs):
-        """
-        Fill the hull containing the input points and the vertices of the Voronoi diagram.
+        """Fill the hull containing the input points and the vertices of the Voronoi diagram.
 
         Parameters
         ----------

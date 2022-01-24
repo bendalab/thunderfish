@@ -21,7 +21,6 @@ Tables with hierarchical headers and units
 
 - `add_write_table_config()`: add parameter specifying how to write a table to a file as a new section to a configuration.
 - `write_table_args()`: translates a configuration to the respective parameter names for writing a table to a file.
-
 """
 
 import sys
@@ -53,8 +52,7 @@ __pdoc__['TableData.__str__'] = True
 
 
 class TableData(object):
-    """
-    Table with numpy-style indexing and a rich hierarchical header including units and formats.
+    """Table with numpy-style indexing and a rich hierarchical header including units and formats.
     
     Parameters
     ----------
@@ -326,19 +324,19 @@ class TableData(object):
     """
     
     formats = ['dat', 'ascii', 'csv', 'rtai', 'md', 'tex', 'html']
-    """ list of strings: Supported output formats."""
+    """list of strings: Supported output formats."""
     descriptions = {'dat': 'data text file', 'ascii': 'ascii-art table',
                     'csv': 'comma separated values', 'rtai': 'rtai-style table',
                     'md': 'markdown', 'tex': 'latex tabular',
                     'html': 'html markup'}
-    """ dict: Decription of output formats corresponding to `formats`."""
+    """dict: Decription of output formats corresponding to `formats`."""
     extensions = {'dat': 'dat', 'ascii': 'txt', 'csv': 'csv', 'rtai': 'dat',
                   'md': 'md', 'tex': 'tex', 'html': 'html'}
-    """ dict: Default file extensions for the output `formats`. """
+    """dict: Default file extensions for the output `formats`. """
     ext_formats = {'dat': 'dat', 'DAT': 'dat', 'txt': 'dat', 'TXT': 'dat',
                    'csv': 'csv', 'CSV': 'csv', 'md': 'md', 'MD': 'md',
                    'tex': 'tex', 'TEX': 'tex', 'html': 'html', 'HTML': 'html'}
-    """ dict: Mapping of file extensions to the output formats. """
+    """dict: Mapping of file extensions to the output formats."""
 
     def __init__(self, data=None, header=None, units=None, formats=None,
                  missing='-'):
@@ -390,8 +388,7 @@ class TableData(object):
                 self.load(data, missing)
         
     def append(self, label, unit=None, formats=None, value=None, key=None, fac=None):
-        """
-        Append column to the table.
+        """Append column to the table.
 
         Parameters
         ----------
@@ -452,8 +449,7 @@ class TableData(object):
         return self.addcol-1
         
     def insert(self, column, label, unit=None, formats=None, value=None):
-        """
-        Insert a table column at a given position.
+        """Insert a table column at a given position.
 
         .. WARNING::
            If no `value` is given, the inserted column is an empty list.
@@ -510,8 +506,7 @@ class TableData(object):
         return col
 
     def remove(self, columns):
-        """
-        Remove columns from the table.
+        """Remove columns from the table.
 
         Parameters
         -----------
@@ -549,8 +544,7 @@ class TableData(object):
         self.shape = (self.rows(), self.columns())
 
     def section(self, column, level):
-        """
-        The section name of a specified column.
+        """The section name of a specified column.
 
         Parameters
         ----------
@@ -580,8 +574,7 @@ class TableData(object):
         return self.header[column][level], column
     
     def set_section(self, label, column, level):
-        """
-        Set a section name.
+        """Set a section name.
 
         Parameters
         ----------
@@ -598,8 +591,7 @@ class TableData(object):
         return column
 
     def append_section(self, label):
-        """
-        Add sections to the table header.
+        """Add sections to the table header.
 
         Each column of the table has a header label. Columns can be
         grouped into sections. Sections can be nested arbitrarily.
@@ -635,8 +627,7 @@ class TableData(object):
         return self.addcol
         
     def insert_section(self, column, section):
-        """
-        Insert a section at a given position of the table header.
+        """Insert a section at a given position of the table header.
 
         Parameters
         ----------
@@ -668,8 +659,7 @@ class TableData(object):
         return col
 
     def label(self, column):
-        """
-        The name of a column.
+        """The name of a column.
 
         Parameters
         ----------
@@ -686,8 +676,7 @@ class TableData(object):
         return self.header[column][0]
 
     def set_label(self, label, column):
-        """
-        Set the name of a column.
+        """Set the name of a column.
 
         Parameters
         ----------
@@ -702,8 +691,7 @@ class TableData(object):
         return column
 
     def unit(self, column):
-        """
-        The unit of a column.
+        """The unit of a column.
 
         Parameters
         ----------
@@ -720,8 +708,7 @@ class TableData(object):
         return self.units[column]
 
     def set_unit(self, unit, column):
-        """
-        Set the unit of a column.
+        """Set the unit of a column.
 
         Parameters
         ----------
@@ -736,8 +723,7 @@ class TableData(object):
         return column
 
     def set_units(self, units):
-        """
-        Set the units of all columns.
+        """Set the units of all columns.
 
         Parameters
         ----------
@@ -748,8 +734,7 @@ class TableData(object):
             self.units[c] = u
 
     def format(self, column):
-        """
-        The format string of the column.
+        """The format string of the column.
 
         Parameters
         ----------
@@ -766,8 +751,7 @@ class TableData(object):
         return self.formats[column]
 
     def set_format(self, format, column):
-        """
-        Set the format string of a column.
+        """Set the format string of a column.
 
         Parameters
         ----------
@@ -782,8 +766,7 @@ class TableData(object):
         return column
 
     def set_formats(self, formats):
-        """
-        Set the format strings of all columns.
+        """Set the format strings of all columns.
 
         Parameters
         ----------
@@ -800,11 +783,10 @@ class TableData(object):
                 self.formats[c] = formats or '%g'
 
     def table_header(self):
-        """
-        The header of the table without content.
+        """The header of the table without content.
 
-        Return
-        ------
+        Returns
+        -------
         data: TableData
             A TableData object with the same header but empty data.
         """
@@ -821,8 +803,7 @@ class TableData(object):
         return data
 
     def column_head(self, column):
-        """
-        The name, unit, and format of a column.
+        """The name, unit, and format of a column.
 
         Parameters
         ----------
@@ -843,8 +824,7 @@ class TableData(object):
         return self.header[column][0], self.units[column], self.formats[column]
 
     def column_spec(self, column):
-        """
-        Full specification of a column with all its section names.
+        """Full specification of a column with all its section names.
 
         Parameters
         ----------
@@ -864,8 +844,7 @@ class TableData(object):
         return '>'.join(reversed(fh))
     
     def find_col(self, column):
-        """
-        Find the start and end index of a column specification.
+        """Find the start and end index of a column specification.
         
         Parameters
         ----------
@@ -933,8 +912,7 @@ class TableData(object):
         return c0, c1
 
     def index(self, column):
-        """
-        The index of a column.
+        """The index of a column.
         
         Parameters
         ----------
@@ -956,8 +934,7 @@ class TableData(object):
         return c0
 
     def __contains__(self, column):
-        """
-        Check for existence of a column. 
+        """Check for existence of a column.
 
         Parameters
         ----------
@@ -973,8 +950,7 @@ class TableData(object):
         return self.index(column) is not None
 
     def keys(self):
-        """
-        List of unique column keys for all available columns.
+        """List of unique column keys for all available columns.
 
         Returns
         -------
@@ -984,8 +960,7 @@ class TableData(object):
         return [self.column_spec(c) for c in range(self.columns())]
 
     def values(self):
-        """
-        List of column data corresponding to keys().
+        """List of column data corresponding to keys().
 
         Returns
         -------
@@ -995,8 +970,7 @@ class TableData(object):
         return self.data
 
     def items(self):
-        """
-        Column names and corresponding data.
+        """Column names and corresponding data.
 
         Returns
         -------
@@ -1006,8 +980,7 @@ class TableData(object):
         return [(self.column_spec(c), self.data[c]) for c in range(self.columns())]
         
     def __len__(self):
-        """
-        The number of columns.
+        """The number of columns.
         
         Returns
         -------
@@ -1017,15 +990,13 @@ class TableData(object):
         return self.columns()
 
     def __iter__(self):
-        """
-        Initialize iteration over data columns.
+        """Initialize iteration over data columns.
         """
         self.iter_counter = -1
         return self
 
     def __next__(self):
-        """
-        Next column of data.
+        """Next column of data.
 
         Returns
         -------
@@ -1039,9 +1010,7 @@ class TableData(object):
             return self.data[self.iter_counter]
 
     def next(self):
-        """
-        Return next data columns.
-        (python2 syntax)
+        """Return next data columns.  (python2 syntax)
 
         See also:
         ---------
@@ -1050,8 +1019,7 @@ class TableData(object):
         return self.__next__()
 
     def rows(self):
-        """
-        The number of rows.
+        """The number of rows.
         
         Returns
         -------
@@ -1061,8 +1029,7 @@ class TableData(object):
         return max(map(len, self.data)) if self.data else 0
     
     def columns(self):
-        """
-        The number of columns.
+        """The number of columns.
         
         Returns
         -------
@@ -1072,16 +1039,15 @@ class TableData(object):
         return len(self.header)
 
     def row(self, index):
-        """
-        A single row of the table.
+        """A single row of the table.
 
         Parameters
         ----------
         index: int
             The index of the row to be returned.
 
-        Return
-        ------
+        Returns
+        -------
         data: TableData
             A TableData object with a single row.
         """
@@ -1099,16 +1065,15 @@ class TableData(object):
         return data
 
     def row_dict(self, index):
-        """
-        A single row of the table.
+        """A single row of the table.
 
         Parameters
         ----------
         index: int
             The index of the row to be returned.
 
-        Return
-        ------
+        Returns
+        -------
         data: dict
             A dictionary with column header as key and corresponding data value of row `index`
             as value.
@@ -1119,8 +1084,7 @@ class TableData(object):
         return data
 
     def col(self, column):
-        """
-        A single column of the table.
+        """A single column of the table.
 
         Parameters
         ----------
@@ -1128,8 +1092,8 @@ class TableData(object):
             The column to be returned.
             See self.index() for more information on how to specify a column.
 
-        Return
-        ------
+        Returns
+        -------
         table: TableData
             A TableData object with a single column.
         """
@@ -1141,8 +1105,7 @@ class TableData(object):
         return data
 
     def __call__(self, column):
-        """
-        A single column of the table as a numpy array.
+        """A single column of the table as a numpy array.
 
         Parameters
         ----------
@@ -1150,8 +1113,8 @@ class TableData(object):
             The column to be returned.
             See self.index() for more information on how to specify a column.
 
-        Return
-        ------
+        Returns
+        -------
         data: 1-D array
             Content of the specified column as a numpy array.
         """
@@ -1159,8 +1122,7 @@ class TableData(object):
         return np.asarray(self.data[c])
 
     def __setupkey(self, key):
-        """
-        Helper function that turns a key into row and column indices.
+        """Helper function that turns a key into row and column indices.
 
         Returns
         -------
@@ -1207,8 +1169,7 @@ class TableData(object):
         return rows, cols
 
     def __getitem__(self, key):
-        """
-        Data elements specified by slice.
+        """Data elements specified by slice.
 
         Parameters
         -----------
@@ -1264,8 +1225,7 @@ class TableData(object):
             return data
 
     def __setitem__(self, key, value):
-        """
-        Assign values to data elements specified by slice.
+        """Assign values to data elements specified by slice.
 
         Parameters
         -----------
@@ -1324,8 +1284,7 @@ class TableData(object):
                         self.data[c][rows] = value
 
     def __delitem__(self, key):
-        """
-        Delete data elements or whole columns or rows.
+        """Delete data elements or whole columns or rows.
 
         Parameters
         -----------
@@ -1362,16 +1321,15 @@ class TableData(object):
             self.shape = (self.rows(), self.columns())
 
     def array(self, row=None):
-        """
-        The table data as a numpy array.
+        """The table data as a numpy array.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         row: int or None
             If specified, a 1D array of that row will be returned.
 
-        Return
-        ------
+        Returns
+        -------
         data: 2D or 1D ndarray
             If no row is specified, the data content of the entire table
             as a 2D numpy array (rows first).
@@ -1383,19 +1341,17 @@ class TableData(object):
             return np.array([d[row] for d in self.data])
 
     def data_frame(self):
-        """
-        The table data as a pandas DataFrame.
+        """The table data as a pandas DataFrame.
 
-        Return
-        ------
+        Returns
+        -------
         data: pandas.DataFrame
             A pandas DataFrame of the whole table.
         """
         return pd.DataFrame(self.dict())
 
     def dicts(self, raw_values=True, missing='-'):
-        """
-        The table as a list of dictionaries.
+        """The table as a list of dictionaries.
 
         Parameters
         ----------
@@ -1429,8 +1385,7 @@ class TableData(object):
         return table
 
     def dict(self):
-        """
-        The table as a dictionary.
+        """The table as a dictionary.
 
         Returns
         -------
@@ -1442,8 +1397,7 @@ class TableData(object):
         return table
 
     def append_data(self, data, column=None):
-        """
-        Append data elements to successive columns.
+        """Append data elements to successive columns.
 
         The current column is set behid the added columns.
 
@@ -1484,8 +1438,7 @@ class TableData(object):
         self.shape = (self.rows(), self.columns())
 
     def append_data_column(self, data, column=None):
-        """
-        Append data elements to a column.
+        """Append data elements to a column.
 
         The current column is incremented by one.
 
@@ -1511,8 +1464,7 @@ class TableData(object):
         self.shape = (self.rows(), self.columns())
 
     def set_column(self, column):
-        """
-        Set the column where to add data.
+        """Set the column where to add data.
 
         Parameters
         ----------
@@ -1534,8 +1486,8 @@ class TableData(object):
         return col
 
     def fill_data(self):
-        """
-        Fill up all columns with missing data to have the same number of data elements.
+        """Fill up all columns with missing data to have the same number of
+        data elements.
         """
         # maximum rows:
         maxr = self.rows()
@@ -1547,8 +1499,7 @@ class TableData(object):
         self.shape = (self.rows(), self.columns())
 
     def clear_data(self):
-        """
-        Clear content of the table but keep header.
+        """Clear content of the table but keep header.
         """
         for c in range(len(self.data)):
             self.data[c] = []
@@ -1556,8 +1507,7 @@ class TableData(object):
         self.shape = (self.rows(), self.columns())
                 
     def sort(self, columns, reverse=False):
-        """
-        Sort the table rows in place.
+        """Sort the table rows in place.
 
         Parameters
         ----------
@@ -1596,8 +1546,7 @@ class TableData(object):
             self.data[c] = [self.data[c][r] for r in row_inx]
 
     def statistics(self):
-        """
-        Descriptive statistics of each column.
+        """Descriptive statistics of each column.
         """
         ds = TableData()
         if self.nsecs > 0:
@@ -1652,8 +1601,7 @@ class TableData(object):
         return ds
 
     def key_value(self, row, col, missing='-'):
-        """
-        A data element returned as a key-value pair.
+        """A data element returned as a key-value pair.
 
         Parameters
         ----------
@@ -1686,8 +1634,7 @@ class TableData(object):
         return self.header[col][0], v
 
     def hide(self, column):
-        """
-        Hide a column or a range of columns.
+        """Hide a column or a range of columns.
 
         Hidden columns will not be printed out by the write() function.
 
@@ -1703,8 +1650,7 @@ class TableData(object):
                 self.hidden[c] = True
 
     def hide_all(self):
-        """
-        Hide all columns.
+        """Hide all columns.
 
         Hidden columns will not be printed out by the write() function.
         """
@@ -1712,8 +1658,7 @@ class TableData(object):
             self.hidden[c] = True
 
     def hide_empty_columns(self, missing='-'):
-        """
-        Hide all columns that do not contain data.
+        """Hide all columns that do not contain data.
 
         Hidden columns will not be printed out by the write() function.
 
@@ -1738,8 +1683,7 @@ class TableData(object):
                 self.hidden[c] = True
 
     def show(self, column):
-        """
-        Show a column or a range of columns.
+        """Show a column or a range of columns.
 
         Undoes hiding of a column.
 
@@ -1758,8 +1702,7 @@ class TableData(object):
               unit_style=None, column_numbers=None, sections=None,
               align_columns=None, shrink_width=True, missing='-',
               center_columns=False, latex_label_command='', latex_merge_std=False):
-        """
-        Write the table to a file or stream.
+        """Write the table to a file or stream.
 
         Parameters
         ----------
@@ -2474,8 +2417,7 @@ class TableData(object):
 
             
     def __str__(self):
-        """
-        Write table to a string.
+        """Write table to a string.
         """
         stream = StringIO()
         self.write(stream, table_format='out')
@@ -2483,8 +2425,7 @@ class TableData(object):
                 
 
     def load(self, fh, missing='-'):
-        """
-        Load table from file or stream.
+        """Load table from file or stream.
 
         File type and properties are automatically inferred.
 
@@ -2818,8 +2759,7 @@ def write(fh, data, header, units=None, formats=None, table_format=None, delimit
               unit_style=None, column_numbers=None, sections=None,
               align_columns=None, shrink_width=True, missing='-',
               center_columns=False, latex_label_command='', latex_merge_std=False):
-    """
-    Construct table and write to file.
+    """Construct table and write to file.
 
     Parameters
     ----------
@@ -2857,7 +2797,8 @@ def add_write_table_config(cfg, table_format=None, delimiter=None,
                            unit_style=None, column_numbers=None, sections=None,
                            align_columns=None, shrink_width=True, missing='-',
                            center_columns=False, latex_label_command='', latex_merge_std=False):
-    """ Add parameter specifying how to write a table to a file as a new section to a configuration.
+    """Add parameter specifying how to write a table to a file as a new
+section to a configuration.
 
     Parameters
     ----------
@@ -2880,7 +2821,8 @@ def add_write_table_config(cfg, table_format=None, delimiter=None,
 
 
 def write_table_args(cfg):
-    """ Translates a configuration to the respective parameter names for writing a table to a file.
+    """Translates a configuration to the respective parameter names for
+writing a table to a file.
     
     The return value can then be passed as key-word arguments to TableData.write().
 
@@ -2895,7 +2837,6 @@ def write_table_args(cfg):
         Dictionary with names of arguments of the `TableData.write` function
         and their values as supplied by `cfg`.
     """
-
     d = cfg.map({'table_format': 'fileFormat',
                  'delimiter': 'fileDelimiter',
                  'unit_style': 'fileUnitStyle',
@@ -2914,7 +2855,7 @@ def write_table_args(cfg):
 
 
 def latex_unit(unit):
-    """ Translate unit string into SIunit LaTeX code.
+    """Translate unit string into SIunit LaTeX code.
     
     Parameters
     ----------
@@ -3024,8 +2965,7 @@ def latex_unit(unit):
 
 
 def index2aa(n, a='a'):
-    """
-    Convert an integer into an alphabetical representation.
+    """Convert an integer into an alphabetical representation.
 
     The integer number is converted into 'a', 'b', 'c', ..., 'z',
     'aa', 'ab', 'ac', ..., 'az', 'ba', 'bb', ...
@@ -3050,8 +2990,7 @@ def index2aa(n, a='a'):
 
 
 def aa2index(s):
-    """
-    Convert an alphabetical representation to an index.
+    """Convert an alphabetical representation to an index.
 
     The alphabetical representation 'a', 'b', 'c', ..., 'z',
     'aa', 'ab', 'ac', ..., 'az', 'ba', 'bb', ...
@@ -3083,8 +3022,8 @@ def aa2index(s):
 
         
 class IndentStream(object):
-    """
-    Filter an output stream and start each newline with a number of spaces.
+    """Filter an output stream and start each newline with a number of
+    spaces.
     """
     def __init__(self, stream, indent=4):
         self.stream = stream

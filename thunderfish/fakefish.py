@@ -1,5 +1,4 @@
-"""
-Simulate EOD waveforms.
+"""Simulate EOD waveforms.
 
 
 ## Species names
@@ -41,12 +40,12 @@ species_name = dict(Sine='Sinewave',
                     Eigenmannia='Eigenmannia spec.',
                     Sternarchella='Sternarchella terminalis',
                     Sternopygus='Sternopygus dariensis')
-""" Translate species ids used by wavefish_harmonics and pulsefish_eodpeaks to full species names.
+"""Translate species ids used by wavefish_harmonics and pulsefish_eodpeaks to full species names.
 """
 
 
 def abbrv_genus(name):
-    """ Abbreviate genus in a species name.
+    """Abbreviate genus in a species name.
 
     Parameters
     ----------
@@ -98,11 +97,11 @@ wavefish_harmonics = dict(Sine=Sine_harmonics,
                           Eigenmannia=Eigenmannia_harmonics,
                           Sternarchella=Sternarchella_terminalis_harmonics,
                           Sternopygus=Sternopygus_dariensis_harmonics)
-""" Amplitudes and phases of EOD waveforms of various species of wave-type electric fish. """
+"""Amplitudes and phases of EOD waveforms of various species of wave-type electric fish."""
 
 
 def wavefish_spectrum(fish):
-    """ Amplitudes and phases of a wavefish EOD.
+    """Amplitudes and phases of a wavefish EOD.
 
     Parameters
     ----------
@@ -146,7 +145,7 @@ def wavefish_spectrum(fish):
 
 def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
                   duration=1.0, phase0=0.0, noise_std=0.05):
-    """ Simulate EOD waveform of a wave-type fish.
+    """Simulate EOD waveform of a wave-type fish.
                   
     The waveform is constructed by superimposing sinewaves of integral
     multiples of the fundamental frequency - the fundamental and its
@@ -208,7 +207,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
 
 
 def normalize_wavefish(fish):
-    """ Normalize amplitudes and phases of wave-type EOD waveform.
+    """Normalize amplitudes and phases of wave-type EOD waveform.
 
     The amplitudes and phases of the Fourier components are adjusted such
     that the resulting EOD waveform has a peak-to-peak amplitude of two
@@ -250,7 +249,7 @@ def normalize_wavefish(fish):
 
 
 def export_wavefish(fish, name='Unknown_harmonics', file=None):
-    """ Serialize wavefish parameter to python code.
+    """Serialize wavefish parameter to python code.
 
     Add output to the wavefish_harmonics dictionary!
 
@@ -309,7 +308,7 @@ def export_wavefish(fish, name='Unknown_harmonics', file=None):
 
 def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
            chirp_size=100.0, chirp_width=0.01, chirp_kurtosis=1.0, chirp_contrast=0.05):
-    """ Simulate frequency trace with chirps.
+    """Simulate frequency trace with chirps.
 
     A chirp is modeled as a Gaussian frequency modulation.
     The first chirp is placed at 0.5/chirp_freq.
@@ -372,7 +371,7 @@ def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
 
 def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
           rise_size=10.0, rise_tau=1.0, decay_tau=10.0):
-    """ Simulate frequency trace with rises.
+    """Simulate frequency trace with rises.
 
     A rise is modeled as a double exponential frequency modulation.
 
@@ -439,12 +438,13 @@ Triphasic_peaks = \
 pulsefish_eodpeaks = dict(Monophasic=Monophasic_peaks,
                           Biphasic=Biphasic_peaks,
                           Triphasic=Triphasic_peaks)
-""" Standard deviations, amplitudes and positions of Gaussians that make up
-    EOD waveforms of pulse-type electric fish. """
+"""Standard deviations, amplitudes and positions of Gaussians that
+    make up EOD waveforms of pulse-type electric fish.
+"""
 
 
 def pulsefish_peaks(fish):
-    """ Position, amplitudes and standard deviations of peaks in pulsefish EOD waveforms.
+    """Position, amplitudes and standard deviations of peaks in pulsefish EOD waveforms.
 
     Parameters
     ----------
@@ -498,7 +498,7 @@ def pulsefish_peaks(fish):
 def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
                    duration=1.0, noise_std=0.01, jitter_cv=0.1,
                    first_pulse=None):
-    """ Simulate EOD waveform of a pulse-type fish.
+    """Simulate EOD waveform of a pulse-type fish.
 
     Pulses are spaced by 1/frequency, jittered as determined by jitter_cv. Each pulse is
     a combination of Gaussian peaks, whose positions, amplitudes and widths are
@@ -579,7 +579,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
 
 
 def normalize_pulsefish(fish):
-    """ Normalize times and stdevs of pulse-type EOD waveform.
+    """Normalize times and stdevs of pulse-type EOD waveform.
 
     The positions and amplitudes of Gaussian peaks are adjusted such
     that the resulting EOD waveform has a maximum peak amplitude of one
@@ -627,7 +627,7 @@ def normalize_pulsefish(fish):
 
 
 def export_pulsefish(fish, name='Unknown_peaks', file=None):
-    """ Serialize pulsefish parameter to python code.
+    """Serialize pulsefish parameter to python code.
 
     Add output to the pulsefish_eodpeaks dictionary!
 
@@ -703,7 +703,7 @@ def export_pulsefish(fish, name='Unknown_peaks', file=None):
 
 
 def generate_waveform(filename):
-    """ Interactively generate audio file with simulated EOD waveforms.
+    """Interactively generate audio file with simulated EOD waveforms.
 
     Parameters needed to generate EOD waveforms are take from console input.
 

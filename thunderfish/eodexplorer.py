@@ -1,5 +1,4 @@
-"""
-View and explore properties of EOD waveforms.
+"""View and explore properties of EOD waveforms.
 """
 
 import os
@@ -43,8 +42,8 @@ class EODExplorer(MultivariateExplorer):
     def __init__(self, data, data_cols, wave_fish, eod_data,
                  add_waveforms, loaded_spec, rawdata_path):
         """
-        Parameter
-        ---------
+        Parameters
+        ----------
         data: TableData
             Full table of EOD properties. Each row is a fish.
         data_cols: list of string or ints
@@ -206,7 +205,7 @@ class EODExplorer(MultivariateExplorer):
 
     
     def fix_waveform_plot(self, axs, indices):
-        """ Adapt waveform plots to EOD waveforms, derivatives, and spectra.
+        """Adapt waveform plots to EOD waveforms, derivatives, and spectra.
         """
         if len(indices) == 0:
             axs[0].text(0.5, 0.5, 'Click to plot EOD waveforms',
@@ -274,7 +273,7 @@ class EODExplorer(MultivariateExplorer):
 
             
     def list_selection(self, indices):
-        """ List file names and indices of selection.
+        """List file names and indices of selection.
 
         If only a single EOD is selected, list all of its properties.
         """
@@ -306,7 +305,7 @@ class EODExplorer(MultivariateExplorer):
 
                 
     def analyze_selection(self, index):
-        """ Launch thunderfish on the selected EOD.
+        """Launch thunderfish on the selected EOD.
         """
         # load data:
         file_base = self.eoddata[index,'file'] if 'file' in self.eoddata else basename
@@ -354,7 +353,7 @@ class EODExplorer(MultivariateExplorer):
         plt.show(block=False)
 
 
-    """ Names of groups of data columns that can be selected by the select_EOD_properties() function.
+    """Names of groups of data columns that can be selected by the select_EOD_properties() function.
     """
     groups = ['all', 'allpower', 'noise', 'timing',
               'ampl', 'relampl', 'power', 'relpower', 'phase',
@@ -362,14 +361,14 @@ class EODExplorer(MultivariateExplorer):
     
     @staticmethod
     def select_EOD_properties(data, wave_fish, max_n, column_groups, add_columns):
-        """ Select data columns to be explored.
+        """Select data columns to be explored.
 
         First, groups of columns are selected, then individual
         columns. Columns that are selected twice are removed from the
         selection.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         data: TableData
             Table with EOD properties from which columns are selected.
         wave_fish: boolean.
@@ -512,12 +511,12 @@ class EODExplorer(MultivariateExplorer):
     
     @staticmethod
     def select_color_property(data, data_cols, color_col):
-        """ Select column from data table for colorizing the data.
+        """Select column from data table for colorizing the data.
 
         Pass the output of this function on to MultivariateExplorer.set_colors().
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         data: TableData
             Table with all EOD properties from which columns are selected.
         data_cols: list of int

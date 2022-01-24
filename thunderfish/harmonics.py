@@ -68,7 +68,8 @@ except ImportError:
 
 def group_candidate(good_freqs, all_freqs, freq, divisor,
                     freq_tol, max_freq_tol, min_group_size, verbose):
-    """ Candidate harmonic frequencies belonging to a fundamental frequency.
+    """Candidate harmonic frequencies belonging to a fundamental
+frequency.
 
     Parameters
     ----------
@@ -233,7 +234,7 @@ def group_candidate(good_freqs, all_freqs, freq, divisor,
 
 def update_group(good_freqs, all_freqs, new_group, fzero,
                  freq_tol, verbose, group_str):
-    """ Update good frequencies and harmonic group.
+    """Update good frequencies and harmonic group.
 
     Remove frequencies from good_freqs, add missing fundamental to group.
 
@@ -509,7 +510,7 @@ def retrieve_harmonic_group(freq, good_freqs, all_freqs,
 
 
 def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
-    """ Add more harmonics to harmonic group.
+    """Add more harmonics to harmonic group.
     
     Parameters
     ----------
@@ -1019,8 +1020,8 @@ def fundamental_freqs(group_list):
 
 def fundamental_freqs_and_power(group_list, power=False,
                                 ref_power=1.0, min_power=1e-20):
-    """
-    Extract fundamental frequencies and their power in dB from lists of harmonic groups.
+    """Extract fundamental frequencies and their power in dB from lists
+    of harmonic groups.
 
     The inner list of 2-D arrays of the input argument is transformed
     into a 2-D array containig for each fish (1st dimension) the
@@ -1050,7 +1051,6 @@ def fundamental_freqs_and_power(group_list, power=False,
         with fundamental frequencies in first column and
         corresponding power in second column.
     """
-
     if len(group_list) == 0:
         return np.array([])
 
@@ -1077,7 +1077,7 @@ def fundamental_freqs_and_power(group_list, power=False,
 
 
 def add_relative_power(freqs):
-    """ Add a column with relative power.
+    """Add a column with relative power.
 
     For each element in `freqs`, its maximum power is subtracted
     from all powers.
@@ -1099,7 +1099,7 @@ def add_relative_power(freqs):
 
 
 def add_power_ranks(freqs):
-    """ Add a column with power ranks.
+    """Add a column with power ranks.
 
     Parameters
     ----------
@@ -1126,7 +1126,7 @@ def add_power_ranks(freqs):
 
 
 def similar_indices(freqs, df_thresh, nextfs=0):
-    """ Indices of similar frequencies.
+    """Indices of similar frequencies.
 
     If two frequencies from different elements in the inner lists of `freqs` are
     reciprocally the closest to each other and closer than `df_thresh`,
@@ -1188,7 +1188,7 @@ def similar_indices(freqs, df_thresh, nextfs=0):
 
 
 def unique_mask(freqs, df_thresh, nextfs=0):
-    """ Mark similar frequencies from different recordings as dublicate.
+    """Mark similar frequencies from different recordings as dublicate.
 
     If two frequencies from different elements in `freqs` are
     reciprocally the closest to each other and closer than `df_thresh`,
@@ -1246,7 +1246,7 @@ def unique_mask(freqs, df_thresh, nextfs=0):
 
 
 def unique(freqs, df_thresh, mode='power', nextfs=0):
-    """ Remove similar frequencies from different recordings.
+    """Remove similar frequencies from different recordings.
 
     If two frequencies from different elements in the inner lists of `freqs`
     are reciprocally the closest to each other and closer than `df_thresh`,
@@ -1312,8 +1312,7 @@ def unique(freqs, df_thresh, mode='power', nextfs=0):
 
 
 def colors_markers():
-    """
-    Generate a list of colors and markers for plotting.
+    """Generate a list of colors and markers for plotting.
 
     Returns
     -------
@@ -1360,8 +1359,7 @@ def colors_markers():
 def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
                          sort_by_freq=True, label_power=False,
                          colors=None, markers=None, legend_rows=8, **kwargs):
-    """
-    Mark decibel power of fundamentals and their harmonics in a plot.
+    """Mark decibel power of fundamentals and their harmonics in a plot.
 
     Parameters
     ----------
@@ -1449,8 +1447,8 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
 def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
                              mains=None, all_freqs=None, good_freqs=None,
                              log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0):
-    """
-    Plot decibel power-spectrum with detected peaks, harmonic groups, and mains frequencies.
+    """Plot decibel power-spectrum with detected peaks, harmonic groups,
+    and mains frequencies.
     
     Parameters
     ----------
@@ -1508,15 +1506,14 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
                                   thresh_bins=100,
                                   low_thresh_factor=6.0, high_thresh_factor=10.0):
-    """ Add parameter needed for detection of peaks in power spectrum used by
-    harmonic_groups() as a new section to a configuration.
+    """Add parameter needed for detection of peaks in power spectrum used
+    by harmonic_groups() as a new section to a configuration.
 
     Parameters
     ----------
     cfg: ConfigFile
         The configuration.
     """
-
     cfg.add_section('Thresholds for peak detection in power spectra:')
     cfg.add('lowThreshold', low_threshold, 'dB', 'Threshold for all peaks.\n If 0.0 estimate threshold from histogram.')
     cfg.add('highThreshold', high_threshold, 'dB', 'Threshold for good peaks. If 0.0 estimate threshold from histogram.')
@@ -1528,9 +1525,10 @@ def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
 
 
 def psd_peak_detection_args(cfg):
-    """ Translates a configuration to the respective parameter names for the
-    detection of peaks in power spectrum used by harmonic_groups().
-    The return value can then be passed as key-word arguments to this function.
+    """Translates a configuration to the respective parameter names for
+    the detection of peaks in power spectrum used by
+    harmonic_groups().  The return value can then be passed as
+    key-word arguments to this function.
 
     Parameters
     ----------
@@ -1555,15 +1553,14 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
                                max_freq_tol=1.0, min_group_size=3,
                                min_freq=20.0, max_freq=2000.0, max_db_diff=20.0,
                                max_harmonics_db=-5.0, max_harmonics=0, max_groups=0):
-    """ Add parameter needed for detection of harmonic groups as
-    a new section to a configuration.
+    """Add parameter needed for detection of harmonic groups as a new
+    section to a configuration.
 
     Parameters
     ----------
     cfg: ConfigFile
         The configuration.
     """
-    
     cfg.add_section('Harmonic groups:')
     cfg.add('mainsFreq', mains_freq, 'Hz', 'Mains frequency to be excluded.')
     cfg.add('mainsFreqTolerance', mains_freq_tol, 'Hz', 'Exclude peaks within this tolerance around multiples of the mains frequency.')
@@ -1585,9 +1582,9 @@ def add_harmonic_groups_config(cfg, mains_freq=60.0, mains_freq_tol=1.0,
 
 
 def harmonic_groups_args(cfg):
-    """ Translates a configuration to the
-    respective parameter names of the harmonic-group detection functions.
-    The return value can then be passed as key-word arguments to this function.
+    """Translates a configuration to the respective parameter names of
+    the harmonic-group detection functions.  The return value can then
+    be passed as key-word arguments to this function.
 
     Parameters
     ----------

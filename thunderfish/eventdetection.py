@@ -1,5 +1,4 @@
-"""
-Detect and handle peaks and troughs as well as threshold crossings in data arrays.
+"""Detect and handle peaks and troughs as well as threshold crossings in data arrays.
 
 ## Peak detection
 
@@ -55,7 +54,7 @@ except ImportError:
 
 
 def detect_peaks(data, threshold):
-    """ Detect peaks and troughs using a relative threshold.
+    """Detect peaks and troughs using a relative threshold.
 
     This is an implementation of the algorithm by
     Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
@@ -99,7 +98,7 @@ def detect_peaks(data, threshold):
 
 @jit(nopython=True)
 def detect_peaks_fixed(data, threshold):
-    """ Detect peaks and troughs using a fixed, relative threshold.
+    """Detect peaks and troughs using a fixed, relative threshold.
 
     Helper function for detect_peaks().
 
@@ -186,7 +185,7 @@ def detect_peaks_fixed(data, threshold):
 
 @jit(nopython=True)
 def detect_peaks_array(data, threshold):
-    """ Detect peaks and troughs using a variable relative threshold.
+    """Detect peaks and troughs using a variable relative threshold.
 
     Helper function for detect_peaks().
 
@@ -273,7 +272,7 @@ def detect_peaks_array(data, threshold):
     
 def peak_width(time, data, peak_indices, trough_indices,
                peak_frac=0.5, base='max'):
-    """ Width of each peak.
+    """Width of each peak.
 
     Peak width is computed from interpolated threshold crossings at
     `peak_frac` hieght of each peak.
@@ -370,7 +369,7 @@ def peak_width(time, data, peak_indices, trough_indices,
     
 def peak_size_width(time, data, peak_indices, trough_indices,
                     peak_frac=0.75, base='closest'):
-    """ Compute size and width of each peak.
+    """Compute size and width of each peak.
 
     Parameters
     ----------
@@ -474,7 +473,7 @@ def peak_size_width(time, data, peak_indices, trough_indices,
     
 
 def threshold_crossings(data, threshold):
-    """ Detect crossings of a threshold with positive and negative slope.
+    """Detect crossings of a threshold with positive and negative slope.
 
     Parameters
     ----------
@@ -508,7 +507,7 @@ def threshold_crossings(data, threshold):
 
     
 def threshold_crossing_times(time, data, threshold, up_indices, down_indices):
-    """ Compute times of threshold crossings by linear interpolation.
+    """Compute times of threshold crossings by linear interpolation.
 
     Parameters
     ----------
@@ -538,7 +537,7 @@ def threshold_crossing_times(time, data, threshold, up_indices, down_indices):
 
 
 def trim(peaks, troughs):
-    """ Trims the peaks and troughs arrays such that they have the same length.
+    """Trims the peaks and troughs arrays such that they have the same length.
     
     Parameters
     ----------
@@ -561,7 +560,7 @@ def trim(peaks, troughs):
 
 
 def trim_to_peak(peaks, troughs):
-    """ Trims the peaks and troughs arrays such that they have the same length
+    """Trims the peaks and troughs arrays such that they have the same length
     and the first peak comes first.
     
     Parameters
@@ -589,7 +588,7 @@ def trim_to_peak(peaks, troughs):
 
 
 def trim_closest(peaks, troughs):
-    """ Trims the peaks and troughs arrays such that they have the same length
+    """Trims the peaks and troughs arrays such that they have the same length
     and that peaks-troughs is on average as small as possible.
     
     Parameters
@@ -632,7 +631,7 @@ def trim_closest(peaks, troughs):
 
 
 def merge_events(onsets, offsets, min_distance):
-    """ Merge events if they are closer than a minimum distance.
+    """Merge events if they are closer than a minimum distance.
 
     If the beginning of an event (onset, peak, or positive threshold crossing,
     is too close to the end of the previous event (offset, trough, or negative
@@ -674,7 +673,7 @@ def merge_events(onsets, offsets, min_distance):
 
     
 def remove_events(onsets, offsets, min_duration, max_duration=None):
-    """ Remove events that are too short or too long.
+    """Remove events that are too short or too long.
 
     If the length of an event, i.e. `offset` (offset, trough, or negative
     threshold crossing) minus `onset` (onset, peak, or positive threshold crossing),
@@ -726,7 +725,7 @@ def remove_events(onsets, offsets, min_duration, max_duration=None):
 
 
 def widen_events(onsets, offsets, max_time, duration):
-    """ Enlarge events on both sides without overlap.
+    """Enlarge events on both sides without overlap.
 
     Subtracts `duration` from the `onsets` and adds `duration` to the offsets.
     If two succeeding events are separated by less than two times the `duration`,
@@ -778,7 +777,7 @@ def widen_events(onsets, offsets, max_time, duration):
 
     
 def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
-    """ Estimates a threshold for peak detection based on the standard deviation of the data.
+    """Estimates a threshold for peak detection based on the standard deviation of the data.
 
     The threshold is computed as the standard deviation of the data
     multiplied with `thresh_fac`.
@@ -823,7 +822,7 @@ def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
     
 @jit(nopython=True)
 def median_std_threshold(data, samplerate, win_size=0.0005, n_snippets=1000, thresh_fac=6.0):
-    """ Estimate a threshold for peak detection based on the median standard deviation of data snippets.
+    """Estimate a threshold for peak detection based on the median standard deviation of data snippets.
 
     On `n_snippets` snippets of `win_size` duration the standard
     deviation of the data is estimated. The returned threshold is the
@@ -861,7 +860,7 @@ def median_std_threshold(data, samplerate, win_size=0.0005, n_snippets=1000, thr
     
 def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
                    nbins=100, hist_height=1.0/np.sqrt(np.e)):
-    """ Estimate a threshold for peak detection based on a histogram of the data.
+    """Estimate a threshold for peak detection based on a histogram of the data.
 
     The standard deviation of the data is estimated from half the
     width of the histogram of the data at `hist_height` relative height.
@@ -927,7 +926,7 @@ def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
 
     
 def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
-    """ Estimate a threshold for peak detection based on minimum and maximum values of the data.
+    """Estimate a threshold for peak detection based on minimum and maximum values of the data.
 
     The threshold is computed as the difference between maximum and
     minimum value of the data multiplied with `thresh_fac`.
@@ -1019,7 +1018,6 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
     -------
     threshold: float or 1-D array
         The computed threshold.
-
     """
     if percentile < 1e-8:
         return minmax_threshold(data, samplerate=samplerate, win_size=win_size,
@@ -1038,7 +1036,7 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
 
 
 def snippets(data, indices, start=-10, stop=10):
-    """ Cut out data arround each position given in indices.
+    """Cut out data arround each position given in indices.
 
     Parameters
     ----------
@@ -1067,11 +1065,15 @@ def snippets(data, indices, start=-10, stop=10):
 
 def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
                          check_peak_func=None, check_trough_func=None, **kwargs):
-    """ Detect peaks and troughs using a relative threshold according to
-    Bryan S. Todd and David C. Andrews (1999): The identification of peaks in physiological signals.
-    Computers and Biomedical Research 32, 322-335.
-    The threshold decays dynamically towards min_thresh with time constant tau.
-    Use `check_peak_func` or `check_trough_func` to reset the threshold to an appropriate size.
+    """Detect peaks and troughs using a relative threshold.
+
+    The threshold decays dynamically towards min_thresh with time
+    constant tau.  Use `check_peak_func` or `check_trough_func` to
+    reset the threshold to an appropriate size.
+
+    Based on Bryan S. Todd and David C. Andrews (1999): The
+    identification of peaks in physiological signals.  Computers and
+    Biomedical Research 32, 322-335.
 
     Parameters
     ----------
@@ -1153,6 +1155,7 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
         If `threshold <= 0` or `min_thresh <= 0` or `tau <= 0`.
     IndexError:
         If `data` and `time` arrays differ in length.
+
     """
     if threshold <= 0:
         raise ValueError('input argument threshold must be positive!')
@@ -1272,7 +1275,7 @@ def detect_dynamic_peaks(data, threshold, min_thresh, tau, time=None,
 
 def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
                                min_thresh, tau, thresh_ampl_fac=0.75, thresh_weight=0.02):
-    """ Accept each detected peak/trough and return its index or time.
+    """Accept each detected peak/trough and return its index or time.
                                
     Adjust the threshold to the size of the detected peak.
     To be passed to the `detect_dynamic_peaks()` function.

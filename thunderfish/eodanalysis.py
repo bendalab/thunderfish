@@ -196,8 +196,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
 
 
 def unfilter(data, samplerate, cutoff):
-    """
-    Apply inverse high-pass filter on data.
+    """Apply inverse high-pass filter on data.
 
     Assumes high-pass filter \\[ \\tau \\dot y = -y + \\tau \\dot x \\] has
     been applied on the original data \\(x\\), where \\(\\tau=(2\\pi
@@ -233,8 +232,7 @@ def unfilter(data, samplerate, cutoff):
 
 
 def fourier_series(t, freq, *ap):
-    """
-    Fourier series of sine waves with amplitudes and phases.
+    """Fourier series of sine waves with amplitudes and phases.
 
     x(t) = sum_{i=0}^n ap[2*i]*sin(2 pi (i+1) freq t + ap[2*i+1])
     
@@ -260,8 +258,7 @@ def fourier_series(t, freq, *ap):
 
 
 def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_wave='none'):
-    """
-    Analyze the EOD waveform of a wave fish.
+    """Analyze the EOD waveform of a wave fish.
     
     Parameters
     ----------
@@ -493,8 +490,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
 
 
 def exp_decay(t, tau, ampl, offs):
-    """
-    Exponential decay function.
+    """Exponential decay function.
 
     x(t) = ampl*exp(-t/tau) + offs
 
@@ -513,7 +509,6 @@ def exp_decay(t, tau, ampl, offs):
     -------
     x: float or array
         The exponential decay evaluated at times `t`.
-    
     """
     return offs + ampl*np.exp(-t/tau)
 
@@ -522,8 +517,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
                   min_dist=50.0e-6, width_frac = 0.5, fit_frac = 0.5,
                   freq_resolution=1.0, flip_pulse='none',
                   ipi_cv_thresh=0.5, ipi_percentile=30.0):
-    """
-    Analyze the EOD waveform of a pulse fish.
+    """Analyze the EOD waveform of a pulse fish.
     
     Parameters
     ----------
@@ -896,7 +890,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
 
 
 def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
-    """ Adjust EOD frequencies to a standard temperature using Q10.
+    """Adjust EOD frequencies to a standard temperature using Q10.
 
     Parameters
     ----------
@@ -920,7 +914,7 @@ def adjust_eodf(eodf, temp, temp_adjust=25.0, q10=1.62):
 
 
 def load_species_waveforms(species_file='none'):
-    """ Load template EOD waveforms for species matching.
+    """Load template EOD waveforms for species matching.
     
     Parameters
     ----------
@@ -1045,7 +1039,6 @@ def wave_similarity(eod1, eod2, eod1f=1.0, eod2f=1.0):
     rmse: float
         Root-mean-squared difference between the two EOD waveforms relative to
         their standard deviation over one period.
-
     """
     # copy:
     eod1 = np.array(eod1[:,:2])
@@ -1134,7 +1127,6 @@ def pulse_similarity(eod1, eod2, wfac=10.0):
     rmse: float
         Root-mean-squared difference between the two EOD waveforms relative to
         their standard deviation over the analysis window.
-
     """
     # copy:
     eod1 = np.array(eod1[:,:2])
@@ -1205,7 +1197,6 @@ def clipped_fraction(data, samplerate, eod_times, mean_eod,
     -------
     clipped_frac: float
         Fraction of snippets that are clipped.
-
     """
     # snippets:
     idx0 = np.argmin(np.abs(mean_eod[:,0])) # index of time zero
@@ -1224,8 +1215,7 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
                  max_crossings=4, max_rms_sem=0.0, max_rms_error=0.05,
                  min_power=-100.0, max_thd=0.0, max_db_diff=20.0, max_harmonics_db=-5.0,
                  max_relampl_harm1=0.0, max_relampl_harm2=0.0, max_relampl_harm3=0.0):
-    """
-    Assess the quality of an EOD waveform of a wave fish.
+    """Assess the quality of an EOD waveform of a wave fish.
     
     Parameters
     ----------
@@ -1368,8 +1358,7 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
 
 
 def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
-    """
-    Assess the quality of an EOD waveform of a pulse fish.
+    """Assess the quality of an EOD waveform of a pulse fish.
     
     Parameters
     ----------
@@ -1417,8 +1406,7 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
 
 def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
                        kwargs={'lw': 2, 'color': 'red'}):
-    """
-    Plot a zoomed in range of the recorded trace.
+    """Plot a zoomed in range of the recorded trace.
 
     Parameters
     ----------
@@ -1467,8 +1455,7 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
 def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0.0,
                     colors=None, markers=None, marker_size=10,
                     legend_rows=8, **kwargs):
-    """
-    Mark pulse EODs in a plot of an EOD recording.
+    """Mark pulse EODs in a plot of an EOD recording.
 
     Parameters
     ----------
@@ -1554,8 +1541,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         
 def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10, flip=False,
                       kwargs={'zorder': -5, 'scaley': False, 'lw': 0.5, 'color': '#CCCCCC'}):
-    """
-    Plot a few EOD waveform snippets.
+    """Plot a few EOD waveform snippets.
 
     Parameters
     ----------
@@ -1601,8 +1587,7 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                       skwargs={'zorder': 5, 'color': '#CCCCCC'},
                       fkwargs={'zorder': 0, 'lw': 6, 'color': 'steelblue'},
                       zkwargs={'zorder': -10, 'lw': 1, 'color': '#AAAAAA'}):
-    """
-    Plot mean EOD, its standard error, and an optional fit to the EOD.
+    """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
     Parameters
     ----------
@@ -1851,7 +1836,7 @@ def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
 
 
 def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
-    """ Save mean EOD waveform to file.
+    """Save mean EOD waveform to file.
 
     Parameters
     ----------
@@ -1889,7 +1874,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
 
 
 def load_eod_waveform(file_path):
-    """ Load EOD waveform from file.
+    """Load EOD waveform from file.
 
     Parameters
     ----------
@@ -1919,7 +1904,7 @@ def load_eod_waveform(file_path):
 
 
 def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
-    """ Save frequencies of wave EODs to file.
+    """Save frequencies of wave EODs to file.
 
     Parameters
     ----------
@@ -1956,7 +1941,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
 
 
 def load_wave_eodfs(file_path):
-    """ Load frequencies of wave EODs from file.
+    """Load frequencies of wave EODs from file.
 
     Parameters
     ----------
@@ -1988,7 +1973,7 @@ def load_wave_eodfs(file_path):
 
     
 def save_wave_fish(eod_props, unit, basename, **kwargs):
-    """ Save properties of wave EODs to file.
+    """Save properties of wave EODs to file.
 
     Parameters
     ----------
@@ -2054,7 +2039,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
 
 
 def load_wave_fish(file_path):
-    """ Load properties of wave EODs from file.
+    """Load properties of wave EODs from file.
 
     Parameters
     ----------
@@ -2098,7 +2083,7 @@ def load_wave_fish(file_path):
 
 
 def save_pulse_fish(eod_props, unit, basename, **kwargs):
-    """ Save properties of pulse EODs to file.
+    """Save properties of pulse EODs to file.
 
     Parameters
     ----------
@@ -2163,7 +2148,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
 
 
 def load_pulse_fish(file_path):
-    """ Load properties of pulse EODs from file.
+    """Load properties of pulse EODs from file.
 
     Parameters
     ----------
@@ -2203,7 +2188,7 @@ def load_pulse_fish(file_path):
 
 
 def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
-    """ Save amplitude and phase spectrum of wave EOD to file.
+    """Save amplitude and phase spectrum of wave EOD to file.
 
     Parameters
     ----------
@@ -2242,7 +2227,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
 
 
 def load_wave_spectrum(file_path):
-    """ Load amplitude and phase spectrum of wave EOD from file.
+    """Load amplitude and phase spectrum of wave EOD from file.
 
     Parameters
     ----------
@@ -2274,7 +2259,7 @@ def load_wave_spectrum(file_path):
 
                         
 def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
-    """ Save power spectrum of pulse EOD to file.
+    """Save power spectrum of pulse EOD to file.
 
     Parameters
     ----------
@@ -2309,7 +2294,7 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
 
 
 def load_pulse_spectrum(file_path):
-    """ Load power spectrum of pulse EOD from file.
+    """Load power spectrum of pulse EOD from file.
 
     Parameters
     ----------
@@ -2336,7 +2321,7 @@ def load_pulse_spectrum(file_path):
 
                         
 def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
-    """ Save peak properties of pulse EOD to file.
+    """Save peak properties of pulse EOD to file.
 
     Parameters
     ----------
@@ -2375,7 +2360,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
 
 
 def load_pulse_peaks(file_path):
-    """ Load peak properties of pulse EOD from file.
+    """Load peak properties of pulse EOD from file.
 
     Parameters
     ----------
@@ -2415,8 +2400,8 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
                             peak_thresh_fac=0.01, min_dist=50.0e-6,
                             width_frac = 0.5, fit_frac = 0.5,
                             ipi_cv_thresh=0.5, ipi_percentile=30.0):
-    """ Add all parameters needed for the eod analysis functions as
-    a new section to a configuration.
+    """Add all parameters needed for the eod analysis functions as a new
+    section to a configuration.
 
     Parameters
     ----------
@@ -2445,8 +2430,8 @@ def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
 
 
 def eod_waveform_args(cfg):
-    """ Translates a configuration to the
-    respective parameter names of the function `eod_waveform()`.
+    """Translates a configuration to the respective parameter names of
+    the function `eod_waveform()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -2470,8 +2455,8 @@ def eod_waveform_args(cfg):
 
 
 def analyze_wave_args(cfg):
-    """ Translates a configuration to the
-    respective parameter names of the function `analyze_wave()`.
+    """Translates a configuration to the respective parameter names of
+    the function `analyze_wave()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -2493,8 +2478,8 @@ def analyze_wave_args(cfg):
 
 
 def analyze_pulse_args(cfg):
-    """ Translates a configuration to the
-    respective parameter names of the function `analyze_pulse()`.
+    """Translates a configuration to the respective parameter names of
+    the function `analyze_pulse()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -2570,8 +2555,8 @@ def add_eod_quality_config(cfg, max_clipped_frac=0.1, max_variance=0.0,
 
 
 def wave_quality_args(cfg):
-    """ Translates a configuration to the
-    respective parameter names of the function `wave_quality()`.
+    """Translates a configuration to the respective parameter names of
+    the function `wave_quality()`.
     
     The return value can then be passed as key-word arguments to this function.
 
@@ -2603,8 +2588,8 @@ def wave_quality_args(cfg):
 
 
 def pulse_quality_args(cfg):
-    """ Translates a configuration to the
-    respective parameter names of the function `pulse_quality()`.
+    """Translates a configuration to the respective parameter names of
+    the function `pulse_quality()`.
     
     The return value can then be passed as key-word arguments to this function.
 

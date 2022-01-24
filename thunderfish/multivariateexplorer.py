@@ -1,5 +1,4 @@
-"""
-Simple GUI for viewing and exploring multivariate data.
+"""Simple GUI for viewing and exploring multivariate data.
 
 - `class MultiVariateExplorer`: simple matplotlib-based GUI for viewing and exploring multivariate data.
 - `categorize()`: convert categorial string data into integer categories.
@@ -67,10 +66,10 @@ class MultivariateExplorer(object):
                    ('escape', 'close magnified scatter plot'))
     
     def __init__(self, data, labels=None, title=None):
-        """ Initialize explorer with scatter-plot data.
+        """Initialize explorer with scatter-plot data.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         data: TableData, 2D array, or list of 1D arrays
             The data to be explored. Each column is a variable.
             For the 2D array the columns are the second dimension,
@@ -189,10 +188,10 @@ class MultivariateExplorer(object):
 
 
     def set_wave_data(self, data, xlabels='', ylabels=[], title=False):
-        """ Add waveform data to explorer.
+        """Add waveform data to explorer.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         data: list of (list of) 2D arrays
             Waveform data associated with each row of the data.
             Elements of the outer list correspond to the rows of the data.
@@ -237,10 +236,10 @@ class MultivariateExplorer(object):
 
         
     def set_colors(self, colors=0, color_label=None, color_map=None):
-        """ Set data column used to color scatter plots.
+        """Set data column used to color scatter plots.
         
-        Parameter
-        ---------
+        Parameters
+        ----------
         colors: int or 1D array
            Index to colum in data to be used for coloring scatter plots.
            -2 for coloring row index of data.
@@ -272,7 +271,7 @@ class MultivariateExplorer(object):
 
         
     def show(self):
-        """ Show interactive scatter plots for exploration.
+        """Show interactive scatter plots for exploration.
         """
         plt.ioff()
         plt.rcParams['toolbar'] = 'None'
@@ -314,7 +313,7 @@ class MultivariateExplorer(object):
 
 
     def _pca_header(self, data, labels):
-        """ Set up header for the table of principal components. """
+        """Set up header for the table of principal components. """
         if isinstance(data, TableData):
             header = data.table_header()
             for c in reversed(range(data.columns())):
@@ -340,10 +339,10 @@ class MultivariateExplorer(object):
 
                 
     def compute_pca(self, scale=False, write=False):
-        """ Compute PCA based on the data.
+        """Compute PCA based on the data.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         scale: boolean
             If True standardize data before computing PCA, i.e. remove mean
             of each variabel and divide by its standard deviation.
@@ -399,10 +398,10 @@ class MultivariateExplorer(object):
 
             
     def save_pca(self, file_name, scale, **kwargs):
-        """ Write PCA data to file.
+        """Write PCA data to file.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         file_name: string
             Name of ouput file.
         scale: boolean
@@ -426,7 +425,7 @@ class MultivariateExplorer(object):
 
             
     def _set_color_column(self):
-        """ Initialize variables used for colorization of scatter points. """
+        """Initialize variables used for colorization of scatter points."""
         if self.color_set_index == -1:
             if self.color_index == 0:
                 self.color_values = np.arange(self.data.shape[0], dtype=np.float)
@@ -451,7 +450,7 @@ class MultivariateExplorer(object):
 
                             
     def _plot_hist(self, ax, magnifiedax, keep_lims):
-        """ Plot and label a histogram. """
+        """Plot and label a histogram."""
         ax_xlim = ax.get_xlim()
         ax_ylim = ax.get_ylim()
         try:
@@ -507,7 +506,7 @@ class MultivariateExplorer(object):
 
                         
     def _init_hist_plots(self):
-        """ Initial plots of the histograms. """
+        """Initial plots of the histograms."""
         n = self.data.shape[1]
         yax = None
         self.hist_ax = []
@@ -521,7 +520,7 @@ class MultivariateExplorer(object):
 
                         
     def _plot_scatter(self, ax, magnifiedax, keep_lims, cax=None):
-        """ Plot a scatter plot. """
+        """Plot a scatter plot."""
         ax_xlim = ax.get_xlim()
         ax_ylim = ax.get_ylim()
         idx = self.scatter_ax.index(ax)
@@ -603,7 +602,7 @@ class MultivariateExplorer(object):
 
         
     def _init_scatter_plots(self):
-        """ Initial plots of scatter plots. """
+        """Initial plots of scatter plots."""
         self.cbax = self.fig.add_axes([0.5, 0.5, 0.1, 0.5])
         cbax = self.cbax
         n = self.data.shape[1]
@@ -621,7 +620,7 @@ class MultivariateExplorer(object):
 
                 
     def _plot_magnified_scatter(self):
-        """ Initial plot of the magnified scatter plot. """
+        """Initial plot of the magnified scatter plot."""
         ax = self.fig.add_axes([0.5, 0.9, 0.05, 0.05])
         ax.set_visible(False)
         self.magnified_on = False
@@ -664,8 +663,8 @@ class MultivariateExplorer(object):
                 ax.set_yticklabels(['0', u'\u03c0/2', u'\u03c0', u'3\u03c0/2', u'2\u03c0'])
         ```
         
-        Parameter
-        ---------
+        Parameters
+        ----------
         ax: matplotlib axes
             Axes of the scatter plot or color bar to be worked on.
         data: 1D array
@@ -690,7 +689,7 @@ class MultivariateExplorer(object):
 
     
     def fix_waveform_plot(self, axs, indices):
-        """ Customize waveform plots.
+        """Customize waveform plots.
 
         This function is called once after new data have been plotted
         into the waveform plots.  Reimplement this function to customize
@@ -743,15 +742,15 @@ class MultivariateExplorer(object):
 
     
     def list_selection(self, indices):
-        """ List information about the current selection of data points.
+        """List information about the current selection of data points.
 
         This function is called when 'l' is pressed.  Reimplement this
         function, for example, to print some meaningfull information
         about the current selection of data points on console. You nay
         do, however, whatever you want in this function.
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         indices: list of int
             Indices of the data points that have been selected.
         """
@@ -760,7 +759,7 @@ class MultivariateExplorer(object):
 
             
     def analyze_selection(self, index):
-        """ Provide further information about a single selected data point.
+        """Provide further information about a single selected data point.
 
         This function is called when a single data item was double
         clicked.  Reimplement this function to provide some further
@@ -768,8 +767,8 @@ class MultivariateExplorer(object):
         window. In this case show it non-blocking:
         `plt.show(block=False)`
 
-        Parameter
-        ---------
+        Parameters
+        ----------
         index: int
             The index of the selected data point.
         """
@@ -777,7 +776,7 @@ class MultivariateExplorer(object):
 
     
     def _set_magnified_pos(self, width, height):
-        """ Set position of magnified plot. """
+        """Set position of magnified plot."""
         if self.magnified_on:
             xoffs = self.xborder/width
             yoffs = self.yborder/height
@@ -802,7 +801,7 @@ class MultivariateExplorer(object):
 
             
     def _make_selection(self, ax, key, x0, x1, y0, y1):
-        """ Select points from a scatter or histogram plot. """
+        """Select points from a scatter or histogram plot."""
         if not key in ['shift', 'control']:
             self.mark_data = []
         try:
@@ -844,7 +843,7 @@ class MultivariateExplorer(object):
 
                         
     def _update_selection(self):
-        """ Highlight select points in the scatter plots and plot corresponding waveforms. """
+        """Highlight select points in the scatter plots and plot corresponding waveforms."""
         # update scatter plots:
         for artist, (c, r) in zip(self.scatter_artists, self.scatter_indices):
             if artist is not None:
@@ -883,7 +882,7 @@ class MultivariateExplorer(object):
 
         
     def _on_key(self, event):
-        """ Handle key events. """
+        """Handle key events."""
         #print('pressed', event.key)
         plot_zoom = True
         if event.key in ['left', 'right', 'up', 'down']:
@@ -1090,7 +1089,7 @@ class MultivariateExplorer(object):
 
             
     def _on_select(self, eclick, erelease):
-        """ Handle selection events. """
+        """Handle selection events."""
         if eclick.dblclick:
             if len(self.mark_data) > 0:
                 self.analyze_selection(self.mark_data[-1])
@@ -1126,7 +1125,7 @@ class MultivariateExplorer(object):
 
         
     def _on_pick(self, event):
-        """ Handle pick events on waveforms. """
+        """Handle pick events on waveforms."""
         for ax in self.wave_ax:
             for k, l in enumerate(ax.lines):
                 if l is event.artist:
@@ -1138,7 +1137,7 @@ class MultivariateExplorer(object):
 
                     
     def _set_layout(self, width, height):
-        """ Update positions and visibility of all plots. """
+        """Update positions and visibility of all plots."""
         xoffs = self.xborder/width
         yoffs = self.yborder/height
         xs = self.spacing/width
@@ -1213,7 +1212,7 @@ class MultivariateExplorer(object):
 
             
     def _update_layout(self):
-        """ Update content and position of magnified plot. """
+        """Update content and position of magnified plot."""
         if self.scatter_indices[-1][1] < self.data.shape[1]:
             if self.scatter_indices[-1][1] >= self.maxcols:
                 self.scatter_indices[-1][1] = self.maxcols-1
@@ -1230,7 +1229,7 @@ class MultivariateExplorer(object):
 
         
     def _on_resize(self, event):
-        """ Adapt layout of plots to new figure size. """
+        """Adapt layout of plots to new figure size."""
         self._set_layout(event.width, event.height)
 
 
@@ -1276,7 +1275,7 @@ def main():
 
 
 def categorize(data):
-    """ Convert categorial string data into integer categories.
+    """Convert categorial string data into integer categories.
 
     Parameters
     ----------

@@ -1,11 +1,13 @@
-"""
-Writing numpy arrays of floats to data files.
+"""Writing numpy arrays of floats to data files.
+
+- `write_data()`: write data into a file.
+- `available_formats()`: data and audio file formats supported.
 """
 
 import os
 
 data_modules = {}
-""" Dictionary with availability of various modules needed for writing data.
+"""Dictionary with availability of various modules needed for writing data.
 Keys are the module names, values are booleans.
 """
 

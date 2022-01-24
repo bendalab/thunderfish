@@ -1,5 +1,4 @@
-"""
-Powerspectra and spectrograms for a given frequency resolution
+"""Powerspectra and spectrograms for a given frequency resolution
 
 ## Computation of nfft
 
@@ -96,8 +95,8 @@ def nfft(samplerate, freq_resolution, min_nfft=16, max_nfft=None):
 
 
 def decibel(power, ref_power=1.0, min_power=1e-20):
-    """
-    Transform power to decibel relative to ref_power.
+    """Transform power to decibel relative to ref_power.
+
     \\[ decibel = 10 \\cdot \\log_{10}(power/ref\\_power) \\]
     Power values smaller than `min_power` are set to `-np.inf`.
 
@@ -133,8 +132,8 @@ def decibel(power, ref_power=1.0, min_power=1e-20):
 
 
 def power(decibel, ref_power=1.0):
-    """
-    Transform decibel back to power relative to ref_power.
+    """Transform decibel back to power relative to `ref_power`.
+
     \\[ power = ref\\_power \\cdot 10^{decibel/10} \\]
     
     Parameters
@@ -292,8 +291,7 @@ def multi_psd(data, ratetime, freq_resolution=0.5,
 def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
                 max_nfft=None, overlap_frac=0.5,
                 detrend='constant', window='hanning'):
-    """
-    Spectrogram of a given frequency resolution.
+    """Spectrogram of a given frequency resolution.
 
     Check the returned frequency array for the actually used frequency resolution.
     The frequency intervals are smaller or equal to `freq_resolution`.
@@ -361,8 +359,7 @@ def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
 
 def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
                      log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0, **kwargs):
-    """
-    Plot the powerspectum in decibel relative to ref_power.
+    """Plot the powerspectum in decibel relative to `ref_power`.
 
     Parameters
     ----------
@@ -459,7 +456,7 @@ def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=1.0,
 
 def add_multi_psd_config(cfg, freq_resolution=0.5,
                          num_resolutions=1, num_windows=1):
-    """ Add all parameters needed for the multi_psd() function as
+    """Add all parameters needed for the multi_psd() function as
     a new section to a configuration.
 
     Parameters
@@ -476,7 +473,7 @@ def add_multi_psd_config(cfg, freq_resolution=0.5,
 
 
 def multi_psd_args(cfg):
-    """ Translates a configuration to the
+    """Translates a configuration to the
     respective parameter names of the multi_psd() function.
     
     The return value can then be passed as key-word arguments to

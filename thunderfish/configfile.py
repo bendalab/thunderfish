@@ -1,3 +1,6 @@
+"""Handling of configuration parameter.
+"""
+
 import os
 from collections import OrderedDict
 
@@ -81,8 +84,7 @@ class ConfigFile(object):
 
 
     def __contains__(self, key):
-        """
-        Check for existence of a configuration parameter. 
+        """Check for existence of a configuration parameter.
 
         Parameters
         ----------
@@ -155,8 +157,7 @@ class ConfigFile(object):
 
 
     def __delitem__(self, key):
-        """
-        Remove an entry from the configuration.
+        """Remove an entry from the configuration.
 
         Parameters
         ----------

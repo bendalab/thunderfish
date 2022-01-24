@@ -146,9 +146,7 @@ def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
         Default maximum clip amplitude.
         
     See `clip_amplitudes()` for details on the remaining arguments.
-
     """
-
     cfg.add_section('Clipping amplitudes:')
     cfg.add('minClipAmplitude', min_clip, '', 'Minimum amplitude that is not clipped. If zero estimate from data.')
     cfg.add('maxClipAmplitude', max_clip, '', 'Maximum amplitude that is not clipped. If zero estimate from data.')
@@ -178,7 +176,6 @@ def clip_args(cfg, rate):
     a: dict
         Dictionary with names of arguments of the `clip_amplitudes()` function
         and their values as supplied by `cfg`.
-
     """
     a = cfg.map({'min_fac': 'minClipFactor',
                  'nbins': 'clipBins',
@@ -480,7 +477,6 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
     Parameters
     ----------
     See documentation of the `best_window_indices()` functions.
-
     """
     # raw data:
     time = np.arange(0.0, len(data)) / rate
@@ -588,7 +584,6 @@ def add_best_window_config(cfg, win_pos='best', win_size=1., win_shift=0.5,
         
     See `best_window_indices()` for details on the remaining arguments.
     """
-
     cfg.add_section('Analysis window:')
     cfg.add('windowPosition', win_pos, '', 'Position of the analysis window: "beginning", "center", "end", "best", or a time in seconds.')
     cfg.add('windowSize', win_size, 's', 'Size of the best window. This should be much larger than the expected period of the signal. If 0 select the whole time series.')

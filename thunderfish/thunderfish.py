@@ -1,5 +1,4 @@
-"""
-# thunderfish
+"""# thunderfish
 
 Automatically detect and analyze all EOD waveforms in short recordings
 and generated summary plots and data tables.
@@ -63,8 +62,7 @@ from .tabledata import TableData, add_write_table_config, write_table_args
 
 
 def configuration():
-    """
-    Assemble configuration parameter for thunderfish.
+    """Assemble configuration parameter for thunderfish.
 
     Returns
     -------
@@ -95,8 +93,7 @@ def configuration():
 
 
 def save_configuration(cfg, config_file):
-    """
-    Save configuration parameter for thunderfish to a file.
+    """Save configuration parameter for thunderfish to a file.
 
     Parameters
     ----------
@@ -120,7 +117,7 @@ def save_configuration(cfg, config_file):
 
 def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
                 verbose, plot_level, cfg):
-    """ Detect EODs of all fish present in the data.
+    """Detect EODs of all fish present in the data.
 
     Parameters
     ----------
@@ -355,7 +352,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
 
 
 def remove_eod_files(output_basename, verbose, cfg):
-    """ Remove all files from previous runs of thunderfish
+    """Remove all files from previous runs of thunderfish
     """
     ff = cfg.value('fileFormat')
     if ff == 'py':
@@ -371,7 +368,7 @@ def remove_eod_files(output_basename, verbose, cfg):
             
 def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
               wave_eodfs, wave_indices, unit, verbose, cfg):
-    """ Save analysis results of all EODs to files.
+    """Save analysis results of all EODs to files.
     """
     if write_table_args(cfg)['table_format'] == 'py':
         with open(output_basename+'.py', 'w') as f:
@@ -423,7 +420,7 @@ def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
 
 
 def plot_style():
-    """ Set style of plots.
+    """Set style of plots.
     """
     plt.rcParams['figure.facecolor'] = 'white'
     plt.rcParams['axes.facecolor'] = 'none'
@@ -432,7 +429,7 @@ def plot_style():
 
 
 def axes_style(ax):
-    """ Fix style of axes.
+    """Fix style of axes.
 
     Parameters
     ----------
@@ -816,8 +813,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
                       psd_data, wave_eodfs, wave_indices, mean_eods, eod_props, peak_data,
                       spec_data, unit, zoom_window, n_snippets=10, power_thresh=None,
                       label_power=True, log_freq=False, min_freq=0.0, max_freq=3000.0):
-    """
-    Plot time traces and spectra into separate files.
+    """Plot time traces and spectra into separate files.
 
     Parameters
     ----------
@@ -1201,8 +1197,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
 
 def run_thunderfish(file_args):
-    """
-    Helper function for mutlithreading Pool().map().
+    """Helper function for mutlithreading Pool().map().
     """
     verbose = file_args[1][-2]+1
     if verbose > 0:

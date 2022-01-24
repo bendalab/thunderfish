@@ -1,5 +1,4 @@
-"""
-Simulations of spatial electric fields.
+"""Simulations of spatial electric fields.
 
 ## Electric monopoles
 
@@ -30,7 +29,7 @@ from matplotlib.patches import FancyArrowPatch
 
 
 def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0, nneg=1):
-    """ Monopoles for simulating the electric field of an electric fish.
+    """Monopoles for simulating the electric field of an electric fish.
 
     This implements the model published in
     Chen, House, Krahe, Nelson (2005) "Modeling signal and background
@@ -107,7 +106,7 @@ def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0, nneg=1):
 
 
 def object_monopoles(pos=(0, 0), radius=1.0, chi=1.0, *args):
-    """ Monopoles for simulating a circular object.
+    """Monopoles for simulating a circular object.
 
     The circular object is approximated by an induced dipole, as
     sugested by Rasnow B (1996) "The effects of simple objects on the
@@ -179,7 +178,7 @@ def object_monopoles(pos=(0, 0), radius=1.0, chi=1.0, *args):
 
 
 def epotential(pos, *args):
-    """ Simulation of electric field potentials.
+    """Simulation of electric field potentials.
 
     Parameters
     ----------
@@ -209,7 +208,7 @@ def epotential(pos, *args):
 
 
 def epotential_meshgrid(xx, yy, zz, *args):
-    """ Simulation of electric field potentials on a mesh grid.
+    """Simulation of electric field potentials on a mesh grid.
 
     This is a simple wrapper for epotential().
 
@@ -267,7 +266,7 @@ def epotential_meshgrid(xx, yy, zz, *args):
 
     
 def efield(pos, *args):
-    """ Simulation of electric field given a set of electric monopoles.
+    """Simulation of electric field given a set of electric monopoles.
 
     Parameters
     ----------
@@ -302,7 +301,7 @@ def efield(pos, *args):
 
 
 def efield_meshgrid(xx, yy, zz, *args):
-    """ Simulation of electric field on a mesh grid.
+    """Simulation of electric field on a mesh grid.
 
     This is a simple wrapper for efield().
     
@@ -374,7 +373,7 @@ def efield_meshgrid(xx, yy, zz, *args):
 
 
 def projection(ex, ey, ez, nx, ny, nz):
-    """ Projection of electric field on surface normals.
+    """Projection of electric field on surface normals.
 
     Parameters
     ----------
@@ -398,7 +397,7 @@ def projection(ex, ey, ez, nx, ny, nz):
 
 
 def fieldline(pos0, bounds, *args, eps=0.1, maxiter=1000):
-    """ Compute an electric field line.
+    """Compute an electric field line.
 
     From the initial position `pos0` the field line is computed in both directions
     until it leaves the area defined by `bounds`.
@@ -469,7 +468,7 @@ def fieldline(pos0, bounds, *args, eps=0.1, maxiter=1000):
 
 
 def squareroot_transform(values, thresh=0.0):
-    """ Square-root transformation keeping the sign.
+    """Square-root transformation keeping the sign.
 
     Takes the square root of positive values and takes the square root
     of the absolute values of negative values and negates the results.
@@ -509,7 +508,7 @@ def squareroot_transform(values, thresh=0.0):
 
 
 def plot_fieldlines(ax, flines, pos=5, **kwargs):
-    """ Plot field lines with arrows.
+    """Plot field lines with arrows.
 
     Parameters
     ----------

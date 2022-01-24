@@ -1,5 +1,4 @@
-"""
-Manipulate and plot fish outlines.
+"""Manipulate and plot fish outlines.
 
 ## Fish shapes
 
@@ -120,7 +119,7 @@ Alepto_top = dict(body=np.array([
     [-4.13995354e-01, -4.39637211e-03], [-4.72487909e-01, -4.03497963e-03],
     [-4.84420392e-01, -3.29085947e-03], [-4.95374557e-01, -2.57983066e-03],
     [-4.99802704e-01, -1.23222860e-03], [-5.00000000e-01, -0.00000000e+00],]))
-""" Outline of an *Apteronotus leptorhynchus* viewed from top, modified from Krahe 2004. """
+"""Outline of an *Apteronotus leptorhynchus* viewed from top, modified from Krahe 2004."""
 
 Alepto_male_side = dict(body=np.array([
     [2.80332097e-01, 5.51361973e-02], [2.41127905e-01, 5.93460338e-02],
@@ -185,7 +184,7 @@ Alepto_male_side = dict(body=np.array([
     [2.32100395e-01, -8.40268652e-02], [2.74938812e-01, -8.74456073e-02],
     [3.10041908e-01, -8.43007220e-02],]),
     eye=np.array([0.4, 0.0, 0.01]))
-""" Outline of an *Apteronotus leptorhynchus* male viewed from the side. """
+"""Outline of an *Apteronotus leptorhynchus* male viewed from the side."""
 
 Eigenmannia_top = dict(body=np.array([
     [-5.00000000e-01, 0.00000000e+00], [-4.84515329e-01, 4.41536208e-03],
@@ -225,7 +224,7 @@ Eigenmannia_top = dict(body=np.array([
     [-1.35145770e-01, -1.09559947e-02], [-2.74106007e-01, -8.94059314e-03],
     [-3.94680346e-01, -8.25734868e-03], [-4.76913801e-01, -5.34924846e-03],
     [-4.84515329e-01, -4.41536208e-03], [-5.00000000e-01, -0.00000000e+00],]))
-""" Outline of an *Eigenmannia virescens* viewed from top. """
+"""Outline of an *Eigenmannia virescens* viewed from top."""
 
 Eigenmannia_side = dict(body=np.array([
     [7.39835590e-02, 4.57421567e-02], [1.36190672e-01, 5.20008556e-02],
@@ -304,26 +303,26 @@ Eigenmannia_side = dict(body=np.array([
     [-2.61607516e-01, -1.41653476e-02], [-3.02124016e-01, -9.83478430e-03],
     [-3.12840355e-01, -9.28491550e-03],]),
     eye=np.array([0.46, -0.03, 0.005]))
-""" Outline of an *Eigenmannia virescens* viewed from the side. """
+"""Outline of an *Eigenmannia virescens* viewed from the side."""
 
 fish_shapes = dict(Alepto_top=Alepto_top,
                    Alepto_male_side=Alepto_male_side,
                    Eigenmannia_top=Eigenmannia_top,
                    Eigenmannia_side=Eigenmannia_side)
-""" Dictionary holding all electric fish shapes. """
+"""Dictionary holding all electric fish shapes."""
 
 fish_top_shapes = dict(Alepto=Alepto_top,
                        Eigenmannia=Eigenmannia_top)
-""" Dictionary holding electric fish shapes viewed from top. """
+"""Dictionary holding electric fish shapes viewed from top."""
 
 fish_side_shapes = dict(Alepto_male=Alepto_male_side,
                    Eigenmannia=Eigenmannia_side)
-""" Dictionary holding electric fish shapes viewed from the side. """
+"""Dictionary holding electric fish shapes viewed from the side."""
     
 
 def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=1,
               bodykwargs={}, finkwargs={}, eyekwargs=None):
-    """ Plot body and fin of an electric fish.
+    """Plot body and fin of an electric fish.
 
     Parameters
     ----------
@@ -420,7 +419,7 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
 
 
 def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
-    """ Plot circular object.
+    """Plot circular object.
 
     Parameters
     ----------
@@ -437,7 +436,7 @@ def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
 
 
 def plot_pathes(ax, *vertices, **kwargs):
-    """ Plot pathes.
+    """Plot pathes.
 
     Parameters
     ----------
@@ -467,7 +466,7 @@ def plot_pathes(ax, *vertices, **kwargs):
 
 def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
                  gamma=1.0):
-    """ Generate meshgrid of one side of the fish from shape.
+    """Generate meshgrid of one side of the fish from shape.
     
     Parameters
     ----------
@@ -555,7 +554,7 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
 
 
 def surface_normals(xx, yy, zz):
-    """ Normal vectors on a surface.
+    """Normal vectors on a surface.
 
     Compute surface normals on a surface as returned by `fish_surface()`.
 
@@ -589,7 +588,7 @@ def surface_normals(xx, yy, zz):
 
 
 def extract_path(data):
-    """ Convert SVG coordinates to numpy array with path coordinates.
+    """Convert SVG coordinates to numpy array with path coordinates.
 
     Draw a fish outline in inkscape. Open the XML Editor (shift+ctrl+x)
     and copy the value of the data field ('d') into a variable that you
@@ -633,7 +632,7 @@ def extract_path(data):
 
 
 def bbox_pathes(*vertices):
-    """ Common bounding box of pathes.
+    """Common bounding box of pathes.
 
     Parameters
     ----------
@@ -666,7 +665,7 @@ def bbox_pathes(*vertices):
 
 
 def translate_pathes(dx, dy, *vertices):
-    """ Translate pathes in place.
+    """Translate pathes in place.
 
     Parameters
     ----------
@@ -684,7 +683,7 @@ def translate_pathes(dx, dy, *vertices):
 
 
 def center_pathes(*vertices):
-    """ Translate pathes to their common origin in place.
+    """Translate pathes to their common origin in place.
 
     Parameters
     ----------
@@ -700,7 +699,7 @@ def center_pathes(*vertices):
 
 
 def rotate_pathes(theta, *vertices):
-    """ Rotate pathes in place.
+    """Rotate pathes in place.
 
     Parameters
     ----------
@@ -721,7 +720,7 @@ def rotate_pathes(theta, *vertices):
 
 
 def flipx_pathes(*vertices):
-    """ Flip pathes in x-direction in place.
+    """Flip pathes in x-direction in place.
 
     Parameters
     ----------
@@ -734,7 +733,7 @@ def flipx_pathes(*vertices):
 
 
 def flipy_pathes(*vertices):
-    """ Flip pathes in y-direction in place.
+    """Flip pathes in y-direction in place.
 
     Parameters
     ----------
@@ -747,7 +746,7 @@ def flipy_pathes(*vertices):
 
 
 def mirror_path(vertices1):
-    """ Complete path of half a fish outline by appending the mirrored path.
+    """Complete path of half a fish outline by appending the mirrored path.
 
     It is sufficient to draw half of a top view of a fish. Import with
     extract_path() and use this function to add the missing half of the
@@ -771,7 +770,7 @@ def mirror_path(vertices1):
 
 
 def normalize_path(*vertices):
-    """ Normalize and shift path in place.
+    """Normalize and shift path in place.
 
     The path extent in x direction is normalized to one and its center
     is shifted to the origin.
@@ -791,7 +790,7 @@ def normalize_path(*vertices):
 
 
 def bend_path(path, bend, size, size_fac=1.0):
-    """ Bend and scale a path.
+    """Bend and scale a path.
 
     Parameters
     ----------
@@ -824,7 +823,7 @@ def bend_path(path, bend, size, size_fac=1.0):
         
 
 def export_path(vertices):
-    """ Print coordinates of path for import as numpy array.
+    """Print coordinates of path for import as numpy array.
 
     The variable name, a leading 'np.array([' and the closing '])'
     are not printed.
@@ -845,7 +844,7 @@ def export_path(vertices):
 
 
 def export_fish(name, body, *fins):
-    """ Serialize coordinates of fish outlines as a dictionary.
+    """Serialize coordinates of fish outlines as a dictionary.
 
     Writes a dictionary with name 'name' and keys 'body', 'fin0', 'fin1', ...
     holding the pathes.
@@ -883,7 +882,7 @@ def export_fish(name, body, *fins):
 
 
 def export_fish_demo():
-    """ Code demonstrating how to export a fish outline from SVG.
+    """Code demonstrating how to export a fish outline from SVG.
     """
     # copy the path specification from an SVG object:
     data = "m 84.013672,21.597656 0.0082,83.002434 0.113201,-0.0145 0.1238,-0.32544 0.06532,-0.80506 0.06836,-0.87696 0.0332,-4.298823 v -8.625 l 0.06836,-1.724609 0.06836,-1.722657 0.07032,-1.726562 0.06836,-1.726563 0.06641,-1.693359 0.03439,-1.293583 0.06912,-1.30798 0.10547,-1.724609 0.10156,-1.724609 0.10352,-1.726563 0.10352,-1.724609 0.13867,-1.72461 0.171876,-2.572265 0.13672,-1.72461 0.13672,-1.726562 0.10352,-1.724609 0.06836,-1.722657 0.103515,-2.574219 0.06836,-1.722656 0.10352,-1.728515 0.07032,-1.722657 0.06836,-1.724609 0.240234,-1.724609 0.34375,-1.72461 0.134766,-1.726562 0.10352,-1.69336 0.03516,-0.875 0.07031,-1.728515 v -0.847657 l -0.07273,-2.246267 -0.0172,-0.184338 0.15636,0.09441 0.384252,1.019739 0.748821,0.905562 1.028854,0.647532 1.356377,-0.03149 0.362644,-0.347764 -0.264138,-0.736289 -1.268298,-1.126614 -1.363988,-0.922373 -0.927443,-0.451153 -0.228986,-0.07018 -0.0015,-0.21624 0.03663,-0.660713 0.480469,-0.847657 -0.101563,-0.876953 -0.103515,-0.845703 -0.103516,-0.876953 -0.207031,-1.695313 -0.273438,-1.724609 -0.308594,-1.726562 -0.27539,-1.72461 -0.310547,-1.722656 -0.240234,-0.878906 -0.400196,-0.877344 -0.53927,-0.596268 -0.486573,-0.216683 z"
@@ -914,7 +913,7 @@ def export_fish_demo():
 
     
 def main():
-    """ Plot some fish shapes and surface normals.
+    """Plot some fish shapes and surface normals.
     """
     bodykwargs=dict(lw=1, edgecolor='k', facecolor='none')
     finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')

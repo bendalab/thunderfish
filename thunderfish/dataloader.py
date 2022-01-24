@@ -1,5 +1,4 @@
-"""
-Load time-series data from files.
+"""Load time-series data from files.
 
 ```
 data, samplingrate, unit = load_data('data/file.wav')
@@ -357,7 +356,7 @@ def fishgrid_spacings(filepath):
 
 
 def fishgrid_grids(filepath):
-    """ Retrieve grid sizes from a fishgrid.cfg file.
+    """Retrieve grid sizes from a fishgrid.cfg file.
 
     Parameters
     ----------
@@ -648,7 +647,6 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
         Invalid channel requested
     ValueError:
         Invalid key requested.
-
     """
     # load data:
     data = {}
@@ -757,7 +755,6 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
         Input argument `filepath` is empty string or list.
     IndexError:
         Invalid channel requested.
-
     """
     # check values:
     data = np.array([])
@@ -787,7 +784,7 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
 
 
 class DataLoader(AudioLoader):
-    """ Buffered reading of time-series data for random access of the data in the file.
+    """Buffered reading of time-series data for random access of the data in the file.
     
     This allows for reading very large data files that do not fit into memory.
     An `DataLoader` instance can be used like a huge read-only numpy array, i.e.
@@ -853,7 +850,7 @@ class DataLoader(AudioLoader):
     """
 
     def __init__(self, filepath=None, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
-        """ Initialize the DataLoader instance. If filepath is not None open the file.
+        """Initialize the DataLoader instance. If filepath is not None open the file.
 
         Parameters
         ----------
@@ -889,7 +886,7 @@ class DataLoader(AudioLoader):
     
     # relacs interface:        
     def open_relacs(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
-        """ Open relacs data files (www.relacs.net) for reading.
+        """Open relacs data files (www.relacs.net) for reading.
 
         Parameters
         ----------
@@ -959,7 +956,7 @@ class DataLoader(AudioLoader):
         return self
 
     def _close_relacs(self):
-        """ Close the relacs data files.
+        """Close the relacs data files.
         """
         if self.sf is not None:
             for file in self.sf:
@@ -967,7 +964,7 @@ class DataLoader(AudioLoader):
             self.sf = None
 
     def _update_buffer_relacs(self, start, stop):
-        """ Make sure that the buffer contains the data between
+        """Make sure that the buffer contains the data between
         start and stop for relacs files.
         """
         if start < self.offset or stop > self.offset + self.buffer.shape[0]:
@@ -1070,7 +1067,7 @@ class DataLoader(AudioLoader):
         return self
 
     def _close_fishgrid(self):
-        """ Close the fishgrid data files.
+        """Close the fishgrid data files.
         """
         if self.sf is not None:
             for file in self.sf:
@@ -1078,7 +1075,7 @@ class DataLoader(AudioLoader):
             self.sf = None
 
     def _update_buffer_fishgrid(self, start, stop):
-        """ Make sure that the buffer contains the data between
+        """Make sure that the buffer contains the data between
         start and stop for fishgrid files.
         """
         if start < self.offset or stop > self.offset + self.buffer.shape[0]:
