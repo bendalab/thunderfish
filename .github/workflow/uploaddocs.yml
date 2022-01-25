@@ -1,0 +1,28 @@
+name: Build Documentation and Deploy
+on:
+  push:
+    branches:
+      - main
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+	  python -m pip install --upgrade pip
+	  pip install pdoc3
+	  pip install markdown-include
+	  pip install mkdocs
+	  
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install and Build
+        run: |
+	  ./build-docs.sh
+	  
+#      - name: Deploy
+#        uses: JamesIves/github-pages-deploy-action@v4.2.2
+#        with:
+#          branch: gh-pages # The branch the action should deploy to.
+#          folder: build # The folder the action should deploy.
