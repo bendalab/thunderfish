@@ -2,13 +2,12 @@ name: Build Documentation and Deploy
 on: [push]
 
 jobs:
-  build:
+  build-doc:
     runs-on: ubuntu-latest
     steps:
-      - name: Say hello
-        run: |
-          echo "HELLO"
-          
+      - name: Checkout
+        uses: actions/checkout@v2
+        
       - name: Setup python 3.8
         uses: actions/setup-python@v2
         with:
@@ -20,9 +19,7 @@ jobs:
           pip install pdoc3
           pip install markdown-include
           pip install mkdocs
-          
-      - name: Checkout
-        uses: actions/checkout@v2
+          pip install -r requirements.txt
 
       - name: Install and Build
         run: |
