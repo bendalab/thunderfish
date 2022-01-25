@@ -46,7 +46,7 @@ def test_best_window():
     # plotting 1:
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
-    bw.plot_best_data(ax, data, rate, 'a.u.', idx0, idx1, clipped)
+    bw.plot_data_window(ax, data, rate, 'a.u.', idx0, idx1, clipped)
     fig.savefig('bestwindow.png')
     assert_true(os.path.exists('bestwindow.png'), 'plotting failed')
     os.remove('bestwindow.png')

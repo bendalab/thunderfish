@@ -14,7 +14,7 @@ def test_config_file():
 
     # manipulate some values:
     cfg2 = cf.ConfigFile(cfg)
-    cfg2.set('bestWindowSize', 100.0)
+    cfg2.set('windowSize', 100.0)
     cfg2.set('weightCVAmplitude', 20.0)
     cfg2.set('clipBins', 300)
     cfg3 = cf.ConfigFile(cfg2)
