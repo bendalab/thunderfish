@@ -2,6 +2,7 @@ numpy
 scipy
 matplotlib
 sklearn
+pandas
 SoundFile
 simpleaudio
 audioio

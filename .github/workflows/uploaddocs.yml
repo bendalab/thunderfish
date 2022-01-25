@@ -26,10 +26,6 @@ jobs:
         run: |
           ./build-docs.sh
 
-      - name: Say something
-        run: |
-          echo "DONE"
-
 #jobs:
 #  build-and-deploy:
 #    ....
