@@ -8,6 +8,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - name: Say hello
+        run: |
+          echo "HELLO"
+          
       - name: Setup python 3.8
         uses: actions/setup-python@v2
         with:
