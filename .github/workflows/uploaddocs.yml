@@ -5,7 +5,7 @@ jobs:
   build-doc:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout thunderfish
         uses: actions/checkout@v2
         
       - name: Setup python 3.8
@@ -22,9 +22,29 @@ jobs:
           pip install mkdocs
           pip install -r requirements.txt
 
-      - name: Install and Build
+      - name: Build documentation
         run: |
           ./build-docs.sh
+        shell: bash
+      - name: Commit generated files
+        cd site
+        git init
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add -A
+        git commit -m 'deploy'
+      - name: Push to github pages
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: {{ secrets.GITHUB_TOKEN }}
+          branch: gh-pages
+          force: true
+          directory: site
+          repository: bendalab/bendalab.github.io.git
+
+# See https://github.com/ad-m/github-push-action
+# https://medium.com/@danieljimgarcia/publishing-static-sites-to-github-pages-using-github-actions-8040f57dfeaf
+
 
 #jobs:
 #  build-and-deploy:
