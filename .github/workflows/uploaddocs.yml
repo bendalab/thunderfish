@@ -27,12 +27,13 @@ jobs:
           ./build-docs.sh
         shell: bash
       - name: Commit generated files
-        cd site
-        git init
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add -A
-        git commit -m 'deploy'
+        run: |
+          cd site
+          git init
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add -A
+          git commit -m 'deploy'
       - name: Push to github pages
         uses: ad-m/github-push-action@master
         with:
