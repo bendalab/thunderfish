@@ -37,21 +37,12 @@ jobs:
           git commit -m 'deploy'
       - name: Push to github pages
         uses: ad-m/github-push-action@master
+        # https://github.com/ad-m/github-push-action
         with:
           github_token: ${{ secrets.THUNDERFISH_DOCU }}
           branch: gh-pages
           force: true
           directory: site
-
-# See https://github.com/ad-m/github-push-action
-# https://medium.com/@danieljimgarcia/publishing-static-sites-to-github-pages-using-github-actions-8040f57dfeaf
-
-
-#jobs:
-#  build-and-deploy:
-#    ....
-#      - name: Deploy
-#        uses: JamesIves/github-pages-deploy-action@v4.2.2
-#        with:
-#          branch: gh-pages # The branch the action should deploy to.
-#          folder: build # The folder the action should deploy.
+        # NOTE:
+        # the github.io/project page is the gh-pages branch of that project,
+        # NOT the gh-pages branch of the bendalab.github.io repository!!!
