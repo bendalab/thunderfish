@@ -24,7 +24,7 @@ if command -v mkdocs >/dev/null; then
     echo
 
     cd "$PACKAGEROOT"
-    mkdocs build --config-file .mkdocs.yml --site-dir "$BUILDROOT/$PACKAGE"
+    mkdocs build --config-file .mkdocs.yml --site-dir "$BUILDROOT"
     cd - > /dev/null
 fi
 
@@ -34,14 +34,14 @@ if command -v pdoc3 >/dev/null; then
     echo
 
     cd "$PACKAGEROOT"
-    pdoc3 --html --config latex_math=True --output-dir "$BUILDROOT/$PACKAGE/api-tmp" $PACKAGE
-    mv "$BUILDROOT/$PACKAGE/api-tmp/$PACKAGE" "$BUILDROOT/$PACKAGE/api"
-    rmdir "$BUILDROOT/$PACKAGE/api-tmp"
+    pdoc3 --html --config latex_math=True --output-dir "$BUILDROOT/api-tmp" $PACKAGE
+    mv "$BUILDROOT/api-tmp/$PACKAGE" "$BUILDROOT/api"
+    rmdir "$BUILDROOT/api-tmp"
     cd - > /dev/null
 fi
 
 echo
 echo "Done. Docs in:"
 echo
-echo "    file://$BUILDROOT/$PACKAGE/index.html"
+echo "    file://$BUILDROOT/index.html"
 echo

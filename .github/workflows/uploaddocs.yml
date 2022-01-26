@@ -42,7 +42,6 @@ jobs:
           branch: gh-pages
           force: true
           directory: site
-          repository: bendalab/bendalab.github.io
 
 # See https://github.com/ad-m/github-push-action
 # https://medium.com/@danieljimgarcia/publishing-static-sites-to-github-pages-using-github-actions-8040f57dfeaf
