@@ -39,7 +39,7 @@ jobs:
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.THUNDERFISH_DOCU }}
-          branch: gh-pages
+          branch: ${{ github.ref }}
           force: true
           directory: site
           repository: bendalab/bendalab.github.io
