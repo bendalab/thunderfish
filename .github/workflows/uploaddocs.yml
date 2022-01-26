@@ -3,6 +3,7 @@ on: [push]
 
 jobs:
   build-doc:
+    if: github.repository == 'bendalab/thunderfish'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout thunderfish
