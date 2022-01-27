@@ -1,5 +1,5 @@
 [![PyPI license](https://img.shields.io/pypi/l/thunderfish.svg)](https://pypi.python.org/pypi/thunderfish/)
-[![Build Status](https://travis-ci.org/bendalab/thunderfish.svg?branch=master)](https://travis-ci.org/bendalab/thunderfish)
+[![Run tests](https://github.com/bendalab/thunderfish/actions/workflows/runchecks.yml/badge.svg?branch=master&event=push)](https://github.com/bendalab/thunderfish/actions/workflows/runchecks.yml)
 [![codecov](https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/bendalab/thunderfish)
 [![PyPI version](https://badge.fury.io/py/thunderfish.svg)](https://badge.fury.io/py/thunderfish)
 
