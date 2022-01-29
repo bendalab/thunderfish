@@ -442,9 +442,11 @@ def axes_style(ax):
 
                                 
 def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
-              psd_data, wave_eodfs, wave_indices, mean_eods, eod_props, peak_data, spec_data,
-              indices, unit, zoom_window, n_snippets=10, power_thresh=None, label_power=True,
-              all_eods=False, spec_plots='auto', log_freq=False, min_freq=0.0, max_freq=3000.0,
+              psd_data, wave_eodfs, wave_indices, mean_eods, eod_props,
+              peak_data, spec_data, indices, unit, zoom_window,
+              n_snippets=10, power_thresh=None, label_power=True,
+              all_eods=False, spec_plots='auto', skip_bad=True,
+              log_freq=False, min_freq=0.0, max_freq=3000.0,
               interactive=True, verbose=0):
     """Creates an output plot for the thunderfish program.
 
@@ -505,6 +507,8 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
     spec_plots: bool or 'auto'
         Plot amplitude spectra of EOD waveforms.
         If 'auto', plot them if there is a singel waveform only.
+    skip_bad: bool
+        Skip harmonic groups without index (entry in indices is negative).
     log_freq: boolean
         Logarithmic (True) or linear (False) frequency axis of power spectrum of recording.
     min_freq: float
@@ -678,6 +682,7 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
                     kwargs.update({'bbox_to_anchor': (1.0, 1.1), 'frameon': False,
                                    'loc': 'upper left', 'legend_rows': 12})
             plot_harmonic_groups(axp, wave_eodfs, wave_indices, max_groups=0,
+                                 skip_bad=skip_bad,
                                  sort_by_freq=True, label_power=label_power,
                                  colors=wave_colors, markers=wave_markers,
                                  **kwargs)
@@ -809,10 +814,12 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
     return fig
 
                             
-def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, clipped,
-                      psd_data, wave_eodfs, wave_indices, mean_eods, eod_props, peak_data,
-                      spec_data, unit, zoom_window, n_snippets=10, power_thresh=None,
-                      label_power=True, log_freq=False, min_freq=0.0, max_freq=3000.0):
+def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
+                      clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
+                      eod_props, peak_data, spec_data, unit, zoom_window,
+                      n_snippets=10, power_thresh=None, label_power=True,
+                      skip_bad=True, log_freq=False,
+                      min_freq=0.0, max_freq=3000.0):
     """Plot time traces and spectra into separate files.
 
     Parameters
@@ -863,6 +870,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
     label_power: boolean
         If `True` put the power in decibel in addition to the frequency
         into the legend.
+    skip_bad: bool
+        Skip harmonic groups without index (entry in indices is negative).
     log_freq: boolean
         Logarithmic (True) or linear (False) frequency axis of power spectrum of recording.
     min_freq: float
@@ -907,6 +916,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
                                    'loc': 'upper right', 'legend_rows': 10})
             wave_colors, wave_markers = colors_markers()
             plot_harmonic_groups(ax, wave_eodfs, wave_indices, max_groups=0,
+                                 skip_bad=skip_bad,
                                  sort_by_freq=True, label_power=label_power,
                                  colors=wave_colors, markers=wave_markers,
                                  frameon=False, **kwargs)
@@ -1010,8 +1020,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1, cli
 def thunderfish(filename, load_kwargs, cfg, channel=0,
                 time=None, time_file=False,
                 mode='wp', log_freq=0.0, save_data=False,
-                all_eods=False, spec_plots='auto', save_plot=False,
-                multi_pdf=None, save_subplots='',
+                all_eods=False, spec_plots='auto', skip_bad=True,
+                save_plot=False, multi_pdf=None, save_subplots='',
                 output_folder='.', keep_path=False, show_bestwindow=False,
                 verbose=0, plot_level=0):
     """Automatically detect and analyze all EOD waveforms in a short recording.
@@ -1044,6 +1054,8 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
     spec_plots: bool or 'auto'
         Plot amplitude spectra of EOD waveforms.
         If 'auto', plot them if there is a singel waveform only.
+    skip_bad: bool
+        Skip harmonic groups without index in the spectrum plot.
     save_plot: bool
         If True, save plots as pdf file.
     multi_pdf: matplotlib.PdfPages or None
@@ -1174,11 +1186,13 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 log_freq = False
             n_snippets = 10
             chl = chan if channels > 1 else None
-            fig = plot_eods(outfilename, raw_data, samplerate, chl, idx0, idx1, clipped,
-                            psd_data[0], wave_eodfs, wave_indices, mean_eods, eod_props,
-                            peak_data, spec_data, None, unit, zoom_window, n_snippets,
-                            power_thresh, True, all_eods, spec_plots, log_freq, min_freq, max_freq,
-                            interactive=not save_data, verbose=verbose)
+            fig = plot_eods(outfilename, raw_data, samplerate, chl, idx0, idx1,
+                            clipped, psd_data[0], wave_eodfs, wave_indices,
+                            mean_eods, eod_props, peak_data, spec_data, None,
+                            unit, zoom_window, n_snippets, power_thresh, True,
+                            all_eods, spec_plots, skip_bad, log_freq,
+                            min_freq, max_freq, interactive=not save_data,
+                            verbose=verbose)
             if save_plot:
                 if multi_pdf is not None:
                     multi_pdf.savefig(fig)
@@ -1188,10 +1202,12 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                     plt.close('all')
                 if len(save_subplots) > 0:
                     plot_eod_subplots(output_basename, save_subplots,
-                                      raw_data, samplerate, idx0, idx1, clipped, psd_data[0],
-                                      wave_eodfs, wave_indices, mean_eods, eod_props,
-                                      peak_data, spec_data, unit, zoom_window, n_snippets,
-                                      power_thresh, True, log_freq, min_freq, max_freq)
+                                      raw_data, samplerate, idx0, idx1,
+                                      clipped, psd_data[0], wave_eodfs,
+                                      wave_indices, mean_eods, eod_props,
+                                      peak_data, spec_data, unit, zoom_window,
+                                      n_snippets, power_thresh, True, skip_bad,
+                                      log_freq, min_freq, max_freq)
             elif not save_data:
                 fig.canvas.set_window_title('thunderfish')
                 plt.show()
@@ -1202,10 +1218,9 @@ def run_thunderfish(file_args):
     """Helper function for mutlithreading Pool().map().
     """
     verbose = file_args[1][-2]+1
-    if verbose > 0:
-        if verbose > 1:
-            print('='*70)
-        print('analyze recording %s ...' % file_args[0])
+    if verbose > 1:
+        print('='*70)
+    print('analyze recording %s ...' % file_args[0])
     try:
         msg = thunderfish(file_args[0], *file_args[1])
         if msg:
@@ -1249,6 +1264,8 @@ def main(cargs=None):
                         help='plot all EOD waveforms')
     parser.add_argument('-S', dest='spec_plots', action='store_true',
                         help='plot spectra for all EOD waveforms')
+    parser.add_argument('-b', dest='skip_bad', action='store_false',
+                        help='indicate bad EODs in spectrum')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-s', dest='save_data', action='store_true',
@@ -1272,7 +1289,7 @@ def main(cargs=None):
     parser.add_argument('-i', dest='load_kwargs', default=[],
                         action='append', metavar='KWARGS',
                         help='key-word arguments for the data loader function')
-    parser.add_argument('-b', dest='show_bestwindow', action='store_true',
+    parser.add_argument('-B', dest='show_bestwindow', action='store_true',
                         help='show the cost function of the best window algorithm')
     parser.add_argument('file', nargs='*', default='', type=str,
                         help='name of a file with time series data of an EOD recording, may include wildcards')
@@ -1300,8 +1317,8 @@ def main(cargs=None):
     # set verbosity level from command line:
     verbose = args.verbose
     plot_level = args.plot_level
-    if verbose < plot_level+1:
-        verbose = plot_level+1
+    if verbose < plot_level:
+        verbose = plot_level
 
     # interactive plot:
     plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
@@ -1364,8 +1381,9 @@ def main(cargs=None):
     # run on pool:
     pool_args = (load_kwargs, cfg, args.channel, args.time, args.time_file,
                  args.mode, args.log_freq, args.save_data,
-                 args.all_eods, spec_plots, args.save_plot, multi_pdf,
-                 args.save_subplots, args.outpath, args.keep_path,
+                 args.all_eods, spec_plots, args.skip_bad,
+                 args.save_plot, multi_pdf, args.save_subplots,
+                 args.outpath, args.keep_path,
                  args.show_bestwindow, verbose-1, plot_level)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(files) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs

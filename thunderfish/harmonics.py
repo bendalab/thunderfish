@@ -1357,7 +1357,7 @@ def colors_markers():
 
 
 def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
-                         sort_by_freq=True, label_power=False,
+                         skip_bad=False, sort_by_freq=True, label_power=False,
                          colors=None, markers=None, legend_rows=8, **kwargs):
     """Mark decibel power of fundamentals and their harmonics in a plot.
 
@@ -1372,19 +1372,21 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
     indices: list of int or None
         If smaller than zero then set the legend label of the corresponding group in brackets.
     max_groups: int
-            If not zero plot only the max_groups most powerful groups.
+        If not zero plot only the max_groups most powerful groups.
+    skip_bad: bool
+        Skip harmonic groups without index (entry in indices is negative).
     sort_by_freq: boolean
-            If True sort legend by frequency, otherwise by power.
+        If True sort legend by frequency, otherwise by power.
     label_power: boolean
         If `True` put the power in decibel in addition to the frequency into the legend.
     colors: list of colors or None
-            If not None list of colors for plotting each group
+        If not None list of colors for plotting each group
     markers: list of markers or None
-            If not None list of markers for plotting each group
+        If not None list of markers for plotting each group
     legend_rows: int
-            Maximum number of rows to be used for the legend.
+        Maximum number of rows to be used for the legend.
     kwargs: 
-            Key word arguments for the legend of the plot.
+        Key word arguments for the legend of the plot.
     """
 
     if len(group_list) == 0:
@@ -1407,7 +1409,10 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
             idx = idx[np.argsort(freqs)]
 
     # plot:
-    for k, i in enumerate(idx):
+    k = 0
+    for i in idx:
+        if indices is not None and skip_bad and indices[i] < 0:
+            continue
         group = group_list[i]
         x = group[:,0]
         y = decibel(group[:,1])
@@ -1432,6 +1437,7 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
                 break
             ax.plot(x, y, linestyle='None', marker=markers[k],
                     mec=None, mew=0.0, ms=msize, label=label, **color_kwargs)
+        k += 1
 
     # legend:
     if legend_rows > 0:
