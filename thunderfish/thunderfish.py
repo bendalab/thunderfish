@@ -1136,7 +1136,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
             else:
                 print(filename + ': no fish found.')
 
-        # save results to files:
+        # file name for output files:
         output_basename = os.path.join(output_folder, outfilename)
         if channels > 1:
             if channels > 100:
@@ -1147,15 +1147,17 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 output_basename += '-c%d' % chan
         if time_file:
             output_basename += '-t%.0fs' % (idx0/samplerate)
+        # make directory if necessary:
+        if keep_path and found_bestwindow:
+            outpath = os.path.dirname(output_basename)
+            if not os.path.exists(outpath):
+                if verbose > 0:
+                    print('mkdir %s' % outpath)
+                os.makedirs(outpath)
+        # save results to files:
         if save_data:
             remove_eod_files(output_basename, verbose, cfg)
             if found_bestwindow:
-                if keep_path:
-                    outpath = os.path.dirname(output_basename)
-                    if not os.path.exists(outpath):
-                        if verbose > 0:
-                            print('mkdir %s' % outpath)
-                        os.makedirs(outpath)
                 save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
                           wave_eodfs, wave_indices, unit, verbose, cfg)
 
