@@ -212,7 +212,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
 
     if 'p' in mode:
         # detect pulse fish:
-        _, eod_times, eod_peaktimes, zoom_window, _ = extract_pulsefish(data, samplerate, verbose=verbose, plot_level=plot_level, save_path=os.path.splitext(os.path.basename(name))[0])
+        _, eod_times, eod_peaktimes, zoom_window, _ = extract_pulsefish(data, samplerate, verbose=verbose-1, plot_level=plot_level, save_path=os.path.splitext(os.path.basename(name))[0])
 
         #eod_times = []
         #eod_peaktimes = []
@@ -1218,9 +1218,10 @@ def run_thunderfish(file_args):
     """Helper function for mutlithreading Pool().map().
     """
     verbose = file_args[1][-2]+1
-    if verbose > 1:
-        print('='*70)
-    print('analyze recording %s ...' % file_args[0])
+    if verbose > 0:
+        if verbose > 1:
+            print('='*70)
+        print('analyze recording %s ...' % file_args[0])
     try:
         msg = thunderfish(file_args[0], *file_args[1])
         if msg:
@@ -1379,12 +1380,15 @@ def main(cargs=None):
                 load_kwargs[kws[0].strip()] = kws[1].strip()
             
     # run on pool:
+    v = verbose
+    if len(files) > 1:
+        v += 1
     pool_args = (load_kwargs, cfg, args.channel, args.time, args.time_file,
                  args.mode, args.log_freq, args.save_data,
                  args.all_eods, spec_plots, args.skip_bad,
                  args.save_plot, multi_pdf, args.save_subplots,
                  args.outpath, args.keep_path,
-                 args.show_bestwindow, verbose-1, plot_level)
+                 args.show_bestwindow, v-1, plot_level)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(files) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
         if verbose > 1:
