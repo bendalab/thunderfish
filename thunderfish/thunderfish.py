@@ -1022,7 +1022,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 mode='wp', log_freq=0.0, save_data=False,
                 all_eods=False, spec_plots='auto', skip_bad=True,
                 save_plot=False, multi_pdf=None, save_subplots='',
-                output_folder='.', keep_path=False, show_bestwindow=False,
+                output_folder='.', keep_path=False,
                 verbose=0, plot_level=0):
     """Automatically detect and analyze all EOD waveforms in a short recording.
 
@@ -1071,8 +1071,6 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         Folder where to save results.
     keep_path: bool
         Add relative path of data files to output path.
-    show_bestwindow: bool
-        Just show how the best window is determined and exit.
     verbose: int
        Verbosity level (for debugging).
     plot_level: int
@@ -1117,9 +1115,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         if time is not None:
             win_pos = time
         data, idx0, idx1, clipped, min_clip, max_clip = analysis_window(raw_data, samplerate, win_pos,
-                                                                        cfg, show_bestwindow)
-        if show_bestwindow:
-            return None
+                                                                        cfg, plot_level>0)
         found_bestwindow = idx1 > 0
         if not found_bestwindow:
             return '%s: not enough data for requested window length. You may want to adjust the windowSize parameter in the configuration file.' % filename
@@ -1290,8 +1286,6 @@ def main(cargs=None):
     parser.add_argument('-i', dest='load_kwargs', default=[],
                         action='append', metavar='KWARGS',
                         help='key-word arguments for the data loader function')
-    parser.add_argument('-B', dest='show_bestwindow', action='store_true',
-                        help='show the cost function of the best window algorithm')
     parser.add_argument('file', nargs='*', default='', type=str,
                         help='name of a file with time series data of an EOD recording, may include wildcards')
     args = parser.parse_args(cargs)
@@ -1387,8 +1381,7 @@ def main(cargs=None):
                  args.mode, args.log_freq, args.save_data,
                  args.all_eods, spec_plots, args.skip_bad,
                  args.save_plot, multi_pdf, args.save_subplots,
-                 args.outpath, args.keep_path,
-                 args.show_bestwindow, v-1, plot_level)
+                 args.outpath, args.keep_path, v-1, plot_level)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(files) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
         if verbose > 1:
