@@ -1951,8 +1951,11 @@ def load_wave_eodfs(file_path):
     Returns
     -------
     eodfs: 2D array of floats
-        Indices, EODfs, and power of wave type fish.
+        EODfs and power of wave type fish.
         Indices can contain NaNs.
+    indices: array of ints
+        Corresponding indices of fish, can contain negative numbers to
+        indicate frequencies without fish.
 
     Raises
     ------
@@ -1965,11 +1968,12 @@ def load_wave_eodfs(file_path):
     """
     data = TableData(file_path)
     eodfs = data.array()
-    if not 'index' in data:
-        indices = np.empty(data.rows())
-        indices[:] = np.nan
-        eodfs = np.column_stack((indices, eodfs))
-    return eodfs
+    if 'index' in data:
+        indices = np.array(data[:,'index'], dtype=np.int)
+        eodfs = eodfs[:,1:]
+    else:
+        indices = np.zeros(data.rows(), dtype=np.int) - 1
+    return eodfs, indices
 
     
 def save_wave_fish(eod_props, unit, basename, **kwargs):
