@@ -1422,6 +1422,8 @@ def main(cargs=None):
             eod_props = []
             peak_data = []
             spec_data = []
+            datafile = None
+            channel = -1
             unit = None
             base_name = os.path.basename(recording[0])
             for f in recording[1:]:
@@ -1451,7 +1453,11 @@ def main(cargs=None):
                     eod_props.extend(load_wave_fish(f))
                 elif parts[-1] == 'pulsefish':
                     eod_props.extend(load_pulse_fish(f))
+            print(eod_props)
             """
+            all_data, samplerate, unit = load_data(filename, -1,
+                                                   verbose=verbose,
+                                                   **load_kwargs)
             plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                           clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
                           eod_props, peak_data, spec_data, unit, zoom_window,

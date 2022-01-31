@@ -2067,6 +2067,7 @@ def load_wave_fish(file_path):
     data = TableData(file_path)
     eod_props = data.dicts()
     for props in eod_props:
+        props['index'] = int(props['index'])
         props['type'] = 'wave'
         props['thd'] /= 100
         props['noise'] /= 100
@@ -2176,6 +2177,7 @@ def load_pulse_fish(file_path):
     data = TableData(file_path)
     eod_props = data.dicts()
     for props in eod_props:
+        props['index'] = int(props['index'])
         props['type'] = 'pulse'
         if 'rmssem' in props:
             props['rmssem'] /= 100
