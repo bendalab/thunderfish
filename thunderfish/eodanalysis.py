@@ -46,6 +46,7 @@ Analysis of EOD waveforms.
 - `save_pulse_peaks()`: save peak properties of pulse EOD to file.
 - `load_pulse_peaks()`: load peak properties of pulse EOD from file.
 - `parse_filename()`: parse components of an EOD analysis file name.
+- `load_analysis()`: load EOD analysis files.
 
 ## Fit functions
 
@@ -2446,17 +2447,89 @@ def parse_filename(file_path):
         parts = parts[:-1]
     time = None
     if len(parts) > 0 and len(parts[-1]) > 0 and \
-       parts[-1][1] == 't' and parts[-1][-1] == 's' and \
+       parts[-1][0] == 't' and parts[-1][-1] == 's' and \
        parts[-1][1:-1].isdigit():
         time = float(parts[-1][1:-1])
         parts = parts[:-1]
     channel = -1
     if len(parts) > 0 and len(parts[-1]) > 0 and \
-       parts[-1][1] == 'c' and parts[-1][1:].isdigit():
-        time = int(parts[-1][1:])
+       parts[-1][0] == 'c' and parts[-1][1:].isdigit():
+        channel = int(parts[-1][1:])
         parts = parts[:-1]
     base_name = '-'.join(parts)
     return base_name, channel, time, ftype, index, ext
+
+
+def load_analysis(file_pathes):
+    """Load EOD analysis files.
+
+    Parameters
+    ----------
+    file_pathes: lsit of string
+        Pathes of the analysis files of a single recording to be loaded.
+
+    Returns
+    -------
+    mean_eods: list of 2D array of floats
+        Averaged EOD waveforms: time in seconds, mean, standard deviation, fit.
+    wave_eodfs: 2D array of floats
+        EODfs and power of wave type fish.
+    wave_indices: array of ints
+        Corresponding indices of fish, can contain negative numbers to
+        indicate frequencies without fish.
+    eod_props: list of dict
+        Properties of EODs. The 'index' property is an index into the
+        reurned lists.
+    spec_data: list of 2D array of floats
+        Amplitude and phase spectrum of wave-type EODs with columns
+        harmonics, frequency, amplitude, relative amplitude in dB,
+        relative power in dB, phase, data power in unit squared.
+        Power spectrum of single pulse-type EODs with columns frequency, power
+    peak_data: list of 2D array of floats
+        Properties of peaks and troughs of pulse-type EODs with columns
+        P, time, amplitude, relampl, width
+    base_name: string
+        Base name of the recording file.
+    channel: int
+        Analysed channel of the recording.
+    unit: string
+        Unit of EOD waveform.
+    """
+    mean_eods = []
+    wave_eodfs = np.array([])
+    wave_indices = np.array([])
+    eod_props = []
+    spec_data = []
+    peak_data = []
+    base_name = None
+    channel = -1
+    unit = None
+    for f in file_pathes:
+        base_name, channel, time, ftype, idx, ext = parse_filename(f)
+        if ftype == 'eodwaveform':
+            if idx >= len(mean_eods):
+                mean_eods.extend([None]*(idx+1-len(mean_eods)))
+            mean_eods[idx], unit = load_eod_waveform(f)
+        elif ftype == 'wavespectrum':
+            if idx >= len(spec_data):
+                spec_data.extend([None]*(idx+1-len(spec_data)))
+            spec_data[idx], unit = load_wave_spectrum(f)
+        elif ftype == 'pulsepeaks':
+            if idx >= len(peak_data):
+                peak_data.extend([None]*(idx+1-len(peak_data)))
+            peak_data[idx], unit = load_pulse_peaks(f)
+        elif ftype == 'pulsespectrum':
+            if idx >= len(spec_data):
+                spec_data.extend([None]*(idx+1-len(spec_data)))
+            spec_data[idx] = load_pulse_spectrum(f)
+        elif ftype == 'waveeodfs':
+            wave_eodfs, wave_indices = load_wave_eodfs(f)
+        elif ftype == 'wavefish':
+            eod_props.extend(load_wave_fish(f))
+        elif ftype == 'pulsefish':
+            eod_props.extend(load_pulse_fish(f))
+    return mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
+        peak_data, base_name, channel, unit
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,

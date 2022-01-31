@@ -59,7 +59,7 @@ from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, sav
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .eodanalysis import load_eod_waveform, load_wave_eodfs, load_wave_fish, load_pulse_fish
 from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
-from .eodanalysis import parse_filename, file_types
+from .eodanalysis import parse_filename, file_types, load_analysis
 from .fakefish import normalize_wavefish, export_wavefish
 from .tabledata import TableData, add_write_table_config, write_table_args
 
@@ -1282,6 +1282,8 @@ def main(cargs=None):
     parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
                         nargs='?', const=100.0, default=0.0,
                         help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')
+    parser.add_argument('-d', dest='rawdata_path', default='.', type=str, metavar='PATH',
+                        help='path to raw EOD recordings needed for plotting based on analysis results')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures (defaults to current working directory)')
     parser.add_argument('-k', dest='keep_path', action='store_true',
@@ -1408,47 +1410,19 @@ def main(cargs=None):
         else:
             log_freq = False
         for recording in result_files:
-            wave_eodfs = np.array([])
-            wave_indices = np.array([])
-            mean_eods = []
-            eod_props = []
-            peak_data = []
-            spec_data = []
-            base_name = None
+            mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
+                peak_data, base_name, channel, unit = load_analysis(recording)
             raw_data = None
             samplerate = 0.0
-            channel = -1
-            unit = None
-            for f in recording:
-                base_name, channel, time, ftype, idx, ext = parse_filename(f)
-                if ftype == 'eodwaveform':
-                    if idx >= len(mean_eods):
-                        mean_eods.extend([None]*(idx+1-len(mean_eods)))
-                    mean_eods[idx], unit = load_eod_waveform(f)
-                elif ftype == 'wavespectrum':
-                    if idx >= len(spec_data):
-                        spec_data.extend([None]*(idx+1-len(spec_data)))
-                    spec_data[idx], unit = load_wave_spectrum(f)
-                elif ftype == 'pulsepeaks':
-                    if idx >= len(peak_data):
-                        peak_data.extend([None]*(idx+1-len(peak_data)))
-                    peak_data[idx], unit = load_pulse_peaks(f)
-                elif ftype == 'pulsespectrum':
-                    if idx >= len(spec_data):
-                        spec_data.extend([None]*(idx+1-len(spec_data)))
-                    spec_data[idx] = load_pulse_spectrum(f)
-                elif ftype == 'waveeodfs':
-                    wave_eodfs, wave_indices = load_wave_eodfs(f)
-                elif ftype == 'wavefish':
-                    eod_props.extend(load_wave_fish(f))
-                elif ftype == 'pulsefish':
-                    eod_props.extend(load_pulse_fish(f))
-            datafiles = glob.glob(base_name + '.*')
+            bp =  os.path.basename(base_name) if len(args.rawdata_path) > 0 and args.rawdata_path != '.' else base_name
+            bp = os.path.join(args.rawdata_path, bp)
+            datafiles = glob.glob( bp + '.*')
             data_file = datafiles[0] if len(datafiles) > 0 else ''
             if os.path.exists(data_file):
                 raw_data, samplerate, unit = load_data(data_file, -1,
                                                        verbose=verbose,
                                                        **load_kwargs)
+                print('loaded file', data_file)
             """
             plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                           clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
