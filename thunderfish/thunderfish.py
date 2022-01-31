@@ -59,6 +59,7 @@ from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, sav
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .eodanalysis import load_eod_waveform, load_wave_eodfs, load_wave_fish, load_pulse_fish
 from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
+from .eodanalysis import parse_filename, file_types
 from .fakefish import normalize_wavefish, export_wavefish
 from .tabledata import TableData, add_write_table_config, write_table_args
 
@@ -1379,24 +1380,15 @@ def main(cargs=None):
 
     # check if all input files are results:
     exts = TableData.ext_formats.values()
-    sum_names = ['waveeodfs', 'wavefish', 'pulsefish']
-    ind_names = ['eodwaveform', 'wavespectrum', 'pulsepeaks', 'pulsespectrum']
     results = True
     # check and group by recording:
     result_files = []
     for f in sorted(files):
-        name, ext = os.path.splitext(f)
-        parts = name.split('-')
-        if len(ext) > 0 and ext[1:] in exts and \
-           ((len(parts) > 0 and parts[-1] in sum_names) or
-            (len(parts) > 1 and parts[-2] in ind_names)):
-            if len(parts) > 0 and parts[-1] in sum_names:
-                basename = '-'.join(parts[:-1])
-            else:
-                basename = '-'.join(parts[:-2])
+        base_name, _, _, ftype, _, ext = parse_filename(f)
+        if ext in exts and ftype in file_types:
             if len(result_files) == 0 or \
-               not result_files[-1][-1].startswith(basename):
-                result_files.append([basename, f])
+               not result_files[-1][-1].startswith(base_name):
+                result_files.append([f])
             else:
                 result_files[-1].append(f)
         else:
@@ -1422,42 +1414,42 @@ def main(cargs=None):
             eod_props = []
             peak_data = []
             spec_data = []
-            datafile = None
+            base_name = None
+            raw_data = None
+            samplerate = 0.0
             channel = -1
             unit = None
-            base_name = os.path.basename(recording[0])
-            for f in recording[1:]:
-                name, ext = os.path.splitext(f)
-                parts = name.split('-')
-                if len(parts) > 1 and parts[-2] in ind_names:
-                    idx = int(parts[-1])
-                    if parts[-2] == 'eodwaveform':
-                        if idx >= len(mean_eods):
-                            mean_eods.extend([None]*(idx+1-len(mean_eods)))
-                        mean_eods[idx], unit = load_eod_waveform(f)
-                    elif parts[-2] == 'wavespectrum':
-                        if idx >= len(spec_data):
-                            spec_data.extend([None]*(idx+1-len(spec_data)))
-                        spec_data[idx], unit = load_wave_spectrum(f)
-                    elif parts[-2] == 'pulsepeaks':
-                        if idx >= len(peak_data):
-                            peak_data.extend([None]*(idx+1-len(peak_data)))
-                        peak_data[idx], unit = load_pulse_peaks(f)
-                    elif parts[-2] == 'pulsespectrum':
-                        if idx >= len(spec_data):
-                            spec_data.extend([None]*(idx+1-len(spec_data)))
-                        spec_data[idx] = load_pulse_spectrum(f)
-                elif parts[-1] == 'waveeodfs':
+            for f in recording:
+                base_name, channel, time, ftype, idx, ext = parse_filename(f)
+                if ftype == 'eodwaveform':
+                    if idx >= len(mean_eods):
+                        mean_eods.extend([None]*(idx+1-len(mean_eods)))
+                    mean_eods[idx], unit = load_eod_waveform(f)
+                elif ftype == 'wavespectrum':
+                    if idx >= len(spec_data):
+                        spec_data.extend([None]*(idx+1-len(spec_data)))
+                    spec_data[idx], unit = load_wave_spectrum(f)
+                elif ftype == 'pulsepeaks':
+                    if idx >= len(peak_data):
+                        peak_data.extend([None]*(idx+1-len(peak_data)))
+                    peak_data[idx], unit = load_pulse_peaks(f)
+                elif ftype == 'pulsespectrum':
+                    if idx >= len(spec_data):
+                        spec_data.extend([None]*(idx+1-len(spec_data)))
+                    spec_data[idx] = load_pulse_spectrum(f)
+                elif ftype == 'waveeodfs':
                     wave_eodfs, wave_indices = load_wave_eodfs(f)
-                elif parts[-1] == 'wavefish':
+                elif ftype == 'wavefish':
                     eod_props.extend(load_wave_fish(f))
-                elif parts[-1] == 'pulsefish':
+                elif ftype == 'pulsefish':
                     eod_props.extend(load_pulse_fish(f))
-            print(eod_props)
+            datafiles = glob.glob(base_name + '.*')
+            data_file = datafiles[0] if len(datafiles) > 0 else ''
+            if os.path.exists(data_file):
+                raw_data, samplerate, unit = load_data(data_file, -1,
+                                                       verbose=verbose,
+                                                       **load_kwargs)
             """
-            all_data, samplerate, unit = load_data(filename, -1,
-                                                   verbose=verbose,
-                                                   **load_kwargs)
             plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                           clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
                           eod_props, peak_data, spec_data, unit, zoom_window,

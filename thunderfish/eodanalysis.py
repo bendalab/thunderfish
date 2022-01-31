@@ -45,6 +45,7 @@ Analysis of EOD waveforms.
 - `load_pulse_spectrum()`: load power spectrum of pulse EOD from file.
 - `save_pulse_peaks()`: save peak properties of pulse EOD to file.
 - `load_pulse_peaks()`: load peak properties of pulse EOD from file.
+- `parse_filename()`: parse components of an EOD analysis file name.
 
 ## Fit functions
 
@@ -2396,6 +2397,66 @@ def load_pulse_peaks(file_path):
     peaks[:,3] *= 0.01
     peaks[:,4] *= 0.001
     return peaks, data.unit('amplitude')
+
+
+file_types = ['waveeodfs', 'wavefish', 'pulsefish', 'eodwaveform',
+              'wavespectrum', 'pulsepeaks', 'pulsespectrum']
+"""List of all file types generated and supported by the `save_*` and `load_*` functions."""
+
+
+def parse_filename(file_path):
+    """Parse components of an EOD analysis file name.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be parsed.
+
+    Returns
+    -------
+    base_name: string
+        Basename of the recording.
+    channel: int
+        Channel of the recording.
+        -1 if not present in `file_path`.
+    time: float
+        Start time of analysis window in seconds.
+        `None` if not present in `file_path`.
+    ftype: string
+        Type of analysis file (e.g. 'wavespectrum', 'pulsepeaks', etc.).
+        See `file_types` for a list of all supported file types.
+        `None` if not present in `file_path`.
+    index: int
+        Index of the EOD.
+        -1 if not present in `file_path`.
+    ext: string
+        File extension *without* leading period.
+    """
+    name, ext = os.path.splitext(file_path)
+    if len(ext) > 0:
+        ext = ext[1:]
+    parts = name.split('-')
+    index = -1
+    if len(parts) > 0 and parts[-1].isdigit():
+        index = int(parts[-1])
+        parts = parts[:-1]
+    ftype = None
+    if len(parts) > 0:
+        ftype = parts[-1]
+        parts = parts[:-1]
+    time = None
+    if len(parts) > 0 and len(parts[-1]) > 0 and \
+       parts[-1][1] == 't' and parts[-1][-1] == 's' and \
+       parts[-1][1:-1].isdigit():
+        time = float(parts[-1][1:-1])
+        parts = parts[:-1]
+    channel = -1
+    if len(parts) > 0 and len(parts[-1]) > 0 and \
+       parts[-1][1] == 'c' and parts[-1][1:].isdigit():
+        time = int(parts[-1][1:])
+        parts = parts[:-1]
+    base_name = '-'.join(parts)
+    return base_name, channel, time, ftype, index, ext
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
