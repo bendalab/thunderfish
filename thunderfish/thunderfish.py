@@ -822,8 +822,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                       eod_props, peak_data, spec_data, unit, zoom_window,
                       n_snippets=10, power_thresh=None, label_power=True,
                       skip_bad=True, log_freq=False,
-                      min_freq=0.0, max_freq=3000.0):
-    """Plot time traces and spectra into separate files.
+                      min_freq=0.0, max_freq=3000.0, save=True, show=False):
+    """Plot time traces and spectra into separate windows or files.
 
     Parameters
     ----------
@@ -884,6 +884,10 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
         Limits of frequency axis of power spectrum of recording
         are set to `(min_freq, max_freq)` and limits of power axis are computed
         from powers below max_freq if `max_freq` is greater than zero
+    save: bool
+        If True save plots to files.
+    show: bool
+        If True show plots in windows.
     """
     plot_style()
     if 'r' in subplots:
@@ -892,13 +896,15 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
         plot_data_window(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
         ax.yaxis.set_major_locator(ticker.MaxNLocator(5))
         axes_style(ax)
-        fig.savefig(base_name + '-recording.pdf')
+        if save:
+            fig.savefig(base_name + '-recording.pdf')
     if 't' in subplots:
         fig, ax = plt.subplots(figsize=(10, 6))
         ax.text(0.5, 0.5, 'not implemented yet',
                 transform=ax.transAxes, ha='center', va='center')
         axes_style(ax)
-        fig.savefig(base_name + '-trace.pdf')
+        if save:
+            fig.savefig(base_name + '-trace.pdf')
     if 'p' in subplots:
         fig, ax = plt.subplots(figsize=(10, 5))
         fig.subplots_adjust(left=0.08, right=0.975, bottom=0.11, top=0.9)
@@ -932,7 +938,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
             ax.set_title('Powerspectrum: %s' % label, y=1.05)
         else:
             ax.set_title('Powerspectrum', y=1.05)
-        fig.savefig(base_name + '-psd.pdf')
+        if save:
+            fig.savefig(base_name + '-psd.pdf')
     if 'w' in subplots or 'W' in subplots:
         mpdf = None
         if 'W' in subplots:
@@ -943,13 +950,14 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
             ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
             plot_eod_waveform(ax, meod, props, peaks, unit)
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-            if props['type'] == 'pulse':
+            if props['type'] == 'pulse' and 'times' in props:
                 plot_eod_snippets(ax, data, samplerate, meod[0,0], meod[-1,0],
                                   props['times'], n_snippets)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
             if mpdf is None:
-                fig.savefig(base_name + '-waveform-%d.pdf' % props['index'])
+                if save:
+                    fig.savefig(base_name + '-waveform-%d.pdf' % props['index'])
             else:
                 mpdf.savefig(fig)
         if mpdf is not None:
@@ -975,7 +983,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                 ax1.set_xticklabels([])
                 ax1.yaxis.set_major_locator(ticker.MaxNLocator(4))
             if mpdf is None:
-                fig.savefig(base_name + '-spectrum-%d.pdf' % props['index'])
+                if save:
+                    fig.savefig(base_name + '-spectrum-%d.pdf' % props['index'])
             else:
                 mpdf.savefig(fig)
         if mpdf is not None:
@@ -992,7 +1001,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
             ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
             plot_eod_waveform(ax1, meod, props, peaks, unit)
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
-            if props['type'] == 'pulse':
+            if props['type'] == 'pulse' and 'times' in props:
                 plot_eod_snippets(ax1, data, samplerate, meod[0,0], meod[-1,0],
                                   props['times'], n_snippets)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
@@ -1012,11 +1021,14 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                 ax2.set_xticklabels([])
                 ax2.yaxis.set_major_locator(ticker.MaxNLocator(4))
             if mpdf is None:
-                fig.savefig(base_name + '-eod-%d.pdf' % props['index'])
+                if save:
+                    fig.savefig(base_name + '-eod-%d.pdf' % props['index'])
             else:
                 mpdf.savefig(fig)
         if mpdf is not None:
             mpdf.close()
+    if show:
+        plt.show()
     plt.close()
 
 
@@ -1414,6 +1426,13 @@ def main(cargs=None):
                 peak_data, base_name, channel, unit = load_analysis(recording)
             raw_data = None
             samplerate = 0.0
+            idx0 = 0
+            idx1 = 0
+            psd_data = None
+            zoom_window = [1.2, 1.3]
+            clipped = 0.0
+            if len(eod_props) > 0 and 'clipped' in eod_props[0]:
+                clipped = eod_props[0]['clipped']
             bp =  os.path.basename(base_name) if len(args.rawdata_path) > 0 and args.rawdata_path != '.' else base_name
             bp = os.path.join(args.rawdata_path, bp)
             datafiles = glob.glob( bp + '.*')
@@ -1422,13 +1441,26 @@ def main(cargs=None):
                 raw_data, samplerate, unit = load_data(data_file, -1,
                                                        verbose=verbose,
                                                        **load_kwargs)
-                print('loaded file', data_file)
+                if len(eod_props) > 0 and 'tstart' in eod_props[0]:
+                    idx0 = int(eod_props[0]['tstart']*samplerate)
+                if len(eod_props) > 0 and 'twindow' in eod_props[0]:
+                    idx1 = idx0 + int(eod_props[0]['twindow']*samplerate)
+                print('loaded file', data_file, idx0, idx1)
+            plot_eod_subplots(base_name, args.save_subplots,
+                              raw_data, samplerate, idx0, idx1,
+                              clipped, psd_data, wave_eodfs, wave_indices,
+                              mean_eods, eod_props, peak_data, spec_data,
+                              unit, zoom_window, 10, None, True,
+                              args.skip_bad, log_freq, min_freq, max_freq,
+                              False, True)
             """
-            plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
-                          clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
-                          eod_props, peak_data, spec_data, unit, zoom_window,
-                          n_snippets=10, None, True,
-                          args.skip_bad, log_freq, min_freq, max_freq)
+            fig = plot_eods(outfilename, raw_data, samplerate, chl, idx0, idx1,
+                            clipped, psd_data[0], wave_eodfs, wave_indices,
+                            mean_eods, eod_props, peak_data, spec_data, None,
+                            unit, zoom_window, n_snippets, power_thresh, True,
+                            all_eods, spec_plots, skip_bad, log_freq,
+                            min_freq, max_freq, interactive=not save_data,
+                            verbose=verbose)
             """
         return
             

@@ -1454,8 +1454,8 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
         ax.set_ylabel('Amplitude [%s]' % unit)
 
 
-def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0.0,
-                    colors=None, markers=None, marker_size=10,
+def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
+                    toffs=0.0, colors=None, markers=None, marker_size=10,
                     legend_rows=8, **kwargs):
     """Mark pulse EODs in a plot of an EOD recording.
 
@@ -1467,6 +1467,10 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         Recorded data (these are not plotted!).
     samplerate: float
         Sampling rate of the data in Hertz.
+    zoom_window: tuple of floats
+       Start and end time of the data to be plotted in seconds.
+    width: float
+       Minimum width of the data to be plotted in seconds.
     eod_props: list of dictionaries
             Lists of EOD properties as returned by `analyze_pulse()` and `analyze_wave()`.
             From the entries with 'type' == 'pulse' the properties 'EODf' and 'times'
@@ -1495,7 +1499,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
 
         width = np.min([width, np.diff(zoom_window)[0]])
         while len(eod['peaktimes'][(eod['peaktimes']>(zoom_window[1]-width)) & (eod['peaktimes']<(zoom_window[1]))]) == 0:
-            width = width*2
+            width *= 2
             if zoom_window[1] - width < 0:
                 width = width/2
                 break  
@@ -1541,7 +1545,8 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props, toffs=0
         ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
         
-def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times, n_snippets=10, flip=False,
+def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times,
+                      n_snippets=10, flip=False,
                       kwargs={'zorder': -5, 'scaley': False, 'lw': 0.5, 'color': '#CCCCCC'}):
     """Plot a few EOD waveform snippets.
 
@@ -1721,7 +1726,8 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
         ax.set_ylabel('Amplitude')
 
 
-def plot_wave_spectrum(axa, axp, spec, props, unit=None, color='b', lw=2, markersize=10):
+def plot_wave_spectrum(axa, axp, spec, props, unit=None,
+                       color='b', lw=2, markersize=10):
     """Plot and annotate spectrum of wave EOD.
 
     Parameters
@@ -2010,27 +2016,27 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td = TableData()
     if 'tstart' in wave_props[0]:
         td.append_section('recording')
-        td.append('tstart', 's', '%7.2f', wave_props, 'tstart')
-        td.append('twindow', 's', '%7.2f', wave_props, 'twindow')
+        td.append('tstart', 's', '%7.2f', wave_props)
+        td.append('twindow', 's', '%7.2f', wave_props)
     td.append_section('waveform')
-    td.append('index', '', '%d', wave_props, 'index')
-    td.append('EODf', 'Hz', '%7.2f', wave_props, 'EODf')
-    td.append('p-p-amplitude', unit, '%.5f', wave_props, 'p-p-amplitude')
-    td.append('power', 'dB', '%7.2f', wave_props, 'power')
+    td.append('index', '', '%d', wave_props)
+    td.append('EODf', 'Hz', '%7.2f', wave_props)
+    td.append('p-p-amplitude', unit, '%.5f', wave_props)
+    td.append('power', 'dB', '%7.2f', wave_props)
     if 'datapower' in wave_props[0]:
-        td.append('datapower', 'dB', '%7.2f', wave_props, 'datapower')
+        td.append('datapower', 'dB', '%7.2f', wave_props)
     td.append('thd', '%', '%.2f', wave_props, 'thd', 100.0)
-    td.append('dbdiff', 'dB', '%7.2f', wave_props, 'dbdiff')
-    td.append('maxdb', 'dB', '%7.2f', wave_props, 'maxdb')
+    td.append('dbdiff', 'dB', '%7.2f', wave_props)
+    td.append('maxdb', 'dB', '%7.2f', wave_props)
     if 'rmssem' in wave_props[0]:
         td.append('noise', '%', '%.1f', wave_props, 'rmssem', 100.0)
     td.append('rmserror', '%', '%.2f', wave_props, 'rmserror', 100.0)
     if 'clipped' in wave_props[0]:
         td.append('clipped', '%', '%.1f', wave_props, 'clipped', 100.0)
-    td.append('flipped', '', '%d', wave_props, 'flipped')
-    td.append('n', '', '%5d', wave_props, 'n')
+    td.append('flipped', '', '%d', wave_props)
+    td.append('n', '', '%5d', wave_props)
     td.append_section('timing')
-    td.append('ncrossings', '', '%d', wave_props, 'ncrossings')
+    td.append('ncrossings', '', '%d', wave_props)
     td.append('peakwidth', '%', '%.2f', wave_props, 'peakwidth', 100.0)
     td.append('troughwidth', '%', '%.2f', wave_props, 'troughwidth', 100.0)
     td.append('leftpeak', '%', '%.2f', wave_props, 'leftpeak', 100.0)
@@ -2072,9 +2078,7 @@ def load_wave_fish(file_path):
         props['index'] = int(props['index'])
         props['type'] = 'wave'
         props['thd'] /= 100
-        props['noise'] /= 100
-        if 'rmssem' in props:
-            props['rmssem'] /= 100
+        props['rmssem'] = props.pop('noise') / 100
         props['rmserror'] /= 100
         if 'clipped' in props:
             props['clipped'] /= 100
@@ -2121,20 +2125,20 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td = TableData()
     if 'tstart' in pulse_props[0]:
         td.append_section('recording')
-        td.append('tstart', 's', '%7.2f', pulse_props, 'tstart')
-        td.append('twindow', 's', '%7.2f', pulse_props, 'twindow')
+        td.append('tstart', 's', '%7.2f', pulse_props)
+        td.append('twindow', 's', '%7.2f', pulse_props)
     td.append_section('waveform')
-    td.append('index', '', '%d', pulse_props, 'index')
-    td.append('EODf', 'Hz', '%7.2f', pulse_props, 'EODf')
+    td.append('index', '', '%d', pulse_props)
+    td.append('EODf', 'Hz', '%7.2f', pulse_props)
     td.append('period', 'ms', '%7.2f', pulse_props, 'period', 1000.0)
     td.append('max-ampl', unit, '%.5f', pulse_props, 'max-amplitude')
     td.append('min-ampl', unit, '%.5f', pulse_props, 'min-amplitude')
-    td.append('p-p-amplitude', unit, '%.5f', pulse_props, 'p-p-amplitude')
+    td.append('p-p-amplitude', unit, '%.5f', pulse_props)
     if 'rmssem' in pulse_props[0]:
         td.append('noise', '%', '%.1f', pulse_props, 'rmssem', 100.0)
     if 'clipped' in pulse_props[0]:
         td.append('clipped', '%', '%.1f', pulse_props, 'clipped', 100.0)
-    td.append('flipped', '', '%d', pulse_props, 'flipped')
+    td.append('flipped', '', '%d', pulse_props)
     td.append('tstart', 'ms', '%.3f', pulse_props, 'tstart', 1000.0)
     td.append('tend', 'ms', '%.3f', pulse_props, 'tend', 1000.0)
     td.append('width', 'ms', '%.3f', pulse_props, 'width', 1000.0)
@@ -2142,7 +2146,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('tau', 'ms', '%.3f', pulse_props, 'tau', 1000.0)
     td.append('firstpeak', '', '%d', pulse_props, 'firstpeak')
     td.append('lastpeak', '', '%d', pulse_props, 'lastpeak')
-    td.append('n', '', '%d', pulse_props, 'n')
+    td.append('n', '', '%d', pulse_props)
     td.append_section('power spectrum')
     td.append('peakfreq', 'Hz', '%.2f', pulse_props, 'peakfrequency')
     td.append('peakpower', 'dB', '%.2f', pulse_props, 'peakpower')
@@ -2181,17 +2185,21 @@ def load_pulse_fish(file_path):
     for props in eod_props:
         props['index'] = int(props['index'])
         props['type'] = 'pulse'
-        if 'rmssem' in props:
-            props['rmssem'] /= 100
         if 'clipped' in props:
             props['clipped'] /= 100
-        props['noise'] /= 100
         props['period'] /= 1000
+        props['min-amplitude'] = props.pop('min-ampl')
+        props['max-amplitude'] = props.pop('max-ampl')
+        props['rmssem'] = props.pop('noise') / 100
         props['tstart'] /= 1000
         props['tend'] /= 1000
         props['width'] /= 1000
-        props['P2-P1-dist'] /= 1000
+        props['dist'] = props.pop('P2-P1-dist') / 1000
         props['tau'] /= 1000
+        props['peakfrequency'] = props.pop('peakfreq')
+        props['lowfreqattenuation5'] = props.pop('poweratt5')
+        props['lowfreqattenuation50'] = props.pop('poweratt50')
+        props['powerlowcutoff'] = props.pop('lowcutoff')
     return eod_props
 
 
@@ -2528,6 +2536,13 @@ def load_analysis(file_pathes):
             eod_props.extend(load_wave_fish(f))
         elif ftype == 'pulsefish':
             eod_props.extend(load_pulse_fish(f))
+    n = max(len(mean_eods), len(spec_data), len(peak_data))
+    if n > len(mean_eods):
+        mean_eods.extend([None]*(n-len(mean_eods)))
+    if n > len(spec_data):
+        spec_data.extend([None]*(n-len(spec_data)))
+    if n > len(peak_data):
+        peak_data.extend([None]*(n-len(peak_data)))
     return mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
         peak_data, base_name, channel, unit
 
