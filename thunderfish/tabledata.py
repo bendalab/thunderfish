@@ -387,7 +387,8 @@ class TableData(object):
             else:
                 self.load(data, missing)
         
-    def append(self, label, unit=None, formats=None, value=None, key=None, fac=None):
+    def append(self, label, unit=None, formats=None, value=None,
+               key=None, fac=None):
         """Append column to the table.
 
         Parameters
@@ -402,6 +403,9 @@ class TableData(object):
             If None, the format is set to '%g'.
         value: None, float, int, string, etc. or list thereof, or list of dict
             If not None, data for the column.
+            If list of dictionaries, extract from each dictionary in the list
+            the value specified by `key`. If `key` is `None` use `label` as
+            the key.
         key: None or key of a dictionary
             If not None and `value` is a list of dictionaries,
             extract from each dictionary in the list the value specified
@@ -417,6 +421,7 @@ class TableData(object):
         if self.addcol >= len(self.data):
             if isinstance(label, (list, tuple, np.ndarray)):
                 self.header.append(list(reversed(label)))
+                label = label[-1]
             else:
                 self.header.append([label])
             self.formats.append(formats or '%g')
@@ -428,12 +433,15 @@ class TableData(object):
         else:
             if isinstance(label, (list, tuple, np.ndarray)):
                 self.header[self.addcol] = list(reversed(label)) + self.header[self.addcol]
+                label = label[-1]
             else:
                 self.header[self.addcol] = [label] + self.header[self.addcol]
             self.units[self.addcol] = unit or ''
             self.formats[self.addcol] = formats or '%g'
             if self.nsecs < len(self.header[self.addcol])-1:
                 self.nsecs = len(self.header[self.addcol])-1
+        if not key:
+            key = label
         if value is not None:
             if isinstance(value, (list, tuple, np.ndarray)):
                 if key and value and isinstance(value[0], dict):
