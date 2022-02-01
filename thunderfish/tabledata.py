@@ -444,7 +444,7 @@ class TableData(object):
             key = label
         if value is not None:
             if isinstance(value, (list, tuple, np.ndarray)):
-                if key and value and isinstance(value[0], dict):
+                if key and len(value) > 0 and isinstance(value[0], dict):
                     value = [d[key] if key in d else float('nan') for d in value]
                 self.data[-1].extend(value)
             else:
