@@ -1150,6 +1150,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         for props in eod_props:
             props['twin'] = idx0/samplerate
             props['window'] = (idx1 - idx0)/samplerate
+            props['winclipped'] = clipped
 
         # warning message in case no fish has been found:
         if found_bestwindow and not eod_props :
@@ -1431,8 +1432,8 @@ def main(cargs=None):
             psd_data = None
             zoom_window = [1.2, 1.3]
             clipped = 0.0
-            if len(eod_props) > 0 and 'clipped' in eod_props[0]:
-                clipped = eod_props[0]['clipped']
+            if len(eod_props) > 0 and 'winclipped' in eod_props[0]:
+                clipped = eod_props[0]['winclipped']
             bp =  os.path.basename(base_name) if len(args.rawdata_path) > 0 and args.rawdata_path != '.' else base_name
             bp = os.path.join(args.rawdata_path, bp)
             datafiles = glob.glob( bp + '.*')
