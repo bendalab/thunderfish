@@ -742,7 +742,7 @@ Properties of each pulse-type fish detected in the recording.
 <table>
 <thead>
   <tr>
-    <th align="left" colspan="4">recording</th>
+    <th align="left" colspan="6">recording</th>
     <th align="left" colspan="17">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
   </tr>
@@ -751,6 +751,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">window</th>
     <th align="left">winclipped</th>
     <th align="left">samplerate</th>
+    <th align="left">nfft</th>
+    <th align="left">dfreq</th>
     <th align="left">index</th>
     <th align="left">EODf</th>
     <th align="left">period</th>
@@ -781,6 +783,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">kHz</th>
     <th align="left">-</th>
     <th align="left">Hz</th>
+    <th align="left">-</th>
+    <th align="left">Hz</th>
     <th align="left">ms</th>
     <th align="left">a.u.</th>
     <th align="left">a.u.</th>
@@ -809,6 +813,8 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
+    <td align="right">65536</td>
+    <td align="right">0.49</td>
     <td align="right">0</td>
     <td align="right">32.22</td>
     <td align="right">31.03</td>
@@ -841,29 +847,31 @@ The columns contain:
 2. `window` Duration of the analysis window in seconds.
 3. `winclipped`: Fraction of analysis window that is clipped.
 4. `samplerate`: Sampling rate of the recording.
-5. `index` Index of the fish (the number that is also used to number the files).
-6. `EODf` EOD frequency in Hertz.
-7. `period` Period between two pulses (1/EODf) in milliseconds.
-8. `max-ampl` Amplitude of the largest peak (P1 peak) in the units of the input data.
-9. `min-ampl` Amplitude of the largest trough in the units of the input data.
-10. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
-11. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
+5. `nfft`: Number of samples used for FFT to compute power spectrum.
+6. `dfreq`: Frequency resolution of power spectrum.
+7. `index` Index of the fish (the number that is also used to number the files).
+8. `EODf` EOD frequency in Hertz.
+9. `period` Period between two pulses (1/EODf) in milliseconds.
+10. `max-ampl` Amplitude of the largest peak (P1 peak) in the units of the input data.
+11. `min-ampl` Amplitude of the largest trough in the units of the input data.
+12. `p-p-amplitude` Peak-to-peak amplitude in the units of the input data.
+13. `noise` Root-mean-squared standard error of the averaged EOD waveform relative to the
    peak-to_peak amplitude in percent.
-12. `clipped` Percentage of recording that is clipped.
-13. `flipped` Whether the waveform was flipped.
-14. `tstart` Time where the pulse starts relative to P1 in milliseconds.
-15. `tend` Time where the pulse ends relative to P1 in milliseconds.
-16. `width` Total width of the pulse in milliseconds.
-17. `P2-P1-dist`: Distance between P2 and P1 in milliseconds. Zero if p2 is not present.
-18. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
-19. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1)
-20. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3)
-21. `n` Number of EODs used for computing the averaged EOD waveform.
-22. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
-23. `peakpower` Peak power of the single pulse spectrum relative to one in decibel.
-24. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-25. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-26. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+14. `clipped` Percentage of recording that is clipped.
+15. `flipped` Whether the waveform was flipped.
+16. `tstart` Time where the pulse starts relative to P1 in milliseconds.
+17. `tend` Time where the pulse ends relative to P1 in milliseconds.
+18. `width` Total width of the pulse in milliseconds.
+19. `P2-P1-dist`: Distance between P2 and P1 in milliseconds. Zero if p2 is not present.
+20. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
+21. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1)
+22. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3)
+23. `n` Number of EODs used for computing the averaged EOD waveform.
+24. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
+25. `peakpower` Peak power of the single pulse spectrum relative to one in decibel.
+26. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+27. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+28. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
 ### RECORDING-CHANNEL-TIME-pulsepeaks-N.EXT

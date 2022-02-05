@@ -1977,7 +1977,9 @@ def load_wave_eodfs(file_path):
     data = TableData(file_path)
     eodfs = data.array()
     if 'index' in data:
-        indices = np.array(data[:,'index'], dtype=np.int)
+        indices = data[:,'index']
+        indices[~np.isfinite(indices)] = -1
+        indices = np.array(indices, dtype=np.int)
         eodfs = eodfs[:,1:]
     else:
         indices = np.zeros(data.rows(), dtype=np.int) - 1
@@ -2141,13 +2143,18 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     if len(pulse_props) == 0:
         return None
     td = TableData()
-    if 'twin' in pulse_props[0]:
+    if 'twin' in pulse_props[0] or 'samplerate' in pulse_props[0] or \
+       'nfft' in pulse_props[0]:
         td.append_section('recording')
+    if 'twin' in pulse_props[0]:
         td.append('twin', 's', '%7.2f', pulse_props)
         td.append('window', 's', '%7.2f', pulse_props)
         td.append('winclipped', '%', '%.2f', pulse_props, 100.0)
     if 'samplerate' in pulse_props[0]:
         td.append('samplerate', 'kHz', '%.3f', pulse_props, 0.001)
+    if 'nfft' in pulse_props[0]:
+        td.append('nfft', '', '%d', pulse_props)
+        td.append('dfreq', 'Hz', '%.2f', pulse_props)
     td.append_section('waveform')
     td.append('index', '', '%d', pulse_props)
     td.append('EODf', 'Hz', '%7.2f', pulse_props)
@@ -2212,6 +2219,8 @@ def load_pulse_fish(file_path):
             props['winclipped'] /= 100
         if 'samplerate' in props:
             props['samplerate'] *= 1000
+        if 'nfft' in props:
+            props['nfft'] = int(props['nfft'])
         props['index'] = int(props['index'])
         props['type'] = 'pulse'
         if 'clipped' in props:
@@ -2492,7 +2501,7 @@ def parse_filename(file_path):
 
 
 def load_analysis(file_pathes):
-    """Load EOD analysis files.
+    """Load all EOD analysis files.
 
     Parameters
     ----------

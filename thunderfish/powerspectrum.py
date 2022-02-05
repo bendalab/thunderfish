@@ -175,7 +175,8 @@ def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
         Data from which power spectra are computed.
     ratetime: float or array
         If float, sampling rate of the data in Hertz.
-        If array, assume `ratetime` to be the time vector corresponding to the data.
+        If array, assume `ratetime` to be the time array
+        corresponding to the data.
         Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
     freq_resolution: float
         Frequency resolution of the psd in Hertz.
@@ -222,7 +223,7 @@ def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
                                 noverlap=noverlap, detrend=detrend_func,
                                 window=get_window(window, n_fft),
                                 scale_by_freq=True)
-    # squeeze is necessary when n_fft is to large with respect to the data:
+    # squeeze is necessary when n_fft is too large with respect to the data:
     return freqs, np.squeeze(power)
 
 
@@ -242,7 +243,8 @@ def multi_psd(data, ratetime, freq_resolution=0.5,
         Data from which power spectra are computed.
     ratetime: float or array
         If float, sampling rate of the data in Hertz.
-        If array, assume `ratetime` to be the time vector corresponding to the data.
+        If array, assume `ratetime` to be the time array
+        corresponding to the data.
         Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
     freq_resolution: float or 1-D array
         Frequency resolutions for one or multiple psds in Hertz.
@@ -308,7 +310,8 @@ def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
         Data for the spectrogram.
     ratetime: float or array
         If float, sampling rate of the data in Hertz.
-        If array, assume `ratetime` to be the time vector corresponding to the data.
+        If array, assume `ratetime` to be the time array
+        corresponding to the data.
         Compute sampling rate as `1/(ratetime[1]-ratetime[0])`.
     freq_resolution: float
         Frequency resolution for the spectrogram.

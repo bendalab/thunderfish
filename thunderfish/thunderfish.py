@@ -248,6 +248,8 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
             props['index'] = len(eod_props)
             props['clipped'] = clipped_frac
             props['samplerate'] = samplerate
+            props['nfft'] = nfft
+            props['dfreq'] = dfreq
 
             # add good waveforms only:
             skips, msg, skipped_clipped = pulse_quality(props, **pulse_quality_args(cfg))
@@ -778,14 +780,14 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
                                label=w[wk].get_label(), transform=ax.transAxes)
                 ax.add_line(ma)
         else:
-            if axr is not None:
+            if axr is not None and len(legend_pulse_eodfs) > 0:
                 pk = np.argmin(np.abs(legend_pulse_eodfs - eodf))
                 ma = ml.Line2D([mx], [my], color=p[pk].get_color(), marker=p[pk].get_marker(),
                                markersize=p[pk].get_markersize(), mec='none', clip_on=False,
                                label=p[pk].get_label(), transform=ax.transAxes)
                 ax.add_line(ma)
         plot_eod_waveform(ax, mean_eod, props, peaks, unit)
-        if props['type'] == 'pulse':
+        if props['type'] == 'pulse' and 'times' in props:
             plot_eod_snippets(ax, data, samplerate, mean_eod[0,0], mean_eod[-1,0],
                               props['times'], n_snippets, props['flipped'])
         if not large_plots and k < max_plots-2:
@@ -1440,6 +1442,8 @@ def main(cargs=None):
             psd_data = None
             zoom_window = [1.2, 1.3]
             clipped = 0.0
+            if len(wave_eodfs > 0):
+                wave_eodfs = [fish.reshape(1, 2) for fish in wave_eodfs]
             if len(eod_props) > 0 and 'winclipped' in eod_props[0]:
                 clipped = eod_props[0]['winclipped']
             bp =  os.path.basename(base_name) if len(args.rawdata_path) > 0 and args.rawdata_path != '.' else base_name
@@ -1450,10 +1454,16 @@ def main(cargs=None):
                 raw_data, samplerate, unit = load_data(data_file, -1,
                                                        verbose=verbose,
                                                        **load_kwargs)
+                idx0 = 0
+                idx1 = len(raw_data)
                 if len(eod_props) > 0 and 'twin' in eod_props[0]:
                     idx0 = int(eod_props[0]['twin']*samplerate)
                 if len(eod_props) > 0 and 'window' in eod_props[0]:
                     idx1 = idx0 + int(eod_props[0]['window']*samplerate)
+                if 'dfreq' in eod_props[0]:
+                    psd_data = multi_psd(raw_data[idx0:idx1,channel],
+                                         samplerate,
+                                         1.1*eod_props[0]['dfreq'])
                 print('loaded file', data_file, idx0, idx1)
             plot_eod_subplots(base_name, args.save_subplots,
                               raw_data, samplerate, idx0, idx1,
@@ -1462,15 +1472,19 @@ def main(cargs=None):
                               unit, zoom_window, 10, None, True,
                               args.skip_bad, log_freq, min_freq, max_freq,
                               False, True)
-            """
-            fig = plot_eods(outfilename, raw_data, samplerate, chl, idx0, idx1,
-                            clipped, psd_data[0], wave_eodfs, wave_indices,
+            fig = plot_eods(base_name, raw_data[:,channel], samplerate, channel,
+                            idx0, idx1, clipped, psd_data[0],
+                            wave_eodfs, wave_indices,
                             mean_eods, eod_props, peak_data, spec_data, None,
-                            unit, zoom_window, n_snippets, power_thresh, True,
-                            all_eods, spec_plots, skip_bad, log_freq,
-                            min_freq, max_freq, interactive=not save_data,
+                            unit, zoom_window, 10, None, True,
+                            args.all_eods, spec_plots, args.skip_bad, log_freq,
+                            min_freq, max_freq, interactive=not args.save_data,
                             verbose=verbose)
-            """
+            if args.save_data:
+                pass
+            else:
+                plt.show()
+            plt.close()
         return
             
     # run on pool:
