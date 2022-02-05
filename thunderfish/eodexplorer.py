@@ -161,7 +161,7 @@ class EODExplorer(MultivariateExplorer):
         if any(l in label for l in ['ampl', 'power', 'width',
                                     'time', 'tau', 'P2-P1-dist',
                                     'var', 'peak', 'trough',
-                                    'dist', 'rms', 'noise']):
+                                    'P2-P1-dist', 'rms', 'noise']):
             if np.all(data[np.isfinite(data)] >= 0.0):
                 if axis == 'x':
                     ax.set_xlim(0.0, None)

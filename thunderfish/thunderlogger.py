@@ -143,8 +143,8 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                                 else:
                                     fish_dist = 10000.0
                                     for pfish in pulse_fishes[channel]:
-                                        ddist = np.abs(pfish.props['dist'] -
-                                                       props['dist'])
+                                        ddist = np.abs(pfish.props['P1-P1-dist'] -
+                                                       props['P1-P1-dist'])
                                         if ddist < fish_dist:
                                             fish_dist = ddist
                                             fish_deltaf = np.abs(pfish.props['EODf'] -

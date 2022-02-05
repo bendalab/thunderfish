@@ -300,7 +300,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
         - p-p-amplitude: peak-to-peak amplitude of the Fourier fit.
         - flipped: True if the waveform was flipped.
         - amplitude: amplitude factor of the Fourier fit.
-        - rmssem: root-mean squared standard error mean of the averaged EOD waveform
+        - noise: root-mean squared standard error mean of the averaged EOD waveform
           relative to the p-p amplitude.
         - rmserror: root-mean-square error between Fourier-fit and EOD waveform relative to
           the p-p amplitude. If larger than about 0.05 the data are bad.
@@ -472,7 +472,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     props['amplitude'] = 0.5*ppampl  # remove it
     props['rmserror'] = rmserror
     if rmssem:
-        props['rmssem'] = rmssem
+        props['noise'] = rmssem
     props['ncrossings'] = ncrossings
     props['peakwidth'] = peak_width/period
     props['troughwidth'] = trough_width/period
@@ -573,27 +573,27 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
         - period: the median interval between `eod_times`, if provided.
         - IPI-mean: the mean interval between `eod_times`, if provided.
         - IPI-std: the standard deviation of the intervals between `eod_times`, if provided.
-        - max-amplitude: the amplitude of the largest positive peak (P1).
-        - min-amplitude: the amplitude of the largest negative peak (P2).
+        - max-ampl: the amplitude of the largest positive peak (P1).
+        - min-ampl: the amplitude of the largest negative peak (P2).
         - p-p-amplitude: peak-to-peak amplitude of the EOD waveform.
-        - rmssem: root-mean squared standard error mean of the averaged EOD waveform
+        - noise: root-mean squared standard error mean of the averaged EOD waveform
           relative to the p-p amplitude.
         - tstart: time in seconds where the pulse starts,
           i.e. crosses the threshold for the first time.
         - tend: time in seconds where the pulse ends,
           i.e. crosses the threshold for the last time.
         - width: total width of the pulse in seconds (tend-tstart).
-        - dist: distance between P2 and P1 in seconds.
+        - P2-P1-dist: distance between P2 and P1 in seconds.
         - tau: time constant of exponential decay of pulse tail in seconds.
         - firstpeak: index of the first peak in the pulse (i.e. -1 for P-1)
         - lastpeak: index of the last peak in the pulse (i.e. 3 for P3)
-        - peakfrequency: frequency at peak power of the single pulse spectrum in Hertz.
+        - peakfreq: frequency at peak power of the single pulse spectrum in Hertz.
         - peakpower: peak power of the single pulse spectrum in decibel.
-        - lowfreqattenuation5: how much the average power below 5 Hz is attenuated
+        - poweratt5: how much the average power below 5 Hz is attenuated
           relative to the peak power in decibel.
-        - lowfreqattenuation50: how much the average power below 5 Hz is attenuated
+        - poweratt50: how much the average power below 5 Hz is attenuated
           relative to the peak power in decibel.
-        - powerlowcutoff: frequency at which the power reached half of the peak power
+        - lowcutoff: frequency at which the power reached half of the peak power
           relative to the initial power in Hertz.
         - flipped: True if the waveform was flipped.
         - n: number of pulses analyzed  (i.e. `len(eod_times)`), if provided.
@@ -867,24 +867,24 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001, peak_thresh_fac=0.01
         props['period'] = period
         props['IPI-mean'] = ipi_mean
         props['IPI-std'] = ipi_std
-    props['max-amplitude'] = max_ampl
-    props['min-amplitude'] = min_ampl
+    props['max-ampl'] = max_ampl
+    props['min-ampl'] = min_ampl
     props['p-p-amplitude'] = ppampl
     if rmssem:
-        props['rmssem'] = rmssem
+        props['noise'] = rmssem
     props['tstart'] = t0
     props['tend'] = t1
     props['width'] = t1-t0
-    props['dist'] = dist
+    props['P2-P1-dist'] = dist
     if tau:
         props['tau'] = tau
     props['firstpeak'] = peaks[0, 0] if len(peaks) > 0 else 1
     props['lastpeak'] = peaks[-1, 0] if len(peaks) > 0 else 1
-    props['peakfrequency'] = freqs[np.argmax(power)]
+    props['peakfreq'] = freqs[np.argmax(power)]
     props['peakpower'] = decibel(maxpower)
-    props['lowfreqattenuation5'] = att5
-    props['lowfreqattenuation50'] = att50
-    props['powerlowcutoff'] = lowcutoff
+    props['poweratt5'] = att5
+    props['poweratt50'] = att50
+    props['lowcutoff'] = lowcutoff
     props['flipped'] = flipped
     if eod_times is not None:
         props['n'] = len(eod_times)
@@ -1239,7 +1239,7 @@ def wave_quality(props, harm_relampl=None, min_freq=0.0, max_freq=2000.0, max_cl
         (`props['ncrossings']`).
     max_rms_sem: float
         If larger than zero, maximum allowed standard error of the data relative
-        to p-p amplitude (`props['rmssem']`).
+        to p-p amplitude (`props['noise']`).
     max_rms_error: float
         If larger than zero, maximum allowed root-mean-square error between EOD waveform and
         Fourier fit relative to p-p amplitude (`props['rmserror']`).
@@ -1813,7 +1813,7 @@ def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
     box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='#DDDDDD',
                              zorder=1)
     ax.add_patch(box)
-    att = props['lowfreqattenuation50']
+    att = props['poweratt50']
     if att < -5.0:
         ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom', zorder=10)
     else:
@@ -1821,12 +1821,12 @@ def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
     box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='#CCCCCC',
                              zorder=2)
     ax.add_patch(box)
-    att = props['lowfreqattenuation5']
+    att = props['poweratt5']
     if att < -5.0:
         ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom', zorder=10)
     else:
         ax.text(4.0, att-1.0, '%.0f dB' % att, ha='right', va='top', zorder=10)
-    lowcutoff = props['powerlowcutoff']
+    lowcutoff = props['lowcutoff']
     if lowcutoff >= min_freq:
         ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB',
                 zorder=3)
@@ -1834,7 +1834,7 @@ def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
     db = decibel(power[:,1])
     smax = np.nanmax(db)
     ax.plot(power[:,0], db - smax, color, lw=lw, zorder=4)
-    peakfreq = props['peakfrequency']
+    peakfreq = props['peakfreq']
     if peakfreq >= min_freq:
         ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize, alpha=0.4, zorder=5)
         ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom', zorder=10)
@@ -2027,26 +2027,26 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('power', 'dB', '%7.2f', wave_props)
     if 'datapower' in wave_props[0]:
         td.append('datapower', 'dB', '%7.2f', wave_props)
-    td.append('thd', '%', '%.2f', wave_props, 100.0, 'thd')
+    td.append('thd', '%', '%.2f', wave_props, 100.0)
     td.append('dbdiff', 'dB', '%7.2f', wave_props)
     td.append('maxdb', 'dB', '%7.2f', wave_props)
-    if 'rmssem' in wave_props[0]:
-        td.append('noise', '%', '%.1f', wave_props, 100.0, 'rmssem')
-    td.append('rmserror', '%', '%.2f', wave_props, 100.0, 'rmserror')
+    if 'noise' in wave_props[0]:
+        td.append('noise', '%', '%.1f', wave_props, 100.0)
+    td.append('rmserror', '%', '%.2f', wave_props, 100.0)
     if 'clipped' in wave_props[0]:
-        td.append('clipped', '%', '%.1f', wave_props, 100.0, 'clipped')
+        td.append('clipped', '%', '%.1f', wave_props, 100.0)
     td.append('flipped', '', '%d', wave_props)
     td.append('n', '', '%5d', wave_props)
     td.append_section('timing')
     td.append('ncrossings', '', '%d', wave_props)
-    td.append('peakwidth', '%', '%.2f', wave_props, 100.0, 'peakwidth')
-    td.append('troughwidth', '%', '%.2f', wave_props, 100.0, 'troughwidth')
-    td.append('leftpeak', '%', '%.2f', wave_props, 100.0, 'leftpeak')
-    td.append('rightpeak', '%', '%.2f', wave_props, 100.0, 'rightpeak')
-    td.append('lefttrough', '%', '%.2f', wave_props, 100.0, 'lefttrough')
-    td.append('righttrough', '%', '%.2f', wave_props, 100.0, 'righttrough')
-    td.append('p-p-distance', '%', '%.2f', wave_props, 100.0, 'p-p-distance')
-    td.append('reltroughampl', '%', '%.2f', wave_props, 100.0, 'reltroughampl')
+    td.append('peakwidth', '%', '%.2f', wave_props, 100.0)
+    td.append('troughwidth', '%', '%.2f', wave_props, 100.0)
+    td.append('leftpeak', '%', '%.2f', wave_props, 100.0)
+    td.append('rightpeak', '%', '%.2f', wave_props, 100.0)
+    td.append('lefttrough', '%', '%.2f', wave_props, 100.0)
+    td.append('righttrough', '%', '%.2f', wave_props, 100.0)
+    td.append('p-p-distance', '%', '%.2f', wave_props, 100.0)
+    td.append('reltroughampl', '%', '%.2f', wave_props, 100.0)
     fp = basename + '-wavefish'
     file_name = td.write(fp, **kwargs)
     return file_name
@@ -2080,7 +2080,7 @@ def load_wave_fish(file_path):
         props['index'] = int(props['index'])
         props['type'] = 'wave'
         props['thd'] /= 100
-        props['rmssem'] = props.pop('noise') / 100
+        props['noise'] /= 100
         props['rmserror'] /= 100
         if 'clipped' in props:
             props['clipped'] /= 100
@@ -2132,29 +2132,29 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append_section('waveform')
     td.append('index', '', '%d', pulse_props)
     td.append('EODf', 'Hz', '%7.2f', pulse_props)
-    td.append('period', 'ms', '%7.2f', pulse_props, 1000.0, 'period')
-    td.append('max-ampl', unit, '%.5f', pulse_props, 1.0, 'max-amplitude')
-    td.append('min-ampl', unit, '%.5f', pulse_props, 1.0, 'min-amplitude')
+    td.append('period', 'ms', '%7.2f', pulse_props, 1000.0)
+    td.append('max-ampl', unit, '%.5f', pulse_props)
+    td.append('min-ampl', unit, '%.5f', pulse_props)
     td.append('p-p-amplitude', unit, '%.5f', pulse_props)
-    if 'rmssem' in pulse_props[0]:
-        td.append('noise', '%', '%.1f', pulse_props, 100.0, 'rmssem')
+    if 'noise' in pulse_props[0]:
+        td.append('noise', '%', '%.1f', pulse_props, 100.0)
     if 'clipped' in pulse_props[0]:
-        td.append('clipped', '%', '%.1f', pulse_props, 100.0, 'clipped')
+        td.append('clipped', '%', '%.1f', pulse_props, 100.0)
     td.append('flipped', '', '%d', pulse_props)
-    td.append('tstart', 'ms', '%.3f', pulse_props, 1000.0, 'tstart')
-    td.append('tend', 'ms', '%.3f', pulse_props, 1000.0, 'tend')
-    td.append('width', 'ms', '%.3f', pulse_props, 1000.0, 'width')
-    td.append('P2-P1-dist', 'ms', '%.3f', pulse_props, 1000.0, 'dist')
-    td.append('tau', 'ms', '%.3f', pulse_props, 1000.0, 'tau')
+    td.append('tstart', 'ms', '%.3f', pulse_props, 1000.0)
+    td.append('tend', 'ms', '%.3f', pulse_props, 1000.0)
+    td.append('width', 'ms', '%.3f', pulse_props, 1000.0)
+    td.append('P2-P1-dist', 'ms', '%.3f', pulse_props, 1000.0)
+    td.append('tau', 'ms', '%.3f', pulse_props, 1000.0)
     td.append('firstpeak', '', '%d', pulse_props)
     td.append('lastpeak', '', '%d', pulse_props)
     td.append('n', '', '%d', pulse_props)
     td.append_section('power spectrum')
-    td.append('peakfreq', 'Hz', '%.2f', pulse_props, 1.0, 'peakfrequency')
-    td.append('peakpower', 'dB', '%.2f', pulse_props, 1.0, 'peakpower')
-    td.append('poweratt5', 'dB', '%.2f', pulse_props, 1.0, 'lowfreqattenuation5')
-    td.append('poweratt50', 'dB', '%.2f', pulse_props, 1.0, 'lowfreqattenuation50')
-    td.append('lowcutoff', 'Hz', '%.2f', pulse_props, 1.0, 'powerlowcutoff')
+    td.append('peakfreq', 'Hz', '%.2f', pulse_props)
+    td.append('peakpower', 'dB', '%.2f', pulse_props)
+    td.append('poweratt5', 'dB', '%.2f', pulse_props)
+    td.append('poweratt50', 'dB', '%.2f', pulse_props)
+    td.append('lowcutoff', 'Hz', '%.2f', pulse_props)
     fp = basename + '-pulsefish'
     file_name = td.write(fp, **kwargs)
     return file_name
@@ -2190,18 +2190,12 @@ def load_pulse_fish(file_path):
         if 'clipped' in props:
             props['clipped'] /= 100
         props['period'] /= 1000
-        props['min-amplitude'] = props.pop('min-ampl')
-        props['max-amplitude'] = props.pop('max-ampl')
-        props['rmssem'] = props.pop('noise') / 100
+        props['noise'] /= 100
         props['tstart'] /= 1000
         props['tend'] /= 1000
         props['width'] /= 1000
-        props['dist'] = props.pop('P2-P1-dist') / 1000
+        props['P2-P1-dist'] /= 1000
         props['tau'] /= 1000
-        props['peakfrequency'] = props.pop('peakfreq')
-        props['lowfreqattenuation5'] = props.pop('poweratt5')
-        props['lowfreqattenuation50'] = props.pop('poweratt50')
-        props['powerlowcutoff'] = props.pop('lowcutoff')
     return eod_props
 
 
