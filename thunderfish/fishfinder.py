@@ -73,7 +73,7 @@ class SignalPlot:
         plt.rcParams['keymap.yscale'] = ''
         plt.rcParams['keymap.xscale'] = ''
         plt.rcParams['keymap.grid'] = ''
-        plt.rcParams['keymap.all_axes'] = ''
+        #plt.rcParams['keymap.all_axes'] = ''
 
         # the figure:
         plt.ioff()
