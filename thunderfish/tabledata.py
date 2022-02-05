@@ -388,7 +388,7 @@ class TableData(object):
                 self.load(data, missing)
         
     def append(self, label, unit=None, formats=None, value=None,
-               key=None, fac=None):
+               fac=None, key=None):
         """Append column to the table.
 
         Parameters
@@ -406,12 +406,12 @@ class TableData(object):
             If list of dictionaries, extract from each dictionary in the list
             the value specified by `key`. If `key` is `None` use `label` as
             the key.
+        fac: float
+            If not None, multiply the data values by this number.
         key: None or key of a dictionary
             If not None and `value` is a list of dictionaries,
             extract from each dictionary in the list the value specified
             by `key` and assign the resulting list as data to the column.
-        fac: float
-            If not None, multiply the data values by this number.
 
         Returns
         -------

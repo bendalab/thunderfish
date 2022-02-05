@@ -820,7 +820,7 @@ The columns contain:
 18. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3)
 19. `n` Number of EODs used for computing the averaged EOD waveform.
 20. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
-21. `peakpower` Peak power of the single pulse spectrum in decibel.
+21. `peakpower` Peak power of the single pulse spectrum relative to one in decibel.
 22. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
 23. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
 24. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
