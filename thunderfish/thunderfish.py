@@ -174,12 +174,16 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
     skip_reason: list of string
         Reasons, why an EOD was discarded.
     """
+    dfreq = np.nan
+    nfft = 0
     psd_data = [[]]
     wave_eodfs = []
     wave_indices = []
     if 'w' in mode:
         # detect wave fish:
         psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
+        dfreq = np.mean(np.diff(psd_data[0][:,0]))
+        nfft = int(samplerate/dfreq)
         h_kwargs = psd_peak_detection_args(cfg)
         h_kwargs.update(harmonic_groups_args(cfg))
         wave_eodfs_list = []
@@ -240,9 +244,10 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
                 continue
             clipped_frac = clipped_fraction(data, samplerate, eod_times0,
                                             mean_eod, min_clip, max_clip)
-            props['peaktimes'] = eod_pts      # XXX that should go into analyze pulse
+            props['peaktimes'] = eod_pts  # XXX that should go into analyze pulse
             props['index'] = len(eod_props)
             props['clipped'] = clipped_frac
+            props['samplerate'] = samplerate
 
             # add good waveforms only:
             skips, msg, skipped_clipped = pulse_quality(props, **pulse_quality_args(cfg))
@@ -317,6 +322,9 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
             props['n'] = len(eod_times)
             props['index'] = len(eod_props)
             props['clipped'] = clipped_frac
+            props['samplerate'] = samplerate
+            props['nfft'] = nfft
+            props['dfreq'] = dfreq
             # remove wave fish that are smaller than the largest pulse fish:
             if props['p-p-amplitude'] < 0.01*max_pulse_amplitude:
                 rm_indices = power_indices[k:]

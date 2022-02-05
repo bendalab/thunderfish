@@ -2014,11 +2014,18 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     if len(wave_props) == 0:
         return None
     td = TableData()
-    if 'twin' in wave_props[0]:
+    if 'twin' in wave_props[0] or 'samplerate' in wave_props[0] or \
+       'nfft' in wave_props[0]:
         td.append_section('recording')
+    if 'twin' in wave_props[0]:
         td.append('twin', 's', '%7.2f', wave_props)
         td.append('window', 's', '%7.2f', wave_props)
         td.append('winclipped', '%', '%.2f', wave_props, 100.0)
+    if 'samplerate' in wave_props[0]:
+        td.append('samplerate', 'kHz', '%.3f', wave_props, 0.001)
+    if 'nfft' in wave_props[0]:
+        td.append('nfft', '', '%d', wave_props)
+        td.append('dfreq', 'Hz', '%.2f', wave_props)
     td.append_section('waveform')
     td.append('index', '', '%d', wave_props)
     td.append('EODf', 'Hz', '%7.2f', wave_props)
@@ -2054,6 +2061,9 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
 def load_wave_fish(file_path):
     """Load properties of wave EODs from file.
 
+    All times are scaled to seconds, all frequencies to Hertz and all
+    percentages to fractions.
+
     Parameters
     ----------
     file_path: string
@@ -2072,12 +2082,17 @@ def load_wave_fish(file_path):
     See Also
     --------
     save_wave_fish()
+
     """
     data = TableData(file_path)
     eod_props = data.dicts()
     for props in eod_props:
         if 'winclipped' in props:
             props['winclipped'] /= 100
+        if 'samplerate' in props:
+            props['samplerate'] *= 1000
+        if 'nfft' in props:
+            props['nfft'] = int(props['nfft'])
         props['index'] = int(props['index'])
         props['type'] = 'wave'
         props['thd'] /= 100
@@ -2131,6 +2146,8 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
         td.append('twin', 's', '%7.2f', pulse_props)
         td.append('window', 's', '%7.2f', pulse_props)
         td.append('winclipped', '%', '%.2f', pulse_props, 100.0)
+    if 'samplerate' in pulse_props[0]:
+        td.append('samplerate', 'kHz', '%.3f', pulse_props, 0.001)
     td.append_section('waveform')
     td.append('index', '', '%d', pulse_props)
     td.append('EODf', 'Hz', '%7.2f', pulse_props)
@@ -2165,6 +2182,9 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
 def load_pulse_fish(file_path):
     """Load properties of pulse EODs from file.
 
+    All times are scaled to seconds, all frequencies to Hertz and all
+    percentages to fractions.
+
     Parameters
     ----------
     file_path: string
@@ -2183,12 +2203,15 @@ def load_pulse_fish(file_path):
     See Also
     --------
     save_pulse_fish()
+
     """
     data = TableData(file_path)
     eod_props = data.dicts()
     for props in eod_props:
         if 'winclipped' in props:
             props['winclipped'] /= 100
+        if 'samplerate' in props:
+            props['samplerate'] *= 1000
         props['index'] = int(props['index'])
         props['type'] = 'pulse'
         if 'clipped' in props:
