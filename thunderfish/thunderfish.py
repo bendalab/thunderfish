@@ -1148,8 +1148,8 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
         # add analysis window to EOD properties:
         for props in eod_props:
-            props['tstart'] = idx0/samplerate
-            props['twindow'] = (idx1 - idx0)/samplerate
+            props['twin'] = idx0/samplerate
+            props['window'] = (idx1 - idx0)/samplerate
 
         # warning message in case no fish has been found:
         if found_bestwindow and not eod_props :
@@ -1441,10 +1441,10 @@ def main(cargs=None):
                 raw_data, samplerate, unit = load_data(data_file, -1,
                                                        verbose=verbose,
                                                        **load_kwargs)
-                if len(eod_props) > 0 and 'tstart' in eod_props[0]:
-                    idx0 = int(eod_props[0]['tstart']*samplerate)
-                if len(eod_props) > 0 and 'twindow' in eod_props[0]:
-                    idx1 = idx0 + int(eod_props[0]['twindow']*samplerate)
+                if len(eod_props) > 0 and 'twin' in eod_props[0]:
+                    idx0 = int(eod_props[0]['twin']*samplerate)
+                if len(eod_props) > 0 and 'window' in eod_props[0]:
+                    idx1 = idx0 + int(eod_props[0]['window']*samplerate)
                 print('loaded file', data_file, idx0, idx1)
             plot_eod_subplots(base_name, args.save_subplots,
                               raw_data, samplerate, idx0, idx1,

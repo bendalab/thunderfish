@@ -179,9 +179,9 @@ def collect_fish(files, simplify_file=False,
         # data:
         data = TableData(file_name)
         if 'tstart' in data:
-            start_time = data[0, 'tstart']
-            window_time = data[0, 'twindow']
-            data.remove(['tstart', 'twindow'])
+            start_time = data[0, 'twin']
+            window_time = data[0, 'window']
+            data.remove(['twin', 'window'])
         table = wave_table if fish_type == 'wave' else pulse_table
         # prepare tables:
         if not table:

@@ -1,5 +1,3 @@
-#XXX TODO: tstart is already used for pulse-type EODs!
-
 """
 Analysis of EOD waveforms.
 
@@ -2018,8 +2016,8 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td = TableData()
     if 'tstart' in wave_props[0]:
         td.append_section('recording')
-        td.append('tstart', 's', '%7.2f', wave_props)
-        td.append('twindow', 's', '%7.2f', wave_props)
+        td.append('twin', 's', '%7.2f', wave_props)
+        td.append('window', 's', '%7.2f', wave_props)
     td.append_section('waveform')
     td.append('index', '', '%d', wave_props)
     td.append('EODf', 'Hz', '%7.2f', wave_props)
@@ -2127,8 +2125,8 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td = TableData()
     if 'tstart' in pulse_props[0]:
         td.append_section('recording')
-        td.append('tstart', 's', '%7.2f', pulse_props)
-        td.append('twindow', 's', '%7.2f', pulse_props)
+        td.append('twin', 's', '%7.2f', pulse_props)
+        td.append('window', 's', '%7.2f', pulse_props)
     td.append_section('waveform')
     td.append('index', '', '%d', pulse_props)
     td.append('EODf', 'Hz', '%7.2f', pulse_props)

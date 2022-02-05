@@ -401,8 +401,8 @@ wave-type fish detected in the recording.
     <th align="left" colspan="9">timing</th>
   </tr>
   <tr>
-    <th align="left">tstart</th>
-    <th align="left">twindow</th>
+    <th align="left">twin</th>
+    <th align="left">window</th>
     <th align="left">index</th>
     <th align="left">EODf</th>
     <th align="left">p-p-amplitude</th>
@@ -589,8 +589,8 @@ wave-type fish detected in the recording.
 
 The columns contain:
 
-1. `tstart` Start time of the analysis window in the recording in seconds.
-2. `twindow` Duration of the analysis window in seconds.
+1. `twin` Start time of the analysis window in the recording in seconds.
+2. `window` Duration of the analysis window in seconds.
 3. `index` Index of the fish (the number that is also used to number the files).
 4. `EODf` EOD frequency in Hertz.
 5. `p-p-amplitude` Peak-to-peak amplitude of the extracted waveform in the units of the input data.
@@ -715,8 +715,8 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left" colspan="5">power spectrum</th>
   </tr>
   <tr>
-    <th align="left">tstart</th>
-    <th align="left">twindow</th>
+    <th align="left">twin</th>
+    <th align="left">window</th>
     <th align="left">index</th>
     <th align="left">EODf</th>
     <th align="left">period</th>
@@ -799,8 +799,8 @@ Properties of each pulse-type fish detected in the recording.
 
 The columns contain:
 
-1. `tstart` Start time of the analysis window in the recording in seconds.
-2. `twindow` Duration of the analysis window in seconds.
+1. `twin` Start time of the analysis window in the recording in seconds.
+2. `window` Duration of the analysis window in seconds.
 3. `index` Index of the fish (the number that is also used to number the files).
 4. `EODf` EOD frequency in Hertz.
 5. `period` Period between two pulses (1/EODf) in milliseconds.
