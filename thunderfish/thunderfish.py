@@ -306,7 +306,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
 
     if 'w' in mode:
         # analyse EOD waveform of all wavefish:
-        powers = np.array([np.sum(fish[:, 1]**2) for fish in wave_eodfs])
+        powers = np.array([np.sum(fish[:,1]) for fish in wave_eodfs])
         power_indices = np.argsort(-powers)
         wave_indices = np.zeros(len(wave_eodfs), dtype=np.int) - 3
         for k, idx in enumerate(power_indices):
@@ -626,13 +626,13 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
     ax.set_navigate(False)
 
     # layout of recording and psd plots:
-    #force_both = True                    # set to True for debugging pulse and wave detection
+    #force_both = True  # set to True for debugging pulse and wave detection
     force_both = False
     posy = 1.0 - 4.0/height
     axr = None
     axp = None
     legend_inside = True
-    legendwidth = 3.2/width if label_power else 2.2/width
+    legendwidth = 2.2/width if label_power else 1.7/width
     if neods == 0:
         axr = fig.add_axes([leftx, posy, fullwidth, pheight])                    # top, wide
         if len(psd_data) > 0:
@@ -692,8 +692,9 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
                                    'loc': 'upper right', 'legend_rows': 10,
                                    'frameon': True})
                 else:
-                    kwargs.update({'bbox_to_anchor': (1.0, 1.1), 'frameon': False,
-                                   'loc': 'upper left', 'legend_rows': 12})
+                    kwargs.update({'bbox_to_anchor': (1.02, 1.1),
+                                   'loc': 'upper left', 'legend_rows': 14,
+                                   'frameon': False})
             plot_harmonic_groups(axp, wave_eodfs, wave_indices, max_groups=0,
                                  skip_bad=skip_bad,
                                  sort_by_freq=True, label_power=label_power,
@@ -1492,7 +1493,8 @@ def main(cargs=None):
                                   args.skip_bad, log_freq, min_freq, max_freq,
                                   False, True)
             else:
-                fig = plot_eods(base_name, raw_data[:,channel], samplerate, channel,
+                fig = plot_eods(os.path.basename(base_name),
+                                raw_data[:,channel], samplerate, channel,
                                 idx0, idx1, clipped, psd_data[0],
                                 wave_eodfs, wave_indices,
                                 mean_eods, eod_props, peak_data, spec_data, None,

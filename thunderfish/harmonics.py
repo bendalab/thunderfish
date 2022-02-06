@@ -897,7 +897,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
 
     Returns
     -------
-    group_list: list of 2-D arrays
+    groups: list of 2-D arrays
         List of all extracted harmonic groups, sorted by fundamental frequency.
         Each harmonic group is a 2-D array with the first dimension the harmonics
         and the second dimension containing frequency and power of each harmonic.
@@ -1388,23 +1388,21 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
     kwargs: 
         Key word arguments for the legend of the plot.
     """
-
     if len(group_list) == 0:
         return
     
     # sort by power:
     powers = np.array([np.sum(group[:,1]) for group in group_list])
     max_power = np.max(powers)
-    power_idx = np.argsort(powers)
-    if max_groups > 0 and len(power_idx > max_groups):
-        power_idx = power_idx[-max_groups:]
-    idx = np.array(list(reversed(power_idx)))
+    idx = np.argsort(-powers)
+    if max_groups > 0 and len(idx > max_groups):
+        idx = idx[:max_groups]
 
     # sort by frequency:
     if sort_by_freq:
-        freqs = [group_list[group][0, 0] for group in idx]
+        freqs = np.array([group_list[group][0,0] for group in idx])
         if legend_rows > 0 and legend_rows < len(freqs):
-            idx[:legend_rows] = idx[np.argsort(freqs[:legend_rows])]
+            idx = idx[np.argsort(freqs[:legend_rows])]
         else:
             idx = idx[np.argsort(freqs)]
 
