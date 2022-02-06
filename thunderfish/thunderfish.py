@@ -1442,8 +1442,6 @@ def main(cargs=None):
             psd_data = None
             zoom_window = [1.2, 1.3]
             clipped = 0.0
-            if len(wave_eodfs > 0):
-                wave_eodfs = [fish.reshape(1, 2) for fish in wave_eodfs]
             if len(eod_props) > 0 and 'winclipped' in eod_props[0]:
                 clipped = eod_props[0]['winclipped']
             bp =  os.path.basename(base_name) if len(args.rawdata_path) > 0 and args.rawdata_path != '.' else base_name
@@ -1465,26 +1463,48 @@ def main(cargs=None):
                                          samplerate,
                                          1.1*eod_props[0]['dfreq'])
                 print('loaded file', data_file, idx0, idx1)
-            plot_eod_subplots(base_name, args.save_subplots,
-                              raw_data, samplerate, idx0, idx1,
-                              clipped, psd_data, wave_eodfs, wave_indices,
-                              mean_eods, eod_props, peak_data, spec_data,
-                              unit, zoom_window, 10, None, True,
-                              args.skip_bad, log_freq, min_freq, max_freq,
-                              False, True)
-            fig = plot_eods(base_name, raw_data[:,channel], samplerate, channel,
-                            idx0, idx1, clipped, psd_data[0],
-                            wave_eodfs, wave_indices,
-                            mean_eods, eod_props, peak_data, spec_data, None,
-                            unit, zoom_window, 10, None, True,
-                            args.all_eods, spec_plots, args.skip_bad, log_freq,
-                            min_freq, max_freq, interactive=not args.save_data,
-                            verbose=verbose)
-            if args.save_data:
-                pass
+            if len(wave_eodfs > 0):
+                if len(spec_data) > 1:
+                    eodfs = []
+                    for idx, fish in zip(wave_indices, wave_eodfs):
+                        if idx >= 0:
+                            spec = spec_data[idx]
+                            specd = np.zeros((len(spec), 2))
+                            specd[:,0] = spec[:,1]
+                            specd[:,1] = spec[:,-1]
+                            eodfs.append(specd)
+                        else:
+                            specd = np.zeros((10, 2))
+                            specd[:,0] = np.arange(len(specd))*fish[0]
+                            if len(psd_data) > 0:
+                                for k in range(len(specd)):
+                                    specd[k,1] = psd_data[0][np.argmin(np.abs(psd_data[0][:,0] - specd[k,0])),1]
+                            eodfs.append(specd)
+                    wave_eodfs = eodfs
+                else:
+                    wave_eodfs = [fish.reshape(1, 2) for fish in wave_eodfs]
+            if len(args.save_subplots) > 0:
+                plot_eod_subplots(base_name, args.save_subplots,
+                                  raw_data, samplerate, idx0, idx1,
+                                  clipped, psd_data, wave_eodfs, wave_indices,
+                                  mean_eods, eod_props, peak_data, spec_data,
+                                  unit, zoom_window, 10, None, True,
+                                  args.skip_bad, log_freq, min_freq, max_freq,
+                                  False, True)
             else:
-                plt.show()
-            plt.close()
+                fig = plot_eods(base_name, raw_data[:,channel], samplerate, channel,
+                                idx0, idx1, clipped, psd_data[0],
+                                wave_eodfs, wave_indices,
+                                mean_eods, eod_props, peak_data, spec_data, None,
+                                unit, zoom_window, 10, None, True,
+                                args.all_eods, spec_plots, args.skip_bad, log_freq,
+                                min_freq, max_freq, interactive=not args.save_data,
+                                verbose=verbose)
+                if args.save_data:
+                    pass
+                else:
+                    plt.show()
+                plt.close()
         return
             
     # run on pool:
