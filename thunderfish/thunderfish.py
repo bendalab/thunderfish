@@ -928,9 +928,10 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                 title = '%d EOD frequencies' % len(wave_eodfs)
                 kwargs = {'title': title if len(wave_eodfs) > 2 else None }
                 if len(wave_eodfs) > 2:
-                    fig.subplots_adjust(left=0.08, right=0.72, bottom=0.11, top=0.9)
-                    kwargs.update({'bbox_to_anchor': (1.0, 1.1),
-                                   'loc': 'upper left', 'legend_rows': 12})
+                    fig.subplots_adjust(left=0.08, right=0.78, bottom=0.11, top=0.9)
+                    kwargs.update({'bbox_to_anchor': (1.01, 1.1),
+                                   'loc': 'upper left', 'legend_rows': 14,
+                                   'labelspacing': 0.6})
                 else:
                     kwargs.update({'bbox_to_anchor': (1.05, 1.1),
                                    'loc': 'upper right', 'legend_rows': 10})
@@ -1487,7 +1488,7 @@ def main(cargs=None):
             if len(args.save_subplots) > 0:
                 plot_eod_subplots(base_name, args.save_subplots,
                                   raw_data, samplerate, idx0, idx1,
-                                  clipped, psd_data, wave_eodfs, wave_indices,
+                                  clipped, psd_data[0], wave_eodfs, wave_indices,
                                   mean_eods, eod_props, peak_data, spec_data,
                                   unit, zoom_window, 10, None, True,
                                   args.skip_bad, log_freq, min_freq, max_freq,
