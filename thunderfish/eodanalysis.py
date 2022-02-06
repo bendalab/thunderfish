@@ -1591,9 +1591,9 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times,
         
 def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                       mkwargs={'zorder': 10, 'lw': 2, 'color': 'red'},
-                      skwargs={'zorder': 5, 'color': '#CCCCCC'},
-                      fkwargs={'zorder': 0, 'lw': 6, 'color': 'steelblue'},
-                      zkwargs={'zorder': -10, 'lw': 1, 'color': '#AAAAAA'}):
+                      skwargs={'zorder': -10, 'color': '#CCCCCC'},
+                      fkwargs={'zorder': 5, 'lw': 6, 'color': 'steelblue'},
+                      zkwargs={'zorder': -5, 'lw': 1, 'color': '#AAAAAA'}):
     """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
     Parameters
