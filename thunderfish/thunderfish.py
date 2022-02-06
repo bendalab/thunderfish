@@ -694,7 +694,7 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
                 else:
                     kwargs.update({'bbox_to_anchor': (1.02, 1.1),
                                    'loc': 'upper left', 'legend_rows': 14,
-                                   'frameon': False})
+                                   'labelspacing': 0.6, 'frameon': False})
             plot_harmonic_groups(axp, wave_eodfs, wave_indices, max_groups=0,
                                  skip_bad=skip_bad,
                                  sort_by_freq=True, label_power=label_power,
@@ -764,13 +764,13 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
         ax.yaxis.set_major_locator(ticker.MaxNLocator(ny))
         if len(indices) > 1:
             ax.text(0.3, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
-                       transform=ax.transAxes, fontsize=14)
+                       transform=ax.transAxes, fontsize=14, zorder=20)
             mx = 0.25
         else:
             ax.text(-0.1, ty, '{EODf:.1f} Hz {type} fish'.format(**props),
-                       transform=ax.transAxes, fontsize=14)
-            ax.text(0.5, ty, 'Averaged EOD',
-                       transform=ax.transAxes, fontsize=14, ha='center')
+                       transform=ax.transAxes, fontsize=14, zorder=20)
+            ax.text(0.5, ty, 'Averaged EOD', ha='center',
+                       transform=ax.transAxes, fontsize=14, zorder=20)
             mx = -0.14
         eodf = props['EODf']
         if props['type'] == 'wave':

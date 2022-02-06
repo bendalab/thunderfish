@@ -1624,7 +1624,7 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     ax.autoscale(True)
     time = 1000.0 * eod_waveform[:,0]
     # plot zero line:
-    ax.plot([time[0], time[-1]], [0.0, 0.0], **zkwargs)
+    ax.axhline(0.0, **zkwargs)
     # plot fit:
     if eod_waveform.shape[1] > 3:
         ax.plot(time, eod_waveform[:,3], **fkwargs)
@@ -1635,8 +1635,10 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     if eod_waveform.shape[1] > 2:
         std_eod = eod_waveform[:,2]
         if np.mean(std_eod)/(np.max(mean_eod) - np.min(mean_eod)) > 0.1:
+            ax.autoscale_view(False)
             ax.autoscale(False)
-        ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod, **skwargs)
+        ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
+                        **skwargs)
     # ax height dimensions:
     pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
     ymin, ymax = ax.get_ylim()
@@ -1696,9 +1698,11 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                 dy = ty + sign*1.2*font_size - p[2]
             dx = 0.05*time[-1]
             if p[1] >= 0.0:
-                ax.text(1000.0*p[1]+dx, p[2]+dy, label, ha='left', va=va, zorder=20)
+                ax.text(1000.0*p[1]+dx, p[2]+dy, label,
+                        ha='left', va=va, zorder=20)
             else:
-                ax.text(1000.0*p[1]-dx, p[2]+dy, label, ha='right', va=va, zorder=20)
+                ax.text(1000.0*p[1]-dx, p[2]+dy, label,
+                        ha='right', va=va, zorder=20)
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
@@ -1710,9 +1714,11 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     if props['flipped']:
         label += 'flipped\n'
     if -eod_waveform[0,0] < 0.6*eod_waveform[-1,0]:
-        ax.text(0.97, 0.97, label, transform = ax.transAxes, va='top', ha='right')
+        ax.text(0.97, 0.97, label, transform=ax.transAxes,
+                va='top', ha='right', zorder=20)
     else:
-        ax.text(0.03, 0.97, label, transform = ax.transAxes, va='top')
+        ax.text(0.03, 0.97, label, transform=ax.transAxes,
+                va='top', zorder=20)
     # axis:                
     if props['type'] == 'wave':
         lim = 750.0/props['EODf']
