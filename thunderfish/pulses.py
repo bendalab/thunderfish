@@ -1026,7 +1026,7 @@ def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
     bgm_dict = {}
 
     if len(np.unique(x)) > n_gaus:
-        BGM_model = BayesianGaussianMixture(n_gaus, max_iter=max_iter, n_init=n_init)
+        BGM_model = BayesianGaussianMixture(n_components=n_gaus, max_iter=max_iter, n_init=n_init)
         if use_log:
             labels = BGM_model.fit_predict(stats.zscore(np.log(x)).reshape(-1, 1))
         else:
