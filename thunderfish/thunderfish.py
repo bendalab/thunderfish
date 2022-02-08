@@ -397,6 +397,9 @@ def save_eods(output_basename, eod_props, mean_eods, spec_data, peak_data,
         if len(wave_eodfs) > 0:
             fp = save_wave_eodfs(wave_eodfs, wave_indices, output_basename,
                                  **write_table_args(cfg))
+            #with io.StringIO() as df:
+            #    td.write(df, **kwargs)
+            #    zf.writestr(file_name, df.getvalue())
             if verbose > 0:
                 print('wrote file %s' % fp)
         # all wave and pulse fish:

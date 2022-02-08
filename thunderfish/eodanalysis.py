@@ -1861,30 +1861,42 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
         Unit of the waveform data.
     idx: int or None
         Index of fish.
-    basename: string
-        Path and basename of file.
+    basename: string or stream
+        If string, path and basename of file.
         '-eodwaveform', the fish index, and a file extension are appended.
+        If stream, write EOD waveform data into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
 
     Returns
     -------
     filename: string
-        The path and full name of the written file.
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
 
     See Also
     --------
     load_eod_waveform()
+
     """
     td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'sem'],
                    ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
     if mean_eod.shape[1] > 3:
         td.append('fit', unit, '%.5f', mean_eod[:,3])
-    fp = basename + '-eodwaveform'
+    fp = '-eodwaveform'
     if idx is not None:
         fp += '-%d' % idx
-    file_name = td.write(fp, **kwargs)
-    return file_name
+    if hasattr(basename, 'write'):
+        table_format = kwargs.get('table_format', None)
+        if table_format is None or table_format == 'auto':
+            table_format = 'csv'
+        fp += '.' + TableData.extensions[table_format]
+        td.write(basename, **kwargs)
+        return fp
+    else:
+        file_name = td.write(basename + fp, **kwargs)
+        return file_name
 
 
 def load_eod_waveform(file_path):
@@ -1928,16 +1940,19 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     wave_indices: array
         Indices identifying each fish or NaN.
         If None no index column is inserted.
-    basename: string
-        Path and basename of file.
+    basename: string or stream
+        If string, path and basename of file.
         '-waveeodfs' and a file extension are appended.
+        If stream, write EOD frequencies data into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
 
     Returns
     -------
     filename: string
-        The path and full name of the written file.
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
 
     See Also
     --------
@@ -1949,9 +1964,17 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
         td.append('index', '', '%d', [wi if wi >= 0 else np.nan for wi in wave_indices])
     td.append('EODf', 'Hz', '%7.2f', eodfs[:,0])
     td.append('datapower', 'dB', '%7.2f', eodfs[:,1])
-    fp = basename + '-waveeodfs'
-    file_name = td.write(fp, **kwargs)
-    return file_name
+    fp = '-waveeodfs'
+    if hasattr(basename, 'write'):
+        table_format = kwargs.get('table_format', None)
+        if table_format is None or table_format == 'auto':
+            table_format = 'csv'
+        fp += '.' + TableData.extensions[table_format]
+        td.write(basename, **kwargs)
+        return fp
+    else:
+        file_name = td.write(basename + fp, **kwargs)
+        return file_name
 
 
 def load_wave_eodfs(file_path):
@@ -2002,21 +2025,26 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
         Only properties of wave fish are saved.
     unit: string
         Unit of the waveform data.
-    basename: string
-        Path and basename of file.
+    basename: string or stream
+        If string, path and basename of file.
         '-wavefish' and a file extension are appended.
+        If stream, write wave fish properties into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
 
     Returns
     -------
     filename: string or None
-        The path and full name of the written file.
-        None if no pulse fish are contained in eod_props and no file was written.
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
+        None if no wave fish are contained in eod_props and
+        consequently no file was written.
 
     See Also
     --------
     load_wave_fish()
+
     """
     wave_props = [p for p in eod_props if p['type'] == 'wave']
     if len(wave_props) == 0:
@@ -2061,9 +2089,17 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('righttrough', '%', '%.2f', wave_props, 100.0)
     td.append('p-p-distance', '%', '%.2f', wave_props, 100.0)
     td.append('reltroughampl', '%', '%.2f', wave_props, 100.0)
-    fp = basename + '-wavefish'
-    file_name = td.write(fp, **kwargs)
-    return file_name
+    fp = '-wavefish'
+    if hasattr(basename, 'write'):
+        table_format = kwargs.get('table_format', None)
+        if table_format is None or table_format == 'auto':
+            table_format = 'csv'
+        fp += '.' + TableData.extensions[table_format]
+        td.write(basename, **kwargs)
+        return fp
+    else:
+        file_name = td.write(basename + fp, **kwargs)
+        return file_name
 
 
 def load_wave_fish(file_path):
@@ -2129,17 +2165,21 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
         Only properties of pulse fish are saved.
     unit: string
         Unit of the waveform data.
-    basename: string
-        Path and basename of file.
+    basename: string or stream
+        If string, path and basename of file.
         '-pulsefish' and a file extension are appended.
+        If stream, write pulse fish properties into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
 
     Returns
     -------
     filename: string or None
-        The path and full name of the written file.
-        None if no pulse fish are contained in eod_props and no file was written.
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
+        None if no pulse fish are contained in eod_props and
+        consequently no file was written.
 
     See Also
     --------
@@ -2187,9 +2227,17 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('poweratt5', 'dB', '%.2f', pulse_props)
     td.append('poweratt50', 'dB', '%.2f', pulse_props)
     td.append('lowcutoff', 'Hz', '%.2f', pulse_props)
-    fp = basename + '-pulsefish'
-    file_name = td.write(fp, **kwargs)
-    return file_name
+    fp = '-pulsefish'
+    if hasattr(basename, 'write'):
+        table_format = kwargs.get('table_format', None)
+        if table_format is None or table_format == 'auto':
+            table_format = 'csv'
+        fp += '.' + TableData.extensions[table_format]
+        td.write(basename, **kwargs)
+        return fp
+    else:
+        file_name = td.write(basename + fp, **kwargs)
+        return file_name
 
 
 def load_pulse_fish(file_path):
@@ -2252,16 +2300,19 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
         Unit of the waveform data.
     idx: int or None
         Index of fish.
-    basename: string
-        Path and basename of file.
+    basename: string or stream
+        If string, path and basename of file.
         '-wavespectrum', the fish index, and a file extension are appended.
+        If stream, write wave spectrum into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
 
     Returns
     -------
     filename: string
-        The path and full name of the written file.
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
 
     See Also
     --------
@@ -2273,11 +2324,19 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
                    ['%.0f', '%.2f', '%.5f', '%10.2f', '%6.2f', '%8.4f'])
     if spec_data.shape[1] > 6:
         td.append('datapower', '%s^2/Hz' % unit, '%11.4e', spec_data[:,6])
-    fp = basename + '-wavespectrum'
+    fp = '-wavespectrum'
     if idx is not None:
         fp += '-%d' % idx
-    file_name = td.write(fp, **kwargs)
-    return file_name
+    if hasattr(basename, 'write'):
+        table_format = kwargs.get('table_format', None)
+        if table_format is None or table_format == 'auto':
+            table_format = 'csv'
+        fp += '.' + TableData.extensions[table_format]
+        td.write(basename, **kwargs)
+        return fp
+    else:
+        file_name = td.write(basename + fp, **kwargs)
+        return file_name
 
 
 def load_wave_spectrum(file_path):
@@ -2323,16 +2382,19 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
         Unit of the waveform data.
     idx: int or None
         Index of fish.
-    basename: string
-        Path and basename of file.
+    basename: string or stream
+        If string, path and basename of file.
         '-pulsespectrum', the fish index, and a file extension are appended.
+        If stream, write pulse spectrum into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
 
     Returns
     -------
     filename: string
-        The path and full name of the written file.
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
 
     See Also
     --------
@@ -2340,11 +2402,19 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     """
     td = TableData(spec_data[:,:2], ['frequency', 'power'],
                    ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
-    fp = basename + '-pulsespectrum'
+    fp = '-pulsespectrum'
     if idx is not None:
         fp += '-%d' % idx
-    file_name = td.write(fp, **kwargs)
-    return file_name
+    if hasattr(basename, 'write'):
+        table_format = kwargs.get('table_format', None)
+        if table_format is None or table_format == 'auto':
+            table_format = 'csv'
+        fp += '.' + TableData.extensions[table_format]
+        td.write(basename, **kwargs)
+        return fp
+    else:
+        file_name = td.write(basename + fp, **kwargs)
+        return file_name
 
 
 def load_pulse_spectrum(file_path):
@@ -2385,16 +2455,19 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
         Unit of the waveform data.
     idx: int or None
         Index of fish.
-    basename: string
-        Path and basename of file.
+    basename: string or stream
+        If string, path and basename of file.
         '-pulsepeaks', the fish index, and a file extension are appended.
+        If stream, write pulse peaks into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
 
     Returns
     -------
     filename: string
-        The path and full name of the written file.
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
 
     See Also
     --------
@@ -2406,11 +2479,19 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
                    ['P', 'time', 'amplitude', 'relampl', 'width'],
                    ['', 'ms', unit, '%', 'ms'],
                    ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
-    fp = basename + '-pulsepeaks'
+    fp = '-pulsepeaks'
     if idx is not None:
         fp += '-%d' % idx
-    file_name = td.write(fp, **kwargs)
-    return file_name
+    if hasattr(basename, 'write'):
+        table_format = kwargs.get('table_format', None)
+        if table_format is None or table_format == 'auto':
+            table_format = 'csv'
+        fp += '.' + TableData.extensions[table_format]
+        td.write(basename, **kwargs)
+        return fp
+    else:
+        file_name = td.write(basename + fp, **kwargs)
+        return file_name
 
 
 def load_pulse_peaks(file_path):
