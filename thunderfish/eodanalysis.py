@@ -70,6 +70,8 @@ Analysis of EOD waveforms.
 """
 
 import os
+import io
+import zipfile
 import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
@@ -2631,8 +2633,14 @@ def load_analysis(file_pathes):
     base_name = None
     channel = -1
     unit = None
+    zf = None
+    if len(file_pathes) == 1 and os.path.splitext(file_pathes[0])[1] == '.zip':
+        zf = zipfile.ZipFile(file_pathes[0])
+        file_pathes = sorted(zf.namelist())
     for f in file_pathes:
         base_name, channel, time, ftype, idx, ext = parse_filename(f)
+        if zf is not None:
+            f = io.TextIOWrapper(zf.open(f, 'r'))
         if ftype == 'eodwaveform':
             if idx >= len(mean_eods):
                 mean_eods.extend([None]*(idx+1-len(mean_eods)))

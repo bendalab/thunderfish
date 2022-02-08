@@ -647,10 +647,12 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
         if len(psd_data) > 0:
             axp = fig.add_axes([leftx, 2.0/height, fullwidth, pheight])              # bottom, wide
     else:
-        if npulse == 0 and nwave > 2 and len(psd_data) > 0 and not force_both:
+        if npulse == 0 and nwave > 2 and psd_data is not None and \
+           len(psd_data) > 0 and not force_both:
             axp = fig.add_axes([leftx, posy, fullwidth-legendwidth, pheight])    # top, wide
             legend_inside = False
-        elif (npulse > 0 or len(psd_data) == 0) and len(wave_eodfs) == 0 and not force_both:
+        elif (npulse > 0 or psd_data is None or len(psd_data) == 0) \
+             and len(wave_eodfs) == 0 and not force_both:
             axr = fig.add_axes([leftx, posy, fullwidth, pheight])                # top, wide
         else:
             axr = fig.add_axes([leftx, posy, halfwidth, pheight])                # top left
@@ -677,9 +679,10 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
                 else:
                     twidth = 10.0/eod_props[indices[0]]['EODf']
             twidth = (1+twidth//0.005)*0.005
-        plot_eod_recording(axr, data, samplerate, twidth, unit, idx0/samplerate)
-        plot_pulse_eods(axr, data, samplerate, zoom_window, twidth, eod_props, idx0/samplerate,
-                        colors=pulse_colors, markers=pulse_markers, frameon=True, loc='upper right')
+        if data is not None and len(data) > 0:
+            plot_eod_recording(axr, data, samplerate, twidth, unit, idx0/samplerate)
+            plot_pulse_eods(axr, data, samplerate, zoom_window, twidth, eod_props, idx0/samplerate,
+                            colors=pulse_colors, markers=pulse_markers, frameon=True, loc='upper right')
         if axr.get_legend() is not None:
             axr.get_legend().get_frame().set_color('white')
         axr.set_title('Recording', fontsize=14, y=1.05)
@@ -711,8 +714,9 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
                                  **kwargs)
             if legend_inside:
                 axp.get_legend().get_frame().set_color('white')
-        plot_decibel_psd(axp, psd_data[:,0], psd_data[:,1], log_freq=log_freq,
-                         min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
+        if psd_data is not None and len(psd_data) > 0:
+            plot_decibel_psd(axp, psd_data[:,0], psd_data[:,1], log_freq=log_freq,
+                             min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
         axp.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
             axp.get_legend().set_visible(False)
@@ -831,7 +835,8 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
     # whole trace:
     ax = fig.add_axes([leftx, 0.6/height, fullwidth, 0.9/height])
     axes_style(ax)
-    plot_data_window(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
+    if raw_data is not None and len(raw_data) > 0:
+        plot_data_window(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
     ax.format_coord = recording_format_coord
 
     return fig
@@ -1426,7 +1431,7 @@ def main(cargs=None):
     result_files = []
     for f in sorted(files):
         base_name, _, _, ftype, _, ext = parse_filename(f)
-        if ext in exts and ftype in file_types:
+        if ext == 'zip' or (ext in exts and ftype in file_types):
             if len(result_files) == 0 or \
                not result_files[-1][-1].startswith(base_name):
                 result_files.append([f])
@@ -1465,7 +1470,7 @@ def main(cargs=None):
             datafiles = glob.glob( bp + '.*')
             data_file = datafiles[0] if len(datafiles) > 0 else ''
             if os.path.exists(data_file):
-                raw_data, samplerate, unit = load_data(data_file, -1,
+                raw_data, samplerate, unit = load_data(data_file, channel,
                                                        verbose=verbose,
                                                        **load_kwargs)
                 idx0 = 0
@@ -1475,9 +1480,10 @@ def main(cargs=None):
                 if len(eod_props) > 0 and 'window' in eod_props[0]:
                     idx1 = idx0 + int(eod_props[0]['window']*samplerate)
                 if 'dfreq' in eod_props[0]:
-                    psd_data = multi_psd(raw_data[idx0:idx1,channel],
+                    psd_data = multi_psd(raw_data[idx0:idx1],
                                          samplerate,
                                          1.1*eod_props[0]['dfreq'])
+                    psd_data = psd_data[0]
                 print('loaded file', data_file, idx0, idx1)
             if len(wave_eodfs > 0):
                 if len(spec_data) > 1:
@@ -1492,9 +1498,9 @@ def main(cargs=None):
                         else:
                             specd = np.zeros((10, 2))
                             specd[:,0] = np.arange(len(specd))*fish[0]
-                            if len(psd_data) > 0:
+                            if psd_data is not None and len(psd_data) > 0:
                                 for k in range(len(specd)):
-                                    specd[k,1] = psd_data[0][np.argmin(np.abs(psd_data[0][:,0] - specd[k,0])),1]
+                                    specd[k,1] = psd_data[np.argmin(np.abs(psd_data[:,0] - specd[k,0])),1]
                             eodfs.append(specd)
                     wave_eodfs = eodfs
                 else:
@@ -1502,15 +1508,15 @@ def main(cargs=None):
             if len(args.save_subplots) > 0:
                 plot_eod_subplots(base_name, args.save_subplots,
                                   raw_data, samplerate, idx0, idx1,
-                                  clipped, psd_data[0], wave_eodfs, wave_indices,
+                                  clipped, psd_data, wave_eodfs, wave_indices,
                                   mean_eods, eod_props, peak_data, spec_data,
                                   unit, zoom_window, 10, None, True,
                                   args.skip_bad, log_freq, min_freq, max_freq,
                                   False, True)
             else:
                 fig = plot_eods(os.path.basename(base_name),
-                                raw_data[:,channel], samplerate, channel,
-                                idx0, idx1, clipped, psd_data[0],
+                                raw_data, samplerate, channel,
+                                idx0, idx1, clipped, psd_data,
                                 wave_eodfs, wave_indices,
                                 mean_eods, eod_props, peak_data, spec_data, None,
                                 unit, zoom_window, 10, None, True,
