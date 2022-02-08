@@ -57,10 +57,10 @@ thunderfish --help
 ```
 returns
 ```plain
-usage: thunderfish [-h] [--version] [-v] [-V] [-c] [--channel CHANNEL] [-t TIME] [-T] [-m {w,p,wp}] [-a] [-S] [-b] [-j [JOBS]]
-                   [-s] [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-p] [-P rtpwse] [-M PDFFILE] [-l [MINFREQ]] [-o OUTPATH] [-k]
-                   [-i KWARGS]
-                   [file [file ...]]
+usage: thunderfish.py [-h] [--version] [-v] [-V] [-c] [--channel CHANNEL] [-t TIME] [-T] [-m {w,p,wp}] [-a] [-S] [-b]
+                      [-j [JOBS]] [-s] [-z] [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-p] [-P rtpwse] [-M PDFFILE]
+                      [-l [MINFREQ]] [-d PATH] [-o OUTPATH] [-k] [-i KWARGS]
+                      [file [file ...]]
 
 Analyze EOD waveforms of weakly electric fish.
 
@@ -83,6 +83,7 @@ optional arguments:
   -b                    indicate bad EODs in spectrum
   -j [JOBS]             number of jobs run in parallel. Without argument use all CPU cores.
   -s                    save analysis results to files
+  -z                    save analysis results in a single zip file
   -f {dat,ascii,csv,rtai,md,tex,html,py}
                         file format used for saving analysis results, defaults to the format specified in the configuration file
                         or "csv"
@@ -93,6 +94,7 @@ optional arguments:
                         fish
   -M PDFFILE            save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.
   -l [MINFREQ]          logarithmic frequency axis in power spectrum with optional minimum frequency (defaults to 100 Hz)
+  -d PATH               path to raw EOD recordings needed for plotting based on analysis results
   -o OUTPATH            path where to store results and figures (defaults to current working directory)
   -k                    keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH
   -i KWARGS             key-word arguments for the data loader function
