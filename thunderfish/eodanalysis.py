@@ -45,6 +45,8 @@ Analysis of EOD waveforms.
 - `load_pulse_spectrum()`: load power spectrum of pulse EOD from file.
 - `save_pulse_peaks()`: save peak properties of pulse EOD to file.
 - `load_pulse_peaks()`: load peak properties of pulse EOD from file.
+- `save_pulse_times()`: save times of pulse EOD to file.
+- `load_pulse_times()`: load times of pulse EOD from file.
 - `parse_filename()`: parse components of an EOD analysis file name.
 - `load_analysis()`: load EOD analysis files.
 
@@ -2445,7 +2447,7 @@ def load_pulse_spectrum(file_path):
     spec = data.array()
     return spec
 
-                        
+
 def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     """Save peak properties of pulse EOD to file.
 
@@ -2527,6 +2529,86 @@ def load_pulse_peaks(file_path):
     peaks[:,3] *= 0.01
     peaks[:,4] *= 0.001
     return peaks, data.unit('amplitude')
+
+
+def save_pulse_times(pulse_times, idx, basename, **kwargs):
+    """Save times of pulse EOD to file.
+
+    Parameters
+    ----------
+    pulse_times: dict or array of floats
+        Times of EOD pulses. Either as array of times or
+        `props['peaktimes']` or `props['times']` as returned by
+        `analyze_pulse()`.
+    idx: int or None
+        Index of fish.
+    basename: string or stream
+        If string, path and basename of file.
+        '-pulsetimes', the fish index, and a file extension are appended.
+        If stream, write pulse times into this stream.
+    kwargs:
+        Arguments passed on to `TableData.write()`.
+
+    Returns
+    -------
+    filename: string
+        Path and full name of the written file in case of `basename`
+        being a string. Otherwise, the file name and extension that
+        would have been appended to a basename.
+
+    See Also
+    --------
+    load_pulse_times()
+
+    """
+    if isinstance(pulse_times, dict):
+        props = pulse_times
+        pulse_times = props.get('times', [])
+        pulse_times = props.get('peaktimes', pulse_times)
+    if len(pulse_times) == 0:
+        return None
+    td = TableData()
+    td.append('time', 's', '%.4f', pulse_times)
+    fp = '-pulsetimes'
+    if idx is not None:
+        fp += '-%d' % idx
+    if hasattr(basename, 'write'):
+        table_format = kwargs.get('table_format', None)
+        if table_format is None or table_format == 'auto':
+            table_format = 'csv'
+        fp += '.' + TableData.extensions[table_format]
+        td.write(basename, **kwargs)
+        return fp
+    else:
+        file_name = td.write(basename + fp, **kwargs)
+        return file_name
+
+
+def load_pulse_times(file_path):
+    """Load times of pulse EOD from file.
+
+    Parameters
+    ----------
+    file_path: string
+        Path of the file to be loaded.
+
+    Returns
+    -------
+    pulse_times: array of floats
+        Times of pulse EODs in seconds.
+
+    Raises
+    ------
+    FileNotFoundError:
+        If `file_path` does not exist.
+
+    See Also
+    --------
+    save_pulse_times()
+    """
+    data = TableData(file_path)
+    pulse_times = data.array()[:,0]
+    return pulse_times
 
 
 file_types = ['waveeodfs', 'wavefish', 'pulsefish', 'eodwaveform',
@@ -2653,6 +2735,10 @@ def load_analysis(file_pathes):
             if idx >= len(peak_data):
                 peak_data.extend([None]*(idx+1-len(peak_data)))
             peak_data[idx], unit = load_pulse_peaks(f)
+        elif ftype == 'pulsetimes':
+            pulse_times = load_pulse_times(f)
+            eod_props[idx]['times'] = pulse_times
+            eod_props[idx]['peaktimes'] = pulse_times
         elif ftype == 'pulsespectrum':
             if idx >= len(spec_data):
                 spec_data.extend([None]*(idx+1-len(spec_data)))

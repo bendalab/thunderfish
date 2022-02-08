@@ -58,7 +58,7 @@ from .eodanalysis import add_species_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
 from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, save_pulse_fish
-from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
+from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks, save_pulse_times
 from .eodanalysis import load_eod_waveform, load_wave_eodfs, load_wave_fish, load_pulse_fish
 from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
 from .eodanalysis import parse_filename, file_types, load_analysis
@@ -419,7 +419,7 @@ def save_eods(output_basename, zip_file, eod_props, mean_eods,
             write_file_zip(zf, save_wave_eodfs, output_basename,
                            wave_eodfs, wave_indices, **write_table_args(cfg))
         # all wave and pulse fish:
-        for i, (mean_eod, sdata, pdata) in enumerate(zip(mean_eods, spec_data, peak_data)):
+        for i, (mean_eod, sdata, pdata, props) in enumerate(zip(mean_eods, spec_data, peak_data, eod_props)):
             write_file_zip(zf, save_eod_waveform, output_basename,
                            mean_eod, unit, i, **write_table_args(cfg))
             # power spectrum:
@@ -433,6 +433,9 @@ def save_eods(output_basename, zip_file, eod_props, mean_eods,
             # peaks:
             write_file_zip(zf, save_pulse_peaks, output_basename,
                            pdata, unit, i, **write_table_args(cfg))
+            # times:
+            write_file_zip(zf, save_pulse_times, output_basename,
+                           props, i, **write_table_args(cfg))
         # wave fish properties:
         write_file_zip(zf, save_wave_fish, output_basename,
                        eod_props, unit, **write_table_args(cfg))

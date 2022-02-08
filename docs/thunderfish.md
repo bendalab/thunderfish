@@ -263,6 +263,7 @@ The following files are generated:
 - `RECORDING-CHANNEL-TIME-wavespectrum-N.EXT`: for each wave-type fish the Fourier spectrum
 - `RECORDING-CHANNEL-TIME-pulsefish.EXT`: list of properties of good EODs of pulse-type fish
 - `RECORDING-CHANNEL-TIME-pulsepeaks-N.EXT`: for each pulse-type fish properties of peaks and troughs
+- `RECORDING-CHANNEL-TIME-pulsetimes-N.EXT`: for each pulse-type fish the time points of detected EODs
 - `RECORDING-CHANNEL-TIME-pulsespectrum-N.EXT`: for each pulse-type fish the power spectrum of a single pulse
 
 Filenames are composed of the basename of the input file
@@ -923,6 +924,52 @@ The columns contain:
 3. `amplitude` Amplitude of the peak/trough in the unit of the input data.
 4. `relampl` Amplitude of the peak/trough relative to the amplitude of P1.
 5. `width` Width of the peak/trough at half height in milliseconds. 
+
+
+
+### RECORDING-CHANNEL-TIME-pulsetimes-N.EXT
+
+Time points of detected pulse-type EODs.
+
+<table>
+<thead>
+  <tr>
+    <th align="left">time</th>
+  </tr>
+  <tr>
+    <th align="left">s</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td align="right">0.1043</td>
+  </tr>
+  <tr>
+    <td align="right">0.1353</td>
+  </tr>
+  <tr>
+    <td align="right">0.1662</td>
+  </tr>
+  <tr>
+    <td align="right">0.1971</td>
+  </tr>
+  <tr>
+    <td align="right">0.2279</td>
+  </tr>
+  <tr>
+    <td align="right">0.2589</td>
+  </tr>
+  <tr>
+    <td align="right">0.2898</td>
+  </tr>
+  <tr>
+    <td align="right">0.3207</td>
+  </tr>
+</tbody>
+</table>
+
+The columns contain:
+1. The times of pulse-type EODs in seconds.
 
 
 ### RECORDING-CHANNEL-TIME-pulsespectrum-N.EXT
