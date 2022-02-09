@@ -1487,16 +1487,17 @@ def main(cargs=None):
                                          samplerate,
                                          1.1*eod_props[0]['dfreq'])
                     psd_data = psd_data[0]
-                print('loaded file', data_file, idx0, idx1)
+                print('loaded file', data_file)
             if len(wave_eodfs > 0):
-                if len(spec_data) > 1:
+                if len(spec_data) > 0:
                     eodfs = []
                     for idx, fish in zip(wave_indices, wave_eodfs):
                         if idx >= 0:
                             spec = spec_data[idx]
-                            specd = np.zeros((len(spec), 2))
-                            specd[:,0] = spec[:,1]
-                            specd[:,1] = spec[:,-1]
+                            specd = np.zeros((np.sum(np.isfinite(spec[:,-1])),
+                                              2))
+                            specd[:,0] = spec[np.isfinite(spec[:,-1]),1]
+                            specd[:,1] = spec[np.isfinite(spec[:,-1]),-1]
                             eodfs.append(specd)
                         else:
                             specd = np.zeros((10, 2))

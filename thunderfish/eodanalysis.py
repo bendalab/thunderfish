@@ -436,16 +436,32 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     meod[:,-1] = fourier_series(meod[:,0], *popt)
     # store fourier spectrum:
     if hasattr(freq, 'shape'):
-        spec_data = np.zeros((n_harm, 7))
-        powers = freq[:n_harm, 1]
-        spec_data[:len(powers), 6] = powers
+        n = n_harm
+        n += np.sum(freq[:,0] > (n_harm+0.5)*freq[0,0])
+        spec_data = np.zeros((n, 7))
+        spec_data[:,:] = np.nan
+        k = 0
+        for i in range(n_harm):
+            while k < len(freq) and freq[k,0] < (i+0.5)*freq0:
+                k += 1
+            if k >= len(freq):
+                break
+            if freq[k,0] < (i+1.5)*freq0:
+                spec_data[i,6] = freq[k,1]
+                k += 1
+        for i in range(n_harm, n):
+            if k >= len(freq):
+                break
+            spec_data[i,:2] = [np.round(freq[k,0]/freq0)-1, freq[k,0]]
+            spec_data[i,6] = freq[k,1]
+            k += 1
     else:
         spec_data = np.zeros((n_harm, 6))
     for i in range(n_harm):
         spec_data[i,:6] = [i, (i+1)*freq0, popt[i*2+1], popt[i*2+1]/popt[1],
                            decibel((popt[i*2+1]/popt[1])**2.0), popt[i*2+2]]
     # smoothness of power spectrum:
-    db_powers = decibel(spec_data[:,2]**2)
+    db_powers = decibel(spec_data[:n_harm,2]**2)
     db_diff = np.std(np.diff(db_powers))
     # maximum relative power of higher harmonics:
     p_max = np.argmax(db_powers[:3])
@@ -485,6 +501,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     props['p-p-distance'] = distance/period
     props['reltroughampl'] = np.abs(relptampl)
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
+    pnh = min(n_harm, pnh)
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
     if hasattr(freq, 'shape'):
         props['datapower'] = decibel(np.sum(freq[:pnh,1]))
@@ -1764,7 +1781,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
     markersize: float
         Size of points on spectrum.
     """
-    n = 9 if len(spec) > 9 else len(spec)
+    n = min(9, np.sum(np.isfinite(spec[:,2])))
     # amplitudes:
     markers, stemlines, _ = axa.stem(spec[:n,0]+1, spec[:n,2], basefmt='none')
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
@@ -1778,7 +1795,7 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
     else:
         axa.set_ylabel('Amplitude')
     # phases:
-    phases = spec[:,5]
+    phases = spec[:n,5]
     phases[phases<0.0] = phases[phases<0.0] + 2.0*np.pi
     markers, stemlines, _ = axp.stem(spec[:n,0]+1, phases[:n], basefmt='none')
     plt.setp(markers, color=color, markersize=markersize, clip_on=False)
@@ -2325,7 +2342,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     td = TableData(spec_data[:,:6]*[1.0, 1.0, 1.0, 100.0, 1.0, 1.0],
                    ['harmonics', 'frequency', 'amplitude', 'relampl', 'relpower', 'phase'],
                    ['', 'Hz', unit, '%', 'dB', 'rad'],
-                   ['%.0f', '%.2f', '%.5f', '%10.2f', '%6.2f', '%8.4f'])
+                   ['%.0f', '%.2f', '%.6f', '%10.2f', '%6.2f', '%8.4f'])
     if spec_data.shape[1] > 6:
         td.append('datapower', '%s^2/Hz' % unit, '%11.4e', spec_data[:,6])
     fp = '-wavespectrum'
@@ -2357,6 +2374,7 @@ def load_wave_spectrum(file_path):
         Amplitude and phase spectrum of wave EOD:
         harmonics, frequency, amplitude, relative amplitude in dB,
         relative power in dB, phase, data power in unit squared.
+        Can contain NaNs.
     unit: string
         Unit of amplitudes.
 
