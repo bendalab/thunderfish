@@ -2159,6 +2159,7 @@ def load_wave_fish(file_path):
         if 'nfft' in props:
             props['nfft'] = int(props['nfft'])
         props['index'] = int(props['index'])
+        props['n'] = int(props['n'])
         props['type'] = 'wave'
         props['thd'] /= 100
         props['noise'] /= 100
@@ -2297,6 +2298,7 @@ def load_pulse_fish(file_path):
         if 'nfft' in props:
             props['nfft'] = int(props['nfft'])
         props['index'] = int(props['index'])
+        props['n'] = int(props['n'])
         props['type'] = 'pulse'
         if 'clipped' in props:
             props['clipped'] /= 100
