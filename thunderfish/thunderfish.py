@@ -61,7 +61,7 @@ from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, sav
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks, save_pulse_times
 from .eodanalysis import load_eod_waveform, load_wave_eodfs, load_wave_fish, load_pulse_fish
 from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
-from .eodanalysis import parse_filename, file_types, load_analysis
+from .eodanalysis import parse_filename, file_types, load_analysis, load_recording
 from .fakefish import normalize_wavefish, export_wavefish
 from .tabledata import TableData, add_write_table_config, write_table_args
 
@@ -1459,35 +1459,17 @@ def main(cargs=None):
         for recording in result_files:
             mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
                 peak_data, base_name, channel, unit = load_analysis(recording)
-            raw_data = None
-            samplerate = 0.0
-            idx0 = 0
-            idx1 = 0
-            psd_data = None
-            zoom_window = [1.2, 1.3]
             clipped = 0.0
             if len(eod_props) > 0 and 'winclipped' in eod_props[0]:
                 clipped = eod_props[0]['winclipped']
-            bp =  os.path.basename(base_name) if len(args.rawdata_path) > 0 and args.rawdata_path != '.' else base_name
-            bp = os.path.join(args.rawdata_path, bp)
-            datafiles = glob.glob( bp + '.*')
-            data_file = datafiles[0] if len(datafiles) > 0 else ''
-            if os.path.exists(data_file):
-                raw_data, samplerate, unit = load_data(data_file, channel,
-                                                       verbose=verbose,
-                                                       **load_kwargs)
-                idx0 = 0
-                idx1 = len(raw_data)
-                if len(eod_props) > 0 and 'twin' in eod_props[0]:
-                    idx0 = int(eod_props[0]['twin']*samplerate)
-                if len(eod_props) > 0 and 'window' in eod_props[0]:
-                    idx1 = idx0 + int(eod_props[0]['window']*samplerate)
-                if 'dfreq' in eod_props[0]:
-                    psd_data = multi_psd(raw_data[idx0:idx1],
-                                         samplerate,
-                                         1.1*eod_props[0]['dfreq'])
-                    psd_data = psd_data[0]
-                print('loaded file', data_file)
+            zoom_window = [1.2, 1.3]
+            psd_data = None
+            data, samplerate, idx0, idx1 = load_recording(args.rawdata_path, base_name, channel,
+                                                          load_kwargs, eod_props, verbose)
+            if len(eod_props) > 0 and 'dfreq' in eod_props[0] and len(data) > 0:
+                psd_data = multi_psd(data[idx0:idx1],
+                                     samplerate,
+                                     1.1*eod_props[0]['dfreq'])[0]
             if psd_data is not None and len(psd_data) > 0:
                 for idx, fish in zip(wave_indices, wave_eodfs):
                     if idx < 0:
@@ -1495,7 +1477,7 @@ def main(cargs=None):
                             fish[k,1] = psd_data[np.argmin(np.abs(psd_data[:,0] - fish[k,0])),1]
             if len(args.save_subplots) > 0:
                 plot_eod_subplots(base_name, args.save_subplots,
-                                  raw_data, samplerate, idx0, idx1,
+                                  data, samplerate, idx0, idx1,
                                   clipped, psd_data, wave_eodfs, wave_indices,
                                   mean_eods, eod_props, peak_data, spec_data,
                                   unit, zoom_window, 10, None, True,
@@ -1503,7 +1485,7 @@ def main(cargs=None):
                                   False, True)
             else:
                 fig = plot_eods(os.path.basename(base_name),
-                                raw_data, samplerate, channel,
+                                data, samplerate, channel,
                                 idx0, idx1, clipped, psd_data,
                                 wave_eodfs, wave_indices,
                                 mean_eods, eod_props, peak_data, spec_data, None,

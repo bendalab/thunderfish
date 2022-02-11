@@ -49,6 +49,7 @@ Analysis of EOD waveforms.
 - `load_pulse_times()`: load times of pulse EOD from file.
 - `parse_filename()`: parse components of an EOD analysis file name.
 - `load_analysis()`: load EOD analysis files.
+- `load_recording()`: load recording.
 
 ## Fit functions
 
@@ -73,6 +74,7 @@ Analysis of EOD waveforms.
 
 import os
 import io
+import glob
 import zipfile
 import numpy as np
 from scipy.optimize import curve_fit
@@ -83,6 +85,7 @@ from .eventdetection import threshold_crossings, threshold_crossing_times, merge
 from .powerspectrum import next_power_of_two, nfft, decibel
 from .harmonics import fundamental_freqs_and_power
 from .tabledata import TableData
+from .dataloader import load_data
 
 
 def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
@@ -2714,6 +2717,66 @@ def load_analysis(file_pathes):
         wave_eodfs = eodfs
     return mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
         peak_data, base_name, channel, unit
+
+
+def load_recording(file_path, base_name=None, channel=0, load_kwargs={}, eod_props=None, verbose=0):
+    """Load recording.
+
+    Parameters
+    ----------
+    file_path: string
+        Full path or just path of the file with the recorded data.
+    base_name: string or None
+        Optional name of the file, in case `file_path` is only a path.
+        Extension is optional. If absent, look for the first file with a reasonable extension.
+    channel: int
+        Channel of the recording to be returned.
+    load_kwargs: dict
+        Keyword arguments that are passed on to the 
+        format specific loading functions.
+    eod_props: list of dict or None
+        List of EOD properties from which start and end times of analysis window are extracted.
+    verbose: int
+        Verbosity level passed on to load function.
+
+    Returns
+    -------
+    data: array of float
+        Data of the requested `channel`.
+    samplerate: float
+        Sampling rate in Hertz.
+    idx0: int
+        Start index of the analysis window.
+    idx1: int
+        End index of the analysis window.
+    """
+    data = None
+    samplerate = 0.0
+    idx0 = 0
+    idx1 = 0
+    if base_name:
+        base_name = os.path.basename(base_name) if file_path and file_path != '.' else base_name
+        file_path = os.path.join(file_path, base_name)
+    data_file = ''
+    if len(os.path.splitext(file_path)[1]) > 1:
+        data_file = file_path
+    else:
+        data_files = glob.glob(file_path + '.*')
+        for dfile in data_files:
+            if not os.path.splitext(dfile)[1][1:] in ['zip'] + list(TableData.ext_formats.values()):
+                data_file = dfile
+                break
+    if os.path.exists(data_file):
+        data, samplerate, unit = load_data(data_file, channel,
+                                           verbose=verbose,
+                                           **load_kwargs)
+        idx0 = 0
+        idx1 = len(data)
+        if eod_props is not None and len(eod_props) > 0 and 'twin' in eod_props[0]:
+            idx0 = int(eod_props[0]['twin']*samplerate)
+        if len(eod_props) > 0 and 'window' in eod_props[0]:
+            idx1 = idx0 + int(eod_props[0]['window']*samplerate)
+    return data, samplerate, idx0, idx1
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
