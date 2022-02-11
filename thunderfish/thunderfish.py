@@ -1061,9 +1061,129 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
     plt.close()
 
 
+def thunderfish_plot(files, data_path=None, load_kwargs={},
+                     all_eods=False, spec_plots='auto', skip_bad=True,
+                     save_plot=False, multi_pdf=None,
+                     save_subplots='', log_freq=False, min_freq=0.0,
+                     max_freq=3000.0, output_folder='.',
+                     keep_path=False, verbose=0):
+    """Generate plots from saved analysis results.
+
+    Parameters
+    ----------
+    files: list of str
+        Analysis files from a single recording.
+    data_path: str
+        Path where to find the raw data.
+    load_kwargs: dict
+        Key-word arguments for the `load_data()` function.
+    all_eods: bool
+        If True, plot all EOD waveforms.
+    spec_plots: bool or 'auto'
+        Plot amplitude spectra of EOD waveforms.
+        If 'auto', plot them if there is a singel waveform only.
+    skip_bad: bool
+        Skip harmonic groups without index in the spectrum plot.
+    save_plot: bool
+        If True, save plots as pdf file.
+    multi_pdf: matplotlib.PdfPages or None
+        PdfPages instance in which to save plots.
+    save_subplots: string
+        If not empty, specifies subplots to be saved as separate pdf
+        files: r) recording with best window, t) data trace with
+        detected pulse fish, p) power spectrum with detected wave
+        fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD
+        waveform and spectra. Capital letters produce a single
+        multipage pdf containing plots of all detected fish.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis of
+        power spectrum of recording.
+    min_freq: float
+        Limits of frequency axis of power spectrum of recording
+        are set to `(min_freq, max_freq)`, if `max_freq` is greater than zero
+    max_freq: float
+        Limits of frequency axis of power spectrum of recording
+        are set to `(min_freq, max_freq)` and limits of power axis are computed
+        from powers below max_freq, if `max_freq` is greater than zero
+    output_folder: string
+        Folder where to save results.
+    keep_path: bool
+        Add relative path of data files to output path.
+    verbose: int
+       Verbosity level (for debugging).
+    """
+    # load analysis results:
+    mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
+        peak_data, base_name, channel, unit = load_analysis(files)
+    clipped = 0.0
+    if len(eod_props) > 0 and 'winclipped' in eod_props[0]:
+        clipped = eod_props[0]['winclipped']
+    zoom_window = [1.2, 1.3]
+    # load recording:
+    psd_data = None
+    if base_name:
+        name = os.path.basename(base_name) if data_path and data_path != '.' else base_name
+        data_path = os.path.join(data_path, name)
+    data, samplerate, idx0, idx1, data_path = \
+        load_recording(data_path, channel, load_kwargs,
+                       eod_props, verbose-1)
+    if verbose > 0:
+        print('loaded', data_path)
+    if len(eod_props) > 0 and 'dfreq' in eod_props[0] and len(data) > 0:
+        psd_data = multi_psd(data[idx0:idx1],
+                             samplerate,
+                             1.1*eod_props[0]['dfreq'])[0]
+    if psd_data is not None and len(psd_data) > 0:
+        for idx, fish in zip(wave_indices, wave_eodfs):
+            if idx < 0:
+                for k in range(len(fish)):
+                    fish[k,1] = psd_data[np.argmin(np.abs(psd_data[:,0] - fish[k,0])),1]
+    # file name for output files:
+    fn = base_name if keep_path else os.path.basename(base_name)
+    output_basename = os.path.join(output_folder, fn)
+    # make directory if necessary:
+    if keep_path:
+        outpath = os.path.dirname(output_basename)
+        if not os.path.exists(outpath):
+            if verbose > 0:
+                print('mkdir %s' % outpath)
+            os.makedirs(outpath)
+    # plot:
+    fig = plot_eods(os.path.basename(base_name), data, samplerate,
+                    channel, idx0, idx1, clipped, psd_data,
+                    wave_eodfs, wave_indices, mean_eods,
+                    eod_props, peak_data, spec_data, None, unit,
+                    zoom_window, 10, None, True, all_eods,
+                    spec_plots, skip_bad, log_freq, min_freq,
+                    max_freq, interactive=not save_plot,
+                    verbose=verbose-1)
+    if save_plot:
+        if multi_pdf is not None:
+            multi_pdf.savefig(fig)
+        else:
+            # save figure as pdf:
+            fig.savefig(output_basename + '.pdf')
+            plt.close('all')
+        if len(save_subplots) > 0:
+            plot_eod_subplots(base_name, save_subplots, data,
+                              samplerate, idx0, idx1, clipped,
+                              psd_data, wave_eodfs,
+                              wave_indices, mean_eods,
+                              eod_props, peak_data, spec_data,
+                              unit, zoom_window, 10, None,
+                              True, skip_bad, log_freq,
+                              min_freq, max_freq, False, True)
+    else:
+        fig.canvas.set_window_title('thunderfish')
+        plt.show()
+    plt.close()
+    return None
+
+                
 def thunderfish(filename, load_kwargs, cfg, channel=0,
                 time=None, time_file=False,
-                mode='wp', log_freq=0.0, save_data=False, zip_file=False,
+                mode='wp', log_freq=False, min_freq=0.0, max_freq=3000,
+                save_data=False, zip_file=False,
                 all_eods=False, spec_plots='auto', skip_bad=True,
                 save_plot=False, multi_pdf=None, save_subplots='',
                 output_folder='.', keep_path=False,
@@ -1088,9 +1208,16 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
     mode: 'w', 'p', 'P', 'wp', or 'wP'
         Analyze wavefish ('w'), all pulse fish ('p'), or largest pulse
         fish only ('P').
-    log_freq: float
-        If not 0 plot spectra with logarithmic frequency axis.
-        Minimum frequency for the logarithmic spectra.
+    log_freq: boolean
+        Logarithmic (True) or linear (False) frequency axis of
+        power spectrum of recording.
+    min_freq: float
+        Limits of frequency axis of power spectrum of recording
+        are set to `(min_freq, max_freq)`, if `max_freq` is greater than zero
+    max_freq: float
+        Limits of frequency axis of power spectrum of recording
+        are set to `(min_freq, max_freq)` and limits of power axis are computed
+        from powers below max_freq, if `max_freq` is greater than zero
     save_data: bool
         If True save analysis results in files. If False, just plot the data.
     zip_data: bool
@@ -1218,16 +1345,6 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                           unit, verbose, cfg)
 
         if save_plot or not save_data:
-            min_freq = 0.0
-            max_freq = 3000.0
-            if log_freq > 0.0:
-                min_freq = log_freq
-                max_freq = min_freq*20
-                if max_freq < 2000:
-                    max_freq = 2000
-                log_freq = True
-            else:
-                log_freq = False
             n_snippets = 10
             chl = chan if channels > 1 else None
             fig = plot_eods(outfilename, raw_data, samplerate, chl, idx0, idx1,
@@ -1235,7 +1352,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                             mean_eods, eod_props, peak_data, spec_data, None,
                             unit, zoom_window, n_snippets, power_thresh, True,
                             all_eods, spec_plots, skip_bad, log_freq,
-                            min_freq, max_freq, interactive=not save_data,
+                            min_freq, max_freq, interactive=not save_plot,
                             verbose=verbose)
             if save_plot:
                 if multi_pdf is not None:
@@ -1261,15 +1378,19 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 def run_thunderfish(file_args):
     """Helper function for mutlithreading Pool().map().
     """
-    verbose = file_args[1][-2]+1
-    if verbose > 0:
-        if verbose > 1:
-            print('='*70)
-        print('analyze recording %s ...' % file_args[0])
+    results = file_args[1][0]
+    verbose = file_args[1][-1] if results else file_args[1][-2]+1
+    if verbose > 1:
+        print('='*70)
     try:
-        msg = thunderfish(file_args[0], *file_args[1])
-        if msg:
-            print(msg)
+        if results:
+            thunderfish_plot(file_args[0], *file_args[1][1:])
+        else:
+            if verbose > 0:
+                print('analyze recording %s ...' % file_args[0])
+            msg = thunderfish(file_args[0], *file_args[1][1:])
+            if msg:
+                print(msg)
     except (KeyboardInterrupt, SystemExit):
         print('\nthunderfish interrupted by user... exit now.')
         sys.exit(0)
@@ -1427,6 +1548,19 @@ def main(cargs=None):
             if len(kws) == 2:
                 load_kwargs[kws[0].strip()] = kws[1].strip()
 
+    # frequency limits for power spectrum:
+    min_freq = 0.0
+    max_freq = 3000.0
+    log_freq = args.log_freq
+    if log_freq > 0.0:
+        min_freq = log_freq
+        max_freq = min_freq*20
+        if max_freq < 2000:
+            max_freq = 2000
+        log_freq = True
+    else:
+        log_freq = False
+
     # check if all input files are results:
     exts = TableData.ext_formats.values()
     results = True
@@ -1443,79 +1577,27 @@ def main(cargs=None):
         else:
             results = False
             break
-
-    # generate plots from results:
     if results:
-        min_freq = 0.0
-        max_freq = 3000.0
-        if args.log_freq > 0.0:
-            min_freq = log_freq
-            max_freq = min_freq*20
-            if max_freq < 2000:
-                max_freq = 2000
-            log_freq = True
-        else:
-            log_freq = False
-        for recording in result_files:
-            mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
-                peak_data, base_name, channel, unit = load_analysis(recording)
-            clipped = 0.0
-            if len(eod_props) > 0 and 'winclipped' in eod_props[0]:
-                clipped = eod_props[0]['winclipped']
-            zoom_window = [1.2, 1.3]
-            psd_data = None
-            file_path = args.rawdata_path
-            if base_name:
-                base_name = os.path.basename(base_name) if file_path and file_path != '.' else base_name
-                file_path = os.path.join(file_path, base_name)
-            data, samplerate, idx0, idx1, file_path = \
-                load_recording(file_path, channel, load_kwargs,
-                               eod_props, verbose-1)
-            if verbose > 0:
-                print('loaded', file_path)
-            if len(eod_props) > 0 and 'dfreq' in eod_props[0] and len(data) > 0:
-                psd_data = multi_psd(data[idx0:idx1],
-                                     samplerate,
-                                     1.1*eod_props[0]['dfreq'])[0]
-            if psd_data is not None and len(psd_data) > 0:
-                for idx, fish in zip(wave_indices, wave_eodfs):
-                    if idx < 0:
-                        for k in range(len(fish)):
-                            fish[k,1] = psd_data[np.argmin(np.abs(psd_data[:,0] - fish[k,0])),1]
-            if len(args.save_subplots) > 0:
-                plot_eod_subplots(base_name, args.save_subplots,
-                                  data, samplerate, idx0, idx1,
-                                  clipped, psd_data, wave_eodfs, wave_indices,
-                                  mean_eods, eod_props, peak_data, spec_data,
-                                  unit, zoom_window, 10, None, True,
-                                  args.skip_bad, log_freq, min_freq, max_freq,
-                                  False, True)
-            else:
-                fig = plot_eods(os.path.basename(base_name),
-                                data, samplerate, channel,
-                                idx0, idx1, clipped, psd_data,
-                                wave_eodfs, wave_indices,
-                                mean_eods, eod_props, peak_data, spec_data, None,
-                                unit, zoom_window, 10, None, True,
-                                args.all_eods, spec_plots, args.skip_bad, log_freq,
-                                min_freq, max_freq, interactive=not args.save_data,
-                                verbose=verbose-1)
-                if args.save_data:
-                    pass
-                else:
-                    plt.show()
-                plt.close()
-        return
-            
-    # run on pool:
+        files = result_files
+
+    # adjust verbosity:
     v = verbose
     if len(files) > 1:
         v += 1
-    pool_args = (load_kwargs, cfg, args.channel, args.time, args.time_file,
-                 args.mode, args.log_freq, args.save_data, args.zip_file,
+    
+    # run on pool:
+    pool_args = (results, load_kwargs, cfg, args.channel, args.time,
+                 args.time_file, args.mode, log_freq, min_freq,
+                 max_freq, args.save_data, args.zip_file,
                  args.all_eods, spec_plots, args.skip_bad,
                  args.save_plot, multi_pdf, args.save_subplots,
                  args.outpath, args.keep_path, v-1, plot_level)
+    if results:
+        pool_args = (results, args.rawdata_path, load_kwargs,
+                     args.all_eods, spec_plots, args.skip_bad,
+                     args.save_plot, multi_pdf, args.save_subplots,
+                     log_freq, min_freq, max_freq, args.outpath,
+                     args.keep_path, v)
     if args.jobs is not None and (args.save_data or args.save_plot) and len(files) > 1:
         cpus = cpu_count() if args.jobs == 0 else args.jobs
         if verbose > 1:

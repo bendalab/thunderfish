@@ -2660,7 +2660,7 @@ def load_analysis(file_pathes):
     channel = -1
     eod_props = []
     zf = None
-    if len(file_pathes) == 1 and os.path.splitext(file_pathes[0])[1] == '.zip':
+    if len(file_pathes) == 1 and os.path.splitext(file_pathes[0])[1][1:] == 'zip':
         zf = zipfile.ZipFile(file_pathes[0])
         file_pathes = sorted(zf.namelist())
     # first, read wave- and pulse-fish summaries:
@@ -2760,7 +2760,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
     if len(os.path.splitext(file_path)[1]) > 1:
         data_file = file_path
     else:
-        data_files = glob.glob(file_path + '.*')
+        data_files = glob.glob(file_path + os.extsep + '*')
         for dfile in data_files:
             if not os.path.splitext(dfile)[1][1:] in ['zip'] + list(TableData.ext_formats.values()):
                 data_file = dfile
