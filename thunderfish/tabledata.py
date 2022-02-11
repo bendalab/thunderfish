@@ -312,7 +312,8 @@ class TableData(object):
     - `hide_all()`: hide all columns.
     - `hide_empty_columns()`: hide all columns that do not contain data.
     - `show()`: show a column or a range of columns.
-    - `write()`: write the table to a file or stream.
+    - `write()`: write table to a file or stream.
+    - `write_file_stream()`: write table to file or stream and return appropriate file name.
     - `__str__()`: write table to a string.
     - `load()`: load table from file or stream.
     - `formats`: list of supported file formats for writing.
@@ -2422,6 +2423,41 @@ class TableData(object):
             fh.close()
         # return file name:
         return file_name
+
+
+    def write_file_stream(self, basename, file_name, **kwargs):
+        """Write table to file or stream and return appropriate file name.
+
+        Parameters
+        ----------
+        basename: string or stream
+            If string, path and basename of file.
+            `file_name` and an extension are appended.
+            If stream, write table data into this stream.
+        file_name: string
+            Name of file that is appended to a base path or `basename`.
+        kwargs:
+            Arguments passed on to `TableData.write()`.
+            In particular, 'table_format' is used to the set the file extension
+            that is appended to the returned `file_name`.
+
+        Returns
+        -------
+        file_name: string
+            Path and full name of the written file in case of `basename`
+            being a string. Otherwise, the file name and extension that
+            should be appended to a base path.
+        """
+        if hasattr(basename, 'write'):
+            table_format = kwargs.get('table_format', None)
+            if table_format is None or table_format == 'auto':
+                table_format = 'csv'
+            file_name += '.' + TableData.extensions[table_format]
+            self.write(basename, **kwargs)
+            return file_name
+        else:
+            file_name = self.write(basename + file_name, **kwargs)
+            return file_name
 
             
     def __str__(self):

@@ -1869,7 +1869,7 @@ def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
     ax.set_xlabel('Frequency [Hz]')
     ax.set_ylabel('Power [dB]')
 
-
+    
 def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     """Save mean EOD waveform to file.
 
@@ -1899,7 +1899,6 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     See Also
     --------
     load_eod_waveform()
-
     """
     td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'sem'],
                    ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
@@ -1908,16 +1907,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     fp = '-eodwaveform'
     if idx is not None:
         fp += '-%d' % idx
-    if hasattr(basename, 'write'):
-        table_format = kwargs.get('table_format', None)
-        if table_format is None or table_format == 'auto':
-            table_format = 'csv'
-        fp += '.' + TableData.extensions[table_format]
-        td.write(basename, **kwargs)
-        return fp
-    else:
-        file_name = td.write(basename + fp, **kwargs)
-        return file_name
+    return td.write_file_stream(basename, fp, **kwargs)
 
 
 def load_eod_waveform(file_path):
@@ -1986,16 +1976,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
     td.append('EODf', 'Hz', '%7.2f', eodfs[:,0])
     td.append('datapower', 'dB', '%7.2f', eodfs[:,1])
     fp = '-waveeodfs'
-    if hasattr(basename, 'write'):
-        table_format = kwargs.get('table_format', None)
-        if table_format is None or table_format == 'auto':
-            table_format = 'csv'
-        fp += '.' + TableData.extensions[table_format]
-        td.write(basename, **kwargs)
-        return fp
-    else:
-        file_name = td.write(basename + fp, **kwargs)
-        return file_name
+    return td.write_file_stream(basename, fp, **kwargs)
 
 
 def load_wave_eodfs(file_path):
@@ -2111,16 +2092,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('p-p-distance', '%', '%.2f', wave_props, 100.0)
     td.append('reltroughampl', '%', '%.2f', wave_props, 100.0)
     fp = '-wavefish'
-    if hasattr(basename, 'write'):
-        table_format = kwargs.get('table_format', None)
-        if table_format is None or table_format == 'auto':
-            table_format = 'csv'
-        fp += '.' + TableData.extensions[table_format]
-        td.write(basename, **kwargs)
-        return fp
-    else:
-        file_name = td.write(basename + fp, **kwargs)
-        return file_name
+    return td.write_file_stream(basename, fp, **kwargs)
 
 
 def load_wave_fish(file_path):
@@ -2250,16 +2222,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('poweratt50', 'dB', '%.2f', pulse_props)
     td.append('lowcutoff', 'Hz', '%.2f', pulse_props)
     fp = '-pulsefish'
-    if hasattr(basename, 'write'):
-        table_format = kwargs.get('table_format', None)
-        if table_format is None or table_format == 'auto':
-            table_format = 'csv'
-        fp += '.' + TableData.extensions[table_format]
-        td.write(basename, **kwargs)
-        return fp
-    else:
-        file_name = td.write(basename + fp, **kwargs)
-        return file_name
+    return td.write_file_stream(basename, fp, **kwargs)
 
 
 def load_pulse_fish(file_path):
@@ -2350,16 +2313,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
     fp = '-wavespectrum'
     if idx is not None:
         fp += '-%d' % idx
-    if hasattr(basename, 'write'):
-        table_format = kwargs.get('table_format', None)
-        if table_format is None or table_format == 'auto':
-            table_format = 'csv'
-        fp += '.' + TableData.extensions[table_format]
-        td.write(basename, **kwargs)
-        return fp
-    else:
-        file_name = td.write(basename + fp, **kwargs)
-        return file_name
+    return td.write_file_stream(basename, fp, **kwargs)
 
 
 def load_wave_spectrum(file_path):
@@ -2429,16 +2383,7 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     fp = '-pulsespectrum'
     if idx is not None:
         fp += '-%d' % idx
-    if hasattr(basename, 'write'):
-        table_format = kwargs.get('table_format', None)
-        if table_format is None or table_format == 'auto':
-            table_format = 'csv'
-        fp += '.' + TableData.extensions[table_format]
-        td.write(basename, **kwargs)
-        return fp
-    else:
-        file_name = td.write(basename + fp, **kwargs)
-        return file_name
+    return td.write_file_stream(basename, fp, **kwargs)
 
 
 def load_pulse_spectrum(file_path):
@@ -2506,16 +2451,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     fp = '-pulsepeaks'
     if idx is not None:
         fp += '-%d' % idx
-    if hasattr(basename, 'write'):
-        table_format = kwargs.get('table_format', None)
-        if table_format is None or table_format == 'auto':
-            table_format = 'csv'
-        fp += '.' + TableData.extensions[table_format]
-        td.write(basename, **kwargs)
-        return fp
-    else:
-        file_name = td.write(basename + fp, **kwargs)
-        return file_name
+    return td.write_file_stream(basename, fp, **kwargs)
 
 
 def load_pulse_peaks(file_path):
@@ -2592,16 +2528,7 @@ def save_pulse_times(pulse_times, idx, basename, **kwargs):
     fp = '-pulsetimes'
     if idx is not None:
         fp += '-%d' % idx
-    if hasattr(basename, 'write'):
-        table_format = kwargs.get('table_format', None)
-        if table_format is None or table_format == 'auto':
-            table_format = 'csv'
-        fp += '.' + TableData.extensions[table_format]
-        td.write(basename, **kwargs)
-        return fp
-    else:
-        file_name = td.write(basename + fp, **kwargs)
-        return file_name
+    return td.write_file_stream(basename, fp, **kwargs)
 
 
 def load_pulse_times(file_path):
@@ -2632,7 +2559,7 @@ def load_pulse_times(file_path):
 
 
 file_types = ['waveeodfs', 'wavefish', 'pulsefish', 'eodwaveform',
-              'wavespectrum', 'pulsepeaks', 'pulsespectrum']
+              'wavespectrum', 'pulsepeaks', 'pulsespectrum', 'pulsetimes']
 """List of all file types generated and supported by the `save_*` and `load_*` functions."""
 
 
