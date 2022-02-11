@@ -1488,27 +1488,11 @@ def main(cargs=None):
                                          1.1*eod_props[0]['dfreq'])
                     psd_data = psd_data[0]
                 print('loaded file', data_file)
-            if len(wave_eodfs > 0):
-                if len(spec_data) > 0:
-                    eodfs = []
-                    for idx, fish in zip(wave_indices, wave_eodfs):
-                        if idx >= 0:
-                            spec = spec_data[idx]
-                            specd = np.zeros((np.sum(np.isfinite(spec[:,-1])),
-                                              2))
-                            specd[:,0] = spec[np.isfinite(spec[:,-1]),1]
-                            specd[:,1] = spec[np.isfinite(spec[:,-1]),-1]
-                            eodfs.append(specd)
-                        else:
-                            specd = np.zeros((10, 2))
-                            specd[:,0] = np.arange(len(specd))*fish[0]
-                            if psd_data is not None and len(psd_data) > 0:
-                                for k in range(len(specd)):
-                                    specd[k,1] = psd_data[np.argmin(np.abs(psd_data[:,0] - specd[k,0])),1]
-                            eodfs.append(specd)
-                    wave_eodfs = eodfs
-                else:
-                    wave_eodfs = [fish.reshape(1, 2) for fish in wave_eodfs]
+            if psd_data is not None and len(psd_data) > 0:
+                for idx, fish in zip(wave_indices, wave_eodfs):
+                    if idx < 0:
+                        for k in range(len(fish)):
+                            fish[k,1] = psd_data[np.argmin(np.abs(psd_data[:,0] - fish[k,0])),1]
             if len(args.save_subplots) > 0:
                 plot_eod_subplots(base_name, args.save_subplots,
                                   raw_data, samplerate, idx0, idx1,

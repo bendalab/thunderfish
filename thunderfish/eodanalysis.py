@@ -2653,56 +2653,65 @@ def load_analysis(file_pathes):
     unit: string
         Unit of EOD waveform.
     """
-    mean_eods = []
-    wave_eodfs = np.array([])
-    wave_indices = np.array([])
     eod_props = []
-    spec_data = []
-    peak_data = []
-    base_name = None
-    channel = -1
-    unit = None
     zf = None
     if len(file_pathes) == 1 and os.path.splitext(file_pathes[0])[1] == '.zip':
         zf = zipfile.ZipFile(file_pathes[0])
         file_pathes = sorted(zf.namelist())
+    # first, read wave- and pulse-fish summaries:
     for f in file_pathes:
         base_name, channel, time, ftype, idx, ext = parse_filename(f)
         if zf is not None:
             f = io.TextIOWrapper(zf.open(f, 'r'))
-        if ftype == 'eodwaveform':
-            if idx >= len(mean_eods):
-                mean_eods.extend([None]*(idx+1-len(mean_eods)))
+        if ftype == 'wavefish':
+            eod_props.extend(load_wave_fish(f))
+        elif ftype == 'pulsefish':
+            eod_props.extend(load_pulse_fish(f))
+    # then load all other files:
+    wave_eodfs = np.array([])
+    wave_indices = np.array([])
+    mean_eods = [None]*len(eod_props)
+    spec_data = [None]*len(eod_props)
+    peak_data = [None]*len(eod_props)
+    base_name = None
+    channel = -1
+    unit = None
+    for f in file_pathes:
+        base_name, channel, time, ftype, idx, ext = parse_filename(f)
+        if zf is not None:
+            f = io.TextIOWrapper(zf.open(f, 'r'))
+        if ftype == 'waveeodfs':
+            wave_eodfs, wave_indices = load_wave_eodfs(f)
+        elif ftype == 'eodwaveform':
             mean_eods[idx], unit = load_eod_waveform(f)
         elif ftype == 'wavespectrum':
-            if idx >= len(spec_data):
-                spec_data.extend([None]*(idx+1-len(spec_data)))
             spec_data[idx], unit = load_wave_spectrum(f)
         elif ftype == 'pulsepeaks':
-            if idx >= len(peak_data):
-                peak_data.extend([None]*(idx+1-len(peak_data)))
             peak_data[idx], unit = load_pulse_peaks(f)
         elif ftype == 'pulsetimes':
             pulse_times = load_pulse_times(f)
             eod_props[idx]['times'] = pulse_times
             eod_props[idx]['peaktimes'] = pulse_times
         elif ftype == 'pulsespectrum':
-            if idx >= len(spec_data):
-                spec_data.extend([None]*(idx+1-len(spec_data)))
             spec_data[idx] = load_pulse_spectrum(f)
-        elif ftype == 'waveeodfs':
-            wave_eodfs, wave_indices = load_wave_eodfs(f)
-        elif ftype == 'wavefish':
-            eod_props.extend(load_wave_fish(f))
-        elif ftype == 'pulsefish':
-            eod_props.extend(load_pulse_fish(f))
-    n = max(len(mean_eods), len(spec_data), len(peak_data))
-    if n > len(mean_eods):
-        mean_eods.extend([None]*(n-len(mean_eods)))
-    if n > len(spec_data):
-        spec_data.extend([None]*(n-len(spec_data)))
-    if n > len(peak_data):
-        peak_data.extend([None]*(n-len(peak_data)))
+    # fix wave spectra:
+    wave_eodfs = [fish.reshape(1, 2) if len(fish)>0 else fish for fish in wave_eodfs]
+    if len(wave_eodfs) > 0 and len(spec_data) > 0:
+        eodfs = []
+        for idx, fish in zip(wave_indices, wave_eodfs):
+            if idx >= 0:
+                spec = spec_data[idx]
+                specd = np.zeros((np.sum(np.isfinite(spec[:,-1])),
+                                  2))
+                specd[:,0] = spec[np.isfinite(spec[:,-1]),1]
+                specd[:,1] = spec[np.isfinite(spec[:,-1]),-1]
+                eodfs.append(specd)
+            else:
+                specd = np.zeros((10, 2))
+                specd[:,0] = np.arange(len(specd))*fish[0,0]
+                specd[:,1] = np.nan
+                eodfs.append(specd)
+        wave_eodfs = eodfs
     return mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
         peak_data, base_name, channel, unit
 
