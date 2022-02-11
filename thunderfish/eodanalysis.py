@@ -2656,6 +2656,8 @@ def load_analysis(file_pathes):
     unit: string
         Unit of EOD waveform.
     """
+    base_name = None
+    channel = -1
     eod_props = []
     zf = None
     if len(file_pathes) == 1 and os.path.splitext(file_pathes[0])[1] == '.zip':
@@ -2676,8 +2678,6 @@ def load_analysis(file_pathes):
     mean_eods = [None]*len(eod_props)
     spec_data = [None]*len(eod_props)
     peak_data = [None]*len(eod_props)
-    base_name = None
-    channel = -1
     unit = None
     for f in file_pathes:
         base_name, channel, time, ftype, idx, ext = parse_filename(f)
@@ -2719,16 +2719,16 @@ def load_analysis(file_pathes):
         peak_data, base_name, channel, unit
 
 
-def load_recording(file_path, base_name=None, channel=0, load_kwargs={}, eod_props=None, verbose=0):
+def load_recording(file_path, channel=0, load_kwargs={},
+                   eod_props=None, verbose=0):
     """Load recording.
 
     Parameters
     ----------
     file_path: string
-        Full path or just path of the file with the recorded data.
-    base_name: string or None
-        Optional name of the file, in case `file_path` is only a path.
-        Extension is optional. If absent, look for the first file with a reasonable extension.
+        Full path of the file with the recorded data.
+        Extension is optional. If absent, look for the first file
+        with a reasonable extension.
     channel: int
         Channel of the recording to be returned.
     load_kwargs: dict
@@ -2749,14 +2749,13 @@ def load_recording(file_path, base_name=None, channel=0, load_kwargs={}, eod_pro
         Start index of the analysis window.
     idx1: int
         End index of the analysis window.
+    data_file: str
+        Full path and name of the loaded file inclusively extension.
     """
     data = None
     samplerate = 0.0
     idx0 = 0
     idx1 = 0
-    if base_name:
-        base_name = os.path.basename(base_name) if file_path and file_path != '.' else base_name
-        file_path = os.path.join(file_path, base_name)
     data_file = ''
     if len(os.path.splitext(file_path)[1]) > 1:
         data_file = file_path
@@ -2776,7 +2775,7 @@ def load_recording(file_path, base_name=None, channel=0, load_kwargs={}, eod_pro
             idx0 = int(eod_props[0]['twin']*samplerate)
         if len(eod_props) > 0 and 'window' in eod_props[0]:
             idx1 = idx0 + int(eod_props[0]['window']*samplerate)
-    return data, samplerate, idx0, idx1
+    return data, samplerate, idx0, idx1, data_file
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,

@@ -1464,8 +1464,15 @@ def main(cargs=None):
                 clipped = eod_props[0]['winclipped']
             zoom_window = [1.2, 1.3]
             psd_data = None
-            data, samplerate, idx0, idx1 = load_recording(args.rawdata_path, base_name, channel,
-                                                          load_kwargs, eod_props, verbose)
+            file_path = args.rawdata_path
+            if base_name:
+                base_name = os.path.basename(base_name) if file_path and file_path != '.' else base_name
+                file_path = os.path.join(file_path, base_name)
+            data, samplerate, idx0, idx1, file_path = \
+                load_recording(file_path, channel, load_kwargs,
+                               eod_props, verbose-1)
+            if verbose > 0:
+                print('loaded', file_path)
             if len(eod_props) > 0 and 'dfreq' in eod_props[0] and len(data) > 0:
                 psd_data = multi_psd(data[idx0:idx1],
                                      samplerate,
@@ -1492,7 +1499,7 @@ def main(cargs=None):
                                 unit, zoom_window, 10, None, True,
                                 args.all_eods, spec_plots, args.skip_bad, log_freq,
                                 min_freq, max_freq, interactive=not args.save_data,
-                                verbose=verbose)
+                                verbose=verbose-1)
                 if args.save_data:
                     pass
                 else:
