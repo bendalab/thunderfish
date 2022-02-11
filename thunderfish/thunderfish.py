@@ -586,8 +586,9 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
 
     # count number of fish types to be plotted:
     if indices is None:
-        indices = list(range(len(eod_props)))
-    indices = np.array(indices, dtype=np.int)
+        indices = np.arange(len(eod_props))
+    else:
+        indices = np.array(indices, dtype=np.int)
     nwave = 0
     npulse = 0
     for idx in indices:
@@ -683,9 +684,13 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
                     twidth = 10.0/eod_props[indices[0]]['EODf']
             twidth = (1+twidth//0.005)*0.005
         if data is not None and len(data) > 0:
-            plot_eod_recording(axr, data, samplerate, twidth, unit, idx0/samplerate)
-            plot_pulse_eods(axr, data, samplerate, zoom_window, twidth, eod_props, idx0/samplerate,
-                            colors=pulse_colors, markers=pulse_markers, frameon=True, loc='upper right')
+            plot_eod_recording(axr, data, samplerate, unit, twidth,
+                               idx0/samplerate)
+            plot_pulse_eods(axr, data, samplerate,
+                            zoom_window, twidth, eod_props,
+                            idx0/samplerate, colors=pulse_colors,
+                            markers=pulse_markers, frameon=True,
+                            loc='upper right')
         if axr.get_legend() is not None:
             axr.get_legend().get_frame().set_color('white')
         axr.set_title('Recording', fontsize=14, y=1.05)
@@ -928,8 +933,28 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
             fig.savefig(base_name + '-recording.pdf')
     if 't' in subplots:
         fig, ax = plt.subplots(figsize=(10, 6))
-        ax.text(0.5, 0.5, 'not implemented yet',
-                transform=ax.transAxes, ha='center', va='center')
+        twidth = 0.1
+        if len(eod_props) > 0:
+            if eod_props[0]['type'] == 'wave':
+                twidth = 5.0/eod_props[0]['EODf']
+            else:
+                if len(wave_eodfs) > 0:
+                    twidth = 3.0/eod_props[0]['EODf']
+                else:
+                    twidth = 10.0/eod_props[0]['EODf']
+        twidth = (1+twidth//0.005)*0.005
+        pulse_colors, pulse_markers = colors_markers()
+        pulse_colors = pulse_colors[3:]
+        pulse_markers = pulse_markers[3:]
+        plot_eod_recording(ax, raw_data[idx0:idx1], samplerate, unit,
+                           twidth, idx0/samplerate)
+        plot_pulse_eods(ax, raw_data[idx0:idx1], samplerate,
+                        zoom_window, twidth, eod_props,
+                        idx0/samplerate, colors=pulse_colors,
+                        markers=pulse_markers, frameon=True,
+                        loc='upper right')
+        if ax.get_legend() is not None:
+            ax.get_legend().get_frame().set_color('white')
         axes_style(ax)
         if save:
             fig.savefig(base_name + '-trace.pdf')
@@ -1172,7 +1197,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
                               eod_props, peak_data, spec_data,
                               unit, zoom_window, 10, None,
                               True, skip_bad, log_freq,
-                              min_freq, max_freq, False, True)
+                              min_freq, max_freq, True, False)
     else:
         fig.canvas.set_window_title('thunderfish')
         plt.show()

@@ -1430,8 +1430,8 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
     return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
 
 
-def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
-                       kwargs={'lw': 2, 'color': 'red'}):
+def plot_eod_recording(ax, data, samplerate, unit=None, width=0.1,
+                       toffs=0.0, kwargs={'lw': 2, 'color': 'red'}):
     """Plot a zoomed in range of the recorded trace.
 
     Parameters
@@ -1439,13 +1439,13 @@ def plot_eod_recording(ax, data, samplerate, width=0.1, unit=None, toffs=0.0,
     ax: matplotlib axes
         Axes used for plotting.
     data: 1D ndarray
-        Recorded data.
+        Recorded data to be plotted.
     samplerate: float
         Sampling rate of the data in Hertz.
-    width: float
-        Width of data segment to be plotted in seconds.
     unit: string
         Optional unit of the data used for y-label.
+    width: float
+        Width of data segment to be plotted in seconds.
     toffs: float
         Time of first data value in seconds.
     kwargs: dict
@@ -1529,7 +1529,9 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
                 break  
 
         x = eod['peaktimes'] + toffs
-        y = data[np.round(eod['peaktimes']*samplerate).astype(np.int)]
+        pidx = np.round(eod['peaktimes']*samplerate).astype(np.int)
+        y = data[pidx[(pidx>0)&(pidx<len(data))]]
+        x = x[(pidx>0)&(pidx<len(data))]
         color_kwargs = {}
         #if colors is not None:
         #    color_kwargs['color'] = colors[k%len(colors)]
@@ -1542,7 +1544,8 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
             ax.plot(x, y, 'o', label=label, zorder=-1, **color_kwargs)
         else:
             ax.plot(x, y, linestyle='none', label=label,
-                    marker=markers[k%len(markers)], mec=None, mew=0.0, zorder=-1, **color_kwargs)
+                    marker=markers[k%len(markers)], mec=None, mew=0.0,
+                    zorder=-1, **color_kwargs)
         k += 1
 
     # legend:
