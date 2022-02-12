@@ -474,7 +474,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0, n_harmonics=3, flip_
     else:
         max_harmonics_power = np.max(db_powers[p_max+n_harmonics:])
     # total harmonic distortion:
-    thd = np.sqrt(np.sum(spec_data[1:,3]))
+    thd = np.sqrt(np.nansum(spec_data[1:,3]))
 
     # peak and trough amplitudes:
     ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
