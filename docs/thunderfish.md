@@ -203,13 +203,13 @@ you do not need to touch at all. Here is a list of the few that matter
   Set it to zero in order to use all EODs in the data segment
   selected for analysis.
 
-- `flipWaveEOD`, `flipPulseEOD`: In case if fishfinder recordings you
-  do not know the orientation of the fish relative to your
-  electrode. That is you do not know the polarity of your recording.
-  Setting this to `auto` flips the sign of the averaged EOD waveform
-  to a standardized polarity (wave-type fish: larger peak relative to
-  average is positive, pulse-type fish: the first of the two largest
-  peaks is positive).
+- `flipWaveEOD`, `flipPulseEOD`: In case of recordings with a
+  fishfinder you do not know the orientation of the fish relative to
+  your electrode. That is you do not know the polarity of your
+  recording.  Setting this to `auto` flips the sign of the averaged
+  EOD waveform to a standardized polarity (wave-type fish: larger peak
+  relative to average is positive, pulse-type fish: the first of the
+  two largest peaks is positive).
 
 - `fileFormat`: sets the default file format to be used for storing
   the analysis results.
@@ -234,20 +234,23 @@ analyis results as zip files in a `results/` folder:
 ```sh
 thunderfish -j -s -z -o results data/*.wav
 ```
-Then you can quickly look at the results by calling
+Afterwards, you then can quickly look at the results by calling
 ```sh
-thunderfish results/*.zip
+thunderfish -d data/ results/*.zip
 ```
+and press `q` to flip through the plots. The `-d` option tells
+`thunderfish` where it finds the corresponding files with the
+recordings.
 
-In the summary plot you can press
+In the summary plots you can press
 
-- `q`: Close the plot and show the next one or quit.
+- `q`: Close the plot window and show the next one or quit.
 - `p`: Play the analyzed section of the reording on the default audio device.
 - `o`: Switch on zoom mode. You can draw a rectangle with the mouse to zoom in.
 - `Backspace`: Zoom back. 
 - `f`: Toggle full screen mode.
 
-The summary plot by default displays at maximum the four EOD waveforms
+By default the summary plot displays at maximum four EOD waveforms
 with the largest amplitudes. If only a single waveform is found, then
 its spectrum is displayed as well. The frequencies of the power
 spectrum of the recording are shown on a linear scale. This behavior
@@ -260,9 +263,9 @@ can be modified by the following command line options:
   scale. The optional argument in addition allows to set the minimum
   frequency `MINFREQ` in Hertz that is displayed (defaults to 100 Hz).
 
-The plot can alternatively be saved to a pdf file via the `-p`
-option. It is named `RECORDING.pdf`, where `RECORDING` is the base
-name of the originam recording. See next section on how to define the
+The plots can alternatively be saved to pdf files via the `-p`
+option. They are named `RECORDING.pdf`, where `RECORDING` is the base
+name of the recording file. See next section on how to define the
 output folder (`-o` and `-k` options).
 
 The summary plots of all analyzed recordings can also be stored in a
@@ -288,17 +291,21 @@ string whose characters specify what you want to plot:
   (saved into `RECORDING-eods.pdf`).
 
 Capital letters produce a single multipage pdf containing the
-specified plots of all detected fish of a recording.
+specified plots of all detected fish of a recording. For example,
+```sh
+thunderfish -P pE -d data/ -o images/ results/*.zip
+```
+produces pdf files with the power spectrum of the recording and with
+all the EOD waveforms together with their spectra in the folder
+`images/`. For computing the power spectrum `thunderfish` needs the
+raw data that it finds in the `data/` folder.
 
 
-## Output files
+## Output pathes
 
-With the `-s` switch analysis results are saved to files and no
-interactive output is generated.
-
-Output files are placed in the current working directory if no path is
-specified via the `-o` switch. If the path specified via `-o` does not
-exist it is created.
+Output files (plots and/or analysis results) are placed in the current
+working directory if no path is specified via the `-o` switch. If the
+path specified via `-o` does not exist it is created.
 
 With the `-k` switch the pathes of the input files are appended to the
 output path. This allows you to analyse recordings organized in a
@@ -319,6 +326,15 @@ analysis/
 ```
 
 To make use of all the cores of your CPU apply the `-j` switch.
+
+
+## Analysis results
+
+With the `-s` switch analysis results are saved to files and no
+interactive output plots are generated.
+
+The many output files (see below) can be combined into a single zip
+archive (one per recording) with the `-z` option.
 
 The following files are generated:
 

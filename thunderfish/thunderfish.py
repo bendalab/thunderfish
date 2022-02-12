@@ -1191,7 +1191,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
             fig.savefig(output_basename + '.pdf')
             plt.close('all')
         if len(save_subplots) > 0:
-            plot_eod_subplots(base_name, save_subplots, data,
+            plot_eod_subplots(output_basename, save_subplots, data,
                               samplerate, idx0, idx1, clipped,
                               psd_data, wave_eodfs,
                               wave_indices, mean_eods,
