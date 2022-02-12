@@ -1592,7 +1592,7 @@ def main(cargs=None):
     # check and group by recording:
     result_files = []
     for f in sorted(files):
-        base_name, _, _, ftype, _, ext = parse_filename(f)
+        _, base_name, _, _, ftype, _, ext = parse_filename(f)
         if ext == 'zip' or (ext in exts and ftype in file_types):
             if len(result_files) == 0 or \
                not result_files[-1][-1].startswith(base_name):
