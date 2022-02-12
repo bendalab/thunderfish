@@ -1458,6 +1458,17 @@ def main(cargs=None):
                         help='plot spectra for all EOD waveforms')
     parser.add_argument('-b', dest='skip_bad', action='store_false',
                         help='indicate bad EODs in spectrum')
+    parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
+                        nargs='?', const=100.0, default=0.0,
+                        help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')
+    parser.add_argument('-p', dest='save_plot', action='store_true',
+                        help='save output plot of each recording as pdf file')
+    parser.add_argument('-M', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
+                        help='save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.')
+    parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwse',
+                        help='save subplots as separate pdf files: r) recording with analysis window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected fish')
+    parser.add_argument('-d', dest='rawdata_path', default='.', type=str, metavar='PATH',
+                        help='path to raw EOD recordings needed for plotting based on analysis results')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
                         help='number of jobs run in parallel. Without argument use all CPU cores.')
     parser.add_argument('-s', dest='save_data', action='store_true',
@@ -1467,17 +1478,6 @@ def main(cargs=None):
     parser.add_argument('-f', dest='format', default='auto', type=str,
                         choices=TableData.formats + ['py'],
                         help='file format used for saving analysis results, defaults to the format specified in the configuration file or "csv"')
-    parser.add_argument('-p', dest='save_plot', action='store_true',
-                        help='save output plot of each recording as pdf file')
-    parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwse',
-                        help='save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected fish')
-    parser.add_argument('-M', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
-                        help='save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.')
-    parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
-                        nargs='?', const=100.0, default=0.0,
-                        help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')
-    parser.add_argument('-d', dest='rawdata_path', default='.', type=str, metavar='PATH',
-                        help='path to raw EOD recordings needed for plotting based on analysis results')
     parser.add_argument('-o', dest='outpath', default='.', type=str,
                         help='path where to store results and figures (defaults to current working directory)')
     parser.add_argument('-k', dest='keep_path', action='store_true',

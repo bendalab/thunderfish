@@ -1,6 +1,6 @@
 # thunderfish
 
-Automatically detect and analyze all EOD waveforms in a short recording.
+Detect, analyze, and plot all EOD waveforms in a short recording.
 
 
 ## Authors
@@ -58,8 +58,8 @@ thunderfish --help
 returns
 ```plain
 usage: thunderfish.py [-h] [--version] [-v] [-V] [-c] [--channel CHANNEL] [-t TIME] [-T] [-m {w,p,wp}] [-a] [-S] [-b]
-                      [-j [JOBS]] [-s] [-z] [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-p] [-P rtpwse] [-M PDFFILE]
-                      [-l [MINFREQ]] [-d PATH] [-o OUTPATH] [-k] [-i KWARGS]
+                      [-l [MINFREQ]] [-p] [-M PDFFILE] [-P rtpwse] [-d PATH] [-j [JOBS]] [-s] [-z]
+                      [-f {dat,ascii,csv,rtai,md,tex,html,py}] [-o OUTPATH] [-k] [-i KWARGS]
                       [file [file ...]]
 
 Analyze EOD waveforms of weakly electric fish.
@@ -81,20 +81,20 @@ optional arguments:
   -a                    plot all EOD waveforms
   -S                    plot spectra for all EOD waveforms
   -b                    indicate bad EODs in spectrum
+  -l [MINFREQ]          logarithmic frequency axis in power spectrum with optional minimum frequency (defaults to 100 Hz)
+  -p                    save output plot of each recording as pdf file
+  -M PDFFILE            save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.
+  -P rtpwse             save subplots as separate pdf files: r) recording with analysis window, t) data trace with detected
+                        pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E)
+                        EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all
+                        detected fish
+  -d PATH               path to raw EOD recordings needed for plotting based on analysis results
   -j [JOBS]             number of jobs run in parallel. Without argument use all CPU cores.
   -s                    save analysis results to files
   -z                    save analysis results in a single zip file
   -f {dat,ascii,csv,rtai,md,tex,html,py}
                         file format used for saving analysis results, defaults to the format specified in the configuration file
                         or "csv"
-  -p                    save output plot of each recording as pdf file
-  -P rtpwse             save subplots as separate pdf files: r) recording with best window, t) data trace with detected pulse
-                        fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD
-                        waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected
-                        fish
-  -M PDFFILE            save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.
-  -l [MINFREQ]          logarithmic frequency axis in power spectrum with optional minimum frequency (defaults to 100 Hz)
-  -d PATH               path to raw EOD recordings needed for plotting based on analysis results
   -o OUTPATH            path where to store results and figures (defaults to current working directory)
   -k                    keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH
   -i KWARGS             key-word arguments for the data loader function
@@ -215,15 +215,80 @@ you do not need to touch at all. Here is a list of the few that matter
   the analysis results.
 
 
-## Summary plot
+## Summary plots
 
-In the plot you can press
+By default, `thunderfish` simply displays the analysis results in a
+summary plot.
+
+You can produce these plots either from the recording files or
+directly from the saved analysis results (`.csv` or `.zip` files, see
+next section). So to analyse some recordings and save the summary
+plots to pdf files in the `images/` folder you call
+```sh
+thunderfish -p -o images data/*.wav
+```
+But this might take a while since the analysis is costly.
+
+Alternatively you might first analyze the recordings and save the
+analyis results as zip files in a `results/` folder:
+```sh
+thunderfish -j -s -z -o results data/*.wav
+```
+Then you can quickly look at the results by calling
+```sh
+thunderfish results/*.zip
+```
+
+In the summary plot you can press
 
 - `q`: Close the plot and show the next one or quit.
 - `p`: Play the analyzed section of the reording on the default audio device.
 - `o`: Switch on zoom mode. You can draw a rectangle with the mouse to zoom in.
 - `Backspace`: Zoom back. 
 - `f`: Toggle full screen mode.
+
+The summary plot by default displays at maximum the four EOD waveforms
+with the largest amplitudes. If only a single waveform is found, then
+its spectrum is displayed as well. The frequencies of the power
+spectrum of the recording are shown on a linear scale. This behavior
+can be modified by the following command line options:
+
+- `-a`: plot all detected EOD waveforms.
+- `-S`: plot spectra for all displayed EOD waveforms.
+- `-b`: indicate bad EODs in the legend of the spectrum of the recording.
+- `-l [MINFREQ]`: plot the power spectrum on a logarithmic frequency
+  scale. The optional argument in addition allows to set the minimum
+  frequency `MINFREQ` in Hertz that is displayed (defaults to 100 Hz).
+
+The plot can alternatively be saved to a pdf file via the `-p`
+option. It is named `RECORDING.pdf`, where `RECORDING` is the base
+name of the originam recording. See next section on how to define the
+output folder (`-o` and `-k` options).
+
+The summary plots of all analyzed recordings can also be stored in a
+single, multi-page pdf file, where the results of each recording are
+plotted on a separate page. For this supply a name for the pdf file
+via the `-M` option.
+
+The various subplots of the summary plot can also be saved in separate
+pdf files. For this, use the `-P` option. It expects as an argument a
+string whose characters specify what you want to plot:
+
+- `r`: plot the whole recording with the analysis window indicated
+  (saved into `RECORDING-recording.pdf`).
+- `t`: plot of a small section of the data trace with detected pulse fish
+  (saved into `RECORDING-trace.pdf`).
+- `p`: power spectrum of the recording with detected wave fish
+  (saved into `RECORDING-psd.pdf`).
+- `w`/`W`: annotated mean EOD waveforms.
+  (saved into `RECORDING-waveforms.pdf`).
+- `s`/`S`: spectrum of the EOD waveform.
+  (saved into `RECORDING-spectrum.pdf`).
+- `e`/`E`: Both the annotated EOD waveform and its spectrum.
+  (saved into `RECORDING-eods.pdf`).
+
+Capital letters produce a single multipage pdf containing the
+specified plots of all detected fish of a recording.
 
 
 ## Output files
