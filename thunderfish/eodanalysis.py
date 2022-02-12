@@ -2673,14 +2673,14 @@ def load_analysis(file_pathes):
     peak_data: list of 2D array of floats
         Properties of peaks and troughs of pulse-type EODs with columns
         P, time, amplitude, relampl, width
-    base_name: string
-        Base name of the recording file.
+    recording: string
+        Path and base name of the recording file.
     channel: int
         Analysed channel of the recording.
     unit: string
         Unit of EOD waveform.
     """
-    base_name = None
+    recording = None
     channel = -1
     eod_props = []
     zf = None
@@ -2689,7 +2689,7 @@ def load_analysis(file_pathes):
         file_pathes = sorted(zf.namelist())
     # first, read wave- and pulse-fish summaries:
     for f in file_pathes:
-        _, _, _, _, ftype, _, _ = parse_filename(f)
+        recording, _, channel, _, ftype, _, _ = parse_filename(f)
         if zf is not None:
             f = io.TextIOWrapper(zf.open(f, 'r'))
         if ftype == 'wavefish':
@@ -2704,7 +2704,7 @@ def load_analysis(file_pathes):
     peak_data = [None]*len(eod_props)
     unit = None
     for f in file_pathes:
-        _, _, _, _, ftype, _, _ = parse_filename(f)
+        recording, _, channel, _, ftype, idx, _ = parse_filename(f)
         if zf is not None:
             f = io.TextIOWrapper(zf.open(f, 'r'))
         if ftype == 'waveeodfs':
@@ -2740,7 +2740,7 @@ def load_analysis(file_pathes):
                 eodfs.append(specd)
         wave_eodfs = eodfs
     return mean_eods, wave_eodfs, wave_indices, eod_props, spec_data, \
-        peak_data, base_name, channel, unit
+        peak_data, recording, channel, unit
 
 
 def load_recording(file_path, channel=0, load_kwargs={},

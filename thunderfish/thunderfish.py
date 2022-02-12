@@ -1149,6 +1149,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
     if base_name:
         name = os.path.basename(base_name) if data_path and data_path != '.' else base_name
         data_path = os.path.join(data_path, name)
+    print(data_path)
     data, samplerate, idx0, idx1, data_path = \
         load_recording(data_path, channel, load_kwargs,
                        eod_props, verbose-1)
