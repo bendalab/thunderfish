@@ -78,16 +78,16 @@ optional arguments:
                         (overwrites "windowPosition" in cofiguration file)
   -T                    add start time of analysis file to output file names
   -m {w,p,wp}           extract wave "w" and/or pulse "p" fish EODs
-  -a                    plot all EOD waveforms
-  -S                    plot spectra for all EOD waveforms
-  -b                    indicate bad EODs in spectrum
+  -a                    show all EOD waveforms in the summary plot
+  -S                    plot spectra for all EOD waveforms in the summary plot
+  -b                    indicate bad EODs in legend of power spectrum
   -l [MINFREQ]          logarithmic frequency axis in power spectrum with optional minimum frequency (defaults to 100 Hz)
-  -p                    save output plot of each recording as pdf file
-  -M PDFFILE            save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.
+  -p                    save output plots as pdf files
+  -M PDFFILE            save all summary plots of all recordings in a multi page pdf file. Disables parallel jobs.
   -P rtpwse             save subplots as separate pdf files: r) recording with analysis window, t) data trace with detected
                         pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E)
-                        EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all
-                        detected fish
+                        EOD waveform and spectra, d) the default summary plot. Capital letters produce a single multipage pdf
+                        containing plots of all detected fish
   -d PATH               path to raw EOD recordings needed for plotting based on analysis results
   -j [JOBS]             number of jobs run in parallel. Without argument use all CPU cores.
   -s                    save analysis results to files
@@ -250,15 +250,15 @@ In the summary plots you can press
 - `Backspace`: Zoom back. 
 - `f`: Toggle full screen mode.
 
-By default the summary plot displays at maximum four EOD waveforms
+By default, the summary plots display at maximum four EOD waveforms
 with the largest amplitudes. If only a single waveform is found, then
 its spectrum is displayed as well. The frequencies of the power
-spectrum of the recording are shown on a linear scale. This behavior
+spectrum of the recording are shown on a linear scale. These behaviors
 can be modified by the following command line options:
 
-- `-a`: plot all detected EOD waveforms.
+- `-a`: plot all detected EOD waveforms in summary plots.
 - `-S`: plot spectra for all displayed EOD waveforms.
-- `-b`: indicate bad EODs in the legend of the spectrum of the recording.
+- `-b`: indicate bad EODs in the legend of the power spectrum of the recording.
 - `-l [MINFREQ]`: plot the power spectrum on a logarithmic frequency
   scale. The optional argument in addition allows to set the minimum
   frequency `MINFREQ` in Hertz that is displayed (defaults to 100 Hz).
@@ -273,9 +273,10 @@ single, multi-page pdf file, where the results of each recording are
 plotted on a separate page. For this supply a name for the pdf file
 via the `-M` option.
 
-The various subplots of the summary plot can also be saved in separate
-pdf files. For this, use the `-P` option. It expects as an argument a
-string whose characters specify what you want to plot:
+The various subplots of the summary plot can also be viewd separately
+or saved in separate pdf files. For this, use the `-P` option. It
+expects as an argument a string whose characters specify what you want
+to plot:
 
 - `r`: plot the whole recording with the analysis window indicated
   (saved into `RECORDING-recording.pdf`).
@@ -283,17 +284,18 @@ string whose characters specify what you want to plot:
   (saved into `RECORDING-trace.pdf`).
 - `p`: power spectrum of the recording with detected wave fish
   (saved into `RECORDING-psd.pdf`).
-- `w`/`W`: annotated mean EOD waveforms.
+- `w`/`W`: annotated mean EOD waveforms
   (saved into `RECORDING-waveforms.pdf`).
-- `s`/`S`: spectrum of the EOD waveform.
+- `s`/`S`: spectrum of the EOD waveform
   (saved into `RECORDING-spectrum.pdf`).
-- `e`/`E`: Both the annotated EOD waveform and its spectrum.
+- `e`/`E`: Both the annotated EOD waveform and its spectrum
   (saved into `RECORDING-eods.pdf`).
+- `d`: the default summary plot (saved into `RECORDING.pdf`).
 
 Capital letters produce a single multipage pdf containing the
 specified plots of all detected fish of a recording. For example,
 ```sh
-thunderfish -P pE -d data/ -o images/ results/*.zip
+thunderfish -p -P pE -d data/ -o images/ results/*.zip
 ```
 produces pdf files with the power spectrum of the recording and with
 all the EOD waveforms together with their spectra in the folder

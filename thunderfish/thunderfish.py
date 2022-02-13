@@ -4,16 +4,16 @@ Automatically detect and analyze all EOD waveforms in short recordings
 and generated summary plots and data tables.
 
 Run it from the thunderfish development directory as:
-```
-python3 -m thunderfish.thunderfish audiofile.wav
+```sh
+> python3 -m thunderfish.thunderfish audiofile.wav
 ```
 Or install thunderfish
-```
-sudo pip3 install .
+```sh
+> sudo pip3 install .
 ```
 Then you can run it directly from every directory:
-```
-thunderfish audiofile.wav
+```sh
+> thunderfish audiofile.wav
 ```
 """
 
@@ -855,7 +855,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                       eod_props, peak_data, spec_data, unit, zoom_window,
                       n_snippets=10, power_thresh=None, label_power=True,
                       skip_bad=True, log_freq=False,
-                      min_freq=0.0, max_freq=3000.0, save=True, show=False):
+                      min_freq=0.0, max_freq=3000.0, save=True):
     """Plot time traces and spectra into separate windows or files.
 
     Parameters
@@ -918,9 +918,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
         are set to `(min_freq, max_freq)` and limits of power axis are computed
         from powers below max_freq if `max_freq` is greater than zero
     save: bool
-        If True save plots to files.
-    show: bool
-        If True show plots in windows.
+        If True save plots to files instead of showing them.
     """
     plot_style()
     if 'r' in subplots:
@@ -1081,9 +1079,9 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
                 mpdf.savefig(fig)
         if mpdf is not None:
             mpdf.close()
-    if show:
+    if not save:
         plt.show()
-    plt.close()
+    plt.close('all')
 
 
 def thunderfish_plot(files, data_path=None, load_kwargs={},
@@ -1175,34 +1173,33 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
                 print('mkdir %s' % outpath)
             os.makedirs(outpath)
     # plot:
-    fig = plot_eods(os.path.basename(base_name), data, samplerate,
-                    channel, idx0, idx1, clipped, psd_data,
-                    wave_eodfs, wave_indices, mean_eods,
-                    eod_props, peak_data, spec_data, None, unit,
-                    zoom_window, 10, None, True, all_eods,
-                    spec_plots, skip_bad, log_freq, min_freq,
-                    max_freq, interactive=not save_plot,
-                    verbose=verbose-1)
-    if save_plot:
-        if multi_pdf is not None:
-            multi_pdf.savefig(fig)
+    if len(save_subplots) == 0 or 'd' in save_subplots:
+        fig = plot_eods(os.path.basename(base_name), data, samplerate,
+                        channel, idx0, idx1, clipped, psd_data,
+                        wave_eodfs, wave_indices, mean_eods,
+                        eod_props, peak_data, spec_data, None, unit,
+                        zoom_window, 10, None, True, all_eods,
+                        spec_plots, skip_bad, log_freq, min_freq,
+                        max_freq, interactive=not save_plot,
+                        verbose=verbose-1)
+        if save_plot:
+            if multi_pdf is not None:
+                multi_pdf.savefig(fig)
+            else:
+                fig.savefig(output_basename + '.pdf')
         else:
-            # save figure as pdf:
-            fig.savefig(output_basename + '.pdf')
-            plt.close('all')
-        if len(save_subplots) > 0:
-            plot_eod_subplots(output_basename, save_subplots, data,
-                              samplerate, idx0, idx1, clipped,
-                              psd_data, wave_eodfs,
-                              wave_indices, mean_eods,
-                              eod_props, peak_data, spec_data,
-                              unit, zoom_window, 10, None,
-                              True, skip_bad, log_freq,
-                              min_freq, max_freq, True, False)
-    else:
-        fig.canvas.set_window_title('thunderfish')
-        plt.show()
-    plt.close()
+            fig.canvas.set_window_title('thunderfish')
+            plt.show()
+        plt.close()
+        save_subplots.replace('d', '')
+    if len(save_subplots) > 0:
+        plot_eod_subplots(output_basename, save_subplots, data,
+                          samplerate, idx0, idx1, clipped,
+                          psd_data, wave_eodfs, wave_indices,
+                          mean_eods, eod_props, peak_data,
+                          spec_data, unit, zoom_window, 10, None,
+                          True, skip_bad, log_freq, min_freq,
+                          max_freq, save_plot)
     return None
 
                 
@@ -1372,32 +1369,37 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
         if save_plot or not save_data:
             n_snippets = 10
-            chl = chan if channels > 1 else None
-            fig = plot_eods(outfilename, raw_data, samplerate, chl, idx0, idx1,
-                            clipped, psd_data[0], wave_eodfs, wave_indices,
-                            mean_eods, eod_props, peak_data, spec_data, None,
-                            unit, zoom_window, n_snippets, power_thresh, True,
-                            all_eods, spec_plots, skip_bad, log_freq,
-                            min_freq, max_freq, interactive=not save_plot,
-                            verbose=verbose)
-            if save_plot:
-                if multi_pdf is not None:
-                    multi_pdf.savefig(fig)
+            if len(save_subplots) == 0 or 'd' in save_subplots:
+                chl = chan if channels > 1 else None
+                fig = plot_eods(outfilename, raw_data, samplerate,
+                                chl, idx0, idx1, clipped, psd_data[0],
+                                wave_eodfs, wave_indices, mean_eods,
+                                eod_props, peak_data, spec_data, None,
+                                unit, zoom_window, n_snippets,
+                                power_thresh, True, all_eods,
+                                spec_plots, skip_bad, log_freq,
+                                min_freq, max_freq, interactive=not
+                                save_plot, verbose=verbose)
+                if save_plot:
+                    if multi_pdf is not None:
+                        multi_pdf.savefig(fig)
+                    else:
+                        fig.savefig(output_basename + '.pdf')
                 else:
-                    # save figure as pdf:
-                    fig.savefig(output_basename + '.pdf')
-                    plt.close('all')
-                if len(save_subplots) > 0:
-                    plot_eod_subplots(output_basename, save_subplots,
-                                      raw_data, samplerate, idx0, idx1,
-                                      clipped, psd_data[0], wave_eodfs,
-                                      wave_indices, mean_eods, eod_props,
-                                      peak_data, spec_data, unit, zoom_window,
-                                      n_snippets, power_thresh, True, skip_bad,
-                                      log_freq, min_freq, max_freq)
-            elif not save_data:
-                fig.canvas.set_window_title('thunderfish')
-                plt.show()
+                    fig.canvas.set_window_title('thunderfish')
+                    plt.show()
+                plt.close()
+                save_subplots.replace('d', '')
+            if len(save_subplots) > 0:
+                plot_eod_subplots(output_basename, save_subplots,
+                                  raw_data, samplerate, idx0, idx1,
+                                  clipped, psd_data[0], wave_eodfs,
+                                  wave_indices, mean_eods, eod_props,
+                                  peak_data, spec_data, unit,
+                                  zoom_window, n_snippets,
+                                  power_thresh, True, skip_bad,
+                                  log_freq, min_freq, max_freq,
+                                  save_plot)
     return None
 
 
@@ -1453,20 +1455,20 @@ def main(cargs=None):
                         choices=['w', 'p', 'wp'],
                         help='extract wave "w" and/or pulse "p" fish EODs')
     parser.add_argument('-a', dest='all_eods', action='store_true',
-                        help='plot all EOD waveforms')
+                        help='show all EOD waveforms in the summary plot')
     parser.add_argument('-S', dest='spec_plots', action='store_true',
-                        help='plot spectra for all EOD waveforms')
+                        help='plot spectra for all EOD waveforms in the summary plot')
     parser.add_argument('-b', dest='skip_bad', action='store_false',
-                        help='indicate bad EODs in spectrum')
+                        help='indicate bad EODs in legend of power spectrum')
     parser.add_argument('-l', dest='log_freq', type=float, metavar='MINFREQ',
                         nargs='?', const=100.0, default=0.0,
                         help='logarithmic frequency axis in  power spectrum with optional minimum frequency (defaults to 100 Hz)')
     parser.add_argument('-p', dest='save_plot', action='store_true',
-                        help='save output plot of each recording as pdf file')
+                        help='save output plots as pdf files')
     parser.add_argument('-M', dest='multi_pdf', default='', type=str, metavar='PDFFILE',
-                        help='save all plots of all recordings in a multi pages pdf file. Disables parallel jobs.')
+                        help='save all summary plots of all recordings in a multi page pdf file. Disables parallel jobs.')
     parser.add_argument('-P', dest='save_subplots', default='', type=str, metavar='rtpwse',
-                        help='save subplots as separate pdf files: r) recording with analysis window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra. Capital letters produce a single multipage pdf containing plots of all detected fish')
+                        help='save subplots as separate pdf files: r) recording with analysis window, t) data trace with detected pulse fish, p) power spectrum with detected wave fish, w/W) mean EOD waveform, s/S) EOD spectrum, e/E) EOD waveform and spectra, d) the default summary plot. Capital letters produce a single multipage pdf containing plots of all detected fish')
     parser.add_argument('-d', dest='rawdata_path', default='.', type=str, metavar='PATH',
                         help='path to raw EOD recordings needed for plotting based on analysis results')
     parser.add_argument('-j', dest='jobs', nargs='?', type=int, default=None, const=0,
@@ -1542,12 +1544,10 @@ def main(cargs=None):
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
         
-    # save plots:
+    # plot parameter:
     spec_plots = 'auto'
     if args.spec_plots:
         spec_plots = True
-    if len(args.save_subplots) > 0:
-        args.save_plot = True
 
     # multi-page pdfs:
     multi_pdf = None
