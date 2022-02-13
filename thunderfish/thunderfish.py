@@ -61,7 +61,8 @@ from .eodanalysis import save_eod_waveform, save_wave_eodfs, save_wave_fish, sav
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks, save_pulse_times
 from .eodanalysis import load_eod_waveform, load_wave_eodfs, load_wave_fish, load_pulse_fish
 from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
-from .eodanalysis import parse_filename, file_types, load_analysis, load_recording
+from .eodanalysis import save_analysis, load_analysis, load_recording
+from .eodanalysis import parse_filename, file_types
 from .fakefish import normalize_wavefish, export_wavefish
 from .tabledata import TableData, add_write_table_config, write_table_args
 
@@ -373,75 +374,12 @@ def remove_eod_files(output_basename, verbose, cfg):
     if ff == 'py':
         fext = 'py'
     else:
-        fext = TableData.extensions[cfg.value('fileFormat')]
+        fext = TableData.extensions[ff]
     # remove all files from previous runs of thunderfish:
     for fn in glob.glob('%s*.%s' % (output_basename, fext)):
         os.remove(fn)
         if verbose > 0:
             print('removed file %s' % fn)
-
-            
-def save_eods(output_basename, zip_file, eod_props, mean_eods,
-              spec_data, peak_data, wave_eodfs, wave_indices,
-              unit, verbose, cfg):
-    """Save analysis results of all EODs to files.
-    """
-    def write_file_zip(zf, save_func, output, *args, **kwargs):
-        if zf is None:
-            fp = save_func(*args, basename=output, **kwargs)
-            if verbose > 0 and fp is not None:
-                print('wrote file %s' % fp)
-        else:
-            with io.StringIO() as df:
-                fp = save_func(*args, basename=df, **kwargs)
-                if fp is not None:
-                    fp = output_basename + fp
-                    zf.writestr(os.path.basename(fp), df.getvalue())
-                    if verbose > 0:
-                        print('zipped file %s' % fp)
-
-    
-    if write_table_args(cfg)['table_format'] == 'py':
-        with open(output_basename+'.py', 'w') as f:
-            name = os.path.basename(output_basename)
-            for k, sdata in enumerate(spec_data):
-                # save wave fish only:
-                if len(sdata)>0 and sdata.shape[1] > 2:
-                    fish = dict(amplitudes=sdata[:,3], phases=sdata[:,5])
-                    fish = normalize_wavefish(fish)
-                    export_wavefish(fish, name+'-%d_harmonics' % k, f)
-    else:
-        zf = None
-        if zip_file:
-            zf = zipfile.ZipFile(output_basename + '.zip', 'w')
-        # all wave fish in wave_eodfs:
-        if len(wave_eodfs) > 0:
-            write_file_zip(zf, save_wave_eodfs, output_basename,
-                           wave_eodfs, wave_indices, **write_table_args(cfg))
-        # all wave and pulse fish:
-        for i, (mean_eod, sdata, pdata, props) in enumerate(zip(mean_eods, spec_data, peak_data, eod_props)):
-            write_file_zip(zf, save_eod_waveform, output_basename,
-                           mean_eod, unit, i, **write_table_args(cfg))
-            # power spectrum:
-            if len(sdata)>0:
-                if sdata.shape[1] == 2:
-                    write_file_zip(zf, save_pulse_spectrum, output_basename,
-                                   sdata, unit, i, **write_table_args(cfg))
-                else:
-                    write_file_zip(zf, save_wave_spectrum, output_basename,
-                                   sdata, unit, i, **write_table_args(cfg))
-            # peaks:
-            write_file_zip(zf, save_pulse_peaks, output_basename,
-                           pdata, unit, i, **write_table_args(cfg))
-            # times:
-            write_file_zip(zf, save_pulse_times, output_basename,
-                           props, i, **write_table_args(cfg))
-        # wave fish properties:
-        write_file_zip(zf, save_wave_fish, output_basename,
-                       eod_props, unit, **write_table_args(cfg))
-        # pulse fish properties:
-        write_file_zip(zf, save_pulse_fish, output_basename,
-                       eod_props, unit, **write_table_args(cfg))
 
 
 def plot_style():
@@ -1363,10 +1301,11 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         if save_data:
             remove_eod_files(output_basename, verbose, cfg)
             if found_bestwindow:
-                save_eods(output_basename, zip_file, eod_props, mean_eods,
-                          spec_data, peak_data, wave_eodfs, wave_indices,
-                          unit, verbose, cfg)
-
+                save_analysis(output_basename, zip_file, eod_props,
+                              mean_eods, spec_data, peak_data,
+                              wave_eodfs, wave_indices, unit, verbose,
+                              **write_table_args(cfg))
+        # summary plots:
         if save_plot or not save_data:
             n_snippets = 10
             if len(save_subplots) == 0 or 'd' in save_subplots:

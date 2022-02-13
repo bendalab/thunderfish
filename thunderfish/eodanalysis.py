@@ -48,6 +48,7 @@ Analysis of EOD waveforms.
 - `save_pulse_times()`: save times of pulse EOD to file.
 - `load_pulse_times()`: load times of pulse EOD from file.
 - `parse_filename()`: parse components of an EOD analysis file name.
+- `save_analysis(): save EOD analysis results to files.
 - `load_analysis()`: load EOD analysis files.
 - `load_recording()`: load recording.
 
@@ -2643,6 +2644,99 @@ def parse_filename(file_path):
     if recording.startswith('./'):
         recording = recording[2:]
     return recording, base_path, channel, time, ftype, index, ext
+
+            
+def save_analysis(output_basename, zip_file, eod_props, mean_eods,
+                  spec_data, peak_data, wave_eodfs, wave_indices, unit,
+                  verbose, **kwargs):
+    """Save EOD analysis results to files.
+
+    Parameters
+    ----------
+    output_basename: string
+        Path and basename of files to be saved.
+    zip_file: bool
+        If `True`, write all analysis results into a zip archive.
+    eod_props: list of dict
+        Properties of EODs as returned by `analyze_wave()` and
+        `analyze_pulse()`.
+    mean_eods: list of 2D array of floats
+        Averaged EOD waveforms as returned by `eod_waveform()`,
+        `analyze_wave()`, and `analyze_pulse()`.
+    spec_data: list of 2D array of floats
+        Power spectra of single pulses as returned by
+        `analyze_pulse()`.
+    peak_data: list of 2D array of floats
+        Properties of peaks and troughs of pulse EODs as returned by
+        `analyze_pulse()`.
+    wave_eodfs: list of 2D array of float
+        Each item is a matrix with the frequencies and powers
+        (columns) of the fundamental and harmonics (rows) as returned
+        by `harmonics.harmonic_groups()`.
+    wave_indices: array of int
+        Indices identifying each fish in `wave_eodfs` or NaN.  unit:
+        string Unit of the waveform data.
+    verbose: int
+        Verbosity level.
+    kwargs:
+        Arguments passed on to `TableData.write()`.
+    """
+    def write_file_zip(zf, save_func, output, *args, **kwargs):
+        if zf is None:
+            fp = save_func(*args, basename=output, **kwargs)
+            if verbose > 0 and fp is not None:
+                print('wrote file %s' % fp)
+        else:
+            with io.StringIO() as df:
+                fp = save_func(*args, basename=df, **kwargs)
+                if fp is not None:
+                    fp = output_basename + fp
+                    zf.writestr(os.path.basename(fp), df.getvalue())
+                    if verbose > 0:
+                        print('zipped file %s' % fp)
+
+    
+    if 'table_format' in kwargs and kwargs['table_format'] == 'py':
+        with open(output_basename+'.py', 'w') as f:
+            name = os.path.basename(output_basename)
+            for k, sdata in enumerate(spec_data):
+                # save wave fish only:
+                if len(sdata)>0 and sdata.shape[1] > 2:
+                    fish = dict(amplitudes=sdata[:,3], phases=sdata[:,5])
+                    fish = normalize_wavefish(fish)
+                    export_wavefish(fish, name+'-%d_harmonics' % k, f)
+    else:
+        zf = None
+        if zip_file:
+            zf = zipfile.ZipFile(output_basename + '.zip', 'w')
+        # all wave fish in wave_eodfs:
+        if len(wave_eodfs) > 0:
+            write_file_zip(zf, save_wave_eodfs, output_basename,
+                           wave_eodfs, wave_indices, **kwargs)
+        # all wave and pulse fish:
+        for i, (mean_eod, sdata, pdata, props) in enumerate(zip(mean_eods, spec_data, peak_data, eod_props)):
+            write_file_zip(zf, save_eod_waveform, output_basename,
+                           mean_eod, unit, i, **kwargs)
+            # power spectrum:
+            if len(sdata)>0:
+                if sdata.shape[1] == 2:
+                    write_file_zip(zf, save_pulse_spectrum, output_basename,
+                                   sdata, unit, i, **kwargs)
+                else:
+                    write_file_zip(zf, save_wave_spectrum, output_basename,
+                                   sdata, unit, i, **kwargs)
+            # peaks:
+            write_file_zip(zf, save_pulse_peaks, output_basename,
+                           pdata, unit, i, **kwargs)
+            # times:
+            write_file_zip(zf, save_pulse_times, output_basename,
+                           props, i, **kwargs)
+        # wave fish properties:
+        write_file_zip(zf, save_wave_fish, output_basename,
+                       eod_props, unit, **kwargs)
+        # pulse fish properties:
+        write_file_zip(zf, save_pulse_fish, output_basename,
+                       eod_props, unit, **kwargs)
 
 
 def load_analysis(file_pathes):
