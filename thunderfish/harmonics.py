@@ -53,7 +53,6 @@ Extract and analyze harmonic frequencies from power spectra.
                             harmonic groups from configuration.
 """
 
-from __future__ import print_function
 import math as m
 import numpy as np
 import scipy.signal as sig

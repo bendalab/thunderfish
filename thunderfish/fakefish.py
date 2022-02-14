@@ -29,7 +29,6 @@
 - `generate_waveform()`: interactively generate audio file with simulated EOD waveforms.
 """
 
-from __future__ import print_function
 import sys
 import numpy as np
 
