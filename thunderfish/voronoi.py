@@ -623,8 +623,8 @@ class Voronoi(object):
                 return
         return points[:nn]
 
-    def plot_points(self, ax=None, text=None, text_offs=(0, 0.05), text_align='center',
-                    **kwargs):
+    def plot_points(self, ax=None, text=None, text_offs=(0, 0.05),
+                    text_align='center', **kwargs):
         """Plot and optionally annotate the input points of the Voronoi diagram.
 
         Parameters
@@ -665,8 +665,8 @@ class Voronoi(object):
             ax = plt.gca()
         ax.plot(self.center[0], self.center[1], 'o', **kwargs)
         
-    def plot_vertices(self, ax=None, text=None, text_offs=(0, 0.05), text_align='center',
-                      **kwargs):
+    def plot_vertices(self, ax=None, text=None, text_offs=(0, 0.05),
+                      text_align='center', **kwargs):
         """Plot and optionally annotate the vertices of the Voronoi diagram.
 
         Parameters
@@ -880,12 +880,10 @@ class Voronoi(object):
         ax.fill(self.outer_hull_points[:, 0],
                 self.outer_hull_points[:, 1], lw=0, **kwargs)
 
-        
-if __name__ == "__main__":
+
+def main():        
     import scipy.stats as st
     import matplotlib.pyplot as plt
-    
-    print("Checking voronoi module ...")
 
     # generate random points:
     rs = np.random.randint(0xffffffff)
@@ -935,19 +933,20 @@ if __name__ == "__main__":
     print(vor.point_types())
 
     # plot Voronoi diagram:
-    plt.title('Voronoi')
-    vor.fill_regions(inside=True, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=1.0, zorder=0)
-    vor.fill_regions(inside=False, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.4, zorder=0)
-    vor.fill_infinite_regions(colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.1, zorder=0)
-    vor.plot_distances(color='red')
-    #vor.plot_ridges(c='k', lw=2)
-    #vor.plot_infinite_ridges(c='k', lw=2, linestyle='dashed')
-    vor.plot_points(text='p%d', c='c', s=100, zorder=10)
-    vor.plot_vertices(text='v%d', c='r', s=60)
+    fig, ax = plt.subplots()
+    ax.set_title('Voronoi')
+    vor.fill_regions(ax, inside=True, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=1.0, zorder=0)
+    vor.fill_regions(ax, inside=False, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.4, zorder=0)
+    vor.fill_infinite_regions(ax, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.1, zorder=0)
+    vor.plot_distances(ax, color='red')
+    #vor.plot_ridges(ax, c='k', lw=2)
+    #vor.plot_infinite_ridges(ax, c='k', lw=2, linestyle='dashed')
+    vor.plot_points(ax, text='p%d', c='c', s=100, zorder=10)
+    vor.plot_vertices(ax, text='v%d', c='r', s=60)
     ex = 0.3
-    plt.xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
-    plt.ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
-    plt.axes().set_aspect('equal')
+    ax.set_xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
+    ax.set_ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
+    ax.set_aspect('equal')
 
     # Convex hull:
     print('Convex hull:')
@@ -956,21 +955,23 @@ if __name__ == "__main__":
     new_points = vor.random_points(poisson=True, mode='outer')
 
     # plot convex hull:
-    plt.figure()
-    vor.fill_outer_hull(color='black', alpha=0.1)
-    vor.plot_outer_hull(color='m', lw=2, label='outer hull')
-    vor.fill_hull(color='black', alpha=0.2)
-    vor.plot_hull(color='r', lw=2, label='convex hull')
-    vor.plot_hull_center(color='r', ms=16)
-    vor.plot_hull_center(color='k', ms=4)
-    vor.plot_center(color='c', ms=16)
-    vor.plot_center(color='k', ms=4)
-    vor.plot_points(text='p%d', c='c', s=100, zorder=10, label='input points')
-    plt.plot(new_points[:, 0], new_points[:, 1], 'ob', ms=10, label='random points')
-    plt.xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
-    plt.ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
-    plt.axes().set_aspect('equal')
-    plt.legend()
+    fig, ax = plt.subplots()
+    vor.fill_outer_hull(ax, color='black', alpha=0.1)
+    vor.plot_outer_hull(ax, color='m', lw=2, label='outer hull')
+    vor.fill_hull(ax, color='black', alpha=0.2)
+    vor.plot_hull(ax, color='r', lw=2, label='convex hull')
+    vor.plot_hull_center(ax, color='r', ms=16)
+    vor.plot_hull_center(ax, color='k', ms=4)
+    vor.plot_center(ax, color='c', ms=16)
+    vor.plot_center(ax, color='k', ms=4)
+    vor.plot_points(ax, text='p%d', c='c', s=100, zorder=10,
+                    label='input points')
+    ax.plot(new_points[:, 0], new_points[:, 1], 'ob', ms=10,
+             label='random points')
+    ax.set_xlim(vor.min_bound[0]-ex, vor.max_bound[0]+ex)
+    ax.set_ylim(vor.min_bound[1]-ex, vor.max_bound[1]+ex)
+    ax.set_aspect('equal')
+    ax.legend()
         
     # bootstrap:
     def bootstrapped_nearest_distances(vor, n, poisson, mode, ax1, ax2, ax3, bins):
@@ -989,11 +990,12 @@ if __name__ == "__main__":
                 bvor = Voronoi(points)
             except:
                 continue
-            hist_distances[j,:] = np.histogram(bvor.nearest_distances, bins=bins, normed=True)[0]
+            hist_distances[j,:] = np.histogram(bvor.nearest_distances,
+                                               bins=bins, density=True)[0]
             mean_distances.append(np.mean(bvor.nearest_distances))
             cvs.append(np.std(bvor.nearest_distances)/np.mean(bvor.nearest_distances))
         ax1.set_title('bootstrap %s %s' % (mode, ps))
-        ax1.hist(mean_distances, 30, normed=True, label='bootstrap')
+        ax1.hist(mean_distances, 30, density=True, label='bootstrap')
         de = np.mean(vor.nearest_distances)
         sem = 2.1*0.26136*np.sqrt(vor.outer_hull_area())/vor.npoints # note factor 2.1!
         h = 0.4/sem
@@ -1006,7 +1008,7 @@ if __name__ == "__main__":
         ax1.set_xlabel('mean nearest-neighbor distance')
         ax1.legend()
         ax2.set_title('bootstrap %s %s' % (mode, ps))
-        ax2.hist(cvs, 30, normed=True, label='bootstrap')
+        ax2.hist(cvs, 30, density=True, label='bootstrap')
         # observed cv:
         cvo = np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)
         # significance from bootstrap:
@@ -1031,7 +1033,7 @@ if __name__ == "__main__":
         ax3.set_title('bootstrap %s %s' % (mode, ps))
         ax3.fill_between(bins[:-1], *np.percentile(hist_distances, [2.5, 97.5], axis=0), facecolor='blue', alpha=0.5)
         ax3.plot(bins[:-1], np.median(hist_distances, axis=0), 'b', lw=2)
-        hd = np.histogram(vor.nearest_distances, bins=bins, normed=True)[0]
+        hd = np.histogram(vor.nearest_distances, bins=bins, density=True)[0]
         ax3.plot(bins[:-1], hd, 'r', lw=2)
         ax3.set_xlim(0.0, 0.5)
         ax3.set_xlabel('nearest-neighbor distance')
@@ -1061,3 +1063,6 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
+        
+if __name__ == "__main__":
+    main()
