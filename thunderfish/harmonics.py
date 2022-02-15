@@ -67,8 +67,7 @@ except ImportError:
 
 def group_candidate(good_freqs, all_freqs, freq, divisor,
                     freq_tol, max_freq_tol, min_group_size, verbose):
-    """Candidate harmonic frequencies belonging to a fundamental
-frequency.
+    """Candidate harmonic frequencies belonging to a fundamental frequency.
 
     Parameters
     ----------
@@ -119,6 +118,15 @@ frequency.
     fzero = freq
     fzero_harmonics = 1
     if len(good_freqs[:,0]) > 0:
+        """
+        ff = good_freqs[:,0]
+        h = np.round(ff/fzero)
+        h_indices = np.unique(h, return_index=True)[1]
+        f_best = [hi+np.argmin(np.abs(fh/h - fzero)) for hi, fh in zip(h_indices, np.split(ff, h_indices))]
+        fe = np.abs(ff/h - fzero)
+        h = h[fe < freq_tol]
+        fe = fe[fe < freq_tol]
+        """
         prev_freq = divisor * freq
         for h in range(divisor+1, 2*min_group_size+1):
             idx = np.argmin(np.abs(good_freqs[:,0]/h - fzero))
