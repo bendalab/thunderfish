@@ -3094,13 +3094,8 @@ class IndentStream(object):
     def flush(self):
         self.stream.flush()
 
-        
-if __name__ == "__main__":
-    import os
-    
-    print("Checking tabledata module ...")
-    print('')
 
+def main():
     # setup a table:
     df = TableData()
     df.append(["data", "partial information", "ID"], "", "%-s", list('ABCDEFGH'))
@@ -3125,3 +3120,8 @@ if __name__ == "__main__":
         df.write(iout, table_format=tf)
         print('      ```')
         print('')
+
+        
+if __name__ == "__main__":
+    import os
+    main()

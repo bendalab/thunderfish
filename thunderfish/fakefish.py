@@ -806,7 +806,7 @@ def demo():
     eodf = 650.0
     wavefish += 0.5*wavefish_eods('Eigenmannia', eodf, samplerate, duration)
 
-    pulsefish = pulsefish_eods('biphasic', 80.0, samplerate, duration,
+    pulsefish = pulsefish_eods('Biphasic', 80.0, samplerate, duration,
                                noise_std=0.02, jitter_cv=0.1, first_pulse=inset_len/2)
     time = np.arange(len(wavefish))/samplerate
 
@@ -874,7 +874,7 @@ def demo():
     ax[1].set_title('Rises')
     ax[1].specgram(rises_data, Fs=samplerate, NFFT=nfft, noverlap=nfft//2)
     time = np.arange(len(rises_freq))/samplerate
-    ax[1].plot(time[:-nfft/4], rises_freq[nfft/4:], '-k', lw=2)
+    ax[1].plot(time[:-nfft//4], rises_freq[nfft//4:], '-k', lw=2)
     ax[1].set_ylim(500.0, 700.0)
     ax[1].set_ylabel('Frequency [Hz]')
     ax[1].set_xlabel('Time [s]')
@@ -885,6 +885,7 @@ def demo():
 
 def main():
     import sys
+    from .version import __year__
     
     if len(sys.argv) > 1:
         if len(sys.argv) == 2 or sys.argv[1] != '-s':
@@ -894,7 +895,7 @@ def main():
             print('')
             print('-s audiofile: writes audiofile with user defined simulated electric fishes.')
             print('')
-            print('by bendalab (2020)')
+            print('by bendalab (%s)' % __year__)
         else:
             generate_waveform(sys.argv[2])
     else:

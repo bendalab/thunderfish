@@ -391,13 +391,8 @@ class ConfigFile(object):
                     print('load configuration %s' % path)
                 self.load(path)
 
-                        
-if __name__ == "__main__":
-    import sys
-    
-    print("Checking configfile module ...")
-    print('')
 
+def main():
     cfg = ConfigFile()
     cfg.add_section('Power spectrum:')
     cfg.add('nfft', 256, '', 'Number of data poinst for fourier transform.')
@@ -411,3 +406,8 @@ if __name__ == "__main__":
     del cfg['nfft']
     del cfg['windows']
     cfg.write(sys.stdout)
+
+                        
+if __name__ == "__main__":
+    import sys
+    main()

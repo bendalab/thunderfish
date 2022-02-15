@@ -106,9 +106,9 @@ def save_inputs(file):
         for line in recorded_inputs:
             df.write(line)
             df.write('\n')
-            
-            
-if __name__ == '__main__':
+
+
+def main():
     x = read('Give me a number between 1 and 10', '5', int, 1, 10)
     print(x)
     print('')
@@ -123,3 +123,7 @@ if __name__ == '__main__':
     # save_inputs('test.txt')
     ## you then can call the script like this:
     ## python -m thunderfish.consoleinput < test.txt
+            
+            
+if __name__ == '__main__':
+    main()

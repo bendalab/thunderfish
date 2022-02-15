@@ -1233,6 +1233,27 @@ class MultivariateExplorer(object):
         self._set_layout(event.width, event.height)
 
 
+def categorize(data):
+    """Convert categorial string data into integer categories.
+
+    Parameters
+    ----------
+    data: list of string
+        A list of textual categories.
+
+    Returns
+    -------
+    categories: list of strings
+        A sorted unique list of the strings in data.
+    cdata: list of integers
+        A copy of the input `data` where each string value is replaced
+        by an integer number that is an index into the reurned `categories`.
+    """
+    cats = sorted(set(data))
+    cdata = np.array([cats.index(x) for x in data], dtype=np.int)
+    return cats, cdata
+        
+
 def main():
     # parse command line:
     parser = argparse.ArgumentParser(add_help=True,
@@ -1266,34 +1287,13 @@ def main():
             #waveforms.append([np.column_stack((time, x)), np.column_stack((time, y))])
         # initialize explorer:
         expl = MultivariateExplorer(data,
-                                    map(chr, np.arange(len(data))+ord('A')),
+                                    list(map(chr, np.arange(len(data))+ord('A'))),
                                     'Explorer')
         expl.set_wave_data(waveforms, 'Time', ['Sine', 'Gauss'])
     # explore data:
     expl.set_colors()
     expl.show()
 
-
-def categorize(data):
-    """Convert categorial string data into integer categories.
-
-    Parameters
-    ----------
-    data: list of string
-        A list of textual categories.
-
-    Returns
-    -------
-    categories: list of strings
-        A sorted unique list of the strings in data.
-    cdata: list of integers
-        A copy of the input `data` where each string value is replaced
-        by an integer number that is an index into the reurned `categories`.
-    """
-    cats = sorted(set(data))
-    cdata = np.array([cats.index(x) for x in data], dtype=np.int)
-    return cats, cdata
-        
 
 if __name__ == '__main__':
     main()

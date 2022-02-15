@@ -499,9 +499,7 @@ def multi_psd_args(cfg):
     return a
 
 
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
+def main():
     print('Compute powerspectra of two sine waves (300 and 450 Hz)')
 
     # generate data:
@@ -523,3 +521,8 @@ if __name__ == '__main__':
                          label='$\\Delta f = %.1f$ Hz, nnft=%d' % (df, nfft))
     ax.legend(loc='upper right')
     plt.show()
+
+
+if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+    main()
