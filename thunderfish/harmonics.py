@@ -1622,27 +1622,30 @@ def harmonic_groups_args(cfg):
                     'max_groups': 'maximumGroups'})
 
 
-if __name__ == "__main__":
-    import sys
+def main(data_file=None):
     import matplotlib.pyplot as plt
     from .fakefish import wavefish_eods
     from .powerspectrum import psd
 
-    if len(sys.argv) < 2:
+    if data_file is None:
         # generate data:
         title = 'simulation'
         samplerate = 44100.0
         eodfs = [123.0, 333.0, 666.0, 666.5]
-        fish1 = 0.5*wavefish_eods('Eigenmannia', eodfs[0], samplerate, duration=8.0, noise_std=0.01)
-        fish2 = 1.0*wavefish_eods('Eigenmannia', eodfs[1], samplerate, duration=8.0, noise_std=0.01)
-        fish3 = 10.0*wavefish_eods('Alepto', eodfs[2], samplerate, duration=8.0, noise_std=0.01)
-        fish4 = 6.0*wavefish_eods('Alepto', eodfs[3], samplerate, duration=8.0, noise_std=0.01)
+        fish1 = 0.5*wavefish_eods('Eigenmannia', eodfs[0], samplerate,
+                                  duration=8.0, noise_std=0.01)
+        fish2 = 1.0*wavefish_eods('Eigenmannia', eodfs[1], samplerate,
+                                  duration=8.0, noise_std=0.01)
+        fish3 = 10.0*wavefish_eods('Alepto', eodfs[2], samplerate,
+                                   duration=8.0, noise_std=0.01)
+        fish4 = 6.0*wavefish_eods('Alepto', eodfs[3], samplerate,
+                                  duration=8.0, noise_std=0.01)
         data = fish1 + fish2 + fish3 + fish4
     else:
         from .dataloader import load_data
-        print("load %s ..." % sys.argv[1])
-        data, samplerate, unit = load_data(sys.argv[1], 0)
-        title = sys.argv[1]
+        print("load %s ..." % data_file)
+        data, samplerate, unit = load_data(data_file, 0)
+        title = data_file
 
     # retrieve fundamentals from power spectrum:
     psd_data = psd(data, samplerate, freq_resolution=0.5)
@@ -1685,6 +1688,13 @@ if __name__ == "__main__":
     print('\n'.join(( str(f) for f in unique_freqs)))
     print('')
     unique_freqs = unique(freqs, 1.0, 'rank', 1)
-    print('unique rank for next neighor only:')
+    print('unique rank for next neighour only:')
     print('\n'.join(( str(f) for f in unique_freqs)))
     print('')
+
+    
+if __name__ == "__main__":
+    import sys
+    data_file = sys.argv[1] if len(sys.argv) > 1 else None
+    main(data_file)
+
