@@ -747,12 +747,9 @@ def analysis_window(data, samplerate, win_pos, cfg, show_bestwindow=False):
         return data, 0, 0, False, min_clip, max_clip
 
 
-if __name__ == "__main__":
-    print("Checking bestwindow module ...")
-    import sys
-
+def main(data_file=None):
     title = "bestwindow"
-    if len(sys.argv) < 2:
+    if data_file is None:
         # generate data:
         print("generate waveform...")
         rate = 100000.0
@@ -771,10 +768,9 @@ if __name__ == "__main__":
         data += 0.01 * np.random.randn(len(data))
     else:
         from .dataloader import load_data
-
-        print("load %s ..." % sys.argv[1])
-        data, rate, unit = load_data(sys.argv[1], 0)
-        title = sys.argv[1]
+        print("load %s ..." % data_file)
+        data, rate, unit = load_data(data_file, 0)
+        title = data_file
 
     # determine clipping amplitudes:
     clip_win_size = 0.5
@@ -786,16 +782,21 @@ if __name__ == "__main__":
     #                                      plot_hist_func=plot_clipping)
 
     # setup plots:
-    fig, ax = plt.subplots(5, sharex=True, figsize=(20, 12))
-    fig.canvas.set_window_title(title)
+    fig, ax = plt.subplots(5, 1, sharex=True, figsize=(20, 12))
+    fig.canvas.manager.set_window_title(title)
 
     # compute best window:
-    print("call bestwindow() function...")
-    best_window_indices(data, rate, expand=False,
-                        win_size=4.0, win_shift=0.5, thresh_fac=0.8, percentile=0.1,
+    best_window_indices(data, rate, expand=False, win_size=4.0,
+                        win_shift=0.5, thresh_fac=0.8, percentile=0.1,
                         min_clip=min_clip, max_clip=max_clip,
                         w_cv_ampl=10.0, tolerance=0.5,
                         plot_data_func=plot_best_window, ax=ax)
 
     plt.tight_layout()
     plt.show()
+
+    
+if __name__ == "__main__":
+    import sys
+    data_file = sys.argv[1] if len(sys.argv) > 1 else None
+    main(data_file)

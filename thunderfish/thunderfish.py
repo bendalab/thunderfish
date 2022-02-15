@@ -1126,7 +1126,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
             else:
                 fig.savefig(output_basename + '.pdf')
         else:
-            fig.canvas.set_window_title('thunderfish')
+            fig.canvas.manager.set_window_title('thunderfish')
             plt.show()
         plt.close()
         save_subplots.replace('d', '')
@@ -1325,7 +1325,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                     else:
                         fig.savefig(output_basename + '.pdf')
                 else:
-                    fig.canvas.set_window_title('thunderfish')
+                    fig.canvas.manager.set_window_title('thunderfish')
                     plt.show()
                 plt.close()
                 save_subplots.replace('d', '')
