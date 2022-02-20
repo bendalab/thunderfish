@@ -51,6 +51,14 @@ jobs:
           branch: gh-pages
           force: true
           directory: site
+          
+        # Personal Access Token (PAT):
+        # - Generate it on your user's
+        #   Settings->Developer settings->personal access tokens
+        #   Set 90 days, click repo.
+        # - Make it known on the repositories Settings->Secrets->Actions
+        #   under the name THUNDERFISH_DOCU.
+        
         # NOTE:
         # the github.io/project page is the gh-pages branch of that project,
         # NOT the gh-pages branch of the bendalab.github.io repository!!!
