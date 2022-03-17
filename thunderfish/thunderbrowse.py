@@ -7,12 +7,14 @@ from scipy.signal import butter, sosfiltfilt
 import matplotlib.pyplot as plt
 from audioio.playaudio import PlayAudio, fade
 from audioio.audiowriter import write_audio
+from .eventdetection import detect_peaks
 from .version import __version__, __year__
 from .dataloader import open_data
 
 
 class SignalPlot:
-    def __init__(self, data, samplingrate, unit, filename, fcutoff=None):
+    def __init__(self, data, samplingrate, unit, filename,
+                 fcutoff=None, pulses=False):
         self.filename = filename
         self.samplerate = samplingrate
         self.data = data
@@ -25,7 +27,9 @@ class SignalPlot:
             self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
         self.ymin = -1.0
         self.ymax = +1.0
+        self.pulses = [None] * self.channels
         self.trace_artist = [None] * self.channels
+        self.pulse_artist = [None] * self.channels
         self.help = False
         self.helptext = []
 
@@ -33,6 +37,20 @@ class SignalPlot:
         if not fcutoff is None:
             sos = butter(2, fcutoff, 'high', fs=samplingrate, output='sos')
             self.data = sosfiltfilt(sos, self.data[:], 0)
+
+        # pulse detection:
+        if pulses:
+            """
+            fig, axs = plt.subplots(self.channels, 1, sharex=True)
+            for k in range(self.channels):
+                axs.flat[k].hist(data[:int(2*samplingrate),k], 100)
+            plt.show()
+            exit()
+            """
+            for k in range(self.channels):
+                thresh = 4*np.std(self.data[:int(2*self.samplerate),k])
+                self.pulses[k], _ = detect_peaks(data[:,k], thresh)
+                
 
         # audio output:
         self.audio = PlayAudio()
@@ -100,6 +118,17 @@ class SignalPlot:
                 self.trace_artist[k], = self.axs[k].plot(time, self.data[t0:t1,k])
             else:
                 self.trace_artist[k].set_data(time, self.data[t0:t1,k])
+            if self.pulse_artist[k] == None:
+                if not self.pulses[k] is None:
+                    pulses = self.pulses[k][(self.pulses[k]>=t0) &
+                                            (self.pulses[k]<=t1)]
+                    self.pulse_artist[k], = self.axs[k].plot(pulses/self.samplerate, self.data[pulses,k], 'o')
+            else:
+                pulses = self.pulses[k][(self.pulses[k]>=t0) &
+                                        (self.pulses[k]<=t1)]
+                self.pulse_artist[k].set_data(pulses/self.samplerate,
+                                              self.data[pulses,k])
+                
             self.axs[k].set_ylim(self.ymin, self.ymax)
         self.fig.canvas.draw()
 
@@ -302,11 +331,14 @@ def main(cargs=None):
     parser.add_argument('-f', dest='fcutoff', default=None,
                         type=float, metavar='FREQ',
                         help='Cutoff frequency of optional high-pass filter.')
+    parser.add_argument('-p', dest='pulses', action='store_true',
+                        help='detect pulse fish EODs')
     parser.add_argument('file', nargs=1, default='', type=str,
                         help='name of the file with the time series data')
     args = parser.parse_args(cargs)
     filepath = args.file[0]
     fcutoff = args.fcutoff
+    pulses = args.pulses
 
     # set verbosity level from command line:
     verbose = 0
@@ -316,7 +348,8 @@ def main(cargs=None):
     # load data:
     filename = os.path.basename(filepath)
     with open_data(filepath, -1, 20.0, 5.0, verbose) as data:
-        SignalPlot(data, data.samplerate, data.unit, filename, fcutoff)
+        SignalPlot(data, data.samplerate, data.unit, filename,
+                   fcutoff, pulses)
 
         
 if __name__ == '__main__':
