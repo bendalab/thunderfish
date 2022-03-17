@@ -3,6 +3,7 @@ import os
 import warnings
 import argparse
 import numpy as np
+from scipy.signal import butter, sosfiltfilt
 import matplotlib.pyplot as plt
 from audioio.playaudio import PlayAudio, fade
 from audioio.audiowriter import write_audio
@@ -11,7 +12,7 @@ from .dataloader import open_data
 
 
 class SignalPlot:
-    def __init__(self, data, samplingrate, unit, filename):
+    def __init__(self, data, samplingrate, unit, filename, fcutoff=None):
         self.filename = filename
         self.samplerate = samplingrate
         self.data = data
@@ -27,6 +28,11 @@ class SignalPlot:
         self.trace_artist = [None] * self.channels
         self.help = False
         self.helptext = []
+
+        # filter data:
+        if not fcutoff is None:
+            sos = butter(2, fcutoff, 'high', fs=samplingrate, output='sos')
+            self.data = sosfiltfilt(sos, self.data[:], 0)
 
         # audio output:
         self.audio = PlayAudio()
@@ -193,6 +199,13 @@ class SignalPlot:
             for k in range(self.channels):
                 self.axs[k].set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
+        elif event.key == 'c':
+            dy = self.ymax - self.ymin
+            self.ymin = -dy/2
+            self.ymax = +dy/2
+            for k in range(self.channels):
+                self.axs[k].set_ylim(self.ymin, self.ymax)
+            self.fig.canvas.draw()
         elif event.key in 'h':
             self.help = not self.help
             for ht in self.helptext:
@@ -286,10 +299,14 @@ def main(cargs=None):
         epilog='version %s by Benda-Lab (2022-%s)' % (__version__, __year__))
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose')
+    parser.add_argument('-f', dest='fcutoff', default=None,
+                        type=float, metavar='FREQ',
+                        help='Cutoff frequency of optional high-pass filter.')
     parser.add_argument('file', nargs=1, default='', type=str,
                         help='name of the file with the time series data')
     args = parser.parse_args(cargs)
     filepath = args.file[0]
+    fcutoff = args.fcutoff
 
     # set verbosity level from command line:
     verbose = 0
@@ -299,7 +316,7 @@ def main(cargs=None):
     # load data:
     filename = os.path.basename(filepath)
     with open_data(filepath, -1, 20.0, 5.0, verbose) as data:
-        SignalPlot(data, data.samplerate, data.unit, filename)
+        SignalPlot(data, data.samplerate, data.unit, filename, fcutoff)
 
         
 if __name__ == '__main__':
