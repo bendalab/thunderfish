@@ -15,7 +15,7 @@ from .dataloader import open_data
 
 class SignalPlot:
     def __init__(self, data, samplerate, unit, filename,
-                 fcutoff=None, pulses=False):
+                 show_channels=[], fcutoff=None, pulses=False):
         self.filename = filename
         self.samplerate = samplerate
         self.data = data
@@ -28,8 +28,14 @@ class SignalPlot:
             self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
         self.ymin = -1.0
         self.ymax = +1.0
+        self.fmax = 100.0
         self.pulses = np.zeros((0, 3), dtype=np.int)
-        self.trace_artist = [None] * self.channels
+        if len(show_channels) == 0:
+            self.show_channels = np.arange(self.channels)
+        else:
+            self.show_channels = np.array(show_channels)
+        self.traces = len(self.show_channels)
+        self.trace_artist = [None] * self.traces
         self.pulse_artist = []
         self.help = False
         self.helptext = []
@@ -60,7 +66,7 @@ class SignalPlot:
                                     p[:,np.newaxis], t[:,np.newaxis]))
                 all_pulses = np.vstack((all_pulses, pulses))
             self.pulses = all_pulses[np.argsort(all_pulses[:,2]),:]
-            # clustering:
+            # grouping over channels:
             max_di = int(0.001*self.samplerate)
             k = 0
             while k < len(self.pulses):
@@ -84,6 +90,69 @@ class SignalPlot:
                     self.pulses[k,0] = l
                     k += 1
             self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
+            # clustering:
+            #print(self.pulses[:30,:])
+            self.pulse_times = []
+            fishes = []
+            recent = []
+            min_dists = []
+            k = 0
+            while k < len(self.pulses):
+                j = k
+                for c in range(self.channels):
+                    k += 1
+                    if k >= len(self.pulses) or \
+                       self.pulses[k,0] != self.pulses[j,0] or \
+                       self.pulses[k,2] - self.pulses[j,2] > max_di:
+                        break
+                #print()
+                #print(self.pulses[j:k,:])
+                heights = np.zeros(self.channels)
+                heights[self.pulses[j:k,1]] = \
+                    self.data[self.pulses[j:k,2],self.pulses[j:k,1]] - \
+                    self.data[self.pulses[j:k,3],self.pulses[j:k,1]]
+                h_idx = np.argsort(heights)
+                heights[h_idx[:-3]] = 0.0    # dist for 3 largest only
+                i = np.where(self.pulses[j:k,1] == h_idx[-1])[0][0]
+                t = self.pulses[j+i,2]
+                #print(heights)
+                if len(fishes) == 0:
+                    l = len(fishes)
+                    self.pulses[j:k,0] = l
+                    fishes.append(heights)
+                    recent.append([l, self.pulses[j,2]])
+                    self.pulse_times.append([t])
+                else:
+                    dists = [np.sqrt(np.mean((fishes[ll] - heights)**2))
+                             for ll, tt in recent]
+                    thresh = 0.03
+                    # not so good:
+                    #sel = heights > 0.0
+                    #dists = [np.mean(np.abs(fishes[ll][sel] - heights[sel])/(0.5*(fishes[ll][sel] + heights[sel])))
+                    #         for ll, tt in recent]
+                    # thresh = 0.7
+                    min_dist_idx = np.argmin(dists)
+                    min_dists.append(dists[min_dist_idx])
+                    if dists[min_dist_idx] < thresh:
+                        l = recent[min_dist_idx][0]
+                        self.pulses[j:k,0] = l
+                        fishes[l] = heights
+                        recent[min_dist_idx][1] = self.pulses[j,2]
+                        self.pulse_times[l].append(t)
+                    else:
+                        l = len(fishes)
+                        self.pulses[j:k,0] = l
+                        fishes.append(heights)
+                        recent.append([l, self.pulses[j,2]])
+                        self.pulse_times.append([t])
+                for i, (ll, tt) in enumerate(recent):
+                    if (self.pulses[j,2] - tt)/self.samplerate > 1.0:
+                        del recent[i]
+                        break
+            for k in range(len(self.pulse_times)):
+                self.pulse_times[k] = np.array(self.pulse_times[k])
+            #plt.hist(min_dists, 100)
+            #plt.show()
                     
         # audio output:
         self.audio = PlayAudio()
@@ -99,79 +168,101 @@ class SignalPlot:
 
         # the figure:
         plt.ioff()
-        self.fig, self.axs = plt.subplots(self.channels, 1, squeeze=False,
+        splts = self.traces
+        if len(self.pulses) > 0:
+            splts += 1
+        self.fig, self.axs = plt.subplots(splts, 1, squeeze=False,
                                           figsize=(15, 9), sharex=True)
-        self.axs = self.axs.ravel()
-        self.fig.canvas.set_window_title(self.filename)
+        self.axs = self.axs.flat
+        if self.traces == self.channels:
+            self.fig.canvas.set_window_title(self.filename)
+        else:
+            cs = ' c%d' % self.show_channels[0]
+            self.fig.canvas.set_window_title(self.filename + ' ' + cs)
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
         self.fig.canvas.mpl_connect('resize_event', self.resize)
         # trace plots:
-        for k in range(self.channels):
-            self.axs[k].set_ylabel(f'C-{k+1} [{self.unit}]')
-        #for k in range(self.channels-1):
-        #    self.axs[k].xaxis.set_major_formatter(plt.NullFormatter())
-        self.axs[self.channels-1].set_xlabel('Time [s]')
+        for t in range(self.traces):
+            self.axs[t].set_ylabel(f'C-{self.show_channels[t]+1} [{self.unit}]')
+        #for t in range(self.traces-1):
+        #    self.axs[t].xaxis.set_major_formatter(plt.NullFormatter())
+        if len(self.pulses) > 0:
+            self.axs[-1].set_ylim(0, self.fmax)
+            self.axs[-1].set_ylabel('Freq [Hz]')
+        self.axs[-1].set_xlabel('Time [s]')
         ht = self.axs[0].text(0.98, 0.05, '(ctrl+) page and arrow up, down, home, end: scroll', ha='right',
                            transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.15, '+, -, X, x: zoom in/out', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.1, '+, -, X, x: zoom in/out', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.25, 'y,Y,v,V: zoom amplitudes', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.2, 'y,Y,v,V: zoom amplitudes', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.35, 'p,P: play audio (display,all)', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.3, 'i, I: zoom IPI frequency in/out', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.45, 'f: full screen', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.4, 'p,P: play audio (display,all)', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.55, 'w: plot waveforms into png file', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.5, 'f: full screen', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.65, 'S: save audiosegment', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.6, 'w: plot waveforms into png file', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.75, 'q: quit', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.7, 'S: save audiosegment', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.85, 'h: toggle this help', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.8, 'q: quit', ha='right', transform=self.axs[0].transAxes)
+        self.helptext.append(ht)
+        ht = self.axs[0].text(0.98, 0.9, 'h: toggle this help', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
         # plot:
         for ht in self.helptext:
             ht.set_visible(self.help)
-        self.update_plots(False)
+        self.update_plots()
         plt.show()
 
     def __del(self):
         self.audio.close()
 
-    def update_plots(self, draw=True):
+    def plot_pulses(self, axs, plot=True, tfac=1.0):
+        k = 0
+        colors = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
+        for l in np.unique(self.pulses[:,0]):
+            pulses = self.pulses[self.pulses[:,0] == l,:]
+            for t in range(self.traces):
+                c = self.show_channels[t]
+                p = pulses[pulses[:,1] == c,2]
+                if plot or k >= len(self.pulse_artist):
+                    pa, = axs[t].plot(tfac*p/self.samplerate,
+                                      self.data[p,c],
+                                      'o', color=colors[l%len(colors)])
+                    if not plot:
+                        self.pulse_artist.append(pa)
+                else:
+                    self.pulse_artist[k].set_data(tfac*p/self.samplerate,
+                                                  self.data[p,c])
+                k += 1
+            pt = self.pulse_times[l]/self.samplerate
+            if len(pt) > 10:
+                axs[-1].plot(tfac*pt[:-1], 1.0/np.diff(pt),
+                             '-o', color=colors[l%len(colors)])
+
+    def update_plots(self):
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
         if t1 > len(self.data):
             t1 = len(self.data)
         time = np.arange(t0, t1) / self.samplerate
-        for c in range(self.channels):
-            self.axs[c].set_xlim(self.toffset, self.toffset + self.twindow)
-            if self.trace_artist[c] == None:
-                self.trace_artist[c], = self.axs[c].plot(time, self.data[t0:t1,c])
+        for t in range(self.traces):
+            c = self.show_channels[t]
+            self.axs[t].set_xlim(self.toffset, self.toffset + self.twindow)
+            if self.trace_artist[t] == None:
+                self.trace_artist[t], = self.axs[t].plot(time, self.data[t0:t1,c])
             else:
-                self.trace_artist[c].set_data(time, self.data[t0:t1,c])
+                self.trace_artist[t].set_data(time, self.data[t0:t1,c])
             if t1 - t0 < 200:
-                self.trace_artist[c].set_marker('o')
-                self.trace_artist[c].set_markersize(3)
+                self.trace_artist[t].set_marker('o')
+                self.trace_artist[t].set_markersize(3)
             else:
-                self.trace_artist[c].set_marker('None')
-            self.axs[c].set_ylim(self.ymin, self.ymax)
-        k = 0
-        colors = ['C4', 'C5', 'C6', 'C7', 'C0', 'C1', 'C2', 'C3']
-        for l in np.unique(self.pulses[:,0]):
-            pulses = self.pulses[self.pulses[:,0] == l,:]
-            for c in range(self.channels):
-                p = pulses[pulses[:,1] == c,2]
-                if k >= len(self.pulse_artist):
-                    pa, = self.axs[c].plot(p/self.samplerate,
-                                           self.data[p,c],
-                                           'o', color=colors[l%len(colors)])
-                    self.pulse_artist.append(pa)
-                else:
-                    self.pulse_artist[k].set_data(p/self.samplerate,
-                                                  self.data[p,c])
-                k += 1
+                self.trace_artist[t].set_marker('None')
+            self.axs[t].set_ylim(self.ymin, self.ymax)
+        self.plot_pulses(self.axs, False)
         self.fig.canvas.draw()
 
     def resize(self, event):
@@ -245,48 +336,60 @@ class SignalPlot:
             c = 0.5 * (self.ymax + self.ymin)
             self.ymin = c - h
             self.ymax = c + h
-            for k in range(self.channels):
-                self.axs[k].set_ylim(self.ymin, self.ymax)
+            for t in range(self.traces):
+                self.axs[t].set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
         elif event.key == 'Y':
             h = 0.25 * (self.ymax - self.ymin)
             c = 0.5 * (self.ymax + self.ymin)
             self.ymin = c - h
             self.ymax = c + h
-            for k in range(self.channels):
-                self.axs[k].set_ylim(self.ymin, self.ymax)
+            for t in range(self.traces):
+                self.axs[t].set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
         elif event.key == 'v':
             t0 = int(np.round(self.toffset * self.samplerate))
             t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
-            min = np.min(self.data[t0:t1,:])
-            max = np.max(self.data[t0:t1,:])
+            min = np.min(self.data[t0:t1,self.show_channels])
+            max = np.max(self.data[t0:t1,self.show_channels])
             h = 0.5 * (max - min)
             c = 0.5 * (max + min)
             self.ymin = c - h
             self.ymax = c + h
-            for k in range(self.channels):
-                self.axs[k].set_ylim(self.ymin, self.ymax)
+            for t in range(self.traces):
+                self.axs[t].set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
         elif event.key == 'V':
             self.ymin = -1.0
             self.ymax = +1.0
-            for k in range(self.channels):
-                self.axs[k].set_ylim(self.ymin, self.ymax)
+            for t in range(self.traces):
+                self.axs[t].set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
         elif event.key == 'c':
             dy = self.ymax - self.ymin
             self.ymin = -dy/2
             self.ymax = +dy/2
-            for k in range(self.channels):
-                self.axs[k].set_ylim(self.ymin, self.ymax)
+            for t in range(self.traces):
+                self.axs[t].set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
+        elif event.key == 'i':
+            if len(self.pulses) > 0:
+                self.fmax *= 2
+                self.axs[-1].set_ylim(0.0, self.fmax)
+                self.fig.canvas.draw()
+        elif event.key == 'I':
+            if len(self.pulses) > 0:
+                self.fmax /= 2
+                self.axs[-1].set_ylim(0.0, self.fmax)
+                self.fig.canvas.draw()
         elif event.key in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
             cc = int(event.key)
             # TODO: this is not yet what we want:
+            """
             if cc < self.channels:
                 self.axs[cc].set_visible(not self.axs[cc].get_visible())
             self.fig.canvas.draw()
+            """
         elif event.key in 'h':
             self.help = not self.help
             for ht in self.helptext:
@@ -304,13 +407,14 @@ class SignalPlot:
     def play_segment(self):
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
-        playdata = 1.0 * np.mean(self.data[t0:t1], 1)
+        playdata = 1.0 * np.mean(self.data[t0:t1,self.show_channels], 1)
         f = 0.1 if self.twindow > 0.5 else 0.1*self.twindow
         fade(playdata, self.samplerate, f)
         self.audio.play(playdata, self.samplerate, blocking=False)
         
     def play_all(self):
-        self.audio.play(np.mean(self.data, 1), self.samplerate, blocking=False)
+        self.audio.play(np.mean(self.data[:,self.show_channels], 1),
+                        self.samplerate, blocking=False)
 
     def save_segment(self):
         t0s = int(np.round(self.toffset))
@@ -318,17 +422,27 @@ class SignalPlot:
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
         filename = self.filename.split('.')[0]
-        segment_filename = f'{filename}-{t0s:.4g}s-{t1s:.4g}s.wav'
-        write_audio(segment_filename, self.data[t0:t1,:], self.samplerate)
+        if self.traces == self.channels:
+            segment_filename = f'{filename}-{t0s:.4g}s-{t1s:.4g}s.wav'
+            write_audio(segment_filename, self.data[t0:t1,:], self.samplerate)
+        else:
+            segment_filename = f'{filename}-{t0s:.4g}s-{t1s:.4g}s-c{self.show_channels[0]}.wav'
+            write_audio(segment_filename,
+                        self.data[t0:t1,self.show_channels], self.samplerate)
         print('saved segment to: ' , segment_filename)
 
     def plot_waveform(self):
-        fig, axs = plt.subplots(self.channels, 1, squeeze=False)
-        axs = axs.ravel()
+        splts = self.traces
+        if len(self.pulses) > 0:
+            splts += 1
+        fig, axs = plt.subplots(splts, 1, squeeze=False, sharex=True)
+        axs = axs.flat
         fig.subplots_adjust(left=0.12, right=0.98, bottom=0.1, top=0.95,
                             hspace=0)
         name = self.filename.split('.')[0]
         figfile = f'{name}-{self.toffset:.4g}s-traces.png'
+        if self.traces < self.channels:
+            figfile = f'{name}-{self.toffset:.4g}s-c{self.show_channels[0]}-traces.png'
         axs[0].set_title(self.filename)
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
@@ -336,21 +450,28 @@ class SignalPlot:
             t1 = len(self.data)
         time = np.arange(t0, t1)/self.samplerate
         if self.twindow < 1.0:
-            axs[self.channels-1].set_xlabel('Time [ms]')
-            for k in range(self.channels):
-                axs[k].set_xlim(1000.0 * self.toffset,
+            axs[-1].set_xlabel('Time [ms]')
+            for t in range(self.traces):
+                c = self.show_channels[t]
+                axs[t].set_xlim(1000.0 * self.toffset,
                                 1000.0 * (self.toffset + self.twindow))
-                axs[k].plot(1000.0 * time, self.data[t0:t1,k])
+                axs[t].plot(1000.0 * time, self.data[t0:t1,c])
+            self.plot_pulses(axs, True, 1000.0)
         else:
-            axs[self.channels-1].set_xlabel('Time [s]')
-            for k in range(self.channels):
-                axs[k].set_xlim(self.toffset, self.toffset + self.twindow)
-                axs[k].plot(time, self.data[t0:t1,k])
-        for k in range(self.channels):
-            axs[k].set_ylim(self.ymin, self.ymax)
-            axs[k].set_ylabel(f'C-{k+1} [{self.unit}]')
-        #for k in range(self.channels-1):
-        #    axs[k].xaxis.set_major_formatter(plt.NullFormatter())
+            axs[-1].set_xlabel('Time [s]')
+            for t in range(self.traces):
+                c = self.show_channels[t]
+                axs[t].set_xlim(self.toffset, self.toffset + self.twindow)
+                axs[t].plot(time, self.data[t0:t1,c])
+            self.plot_pulses(axs, True, 1.0)
+        for t in range(self.traces):
+            c = self.show_channels[t]
+            axs[t].set_ylim(self.ymin, self.ymax)
+            axs[t].set_ylabel(f'C-{c+1} [{self.unit}]')
+        if len(self.pulses) > 0:
+            axs[-1].set_ylabel('Freq [Hz]')
+        #for t in range(self.traces-1):
+        #    axs[t].xaxis.set_major_formatter(plt.NullFormatter())
         fig.savefig(figfile)
         plt.close(fig)
         print('saved waveform figure to', figfile)
@@ -380,6 +501,9 @@ def main(cargs=None):
         epilog='version %s by Benda-Lab (2022-%s)' % (__version__, __year__))
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose')
+    parser.add_argument('-c', dest='channels', default='',
+                        type=str, metavar='CHANNELS',
+                        help='Comma separated list of channels to be displayed (first channel is 0).')
     parser.add_argument('-f', dest='fcutoff', default=None,
                         type=float, metavar='FREQ',
                         help='Cutoff frequency of optional high-pass filter.')
@@ -389,6 +513,8 @@ def main(cargs=None):
                         help='name of the file with the time series data')
     args = parser.parse_args(cargs)
     filepath = args.file[0]
+    cs = [s.strip() for s in args.channels.split(',')]
+    channels = [int(c) for c in cs if len(c)>0]
     fcutoff = args.fcutoff
     pulses = args.pulses
 
@@ -401,7 +527,7 @@ def main(cargs=None):
     filename = os.path.basename(filepath)
     with open_data(filepath, -1, 20.0, 5.0, verbose) as data:
         SignalPlot(data, data.samplerate, data.unit, filename,
-                   fcutoff, pulses)
+                   channels, fcutoff, pulses)
         
 
         
