@@ -57,13 +57,15 @@ class SignalPlot:
                                     np.ones((len(p), 1), dtype=np.int)<<c))
                 all_pulses = np.vstack((all_pulses, pulses))
             all_pulses = all_pulses[np.argsort(all_pulses[:,0]),:]
-            max_di = int(0.0002*self.samplerate)
+            max_di = int(0.0001*self.samplerate)
             for k in range(len(all_pulses)):
                 if all_pulses[k,1] >= 0:
                     for c in range(1, self.channels):
                         if k+c >= len(all_pulses) or \
                            all_pulses[k+c,0] - all_pulses[k,0] > max_di:
                             break
+                        if self.data[all_pulses[k+c,0],c] > self.data[all_pulses[k,0],c]:
+                            all_pulses[k,0] = all_pulses[k+c,0]
                         all_pulses[k,2] |= all_pulses[k+c,2]
                         all_pulses[k+c,1] = -1
             self.pulses = all_pulses[all_pulses[:,1] >= 0,:]
@@ -134,6 +136,11 @@ class SignalPlot:
                 self.trace_artist[c], = self.axs[c].plot(time, self.data[t0:t1,c])
             else:
                 self.trace_artist[c].set_data(time, self.data[t0:t1,c])
+            if t1 - t0 < 100:
+                self.trace_artist[c].set_marker('o')
+                self.trace_artist[c].set_markersize(3)
+            else:
+                self.trace_artist[c].set_marker('None')
             self.axs[c].set_ylim(self.ymin, self.ymax)
         k = 0
         colors = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7']
@@ -212,7 +219,12 @@ class SignalPlot:
                 self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'end':
-            toffs = np.floor(len(self.data) / self.samplerate / self.twindow) * self.twindow
+            tend = len(self.data) / self.samplerate
+            toffs = np.floor(tend / self.twindow) * self.twindow
+            if tend - toffs <= 0.0:
+                toffs -= self.twindow
+            if tend - toffs < self.twindow/2:
+                toffs -= self.twindow/2
             if self.toffset < toffs:
                 self.toffset = toffs
                 self.update_plots()
