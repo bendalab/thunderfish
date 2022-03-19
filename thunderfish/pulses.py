@@ -332,18 +332,26 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
     
     # extract peaks:
     x_peak, x_trough, eod_heights, eod_widths, pd_log_dict = \
-      detect_pulse_candidates(i_data, i_samplerate,
-                              width_factor=np.max([width_factor_shape, width_factor_display, width_factor_wave]),
-                              verbose=verbose-1, return_data=return_data)
+      detect_pulses(i_data, i_samplerate,
+                    width_fac=np.max([width_factor_shape,
+                                      width_factor_display,
+                                      width_factor_wave]),
+                    verbose=verbose-1, return_data=return_data)
     
     if len(x_peak) > 0:
         # cluster
-        clusters, x_merge, c_log_dict = cluster(x_peak, x_trough, eod_heights, eod_widths,
-                                                i_data, i_samplerate,
-                                                width_factor_shape, width_factor_wave,
-                                                verbose=verbose-1, plot_level=plot_level-1,
-                                                save_plots=save_plots, save_path=save_path,
-                                                ftype=ftype, return_data=return_data) 
+        clusters, x_merge, c_log_dict = cluster(x_peak, x_trough,
+                                                eod_heights,
+                                                eod_widths, i_data,
+                                                i_samplerate,
+                                                width_factor_shape,
+                                                width_factor_wave,
+                                                verbose=verbose-1,
+                                                plot_level=plot_level-1,
+                                                save_plots=save_plots,
+                                                save_path=save_path,
+                                                ftype=ftype,
+                                                return_data=return_data) 
 
         # extract mean eods and times
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = \
@@ -396,11 +404,10 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
     return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
 
 
-def detect_pulse_candidates(data, samplerate, width_factor,
-                            min_rel_slope_diff=0.25,
-                            min_width=0.00005, max_width=0.01,
-                            verbose=0, return_data=[]):
-    """Detect potential pulse EODs in data.
+def detect_pulses(data, samplerate, min_rel_slope_diff=0.25,
+                  min_width=0.00005, width_fac=5.0, max_width=0.01,
+                  verbose=0, return_data=[]):
+    """Detect pulses in data.
 
     Was `def extract_eod_times(data, samplerate, width_factor,
                       interp_freq=500000, max_peakwidth=0.01,
@@ -413,17 +420,18 @@ def detect_pulse_candidates(data, samplerate, width_factor,
         The data to be analysed.
     samplerate: float
         Sampling rate of the data
-    width_factor: float
-        Factor for extracting EOD shapes.
-        Only EODs are extracted that can fully be analysed with this width.
     min_rel_slope_diff: float
-        Minimum required difference of left and right slope relative
-        to mean slope.
+        Minimum required difference between left and right slope (between
+        peak and troughs) relative to mean slope for deciding which trough
+        to take besed on slope difference.
     min_width: float
-        Minimum width for peak detection in seconds.
+        Minimum width (peak-trough distance) of pulses in seconds.
     max_width: float
-        Maximum width for peak detection in seconds.
-
+        Maximum width (peak-trough distance) of pulses in seconds.
+    width_fac: float
+        Pulses extend plus or minus `width_fac` times their width
+        (distance between peak and assigned trough).
+        Only pulses are returned that can fully be analysed with this width.
     verbose : int (optional)
         Verbosity level.
     return_data : list of strings (optional)
@@ -433,17 +441,18 @@ def detect_pulse_candidates(data, samplerate, width_factor,
 
     Returns
     -------
-    x_peak: array of ints
+    peak_indices: array of ints
         Indices of EOD peaks in data.
-    x_trough: array of ints
+    trough_indices: array of ints
         Indices of EOD troughs in data. There is one x_trough for each x_peak.
-    eod_heights: array of floats
+    heights: array of floats
         EOD heights for each x_peak.
-    eod_widths: array of ints
+    widths: array of ints
         EOD widths for each x_peak (in samples).
     peak_detection_result : dictionary
         Key value pairs of logged data.
         Data to be logged is specified by return_data.
+
     """
     peak_detection_result = {}
     
@@ -519,20 +528,19 @@ def detect_pulse_candidates(data, samplerate, width_factor,
             peak_detection_result
     
     # only take those where the maximum cutwidth does not cause issues -
-    # if the width_factor times the width + x is more than length.
-    max_width = np.max(widths)*width_factor
-    cut_idx = ((peak_indices - max_width > 0) &
-               (peak_indices + max_width < len(data)) &
-               (trough_indices - max_width > 0) &
-               (trough_indices + max_width < len(data)))
+    # if the width_fac times the width + x is more than length.
+    keep = ((peak_indices - widths > 0) &
+            (peak_indices + widths < len(data)) &
+            (trough_indices - widths > 0) &
+            (trough_indices + widths < len(data)))
 
     if verbose > 0:
         print('Remaining peaks after EOD extraction:                %5d'
-              % (p.sum(cut_idx)))
+              % (p.sum(keep)))
         print('')
 
-    return peak_indices[cut_idx], trough_indices[cut_idx], \
-           heights[cut_idx], widths[cut_idx], peak_detection_result
+    return peak_indices[keep], trough_indices[keep], \
+           heights[keep], widths[keep], peak_detection_result
 
 
 @jit(nopython=True)
