@@ -329,10 +329,12 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
     log_dict['i_samplerate'] = i_samplerate
     # log_dict["interp_fac"] = interp_fac  # TODO: is not set anymore
                                          
+    # standard deviation of data in small snippets:
+    threshold = median_std_threshold(data, samplerate)  # TODO make this a parameter
     
     # extract peaks:
     x_peak, x_trough, eod_heights, eod_widths, pd_log_dict = \
-      detect_pulses(i_data, i_samplerate,
+      detect_pulses(i_data, i_samplerate, threshold,
                     width_fac=np.max([width_factor_shape,
                                       width_factor_display,
                                       width_factor_wave]),
@@ -404,8 +406,8 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
     return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
 
 
-def detect_pulses(data, samplerate, min_rel_slope_diff=0.25,
-                  min_width=0.00005, width_fac=5.0, max_width=0.01,
+def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
+                  min_width=0.00005, max_width=0.01, width_fac=5.0,
                   verbose=0, return_data=[]):
     """Detect pulses in data.
 
@@ -419,7 +421,11 @@ def detect_pulses(data, samplerate, min_rel_slope_diff=0.25,
     data: 1-D array of float
         The data to be analysed.
     samplerate: float
-        Sampling rate of the data
+        Sampling rate of the data.
+    thresh: float
+        Threshold for peak and trough detection via `detect_peaks()`.
+        Must be a positive number that sets the minimum difference
+        between a peak and a trough.
     min_rel_slope_diff: float
         Minimum required difference between left and right slope (between
         peak and troughs) relative to mean slope for deciding which trough
@@ -451,16 +457,12 @@ def detect_pulses(data, samplerate, min_rel_slope_diff=0.25,
         EOD widths for each x_peak (in samples).
     peak_detection_result : dictionary
         Key value pairs of logged data.
-        Data to be logged is specified by return_data.
-
+        This is only returned if `return_data` contains "peak_detection".
     """
     peak_detection_result = {}
-    
-    # standard deviation of data in small snippets:
-    threshold = median_std_threshold(data, samplerate)  # TODO make this a parameter
 
     # detect peaks and troughs in the data:
-    peak_indices, trough_indices = detect_peaks(data, threshold)
+    peak_indices, trough_indices = detect_peaks(data, thresh)
     if verbose > 0:
         print('Peaks/troughs detected in data:                      %5d %5d'
               % (len(peak_indices), len(trough_indices)))
@@ -473,8 +475,12 @@ def detect_pulses(data, samplerate, min_rel_slope_diff=0.25,
         # TODO: if too many peaks increase threshold!
         if verbose > 0:
             print('No or too many peaks/troughs detected in data.')
-        return np.array([]), np.array([]), np.array([]), np.array([]), \
-            peak_detection_result
+        if 'peak_detection' in return_data:
+            return np.array([], dtype=np.int), np.array([], dtype=np.int), \
+                np.array([]), np.array([], dtype=np.int), peak_detection_result
+        else:
+            return np.array([], dtype=np.int), np.array([], dtype=np.int), \
+                np.array([]), np.array([], dtype=np.int)
 
     # assign troughs to peaks:
     peak_indices, trough_indices, heights, widths, slopes = \
@@ -524,8 +530,12 @@ def detect_pulses(data, samplerate, min_rel_slope_diff=0.25,
     if len(peak_indices) == 0:
         if verbose > 0:
             print('No peaks remain as pulse candidates.')
-        return np.array([]), np.array([]), np.array([]), np.array([]), \
-            peak_detection_result
+        if 'peak_detection' in return_data:
+            return np.array([], dtype=np.int), np.array([], dtype=np.int), \
+                np.array([]), np.array([], dtype=np.int), peak_detection_result
+        else:
+            return np.array([], dtype=np.int), np.array([], dtype=np.int), \
+                np.array([]), np.array([], dtype=np.int)
     
     # only take those where the maximum cutwidth does not cause issues -
     # if the width_fac times the width + x is more than length.
@@ -539,8 +549,12 @@ def detect_pulses(data, samplerate, min_rel_slope_diff=0.25,
               % (p.sum(keep)))
         print('')
 
-    return peak_indices[keep], trough_indices[keep], \
-           heights[keep], widths[keep], peak_detection_result
+    if 'peak_detection' in return_data:
+        return peak_indices[keep], trough_indices[keep], \
+            heights[keep], widths[keep], peak_detection_result
+    else:
+        return peak_indices[keep], trough_indices[keep], \
+            heights[keep], widths[keep]
 
 
 @jit(nopython=True)

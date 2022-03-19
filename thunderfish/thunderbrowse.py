@@ -7,18 +7,19 @@ from scipy.signal import butter, sosfiltfilt
 import matplotlib.pyplot as plt
 from audioio.playaudio import PlayAudio, fade
 from audioio.audiowriter import write_audio
-from .eventdetection import detect_peaks
+from .eventdetection import detect_peaks, median_std_threshold
+from .pulses import detect_pulses
 from .version import __version__, __year__
 from .dataloader import open_data
 
 
 class SignalPlot:
-    def __init__(self, data, samplingrate, unit, filename,
+    def __init__(self, data, samplerate, unit, filename,
                  fcutoff=None, pulses=False):
         self.filename = filename
-        self.samplerate = samplingrate
+        self.samplerate = samplerate
         self.data = data
-        self.channels = data.channels
+        self.channels = self.data.shape[1]
         self.unit = unit
         self.tmax = (len(self.data)-1)/self.samplerate
         self.toffset = 0.0
@@ -35,41 +36,55 @@ class SignalPlot:
 
         # filter data:
         if not fcutoff is None:
-            sos = butter(2, fcutoff, 'high', fs=samplingrate, output='sos')
+            sos = butter(2, fcutoff, 'high', fs=samplerate, output='sos')
             self.data = sosfiltfilt(sos, self.data[:], 0)
 
         # pulse detection:
         if pulses:
-            """
-            fig, axs = plt.subplots(self.channels, 1, sharex=True)
-            for k in range(self.channels):
-                axs.flat[k].hist(data[:int(2*samplingrate),k], 100)
-            plt.show()
-            exit()
-            """
             # index, label, channel as bit
-            all_pulses = np.zeros((0, 3), dtype=np.int)
+            all_pulses = np.zeros((0, 4), dtype=np.int)
             for c in range(self.channels):
-                thresh = 3*np.std(self.data[:int(2*self.samplerate),c])
-                p, _ = detect_peaks(data[:,c], thresh)
-                pulses = np.hstack((p[:,np.newaxis],
+                #thresh = 1*np.std(self.data[:int(2*self.samplerate),c])
+                thresh = median_std_threshold(self.data[:,c], self.samplerate,
+                                              thresh_fac=6.0)
+                #p, t = detect_peaks(self.data[:,c], thresh)
+                p, t, w, h = detect_pulses(self.data[:,c], self.samplerate,
+                                           thresh,
+                                           min_rel_slope_diff=0.25,
+                                           min_width=0.0001,
+                                           max_width=0.01,
+                                           width_fac=5.0)
+                # label, channel, peak, trough:
+                pulses = np.hstack((np.ones((len(p), 1), dtype=np.int)*c,
                                     np.ones((len(p), 1), dtype=np.int)*c,
-                                    np.ones((len(p), 1), dtype=np.int)<<c))
+                                    p[:,np.newaxis], t[:,np.newaxis]))
                 all_pulses = np.vstack((all_pulses, pulses))
-            all_pulses = all_pulses[np.argsort(all_pulses[:,0]),:]
-            max_di = int(0.0001*self.samplerate)
-            for k in range(len(all_pulses)):
-                if all_pulses[k,1] >= 0:
-                    for c in range(1, self.channels):
-                        if k+c >= len(all_pulses) or \
-                           all_pulses[k+c,0] - all_pulses[k,0] > max_di:
-                            break
-                        if self.data[all_pulses[k+c,0],c] > self.data[all_pulses[k,0],c]:
-                            all_pulses[k,0] = all_pulses[k+c,0]
-                        all_pulses[k,2] |= all_pulses[k+c,2]
-                        all_pulses[k+c,1] = -1
-            self.pulses = all_pulses[all_pulses[:,1] >= 0,:]
-
+            self.pulses = all_pulses[np.argsort(all_pulses[:,2]),:]
+            # clustering:
+            max_di = int(0.001*self.samplerate)
+            k = 0
+            while k < len(self.pulses):
+                t0 = self.pulses[k,2]
+                height = self.data[self.pulses[k,2],self.pulses[k,1]] - \
+                    self.data[self.pulses[k,3],self.pulses[k,1]]
+                l = self.pulses[k,0]
+                for c in range(1, self.channels+1):
+                    if k+c >= len(self.pulses) or \
+                       (self.pulses[k+c,2] - t0 > max_di and
+                        self.pulses[k+c,3] - t0 > max_di):
+                        break
+                    height_kc = self.data[self.pulses[k+c,2],self.pulses[k+c,1]] - \
+                        self.data[self.pulses[k+c,3],self.pulses[k+c,1]]
+                    if height_kc > height:
+                        l = self.pulses[k+c,0]
+                        height = height_kc
+                if height < 0.04:
+                    l = -1
+                for j in range(c):
+                    self.pulses[k,0] = l
+                    k += 1
+            self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
+                    
         # audio output:
         self.audio = PlayAudio()
         
@@ -127,7 +142,7 @@ class SignalPlot:
     def update_plots(self, draw=True):
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
-        if t1>len(self.data):
+        if t1 > len(self.data):
             t1 = len(self.data)
         time = np.arange(t0, t1) / self.samplerate
         for c in range(self.channels):
@@ -136,20 +151,18 @@ class SignalPlot:
                 self.trace_artist[c], = self.axs[c].plot(time, self.data[t0:t1,c])
             else:
                 self.trace_artist[c].set_data(time, self.data[t0:t1,c])
-            if t1 - t0 < 100:
+            if t1 - t0 < 200:
                 self.trace_artist[c].set_marker('o')
                 self.trace_artist[c].set_markersize(3)
             else:
                 self.trace_artist[c].set_marker('None')
             self.axs[c].set_ylim(self.ymin, self.ymax)
         k = 0
-        colors = ['C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7']
-        for l in np.unique(self.pulses[:,1]):
-            pulses = self.pulses[self.pulses[:,1] == l,:]
-            pulses = pulses[(pulses[:,0]>=t0) & (pulses[:,0]<=t1),:]
+        colors = ['C4', 'C5', 'C6', 'C7', 'C0', 'C1', 'C2', 'C3']
+        for l in np.unique(self.pulses[:,0]):
+            pulses = self.pulses[self.pulses[:,0] == l,:]
             for c in range(self.channels):
-                cb = 1 << c
-                p = pulses[pulses[:,2]&cb==cb,0]
+                p = pulses[pulses[:,1] == c,2]
                 if k >= len(self.pulse_artist):
                     pa, = self.axs[c].plot(p/self.samplerate,
                                            self.data[p,c],
@@ -181,11 +194,11 @@ class SignalPlot:
                 self.twindow *= 0.5
                 self.update_plots()
         elif event.key in '-x':
-            if self.twindow < len(self.data) / self.samplerate:
+            if self.twindow < self.tmax:
                 self.twindow *= 2.0
                 self.update_plots()
         elif event.key == 'pagedown':
-            if self.toffset + 0.5 * self.twindow < len(self.data) / self.samplerate:
+            if self.toffset + 0.5 * self.twindow < self.tmax:
                 self.toffset += 0.5 * self.twindow
                 self.update_plots()
         elif event.key == 'pageup':
@@ -195,7 +208,7 @@ class SignalPlot:
                     self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'ctrl+pagedown':
-            if self.toffset + 5.0 * self.twindow < len(self.data) / self.samplerate:
+            if self.toffset + 5.0 * self.twindow < self.tmax:
                 self.toffset += 5.0 * self.twindow
                 self.update_plots()
         elif event.key == 'ctrl+pageup':
@@ -205,7 +218,7 @@ class SignalPlot:
                     self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'down':
-            if self.toffset + self.twindow < len(self.data) / self.samplerate:
+            if self.toffset + self.twindow < self.tmax:
                 self.toffset += 0.05 * self.twindow
                 self.update_plots()
         elif event.key == 'up':
@@ -219,11 +232,10 @@ class SignalPlot:
                 self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'end':
-            tend = len(self.data) / self.samplerate
-            toffs = np.floor(tend / self.twindow) * self.twindow
-            if tend - toffs <= 0.0:
+            toffs = np.floor(self.tmax / self.twindow) * self.twindow
+            if self.tmax - toffs <= 0.0:
                 toffs -= self.twindow
-            if tend - toffs < self.twindow/2:
+            if self.tmax - toffs < self.twindow/2:
                 toffs -= self.twindow/2
             if self.toffset < toffs:
                 self.toffset = toffs
@@ -269,6 +281,12 @@ class SignalPlot:
             for k in range(self.channels):
                 self.axs[k].set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
+        elif event.key in ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']:
+            cc = int(event.key)
+            # TODO: this is not yet what we want:
+            if cc < self.channels:
+                self.axs[cc].set_visible(not self.axs[cc].get_visible())
+            self.fig.canvas.draw()
         elif event.key in 'h':
             self.help = not self.help
             for ht in self.helptext:
@@ -301,7 +319,7 @@ class SignalPlot:
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
         filename = self.filename.split('.')[0]
         segment_filename = f'{filename}-{t0s:.4g}s-{t1s:.4g}s.wav'
-        write_audio(segment_filename, self.data[t0:t1,:], self.data.samplerate)
+        write_audio(segment_filename, self.data[t0:t1,:], self.samplerate)
         print('saved segment to: ' , segment_filename)
 
     def plot_waveform(self):
@@ -384,6 +402,7 @@ def main(cargs=None):
     with open_data(filepath, -1, 20.0, 5.0, verbose) as data:
         SignalPlot(data, data.samplerate, data.unit, filename,
                    fcutoff, pulses)
+        
 
         
 if __name__ == '__main__':
