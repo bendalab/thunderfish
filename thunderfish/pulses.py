@@ -69,11 +69,12 @@ def unique_counts(ar):
         return ar[mask], np.diff(idx)  
 
 
-###################################################################################
+###########################################################################
 
 
-def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=8,
-                      width_factor_display=4, verbose=0, plot_level=0, save_plots=False,
+def extract_pulsefish(data, samplerate, width_factor_shape=3,
+                      width_factor_wave=8, width_factor_display=4,
+                      verbose=0, plot_level=0, save_plots=False,
                       save_path='', ftype='png', return_data=[]):
     """ Extract and cluster pulse-type fish EODs from single channel data.
     
@@ -332,7 +333,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
     # extract peaks:
     x_peak, x_trough, eod_heights, eod_widths, pd_log_dict = \
       detect_pulse_candidates(i_data, i_samplerate,
-                              np.max([width_factor_shape, width_factor_display, width_factor_wave]),
+                              width_factor=np.max([width_factor_shape, width_factor_display, width_factor_wave]),
                               verbose=verbose-1, return_data=return_data)
     
     if len(x_peak) > 0:
@@ -396,13 +397,15 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3, width_factor_wave=
 
 
 def detect_pulse_candidates(data, samplerate, width_factor,
-                            min_peakwidth=0.00005, max_peakwidth=0.01,
+                            min_rel_slope_diff=0.25,
+                            min_width=0.00005, max_width=0.01,
                             verbose=0, return_data=[]):
-    """ Detect potential pulse EODs in data.
+    """Detect potential pulse EODs in data.
 
-    Was `def extract_eod_times(data, samplerate, width_factor, interp_freq=500000,
-                      max_peakwidth=0.01, min_peakwidth=None, verbose=0,
-                      return_data=[], save_path='')` before.
+    Was `def extract_eod_times(data, samplerate, width_factor,
+                      interp_freq=500000, max_peakwidth=0.01,
+                      min_peakwidth=None, verbose=0, return_data=[],
+                      save_path='')` before.
 
     Parameters
     ----------
@@ -413,16 +416,19 @@ def detect_pulse_candidates(data, samplerate, width_factor,
     width_factor: float
         Factor for extracting EOD shapes.
         Only EODs are extracted that can fully be analysed with this width.
-
-    min_peakwidth: float (optional)
+    min_rel_slope_diff: float
+        Minimum required difference of left and right slope relative
+        to mean slope.
+    min_width: float
         Minimum width for peak detection in seconds.
-    max_peakwidth: float (optional)
+    max_width: float
         Maximum width for peak detection in seconds.
 
     verbose : int (optional)
         Verbosity level.
     return_data : list of strings (optional)
-        Keys that specify data to be logged. If 'peak_detection' is in `return_data`, 
+        Keys that specify data to be logged.
+        If 'peak_detection' is in `return_data`, 
         data of this function is logged (see extract_pulsefish()).
 
     Returns
@@ -436,8 +442,8 @@ def detect_pulse_candidates(data, samplerate, width_factor,
     eod_widths: array of ints
         EOD widths for each x_peak (in samples).
     peak_detection_result : dictionary
-        Key value pairs of logged data. Data to be logged is specified by return_data.
-
+        Key value pairs of logged data.
+        Data to be logged is specified by return_data.
     """
     peak_detection_result = {}
     
@@ -452,18 +458,18 @@ def detect_pulse_candidates(data, samplerate, width_factor,
     if 'peak_detection' in return_data:
         peak_detection_result.update(peaks_1=np.array(peak_indices),
                                      troughs_1=np.array(trough_indices))
-    if len(peak_indices)<2 or \
-       len(trough_indices)<2 or \
+    if len(peak_indices) < 2 or \
+       len(trough_indices) < 2 or \
        len(peak_indices) > len(data)/20:
+        # TODO: if too many peaks increase threshold!
         if verbose > 0:
             print('No or too many peaks/troughs detected in data.')
         return np.array([]), np.array([]), np.array([]), np.array([]), \
             peak_detection_result
 
     # assign troughs to peaks:
-    peak_indices, trough_indices, heights, widths = \
-      assign_side_peaks(data, peak_indices, trough_indices, 0.25)
-    # TODO: make 0.25 a parameter
+    peak_indices, trough_indices, heights, widths, slopes = \
+      assign_side_peaks(data, peak_indices, trough_indices, min_rel_slope_diff)
     if verbose > 1:
         print('Number of peaks after assigning side-peaks:          %5d'
               % (len(peak_indices)))
@@ -472,12 +478,12 @@ def detect_pulse_candidates(data, samplerate, width_factor,
                                      troughs_2=np.array(trough_indices))
 
     # check widths:
-    keep_events = ((widths>min_peakwidth*samplerate) &
-                   (widths<max_peakwidth*samplerate))
-    peak_indices = peak_indices[keep_events]
-    trough_indices = trough_indices[keep_events]
-    heights = heights[keep_events]
-    widths = widths[keep_events]
+    keep = ((widths>min_width*samplerate) & (widths<max_width*samplerate))
+    peak_indices = peak_indices[keep]
+    trough_indices = trough_indices[keep]
+    heights = heights[keep]
+    widths = widths[keep]
+    slopes = slopes[keep]
     if verbose > 1:
         print('Number of peaks after checking pulse width:          %5d'
               % (len(peak_indices)))
@@ -485,10 +491,21 @@ def detect_pulse_candidates(data, samplerate, width_factor,
         peak_detection_result.update(peaks_3=np.array(peak_indices),
                                      troughs_3=np.array(trough_indices))
 
-    """"
-    # merge connected peaks:
-    peak_indices, trough_indices, heights, widths = \
-      discard_connecting_eods(peak_indices, trough_indices, heights, widths)
+    # discard connected peaks:
+    same = np.nonzero(trough_indices[:-1] == trough_indices[1:])[0]
+    keep = np.ones(len(trough_indices), dtype=np.bool)
+    for i in same:
+        # same troughs at trough_indices[i] and trough_indices[i+1]:
+        s = slopes[i:i+2]
+        rel_slopes = np.abs(np.diff(s))[0]/np.mean(s)
+        if rel_slopes > min_rel_slope_diff:
+            keep[i+(s[1]<s[0])] = False
+        else:
+            keep[i+(heights[i+1]<heights[i])] = False
+    peak_indices = peak_indices[keep]
+    trough_indices = trough_indices[keep]
+    heights = heights[keep]
+    widths = widths[keep]
     if verbose > 1:
         print('Number of peaks after merging pulses:                %5d'
               % (len(peak_indices)))
@@ -500,7 +517,6 @@ def detect_pulse_candidates(data, samplerate, width_factor,
             print('No peaks remain as pulse candidates.')
         return np.array([]), np.array([]), np.array([]), np.array([]), \
             peak_detection_result
-    """
     
     # only take those where the maximum cutwidth does not cause issues -
     # if the width_factor times the width + x is more than length.
@@ -515,9 +531,11 @@ def detect_pulse_candidates(data, samplerate, width_factor,
               % (p.sum(cut_idx)))
         print('')
 
-    return peak_indices[cut_idx], trough_indices[cut_idx], heights[cut_idx], widths[cut_idx], peak_detection_result
+    return peak_indices[cut_idx], trough_indices[cut_idx], \
+           heights[cut_idx], widths[cut_idx], peak_detection_result
 
 
+@jit(nopython=True)
 def assign_side_peaks(data, peak_indices, trough_indices,
                       min_rel_slope_diff=0.25):
     """Assign to each peak the trough resulting in a pulse with the steepest slope or largest height.
@@ -555,13 +573,15 @@ def assign_side_peaks(data, peak_indices, trough_indices,
         Peak heights (distance between peak and corresponding trough amplitude)
     widths: array of ints
         Peak widths (distance between peak and corresponding trough indices)
-
+    slopes: array of floats
+        Peak slope (height divided by width)
     """
     # is a main or side peak first?
     peak_first = int(peak_indices[0] < trough_indices[0])
     # is a main or side peak last?
     peak_last = int(peak_indices[-1] > trough_indices[-1])
-    # ensure main peaks to have side peaks at both sides:
+    # ensure all peaks to have side peaks (troughs) at both sides,
+    # i.e. troughs at same index and next index are before and after peak:
     peak_indices = peak_indices[peak_first:len(peak_indices)-peak_last]
     y = data[peak_indices]
     
@@ -583,71 +603,22 @@ def assign_side_peaks(data, peak_indices, trough_indices,
 
     # which trough to assign to the peak?
     # - either the one with the steepest slope, or
-    # - when slopes are similar on both sides (within 25% difference),
+    # - when slopes are similar on both sides
+    #   (within `min_rel_slope_diff` difference),
     #   the trough with the maximum height difference to the peak:
     rel_slopes = np.abs(l_slope-r_slope)/(0.5*(l_slope+r_slope))
     take_slopes = rel_slopes > min_rel_slope_diff
     take_left = l_height > r_height
     take_left[take_slopes] = l_slope[take_slopes] > r_slope[take_slopes]
 
-    # assign troughs, heights, and widths:
+    # assign troughs, heights, widths, and slopes:
     trough_indices = np.where(take_left,
                               trough_indices[:-1], trough_indices[1:])
     heights = np.where(take_left, l_height, r_height)
     widths = np.where(take_left, l_distance, r_distance)
     slopes = np.where(take_left, l_slope, r_slope)
 
-    ## TODO: check for width here?
-    
-    # discard connected peaks:
-    same = np.nonzero(trough_indices[:-1] == trough_indices[1:])[0]
-    keep = np.ones(len(trough_indices), dtype=np.bool)
-    for i in same:
-        # same troughs at trough_indices[i] and trough_indices[i+1]:
-        s = slopes[i:i+2]
-        rel_slopes = np.abs(np.diff(s))[0]/np.mean(s)
-        if rel_slopes > min_rel_slope_diff:
-            keep[i+(s[1]<s[0])] = False
-        else:
-            keep[i+(heights[i+1]<heights[i])] = False
-    
-    return peak_indices[keep], trough_indices[keep], heights[keep], widths[keep]
-
-
-@jit(nopython=True)
-def discard_connecting_eods(x_peak, x_trough, heights, widths):
-    """If two detected EODs share the same closest trough, keep only the
-highest peak.
-
-    Parameters
-    ----------
-    x_peak: list of ints
-        Indices of EOD peaks.
-    x_trough: list of ints
-        Indices of EOD troughs.
-    heights: list of floats
-        EOD heights.
-    widths: list of ints
-        EOD widths.
-
-    Returns
-    -------
-    x_peak, x_trough, heights, widths : lists of ints and floats
-        EOD location and features of the non-discarded EODs
-    """
-    keep_idxs = np.ones(len(x_peak))
-
-    for tr in np.unique(x_trough):
-        if len(x_trough[x_trough==tr]) > 1:
-            slopes = heights[x_trough==tr]/widths[x_trough==tr]
-
-            if (np.max(slopes)!=np.min(slopes)) and \
-              (np.abs(np.max(slopes)-np.min(slopes))/(0.5*np.max(slopes)+0.5*np.min(slopes)) > 0.25):
-                keep_idxs[np.where(x_trough==tr)[0][np.argmin(heights[x_trough==tr]/widths[x_trough==tr])]] = 0
-            else:
-                keep_idxs[np.where(x_trough==tr)[0][np.argmin(heights[x_trough==tr])]] = 0
-            
-    return x_peak[np.where(keep_idxs==1)[0]], x_trough[np.where(keep_idxs==1)[0]], heights[np.where(keep_idxs==1)[0]], widths[np.where(keep_idxs==1)[0]]
+    return peak_indices, trough_indices, heights, widths, slopes
 
 
 def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
