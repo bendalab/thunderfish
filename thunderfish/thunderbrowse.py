@@ -30,6 +30,7 @@ class SignalPlot:
         self.ymax = +1.0
         self.fmax = 100.0
         self.pulses = np.zeros((0, 3), dtype=np.int)
+        self.pulse_times = []
         if len(show_channels) == 0:
             self.show_channels = np.arange(self.channels)
         else:
@@ -37,6 +38,7 @@ class SignalPlot:
         self.traces = len(self.show_channels)
         self.trace_artist = [None] * self.traces
         self.pulse_artist = []
+        self.pulse_colors = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
         self.help = False
         self.helptext = []
 
@@ -67,32 +69,70 @@ class SignalPlot:
                 all_pulses = np.vstack((all_pulses, pulses))
             self.pulses = all_pulses[np.argsort(all_pulses[:,2]),:]
             # grouping over channels:
-            max_di = int(0.001*self.samplerate)
+            # check 1057: 0.132, 0.28, 0.37, 0.58
+            max_di = int(0.0002*self.samplerate)   # TODO: parameter
+            l = -1
             k = 0
             while k < len(self.pulses):
-                t0 = self.pulses[k,2]
+                tp = self.pulses[k,2]
+                tt = self.pulses[k,3]
                 height = self.data[self.pulses[k,2],self.pulses[k,1]] - \
                     self.data[self.pulses[k,3],self.pulses[k,1]]
-                l = self.pulses[k,0]
-                for c in range(1, self.channels+1):
-                    if k+c >= len(self.pulses) or \
-                       (self.pulses[k+c,2] - t0 > max_di and
-                        self.pulses[k+c,3] - t0 > max_di):
+                channel_counts = np.zeros(self.channels, dtype=np.int)
+                channel_counts[self.pulses[k,1]] += 1
+                for c in range(1, 3*self.channels):
+                    if k+c >= len(self.pulses):
                         break
+                    # pulse too far away:
+                    if channel_counts[self.pulses[k+c,1]] > 1 or \
+                       (np.abs(self.pulses[k+c,2] - tp) > max_di and
+                        np.abs(self.pulses[k+c,2] - tt) > max_di and
+                        np.abs(self.pulses[k+c,3] - tp) > max_di and
+                        np.abs(self.pulses[k+c,3] - tt) > max_di):
+                        break
+                    channel_counts[self.pulses[k+c,1]] += 1
                     height_kc = self.data[self.pulses[k+c,2],self.pulses[k+c,1]] - \
                         self.data[self.pulses[k+c,3],self.pulses[k+c,1]]
+                    # heighest pulse sets time reference:
                     if height_kc > height:
-                        l = self.pulses[k+c,0]
+                        tp = self.pulses[k+c,2]
+                        tt = self.pulses[k+c,3]
                         height = height_kc
-                if height < 0.04:
-                    l = -1
+                # all pulses too small:
+                if height < 0.02:    # TODO parameter
+                    self.pulses[k:k+c,0] = -1
+                    k += c
+                    continue
+                # new label:
+                l += 1
+                ll = l % len(self.pulse_colors)
+                #if self.pulses[k,2]/self.samplerate < 0.172:
+                #    print()
+                #    for p in self.pulses[k:k+c]:
+                #        print(f'{p[0]} {p[1]} {p[2]/self.samplerate:.4f} {p[3]/self.samplerate:.4f}')
+                # remove lost pulses:
                 for j in range(c):
-                    self.pulses[k,0] = l
-                    k += 1
+                    if (np.abs(self.pulses[k+j,2] - tp) > max_di and
+                        np.abs(self.pulses[k+j,2] - tt) > max_di and
+                        np.abs(self.pulses[k+j,3] - tp) > max_di and
+                        np.abs(self.pulses[k+j,3] - tt) > max_di):
+                        self.pulses[k+j,0] = -1
+                        channel_counts[self.pulses[k+j,1]] -= 1
+                    else:
+                        self.pulses[k+j,0] = ll
+                # remove remaining multiple peaks per channel:
+                for dc in np.where(channel_counts > 1)[0]:
+                    idx = np.where(self.pulses[k:k+c,1] == dc)[0]
+                    heights = self.data[self.pulses[k:k+c,:][idx,2],dc] - \
+                        self.data[self.pulses[k:k+c,:][idx,3],dc]
+                    for i in range(len(idx)):
+                        if i != np.argmax(heights):
+                            channel_counts[self.pulses[k+idx[i],1]] -= 1
+                            self.pulses[k+idx[i],0] = -1
+                k += c
             self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
             # clustering:
             #print(self.pulses[:30,:])
-            self.pulse_times = []
             fishes = []
             recent = []
             min_dists = []
@@ -125,7 +165,7 @@ class SignalPlot:
                 else:
                     dists = [np.sqrt(np.mean((fishes[ll] - heights)**2))
                              for ll, tt in recent]
-                    thresh = 0.03
+                    thresh = 0.03      # TODO parameter
                     # not so good:
                     #sel = heights > 0.0
                     #dists = [np.mean(np.abs(fishes[ll][sel] - heights[sel])/(0.5*(fishes[ll][sel] + heights[sel])))
@@ -222,7 +262,6 @@ class SignalPlot:
 
     def plot_pulses(self, axs, plot=True, tfac=1.0):
         k = 0
-        colors = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
         for l in np.unique(self.pulses[:,0]):
             pulses = self.pulses[self.pulses[:,0] == l,:]
             for t in range(self.traces):
@@ -230,18 +269,19 @@ class SignalPlot:
                 p = pulses[pulses[:,1] == c,2]
                 if plot or k >= len(self.pulse_artist):
                     pa, = axs[t].plot(tfac*p/self.samplerate,
-                                      self.data[p,c],
-                                      'o', color=colors[l%len(colors)])
+                                      self.data[p,c], 'o',
+                                      color=self.pulse_colors[l%len(self.pulse_colors)])
                     if not plot:
                         self.pulse_artist.append(pa)
                 else:
                     self.pulse_artist[k].set_data(tfac*p/self.samplerate,
                                                   self.data[p,c])
                 k += 1
-            pt = self.pulse_times[l]/self.samplerate
-            if len(pt) > 10:
-                axs[-1].plot(tfac*pt[:-1], 1.0/np.diff(pt),
-                             '-o', color=colors[l%len(colors)])
+            if l < len(self.pulse_times):
+                pt = self.pulse_times[l]/self.samplerate
+                if len(pt) > 10:
+                    axs[-1].plot(tfac*pt[:-1], 1.0/np.diff(pt), '-o',
+                                 color=self.pulse_colors[l%len(self.pulse_colors)])
 
     def update_plots(self):
         t0 = int(np.round(self.toffset * self.samplerate))
