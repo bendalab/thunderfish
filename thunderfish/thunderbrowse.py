@@ -151,7 +151,7 @@ class SignalPlot:
                     self.data[self.pulses[j:k,2],self.pulses[j:k,1]] - \
                     self.data[self.pulses[j:k,3],self.pulses[j:k,1]]
                 h_idx = np.argsort(heights)
-                heights[h_idx[:-3]] = 0.0    # dist for 3 largest only
+                heights[h_idx[:-4]] = 0.0    # dist for 4 largest only
                 i = np.where(self.pulses[j:k,1] == h_idx[-1])[0][0]
                 t = self.pulses[j+i,2]
                 if len(fishes) == 0:
@@ -168,6 +168,8 @@ class SignalPlot:
                                         for ll, tt, hh in recent])
                     dists = np.array([np.sqrt(np.mean((hh - heights)**2))
                                       for ll, tt, hh in recent])
+                    overlaps = np.array([np.sum((hh > 0) & (heights > 0))
+                                         for ll, tt, hh in recent])
                     thresh = 0.03      # absolute root mean square
                     # not so good:
                     #dists = [np.sqrt(np.mean((hh - heights)**2)/np.mean(heights**2))
@@ -184,7 +186,8 @@ class SignalPlot:
                     min_dist_idx = np.argmin(dists)
                     min_dists.append(dists[min_dist_idx])
                     #print(dists[min_dist_idx])
-                    if dists[min_dist_idx] < thresh:
+                    if dists[min_dist_idx] < thresh and \
+                       overlaps[min_dist_idx] >= 2:
                         l = recent[min_dist_idx][0]
                         self.pulses[j:k,0] = l
                         fishes[l] = heights
