@@ -250,7 +250,7 @@ class SignalPlot:
         #    self.axs[t].xaxis.set_major_formatter(plt.NullFormatter())
         if len(self.pulses) > 0:
             self.axs[-1].set_ylim(0, self.fmax)
-            self.axs[-1].set_ylabel('Freq [Hz]')
+            self.axs[-1].set_ylabel('IP freq [Hz]')
         self.axs[-1].set_xlabel('Time [s]')
         ht = self.axs[0].text(0.98, 0.05, '(ctrl+) page and arrow up, down, home, end: scroll', ha='right',
                            transform=self.axs[0].transAxes)
@@ -532,7 +532,7 @@ class SignalPlot:
             axs[t].set_ylim(self.ymin, self.ymax)
             axs[t].set_ylabel(f'C-{c+1} [{self.unit}]')
         if len(self.pulses) > 0:
-            axs[-1].set_ylabel('Freq [Hz]')
+            axs[-1].set_ylabel('IP freq [Hz]')
             axs[-1].set_ylim(0.0, self.fmax)
         #for t in range(self.traces-1):
         #    axs[t].xaxis.set_major_formatter(plt.NullFormatter())
