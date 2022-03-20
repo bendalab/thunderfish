@@ -99,7 +99,7 @@ class SignalPlot:
                         tt = self.pulses[k+c,3]
                         height = height_kc
                 # all pulses too small:
-                if height < 0.05:    # TODO parameter
+                if height < 0.04:    # TODO parameter
                     self.pulses[k:k+c,0] = -1
                     k += c
                     continue
@@ -133,7 +133,6 @@ class SignalPlot:
             self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
             # clustering:
             #print(self.pulses[:30,:])
-            fishes = []
             recent = []
             min_dists = []
             k = 0
@@ -154,23 +153,22 @@ class SignalPlot:
                 heights[h_idx[:-4]] = 0.0    # dist for 4 largest only
                 i = np.where(self.pulses[j:k,1] == h_idx[-1])[0][0]
                 t = self.pulses[j+i,2]
-                if len(fishes) == 0:
-                    l = len(fishes)
-                    self.pulses[j:k,0] = l
-                    fishes.append(heights)
-                    recent.append([l, self.pulses[j,2], heights])
-                    self.pulse_times.append([t])
+                if len(self.pulse_times) == 0:
+                    label = len(self.pulse_times)
+                    self.pulse_times.append([])
                 else:
                     ipis =  np.array([(self.pulses[j,2] - tt)/self.samplerate
                                       for ll, tt, hh in recent])
                     delta_h = np.array([np.abs(np.max(hh) -
                                                np.max(heights))/np.max(hh)
                                         for ll, tt, hh in recent])
-                    dists = np.array([np.sqrt(np.mean((hh - heights)**2))
-                                      for ll, tt, hh in recent])
                     overlaps = np.array([np.sum((hh > 0) & (heights > 0))
                                          for ll, tt, hh in recent])
+                    # absolute root mean square
+                    dists = np.array([np.sqrt(np.mean((hh - heights)**2))
+                                      for ll, tt, hh in recent])
                     thresh = 0.03      # absolute root mean square
+                    thresh = 0.02
                     # not so good:
                     #dists = [np.sqrt(np.mean((hh - heights)**2)/np.mean(heights**2))
                     #         for ll, tt, hh in recent]
@@ -188,25 +186,33 @@ class SignalPlot:
                     #print(dists[min_dist_idx])
                     if dists[min_dist_idx] < thresh and \
                        overlaps[min_dist_idx] >= 2:
-                        l = recent[min_dist_idx][0]
-                        self.pulses[j:k,0] = l
-                        fishes[l] = heights
-                        recent[min_dist_idx][1] = self.pulses[j,2]
-                        recent[min_dist_idx][2] = heights
-                        self.pulse_times[l].append(t)
+                        label = recent[min_dist_idx][0]
                     else:
-                        l = len(fishes)
-                        self.pulses[j:k,0] = l
-                        fishes.append(heights)
-                        recent.append([l, self.pulses[j,2], heights])
-                        self.pulse_times.append([t])
+                        label = len(self.pulse_times)
+                        self.pulse_times.append([])
+                self.pulses[j:k,0] = label
+                self.pulse_times[label].append(t)
+                recent.append([label, self.pulses[j,2], heights])
                 # remove old fish:
                 for i, (ll, tt, hh) in enumerate(recent):
-                    if (self.pulses[j,2] - tt)/self.samplerate > 1.0:
-                        del recent[i]
+                    # TODO: make parameter:
+                    if (self.pulses[j,2] - tt)/self.samplerate <= 1.0:
+                        recent = recent[i:]
                         break
+                # only keep n pulses per label:
+                lc = 0
+                for i in reversed(range(len(recent))):
+                    if recent[i][0] == label:
+                        lc += 1
+                        if lc > 3:
+                            del recent[i]
+                            break
             for k in range(len(self.pulse_times)):
                 self.pulse_times[k] = np.array(self.pulse_times[k])
+            # report:
+            print(f'found {len(self.pulse_times)} fish:')
+            for k in range(len(self.pulse_times)):
+                print(f'{k:3d}: {len(self.pulse_times[k]):5d} pulses')
             #plt.hist(min_dists, 100)
             #plt.show()
             
@@ -458,7 +464,7 @@ class SignalPlot:
         elif event.key in 'S':
             self.save_segment()
         elif event.key in 'w':
-            self.plot_waveform()
+            self.plot_traces()
 
     def play_segment(self):
         t0 = int(np.round(self.toffset * self.samplerate))
@@ -487,13 +493,14 @@ class SignalPlot:
                         self.data[t0:t1,self.show_channels], self.samplerate)
         print('saved segment to: ' , segment_filename)
 
-    def plot_waveform(self):
+    def plot_traces(self):
         splts = self.traces
         if len(self.pulses) > 0:
             splts += 1
-        fig, axs = plt.subplots(splts, 1, squeeze=False, sharex=True)
+        fig, axs = plt.subplots(splts, 1, squeeze=False, sharex=True,
+                                figsize=(15, 9))
         axs = axs.flat
-        fig.subplots_adjust(left=0.12, right=0.98, bottom=0.1, top=0.95,
+        fig.subplots_adjust(left=0.06, right=0.99, bottom=0.05, top=0.97,
                             hspace=0)
         name = self.filename.split('.')[0]
         figfile = f'{name}-{self.toffset:.4g}s-traces.png'
@@ -526,9 +533,10 @@ class SignalPlot:
             axs[t].set_ylabel(f'C-{c+1} [{self.unit}]')
         if len(self.pulses) > 0:
             axs[-1].set_ylabel('Freq [Hz]')
+            axs[-1].set_ylim(0.0, self.fmax)
         #for t in range(self.traces-1):
         #    axs[t].xaxis.set_major_formatter(plt.NullFormatter())
-        fig.savefig(figfile)
+        fig.savefig(figfile, dpi=200)
         plt.close(fig)
         print('saved waveform figure to', figfile)
         
