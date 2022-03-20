@@ -69,7 +69,7 @@ class SignalPlot:
                 all_pulses = np.vstack((all_pulses, pulses))
             self.pulses = all_pulses[np.argsort(all_pulses[:,2]),:]
             # grouping over channels:
-            # check 1057: 0.132, 0.28, 0.37, 0.58
+            # check 1057: 0.132, 0.28, 0.37, 0.58, 35.000ff!!!
             max_di = int(0.0002*self.samplerate)   # TODO: parameter
             l = -1
             k = 0
@@ -99,7 +99,7 @@ class SignalPlot:
                         tt = self.pulses[k+c,3]
                         height = height_kc
                 # all pulses too small:
-                if height < 0.02:    # TODO parameter
+                if height < 0.05:    # TODO parameter
                     self.pulses[k:k+c,0] = -1
                     k += c
                     continue
@@ -142,8 +142,7 @@ class SignalPlot:
                 for c in range(self.channels):
                     k += 1
                     if k >= len(self.pulses) or \
-                       self.pulses[k,0] != self.pulses[j,0] or \
-                       self.pulses[k,2] - self.pulses[j,2] > max_di:
+                       self.pulses[k,0] != self.pulses[j,0]:
                         break
                 #print()
                 #print(self.pulses[j:k,:])
@@ -163,16 +162,25 @@ class SignalPlot:
                     recent.append([l, self.pulses[j,2]])
                     self.pulse_times.append([t])
                 else:
-                    dists = [np.sqrt(np.mean((fishes[ll] - heights)**2))
-                             for ll, tt in recent]
-                    thresh = 0.03      # TODO parameter
+                    delta_h = np.array([np.abs(np.max(fishes[ll]) -
+                                               np.max(heights))/np.max(heights)
+                                        for ll, tt in recent])
+                    dists = np.array([np.sqrt(np.mean((fishes[ll] - heights)**2))
+                                      for ll, tt in recent])
+                    thresh = 0.03      # absolute root mean square
+                    # not so good:
+                    #dists = [np.sqrt(np.mean((fishes[ll] - heights)**2)/np.mean(heights**2))
+                    #         for ll, tt in recent]
+                    #thresh = 0.3
                     # not so good:
                     #sel = heights > 0.0
                     #dists = [np.mean(np.abs(fishes[ll][sel] - heights[sel])/(0.5*(fishes[ll][sel] + heights[sel])))
                     #         for ll, tt in recent]
                     # thresh = 0.7
+                    #dists[delta_h > 0.4] = np.max(dists)
                     min_dist_idx = np.argmin(dists)
                     min_dists.append(dists[min_dist_idx])
+                    #print(dists[min_dist_idx])
                     if dists[min_dist_idx] < thresh:
                         l = recent[min_dist_idx][0]
                         self.pulses[j:k,0] = l
