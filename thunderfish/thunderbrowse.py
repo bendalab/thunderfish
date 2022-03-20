@@ -154,30 +154,29 @@ class SignalPlot:
                 heights[h_idx[:-3]] = 0.0    # dist for 3 largest only
                 i = np.where(self.pulses[j:k,1] == h_idx[-1])[0][0]
                 t = self.pulses[j+i,2]
-                #print(heights)
                 if len(fishes) == 0:
                     l = len(fishes)
                     self.pulses[j:k,0] = l
                     fishes.append(heights)
-                    recent.append([l, self.pulses[j,2]])
+                    recent.append([l, self.pulses[j,2], heights])
                     self.pulse_times.append([t])
                 else:
                     ipis =  np.array([(self.pulses[j,2] - tt)/self.samplerate
-                                      for ll, tt in recent])
-                    delta_h = np.array([np.abs(np.max(fishes[ll]) -
-                                               np.max(heights))/np.max(heights)
-                                        for ll, tt in recent])
-                    dists = np.array([np.sqrt(np.mean((fishes[ll] - heights)**2))
-                                      for ll, tt in recent])
+                                      for ll, tt, hh in recent])
+                    delta_h = np.array([np.abs(np.max(hh) -
+                                               np.max(heights))/np.max(hh)
+                                        for ll, tt, hh in recent])
+                    dists = np.array([np.sqrt(np.mean((hh - heights)**2))
+                                      for ll, tt, hh in recent])
                     thresh = 0.03      # absolute root mean square
                     # not so good:
-                    #dists = [np.sqrt(np.mean((fishes[ll] - heights)**2)/np.mean(heights**2))
-                    #         for ll, tt in recent]
+                    #dists = [np.sqrt(np.mean((hh - heights)**2)/np.mean(heights**2))
+                    #         for ll, tt, hh in recent]
                     #thresh = 0.3
                     # not so good:
                     #sel = heights > 0.0
-                    #dists = [np.mean(np.abs(fishes[ll][sel] - heights[sel])/(0.5*(fishes[ll][sel] + heights[sel])))
-                    #         for ll, tt in recent]
+                    #dists = [np.mean(np.abs(hh[sel] - heights[sel])/(0.5*(hh[sel] + heights[sel])))
+                    #         for ll, tt, hh in recent]
                     # thresh = 0.7
                     #dists[delta_h > 0.4] = np.max(dists)
                     # ensure minimum IP distance:
@@ -190,14 +189,16 @@ class SignalPlot:
                         self.pulses[j:k,0] = l
                         fishes[l] = heights
                         recent[min_dist_idx][1] = self.pulses[j,2]
+                        recent[min_dist_idx][2] = heights
                         self.pulse_times[l].append(t)
                     else:
                         l = len(fishes)
                         self.pulses[j:k,0] = l
                         fishes.append(heights)
-                        recent.append([l, self.pulses[j,2]])
+                        recent.append([l, self.pulses[j,2], heights])
                         self.pulse_times.append([t])
-                for i, (ll, tt) in enumerate(recent):
+                # remove old fish:
+                for i, (ll, tt, hh) in enumerate(recent):
                     if (self.pulses[j,2] - tt)/self.samplerate > 1.0:
                         del recent[i]
                         break
