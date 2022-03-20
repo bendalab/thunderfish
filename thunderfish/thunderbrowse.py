@@ -69,7 +69,7 @@ class SignalPlot:
                 all_pulses = np.vstack((all_pulses, pulses))
             self.pulses = all_pulses[np.argsort(all_pulses[:,2]),:]
             # grouping over channels:
-            # check 1057: 0.132, 0.28, 0.37, 0.58, 35.000ff!!!
+            # check 1057: 0.132, 0.28, 0.37, 0.58
             max_di = int(0.0002*self.samplerate)   # TODO: parameter
             l = -1
             k = 0
@@ -162,6 +162,8 @@ class SignalPlot:
                     recent.append([l, self.pulses[j,2]])
                     self.pulse_times.append([t])
                 else:
+                    ipis =  np.array([(self.pulses[j,2] - tt)/self.samplerate
+                                      for ll, tt in recent])
                     delta_h = np.array([np.abs(np.max(fishes[ll]) -
                                                np.max(heights))/np.max(heights)
                                         for ll, tt in recent])
@@ -178,6 +180,8 @@ class SignalPlot:
                     #         for ll, tt in recent]
                     # thresh = 0.7
                     #dists[delta_h > 0.4] = np.max(dists)
+                    # ensure minimum IP distance:
+                    dists[1/ipis > 300.0] = 2*np.max(dists)  # TODO: make parameter
                     min_dist_idx = np.argmin(dists)
                     min_dists.append(dists[min_dist_idx])
                     #print(dists[min_dist_idx])
@@ -201,7 +205,7 @@ class SignalPlot:
                 self.pulse_times[k] = np.array(self.pulse_times[k])
             #plt.hist(min_dists, 100)
             #plt.show()
-                    
+            
         # audio output:
         self.audio = PlayAudio()
         
