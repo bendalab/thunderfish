@@ -30,6 +30,7 @@ class SignalPlot:
         self.ymax = +1.0
         self.fmax = 100.0
         self.pulses = np.zeros((0, 3), dtype=np.int)
+        self.fishes = []
         self.pulse_times = []
         if len(show_channels) == 0:
             self.show_channels = np.arange(self.channels)
@@ -133,8 +134,8 @@ class SignalPlot:
             self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
             # clustering:
             #print(self.pulses[:30,:])
-            recent = []
             min_dists = []
+            recent = []
             k = 0
             while k < len(self.pulses):
                 j = k
@@ -157,28 +158,23 @@ class SignalPlot:
                     label = len(self.pulse_times)
                     self.pulse_times.append([])
                 else:
-                    ipis =  np.array([(self.pulses[j,2] - tt)/self.samplerate
-                                      for ll, tt, hh in recent])
+                    # compute metrics of recent fishes:
+                    # distance between pulses:
+                    ipis = np.array([(self.pulses[j,2] - tt)/self.samplerate
+                                     for ll, tt, hh in recent])
+                    # relative difference in maximum height:
                     delta_h = np.array([np.abs(np.max(hh) -
                                                np.max(heights))/np.max(hh)
                                         for ll, tt, hh in recent])
+                    # number of overlapping meaningful heights:
                     overlaps = np.array([np.sum((hh > 0) & (heights > 0))
                                          for ll, tt, hh in recent])
-                    # absolute root mean square
+                    # absolute root mean square:
                     dists = np.array([np.sqrt(np.mean((hh - heights)**2))
                                       for ll, tt, hh in recent])
-                    thresh = 0.03      # absolute root mean square
+                    # check distance:
+                    thresh = 0.03
                     thresh = 0.02
-                    # not so good:
-                    #dists = [np.sqrt(np.mean((hh - heights)**2)/np.mean(heights**2))
-                    #         for ll, tt, hh in recent]
-                    #thresh = 0.3
-                    # not so good:
-                    #sel = heights > 0.0
-                    #dists = [np.mean(np.abs(hh[sel] - heights[sel])/(0.5*(hh[sel] + heights[sel])))
-                    #         for ll, tt, hh in recent]
-                    # thresh = 0.7
-                    #dists[delta_h > 0.4] = np.max(dists)
                     # ensure minimum IP distance:
                     dists[1/ipis > 300.0] = 2*np.max(dists)  # TODO: make parameter
                     min_dist_idx = np.argmin(dists)
@@ -192,6 +188,7 @@ class SignalPlot:
                         self.pulse_times.append([])
                 self.pulses[j:k,0] = label
                 self.pulse_times[label].append(t)
+                self.fishes.append([label, self.pulses[j,2], heights])
                 recent.append([label, self.pulses[j,2], heights])
                 # remove old fish:
                 for i, (ll, tt, hh) in enumerate(recent):
@@ -199,14 +196,11 @@ class SignalPlot:
                     if (self.pulses[j,2] - tt)/self.samplerate <= 1.0:
                         recent = recent[i:]
                         break
-                # only keep n pulses per label:
-                lc = 0
-                for i in reversed(range(len(recent))):
-                    if recent[i][0] == label:
-                        lc += 1
-                        if lc > 3:
-                            del recent[i]
-                            break
+                # only consider the n most recent pulses of a fish:
+                n = 3
+                labels = np.array([ll for ll, tt, hh in recent])
+                if np.sum(labels == label) > n:
+                    del recent[np.where(labels == label)[0][0]]
             for k in range(len(self.pulse_times)):
                 self.pulse_times[k] = np.array(self.pulse_times[k])
             # report:
@@ -215,6 +209,16 @@ class SignalPlot:
                 print(f'{k:3d}: {len(self.pulse_times[k]):5d} pulses')
             #plt.hist(min_dists, 100)
             #plt.show()
+            nn = np.array([(k, len(self.pulse_times[k]))
+                           for k in range(len(self.pulse_times))])
+            fig, axs = plt.subplots(5, 5, constrained_layout=True)
+            ni = np.argsort(nn[:,1])              # largest cluster
+            ln = np.sort(nn[ni[-axs.size:],0]) # sort by label
+            for l, ax in zip(ln, axs.flat):
+                h = np.array([hh for ll, tt, hh in self.fishes if ll == l])
+                ax.plot(h.T, 'o-', ms=2, lw=0.5,
+                        color=self.pulse_colors[l%len(self.pulse_colors)])
+                ax.text(0.05, 0.9, f'label: {l}', transform=ax.transAxes)
             
         # audio output:
         self.audio = PlayAudio()
