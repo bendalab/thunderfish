@@ -207,13 +207,16 @@ class SignalPlot:
             print(f'found {len(self.pulse_times)} fish:')
             for k in range(len(self.pulse_times)):
                 print(f'{k:3d}: {len(self.pulse_times[k]):5d} pulses')
+            ## plot histogtram of distances:
             #plt.hist(min_dists, 100)
             #plt.show()
+            ## plot features:
             nn = np.array([(k, len(self.pulse_times[k]))
                            for k in range(len(self.pulse_times))])
-            fig, axs = plt.subplots(5, 5, constrained_layout=True)
-            ni = np.argsort(nn[:,1])              # largest cluster
-            ln = np.sort(nn[ni[-axs.size:],0]) # sort by label
+            fig, axs = plt.subplots(5, 5, figsize=(15, 9),
+                                    constrained_layout=True)
+            ni = np.argsort(nn[:,1])           # largest cluster ...
+            ln = np.sort(nn[ni[-axs.size:],0]) # ... sort by label
             for l, ax in zip(ln, axs.flat):
                 h = np.array([hh for ll, tt, hh in self.fishes if ll == l])
                 ax.plot(h.T, 'o-', ms=2, lw=0.5,
@@ -418,7 +421,7 @@ class SignalPlot:
             t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
             min = np.min(self.data[t0:t1,self.show_channels])
             max = np.max(self.data[t0:t1,self.show_channels])
-            h = 0.5 * (max - min)
+            h = 0.53 * (max - min)
             c = 0.5 * (max + min)
             self.ymin = c - h
             self.ymax = c + h
