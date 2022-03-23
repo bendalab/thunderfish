@@ -32,6 +32,7 @@ class SignalPlot:
         self.pulses = np.zeros((0, 3), dtype=np.int)
         self.fishes = []
         self.pulse_times = []
+        self.pulse_gids = []
         if len(show_channels) == 0:
             self.show_channels = np.arange(self.channels)
         else:
@@ -39,8 +40,9 @@ class SignalPlot:
         self.traces = len(self.show_channels)
         self.trace_artist = [None] * self.traces
         self.pulse_artist = []
-        self.marker_artist = [None] * self.traces
+        self.marker_artist = [None] * (self.traces + 1)
         self.ipis_artist = []
+        self.ipis_labels = []
         self.pulse_colors = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
         self.help = False
         self.helptext = []
@@ -142,10 +144,11 @@ class SignalPlot:
             while k < len(self.pulses):
                 # select pulse group:
                 j = k
+                gid = self.pulses[j,1]
                 for c in range(self.channels):
                     k += 1
                     if k >= len(self.pulses) or \
-                       self.pulses[k,1] != self.pulses[j,1]:
+                       self.pulses[k,1] != gid:
                         break
                 heights = np.zeros(self.channels)
                 heights[self.pulses[j:k,2]] = \
@@ -158,6 +161,7 @@ class SignalPlot:
                 if len(self.pulse_times) == 0:
                     label = len(self.pulse_times)
                     self.pulse_times.append([])
+                    self.pulse_gids.append([])
                 else:
                     # compute metrics of recent fishes:
                     # distance between pulses:
@@ -187,8 +191,10 @@ class SignalPlot:
                     else:
                         label = len(self.pulse_times)
                         self.pulse_times.append([])
+                        self.pulse_gids.append([])
                 self.pulses[j:k,0] = label
                 self.pulse_times[label].append(t)
+                self.pulse_gids[label].append(gid)
                 self.fishes.append([label, self.pulses[j,3], heights])
                 recent.append([label, self.pulses[j,3], heights])
                 # remove old fish:
@@ -298,7 +304,6 @@ class SignalPlot:
 
     def plot_pulses(self, axs, plot=True, tfac=1.0):
         pak = 0
-        iak = 0
         for l in self.labels:
             pulses = self.pulses[self.pulses[:,0] == l,:]
             for t in range(self.traces):
@@ -317,16 +322,17 @@ class SignalPlot:
             if l < len(self.pulse_times):
                 pt = self.pulse_times[l]/self.samplerate
                 if len(pt) > 10:
-                    if plot or iak >= len(self.ipis_artist):
+                    if plot or not l in self.ipis_labels:
                         pa, = axs[-1].plot(tfac*pt[:-1], 1.0/np.diff(pt),
                                            '-o', picker=5,
                                            color=self.pulse_colors[l%len(self.pulse_colors)])
                         if not plot:
                             self.ipis_artist.append(pa)
+                            self.ipis_labels.append(l)
                     else:
+                        iak = self.ipis_labels.index(l)
                         self.ipis_artist[iak].set_data(tfac*pt[:-1],
                                                        1.0/np.diff(pt))
-                    iak += 1
 
     def update_plots(self):
         t0 = int(np.round(self.toffset * self.samplerate))
@@ -351,18 +357,37 @@ class SignalPlot:
         self.fig.canvas.draw()
 
     def on_pick(self, event):
-        # index of artist:
+        # index of pulse artist:
         pk = -1
         for k, pa in enumerate(self.pulse_artist):
             if event.artist == pa:
                 pk = k
                 break
-        # find label and pulses of artist:
-        ll = self.labels[pk//self.traces]
-        cc = self.show_channels[pk % self.traces]
-        # mark pulse:
+        li = -1
+        pi = -1
+        if pk >= 0:
+            # find label and pulses of pulse artist:
+            ll = self.labels[pk//self.traces]
+            cc = self.show_channels[pk % self.traces]
+            pulses = self.pulses[self.pulses[:,0] == ll,:]
+            gid = pulses[pulses[:,2] == cc,1][event.ind[0]]
+            if ll in self.ipis_labels:
+                li = self.ipis_labels.index(ll)
+                pi = self.pulse_gids[ll].index(gid)
+        else:
+            ik = -1
+            for k, ia in enumerate(self.ipis_artist):
+                if event.artist == ia:
+                    ik = k
+                    break
+            if ik < 0:
+                return
+            li = ik
+            ll = self.ipis_labels[li]
+            pi = event.ind[0]
+            gid = self.pulse_gids[ll][pi]
+        # mark pulses:
         pulses = self.pulses[self.pulses[:,0] == ll,:]
-        gid = pulses[pulses[:,2] == cc,1][event.ind[0]]
         for t in range(self.traces):
             c = self.show_channels[t]
             pt = pulses[(pulses[:,2] == c) & (pulses[:,1] == gid),3]
@@ -377,9 +402,19 @@ class SignalPlot:
                                                    self.data[pt[0],c])
                     self.marker_artist[t].set_color(self.pulse_colors[ll%len(self.pulse_colors)])
             elif self.marker_artist[t] is not None:
-                self.marker_artist[t].remove()
-                del self.marker_artist[t]
-                self.marker_artist[t] = None
+                self.marker_artist[t].set_data([], [])
+        # mark ipi:
+        if pi >= 0:
+            pt0 = self.pulse_times[ll][pi]/self.samplerate
+            pt1 = self.pulse_times[ll][pi+1]/self.samplerate
+            pf = 1.0/(pt1-pt0)
+            if self.marker_artist[self.traces] is None:
+                pa, = self.axs[self.traces].plot(pt0, pf, 'o', ms=10,
+                                                 color=self.pulse_colors[ll%len(self.pulse_colors)])
+                self.marker_artist[self.traces] = pa
+            else:
+                self.marker_artist[self.traces].set_data(pt0, pf)
+                self.marker_artist[self.traces].set_color(self.pulse_colors[ll%len(self.pulse_colors)])
         self.fig.canvas.draw()
                 
 
