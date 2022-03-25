@@ -43,6 +43,8 @@ class SignalPlot:
         self.marker_artist = [None] * (self.traces + 1)
         self.ipis_artist = []
         self.ipis_labels = []
+        self.figf = None
+        self.axf = None
         self.pulse_colors = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
         self.help = False
         self.helptext = []
@@ -297,6 +299,8 @@ class SignalPlot:
         for ht in self.helptext:
             ht.set_visible(self.help)
         self.update_plots()
+        # feature plot:
+        self.figf, self.axf = plt.subplots()
         plt.show()
 
     def __del(self):
@@ -388,9 +392,10 @@ class SignalPlot:
             gid = self.pulse_gids[ll][pi]
         # mark pulses:
         pulses = self.pulses[self.pulses[:,0] == ll,:]
+        pulses = pulses[pulses[:,1] == gid,:]
         for t in range(self.traces):
             c = self.show_channels[t]
-            pt = pulses[(pulses[:,2] == c) & (pulses[:,1] == gid),3]
+            pt = pulses[pulses[:,2] == c,3]
             if len(pt) > 0:
                 if self.marker_artist[t] is None:
                     pa, = self.axs[t].plot(pt[0]/self.samplerate,
@@ -415,8 +420,16 @@ class SignalPlot:
             else:
                 self.marker_artist[self.traces].set_data(pt0, pf)
                 self.marker_artist[self.traces].set_color(self.pulse_colors[ll%len(self.pulse_colors)])
+        elif not self.marker_artist[self.traces] is None:
+            self.marker_artist[self.traces].set_data([], [])
         self.fig.canvas.draw()
-                
+        # show features:
+        heights = np.zeros(self.channels)
+        heights[pulses[:,2]] = \
+            self.data[pulses[:,3],pulses[:,2]] - \
+            self.data[pulses[:,4],pulses[:,2]]
+        self.axf.plot(heights, color=self.pulse_colors[ll%len(self.pulse_colors)])
+        self.figf.canvas.draw()
 
     def resize(self, event):
         # print('resized', event.width, event.height)
@@ -516,8 +529,8 @@ class SignalPlot:
             t0 = int(np.round(self.toffset * self.samplerate))
             t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
             for t in range(self.traces):
-                min = np.min(self.data[t0:t1,t])
-                max = np.max(self.data[t0:t1,t])
+                min = np.min(self.data[t0:t1,self.show_channels[t]])
+                max = np.max(self.data[t0:t1,self.show_channels[t]])
                 h = 0.53 * (max - min)
                 c = 0.5 * (max + min)
                 self.ymin[t] = c - h
