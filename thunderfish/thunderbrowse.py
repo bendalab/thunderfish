@@ -26,9 +26,6 @@ class SignalPlot:
         self.twindow = 10.0
         if self.twindow > self.tmax:
             self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
-        self.ymin = -1.0
-        self.ymax = +1.0
-        self.fmax = 100.0
         self.pulses = np.zeros((0, 3), dtype=np.int)
         self.fishes = []
         self.pulse_times = []
@@ -38,6 +35,9 @@ class SignalPlot:
         else:
             self.show_channels = np.array(show_channels)
         self.traces = len(self.show_channels)
+        self.ymin = -1.0 * np.ones(self.traces)
+        self.ymax = +1.0 * np.ones(self.traces)
+        self.fmax = 100.0
         self.trace_artist = [None] * self.traces
         self.pulse_artist = []
         self.marker_artist = [None] * (self.traces + 1)
@@ -275,13 +275,13 @@ class SignalPlot:
         ht = self.axs[0].text(0.98, 0.05, '(ctrl+) page and arrow up, down, home, end: scroll', ha='right',
                            transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.1, '+, -, X, x: zoom in/out', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.1, '+, -, X, x: zoom time in/out', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.2, 'y,Y,v,V: zoom amplitudes', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.2, 'y, Y, v, V, ctrl+v: zoom amplitudes out/in/max/default/max per trace', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
         ht = self.axs[0].text(0.98, 0.3, 'i, I: zoom IPI frequency in/out', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.4, 'p,P: play audio (display,all)', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.4, 'p, P: play audio (display, all)', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
         ht = self.axs[0].text(0.98, 0.5, 'f: full screen', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
@@ -352,7 +352,7 @@ class SignalPlot:
                 self.trace_artist[t].set_markersize(3)
             else:
                 self.trace_artist[t].set_marker('None')
-            self.axs[t].set_ylim(self.ymin, self.ymax)
+            self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
         self.plot_pulses(self.axs, False)
         self.fig.canvas.draw()
 
@@ -485,20 +485,20 @@ class SignalPlot:
                 self.toffset = toffs
                 self.update_plots()
         elif event.key == 'y':
-            h = self.ymax - self.ymin
-            c = 0.5 * (self.ymax + self.ymin)
-            self.ymin = c - h
-            self.ymax = c + h
             for t in range(self.traces):
-                self.axs[t].set_ylim(self.ymin, self.ymax)
+                h = self.ymax[t] - self.ymin[t]
+                c = 0.5 * (self.ymax[t] + self.ymin[t])
+                self.ymin[t] = c - h
+                self.ymax[t] = c + h
+                self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
             self.fig.canvas.draw()
         elif event.key == 'Y':
-            h = 0.25 * (self.ymax - self.ymin)
-            c = 0.5 * (self.ymax + self.ymin)
-            self.ymin = c - h
-            self.ymax = c + h
             for t in range(self.traces):
-                self.axs[t].set_ylim(self.ymin, self.ymax)
+                h = 0.25 * (self.ymax[t] - self.ymin[t])
+                c = 0.5 * (self.ymax[t] + self.ymin[t])
+                self.ymin[t] = c - h
+                self.ymax[t] = c + h
+                self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
             self.fig.canvas.draw()
         elif event.key == 'v':
             t0 = int(np.round(self.toffset * self.samplerate))
@@ -507,23 +507,35 @@ class SignalPlot:
             max = np.max(self.data[t0:t1,self.show_channels])
             h = 0.53 * (max - min)
             c = 0.5 * (max + min)
-            self.ymin = c - h
-            self.ymax = c + h
+            self.ymin[:] = c - h
+            self.ymax[:] = c + h
             for t in range(self.traces):
-                self.axs[t].set_ylim(self.ymin, self.ymax)
+                self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
+            self.fig.canvas.draw()
+        elif event.key == 'ctrl+v':
+            t0 = int(np.round(self.toffset * self.samplerate))
+            t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+            for t in range(self.traces):
+                min = np.min(self.data[t0:t1,t])
+                max = np.max(self.data[t0:t1,t])
+                h = 0.53 * (max - min)
+                c = 0.5 * (max + min)
+                self.ymin[t] = c - h
+                self.ymax[t] = c + h
+                self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
             self.fig.canvas.draw()
         elif event.key == 'V':
-            self.ymin = -1.0
-            self.ymax = +1.0
+            self.ymin[:] = -1.0
+            self.ymax[:] = +1.0
             for t in range(self.traces):
-                self.axs[t].set_ylim(self.ymin, self.ymax)
+                self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
             self.fig.canvas.draw()
         elif event.key == 'c':
-            dy = self.ymax - self.ymin
-            self.ymin = -dy/2
-            self.ymax = +dy/2
             for t in range(self.traces):
-                self.axs[t].set_ylim(self.ymin, self.ymax)
+                dy = self.ymax[t] - self.ymin[t]
+                self.ymin[t] = -dy/2
+                self.ymax[t] = +dy/2
+                self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
             self.fig.canvas.draw()
         elif event.key == 'i':
             if len(self.pulses) > 0:
@@ -620,7 +632,7 @@ class SignalPlot:
             self.plot_pulses(axs, True, 1.0)
         for t in range(self.traces):
             c = self.show_channels[t]
-            axs[t].set_ylim(self.ymin, self.ymax)
+            axs[t].set_ylim(self.ymin[t], self.ymax[t])
             axs[t].set_ylabel(f'C-{c+1} [{self.unit}]')
         if len(self.pulses) > 0:
             axs[-1].set_ylabel('IP freq [Hz]')
