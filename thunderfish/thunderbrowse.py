@@ -157,9 +157,6 @@ class SignalPlot:
                 heights[self.pulses[j:k,2]] = \
                     self.data[self.pulses[j:k,3],self.pulses[j:k,2]] - \
                     self.data[self.pulses[j:k,4],self.pulses[j:k,2]]
-                #h_idx = np.argsort(heights)
-                #heights[h_idx[:-4]] = 0.0    # dist for 4 largest only
-                heights[heights < 0.005] = 0.0  # take no-noise pulses only
                 # time of largest pulse:
                 pulse_time = self.pulses[j+np.argmax(heights[self.pulses[j:k,2]]),3]
                 # assign to cluster:
@@ -169,28 +166,18 @@ class SignalPlot:
                     self.pulse_gids.append([])
                 else:
                     # compute metrics of recent fishes:
+                    # mean relative height difference:
+                    dists = np.array([np.mean(np.abs(hh - heights)/np.max(hh))
+                                        for ll, tt, hh in recent])
+                    thresh = 0.1   # TODO: make parameter
                     # distance between pulses:
                     ipis = np.array([(self.pulses[j,3] - tt)/self.samplerate
                                      for ll, tt, hh in recent])
-                    # mean relative height difference:
-                    delta_h = np.array([np.abs(hh - heights)/np.max(hh)
-                                        for ll, tt, hh in recent])
-                    dists = np.mean(delta_h, 1)
-                    thresh = 0.1
-                    # number of overlapping meaningful heights:
-                    overlaps = np.array([np.sum((hh > 0) & (heights > 0))
-                                         for ll, tt, hh in recent])
-                    # absolute root mean square:
-                    #dists = np.array([np.sqrt(np.mean((hh - heights)**2))
-                    #                  for ll, tt, hh in recent])
-                    #thresh = 0.02
                     # ensure minimum IP distance:
                     dists[1/ipis > 300.0] = 2*np.max(dists)  # TODO: make parameter
-                    ## dists only for sufficent overlap:
-                    #dists[overlaps < 2] =  2*np.max(dists)
+                    # minimum ditance:
                     min_dist_idx = np.argmin(dists)
                     min_dists.append(dists[min_dist_idx])
-                    #print(dists[min_dist_idx])
                     if dists[min_dist_idx] < thresh:
                         label = recent[min_dist_idx][0]
                     else:
@@ -205,7 +192,7 @@ class SignalPlot:
                 # remove old fish:
                 for i, (ll, tt, hh) in enumerate(recent):
                     # TODO: make parameter:
-                    if (self.pulses[j,3] - tt)/self.samplerate <= 1.0:
+                    if (self.pulses[j,3] - tt)/self.samplerate <= 0.2:
                         recent = recent[i:]
                         break
                 # only consider the n most recent pulses of a fish:
@@ -324,6 +311,8 @@ class SignalPlot:
                 else:
                     self.pulse_artist[pak].set_data(tfac*p/self.samplerate,
                                                     self.data[p,c])
+                if len(p) > 1 and len(p) <= 10:
+                    self.pulse_artist[pak].set_markersize(15)
                 pak += 1
             return pak
 
