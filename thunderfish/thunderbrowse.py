@@ -39,6 +39,7 @@ class SignalPlot:
         self.ymax = +1.0 * np.ones(self.traces)
         self.fmax = 100.0
         self.trace_artist = [None] * self.traces
+        self.show_gid = False
         self.pulse_artist = []
         self.marker_artist = [None] * (self.traces + 1)
         self.ipis_artist = []
@@ -307,9 +308,8 @@ class SignalPlot:
         self.audio.close()
 
     def plot_pulses(self, axs, plot=True, tfac=1.0):
-        pak = 0
-        for l in self.labels:
-            pulses = self.pulses[self.pulses[:,0] == l,:]
+        
+        def plot_pulse_traces(pulses, pak):
             for t in range(self.traces):
                 c = self.show_channels[t]
                 p = pulses[pulses[:,2] == c,3]
@@ -323,6 +323,20 @@ class SignalPlot:
                     self.pulse_artist[pak].set_data(tfac*p/self.samplerate,
                                                     self.data[p,c])
                 pak += 1
+            return pak
+
+        # pulses:
+        pak = 0
+        if self.show_gid:
+            for g in range(len(self.pulse_colors)):
+                pulses = self.pulses[self.pulses[:,1] % len(self.pulse_colors) == g,:]
+                pak = plot_pulse_traces(pulses, pak)
+        else:
+            for l in self.labels:
+                pulses = self.pulses[self.pulses[:,0] == l,:]
+                pak = plot_pulse_traces(pulses, pak)
+        # ipis:
+        for l in self.labels:
             if l < len(self.pulse_times):
                 pt = self.pulse_times[l]/self.samplerate
                 if len(pt) > 10:
@@ -549,6 +563,10 @@ class SignalPlot:
                 self.ymin[t] = -dy/2
                 self.ymax[t] = +dy/2
                 self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
+            self.fig.canvas.draw()
+        elif event.key == 'g':
+            self.show_gid = not self.show_gid
+            self.plot_pulses(self.axs, False)
             self.fig.canvas.draw()
         elif event.key == 'i':
             if len(self.pulses) > 0:
