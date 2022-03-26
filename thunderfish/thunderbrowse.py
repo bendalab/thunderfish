@@ -157,10 +157,12 @@ class SignalPlot:
                 heights[self.pulses[j:k,2]] = \
                     self.data[self.pulses[j:k,3],self.pulses[j:k,2]] - \
                     self.data[self.pulses[j:k,4],self.pulses[j:k,2]]
-                h_idx = np.argsort(heights)
-                heights[h_idx[:-4]] = 0.0    # dist for 4 largest only
-                i = np.where(self.pulses[j:k,2] == h_idx[-1])[0][0]
-                t = self.pulses[j+i,3]
+                #h_idx = np.argsort(heights)
+                #heights[h_idx[:-4]] = 0.0    # dist for 4 largest only
+                heights[heights < 0.005] = 0.0  # take no-noise pulses only
+                # time of largest pulse:
+                pulse_time = self.pulses[j+np.argmax(heights[self.pulses[j:k,2]]),3]
+                # assign to cluster:
                 if len(self.pulse_times) == 0:
                     label = len(self.pulse_times)
                     self.pulse_times.append([])
@@ -170,33 +172,33 @@ class SignalPlot:
                     # distance between pulses:
                     ipis = np.array([(self.pulses[j,3] - tt)/self.samplerate
                                      for ll, tt, hh in recent])
-                    # relative difference in maximum height:
-                    delta_h = np.array([np.abs(np.max(hh) -
-                                               np.max(heights))/np.max(hh)
+                    # mean relative height difference:
+                    delta_h = np.array([np.abs(hh - heights)/np.max(hh)
                                         for ll, tt, hh in recent])
+                    dists = np.mean(delta_h, 1)
+                    thresh = 0.1
                     # number of overlapping meaningful heights:
                     overlaps = np.array([np.sum((hh > 0) & (heights > 0))
                                          for ll, tt, hh in recent])
                     # absolute root mean square:
-                    dists = np.array([np.sqrt(np.mean((hh - heights)**2))
-                                      for ll, tt, hh in recent])
-                    # check distance:
-                    thresh = 0.03
-                    thresh = 0.02
+                    #dists = np.array([np.sqrt(np.mean((hh - heights)**2))
+                    #                  for ll, tt, hh in recent])
+                    #thresh = 0.02
                     # ensure minimum IP distance:
                     dists[1/ipis > 300.0] = 2*np.max(dists)  # TODO: make parameter
+                    ## dists only for sufficent overlap:
+                    #dists[overlaps < 2] =  2*np.max(dists)
                     min_dist_idx = np.argmin(dists)
                     min_dists.append(dists[min_dist_idx])
                     #print(dists[min_dist_idx])
-                    if dists[min_dist_idx] < thresh and \
-                       overlaps[min_dist_idx] >= 2:
+                    if dists[min_dist_idx] < thresh:
                         label = recent[min_dist_idx][0]
                     else:
                         label = len(self.pulse_times)
                         self.pulse_times.append([])
                         self.pulse_gids.append([])
                 self.pulses[j:k,0] = label
-                self.pulse_times[label].append(t)
+                self.pulse_times[label].append(pulse_time)
                 self.pulse_gids[label].append(gid)
                 self.fishes.append([label, self.pulses[j,3], heights])
                 recent.append([label, self.pulses[j,3], heights])
@@ -280,7 +282,7 @@ class SignalPlot:
         self.helptext.append(ht)
         ht = self.axs[0].text(0.98, 0.1, '+, -, X, x: zoom time in/out', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
-        ht = self.axs[0].text(0.98, 0.2, 'y, Y, v, V, ctrl+v: zoom amplitudes out/in/max/default/max per trace', ha='right', transform=self.axs[0].transAxes)
+        ht = self.axs[0].text(0.98, 0.2, 'y, Y, v, V, ctrl+v, ctrl+V: zoom amplitudes out/in/max/default/max per trace/global max per trace', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
         ht = self.axs[0].text(0.98, 0.3, 'i, I: zoom IPI frequency in/out', ha='right', transform=self.axs[0].transAxes)
         self.helptext.append(ht)
@@ -423,6 +425,9 @@ class SignalPlot:
             elif self.marker_artist[t] is not None:
                 self.marker_artist[t].set_data([], [])
         # mark ipi:
+        pt0 = -1.0
+        pt1 = -1.0
+        pf = -1.0
         if pi >= 0:
             pt0 = self.pulse_times[ll][pi]/self.samplerate
             pt1 = self.pulse_times[ll][pi+1]/self.samplerate
@@ -443,6 +448,7 @@ class SignalPlot:
             self.data[pulses[:,3],pulses[:,2]] - \
             self.data[pulses[:,4],pulses[:,2]]
         self.axf.plot(heights, color=self.pulse_colors[ll%len(self.pulse_colors)])
+        print(f'label={ll:4d} gid={gid:5d} t={pt0:8.4f}s')
         self.figf.canvas.draw()
 
     def resize(self, event):
@@ -545,6 +551,16 @@ class SignalPlot:
             for t in range(self.traces):
                 min = np.min(self.data[t0:t1,self.show_channels[t]])
                 max = np.max(self.data[t0:t1,self.show_channels[t]])
+                h = 0.53 * (max - min)
+                c = 0.5 * (max + min)
+                self.ymin[t] = c - h
+                self.ymax[t] = c + h
+                self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
+            self.fig.canvas.draw()
+        elif event.key == 'ctrl+V':
+            for t in range(self.traces):
+                min = np.min(self.data[:,self.show_channels[t]])
+                max = np.max(self.data[:,self.show_channels[t]])
                 h = 0.53 * (max - min)
                 c = 0.5 * (max + min)
                 self.ymin[t] = c - h
