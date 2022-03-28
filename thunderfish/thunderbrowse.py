@@ -196,13 +196,76 @@ class SignalPlot:
                         recent = recent[i:]
                         break
                 # only consider the n most recent pulses of a fish:
-                n = 3
+                n = 5    # TODO make parameter
                 labels = np.array([ll for ll, tt, hh in recent])
                 if np.sum(labels == label) > n:
                     del recent[np.where(labels == label)[0][0]]
             # pulse times to arrays:
             for k in range(len(self.pulse_times)):
                 self.pulse_times[k] = np.array(self.pulse_times[k])
+            """
+            # find temporally missing pulses:
+            # STILL BUGGY
+            npulses = np.array([len(pts) for pts in self.pulse_times],
+                               dtype=np.int)
+            idx = np.argsort(npulses)
+            for i in range(len(idx)):
+                li = idx[len(idx)-1-i]
+                if len(self.pulse_times[li]) < 10 or \
+                   len(self.pulse_times[li])/npulses[li] < 0.5:
+                    continue
+                ipis = np.diff(self.pulse_times[li])
+                n = 4 # TODO: make parameter
+                k = 0
+                while k < len(ipis)-n:
+                    mipi = np.median(ipis[k:k+n])
+                    if ipis[k+n-1] > 1.8*mipi:
+                        pt = self.pulse_times[li][k+n-1] + mipi
+                        for j in range(i+1,len(idx)):
+                            lj = idx[len(idx)-1-j]
+                            if len(self.pulse_times[lj]) == 0:
+                                continue
+                            pj = np.argmin(np.abs(self.pulse_times[lj] - pt))
+                            if np.abs(self.pulse_times[lj][pj] - pt) < int(0.001*self.samplerate):
+                                pulses = self.pulses[self.pulses[:,0] == lj,:]
+                                gid = pulses[np.argmin(np.abs(pulses[:,3] - self.pulse_times[lj][pj])),1]
+                                pulses[pulses[:,1] == gid,0] = li
+                                self.pulse_times[li] = np.insert(self.pulse_times[li], k+n, self.pulse_times[lj][pj])
+                                self.pulse_times[lj] = np.delete(self.pulse_times[lj], pj)
+                                ipis = np.diff(self.pulse_times[li])
+                                break
+                    k += 1
+            # clean up pulses:
+            for l in range(len(self.pulse_times)):
+                if len(self.pulse_times[l])/npulses[l] < 0.5:
+                    self.pulse_times[l] = np.array([])
+                    self.pulses[self.pulses[:,0] == l,0] = -1
+            self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
+            """
+            """
+            # remove labels that are too close to others:
+            widths = np.zeros(len(self.pulse_times), dtype=np.int)
+            for k in range(len(self.pulse_times)):
+                widths[k] = int(np.mean(np.abs(self.pulses[self.pulses[:,0] == k,3] - self.pulses[self.pulses[:,0] == k,4])))
+            for k in range(len(self.pulse_times)):
+                if len(self.pulse_times[k]) > 1:
+                    for j in range(k+1, len(self.pulse_times)):
+                        if len(self.pulse_times[j]) > 1:
+                            di = 10*max(widths[k], widths[j])
+                            dts = np.array([np.min(np.abs(self.pulse_times[k] - pt)) for pt in self.pulse_times[j]])
+                            if k == 1 and j == 2:
+                                print(di, np.sum(dts < di), len(dts))
+                                plt.hist(dts, 50)
+                                plt.show()
+                            if np.sum(dts < 2*max_di)/len(dts) > 0.6:
+                                r = k
+                                if np.sum(self.fishes[k][2]) > np.sum(self.fishes[j][2]):
+                                    r = j
+                                self.pulse_times[r] = np.array([])
+                                self.pulses[self.pulses[:,0] == r] = -1
+                                self.fishes[r] = []
+            self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
+            """
             # all labels:
             self.labels = np.unique(self.pulses[:,0])
             # report:
@@ -298,21 +361,21 @@ class SignalPlot:
 
     def plot_pulses(self, axs, plot=True, tfac=1.0):
         
-        def plot_pulse_traces(pulses, pak):
+        def plot_pulse_traces(pulses, i, pak):
             for t in range(self.traces):
                 c = self.show_channels[t]
                 p = pulses[pulses[:,2] == c,3]
                 if plot or pak >= len(self.pulse_artist):
                     pa, = axs[t].plot(tfac*p/self.samplerate,
                                       self.data[p,c], 'o', picker=5,
-                                      color=self.pulse_colors[l%len(self.pulse_colors)])
+                                      color=self.pulse_colors[i%len(self.pulse_colors)])
                     if not plot:
                         self.pulse_artist.append(pa)
                 else:
                     self.pulse_artist[pak].set_data(tfac*p/self.samplerate,
                                                     self.data[p,c])
-                if len(p) > 1 and len(p) <= 10:
-                    self.pulse_artist[pak].set_markersize(15)
+                #if len(p) > 1 and len(p) <= 10:
+                #    self.pulse_artist[pak].set_markersize(15)
                 pak += 1
             return pak
 
@@ -321,16 +384,16 @@ class SignalPlot:
         if self.show_gid:
             for g in range(len(self.pulse_colors)):
                 pulses = self.pulses[self.pulses[:,1] % len(self.pulse_colors) == g,:]
-                pak = plot_pulse_traces(pulses, pak)
+                pak = plot_pulse_traces(pulses, g, pak)
         else:
             for l in self.labels:
                 pulses = self.pulses[self.pulses[:,0] == l,:]
-                pak = plot_pulse_traces(pulses, pak)
+                pak = plot_pulse_traces(pulses, l, pak)
         # ipis:
         for l in self.labels:
             if l < len(self.pulse_times):
                 pt = self.pulse_times[l]/self.samplerate
-                if len(pt) > 10:
+                if len(pt) > 50:
                     if plot or not l in self.ipis_labels:
                         pa, = axs[-1].plot(tfac*pt[:-1], 1.0/np.diff(pt),
                                            '-o', picker=5,
