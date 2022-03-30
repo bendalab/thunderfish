@@ -27,6 +27,7 @@ class SignalPlot:
         if self.twindow > self.tmax:
             self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
         self.pulses = np.zeros((0, 3), dtype=np.int)
+        self.labels = []
         self.fishes = []
         self.pulse_times = []
         self.pulse_gids = []
@@ -353,10 +354,11 @@ class SignalPlot:
             ht.set_visible(self.help)
         self.update_plots()
         # feature plot:
-        self.figf, self.axf = plt.subplots()
+        if len(self.labels) > 0:
+            self.figf, self.axf = plt.subplots()
         plt.show()
 
-    def __del(self):
+    def __del__(self):
         self.audio.close()
 
     def plot_pulses(self, axs, plot=True, tfac=1.0):
@@ -393,7 +395,7 @@ class SignalPlot:
         for l in self.labels:
             if l < len(self.pulse_times):
                 pt = self.pulse_times[l]/self.samplerate
-                if len(pt) > 50:
+                if len(pt) > 10:
                     if plot or not l in self.ipis_labels:
                         pa, = axs[-1].plot(tfac*pt[:-1], 1.0/np.diff(pt),
                                            '-o', picker=5,
@@ -495,13 +497,14 @@ class SignalPlot:
             self.marker_artist[self.traces].set_data([], [])
         self.fig.canvas.draw()
         # show features:
-        heights = np.zeros(self.channels)
-        heights[pulses[:,2]] = \
-            self.data[pulses[:,3],pulses[:,2]] - \
-            self.data[pulses[:,4],pulses[:,2]]
-        self.axf.plot(heights, color=self.pulse_colors[ll%len(self.pulse_colors)])
-        print(f'label={ll:4d} gid={gid:5d} t={pt0:8.4f}s')
-        self.figf.canvas.draw()
+        if not self.axf is None and not self.fig is None:
+            heights = np.zeros(self.channels)
+            heights[pulses[:,2]] = \
+                self.data[pulses[:,3],pulses[:,2]] - \
+                self.data[pulses[:,4],pulses[:,2]]
+            self.axf.plot(heights, color=self.pulse_colors[ll%len(self.pulse_colors)])
+            print(f'label={ll:4d} gid={gid:5d} t={pt0:8.4f}s')
+            self.figf.canvas.draw()
 
     def resize(self, event):
         # print('resized', event.width, event.height)

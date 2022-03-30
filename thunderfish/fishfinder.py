@@ -137,7 +137,7 @@ class SignalPlot:
         self.update_plots(False)
         plt.show()
 
-    def __del(self):
+    def __del__(self):
         self.audio.close()
 
     def remove_peak_annotation(self):
