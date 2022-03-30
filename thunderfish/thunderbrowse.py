@@ -47,7 +47,7 @@ class SignalPlot:
         self.ipis_labels = []
         self.figf = None
         self.axf = None
-        self.pulse_colors = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8']
+        self.pulse_colors = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C0']
         self.help = False
         self.helptext = []
 
@@ -71,8 +71,8 @@ class SignalPlot:
                                            min_width=0.0001,
                                            max_width=0.01,
                                            width_fac=5.0)
-                # label, channel, peak, trough:
-                pulses = np.hstack((np.ones((len(p), 1), dtype=np.int)*c,
+                # label, group, channel, peak, trough:
+                pulses = np.hstack((np.arange(len(p))[:,np.newaxis],
                                     np.zeros((len(p), 1), dtype=np.int),
                                     np.ones((len(p), 1), dtype=np.int)*c,
                                     p[:,np.newaxis], t[:,np.newaxis]))
@@ -114,11 +114,6 @@ class SignalPlot:
                     continue
                 # new label:
                 l += 1
-                ll = l % len(self.pulse_colors)
-                #if self.pulses[k,2]/self.samplerate < 0.172:
-                #    print()
-                #    for p in self.pulses[k:k+c]:
-                #        print(f'{p[0]} {p[1]} {p[2]/self.samplerate:.4f} {p[3]/self.samplerate:.4f}')
                 # remove lost pulses:
                 for j in range(c):
                     if (np.abs(self.pulses[k+j,3] - tp) > max_di and
@@ -128,7 +123,7 @@ class SignalPlot:
                         self.pulses[k+j,0] = -1
                         channel_counts[self.pulses[k+j,2]] -= 1
                     else:
-                        self.pulses[k+j,0] = ll
+                        self.pulses[k+j,0] = l
                         self.pulses[k+j,1] = l
                 # remove remaining multiple peaks per channel:
                 for dc in np.where(channel_counts > 1)[0]:
@@ -172,8 +167,11 @@ class SignalPlot:
                                         for ll, tt, hh in recent])
                     thresh = 0.1   # TODO: make parameter
                     # distance between pulses:
-                    ipis = np.array([(self.pulses[j,3] - tt)/self.samplerate
+                    ipis = np.array([(pulse_time - tt)/self.samplerate
                                      for ll, tt, hh in recent])
+                    ## how can ipis be 0, or just one sample?
+                    ##if len(ipis[ipis<0.001]) > 0:
+                    ##    print(ipis[ipis<0.001])
                     # ensure minimum IP distance:
                     dists[1/ipis > 300.0] = 2*np.max(dists)  # TODO: make parameter
                     # minimum ditance:
@@ -188,12 +186,12 @@ class SignalPlot:
                 self.pulses[j:k,0] = label
                 self.pulse_times[label].append(pulse_time)
                 self.pulse_gids[label].append(gid)
-                self.fishes.append([label, self.pulses[j,3], heights])
-                recent.append([label, self.pulses[j,3], heights])
+                self.fishes.append([label, pulse_time, heights])
+                recent.append([label, pulse_time, heights])
                 # remove old fish:
                 for i, (ll, tt, hh) in enumerate(recent):
                     # TODO: make parameter:
-                    if (self.pulses[j,3] - tt)/self.samplerate <= 0.2:
+                    if (pulse_time - tt)/self.samplerate <= 0.2:
                         recent = recent[i:]
                         break
                 # only consider the n most recent pulses of a fish:
@@ -376,6 +374,7 @@ class SignalPlot:
                 else:
                     self.pulse_artist[pak].set_data(tfac*p/self.samplerate,
                                                     self.data[p,c])
+                    self.pulse_artist[pak].set_color(self.pulse_colors[i%len(self.pulse_colors)])
                 #if len(p) > 1 and len(p) <= 10:
                 #    self.pulse_artist[pak].set_markersize(15)
                 pak += 1
@@ -391,6 +390,9 @@ class SignalPlot:
             for l in self.labels:
                 pulses = self.pulses[self.pulses[:,0] == l,:]
                 pak = plot_pulse_traces(pulses, l, pak)
+        while pak < len(self.pulse_artist):
+            self.pulse_artist[pak].set_data([], [])
+            pak += 1
         # ipis:
         for l in self.labels:
             if l < len(self.pulse_times):
