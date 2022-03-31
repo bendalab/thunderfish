@@ -15,17 +15,23 @@ from .dataloader import open_data
 
 class SignalPlot:
     def __init__(self, data, samplerate, unit, filename,
-                 show_channels=[], fcutoff=None, pulses=False):
+                 show_channels=[], tmax=None, fcutoff=None,
+                 pulses=False):
         self.filename = filename
         self.samplerate = samplerate
         self.data = data
         self.channels = self.data.shape[1]
         self.unit = unit
         self.tmax = (len(self.data)-1)/self.samplerate
+        if not tmax is None:
+            self.tmax = tmax
+            self.data = data[:int(tmax*self.samplerate),:]
         self.toffset = 0.0
         self.twindow = 10.0
         if self.twindow > self.tmax:
             self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
+            if not tmax is None:
+                self.twindow = tmax
         self.pulses = np.zeros((0, 3), dtype=np.int)
         self.labels = []
         self.fishes = []
@@ -108,7 +114,7 @@ class SignalPlot:
                         tt = self.pulses[k+c,4]
                         height = height_kc
                 # all pulses too small:
-                if height < 0.04:    # TODO parameter
+                if height < 0.02:    # TODO parameter
                     self.pulses[k:k+c,0] = -1
                     k += c
                     continue
@@ -125,11 +131,12 @@ class SignalPlot:
                     else:
                         self.pulses[k+j,0] = l
                         self.pulses[k+j,1] = l
-                # remove remaining multiple peaks per channel:
+                # keep only the largest pulse of each channel:
+                pulses = self.pulses[k:k+c,:]
                 for dc in np.where(channel_counts > 1)[0]:
                     idx = np.where(self.pulses[k:k+c,2] == dc)[0]
-                    heights = self.data[self.pulses[k:k+c,:][idx,3],dc] - \
-                        self.data[self.pulses[k:k+c,:][idx,4],dc]
+                    heights = self.data[pulses[idx,3],dc] - \
+                        self.data[pulses[idx,4],dc]
                     for i in range(len(idx)):
                         if i != np.argmax(heights):
                             channel_counts[self.pulses[k+idx[i],2]] -= 1
@@ -202,7 +209,6 @@ class SignalPlot:
             # pulse times to arrays:
             for k in range(len(self.pulse_times)):
                 self.pulse_times[k] = np.array(self.pulse_times[k])
-            """
             # find temporally missing pulses:
             # STILL BUGGY
             npulses = np.array([len(pts) for pts in self.pulse_times],
@@ -218,29 +224,44 @@ class SignalPlot:
                 k = 0
                 while k < len(ipis)-n:
                     mipi = np.median(ipis[k:k+n])
-                    if ipis[k+n-1] > 1.8*mipi:
-                        pt = self.pulse_times[li][k+n-1] + mipi
-                        for j in range(i+1,len(idx)):
-                            lj = idx[len(idx)-1-j]
-                            if len(self.pulse_times[lj]) == 0:
+                    if ipis[k+n-2] > 1.8*mipi:
+                        # search for pulse closest to pt:
+                        pt = self.pulse_times[li][k+n-2] + mipi
+                        mlj = -1
+                        mpj = -1
+                        mdj = 10*mipi
+                        for lj in range(len(self.pulse_times)):
+                            if lj == li or len(self.pulse_times[lj]) == 0:
                                 continue
                             pj = np.argmin(np.abs(self.pulse_times[lj] - pt))
-                            if np.abs(self.pulse_times[lj][pj] - pt) < int(0.001*self.samplerate):
-                                pulses = self.pulses[self.pulses[:,0] == lj,:]
-                                gid = pulses[np.argmin(np.abs(pulses[:,3] - self.pulse_times[lj][pj])),1]
-                                pulses[pulses[:,1] == gid,0] = li
-                                self.pulse_times[li] = np.insert(self.pulse_times[li], k+n, self.pulse_times[lj][pj])
-                                self.pulse_times[lj] = np.delete(self.pulse_times[lj], pj)
-                                ipis = np.diff(self.pulse_times[li])
-                                break
+                            dj = np.abs(self.pulse_times[lj][pj] - pt)
+                            if dj < int(0.001*self.samplerate) and dj < mdj:
+                                mdj = dj
+                                mpj = pj
+                                mlj = lj
+                        if mlj >= 0:
+                            # there is a pulse close to pt:
+                            ptj = self.pulse_times[mlj][mpj]
+                            pulses = self.pulses[self.pulses[:,0] == mlj,:]
+                            gid = pulses[np.argmin(np.abs(pulses[:,3] - ptj)),1]
+                            self.pulse_times[li] = np.insert(self.pulse_times[li], k+n-1, ptj)
+                            self.pulse_gids[li].insert(k+n-1, gid)
+                            # maybe don't delete but always dublicate and flag it:
+                            if False:  # can be deleted
+                                self.pulse_times[mlj] = np.delete(self.pulse_times[mlj], mpj)
+                                self.pulse_gids[mlj].pop(mpj)
+                                self.pulses[self.pulses[:,1] == gid,0] = li
+                            else:     # pulse needs to be dublicated:
+                                self.pulses[self.pulses[:,1] == gid,0] = li
+                            ipis = np.diff(self.pulse_times[li])
                     k += 1
             # clean up pulses:
             for l in range(len(self.pulse_times)):
                 if len(self.pulse_times[l])/npulses[l] < 0.5:
                     self.pulse_times[l] = np.array([])
+                    self.pulse_gids[l] = []
                     self.pulses[self.pulses[:,0] == l,0] = -1
             self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
-            """
             """
             # remove labels that are too close to others:
             widths = np.zeros(len(self.pulse_times), dtype=np.int)
@@ -775,6 +796,9 @@ def main(cargs=None):
     parser.add_argument('-c', dest='channels', default='',
                         type=str, metavar='CHANNELS',
                         help='Comma separated list of channels to be displayed (first channel is 0).')
+    parser.add_argument('-t', dest='tmax', default=None,
+                        type=float, metavar='TMAX',
+                        help='Process and show only the first TMAX seconds.')
     parser.add_argument('-f', dest='fcutoff', default=None,
                         type=float, metavar='FREQ',
                         help='Cutoff frequency of optional high-pass filter.')
@@ -786,6 +810,7 @@ def main(cargs=None):
     filepath = args.file[0]
     cs = [s.strip() for s in args.channels.split(',')]
     channels = [int(c) for c in cs if len(c)>0]
+    tmax = args.tmax
     fcutoff = args.fcutoff
     pulses = args.pulses
 
@@ -798,7 +823,7 @@ def main(cargs=None):
     filename = os.path.basename(filepath)
     with open_data(filepath, -1, 20.0, 5.0, verbose) as data:
         SignalPlot(data, data.samplerate, data.unit, filename,
-                   channels, fcutoff, pulses)
+                   channels, tmax, fcutoff, pulses)
         
 
         
