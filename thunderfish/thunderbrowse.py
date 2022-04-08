@@ -210,7 +210,6 @@ class SignalPlot:
             for k in range(len(self.pulse_times)):
                 self.pulse_times[k] = np.array(self.pulse_times[k])
             # find temporally missing pulses:
-            # STILL BUGGY
             npulses = np.array([len(pts) for pts in self.pulse_times],
                                dtype=np.int)
             idx = np.argsort(npulses)
@@ -246,12 +245,12 @@ class SignalPlot:
                             gid = pulses[np.argmin(np.abs(pulses[:,3] - ptj)),1]
                             self.pulse_times[li] = np.insert(self.pulse_times[li], k+n-1, ptj)
                             self.pulse_gids[li].insert(k+n-1, gid)
-                            # maybe don't delete but always dublicate and flag it:
+                            # maybe don't delete but always duplicate and flag it:
                             if False:  # can be deleted
                                 self.pulse_times[mlj] = np.delete(self.pulse_times[mlj], mpj)
                                 self.pulse_gids[mlj].pop(mpj)
                                 self.pulses[self.pulses[:,1] == gid,0] = li
-                            else:     # pulse needs to be dublicated:
+                            else:     # pulse needs to be duplicated:
                                 self.pulses[self.pulses[:,1] == gid,0] = li
                             ipis = np.diff(self.pulse_times[li])
                     k += 1
@@ -740,7 +739,7 @@ class SignalPlot:
         if t1>len(self.data):
             t1 = len(self.data)
         time = np.arange(t0, t1)/self.samplerate
-        if self.toffs < 1.0 and self.twindow < 1.0:
+        if self.toffset < 1.0 and self.twindow < 1.0:
             axs[-1].set_xlabel('Time [ms]')
             for t in range(self.traces):
                 c = self.show_channels[t]
