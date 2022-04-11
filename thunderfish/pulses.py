@@ -333,12 +333,21 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
     threshold = median_std_threshold(data, samplerate)  # TODO make this a parameter
     
     # extract peaks:
-    x_peak, x_trough, eod_heights, eod_widths, pd_log_dict = \
-      detect_pulses(i_data, i_samplerate, threshold,
-                    width_fac=np.max([width_factor_shape,
-                                      width_factor_display,
-                                      width_factor_wave]),
-                    verbose=verbose-1, return_data=return_data)
+    if 'peak_detection' in return_data:
+        x_peak, x_trough, eod_heights, eod_widths, pd_log_dict = \
+            detect_pulses(i_data, i_samplerate, threshold,
+                          width_fac=np.max([width_factor_shape,
+                                            width_factor_display,
+                                            width_factor_wave]),
+                          verbose=verbose-1, return_data=True)
+        log_dict.update(pd_log_dict)
+    else:
+        x_peak, x_trough, eod_heights, eod_widths = \
+            detect_pulses(i_data, i_samplerate, threshold,
+                          width_fac=np.max([width_factor_shape,
+                                            width_factor_display,
+                                            width_factor_wave]),
+                          verbose=verbose-1, return_data=False)
     
     if len(x_peak) > 0:
         # cluster
@@ -400,7 +409,6 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
             log_dict['all_times'] = [x_peak/i_samplerate, x_trough/i_samplerate]
             log_dict['eod_troughtimes'] = eod_troughtimes
         
-        log_dict.update(pd_log_dict)
         log_dict.update(c_log_dict)
 
     return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
@@ -408,7 +416,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
 
 def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
                   min_width=0.00005, max_width=0.01, width_fac=5.0,
-                  verbose=0, return_data=[]):
+                  verbose=0, return_data=False):
     """Detect pulses in data.
 
     Was `def extract_eod_times(data, samplerate, width_factor,
@@ -440,10 +448,9 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
         Only pulses are returned that can fully be analysed with this width.
     verbose : int (optional)
         Verbosity level.
-    return_data : list of strings (optional)
-        Keys that specify data to be logged.
-        If 'peak_detection' is in `return_data`, 
-        data of this function is logged (see extract_pulsefish()).
+    return_data : bool
+        If `True` data of this function is logged and returned (see
+        extract_pulsefish()).
 
     Returns
     -------
@@ -457,7 +464,8 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
         EOD widths for each x_peak (in samples).
     peak_detection_result : dictionary
         Key value pairs of logged data.
-        This is only returned if `return_data` contains "peak_detection".
+        This is only returned if `return_data` is `True`.
+
     """
     peak_detection_result = {}
 
@@ -466,7 +474,7 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
     if verbose > 0:
         print('Peaks/troughs detected in data:                      %5d %5d'
               % (len(peak_indices), len(trough_indices)))
-    if 'peak_detection' in return_data:
+    if return_data:
         peak_detection_result.update(peaks_1=np.array(peak_indices),
                                      troughs_1=np.array(trough_indices))
     if len(peak_indices) < 2 or \
@@ -475,7 +483,7 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
         # TODO: if too many peaks increase threshold!
         if verbose > 0:
             print('No or too many peaks/troughs detected in data.')
-        if 'peak_detection' in return_data:
+        if return_data:
             return np.array([], dtype=np.int), np.array([], dtype=np.int), \
                 np.array([]), np.array([], dtype=np.int), peak_detection_result
         else:
@@ -488,7 +496,7 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
     if verbose > 1:
         print('Number of peaks after assigning side-peaks:          %5d'
               % (len(peak_indices)))
-    if 'peak_detection' in return_data:
+    if return_data:
         peak_detection_result.update(peaks_2=np.array(peak_indices),
                                      troughs_2=np.array(trough_indices))
 
@@ -502,7 +510,7 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
     if verbose > 1:
         print('Number of peaks after checking pulse width:          %5d'
               % (len(peak_indices)))
-    if 'peak_detection' in return_data:
+    if return_data:
         peak_detection_result.update(peaks_3=np.array(peak_indices),
                                      troughs_3=np.array(trough_indices))
 
@@ -524,13 +532,13 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
     if verbose > 1:
         print('Number of peaks after merging pulses:                %5d'
               % (len(peak_indices)))
-    if 'peak_detection' in return_data:
+    if return_data:
         peak_detection_result.update(peaks_4=np.array(peak_indices),
                                      troughs_4=np.array(trough_indices))
     if len(peak_indices) == 0:
         if verbose > 0:
             print('No peaks remain as pulse candidates.')
-        if 'peak_detection' in return_data:
+        if return_data:
             return np.array([], dtype=np.int), np.array([], dtype=np.int), \
                 np.array([]), np.array([], dtype=np.int), peak_detection_result
         else:
@@ -549,7 +557,7 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
               % (p.sum(keep)))
         print('')
 
-    if 'peak_detection' in return_data:
+    if return_data:
         return peak_indices[keep], trough_indices[keep], \
             heights[keep], widths[keep], peak_detection_result
     else:
