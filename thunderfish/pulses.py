@@ -734,12 +734,12 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
         all_heights = []
         all_unique_heightlabels = []
 
-    all_p_clusters = np.ones(len(eod_xp))*-1
-    all_t_clusters = np.ones(len(eod_xp))*-1
+    all_p_clusters = -1 * np.ones(len(eod_xp))
+    all_t_clusters = -1 * np.ones(len(eod_xp))
     artefact_masks_p = np.ones(len(eod_xp), dtype=bool)
     artefact_masks_t = np.ones(len(eod_xp), dtype=bool)
 
-    x_merge = np.ones(len(eod_xp))*-1
+    x_merge = -1 * np.ones(len(eod_xp))
 
     max_label_p = 0   # keep track of the labels so that no labels are overwritten
     max_label_t = 0
@@ -768,17 +768,25 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
         w_eod_heights = eod_heights[width_labels==width_label]
         w_eod_xp = eod_xp[width_labels==width_label]
         w_eod_xt = eod_xt[width_labels==width_label]
-        wp_clusters = np.ones(len(w_eod_xp))*-1
-        wt_clusters = np.ones(len(w_eod_xp))*-1
+        width = int(width_factor_shape*np.median(w_eod_widths))
+        if width > w_eod_xp[0]:
+            width = w_eod_xp[0]
+        if width > w_eod_xt[0]:
+            width = w_eod_xt[0]
+        if width > len(data) - w_eod_xp[-1]:
+            width = len(data) - w_eod_xp[-1]
+        if width > len(data) - w_eod_xt[-1]:
+            width = len(data) - w_eod_xt[-1]
+        
+        wp_clusters = -1 * np.ones(len(w_eod_xp))
+        wt_clusters = -1 * np.ones(len(w_eod_xp))
         wartefact_mask = np.ones(len(w_eod_xp))
 
         # determine height labels
         raw_p_snippets, p_snippets, p_features, p_bg_ratio = \
-          extract_snippet_features(data, w_eod_xp, w_eod_widths, w_eod_heights,
-                                   width_factor_shape)
+          extract_snippet_features(data, w_eod_xp, w_eod_heights, width)
         raw_t_snippets, t_snippets, t_features, t_bg_ratio = \
-          extract_snippet_features(data, w_eod_xt, w_eod_widths, w_eod_heights,
-                                   width_factor_shape)
+          extract_snippet_features(data, w_eod_xt, w_eod_heights, width)
 
         height_labels, bgm_log_dict = \
           BGM(w_eod_heights,
@@ -1122,7 +1130,7 @@ def merge_gaussians(x, labels, merge_threshold=0.1):
     return labels
 
 
-def extract_snippet_features(data, eod_x, eod_widths, eod_heights, width_factor, n_pc=5):
+def extract_snippet_features(data, eod_x, eod_heights, width, n_pc=5):
     """ Extract snippets from recording data, normalize them, and perform PCA.
 
     Parameters
@@ -1131,12 +1139,10 @@ def extract_snippet_features(data, eod_x, eod_widths, eod_heights, width_factor,
         Recording data.
     eod_x : 1D array of ints
         Locations of EODs as indices.
-    eod_widths : 1D array of ints
-        EOD widths in samples.
     eod_heights: 1D array of floats
         EOD heights.
-    width_factor: float
-        Multiplier for extracting EOD snippets        
+    width : int
+        Width to cut out to each side in samples.
 
     n_pc : int (optional)
         Number of PCs to use for PCA.
@@ -1152,10 +1158,8 @@ def extract_snippet_features(data, eod_x, eod_widths, eod_heights, width_factor,
     bg_ratio : 1D numpy array (N)
         Ratio of the background activity slopes compared to EOD height.
     """
-
     # extract snippets with corresponding width
-    width = width_factor*np.median(eod_widths)
-    raw_snippets = np.vstack([data[int(x-width):int(x+width)] for x in eod_x])
+    raw_snippets = np.vstack([data[x-width:x+width] for x in eod_x])
 
     # subtract the slope and normalize the snippets
     snippets, bg_ratio = subtract_slope(np.copy(raw_snippets), eod_heights)
