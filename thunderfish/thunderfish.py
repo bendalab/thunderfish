@@ -311,7 +311,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
         # analyse EOD waveform of all wavefish:
         powers = np.array([np.sum(fish[:,1]) for fish in wave_eodfs])
         power_indices = np.argsort(-powers)
-        wave_indices = np.zeros(len(wave_eodfs), dtype=np.int) - 3
+        wave_indices = np.zeros(len(wave_eodfs), dtype=int) - 3
         for k, idx in enumerate(power_indices):
             fish = wave_eodfs[idx]
             eod_times = np.arange(0.0, len(data)/samplerate, 1.0/fish[0,0])
@@ -343,7 +343,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
                 wave_eodfs = [eodfs for idx, eodfs in enumerate(wave_eodfs)
                               if idx not in rm_indices]
                 wave_indices = np.array([idcs for idx, idcs in enumerate(wave_indices)
-                                        if idx not in rm_indices], dtype=np.int)
+                                        if idx not in rm_indices], dtype=int)
                 break
             # add good waveforms only:
             remove, skips, msg = wave_quality(props, sdata[1:,3], **wave_quality_args(cfg))
@@ -362,7 +362,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
                     print('%-6s %6.1fHz wave  fish: %s (%s)' %
                           ('remove' if remove else 'skip', props['EODf'], skips, msg))
         wave_eodfs = [eodfs for idx, eodfs in zip(wave_indices, wave_eodfs) if idx > -2]
-        wave_indices = np.array([idx for idx in wave_indices if idx > -2], dtype=np.int)
+        wave_indices = np.array([idx for idx in wave_indices if idx > -2], dtype=int)
     return (psd_data, wave_eodfs, wave_indices, eod_props, mean_eods,
             spec_data, peak_data, power_thresh, skip_reason, zoom_window)
 
@@ -526,7 +526,7 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
     if indices is None:
         indices = np.arange(len(eod_props))
     else:
-        indices = np.array(indices, dtype=np.int)
+        indices = np.array(indices, dtype=int)
     nwave = 0
     npulse = 0
     for idx in indices:

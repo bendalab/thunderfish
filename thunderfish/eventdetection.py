@@ -50,7 +50,7 @@ except ImportError:
         def decorator_jit(func):
             return func
         return decorator_jit
-    index_type = np.int
+    index_type = int
 
 
 def detect_peaks(data, threshold):

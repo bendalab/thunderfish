@@ -492,7 +492,7 @@ class TableData(object):
         """
         col = self.index(column)
         if col is None:
-            if isinstance(column, (int, np.integer)):
+            if isinstance(column, int):
                 column = '%d' % column
             raise IndexError('Cannot insert before non-existing column ' + column)
         if isinstance(label, (list, tuple, np.ndarray)):
@@ -537,7 +537,7 @@ class TableData(object):
         for col in columns:
             c = self.index(col)
             if c is None:
-                if isinstance(col, (int, np.integer)):
+                if isinstance(col, int):
                     col = '%d' % col
                 raise IndexError('Cannot remove non-existing column ' + col)
                 continue
@@ -659,7 +659,7 @@ class TableData(object):
         """
         col = self.index(column)
         if col is None:
-            if isinstance(column, (int, np.integer)):
+            if isinstance(column, int):
                 column = '%d' % column
             raise IndexError('Cannot insert at non-existing column ' + column)
         self.header[col].append(section)
@@ -899,9 +899,9 @@ class TableData(object):
 
         if column is None:
             return None, None
-        if not isinstance(column, (int, np.integer)) and column.isdigit():
+        if not isinstance(column, int) and column.isdigit():
             column = int(column)
-        if isinstance(column, (int, np.integer)):
+        if isinstance(column, int):
             if column >= 0 and column < len(self.header):
                 return column, column+1
             else:
@@ -1273,7 +1273,7 @@ class TableData(object):
                             self.data[cols[0]][r] = value
                 elif isinstance(value, (list, tuple, np.ndarray)):
                     self.data[cols[0]][rows] = value
-                elif isinstance(rows, (int, np.integer)):
+                elif isinstance(rows, int):
                     self.data[cols[0]][rows] = value
                 else:
                     n = len(self.data[cols[0]][rows])
@@ -1314,7 +1314,7 @@ class TableData(object):
         rows, cols = self.__setupkey(key)
         if rows is None:
             return
-        row_indices = np.arange(self.rows(), dtype=np.int)[rows]
+        row_indices = np.arange(self.rows(), dtype=int)[rows]
         if isinstance(row_indices, np.ndarray):
             if len(row_indices) == self.rows():
                 # delete whole columns:
@@ -1488,7 +1488,7 @@ class TableData(object):
         """
         col = self.index(column)
         if col is None:
-            if isinstance(column, (int, np.integer)):
+            if isinstance(column, int):
                 column = '%d' % column
             raise IndexError('column ' + column + ' not found or invalid')
         self.setcol = col
@@ -1540,7 +1540,7 @@ class TableData(object):
         for col in columns:
             c = self.index(col)
             if c is None:
-                if isinstance(col, (int, np.integer)):
+                if isinstance(col, int):
                     col = '%d' % col
                 raise IndexError('sort column ' + col + ' not found')
                 continue

@@ -158,7 +158,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
         averaged EOD waveform.
     """
     # indices of EOD times:
-    eod_idx = np.round(eod_times * samplerate).astype(np.int)
+    eod_idx = np.round(eod_times * samplerate).astype(int)
         
     # window size:
     period = np.min(np.diff(eod_times))
@@ -1278,7 +1278,7 @@ def clipped_fraction(data, samplerate, eod_times, mean_eod,
     idx0 = np.argmin(np.abs(mean_eod[:,0])) # index of time zero
     w0 = -idx0
     w1 = len(mean_eod[:,0]) - idx0
-    eod_idx = np.round(eod_times * samplerate).astype(np.int)
+    eod_idx = np.round(eod_times * samplerate).astype(int)
     eod_snippets = snippets(data, eod_idx, w0, w1)
     # fraction of clipped snippets:
     clipped_frac = np.sum(np.any((eod_snippets > max_clip) |
@@ -1591,7 +1591,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
                 break  
 
         x = eod['peaktimes'] + toffs
-        pidx = np.round(eod['peaktimes']*samplerate).astype(np.int)
+        pidx = np.round(eod['peaktimes']*samplerate).astype(int)
         y = data[pidx[(pidx>0)&(pidx<len(data))]]
         x = x[(pidx>0)&(pidx<len(data))]
         color_kwargs = {}
@@ -2085,10 +2085,10 @@ def load_wave_eodfs(file_path):
     if 'index' in data:
         indices = data[:,'index']
         indices[~np.isfinite(indices)] = -1
-        indices = np.array(indices, dtype=np.int)
+        indices = np.array(indices, dtype=int)
         eodfs = eodfs[:,1:]
     else:
-        indices = np.zeros(data.rows(), dtype=np.int) - 1
+        indices = np.zeros(data.rows(), dtype=int) - 1
     return eodfs, indices
 
     

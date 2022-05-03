@@ -223,13 +223,13 @@ def save_times(times, idx, output_basename, name, **kwargs):
 
 def load_times(file_path):
     data = TableData(file_path).data_frame()
-    data['index'] = data['index'].astype(np.int)
+    data['index'] = data['index'].astype(int)
     data['tstart'] = pd.to_datetime(data['tstart'])
     data['tstart'] = pd.Series(data['tstart'].dt.to_pydatetime(), dtype=object)
     data['tend'] = pd.to_datetime(data['tend'])
     data['tend'] = pd.Series(data['tend'].dt.to_pydatetime(), dtype=object)
     if 'channel' in data:
-        data['channel'] = data['channel'].astype(np.int)
+        data['channel'] = data['channel'].astype(int)
     return data
 
 
@@ -259,7 +259,7 @@ def load_power(file_path, start_time=None):
             times[k] += deltat
     channels = (data.columns()-2)//2
     stds = np.zeros((len(times), channels))
-    supra_thresh = np.zeros((len(times), channels), dtype=np.int)
+    supra_thresh = np.zeros((len(times), channels), dtype=int)
     for c in range(channels):
         stds[:,c] = data[:,'channel%d'%c]
         supra_thresh[:,c] = data[:,'thresh%d'%c]

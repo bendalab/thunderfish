@@ -642,7 +642,7 @@ def discard_wave_pulses(peaks, data):
          isi = np.diff(peaksofclass[0])
          isi_mean = np.mean(isi)
          widepeaks = 0
-         isi_tenth_area = lambda x, isi : np.arange(np.floor(x-0.1*isi),np.ceil(x+0.1*isi),1, dtype = np.int)
+         isi_tenth_area = lambda x, isi : np.arange(np.floor(x-0.1*isi),np.ceil(x+0.1*isi),1, dtype=int)
          for p in peaksofclass.T:
              data = np.array(data)
              try:
@@ -665,9 +665,9 @@ def plot_events_on_data(peaks, data, colors):
     """
     plt.plot(range(len(data)),data, color = 'black')
     if len(peaks)>3:
-        classlist =  np.array(peaks[3],dtype=np.int)
+        classlist =  np.array(peaks[3],dtype=int)
         if len(peaks) > 4:
-            classlist = np.array(peaks[4],dtype=np.int)
+            classlist = np.array(peaks[4],dtype=int)
         #classlist=labels
         cmap = plt.get_cmap('jet')
 

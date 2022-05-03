@@ -160,7 +160,7 @@ def group_candidate(good_freqs, all_freqs, freq, divisor,
         return [], -1.0, fzero_harmonics
 
     # 3. collect harmonics from all_freqs:
-    new_group = -np.ones(min_group_size, dtype=np.int)
+    new_group = -np.ones(min_group_size, dtype=int)
     new_penalties = np.ones(min_group_size)
     freqs = []
     prev_h = 0
@@ -286,7 +286,7 @@ def update_group(good_freqs, all_freqs, new_group, fzero,
         idx = np.argmin(np.abs(good_freqs[:,0]-f))
         if np.abs(good_freqs[idx,0]-f) <= freq_tol:
             indices.append(idx)
-    indices = np.asarray(indices, dtype=np.int)
+    indices = np.asarray(indices, dtype=int)
 
     # harmonics in good_freqs:
     nharm = np.round(good_freqs[:,0]/fzero)
@@ -572,7 +572,7 @@ def expand_group(group, indices, freqs, freq_tol, max_harmonics=0):
     # keep filled in fundamental:
     if group[0,2] == -2:
         new_group = np.vstack((group[0,:], new_group))
-    return new_group, np.array(indices, dtype=np.int)
+    return new_group, np.array(indices, dtype=int)
             
 
 def extract_fundamentals(good_freqs, all_freqs, freq_tol, max_freq_tol,

@@ -571,7 +571,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
         first_pulse = np.max([pulse_duration, 3.0*jitter_std])
     pulse_times = np.arange(first_pulse, duration, period )
     pulse_times += jitter_std*np.random.randn(len(pulse_times))
-    pulse_indices = np.round(pulse_times * samplerate).astype(np.int)
+    pulse_indices = np.round(pulse_times * samplerate).astype(int)
     for inx in pulse_indices[(pulse_indices>=poffs)&(pulse_indices-poffs+len(pulse)<len(data))]:
         data[inx-poffs:inx-poffs+len(pulse)] += pulse
     return data

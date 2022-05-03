@@ -32,7 +32,7 @@ class SignalPlot:
             self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
             if not tmax is None:
                 self.twindow = tmax
-        self.pulses = np.zeros((0, 3), dtype=np.int)
+        self.pulses = np.zeros((0, 3), dtype=int)
         self.labels = []
         self.fishes = []
         self.pulse_times = []
@@ -65,7 +65,7 @@ class SignalPlot:
         # pulse detection:
         if pulses:
             # label, group, channel, peak index, trough index
-            all_pulses = np.zeros((0, 5), dtype=np.int)
+            all_pulses = np.zeros((0, 5), dtype=int)
             for c in range(self.channels):
                 #thresh = 1*np.std(self.data[:int(2*self.samplerate),c])
                 thresh = median_std_threshold(self.data[:,c], self.samplerate,
@@ -79,8 +79,8 @@ class SignalPlot:
                                            width_fac=5.0)
                 # label, group, channel, peak, trough:
                 pulses = np.hstack((np.arange(len(p))[:,np.newaxis],
-                                    np.zeros((len(p), 1), dtype=np.int),
-                                    np.ones((len(p), 1), dtype=np.int)*c,
+                                    np.zeros((len(p), 1), dtype=int),
+                                    np.ones((len(p), 1), dtype=int)*c,
                                     p[:,np.newaxis], t[:,np.newaxis]))
                 all_pulses = np.vstack((all_pulses, pulses))
             self.pulses = all_pulses[np.argsort(all_pulses[:,3]),:]
@@ -93,7 +93,7 @@ class SignalPlot:
                 tt = self.pulses[k,4]
                 height = self.data[self.pulses[k,3],self.pulses[k,2]] - \
                     self.data[self.pulses[k,4],self.pulses[k,2]]
-                channel_counts = np.zeros(self.channels, dtype=np.int)
+                channel_counts = np.zeros(self.channels, dtype=int)
                 channel_counts[self.pulses[k,2]] += 1
                 for c in range(1, 3*self.channels):
                     if k+c >= len(self.pulses):
@@ -211,7 +211,7 @@ class SignalPlot:
                 self.pulse_times[k] = np.array(self.pulse_times[k])
             # find temporally missing pulses:
             npulses = np.array([len(pts) for pts in self.pulse_times],
-                               dtype=np.int)
+                               dtype=int)
             idx = np.argsort(npulses)
             for i in range(len(idx)):
                 li = idx[len(idx)-1-i]
@@ -263,7 +263,7 @@ class SignalPlot:
             self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
             """
             # remove labels that are too close to others:
-            widths = np.zeros(len(self.pulse_times), dtype=np.int)
+            widths = np.zeros(len(self.pulse_times), dtype=int)
             for k in range(len(self.pulse_times)):
                 widths[k] = int(np.mean(np.abs(self.pulses[self.pulses[:,0] == k,3] - self.pulses[self.pulses[:,0] == k,4])))
             for k in range(len(self.pulse_times)):

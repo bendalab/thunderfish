@@ -484,11 +484,11 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
         if verbose > 0:
             print('No or too many peaks/troughs detected in data.')
         if return_data:
-            return np.array([], dtype=np.int), np.array([], dtype=np.int), \
-                np.array([]), np.array([], dtype=np.int), peak_detection_result
+            return np.array([], dtype=int), np.array([], dtype=int), \
+                np.array([]), np.array([], dtype=int), peak_detection_result
         else:
-            return np.array([], dtype=np.int), np.array([], dtype=np.int), \
-                np.array([]), np.array([], dtype=np.int)
+            return np.array([], dtype=int), np.array([], dtype=int), \
+                np.array([]), np.array([], dtype=int)
 
     # assign troughs to peaks:
     peak_indices, trough_indices, heights, widths, slopes = \
@@ -539,11 +539,11 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
         if verbose > 0:
             print('No peaks remain as pulse candidates.')
         if return_data:
-            return np.array([], dtype=np.int), np.array([], dtype=np.int), \
-                np.array([]), np.array([], dtype=np.int), peak_detection_result
+            return np.array([], dtype=int), np.array([], dtype=int), \
+                np.array([]), np.array([], dtype=int), peak_detection_result
         else:
-            return np.array([], dtype=np.int), np.array([], dtype=np.int), \
-                np.array([]), np.array([], dtype=np.int)
+            return np.array([], dtype=int), np.array([], dtype=int), \
+                np.array([]), np.array([], dtype=int)
     
     # only take those where the maximum cutwidth does not cause issues -
     # if the width_fac times the width + x is more than length.
