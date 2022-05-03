@@ -277,7 +277,7 @@ class MultivariateExplorer(object):
         plt.rcParams['toolbar'] = 'None'
         plt.rcParams['keymap.quit'] = 'ctrl+w, alt+q, q'
         self.fig = plt.figure(facecolor='white')
-        self.fig.canvas.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
+        self.fig.canvas.manager.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
         self.fig.canvas.mpl_connect('key_press_event', self._on_key)
         self.fig.canvas.mpl_connect('resize_event', self._on_resize)
         self.fig.canvas.mpl_connect('pick_event', self._on_pick)
@@ -1061,7 +1061,7 @@ class MultivariateExplorer(object):
                 self.labels = self.all_labels[self.show_mode]
                 self.maxcols = self.all_maxcols[self.show_mode]
                 self.zoom_stack = []
-                self.fig.canvas.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
+                self.fig.canvas.manager.set_window_title(self.title + ': ' + self.all_titles[self.show_mode])
                 for ax in self.hist_ax[:self.maxcols]:
                     self._plot_hist(ax, False, False)
                 for ax in self.scatter_ax[:self.maxcols]:
@@ -1250,7 +1250,7 @@ def categorize(data):
         by an integer number that is an index into the reurned `categories`.
     """
     cats = sorted(set(data))
-    cdata = np.array([cats.index(x) for x in data], dtype=np.int)
+    cdata = np.array([cats.index(x) for x in data], dtype=int)
     return cats, cdata
         
 

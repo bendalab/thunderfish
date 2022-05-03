@@ -78,7 +78,7 @@ class SignalPlot:
         # the figure:
         plt.ioff()
         self.fig = plt.figure(figsize=(15, 9))
-        self.fig.canvas.set_window_title(self.filename + ' channel {0:d}'.format(self.channel))
+        self.fig.canvas.manager.set_window_title(self.filename + ' channel {0:d}'.format(self.channel))
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
         self.fig.canvas.mpl_connect('button_press_event', self.buttonpress)
         self.fig.canvas.mpl_connect('pick_event', self.onpick)

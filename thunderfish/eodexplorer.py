@@ -349,7 +349,7 @@ class EODExplorer(MultivariateExplorer):
                         [idx], unit, zoom_window, 10, None, True, False,
                         'auto', False, 0.0, 3000.0,
                         interactive=True, verbose=0)
-        fig.canvas.set_window_title('thunderfish: %s' % file_base)
+        fig.canvas.manager.set_window_title('thunderfish: %s' % file_base)
         plt.show(block=False)
 
 

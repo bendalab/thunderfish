@@ -330,10 +330,10 @@ class SignalPlot:
                                           figsize=(15, 9), sharex=True)
         self.axs = self.axs.flat
         if self.traces == self.channels:
-            self.fig.canvas.set_window_title(self.filename)
+            self.fig.canvas.manager.set_window_title(self.filename)
         else:
             cs = ' c%d' % self.show_channels[0]
-            self.fig.canvas.set_window_title(self.filename + ' ' + cs)
+            self.fig.canvas.manager.set_window_title(self.filename + ' ' + cs)
         self.fig.canvas.mpl_connect('key_press_event', self.keypress)
         self.fig.canvas.mpl_connect('resize_event', self.resize)
         self.fig.canvas.mpl_connect('pick_event', self.on_pick)
