@@ -484,12 +484,11 @@ class MultivariateExplorer(object):
             ax.set_xlim(*ax_xlim)
             ax.set_ylim(*ax_ylim)
         try:
-            selector = widgets.RectangleSelector(ax, self._on_select,
-                                                 drawtype='box', useblit=True, button=1,
+            selector = widgets.RectangleSelector(ax, self._on_select, useblit=True, button=1,
+                                                 props=dict(facecolor='gray', edgecolor='gray', alpha=0.2, fill=True),
                                                  state_modifier_keys=dict(move='', clear='', square='', center=''))
         except TypeError:
-            selector = widgets.RectangleSelector(ax, self._on_select, drawtype='box',
-                                                 useblit=True, button=1)
+            selector = widgets.RectangleSelector(ax, self._on_select, useblit=True, button=1)
         if in_hist:
             self.hist_selector[idx] = selector
         else:
@@ -592,12 +591,11 @@ class MultivariateExplorer(object):
                                                             facecolor='white', edgecolor='none', zorder=-5)
                 ax.add_patch(self.magnified_backdrop)
         try:
-            selector = widgets.RectangleSelector(ax, self._on_select, drawtype='box',
-                                                 useblit=True, button=1,
+            selector = widgets.RectangleSelector(ax, self._on_select, useblit=True, button=1,
+                                                 props=dict(facecolor='gray', edgecolor='gray', alpha=0.2, fill=True),
                                                  state_modifier_keys=dict(move='', clear='', square='', center=''))
         except TypeError:
-            selector = widgets.RectangleSelector(ax, self._on_select, drawtype='box',
-                                                 useblit=True, button=1)
+            selector = widgets.RectangleSelector(ax, self._on_select, useblit=True, button=1)
         self.scatter_selector[idx] = selector
 
         
