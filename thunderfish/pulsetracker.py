@@ -46,7 +46,7 @@ def makeeventlist(main_event_positions,side_event_positions,data,event_width=20)
     Returns
     -------
     EOD_events: ndarray
-        2D array containing data with 'np.float' type, size (number_of_properties = 3, number_of_events).
+        2D array containing data with 'float' type, size (number_of_properties = 3, number_of_events).
         Generated and combined data of the detected events in an array with arrays of x, y and height along the first axis.
 
     """
@@ -95,7 +95,7 @@ def makeeventlist(main_event_positions,side_event_positions,data,event_width=20)
             else:
                 h[...] = y-l_side_y
     # generate return array and discard all events that are not marked as real
-    EOD_events = np.array([main_x, main_y, main_h], dtype = np.float)[:,main_real==1]
+    EOD_events = np.array([main_x, main_y, main_h], dtype = float)[:,main_real==1]
     return EOD_events
 
 def discardnearbyevents(event_locations, event_heights, min_distance):

@@ -428,7 +428,7 @@ class MultivariateExplorer(object):
         """Initialize variables used for colorization of scatter points."""
         if self.color_set_index == -1:
             if self.color_index == 0:
-                self.color_values = np.arange(self.data.shape[0], dtype=np.float)
+                self.color_values = np.arange(self.data.shape[0], dtype=float)
                 self.color_label = 'row'
             elif self.color_index == 1:
                 self.color_values = self.extra_colors

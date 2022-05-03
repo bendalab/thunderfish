@@ -59,7 +59,7 @@ def check_pulse(data, sem, samplerate, thresh_fac=0.8, percentile=0.0,
         if len(peak_idx) < 2:
             return 1.0 if len(peak_idx)+len(trough_idx) < 1 else 0.0
         # ratio of peak-to-trough to peak-to-peak time distances:
-        ratios = np.abs((trough_idx - peak_idx))[:-1].astype(np.float) / np.diff(peak_idx)
+        ratios = np.abs((trough_idx - peak_idx))[:-1].astype(float) / np.diff(peak_idx)
         # fix for cases where trough of eod comes before peak:
         ratios[ratios > 0.5] = 1.0 - ratios[ratios > 0.5]
         return np.median(ratios)

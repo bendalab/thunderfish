@@ -1591,7 +1591,7 @@ class TableData(object):
                 else:
                     ds.formats.append('%.1f')
                 # remove nans:
-                data = np.asarray(self.data[c], np.float)
+                data = np.asarray(self.data[c], float)
                 data = data[np.isfinite(data)]
                 # compute statistics:
                 ds.data.append([])
