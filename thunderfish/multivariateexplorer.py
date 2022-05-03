@@ -85,7 +85,8 @@ class MultivariateExplorer(object):
         if isinstance(data, TableData):
             self.categories = []
             for c, col in enumerate(data):
-                if not isinstance(col[0], (int, float)):
+                if not isinstance(col[0], (int, float,
+                                           np.integer, np.floating)):
                     # categorial data:
                     cats, data[:,c] = categorize(col)
                     self.categories.append(cats)
@@ -107,7 +108,8 @@ class MultivariateExplorer(object):
             else:
                 self.categories = []
                 for c, col in enumerate(data):
-                    if not isinstance(col[0], (int, float)):
+                    if not isinstance(col[0], (int, float,
+                                               np.integer, np.floating)):
                         # categorial data:
                         cats, data[c] = categorize(col)
                         self.categories.append(cats)
@@ -251,7 +253,7 @@ class MultivariateExplorer(object):
             Name of a matplotlib color map.
             If None 'jet' is used.
         """
-        if isinstance(colors, int):
+        if isinstance(colors, (np.integer, int)):
             if colors < 0:
                 self.color_set_index = -1
                 self.color_index = 0
@@ -259,7 +261,8 @@ class MultivariateExplorer(object):
                 self.color_set_index = 0
                 self.color_index = colors
         else:
-            if not isinstance(colors[0], (int, float)):
+            if not isinstance(colors[0], (int, float,
+                                          np.integer, np.floating)):
                 # categorial data:
                 self.extra_categories, self.extra_colors = categorize(colors)
             else:

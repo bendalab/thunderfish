@@ -492,7 +492,7 @@ class TableData(object):
         """
         col = self.index(column)
         if col is None:
-            if isinstance(column, int):
+            if isinstance(column, (np.integer, int)):
                 column = '%d' % column
             raise IndexError('Cannot insert before non-existing column ' + column)
         if isinstance(label, (list, tuple, np.ndarray)):
@@ -537,7 +537,7 @@ class TableData(object):
         for col in columns:
             c = self.index(col)
             if c is None:
-                if isinstance(col, int):
+                if isinstance(col, (np.integer, int)):
                     col = '%d' % col
                 raise IndexError('Cannot remove non-existing column ' + col)
                 continue
@@ -659,7 +659,7 @@ class TableData(object):
         """
         col = self.index(column)
         if col is None:
-            if isinstance(column, int):
+            if isinstance(column, (np.integer, int)):
                 column = '%d' % column
             raise IndexError('Cannot insert at non-existing column ' + column)
         self.header[col].append(section)
@@ -899,9 +899,9 @@ class TableData(object):
 
         if column is None:
             return None, None
-        if not isinstance(column, int) and column.isdigit():
+        if not isinstance(column, (np.integer, int)) and column.isdigit():
             column = int(column)
-        if isinstance(column, int):
+        if isinstance(column, (np.integer, int)):
             if column >= 0 and column < len(self.header):
                 return column, column+1
             else:
@@ -1273,7 +1273,7 @@ class TableData(object):
                             self.data[cols[0]][r] = value
                 elif isinstance(value, (list, tuple, np.ndarray)):
                     self.data[cols[0]][rows] = value
-                elif isinstance(rows, int):
+                elif isinstance(rows, (np.integer, int)):
                     self.data[cols[0]][rows] = value
                 else:
                     n = len(self.data[cols[0]][rows])
@@ -1382,7 +1382,7 @@ class TableData(object):
                 if raw_values:
                     v = self.data[col][row];
                 else:
-                    if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
+                    if isinstance(self.data[col][row], (float, np.floating)) and m.isnan(self.data[col][row]):
                         v = missing
                     else:
                         u = ''
@@ -1488,7 +1488,7 @@ class TableData(object):
         """
         col = self.index(column)
         if col is None:
-            if isinstance(column, int):
+            if isinstance(column, (np.integer, int)):
                 column = '%d' % column
             raise IndexError('column ' + column + ' not found or invalid')
         self.setcol = col
@@ -1540,7 +1540,7 @@ class TableData(object):
         for col in columns:
             c = self.index(col)
             if c is None:
-                if isinstance(col, int):
+                if isinstance(col, (np.integer, int)):
                     col = '%d' % col
                 raise IndexError('sort column ' + col + ' not found')
                 continue
@@ -1575,12 +1575,12 @@ class TableData(object):
         ds.append_data('count', 0)
         dc = 1
         for c in range(self.columns()):
-            if len(self.data[c]) > 0 and isinstance(self.data[c][0], (float, int)):
+            if len(self.data[c]) > 0 and isinstance(self.data[c][0], (float, int, np.floating, np.integer)):
                 ds.hidden.append(False)
                 ds.header.append(self.header[c])
                 ds.units.append(self.units[c])
                 # integer data still make floating point statistics:
-                if isinstance(self.data[c][0], float):
+                if isinstance(self.data[c][0], (float, np.floating)):
                     f = self.formats[c]
                     i0 = f.find('.')
                     if i0 > 0:
@@ -1633,7 +1633,7 @@ class TableData(object):
         col = self.index(col)
         if col is None:
             return ''
-        if isinstance(self.data[col][row], float) and m.isnan(self.data[col][row]):
+        if isinstance(self.data[col][row], (float, np.floating)) and m.isnan(self.data[col][row]):
             v = missing
         else:
             u = ''
@@ -1680,7 +1680,7 @@ class TableData(object):
             # check for empty column:
             isempty = True
             for v in self.data[c]:
-                if isinstance(v, float):
+                if isinstance(v, (float, np.floating)):
                     if not m.isnan(v):
                         isempty = False
                         break
@@ -2128,12 +2128,12 @@ class TableData(object):
             # adapt width to data:
             if f[-1] == 's':
                 for v in self.data[c]:
-                    if not isinstance(v, float) and w < len(v):
+                    if not isinstance(v, (float, np.floating)) and w < len(v):
                         w = len(v)
             else:
                 fs = f[:i0] + str(0) + f[i1:]
                 for v in self.data[c]:
-                    if isinstance(v, float) and m.isnan(v):
+                    if isinstance(v, (float, np.floating)) and m.isnan(v):
                         s = missing
                     else:
                         s = fs % v
@@ -2379,7 +2379,7 @@ class TableData(object):
                         fh.write(' align="right"')
                 fh.write(data_close)
                 if k >= len(self.data[c]) or \
-                   (isinstance(self.data[c][k], float) and m.isnan(self.data[c][k])):
+                   (isinstance(self.data[c][k], (float, np.floating)) and m.isnan(self.data[c][k])):
                     # missing data:
                     if table_format[0] == 't' and latex_merge_std and stdev_col[c]:
                         merged = True
