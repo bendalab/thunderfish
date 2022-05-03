@@ -227,7 +227,7 @@ def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
     return freqs, np.squeeze(power)
 
 
-def multi_psd(data, ratetime, freq_resolution=0.5,
+def multi_psd(data, ratetime, freq_resolution=0.2,
               num_resolutions=1, num_windows=1,
               min_nfft=16, overlap_frac=0.5,
               detrend='constant', window='hanning'):
@@ -290,7 +290,7 @@ def multi_psd(data, ratetime, freq_resolution=0.5,
     return multi_psd_data
 
 
-def spectrogram(data, ratetime, freq_resolution=0.5, min_nfft=16,
+def spectrogram(data, ratetime, freq_resolution=0.2, min_nfft=16,
                 max_nfft=None, overlap_frac=0.5,
                 detrend='constant', window='hanning'):
     """Spectrogram of a given frequency resolution.
@@ -410,7 +410,7 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
     ax.set_ylabel('Power [dB]')
 
 
-def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=1.0,
+def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=0.2,
                thresh=None, **kwargs):
     """Peak frequencies computed for each of the data snippets.
 
@@ -457,7 +457,7 @@ def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=1.0,
     return np.array(freqs)
 
 
-def add_multi_psd_config(cfg, freq_resolution=0.5,
+def add_multi_psd_config(cfg, freq_resolution=0.2,
                          num_resolutions=1, num_windows=1):
     """Add all parameters needed for the multi_psd() function as
     a new section to a configuration.
