@@ -199,7 +199,8 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     # generate EOD:
     data = np.zeros(len(phase))
     for har, (ampl, phi) in enumerate(zip(amplitudes, phases)):
-        data += ampl * np.sin(2*np.pi*(har+1)*phase + phi - (har+1)*phase0)
+        if not np.isnan(ampl) and not np.isnan(phi):
+            data += ampl * np.sin(2*np.pi*(har+1)*phase + phi - (har+1)*phase0)
     # add noise:
     data += noise_std * np.random.randn(len(data))
     return data
