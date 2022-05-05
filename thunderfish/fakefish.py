@@ -139,6 +139,12 @@ def wavefish_spectrum(fish):
         phases = wavefish_harmonics[fish]['phases']
     if len(amplitudes) != len(phases):
         raise IndexError('need exactly as many phases as amplitudes')
+    # remove NaNs:
+    for k in reversed(range(len(amplitudes))):
+        if np.isfinite(amplitudes[k]) or np.isfinite(phases[k]):
+            amplitudes = amplitudes[:k+1]
+            phases = phases[:k+1]
+            break
     return amplitudes, phases
 
 
@@ -199,7 +205,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     # generate EOD:
     data = np.zeros(len(phase))
     for har, (ampl, phi) in enumerate(zip(amplitudes, phases)):
-        if not np.isnan(ampl) and not np.isnan(phi):
+        if np.isfinite(ampl) and np.isfinite(phi):
             data += ampl * np.sin(2*np.pi*(har+1)*phase + phi - (har+1)*phase0)
     # add noise:
     data += noise_std * np.random.randn(len(data))
