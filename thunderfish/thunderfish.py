@@ -1135,6 +1135,8 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
     # file name for output files:
     fn = base_name if keep_path else os.path.basename(base_name)
     output_basename = os.path.join(output_folder, fn)
+    if channel >= 0:
+        output_basename += f'-c{channel}'
     # make directory if necessary:
     if keep_path:
         outpath = os.path.dirname(output_basename)
