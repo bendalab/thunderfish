@@ -1738,7 +1738,7 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     dyu = np.abs(unity)/pixely
     font_size = plt.rcParams['font.size']*dyu
     # annotate fit:
-    tau = props.get('tau', None)
+    tau = None if props is None else props.get('tau', None)
     ty = 0.0
     if tau is not None and eod_waveform.shape[1] > 3:
         if tau < 0.001:
@@ -1798,21 +1798,22 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
-    props['unit'] = unit
-    label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\n'.format(**props)
-    if 'n' in props:
-        props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
-        label += 'n = {n} {eods}\n'.format(**props)
-    if props['flipped']:
-        label += 'flipped\n'
-    if -eod_waveform[0,0] < 0.6*eod_waveform[-1,0]:
-        ax.text(0.97, 0.97, label, transform=ax.transAxes,
-                va='top', ha='right', zorder=20)
-    else:
-        ax.text(0.03, 0.97, label, transform=ax.transAxes,
-                va='top', zorder=20)
+    if props is not None:
+        props['unit'] = unit
+        label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\n'.format(**props)
+        if 'n' in props:
+            props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
+            label += 'n = {n} {eods}\n'.format(**props)
+        if props['flipped']:
+            label += 'flipped\n'
+        if -eod_waveform[0,0] < 0.6*eod_waveform[-1,0]:
+            ax.text(0.97, 0.97, label, transform=ax.transAxes,
+                    va='top', ha='right', zorder=20)
+        else:
+            ax.text(0.03, 0.97, label, transform=ax.transAxes,
+                    va='top', zorder=20)
     # axis:                
-    if props['type'] == 'wave':
+    if props is not None and props['type'] == 'wave':
         lim = 750.0/props['EODf']
         ax.set_xlim([-lim, +lim])
     else:
@@ -2815,7 +2816,7 @@ def load_analysis(file_pathes):
 
     Parameters
     ----------
-    file_pathes: lsit of string
+    file_pathes: list of string
         Pathes of the analysis files of a single recording to be loaded.
 
     Returns
@@ -2853,23 +2854,37 @@ def load_analysis(file_pathes):
         zf = zipfile.ZipFile(file_pathes[0])
         file_pathes = sorted(zf.namelist())
     # first, read wave- and pulse-fish summaries:
+    pulse_fish = False
+    wave_fish = False
     for f in file_pathes:
         recording, _, channel, _, ftype, _, _ = parse_filename(f)
         if zf is not None:
             f = io.TextIOWrapper(zf.open(f, 'r'))
         if ftype == 'wavefish':
             eod_props.extend(load_wave_fish(f))
+            wave_fish = True
         elif ftype == 'pulsefish':
             eod_props.extend(load_pulse_fish(f))
+            pulse_fish = True
+    idx_offs = 0
+    if wave_fish and not pulse_fish:
+        idx_offs = sorted([ep['index'] for ep in eod_props])[0]
     # then load all other files:
+    neods = len(eod_props)
+    if neods < 1:
+        neods = 1
+        eod_props = [None]
     wave_eodfs = np.array([])
     wave_indices = np.array([])
-    mean_eods = [None]*len(eod_props)
-    spec_data = [None]*len(eod_props)
-    peak_data = [None]*len(eod_props)
+    mean_eods = [None]*neods
+    spec_data = [None]*neods
+    peak_data = [None]*neods
     unit = None
     for f in file_pathes:
         recording, _, channel, _, ftype, idx, _ = parse_filename(f)
+        if neods == 1 and idx > 0:
+            idx = 0
+        idx -= idx_offs
         if zf is not None:
             f = io.TextIOWrapper(zf.open(f, 'r'))
         if ftype == 'waveeodfs':
