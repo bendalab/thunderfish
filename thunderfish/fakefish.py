@@ -212,12 +212,14 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     return data
 
 
-def normalize_wavefish(fish):
+def normalize_wavefish(fish, mode='peak'):
     """Normalize amplitudes and phases of wave-type EOD waveform.
 
-    The amplitudes and phases of the Fourier components are adjusted such
-    that the resulting EOD waveform has a peak-to-peak amplitude of two
-    and the peak of the waveform is at time zero.
+    The amplitudes and phases of the Fourier components are adjusted
+    such that the resulting EOD waveform has a peak-to-peak amplitude
+    of two and the peak of the waveform is at time zero (mode is set
+    to 'peak') or that the fundamental has an amplitude of one and a
+    phase of 0 (mode is set to 'zero').
 
     Parameters
     ----------
@@ -227,6 +229,11 @@ def normalize_wavefish(fish):
         If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
         If tuple then the first element is the list of amplitudes and
         the second one the list of relative phases in radians.
+    mode: 'peak' or 'zero'
+        How to normalize amplitude and phases:
+        - 'peak': normalize waveform to a peak-to-peak amplitude of two
+          and shift it such that its peak is at time zero.
+        - 'zero': scale amplitude of fundamental to one and its phase to zero.
 
     Returns
     -------
@@ -234,24 +241,32 @@ def normalize_wavefish(fish):
         Adjusted amplitudes of the fundamental and its harmonics.
     phases: array of floats
         Adjusted phases in radians of the fundamental and its harmonics.
+
     """
     # get relative amplitude and phases:
     amplitudes, phases = wavefish_spectrum(fish)
-    # generate waveform:
-    eodf = 100.0
-    rate = 100000.0
-    data = wavefish_eods(fish, eodf, rate, 2.0/eodf, noise_std=0.0)
-    # normalize amplitudes:
-    ampl = 0.5*(np.max(data) - np.min(data))
-    newamplitudes = np.array(amplitudes)/ampl
-    # shift phases:
-    deltat = np.argmax(data[:int(rate/eodf)])/rate
-    deltap = 2.0*np.pi*deltat*eodf
-    newphases = np.array([p+(k+1)*deltap for k, p in enumerate(phases)])
-    newphases %= 2.0*np.pi
-    newphases[newphases>np.pi] -= 2.0*np.pi
-    # return:
-    return newamplitudes, newphases
+    if mode == 'zero':
+        newamplitudes = np.array(amplitudes)/amplitudes[0]
+        newphases = np.array([p+(k+1)*(-phases[0]) for k, p in enumerate(phases)])
+        newphases %= 2.0*np.pi
+        newphases[newphases>np.pi] -= 2.0*np.pi
+        return newamplitudes, newphases
+    else:
+        # generate waveform:
+        eodf = 100.0
+        rate = 100000.0
+        data = wavefish_eods(fish, eodf, rate, 2.0/eodf, noise_std=0.0)
+        # normalize amplitudes:
+        ampl = 0.5*(np.max(data) - np.min(data))
+        newamplitudes = np.array(amplitudes)/ampl
+        # shift phases:
+        deltat = np.argmax(data[:int(rate/eodf)])/rate
+        deltap = 2.0*np.pi*deltat*eodf
+        newphases = np.array([p+(k+1)*deltap for k, p in enumerate(phases)])
+        newphases %= 2.0*np.pi
+        newphases[newphases>np.pi] -= 2.0*np.pi
+        # return:
+        return newamplitudes, newphases
 
 
 def export_wavefish(fish, name='Unknown_harmonics', file=None):
