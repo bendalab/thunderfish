@@ -152,7 +152,7 @@ def power(decibel, ref_power=1.0):
 
 
 def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
-        overlap_frac=0.5, detrend='constant', window='hanning'):
+        overlap_frac=0.5, detrend='constant', window='hann'):
     """Power spectrum density of a given frequency resolution.
 
     NFFT is computed from the requested frequency resolution and the
