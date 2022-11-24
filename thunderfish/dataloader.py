@@ -104,14 +104,14 @@ def relacs_metadata(filepath, store_empty=False):
         If `filepath` cannot be opened.
     """
     data = {}
-    with open(filepath, 'r') as sf:
+    with open(filepath, 'r', encoding='latin-1') as sf:
         for line in sf:
             if len(line) == 0 or line[0] != '#':
                 break
             words = line.split(':')
             if len(words) >= 2:
                 key = words[0].strip('# ')
-                value = ':'.join(words[1:]).strip()
+                value = ':'.join(words[1:]).strip().strip('"')
                 if value or store_empty:
                     data[key] = value
     return data
@@ -178,38 +178,23 @@ def relacs_files(file_paths, channel):
     if not isinstance(file_paths, (list, tuple, np.ndarray)):
         file_paths = [file_paths]
     if len(file_paths) == 1:
-        if os.path.isdir(file_paths[0]):
-            if channel < 0:
-                relacs_dir = file_paths[0]
-                file_paths = []
-                for k in range(10000):
-                    file = os.path.join(relacs_dir, 'trace-%d.raw'%(k+1))
-                    if os.path.isfile(file):
-                        file_paths.append(file)
-                    else:
-                        break
-            else:
-                file_paths[0] = os.path.join(file_paths[0], 'trace-%d.raw' % (channel+1))
-        else:
-            bn = os.path.basename(file_paths[0])
-            if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
-                if channel < 0:
-                    relacs_dir = os.path.dirname(file_paths[0])
-                    file_paths = []
-                    for k in range(10000):
-                        file = os.path.join(relacs_dir, 'trace-%d.raw'%(k+1))
-                        if os.path.isfile(file):
-                            file_paths.append(file)
-                        else:
-                            break
+        relacs_dir = file_paths[0]
+        if not os.path.isdir(relacs_dir):
+            relacs_dir = os.path.dirname(file_paths[0])
+        if channel < 0:
+            file_paths = []
+            for k in range(10000):
+                file = os.path.join(relacs_dir, f'trace-{k+1}.raw')
+                if os.path.isfile(file):
+                    file_paths.append(file)
                 else:
-                    file_paths[0] = os.path.join(os.path.dirname(file_paths[0]),
-                                                 'trace-%d.raw' % (channel+1))
+                    break
+        else:
+            file_paths[0] = os.path.join(relacs_dir, f'trace-{channel+1}.raw')
     for path in file_paths:
         bn = os.path.basename(path)
         if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
             raise ValueError('invalid name %s of relacs trace file', path)
-        
     return file_paths
 
         
@@ -477,38 +462,23 @@ def fishgrid_files(file_paths, channel, grid_sizes):
     if not isinstance(file_paths, (list, tuple, np.ndarray)):
         file_paths = [file_paths]
     if len(file_paths) == 1:
-        if os.path.isdir(file_paths[0]):
-            if grid < 0:
-                fishgrid_dir = file_paths[0]
-                file_paths = []
-                for k in range(10000):
-                    file = os.path.join(fishgrid_dir, 'traces-grid%d.raw'%(k+1))
-                    if os.path.isfile(file):
-                        file_paths.append(file)
-                    else:
-                        break
-            else:
-                file_paths[0] = os.path.join(file_paths[0], 'traces-grid%d.raw' % (grid+1))
-        else:
-            bn = os.path.basename(file_paths[0])
-            if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
-                if grid < 0:
-                    fishgrid_dir = os.path.dirname(file_paths[0])
-                    file_paths = []
-                    for k in range(10000):
-                        file = os.path.join(fishgrid_dir, 'traces-grid%d.raw'%(k+1))
-                        if os.path.isfile(file):
-                            file_paths.append(file)
-                        else:
-                            break
+        fishgrid_dir = file_paths[0]
+        if not os.path.isdir(fishgrid_dir):
+            fishgrid_dir = os.path.dirname(file_paths[0])
+        if grid < 0:
+            file_paths = []
+            for k in range(10000):
+                file = os.path.join(fishgrid_dir, f'traces-grid{k+1}.raw')
+                if os.path.isfile(file):
+                    file_paths.append(file)
                 else:
-                    file_paths[0] = os.path.join(os.path.dirname(file_paths[0]),
-                                                 'traces-grid%d.raw' % (grid+1))
+                    break
+        else:
+            file_paths[0] = os.path.join(fishgrid_dir, f'traces-grid{grid+1}.raw')
     for path in file_paths:
         bn = os.path.basename(path)
         if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
             raise ValueError('invalid name %s of fishgrid traces file', path)
-
     return file_paths
 
         
@@ -852,25 +822,26 @@ class DataLoader(AudioLoader):
     close(): close the file.
     """
 
-    def __init__(self, filepath=None, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
+    def __init__(self, filepath=None, buffersize=10.0, backsize=0.0,
+                 verbose=0, channel=-1):
         """Initialize the DataLoader instance. If filepath is not None open the file.
 
         Parameters
         ----------
         filepath: string
             Name of the file.
-        channel: int
-            The single channel to be worked on.
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
+        channel: int
+            The single channel to be worked on or all channels if negative.
         """
         super(DataLoader, self).__init__(None, buffersize, backsize, verbose)
         if filepath is not None:
-            self.open(filepath, channel, buffersize, backsize, verbose)
+            self.open(filepath, buffersize, backsize, verbose, channel)
 
     def __getitem__(self, key):
         if self.channel >= 0:
@@ -888,7 +859,8 @@ class DataLoader(AudioLoader):
 
     
     # relacs interface:        
-    def open_relacs(self, file_paths, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
+    def open_relacs(self, file_paths, buffersize=10.0, backsize=0.0,
+                    verbose=0, channel=-1):
         """Open relacs data files (www.relacs.net) for reading.
 
         Parameters
@@ -896,14 +868,14 @@ class DataLoader(AudioLoader):
         file_paths: string or list of string
             Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
             or relacs trace-*.raw files.
-        channel: int
-            The requested data channel. If negative all channels are selected.
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
         """
         self.verbose = verbose
         
@@ -919,7 +891,7 @@ class DataLoader(AudioLoader):
         self.unit = ""
         self.filepath = None
         if len(file_paths) > 0:
-            self.filepath = os.path.basename(file_paths[0])
+            self.filepath = os.path.dirname(file_paths[0])
         for path in file_paths:
             file = open(path, 'rb')
             self.sf.append(file)
@@ -991,13 +963,16 @@ class DataLoader(AudioLoader):
     def _metadata_relacs(self, store_empty=False):
         """ Read meta-data of a relacs data set.
         """
-        data = relacs_metadata(os.path.join(self.filepath, 'info.dat'),
-                               store_empty)
-        return dict(INFO=data)
+        info_path = os.path.join(self.filepath, 'info.dat')
+        if not os.path.exists(info_path):
+            return dict(), []
+        data = relacs_metadata(info_path, store_empty)
+        return dict(INFO=data), []
 
     
     # fishgrid interface:        
-    def open_fishgrid(self, file_paths, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
+    def open_fishgrid(self, file_paths, buffersize=10.0, backsize=0.0,
+                      verbose=0, channel=-1):
         """Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
 
         Parameters
@@ -1005,14 +980,14 @@ class DataLoader(AudioLoader):
         file_paths: string or list of string
             Path to a fishgrid data directory, a fishgrid.cfg file,
             or fishgrid trace-*.raw files.
-        channel: int
-            The requested data channel. If negative all channels are selected.
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
         """
         self.verbose = verbose
         
@@ -1026,7 +1001,7 @@ class DataLoader(AudioLoader):
         file_paths = fishgrid_files(file_paths, channel, grid_sizes)
         self.filepath = None
         if len(file_paths) > 0:
-            self.filepath = os.path.basename(file_paths[0])
+            self.filepath = os.path.dirname(file_paths[0])
 
         # open grid files:
         self.channels = 0
@@ -1080,7 +1055,7 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_fishgrid
         self.load_buffer = self._load_buffer_fishgrid
-        self.metadata = self._metadata_relacs
+        self.metadata = self._metadata_fishgrid
         return self
 
     def _close_fishgrid(self):
@@ -1109,27 +1084,37 @@ class DataLoader(AudioLoader):
             buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))
         
 
-    def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0,
-             verbose=0):
+    def _metadata_fishgrid(self, store_empty=False):
+        """ Read meta-data of a fishgrid data set.
+        """
+        info_path = os.path.join(self.filepath, 'fishgrid.cfg')
+        if not os.path.exists(info_path):
+            return dict(), []
+        data = relacs_metadata(info_path, store_empty)
+        return dict(INFO=data), []
+
+
+    def open(self, filepath, buffersize=10.0, backsize=0.0,
+             verbose=0, channel=-1):
         """Open file with time-series data for reading.
 
         Parameters
         ----------
         filepath: string or list of string
             Path to a data files or directory.
-        channel: int
-            The requested data channel. If negative all channels are selected.
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
         """
         if check_relacs(filepath):
-            self.open_relacs(filepath, channel, buffersize, backsize, verbose)
+            self.open_relacs(filepath, buffersize, backsize, verbose, channel)
         elif check_fishgrid(filepath):
-            self.open_fishgrid(filepath, channel, buffersize, backsize, verbose)
+            self.open_fishgrid(filepath, buffersize, backsize, verbose, channel)
         else:
             if isinstance(filepath, (list, tuple, np.ndarray)):
                 filepath = filepath[0]
