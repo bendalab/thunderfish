@@ -952,7 +952,7 @@ class DataLoader(AudioLoader):
         self._init_buffer()
         self.offset = 0
         self.close = self._close_relacs
-        self._update_buffer = self._update_buffer_relacs
+        self.load_buffer = self._load_buffer_relacs
         return self
 
     def _close_relacs(self):
@@ -963,24 +963,22 @@ class DataLoader(AudioLoader):
                 file.close()
             self.sf = None
 
-    def _update_buffer_relacs(self, start, stop):
-        """Make sure that the buffer contains the data between
-        start and stop for relacs files.
+    def _load_buffer_relacs(self, r_offset, r_size, buffer):
+        """Load new data from relacs data file.
+
+        Parameters
+        ----------
+        r_offset: int
+           First frame to be read from file.
+        r_size: int
+           Number of frames to be read from file.
+        buffer: ndarray
+           Buffer where to store the loaded data.
         """
-        if start < self.offset or stop > self.offset + self.buffer.shape[0]:
-            offset, size = self._read_indices(start, stop)
-            r_offset, r_size = self._recycle_buffer(offset, size)
-            # read buffer:
-            for i, file in enumerate(self.sf):
-                file.seek(r_offset*4)
-                buffer = file.read(r_size*4)
-                self.buffer[r_offset-offset:r_offset+r_size-offset, i] = np.fromstring(buffer, dtype=np.float32)
-            self.offset = offset
-            if self.verbose > 1:
-                print('  read %6d frames at %d' % (r_size, r_offset))
-            if self.verbose > 0:
-                print('  loaded %d frames from %d up to %d'
-                      % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
+        for i, file in enumerate(self.sf):
+            file.seek(r_offset*4)
+            data = file.read(r_size*4)
+            buffer[:, i] = np.fromstring(data, dtype=np.float32)
         
     
     # fishgrid interface:        
@@ -1063,7 +1061,7 @@ class DataLoader(AudioLoader):
         self._init_buffer()
         self.offset = 0
         self.close = self._close_fishgrid
-        self._update_buffer = self._update_buffer_fishgrid
+        self.load_buffer = self._load_buffer_fishgrid
         return self
 
     def _close_fishgrid(self):
@@ -1074,24 +1072,22 @@ class DataLoader(AudioLoader):
                 file.close()
             self.sf = None
 
-    def _update_buffer_fishgrid(self, start, stop):
-        """Make sure that the buffer contains the data between
-        start and stop for fishgrid files.
+    def _load_buffer_fishgrid(self, r_offset, r_size, buffer):
+        """Load new data from relacs data file.
+
+        Parameters
+        ----------
+        r_offset: int
+           First frame to be read from file.
+        r_size: int
+           Number of frames to be read from file.
+        buffer: ndarray
+           Buffer where to store the loaded data.
         """
-        if start < self.offset or stop > self.offset + self.buffer.shape[0]:
-            offset, size = self._read_indices(start, stop)
-            r_offset, r_size = self._recycle_buffer(offset, size)
-            # read buffer:
-            for file, gchannels, goffset in zip(self.sf, self.grid_channels, self.grid_offs):
-                file.seek(r_offset*4*gchannels)
-                buffer = file.read(r_size*4*gchannels)
-                self.buffer[r_offset-offset:r_offset+r_size-offset, goffset:goffset+gchannels] = np.fromstring(buffer, dtype=np.float32).reshape((-1, gchannels))
-            self.offset = offset
-            if self.verbose > 1:
-                print('  read %6d frames at %d' % (r_size, r_offset))
-            if self.verbose > 0:
-                print('  loaded %d frames from %d up to %d'
-                      % (self.buffer.shape[0], self.offset, self.offset+self.buffer.shape[0]))
+        for file, gchannels, goffset in zip(self.sf, self.grid_channels, self.grid_offs):
+            file.seek(r_offset*4*gchannels)
+            data = file.read(r_size*4*gchannels)
+            buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))
         
 
     def open(self, filepath, channel=0, buffersize=10.0, backsize=0.0,
