@@ -83,13 +83,15 @@ def relacs_samplerate_unit(filepath, channel=0):
     raise ValueError('could not retrieve sampling rate from ' + stimuli_file)
 
 
-def relacs_metadata(filepath):
+def relacs_metadata(filepath, store_empty=False):
     """Reads header of a relacs *.dat file.
 
     Parameters
     ----------
     filepath: string
         A relacs *.dat file.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
 
     Returns
     -------
@@ -110,36 +112,37 @@ def relacs_metadata(filepath):
             if len(words) >= 2:
                 key = words[0].strip('# ')
                 value = ':'.join(words[1:]).strip()
-                data[key] = value
+                if value or store_empty:
+                    data[key] = value
     return data
 
 
-def check_relacs(filepathes):
-    """Check whether filepathes are relacs files.
+def check_relacs(file_paths):
+    """Check whether file_paths are relacs files.
 
     Parameters
     ----------
-    filepathes: string or list of strings
+    file_paths: string or list of strings
         Path to a relacs data directory, a file in a relacs data directory,
         or relacs trace-*.raw files.
 
     Returns
     -------
     is_relacs: boolean
-      If `filepathes` is a single path, then returns `True` if it is a or is a file in
+      If `file_paths` is a single path, then returns `True` if it is a or is a file in
       a valid relacs data directory.
-      If filepathes are more than one path, then returns `True` if `filepathes`
+      If file_paths are more than one path, then returns `True` if `file_paths`
       are 'trace-*.raw' files in a valid relacs data directory.
     """
-    path = filepathes
-    # filepathes must be trace-*.raw:
-    if isinstance(filepathes, (list, tuple, np.ndarray)):
-        if len(filepathes) > 1:
-            for file in filepathes:
+    path = file_paths
+    # file_paths must be trace-*.raw:
+    if isinstance(file_paths, (list, tuple, np.ndarray)):
+        if len(file_paths) > 1:
+            for file in file_paths:
                 bn = os.path.basename(file)
                 if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
                     return False
-        path = filepathes[0]
+        path = file_paths[0]
     # relacs data directory:
     relacs_dir = path
     if not os.path.isdir(path):
@@ -152,12 +155,12 @@ def check_relacs(filepathes):
         return False
 
     
-def relacs_files(filepathes, channel):
-    """Expand file pathes for relacs data to appropriate trace*.raw file names.
+def relacs_files(file_paths, channel):
+    """Expand file paths for relacs data to appropriate trace*.raw file names.
 
     Parameters
     ----------
-    filepathes: string or list of strings
+    file_paths: string or list of strings
         Path to a relacs data directory, a file in a relacs data directory,
         or relacs trace-*.raw files.
     channel: int
@@ -165,57 +168,57 @@ def relacs_files(filepathes, channel):
         
     Returns
     -------
-    filepathes: list of strings
+    file_paths: list of strings
         List of relacs trace*.raw files.
 
     Raises
     ------
     ValueError: invalid name of relacs trace file
     """
-    if not isinstance(filepathes, (list, tuple, np.ndarray)):
-        filepathes = [filepathes]
-    if len(filepathes) == 1:
-        if os.path.isdir(filepathes[0]):
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    if len(file_paths) == 1:
+        if os.path.isdir(file_paths[0]):
             if channel < 0:
-                relacs_dir = filepathes[0]
-                filepathes = []
+                relacs_dir = file_paths[0]
+                file_paths = []
                 for k in range(10000):
                     file = os.path.join(relacs_dir, 'trace-%d.raw'%(k+1))
                     if os.path.isfile(file):
-                        filepathes.append(file)
+                        file_paths.append(file)
                     else:
                         break
             else:
-                filepathes[0] = os.path.join(filepathes[0], 'trace-%d.raw' % (channel+1))
+                file_paths[0] = os.path.join(file_paths[0], 'trace-%d.raw' % (channel+1))
         else:
-            bn = os.path.basename(filepathes[0])
+            bn = os.path.basename(file_paths[0])
             if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
                 if channel < 0:
-                    relacs_dir = os.path.dirname(filepathes[0])
-                    filepathes = []
+                    relacs_dir = os.path.dirname(file_paths[0])
+                    file_paths = []
                     for k in range(10000):
                         file = os.path.join(relacs_dir, 'trace-%d.raw'%(k+1))
                         if os.path.isfile(file):
-                            filepathes.append(file)
+                            file_paths.append(file)
                         else:
                             break
                 else:
-                    filepathes[0] = os.path.join(os.path.dirname(filepathes[0]),
+                    file_paths[0] = os.path.join(os.path.dirname(file_paths[0]),
                                                  'trace-%d.raw' % (channel+1))
-    for path in filepathes:
+    for path in file_paths:
         bn = os.path.basename(path)
         if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
             raise ValueError('invalid name %s of relacs trace file', path)
         
-    return filepathes
+    return file_paths
 
         
-def load_relacs(filepathes, channel=-1, verbose=0):
+def load_relacs(file_paths, channel=-1, verbose=0):
     """Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).
 
     Parameters
     ----------
-    filepathes: string or list of strings
+    file_paths: string or list of strings
         Path to a relacs data directory, a file in a relacs data directory,
         or relacs trace-*.raw files.
     channel: int
@@ -242,17 +245,17 @@ def load_relacs(filepathes, channel=-1, verbose=0):
         - Sampling rates of traces differ.
         - Unit of traces differ.
     """
-    filepathes = relacs_files(filepathes, channel)
-    if len(filepathes) > 1:
+    file_paths = relacs_files(file_paths, channel)
+    if len(file_paths) > 1:
         channel = -1
                 
     # load trace*.raw files:
-    nchannels = len(filepathes)
+    nchannels = len(file_paths)
     data = None
     nrows = 0
     samplerate = None
     unit = ""
-    for n, path in enumerate(filepathes):
+    for n, path in enumerate(file_paths):
         x = np.fromfile(path, np.float32)
         if verbose > 0:
             print( 'loaded %s' % path)
@@ -400,32 +403,32 @@ def fishgrid_grids(filepath):
     return grids
 
 
-def check_fishgrid(filepathes):
-    """Check whether filepathes are valid fishgrid files (https://github.com/bendalab/fishgrid).
+def check_fishgrid(file_paths):
+    """Check whether file_paths are valid fishgrid files (https://github.com/bendalab/fishgrid).
 
     Parameters
     ----------
-    filepathes: string or list of strings
+    file_paths: string or list of strings
         Path to a fishgrid data directory, a file in a fishgrid data directory,
         or fishgrid traces-*.raw files.
 
     Returns
     -------
     is_fishgrid: bool
-        If `filepathes` is a single path, then returns `True` if it is a file in
+        If `file_paths` is a single path, then returns `True` if it is a file in
         a valid fishgrid data directory.
-        If `filepathes` are more than one path, then returns `True` if `filepathes`
+        If `file_paths` are more than one path, then returns `True` if `file_paths`
         are 'trace-*.raw' files in a valid fishgrid data directory.
     """
-    path = filepathes
-    # filepathes must be traces-*.raw:
-    if isinstance(filepathes, (list, tuple, np.ndarray)):
-        if len(filepathes) > 1:
-            for file in filepathes:
+    path = file_paths
+    # file_paths must be traces-*.raw:
+    if isinstance(file_paths, (list, tuple, np.ndarray)):
+        if len(file_paths) > 1:
+            for file in file_paths:
                 bn = os.path.basename(file).lower()
                 if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
                     return False
-        path = filepathes[0]
+        path = file_paths[0]
     # fishgrid data directory:
     fishgrid_dir = path
     if not os.path.isdir(path):
@@ -435,12 +438,12 @@ def check_fishgrid(filepathes):
             os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw')))
 
     
-def fishgrid_files(filepathes, channel, grid_sizes):
-    """Expand file pathes for fishgrid data to appropriate traces-*.raw file names.
+def fishgrid_files(file_paths, channel, grid_sizes):
+    """Expand file paths for fishgrid data to appropriate traces-*.raw file names.
 
     Parameters
     ----------
-    filepathes: string or list of strings
+    file_paths: string or list of strings
         Path to a fishgrid data directory, a file in a fishgrid data directory,
         or fishgrid traces-*.raw files.
     channel: int
@@ -450,7 +453,7 @@ def fishgrid_files(filepathes, channel, grid_sizes):
         
     Returns
     -------
-    filepathes: list of strings
+    file_paths: list of strings
         List of fishgrid traces-*.raw files.
 
     Raises
@@ -471,50 +474,50 @@ def fishgrid_files(filepathes, channel, grid_sizes):
         if grid < 0:
             raise IndexError("invalid channel")
             
-    if not isinstance(filepathes, (list, tuple, np.ndarray)):
-        filepathes = [filepathes]
-    if len(filepathes) == 1:
-        if os.path.isdir(filepathes[0]):
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    if len(file_paths) == 1:
+        if os.path.isdir(file_paths[0]):
             if grid < 0:
-                fishgrid_dir = filepathes[0]
-                filepathes = []
+                fishgrid_dir = file_paths[0]
+                file_paths = []
                 for k in range(10000):
                     file = os.path.join(fishgrid_dir, 'traces-grid%d.raw'%(k+1))
                     if os.path.isfile(file):
-                        filepathes.append(file)
+                        file_paths.append(file)
                     else:
                         break
             else:
-                filepathes[0] = os.path.join(filepathes[0], 'traces-grid%d.raw' % (grid+1))
+                file_paths[0] = os.path.join(file_paths[0], 'traces-grid%d.raw' % (grid+1))
         else:
-            bn = os.path.basename(filepathes[0])
+            bn = os.path.basename(file_paths[0])
             if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
                 if grid < 0:
-                    fishgrid_dir = os.path.dirname(filepathes[0])
-                    filepathes = []
+                    fishgrid_dir = os.path.dirname(file_paths[0])
+                    file_paths = []
                     for k in range(10000):
                         file = os.path.join(fishgrid_dir, 'traces-grid%d.raw'%(k+1))
                         if os.path.isfile(file):
-                            filepathes.append(file)
+                            file_paths.append(file)
                         else:
                             break
                 else:
-                    filepathes[0] = os.path.join(os.path.dirname(filepathes[0]),
+                    file_paths[0] = os.path.join(os.path.dirname(file_paths[0]),
                                                  'traces-grid%d.raw' % (grid+1))
-    for path in filepathes:
+    for path in file_paths:
         bn = os.path.basename(path)
         if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
             raise ValueError('invalid name %s of fishgrid traces file', path)
 
-    return filepathes
+    return file_paths
 
         
-def load_fishgrid(filepathes, channel=-1, verbose=0):
+def load_fishgrid(file_paths, channel=-1, verbose=0):
     """Load traces (traces-grid*.raw files) that have been recorded with fishgrid (https://github.com/bendalab/fishgrid).
 
     Parameters
     ----------
-    filepathes: string or list of string
+    file_paths: string or list of string
         Path to a fishgrid data directory, a fishgrid.cfg file,
         or fidhgrid traces-grid*.raw files.
      channel: int
@@ -534,18 +537,18 @@ def load_fishgrid(filepathes, channel=-1, verbose=0):
     unit: string
         Unit of the data.
     """
-    if not isinstance(filepathes, (list, tuple, np.ndarray)):
-        filepathes = [filepathes]
-    grids = fishgrid_grids(filepathes[0])
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    grids = fishgrid_grids(file_paths[0])
     grid_sizes = [r*c for r,c in grids]
-    filepathes = fishgrid_files(filepathes, channel, grid_sizes)
-    if len(filepathes) > 1:
+    file_paths = fishgrid_files(file_paths, channel, grid_sizes)
+    if len(file_paths) > 1:
         channel = -1
                 
     # load traces-grid*.raw files:
     grid_channels = []
     nchannels = 0
-    for path in filepathes:
+    for path in file_paths:
         g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
         grid_channels.append(grid_sizes[g])
         nchannels += grid_sizes[g]
@@ -553,10 +556,10 @@ def load_fishgrid(filepathes, channel=-1, verbose=0):
     nrows = 0
     n = 0
     samplerate = None
-    if len(filepathes) > 0:
-        samplerate = fishgrid_samplerate(filepathes[0])
+    if len(file_paths) > 0:
+        samplerate = fishgrid_samplerate(file_paths[0])
     unit = "V"
-    for path, channels in zip(filepathes, grid_channels):
+    for path, channels in zip(file_paths, grid_channels):
         x = np.fromfile(path, np.float32).reshape((-1, channels))
         if verbose > 0:
             print( 'loaded %s' % path)
@@ -885,12 +888,12 @@ class DataLoader(AudioLoader):
 
     
     # relacs interface:        
-    def open_relacs(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
+    def open_relacs(self, file_paths, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
         """Open relacs data files (www.relacs.net) for reading.
 
         Parameters
         ----------
-        filepathes: string or list of string
+        file_paths: string or list of string
             Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
             or relacs trace-*.raw files.
         channel: int
@@ -907,14 +910,17 @@ class DataLoader(AudioLoader):
         if self.sf is not None:
             self._close_relacs()
 
-        filepathes = relacs_files(filepathes, channel)
+        file_paths = relacs_files(file_paths, channel)
 
         # open trace files:
         self.sf = []
         self.frames = None
         self.samplerate = None
         self.unit = ""
-        for path in filepathes:
+        self.filepath = None
+        if len(file_paths) > 0:
+            self.filepath = os.path.basename(file_paths[0])
+        for path in file_paths:
             file = open(path, 'rb')
             self.sf.append(file)
             if verbose > 0:
@@ -953,6 +959,7 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_relacs
         self.load_buffer = self._load_buffer_relacs
+        self.metadata = self._metadata_relacs
         return self
 
     def _close_relacs(self):
@@ -980,14 +987,22 @@ class DataLoader(AudioLoader):
             data = file.read(r_size*4)
             buffer[:, i] = np.fromstring(data, dtype=np.float32)
         
+
+    def _metadata_relacs(self, store_empty=False):
+        """ Read meta-data of a relacs data set.
+        """
+        data = relacs_metadata(os.path.join(self.filepath, 'info.dat'),
+                               store_empty)
+        return dict(INFO=data)
+
     
     # fishgrid interface:        
-    def open_fishgrid(self, filepathes, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
+    def open_fishgrid(self, file_paths, channel=-1, buffersize=10.0, backsize=0.0, verbose=0):
         """Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
 
         Parameters
         ----------
-        filepathes: string or list of string
+        file_paths: string or list of string
             Path to a fishgrid data directory, a fishgrid.cfg file,
             or fishgrid trace-*.raw files.
         channel: int
@@ -1004,15 +1019,18 @@ class DataLoader(AudioLoader):
         if self.sf is not None:
             self._close_fishgrid()
 
-        if not isinstance(filepathes, (list, tuple, np.ndarray)):
-            filepathes = [filepathes]
-        grids = fishgrid_grids(filepathes[0])
+        if not isinstance(file_paths, (list, tuple, np.ndarray)):
+            file_paths = [file_paths]
+        grids = fishgrid_grids(file_paths[0])
         grid_sizes = [r*c for r,c in grids]
-        filepathes = fishgrid_files(filepathes, channel, grid_sizes)
+        file_paths = fishgrid_files(file_paths, channel, grid_sizes)
+        self.filepath = None
+        if len(file_paths) > 0:
+            self.filepath = os.path.basename(file_paths[0])
 
         # open grid files:
         self.channels = 0
-        for path in filepathes:
+        for path in file_paths:
             g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
             self.channels += grid_sizes[g]
         self.sf = []
@@ -1021,10 +1039,10 @@ class DataLoader(AudioLoader):
         offs = 0
         self.frames = None
         self.samplerate = None
-        if len(filepathes) > 0:
-            self.samplerate = fishgrid_samplerate(filepathes[0])
+        if len(file_paths) > 0:
+            self.samplerate = fishgrid_samplerate(file_paths[0])
         self.unit = "V"
-        for path in filepathes:
+        for path in file_paths:
             file = open(path, 'rb')
             self.sf.append(file)
             if verbose > 0:
@@ -1062,6 +1080,7 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_fishgrid
         self.load_buffer = self._load_buffer_fishgrid
+        self.metadata = self._metadata_relacs
         return self
 
     def _close_fishgrid(self):
