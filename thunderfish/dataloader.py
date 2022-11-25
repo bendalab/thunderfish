@@ -6,11 +6,11 @@ data, samplingrate, unit = load_data('data/file.wav')
 Loads the whole time-series from the file as a numpy array of floats.
 
 ```
-data = DataLoader('data/file.wav', 0, 60.0)
+data = DataLoader('data/file.wav', 60.0)
 ```
 or
 ```
-with open_data('data/file.wav', 0, 60.0) as data:
+with DataLoader('data/file.wav', 60.0) as data:
 ```
 Create an `DataLoader` object that loads chuncks of 60 seconds long data
 on demand. `data` can be used like a read-only numpy array of floats.
@@ -785,7 +785,7 @@ class DataLoader(AudioLoader):
     ------
     ```
     import thunderfish.dataloader as dl
-    with dl.open_data(filepath, -1, 60.0, 10.0) as data:
+    with dl.open_data(filepath, 60.0, 10.0) as data:
         # do something with the content of the file:
         x = data[0:10000,0]
         y = data[10000:20000,0]
@@ -794,14 +794,14 @@ class DataLoader(AudioLoader):
     
     Normal open and close:
     ```
-    data = dl.DataLoader(filepath, 0, 60.0)
-    x = data[:]  # read the whole file
+    data = dl.DataLoader(filepath, 60.0)
+    x = data[:,:]  # read the whole file
     data.close()
     ```    
     that is the same as:
     ```
     data = dl.DataLoader()
-    data.open(filepath, 0, 60.0)
+    data.open(filepath, 60.0)
     ```
 
     Member variables:
@@ -1132,9 +1132,6 @@ class DataLoader(AudioLoader):
         return self
 
 
-open_data = DataLoader
-
-
 def demo(filepath, plot=False, channel=-1):
     print("try load_data:")
     data, samplerate, unit = load_data(filepath, channel, verbose=2)
@@ -1152,7 +1149,7 @@ def demo(filepath, plot=False, channel=-1):
 
     print('')
     print("try DataLoader for channel=%d:" % channel)
-    with open_data(filepath, channel, 2.0, 1.0, 1) as data:
+    with DataLoader(filepath, channel, 2.0, 1.0, 1) as data:
         print('samplerate: %g' % data.samplerate)
         print('frames: %d %d' % (len(data), data.shape[0]))
         nframes = int(1.0 * data.samplerate)
