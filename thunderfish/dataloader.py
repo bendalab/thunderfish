@@ -83,7 +83,7 @@ def relacs_samplerate_unit(filepath, channel=0):
     raise ValueError('could not retrieve sampling rate from ' + stimuli_file)
 
 
-def relacs_metadata(filepath, store_empty=False):
+def relacs_metadata(filepath, store_empty=False, first_only=False):
     """Reads header of a relacs *.dat file.
 
     Parameters
@@ -92,6 +92,8 @@ def relacs_metadata(filepath, store_empty=False):
         A relacs *.dat file.
     store_empty: bool
         If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
 
     Returns
     -------
@@ -104,7 +106,6 @@ def relacs_metadata(filepath, store_empty=False):
         If `filepath` cannot be opened.
     """
     data = {}
-    # TODO: multi level subsections based on indentation
     cdatas = [data]
     sections = ['']
     ident_offs = None
@@ -131,7 +132,7 @@ def relacs_metadata(filepath, store_empty=False):
                 while len(cdatas) > level + 1:
                     cdatas[-1][sections.pop()] = cdatas.pop()
                 # key-value pair:
-                key = key.strip()
+                key = key.strip().strip('"')
                 value = ':'.join(words[1:]).strip()
                 if len(value) == 0:
                     # new sub-section:
@@ -143,7 +144,8 @@ def relacs_metadata(filepath, store_empty=False):
                     if len(value) > 0 or value != '-' or store_empty:
                         if len(value) > 0 and value[0] == '[' and value[-1] == ']':
                             value = [v.strip() for v in value.lstrip('[').rstrip(']').split(',')]
-                            print(value)
+                            if first_only:
+                                value = value[0]
                         cdatas[-1][key] = value
     while len(cdatas) > 1:
         cdatas[-1][sections.pop()] = cdatas.pop()
@@ -993,13 +995,13 @@ class DataLoader(AudioLoader):
             buffer[:, i] = np.fromstring(data, dtype=np.float32)
         
 
-    def _metadata_relacs(self, store_empty=False):
+    def _metadata_relacs(self, store_empty=False, first_only=False):
         """ Read meta-data of a relacs data set.
         """
         info_path = os.path.join(self.filepath, 'info.dat')
         if not os.path.exists(info_path):
             return dict(), []
-        data = relacs_metadata(info_path, store_empty)
+        data = relacs_metadata(info_path, store_empty, first_only)
         return dict(INFO=data), []
 
     
@@ -1117,13 +1119,13 @@ class DataLoader(AudioLoader):
             buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))
         
 
-    def _metadata_fishgrid(self, store_empty=False):
+    def _metadata_fishgrid(self, store_empty=False, first_only=False):
         """ Read meta-data of a fishgrid data set.
         """
         info_path = os.path.join(self.filepath, 'fishgrid.cfg')
         if not os.path.exists(info_path):
             return dict(), []
-        data = relacs_metadata(info_path, store_empty)
+        data = relacs_metadata(info_path, store_empty, first_only)
         return dict(INFO=data), []
 
 
