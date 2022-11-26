@@ -104,27 +104,44 @@ def relacs_metadata(filepath, store_empty=False):
         If `filepath` cannot be opened.
     """
     data = {}
-    cdata = data
-    section = ''
+    # TODO: multi level subsections based on indentation
+    cdatas = [data]
+    sections = ['']
+    ident_offs = None
+    ident = None
     with open(filepath, 'r', encoding='latin-1') as sf:
         for line in sf:
             if len(line) == 0 or line[0] != '#':
                 break
             words = line.split(':')
             if len(words) >= 2:
-                key = words[0].strip('# ')
+                key = words[0].strip('#')
+                # get section level:
+                nident = len(key) - len(key.lstrip())
+                level = 0
+                if ident_offs is None:
+                    ident_offs = nident
+                elif ident is None:
+                    if nident > ident_offs:
+                        ident = nident - ident_offs
+                        level = 1
+                else:
+                    level = (nident - ident_offs)//ident
+                # close sections:
+                while len(cdatas) > level + 1:
+                    cdatas[-1][sections.pop()] = cdatas.pop()
+                # key-value pair:
+                key = key.strip()
                 value = ':'.join(words[1:]).strip()
                 if len(value) == 0:
-                    if len(section) > 0 and not cdata is data:
-                        data[section] = cdata
-                    section = key
-                    cdata = {}
+                    sections.append(key)
+                    cdatas.append({})
                 else:
                     value = value.strip('"')
                     if len(value) > 0 or value != '-' or store_empty:
-                        cdata[key] = value
-    if len(section) > 0 and not cdata is data:
-        data[section] = cdata
+                        cdatas[-1][key] = value
+    while len(cdatas) > 1:
+        cdatas[-1][sections.pop()] = cdatas.pop()
     return data
 
 
