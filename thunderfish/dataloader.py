@@ -104,6 +104,8 @@ def relacs_metadata(filepath, store_empty=False):
         If `filepath` cannot be opened.
     """
     data = {}
+    cdata = data
+    section = ''
     with open(filepath, 'r', encoding='latin-1') as sf:
         for line in sf:
             if len(line) == 0 or line[0] != '#':
@@ -111,9 +113,18 @@ def relacs_metadata(filepath, store_empty=False):
             words = line.split(':')
             if len(words) >= 2:
                 key = words[0].strip('# ')
-                value = ':'.join(words[1:]).strip().strip('"')
-                if value or store_empty:
-                    data[key] = value
+                value = ':'.join(words[1:]).strip()
+                if len(value) == 0:
+                    if len(section) > 0 and not cdata is data:
+                        data[section] = cdata
+                    section = key
+                    cdata = {}
+                else:
+                    value = value.strip('"')
+                    if len(value) > 0 or value != '-' or store_empty:
+                        cdata[key] = value
+    if len(section) > 0 and not cdata is data:
+        data[section] = cdata
     return data
 
 
