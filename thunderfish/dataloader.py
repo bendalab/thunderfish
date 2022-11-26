@@ -134,11 +134,16 @@ def relacs_metadata(filepath, store_empty=False):
                 key = key.strip()
                 value = ':'.join(words[1:]).strip()
                 if len(value) == 0:
+                    # new sub-section:
                     sections.append(key)
                     cdatas.append({})
                 else:
+                    # key-value pair:
                     value = value.strip('"')
                     if len(value) > 0 or value != '-' or store_empty:
+                        if len(value) > 0 and value[0] == '[' and value[-1] == ']':
+                            value = [v.strip() for v in value.lstrip('[').rstrip(']').split(',')]
+                            print(value)
                         cdatas[-1][key] = value
     while len(cdatas) > 1:
         cdatas[-1][sections.pop()] = cdatas.pop()
