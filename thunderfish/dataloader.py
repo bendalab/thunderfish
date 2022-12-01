@@ -839,18 +839,28 @@ class DataLoader(AudioLoader):
     data.open(filepath, 60.0)
     ```
 
-    Member variables:
-    -----------------
-    samplerate (float): the sampling rate of the data in Hertz.
-    channels (int): the number of channels that are read in.
-    channel (int): the channel of which the trace is returned.
-                   If negative, all channels are returned.
-    frames (int): the number of frames in the file.
-    shape (tuple): number of frames and channels of the data.
-    unit (string): unit of the data.
+    Attributes
+    ----------
+    samplerate: float
+        The sampling rate of the data in Hertz.
+    channels: int
+        The number of channels that are read in.
+    channel: int
+        The channel of which the trace is returned.
+        If negative, all channels are returned.
+    frames: int
+        The number of frames in the file.
+    shape: tuple
+        Number of frames and channels of the data.
+    unit: string
+        Unit of the data.
+    ampl_min: float
+        Minimum amplitude the file format supports.
+    ampl_max: float
+        Maximum amplitude the file format supports.
 
-    Some member functions:
-    ----------------------
+    Methods
+    -------
     len(): the number of frames
     open(): open a data file.
     open_*(): open a data file of a specific format.
@@ -967,6 +977,8 @@ class DataLoader(AudioLoader):
         self.close = self._close_relacs
         self.load_buffer = self._load_buffer_relacs
         self.metadata = self._metadata_relacs
+        self.ampl_min = -np.inf
+        self.ampl_max = +np.inf
         return self
 
     def _close_relacs(self):
@@ -1091,6 +1103,8 @@ class DataLoader(AudioLoader):
         self.close = self._close_fishgrid
         self.load_buffer = self._load_buffer_fishgrid
         self.metadata = self._metadata_fishgrid
+        self.ampl_min = -np.inf
+        self.ampl_max = +np.inf
         return self
 
     def _close_fishgrid(self):
