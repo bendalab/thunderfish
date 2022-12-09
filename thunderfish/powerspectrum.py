@@ -192,7 +192,7 @@ def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
         If 'none' do not deternd the data.
     window: string
         Function used for windowing data segements.
-        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        One of hann, blackman, hamming, bartlett, boxcar, triang, parzen,
         bohman, blackmanharris, nuttall, fattop, barthann
         (see scipy.signal window functions).
 
@@ -230,7 +230,7 @@ def psd(data, ratetime, freq_resolution, min_nfft=16, max_nfft=None,
 def multi_psd(data, ratetime, freq_resolution=0.2,
               num_resolutions=1, num_windows=1,
               min_nfft=16, overlap_frac=0.5,
-              detrend='constant', window='hanning'):
+              detrend='constant', window='hann'):
     """Power spectra computed for consecutive data windows and
     mutiple frequency resolutions.
 
@@ -265,7 +265,7 @@ def multi_psd(data, ratetime, freq_resolution=0.2,
         If 'none' do not deternd the data.
     window: string
         Function used for windowing data segements.
-        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        One of hann, blackman, hamming, bartlett, boxcar, triang, parzen,
         bohman, blackmanharris, nuttall, fattop, barthann
         (see scipy.signal window functions).
 
@@ -292,7 +292,7 @@ def multi_psd(data, ratetime, freq_resolution=0.2,
 
 def spectrogram(data, ratetime, freq_resolution=0.2, min_nfft=16,
                 max_nfft=None, overlap_frac=0.5,
-                detrend='constant', window='hanning'):
+                detrend='constant', window='hann'):
     """Spectrogram of a given frequency resolution.
 
     Check the returned frequency array for the actually used frequency resolution.
@@ -326,7 +326,7 @@ def spectrogram(data, ratetime, freq_resolution=0.2, min_nfft=16,
         If 'linear' subtract line fitted to the data.
     window: string
         Function used for windowing data segements.
-        One of hanning, blackman, hamming, bartlett, boxcar, triang, parzen,
+        One of hann, blackman, hamming, bartlett, boxcar, triang, parzen,
         bohman, blackmanharris, nuttall, fattop, barthann
         (see scipy.signal window functions).
 
@@ -510,7 +510,7 @@ def main():
 
     # compute power spectra:
     fr = [0.5, 1]
-    psd_data = multi_psd(data, samplerate, freq_resolution=fr, detrend='none', window='hanning')
+    psd_data = multi_psd(data, samplerate, freq_resolution=fr, detrend='none', window='hann')
 
     # plot power spectra:
     fig, ax = plt.subplots()
