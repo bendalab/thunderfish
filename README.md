@@ -41,6 +41,7 @@ The thunderfish package provides the following software:
 - [`eodexplorer`](https://bendalab.github.io/thunderfish/eodexplorer/): View and explore properties of EOD waveforms.
 - [`thunderbrowse`](https://bendalab.github.io/thunderfish/api/thunderbrowse/): Browse multi-channel EOD recordings.
 - [`thunderlogger`](https://bendalab.github.io/thunderfish/api/thunderlogger/): Extract EOD waveforms from logger recordings.
+- [`convertdata`](https://bendalab.github.io/thunderfish/api/convertdata/): Convert data from various file formats to audio files.
 
 
 ## Algorithms
