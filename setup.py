@@ -42,6 +42,7 @@ setup(
     packages = find_packages(exclude = ['contrib', 'docs', 'tests*']),
     entry_points = {
         'console_scripts': [
+            'convertdata = thunderfish.convertdata:main',
             'thunderfish = thunderfish.thunderfish:main',
             'thunderlogger = thunderfish.thunderlogger:main',
             'fishfinder = thunderfish.fishfinder:main',
