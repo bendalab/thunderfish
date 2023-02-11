@@ -19,6 +19,7 @@ These are the shapes of various fish species:
 
 - `plot_fish()`: plot body and fin of an electric fish.
 - `plot_object()`: plot circular object.
+- `plot_fishfinder()`: plot a fishfinder with electrodes.
 - `plot_pathes()`: plot pathes.
 
 ## Fish surface and normals from shapes
@@ -53,7 +54,8 @@ import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
-from matplotlib.patches import PathPatch, Circle
+from matplotlib.patches import PathPatch, Circle, Rectangle
+import matplotlib.transforms as mpt
 
 
 Alepto_top = dict(body=np.array([
@@ -424,15 +426,81 @@ def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
     Parameters
     ----------
     ax: matplotlib axes
-        Axes where to draw the fish.
+        Axes where to draw the object.
     pos: tuple of floats
         Coordinates of the objects's position (its center).
     radius: float
         Radius of the cirular object.
     kwargs: key word arguments
-        Arguments for PathPatch used to draw the fish.
+        Arguments for Circle used to draw the obkect.
     """
     ax.add_patch(Circle(pos, radius, **kwargs))
+
+    
+def plot_fishfinder(ax, pos, direction, length, central_ground=False,
+                    rodkwargs=dict(edgecolor='none', facecolor='gray'),
+                    poskwargs=dict(edgecolor='none', facecolor='red'),
+                    negkwargs=dict(edgecolor='none', facecolor='blue'),
+                    gndkwargs=dict(edgecolor='none', facecolor='black'),
+                    zorder=50):
+    """Plot a fishfinder with electrodes.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the fishfinder.
+    pos: tuple of floats
+        Coordinates of the fishfinder's position (its center).
+    direction: tuple of floats
+        Coordinates defining the orientation of the fishfinder.
+    lenght: float
+        Lenght of the fishfinder.
+    central_ground: bool
+        Add a central ground electrode.
+    rodkwargs: dict
+        Key-word arguments for Rectangle used to draw the rod.
+    poskwargs: dict
+        Key-word arguments for Rectangle used to draw the positive electrode.
+    negkwargs: dict
+        Key-word arguments for Rectangle used to draw the negative electrode.
+    gndkwargs: dict
+        Key-word arguments for Rectangle used to draw the ground electrode.
+    zorder: int
+        zorder for the fishfinder.
+
+    Returns
+    -------
+    negpos: tuple of floats
+        Coordinates of center of negative electrode.
+    pospos: tuple of floats
+        Coordinates of center of positive electrode.
+    """
+    width = 0.07*length
+    transform = mpt.Affine2D().rotate(np.arctan2(direction[1], direction[0])).translate(*pos)
+
+    ax.add_patch(Rectangle((-0.5*length, -0.5*width), length, width,
+                           transform=transform + ax.transData,
+                           zorder=zorder, **rodkwargs))
+    ax.add_patch(Rectangle((0.5*length-1.2*width, -0.6*width),
+                           0.8*width, 1.2*width,
+                           transform=transform + ax.transData,
+                           zorder=zorder+2, **poskwargs))
+    ax.add_patch(Rectangle((-0.5*length+0.4*width, -0.6*width),
+                           0.8*width, 1.2*width,
+                           transform=transform + ax.transData,
+                           zorder=zorder+2, **negkwargs))
+    #ax.plot([length-2, 0], [0, 0], color=s.palette['red'], lw=s.lwthin,
+    #        solid_capstyle='butt', transform=transform, zorder=51)
+    #ax.plot([2, 0], [-0.2, -0.2], color=s.palette['blue'], lw=s.lwthin,
+    #        solid_capstyle='butt', transform=transform, zorder=51)
+    if central_ground:
+        ax.add_patch(Rectangle((-0.4*width, -0.6*width),
+                               0.8*width, 1.2*width,
+                               transform=transform + ax.transData,
+                               zorder=zorder+2, **gndkwargs))
+    nodes = np.array(((-0.5*length+0.8*width, 0), (0.5*length-0.8*width, 0)))
+    nodes = transform.transform(nodes)
+    return nodes[0,:],  nodes[1,:]
 
 
 def plot_pathes(ax, *vertices, **kwargs):
@@ -441,7 +509,7 @@ def plot_pathes(ax, *vertices, **kwargs):
     Parameters
     ----------
     ax: matplotlib axes
-        Axes where to draw the fish.
+        Axes where to draw the path.
     vertices: one or more 2D arrays
         The coordinates of pathes to be plotted
         (first column x-coordinates, second colum y-coordinates).
