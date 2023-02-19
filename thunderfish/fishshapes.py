@@ -29,8 +29,9 @@ These are the shapes of various fish species:
 
 ## General path manipulations
 
-You may use these functions to extract and fine tune pathes from SVG files in order
-to assemble fish shapes for this module. See `export_fish_demo()` for a use case.
+You may use these functions to extract and fine tune pathes from SVG
+files in order to assemble fish shapes for this module. See
+`export_fish_demo()` for a use case.
 
 - `extract_path()`: convert SVG coordinates to numpy array with path coordinates.
 - `bbox_pathes()`: common bounding box of pathes.
@@ -48,6 +49,7 @@ to assemble fish shapes for this module. See `export_fish_demo()` for a use case
 
 - `export_fish()`: serialize coordinates of fish outlines as a dictionary.
 - `export_fish_demo()`: code demonstrating how to export fish outlines from SVG.
+
 """
 
 import numpy as np
@@ -437,12 +439,13 @@ def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
     ax.add_patch(Circle(pos, radius, **kwargs))
 
     
-def plot_fishfinder(ax, pos, direction, length, central_ground=False,
+def plot_fishfinder(ax, pos, direction, length, handle=0.05,
+                    central_ground=False, wires=False,
                     rodkwargs=dict(edgecolor='none', facecolor='gray'),
                     poskwargs=dict(edgecolor='none', facecolor='red'),
                     negkwargs=dict(edgecolor='none', facecolor='blue'),
                     gndkwargs=dict(edgecolor='none', facecolor='black'),
-                    zorder=50):
+                    lw=1, zorder=50):
     """Plot a fishfinder with electrodes.
 
     Parameters
@@ -453,10 +456,17 @@ def plot_fishfinder(ax, pos, direction, length, central_ground=False,
         Coordinates of the fishfinder's position (its center).
     direction: tuple of floats
         Coordinates defining the orientation of the fishfinder.
-    lenght: float
-        Lenght of the fishfinder.
+    length: float
+        Length of the fishfinder (center of positive electrode
+        minus center of negative electrode).
+    handle: float
+        Length of handle (rod beyond the negative electrode)
+        as a fraction of the `length` of fishfinder.
     central_ground: bool
         Add a central ground electrode.
+    wires: bool
+        Draw wires for each electrode.
+        Return the coordinates of the endpoints of the wires.
     rodkwargs: dict
         Key-word arguments for Rectangle used to draw the rod.
     poskwargs: dict
@@ -465,6 +475,8 @@ def plot_fishfinder(ax, pos, direction, length, central_ground=False,
         Key-word arguments for Rectangle used to draw the negative electrode.
     gndkwargs: dict
         Key-word arguments for Rectangle used to draw the ground electrode.
+    lw: float
+        Width of the lines used for drawing the wires.
     zorder: int
         zorder for the fishfinder.
 
@@ -474,33 +486,56 @@ def plot_fishfinder(ax, pos, direction, length, central_ground=False,
         Coordinates of center of negative electrode.
     pospos: tuple of floats
         Coordinates of center of positive electrode.
+    negwirepos: tuple of floats
+        If `wire`, the end of the wire of the negative electrode.
+    poswirepos: tuple of floats
+        If `wire`, the end of the wire of the positive electrode.
+    gndwirepos: tuple of floats
+        If `central_ground` and `wire`, the end of the wire of
+        the ground electrode.
     """
     width = 0.07*length
     transform = mpt.Affine2D().rotate(np.arctan2(direction[1], direction[0])).translate(*pos)
 
-    ax.add_patch(Rectangle((-0.5*length, -0.5*width), length, width,
+    ax.add_patch(Rectangle((-(0.5+handle)*length, -0.5*width),
+                           (1+handle+0.05)*length, width,
                            transform=transform + ax.transData,
                            zorder=zorder, **rodkwargs))
-    ax.add_patch(Rectangle((0.5*length-1.2*width, -0.6*width),
+    ax.add_patch(Rectangle((0.5*length-0.4*width, -0.6*width),
                            0.8*width, 1.2*width,
                            transform=transform + ax.transData,
                            zorder=zorder+2, **poskwargs))
-    ax.add_patch(Rectangle((-0.5*length+0.4*width, -0.6*width),
+    ax.add_patch(Rectangle((-0.5*length-0.4*width, -0.6*width),
                            0.8*width, 1.2*width,
                            transform=transform + ax.transData,
                            zorder=zorder+2, **negkwargs))
-    #ax.plot([length-2, 0], [0, 0], color=s.palette['red'], lw=s.lwthin,
-    #        solid_capstyle='butt', transform=transform, zorder=51)
-    #ax.plot([2, 0], [-0.2, -0.2], color=s.palette['blue'], lw=s.lwthin,
-    #        solid_capstyle='butt', transform=transform, zorder=51)
+    nodes = [(-0.5*length, 0), (0.5*length, 0)]
     if central_ground:
         ax.add_patch(Rectangle((-0.4*width, -0.6*width),
                                0.8*width, 1.2*width,
                                transform=transform + ax.transData,
                                zorder=zorder+2, **gndkwargs))
-    nodes = np.array(((-0.5*length+0.8*width, 0), (0.5*length-0.8*width, 0)))
+    if wires:
+        offs = 0.03*width*lw
+        if central_ground:
+            offs *= 2
+        color = negkwargs.get('facecolor')
+        ax.plot((-0.5*length, -(0.5+handle)*length), (-offs, -offs),
+                color=color, lw=lw, solid_capstyle='butt',
+                transform=transform + ax.transData, zorder=zorder+1)
+        color = poskwargs.get('facecolor')
+        ax.plot((0.5*length, -(0.5+handle)*length), (offs, offs),
+                color=color, lw=lw, solid_capstyle='butt', transform=transform +
+                ax.transData, zorder=zorder+1)
+        nodes.extend(((-(0.5+handle)*length, -offs), (-(0.5+handle)*length, offs)))
+        if central_ground:
+            color = gndkwargs.get('facecolor')
+            ax.plot((0, -(0.5+handle)*length), (0, 0),
+                    color=color, lw=lw, solid_capstyle='butt',
+                    transform=transform + ax.transData, zorder=zorder+1)
+            nodes.append((-(0.5+handle)*length, 0))
     nodes = transform.transform(nodes)
-    return nodes[0,:],  nodes[1,:]
+    return nodes
 
 
 def plot_pathes(ax, *vertices, **kwargs):
@@ -983,9 +1018,9 @@ def export_fish_demo():
 def main():
     """Plot some fish shapes and surface normals.
     """
-    bodykwargs=dict(lw=1, edgecolor='k', facecolor='none')
-    finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
-    eyekwargs=dict(lw=1, edgecolor='white', facecolor='grey')
+    bodykwargs = dict(lw=1, edgecolor='k', facecolor='none')
+    finkwargs = dict(lw=1, edgecolor='k', facecolor='grey')
+    eyekwargs = dict(lw=1, edgecolor='white', facecolor='grey')
     var = ['zz', 'nx', 'ny', 'nz']
     fig, ax = plt.subplots()
     for k in range(4):
@@ -1008,15 +1043,19 @@ def main():
     #ax.contourf(xx[0,:], yy[:,0], dv, 20, cmap='gist_gray')
     ax.contourf(xx[0,:], yy[:,0], dv, levels=[np.nanmin(dv), np.nanmin(dv)+0.99*(np.nanmax(dv)-np.nanmin(dv)), np.nanmax(dv)], cmap='gist_gray')
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
-    bodykwargs=dict(lw=1, edgecolor='k', facecolor='k')
-    fish = (('Alepto', 'top'), (23, 0), (2, 1), 16.0, -25)
+    bodykwargs = dict(lw=1, edgecolor='k', facecolor='k')
+    fish = (('Alepto', 'top'), (23, 0), (2, 1), 16.0, 25)
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
     fish = (('Eigenmannia', 'top'), (23, 8), (1, 0.3), 16.0, -15)
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
     fish = (('Eigenmannia', 'side'), (20, 18), (1, 0), 20.0, -25)
     plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
-    ax.set_xlim(-15, 35)
+    plot_fishfinder(ax, (38, 13), (1, 2), 18, handle=0.2,
+                    central_ground=True, wires=True, lw=2)
+    plot_fishfinder(ax, (38, -8), (1, 2), 18, central_ground=False)
+    ax.set_xlim(-15, 45)
     ax.set_ylim(-20, 24)
+    ax.set_aspect('equal')
     plt.show()
 
 
