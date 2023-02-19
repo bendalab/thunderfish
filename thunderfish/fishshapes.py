@@ -464,8 +464,10 @@ def plot_fishfinder(ax, pos, direction, length, handle=0.05,
         as a fraction of the `length` of fishfinder.
     central_ground: bool
         Add a central ground electrode.
-    wires: bool
+    wires: bool, 'postop' or 'negtop'
         Draw wires for each electrode.
+        - True or 'postop': draw wire of positive electrode on top.
+        - 'negtop': draw wire of negative electrode on top.
         Return the coordinates of the endpoints of the wires.
     rodkwargs: dict
         Key-word arguments for Rectangle used to draw the rod.
@@ -517,6 +519,8 @@ def plot_fishfinder(ax, pos, direction, length, handle=0.05,
                                zorder=zorder+2, **gndkwargs))
     if wires:
         offs = 0.03*width*lw
+        if wires == 'negtop':
+            offs *= -1
         if central_ground:
             offs *= 2
         color = negkwargs.get('facecolor')
