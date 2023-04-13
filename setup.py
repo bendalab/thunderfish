@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 exec(open('thunderfish/version.py').read())
 
@@ -51,5 +51,5 @@ setup(
             'thunderbrowse = thunderfish.thunderbrowse:main',
         ]},
     python_requires = '>=3.4',
-    install_requires = ['sklearn', 'scipy', 'numpy', 'matplotlib', 'audioio>=0.10'],
+    install_requires = ['scikit-learn', 'scipy', 'numpy', 'matplotlib', 'audioio>=0.10'],
 )
