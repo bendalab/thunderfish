@@ -25,6 +25,7 @@ on demand. `data` can be used like a read-only numpy array of floats.
 
 import os
 import glob
+import gzip
 import numpy as np
 from audioio.audioloader import load_audio, AudioLoader
 
@@ -36,7 +37,7 @@ def relacs_samplerate_unit(filepath, channel=0):
     ----------
     filepath: string
         Path to a relacs data directory, a file in a relacs data directory,
-        or a relacs trace-*.raw file.
+        or a relacs trace-*.raw file. Files can be .gz files.
     channel: int
         Channel (trace) number, if `filepath` does not specify a
         trace-*.raw file.
@@ -55,32 +56,40 @@ def relacs_samplerate_unit(filepath, channel=0):
     ValueError:
         stimuli.dat file does not contain sampling rate.
     """
-    trace = channel+1
+    trace = channel + 1
     relacs_dir = filepath
     # check for relacs data directory:
     if not os.path.isdir(filepath):
         relacs_dir = os.path.dirname(filepath)
         bn = os.path.basename(filepath).lower()
-        if (len(bn) > 5 and bn[0:5] == 'trace' and bn[-4:] == '.raw'):
-            trace = int(bn[6:].replace('.raw', ''))
+        i = bn.find('.raw')
+        if len(bn) > 5 and bn[0:5] == 'trace' and i > 6:
+            trace = int(bn[6:i])
 
     # retreive sampling rate and unit from stimuli.dat file:
     samplerate = None
     unit = ""
+    
     stimuli_file = os.path.join(relacs_dir, 'stimuli.dat')
-    with open(stimuli_file, 'r') as sf:
-        for line in sf:
-            if len(line) == 0 or line[0] != '#':
-                break
-            if "unit%d" % trace in line:
-                unit = line.split(':')[1].strip()
-            if "sampling rate%d" % trace in line:
-                value = line.split(':')[1].strip()
-                samplerate = float(value.replace('Hz',''))
+    if os.path.isfile(stimuli_file * '.gz'):
+        sf = gzip.open(stimuli_file * '.gz', 'r')
+    else:
+        sf = open(stimuli_file, 'r')
+        
+    for line in sf:
+        if len(line) == 0 or line[0] != '#':
+            break
+        if "unit%d" % trace in line:
+            unit = line.split(':')[1].strip()
+        if "sampling rate%d" % trace in line:
+            value = line.split(':')[1].strip()
+            samplerate = float(value.replace('Hz',''))
+
+    sf.close()
 
     if samplerate is not None:
         return samplerate, unit
-    raise ValueError('could not retrieve sampling rate from ' + stimuli_file)
+    raise ValueError(f'could not retrieve sampling rate from {stimuli_file}')
 
 
 def relacs_metadata(filepath, store_empty=False, first_only=False):
@@ -89,7 +98,7 @@ def relacs_metadata(filepath, store_empty=False, first_only=False):
     Parameters
     ----------
     filepath: string
-        A relacs *.dat file.
+        A relacs *.dat file, can be also a zipped .gz file.
     store_empty: bool
         If `False` do not add meta data with empty values.
     first_only: bool
@@ -110,45 +119,53 @@ def relacs_metadata(filepath, store_empty=False, first_only=False):
     sections = ['']
     ident_offs = None
     ident = None
-    with open(filepath, 'r', encoding='latin-1') as sf:
-        for line in sf:
-            if len(line) == 0 or line[0] != '#':
-                break
-            words = line.split(':')
-            if len(words) >= 2:
-                key = words[0].strip('#')
-                # get section level:
-                nident = len(key) - len(key.lstrip())
-                level = 0
-                if ident_offs is None:
-                    ident_offs = nident
-                elif ident is None:
-                    if nident > ident_offs:
-                        ident = nident - ident_offs
-                        level = 1
-                else:
-                    level = (nident - ident_offs)//ident
-                # close sections:
-                while len(cdatas) > level + 1:
-                    cdatas[-1][sections.pop()] = cdatas.pop()
+
+    if os.path.isfile(filepath * '.gz'):
+        sf = gzip.open(filepath * '.gz', 'r', encoding='latin-1')
+    else:
+        sf = open(filepath, 'r', encoding='latin-1')
+        
+    for line in sf:
+        if len(line) == 0 or line[0] != '#':
+            break
+        words = line.split(':')
+        if len(words) >= 2:
+            key = words[0].strip('#')
+            # get section level:
+            nident = len(key) - len(key.lstrip())
+            level = 0
+            if ident_offs is None:
+                ident_offs = nident
+            elif ident is None:
+                if nident > ident_offs:
+                    ident = nident - ident_offs
+                    level = 1
+            else:
+                level = (nident - ident_offs)//ident
+            # close sections:
+            while len(cdatas) > level + 1:
+                cdatas[-1][sections.pop()] = cdatas.pop()
+            # key-value pair:
+            key = key.strip().strip('"')
+            value = ':'.join(words[1:]).strip()
+            if len(value) == 0:
+                # new sub-section:
+                sections.append(key)
+                cdatas.append({})
+            else:
                 # key-value pair:
-                key = key.strip().strip('"')
-                value = ':'.join(words[1:]).strip()
-                if len(value) == 0:
-                    # new sub-section:
-                    sections.append(key)
-                    cdatas.append({})
-                else:
-                    # key-value pair:
-                    value = value.strip('"')
-                    if len(value) > 0 or value != '-' or store_empty:
-                        if len(value) > 0 and value[0] == '[' and value[-1] == ']':
-                            value = [v.strip() for v in value.lstrip('[').rstrip(']').split(',')]
-                            if first_only:
-                                value = value[0]
-                        cdatas[-1][key] = value
+                value = value.strip('"')
+                if len(value) > 0 or value != '-' or store_empty:
+                    if len(value) > 0 and value[0] == '[' and value[-1] == ']':
+                        value = [v.strip() for v in value.lstrip('[').rstrip(']').split(',')]
+                        if first_only:
+                            value = value[0]
+                    cdatas[-1][key] = value
     while len(cdatas) > 1:
         cdatas[-1][sections.pop()] = cdatas.pop()
+
+    sf.close()
+                    
     return data
 
 
@@ -159,7 +176,7 @@ def check_relacs(file_paths):
     ----------
     file_paths: string or list of strings
         Path to a relacs data directory, a file in a relacs data directory,
-        or relacs trace-*.raw files.
+        or relacs trace-*.raw or trace-*.raw.gz files.
 
     Returns
     -------
@@ -175,7 +192,7 @@ def check_relacs(file_paths):
         if len(file_paths) > 1:
             for file in file_paths:
                 bn = os.path.basename(file)
-                if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
+                if len(bn) <= 5 or bn[0:5] != 'trace' or bn[6:].find('.raw') < 0:
                     return False
         path = file_paths[0]
     # relacs data directory:
@@ -183,11 +200,15 @@ def check_relacs(file_paths):
     if not os.path.isdir(path):
         relacs_dir = os.path.dirname(path)
     # check for a valid relacs data directory:
-    if (os.path.isfile(os.path.join(relacs_dir, 'stimuli.dat')) and
-        os.path.isfile(os.path.join(relacs_dir, 'trace-1.raw'))):
-        return True
-    else:
-        return False
+    has_stimuli = False
+    has_trace = False
+    for fname in ['stimuli.dat', 'stimuli.dat.gz']:
+        if os.path.isfile(os.path.join(relacs_dir, fname)):
+            has_stimuli = True
+    for fname in ['trace-1.raw', 'trace-1.raw.gz']:
+        if os.path.isfile(os.path.join(relacs_dir, fname)):
+            has_trace = True
+    return has_stimuli and has_trace
 
     
 def relacs_files(file_paths, channel):
@@ -197,7 +218,7 @@ def relacs_files(file_paths, channel):
     ----------
     file_paths: string or list of strings
         Path to a relacs data directory, a file in a relacs data directory,
-        or relacs trace-*.raw files.
+        or relacs trace-*.raw or trace-*.raw.gz files.
     channel: int
         The data channel. If negative all channels are selected.
         
@@ -208,7 +229,7 @@ def relacs_files(file_paths, channel):
 
     Raises
     ------
-    ValueError: invalid name of relacs trace file
+    ValueError: invalid name of or non-existing relacs trace file
     """
     if not isinstance(file_paths, (list, tuple, np.ndarray)):
         file_paths = [file_paths]
@@ -219,18 +240,26 @@ def relacs_files(file_paths, channel):
         if channel < 0:
             file_paths = []
             for k in range(10000):
-                file = os.path.join(relacs_dir, f'trace-{k+1}.raw')
-                if os.path.isfile(file):
-                    file_paths.append(file)
+                fname = os.path.join(relacs_dir, f'trace-{k+1}.raw')
+                if os.path.isfile(fname):
+                    file_paths.append(fname)
+                elif os.path.isfile(fname + '.gz'):
+                    file_paths.append(fname + '.gz')
                 else:
                     break
         else:
             file_paths[0] = os.path.join(relacs_dir, f'trace-{channel+1}.raw')
+    data_paths = []
     for path in file_paths:
         bn = os.path.basename(path)
-        if len(bn) <= 5 or bn[0:5] != 'trace' or bn[-4:] != '.raw':
-            raise ValueError('invalid name %s of relacs trace file', path)
-    return file_paths
+        if len(bn) <= 5 or bn[0:5] != 'trace' or bn[6:].find('.raw') < 0:
+            raise ValueError(f'invalid name {path} of relacs trace file')
+        if not os.path.isfile(path):
+            path += '.gz'
+            if not os.path.isfile(path):
+                raise ValueError(f'relacs file {path} does not exist')
+        data_paths.append(path)
+    return data_paths
 
         
 def load_relacs(file_paths, channel=-1, verbose=0):
@@ -276,7 +305,11 @@ def load_relacs(file_paths, channel=-1, verbose=0):
     samplerate = None
     unit = ""
     for n, path in enumerate(file_paths):
-        x = np.fromfile(path, np.float32)
+        if path[-3:] == '.gz':
+            with gzip.open(path, 'rb') as sf:
+                x = np.frombuffer(sf.read(), dtype=np.float32)
+        else:
+            x = np.fromfile(path, np.float32)
         if verbose > 0:
             print( 'loaded %s' % path)
         if data is None:
@@ -336,7 +369,7 @@ def fishgrid_samplerate(filepath):
 
     if samplerate is not None:
         return samplerate
-    raise ValueError('could not retrieve sampling rate from ' + fishgrid_file)
+    raise ValueError(f'could not retrieve sampling rate from {fishgrid_file}')
 
 
 def fishgrid_spacings(filepath):
@@ -513,7 +546,7 @@ def fishgrid_files(file_paths, channel, grid_sizes):
     for path in file_paths:
         bn = os.path.basename(path)
         if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
-            raise ValueError('invalid name %s of fishgrid traces file', path)
+            raise ValueError(f'invalid name {path} of fishgrid traces file')
     return file_paths
 
         
@@ -686,8 +719,7 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
                 samplerate = 1.0/(data[tkey][1] - data[tkey][0])
                 break
     if samplerate == 0.0:
-        raise ValueError('invalid keys %s and %s for requesting sampling rate or sampling times'
-                         % (', '.join(samplekey), ', '.join(timekey)))
+        raise ValueError(f"invalid keys {', '.join(samplekey)} and {', '.join(timekey)} for requesting sampling rate or sampling times")
     unit = ''
     if unitkey in data:
         unit = data[unitkey]
@@ -705,8 +737,7 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
                 raw_data = data[dkey]
                 break
         if np.prod(raw_data.shape) == 0:
-            raise ValueError('invalid key(s) %s for requesting data'
-                             % ', '.join(datakey))
+            raise ValueError(f"invalid key(s) {', '.join(datakey)} for requesting data")
     else:
         # find largest 2D array:
         for d in data:
@@ -724,7 +755,7 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
         raw_data = raw_data.T
     if channel >= 0:
         if channel >= raw_data.shape[1]:
-            raise IndexError('invalid channel number %d requested' % channel)
+            raise IndexError(f'invalid channel number {channel} requested')
         raw_data = raw_data[:,channel]
     return raw_data.astype(float), samplerate, unit
 
@@ -785,7 +816,7 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
             data, samplerate = load_audio(filepath, verbose)
             if channel >= 0:
                 if channel >= data.shape[1]:
-                    raise IndexError('invalid channel number %d requested' % channel)
+                    raise IndexError(f'invalid channel number {channel} requested')
                 data = data[:, channel]
             unit = 'a.u.'
         return data, samplerate, unit
@@ -921,6 +952,10 @@ class DataLoader(AudioLoader):
             If > 0 show detailed error/warning messages.
         channel: int
             The requested data channel. If negative all channels are selected.
+
+        Raises
+        ------
+        ValueError: .gz files not supported.
         """
         self.verbose = verbose
         
@@ -938,6 +973,8 @@ class DataLoader(AudioLoader):
         if len(file_paths) > 0:
             self.filepath = os.path.dirname(file_paths[0])
         for path in file_paths:
+            if path[-3:] == '.gz':
+                raise ValueError('.gz files not supported')
             file = open(path, 'rb')
             self.sf.append(file)
             if verbose > 0:
@@ -1171,7 +1208,7 @@ class DataLoader(AudioLoader):
                 raise ValueError('file format not supported')
             super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
             if channel > self.channels:
-                raise IndexError('invalid channel number %d' % channel)
+                raise IndexError(f'invalid channel number {channel}')
             self.channel = channel
             if self.channel >= 0:
                 self.shape = (self.frames,)
