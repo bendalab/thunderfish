@@ -68,27 +68,39 @@ def relacs_samplerate_unit(filepath, channel=0):
 
     # retreive sampling rate and unit from stimuli.dat file:
     samplerate = None
+    sampleinterval = None
     unit = ""
-    
+
+    lines = []
     stimuli_file = os.path.join(relacs_dir, 'stimuli.dat')
-    if os.path.isfile(stimuli_file * '.gz'):
-        sf = gzip.open(stimuli_file * '.gz', 'r')
+    if os.path.isfile(stimuli_file + '.gz'):
+        with gzip.open(stimuli_file + '.gz', 'r') as sf:
+            for line in sf:
+                line = line.decode('latin-1').strip()
+                if len(line) == 0 or line[0] != '#':
+                    break
+                lines.append(line)
     else:
-        sf = open(stimuli_file, 'r')
+        with open(stimuli_file, 'r', encoding='latin-1') as sf:
+            for line in sf:
+                if len(line) == 0 or line[0] != '#':
+                    break
+                lines.append(line)
         
-    for line in sf:
-        if len(line) == 0 or line[0] != '#':
-            break
+    for line in lines:
         if "unit%d" % trace in line:
             unit = line.split(':')[1].strip()
         if "sampling rate%d" % trace in line:
             value = line.split(':')[1].strip()
             samplerate = float(value.replace('Hz',''))
-
-    sf.close()
+        elif "sample interval%d" % trace in line:
+            value = line.split(':')[1].strip()
+            sampleinterval = float(value.replace('ms',''))
 
     if samplerate is not None:
         return samplerate, unit
+    if sampleinterval is not None:
+        return 1000/sampleinterval, unit
     raise ValueError(f'could not retrieve sampling rate from {stimuli_file}')
 
 
@@ -120,8 +132,8 @@ def relacs_metadata(filepath, store_empty=False, first_only=False):
     ident_offs = None
     ident = None
 
-    if os.path.isfile(filepath * '.gz'):
-        sf = gzip.open(filepath * '.gz', 'r', encoding='latin-1')
+    if os.path.isfile(filepath + '.gz'):
+        sf = gzip.open(filepath + '.gz', 'r', encoding='latin-1')
     else:
         sf = open(filepath, 'r', encoding='latin-1')
         
