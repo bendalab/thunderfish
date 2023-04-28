@@ -18,6 +18,7 @@ on demand. `data` can be used like a read-only numpy array of floats.
 
 ## Aditional functions
 
+- `relacs_samplerate_unit()`: retrieve sampling rate and unit from a relacs stimuli.dat file.
 - `relacs_metadata()` reads key-value pairs from relacs *.dat file headers.
 - `fishgrid_grids()`: retrieve grid sizes from a fishgrid.cfg file.
 - `fishgrid_spacings()`: spacing between grid electrodes.
@@ -104,7 +105,7 @@ def relacs_samplerate_unit(filepath, channel=0):
     raise ValueError(f'could not retrieve sampling rate from {stimuli_file}')
 
 
-def relacs_metadata(filepath, store_empty=False, first_only=False):
+def relacs_metadata(filepath, store_empty=False, first_only=False, flat=False):
     """Reads header of a relacs *.dat file.
 
     Parameters
@@ -115,6 +116,10 @@ def relacs_metadata(filepath, store_empty=False, first_only=False):
         If `False` do not add meta data with empty values.
     first_only: bool
         If `False` only store the first element of a list.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
 
     Returns
     -------
@@ -146,24 +151,28 @@ def relacs_metadata(filepath, store_empty=False, first_only=False):
             # get section level:
             nident = len(key) - len(key.lstrip())
             level = 0
-            if ident_offs is None:
-                ident_offs = nident
-            elif ident is None:
-                if nident > ident_offs:
-                    ident = nident - ident_offs
-                    level = 1
-            else:
-                level = (nident - ident_offs)//ident
-            # close sections:
-            while len(cdatas) > level + 1:
-                cdatas[-1][sections.pop()] = cdatas.pop()
+            if not flat:
+                if ident_offs is None:
+                    ident_offs = nident
+                elif ident is None:
+                    if nident > ident_offs:
+                        ident = nident - ident_offs
+                        level = 1
+                else:
+                    level = (nident - ident_offs)//ident
+                # close sections:
+                while len(cdatas) > level + 1:
+                    cdatas[-1][sections.pop()] = cdatas.pop()
             # key-value pair:
             key = key.strip().strip('"')
             value = ':'.join(words[1:]).strip()
             if len(value) == 0:
                 # new sub-section:
-                sections.append(key)
-                cdatas.append({})
+                if flat:
+                    cdatas[-1][key] = None
+                else:
+                    sections.append(key)
+                    cdatas.append({})
             else:
                 # key-value pair:
                 value = value.strip('"')
