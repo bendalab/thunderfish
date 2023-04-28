@@ -75,7 +75,9 @@ def relacs_samplerate_unit(filepath, channel=0):
     lines = []
     stimuli_file = os.path.join(relacs_dir, 'stimuli.dat')
     if os.path.isfile(stimuli_file + '.gz'):
-        with gzip.open(stimuli_file + '.gz', 'r') as sf:
+        stimuli_file += '.gz'
+    if stimuli_file[-3:] == '.gz':
+        with gzip.open(stimuli_file, 'r') as sf:
             for line in sf:
                 line = line.decode('latin-1').strip()
                 if len(line) == 0 or line[0] != '#':
@@ -105,7 +107,9 @@ def relacs_samplerate_unit(filepath, channel=0):
     raise ValueError(f'could not retrieve sampling rate from {stimuli_file}')
 
 
-def relacs_metadata(filepath, store_empty=False, first_only=False, flat=False):
+def relacs_metadata(filepath, store_empty=False, first_only=False,
+                    lower_keys=False, flat=False,
+                    add_sections=False, sections_sep='.'):
     """Reads header of a relacs *.dat file.
 
     Parameters
@@ -116,10 +120,17 @@ def relacs_metadata(filepath, store_empty=False, first_only=False, flat=False):
         If `False` do not add meta data with empty values.
     first_only: bool
         If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
     flat: bool
         Do not make a nested dictionary.
         Use this option also to read in very old relacs metadata with
         ragged left alignment.
+    add_sections: bool
+        If `True`, prepand keys with sections names separated by
+        `sections_sep` to make them unique.
+    sections_sep: str
+        Separator for section names, needed when `add_sections` is `True`.
 
     Returns
     -------
@@ -136,22 +147,34 @@ def relacs_metadata(filepath, store_empty=False, first_only=False, flat=False):
     sections = ['']
     ident_offs = None
     ident = None
-
+    lines = []
     if os.path.isfile(filepath + '.gz'):
-        sf = gzip.open(filepath + '.gz', 'r', encoding='latin-1')
+        filepath += '.gz'
+    if filepath[-3:] == '.gz':
+        with gzip.open(filepath, 'r') as sf:
+            for line in sf:
+                line = line.decode('latin-1')
+                if len(line) == 0 or line[0] != '#':
+                    break
+                lines.append(line)
     else:
-        sf = open(filepath, 'r', encoding='latin-1')
-        
-    for line in sf:
+        with open(filepath, 'r', encoding='latin-1') as sf:
+            for line in sf:
+                if len(line) == 0 or line[0] != '#':
+                    break
+                lines.append(line)
+
+    for line in lines:
         if len(line) == 0 or line[0] != '#':
             break
         words = line.split(':')
-        if len(words) >= 2:
+        value = ':'.join(words[1:]).strip() if len(words) > 1 else ''
+        if len(words) >= 1:
             key = words[0].strip('#')
             # get section level:
-            nident = len(key) - len(key.lstrip())
             level = 0
-            if not flat:
+            if not flat or len(value) == 0:
+                nident = len(key) - len(key.lstrip())
                 if ident_offs is None:
                     ident_offs = nident
                 elif ident is None:
@@ -161,18 +184,27 @@ def relacs_metadata(filepath, store_empty=False, first_only=False, flat=False):
                 else:
                     level = (nident - ident_offs)//ident
                 # close sections:
-                while len(cdatas) > level + 1:
-                    cdatas[-1][sections.pop()] = cdatas.pop()
-            # key-value pair:
+                if not flat:
+                    while len(cdatas) > level + 1:
+                        cdatas[-1][sections.pop()] = cdatas.pop()
+                else:
+                    while len(sections) > level + 1:
+                        sections.pop()
+            # key:
             key = key.strip().strip('"')
-            value = ':'.join(words[1:]).strip()
+            if lower_keys:
+                key = key.lower()
+            skey = key
+            if add_sections:
+                key = sections_sep.join(sections[1:] + [key])
             if len(value) == 0:
                 # new sub-section:
                 if flat:
-                    cdatas[-1][key] = None
+                    if store_empty:
+                        cdatas[-1][key] = None
                 else:
-                    sections.append(key)
                     cdatas.append({})
+                sections.append(skey)
             else:
                 # key-value pair:
                 value = value.strip('"')
