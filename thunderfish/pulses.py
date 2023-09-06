@@ -62,7 +62,7 @@ def unique_counts(ar):
     except TypeError:
         ar = np.asanyarray(ar).flatten()
         ar.sort()
-        mask = np.empty(ar.shape, dtype=np.bool_)
+        mask = np.empty(ar.shape, dtype=bool_)
         mask[:1] = True
         mask[1:] = ar[1:] != ar[:-1]
         idx = np.concatenate(np.nonzero(mask) + ([mask.size],))
@@ -516,7 +516,7 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
 
     # discard connected peaks:
     same = np.nonzero(trough_indices[:-1] == trough_indices[1:])[0]
-    keep = np.ones(len(trough_indices), dtype=np.bool)
+    keep = np.ones(len(trough_indices), dtype=bool)
     for i in same:
         # same troughs at trough_indices[i] and trough_indices[i+1]:
         s = slopes[i:i+2]

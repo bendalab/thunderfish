@@ -2077,7 +2077,7 @@ class TableData(object):
         if not have_units:
             unit_style = 'none'
         # find std columns:
-        stdev_col = np.zeros(len(self.header), dtype=np.bool)
+        stdev_col = np.zeros(len(self.header), dtype=bool)
         for c in range(len(self.header)-1):
             if self.header[c+1][0].lower() in ['sd', 'std', 's.d.', 'stdev'] and \
                not self.hidden[c+1]:

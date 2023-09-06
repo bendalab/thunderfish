@@ -149,7 +149,7 @@ def collect_fish(files, simplify_file=False,
     # prepare meta recodings names:
     meta_recordings_used = None
     if meta_recordings is not None:
-        meta_recordings_used = np.zeros(len(meta_recordings), dtype=np.bool)
+        meta_recordings_used = np.zeros(len(meta_recordings), dtype=bool)
         for r in range(len(meta_recordings)):
             meta_recordings[r] = os.path.splitext(os.path.basename(meta_recordings[r]))[0]
     # prepare adjusted temperatures:
