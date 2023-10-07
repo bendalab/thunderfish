@@ -343,7 +343,7 @@ class EODExplorer(MultivariateExplorer):
         for k in ['toolbar', 'keymap.back', 'keymap.forward',
                   'keymap.zoom', 'keymap.pan']:
             plt.rcParams[k] = self.plt_params[k]
-        fig = plot_eods(file_base, raw_data, samplerate, None, idx0, idx1,
+        fig = plot_eods(file_base, None, raw_data, samplerate, None, idx0, idx1,
                         clipped, psd_data[0], fishlist, None,
                         mean_eods, eod_props, peak_data, spec_data,
                         [idx], unit, zoom_window, 10, None, True, False,

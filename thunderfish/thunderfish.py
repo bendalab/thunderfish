@@ -32,7 +32,7 @@ import matplotlib.lines as ml
 from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
 from multiprocessing import Pool, freeze_support, cpu_count
-from audioio.playaudio import play, fade
+from audioio import play, fade, load_audio
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import load_data
@@ -404,7 +404,8 @@ def axes_style(ax):
     ax.get_yaxis().tick_left()
 
                                 
-def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
+def plot_eods(base_name, message_filename,
+              raw_data, samplerate, channel, idx0, idx1, clipped,
               psd_data, wave_eodfs, wave_indices, mean_eods, eod_props,
               peak_data, spec_data, indices, unit, zoom_window,
               n_snippets=10, power_thresh=None, label_power=True,
@@ -422,6 +423,8 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
     ----------
     base_name: string
         Basename of audio_file.
+    message_filename: string or None
+        Path to meta-data message.
     raw_data: array
         Dataset.
     samplerate: float
@@ -500,6 +503,10 @@ def plot_eods(base_name, raw_data, samplerate, channel, idx0, idx1, clipped,
                 playdata = 1.0 * raw_data[:]
             fade(playdata, samplerate, 0.1)
             play(playdata, samplerate, blocking=False)
+        if event.key in 'mM' and message_filename:
+            # play voice message:
+            msg, msg_rate = load_audio(message_filename)
+            play(msg, msg_rate, blocking=False)
 
     def recording_format_coord(x, y):
         return 'full recording: x=%.3f s, y=%.3f' % (x, y)
@@ -1146,7 +1153,8 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
             os.makedirs(outpath)
     # plot:
     if len(save_subplots) == 0 or 'd' in save_subplots:
-        fig = plot_eods(os.path.basename(base_name), data, samplerate,
+        fig = plot_eods(os.path.basename(base_name), None,
+                        data, samplerate,
                         channel, idx0, idx1, clipped, psd_data,
                         wave_eodfs, wave_indices, mean_eods,
                         eod_props, peak_data, spec_data, None, unit,
@@ -1256,6 +1264,9 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
     # file names:
     fn = filename if keep_path else os.path.basename(filename)
     outfilename = os.path.splitext(fn)[0]
+    messagefilename = os.path.splitext(fn)[0] + '-message.wav'
+    if not os.path.isfile(messagefilename):
+        messagefilename = None
 
     # load data:
     try:
@@ -1344,7 +1355,8 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
             n_snippets = 10
             if len(save_subplots) == 0 or 'd' in save_subplots:
                 chl = chan if channels > 1 else None
-                fig = plot_eods(outfilename, raw_data, samplerate,
+                fig = plot_eods(outfilename, messagefilename,
+                                raw_data, samplerate,
                                 chl, idx0, idx1, clipped, psd_data[0],
                                 wave_eodfs, wave_indices, mean_eods,
                                 eod_props, peak_data, spec_data, None,
