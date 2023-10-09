@@ -1434,6 +1434,8 @@ def main(cargs=None):
                         help='channel to be analyzed (defaults to first channel, negative channel selects all channels)')
     parser.add_argument('-t', dest='time', default=None, type=str, metavar='TIME',
                         help='start time of analysis window in recording: "beginning", "center", "end", "best", or time in seconds (overwrites "windowPosition" in cofiguration file)')
+    parser.add_argument('-u', dest='unwrap', action='store_true',
+                        help='unwrap clipped files, toggles unwrap setting of config file.')
     parser.add_argument('-T', dest='time_file', action='store_true',
                         help='add start time of analysis file to output file names')
     parser.add_argument('-m', dest='mode', default='wp', type=str,
@@ -1528,6 +1530,10 @@ def main(cargs=None):
     cfg.load_files(cfgfile, files[0], 4, verbose)
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
+    if args.unwrap:
+        print(cfg.value('unwrapData'))
+        cfg.set('unwrapData', not cfg.value('unwrapData'))
+        print(cfg.value('unwrapData'))
         
     # plot parameter:
     spec_plots = 'auto'
