@@ -672,7 +672,7 @@ def analysis_window(data, samplerate, win_pos, cfg, show_bestwindow=False):
     if min_clip == 0.0 or max_clip == 0.0:
         min_clip, max_clip = clip_amplitudes(data, **clip_args(cfg, samplerate))
     if cfg.value('unwrapData'):
-        data = unwrap(data)
+        data = unwrap(data, samplerate)
         min_clip *= 2
         max_clip *= 2
     # window size parameter:
