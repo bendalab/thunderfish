@@ -1513,7 +1513,7 @@ def main(cargs=None):
         for fn in args.file:
             files.extend(glob.glob(fn))
     else:
-        files = args.file
+        files = [f for f in args.file if '-message' not in f]
 
     # save configuration:
     if args.save_config:
