@@ -5,4 +5,4 @@ sklearn
 pandas
 SoundFile
 simpleaudio
-audioio
+audioio @git+https://github.com/janscience/audioio@master
