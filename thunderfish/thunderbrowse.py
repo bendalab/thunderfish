@@ -10,7 +10,7 @@ from audioio.audiowriter import write_audio
 from .eventdetection import detect_peaks, median_std_threshold
 from .pulses import detect_pulses
 from .version import __version__, __year__
-from .dataloader import open_data
+from .dataloader import DataLoader
 
 
 class SignalPlot:
@@ -20,7 +20,7 @@ class SignalPlot:
         self.filename = filename
         self.samplerate = samplerate
         self.data = data
-        self.channels = self.data.shape[1]
+        self.channels = self.data.shape[1] if len(self.data.shape) > 1 else 1
         self.unit = unit
         self.tmax = (len(self.data)-1)/self.samplerate
         if not tmax is None:
@@ -56,6 +56,7 @@ class SignalPlot:
         self.pulse_colors = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9', 'C0']
         self.help = False
         self.helptext = []
+        self.audio = PlayAudio()
 
         # filter data:
         if not fcutoff is None:
@@ -70,6 +71,7 @@ class SignalPlot:
                 #thresh = 1*np.std(self.data[:int(2*self.samplerate),c])
                 thresh = median_std_threshold(self.data[:,c], self.samplerate,
                                               thresh_fac=6.0)
+                thresh = 0.01
                 #p, t = detect_peaks(self.data[:,c], thresh)
                 p, t, w, h = detect_pulses(self.data[:,c], self.samplerate,
                                            thresh,
@@ -143,6 +145,7 @@ class SignalPlot:
                             self.pulses[k+idx[i],0] = -1
                 k += c
             self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
+
             # clustering:
             min_dists = []
             recent = []
@@ -209,6 +212,10 @@ class SignalPlot:
             # pulse times to arrays:
             for k in range(len(self.pulse_times)):
                 self.pulse_times[k] = np.array(self.pulse_times[k])
+
+
+                
+            """
             # find temporally missing pulses:
             npulses = np.array([len(pts) for pts in self.pulse_times],
                                dtype=int)
@@ -254,6 +261,9 @@ class SignalPlot:
                                 self.pulses[self.pulses[:,1] == gid,0] = li
                             ipis = np.diff(self.pulse_times[li])
                     k += 1
+
+
+                    
             # clean up pulses:
             for l in range(len(self.pulse_times)):
                 if len(self.pulse_times[l])/npulses[l] < 0.5:
@@ -261,6 +271,8 @@ class SignalPlot:
                     self.pulse_gids[l] = []
                     self.pulses[self.pulses[:,0] == l,0] = -1
             self.pulses = self.pulses[self.pulses[:,0] >= 0,:]
+            """
+            
             """
             # remove labels that are too close to others:
             widths = np.zeros(len(self.pulse_times), dtype=int)
@@ -308,9 +320,6 @@ class SignalPlot:
                         color=self.pulse_colors[l%len(self.pulse_colors)])
                 ax.text(0.05, 0.9, f'label: {l}', transform=ax.transAxes)
             """
-            
-        # audio output:
-        self.audio = PlayAudio()
         
         # set key bindings:
         plt.rcParams['keymap.fullscreen'] = 'f'
@@ -377,7 +386,8 @@ class SignalPlot:
         plt.show()
 
     def __del__(self):
-        self.audio.close()
+        pass
+        #self.audio.close()
 
     def plot_pulses(self, axs, plot=True, tfac=1.0):
         
@@ -385,6 +395,8 @@ class SignalPlot:
             for t in range(self.traces):
                 c = self.show_channels[t]
                 p = pulses[pulses[:,2] == c,3]
+                if len(p) == 0:
+                    continue
                 if plot or pak >= len(self.pulse_artist):
                     pa, = axs[t].plot(tfac*p/self.samplerate,
                                       self.data[p,c], 'o', picker=5,
@@ -820,7 +832,7 @@ def main(cargs=None):
 
     # load data:
     filename = os.path.basename(filepath)
-    with open_data(filepath, -1, 20.0, 5.0, verbose) as data:
+    with DataLoader(filepath, 10*60.0, 5.0, verbose, -1) as data:
         SignalPlot(data, data.samplerate, data.unit, filename,
                    channels, tmax, fcutoff, pulses)
         

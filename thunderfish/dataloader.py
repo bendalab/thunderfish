@@ -936,6 +936,9 @@ class DataLoader(AudioLoader):
         The number of frames in the file.
     shape: tuple
         Number of frames and channels of the data.
+    ndim: int
+        Number of dimensions. One of only a single channel is read in,
+        two otherwise (frames, channels).
     unit: string
         Unit of the data.
     ampl_min: float
@@ -949,6 +952,7 @@ class DataLoader(AudioLoader):
     open(): open a data file.
     open_*(): open a data file of a specific format.
     close(): close the file.
+
     """
 
     def __init__(self, filepath=None, buffersize=10.0, backsize=0.0,
@@ -1060,6 +1064,7 @@ class DataLoader(AudioLoader):
             self.shape = (self.frames,)
         else:
             self.shape = (self.frames, self.channels)
+        self.ndim = len(self.shape)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
         self._init_buffer()
@@ -1186,6 +1191,7 @@ class DataLoader(AudioLoader):
             self.shape = (self.frames,)
         else:
             self.shape = (self.frames, self.channels)
+        self.ndim = len(self.shape)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
         self._init_buffer()
@@ -1267,6 +1273,7 @@ class DataLoader(AudioLoader):
                 self.shape = (self.frames,)
             else:
                 self.shape = (self.frames, self.channels)
+            self.ndim = len(self.shape)
             self.unit = 'a.u.'
         return self
 
