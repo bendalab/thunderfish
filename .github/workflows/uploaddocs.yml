@@ -50,7 +50,7 @@ jobs:
           git config --local user.name "GitHub Action"
           git add -A
           git add coverage.svg
-          git add cover
+          git add -f cover/*.*
           git commit -m 'deploy'
 
       - name: Push to github pages
