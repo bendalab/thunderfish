@@ -11,7 +11,7 @@ from scipy import optimize
 import matplotlib
 #from fish import ProgressFish
 import matplotlib.pyplot as plt
-from thunderfish.dataloader import open_data
+from thunderfish.dataloader import DataLoader
 from thunderfish.eventdetection import detect_peaks
 from scipy.interpolate import interp1d
 from sklearn.preprocessing import StandardScaler
@@ -806,7 +806,7 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
     # parameters for the analysis
     thresh = 0.04 # minimal threshold for peakdetection
     peakwidth = 20 # width of a peak and minimal distance between two EODs
-    # basic parameters for thunderfish.dataloader.open_data
+    # basic parameters for thunderfish.dataloader.DataLoader
     verbose = 0
     channel = 0
     ultimate_threshold = thresh+0.01
@@ -835,7 +835,7 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
         if proceed != 'y':
              quit()
     # starting analysis
-    with open_data(filepath, channel, deltat, 0.0, verbose) as data:
+    with DataLoader(filepath, channel, deltat, 0.0, verbose) as data:
 
         samplerate = data.samplerate
 

@@ -9,7 +9,7 @@ from audioio.playaudio import PlayAudio, fade
 from audioio.audiowriter import write_audio
 from .version import __version__, __year__
 from .configfile import ConfigFile
-from .dataloader import open_data
+from .dataloader import DataLoader
 from .powerspectrum import nfft, decibel, psd, spectrogram
 from .powerspectrum import add_multi_psd_config, multi_psd_args
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
@@ -749,7 +749,7 @@ def main(cargs=None):
     filename = os.path.basename(filepath)
     channel = args.channel
     # TODO: add blocksize and backsize as configuration parameter!
-    with open_data(filepath, channel, 60.0, 10.0, verbose) as data:
+    with DataLoader(filepath, channel, 60.0, 10.0, verbose) as data:
         # plot:
         ## if len(data) < 10**8:
         ##     # data[:].copy() makes bestwindow much faster (it's slow in eventdetection):
