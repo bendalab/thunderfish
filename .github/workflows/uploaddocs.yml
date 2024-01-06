@@ -27,14 +27,20 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        run: nosetests -vv --with-coverage --cover-package=thunderfish
+        run: nosetests -vv --with-coverage --cover-html --cover-package=thunderfish
         shell: bash
 
       - name: Build documentation
         run: ./build-docs.sh
         shell: bash
-        
-      - name: Commit generated files
+	
+      - name: Coverage badge
+        uses: tj-actions/coverage-badge-py@v2
+        # https://github.com/tj-actions/coverage-badge-py
+        with:
+          output: 'site/coverage.svg'
+	  
+      - name: Commit files
         run: |
           cd site
           git config --global init.defaultBranch main

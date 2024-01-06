@@ -12,6 +12,11 @@ PACKAGE="thunderfish"
 PACKAGEROOT="$(dirname "$(realpath "$0")")"
 BUILDROOT="$PACKAGEROOT/site"
 
+# check for code coverage report:
+# need to call nosetest with --with-coverage --cover-html
+HAS_COVER=false
+test -d cover && HAS_COVER=true
+
 echo
 echo "Clean up documentation of $PACKAGE"
 echo
@@ -20,11 +25,26 @@ rm -rf "$BUILDROOT" 2> /dev/null || true
 mkdir -p "$BUILDROOT"
 
 if command -v mkdocs >/dev/null; then
+    echo
     echo "Building general documentation for $PACKAGE"
     echo
 
     cd "$PACKAGEROOT"
-    mkdocs build --config-file .mkdocs.yml --site-dir "$BUILDROOT"
+    cp .mkdocs.yml mkdocs-tmp.yml
+    if $HAS_COVER; then
+	echo "        - Coverage: 'cover/index.html'" >> mkdocs-tmp.yml
+    fi
+    mkdocs build --config-file mkdocs-tmp.yml --site-dir "$BUILDROOT"
+    cd - > /dev/null
+fi
+
+if $HAS_COVER; then
+    echo
+    echo "Move code coverage report for $PACKAGE"
+    echo
+
+    cd "$PACKAGEROOT"
+    mv cover "$BUILDROOT"
     cd - > /dev/null
 fi
 

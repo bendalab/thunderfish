@@ -19,4 +19,5 @@ nav:
         - 'eodexplorer': 'eodexplorer.md'
     - 'Algorithms':
         - 'Pulse-fish EODs': 'pulses.md'
-    - API reference: 'api/index.html'
+    - 'Code':
+        - API reference: 'api/index.html'
