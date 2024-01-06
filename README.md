@@ -3,6 +3,8 @@
 [![codecov](https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/bendalab/thunderfish)
 [![PyPI version](https://img.shields.io/pypi/v/thunderfish.svg)](https://pypi.python.org/pypi/thunderfish/)
 ![downloads](https://img.shields.io/pypi/dm/thunderfish.svg)
+[![contributors](https://img.shields.io/github/contributors/bendalab/thunderfish)](https://github.com/bendalab/thunderfish/graphs/contributors)
+[![commits](https://img.shields.io/github/commit-activity/m/bendalab/thunderfish)](https://github.com/bendalab/thunderfish/pulse)
 <!--
 ![python](https://img.shields.io/pypi/pyversions/thunderfish.svg)
 ![issues open](https://img.shields.io/github/issues/bendalab/thunderfish.svg)

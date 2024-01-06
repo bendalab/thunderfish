@@ -35,6 +35,7 @@ setup(
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.8",
         "Operating System :: OS Independent",
         "Topic :: Scientific/Engineering",
         "Topic :: Software Development :: Libraries :: Python Modules",
