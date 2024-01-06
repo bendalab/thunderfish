@@ -46,6 +46,7 @@ if $HAS_COVER; then
     cd "$PACKAGEROOT"
     cp -r cover "$BUILDROOT/"
     genbadge coverage -i coverage.xml
+    # https://smarie.github.io/python-genbadge/
     mv coverage-badge.svg site/coverage.svg
     cd - > /dev/null
 fi
