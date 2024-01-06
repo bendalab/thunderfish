@@ -1,7 +1,15 @@
-[![PyPI license](https://img.shields.io/pypi/l/thunderfish.svg)](https://pypi.python.org/pypi/thunderfish/)
-[![tests](https://github.com/bendalab/thunderfish/actions/workflows/runchecks.yml/badge.svg?branch=master&event=push)](https://github.com/bendalab/thunderfish/actions/workflows/runchecks.yml)
+[![license](https://img.shields.io/pypi/l/thunderfish.svg)](https://github.com/bendalab/thunderfish/blob/master/LICENSE)
+[![tests](https://github.com/bendalab/thunderfish/workflows/tests/badge.svg)](https://github.com/bendalab/thunderfish/actions)
 [![codecov](https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/bendalab/thunderfish)
-[![PyPI version](https://badge.fury.io/py/thunderfish.svg)](https://badge.fury.io/py/thunderfish)
+[![PyPI version](https://img.shields.io/pypi/v/thunderfish.svg)](https://pypi.python.org/pypi/thunderfish/)
+![downloads](https://img.shields.io/pypi/dm/thunderfish.svg)
+<!--
+![python](https://img.shields.io/pypi/pyversions/thunderfish.svg)
+![issues open](https://img.shields.io/github/issues/bendalab/thunderfish.svg)
+![issues closed](https://img.shields.io/github/issues-closed/bendalab/thunderfish.svg)
+![pullrequests open](https://img.shields.io/github/issues-pr/bendalab/thunderfish.svg)
+![pullrequests closed](https://img.shields.io/github/issues-pr-closed/bendalab/thunderfish.svg)
+-->
 
 # ThunderFish
 
