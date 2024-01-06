@@ -46,6 +46,7 @@ if $HAS_COVER; then
     cd "$PACKAGEROOT"
     cp -r cover "$BUILDROOT/"
     cd - > /dev/null
+    ls "$BUILDROOT/"
 fi
 
 if command -v pdoc3 >/dev/null; then
