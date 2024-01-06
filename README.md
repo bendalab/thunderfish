@@ -1,6 +1,6 @@
 [![license](https://img.shields.io/pypi/l/thunderfish.svg)](https://github.com/bendalab/thunderfish/blob/master/LICENSE)
 [![tests](https://github.com/bendalab/thunderfish/workflows/tests/badge.svg)](https://github.com/bendalab/thunderfish/actions)
-[![codecov](https://codecov.io/gh/bendalab/thunderfish/branch/master/graph/badge.svg)](https://codecov.io/gh/bendalab/thunderfish)
+[![codecov](https://bendalab.github.io/thunderfish/coverage.svg)](https://bendalab.github.io/thunderfish/cover)
 [![PyPI version](https://img.shields.io/pypi/v/thunderfish.svg)](https://pypi.python.org/pypi/thunderfish/)
 ![downloads](https://img.shields.io/pypi/dm/thunderfish.svg)
 [![contributors](https://img.shields.io/github/contributors/bendalab/thunderfish)](https://github.com/bendalab/thunderfish/graphs/contributors)

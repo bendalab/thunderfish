@@ -40,11 +40,11 @@ fi
 
 if $HAS_COVER; then
     echo
-    echo "Move code coverage report for $PACKAGE"
+    echo "Copy code coverage report for $PACKAGE"
     echo
 
     cd "$PACKAGEROOT"
-    mv cover "$BUILDROOT"
+    cp -r cover "$BUILDROOT/"
     cd - > /dev/null
 fi
 

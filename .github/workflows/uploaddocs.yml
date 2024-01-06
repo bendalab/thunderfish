@@ -48,6 +48,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add -A
+          git add coverage.svg
           git commit -m 'deploy'
 
       - name: Push to github pages
