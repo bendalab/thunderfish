@@ -13,7 +13,7 @@ PACKAGEROOT="$(dirname "$(realpath "$0")")"
 BUILDROOT="$PACKAGEROOT/site"
 
 # check for code coverage report:
-# need to call nosetest with --with-coverage --cover-html
+# need to call nosetest with --with-coverage --cover-html --cover-xml
 HAS_COVER=false
 test -d cover && HAS_COVER=true
 
@@ -40,11 +40,16 @@ fi
 
 if $HAS_COVER; then
     echo
-    echo "Copy code coverage report for $PACKAGE"
+    echo "Copy code coverage report and generate badge for $PACKAGE"
     echo
 
     cd "$PACKAGEROOT"
     cp -r cover "$BUILDROOT/"
+    mkdir -p reports/coverage
+    cp coverage.xml reports/coverage/
+    genbadge coverage
+    mv coverage-badge.svg site/coverage.svg
+    rm -r reports
     cd - > /dev/null
 fi
 

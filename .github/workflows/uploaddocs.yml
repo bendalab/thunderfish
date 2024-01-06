@@ -24,26 +24,20 @@ jobs:
           pip install pdoc3
           pip install markdown-include
           pip install mkdocs
+          pip install genbadge
           pip install -r requirements.txt
 
       - name: Run tests
-        run: nosetests -vv --with-coverage --cover-html --cover-package=thunderfish
+        run: nosetests -vv --with-coverage --cover-html --cover-xml --cover-package=thunderfish
         shell: bash
 
       - name: Build documentation
         run: ./build-docs.sh
         shell: bash
 
-      - name: Coverage badge
-        uses: tj-actions/coverage-badge-py@v2
-        # https://github.com/tj-actions/coverage-badge-py
-        with:
-          output: 'site/coverage.svg'
-
       - name: Commit files
         run: |
           cd site
-          ls -R
           git config --global init.defaultBranch main
           git init
           git config --local user.email "action@github.com"
