@@ -45,11 +45,8 @@ if $HAS_COVER; then
 
     cd "$PACKAGEROOT"
     cp -r cover "$BUILDROOT/"
-    mkdir -p reports/coverage
-    cp coverage.xml reports/coverage/
-    genbadge coverage
+    genbadge coverage -i coverage.xml
     mv coverage-badge.svg site/coverage.svg
-    rm -r reports
     cd - > /dev/null
 fi
 
