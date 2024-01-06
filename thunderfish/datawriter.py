@@ -305,7 +305,7 @@ def write_audioio(filepath, data, samplerate, unit=None, meta=None):
         raise ImportError
     if not filepath:
         raise ValueError('no file specified!')
-    aw.audio_writer(filepath, data, samplerate)
+    aw.write_audio(filepath, data, samplerate)
     return filepath
 
 
