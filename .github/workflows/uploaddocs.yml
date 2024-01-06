@@ -33,7 +33,7 @@ jobs:
       - name: Build documentation
         run: ./build-docs.sh
         shell: bash
-	
+
       - name: Coverage badge
         uses: tj-actions/coverage-badge-py@v2
         # https://github.com/tj-actions/coverage-badge-py
