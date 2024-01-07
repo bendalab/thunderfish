@@ -293,6 +293,7 @@ def peak_width(time, data, peak_indices, trough_indices,
         Fraction of peak height where its width is measured.
     base: string
         Height and width of peak is measured relative to
+
         - 'left': trough to the left
         - 'right': trough to the right
         - 'min': the minimum of the two troughs to the left and to the right
@@ -387,6 +388,7 @@ def peak_size_width(time, data, peak_indices, trough_indices,
         Fraction of peak height where its width is measured.
     base: string
         Height and width of peak is measured relative to
+
         - 'left': trough to the left
         - 'right': trough to the right
         - 'min': the minimum of the two troughs to the left and to the right

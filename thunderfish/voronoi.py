@@ -42,35 +42,35 @@ class Voronoi(object):
     ------------
     The points from which the Voronoi diagram is constructed.
     
-    ndim: int
-        The dimension of the input points, i.e. number of coordinates.
-    npoints: int
-        The number of input points.
-    points: 2-d ndarray
-        List of input point coordinates.
-    center: ndarray of floats
-        Center of mass of the input points (i.e. mean coordinates).
-    min_bound: ndarray of floats
-        Lower left corner of the bounding-box of the input points.
-    max_bound: ndarray of floats
-        Upper right corner of the bounding-box of the input points.
+    - `ndim`: int  
+      The dimension of the input points, i.e. number of coordinates.
+    - `npoints`: int  
+      The number of input points.
+    - `points`: 2-d ndarray  
+      List of input point coordinates.
+    - `center`: ndarray of floats  
+      Center of mass of the input points (i.e. mean coordinates).
+    - `min_bound`: ndarray of floats  
+      Lower left corner of the bounding-box of the input points.
+    - `max_bound`: ndarray of floats  
+      Upper right corner of the bounding-box of the input points.
     
     Distances between input points
     ------------------------------
-    ridge_points: 2-d ndarray of ints
+    - `ridge_points`: 2-d ndarray of ints  
         List of pairs of indices to `points` enclosing a Voronoi ridge.
-    ridge_distances: ndarray of floats
+    - `ridge_distances`: ndarray of floats  
         For each ridge in `ridge_points` the distance between the enclosing points.
-    neighbor_points: list of ndarrays of ints
+    - `neighbor_points`: list of ndarrays of ints  
         For each point in `points` a list of indices of the Voronoi-cell's neighboring points.
-    neighbor_distances: list of ndarrays of floats
+    - `neighbor_distances`: list of ndarrays of floats  
         For each point in `points` a list of distances to the Voronoi-cell's neighboring points,
         matching `neighbor_points`.
-    nearest_points: list of ints
+    - `nearest_points`: list of ints  
         For each point in `points` the index of its nearest neighbor.
-    nearest_distances: ndarray of floats
+    - `nearest_distances`: ndarray of floats  
         For each point in `points` the distance to its nearest neighbor.
-    mean_nearest_distance: float
+    - `mean_nearest_distance`: float  
         Unbiased estimate of the mean nearest-neighbor distance. This is
         the average nearest-neighbor distance corrected by one s.e.m,
         since points close to the border of the region have too large
@@ -78,34 +78,34 @@ class Voronoi(object):
     
     Voronoi diagram
     ---------------
-    vertices: 2-d ndarray of floats
+    - `vertices`: 2-d ndarray of floats  
         List of vertex coordinates enclosing the Voronoi regions.
-    regions: list of list of ints
+    - `regions`: list of list of ints  
         List of lists of indices to vertices in `vertices` making up each Voronoi region.
-    ridge_vertices: list of list of ints
+    - `ridge_vertices`: list of list of ints  
         List of lists of indices to `vertices` making up a Voronoi ridge.
         The pairs of `points` to poth sides of the ridge are listed in `ridge_points`.
-    ridge_lengths(): Length of Voronoi ridges between nearest neighbors.
-    areas(): The areas of the Voronoi regions for each input point in `points`.
-    point_types(): The type of Voronoi area (infinite, finite, inside) for each input point.
-    inside_vertices: list of ints
+    - `ridge_lengths()`: Length of Voronoi ridges between nearest neighbors.
+    - `areas()`: The areas of the Voronoi regions for each input point in `points`.
+    - `point_types()`: The type of Voronoi area (infinite, finite, inside) for each input point.
+    - `inside_vertices`: list of ints  
         Indices of `vertices` that are inside the convex hull of the input points.
-    infinite_vertices: list of ndarrays of floats
+    - `infinite_vertices`: list of ndarrays of floats  
         For each ridge in `ridge_vertices` the coordinates of the far-point, if it is an infinite ridge.
-    infinite_regions: list of list of ints
+    - `infinite_regions`: list of list of ints  
         List of Voronoi regions with infinite ridges. If positive, the indices are indices to `vertices`.
         If negative they are indices into `infinite_vertices` (`-index-1`).
     
     Convex hull
     -----------
-    hull_points: list of ints
+    - `hull_points`: list of ints  
         List of indices of the points in `points` making up the convex hull.
-    hull_center: ndarray of floats
+    - `hull_center`: ndarray of floats  
         Center of mass of the points making up the convex hull.
-    inside_vertices: ndarray of boolean
+    - `inside_vertices`: ndarray of boolean  
         Indicates for each vertex in `vertices` whether it is inside the convex hull.
-    in_hull(): Test if points are within the convex hull of the input points.
-    hull_area(): The area contained in the convex hull.
+    - `in_hull()`: Test if points are within the convex hull of the input points.
+    - `hull_area()`: The area contained in the convex hull.
     
     Outer hull
     ----------
@@ -116,37 +116,37 @@ class Voronoi(object):
     distance. This enlarged hull is needed for bootstrapping. Note that
     in some cases the outer hull can be *smaller* than the convex hull.
     
-    outer_hull_points: 2-d ndarray of floats
+    - `outer_hull_points`: 2-d ndarray of floats  
         Array of coordinates of the points of the outer hull.
-    outer_min_bound: ndarray of floats
+    - `outer_min_bound`: ndarray of floats  
         Lower left corner of the bounding-box of the outer hull.
-    outer_max_bound: ndarray of floats
+    - `outer_max_bound`: ndarray of floats  
         Upper right corner of the bounding-box of the outer hull.
-    in_outer_hull(): Test if points are within the outer hull.
-    outer_hull_area(): The area contained in the outer hull.
+    - `in_outer_hull()`: Test if points are within the outer hull.
+    - `outer_hull_area()`: The area contained in the outer hull.
     
     Bootstrap Voronoi diagrams
     --------------------------
-    random_points(): Generate random points within the area defined by the input points.
+    - `random_points()`: Generate random points within the area defined by the input points.
 
     Plotting the Voronoi diagram
     ----------------------------
-    plot_points(): Plot and optionally annotate the input points of the Voronoi diagram.
-    plot_center(): Plot the center of mass of the input points.
-    plot_vertices(): Plot and optionally annotate the vertices of the Voronoi diagram.
-    plot_distances(): Plot lines connecting the neighbors in the Voronoi diagram.
-    plot_ridges(): Plot the finite ridges of the Voronoi diagram.
-    plot_infinite_ridges(): Plot the infinite ridges of the Voronoi diagram.
-    fill_regions(): Fill each finite region of the Voronoi diagram with a color.
-    fill_infinite_regions(): Fill each infinite region of the Voronoi diagram with a color.
+    - `plot_points()`: Plot and optionally annotate the input points of the Voronoi diagram.
+    - `plot_center()`: Plot the center of mass of the input points.
+    - `plot_vertices()`: Plot and optionally annotate the vertices of the Voronoi diagram.
+    - `plot_distances()`: Plot lines connecting the neighbors in the Voronoi diagram.
+    - `plot_ridges()`: Plot the finite ridges of the Voronoi diagram.
+    - `plot_infinite_ridges(): Plot the infinite ridges of the Voronoi diagram.
+    - `fill_regions()`: Fill each finite region of the Voronoi diagram with a color.
+    - `fill_infinite_regions()`: Fill each infinite region of the Voronoi diagram with a color.
     
     Plotting the convex hull
     ------------------------
-    plot_hull(): Plot the convex hull line containing the input points.
-    fill_hull(): Fill the convex hull.
-    plot_hull_center(): Plot the center of mass of the convex hull.
-    plot_outer_hull(): Plot the outer hull edge.
-    fill_outer_hull(): Fill the outer hull.
+    - `plot_hull()`: Plot the convex hull line containing the input points.
+    - `fill_hull()`: Fill the convex hull.
+    - `plot_hull_center()`: Plot the center of mass of the convex hull.
+    - `plot_outer_hull()`: Plot the outer hull edge.
+    - `fill_outer_hull()`: Fill the outer hull.
     
     Usage
     -----
@@ -399,10 +399,12 @@ class Voronoi(object):
         Returns
         -------
         points: ndarray of ints
-            Indicates the type of Voronoi region associated with each pint in `points`:
-            2: finite region with all vertices inside hull,
-            1: finite region,
-            0: infinite region.
+            Indicates the type of Voronoi region associated
+            with each point in `points`:
+
+            - 2: finite region with all vertices inside hull,
+            - 1: finite region,
+            - 0: infinite region.
         """
         points = np.zeros(len(self.vor.points), dtype=int) + 2
         for i in range(len(self.vor.points)):
@@ -460,16 +462,17 @@ class Voronoi(object):
         Parameters
         ----------
         mode: string
-            'inside': Calculate area of finite Voronoi regions
-                      whose vertices are all inside the hull,
+            - 'inside': Calculate area of finite Voronoi regions
+                        whose vertices are all inside the hull,
+                        set all other to zero.
+            - 'finite_inside': Calculate area of all Voronoi regions.
+                      Consider only areas of finite ridges
+                      whose vertices are all inside the hull.
+            - 'full': Calculate area of finite Voronoi regions only,
                       set all other to zero.
-            'finite_inside': Calculate area of all Voronoi regions.
-                    Consider only areas of finite ridges
-                    whose vertices are all inside the hull.
-            'full': Calculate area of finite Voronoi regions only,
-                    set all other to zero.
-            'finite': Calculate area of all Voronoi regions. From infinite regions
-                    only areas contributed by finite ridges are considered.
+            - 'finite': Calculate area of all Voronoi regions.
+                      From infinite regions
+                      only areas contributed by finite ridges are considered.
 
         Returns
         -------
@@ -569,10 +572,13 @@ class Voronoi(object):
             If `True` then draw the number of points from a Poisson distribution
             with mean number of points given by `n`.
         mode: string
-            'bbox' place points randomly in rectangular bounding box of the Voronoi diagram.
-            'hull' place points randomly within convex hull of input data.
-            'outer' place points randomly within outer hull. The mean nearest-neighbor distance
-            between the generated points will be close to the observed one.
+            - 'bbox': place points randomly in rectangular bounding box
+                      of the Voronoi diagram.
+            - 'hull': place points randomly within convex hull of input data.
+            - 'outer' place points randomly within outer hull.
+                      The mean nearest-neighbor distance
+                      between the generated points will be close
+                      to the observed one.
 
         Returns
         -------
@@ -638,7 +644,7 @@ class Voronoi(object):
             The offset of the point labels.
         text_align: string
             The horizontal alignment of the point labels.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.scatter() function.
         """
         ax.scatter(self.points[:,0], self.points[:,1], **kwargs)
@@ -656,7 +662,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the `matplotlib.plot()` function.
         """
         ax.plot(self.center[0], self.center[1], 'o', **kwargs)
@@ -676,7 +682,7 @@ class Voronoi(object):
             The offset of the vertex labels.
         text_align: string
             The horizontal alignment of the vertex labels.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.scatter() function.
         """
         ax.scatter(self.vertices[:,0], self.vertices[:,1], **kwargs)
@@ -694,7 +700,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
         for i, p in enumerate(self.ridge_points):
@@ -707,7 +713,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
         for i, p in enumerate(self.ridge_vertices):
@@ -721,7 +727,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
         for far_point, vertices in zip(self.infinite_vertices, self.vor.ridge_vertices):
@@ -744,7 +750,7 @@ class Voronoi(object):
             None: plot all finite regions
         colors: list of colors or None
             If not None then these colors are used in turn to fill the regions.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.fill() function.
         """
         c = 0
@@ -770,7 +776,7 @@ class Voronoi(object):
             The axes to be used for plotting.
         colors: list of colors or None
             If not None then these colors are used in turn to fill the regions.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.fill() function.
         """
         c = 0
@@ -797,7 +803,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
         ax.plot(self.hull.points[self.hull_points, 0],
@@ -810,7 +816,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.fill() function.
         """
         ax.fill(self.hull.points[self.hull_points, 0],
@@ -823,7 +829,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
         ax.plot(self.hull_center[0], self.hull_center[1], 'o', **kwargs)
@@ -835,7 +841,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes or None
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
         ax.plot(self.outer_hull_points[:, 0],
@@ -848,7 +854,7 @@ class Voronoi(object):
         ----------
         ax: matplotlib.Axes
             The axes to be used for plotting.
-        **kwargs:
+        **kwargs: dict
             Key-word arguments that are passed on to the matplotlib.fill() function.
         """
         ax.fill(self.outer_hull_points[:, 0],
