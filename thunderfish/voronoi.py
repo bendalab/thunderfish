@@ -623,14 +623,14 @@ class Voronoi(object):
                 return
         return points[:nn]
 
-    def plot_points(self, ax=None, text=None, text_offs=(0, 0.05),
+    def plot_points(self, ax, text=None, text_offs=(0, 0.05),
                     text_align='center', **kwargs):
         """Plot and optionally annotate the input points of the Voronoi diagram.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         text: string or None
             If not None the string that is placed at each point.
             A '%d' is replaced by the index of the point.
@@ -641,8 +641,6 @@ class Voronoi(object):
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.scatter() function.
         """
-        if ax is None:
-            ax = plt.gca()
         ax.scatter(self.points[:,0], self.points[:,1], **kwargs)
         if text is not None:
             for i, p in enumerate(self.points):
@@ -651,28 +649,26 @@ class Voronoi(object):
                     s = text % i
                 ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
         
-    def plot_center(self, ax=None, **kwargs):
+    def plot_center(self, ax, **kwargs):
         """Plot the center of mass of the input points.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If `None`, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the `matplotlib.plot()` function.
         """
-        if ax is None:
-            ax = plt.gca()
         ax.plot(self.center[0], self.center[1], 'o', **kwargs)
         
-    def plot_vertices(self, ax=None, text=None, text_offs=(0, 0.05),
+    def plot_vertices(self, ax, text=None, text_offs=(0, 0.05),
                       text_align='center', **kwargs):
         """Plot and optionally annotate the vertices of the Voronoi diagram.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         text: string or None
             If not None the string that is placed at each vertex.
             A '%d' is replaced by the index of the vertex.
@@ -683,8 +679,6 @@ class Voronoi(object):
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.scatter() function.
         """
-        if ax is None:
-            ax = plt.gca()
         ax.scatter(self.vertices[:,0], self.vertices[:,1], **kwargs)
         if text is not None:
             for i, p in enumerate(self.vertices):
@@ -693,49 +687,43 @@ class Voronoi(object):
                     s = text % i
                 ax.text(p[0]+text_offs[0], p[1]+text_offs[1], s, ha=text_align)
 
-    def plot_distances(self, ax=None, **kwargs):
+    def plot_distances(self, ax, **kwargs):
         """Plot lines connecting the nearest neighbors in the Voronoi diagram.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
-        if ax is None:
-            ax = plt.gca()
         for i, p in enumerate(self.ridge_points):
             ax.plot(self.points[p, 0], self.points[p, 1], **kwargs)
 
-    def plot_ridges(self, ax=None, **kwargs):
+    def plot_ridges(self, ax, **kwargs):
         """Plot the finite ridges of the Voronoi diagram.
 
         Parameters
         ----------
         ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
-        if ax is None:
-            ax = plt.gca()
         for i, p in enumerate(self.ridge_vertices):
             if np.all(np.array(p)>=0):
                 ax.plot(self.vertices[p, 0], self.vertices[p, 1], **kwargs)
 
-    def plot_infinite_ridges(self, ax=None, **kwargs):
+    def plot_infinite_ridges(self, ax, **kwargs):
         """Plot the infinite ridges of the Voronoi diagram.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
-        if ax is None:
-            ax = plt.gca()
         for far_point, vertices in zip(self.infinite_vertices, self.vor.ridge_vertices):
             vertices = np.asarray(vertices)
             if not np.all(vertices >= 0):
@@ -743,13 +731,13 @@ class Voronoi(object):
                 ax.plot([self.vor.vertices[i][0], far_point[0]],
                         [self.vor.vertices[i][1], far_point[1]], **kwargs)
 
-    def fill_regions(self, ax=None, inside=None, colors=None, **kwargs):
+    def fill_regions(self, ax, inside=None, colors=None, **kwargs):
         """Fill each finite region of the Voronoi diagram with a color.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         inside: boolean or None
             True: plot only finite regions with all vertices inside the hull
             False: plot only finite regions with at least one vertex outside the hull
@@ -759,8 +747,6 @@ class Voronoi(object):
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.fill() function.
         """
-        if ax is None:
-            ax = plt.gca()
         c = 0
         for region in self.regions:
             if not -1 in region:
@@ -775,20 +761,18 @@ class Voronoi(object):
                             ax.fill(polygon[:, 0], polygon[:, 1],
                                     color=colors[c % len(colors)], lw=0, **kwargs)
 
-    def fill_infinite_regions(self, ax=None, colors=None, **kwargs):
+    def fill_infinite_regions(self, ax, colors=None, **kwargs):
         """Fill each infinite region of the Voronoi diagram with a color.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         colors: list of colors or None
             If not None then these colors are used in turn to fill the regions.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.fill() function.
         """
-        if ax is None:
-            ax = plt.gca()
         c = 0
         for region in self.infinite_regions:
             polygon = []
@@ -806,77 +790,67 @@ class Voronoi(object):
                     ax.fill(polygon[:, 0], polygon[:, 1],
                             color=colors[c % len(colors)], lw=0, **kwargs)
         
-    def plot_hull(self, ax=None, **kwargs):
+    def plot_hull(self, ax, **kwargs):
         """Plot the hull line containing the input points.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
-        if ax is None:
-            ax = plt.gca()
         ax.plot(self.hull.points[self.hull_points, 0],
                 self.hull.points[self.hull_points, 1], **kwargs)
 
-    def fill_hull(self, ax=None, **kwargs):
+    def fill_hull(self, ax, **kwargs):
         """Fill the hull containing the input points with a color.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.fill() function.
         """
-        if ax is None:
-            ax = plt.gca()
         ax.fill(self.hull.points[self.hull_points, 0],
                 self.hull.points[self.hull_points, 1], lw=0, **kwargs)
         
-    def plot_hull_center(self, ax=None, **kwargs):
+    def plot_hull_center(self, ax, **kwargs):
         """Plot the center of mass of the convex hull of the input points.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
-        if ax is None:
-            ax = plt.gca()
         ax.plot(self.hull_center[0], self.hull_center[1], 'o', **kwargs)
         
-    def plot_outer_hull(self, ax=None, **kwargs):
+    def plot_outer_hull(self, ax, **kwargs):
         """Plot the hull line containing the input points and the vertices of the Voronoi diagram.
 
         Parameters
         ----------
         ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.plot() function.
         """
-        if ax is None:
-            ax = plt.gca()
         ax.plot(self.outer_hull_points[:, 0],
                 self.outer_hull_points[:, 1], **kwargs)
 
-    def fill_outer_hull(self, ax=None, **kwargs):
+    def fill_outer_hull(self, ax, **kwargs):
         """Fill the hull containing the input points and the vertices of the Voronoi diagram.
 
         Parameters
         ----------
-        ax: matplotlib.Axes or None
-            The axes to be used for plotting. If None, then the current axes is used.
+        ax: matplotlib.Axes
+            The axes to be used for plotting.
         **kwargs:
             Key-word arguments that are passed on to the matplotlib.fill() function.
         """
-        if ax is None:
-            ax = plt.gca()
         ax.fill(self.outer_hull_points[:, 0],
                 self.outer_hull_points[:, 1], lw=0, **kwargs)
 
@@ -1042,21 +1016,14 @@ def main():
     print('CV: %g' % (np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)))
     bins = np.linspace(0.0, 1.0, 30)
     nb = 300
-    fig1 = plt.figure()
-    ax11 = ax1 = fig1.add_subplot(2, 2, 1)
-    fig2 = plt.figure()
-    ax21 = ax2 = fig2.add_subplot(2, 2, 1)
-    fig3 = plt.figure()
-    ax31 = ax3 = fig3.add_subplot(2, 2, 1)
-    k = 1
-    for poisson in [False, True]:
-        for mode in ['hull', 'outer']:
-            if k > 1:
-                ax1 = fig1.add_subplot(2, 2, k, sharex=ax11)
-                ax2 = fig2.add_subplot(2, 2, k, sharex=ax21)
-                ax3 = fig3.add_subplot(2, 2, k, sharex=ax31)
-            bootstrapped_nearest_distances(vor, nb, poisson, mode, ax1, ax2, ax3, bins)
-            k += 1
+    fig1, axs1 = plt.subplots(2, 2, sharex=True)
+    fig2, axs2 = plt.subplots(2, 2, sharex=True)
+    fig3, axs3 = plt.subplots(2, 2, sharex=True)
+    for k, poisson in enumerate([False, True]):
+        for j, mode in enumerate(['hull', 'outer']):
+            bootstrapped_nearest_distances(vor, nb, poisson, mode,
+                                           axs1[k,j], axs2[k,j], axs3[k,j],
+                                           bins)
     for f in [fig1, fig2, fig3]:
         f.tight_layout()
     print('... done.')
