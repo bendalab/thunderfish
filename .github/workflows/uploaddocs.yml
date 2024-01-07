@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run tests
-        run: nosetests -vv --with-coverage --cover-html --cover-xml --cover-package=thunderfish
+        run: NUMBA_DISABLE_JIT=1 nosetests -vv --with-coverage --cover-html --cover-xml --cover-package=thunderfish
         shell: bash
 
       - name: Build documentation

@@ -41,16 +41,18 @@
 
 import sys
 import numpy as np
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 try:
-    from numba import jit, int64
-    index_type = int64
+    from numba import jit
 except ImportError:
     def jit(*args, **kwargs):
         def decorator_jit(func):
             return func
         return decorator_jit
-    index_type = int
 
 
 def detect_peaks(data, threshold):
@@ -73,9 +75,9 @@ def detect_peaks(data, threshold):
     Returns
     -------
     peaks: array of ints
-        An array of indices of detected peaks.
+        Array of indices of detected peaks.
     troughs: array of ints
-        An array of indices of detected troughs.
+        Array of indices of detected troughs.
 
     Raises
     ------
@@ -113,9 +115,9 @@ def detect_peaks_fixed(data, threshold):
     Returns
     -------
     peaks: array of ints
-        An array of indices of detected peaks.
+        Array of indices of detected peaks.
     troughs: array of ints
-        An array of indices of detected troughs.
+        Array of indices of detected troughs.
     """
     peaks = []
     troughs = []
@@ -179,8 +181,8 @@ def detect_peaks_fixed(data, threshold):
                 min_inx = index
                 min_value = value
 
-    return np.asarray(peaks, dtype=index_type), \
-           np.asarray(troughs, dtype=index_type)
+    return np.asarray(peaks, dtype=np.int64), \
+           np.asarray(troughs, dtype=np.int64)
 
 
 @jit(nopython=True)
@@ -200,9 +202,9 @@ def detect_peaks_array(data, threshold):
     Returns
     -------
     peaks: array of ints
-        An array of indices of detected peaks.
+        Array of indices of detected peaks.
     troughs: array of ints
-        An array of indices of detected troughs.
+        Array of indices of detected troughs.
     """    
     peaks = []
     troughs = []
@@ -266,8 +268,8 @@ def detect_peaks_array(data, threshold):
                 min_inx = index
                 min_value = value
 
-    return np.asarray(peaks, dtype=index_type), \
-           np.asarray(troughs, dtype=index_type)
+    return np.asarray(peaks, dtype=np.int64), \
+           np.asarray(troughs, dtype=np.int64)
 
     
 def peak_width(time, data, peak_indices, trough_indices,
@@ -346,7 +348,7 @@ def peak_width(time, data, peak_indices, trough_indices,
     elif base == 'closest':
         base_func = closest_base
     else:
-        raise ValueError('Invalid value for base (%s)' % base)
+        raise ValueError(f'Invalid value for base ({base})')
     # width of peaks:
     for j in range(len(peak_inx)):
         li = trough_inx[j]
@@ -449,7 +451,7 @@ def peak_size_width(time, data, peak_indices, trough_indices,
         base_func = closest_base
 
     else:
-        raise ValueError('Invalid value for base (%s)' % base)
+        raise ValueError('Invalid value for base ({base})')
     # size and width of peaks:
     for j, pi in enumerate(peak_inx):
         li = trough_inx[j]
@@ -515,6 +517,9 @@ def threshold_crossing_times(time, data, threshold, up_indices, down_indices):
         Time, must not be `None`.
     data: array
         The data.
+    threshold: float
+        A number or array of numbers setting the threshold
+        that was crossed.
     up_indices: array of ints
         A list of indices where the threshold is crossed with positive slope.
     down_indices: array of ints
@@ -728,9 +733,9 @@ def widen_events(onsets, offsets, max_time, duration):
     """Enlarge events on both sides without overlap.
 
     Subtracts `duration` from the `onsets` and adds `duration` to the offsets.
-    If two succeeding events are separated by less than two times the `duration`,
-    then the offset of the previous event and the onset of the following event are
-    set at the center between the two events.
+    If two succeeding events are separated by less than two times the
+    `duration`, then the offset of the previous event and the onset of
+    the following event are set at the center between the two events.
     
     Parameters
     ----------
@@ -746,7 +751,8 @@ def widen_events(onsets, offsets, max_time, duration):
         max_time is the maximum possible index, i.e. the len of the
         data array on which the events where detected.
     duration: int or float
-        The number of indices or the time by which the events should be enlarged.
+        The number of indices or the time by which the events should
+        be enlarged.
         If the event onsets and offsets are given in indices than
         duration is also in indices. 
 
@@ -756,12 +762,13 @@ def widen_events(onsets, offsets, max_time, duration):
         The onsets (peaks, or positive threshold crossings) of the enlarged events.
     offsets: 1-D array
         The offsets (troughs, or negative threshold crossings) of the enlarged events.
+
     """
     new_onsets = []
     new_offsets = []
     if len(onsets) > 0:
         on_idx = onsets[0]
-        new_onsets.append( on_idx - duration if on_idx >= duration else 0 )
+        new_onsets.append(on_idx - duration if on_idx >= duration else 0)
     for off_idx, on_idx in zip(offsets[:-1], onsets[1:]):
         if on_idx - off_idx < 2*duration:
             mid_idx = (on_idx + off_idx)//2
@@ -773,31 +780,30 @@ def widen_events(onsets, offsets, max_time, duration):
     if len(offsets) > 0:
         off_idx = offsets[-1]
         new_offsets.append(off_idx + duration if off_idx + duration < max_time else max_time)
-    return new_onsets, new_offsets
+    return np.array(new_onsets, dtype=onsets.dtype), np.array(new_offsets, dtype=offsets.dtype)
 
     
-def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
+def std_threshold(data, win_size=None, thresh_fac=5.0):
     """Estimates a threshold for peak detection based on the standard deviation of the data.
 
     The threshold is computed as the standard deviation of the data
     multiplied with `thresh_fac`.
 
-    In case of Gaussian distributed data, setting `thresh_fac=2.0` (two standard deviations)
-    captures 68% of the data, `thresh_fac=4.0` captures 95%, and `thresh_fac=6.0` 99.7%.
+    In case of Gaussian distributed data, setting `thresh_fac=2.0`
+    (two standard deviations) captures 68% of the data,
+    `thresh_fac=4.0` captures 95%, and `thresh_fac=6.0` 99.7%.
 
-    If `samplerate` and `win_size` is given, then the threshold is computed for
-    each half-overlapping window of duration `win_size` separately.
-    In this case the returned threshold is an array of the same size as data.
-    Without a `samplerate` and `win_size` a single threshold value determined from
-    the whole data array is returned.
+    If `win_size` is given, then the threshold is computed for
+    half-overlapping windows of size `win_size` separately.  In this
+    case the returned threshold is an array of the same size as data.
+    Without a `win_size` a single threshold value determined from the
+    whole data array is returned.
 
     Parameters
     ----------
     data: 1-D array
         The data to be analyzed.
-    samplerate: float or None
-        Sampling rate of the data in Hz.
-    win_size: float or None
+    win_size: int or None
         Size of window in which a threshold value is computed.
     thresh_fac: float
         Factor by which the standard deviation is multiplied to set the threshold.
@@ -806,13 +812,13 @@ def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
     -------
     threshold: float or 1-D array
         The computed threshold.
+
     """
 
-    if samplerate and win_size:
+    if win_size:
         threshold = np.zeros(len(data))
-        win_size_indices = int(win_size * samplerate)
-        for inx0 in range(0, len(data)-win_size_indices//2, win_size_indices//2):
-            inx1 = inx0 + win_size_indices
+        for inx0 in range(0, len(data) - win_size//2, win_size//2):
+            inx1 = inx0 + win_size
             std = np.std(data[inx0:inx1], ddof=1)
             threshold[inx0:inx1] = std * thresh_fac
         return threshold
@@ -821,10 +827,10 @@ def std_threshold(data, samplerate=None, win_size=None, thresh_fac=5.):
 
     
 @jit(nopython=True)
-def median_std_threshold(data, samplerate, win_size=0.0005, n_snippets=1000, thresh_fac=6.0):
+def median_std_threshold(data, win_size=100, thresh_fac=6.0, n_snippets=1000):
     """Estimate a threshold for peak detection based on the median standard deviation of data snippets.
 
-    On `n_snippets` snippets of `win_size` duration the standard
+    On `n_snippets` snippets of `win_size` size the standard
     deviation of the data is estimated. The returned threshold is the
     median of these standard deviations that are larger than zero
     multiplied by `thresh_fac`.
@@ -833,55 +839,51 @@ def median_std_threshold(data, samplerate, win_size=0.0005, n_snippets=1000, thr
     ----------
     data: 1-D array of float
         The data to be analysed.
-    samplerate: int or float
-        Sampling rate of the data
-    win_size: float
-        Duration of windows on which standarad deviations are computed in seconds.
-    n_snippets: int
-        Number of snippets on which the standard deviations are estimated.
+    win_size: int
+        Size of windows on which standarad deviations are computed.
     thresh_fac: float
         Factor by which the median standard deviation is multiplied to set the threshold.
+    n_snippets: int
+        Number of snippets on which the standard deviations are estimated.
 
     Returns
     -------
     threshold: float
         The computed threshold.
     """
-    win_size_indices = int(win_size * samplerate)
-    if win_size_indices < 10:
-        win_size_indices = 10
+    if win_size < 10:
+        win_size = 10
     step = len(data)//n_snippets
-    if step < win_size_indices//2:
-        step = win_size_indices//2
-    stds = np.array([np.std(data[i:i+win_size_indices])
-                     for i in range(0, len(data)-win_size_indices, step)])
+    if step < win_size//2:
+        step = win_size//2
+    stds = np.array([np.std(data[i:i+win_size])
+                     for i in range(0, len(data)-win_size, step)])
     return np.median(stds[stds>0])*thresh_fac
 
     
-def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
+def hist_threshold(data, win_size=None, thresh_fac=5.0,
                    nbins=100, hist_height=1.0/np.sqrt(np.e)):
     """Estimate a threshold for peak detection based on a histogram of the data.
 
     The standard deviation of the data is estimated from half the
-    width of the histogram of the data at `hist_height` relative height.
-    This estimates the data's standard deviation by ignoring tails of the distribution.
+    width of the histogram of the data at `hist_height` relative
+    height.  This estimates the data's standard deviation by ignoring
+    tails of the distribution.
 
     However, you need enough data to robustly estimate the histogram.
 
-    If `samplerate` and `win_size` is given, then the threshold is computed for
-    each half-overlapping window of duration `win_size` separately.
-    In this case the returned threshold is an array of the same size as data.
-    Without a samplerate and win_size a single threshold value determined from
-    the whole data array is returned.
+    If `win_size` is given, then the threshold is computed for
+    half-overlapping windows of size `win_size` separately.  In this
+    case the returned threshold is an array of the same size as data.
+    Without a win_size a single threshold value determined from the
+    whole data array is returned.
 
     Parameters
     ----------
     data: 1-D array
         The data to be analyzed.
-    samplerate: float or None
-        Sampling rate of the data in Hz.
-    win_size: float or None
-        Size of window in which a threshold value is computed in sec.
+    win_size: int or None
+        Size of window in which a threshold value is computed.
     thresh_fac: float
         Factor by which the width of the histogram is multiplied to set the threshold.
     nbins: int or list of floats
@@ -895,14 +897,14 @@ def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
         The computed threshold.
     center: float or 1-D array
         The center (mean) of the width of the histogram.
+
     """
-    if samplerate and win_size:
+    if win_size:
         threshold = np.zeros(len(data))
         centers = np.zeros(len(data))
-        win_size_indices = int(win_size * samplerate)
-        for inx0 in range(0, len(data)-win_size_indices//2, win_size_indices//2):
-            inx1 = inx0 + win_size_indices
-            std, center = hist_threshold(data[inx0:inx1], samplerate=None, win_size=None,
+        for inx0 in range(0, len(data) - win_size//2, win_size//2):
+            inx1 = inx0 + win_size
+            std, center = hist_threshold(data[inx0:inx1], win_size=None,
                                          thresh_fac=thresh_fac, nbins=nbins,
                                          hist_height=hist_height)
             threshold[inx0:inx1] = std
@@ -925,25 +927,23 @@ def hist_threshold(data, samplerate=None, win_size=None, thresh_fac=5.,
         return std * thresh_fac, center
 
     
-def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
+def minmax_threshold(data, win_size=None, thresh_fac=0.8):
     """Estimate a threshold for peak detection based on minimum and maximum values of the data.
 
     The threshold is computed as the difference between maximum and
     minimum value of the data multiplied with `thresh_fac`.
 
-    If `samplerate` and `win_size` is given, then the threshold is computed for
-    each half-overlapping window of duration `win_size` separately.
-    In this case the returned threshold is an array of the same size as data.
-    Without a samplerate and win_size a single threshold value determined from
-    the whole data array is returned.
+    If `win_size` is given, then the threshold is computed for
+    half-overlapping windows of size `win_size` separately.  In this
+    case the returned threshold is an array of the same size as data.
+    Without a win_size a single threshold value determined from the
+    whole data array is returned.
 
     Parameters
     ----------
     data: 1-D array
         The data to be analyzed.
-    samplerate: float or None
-        Sampling rate of the data in Hz.
-    win_size: float or None
+    win_size: int or None
         Size of window in which a threshold value is computed.
     thresh_fac: float
         Factor by which the difference between minimum and maximum data value
@@ -953,12 +953,12 @@ def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
     -------
     threshold: float or 1-D array
         The computed threshold.
+
     """
-    if samplerate and win_size:
+    if win_size:
         threshold = np.zeros(len(data))
-        win_size_indices = int(win_size * samplerate)
-        for inx0 in range(0, len(data)-win_size_indices//2, win_size_indices//2):
-            inx1 = inx0 + win_size_indices
+        for inx0 in range(0, len(data) - win_size//2, win_size//2):
+            inx1 = inx0 + win_size
             window_min = np.min(data[inx0:inx1])
             window_max = np.max(data[inx0:inx1])
             threshold[inx0:inx1] = (window_max - window_min) * thresh_fac
@@ -968,7 +968,7 @@ def minmax_threshold(data, samplerate=None, win_size=None, thresh_fac=0.8):
         return (np.max(data) - np.min(data)) * thresh_fac
 
 
-def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, percentile=1.0):
+def percentile_threshold(data, win_size=None, thresh_fac=1.0, percentile=1.0):
     """Estimate a threshold for peak detection based on an inter-percentile range of the data.
 
     The threshold is computed as the range between the percentile and
@@ -976,10 +976,11 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
     thresh_fac.
 
     For very small values of `percentile` the estimated threshold
-    approaches the one returned by `minmax_threshold()` (for same values
-    of `thresh_fac`). For `percentile=16.0` and Gaussian distributed data,
-    the returned theshold is twice the one returned by `std_threshold()`
-    or `hist_threshold()`, i.e. twice the standard deviation.
+    approaches the one returned by `minmax_threshold()` (for same
+    values of `thresh_fac`). For `percentile=16.0` and Gaussian
+    distributed data, the returned theshold is twice the one returned
+    by `std_threshold()` or `hist_threshold()`, i.e. twice the
+    standard deviation.
 
     If you have knowledge about how many data points are in the tails of
     the distribution, then this method is preferred over
@@ -994,39 +995,40 @@ def percentile_threshold(data, samplerate=None, win_size=None, thresh_fac=1.0, p
     noise floor with a large density, but you may want to set
     `thresh_fac` larger than one to reduce false detections.
 
-    If `samplerate` and `win_size` is given, then the threshold is
-    computed for each half-overlapping window of duration `win_size`
-    separately.  In this case the returned threshold is an array of
-    the same size as data.  Without a samplerate and win_size a single
-    threshold value determined from the whole data array is returned.
+    If `win_size` is given, then the threshold is computed for
+    half-overlapping windows of size `win_size` separately.  In this
+    case the returned threshold is an array of the same size as data.
+    Without a win_size a single threshold value determined from the
+    whole data array is returned.
 
     Parameters
     ----------
     data: 1-D array
         The data to be analyzed.
-    samplerate: float or None
-        Sampling rate of the data in Hz.
-    win_size: float or None
+    win_size: int or None
         Size of window in which a threshold value is computed.
     percentile: float
-        The interpercentile range is computed at percentile and 100.0-percentile.
-        If zero, compute maximum minus minimum data value as the interpercentile range.
+        The interpercentile range is computed at percentile and
+        100.0-percentile.
+        If zero, compute maximum minus minimum data value as the
+        interpercentile range.
     thresh_fac: float
-        Factor by which the inter-percentile range of the data is multiplied to set the threshold.
+        Factor by which the inter-percentile range of the data is
+        multiplied to set the threshold.
 
     Returns
     -------
     threshold: float or 1-D array
         The computed threshold.
+
     """
     if percentile < 1e-8:
-        return minmax_threshold(data, samplerate=samplerate, win_size=win_size,
+        return minmax_threshold(data, win_size=win_size,
                                 thresh_fac=thresh_fac)
-    if samplerate and win_size:
+    if win_size:
         threshold = np.zeros(len(data))
-        win_size_indices = int(win_size * samplerate)
-        for inx0 in range(0, len(data)-win_size_indices//2, win_size_indices//2):
-            inx1 = inx0 + win_size_indices
+        for inx0 in range(0, len(data) - win_size//2, win_size//2):
+            inx1 = inx0 + win_size
             threshold[inx0:inx1] = np.squeeze(np.abs(np.diff(
                 np.percentile(data[inx0:inx1], [100.0 - percentile, percentile])))) * thresh_fac
         return threshold
@@ -1321,10 +1323,8 @@ def accept_peak_size_threshold(time, data, event_inx, index, min_inx, threshold,
         return time[event_inx], threshold
 
 
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
-    
-    print("Checking eventetection module ...")
+def main():
+    print('Checking eventetection module ...')
     print('')
     # generate data:
     dt = 0.001
@@ -1334,18 +1334,16 @@ if __name__ == "__main__":
     data += -0.1 * time * (time - 10.0)
     data += 0.1 * np.random.randn(len(data))
 
-    print("generated waveform with %d peaks" % int(np.round(time[-1] * f)))
+    print(f'generated waveform with {int(np.round(time[-1] * f))} peaks')
     plt.plot(time, data)
 
     print('')
     print('check detect_peaks(data, 1.0)...')
     peaks, troughs = detect_peaks(data, 1.0)
     # print peaks:
-    print('detected %d peaks with period %g that differs from the real frequency by %g' % (
-        len(peaks), np.mean(np.diff(peaks)), f - 1.0 / np.mean(np.diff(peaks)) / np.mean(np.diff(time))))
+    print(f'detected {len(peaks)} peaks with period {np.mean(np.diff(peaks)):.1f} that differs from the real frequency by {f - 1.0 / np.mean(np.diff(peaks)) / np.mean(np.diff(time)):.3f}')
     # print troughs:
-    print('detected %d troughs with period %g that differs from the real frequency by %g' % (
-        len(troughs), np.mean(np.diff(troughs)), f - 1.0 / np.mean(np.diff(troughs)) / np.mean(np.diff(time))))
+    print(f'detected {len(troughs)} troughs with period {np.mean(np.diff(troughs)):.1f} that differs from the real frequency by {f - 1.0 / np.mean(np.diff(troughs)) / np.mean(np.diff(time)):.3f}')
 
     # plot peaks and troughs:
     plt.plot(time[peaks], data[peaks], '.r', ms=20)
@@ -1370,3 +1368,7 @@ if __name__ == "__main__":
     wrapped = wrapper(detect_peaks, data, 1.0)
     t1 = timeit.timeit(wrapped, number=200)
     print(t1)
+
+
+if __name__ == '__main__':
+    main()

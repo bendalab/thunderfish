@@ -39,12 +39,23 @@ def test_detect_peaks():
     assert_raises(ValueError, ed.detect_peaks, data, 0.0)
 
     assert_raises(ValueError, ed.detect_peaks, data, -1.0)
-
+    
     peaks, troughs = ed.detect_peaks(data, threshold)
     assert_true(np.all(peaks == peak_indices),
                 "detect_peaks(data, threshold) did not correctly detect peaks")
     assert_true(np.all(troughs == trough_indices),
                 "detect_peaks(data, threshold) did not correctly detect troughs")
+
+    threshs = np.ones(len(data))*threshold
+    peaks, troughs = ed.detect_peaks(data, threshs)
+    assert_true(np.all(peaks == peak_indices),
+                "detect_peaks(data, threshs) did not correctly detect peaks")
+    assert_true(np.all(troughs == trough_indices),
+                "detect_peaks(data, threshs) did not correctly detect troughs")
+    
+    assert_raises(IndexError, ed.detect_peaks, data, threshs[:10])
+    threshs[10] = -1
+    assert_raises(ValueError, ed.detect_peaks, data, threshs)
 
 
 def test_detect_dynamic_peaks():
@@ -145,6 +156,9 @@ def test_threshold_crossings():
     assert_true(np.all(down == down_indices-1),
                 "threshold_crossings(data, threshold) did not correctly detect down crossings")
 
+    upt, downt = ed.threshold_crossing_times(time, data, threshold, up, down)
+    assert_true(len(upt) == len(up) and len(downt) == len(down), 'threshold_crossings_time failed')
+
     threshold = 0.1 + 0.8/10.0*time
     assert_raises(IndexError, ed.threshold_crossings, data, threshold[1:])
     up, down = ed.threshold_crossings(data, threshold)
@@ -155,18 +169,42 @@ def test_threshold_crossings():
 
     
 def test_thresholds():
-    # generate data:
+    # generate noise data:
     data = np.random.randn(10000)
     std_th = ed.std_threshold(data, thresh_fac=1.0)
     prc_th = ed.percentile_threshold(data, thresh_fac=1.0, percentile=16.0)
     assert_almost_equal(std_th, 1.0, 1, 'std_threshold %g esimate failed' % std_th)
     assert_true(np.abs(prc_th-2.0) < 0.1, 'percentile_threshold %g esimate failed' % prc_th)
+
+    std_ths = ed.std_threshold(data, 50, thresh_fac=1.0)
+    assert_true(len(std_ths) == len(data), 'std_threshold array')
+    assert_true(np.all(np.abs(std_ths - 1) < 1), 'threshold array estimated of std failed')
+
+    prc_ths = ed.percentile_threshold(data, 50, thresh_fac=1.0, percentile=16.0)
+    assert_true(len(prc_ths) == len(data), 'percentile threshold array')
+
+    hist_th, center = ed.hist_threshold(data, thresh_fac=1.0)
+    assert_almost_equal(hist_th, 1.0, 0, 'hist_threshold %g esimate failed' % hist_th)
+    assert_almost_equal(center, 0.0, 0, 'hist_threshold center %g esimate failed' % center)
+    hist_th, center = ed.hist_threshold(1e-8*data + 10, thresh_fac=1.0)
+    hist_ths, centers = ed.hist_threshold(data, 500, thresh_fac=1.0)
+    assert_true(len(hist_ths) == len(data), 'hist_threshold array thresholds')
+    assert_true(len(centers) == len(data), 'hist_threshold array centers')
+
+    median_th = ed.median_std_threshold(data, thresh_fac=1.0)
+    assert_almost_equal(median_th, 1.0, 1, 'median_std_threshold %g esimate failed' % median_th)
+    median_th = ed.median_std_threshold(data, win_size=0, thresh_fac=1.0)
+
+    # generate sine wave:
     time = np.arange(0.0, 10.0, 0.01)
     data = np.sin(2.0*np.pi*21.7*time)
     mm_th = ed.minmax_threshold(data, thresh_fac=1.0)
     assert_almost_equal(mm_th, 2.0, 2, 'minmax_threshold %g esimate failed' % mm_th)
+    mm_ths = ed.minmax_threshold(data, 500, thresh_fac=1.0)
+    assert_true(len(mm_ths) == len(data), 'minmax threshold array')
     prc_th = ed.percentile_threshold(data, thresh_fac=1.0, percentile=0.1)
     assert_true(np.abs(prc_th-2.0) < 0.1, 'percentile_threshold %g esimate failed' % prc_th)
+    
 
 
 def test_trim():
@@ -323,4 +361,54 @@ def test_peak_width_algorithm():
         edwidths = ed.peak_width(time, data, pix, tix, peak_frac, 'max')
         assert_true(np.all(widths == edwidths), 'widths should be the same')
         
+        for base in ['left', 'right', 'min', 'max', 'mean', 'closest']:
+            edwidths = ed.peak_width(time, data, pix, tix, peak_frac, base)
+            assert_true(len(edwidths) == len(pix), 'as many widths as peaks')
+        assert_raises(ValueError, ed.peak_width, time, data, pix, tix, peak_frac, 'xxx')
+
+        for base in ['left', 'right', 'min', 'max', 'mean', 'closest']:
+            edpeaks = ed.peak_size_width(time, data, pix, tix, peak_frac, base)
+            assert_true(len(edpeaks) == len(pix), 'as many peaks as peaks')
+        assert_raises(ValueError, ed.peak_size_width, time, data, pix, tix, peak_frac, 'xxx')
+        edpeaks = ed.peak_size_width(time, data, [], [], peak_frac, base)
+        assert_true(len(edpeaks) == 0, 'no peaks')
+        
                 
+def test_event_manipulation():
+    # generate peak and trough indices (same length, peaks first):
+    pt_indices = np.unique(np.random.randint(5, 1000, size=40))
+    n = (len(pt_indices)//2)*2
+    onsets = pt_indices[0:n:2]
+    offsets = pt_indices[1:n:2]
+    
+    p, t = ed.merge_events(onsets, offsets, 10)
+    assert_true(len(p) > 0 and len(t) > 0 and len(p) == len(t), 'merged events')
+    p, t = ed.merge_events([], offsets, 10)
+    assert_true(len(p) == 0 and len(t) == 0, 'no events')
+
+    p, t = ed.widen_events(onsets, offsets, 1010, 10)
+    assert_true(len(p) > 0 and len(t) > 0 and len(p) == len(t), 'widened events')
+
+    p, t = ed.remove_events(onsets, offsets, 10, 100)
+    assert_true(len(p) > 0 and len(t) > 0 and len(p) == len(t) and np.all(t-p >= 10) and np.all(t-p <= 100), 'removed events')
+    p, t = ed.remove_events(onsets, offsets, 10)
+    assert_true(len(p) > 0 and len(t) > 0 and len(p) == len(t) and np.all(t-p >= 10), 'removed minimum events')
+    p, t = ed.remove_events(onsets, offsets, None, 100)
+    assert_true(len(p) > 0 and len(t) > 0 and len(p) == len(t) and np.all(t-p <= 100), 'removed maximum events')
+    p, t = ed.remove_events(onsets, [], 10, 100)
+    assert_true(len(p) == 0 and len(t) == 0, 'no removed events')
+    
+                
+def test_snippets():
+    # generate data:
+    data = np.random.randn(10000)
+    indices = np.unique(np.random.randint(50, 10000-50, size=200))
+
+    snips = ed.snippets(data, indices)
+    assert_true(len(snips) == len(indices), 'snippets()')
+
+                
+def test_main():
+    ed.main()
+
+    
