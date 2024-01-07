@@ -315,7 +315,7 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
         raise UserWarning(f'not enough data (data={len(data) / samplerate:g}s, win={win_size:g}s)')
 
     # threshold for peak detection:
-    threshold = percentile_threshold(data, samplerate, win_shift,
+    threshold = percentile_threshold(data, int(win_shift*samplerate),
                                      thresh_fac=thresh_fac,
                                      percentile=percentile)
 
@@ -730,8 +730,9 @@ def analysis_window(data, samplerate, win_pos, cfg, show_bestwindow=False):
             win_shift = cfg.value('bestWindowShift')
             thresh_fac = cfg.value('bestWindowThresholdFactor')
             percentile = cfg.value('bestWindowThresholdPercentile')
-            threshold = percentile_threshold(data_seg, samplerate,
-                                             win_shift, thresh_fac=thresh_fac,
+            threshold = percentile_threshold(data_seg,
+                                             int(win_shift*samplerate),
+                                             thresh_fac=thresh_fac,
                                              percentile=percentile)
             peak_idx, trough_idx = detect_peaks(data_seg, threshold)
             p_idx, t_idx = trim_to_peak(peak_idx, trough_idx)
