@@ -118,16 +118,15 @@ def plot_clipping(data, winx0, winx1, bins,
 
     Pass this function as the `plot_hist_func` argument to `clip_amplitudes()`.
     """
-    plt.subplot(2, 1, 1)
-    plt.plot(data[winx0:winx1], 'b')
-    plt.axhline(min_clip, color='r')
-    plt.axhline(max_clip, color='r')
-    plt.ylim(-1.0, 1.0)
-    plt.subplot(2, 1, 2)
-    plt.bar(bins[:-1], h, width=np.mean(np.diff(bins)))
-    plt.axvline(min_clip, color='r')
-    plt.axvline(max_clip, color='r')
-    plt.xlim(-1.0, 1.0)
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    ax1.plot(data[winx0:winx1], 'b')
+    ax1.axhline(min_clip, color='r')
+    ax1.axhline(max_clip, color='r')
+    ax1.set_ylim(-1.0, 1.0)
+    ax2.bar(bins[:-1], h, width=np.mean(np.diff(bins)))
+    ax2.axvline(min_clip, color='r')
+    ax2.axvline(max_clip, color='r')
+    ax2.set_xlim(-1.0, 1.0)
     plt.show()
 
 
@@ -313,8 +312,7 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
     """
     # too little data:
     if len(data) / samplerate < win_size:
-        raise UserWarning('not enough data (data=%gs, win=%gs)' %
-                          (len(data) / samplerate, win_size))
+        raise UserWarning(f'not enough data (data={len(data) / samplerate:g}s, win={win_size:g}s)')
 
     # threshold for peak detection:
     threshold = percentile_threshold(data, samplerate, win_shift,
@@ -559,14 +557,14 @@ def plot_data_window(ax, data, samplerate, unit, idx0, idx1, clipped,
         ax.plot(time[idx0:idx1], data[idx0:idx1], color=window_color)
         label = 'analysis\nwindow'
         if clipped > 0.0:
-            label += '\n%.0f%% clipped' % (100.0*clipped)
+            label += f'\n{100.0*clipped:.0f}% clipped'
         ax.text(time[(idx0+idx1)//2], 0.0, label, ha='center', va='center')
     ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [sec]')
     if len(unit) == 0 or unit == 'a.u.':
         ax.set_ylabel('Amplitude')
     else:
-        ax.set_ylabel('Amplitude [%s]' % unit)
+        ax.set_ylabel(f'Amplitude [{unit}]')
     ax.yaxis.set_major_locator(ticker.MaxNLocator(3))
 
         
@@ -748,10 +746,10 @@ def analysis_window(data, samplerate, win_pos, cfg, show_bestwindow=False):
 
 
 def main(data_file=None):
-    title = "bestwindow"
+    title = 'bestwindow'
     if data_file is None:
         # generate data:
-        print("generate waveform...")
+        print('generate waveform...')
         rate = 100000.0
         time = np.arange(0.0, 1.0, 1.0 / rate)
         f = 600.0
@@ -764,11 +762,11 @@ def main(data_file=None):
                 data[data < -1.3] = -1.3
                 snippets.extend(data)
         data = np.asarray(snippets)
-        title = "test sines"
+        title = 'test sines'
         data += 0.01 * np.random.randn(len(data))
     else:
         from .dataloader import load_data
-        print("load %s ..." % data_file)
+        print(f'load {data_file} ...')
         data, rate, unit = load_data(data_file, 0)
         title = data_file
 
@@ -796,7 +794,7 @@ def main(data_file=None):
     plt.show()
 
     
-if __name__ == "__main__":
+if __name__ == '__main__':
     import sys
     data_file = sys.argv[1] if len(sys.argv) > 1 else None
     main(data_file)

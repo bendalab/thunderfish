@@ -2,6 +2,7 @@ from nose.tools import assert_true, assert_equal, assert_almost_equal
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from thunderfish.configfile import ConfigFile
 import thunderfish.bestwindow as bw
 
 
@@ -31,6 +32,26 @@ def test_best_window():
     assert_equal(idx0, 6 * len(time), 'bestwindow() did not correctly detect start of best window')
     assert_equal(idx1, 7 * len(time), 'bestwindow() did not correctly detect end of best window')
     assert_almost_equal(clipped, 0.0, 'bestwindow() did not correctly detect clipped fraction')
+
+    t0, t1, clipped = bw.best_window_times(data, rate, expand=False,
+                                           win_size=1.0, win_shift=0.1,
+                                           min_clip=-clip, max_clip=clip,
+                                           w_cv_ampl=10.0, tolerance=0.5)
+
+    bdata, clipped = bw.best_window(data, rate, expand=False,
+                                    win_size=1.0, win_shift=0.1,
+                                    min_clip=-clip, max_clip=clip,
+                                    w_cv_ampl=10.0, tolerance=0.5)
+
+
+    cfg = ConfigFile()
+    bw.add_clip_config(cfg)
+    bw.add_best_window_config(cfg)
+    cfg.add('unwrapData', False, '', 'unwrap clipped data') 
+    for win_pos in ['beginning', 'center', 'end', 'best', '0.1s', 'xxx']:
+        bw.analysis_window(data, rate, win_pos, cfg, show_bestwindow=False)
+    bw.analysis_window(data, rate, 'best', cfg, show_bestwindow=True)
+    
 
     # clipping:
     clip_win_size = 0.5
@@ -62,3 +83,6 @@ def test_best_window():
     assert_true(os.path.exists('bestdata.png'), 'plotting failed')
     os.remove('bestdata.png')
     
+
+def test_bestwindow_main():
+    bw.main()
