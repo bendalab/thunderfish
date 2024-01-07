@@ -2,7 +2,8 @@ from nose.tools import assert_true, assert_equal, assert_raises
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from thunderfish.voronoi import Voronoi
+from thunderfish.voronoi import Voronoi, main
+
 
 def test_voronoi_dimensions():
     points = np.random.rand(20, 3)
@@ -32,7 +33,7 @@ def test_voronoi():
     assert_equal(len(vor.ridge_distances), len(vor.ridge_vertices), 'wrong len of ridge_distances')
     assert_equal(len(vor.ridge_lengths()), len(vor.ridge_vertices), 'wrong len of ridge_length()')
     assert_equal(len(vor.ridge_areas()), len(vor.ridge_vertices), 'wrong len of ridge_areas()')
-    for mode in ['inside', 'finite_inside', 'full', 'finite']:
+    for mode in ['inside', 'finite_inside', 'full', 'finite', 'xxx']:
         assert_equal(len(vor.areas(mode)), len(vor.points), 'wrong len of ridge_areas()')
     assert_equal(len(vor.point_types()), len(vor.points), 'wrong len of point_types()')
     
@@ -40,6 +41,7 @@ def test_voronoi():
     assert_true(np.all(np.abs(vor.hull_center-np.mean(vor.outer_hull.points, axis=0))< 1e-8), 'outer hull center does not equal hull center')
 
     assert_true(vor.hull_area() <= 1.0, 'hull_area() too large')
+    assert_true(vor.outer_hull_area() >= 0.0, 'outer_hull_area() negative')
 
     for mode in ['bbox', 'hull', 'outer']:
         new_points = vor.random_points(poisson=False, mode=mode)
@@ -47,6 +49,8 @@ def test_voronoi():
     for mode in ['bbox', 'hull', 'outer']:
         new_points = vor.random_points(poisson=True, mode=mode)
         assert_true(len(new_points) < 2*len(vor.points), 'wrong number of points generated in random_points()')
+    new_points = vor.random_points(poisson=False, mode='xxx')
+    assert_equal(new_points, None, 'wrong return value of random_points() for onvalid mode')
         
 
 def test_plot_voronoi():
@@ -57,8 +61,7 @@ def test_plot_voronoi():
     # calculate Voronoi diagram:
     vor = Voronoi(points)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(1, 1, 1)
+    fig, ax = plt.subplots()
     vor.fill_regions(ax, inside=True, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=1.0, zorder=0)
     vor.fill_regions(ax, inside=False, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.4, zorder=0)
     vor.fill_infinite_regions(ax, colors=['red', 'green', 'blue', 'orange', 'cyan', 'magenta'], alpha=0.1, zorder=0)
@@ -78,3 +81,7 @@ def test_plot_voronoi():
     fig.savefig('test.png')
     assert_true(os.path.exists('test.png'), 'plotting failed')
     os.remove('test.png')
+
+
+def test_voronoi_main():
+    main()

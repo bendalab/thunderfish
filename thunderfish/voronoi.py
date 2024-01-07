@@ -518,7 +518,7 @@ class Voronoi(object):
                 areas[i] = a
         else:
             print('')            
-            print('Voronoi.areas(): unknown value "%s" for the mode parameter:' % mode)
+            print(f'Voronoi.areas(): unknown value "{mode}" for the mode parameter:')
             print('Use one of the following values:')
             print('  inside: Finite Voronoi regions whose vertices are all inside the hull.')
             print('  finite_inside: Use all areas corresponding to finite ridges whose vertices are all inside the hull.')
@@ -614,7 +614,7 @@ class Voronoi(object):
                 points = np.vstack((points, newpoints[np.all(newpoints<max_bound, axis=1),:]))
             else:
                 print('')
-                print('Voronoi.random_points(): unknown value "%s" for the mode parameter:' % mode)
+                print(f'Voronoi.random_points(): unknown value "{mode}" for the mode parameter:')
                 print('Use one of the following values:')
                 print('  bbox: Place points within rectangular bounding box.')
                 print('  hull: Place points inside the convex hull.')
@@ -866,7 +866,7 @@ def main():
     #rs = 2751318392  # double infinite ridges at vertex 0 (n=10)
     #rs = 4226093154 out-hull fac < 1.0
     
-    print('random seed: %ld' % rs)
+    print(f'random seed: {rs}')
     np.random.seed(rs)
     n = 20    # number of points
     ar = 1.0  # aspect ratio of area in which the points should be placed
@@ -877,8 +877,8 @@ def main():
     vor = Voronoi(points)
         
     # what we get is:
-    print('dimension: %d' % vor.ndim)
-    print('number of points: %d' % vor.npoints)
+    print(f'dimension: {vor.ndim}')
+    print(f'number of points: {vor.npoints}')
     print('')
     print('distances of nearest neighbors:')
     print(vor.nearest_distances)
@@ -898,10 +898,10 @@ def main():
     print('area of corresponding triangles:')
     print(vor.ridge_areas())
     for mode in ['inside', 'finite_inside', 'full', 'finite']:
-        print('Voronoi area of each point (%s):' % mode)
+        print(f'Voronoi area of each point ({mode}):')
         print(vor.areas(mode))
     print('Comparison of sum of Voronoi areas (inside < finite_inside < full < finit):')
-    a = ['%.2f' % np.sum(vor.areas(mode)) for mode in ['inside', 'finite_inside', 'full', 'finite']]
+    a = [f'{np.sum(vor.areas(mode)):.2f}' for mode in ['inside', 'finite_inside', 'full', 'finite']]
     print(' < '.join(a))
     print('Type of Voronoi area of each point:')
     print(vor.point_types())
@@ -924,8 +924,8 @@ def main():
 
     # Convex hull:
     print('Convex hull:')
-    print('Area of convex hull: %g' % vor.hull_area())
-    print('Area of outer hull: %g' % vor.outer_hull_area())
+    print(f'Area of convex hull: {vor.hull_area():g}')
+    print(f'Area of outer hull: {vor.outer_hull_area():g}')
     new_points = vor.random_points(poisson=True, mode='outer')
 
     # plot convex hull:
@@ -952,7 +952,7 @@ def main():
         ps = 'fixed'
         if poisson:
             ps = 'poisson'
-        print('bootstrap %s %s ...' % (mode, ps))
+        print(f'bootstrap {mode} {ps} ...')
         hist_distances = np.zeros((n, len(bins)-1))
         mean_distances = []
         cvs = []
@@ -968,7 +968,7 @@ def main():
                                                bins=bins, density=True)[0]
             mean_distances.append(np.mean(bvor.nearest_distances))
             cvs.append(np.std(bvor.nearest_distances)/np.mean(bvor.nearest_distances))
-        ax1.set_title('bootstrap %s %s' % (mode, ps))
+        ax1.set_title(f'bootstrap {mode} {ps} ...')
         ax1.hist(mean_distances, 30, density=True, label='bootstrap')
         de = np.mean(vor.nearest_distances)
         sem = 2.1*0.26136*np.sqrt(vor.outer_hull_area())/vor.npoints # note factor 2.1!
@@ -981,7 +981,7 @@ def main():
         ax1.plot([bmd, bmd], [0.0, h], 'g', lw=4, label='bootstrapped a.n.n.')
         ax1.set_xlabel('mean nearest-neighbor distance')
         ax1.legend()
-        ax2.set_title('bootstrap %s %s' % (mode, ps))
+        ax2.set_title(f'bootstrap {mode} {ps} ...')
         ax2.hist(cvs, 30, density=True, label='bootstrap')
         # observed cv:
         cvo = np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)
@@ -995,16 +995,16 @@ def main():
         zcv = (cvo - 2.0*0.26136)/secv
         pz = 2.0*(1.0 - st.norm.cdf(np.abs(zcv)))
         h = 0.4/secv
-        ax2.plot([cvo, cvo], [0.0, h], 'r', lw=4, label=r'observed CV $\alpha=$%.0f%%' % (100.0*pz))
+        ax2.plot([cvo, cvo], [0.0, h], 'r', lw=4, label=rf'observed CV $\alpha=${100.0*pz:.0f}%')
         cvb = np.mean(cvs)
         x = np.linspace(cvb-4.0*secv, cvb+4.0*secv, 200)
         p = st.norm.pdf(x, loc=cvb, scale=secv)
         ax2.plot(x, p, 'g', lw=2, label='Gaussian')
-        ax2.plot([cvb, cvb], [0.0, h], 'g', lw=4, label=r'bootstrapped CV $\alpha=$%.0f%%' % (100.0*pb))
+        ax2.plot([cvb, cvb], [0.0, h], 'g', lw=4, label=rf'bootstrapped CV $\alpha=${100.0*pb:.0f}%')
         ax2.set_xlabel('CV')
         ax2.legend()
         # nearest-neighbor distance histogram:
-        ax3.set_title('bootstrap %s %s' % (mode, ps))
+        ax3.set_title(f'bootstrap {mode} {ps} ...')
         ax3.fill_between(bins[:-1], *np.percentile(hist_distances, [2.5, 97.5], axis=0), facecolor='blue', alpha=0.5)
         ax3.plot(bins[:-1], np.median(hist_distances, axis=0), 'b', lw=2)
         hd = np.histogram(vor.nearest_distances, bins=bins, density=True)[0]
@@ -1012,8 +1012,8 @@ def main():
         ax3.set_xlim(0.0, 0.5)
         ax3.set_xlabel('nearest-neighbor distance')
         
-    print('Mean distance: %g' % np.mean(vor.nearest_distances))
-    print('CV: %g' % (np.std(vor.nearest_distances)/np.mean(vor.nearest_distances)))
+    print(f'Mean distance: {np.mean(vor.nearest_distances):g}')
+    print(f'CV: {np.std(vor.nearest_distances)/np.mean(vor.nearest_distances):g}')
     bins = np.linspace(0.0, 1.0, 30)
     nb = 300
     fig1, axs1 = plt.subplots(2, 2, sharex=True)
