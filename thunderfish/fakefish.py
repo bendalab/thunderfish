@@ -306,18 +306,18 @@ def export_wavefish(fish, name='Unknown_harmonics', file=None):
     n = 6
     file.write(name + ' = \\\n')
     file.write('    dict(amplitudes=(')
-    file.write(', '.join(['%.5g' % a for a in amplitudes[:n]]))
+    file.write(', '.join([f'{a:.5g}' for a in amplitudes[:n]]))
     for k in range(n, len(amplitudes), n):
         file.write(',\n')
         file.write(' ' * (9+12))
-        file.write(', '.join(['%.5g' % a for a in amplitudes[k:k+n]]))
+        file.write(', '.join([f'{a:.5g}' for a in amplitudes[k:k+n]]))
     file.write('),\n')
     file.write(' ' * 9 + 'phases=(')
-    file.write(', '.join(['%.5g' % p for p in phases[:n]]))
+    file.write(', '.join(['{p:.5g}' for p in phases[:n]]))
     for k in range(n, len(phases), n):
         file.write(',\n')
         file.write(' ' * (9+8))
-        file.write(', '.join(['%.5g' % p for p in phases[k:k+n]]))
+        file.write(', '.join([f'{p:.5g}' for p in phases[k:k+n]]))
     file.write('))\n')
     if closeit:
         file.close()
@@ -688,29 +688,29 @@ def export_pulsefish(fish, name='Unknown_peaks', file=None):
     n = 6
     file.write(name + ' = \\\n')
     file.write('    dict(times=(')
-    file.write(', '.join(['%.5g' % a for a in peak_times[:n]]))
+    file.write(', '.join([f'{a:.5g}' for a in peak_times[:n]]))
     for k in range(n, len(peak_times), n):
         file.write(',\n')
         file.write(' ' * (9+12))
-        file.write(', '.join(['%.5g' % a for a in peak_times[k:k+n]]))
+        file.write(', '.join([f'{a:.5g}' for a in peak_times[k:k+n]]))
     if len(peak_times) == 1:
         file.write(',')
     file.write('),\n')
     file.write(' ' * 9 + 'amplitudes=(')
-    file.write(', '.join(['%.5g' % p for p in peak_amplitudes[:n]]))
+    file.write(', '.join([f'{p:.5g}' for p in peak_amplitudes[:n]]))
     for k in range(n, len(peak_amplitudes), n):
         file.write(',\n')
         file.write(' ' * (9+8))
-        file.write(', '.join(['%.5g' % p for p in peak_amplitudes[k:k+n]]))
+        file.write(', '.join([f'{p:.5g}' for p in peak_amplitudes[k:k+n]]))
     if len(peak_amplitudes) == 1:
         file.write(',')
     file.write('),\n')
     file.write(' ' * 9 + 'stdevs=(')
-    file.write(', '.join(['%.5g' % p for p in peak_stdevs[:n]]))
+    file.write(', '.join([f'{p:.5g}' for p in peak_stdevs[:n]]))
     for k in range(n, len(peak_stdevs), n):
         file.write(',\n')
         file.write(' ' * (9+8))
-        file.write(', '.join(['%.5g' % p for p in peak_stdevs[k:k+n]]))
+        file.write(', '.join([f'{p:.5g}' for p in peak_stdevs[k:k+n]]))
     if len(peak_stdevs) == 1:
         file.write(',')
     file.write('))\n')
@@ -783,8 +783,8 @@ def generate_waveform(filename):
                 rise_size = read('Size of rise in Hz', '%g'%rise_size, float, 0.01)
                 rise_tau = read('Time-constant of rise onset in seconds', '%g'%rise_tau, float, 0.01)
                 rise_decay_tau = read('Time-constant of rise decay in seconds', '%g'%rise_decay_tau, float, 0.01)
-                eodfreq = rises_frequency(eodf, samplerate, duration,
-                                          rise_freq, rise_size, rise_tau, rise_decay_tau)
+                eodfreq = rises(eodf, samplerate, duration,
+                                rise_freq, rise_size, rise_tau, rise_decay_tau)
             if eodt == 'a':
                 fishdata = eoda*wavefish_eods('Alepto', eodfreq, samplerate, duration,
                                               phase0=0.0, noise_std=0.0)
@@ -794,13 +794,13 @@ def generate_waveform(filename):
         else:
             pulse_jitter = read(fish + 'CV of pulse jitter', '%g'%pulse_jitter, float, 0.0, 2.0)
             if eodt == '1':
-                fishdata = eoda*pulsefish_eods('monophasic', eodf, samplerate, duration,
+                fishdata = eoda*pulsefish_eods('Monophasic', eodf, samplerate, duration,
                                                jitter_cv=pulse_jitter, noise_std=0.0)
             elif eodt == '2':
-                fishdata = eoda*pulsefish_eods('biphasic', eodf, samplerate, duration,
+                fishdata = eoda*pulsefish_eods('Biphasic', eodf, samplerate, duration,
                                                jitter_cv=pulse_jitter, noise_std=0.0)
             elif eodt == '3':
-                fishdata = eoda*pulsefish_eods('triphasic', eodf, samplerate, duration,
+                fishdata = eoda*pulsefish_eods('Triphasic', eodf, samplerate, duration,
                                                jitter_cv=pulse_jitter, noise_std=0.0)
         i = fish_indices[k]
         for j in range(fish_spread):
@@ -810,7 +810,7 @@ def generate_waveform(filename):
     write_audio(filename, 0.9*data/maxdata, samplerate)
     input_file = os.path.splitext(filename)[0] + '.inp' 
     save_inputs(input_file)
-    print('\nWrote fakefish data to file "%s".' % filename)
+    print(f'\nWrote fakefish data to file "{filename}".')
             
 
 def demo():
@@ -905,24 +905,24 @@ def demo():
     plt.show()
 
 
-def main():
-    import sys
+def main(args=[]):
     from .version import __year__
     
-    if len(sys.argv) > 1:
-        if len(sys.argv) == 2 or sys.argv[1] != '-s':
+    if len(args) > 0:
+        if len(args) == 1 or args[0] != '-s':
             print('usage: fakefish [-h|--help] [-s audiofile]')
             print('')
             print('Without arguments, run a demo for illustrating fakefish functionality.')
             print('')
             print('-s audiofile: writes audiofile with user defined simulated electric fishes.')
             print('')
-            print('by bendalab (%s)' % __year__)
+            print(f'by bendalab ({__year__})')
         else:
-            generate_waveform(sys.argv[2])
+            generate_waveform(args[1])
     else:
         demo()
 
             
 if __name__ == '__main__':
-    main()
+    import sys
+    main(sys.argv[1:])
