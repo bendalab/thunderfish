@@ -1,33 +1,97 @@
 from nose.tools import assert_equal, assert_true
 import numpy as np
 import thunderfish.powerspectrum as ps
+from thunderfish.configfile import ConfigFile
 import matplotlib.pyplot as plt
 
-# run this with "nosetests tests/test_powerspectrum.py" in the first thunderfish folder.
+        
+def test_decibel():
+    data = np.random.randn(1000)**2
+    for ref in [0.1, 1.0, None, 'peak']:
+        l = ps.decibel(data, ref, 1e-10)
+        assert_equal(data.shape, l.shape, 'decibel()')
+        if type(ref) is float:
+            p = ps.power(l, ref)
+            assert_equal(p.shape, l.shape, 'power()')
+
 
 def test_powerspectrum():
     # generate data
     fundamental = 300.  # Hz
     samplerate = 100000
-    time = np.linspace(0, 8 - 1 / samplerate, 8 * samplerate)
+    time = np.arange(0, 8, 1/samplerate)
     data = np.sin(time * 2 * np.pi * fundamental)
 
-    # run multi_resolution_psd with 2 fresolutions (list)
-    psd_data = ps.multi_psd(data, samplerate, freq_resolution=[0.5, 1])
-
-    # test the results
+    # run multi_psd with two windows:
+    psd_data = ps.multi_psd(data, samplerate, freq_resolution=0.5,
+                            num_windows=2)
     assert_equal(round(psd_data[0][np.argmax(psd_data[0][:,1]),0]), fundamental,
                  'peak in PSD is not the fundamental frequency given.')
     assert_equal(round(psd_data[1][np.argmax(psd_data[1][:,1]),0]), fundamental,
                  'peak in PSD is not the fundamental frequency given.')
-    # run multi_psd with 1 fresolutions (float)
+    
+    # run multi_psd with one window:
     psd_data = ps.multi_psd(data, samplerate, freq_resolution=0.5)
-
-    # test the result
     assert_equal(round(psd_data[0][np.argmax(psd_data[0][:,1]),0]), fundamental,
                  'peak in PSD is not the fundamental frequency given.')
 
+    # check detrend:
+    for detrend in ['none', 'constant', 'mean', 'linear']:
+        psd_data = ps.multi_psd(data, samplerate, freq_resolution=0.5,
+                                detrend=detrend)
 
+    # run multi_psd with two windows with mlab:
+    ps.psdscipy = False
+    psd_data = ps.multi_psd(data, samplerate, freq_resolution=0.5,
+                            num_windows=2)
+    assert_equal(round(psd_data[0][np.argmax(psd_data[0][:,1]),0]), fundamental,
+                 'peak in PSD is not the fundamental frequency given.')
+    assert_equal(round(psd_data[1][np.argmax(psd_data[1][:,1]),0]), fundamental,
+                 'peak in PSD is not the fundamental frequency given.')
+
+    # check detrend with mlab:
+    for detrend in ['constant', 'mean', 'linear']:
+        psd_data = ps.multi_psd(data, samplerate, freq_resolution=0.5,
+                                detrend=detrend)
+
+
+def test_spectrogram():
+    # generate data
+    fundamental = 300.  # Hz
+    samplerate = 100000
+    time = np.arange(0, 8, 1/samplerate)
+    data = np.sin(time * 2 * np.pi * fundamental)
+    n = 4
+    datan = np.zeros((len(time), n))
+    for k in range(n):
+        datan[:,k] = np.sin(time * 2 * np.pi * (k+1) * fundamental)
+
+    freqs, time, spec = ps.spectrogram(data, samplerate, freq_resolution=2)
+    idx = np.argmax(spec, 0)
+    assert_equal(spec.shape[0], len(freqs), 'spectrogram() frequency dimension')
+    assert_equal(spec.shape[1], len(time), 'spectrogram() time dimension')
+    assert_true(np.all(idx == idx[0]), 'spectrogram() peak positions')
+    assert_true(np.abs(freqs[idx[0]] - fundamental) < 3, 'peak in spectrogram() is not the fundamental frequency given.')
+
+    freqs, time, spec = ps.spectrogram(datan, samplerate, freq_resolution=2)
+    assert_equal(spec.shape[0], len(freqs), 'spectrogram() frequency dimension')
+    assert_equal(spec.shape[1], len(time), 'spectrogram() time dimension')
+    assert_equal(spec.shape[2], n, 'spectrogram() channel dimension')
+
+    ps.specgramscipy = False
+    freqs, time, spec = ps.spectrogram(data, samplerate, freq_resolution=2)
+    idx = np.argmax(spec, 0)
+    assert_equal(spec.shape[1], len(time), 'spectrogram() time dimension')
+    assert_equal(spec.shape[0], len(freqs), 'spectrogram() frequency dimension')
+    assert_true(np.all(idx == idx[0]), 'spectrogram() peak positions')
+    assert_true(np.abs(freqs[idx[0]] - fundamental) < 3, 'peak in spectrogram() is not the fundamental frequency given.')
+    
+    freqs, time, spec = ps.spectrogram(datan, samplerate, freq_resolution=2)
+    assert_equal(spec.shape[0], len(freqs), 'spectrogram() frequency dimension')
+    assert_equal(spec.shape[1], len(time), 'spectrogram() time dimension')
+    assert_equal(spec.shape[2], n, 'spectrogram() channel dimension')
+
+    
 def test_peak_freqs():
     # generate data:
     dt = 0.001
@@ -46,4 +110,14 @@ def test_peak_freqs():
     df = 0.5
     mfreqs = ps.peak_freqs(onsets, offsets, data, 1.0/dt, freq_resolution=df)
     assert_true(np.all(np.abs(freqs - mfreqs) <= 2.0*df), "peak_freqs() failed")
+
+    
+def test_config():
+    cfg = ConfigFile()
+    ps.add_multi_psd_config(cfg)
+    ps.multi_psd_args(cfg)
+
+    
+def test_main():
+    ps.main()
     
