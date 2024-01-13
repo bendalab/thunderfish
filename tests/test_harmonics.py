@@ -1,5 +1,6 @@
 from nose.tools import assert_true, assert_equal, assert_almost_equal
 import numpy as np
+from thunderfish.configfile import ConfigFile
 import thunderfish.fakefish as ff
 import thunderfish.powerspectrum as ps
 import thunderfish.harmonics as hg
@@ -20,7 +21,7 @@ def test_harmonic_groups():
 
     # analyse:
     psd_data = ps.psd(data, samplerate, freq_resolution=df)
-    groups = hg.harmonic_groups(psd_data[0], psd_data[1], max_db_diff=20.0)[0]
+    groups = hg.harmonic_groups(psd_data[0], psd_data[1], max_db_diff=20.0, verbose=10)[0]
     fundamentals = hg.fundamental_freqs(groups)
     fdbs = hg.fundamental_freqs_and_power(groups)
     # check:
@@ -38,4 +39,16 @@ def test_harmonic_groups():
     # check:
     assert_true(np.all(np.abs(eodfs-fundamentals[0][0]) < df),
                 'harmonic_groups() did not correctly detect all fundamental frequencies')
+
+
+def test_config():
+    cfg = ConfigFile()
+    hg.add_harmonic_groups_config(cfg)
+    hg.add_psd_peak_detection_config(cfg)
+    assert_true(type(hg.harmonic_groups_args(cfg)) is dict, 'harmonic_groups_args()')
+    assert_true(type(hg.psd_peak_detection_args(cfg)) is dict, 'psd_peak_detection_args()')
     
+
+def test_main():
+    hg.main()
+        
