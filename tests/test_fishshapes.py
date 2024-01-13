@@ -127,8 +127,13 @@ def test_extract_fish():
     verts = fs.mirror_path(verts)
     fs.normalize_path(verts)
     fish = fs.export_fish('Alepto_top', verts)
+
     
-        
+def test_export_fish():
+    fs.export_fish('Eigenmannia_side', fs.Eigenmannia_side['body'],
+                   fs.Eigenmannia_side['fin0'])
+
+    
 def test_demo():
     fs.export_fish_demo()
 
