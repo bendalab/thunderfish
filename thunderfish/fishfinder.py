@@ -220,7 +220,7 @@ class SignalPlot:
 
         # spectrogram:
         t2 = t1 + n_fft
-        specpower, freqs, bins = spectrogram(self.data[t0:t2], self.samplerate,
+        freqs, bins, specpower = spectrogram(self.data[t0:t2], self.samplerate,
                                              self.freq_resolution,
                                              detrend=ml.detrend_mean)
         z = decibel(specpower)

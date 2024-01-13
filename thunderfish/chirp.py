@@ -65,7 +65,7 @@ def chirp_detection(spectrum, freqs, time, fishlist=None, fundamentals=None, min
     """
     Detects chirps on the basis of a spectrogram.
 
-    :param spectrum: (2d-array) spectrum calulated with the numpy.spectrogram function.
+    :param spectrum: (2d-array) spectrum calulated with the `spectrogram()` function.
     :param freqs: (array) frequencies of the spectrum.
     :param time: (array) time of the nffts used in the spectrum.
     :param fishlist: (array) power und frequncy for each fundamental/harmonic of a detected fish.
@@ -170,7 +170,7 @@ def chirp_analysis(data, samplerate):
     :param samplerate: (float) smaplerate of the data.
     :param min_power: (float) minimal power of the fish fundamental to include this fish in chirp detection.
     """
-    spectrum, freqs, time = spectrogram(data, samplerate, freq_resolution=2., overlap_frac=0.95)
+    freqs, time, spectrum = spectrogram(data, samplerate, freq_resolution=2., overlap_frac=0.95)
 
     power = np.mean(spectrum, axis=1) # spectrum[:, t0:t1] to only let spectrum of certain time....
 
