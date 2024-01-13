@@ -2111,7 +2111,7 @@ class TableData(object):
             w = 0
             # position of width specification:
             i0 = 1
-            if f[1] == '-' :
+            if len(f) > 1 and f[1] == '-' :
                 i0 = 2
             i1 = f.find('.')
             if not shrink_width:
@@ -2136,7 +2136,10 @@ class TableData(object):
                     if isinstance(v, (float, np.floating)) and m.isnan(v):
                         s = missing
                     else:
-                        s = fs % v
+                        try:
+                            s = fs % v
+                        except ValueError:
+                            s = missing
                     if w < len(s):
                         w = len(s)
             widths.append(w)
@@ -2394,7 +2397,10 @@ class TableData(object):
                         fh.write(missing)
                 else:
                     # data value:
-                    ds = f % self.data[c][k]
+                    try:
+                        ds = f % self.data[c][k]
+                    except ValueError:
+                        ds = missing
                     if not align_columns:
                         ds = ds.strip()
                     fh.write(ds)
@@ -3123,5 +3129,4 @@ def main():
 
         
 if __name__ == "__main__":
-    import os
     main()

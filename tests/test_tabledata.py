@@ -2,6 +2,7 @@ from nose.tools import assert_true, assert_false, assert_equal, assert_raises, n
 import os
 import sys
 import numpy as np
+from thunderfish.configfile import ConfigFile
 import thunderfish.tabledata as td
 
 def setup_table(nanvalue=True):
@@ -27,8 +28,16 @@ def test_write():
     df = setup_table()
     for unit_style in [None, 'none', 'row', 'header']:
         for column_numbers in [None, 'index', 'num', 'aa', 'AA']:
-            for tf in td.TableData.formats:
+            for tf in td.TableData.formats + ['x']:
                 df.write(table_format=tf, column_numbers=column_numbers)
+    df.write_file_stream(sys.stdout, 'file')
+    fn = df.write_file_stream('table', 'file')
+    os.remove(fn)
+    td.write('test.dat', df.array(),
+             [df.header[i][0] for i in range(len(df.header))],
+             [df.units[i][0] for i in range(len(df.units))],
+             [df.formats[i][0] for i in range(len(df.formats))])
+    os.remove('test.dat')
 
 def test_properties():
     df = setup_table()
@@ -116,6 +125,14 @@ def test_insertion():
             assert_equal(df.label(c), 'aaa', 'label of inserted column should be %s' % 'aaa')
             assert_equal(df.unit(c), 'm', 'label of inserted column should be %s' % 'm')
             assert_equal(df.format(c), '%g', 'label of inserted column should be %s' % '%g')
+
+def test_key_value():
+    df = setup_table()
+    df.key_value(1, 'xxx')
+    df.key_value(1, 'speed')
+    df.dicts()
+    df.dicts(False)
+    df.table_header()
 
 def test_fill():
     df = setup_table()
@@ -302,3 +319,14 @@ def test_hide_show():
         assert_equal(sf.columns(), 1, 'wrong number of columns written')
         df.hide(c)
     os.remove(filename)
+
+
+def test_config():
+    cfg = ConfigFile()
+    td.add_write_table_config(cfg)
+    assert_true(type(td.write_table_args(cfg)) is dict, 'write_table_args()')
+
+    
+def test_main():
+    td.main()
+    
