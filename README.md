@@ -27,6 +27,7 @@ and with higher harmonics. In pulse-type fish EODs have a distinct
 waveform and are separated in time. The thunderfish package provides
 algorithms and tools for analysing both wavefish and pulsefish EODs.
 
+![thunderfish](docs/img/Apteronotus-Fishfinder-Panama-RioCanita-2014-05-17-L13-c0.png)
 
 ## Installation
 
