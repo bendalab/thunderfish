@@ -31,7 +31,7 @@ algorithms and tools for analysing both wavefish and pulsefish EODs.
 
 ## Installation
 
-ThunderFish is available fron
+ThunderFish is available from
 [PyPi](https://pypi.org/project/thunderfish/). Simply run:
 ```
 pip install thunderfish
