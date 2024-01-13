@@ -1,4 +1,4 @@
-from nose.tools import assert_equal, assert_not_equal
+from nose.tools import assert_equal, assert_not_equal, assert_true, assert_raises
 import thunderfish.configfile as cf
 import thunderfish.bestwindow as bw
 import os
@@ -9,6 +9,8 @@ def test_config_file():
     bw.add_clip_config(cfg)
     bw.add_best_window_config(cfg)
 
+    bwa = bw.best_window_args(cfg)
+
     cfgfile = 'test.cfg'
     cfgdifffile = 'testdiff.cfg'
 
@@ -18,6 +20,11 @@ def test_config_file():
     cfg2.set('weightCVAmplitude', 20.0)
     cfg2.set('clipBins', 300)
     cfg3 = cf.ConfigFile(cfg2)
+
+    assert_true('windowSize' in cfg2, '__contains__')
+    assert_equal(len(cfg2['windowSize']), 4, '__getitem__')
+
+    assert_raises(IndexError, cfg2.set, 'xyz', 20)
 
     # write configurations to files:
     cfg.dump(cfgfile, 'header', maxline=50)
@@ -35,9 +42,14 @@ def test_config_file():
     assert_equal(cfg2, cfg3, 'cfg2 and cfg3 should be the same')
 
     # read it in:
-    cfg3.load_files(cfgfile, 'data.dat')
+    cfg3.load_files(cfgfile, 'data.dat', verbose=10)
     assert_equal(cfg, cfg3, 'cfg and cfg3 should be the same')
 
     # clean up:
     os.remove(cfgfile)
     os.remove(cfgdifffile)
+
+
+def test_main():
+    cf.main()
+

@@ -2,6 +2,7 @@
 """
 
 import os
+import sys
 from collections import OrderedDict
 
 
@@ -100,7 +101,7 @@ class ConfigFile(object):
 
         
     def __getitem__(self, key):
-        """Returns the list [value, unit, description]
+        """Returns the list [value, unit, description, default]
         of the configuration parameter key.
 
         Parameters
@@ -116,6 +117,8 @@ class ConfigFile(object):
             Unit of the configuraion parameter.
         description: string
             Description of the configuraion parameter.
+        default: any type
+            Default value of the configuraion parameter.
         """
         return self.cfg[key]
 
@@ -176,6 +179,7 @@ class ConfigFile(object):
         
     def map(self, mapping):
         """Map the values of the configuration onto new names.
+
         Use this function to generate key-word arguments
         that can be passed on to functions.
 
@@ -409,5 +413,4 @@ def main():
 
                         
 if __name__ == "__main__":
-    import sys
     main()
