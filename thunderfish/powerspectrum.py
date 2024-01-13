@@ -18,7 +18,7 @@
 
 ## Power spectrum analysis
 
-- `peak_freqs()`: peak frequencies computed for each of the data snippets.
+- `peak_freqs()`: peak frequencies computed from power spectra of data snippets.
 
 ## Visualization
 
@@ -420,7 +420,7 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
     ax.plot(freqs, decibel_psd, **kwargs)
     ax.set_xlabel('Frequency [Hz]')
     if max_freq > 0.0:
-        if log_freq and min_freq < 1.0:
+        if log_freq and min_freq < 1e-8:
             min_freq = 1.0
         ax.set_xlim(min_freq, max_freq)
     else:
@@ -438,7 +438,7 @@ def plot_decibel_psd(ax, freqs, power, ref_power=1.0, min_power=1e-20,
 
 def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=0.2,
                thresh=None, **kwargs):
-    """Peak frequencies computed for each of the data snippets.
+    """Peak frequencies computed from power spectra of data snippets.
 
     Parameters
     ----------
@@ -454,9 +454,9 @@ def peak_freqs(onsets, offsets, data, samplerate, freq_resolution=0.2,
     freq_resolution: float
         Desired frequency resolution of the computed power spectra in Hertz.
     thresh: None or float
-        If not None than this is the threshold required for the minimum hight of the peak
-        in the power spectrum. If the peak is too small than the peak frequency of
-        that snippet is set to NaN.
+        If not None than this is the threshold required for the minimum height
+        of the peak in the decibel power spectrum. If the peak is too small
+        than the peak frequency of that snippet is set to NaN.
     kwargs: dict
         Further arguments passed on to psd().
 

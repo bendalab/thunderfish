@@ -92,6 +92,21 @@ def test_spectrogram():
     assert_equal(spec.shape[2], n, 'spectrogram() channel dimension')
 
     
+def test_plot_decibel_psd():
+    # generate data
+    fundamental = 300.  # Hz
+    samplerate = 100000
+    time = np.arange(0, 8, 1/samplerate)
+    data = np.sin(time * 2 * np.pi * fundamental)
+    freqs, power = ps.psd(data, samplerate, freq_resolution=1)
+    
+    fig, ax = plt.subplots()
+    ps.plot_decibel_psd(ax, freqs, power)
+    ps.plot_decibel_psd(ax, freqs, power, max_freq=0)
+    ps.plot_decibel_psd(ax, freqs, power, log_freq=True)
+    ps.plot_decibel_psd(ax, freqs, power, log_freq=True, min_freq=0)
+
+    
 def test_peak_freqs():
     # generate data:
     dt = 0.001
@@ -110,6 +125,17 @@ def test_peak_freqs():
     df = 0.5
     mfreqs = ps.peak_freqs(onsets, offsets, data, 1.0/dt, freq_resolution=df)
     assert_true(np.all(np.abs(freqs - mfreqs) <= 2.0*df), "peak_freqs() failed")
+
+    mfreqs = ps.peak_freqs(onsets, offsets, data, 1.0/dt, freq_resolution=df,
+                           thresh=10)
+    assert_true(np.all(np.abs(freqs - mfreqs) <= 2.0*df), "peak_freqs() with threshold failed")
+
+    mfreqs = ps.peak_freqs(onsets, offsets, data, 1.0/dt, freq_resolution=df,
+                           thresh=1000)
+    assert_true(np.all(np.isnan(mfreqs)), "peak_freqs() returned no nans")
+    
+    mfreqs = ps.peak_freqs(onsets, offsets, data, 1.0/dt, freq_resolution=df,
+                           max_nfft=2**12)
 
     
 def test_config():
