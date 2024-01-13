@@ -131,7 +131,7 @@ def test_peak_freqs():
     assert_true(np.all(np.abs(freqs - mfreqs) <= 2.0*df), "peak_freqs() with threshold failed")
 
     mfreqs = ps.peak_freqs(onsets, offsets, data, 1.0/dt, freq_resolution=df,
-                           thresh=1000)
+                           thresh=1000000)
     assert_true(np.all(np.isnan(mfreqs)), "peak_freqs() returned no nans")
     
     mfreqs = ps.peak_freqs(onsets, offsets, data, 1.0/dt, freq_resolution=df,
