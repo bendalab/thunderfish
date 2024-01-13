@@ -2,6 +2,11 @@
 
 ## Fish shapes
 
+Fish shapes are dictionaries with the keys 'body', 'fin0', 'fin1' ...,
+and 'eye'. The values are 2D arrays with x-y coordinates (first
+dimension is points, second dimension coordinates) of the respective
+pathes.
+
 All fish shapes of this module are accessible via these dictionaries:
 
 - `fish_shapes`: dictionary holding all electric fish shapes.
@@ -15,11 +20,15 @@ These are the shapes of various fish species:
 - `Eigenmannia_top`: *Eigenmannia virescens* viewed from top.
 - `Eigenmannia_side`: *Eigenmannia virescens* viewed from the side.
 
+Helper function for selecting a particular fish shape:
+
+- `fish_shape()`: get a dictinary containing shapes of a fish.
+
 ## Plotting
 
-- `plot_fish()`: plot body and fin of an electric fish.
+- `plot_fish()`: plot body, fins and eye of an electric fish.
 - `plot_object()`: plot circular object.
-- `plot_fishfinder()`: plot a fishfinder with electrodes.
+- `plot_fishfinder()`: plot a fishfinder with electrodes and wires.
 - `plot_pathes()`: plot pathes.
 
 ## Fish surface and normals from shapes
@@ -322,11 +331,38 @@ fish_top_shapes = dict(Alepto=Alepto_top,
 fish_side_shapes = dict(Alepto_male=Alepto_male_side,
                    Eigenmannia=Eigenmannia_side)
 """Dictionary holding electric fish shapes viewed from the side."""
+
+
+def fish_shape(fish):
+    """Get a dictinary containing shapes of a fish.
+
+    Parameters
+    ----------
+    fish: string or tuple or dict
+        Specifies a fish to show:
+        - any of the strings defining a shape contained in the `fish_shapes` dictionary,
+        - a tuple with the name of the fish as the first element and 'top' or 'side' as the second element,
+        - a dictionary with at least a 'body' key holding pathes to be drawn.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with at least a 'body' key holding pathes to be drawn.
+    """
+    if not isinstance(fish, dict):
+        if isinstance(fish, (tuple, list)):
+            if fish[1] == 'top':
+                fish = fish_top_shapes[fish[0]]
+            else:
+                fish = fish_side_shapes[fish[0]]
+        else:
+            fish = fish_shapes[fish]
+    return fish
     
 
 def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=1,
               bodykwargs={}, finkwargs={}, eyekwargs=None):
-    """Plot body and fin of an electric fish.
+    """Plot body, fins and eye of an electric fish.
 
     Parameters
     ----------
@@ -372,15 +408,7 @@ def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=
     plt.show()
     ```
     """
-    # retrieve fish shape:
-    if not isinstance(fish, dict):
-        if isinstance(fish, (tuple, list)):
-            if fish[1] == 'top':
-                fish = fish_top_shapes[fish[0]]
-            else:
-                fish = fish_side_shapes[fish[0]]
-        else:
-            fish = fish_shapes[fish]
+    fish = fish_shape(fish)
     bpatch = None
     size_fac = 1.1
     bbox = bbox_pathes(*fish.values())
@@ -446,7 +474,7 @@ def plot_fishfinder(ax, pos, direction, length, handle=0.05,
                     negkwargs=dict(edgecolor='none', facecolor='blue'),
                     gndkwargs=dict(edgecolor='none', facecolor='black'),
                     lw=1, zorder=50):
-    """Plot a fishfinder with electrodes.
+    """Plot a fishfinder with electrodes and wires.
 
     Parameters
     ----------
@@ -606,15 +634,7 @@ def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
     """
     if direction[1] != 0:
         raise ValueError('rotation not supported by fish_surface yet.')
-    # retrieve fish shape:
-    if not isinstance(fish, dict):
-        if isinstance(fish, (tuple, list)):
-            if fish[1] == 'top':
-                fish = fish_top_shapes[fish[0]]
-            else:
-                fish = fish_side_shapes[fish[0]]
-        else:
-            fish = fish_shapes[fish]
+    fish = fish_shape(fish)
     bbox = bbox_pathes(*fish.values())
     size_fac = -1.05*0.5/bbox[0,0]
     path = bend_path(fish['body'], bend, size, size_fac)

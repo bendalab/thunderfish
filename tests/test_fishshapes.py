@@ -4,6 +4,24 @@ import matplotlib.pyplot as plt
 import thunderfish.fishshapes as fs
 
 
+def test_fish_shape():
+    for s in fs.fish_shapes:
+        shape = fs.fish_shape(s)
+        assert_true(type(shape) is dict, 'fish_shape() return type')
+        assert_equal(shape['body'].ndim, 2, 'fish_shape() contains body')
+    for s in fs.fish_top_shapes:
+        shape = fs.fish_shape((s, 'top'))
+        assert_true(type(shape) is dict, 'fish_shape(top) return type')
+        assert_equal(shape['body'].ndim, 2, 'fish_shape(top) contains body')
+    for s in fs.fish_side_shapes:
+        shape = fs.fish_shape((s, 'side'))
+        assert_true(type(shape) is dict, 'fish_shape(side) return type')
+        assert_equal(shape['body'].ndim, 2, 'fish_shape(side) contains body')
+    shape = fs.fish_shape(fs.Alepto_male_side)
+    assert_true(type(shape) is dict, 'fish_shape(dict) return type')
+    assert_equal(shape['body'].ndim, 2, 'fish_shape(dict) contains body')
+
+    
 def test_plotfish():
     bodykwargs=dict(lw=1, edgecolor='k', facecolor='k')
     finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
@@ -66,6 +84,29 @@ def test_plotfish():
         plt.close()
 
 
+def test_plotfishfinder():
+    fig, ax = plt.subplots()
+    nodes = fs.plot_fishfinder(ax, (0, 0), (1, 0), 10,
+                               central_ground=True, wires='negtop')
+    assert_equal(len(nodes), 5, 'number of nodes returned by plot_fishinder() with central_ground and wires')
+    for n in nodes:
+        assert_equal(len(n), 2, 'node elements returned by plot_fishinder() with central_ground and wires')
+        
+    nodes = fs.plot_fishfinder(ax, (0, 0), (1, 0), 10,
+                               central_ground=False, wires='postop')
+    assert_equal(len(nodes), 4, 'number of nodes returned by plot_fishinder() with central_ground and wires')
+    for n in nodes:
+        assert_equal(len(n), 2, 'node elements returned by plot_fishinder() with central_ground and wires')
+        
+    nodes = fs.plot_fishfinder(ax, (0, 0), (1, 0), 10,
+                               central_ground=False, wires=False)
+    assert_equal(len(nodes), 2, 'number of nodes returned by plot_fishinder() with central_ground and wires')
+    for n in nodes:
+        assert_equal(len(n), 2, 'node elements returned by plot_fishinder() with central_ground and wires')
+    plt.close()
+        
+
+
 def test_extract_fish():
     data = "m 84.013672,21.597656 0.0082,83.002434 0.113201,-0.0145 0.1238,-0.32544 0.06532,-0.80506 0.06836,-0.87696 0.0332,-4.298823 v -8.625 l 0.06836,-1.724609 0.06836,-1.722657 0.07032,-1.726562 0.06836,-1.726563 0.06641,-1.693359 0.03439,-1.293583 0.06912,-1.30798 0.10547,-1.724609 0.10156,-1.724609 0.10352,-1.726563 0.10352,-1.724609 0.13867,-1.72461 0.171876,-2.572265 0.13672,-1.72461 0.13672,-1.726562 0.10352,-1.724609 0.06836,-1.722657 0.103515,-2.574219 0.06836,-1.722656 0.10352,-1.728515 0.07032,-1.722657 0.06836,-1.724609 0.240234,-1.724609 0.34375,-1.72461 0.134766,-1.726562 0.10352,-1.69336 0.03516,-0.875 0.07031,-1.728515 v -0.847657 l -0.07273,-2.246267 -0.0172,-0.184338 0.15636,0.09441 0.384252,1.019739 0.748821,0.905562 1.028854,0.647532 1.356377,-0.03149 0.362644,-0.347764 -0.264138,-0.736289 -1.268298,-1.126614 -1.363988,-0.922373 -0.927443,-0.451153 -0.228986,-0.07018 -0.0015,-0.21624 0.03663,-0.660713 0.480469,-0.847657 -0.101563,-0.876953 -0.103515,-0.845703 -0.103516,-0.876953 -0.207031,-1.695313 -0.273438,-1.724609 -0.308594,-1.726562 -0.27539,-1.72461 -0.310547,-1.722656 -0.240234,-0.878906 -0.400196,-0.877344 -0.53927,-0.596268 -0.486573,-0.216683 z"
     verts = fs.extract_path(data)
@@ -88,3 +129,9 @@ def test_extract_fish():
     fish = fs.export_fish('Alepto_top', verts)
     
         
+def test_demo():
+    fs.export_fish_demo()
+
+    
+def test_main():
+    fs.main()
