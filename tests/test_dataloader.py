@@ -36,6 +36,42 @@ def remove_relacs_files():
 def remove_fishgrid_files():
     remove_files(fishgrid_path)
 
+    
+def test_container():
+    tolerance = 2.0**(-15)
+    data, samplerate = generate_data()
+    info = dict(name='foo', date='bar')
+
+    # pickle:
+    filename = dw.write_pickle('test', data, samplerate, 'mV', info)
+    full_data, rate, unit = dl.load_data(filename, -1)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    os.remove(filename)
+    filename = dw.write_data('test', data, samplerate, 'mV', format='pickle')
+    full_data, rate, unit = dl.load_data(filename, -1)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    os.remove(filename)
+
+    # numpy:
+    filename = dw.write_numpy('test', data, samplerate, 'mV', info)
+    full_data, rate, unit = dl.load_data(filename, -1)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
+    os.remove(filename)
+    filename = dw.write_data('test', data, samplerate, 'mV', format='numpy')
+    full_data, rate, unit = dl.load_data(filename, -1)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    os.remove(filename)
+
+    # mat:
+    filename = dw.write_mat('test', data, samplerate, 'mV', info)
+    full_data, rate, unit = dl.load_data(filename, -1)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
+    os.remove(filename)
+    filename = dw.write_data('test', data, samplerate, 'mV', format='mat')
+    full_data, rate, unit = dl.load_data(filename, -1)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    os.remove(filename)
+    
 
 def check_reading(filename, data):
     tolerance = 2.0**(-15)
@@ -78,17 +114,28 @@ def check_reading(filename, data):
     assert_true(success < 0, 'frame slice access backward failed at index %d' % (success))
 
     data.close()
-    
 
 @with_setup(None, remove_relacs_files)
-def test_dataloader_relacs():
+def test_relacs():
     data, samplerate = generate_data()
-    dw.write_relacs(relacs_path, data, samplerate)
+    info = dict(name='foo', date='bar')
+    dw.write_relacs(relacs_path, data, samplerate, meta=info)
+    dl.relacs_metadata(relacs_path + '/info.dat')
     check_reading(relacs_path, data)
 
 
 @with_setup(None, remove_fishgrid_files)
-def test_dataloader_fishgrid():
+def test_fishgrid():
     data, samplerate = generate_data()
-    dw.write_fishgrid(fishgrid_path, data, samplerate)
+    info = dict(name='foo', date='bar')
+    dw.write_fishgrid(fishgrid_path, data, samplerate, meta=info)
     check_reading(fishgrid_path, data)
+
+    
+def test_main():
+    data, samplerate = generate_data()
+    filename = dw.write_fishgrid(fishgrid_path, data, samplerate, 'mV')
+    dl.main(['-c', '0', filename])
+    dl.main(['-p', filename])
+    remove_fishgrid_files()
+    

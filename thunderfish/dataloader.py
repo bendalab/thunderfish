@@ -40,6 +40,10 @@ import sys
 import glob
 import gzip
 import numpy as np
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 from audioio.audioloader import load_audio, AudioLoader
 
 
@@ -1371,5 +1375,4 @@ def main(cargs):
     
 
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
     main(sys.argv[1:])

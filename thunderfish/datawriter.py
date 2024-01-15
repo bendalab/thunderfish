@@ -157,7 +157,7 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
     # write meta data:
     if meta:
         df = open(os.path.join(filepath, 'info.dat'), 'w')
-        df.write_dict(df, meta)
+        write_dict(df, meta)
         df.close()
     return filename
 
@@ -311,7 +311,7 @@ def formats_numpy():
     if not data_modules['numpy']:
         return []
     else:
-        return ['NPZ']
+        return ['NUMPY', 'NPZ']
 
 
 def write_numpy(filepath, data, samplerate, unit=None, meta=None):
@@ -583,7 +583,7 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
     for fmt, lib, formats_func in data_formats_funcs:
         if lib and not data_modules[lib]:
             continue
-        if format in formats_func():
+        if format.upper() in formats_func():
             writer_func = data_writer_funcs[fmt]
             filepath = writer_func(filepath, data, samplerate, unit, meta)
             if verbose > 0:
@@ -594,7 +594,7 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
                     print(f'  frames       : {len(data)}')
                     print(f'  unit         : {unit}')
             return filepath
-    raise IOError(f'file format "{format}" not supported.') 
+    raise IOError(f'file format "{format.upper()}" not supported.') 
 
 
 def demo(file_path, channels=2, format=None):
@@ -638,8 +638,6 @@ def main(cargs):
     parser.add_argument('file', nargs=1, default='test.npz', type=str,
                         help='name of data file')
     args = parser.parse_args(cargs)
-    if args.format:
-        args.format = args.format.upper()
     demo(args.file[0], args.channels, args.format)
     
 
