@@ -1,6 +1,7 @@
 from nose.tools import assert_true, with_setup
 import os
 import numpy as np
+import thunderfish.datawriter as dw
 import thunderfish.dataloader as dl
 
 
@@ -36,53 +37,10 @@ def remove_fishgrid_files():
     remove_files(fishgrid_path)
 
 
-def write_relacs(path, data, samplerate):
-    remove_files(path)
-    os.mkdir(path)
-    for c in range(data.shape[1]):
-        df = open(os.path.join(path, 'trace-%d.raw' % (c+1)), 'wb')
-        df.write(np.array(data[:, c], dtype=np.float32).tostring())
-        df.close()
-    df = open(os.path.join(path, 'stimuli.dat'), 'w')
-    df.write('# analog input traces:\n')
-    for c in range(data.shape[1]):
-        df.write('#     identifier%d      : V-%d\n' % (c+1, c+1))
-        df.write('#     data file%d       : trace-%d.raw\n' % (c+1, c+1))
-        df.write('#     sample interval%d : %.4fms\n' % (c+1, 1000.0/samplerate))
-        df.write('#     sampling rate%d   : %.2fHz\n' % (c+1, samplerate))
-        df.write('#     unit%d            : V\n' % (c+1))
-    df.write('# event lists:\n')
-    df.write('#      event file1: stimulus-events.dat\n')
-    df.write('#      event file2: restart-events.dat\n')
-    df.write('#      event file3: recording-events.dat\n') 
-    df.close()
-
-
-def write_fishgrid(path, data, samplerate):
-    remove_files(path)
-    os.mkdir(path)
-    df = open(os.path.join(path, 'traces-grid1.raw'), 'wb')
-    df.write(np.array(data, dtype=np.float32).tostring())
-    df.close()
-    df = open(os.path.join(path, 'fishgrid.cfg'), 'w')
-    df.write('*FishGrid\n')
-    df.write('  Grid &1\n')
-    df.write('     Used1      : true\n')
-    df.write('     Columns    : 2\n')
-    df.write('     Rows       : %d\n' % (data.shape[1]//2))
-    df.write('  Hardware Settings\n')
-    df.write('    DAQ board:\n')
-    df.write('      AISampleRate: %.3fkHz\n' % (0.001*samplerate))
-    df.write('      AIMaxVolt   : 10.0mV\n')
-    df.write('    Amplifier:\n')
-    df.write('      AmplName: "16-channel-EPM-module"\n')
-    df.close()
-
-
 def check_reading(filename, data):
     tolerance = 2.0**(-15)
 
-        # load full data:
+    # load full data:
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data[:-2, :] - full_data)<tolerance), 'full load failed')
 
@@ -125,12 +83,12 @@ def check_reading(filename, data):
 @with_setup(None, remove_relacs_files)
 def test_dataloader_relacs():
     data, samplerate = generate_data()
-    write_relacs(relacs_path, data, samplerate)
+    dw.write_relacs(relacs_path, data, samplerate)
     check_reading(relacs_path, data)
 
 
 @with_setup(None, remove_fishgrid_files)
 def test_dataloader_fishgrid():
     data, samplerate = generate_data()
-    write_fishgrid(fishgrid_path, data, samplerate)
+    dw.write_fishgrid(fishgrid_path, data, samplerate)
     check_reading(fishgrid_path, data)

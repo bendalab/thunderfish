@@ -85,7 +85,7 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
     Parameters
     ----------
     filepath: string
-        Full path and name of the file to write.
+        Full path of folder where to write relacs files.
     data: 1-D or 2-D array of floats
         Array with the data (first index time, second index channel).
     samplerate: float
@@ -111,19 +111,20 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
             if isinstance(meta[k], dict):
                 write_dict(meta[k], level+1)
             else:
-                df.write(f'# {:{level*4}}{k}: {meta[k]}\n')
+                df.write(f'# {"":{level*4}}{k}: {meta[k]}\n')
 
     if not filepath:
-        raise ValueError('no file specified!')  os.mkdir(path)
+        raise ValueError('no file specified!')
+    os.mkdir(filepath)
     # write data:
     for c in range(data.shape[1]):
-        df = open(os.path.join(path, f'trace-{c+1}.raw'), 'wb')
+        df = open(os.path.join(filepath, f'trace-{c+1}.raw'), 'wb')
         df.write(np.array(data[:, c], dtype=np.float32).tostring())
         df.close()
     if unit is None:
         unit = 'V'
     # write data format:
-    filename = os.path.join(path, 'stimuli.dat')
+    filename = os.path.join(filepath, 'stimuli.dat')
     df = open(filename, 'w')
     df.write('# analog input traces:\n')
     for c in range(data.shape[1]):
@@ -139,10 +140,10 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
     df.close()
     # write empty event files:
     for events in ['Recording', 'Restart', 'Stimulus']:
-        df = open(os.path.join(path, f'{events.lower()}-events.dat'), 'w')
+        df = open(os.path.join(filepath, f'{events.lower()}-events.dat'), 'w')
         df.write(f'# events: {events}\n\n')
         df.write('#Key\n')
-        if events is 'Stimulus':
+        if events == 'Stimulus':
             df.write('# t    duration\n')
             df.write('# sec  s\n')
             df.write('#   1         2\n')
@@ -150,12 +151,12 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
             df.write('# t\n')
             df.write('# sec\n')
             df.write('# 1\n')
-            if events is 'Recording':
+            if events == 'Recording':
                 df.write('  0.0\n')
         df.close()
     # write meta data:
     if meta:
-        df = open(os.path.join(path, 'info.dat'), 'w')
+        df = open(os.path.join(filepath, 'info.dat'), 'w')
         df.write_dict(df, meta)
         df.close()
     return filename
@@ -178,7 +179,7 @@ def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
     Parameters
     ----------
     filepath: string
-        Full path and name of the file to write.
+        Full path of the folder where to write fishgrid files.
     data: 1-D or 2-D array of floats
         Array with the data (first index time, second index channel).
     samplerate: float
@@ -204,19 +205,19 @@ def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
             if isinstance(meta[k], dict):
                 write_dict(meta[k], level+1)
             else:
-                df.write(f'  {:{level*4}}{k}: {meta[k]}\n')
+                df.write(f'  {"":{level*4}}{k}: {meta[k]}\n')
                 
     if not filepath:
         raise ValueError('no file specified!')
-    os.mkdir(path)
+    os.mkdir(filepath)
     # write data:
-    df = open(os.path.join(path, 'traces-grid1.raw'), 'wb')
+    df = open(os.path.join(filepath, 'traces-grid1.raw'), 'wb')
     df.write(np.array(data, dtype=np.float32).tostring())
     df.close()
     # write meta data:
     if unit is None:
         unit = 'mV'
-    filename = os.path.join(path, 'fishgrid.cfg')
+    filename = os.path.join(filepath, 'fishgrid.cfg')
     df = open(filename, 'w')
     df.write('*FishGrid\n')
     df.write('  Grid &1\n')
