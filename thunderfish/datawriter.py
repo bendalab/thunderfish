@@ -2,9 +2,11 @@
 
 - `write_data()`: write data into a file.
 - `available_formats()`: data and audio file formats supported.
+- `format_from_extension()`: deduce data file format from file extension.
 """
 
 import os
+import sys
 
 data_modules = {}
 """Dictionary with availability of various modules needed for writing data.
@@ -66,6 +68,174 @@ def format_from_extension(filepath):
     return ext
 
     
+def formats_relacs():
+    """Data format of the relacs file format.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    """
+    return ['RELACS']
+
+    
+def write_relacs(filepath, data, samplerate, unit=None, meta=None):
+    """Write data as relacs raw files.
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    meta: nested dict
+        Additional metadata saved into `info.dat`.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ValueError
+        Invalid `filepath`.
+    """
+    
+    def write_dict(df, meta, level=0):
+        for k in meta:
+            if isinstance(meta[k], dict):
+                write_dict(meta[k], level+1)
+            else:
+                df.write(f'# {:{level*4}}{k}: {meta[k]}\n')
+
+    if not filepath:
+        raise ValueError('no file specified!')  os.mkdir(path)
+    # write data:
+    for c in range(data.shape[1]):
+        df = open(os.path.join(path, f'trace-{c+1}.raw'), 'wb')
+        df.write(np.array(data[:, c], dtype=np.float32).tostring())
+        df.close()
+    if unit is None:
+        unit = 'V'
+    # write data format:
+    filename = os.path.join(path, 'stimuli.dat')
+    df = open(filename, 'w')
+    df.write('# analog input traces:\n')
+    for c in range(data.shape[1]):
+        df.write(f'#     identifier{c+1}      : V-{c+1}\n')
+        df.write(f'#     data file{c+1}       : trace-{{c+1}}.raw\n')
+        df.write(f'#     sample interval{c+1} : {1000.0/samplerate:.4f}ms\n')
+        df.write(f'#     sampling rate{c+1}   : {samplerate:.2f}Hz\n')
+        df.write(f'#     unit{c+1}            : {unit}\n')
+    df.write('# event lists:\n')
+    df.write('#      event file1: stimulus-events.dat\n')
+    df.write('#      event file2: restart-events.dat\n')
+    df.write('#      event file3: recording-events.dat\n')
+    df.close()
+    # write empty event files:
+    for events in ['Recording', 'Restart', 'Stimulus']:
+        df = open(os.path.join(path, f'{events.lower()}-events.dat'), 'w')
+        df.write(f'# events: {events}\n\n')
+        df.write('#Key\n')
+        if events is 'Stimulus':
+            df.write('# t    duration\n')
+            df.write('# sec  s\n')
+            df.write('#   1         2\n')
+        else:
+            df.write('# t\n')
+            df.write('# sec\n')
+            df.write('# 1\n')
+            if events is 'Recording':
+                df.write('  0.0\n')
+        df.close()
+    # write meta data:
+    if meta:
+        df = open(os.path.join(path, 'info.dat'), 'w')
+        df.write_dict(df, meta)
+        df.close()
+    return filename
+
+    
+def formats_fishgrid():
+    """Data format of the fishgrid file format.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    """
+    return ['FISHGRID']
+
+    
+def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
+    """Write data as fishgrid raw files.
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    meta: nested dict
+        Additional metadata saved into the `fishgrid.cfg`.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ValueError
+        Invalid `filepath`.
+    """
+    
+    def write_dict(df, meta, level=0):
+        for k in meta:
+            if isinstance(meta[k], dict):
+                write_dict(meta[k], level+1)
+            else:
+                df.write(f'  {:{level*4}}{k}: {meta[k]}\n')
+                
+    if not filepath:
+        raise ValueError('no file specified!')
+    os.mkdir(path)
+    # write data:
+    df = open(os.path.join(path, 'traces-grid1.raw'), 'wb')
+    df.write(np.array(data, dtype=np.float32).tostring())
+    df.close()
+    # write meta data:
+    if unit is None:
+        unit = 'mV'
+    filename = os.path.join(path, 'fishgrid.cfg')
+    df = open(filename, 'w')
+    df.write('*FishGrid\n')
+    df.write('  Grid &1\n')
+    df.write('     Used1      : true\n')
+    df.write('     Columns    : 2\n')
+    df.write(f'     Rows       : {data.shape[1]//2}\n')
+    df.write('  Hardware Settings\n')
+    df.write('    DAQ board:\n')
+    df.write(f'      AISampleRate: {0.001*samplerate:.3f}kHz\n')
+    df.write(f'      AIMaxVolt   : 10.0{unit}\n')
+    df.write('    Amplifier:\n')
+    df.write('      AmplName: "16-channel-EPM-module"\n')
+    if meta:
+        df.write('*Recording\n')
+        write_dict(df, meta)
+    df.close()
+    return filename
+
+    
 def formats_pickle():
     """Data formats supported by pickle.dump().
 
@@ -97,7 +267,7 @@ def write_pickle(filepath, data, samplerate, unit=None, meta=None):
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: dict
+    meta: nested dict
         Additional metadata saved into the pickle.
 
     Returns
@@ -123,7 +293,7 @@ def write_pickle(filepath, data, samplerate, unit=None, meta=None):
     if unit:
         ddict['unit'] = unit
     if meta:
-        ddict.update(meta)
+        ddict['metadata'] = meta
     with open(filepath, 'wb') as df:
         pickle.dump(ddict, df)
     return filepath
@@ -160,7 +330,7 @@ def write_numpy(filepath, data, samplerate, unit=None, meta=None):
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: dict
+    meta: nested dict
         Additional metadata saved into the numpy file.
 
     Returns
@@ -222,7 +392,7 @@ def write_mat(filepath, data, samplerate, unit=None, meta=None):
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: dict
+    meta: nested dict
         Additional metadata saved into the mat file.
 
     Returns
@@ -285,7 +455,7 @@ def write_audioio(filepath, data, samplerate, unit=None, meta=None):
     unit: string
         Unit of the data.
         Currently ignored.
-    meta: dict
+    meta: nested dict
         Additional metadata saved into the audio file.
         Currently ignored.
 
@@ -310,6 +480,8 @@ def write_audioio(filepath, data, samplerate, unit=None, meta=None):
 
 
 data_formats_funcs = (
+    ('relacs', None, formats_relacs),
+    ('fishgrid', None, formats_fishgrid),
     ('pickle', 'pickle', formats_pickle),
     ('numpy', 'numpy', formats_numpy),
     ('matlab', 'scipy', formats_mat),
@@ -318,7 +490,7 @@ data_formats_funcs = (
 """List of implemented formats functions.
 
 Each element of the list is a tuple with the format's name, the
-module's name in `data_modules`, and the formats function.
+module's name in `data_modules` or None, and the formats function.
 """
 
 
@@ -332,12 +504,14 @@ def available_formats():
     """
     formats = set()
     for fmt, lib, formats_func in data_formats_funcs:
-        if data_modules[lib]:
+        if not lib or data_modules[lib]:
             formats |= set(formats_func())
     return sorted(list(formats))
 
 
 data_writer_funcs = {
+    'relacs': write_relacs,
+    'fishgrid': write_fishgrid,
     'pickle': write_pickle,
     'numpy': write_numpy,
     'matlab':  write_mat,
@@ -365,8 +539,8 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: dict
-        Additional metadata saved into the pickle.
+    meta: nested dict
+        Additional metadata.
     format: string or None
         File format. If None deduce file format from filepath.
         See `available_formats()` for possible values.
@@ -381,9 +555,9 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
     Raises
     ------
     ValueError
-        `filepath` is empty string.
+        `filepath` is empty string or unspecified format.
     IOError
-        Writing of the data failed.
+        Requested file format not supported.
 
     Example
     -------
@@ -403,22 +577,23 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
 
     if not format:
         format = format_from_extension(filepath)
+    if not format:
+        raise ValueError('unspecified file format')
     for fmt, lib, formats_func in data_formats_funcs:
-        if not data_modules[lib]:
+        if lib and not data_modules[lib]:
             continue
         if format in formats_func():
             writer_func = data_writer_funcs[fmt]
             filepath = writer_func(filepath, data, samplerate, unit, meta)
             if verbose > 0:
-                print('wrote data to file "%s" using %s module' %
-                      (filepath, lib))
+                print(f'wrote data to file "{filepath}" using {fmt} format')
                 if verbose > 1:
-                    print('  sampling rate: %g Hz' % samplerate)
-                    print('  channels     : %d' % (data.shape[1] if len(data.shape) > 1 else 1))
-                    print('  frames       : %d' % len(data))
-                    print('  unit         : %s' % unit)
+                    print(f'  sampling rate: {samplerate:g} Hz')
+                    print(f'  channels     : {data.shape[1] if len(data.shape) > 1 else 1}')
+                    print(f'  frames       : {len(data)}')
+                    print(f'  unit         : {unit}')
             return filepath
-    raise IOError('file format "%s" not supported.' % format) 
+    raise IOError(f'file format "{format}" not supported.') 
 
 
 def demo(file_path, channels=2, format=None):
@@ -438,7 +613,7 @@ def demo(file_path, channels=2, format=None):
     for c in range(channels):
         data[:,c] = 0.1*(channels-c)*np.sin(2.0*np.pi*(440.0+c*8.0)*t)
         
-    print("write_data('%s') ..." % file_path)
+    print(f"write_data('{file_path}') ...")
     write_data(file_path, data, samplerate, 'mV', format=format, verbose=2)
 
     print('done.')
@@ -468,7 +643,6 @@ def main(cargs):
     
 
 if __name__ == "__main__":
-    import sys
     main(sys.argv[1:])
 
     

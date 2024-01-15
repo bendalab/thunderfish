@@ -16,15 +16,27 @@ Create an `DataLoader` object that loads chuncks of 60 seconds long data
 on demand. `data` can be used like a read-only numpy array of floats.
 
 
+## Supported file formats
+
+- relacs trace*.raw files (www.relacs.net)
+- fishgrid traces-*.raw files
+- python pickle files
+- numpy .npz files
+- matlab .mat files
+- audio files via `audioio` package
+
+
 ## Aditional functions
 
 - `relacs_samplerate_unit()`: retrieve sampling rate and unit from a relacs stimuli.dat file.
 - `relacs_metadata()` reads key-value pairs from relacs *.dat file headers.
+- `fishgrid_samplerate()`: retrieve the sampling rate from a fishgrid.cfg file.
 - `fishgrid_grids()`: retrieve grid sizes from a fishgrid.cfg file.
 - `fishgrid_spacings()`: spacing between grid electrodes.
 """
 
 import os
+import sys
 import glob
 import gzip
 import numpy as np
@@ -673,6 +685,7 @@ def check_container(filepath):
     """Check if file is a generic container file.
 
     Supported file formats are:
+
     - python pickle files (.pkl, .pickle)
     - numpy files (.npz)
     - matlab files (.mat)
@@ -697,6 +710,7 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
     """Load data from a generic container file.
 
     Supported file formats are:
+
     - python pickle files (.pkl)
     - numpy files (.npz)
     - matlab files (.mat)
@@ -709,13 +723,13 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
         The data channel. If negative all channels are selected.
     verbose: int
         if > 0 show detailed error/warning messages
-    datakey: None or string
+    datakey: None, string, or list of string
         Name of the variable holding the data.  If `None` take the
         variable that is an 2D array and has the largest number of
         elements.
-    samplekey: string
+    samplekey: string or list of string
         Name of the variable holding the sampling rate.
-    timekey: string
+    timekey: string or list of string
         Name of the variable holding sampling times.
         If no sampling rate is available, the samplingrate is retrieved
         from the sampling times.
@@ -878,27 +892,33 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
 class DataLoader(AudioLoader):
     """Buffered reading of time-series data for random access of the data in the file.
     
-    This allows for reading very large data files that do not fit into memory.
-    An `DataLoader` instance can be used like a huge read-only numpy array, i.e.
+    This allows for reading very large data files that do not fit into
+    memory.  An `DataLoader` instance can be used like a huge
+    read-only numpy array, i.e.
     ```
     data = DataLoader('path/to/data/file.dat')
     x = data[10000:20000,0]
     ```
     The first index specifies the frame, the second one the channel.
 
-    `DataLoader` first determines the format of the data file and then opens
-    the file (first line). It then reads data from the file
-    as necessary for the requested data (second line).
+    `DataLoader` first determines the format of the data file and then
+    opens the file (first line). It then reads data from the file as
+    necessary for the requested data (second line).
 
-    Supported file formats are relacs trace*.raw files (www.relacs.net),
-    fishgrid traces-*.raw files, and audio files via `audioio.AudioLoader`.
+    Supported file formats are
 
-    Reading sequentially through the file is always possible. If previous data
-    are requested, then the file is read from the beginning. This might slow down access
-    to previous data considerably. Use the `backsize` argument to the open functions to
-    make sure some data are loaded before the requested frame. Then a subsequent access
-    to the data within backsize seconds before that frame can still be handled without
-    the need to reread the file from the beginning.
+    - relacs trace*.raw files (www.relacs.net)
+    - fishgrid traces-*.raw files
+    - audio files via `audioio` package
+
+    Reading sequentially through the file is always possible. If
+    previous data are requested, then the file is read from the
+    beginning. This might slow down access to previous data
+    considerably. Use the `backsize` argument to the open functions to
+    make sure some data are loaded before the requested frame. Then a
+    subsequent access to the data within backsize seconds before that
+    frame can still be handled without the need to reread the file
+    from the beginning.
 
     Usage:
     ------
@@ -948,16 +968,19 @@ class DataLoader(AudioLoader):
 
     Methods
     -------
-    len(): the number of frames
-    open(): open a data file.
-    open_*(): open a data file of a specific format.
-    close(): close the file.
+
+    - `len()`: the number of frames
+    - `open()`: open a data file.
+    - `open_*()`: open a data file of a specific format.
+    - `close()`: close the file.
 
     """
 
     def __init__(self, filepath=None, buffersize=10.0, backsize=0.0,
                  verbose=0, channel=-1):
-        """Initialize the DataLoader instance. If filepath is not None open the file.
+        """Initialize the DataLoader instance.
+
+        If filepath is not None open the file.
 
         Parameters
         ----------
@@ -1348,6 +1371,5 @@ def main(cargs):
     
 
 if __name__ == "__main__":
-    import sys
     import matplotlib.pyplot as plt
     main(sys.argv[1:])
