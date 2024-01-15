@@ -111,7 +111,7 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
             if isinstance(meta[k], dict):
                 write_dict(meta[k], level+1)
             else:
-                df.write(f'# {"":{level*4}}{k}: {meta[k]}\n')
+                df.write(f'# {"":>{level*4}}{k}: {meta[k]}\n')
 
     if not filepath:
         raise ValueError('no file specified!')
@@ -205,7 +205,7 @@ def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
             if isinstance(meta[k], dict):
                 write_dict(meta[k], level+1)
             else:
-                df.write(f'  {"":{level*4}}{k}: {meta[k]}\n')
+                df.write(f'  {"":>{level*4}}{k}: {meta[k]}\n')
                 
     if not filepath:
         raise ValueError('no file specified!')
