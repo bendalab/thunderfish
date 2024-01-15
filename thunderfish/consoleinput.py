@@ -3,6 +3,7 @@
 - `read()`: read a single value from console.
 - `select()`: select a menue option.
 - `save_inputs()`: write all inputs from `read()` and `select()` into a file.
+- `clear_inputs()`: clear list all inputs recorded from `read()` and `select()`.
 - `recorded_inputs`: list of strings with all inputs received by `read()` and `select()`.
 """
 
@@ -13,8 +14,9 @@ except NameError:
 
 
 recorded_inputs = []
+"""List of strings with all inputs received by `read()` and `select()`."""
 
-    
+
 def read(prompt, default=None, dtype=str, min=None, max=None):
     """Read a single input value from the console.
     
@@ -107,6 +109,12 @@ def save_inputs(file):
             df.write(line)
             df.write('\n')
 
+            
+def clear_inputs():
+    """Clear list all inputs recorded from `read()` and `select()`.
+    """
+    recorded_inputs = []
+    
 
 def main():
     x = read('Give me a number between 1 and 10', '5', int, 1, 10)
