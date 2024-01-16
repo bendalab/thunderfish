@@ -3,6 +3,7 @@ import os
 import numpy as np
 import thunderfish.datawriter as dw
 import thunderfish.dataloader as dl
+from audioio import flatten_metadata
 
 
 relacs_path = 'test_relacs'
@@ -40,8 +41,10 @@ def remove_fishgrid_files():
 def test_container():
     tolerance = 2.0**(-15)
     data, samplerate = generate_data()
-    info = dict(name='foo', date='bar')
-
+    info = dict(Recording=dict(Comment='good', Experimenter='John',
+                               Temperature='23.8°C'),
+                Subject=dict(Species='Apteronotus leptorhynchus',
+                             Sex='Female', Size='12cm'))
     # pickle:
     filename = dw.write_pickle('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
@@ -53,7 +56,8 @@ def test_container():
     os.remove(filename)
 
     # numpy:
-    filename = dw.write_numpy('test', data, samplerate, 'mV', info)
+    finfo = flatten_metadata(info, True)
+    filename = dw.write_numpy('test', data, samplerate, 'mV', finfo)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
     os.remove(filename)

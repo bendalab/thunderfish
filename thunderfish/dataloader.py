@@ -143,7 +143,7 @@ def relacs_metadata(filepath, store_empty=False, first_only=False,
         Use this option also to read in very old relacs metadata with
         ragged left alignment.
     add_sections: bool
-        If `True`, prepand keys with sections names separated by
+        If `True`, prepend keys with sections names separated by
         `sections_sep` to make them unique.
     sections_sep: str
         Separator for section names, needed when `add_sections` is `True`.
@@ -158,11 +158,7 @@ def relacs_metadata(filepath, store_empty=False, first_only=False,
     IOError/FileNotFoundError:
         If `filepath` cannot be opened.
     """
-    data = {}
-    cdatas = [data]
-    sections = ['']
-    ident_offs = None
-    ident = None
+    # read in header from file:
     lines = []
     if os.path.isfile(filepath + '.gz'):
         filepath += '.gz'
@@ -179,7 +175,12 @@ def relacs_metadata(filepath, store_empty=False, first_only=False,
                 if len(line) == 0 or line[0] != '#':
                     break
                 lines.append(line)
-
+    # parse:
+    data = {}
+    cdatas = [data]
+    sections = ['']
+    ident_offs = None
+    ident = None
     for line in lines:
         if len(line) == 0 or line[0] != '#':
             break
@@ -232,9 +233,6 @@ def relacs_metadata(filepath, store_empty=False, first_only=False,
                     cdatas[-1][key] = value
     while len(cdatas) > 1:
         cdatas[-1][sections.pop()] = cdatas.pop()
-
-    sf.close()
-                    
     return data
 
 

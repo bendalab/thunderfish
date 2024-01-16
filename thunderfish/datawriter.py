@@ -3,6 +3,7 @@
 - `write_data()`: write data into a file.
 - `available_formats()`: data and audio file formats supported.
 - `format_from_extension()`: deduce data file format from file extension.
+- `write_metadata_text()`: write meta data into a text file.
 """
 
 import os
@@ -67,6 +68,45 @@ def format_from_extension(filepath):
         ext = aw.format_from_extension(filepath)
     return ext
 
+
+def write_metadata_text(fh, meta, prefix='', indent=4):
+    """Write meta data into a text file.
+
+    Parameters
+    ----------
+    fh: filename or stream
+        If not a stream, the file with name `fh` is opened.
+        Otherwise `fh` is used as a stream for writing.
+    meta: nested dict
+        Key-value pairs of metadata to be written into the file.
+    prefix: str
+        This string is written at the beginning of each line.
+    indent: int
+        Number of characters used for indentation of sections.
+    """
+    
+    def write_dict(df, meta, level):
+        w = 0
+        for k in meta:
+            if not isinstance(meta[k], dict) and w < len(k):
+                w = len(k)
+        for k in meta:
+            clevel = level*indent
+            if isinstance(meta[k], dict):
+                df.write(f'{prefix}{"":>{clevel}}{k}:\n')
+                write_dict(df, meta[k], level+1)
+            else:
+                df.write(f'{prefix}{"":>{clevel}}{k:>{w}}: {meta[k]}\n')
+
+    if hasattr(fh, 'write'):
+        own_file = False
+    else:
+        own_file = True
+        fh = open(fh, 'w')
+    write_dict(fh, meta, 0)
+    if own_file:
+        fh.close()
+                
     
 def formats_relacs():
     """Data format of the relacs file format.
@@ -105,14 +145,6 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
     ValueError
         Invalid `filepath`.
     """
-    
-    def write_dict(df, meta, level=0):
-        for k in meta:
-            if isinstance(meta[k], dict):
-                write_dict(meta[k], level+1)
-            else:
-                df.write(f'# {"":>{level*4}}{k}: {meta[k]}\n')
-
     if not filepath:
         raise ValueError('no file specified!')
     os.mkdir(filepath)
@@ -156,9 +188,8 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
         df.close()
     # write meta data:
     if meta:
-        df = open(os.path.join(filepath, 'info.dat'), 'w')
-        write_dict(df, meta)
-        df.close()
+        write_metadata_text(os.path.join(filepath, 'info.dat'),
+                            meta, prefix='# ')
     return filename
 
     
@@ -199,14 +230,6 @@ def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
     ValueError
         Invalid `filepath`.
     """
-    
-    def write_dict(df, meta, level=0):
-        for k in meta:
-            if isinstance(meta[k], dict):
-                write_dict(meta[k], level+1)
-            else:
-                df.write(f'  {"":>{level*4}}{k}: {meta[k]}\n')
-                
     if not filepath:
         raise ValueError('no file specified!')
     os.mkdir(filepath)
@@ -232,7 +255,7 @@ def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
     df.write('      AmplName: "16-channel-EPM-module"\n')
     if meta:
         df.write('*Recording\n')
-        write_dict(df, meta)
+        write_metadata_text(df, meta, prefix='  ')
     df.close()
     return filename
 
