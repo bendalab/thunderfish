@@ -1,9 +1,9 @@
 from nose.tools import assert_true, with_setup
 import os
+import sys
 import numpy as np
 import thunderfish.datawriter as dw
 import thunderfish.dataloader as dl
-from audioio import flatten_metadata
 
 
 relacs_path = 'test_relacs'
@@ -19,7 +19,13 @@ def generate_data():
     data = data.reshape((-1, 1))
     for k in range(data.shape[1], channels):
         data = np.hstack((data, data[:,0].reshape((-1, 1))/k))
-    return data, samplerate
+    info = dict(Comment='good',
+                Recording=dict(Experimenter='John',
+                               Temperature='23.8°C'),
+                Subject=dict(Species='Apteronotus leptorhynchus',
+                             Sex='Female', Size='12cm'),
+                Weather='bad')
+    return data, samplerate, info
 
     
 def remove_files(path):
@@ -40,11 +46,7 @@ def remove_fishgrid_files():
     
 def test_container():
     tolerance = 2.0**(-15)
-    data, samplerate = generate_data()
-    info = dict(Recording=dict(Comment='good', Experimenter='John',
-                               Temperature='23.8°C'),
-                Subject=dict(Species='Apteronotus leptorhynchus',
-                             Sex='Female', Size='12cm'))
+    data, samplerate, info = generate_data()
     # pickle:
     filename = dw.write_pickle('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
@@ -56,8 +58,7 @@ def test_container():
     os.remove(filename)
 
     # numpy:
-    finfo = flatten_metadata(info, True)
-    filename = dw.write_numpy('test', data, samplerate, 'mV', finfo)
+    filename = dw.write_numpy('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
     os.remove(filename)
@@ -121,8 +122,8 @@ def check_reading(filename, data):
 
 @with_setup(None, remove_relacs_files)
 def test_relacs():
-    data, samplerate = generate_data()
-    info = dict(name='foo', date='bar')
+    data, samplerate, info = generate_data()
+    dw.write_metadata_text(sys.stdout, info)
     dw.write_relacs(relacs_path, data, samplerate, meta=info)
     dl.relacs_metadata(relacs_path + '/info.dat')
     check_reading(relacs_path, data)
@@ -130,15 +131,14 @@ def test_relacs():
 
 @with_setup(None, remove_fishgrid_files)
 def test_fishgrid():
-    data, samplerate = generate_data()
-    info = dict(name='foo', date='bar')
+    data, samplerate, info = generate_data()
     dw.write_fishgrid(fishgrid_path, data, samplerate, meta=info)
     check_reading(fishgrid_path, data)
 
     
 def test_main():
-    data, samplerate = generate_data()
-    filename = dw.write_fishgrid(fishgrid_path, data, samplerate, 'mV')
+    data, samplerate, info = generate_data()
+    filename = dw.write_fishgrid(fishgrid_path, data, samplerate, 'mV', info)
     dl.main(['-c', '0', filename])
     dl.main(['-p', filename])
     remove_fishgrid_files()

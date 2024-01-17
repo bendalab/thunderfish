@@ -3,11 +3,12 @@
 - `write_data()`: write data into a file.
 - `available_formats()`: data and audio file formats supported.
 - `format_from_extension()`: deduce data file format from file extension.
-- `write_metadata_text()`: write meta data into a text file.
+- `write_metadata_text()`: write meta data into a text/yaml file.
 """
 
 import os
 import sys
+from audioio import flatten_metadata
 
 data_modules = {}
 """Dictionary with availability of various modules needed for writing data.
@@ -70,7 +71,9 @@ def format_from_extension(filepath):
 
 
 def write_metadata_text(fh, meta, prefix='', indent=4):
-    """Write meta data into a text file.
+    """Write meta data into a text/yaml file.
+
+    With the default parameters, the output is a valid yaml file.
 
     Parameters
     ----------
@@ -96,7 +99,7 @@ def write_metadata_text(fh, meta, prefix='', indent=4):
                 df.write(f'{prefix}{"":>{clevel}}{k}:\n')
                 write_dict(df, meta[k], level+1)
             else:
-                df.write(f'{prefix}{"":>{clevel}}{k:>{w}}: {meta[k]}\n')
+                df.write(f'{prefix}{"":>{clevel}}{k:<{w}}: {meta[k]}\n')
 
     if hasattr(fh, 'write'):
         own_file = False
@@ -380,7 +383,8 @@ def write_numpy(filepath, data, samplerate, unit=None, meta=None):
     if unit:
         ddict['unit'] = unit
     if meta:
-        ddict.update(meta)
+        fmeta = flatten_metadata(meta, True)
+        ddict.update(fmeta)
     np.savez(filepath, **ddict)
     return filepath
 
