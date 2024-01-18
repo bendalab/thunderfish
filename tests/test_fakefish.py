@@ -1,4 +1,5 @@
 from nose.tools import assert_true, assert_equal, assert_almost_equal, assert_raises
+import os
 import sys
 from io import StringIO
 import numpy as np
@@ -45,6 +46,7 @@ def test_wavefish():
         ff.export_wavefish(key, f'{key}_fish', sys.stdout)
     ff.export_wavefish('Alepto', 'test_fish')
     ff.export_wavefish('Alepto', 'test_fish', 'testfile.txt')
+    os.remove('testfile.txt')
 
     
 def test_communication():
@@ -92,6 +94,7 @@ def test_pulsefish():
     amps = np.random.rand(10)*2 - 0.5
     stdevs = np.random.rand(10)*2 - 0.5
     ff.export_pulsefish((time, amps, stdevs), 'test_fish')
+    os.remove('testfile.txt')
 
     
 def test_speciesnames():
@@ -113,6 +116,8 @@ def test_generate_waveform():
     rips = ips[:-2].replace('SPEC', 'a') + 'r\n0.5\n20\n0.1\n1.5\n'
     sys.stdin = StringIO(rips)
     ff.generate_waveform('testeod.wav')
+    os.remove('testeod.wav')
+    os.remove('testeod.inp')
 
     
 def test_main():
