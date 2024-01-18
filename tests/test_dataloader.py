@@ -1,4 +1,4 @@
-from nose.tools import assert_true, with_setup
+from nose.tools import assert_true, assert_equal, with_setup
 import os
 import sys
 import numpy as np
@@ -51,6 +51,8 @@ def test_container():
     filename = dw.write_pickle('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    md = dl.load_metadata(filename)
+    assert_equal(info, md, 'pickle metadata')
     os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='pickle')
     full_data, rate, unit = dl.load_data(filename, -1)
@@ -61,6 +63,8 @@ def test_container():
     filename = dw.write_numpy('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
+    md = dl.load_metadata(filename)
+    assert_equal(info, md, 'numpy metadata')
     os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='numpy')
     full_data, rate, unit = dl.load_data(filename, -1)
@@ -71,6 +75,8 @@ def test_container():
     filename = dw.write_mat('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
+    #md = dl.load_metadata(filename)
+    #assert_equal(info, md, 'mat metadata')
     os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='mat')
     full_data, rate, unit = dl.load_data(filename, -1)
@@ -125,7 +131,7 @@ def test_relacs():
     data, samplerate, info = generate_data()
     dw.write_metadata_text(sys.stdout, info)
     dw.write_relacs(relacs_path, data, samplerate, meta=info)
-    dl.relacs_metadata(relacs_path + '/info.dat')
+    dl.metadata_relacs(relacs_path + '/info.dat')
     check_reading(relacs_path, data)
 
 

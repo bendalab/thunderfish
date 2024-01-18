@@ -384,6 +384,8 @@ def write_numpy(filepath, data, samplerate, unit=None, meta=None):
         ddict['unit'] = unit
     if meta:
         fmeta = flatten_metadata(meta, True)
+        for k in list(fmeta):
+            fmeta['metadata.'+k] = fmeta.pop(k)
         ddict.update(fmeta)
     np.savez(filepath, **ddict)
     return filepath
@@ -446,7 +448,7 @@ def write_mat(filepath, data, samplerate, unit=None, meta=None):
     if unit:
         ddict['unit'] = unit
     if meta:
-        ddict.update(meta)
+        ddict['metadata'] = meta
     sio.savemat(filepath, ddict)
     return filepath
 

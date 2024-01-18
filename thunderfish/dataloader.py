@@ -26,13 +26,23 @@ on demand. `data` can be used like a read-only numpy array of floats.
 - audio files via `audioio` package
 
 
+## Metadata
+
+Many file formats allow to store metadata that further describe the
+stored time series data. We handle them as nested list of key-value
+pairs. Load them with the `load_metadata()` function:
+```
+metadata = load_metadata('data/file.mat')
+```
+
 ## Aditional functions
 
 - `relacs_samplerate_unit()`: retrieve sampling rate and unit from a relacs stimuli.dat file.
-- `relacs_metadata()` reads key-value pairs from relacs *.dat file headers.
+- `relacs_header()`: read key-value pairs from relacs *.dat file headers.
 - `fishgrid_samplerate()`: retrieve the sampling rate from a fishgrid.cfg file.
 - `fishgrid_grids()`: retrieve grid sizes from a fishgrid.cfg file.
 - `fishgrid_spacings()`: spacing between grid electrodes.
+
 """
 
 import os
@@ -44,7 +54,7 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     pass
-from audioio.audioloader import load_audio, AudioLoader
+from audioio.audioloader import load_audio, AudioLoader, unflatten_metadata
 
 
 def relacs_samplerate_unit(filepath, channel=0):
@@ -123,10 +133,10 @@ def relacs_samplerate_unit(filepath, channel=0):
     raise ValueError(f'could not retrieve sampling rate from {stimuli_file}')
 
 
-def relacs_metadata(filepath, store_empty=False, first_only=False,
-                    lower_keys=False, flat=False,
-                    add_sections=False, sections_sep='.'):
-    """Reads header of a relacs *.dat file.
+def relacs_header(filepath, store_empty=False, first_only=False,
+                  lower_keys=False, flat=False,
+                  add_sections=False):
+    """Read key-value pairs from a relacs *.dat file header.
 
     Parameters
     ----------
@@ -144,9 +154,7 @@ def relacs_metadata(filepath, store_empty=False, first_only=False,
         ragged left alignment.
     add_sections: bool
         If `True`, prepend keys with sections names separated by
-        `sections_sep` to make them unique.
-    sections_sep: str
-        Separator for section names, needed when `add_sections` is `True`.
+        '.' to make them unique.
 
     Returns
     -------
@@ -213,7 +221,7 @@ def relacs_metadata(filepath, store_empty=False, first_only=False,
                 key = key.lower()
             skey = key
             if add_sections:
-                key = sections_sep.join(sections[1:] + [key])
+                key = '.'.join(sections[1:] + [key])
             if len(value) == 0:
                 # new sub-section:
                 if flat:
@@ -248,8 +256,9 @@ def check_relacs(file_paths):
     Returns
     -------
     is_relacs: boolean
-      If `file_paths` is a single path, then returns `True` if it is a or is a file in
-      a valid relacs data directory.
+      If `file_paths` is a single path, then returns `True` if it is a
+      valid relacs directory or is a file in a valid relacs data
+      directory.
       If file_paths are more than one path, then returns `True` if `file_paths`
       are 'trace-*.raw' files in a valid relacs data directory.
     """
@@ -397,6 +406,47 @@ def load_relacs(file_paths, channel=-1, verbose=0):
         return data, samplerate, unit
     else:
         return data[:, 0], samplerate, unit
+
+
+def metadata_relacs(filepath, store_empty=False, first_only=False,
+                    lower_keys=False, flat=False, add_sections=False):
+    """ Read meta-data of a relacs data set.
+
+    Parameters
+    ----------
+    filepath: string
+        A relacs data directory or a file therein.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
+    add_sections: bool
+        If `True`, prepend keys with sections names separated by
+        '.' to make them unique.
+
+    Returns
+    -------
+    data: nested dict
+        Nested Dictionary with key-value pairs of the meta data.
+    """
+    path = filepath
+    if isinstance(filepath, (list, tuple, np.ndarray)):
+        path = filepath[0]
+    relacs_dir = path
+    if not os.path.isdir(path):
+        relacs_dir = os.path.dirname(path)
+    info_path = os.path.join(relacs_dir, 'info.dat')
+    if not os.path.exists(info_path):
+        return dict(), []
+    data = relacs_header(info_path, store_empty, first_only,
+                         lower_keys, flat, add_sections)
+    return data
 
 
 def fishgrid_samplerate(filepath):
@@ -683,6 +733,47 @@ def load_fishgrid(file_paths, channel=-1, verbose=0):
         return data[:, channel-gs], samplerate, unit
 
 
+def metadata_fishgrid(filepath, store_empty=False, first_only=False,
+                      lower_keys=False, flat=False, add_sections=False):
+    """ Read meta-data of a fishgrid data set.
+
+    Parameters
+    ----------
+    filepath: string
+        A fishgrid data directory or a file therein.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
+    add_sections: bool
+        If `True`, prepend keys with sections names separated by
+        '.' to make them unique.
+
+    Returns
+    -------
+    data: nested dict
+        Nested Dictionary with key-value pairs of the meta data.
+    """
+    path = filepath
+    if isinstance(filepaths, (list, tuple, np.ndarray)):
+        path = filepath[0]
+    relacs_dir = path
+    if not os.path.isdir(path):
+        relacs_dir = os.path.dirname(path)
+    info_path = os.path.join(relacs_dir, 'fishgrid.cfg')
+    if not os.path.exists(info_path):
+        return dict(), []
+    data = relacs_header(info_path, store_empty, first_only,
+                         lower_keys, flat, add_sections)
+    return data
+
+
 def check_container(filepath):
     """Check if file is a generic container file.
 
@@ -829,6 +920,60 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
     return raw_data.astype(float), samplerate, unit
 
 
+def metadata_container(filepath, store_empty=False, first_only=False,
+                       verbose=0, metadatakey=['metadata', 'info']):
+    """ Read meta-data of a container file.
+
+    Parameters
+    ----------
+    filepath: string
+        A container file.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    verbose: int
+        if > 0 show detailed error/warning messages
+    metadatakey: string or list of string
+        Name of the variable holding the metadata.
+
+    Returns
+    -------
+    data: nested dict
+        Nested Dictionary with key-value pairs of the meta data.
+    """
+    # load data:
+    data = {}
+    ext = os.path.splitext(filepath)[1]
+    if ext in ('.pkl', '.pickle'):
+        import pickle
+        with open(filepath, 'rb') as f:
+            data = pickle.load(f)
+    elif ext == '.npz':
+        data = np.load(filepath)
+    elif ext == '.mat':
+        from scipy.io import loadmat
+        data = loadmat(filepath, squeeze_me=True)
+    if verbose > 0:
+        print( 'loaded %s' % filepath)
+    if not isinstance(metadatakey, (list, tuple, np.ndarray)):
+        metadatakey = (metadatakey,)
+    # get single metadata dictionary:
+    for mkey in metadatakey:
+        if mkey in data:
+            return data[mkey]
+    # collect all keys starting with metadatakey:
+    metadata = {}
+    for mkey in metadatakey:
+        mkey += '.'
+        for dkey in data:
+            if dkey[:len(mkey)] == mkey:
+                metadata[dkey[len(mkey):]] = data[dkey]
+        if len(metadata) > 0:
+            return unflatten_metadata(metadata)
+    return metadata
+
+    
 def load_data(filepath, channel=-1, verbose=0, **kwargs):
     """Load time-series data from a file of arbitrary format.
 
@@ -889,6 +1034,51 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
                 data = data[:, channel]
             unit = 'a.u.'
         return data, samplerate, unit
+
+
+def load_metadata(filepath, store_empty=False, first_only=False,
+                  verbose=0, **kwargs):
+    """ Read meta-data from a data file.
+
+    Parameters
+    ----------
+    filepath: string or list of strings
+        The full path and name of the file to load. For some file
+        formats several files can be provided in a list.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    verbose: int
+        Verbosity level.
+    **kwargs: dict
+        Further keyword arguments that are passed on to the 
+        format specific loading functions.
+
+    Returns
+    -------
+    meta_data: nested dict
+        Meta data contained in the file.  Keys of the nested
+        dictionaries are always strings.  If the corresponding
+        values are dictionaries, then the key is the section name
+        of the metadata contained in the dictionary. All other
+        types of values are values for the respective key. In
+        particular they are strings, or list of strings. But other
+        simple types like ints or floats are also allowed.
+    """
+    if check_relacs(filepath):
+        return metadata_relacs(filepath, store_empty, first_only, **kwargs)
+    elif check_fishgrid(filepath):
+        return metadata_fishgrid(filepath, store_empty, first_only, **kwargs)
+    else:
+        if isinstance(filepath, (list, tuple, np.ndarray)):
+            filepath = filepath[0]
+        if check_container(filepath):
+            return metadata_container(filepath, store_empty,
+                                      first_only, verbose, **kwargs)
+        else:
+            return audio_metadata(filepath, store_empty, first_only,
+                                  verbose)[0]
 
 
 class DataLoader(AudioLoader):
@@ -1132,9 +1322,9 @@ class DataLoader(AudioLoader):
         """
         info_path = os.path.join(self.filepath, 'info.dat')
         if not os.path.exists(info_path):
-            return dict(), []
-        data = relacs_metadata(info_path, store_empty, first_only)
-        return dict(INFO=data), []
+            return dict()
+        data = relacs_header(info_path, store_empty, first_only)
+        return data
 
     
     # fishgrid interface:        
@@ -1259,9 +1449,9 @@ class DataLoader(AudioLoader):
         """
         info_path = os.path.join(self.filepath, 'fishgrid.cfg')
         if not os.path.exists(info_path):
-            return dict(), []
-        data = relacs_metadata(info_path, store_empty, first_only)
-        return dict(INFO=data), []
+            return dict()
+        data = relacs_header(info_path, store_empty, first_only)
+        return data
 
 
     def open(self, filepath, buffersize=10.0, backsize=0.0,
