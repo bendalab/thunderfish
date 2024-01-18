@@ -1,7 +1,7 @@
 """Writing numpy arrays of floats to data files.
 
 - `write_data()`: write data into a file.
-- `available_formats()`: data and audio file formats supported.
+- `available_formats()`: supported data and audio file formats.
 - `format_from_extension()`: deduce data file format from file extension.
 - `write_metadata_text()`: write meta data into a text/yaml file.
 """

@@ -135,6 +135,13 @@ def test_fishgrid():
     dw.write_fishgrid(fishgrid_path, data, samplerate, meta=info)
     check_reading(fishgrid_path, data)
 
+def test_audioio():
+    tolerance = 2.0**(-15)
+    data, samplerate, info = generate_data()
+    filename = dw.write_audioio('test.wav', data, samplerate, meta=info)
+    full_data, rate, unit = dl.load_data(filename, -1)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    os.remove(filename)
     
 def test_main():
     data, samplerate, info = generate_data()
