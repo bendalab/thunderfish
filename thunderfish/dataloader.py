@@ -54,7 +54,7 @@ try:
     import matplotlib.pyplot as plt
 except ImportError:
     pass
-from audioio.audioloader import load_audio, AudioLoader, unflatten_metadata
+from audioio import load_audio, AudioLoader, unflatten_metadata
 
 
 def relacs_samplerate_unit(filepath, channel=0):

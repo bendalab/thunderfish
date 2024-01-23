@@ -5,8 +5,7 @@ import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
-from audioio.playaudio import PlayAudio, fade
-from audioio.audiowriter import write_audio
+from audioio import PlayAudio, fade, write_audio
 from .version import __version__, __year__
 from .configfile import ConfigFile
 from .dataloader import DataLoader

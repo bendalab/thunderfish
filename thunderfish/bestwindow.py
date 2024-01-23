@@ -22,7 +22,7 @@ Select the best region within a recording with the most stable signal of largest
 
 import numpy as np
 from .eventdetection import percentile_threshold, detect_peaks, trim_to_peak
-from audioio.audioloader import unwrap
+from audioio import unwrap
 try:
     import matplotlib.pyplot as plt
     import matplotlib.ticker as ticker

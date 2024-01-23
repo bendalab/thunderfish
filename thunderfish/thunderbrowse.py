@@ -5,8 +5,7 @@ import argparse
 import numpy as np
 from scipy.signal import butter, sosfiltfilt
 import matplotlib.pyplot as plt
-from audioio.playaudio import PlayAudio, fade
-from audioio.audiowriter import write_audio
+from audioio import PlayAudio, fade, write_audio
 from .eventdetection import detect_peaks, median_std_threshold
 from .pulses import detect_pulses
 from .version import __version__, __year__
