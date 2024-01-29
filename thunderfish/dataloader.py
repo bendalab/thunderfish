@@ -18,12 +18,12 @@ on demand. `data` can be used like a read-only numpy array of floats.
 
 ## Supported file formats
 
-- relacs trace*.raw files (www.relacs.net)
-- fishgrid traces-*.raw files
 - python pickle files
 - numpy .npz files
 - matlab .mat files
 - audio files via `audioio` package
+- relacs trace*.raw files (www.relacs.net)
+- fishgrid traces-*.raw files
 
 
 ## Metadata
@@ -32,7 +32,17 @@ Many file formats allow to store metadata that further describe the
 stored time series data. We handle them as nested list of key-value
 pairs. Load them with the `load_metadata()` function:
 ```
-metadata = load_metadata('data/file.mat')
+metadata = metadata('data/file.mat')
+```
+
+## Markers
+
+Some file formats also allow to store markers that mark specific
+positions in the time series data. Load marker positions and spans (in
+the 2-D array `locs`) and label and text strings (in the 2-D array
+`labels`) with the `load_markers()` function:
+```
+locs, labels = markers('data.wav')
 ```
 
 ## Aditional functions
@@ -55,6 +65,8 @@ try:
 except ImportError:
     pass
 from audioio import load_audio, AudioLoader, unflatten_metadata
+from audioio import metadata as audioio_metadata
+from audioio import markers as audioio_markers
 
 
 def relacs_samplerate_unit(filepath, channel=0):
@@ -159,7 +171,7 @@ def relacs_header(filepath, store_empty=False, first_only=False,
     Returns
     -------
     data: dict
-        Dictionary with key-value pairs of the file header.
+        Nested dictionary with key-value pairs of the file header.
         
     Raises
     ------
@@ -433,7 +445,7 @@ def metadata_relacs(filepath, store_empty=False, first_only=False,
     Returns
     -------
     data: nested dict
-        Nested Dictionary with key-value pairs of the meta data.
+        Nested dictionary with key-value pairs of the meta data.
     """
     path = filepath
     if isinstance(filepath, (list, tuple, np.ndarray)):
@@ -758,7 +770,7 @@ def metadata_fishgrid(filepath, store_empty=False, first_only=False,
     Returns
     -------
     data: nested dict
-        Nested Dictionary with key-value pairs of the meta data.
+        Nested dictionary with key-value pairs of the meta data.
     """
     path = filepath
     if isinstance(filepaths, (list, tuple, np.ndarray)):
@@ -920,27 +932,20 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
     return raw_data.astype(float), samplerate, unit
 
 
-def metadata_container(filepath, store_empty=False, first_only=False,
-                       verbose=0, metadatakey=['metadata', 'info']):
+def metadata_container(filepath, metadatakey=['metadata', 'info']):
     """ Read meta-data of a container file.
 
     Parameters
     ----------
     filepath: string
         A container file.
-    store_empty: bool
-        If `False` do not add meta data with empty values.
-    first_only: bool
-        If `False` only store the first element of a list.
-    verbose: int
-        if > 0 show detailed error/warning messages
     metadatakey: string or list of string
         Name of the variable holding the metadata.
 
     Returns
     -------
     data: nested dict
-        Nested Dictionary with key-value pairs of the meta data.
+        Nested dictionary with key-value pairs of the meta data.
     """
     # load data:
     data = {}
@@ -954,8 +959,6 @@ def metadata_container(filepath, store_empty=False, first_only=False,
     elif ext == '.mat':
         from scipy.io import loadmat
         data = loadmat(filepath, squeeze_me=True)
-    if verbose > 0:
-        print( 'loaded %s' % filepath)
     if not isinstance(metadatakey, (list, tuple, np.ndarray)):
         metadatakey = (metadatakey,)
     # get single metadata dictionary:
@@ -1036,8 +1039,7 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
         return data, samplerate, unit
 
 
-def load_metadata(filepath, store_empty=False, first_only=False,
-                  verbose=0, **kwargs):
+def metadata(filepath, store_empty=False, first_only=False, **kwargs):
     """ Read meta-data from a data file.
 
     Parameters
@@ -1049,8 +1051,6 @@ def load_metadata(filepath, store_empty=False, first_only=False,
         If `False` do not add meta data with empty values.
     first_only: bool
         If `False` only store the first element of a list.
-    verbose: int
-        Verbosity level.
     **kwargs: dict
         Further keyword arguments that are passed on to the 
         format specific loading functions.
@@ -1074,11 +1074,29 @@ def load_metadata(filepath, store_empty=False, first_only=False,
         if isinstance(filepath, (list, tuple, np.ndarray)):
             filepath = filepath[0]
         if check_container(filepath):
-            return metadata_container(filepath, store_empty,
-                                      first_only, verbose, **kwargs)
+            return metadata_container(filepath, **kwargs)
         else:
-            return audio_metadata(filepath, store_empty, first_only,
-                                  verbose)[0]
+            return audioio_metadata(filepath, store_empty)
+
+
+def markers(filepath):
+    """ Read markers of a data file.
+
+    Parameters
+    ----------
+    filepath: string or file handle
+        The data file.
+
+    Returns
+    -------
+    locs: 2-D array of ints
+        Marker positions (first column) and spans (second column)
+        for each marker (rows).
+    labels: 2-D array of string objects
+        Labels (first column) and texts (second column)
+        for each marker (rows).
+    """
+    return audioio_markers(filepath)
 
 
 class DataLoader(AudioLoader):
@@ -1165,6 +1183,8 @@ class DataLoader(AudioLoader):
     - `open()`: open a data file.
     - `open_*()`: open a data file of a specific format.
     - `close()`: close the file.
+    - `metadata()`: metadata of the file.
+    - `markers()`: markers of the file.
 
     """
 
@@ -1287,6 +1307,7 @@ class DataLoader(AudioLoader):
         self.close = self._close_relacs
         self.load_buffer = self._load_buffer_relacs
         self.metadata = self._metadata_relacs
+        self.markers = self._markers_relacs
         self.ampl_min = -np.inf
         self.ampl_max = +np.inf
         return self
@@ -1325,6 +1346,13 @@ class DataLoader(AudioLoader):
             return dict()
         data = relacs_header(info_path, store_empty, first_only)
         return data
+
+
+    def _markers_relacs(self):
+        """ Read markers of a relacs data set.
+        """
+        # Not implemented yet!
+        return None, None
 
     
     # fishgrid interface:        
@@ -1414,6 +1442,7 @@ class DataLoader(AudioLoader):
         self.close = self._close_fishgrid
         self.load_buffer = self._load_buffer_fishgrid
         self.metadata = self._metadata_fishgrid
+        self.markers = self._markers_fishgrid
         self.ampl_min = -np.inf
         self.ampl_max = +np.inf
         return self
@@ -1452,6 +1481,13 @@ class DataLoader(AudioLoader):
             return dict()
         data = relacs_header(info_path, store_empty, first_only)
         return data
+
+
+    def _markers_fishgrid(self):
+        """ Read markers of a fishgrid data set.
+        """
+        # Not implemented yet!
+        return None, None
 
 
     def open(self, filepath, buffersize=10.0, backsize=0.0,
@@ -1541,7 +1577,7 @@ def demo(filepath, plot=False, channel=-1):
                 
 
     
-def main(cargs):
+def main(*cargs):
     """Call demo with command line arguments.
 
     Parameters
@@ -1563,4 +1599,4 @@ def main(cargs):
     
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main(*sys.argv[1:])

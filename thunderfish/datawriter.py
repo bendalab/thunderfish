@@ -2,13 +2,14 @@
 
 - `write_data()`: write data into a file.
 - `available_formats()`: supported data and audio file formats.
+- `available_encodings()`: encodings of a data file format.
 - `format_from_extension()`: deduce data file format from file extension.
 - `write_metadata_text()`: write meta data into a text/yaml file.
+- `recode_array()`: recode array of floats.
 """
 
 import os
 import sys
-from audioio import flatten_metadata
 
 data_modules = {}
 """Dictionary with availability of various modules needed for writing data.
@@ -35,6 +36,7 @@ except ImportError:
 
 try:
     import audioio.audiowriter as aw
+    from audioio import flatten_metadata
     data_modules['audioio'] = True
 except ImportError:
     data_modules['audioio'] = False
@@ -68,6 +70,41 @@ def format_from_extension(filepath):
     if data_modules['audioio']:
         ext = aw.format_from_extension(filepath)
     return ext
+
+
+def recode_array(data, encoding):
+    """Recode array of floats.
+
+    Parameters
+    ----------
+    data: array of floats
+        Data array with values ranging between -1 and 1
+    encoding: str
+        Encoding, one of PCM_16, PCM_32, PCM_64, FLOAT or DOUBLE.
+
+    Returns
+    -------
+    buffer: array
+        The data recoded according to `encoding`.
+    """
+    
+    encodings = {'PCM_16': (2, 'i2'),
+                 'PCM_32': (4, 'i4'),
+                 'PCM_64': (8, 'i8'),
+                 'FLOAT': (4, 'f'),
+                 'DOUBLE': (8, 'd')}
+
+    if not encoding in encodings:
+        return data
+    dtype = encodings[encoding][1]
+    if dtype[0] == 'i':
+        sampwidth = encodings[encoding][0]
+        factor = 2**(sampwidth*8-1)
+        buffer = np.floor(data * factor).astype(dtype)
+        buffer[data >= 1.0] = factor - 1
+    else:
+        buffer = data.astype(dtype, copy=False)
+    return buffer
 
 
 def write_metadata_text(fh, meta, prefix='', indent=4):
@@ -109,7 +146,7 @@ def write_metadata_text(fh, meta, prefix='', indent=4):
     write_dict(fh, meta, 0)
     if own_file:
         fh.close()
-                
+        
     
 def formats_relacs():
     """Data format of the relacs file format.
@@ -121,8 +158,28 @@ def formats_relacs():
     """
     return ['RELACS']
 
+
+def encodings_relacs(format):
+    """Encodings of the relacs file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    """
+    if format.upper() != 'RELACS':
+        return []
+    else:
+        return ['FLOAT']
     
-def write_relacs(filepath, data, samplerate, unit=None, meta=None):
+    
+def write_relacs(filepath, data, samplerate, unit=None,
+                 metadata=None, format=None, encoding=None):
     """Write data as relacs raw files.
 
     Parameters
@@ -135,8 +192,12 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: nested dict
+    metadata: nested dict
         Additional metadata saved into `info.dat`.
+    format: string or None
+        File format, only None or 'RELACS' are supported.
+    encoding: string or None
+        Encoding of the data. Only None or 'FLOAT' are supported.
 
     Returns
     -------
@@ -147,9 +208,19 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
     ------
     ValueError
         Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
     """
     if not filepath:
         raise ValueError('no file specified!')
+    if format is None:
+        format = 'RELACS'
+    if format.upper() != 'RELACS':
+        raise ValueError(f'file format {format} not supported by relacs file format')
+    if encoding is None:
+        encoding = 'FLOAT'
+    if encoding.upper() != 'FLOAT':
+        raise ValueError(f'file encoding {format} not supported by relacs file format')
     os.mkdir(filepath)
     # write data:
     for c in range(data.shape[1]):
@@ -189,10 +260,10 @@ def write_relacs(filepath, data, samplerate, unit=None, meta=None):
             if events == 'Recording':
                 df.write('  0.0\n')
         df.close()
-    # write meta data:
-    if meta:
+    # write metadata:
+    if metadata:
         write_metadata_text(os.path.join(filepath, 'info.dat'),
-                            meta, prefix='# ')
+                            metadata, prefix='# ')
     return filename
 
     
@@ -206,8 +277,28 @@ def formats_fishgrid():
     """
     return ['FISHGRID']
 
+
+def encodings_fishgrid(format):
+    """Encodings of the fishgrid file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    """
+    if format.upper() != 'FISHGRID':
+        return []
+    else:
+        return ['FLOAT']
     
-def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
+    
+def write_fishgrid(filepath, data, samplerate, unit=None, metadata=None,
+                   format=None, encoding=None):
     """Write data as fishgrid raw files.
 
     Parameters
@@ -220,8 +311,12 @@ def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: nested dict
+    metadata: nested dict
         Additional metadata saved into the `fishgrid.cfg`.
+    format: string or None
+        File format, only None or 'FISHGRID' are supported.
+    encoding: string or None
+        Encoding of the data. Only None or 'FLOAT' are supported.
 
     Returns
     -------
@@ -232,15 +327,25 @@ def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
     ------
     ValueError
         Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
     """
     if not filepath:
         raise ValueError('no file specified!')
+    if format is None:
+        format = 'FISHGRID'
+    if format.upper() != 'FISHGRID':
+        raise ValueError(f'file format {format} not supported by fishgrid file format')
+    if encoding is None:
+        encoding = 'FLOAT'
+    if encoding.upper() != 'FLOAT':
+        raise ValueError(f'file encoding {format} not supported by fishgrid file format')
     os.mkdir(filepath)
     # write data:
     df = open(os.path.join(filepath, 'traces-grid1.raw'), 'wb')
     df.write(np.array(data, dtype=np.float32).tostring())
     df.close()
-    # write meta data:
+    # write metadata:
     if unit is None:
         unit = 'mV'
     filename = os.path.join(filepath, 'fishgrid.cfg')
@@ -256,9 +361,9 @@ def write_fishgrid(filepath, data, samplerate, unit=None, meta=None):
     df.write(f'      AIMaxVolt   : 10.0{unit}\n')
     df.write('    Amplifier:\n')
     df.write('      AmplName: "16-channel-EPM-module"\n')
-    if meta:
+    if metadata:
         df.write('*Recording\n')
-        write_metadata_text(df, meta, prefix='  ')
+        write_metadata_text(df, metadata, prefix='  ')
     df.close()
     return filename
 
@@ -276,8 +381,28 @@ def formats_pickle():
     else:
         return ['PICKLE']
 
+
+def encodings_pickle(format):
+    """Encodings of the pickle format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    """
+    if format.upper() != 'PICKLE':
+        return []
+    else:
+        return ['PCM_16', 'PCM_32', 'FLOAT', 'DOUBLE']
+
     
-def write_pickle(filepath, data, samplerate, unit=None, meta=None):
+def write_pickle(filepath, data, samplerate, unit=None, metadata=None,
+                 format=None, encoding=None):
     """Write data into python pickle file.
     
     Documentation
@@ -294,8 +419,12 @@ def write_pickle(filepath, data, samplerate, unit=None, meta=None):
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: nested dict
+    metadata: nested dict
         Additional metadata saved into the pickle.
+    format: string or None
+        File format, only None or 'PICKLE' are supported.
+    encoding: string or None
+        Encoding of the data.
 
     Returns
     -------
@@ -308,19 +437,31 @@ def write_pickle(filepath, data, samplerate, unit=None, meta=None):
         The pickle module is not available.
     ValueError
         Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
     """
     if not data_modules['pickle']:
         raise ImportError
     if not filepath:
         raise ValueError('no file specified!')
+    if format is None:
+        format = 'PICKLE'
+    if format.upper() != 'PICKLE':
+        raise ValueError(f'file format {format} not supported by pickle file format')
     ext = os.path.splitext(filepath)[1]
     if len(ext) <= 1 or ext[1].upper() != 'P':
         filepath += os.extsep + 'pkl'
-    ddict = dict(data=data, rate=samplerate)
+    if encoding is None:
+        encoding = 'DOUBLE'
+    encoding = encoding.upper()
+    if not encoding in encodings_pickle(format):
+        raise ValueError(f'file encoding {format} not supported by pickle file format')
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
     if unit:
         ddict['unit'] = unit
-    if meta:
-        ddict['metadata'] = meta
+    if metadata:
+        ddict['metadata'] = metadata
     with open(filepath, 'wb') as df:
         pickle.dump(ddict, df)
     return filepath
@@ -340,7 +481,27 @@ def formats_numpy():
         return ['NUMPY', 'NPZ']
 
 
-def write_numpy(filepath, data, samplerate, unit=None, meta=None):
+def encodings_numpy(format):
+    """Encodings of the numpy file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    """
+    if not format.upper() in  ['NUMPY', 'NPZ']:
+        return []
+    else:
+        return ['PCM_16', 'PCM_32', 'FLOAT', 'DOUBLE']
+
+
+def write_numpy(filepath, data, samplerate, unit=None, metadata=None,
+                format=None, encoding=None):
     """Write data into numpy npz file.
     
     Documentation
@@ -357,8 +518,12 @@ def write_numpy(filepath, data, samplerate, unit=None, meta=None):
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: nested dict
+    metadata: nested dict
         Additional metadata saved into the numpy file.
+    format: string or None
+        File format, only None or 'PICKLE' are supported.
+    encoding: string or None
+        Encoding of the data.
 
     Returns
     -------
@@ -371,19 +536,34 @@ def write_numpy(filepath, data, samplerate, unit=None, meta=None):
         The numpy module is not available.
     ValueError
         Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
     """
     if not data_modules['numpy']:
         raise ImportError
     if not filepath:
         raise ValueError('no file specified!')
+    if format is None:
+        format = 'NUMPY'
+    if format.upper() not in formats_numpy():
+        raise ValueError(f'file format {format} not supported by numpy file format')
     ext = os.path.splitext(filepath)[1]
     if len(ext) <= 1 or ext[1].upper() != 'N':
         filepath += os.extsep + 'npz'
-    ddict = dict(data=data, rate=samplerate)
+    if encoding is None:
+        encoding = 'DOUBLE'
+    encoding = encoding.upper()
+    if not encoding in encodings_numpy(format):
+        raise ValueError(f'file encoding {format} not supported by numpy file format')
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
     if unit:
         ddict['unit'] = unit
-    if meta:
-        fmeta = flatten_metadata(meta, True)
+    if metadata:
+        if data_modules['audioio']:
+            fmeta = flatten_metadata(metadata, True)
+        else:
+            fmeta = metadata
         for k in list(fmeta):
             fmeta['metadata.'+k] = fmeta.pop(k)
         ddict.update(fmeta)
@@ -405,7 +585,27 @@ def formats_mat():
         return ['MAT']
 
 
-def write_mat(filepath, data, samplerate, unit=None, meta=None):
+def encodings_mat(format):
+    """Encodings of the matlab format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    """
+    if format.upper() != 'MAT':
+        return []
+    else:
+        return ['PCM_16', 'PCM_32', 'FLOAT', 'DOUBLE']
+
+
+def write_mat(filepath, data, samplerate, unit=None, metadata=None,
+              format=None, encoding=None):
     """Write data into matlab file.
     
     Documentation
@@ -422,8 +622,12 @@ def write_mat(filepath, data, samplerate, unit=None, meta=None):
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: nested dict
+    metadata: nested dict
         Additional metadata saved into the mat file.
+    format: string or None
+        File format, only None or 'PICKLE' are supported.
+    encoding: string or None
+        Encoding of the data.
 
     Returns
     -------
@@ -436,19 +640,31 @@ def write_mat(filepath, data, samplerate, unit=None, meta=None):
         The scipy.io module is not available.
     ValueError
         Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
     """
     if not data_modules['scipy']:
         raise ImportError
     if not filepath:
         raise ValueError('no file specified!')
+    if format is None:
+        format = 'MAT'
+    if format.upper() not in formats_mat():
+        raise ValueError(f'file format {format} not supported by matlab file format')
     ext = os.path.splitext(filepath)[1]
     if len(ext) <= 1 or ext[1].upper() != 'M':
         filepath += os.extsep + 'mat'
-    ddict = dict(data=data, rate=samplerate)
+    if encoding is None:
+        encoding = 'DOUBLE'
+    encoding = encoding.upper()
+    if not encoding in encodings_mat(format):
+        raise ValueError(f'file encoding {format} not supported by matlab file format')
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
     if unit:
         ddict['unit'] = unit
-    if meta:
-        ddict['metadata'] = meta
+    if metadata:
+        ddict['metadata'] = metadata
     sio.savemat(filepath, ddict)
     return filepath
 
@@ -467,7 +683,27 @@ def formats_audioio():
         return aw.available_formats()
 
 
-def write_audioio(filepath, data, samplerate, unit=None, meta=None):
+def encodings_audio(format):
+    """Encodings of any audio format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    """
+    if not data_modules['audioio']:
+        return []
+    else:
+        return aw.available_encodings(format)
+
+
+def write_audioio(filepath, data, samplerate, unit=None, metadata=None,
+                  format=None, encoding=None):
     """Write data into audio file.
     
     Documentation
@@ -485,9 +721,8 @@ def write_audioio(filepath, data, samplerate, unit=None, meta=None):
     unit: string
         Unit of the data.
         Currently ignored.
-    meta: nested dict
+    metadata: nested dict
         Additional metadata saved into the audio file.
-        Currently ignored.
 
     Returns
     -------
@@ -505,7 +740,7 @@ def write_audioio(filepath, data, samplerate, unit=None, meta=None):
         raise ImportError
     if not filepath:
         raise ValueError('no file specified!')
-    aw.write_audio(filepath, data, samplerate)
+    aw.write_audio(filepath, data, samplerate, metadata)
     return filepath
 
 
@@ -539,6 +774,40 @@ def available_formats():
     return sorted(list(formats))
 
 
+data_encodings_funcs = (
+    ('relacs', encodings_relacs),
+    ('fishgrid', encodings_fishgrid),
+    ('pickle', encodings_pickle),
+    ('numpy', encodings_numpy),
+    ('matlab', encodings_mat),
+    ('audio', encodings_audio)
+    )
+""" List of implemented encodings functions.
+
+Each element of the list is a tuple with the module's name and the encodings function.
+"""
+
+
+def available_encodings(format):
+    """Encodings of a data file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    """
+    encodings = set()
+    for module, encodings_func in data_encodings_funcs:
+        encs = encodings_func(format)
+        encodings |= set(encs)
+    return sorted(list(encodings))
+
+
 data_writer_funcs = {
     'relacs': write_relacs,
     'fishgrid': write_fishgrid,
@@ -554,8 +823,8 @@ function.
 """
 
 
-def write_data(filepath, data, samplerate, unit=None, meta=None,
-               format=None, verbose=0):
+def write_data(filepath, data, samplerate, unit=None, metadata=None,
+               format=None, encoding=None, verbose=0):
     """Write data into a file.
 
     Parameters
@@ -569,11 +838,14 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
         Sampling rate of the data in Hertz.
     unit: string
         Unit of the data.
-    meta: nested dict
+    metadata: nested dict
         Additional metadata.
     format: string or None
         File format. If None deduce file format from filepath.
         See `available_formats()` for possible values.
+    encoding: string or None
+        Encoding of the data. See `available_encodings()` for possible values.
+        If None or empty string use 'PCM_16'.
     verbose: int
         If >0 show detailed error/warning messages.
 
@@ -599,7 +871,8 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
     freq = 800.0
     time = np.arange(0.0, 1.0, 1/samplerate)     # one second
     data = 2.5*np.sin(2.0*np.p*freq*time)        # 800Hz sine wave
-    write_data('audio/file.npz', data, samplerate, 'mV')
+    md = dict(Artist='underscore_')          # metadata
+    write_data('audio/file.npz', data, samplerate, 'mV', md)
     ```
     """
     if not filepath:
@@ -614,7 +887,8 @@ def write_data(filepath, data, samplerate, unit=None, meta=None,
             continue
         if format.upper() in formats_func():
             writer_func = data_writer_funcs[fmt]
-            filepath = writer_func(filepath, data, samplerate, unit, meta)
+            filepath = writer_func(filepath, data, samplerate, unit, metadata,
+                                   format=format, encoding=encoding)
             if verbose > 0:
                 print(f'wrote data to file "{filepath}" using {fmt} format')
                 if verbose > 1:
@@ -649,7 +923,7 @@ def demo(file_path, channels=2, format=None):
     print('done.')
     
 
-def main(cargs):
+def main(*cargs):
     """Call demo with command line arguments.
 
     Parameters
@@ -671,7 +945,7 @@ def main(cargs):
     
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main(*sys.argv[1:])
 
     
 

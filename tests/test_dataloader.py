@@ -51,7 +51,7 @@ def test_container():
     filename = dw.write_pickle('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
-    md = dl.load_metadata(filename)
+    md = dl.metadata(filename)
     assert_equal(info, md, 'pickle metadata')
     os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='pickle')
@@ -63,7 +63,7 @@ def test_container():
     filename = dw.write_numpy('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
-    md = dl.load_metadata(filename)
+    md = dl.metadata(filename)
     assert_equal(info, md, 'numpy metadata')
     os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='numpy')
@@ -75,7 +75,7 @@ def test_container():
     filename = dw.write_mat('test', data, samplerate, 'mV', info)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
-    #md = dl.load_metadata(filename)
+    #md = dl.metadata(filename)
     #assert_equal(info, md, 'mat metadata')
     os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='mat')
@@ -130,7 +130,7 @@ def check_reading(filename, data):
 def test_relacs():
     data, samplerate, info = generate_data()
     dw.write_metadata_text(sys.stdout, info)
-    dw.write_relacs(relacs_path, data, samplerate, meta=info)
+    dw.write_relacs(relacs_path, data, samplerate, metadata=info)
     dl.metadata_relacs(relacs_path + '/info.dat')
     check_reading(relacs_path, data)
 
@@ -138,13 +138,13 @@ def test_relacs():
 @with_setup(None, remove_fishgrid_files)
 def test_fishgrid():
     data, samplerate, info = generate_data()
-    dw.write_fishgrid(fishgrid_path, data, samplerate, meta=info)
+    dw.write_fishgrid(fishgrid_path, data, samplerate, metadata=info)
     check_reading(fishgrid_path, data)
 
 def test_audioio():
     tolerance = 2.0**(-15)
     data, samplerate, info = generate_data()
-    filename = dw.write_audioio('test.wav', data, samplerate, meta=info)
+    filename = dw.write_audioio('test.wav', data, samplerate, metadata=info)
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
     os.remove(filename)
@@ -152,7 +152,7 @@ def test_audioio():
 def test_main():
     data, samplerate, info = generate_data()
     filename = dw.write_fishgrid(fishgrid_path, data, samplerate, 'mV', info)
-    dl.main(['-c', '0', filename])
-    dl.main(['-p', filename])
+    dl.main('-c', '0', filename)
+    dl.main('-p', filename)
     remove_fishgrid_files()
     

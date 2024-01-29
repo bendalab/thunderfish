@@ -50,6 +50,6 @@ def test_extensions():
 
     
 def test_main():
-    dw.main(['-c', '2', 'test.npz'])
+    dw.main('-c', '2', 'test.npz')
     os.remove('test.npz')
     
