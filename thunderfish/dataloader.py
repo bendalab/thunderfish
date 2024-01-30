@@ -1192,6 +1192,7 @@ class DataLoader(AudioLoader):
     - `close()`: close the file.
     - `metadata()`: metadata of the file.
     - `markers()`: markers of the file.
+    - `set_unwrap()`: Set parameters for unwrapping clipped data.
 
     """
 
