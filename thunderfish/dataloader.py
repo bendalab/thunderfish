@@ -791,7 +791,7 @@ def check_container(filepath):
 
     Supported file formats are:
 
-    - python pickle files (.pkl, .pickle)
+    - python pickle files (.pkl)
     - numpy files (.npz)
     - matlab files (.mat)
 
@@ -806,7 +806,7 @@ def check_container(filepath):
         `True`, if `filepath` is a supported container format.
     """
     ext = os.path.splitext(filepath)[1]
-    return ext.lower() in ('.pkl', '.pickle', '.npz', '.mat')
+    return ext.lower() in ('.pkl', '.npz', '.mat')
 
 
 def load_container(filepath, channel=-1, verbose=0, datakey=None,
@@ -864,7 +864,7 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
     # load data:
     data = {}
     ext = os.path.splitext(filepath)[1]
-    if ext in ('.pkl', '.pickle'):
+    if ext == '.pkl':
         import pickle
         with open(filepath, 'rb') as f:
             data = pickle.load(f)
@@ -957,7 +957,7 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
     # load data:
     data = {}
     ext = os.path.splitext(filepath)[1]
-    if ext in ('.pkl', '.pickle'):
+    if ext == '.pkl':
         import pickle
         with open(filepath, 'rb') as f:
             data = pickle.load(f)

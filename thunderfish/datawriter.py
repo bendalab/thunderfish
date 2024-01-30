@@ -65,8 +65,6 @@ def format_from_extension(filepath):
     if not ext:
         return None
     ext = ext.upper()
-    if ext == 'PKL':
-        return 'PICKLE'
     if data_modules['audioio']:
         ext = aw.format_from_extension(filepath)
     return ext
@@ -383,7 +381,7 @@ def formats_pickle():
     if not data_modules['pickle']:
         return []
     else:
-        return ['PICKLE']
+        return ['PKL']
 
 
 def encodings_pickle(format=None):
@@ -400,8 +398,8 @@ def encodings_pickle(format=None):
         List of supported encodings as strings.
     """
     if not format:
-        format = 'PICKLE'
-    if format.upper() != 'PICKLE':
+        format = 'PKL'
+    if format.upper() != 'PKL':
         return []
     else:
         return ['PCM_16', 'PCM_32', 'FLOAT', 'DOUBLE']
@@ -428,7 +426,7 @@ def write_pickle(filepath, data, samplerate, unit=None, metadata=None,
     metadata: nested dict
         Additional metadata saved into the pickle.
     format: string or None
-        File format, only None or 'PICKLE' are supported.
+        File format, only None or 'PKL' are supported.
     encoding: string or None
         Encoding of the data.
 
@@ -451,8 +449,8 @@ def write_pickle(filepath, data, samplerate, unit=None, metadata=None,
     if not filepath:
         raise ValueError('no file specified!')
     if format is None:
-        format = 'PICKLE'
-    if format.upper() != 'PICKLE':
+        format = 'PKL'
+    if format.upper() != 'PKL':
         raise ValueError(f'file format {format} not supported by pickle file format')
     ext = os.path.splitext(filepath)[1]
     if len(ext) <= 1 or ext[1].upper() != 'P':
@@ -484,7 +482,7 @@ def formats_numpy():
     if not data_modules['numpy']:
         return []
     else:
-        return ['NUMPY', 'NPZ']
+        return ['NPZ']
 
 
 def encodings_numpy(format=None):
@@ -501,8 +499,8 @@ def encodings_numpy(format=None):
         List of supported encodings as strings.
     """
     if not format:
-        format = 'NUMPY'
-    if not format.upper() in  ['NUMPY', 'NPZ']:
+        format = 'NPZ'
+    if format.upper() !=  'NPZ':
         return []
     else:
         return ['PCM_16', 'PCM_32', 'FLOAT', 'DOUBLE']
@@ -529,7 +527,7 @@ def write_numpy(filepath, data, samplerate, unit=None, metadata=None,
     metadata: nested dict
         Additional metadata saved into the numpy file.
     format: string or None
-        File format, only None or 'PICKLE' are supported.
+        File format, only None or 'NPZ' are supported.
     encoding: string or None
         Encoding of the data.
 
@@ -552,7 +550,7 @@ def write_numpy(filepath, data, samplerate, unit=None, metadata=None,
     if not filepath:
         raise ValueError('no file specified!')
     if format is None:
-        format = 'NUMPY'
+        format = 'NPZ'
     if format.upper() not in formats_numpy():
         raise ValueError(f'file format {format} not supported by numpy file format')
     ext = os.path.splitext(filepath)[1]
@@ -635,7 +633,7 @@ def write_mat(filepath, data, samplerate, unit=None, metadata=None,
     metadata: nested dict
         Additional metadata saved into the mat file.
     format: string or None
-        File format, only None or 'PICKLE' are supported.
+        File format, only None or 'MAT' are supported.
     encoding: string or None
         Encoding of the data.
 
