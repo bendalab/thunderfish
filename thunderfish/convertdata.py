@@ -53,6 +53,7 @@ import sys
 import argparse
 import numpy as np
 from .version import __version__, __year__
+from audioio import unwrap
 from .dataloader import load_data, metadata
 from .datawriter import available_formats, available_encodings
 from .datawriter import format_from_extension, write_data
@@ -91,7 +92,7 @@ def main(*cargs):
     Parameters
     ----------
     cargs: list of strings
-        Command line arguments as returned by sys.argv.
+        Command line arguments as returned by sys.argv[1:].
     """
     # command line arguments:
     parser = argparse.ArgumentParser(add_help=True,
@@ -106,6 +107,12 @@ def main(*cargs):
                         help='data format of output file')
     parser.add_argument('-e', dest='data_encoding', default=None, type=str, metavar='ENCODING',
                         help='data encoding of output file')
+    parser.add_argument('-u', dest='unwrap', default=0, type=float,
+                        metavar='UNWRAP', const=0.5, nargs='?',
+                        help='unwrap clipped data with threshold and divide by two')
+    parser.add_argument('-U', dest='unwrap_clip', default=0, type=float,
+                        metavar='UNWRAP', const=0.5, nargs='?',
+                        help='unwrap clipped data with threshold and clip')
     parser.add_argument('-c', dest='channels', default='',
                         type=str, metavar='CHANNELS',
                         help='comma and dash separated list of channels to be saved (first channel is 0)')
@@ -183,9 +190,18 @@ def main(*cargs):
             print(f'    file "{infile}" has {xdata.shape[1]} channels')
             sys.exit(-1)
         data = np.vstack((data, xdata))
-    # write out data:
+    # select channels:
     if len(channels) > 0:
         data = data[:,channels]
+    # fix data:
+    if args.unwrap_clip > 1e-3:
+        unwrap(data, args.unwrap_clip)
+        data[data > 1] = 1
+        data[data < -1] = -1
+    elif args.unwrap > 1e-3:
+        unwrap(data, args.unwrap)
+        data *= 0.5
+    # write out data:
     write_data(outfile, data, samplingrate, md,
                format=args.data_format, encoding=args.data_encoding)
     # message:
@@ -194,4 +210,4 @@ def main(*cargs):
 
 
 if __name__ == '__main__':
-    main(*sys.argv)
+    main(*sys.argv[1:])
