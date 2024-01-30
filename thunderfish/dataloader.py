@@ -875,7 +875,7 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
         data = loadmat(filepath, squeeze_me=True)
     if verbose > 0:
         print( 'loaded %s' % filepath)
-    # extract metadata:
+    # extract format data:
     if not isinstance(samplekey, (list, tuple, np.ndarray)):
         samplekey = (samplekey,)
     if not isinstance(timekey, (list, tuple, np.ndarray)):
@@ -929,7 +929,14 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
         if channel >= raw_data.shape[1]:
             raise IndexError(f'invalid channel number {channel} requested')
         raw_data = raw_data[:,channel]
-    return raw_data.astype(float), samplerate, unit
+    # recode:
+    dtype = raw_data.dtype
+    data = raw_data.astype(float)
+    if dtype == np.dtype('int16'):
+        data /= 2**15
+    elif dtype == np.dtype('int32'):
+        data /= 2**31
+    return data, samplerate, unit
 
 
 def metadata_container(filepath, metadatakey=['metadata', 'info']):

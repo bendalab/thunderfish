@@ -48,39 +48,45 @@ def test_container():
     tolerance = 2.0**(-15)
     data, samplerate, info = generate_data()
     # pickle:
-    filename = dw.write_pickle('test', data, samplerate, 'mV', info)
-    full_data, rate, unit = dl.load_data(filename, -1)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
-    md = dl.metadata(filename)
-    assert_equal(info, md, 'pickle metadata')
-    os.remove(filename)
+    for encoding in dw.encodings_pickle():
+        filename = dw.write_pickle('test', data, samplerate, 'mV', info,
+                                   encoding=encoding)
+        full_data, rate, unit = dl.load_data(filename, -1)
+        assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+        md = dl.metadata(filename)
+        assert_equal(info, md, 'pickle metadata')
+        os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='pickle')
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
     os.remove(filename)
 
     # numpy:
-    filename = dw.write_numpy('test', data, samplerate, 'mV', info)
-    full_data, rate, unit = dl.load_data(filename, -1)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
-    md = dl.metadata(filename)
-    assert_equal(info, md, 'numpy metadata')
-    os.remove(filename)
+    for encoding in dw.encodings_numpy():
+        filename = dw.write_numpy('test', data, samplerate, 'mV',
+                                  info, encoding=encoding)
+        full_data, rate, unit = dl.load_data(filename, -1)
+        assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
+        md = dl.metadata(filename)
+        assert_equal(info, md, 'numpy metadata')
+        os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='numpy')
     full_data, rate, unit = dl.load_data(filename, -1)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
     os.remove(filename)
 
     # mat:
-    filename = dw.write_mat('test', data, samplerate, 'mV', info)
-    full_data, rate, unit = dl.load_data(filename, -1)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
-    #md = dl.metadata(filename)
-    #assert_equal(info, md, 'mat metadata')
-    os.remove(filename)
+    for encoding in dw.encodings_mat():
+        filename = dw.write_mat('test', data, samplerate, 'mV', info,
+                                encoding=encoding)
+        full_data, rate, unit = dl.load_data(filename, -1)
+        assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
+        md = dl.metadata(filename)
+        assert_equal(info, md, 'mat metadata')
+        os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='mat')
     full_data, rate, unit = dl.load_data(filename, -1)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
     os.remove(filename)
     
 

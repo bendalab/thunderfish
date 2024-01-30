@@ -159,7 +159,7 @@ def formats_relacs():
     return ['RELACS']
 
 
-def encodings_relacs(format):
+def encodings_relacs(format=None):
     """Encodings of the relacs file format.
 
     Parameters
@@ -172,6 +172,8 @@ def encodings_relacs(format):
     encodings: list of strings
         List of supported encodings as strings.
     """
+    if not format:
+        format = 'RELACS'
     if format.upper() != 'RELACS':
         return []
     else:
@@ -278,7 +280,7 @@ def formats_fishgrid():
     return ['FISHGRID']
 
 
-def encodings_fishgrid(format):
+def encodings_fishgrid(format=None):
     """Encodings of the fishgrid file format.
 
     Parameters
@@ -291,6 +293,8 @@ def encodings_fishgrid(format):
     encodings: list of strings
         List of supported encodings as strings.
     """
+    if not format:
+        format = 'FISHGRID'
     if format.upper() != 'FISHGRID':
         return []
     else:
@@ -382,7 +386,7 @@ def formats_pickle():
         return ['PICKLE']
 
 
-def encodings_pickle(format):
+def encodings_pickle(format=None):
     """Encodings of the pickle format.
 
     Parameters
@@ -395,6 +399,8 @@ def encodings_pickle(format):
     encodings: list of strings
         List of supported encodings as strings.
     """
+    if not format:
+        format = 'PICKLE'
     if format.upper() != 'PICKLE':
         return []
     else:
@@ -481,7 +487,7 @@ def formats_numpy():
         return ['NUMPY', 'NPZ']
 
 
-def encodings_numpy(format):
+def encodings_numpy(format=None):
     """Encodings of the numpy file format.
 
     Parameters
@@ -494,6 +500,8 @@ def encodings_numpy(format):
     encodings: list of strings
         List of supported encodings as strings.
     """
+    if not format:
+        format = 'NUMPY'
     if not format.upper() in  ['NUMPY', 'NPZ']:
         return []
     else:
@@ -585,7 +593,7 @@ def formats_mat():
         return ['MAT']
 
 
-def encodings_mat(format):
+def encodings_mat(format=None):
     """Encodings of the matlab format.
 
     Parameters
@@ -598,6 +606,8 @@ def encodings_mat(format):
     encodings: list of strings
         List of supported encodings as strings.
     """
+    if not format:
+        format = 'MAT'
     if format.upper() != 'MAT':
         return []
     else:
@@ -664,7 +674,13 @@ def write_mat(filepath, data, samplerate, unit=None, metadata=None,
     if unit:
         ddict['unit'] = unit
     if metadata:
-        ddict['metadata'] = metadata
+        if data_modules['audioio']:
+            fmeta = flatten_metadata(metadata, True)
+        else:
+            fmeta = metadata
+        for k in list(fmeta):
+            fmeta['metadata.'+k] = fmeta.pop(k)
+        ddict.update(fmeta)
     sio.savemat(filepath, ddict)
     return filepath
 
