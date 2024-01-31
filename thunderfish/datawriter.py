@@ -36,7 +36,7 @@ except ImportError:
 
 try:
     import audioio.audiowriter as aw
-    from audioio import flatten_metadata
+    from audioio import write_metadata_text, flatten_metadata
     data_modules['audioio'] = True
 except ImportError:
     data_modules['audioio'] = False
@@ -104,47 +104,6 @@ def recode_array(data, encoding):
         buffer = data.astype(dtype, copy=False)
     return buffer
 
-
-def write_metadata_text(fh, meta, prefix='', indent=4):
-    """Write meta data into a text/yaml file.
-
-    With the default parameters, the output is a valid yaml file.
-
-    Parameters
-    ----------
-    fh: filename or stream
-        If not a stream, the file with name `fh` is opened.
-        Otherwise `fh` is used as a stream for writing.
-    meta: nested dict
-        Key-value pairs of metadata to be written into the file.
-    prefix: str
-        This string is written at the beginning of each line.
-    indent: int
-        Number of characters used for indentation of sections.
-    """
-    
-    def write_dict(df, meta, level):
-        w = 0
-        for k in meta:
-            if not isinstance(meta[k], dict) and w < len(k):
-                w = len(k)
-        for k in meta:
-            clevel = level*indent
-            if isinstance(meta[k], dict):
-                df.write(f'{prefix}{"":>{clevel}}{k}:\n')
-                write_dict(df, meta[k], level+1)
-            else:
-                df.write(f'{prefix}{"":>{clevel}}{k:<{w}}: {meta[k]}\n')
-
-    if hasattr(fh, 'write'):
-        own_file = False
-    else:
-        own_file = True
-        fh = open(fh, 'w')
-    write_dict(fh, meta, 0)
-    if own_file:
-        fh.close()
-        
     
 def formats_relacs():
     """Data format of the relacs file format.
