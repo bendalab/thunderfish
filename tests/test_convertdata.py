@@ -40,6 +40,9 @@ def test_main():
     os.remove(destfile + '.wav')
     destfile += '.pkl'
     write_data_file(filename1, 4)
+    cd.main('-c', '1', '-o', destfile, filename1)
+    cd.main('-c', '0-2', '-o', destfile, filename1)
+    cd.main('-c', '0-1,3', '-o', destfile, filename1)
     assert_raises(SystemExit, cd.main, '-o', destfile, filename, filename1)
     write_data_file(filename1, 2, 20000)
     assert_raises(SystemExit, cd.main, '-o', destfile, filename, filename1)

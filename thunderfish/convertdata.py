@@ -170,7 +170,8 @@ def main(*cargs):
             if not args.data_format:
                 args.data_format = 'wav'
                 outfile = outfile + os.extsep + args.data_format
-    check_format(args.data_format)
+    if not check_format(args.data_format):
+        sys.exit(-1)
     if os.path.realpath(infile) == os.path.realpath(outfile):
         print(f'! cannot convert "{infile}" to itself !')
         sys.exit(-1)
