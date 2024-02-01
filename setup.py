@@ -52,5 +52,5 @@ setup(
             'thunderbrowse = thunderfish.thunderbrowse:main',
         ]},
     python_requires = '>=3.4',
-    install_requires = ['scikit-learn', 'scipy', 'numpy', 'matplotlib', 'audioio>=0.10'],
+    install_requires = ['scikit-learn', 'scipy', 'numpy', 'matplotlib', 'audioio>=1.0'],
 )
