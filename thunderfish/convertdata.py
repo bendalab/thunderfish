@@ -26,8 +26,8 @@ convertdata --help
 ```
 prints
 ```text
-usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-u [UNWRAP]] [-U [UNWRAP]] [-c CHANNELS] [-n NUM]
-                   [-o OUTPATH]
+usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-d FAC] [-u [UNWRAP]] [-U [UNWRAP]]
+                   [-c CHANNELS] [-n NUM] [-o OUTPATH]
                    [file ...]
 
 Convert data file formats.
@@ -42,6 +42,7 @@ options:
   -l           list supported file formats and encodings
   -f FORMAT    data format of output file
   -e ENCODING  data encoding of output file
+  -d FAC       downsample by integer factor FAC
   -u [UNWRAP]  unwrap clipped data with threshold and divide by two
   -U [UNWRAP]  unwrap clipped data with threshold and clip
   -c CHANNELS  comma and dash separated list of channels to be saved (first channel is 0)
@@ -57,6 +58,7 @@ import os
 import sys
 import argparse
 import numpy as np
+from scipy.signal import decimate
 from .version import __version__, __year__
 from audioio import unwrap
 from .dataloader import load_data, metadata
@@ -153,6 +155,9 @@ def main(*cargs):
                         help='data format of output file')
     parser.add_argument('-e', dest='data_encoding', default=None, type=str, metavar='ENCODING',
                         help='data encoding of output file')
+    parser.add_argument('-d', dest='decimate', default=1, type=int,
+                        metavar='FAC',
+                        help='downsample by integer factor FAC')
     parser.add_argument('-u', dest='unwrap', default=0, type=float,
                         metavar='UNWRAP', const=0.5, nargs='?',
                         help='unwrap clipped data with threshold and divide by two')
@@ -263,6 +268,10 @@ def main(*cargs):
             unwrap(data, args.unwrap)
             data *= 0.5
             update_gain(md, 0.5)
+        # decimate:
+        if args.decimate > 1:
+            data = decimate(data, args.decimate, axis=0)
+            samplingrate /= args.decimate
         # write out data:
         write_data(outfile, data, samplingrate, unit, md,
                    format=data_format, encoding=args.data_encoding)
