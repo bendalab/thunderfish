@@ -113,7 +113,7 @@ def test_peak_freqs():
     time = np.arange(0.0, 10.0, dt)
     data = np.zeros(len(time))
     w = len(data)//10
-    freqs = 20.0 + 80.0*np.random.rand(10)
+    freqs = 20.0 + 4*np.random.randint(0, 20, 10)
     onsets = []
     offsets = []
     for k in range(10):
