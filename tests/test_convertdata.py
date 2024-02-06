@@ -13,8 +13,9 @@ def write_data_file(filename, channels=2, samplerate = 44100):
     data = data.reshape((-1, 1))
     for k in range(data.shape[1], channels):
         data = np.hstack((data, data[:,0].reshape((-1, 1))/k))
+    info = dict(Num=42)
     encoding = 'PCM_16'
-    dw.write_numpy(filename, data, samplerate, encoding=encoding)
+    dw.write_numpy(filename, data, samplerate, metadata=info, encoding=encoding)
 
 
 def test_main():
@@ -53,6 +54,13 @@ def test_main():
     n += len(xdata)
     xdata, xrate, xunit = dl.load_data(destfile)
     assert_equal(len(xdata), n, 'len of merged files')
+    cd.main('-d', '4', '-o', destfile, filename)
+    xdata, xrate, xunit = dl.load_data(filename)
+    ydata, yrate, yunit = dl.load_data(destfile)
+    assert_equal(len(ydata), len(xdata)//4, 'decimation data')
+    assert_equal(yrate*4, xrate, 'decimation rate')
+    cd.main('-o', 'test{Num}.npz', filename)
+    os.remove('test42.npz')
     os.remove(filename)
     os.remove(filename1)
     os.remove(destfile)

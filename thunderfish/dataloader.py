@@ -978,7 +978,10 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
         mkey += '.'
         for dkey in data:
             if dkey[:len(mkey)] == mkey:
-                metadata[dkey[len(mkey):]] = data[dkey]
+                v = data[dkey]
+                if hasattr(v, 'size') and v.ndim == 0:
+                    v = v.item()
+                metadata[dkey[len(mkey):]] = v
         if len(metadata) > 0:
             return unflatten_metadata(metadata)
     return metadata

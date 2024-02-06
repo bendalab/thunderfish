@@ -30,7 +30,7 @@ usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-u [THR
                    [-c CHANNELS] [-n NUM] [-o OUTPATH]
                    [file ...]
 
-Convert data file formats.
+Convert, downsample, rename, and merge data files.
 
 positional arguments:
   file         one or more input data files to be combined into a single output file
@@ -42,12 +42,13 @@ options:
   -l           list supported file formats and encodings
   -f FORMAT    data format of output file
   -e ENCODING  data encoding of output file
-  -u [THRESH]  unwrap clipped data with threshold and divide by two
-  -U [THRESH]  unwrap clipped data with threshold and clip
+  -u [THRESH]  unwrap clipped data with threshold (default is 0.5) and divide by two
+  -U [THRESH]  unwrap clipped data with threshold (default is 0.5) and clip
   -d FAC       downsample by integer factor
   -c CHANNELS  comma and dash separated list of channels to be saved (first channel is 0)
-  -n NUM       merge NUM input files into one output file
-  -o OUTPATH   path or filename of output file
+  -n NUM       merge NUM input files into one output file (default is all files)
+  -o OUTPATH   path or filename of output file. Metadata keys enclosed in curly braces will be replaced by their
+               values from the input file
 
 version 1.12.0 by Benda-Lab (2020-2024)
 ```
@@ -60,7 +61,7 @@ import argparse
 import numpy as np
 from scipy.signal import decimate
 from .version import __version__, __year__
-from audioio import unwrap
+from audioio import unwrap, flatten_metadata
 from .dataloader import load_data, metadata
 from .datawriter import available_formats, available_encodings
 from .datawriter import format_from_extension, write_data
@@ -134,17 +135,18 @@ def update_gain(md, fac):
     
 
 def main(*cargs):
-    """
-    Command line script for converting data files.
+    """Command line script for converting, downsampling, renaming and
+    merging data files.
 
     Parameters
     ----------
     cargs: list of strings
         Command line arguments as returned by sys.argv[1:].
+
     """
     # command line arguments:
     parser = argparse.ArgumentParser(add_help=True,
-        description='Convert data file formats.',
+        description='Convert, downsample, rename, and merge data files.',
         epilog=f'version {__version__} by Benda-Lab (2020-{__year__})')
     parser.add_argument('--version', action='version', version=__version__)
     parser.add_argument('-v', action='count', dest='verbose', default=0,
@@ -157,10 +159,10 @@ def main(*cargs):
                         help='data encoding of output file')
     parser.add_argument('-u', dest='unwrap', default=0, type=float,
                         metavar='THRESH', const=0.5, nargs='?',
-                        help='unwrap clipped data with threshold and divide by two')
+                        help='unwrap clipped data with threshold (default is 0.5) and divide by two')
     parser.add_argument('-U', dest='unwrap_clip', default=0, type=float,
                         metavar='THRESH', const=0.5, nargs='?',
-                        help='unwrap clipped data with threshold and clip')
+                        help='unwrap clipped data with threshold (default is 0.5) and clip')
     parser.add_argument('-d', dest='decimate', default=1, type=int,
                         metavar='FAC',
                         help='downsample by integer factor')
@@ -168,9 +170,9 @@ def main(*cargs):
                         type=str, metavar='CHANNELS',
                         help='comma and dash separated list of channels to be saved (first channel is 0)')
     parser.add_argument('-n', dest='nmerge', default=0, type=int, metavar='NUM',
-                        help='merge NUM input files into one output file')
+                        help='merge NUM input files into one output file (default is all files)')
     parser.add_argument('-o', dest='outpath', default=None, type=str,
-                        help='path or filename of output file')
+                        help='path or filename of output file. Metadata keys enclosed in curly braces will be replaced by their values from the input file')
     parser.add_argument('file', nargs='*', type=str,
                         help='one or more input data files to be combined into a single output file')
     if len(cargs) == 0:
@@ -272,6 +274,11 @@ def main(*cargs):
         if args.decimate > 1:
             data = decimate(data, args.decimate, axis=0)
             samplingrate /= args.decimate
+        # metadata into file name:
+        if len(md) > 0 and '{' in outfile and '}' in outfile:
+            fmd = flatten_metadata(md)
+            fmd = {k:(fmd[k] if isinstance(fmd[k], (int, float)) else fmd[k].replace(' ', '_')) for k in fmd}
+            outfile = outfile.format(**fmd)
         # write out data:
         write_data(outfile, data, samplingrate, unit, md,
                    format=data_format, encoding=args.data_encoding)
