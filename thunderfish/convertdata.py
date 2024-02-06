@@ -161,6 +161,10 @@ def main(*cargs):
     for i0 in range(0, len(args.file), nmerge):
         infile = args.file[i0]
         # output file and format:
+        if nmerge < len(args.file) and args.outpath and \
+           format_from_extension(args.outpath) is None and \
+           not os.path.exists(args.outpath):
+            os.mkdir(args.outpath)
         data_format = args.data_format
         if not args.outpath or os.path.isdir(args.outpath):
             outfile = infile
