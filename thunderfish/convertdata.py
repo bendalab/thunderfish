@@ -26,7 +26,9 @@ convertdata --help
 ```
 prints
 ```text
-usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-c CHANNELS] [-o OUTPATH] [file ...]
+usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-u [UNWRAP]] [-U [UNWRAP]] [-c CHANNELS] [-n NUM]
+                   [-o OUTPATH]
+                   [file ...]
 
 Convert data file formats.
 
@@ -40,10 +42,13 @@ options:
   -l           list supported file formats and encodings
   -f FORMAT    data format of output file
   -e ENCODING  data encoding of output file
+  -u [UNWRAP]  unwrap clipped data with threshold and divide by two
+  -U [UNWRAP]  unwrap clipped data with threshold and clip
   -c CHANNELS  comma and dash separated list of channels to be saved (first channel is 0)
+  -n NUM       merge NUM input files into one output file
   -o OUTPATH   path or filename of output file
 
-version 1.10.0 by Benda-Lab (2020-2024)
+version 1.12.0 by Benda-Lab (2020-2024)
 ```
 
 """
@@ -67,7 +72,7 @@ def check_format(format):
 
     Parameters
     ----------
-    format: string
+    format: str
         Data format to be checked.
 
     Returns
@@ -85,6 +90,47 @@ def check_format(format):
         return True
 
 
+def update_gain(md, fac):
+    """ Update gain setting in metadata.
+
+    Parameters
+    ----------
+    md: nested dict
+        Metadata to be updated.
+    fac: float
+        Factor that was used to scale the data.
+
+    Returns
+    -------
+    done: bool
+        True if gain has been found and set.
+    """
+    for k in md:
+        if k.strip().upper() == 'GAIN':
+            vs = md[k]
+            if isinstance(vs, (int, float)):
+                md[k] /= fac
+            else:
+                # extract initial number:
+                n = len(vs)
+                ip = n
+                for i in range(len(vs)):
+                    if vs[i] == '.':
+                        ip = i + 1
+                    if not vs[i] in '0123456789.+-':
+                        n = i
+                        break
+                v = float(vs[:n])
+                u = vs[n:].removesuffix('/V')  # fix some TeeGrid gains
+                nd = n - ip
+                md[k] = f'{v/fac:.{nd}f}{u}'
+            return True
+        elif isinstance(md[k], dict):
+            if update_gain(md[k], fac):
+                return True
+    return False
+    
+
 def main(*cargs):
     """
     Command line script for converting data files.
@@ -99,7 +145,7 @@ def main(*cargs):
         description='Convert data file formats.',
         epilog=f'version {__version__} by Benda-Lab (2020-{__year__})')
     parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('-v', action='store_true', dest='verbose',
+    parser.add_argument('-v', action='count', dest='verbose', default=0,
                         help='print debug output')
     parser.add_argument('-l', dest='list_formats', action='store_true',
                         help='list supported file formats and encodings')
@@ -188,6 +234,8 @@ def main(*cargs):
         # read in data:
         data, samplingrate, unit = load_data(infile)
         md = metadata(infile)
+        if args.verbose > 1:
+            print(f'loaded data file "{infile}"')
         for infile in args.file[i0+1:i0+nmerge]:
             xdata, xrate, xunit = load_data(infile)
             if abs(samplingrate - xrate) > 1:
@@ -201,6 +249,8 @@ def main(*cargs):
                 print(f'    file "{infile}" has {xdata.shape[1]} channels')
                 sys.exit(-1)
             data = np.vstack((data, xdata))
+            if args.verbose > 1:
+                print(f'loaded data file "{infile}"')
         # select channels:
         if len(channels) > 0:
             data = data[:,channels]
@@ -212,11 +262,14 @@ def main(*cargs):
         elif args.unwrap > 1e-3:
             unwrap(data, args.unwrap)
             data *= 0.5
+            update_gain(md, 0.5)
         # write out data:
         write_data(outfile, data, samplingrate, unit, md,
                    format=data_format, encoding=args.data_encoding)
         # message:
-        if args.verbose:
+        if args.verbose > 1:
+            print(f'wrote "{outfile}"')
+        elif args.verbose:
             print(f'converted data file "{infile}" to "{outfile}"')
 
 
