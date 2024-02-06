@@ -32,12 +32,11 @@ def test_main():
     cd.main('-u', '0.8', '-f', 'pkl', '-o', destfile, filename)
     cd.main('-U', '0.8', '-f', 'pkl', '-o', destfile, filename)
     assert_raises(SystemExit, cd.main, 'prog', '-f', 'xxx', '-o', destfile, filename)
-    cd.main('-o', destfile, filename)
+    assert_raises(SystemExit, cd.main, '-o', destfile, filename)
     cd.main('-f', 'pkl', '-o', destfile, filename)
     cd.main('-e', 'PCM_32', '-o', destfile + '.pkl', filename)
     cd.main('-f', 'pkl', '-e', 'PCM_32', '-o', destfile, '-v', filename)
     assert_raises(SystemExit, cd.main)
-    os.remove(destfile + '.wav')
     destfile += '.pkl'
     write_data_file(filename1, 4)
     cd.main('-c', '1', '-o', destfile, filename1)

@@ -75,7 +75,7 @@ def check_format(format):
     valid: bool
         True if the requested data format is valid.
     """
-    if format and format.upper() not in available_formats():
+    if not format or format.upper() not in available_formats():
         print(f'! invalid data format "{format}"!')
         print('run')
         print(f'> {__file__} -l')
@@ -137,15 +137,14 @@ def main(*cargs):
         else:
             channels.append(int(c))
 
-    if not check_format(args.data_format):
-        sys.exit(-1)
-
     if args.list_formats:
         if not args.data_format:
             print('available data formats:')
             for f in available_formats():
                 print(f'  {f}')
         else:
+            if not check_format(args.data_format):
+                sys.exit(-1)
             print(f'available encodings for data format {args.data_format}:')
             for e in available_encodings(args.data_format):
                 print(f'  {e}')
@@ -168,14 +167,15 @@ def main(*cargs):
             if args.outpath:
                 outfile = os.path.join(args.outpath, outfile)
             if not data_format:
-                data_format = 'wav'
-            outfile = os.path.splitext(outfile)[0] + os.extsep + data_format
+                print('! need to specify a data format via -f or a file extension !')
+                sys.exit(-1)
+            outfile = os.path.splitext(outfile)[0] + os.extsep + data_format.lower()
         else:
             outfile = args.outpath
             if data_format:
-                outfile = os.path.splitext(outfile)[0] + os.extsep + data_format
+                outfile = os.path.splitext(outfile)[0] + os.extsep + data_format.lower()
             else:
-                data_format = format_from_extension(outfile).lower()
+                data_format = format_from_extension(outfile)
         if not check_format(data_format):
             sys.exit(-1)
         if os.path.realpath(infile) == os.path.realpath(outfile):
