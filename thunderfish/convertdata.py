@@ -26,7 +26,7 @@ convertdata --help
 ```
 prints
 ```text
-usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-d FAC] [-u [UNWRAP]] [-U [UNWRAP]]
+usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-u [THRESH]] [-U [THRESH]] [-d FAC]
                    [-c CHANNELS] [-n NUM] [-o OUTPATH]
                    [file ...]
 
@@ -42,9 +42,9 @@ options:
   -l           list supported file formats and encodings
   -f FORMAT    data format of output file
   -e ENCODING  data encoding of output file
-  -d FAC       downsample by integer factor FAC
-  -u [UNWRAP]  unwrap clipped data with threshold and divide by two
-  -U [UNWRAP]  unwrap clipped data with threshold and clip
+  -u [THRESH]  unwrap clipped data with threshold and divide by two
+  -U [THRESH]  unwrap clipped data with threshold and clip
+  -d FAC       downsample by integer factor
   -c CHANNELS  comma and dash separated list of channels to be saved (first channel is 0)
   -n NUM       merge NUM input files into one output file
   -o OUTPATH   path or filename of output file
@@ -155,15 +155,15 @@ def main(*cargs):
                         help='data format of output file')
     parser.add_argument('-e', dest='data_encoding', default=None, type=str, metavar='ENCODING',
                         help='data encoding of output file')
-    parser.add_argument('-d', dest='decimate', default=1, type=int,
-                        metavar='FAC',
-                        help='downsample by integer factor FAC')
     parser.add_argument('-u', dest='unwrap', default=0, type=float,
-                        metavar='UNWRAP', const=0.5, nargs='?',
+                        metavar='THRESH', const=0.5, nargs='?',
                         help='unwrap clipped data with threshold and divide by two')
     parser.add_argument('-U', dest='unwrap_clip', default=0, type=float,
-                        metavar='UNWRAP', const=0.5, nargs='?',
+                        metavar='THRESH', const=0.5, nargs='?',
                         help='unwrap clipped data with threshold and clip')
+    parser.add_argument('-d', dest='decimate', default=1, type=int,
+                        metavar='FAC',
+                        help='downsample by integer factor')
     parser.add_argument('-c', dest='channels', default='',
                         type=str, metavar='CHANNELS',
                         help='comma and dash separated list of channels to be saved (first channel is 0)')
