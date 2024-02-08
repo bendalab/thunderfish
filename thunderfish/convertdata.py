@@ -61,7 +61,6 @@ import argparse
 import numpy as np
 from scipy.signal import decimate
 from .version import __version__, __year__
-from audioio import unwrap, flatten_metadata
 from audioio.audioconverter import add_arguments, parse_channels
 from audioio.audioconverter import make_outfile, format_outfile
 from audioio.audioconverter import modify_data, add_metadata
