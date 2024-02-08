@@ -179,9 +179,10 @@ def main(*cargs):
             data = np.vstack((data, xdata))
             if args.verbose > 1:
                 print(f'loaded data file "{infile}"')
-        data, samplingrate = modify_data(data, samplingrate, md, channels,
-                                         args.unwrap_clip, args.unwrap,
-                                         args.decimate)
+        data, samplingrate = modify_data(data, samplingrate, md,
+                                         channels, args.scale,
+                                         args.unwrap_clip,
+                                         args.unwrap, args.decimate)
         outfile = format_outfile(outfile, md)
         # write out data:
         write_data(outfile, data, samplingrate, unit, md,

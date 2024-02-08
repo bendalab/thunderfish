@@ -32,6 +32,7 @@ def test_main():
     cd.main('-u', '-f', 'pkl', '-o', destfile, filename)
     cd.main('-u', '0.8', '-f', 'pkl', '-o', destfile, filename)
     cd.main('-U', '0.8', '-f', 'pkl', '-o', destfile, filename)
+    cd.main('-s', '0.1', '-f', 'pkl', '-o', destfile, filename)
     assert_raises(SystemExit, cd.main, 'prog', '-f', 'xxx', '-o', destfile, filename)
     assert_raises(SystemExit, cd.main, '-o', destfile, filename)
     cd.main('-f', 'pkl', '-o', destfile, filename)
