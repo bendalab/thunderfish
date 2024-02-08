@@ -62,6 +62,8 @@ import numpy as np
 from scipy.signal import decimate
 from .version import __version__, __year__
 from audioio import unwrap, flatten_metadata
+from audioio.audioconverter import add_arguments, parse_channels
+from audioio.audioconverter import make_outfile, modify_data, format_outfile
 from .dataloader import load_data, metadata
 from .datawriter import available_formats, available_encodings
 from .datawriter import format_from_extension, write_data
@@ -69,22 +71,22 @@ from .datawriter import format_from_extension, write_data
 
 def check_format(format):
     """
-    Check whether requested data format is valid and supported.
+    Check whether requested audio format is valid and supported.
 
     If the format is not available print an error message on console.
 
     Parameters
     ----------
-    format: str
-        Data format to be checked.
+    format: string
+        Audio format to be checked.
 
     Returns
     -------
     valid: bool
-        True if the requested data format is valid.
+        True if the requested audio format is valid.
     """
     if not format or format.upper() not in available_formats():
-        print(f'! invalid data format "{format}"!')
+        print(f'! invalid data file format "{format}"!')
         print('run')
         print(f'> {__file__} -l')
         print('for a list of available formats')
@@ -93,46 +95,25 @@ def check_format(format):
         return True
 
 
-def update_gain(md, fac):
-    """ Update gain setting in metadata.
+def list_formats_encodings(data_format):
+    """ List available formats or encodings.
 
     Parameters
     ----------
-    md: nested dict
-        Metadata to be updated.
-    fac: float
-        Factor that was used to scale the data.
-
-    Returns
-    -------
-    done: bool
-        True if gain has been found and set.
+    data_format: None or str
+        If provided, list encodings for this data format.
     """
-    for k in md:
-        if k.strip().upper() == 'GAIN':
-            vs = md[k]
-            if isinstance(vs, (int, float)):
-                md[k] /= fac
-            else:
-                # extract initial number:
-                n = len(vs)
-                ip = n
-                for i in range(len(vs)):
-                    if vs[i] == '.':
-                        ip = i + 1
-                    if not vs[i] in '0123456789.+-':
-                        n = i
-                        break
-                v = float(vs[:n])
-                u = vs[n:].removesuffix('/V')  # fix some TeeGrid gains
-                nd = n - ip
-                md[k] = f'{v/fac:.{nd}f}{u}'
-            return True
-        elif isinstance(md[k], dict):
-            if update_gain(md[k], fac):
-                return True
-    return False
-    
+    if not data_format:
+        print('available file formats:')
+        for f in available_formats():
+            print(f'  {f}')
+    else:
+        if not check_format(data_format):
+            sys.exit(-1)
+        print(f'available encodings for {data_format} file format:')
+        for e in available_encodings(data_format):
+            print(f'  {e}')
+
 
 def main(*cargs):
     """Command line script for converting, downsampling, renaming and
@@ -148,59 +129,15 @@ def main(*cargs):
     parser = argparse.ArgumentParser(add_help=True,
         description='Convert, downsample, rename, and merge data files.',
         epilog=f'version {__version__} by Benda-Lab (2020-{__year__})')
-    parser.add_argument('--version', action='version', version=__version__)
-    parser.add_argument('-v', action='count', dest='verbose', default=0,
-                        help='print debug output')
-    parser.add_argument('-l', dest='list_formats', action='store_true',
-                        help='list supported file formats and encodings')
-    parser.add_argument('-f', dest='data_format', default=None, type=str, metavar='FORMAT',
-                        help='data format of output file')
-    parser.add_argument('-e', dest='data_encoding', default=None, type=str, metavar='ENCODING',
-                        help='data encoding of output file')
-    parser.add_argument('-u', dest='unwrap', default=0, type=float,
-                        metavar='THRESH', const=0.5, nargs='?',
-                        help='unwrap clipped data with threshold (default is 0.5) and divide by two')
-    parser.add_argument('-U', dest='unwrap_clip', default=0, type=float,
-                        metavar='THRESH', const=0.5, nargs='?',
-                        help='unwrap clipped data with threshold (default is 0.5) and clip')
-    parser.add_argument('-d', dest='decimate', default=1, type=int,
-                        metavar='FAC',
-                        help='downsample by integer factor')
-    parser.add_argument('-c', dest='channels', default='',
-                        type=str, metavar='CHANNELS',
-                        help='comma and dash separated list of channels to be saved (first channel is 0)')
-    parser.add_argument('-n', dest='nmerge', default=0, type=int, metavar='NUM',
-                        help='merge NUM input files into one output file (default is all files)')
-    parser.add_argument('-o', dest='outpath', default=None, type=str,
-                        help='path or filename of output file. Metadata keys enclosed in curly braces will be replaced by their values from the input file')
-    parser.add_argument('file', nargs='*', type=str,
-                        help='one or more input data files to be combined into a single output file')
+    add_arguments(parser)
     if len(cargs) == 0:
         cargs = None
     args = parser.parse_args(cargs)
-
-    cs = [s.strip() for s in args.channels.split(',')]
-    channels = []
-    for c in cs:
-        if len(c) == 0:
-            continue
-        css = [s.strip() for s in c.split('-')]
-        if len(css) == 2:
-            channels.extend(list(range(int(css[0]), int(css[1])+1)))
-        else:
-            channels.append(int(c))
-
+    
+    channels = parse_channels(args.channels)
+    
     if args.list_formats:
-        if not args.data_format:
-            print('available data formats:')
-            for f in available_formats():
-                print(f'  {f}')
-        else:
-            if not check_format(args.data_format):
-                sys.exit(-1)
-            print(f'available encodings for data format {args.data_format}:')
-            for e in available_encodings(args.data_format):
-                print(f'  {e}')
+        list_formats_encodings(args.data_format)
         return
 
     if len(args.file) == 0:
@@ -213,26 +150,10 @@ def main(*cargs):
 
     for i0 in range(0, len(args.file), nmerge):
         infile = args.file[i0]
-        # output file and format:
-        if nmerge < len(args.file) and args.outpath and \
-           format_from_extension(args.outpath) is None and \
-           not os.path.exists(args.outpath):
-            os.mkdir(args.outpath)
-        data_format = args.data_format
-        if not args.outpath or os.path.isdir(args.outpath):
-            outfile = infile
-            if args.outpath:
-                outfile = os.path.join(args.outpath, outfile)
-            if not data_format:
-                print('! need to specify a data format via -f or a file extension !')
-                sys.exit(-1)
-            outfile = os.path.splitext(outfile)[0] + os.extsep + data_format.lower()
-        else:
-            outfile = args.outpath
-            if data_format:
-                outfile = os.path.splitext(outfile)[0] + os.extsep + data_format.lower()
-            else:
-                data_format = format_from_extension(outfile)
+        outfile, data_format = make_outfile(args.outpath, infile,
+                                            args.data_format,
+                                            nmerge < len(args.file),
+                                            format_from_extension)
         if not check_format(data_format):
             sys.exit(-1)
         if os.path.realpath(infile) == os.path.realpath(outfile):
@@ -258,30 +179,13 @@ def main(*cargs):
             data = np.vstack((data, xdata))
             if args.verbose > 1:
                 print(f'loaded data file "{infile}"')
-        # select channels:
-        if len(channels) > 0:
-            data = data[:,channels]
-        # fix data:
-        if args.unwrap_clip > 1e-3:
-            unwrap(data, args.unwrap_clip)
-            data[data > 1] = 1
-            data[data < -1] = -1
-        elif args.unwrap > 1e-3:
-            unwrap(data, args.unwrap)
-            data *= 0.5
-            update_gain(md, 0.5)
-        # decimate:
-        if args.decimate > 1:
-            data = decimate(data, args.decimate, axis=0)
-            samplingrate /= args.decimate
-        # metadata into file name:
-        if len(md) > 0 and '{' in outfile and '}' in outfile:
-            fmd = flatten_metadata(md)
-            fmd = {k:(fmd[k] if isinstance(fmd[k], (int, float)) else fmd[k].replace(' ', '_')) for k in fmd}
-            outfile = outfile.format(**fmd)
+        data, samplingrate = modify_data(data, samplingrate, md, channels,
+                                         args.unwrap_clip, args.unwrap,
+                                         args.decimate)
+        outfile = format_outfile(outfile, md)
         # write out data:
         write_data(outfile, data, samplingrate, unit, md,
-                   format=data_format, encoding=args.data_encoding)
+                   format=data_format, encoding=args.encoding)
         # message:
         if args.verbose > 1:
             print(f'wrote "{outfile}"')
