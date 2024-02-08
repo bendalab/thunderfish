@@ -29,6 +29,7 @@ def test_main():
     cd.main('-l')
     cd.main('-f', 'npz', '-l')
     cd.main('-f', 'pkl', '-o', destfile, filename)
+    cd.main('-m', 'Artist=John Doe', '-f', 'pkl', '-o', destfile, filename)
     cd.main('-u', '-f', 'pkl', '-o', destfile, filename)
     cd.main('-u', '0.8', '-f', 'pkl', '-o', destfile, filename)
     cd.main('-U', '0.8', '-f', 'pkl', '-o', destfile, filename)

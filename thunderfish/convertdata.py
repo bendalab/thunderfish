@@ -63,7 +63,8 @@ from scipy.signal import decimate
 from .version import __version__, __year__
 from audioio import unwrap, flatten_metadata
 from audioio.audioconverter import add_arguments, parse_channels
-from audioio.audioconverter import make_outfile, modify_data, format_outfile
+from audioio.audioconverter import make_outfile, format_outfile
+from audioio.audioconverter import modify_data, add_metadata
 from .dataloader import load_data, metadata
 from .datawriter import available_formats, available_encodings
 from .datawriter import format_from_extension, write_data
@@ -183,6 +184,7 @@ def main(*cargs):
                                          channels, args.scale,
                                          args.unwrap_clip,
                                          args.unwrap, args.decimate)
+        md = add_metadata(md, args.md_list)
         outfile = format_outfile(outfile, md)
         # write out data:
         write_data(outfile, data, samplingrate, unit, md,
