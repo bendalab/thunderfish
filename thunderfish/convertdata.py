@@ -27,29 +27,32 @@ convertdata --help
 ```
 prints
 ```text
-usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-u [THRESH]] [-U [THRESH]] [-d FAC]
-                   [-c CHANNELS] [-n NUM] [-o OUTPATH]
+usage: convertdata [-h] [--version] [-v] [-l] [-f FORMAT] [-e ENCODING] [-s SCALE] [-u [THRESH]] [-U [THRESH]]
+                   [-d FAC] [-c CHANNELS] [-a KEY=VALUE] [-r KEY] [-n NUM] [-o OUTPATH]
                    [file ...]
 
 Convert, downsample, rename, and merge data files.
 
 positional arguments:
-  file         one or more input data files to be combined into a single output file
+  file          one or more input files to be combined into a single output file
 
 options:
-  -h, --help   show this help message and exit
-  --version    show program's version number and exit
-  -v           print debug output
-  -l           list supported file formats and encodings
-  -f FORMAT    data format of output file
-  -e ENCODING  data encoding of output file
-  -u [THRESH]  unwrap clipped data with threshold (default is 0.5) and divide by two
-  -U [THRESH]  unwrap clipped data with threshold (default is 0.5) and clip
-  -d FAC       downsample by integer factor
-  -c CHANNELS  comma and dash separated list of channels to be saved (first channel is 0)
-  -n NUM       merge NUM input files into one output file (default is all files)
-  -o OUTPATH   path or filename of output file. Metadata keys enclosed in curly braces will be replaced by their
-               values from the input file
+  -h, --help    show this help message and exit
+  --version     show program's version number and exit
+  -v            print debug output
+  -l            list supported file formats and encodings
+  -f FORMAT     audio format of output file
+  -e ENCODING   audio encoding of output file
+  -s SCALE      scale the data by factor SCALE
+  -u [THRESH]   unwrap clipped data with threshold (default is 0.5) and divide by two
+  -U [THRESH]   unwrap clipped data with threshold (default is 0.5) and clip
+  -d FAC        downsample by integer factor
+  -c CHANNELS   comma and dash separated list of channels to be saved (first channel is 0)
+  -a KEY=VALUE  add key-value pairs to metadata. Keys can have section names separated by "."
+  -r KEY        remove keys from metadata. Keys can have section names separated by "."
+  -n NUM        merge NUM input files into one output file
+  -o OUTPATH    path or filename of output file. Metadata keys enclosed in curly braces will be replaced by their
+                values from the input file
 
 version 1.12.0 by Benda-Lab (2020-2024)
 ```
@@ -60,9 +63,8 @@ import os
 import sys
 import argparse
 import numpy as np
-from scipy.signal import decimate
 from .version import __version__, __year__
-from audioio.audiometadata import add_metadata
+from audioio.audiometadata import add_metadata, remove_metadata, cleanup_metadata
 from audioio.audioconverter import add_arguments, parse_channels
 from audioio.audioconverter import make_outfile, format_outfile
 from audioio.audioconverter import modify_data
@@ -186,6 +188,9 @@ def main(*cargs):
                                          args.unwrap_clip,
                                          args.unwrap, args.decimate)
         add_metadata(md, args.md_list, '.')
+        if len(args.remove_keys) > 0:
+            remove_metadata(md, args.remove_keys, '.')
+            cleanup_metadata(md)
         outfile = format_outfile(outfile, md)
         # write out data:
         write_data(outfile, data, samplingrate, unit, md,
