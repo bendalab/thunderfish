@@ -1,14 +1,15 @@
-"""Command line script for converting data files.
+"""Command line script for converting, downsampling, renaming and merging data files.
 
 ```sh
 convertdata -o test.wav test.raw
 ```
 converts 'test.raw' to 'test.wav'.
 
-The script basically reads all input files with
-`dataloader.load_data()`, combines the audio data, and writes them
-with `datawriter.write_data()`. Thus, all formats supported by these
-functions and the installed python audio modules are supported.
+The script reads all input files with `dataloader.load_data()`,
+combines the audio and marker data, and writes them along with the
+metadata to an output file using `datawriter.write_data()`. Thus, all
+formats supported by these functions and the installed python audio
+modules are supported.
 
 Run
 ```sh
@@ -61,9 +62,10 @@ import argparse
 import numpy as np
 from scipy.signal import decimate
 from .version import __version__, __year__
+from audioio.audiometadata import add_metadata
 from audioio.audioconverter import add_arguments, parse_channels
 from audioio.audioconverter import make_outfile, format_outfile
-from audioio.audioconverter import modify_data, add_metadata
+from audioio.audioconverter import modify_data
 from .dataloader import load_data, metadata
 from .datawriter import available_formats, available_encodings
 from .datawriter import format_from_extension, write_data
@@ -183,7 +185,7 @@ def main(*cargs):
                                          channels, args.scale,
                                          args.unwrap_clip,
                                          args.unwrap, args.decimate)
-        md = add_metadata(md, args.md_list)
+        add_metadata(md, args.md_list, '.')
         outfile = format_outfile(outfile, md)
         # write out data:
         write_data(outfile, data, samplingrate, unit, md,
