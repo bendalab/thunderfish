@@ -1,4 +1,4 @@
-__version__='1.12.0'
+__version__='1.14.0'
 """Current version of the thunderfish package."""
 
 __year__ = '2024'
