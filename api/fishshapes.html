@@ -1,0 +1,2519 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>thunderfish.fishshapes API documentation</title>
+<meta name="description" content="Manipulate and plot fish outlines …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.fishshapes</code></h1>
+</header>
+<section id="section-intro">
+<p>Manipulate and plot fish outlines.</p>
+<h2 id="fish-shapes">Fish shapes</h2>
+<p>Fish shapes are dictionaries with the keys 'body', 'fin0', 'fin1' &hellip;,
+and 'eye'. The values are 2D arrays with x-y coordinates (first
+dimension is points, second dimension coordinates) of the respective
+pathes.</p>
+<p>All fish shapes of this module are accessible via these dictionaries:</p>
+<ul>
+<li><code><a title="thunderfish.fishshapes.fish_shapes" href="#thunderfish.fishshapes.fish_shapes">fish_shapes</a></code>: dictionary holding all electric fish shapes.</li>
+<li><code><a title="thunderfish.fishshapes.fish_top_shapes" href="#thunderfish.fishshapes.fish_top_shapes">fish_top_shapes</a></code>: dictionary holding electric fish shapes viewed from top.</li>
+<li><code><a title="thunderfish.fishshapes.fish_side_shapes" href="#thunderfish.fishshapes.fish_side_shapes">fish_side_shapes</a></code>: dictionary holding electric fish shapes viewed from the side.</li>
+</ul>
+<p>These are the shapes of various fish species:</p>
+<ul>
+<li><code><a title="thunderfish.fishshapes.Alepto_top" href="#thunderfish.fishshapes.Alepto_top">Alepto_top</a></code>: <em>Apteronotus leptorhynchus</em> viewed from top.</li>
+<li><code><a title="thunderfish.fishshapes.Alepto_male_side" href="#thunderfish.fishshapes.Alepto_male_side">Alepto_male_side</a></code>: Male <em>Apteronotus leptorhynchus</em> viewed from the side.</li>
+<li><code><a title="thunderfish.fishshapes.Eigenmannia_top" href="#thunderfish.fishshapes.Eigenmannia_top">Eigenmannia_top</a></code>: <em>Eigenmannia virescens</em> viewed from top.</li>
+<li><code><a title="thunderfish.fishshapes.Eigenmannia_side" href="#thunderfish.fishshapes.Eigenmannia_side">Eigenmannia_side</a></code>: <em>Eigenmannia virescens</em> viewed from the side.</li>
+</ul>
+<p>Helper function for selecting a particular fish shape:</p>
+<ul>
+<li><code><a title="thunderfish.fishshapes.fish_shape" href="#thunderfish.fishshapes.fish_shape">fish_shape()</a></code>: get a dictinary containing shapes of a fish.</li>
+</ul>
+<h2 id="plotting">Plotting</h2>
+<ul>
+<li><code><a title="thunderfish.fishshapes.plot_fish" href="#thunderfish.fishshapes.plot_fish">plot_fish()</a></code>: plot body, fins and eye of an electric fish.</li>
+<li><code><a title="thunderfish.fishshapes.plot_object" href="#thunderfish.fishshapes.plot_object">plot_object()</a></code>: plot circular object.</li>
+<li><code><a title="thunderfish.fishshapes.plot_fishfinder" href="#thunderfish.fishshapes.plot_fishfinder">plot_fishfinder()</a></code>: plot a fishfinder with electrodes and wires.</li>
+<li><code><a title="thunderfish.fishshapes.plot_pathes" href="#thunderfish.fishshapes.plot_pathes">plot_pathes()</a></code>: plot pathes.</li>
+</ul>
+<h2 id="fish-surface-and-normals-from-shapes">Fish surface and normals from shapes</h2>
+<ul>
+<li><code><a title="thunderfish.fishshapes.fish_surface" href="#thunderfish.fishshapes.fish_surface">fish_surface()</a></code>: generate meshgrid of one side of the fish from shape.</li>
+<li><code><a title="thunderfish.fishshapes.surface_normals" href="#thunderfish.fishshapes.surface_normals">surface_normals()</a></code>: normal vectors on a surface.</li>
+</ul>
+<h2 id="general-path-manipulations">General path manipulations</h2>
+<p>You may use these functions to extract and fine tune pathes from SVG
+files in order to assemble fish shapes for this module. See
+<code><a title="thunderfish.fishshapes.export_fish_demo" href="#thunderfish.fishshapes.export_fish_demo">export_fish_demo()</a></code> for a use case.</p>
+<ul>
+<li><code><a title="thunderfish.fishshapes.extract_path" href="#thunderfish.fishshapes.extract_path">extract_path()</a></code>: convert SVG coordinates to numpy array with path coordinates.</li>
+<li><code><a title="thunderfish.fishshapes.bbox_pathes" href="#thunderfish.fishshapes.bbox_pathes">bbox_pathes()</a></code>: common bounding box of pathes.</li>
+<li><code><a title="thunderfish.fishshapes.translate_pathes" href="#thunderfish.fishshapes.translate_pathes">translate_pathes()</a></code>: translate pathes in place.</li>
+<li><code><a title="thunderfish.fishshapes.center_pathes" href="#thunderfish.fishshapes.center_pathes">center_pathes()</a></code>: translate pathes to their common origin in place.</li>
+<li><code><a title="thunderfish.fishshapes.rotate_pathes" href="#thunderfish.fishshapes.rotate_pathes">rotate_pathes()</a></code>: rotate pathes in place.</li>
+<li><code><a title="thunderfish.fishshapes.flipy_pathes" href="#thunderfish.fishshapes.flipy_pathes">flipy_pathes()</a></code>: flip pathes in y-direction in place.</li>
+<li><code><a title="thunderfish.fishshapes.flipx_pathes" href="#thunderfish.fishshapes.flipx_pathes">flipx_pathes()</a></code>: flip pathes in x-direction in place.</li>
+<li><code><a title="thunderfish.fishshapes.export_path" href="#thunderfish.fishshapes.export_path">export_path()</a></code>: print coordinates of path for import as numpy array.</li>
+<li><code><a title="thunderfish.fishshapes.mirror_path" href="#thunderfish.fishshapes.mirror_path">mirror_path()</a></code>: complete path of half a fish outline by appending the mirrored path.</li>
+<li><code><a title="thunderfish.fishshapes.normalize_path" href="#thunderfish.fishshapes.normalize_path">normalize_path()</a></code>: normalize fish outline to unit length.</li>
+<li><code><a title="thunderfish.fishshapes.bend_path" href="#thunderfish.fishshapes.bend_path">bend_path()</a></code>: bend and scale a path.</li>
+</ul>
+<h2 id="exporting-fish-outlines-from-pathes">Exporting fish outlines from pathes</h2>
+<ul>
+<li><code><a title="thunderfish.fishshapes.export_fish" href="#thunderfish.fishshapes.export_fish">export_fish()</a></code>: serialize coordinates of fish outlines as a dictionary.</li>
+<li><code><a title="thunderfish.fishshapes.export_fish_demo" href="#thunderfish.fishshapes.export_fish_demo">export_fish_demo()</a></code>: code demonstrating how to export fish outlines from SVG.</li>
+</ul>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Manipulate and plot fish outlines.
+
+## Fish shapes
+
+Fish shapes are dictionaries with the keys &#39;body&#39;, &#39;fin0&#39;, &#39;fin1&#39; ...,
+and &#39;eye&#39;. The values are 2D arrays with x-y coordinates (first
+dimension is points, second dimension coordinates) of the respective
+pathes.
+
+All fish shapes of this module are accessible via these dictionaries:
+
+- `fish_shapes`: dictionary holding all electric fish shapes.
+- `fish_top_shapes`: dictionary holding electric fish shapes viewed from top.
+- `fish_side_shapes`: dictionary holding electric fish shapes viewed from the side.
+
+These are the shapes of various fish species:
+
+- `Alepto_top`: *Apteronotus leptorhynchus* viewed from top.
+- `Alepto_male_side`: Male *Apteronotus leptorhynchus* viewed from the side.
+- `Eigenmannia_top`: *Eigenmannia virescens* viewed from top.
+- `Eigenmannia_side`: *Eigenmannia virescens* viewed from the side.
+
+Helper function for selecting a particular fish shape:
+
+- `fish_shape()`: get a dictinary containing shapes of a fish.
+
+## Plotting
+
+- `plot_fish()`: plot body, fins and eye of an electric fish.
+- `plot_object()`: plot circular object.
+- `plot_fishfinder()`: plot a fishfinder with electrodes and wires.
+- `plot_pathes()`: plot pathes.
+
+## Fish surface and normals from shapes
+
+- `fish_surface()`: generate meshgrid of one side of the fish from shape.
+- `surface_normals()`: normal vectors on a surface.
+
+## General path manipulations
+
+You may use these functions to extract and fine tune pathes from SVG
+files in order to assemble fish shapes for this module. See
+`export_fish_demo()` for a use case.
+
+- `extract_path()`: convert SVG coordinates to numpy array with path coordinates.
+- `bbox_pathes()`: common bounding box of pathes.
+- `translate_pathes()`: translate pathes in place.
+- `center_pathes()`: translate pathes to their common origin in place.
+- `rotate_pathes()`: rotate pathes in place.
+- `flipy_pathes()`: flip pathes in y-direction in place.
+- `flipx_pathes()`: flip pathes in x-direction in place.
+- `export_path()`: print coordinates of path for import as numpy array.
+- `mirror_path()`: complete path of half a fish outline by appending the mirrored path.
+- `normalize_path()`: normalize fish outline to unit length.
+- `bend_path()`: bend and scale a path.
+
+## Exporting fish outlines from pathes
+
+- `export_fish()`: serialize coordinates of fish outlines as a dictionary.
+- `export_fish_demo()`: code demonstrating how to export fish outlines from SVG.
+
+&#34;&#34;&#34;
+
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch, Circle, Rectangle
+import matplotlib.transforms as mpt
+
+
+Alepto_top = dict(body=np.array([
+    [-5.00000000e-01, 0.00000000e+00], [-4.99802704e-01, 1.23222860e-03],
+    [-4.95374557e-01, 2.57983066e-03], [-4.84420392e-01, 3.29085947e-03],
+    [-4.72487909e-01, 4.03497963e-03], [-4.13995354e-01, 4.39637211e-03],
+    [-3.90529212e-01, 5.14049228e-03], [-3.67089631e-01, 5.88461244e-03],
+    [-3.43596916e-01, 6.65006783e-03], [-3.20104187e-01, 7.39418800e-03],
+    [-2.97063253e-01, 8.11708180e-03], [-2.79461930e-01, 8.49142780e-03],
+    [-2.61664711e-01, 9.24382081e-03], [-2.38198570e-01, 1.03918950e-02],
+    [-2.14732428e-01, 1.14974077e-02], [-1.91239699e-01, 1.26242555e-02],
+    [-1.67773558e-01, 1.37511034e-02], [-1.44307403e-01, 1.52605701e-02],
+    [-1.09307508e-01, 1.71314946e-02], [-8.58413531e-02, 1.86197349e-02],
+    [-6.23486380e-02, 2.01079753e-02], [-3.88824966e-02, 2.12348231e-02],
+    [-1.54429155e-02, 2.19789433e-02], [1.95835670e-02, 2.31057367e-02],
+    [4.30231346e-02, 2.38498569e-02], [6.65424230e-02, 2.49767047e-02],
+    [8.99820050e-02, 2.57421601e-02], [1.13448146e-01, 2.64862803e-02],
+    [1.36914287e-01, 2.91013032e-02], [1.60380442e-01, 3.28431304e-02],
+    [1.83873157e-01, 3.43101008e-02], [2.06914105e-01, 3.54369487e-02],
+    [2.18819919e-01, 3.58196764e-02], [2.42339207e-01, 3.65850229e-02],
+    [2.72903364e-01, 3.57933339e-02], [2.75411585e-01, 3.56061065e-02],
+    [2.74126982e-01, 3.73081344e-02], [2.60251756e-01, 4.14908387e-02],
+    [2.47930096e-01, 4.96419915e-02], [2.39119358e-01, 6.08413919e-02],
+    [2.39547832e-01, 7.56059835e-02], [2.44279733e-01, 7.95534778e-02],
+    [2.54298155e-01, 7.66782524e-02], [2.69627591e-01, 6.28724285e-02],
+    [2.82177993e-01, 4.80249888e-02], [2.88316671e-01, 3.79294791e-02],
+    [2.89271585e-01, 3.54368942e-02], [2.92213886e-01, 3.54205663e-02],
+    [3.01203973e-01, 3.58192954e-02], [3.12737740e-01, 4.10493520e-02],
+    [3.24670128e-01, 3.99438067e-02], [3.36177308e-01, 3.88170133e-02],
+    [3.48109696e-01, 3.76902090e-02], [3.71177217e-01, 3.54366112e-02],
+    [3.94643358e-01, 3.24601523e-02], [4.18136073e-01, 2.91010093e-02],
+    [4.41602228e-01, 2.61033022e-02], [4.65041796e-01, 2.27229002e-02],
+    [4.77000757e-01, 2.01078773e-02], [4.88938465e-01, 1.57516176e-02],
+    [4.97051671e-01, 9.88149348e-03], [5.00000000e-01, 4.58499286e-03],
+    [5.00000000e-01, -4.58499286e-03], [4.97051671e-01, -9.88149348e-03],
+    [4.88938465e-01, -1.57516176e-02], [4.77000757e-01, -2.01078773e-02],
+    [4.65041796e-01, -2.27229002e-02], [4.41602228e-01, -2.61033022e-02],
+    [4.18136073e-01, -2.91010093e-02], [3.94643358e-01, -3.24601523e-02],
+    [3.71177217e-01, -3.54366112e-02], [3.48109696e-01, -3.76902090e-02],
+    [3.36177308e-01, -3.88170133e-02], [3.24670128e-01, -3.99438067e-02],
+    [3.12737740e-01, -4.10493520e-02], [3.01203973e-01, -3.58192954e-02],
+    [2.92213886e-01, -3.54205663e-02], [2.89271585e-01, -3.54368942e-02],
+    [2.88316671e-01, -3.79294791e-02], [2.82177993e-01, -4.80249888e-02],
+    [2.69627591e-01, -6.28724285e-02], [2.54298155e-01, -7.66782524e-02],
+    [2.44279733e-01, -7.95534778e-02], [2.39547832e-01, -7.56059835e-02],
+    [2.39119358e-01, -6.08413919e-02], [2.47930096e-01, -4.96419915e-02],
+    [2.60251756e-01, -4.14908387e-02], [2.74126982e-01, -3.73081344e-02],
+    [2.75411585e-01, -3.56061065e-02], [2.72903364e-01, -3.57933339e-02],
+    [2.42339207e-01, -3.65850229e-02], [2.18819919e-01, -3.58196764e-02],
+    [2.06914105e-01, -3.54369487e-02], [1.83873157e-01, -3.43101008e-02],
+    [1.60380442e-01, -3.28431304e-02], [1.36914287e-01, -2.91013032e-02],
+    [1.13448146e-01, -2.64862803e-02], [8.99820050e-02, -2.57421601e-02],
+    [6.65424230e-02, -2.49767047e-02], [4.30231346e-02, -2.38498569e-02],
+    [1.95835670e-02, -2.31057367e-02], [-1.54429155e-02, -2.19789433e-02],
+    [-3.88824966e-02, -2.12348231e-02], [-6.23486380e-02, -2.01079753e-02],
+    [-8.58413531e-02, -1.86197349e-02], [-1.09307508e-01, -1.71314946e-02],
+    [-1.44307403e-01, -1.52605701e-02], [-1.67773558e-01, -1.37511034e-02],
+    [-1.91239699e-01, -1.26242555e-02], [-2.14732428e-01, -1.14974077e-02],
+    [-2.38198570e-01, -1.03918950e-02], [-2.61664711e-01, -9.24382081e-03],
+    [-2.79461930e-01, -8.49142780e-03], [-2.97063253e-01, -8.11708180e-03],
+    [-3.20104187e-01, -7.39418800e-03], [-3.43596916e-01, -6.65006783e-03],
+    [-3.67089631e-01, -5.88461244e-03], [-3.90529212e-01, -5.14049228e-03],
+    [-4.13995354e-01, -4.39637211e-03], [-4.72487909e-01, -4.03497963e-03],
+    [-4.84420392e-01, -3.29085947e-03], [-4.95374557e-01, -2.57983066e-03],
+    [-4.99802704e-01, -1.23222860e-03], [-5.00000000e-01, -0.00000000e+00],]))
+&#34;&#34;&#34;Outline of an *Apteronotus leptorhynchus* viewed from top, modified from Krahe 2004.&#34;&#34;&#34;
+
+Alepto_male_side = dict(body=np.array([
+    [2.80332097e-01, 5.51361973e-02], [2.41127905e-01, 5.93460338e-02],
+    [1.91463866e-01, 6.22667811e-02], [1.37379023e-01, 6.17716006e-02],
+    [6.91234340e-02, 5.72953633e-02], [-1.36051588e-02, 4.74838393e-02],
+    [-7.55221954e-02, 3.64211032e-02], [-1.60157310e-01, 2.45651115e-02],
+    [-2.32035003e-01, 1.55421483e-02], [-2.99079447e-01, 9.70960800e-03],
+    [-3.62251791e-01, 6.27265707e-03], [-4.20527920e-01, 4.22449025e-03],
+    [-4.72735573e-01, 5.39606712e-03], [-4.80154179e-01, 5.86398206e-03],
+    [-4.92605065e-01, 1.01411700e-02], [-4.97402289e-01, 5.91543079e-03],
+    [-5.00000000e-01, -2.84973497e-03], [-4.97832769e-01, -1.17981289e-02],
+    [-4.93106950e-01, -1.43380199e-02], [-4.81164618e-01, -8.19215843e-03],
+    [-4.72578673e-01, -6.17623988e-03], [-4.45390092e-01, -5.96123217e-03],
+    [-3.74805165e-01, -9.05994885e-03], [-3.33716813e-01, -1.08317142e-02],
+    [-3.08099380e-01, -1.15017063e-02], [-2.82451613e-01, -1.30396176e-02],
+    [-2.34498580e-01, -2.21834040e-02], [-1.86892658e-01, -3.26728000e-02],
+    [-1.08738732e-01, -4.99024273e-02], [-3.50753879e-02, -5.94218882e-02],
+    [3.28767168e-02, -6.58397526e-02], [1.25319086e-01, -7.21513968e-02],
+    [1.99523049e-01, -7.99740378e-02], [2.37035792e-01, -8.44828747e-02],
+    [2.74475366e-01, -8.68964223e-02], [3.12742824e-01, -8.34038539e-02],
+    [3.36340505e-01, -7.82231053e-02], [3.55492327e-01, -7.21451373e-02],
+    [3.74670470e-01, -6.45564453e-02], [3.82920881e-01, -6.06824741e-02],
+    [3.84828678e-01, -5.92550189e-02], [3.86562866e-01, -5.99353293e-02],
+    [3.90753372e-01, -6.01589140e-02], [4.03494946e-01, -5.90960625e-02],
+    [4.38474761e-01, -6.13270959e-02], [4.61389913e-01, -6.47960654e-02],
+    [4.77010163e-01, -6.86433853e-02], [4.84437594e-01, -6.89404377e-02],
+    [4.90842798e-01, -6.82840746e-02], [4.94567181e-01, -6.58050993e-02],
+    [4.95443985e-01, -6.30972916e-02], [4.94497789e-01, -6.10849673e-02],
+    [4.91729699e-01, -6.00016418e-02], [4.84298546e-01, -5.78808424e-02],
+    [4.93112897e-01, -5.45550751e-02], [4.97742360e-01, -5.12667865e-02],
+    [5.00000000e-01, -4.73196051e-02], [4.99521047e-01, -4.36153642e-02],
+    [4.96159278e-01, -3.87756472e-02], [4.86402575e-01, -3.18513601e-02],
+    [4.67134496e-01, -2.06920393e-02], [4.39218141e-01, -5.92866768e-03],
+    [4.25010402e-01, 4.45359743e-03], [4.14788070e-01, 1.39860522e-02],
+    [3.93656086e-01, 2.44160739e-02], [3.75679976e-01, 2.94323719e-02],
+    [3.61404254e-01, 3.69002336e-02], [3.37900061e-01, 4.40458301e-02],
+    [3.11463577e-01, 4.97553861e-02],]),
+    fin0=np.array([
+    [3.29593304e-01, -7.95912942e-02], [3.27561074e-01, -8.48367727e-02],
+    [3.08709726e-01, -9.90609655e-02], [2.80934315e-01, -1.08062137e-01],
+    [2.58017473e-01, -1.12878542e-01], [2.35142157e-01, -1.14467112e-01],
+    [2.18081531e-01, -1.12354592e-01], [1.98185626e-01, -1.10721292e-01],
+    [1.78099090e-01, -1.13640193e-01], [1.59752865e-01, -1.18762090e-01],
+    [1.40752841e-01, -1.20266781e-01], [1.27904629e-01, -1.17712356e-01],
+    [1.19134213e-01, -1.12284346e-01], [1.09580014e-01, -1.04436264e-01],
+    [8.20184710e-02, -9.60992771e-02], [5.05598670e-02, -9.57289587e-02],
+    [2.74790284e-02, -1.04021601e-01], [3.92704920e-03, -1.08834461e-01],
+    [-3.12710137e-02, -1.08965162e-01], [-5.88865488e-02, -1.03820945e-01],
+    [-7.82549598e-02, -9.45428978e-02], [-9.94601687e-02, -8.20174601e-02],
+    [-1.29941640e-01, -7.01658118e-02], [-1.58259295e-01, -6.73695625e-02],
+    [-1.86001442e-01, -7.01570717e-02], [-2.14339679e-01, -6.79007296e-02],
+    [-2.38708971e-01, -5.78982409e-02], [-2.55168178e-01, -4.41230328e-02],
+    [-2.71293058e-01, -3.28785160e-02], [-2.88416341e-01, -2.86291802e-02],
+    [-3.06103856e-01, -2.82461534e-02], [-3.22345146e-01, -2.47128040e-02],
+    [-3.38333410e-01, -1.44124470e-02], [-3.43264223e-01, -1.03691894e-02],
+    [-3.08609907e-01, -1.12571357e-02], [-2.86088545e-01, -1.25633719e-02],
+    [-2.59977440e-01, -1.65414204e-02], [-2.16119429e-01, -2.64072955e-02],
+    [-1.68443229e-01, -3.68996138e-02], [-1.12717944e-01, -4.88585839e-02],
+    [-7.07908982e-02, -5.51259999e-02], [-1.80906639e-02, -6.16068166e-02],
+    [2.75299392e-02, -6.53080983e-02], [7.71390030e-02, -6.85205021e-02],
+    [1.21071140e-01, -7.25104674e-02], [1.78723549e-01, -7.85286909e-02],
+    [2.32100395e-01, -8.40268652e-02], [2.74938812e-01, -8.74456073e-02],
+    [3.10041908e-01, -8.43007220e-02],]),
+    eye=np.array([0.4, 0.0, 0.01]))
+&#34;&#34;&#34;Outline of an *Apteronotus leptorhynchus* male viewed from the side.&#34;&#34;&#34;
+
+Eigenmannia_top = dict(body=np.array([
+    [-5.00000000e-01, 0.00000000e+00], [-4.84515329e-01, 4.41536208e-03],
+    [-4.76913801e-01, 5.34924846e-03], [-3.94680346e-01, 8.25734868e-03],
+    [-2.74106007e-01, 8.94059314e-03], [-1.35145770e-01, 1.09559947e-02],
+    [2.36080412e-02, 1.40941342e-02], [1.36968804e-01, 1.51550643e-02],
+    [2.15041020e-01, 1.96734219e-02], [2.83582110e-01, 2.36895289e-02],
+    [3.20834553e-01, 2.63067663e-02], [3.46646908e-01, 2.77590937e-02],
+    [3.68462758e-01, 2.97229886e-02], [3.62525174e-01, 3.12766064e-02],
+    [3.57215426e-01, 3.25163153e-02], [3.51347983e-01, 3.44809486e-02],
+    [3.46108357e-01, 3.83290703e-02], [3.44207747e-01, 4.53621620e-02],
+    [3.46387987e-01, 5.39648157e-02], [3.54784122e-01, 6.69720204e-02],
+    [3.67470562e-01, 8.11691502e-02], [3.80987875e-01, 9.13148567e-02],
+    [3.90738756e-01, 9.39276818e-02], [3.95854520e-01, 9.06728175e-02],
+    [3.99717109e-01, 8.49081236e-02], [3.96997843e-01, 6.54750599e-02],
+    [3.89101023e-01, 4.11631100e-02], [3.86289062e-01, 3.71837960e-02],
+    [3.94553267e-01, 3.78052325e-02], [4.03373690e-01, 3.72181278e-02],
+    [4.20207675e-01, 3.56696607e-02], [4.37553246e-01, 3.46018748e-02],
+    [4.59139056e-01, 3.15068918e-02], [4.79811600e-01, 2.68634593e-02],
+    [4.92810472e-01, 1.97499259e-02], [4.98594784e-01, 1.11517021e-02],
+    [5.00000000e-01, 5.62393850e-03], [5.00000000e-01, -5.62393850e-03],
+    [4.98594784e-01, -1.11517021e-02], [4.92810472e-01, -1.97499259e-02],
+    [4.79811600e-01, -2.68634593e-02], [4.59139056e-01, -3.15068918e-02],
+    [4.37553246e-01, -3.46018748e-02], [4.20207675e-01, -3.56696607e-02],
+    [4.03373690e-01, -3.72181278e-02], [3.94553267e-01, -3.78052325e-02],
+    [3.86289062e-01, -3.71837960e-02], [3.89101023e-01, -4.11631100e-02],
+    [3.96997843e-01, -6.54750599e-02], [3.99717109e-01, -8.49081236e-02],
+    [3.95854520e-01, -9.06728175e-02], [3.90738756e-01, -9.39276818e-02],
+    [3.80987875e-01, -9.13148567e-02], [3.67470562e-01, -8.11691502e-02],
+    [3.54784122e-01, -6.69720204e-02], [3.46387987e-01, -5.39648157e-02],
+    [3.44207747e-01, -4.53621620e-02], [3.46108357e-01, -3.83290703e-02],
+    [3.51347983e-01, -3.44809486e-02], [3.57215426e-01, -3.25163153e-02],
+    [3.62525174e-01, -3.12766064e-02], [3.68462758e-01, -2.97229886e-02],
+    [3.46646908e-01, -2.77590937e-02], [3.20834553e-01, -2.63067663e-02],
+    [2.83582110e-01, -2.36895289e-02], [2.15041020e-01, -1.96734219e-02],
+    [1.36968804e-01, -1.51550643e-02], [2.36080412e-02, -1.40941342e-02],
+    [-1.35145770e-01, -1.09559947e-02], [-2.74106007e-01, -8.94059314e-03],
+    [-3.94680346e-01, -8.25734868e-03], [-4.76913801e-01, -5.34924846e-03],
+    [-4.84515329e-01, -4.41536208e-03], [-5.00000000e-01, -0.00000000e+00],]))
+&#34;&#34;&#34;Outline of an *Eigenmannia virescens* viewed from top.&#34;&#34;&#34;
+
+Eigenmannia_side = dict(body=np.array([
+    [7.39835590e-02, 4.57421567e-02], [1.36190672e-01, 5.20008556e-02],
+    [1.88575637e-01, 5.31087788e-02], [2.55693889e-01, 4.90162062e-02],
+    [2.91989388e-01, 4.57421567e-02], [3.30997244e-01, 4.08310609e-02],
+    [3.60079352e-01, 3.50312357e-02], [3.86267547e-01, 2.72057399e-02],
+    [4.09748495e-01, 1.88510343e-02], [4.30914243e-01, 1.02069720e-02],
+    [4.43253678e-01, 5.18028074e-03], [4.61959655e-01, -3.75313831e-03],
+    [4.82422519e-01, -1.50677197e-02], [4.93493046e-01, -2.26243878e-02],
+    [4.97325280e-01, -2.75603439e-02], [5.00000000e-01, -3.36538136e-02],
+    [4.99855343e-01, -3.81556262e-02], [4.97829629e-01, -4.26574388e-02],
+    [4.95229403e-01, -4.49683083e-02], [4.93207934e-01, -4.68450344e-02],
+    [4.90607707e-01, -4.83870578e-02], [4.92124870e-01, -5.04085273e-02],
+    [4.93063234e-01, -5.27193968e-02], [4.93063190e-01, -5.47905000e-02],
+    [4.91905677e-01, -5.65722031e-02], [4.87982621e-01, -5.83539496e-02],
+    [4.81889151e-01, -5.99909526e-02], [4.72187579e-01, -6.31614903e-02],
+    [4.57251469e-01, -6.96684443e-02], [4.42315315e-01, -7.44390846e-02],
+    [4.31434877e-01, -7.64563096e-02], [4.21852452e-01, -8.03091592e-02],
+    [4.12030260e-01, -8.11773161e-02], [3.97297016e-01, -8.61380457e-02],
+    [3.84200775e-01, -9.05200184e-02], [3.71589870e-01, -9.38291926e-02],
+    [3.58008292e-01, -9.50424035e-02], [3.33452813e-01, -9.34053571e-02],
+    [2.99075185e-01, -8.68572582e-02], [2.70427177e-01, -8.11276391e-02],
+    [2.32775500e-01, -7.31023958e-02], [2.00034918e-01, -6.81912999e-02],
+    [1.71386866e-01, -6.43481085e-02], [1.37488988e-01, -5.96768656e-02],
+    [8.87168470e-02, -5.53444400e-02], [3.71504052e-02, -5.08426274e-02],
+    [-8.94935470e-03, -4.47741911e-02], [-6.68009664e-02, -3.60218095e-02],
+    [-1.11819296e-01, -3.02864735e-02], [-1.55609841e-01, -2.46444281e-02],
+    [-2.01855938e-01, -1.98208625e-02], [-2.61607520e-01, -1.41655641e-02],
+    [-3.02124011e-01, -9.83500080e-03], [-3.47551590e-01, -8.19795443e-03],
+    [-3.86021794e-01, -7.21576125e-03], [-4.19580907e-01, -5.90618477e-03],
+    [-4.49047446e-01, -5.00584824e-03], [-4.82606558e-01, -4.29793979e-03],
+    [-4.93367213e-01, -3.88865654e-03], [-4.96609514e-01, -3.33497643e-03],
+    [-4.98599358e-01, -2.28352992e-03], [-5.00000000e-01, -4.13646830e-04],
+    [-4.99911798e-01, 1.42799787e-03], [-4.97749085e-01, 3.02268669e-03],
+    [-4.94153971e-01, 3.94706050e-03], [-4.48842818e-01, 5.27946155e-03],
+    [-3.90932887e-01, 5.88974836e-03], [-3.04988822e-01, 7.10408527e-03],
+    [-2.43785835e-01, 8.93052803e-03], [-1.87718481e-01, 1.20250559e-02],
+    [-1.39987578e-01, 1.55534240e-02], [-9.58582596e-02, 1.92113768e-02],
+    [-4.87936436e-02, 2.54739303e-02], [-1.20172913e-02, 3.11685979e-02],
+    [3.65545828e-02, 3.98634200e-02],]),
+    fin0=np.array([
+    [-3.23227396e-01, -8.73526322e-03], [-3.17729007e-01, -1.49720903e-02],
+    [-3.11901320e-01, -2.06301173e-02], [-2.94537996e-01, -2.87329729e-02],
+    [-2.73702014e-01, -3.62471102e-02], [-2.48814582e-01, -4.42901541e-02],
+    [-2.26392044e-01, -4.89203820e-02], [-2.11413629e-01, -4.97652813e-02],
+    [-1.97592770e-01, -4.71608105e-02], [-1.88292360e-01, -4.37113973e-02],
+    [-1.77575020e-01, -4.26201918e-02], [-1.63230314e-01, -4.13425351e-02],
+    [-1.45633053e-01, -4.58128611e-02], [-1.32102997e-01, -5.21132245e-02],
+    [-1.22627830e-01, -5.98022925e-02], [-1.16274541e-01, -6.51393895e-02],
+    [-1.01226326e-01, -6.99292162e-02], [-8.87826127e-02, -7.09420732e-02],
+    [-7.63388990e-02, -7.02186163e-02], [-6.41845810e-02, -6.63566715e-02],
+    [-4.99997329e-02, -6.35107453e-02], [-3.86044383e-02, -6.71556184e-02],
+    [-2.83003535e-02, -7.56835222e-02], [-1.41203129e-02, -8.28817968e-02],
+    [1.21728460e-03, -8.66205668e-02], [1.22140543e-02, -8.75385740e-02],
+    [2.16240177e-02, -8.43285373e-02], [3.27836777e-02, -8.13081568e-02],
+    [3.98554860e-02, -8.02952999e-02], [4.86770343e-02, -7.96350762e-02],
+    [5.81904230e-02, -8.20450399e-02], [6.47198980e-02, -8.65937577e-02],
+    [7.29857310e-02, -9.36024194e-02], [8.47509570e-02, -9.91141438e-02],
+    [1.00477612e-01, -1.02776515e-01], [1.28258936e-01, -1.02826321e-01],
+    [1.45605097e-01, -1.02460349e-01], [1.59342462e-01, -9.97657918e-02],
+    [1.76140399e-01, -9.72111283e-02], [1.89366052e-01, -9.61800377e-02],
+    [2.03938918e-01, -9.84587276e-02], [2.14786136e-01, -1.02170949e-01],
+    [2.24046592e-01, -1.08953357e-01], [2.34464605e-01, -1.14112491e-01],
+    [2.47925953e-01, -1.18114112e-01], [2.65013334e-01, -1.19108779e-01],
+    [2.83520819e-01, -1.15835465e-01], [2.98329467e-01, -1.08650574e-01],
+    [3.15014321e-01, -1.04499489e-01], [3.28805304e-01, -1.04273408e-01],
+    [3.39387031e-01, -1.06211982e-01], [3.52278630e-01, -1.03431974e-01],
+    [3.61896180e-01, -1.00567165e-01], [3.67032403e-01, -9.80662488e-02],
+    [3.71589870e-01, -9.38289761e-02], [3.58008292e-01, -9.50421869e-02],
+    [3.33452813e-01, -9.34051405e-02], [3.06441808e-01, -8.84940880e-02],
+    [2.35043362e-01, -7.35981699e-02], [1.65011316e-01, -6.31802003e-02],
+    [1.25654422e-01, -5.85499724e-02], [9.49792270e-02, -5.56561016e-02],
+    [4.05741354e-02, -5.11056947e-02], [-1.24746680e-03, -4.58268936e-02],
+    [-5.20302500e-02, -3.81131387e-02], [-1.01805114e-01, -3.16101258e-02],
+    [-1.51874267e-01, -2.50855445e-02], [-2.01943420e-01, -2.02074944e-02],
+    [-2.61607516e-01, -1.41653476e-02], [-3.02124016e-01, -9.83478430e-03],
+    [-3.12840355e-01, -9.28491550e-03],]),
+    eye=np.array([0.46, -0.03, 0.005]))
+&#34;&#34;&#34;Outline of an *Eigenmannia virescens* viewed from the side.&#34;&#34;&#34;
+
+fish_shapes = dict(Alepto_top=Alepto_top,
+                   Alepto_male_side=Alepto_male_side,
+                   Eigenmannia_top=Eigenmannia_top,
+                   Eigenmannia_side=Eigenmannia_side)
+&#34;&#34;&#34;Dictionary holding all electric fish shapes.&#34;&#34;&#34;
+
+fish_top_shapes = dict(Alepto=Alepto_top,
+                       Eigenmannia=Eigenmannia_top)
+&#34;&#34;&#34;Dictionary holding electric fish shapes viewed from top.&#34;&#34;&#34;
+
+fish_side_shapes = dict(Alepto_male=Alepto_male_side,
+                   Eigenmannia=Eigenmannia_side)
+&#34;&#34;&#34;Dictionary holding electric fish shapes viewed from the side.&#34;&#34;&#34;
+
+
+def fish_shape(fish):
+    &#34;&#34;&#34;Get a dictinary containing shapes of a fish.
+
+    Parameters
+    ----------
+    fish: string or tuple or dict
+        Specifies a fish to show:
+        - any of the strings defining a shape contained in the `fish_shapes` dictionary,
+        - a tuple with the name of the fish as the first element and &#39;top&#39; or &#39;side&#39; as the second element,
+        - a dictionary with at least a &#39;body&#39; key holding pathes to be drawn.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with at least a &#39;body&#39; key holding pathes to be drawn.
+    &#34;&#34;&#34;
+    if not isinstance(fish, dict):
+        if isinstance(fish, (tuple, list)):
+            if fish[1] == &#39;top&#39;:
+                fish = fish_top_shapes[fish[0]]
+            else:
+                fish = fish_side_shapes[fish[0]]
+        else:
+            fish = fish_shapes[fish]
+    return fish
+    
+
+def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=1,
+              bodykwargs={}, finkwargs={}, eyekwargs=None):
+    &#34;&#34;&#34;Plot body, fins and eye of an electric fish.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the fish.
+    fish: string or tuple or dict
+        Specifies a fish to show:
+        - any of the strings defining a shape contained in the `fish_shapes` dictionary,
+        - a tuple with the name of the fish as the first element and &#39;top&#39; or &#39;side&#39; as the second element,
+        - a dictionary with at least a &#39;body&#39; key holding pathes to be drawn.
+    pos: tuple of floats
+        Coordinates of the fish&#39;s position (its center).
+    direction: tuple of floats
+        Coordinates of a vector defining the orientation of the fish.
+    size: float
+        Size of the fish.
+    bend: float
+        Bending angle of the fish&#39;s tail in degree.
+    scaley: float
+        Scale factor applied in y direction after bending and rotation to
+        compensate for differently scaled axes.
+    bodykwargs: dict
+        Key-word arguments for PathPatch used to draw the fish&#39;s body.
+    finkwargs: dict
+        Key-word arguments for PathPatch used to draw the fish&#39;s fins.
+
+    Returns
+    -------
+    bpatch: matplotlib.patches.PathPatch
+        The fish&#39;s body. Can be used for set_clip_path().
+
+    Example
+    -------
+
+    ```
+    fig, ax = plt.subplots()
+    bodykwargs=dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;k&#39;)
+    finkwargs=dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;grey&#39;)
+    fish = ((&#39;Eigenmannia&#39;, &#39;side&#39;), (0, 0), (1, 0), 20.0, -25)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+    ax.set_xlim(-15, 15)
+    ax.set_ylim(-10, 10)
+    plt.show()
+    ```
+    &#34;&#34;&#34;
+    fish = fish_shape(fish)
+    bpatch = None
+    size_fac = 1.1
+    bbox = bbox_pathes(*fish.values())
+    trans = mpl.transforms.Affine2D()
+    angle = np.arctan2(direction[1], direction[0])
+    trans.rotate(angle)
+    #trans.scale(dxu/dyu, dyu/dxu)   # what is the right scaling????
+    trans.scale(1, scaley)
+    trans.translate(*pos)
+    for part, verts in fish.items():
+        if part == &#39;eye&#39;:
+            if eyekwargs is not None:
+                verts = np.array(verts)*size*size_fac
+                verts[:2] = trans.transform_point(verts[:2])
+                if not &#39;zorder&#39; in eyekwargs:
+                    eyekwargs[&#39;zorder&#39;] = 20
+                ax.add_patch(Circle(verts[:2], verts[2], **eyekwargs))
+            continue
+        verts = bend_path(verts, bend, size, size_fac)
+        codes = np.zeros(len(verts))
+        codes[:] = Path.LINETO
+        codes[0] = Path.MOVETO
+        codes[-1] = Path.CLOSEPOLY
+        path = Path(verts, codes)
+        #pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+        #pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+        #xmin, xmax = ax.get_xlim()
+        #ymin, ymax = ax.get_ylim()
+        #dxu = np.abs(xmax - xmin)/pixelx
+        #dyu = np.abs(ymax - ymin)/pixely
+        path = path.transformed(trans)
+        kwargs = bodykwargs if part == &#39;body&#39; else finkwargs
+        if not &#39;zorder&#39; in kwargs:
+            kwargs[&#39;zorder&#39;] = 0 if part == &#39;body&#39; else 10
+        patch = PathPatch(path, **kwargs)
+        if part == &#39;body&#39;:
+            bpatch = patch
+        ax.add_patch(patch)
+    return bpatch
+
+
+def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
+    &#34;&#34;&#34;Plot circular object.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the object.
+    pos: tuple of floats
+        Coordinates of the objects&#39;s position (its center).
+    radius: float
+        Radius of the cirular object.
+    kwargs: key word arguments
+        Arguments for Circle used to draw the obkect.
+    &#34;&#34;&#34;
+    ax.add_patch(Circle(pos, radius, **kwargs))
+
+    
+def plot_fishfinder(ax, pos, direction, length, handle=0.05,
+                    central_ground=False, wires=False,
+                    rodkwargs=dict(edgecolor=&#39;none&#39;, facecolor=&#39;gray&#39;),
+                    poskwargs=dict(edgecolor=&#39;none&#39;, facecolor=&#39;red&#39;),
+                    negkwargs=dict(edgecolor=&#39;none&#39;, facecolor=&#39;blue&#39;),
+                    gndkwargs=dict(edgecolor=&#39;none&#39;, facecolor=&#39;black&#39;),
+                    lw=1, zorder=50):
+    &#34;&#34;&#34;Plot a fishfinder with electrodes and wires.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the fishfinder.
+    pos: tuple of floats
+        Coordinates of the fishfinder&#39;s position (its center).
+    direction: tuple of floats
+        Coordinates defining the orientation of the fishfinder.
+    length: float
+        Length of the fishfinder (center of positive electrode
+        minus center of negative electrode).
+    handle: float
+        Length of handle (rod beyond the negative electrode)
+        as a fraction of the `length` of fishfinder.
+    central_ground: bool
+        Add a central ground electrode.
+    wires: bool, &#39;postop&#39; or &#39;negtop&#39;
+        Draw wires for each electrode.
+        - True or &#39;postop&#39;: draw wire of positive electrode on top.
+        - &#39;negtop&#39;: draw wire of negative electrode on top.
+        Return the coordinates of the endpoints of the wires.
+    rodkwargs: dict
+        Key-word arguments for Rectangle used to draw the rod.
+    poskwargs: dict
+        Key-word arguments for Rectangle used to draw the positive electrode.
+    negkwargs: dict
+        Key-word arguments for Rectangle used to draw the negative electrode.
+    gndkwargs: dict
+        Key-word arguments for Rectangle used to draw the ground electrode.
+    lw: float
+        Width of the lines used for drawing the wires.
+    zorder: int
+        zorder for the fishfinder.
+
+    Returns
+    -------
+    negpos: tuple of floats
+        Coordinates of center of negative electrode.
+    pospos: tuple of floats
+        Coordinates of center of positive electrode.
+    negwirepos: tuple of floats
+        If `wire`, the end of the wire of the negative electrode.
+    poswirepos: tuple of floats
+        If `wire`, the end of the wire of the positive electrode.
+    gndwirepos: tuple of floats
+        If `central_ground` and `wire`, the end of the wire of
+        the ground electrode.
+    &#34;&#34;&#34;
+    width = 0.07*length
+    transform = mpt.Affine2D().rotate(np.arctan2(direction[1], direction[0])).translate(*pos)
+
+    ax.add_patch(Rectangle((-(0.5+handle)*length, -0.5*width),
+                           (1+handle+0.05)*length, width,
+                           transform=transform + ax.transData,
+                           zorder=zorder, **rodkwargs))
+    ax.add_patch(Rectangle((0.5*length-0.4*width, -0.6*width),
+                           0.8*width, 1.2*width,
+                           transform=transform + ax.transData,
+                           zorder=zorder+2, **poskwargs))
+    ax.add_patch(Rectangle((-0.5*length-0.4*width, -0.6*width),
+                           0.8*width, 1.2*width,
+                           transform=transform + ax.transData,
+                           zorder=zorder+2, **negkwargs))
+    nodes = [(-0.5*length, 0), (0.5*length, 0)]
+    if central_ground:
+        ax.add_patch(Rectangle((-0.4*width, -0.6*width),
+                               0.8*width, 1.2*width,
+                               transform=transform + ax.transData,
+                               zorder=zorder+2, **gndkwargs))
+    if wires:
+        offs = 0.03*width*lw
+        if wires == &#39;negtop&#39;:
+            offs *= -1
+        if central_ground:
+            offs *= 2
+        color = negkwargs.get(&#39;facecolor&#39;)
+        ax.plot((-0.5*length, -(0.5+handle)*length), (-offs, -offs),
+                color=color, lw=lw, solid_capstyle=&#39;butt&#39;,
+                transform=transform + ax.transData, zorder=zorder+1)
+        color = poskwargs.get(&#39;facecolor&#39;)
+        ax.plot((0.5*length, -(0.5+handle)*length), (offs, offs),
+                color=color, lw=lw, solid_capstyle=&#39;butt&#39;, transform=transform +
+                ax.transData, zorder=zorder+1)
+        nodes.extend(((-(0.5+handle)*length, -offs), (-(0.5+handle)*length, offs)))
+        if central_ground:
+            color = gndkwargs.get(&#39;facecolor&#39;)
+            ax.plot((0, -(0.5+handle)*length), (0, 0),
+                    color=color, lw=lw, solid_capstyle=&#39;butt&#39;,
+                    transform=transform + ax.transData, zorder=zorder+1)
+            nodes.append((-(0.5+handle)*length, 0))
+    nodes = transform.transform(nodes)
+    return nodes
+
+
+def plot_pathes(ax, *vertices, **kwargs):
+    &#34;&#34;&#34;Plot pathes.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the path.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be plotted
+        (first column x-coordinates, second colum y-coordinates).
+    kwargs: key word arguments
+        Arguments for PathPatch used to draw the path.
+    &#34;&#34;&#34;
+    for verts in vertices:
+        codes = np.zeros(len(verts))
+        codes[:] = Path.LINETO
+        codes[0] = Path.MOVETO
+        codes[-1] = Path.CLOSEPOLY
+        path = Path(verts, codes)
+        ax.add_patch(PathPatch(path, **kwargs))
+    bbox = bbox_pathes(*vertices)
+    center = np.mean(bbox, axis=0)
+    bbox -= center
+    bbox *= 1.2
+    bbox += center
+    ax.set_xlim(*bbox[:,0])
+    ax.set_ylim(*bbox[:,1])
+
+
+def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
+                 gamma=1.0):
+    &#34;&#34;&#34;Generate meshgrid of one side of the fish from shape.
+    
+    Parameters
+    ----------
+    fish: string or tuple or dict
+        Specifies a fish to show:
+        - any of the strings defining a shape contained in the `fish_shapes` dictionary,
+        - a tuple with the name of the fish and &#39;top&#39; or &#39;side&#39;,
+        - a dictionary with at least a &#39;body&#39; key holding pathes to be drawn.
+    pos: tuple of floats
+        Coordinates of the fish&#39;s position (its center).
+    direction: tuple of floats
+        Coordinates of a vector defining the orientation of the fish.
+    size: float
+        Size of the fish.
+    bend: float
+        Bending angle of the fish&#39;s tail in degree.
+    gamma: float
+        Gamma distortion of the ellipse. The ellipse equation is raised
+        to the power of gamma before its smaller diameter is scaled up
+        from one to the actual value.
+
+    Returns
+    -------
+    xx: 2D array of floats
+        x-coordinates in direction of body axis.
+    yy: 2D array of floats
+        y-coordinates in direction upwards from body axis.
+    zz: 2D array of floats
+        z-coordinates of fish surface, outside of fish NaN.
+    &#34;&#34;&#34;
+    if direction[1] != 0:
+        raise ValueError(&#39;rotation not supported by fish_surface yet.&#39;)
+    fish = fish_shape(fish)
+    bbox = bbox_pathes(*fish.values())
+    size_fac = -1.05*0.5/bbox[0,0]
+    path = bend_path(fish[&#39;body&#39;], bend, size, size_fac)
+    # split in top and bottom half:
+    minxi = np.argmin(path[:,0])
+    maxxi = np.argmax(path[:,0])
+    i0 = min(minxi, maxxi)
+    i1 = max(minxi, maxxi)
+    path0 = path[i0:i1,:]
+    path1 = np.vstack((path[i0::-1,:], path[:i1:-1,:]))
+    if np.mean(path0[:,1]) &lt; np.mean(path1[:,1]):
+        path0, path1 = path1, path0
+    # make sure x coordinates are monotonically increasing:
+    pm = np.maximum.accumulate(path0[:,0])
+    path0 = np.delete(path0, np.where(path0[:,0] &lt; pm)[0], axis=0)
+    pm = np.maximum.accumulate(path1[:,0])
+    path1 = np.delete(path1, np.where(path1[:,0] &lt; pm)[0], axis=0)
+    # rotate: XXX
+    # translate:
+    minx = path[minxi,0] + pos[0]
+    maxx = path[maxxi,0] + pos[0]
+    path0 += pos[:2]
+    path1 += pos[:2]
+    # interpolate:
+    n = 5*max(len(path0), len(path1))
+    #n = 200
+    x = np.linspace(minx, maxx, n)
+    upperpath = np.zeros((len(x), 2))
+    upperpath[:,0] = x
+    upperpath[:,1] = np.interp(x, path0[:,0], path0[:,1])
+    lowerpath = np.zeros((len(x), 2))
+    lowerpath[:,0] = x
+    lowerpath[:,1] = np.interp(x, path1[:,0], path1[:,1])
+    # ellipse origin and semi axes:
+    midline = np.array(upperpath)
+    midline[:,1] = np.mean(np.vstack((upperpath[:,1], lowerpath[:,1])), axis=0)
+    diamy = upperpath[:,1] - midline[:,1]
+    diamz = 0.3*diamy  # take it from the top view!
+    # apply ellipse:
+    y = np.linspace(np.min(midline[:,1]-diamy), np.max(midline[:,1]+diamy), n//2)
+    xx, yy = np.meshgrid(x ,y)
+    zz = diamz * (np.sqrt(1.0 - ((yy-midline[:,1])/diamy)**2))**gamma
+    return xx, yy, zz
+
+
+def surface_normals(xx, yy, zz):
+    &#34;&#34;&#34;Normal vectors on a surface.
+
+    Compute surface normals on a surface as returned by `fish_surface()`.
+
+    Parameters
+    ----------
+    xx: 2D array of floats
+        Mesh grid of x coordinates.
+    yy: 2D array of floats
+        Mesh grid of y coordinates.
+    zz: 2D array of floats
+        z-coordinates of surface on the xx and yy coordinates.
+
+    Returns
+    -------
+    nx: 2D array of floats
+        x-coordinates of normal vectors for each point in xx and yy.
+    ny: 2D array of floats
+        y-coordinates of normal vectors for each point in xx and yy.
+    nz: 2D array of floats
+        z-coordinates of normal vectors for each point in xx and yy.
+    &#34;&#34;&#34;
+    dx = xx[0,1] - xx[0,0]
+    dy = yy[1,0] - yy[0,0]
+    nx = np.zeros(xx.shape)
+    nx[:,:-1] = -np.diff(zz, axis=1)/dx
+    ny = np.zeros(xx.shape)
+    ny[:-1,:] = -np.diff(zz, axis=0)/dy
+    nz = np.ones(xx.shape)
+    norm = np.sqrt(nx*nx+ny*ny+1)
+    return nx/norm, ny/norm, nz/norm
+
+
+def extract_path(data):
+    &#34;&#34;&#34;Convert SVG coordinates to numpy array with path coordinates.
+
+    Draw a fish outline in inkscape. Open the XML Editor (shift+ctrl+x)
+    and copy the value of the data field (&#39;d&#39;) into a variable that you
+    pass to this function.
+    Alternatively, try the &#39;inkscape:original-d&#39; variable.
+
+    Parameters
+    ----------
+    data: string
+        Space separated coordinate pairs describing the outline of a fish.
+        The coordinates are separated by commas. Coordinate pairs without a comma are ignored.
+
+    Returns
+    -------
+    vertices: 2D array
+        The coordinates of the outline of a fish.
+    &#34;&#34;&#34;
+    coords = data.split(&#39; &#39;)
+    vertices = []
+    relative = False
+    xc = yc = 0
+    for c in coords:
+        if &#39;,&#39; in c:
+            xs, ys = c.split(&#39;,&#39;)
+            x = float(xs)
+            y = float(ys)
+            if relative:
+                xc += x
+                yc += y
+            else:
+                xc = x
+                yc = y
+            vertices.append((xc, yc))
+        else:
+            if c in &#39;MLC&#39;:
+                relative = False
+            elif c in &#39;mlc&#39;:
+                relative = True
+    vertices = np.array(vertices)
+    return vertices
+
+
+def bbox_pathes(*vertices):
+    &#34;&#34;&#34;Common bounding box of pathes.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    bbox: 2D array
+        Bounding box of the pathes: [[x0, y0], [x1, y1]]
+    &#34;&#34;&#34;
+    # get bounding box of all pathes:
+    bbox = np.zeros((2, 2))
+    first = True
+    for verts in vertices:
+        if len(verts.shape) != 2:
+            continue
+        vbbox = np.array([[np.min(verts[:,0]), np.min(verts[:,1])],
+                          [np.max(verts[:,0]), np.max(verts[:,1])]])
+        if first:
+            bbox = vbbox
+            first = False
+        else:
+            bbox[0,0] = min(bbox[0,0], vbbox[0,0])
+            bbox[0,1] = min(bbox[0,1], vbbox[0,1])
+            bbox[1,0] = max(bbox[1,0], vbbox[1,0])
+            bbox[1,1] = max(bbox[1,1], vbbox[1,1])
+    return bbox
+
+
+def translate_pathes(dx, dy, *vertices):
+    &#34;&#34;&#34;Translate pathes in place.
+
+    Parameters
+    ----------
+    dx: float
+        Shift in x direction.
+    dy: float
+        Shift in y direction.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be translated
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    for verts in vertices:
+        verts[:,0] += dx
+        verts[:,1] += dy
+
+
+def center_pathes(*vertices):
+    &#34;&#34;&#34;Translate pathes to their common origin in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be centered
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    center = np.mean(bbox_pathes(*vertices), axis=1)
+    # shift:
+    for verts in vertices:
+        verts[:,0] -= center[0]
+        verts[:,1] -= center[1]
+
+
+def rotate_pathes(theta, *vertices):
+    &#34;&#34;&#34;Rotate pathes in place.
+
+    Parameters
+    ----------
+    theta: float
+        Rotation angle in degrees.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be rotated
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    theta *= np.pi/180.0
+    # rotation matrix:
+    c = np.cos(theta)
+    s = np.sin(theta)
+    rm = np.array(((c, -s), (s, c)))
+    # rotation:
+    for verts in vertices:
+        verts[:,:] = np.dot(verts, rm)
+
+
+def flipx_pathes(*vertices):
+    &#34;&#34;&#34;Flip pathes in x-direction in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be flipped
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    for verts in vertices:
+        verts[:,0] = -verts[:,0]
+
+
+def flipy_pathes(*vertices):
+    &#34;&#34;&#34;Flip pathes in y-direction in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be flipped
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    for verts in vertices:
+        verts[:,1] = -verts[:,1]
+
+
+def mirror_path(vertices1):
+    &#34;&#34;&#34;Complete path of half a fish outline by appending the mirrored path.
+
+    It is sufficient to draw half of a top view of a fish. Import with
+    extract_path() and use this function to add the missing half of the
+    outline to the path. The outline is mirrored on the x-axis.
+
+    Parameters
+    ----------
+    vertices1: 2D array
+        The coordinates of one half of the outline of a fish
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    vertices: 2D array
+        The coordinates of the complete outline of a fish.
+    &#34;&#34;&#34;
+    vertices2 = np.array(vertices1[::-1,:])
+    vertices2[:,1] *= -1
+    vertices = np.concatenate((vertices1, vertices2))
+    return vertices
+
+
+def normalize_path(*vertices):
+    &#34;&#34;&#34;Normalize and shift path in place.
+
+    The path extent in x direction is normalized to one and its center
+    is shifted to the origin.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of the outline of a fish
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    bbox = bbox_pathes(*vertices)
+    for verts in vertices:
+        verts[:,1] -= np.mean(bbox[:,1])
+        verts[:,0] -= bbox[0,0]
+        verts /= bbox[1,0] - bbox[0,0]
+        verts[:,0] -= 0.5
+
+
+def bend_path(path, bend, size, size_fac=1.0):
+    &#34;&#34;&#34;Bend and scale a path.
+
+    Parameters
+    ----------
+    path: 2D array
+        The coordinates of a path.
+    bend: float
+        Angle for bending in degrees.
+    size: float
+        Scale path to this size.
+    size_fac: float
+        Scale path even more, but keep size for calculating the bending.
+
+    Returns
+    -------
+    path: 2D array
+        The coordinates of the bent and scaled path.
+    &#34;&#34;&#34;
+    path = np.array(path)
+    path *= size_fac*size
+    if np.abs(bend) &gt; 1.e-8:
+        sel = path[:,0]&lt;0.0
+        xp = path[sel,0]   # all negative x coordinates of path
+        yp = path[sel,1]   # y coordinates of all negative x coordinates of path
+        r = -180.0*0.5*size/bend/np.pi        # radius of circle on which to bend the tail
+        beta = xp/r                           # angle on circle for each y coordinate
+        R = r-yp                              # radius of point
+        path[sel,0] = -np.abs(R*np.sin(beta)) # transformed x coordinates
+        path[sel,1] = r-R*np.cos(beta)        # transformed y coordinates
+    return path
+        
+
+def export_path(vertices):
+    &#34;&#34;&#34;Print coordinates of path for import as numpy array.
+
+    The variable name, a leading &#39;np.array([&#39; and the closing &#39;])&#39;
+    are not printed.
+
+    Parameters
+    ----------
+    vertices: 2D array
+        The coordinates of the path
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    n = 2
+    for k, v in enumerate(vertices):
+        if k%n == 0:
+            print(&#39;   &#39;, end=&#39;&#39;)
+        print(&#39; [%.8e, %.8e],&#39; % (v[0], v[1]), end=&#39;&#39;)
+        if k%n == n-1 and k &lt; len(vertices)-1:
+            print(&#39;&#39;)
+
+
+def export_fish(name, body, *fins):
+    &#34;&#34;&#34;Serialize coordinates of fish outlines as a dictionary.
+
+    Writes a dictionary with name &#39;name&#39; and keys &#39;body&#39;, &#39;fin0&#39;, &#39;fin1&#39;, ...
+    holding the pathes.
+
+    Copy these coordinates from the console and paste them into this module.
+    Give it a proper name and don&#39;t forget to add it to the fish_shapes dictionary
+    to make it know to plot_fish().
+
+    Parameters
+    ----------
+    name: string
+        Name of the variable.
+    body: 2D array
+        The coordinates of fish&#39;s body
+        (first column x-coordinates, second colum y-coordinates).
+    fins: zero or more 2D arrays
+        The coordinates of the fish&#39;s fins
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    fish: dict
+        A dictionary holding the pathes that can be passed directly to plot_fish().
+    &#34;&#34;&#34;
+    print(&#39;%s = dict(body=np.array([&#39; % name)
+    export_path(body)
+    fish = dict(body=body)
+    for k, f in enumerate(fins):
+        print(&#39;]),&#39;)
+        print(&#39;    fin%d=np.array([&#39; % k)
+        export_path(f)
+        fish[&#39;fin%d&#39; % k] = f
+    print(&#39;]))&#39;)
+    return fish
+
+
+def export_fish_demo():
+    &#34;&#34;&#34;Code demonstrating how to export a fish outline from SVG.
+    &#34;&#34;&#34;
+    # copy the path specification from an SVG object:
+    data = &#34;m 84.013672,21.597656 0.0082,83.002434 0.113201,-0.0145 0.1238,-0.32544 0.06532,-0.80506 0.06836,-0.87696 0.0332,-4.298823 v -8.625 l 0.06836,-1.724609 0.06836,-1.722657 0.07032,-1.726562 0.06836,-1.726563 0.06641,-1.693359 0.03439,-1.293583 0.06912,-1.30798 0.10547,-1.724609 0.10156,-1.724609 0.10352,-1.726563 0.10352,-1.724609 0.13867,-1.72461 0.171876,-2.572265 0.13672,-1.72461 0.13672,-1.726562 0.10352,-1.724609 0.06836,-1.722657 0.103515,-2.574219 0.06836,-1.722656 0.10352,-1.728515 0.07032,-1.722657 0.06836,-1.724609 0.240234,-1.724609 0.34375,-1.72461 0.134766,-1.726562 0.10352,-1.69336 0.03516,-0.875 0.07031,-1.728515 v -0.847657 l -0.07273,-2.246267 -0.0172,-0.184338 0.15636,0.09441 0.384252,1.019739 0.748821,0.905562 1.028854,0.647532 1.356377,-0.03149 0.362644,-0.347764 -0.264138,-0.736289 -1.268298,-1.126614 -1.363988,-0.922373 -0.927443,-0.451153 -0.228986,-0.07018 -0.0015,-0.21624 0.03663,-0.660713 0.480469,-0.847657 -0.101563,-0.876953 -0.103515,-0.845703 -0.103516,-0.876953 -0.207031,-1.695313 -0.273438,-1.724609 -0.308594,-1.726562 -0.27539,-1.72461 -0.310547,-1.722656 -0.240234,-0.878906 -0.400196,-0.877344 -0.53927,-0.596268 -0.486573,-0.216683 z&#34;
+    verts = extract_path(data)
+    # look at the path:
+    fig, ax = plt.subplots()
+    plot_pathes(ax, verts)
+    ax.set_aspect(&#39;equal&#39;)
+    plt.show()
+    # fix path:
+    center_pathes(verts)
+    rotate_pathes(-90.0, verts)
+    verts[:,1] *= 0.8               # change aspect ratio
+    verts = verts[1:,:]             # remove first point
+    translate_pathes(0.0, -np.min(verts[:,1]), verts)
+    # mirror, normalize and export path:
+    verts = mirror_path(verts)
+    normalize_path(verts)
+    fish = export_fish(&#39;Alepto_top&#39;, verts)
+    # plot outline:
+    fig, ax = plt.subplots()
+    plot_fish(ax, fish, size=1.0/1.1,
+              bodykwargs=dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;r&#39;),
+              finkwargs=dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;b&#39;))
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1, 1)
+    plt.show()
+
+    
+def main():
+    &#34;&#34;&#34;Plot some fish shapes and surface normals.
+    &#34;&#34;&#34;
+    bodykwargs = dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;none&#39;)
+    finkwargs = dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;grey&#39;)
+    eyekwargs = dict(lw=1, edgecolor=&#39;white&#39;, facecolor=&#39;grey&#39;)
+    var = [&#39;zz&#39;, &#39;nx&#39;, &#39;ny&#39;, &#39;nz&#39;]
+    fig, ax = plt.subplots()
+    for k in range(4):
+        y = (1.5-k)*9
+        fish = ((&#39;Alepto_male&#39;, &#39;side&#39;), (0, y), (1, 0), 20.0, 0)
+        xx, yy, zz = fish_surface(*fish, gamma=0.5)
+        nx, ny, nz = surface_normals(xx, yy, zz)
+        a = [zz, nx, ny, nz]
+        th = np.nanmax(np.abs(a[k]))
+        ax.contourf(xx[0,:], yy[:,0], -a[k], 20, vmin=-th, vmax=th, cmap=&#39;RdYlBu&#39;)
+        plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
+        ax.text(-11, y+2, var[k])
+    fish = ((&#39;Alepto_male&#39;, &#39;side&#39;), (20, -9), (1, 0), 23.0, 10)
+    xx, yy, zz = fish_surface(*fish, gamma=0.8)
+    nv = surface_normals(xx, yy, zz)
+    ilumn = [-0.05, 0.1, 1.0]
+    dv = np.zeros(nv[0].shape)
+    for nc, ic in zip(nv, ilumn):
+        dv += nc*ic
+    #ax.contourf(xx[0,:], yy[:,0], dv, 20, cmap=&#39;gist_gray&#39;)
+    ax.contourf(xx[0,:], yy[:,0], dv, levels=[np.nanmin(dv), np.nanmin(dv)+0.99*(np.nanmax(dv)-np.nanmin(dv)), np.nanmax(dv)], cmap=&#39;gist_gray&#39;)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
+    bodykwargs = dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;k&#39;)
+    fish = ((&#39;Alepto&#39;, &#39;top&#39;), (23, 0), (2, 1), 16.0, 25)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+    fish = ((&#39;Eigenmannia&#39;, &#39;top&#39;), (23, 8), (1, 0.3), 16.0, -15)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+    fish = ((&#39;Eigenmannia&#39;, &#39;side&#39;), (20, 18), (1, 0), 20.0, -25)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
+    plot_fishfinder(ax, (38, 13), (1, 2), 18, handle=0.2,
+                    central_ground=True, wires=True, lw=2)
+    plot_fishfinder(ax, (38, -8), (1, 2), 18, central_ground=False)
+    ax.set_xlim(-15, 45)
+    ax.set_ylim(-20, 24)
+    ax.set_aspect(&#39;equal&#39;)
+    plt.show()
+
+
+if __name__ == &#39;__main__&#39;:
+    #export_fish_demo()
+    main()
+    </code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-variables">Global variables</h2>
+<dl>
+<dt id="thunderfish.fishshapes.Alepto_top"><code class="name">var <span class="ident">Alepto_top</span></code></dt>
+<dd>
+<div class="desc"><p>Outline of an <em>Apteronotus leptorhynchus</em> viewed from top, modified from Krahe 2004.</p></div>
+</dd>
+<dt id="thunderfish.fishshapes.Alepto_male_side"><code class="name">var <span class="ident">Alepto_male_side</span></code></dt>
+<dd>
+<div class="desc"><p>Outline of an <em>Apteronotus leptorhynchus</em> male viewed from the side.</p></div>
+</dd>
+<dt id="thunderfish.fishshapes.Eigenmannia_top"><code class="name">var <span class="ident">Eigenmannia_top</span></code></dt>
+<dd>
+<div class="desc"><p>Outline of an <em>Eigenmannia virescens</em> viewed from top.</p></div>
+</dd>
+<dt id="thunderfish.fishshapes.Eigenmannia_side"><code class="name">var <span class="ident">Eigenmannia_side</span></code></dt>
+<dd>
+<div class="desc"><p>Outline of an <em>Eigenmannia virescens</em> viewed from the side.</p></div>
+</dd>
+<dt id="thunderfish.fishshapes.fish_shapes"><code class="name">var <span class="ident">fish_shapes</span></code></dt>
+<dd>
+<div class="desc"><p>Dictionary holding all electric fish shapes.</p></div>
+</dd>
+<dt id="thunderfish.fishshapes.fish_top_shapes"><code class="name">var <span class="ident">fish_top_shapes</span></code></dt>
+<dd>
+<div class="desc"><p>Dictionary holding electric fish shapes viewed from top.</p></div>
+</dd>
+<dt id="thunderfish.fishshapes.fish_side_shapes"><code class="name">var <span class="ident">fish_side_shapes</span></code></dt>
+<dd>
+<div class="desc"><p>Dictionary holding electric fish shapes viewed from the side.</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.fishshapes.fish_shape"><code class="name flex">
+<span>def <span class="ident">fish_shape</span></span>(<span>fish)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Get a dictinary containing shapes of a fish.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string</code> or <code>tuple</code> or <code>dict</code></dt>
+<dd>Specifies a fish to show:
+- any of the strings defining a shape contained in the <code><a title="thunderfish.fishshapes.fish_shapes" href="#thunderfish.fishshapes.fish_shapes">fish_shapes</a></code> dictionary,
+- a tuple with the name of the fish as the first element and 'top' or 'side' as the second element,
+- a dictionary with at least a 'body' key holding pathes to be drawn.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary with at least a 'body' key holding pathes to be drawn.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fish_shape(fish):
+    &#34;&#34;&#34;Get a dictinary containing shapes of a fish.
+
+    Parameters
+    ----------
+    fish: string or tuple or dict
+        Specifies a fish to show:
+        - any of the strings defining a shape contained in the `fish_shapes` dictionary,
+        - a tuple with the name of the fish as the first element and &#39;top&#39; or &#39;side&#39; as the second element,
+        - a dictionary with at least a &#39;body&#39; key holding pathes to be drawn.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with at least a &#39;body&#39; key holding pathes to be drawn.
+    &#34;&#34;&#34;
+    if not isinstance(fish, dict):
+        if isinstance(fish, (tuple, list)):
+            if fish[1] == &#39;top&#39;:
+                fish = fish_top_shapes[fish[0]]
+            else:
+                fish = fish_side_shapes[fish[0]]
+        else:
+            fish = fish_shapes[fish]
+    return fish</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.plot_fish"><code class="name flex">
+<span>def <span class="ident">plot_fish</span></span>(<span>ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=1, bodykwargs={}, finkwargs={}, eyekwargs=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot body, fins and eye of an electric fish.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axes</code></dt>
+<dd>Axes where to draw the fish.</dd>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string</code> or <code>tuple</code> or <code>dict</code></dt>
+<dd>Specifies a fish to show:
+- any of the strings defining a shape contained in the <code><a title="thunderfish.fishshapes.fish_shapes" href="#thunderfish.fishshapes.fish_shapes">fish_shapes</a></code> dictionary,
+- a tuple with the name of the fish as the first element and 'top' or 'side' as the second element,
+- a dictionary with at least a 'body' key holding pathes to be drawn.</dd>
+<dt><strong><code>pos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of the fish's position (its center).</dd>
+<dt><strong><code>direction</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of a vector defining the orientation of the fish.</dd>
+<dt><strong><code>size</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of the fish.</dd>
+<dt><strong><code>bend</code></strong> :&ensp;<code>float</code></dt>
+<dd>Bending angle of the fish's tail in degree.</dd>
+<dt><strong><code>scaley</code></strong> :&ensp;<code>float</code></dt>
+<dd>Scale factor applied in y direction after bending and rotation to
+compensate for differently scaled axes.</dd>
+<dt><strong><code>bodykwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Key-word arguments for PathPatch used to draw the fish's body.</dd>
+<dt><strong><code>finkwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Key-word arguments for PathPatch used to draw the fish's fins.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>bpatch</code></strong> :&ensp;<code>matplotlib.patches.PathPatch</code></dt>
+<dd>The fish's body. Can be used for set_clip_path().</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code>fig, ax = plt.subplots()
+bodykwargs=dict(lw=1, edgecolor='k', facecolor='k')
+finkwargs=dict(lw=1, edgecolor='k', facecolor='grey')
+fish = (('Eigenmannia', 'side'), (0, 0), (1, 0), 20.0, -25)
+plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+ax.set_xlim(-15, 15)
+ax.set_ylim(-10, 10)
+plt.show()
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_fish(ax, fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, scaley=1,
+              bodykwargs={}, finkwargs={}, eyekwargs=None):
+    &#34;&#34;&#34;Plot body, fins and eye of an electric fish.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the fish.
+    fish: string or tuple or dict
+        Specifies a fish to show:
+        - any of the strings defining a shape contained in the `fish_shapes` dictionary,
+        - a tuple with the name of the fish as the first element and &#39;top&#39; or &#39;side&#39; as the second element,
+        - a dictionary with at least a &#39;body&#39; key holding pathes to be drawn.
+    pos: tuple of floats
+        Coordinates of the fish&#39;s position (its center).
+    direction: tuple of floats
+        Coordinates of a vector defining the orientation of the fish.
+    size: float
+        Size of the fish.
+    bend: float
+        Bending angle of the fish&#39;s tail in degree.
+    scaley: float
+        Scale factor applied in y direction after bending and rotation to
+        compensate for differently scaled axes.
+    bodykwargs: dict
+        Key-word arguments for PathPatch used to draw the fish&#39;s body.
+    finkwargs: dict
+        Key-word arguments for PathPatch used to draw the fish&#39;s fins.
+
+    Returns
+    -------
+    bpatch: matplotlib.patches.PathPatch
+        The fish&#39;s body. Can be used for set_clip_path().
+
+    Example
+    -------
+
+    ```
+    fig, ax = plt.subplots()
+    bodykwargs=dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;k&#39;)
+    finkwargs=dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;grey&#39;)
+    fish = ((&#39;Eigenmannia&#39;, &#39;side&#39;), (0, 0), (1, 0), 20.0, -25)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+    ax.set_xlim(-15, 15)
+    ax.set_ylim(-10, 10)
+    plt.show()
+    ```
+    &#34;&#34;&#34;
+    fish = fish_shape(fish)
+    bpatch = None
+    size_fac = 1.1
+    bbox = bbox_pathes(*fish.values())
+    trans = mpl.transforms.Affine2D()
+    angle = np.arctan2(direction[1], direction[0])
+    trans.rotate(angle)
+    #trans.scale(dxu/dyu, dyu/dxu)   # what is the right scaling????
+    trans.scale(1, scaley)
+    trans.translate(*pos)
+    for part, verts in fish.items():
+        if part == &#39;eye&#39;:
+            if eyekwargs is not None:
+                verts = np.array(verts)*size*size_fac
+                verts[:2] = trans.transform_point(verts[:2])
+                if not &#39;zorder&#39; in eyekwargs:
+                    eyekwargs[&#39;zorder&#39;] = 20
+                ax.add_patch(Circle(verts[:2], verts[2], **eyekwargs))
+            continue
+        verts = bend_path(verts, bend, size, size_fac)
+        codes = np.zeros(len(verts))
+        codes[:] = Path.LINETO
+        codes[0] = Path.MOVETO
+        codes[-1] = Path.CLOSEPOLY
+        path = Path(verts, codes)
+        #pixelx = np.abs(np.diff(ax.get_window_extent().get_points()[:,0]))[0]
+        #pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
+        #xmin, xmax = ax.get_xlim()
+        #ymin, ymax = ax.get_ylim()
+        #dxu = np.abs(xmax - xmin)/pixelx
+        #dyu = np.abs(ymax - ymin)/pixely
+        path = path.transformed(trans)
+        kwargs = bodykwargs if part == &#39;body&#39; else finkwargs
+        if not &#39;zorder&#39; in kwargs:
+            kwargs[&#39;zorder&#39;] = 0 if part == &#39;body&#39; else 10
+        patch = PathPatch(path, **kwargs)
+        if part == &#39;body&#39;:
+            bpatch = patch
+        ax.add_patch(patch)
+    return bpatch</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.plot_object"><code class="name flex">
+<span>def <span class="ident">plot_object</span></span>(<span>ax, pos=(0, 0), radius=1.0, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot circular object.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axes</code></dt>
+<dd>Axes where to draw the object.</dd>
+<dt><strong><code>pos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of the objects's position (its center).</dd>
+<dt><strong><code>radius</code></strong> :&ensp;<code>float</code></dt>
+<dd>Radius of the cirular object.</dd>
+<dt><strong><code>kwargs</code></strong> :&ensp;<code>key word arguments</code></dt>
+<dd>Arguments for Circle used to draw the obkect.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_object(ax, pos=(0, 0), radius=1.0, **kwargs):
+    &#34;&#34;&#34;Plot circular object.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the object.
+    pos: tuple of floats
+        Coordinates of the objects&#39;s position (its center).
+    radius: float
+        Radius of the cirular object.
+    kwargs: key word arguments
+        Arguments for Circle used to draw the obkect.
+    &#34;&#34;&#34;
+    ax.add_patch(Circle(pos, radius, **kwargs))</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.plot_fishfinder"><code class="name flex">
+<span>def <span class="ident">plot_fishfinder</span></span>(<span>ax, pos, direction, length, handle=0.05, central_ground=False, wires=False, rodkwargs={'edgecolor': 'none', 'facecolor': 'gray'}, poskwargs={'edgecolor': 'none', 'facecolor': 'red'}, negkwargs={'edgecolor': 'none', 'facecolor': 'blue'}, gndkwargs={'edgecolor': 'none', 'facecolor': 'black'}, lw=1, zorder=50)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot a fishfinder with electrodes and wires.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axes</code></dt>
+<dd>Axes where to draw the fishfinder.</dd>
+<dt><strong><code>pos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of the fishfinder's position (its center).</dd>
+<dt><strong><code>direction</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates defining the orientation of the fishfinder.</dd>
+<dt><strong><code>length</code></strong> :&ensp;<code>float</code></dt>
+<dd>Length of the fishfinder (center of positive electrode
+minus center of negative electrode).</dd>
+<dt><strong><code>handle</code></strong> :&ensp;<code>float</code></dt>
+<dd>Length of handle (rod beyond the negative electrode)
+as a fraction of the <code>length</code> of fishfinder.</dd>
+<dt><strong><code>central_ground</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Add a central ground electrode.</dd>
+<dt><strong><code>wires</code></strong> :&ensp;<code>bool, 'postop'</code> or <code>'negtop'</code></dt>
+<dd>Draw wires for each electrode.
+- True or 'postop': draw wire of positive electrode on top.
+- 'negtop': draw wire of negative electrode on top.
+Return the coordinates of the endpoints of the wires.</dd>
+<dt><strong><code>rodkwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Key-word arguments for Rectangle used to draw the rod.</dd>
+<dt><strong><code>poskwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Key-word arguments for Rectangle used to draw the positive electrode.</dd>
+<dt><strong><code>negkwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Key-word arguments for Rectangle used to draw the negative electrode.</dd>
+<dt><strong><code>gndkwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Key-word arguments for Rectangle used to draw the ground electrode.</dd>
+<dt><strong><code>lw</code></strong> :&ensp;<code>float</code></dt>
+<dd>Width of the lines used for drawing the wires.</dd>
+<dt><strong><code>zorder</code></strong> :&ensp;<code>int</code></dt>
+<dd>zorder for the fishfinder.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>negpos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of center of negative electrode.</dd>
+<dt><strong><code>pospos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of center of positive electrode.</dd>
+<dt><strong><code>negwirepos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>If <code>wire</code>, the end of the wire of the negative electrode.</dd>
+<dt><strong><code>poswirepos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>If <code>wire</code>, the end of the wire of the positive electrode.</dd>
+<dt><strong><code>gndwirepos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>If <code>central_ground</code> and <code>wire</code>, the end of the wire of
+the ground electrode.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_fishfinder(ax, pos, direction, length, handle=0.05,
+                    central_ground=False, wires=False,
+                    rodkwargs=dict(edgecolor=&#39;none&#39;, facecolor=&#39;gray&#39;),
+                    poskwargs=dict(edgecolor=&#39;none&#39;, facecolor=&#39;red&#39;),
+                    negkwargs=dict(edgecolor=&#39;none&#39;, facecolor=&#39;blue&#39;),
+                    gndkwargs=dict(edgecolor=&#39;none&#39;, facecolor=&#39;black&#39;),
+                    lw=1, zorder=50):
+    &#34;&#34;&#34;Plot a fishfinder with electrodes and wires.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the fishfinder.
+    pos: tuple of floats
+        Coordinates of the fishfinder&#39;s position (its center).
+    direction: tuple of floats
+        Coordinates defining the orientation of the fishfinder.
+    length: float
+        Length of the fishfinder (center of positive electrode
+        minus center of negative electrode).
+    handle: float
+        Length of handle (rod beyond the negative electrode)
+        as a fraction of the `length` of fishfinder.
+    central_ground: bool
+        Add a central ground electrode.
+    wires: bool, &#39;postop&#39; or &#39;negtop&#39;
+        Draw wires for each electrode.
+        - True or &#39;postop&#39;: draw wire of positive electrode on top.
+        - &#39;negtop&#39;: draw wire of negative electrode on top.
+        Return the coordinates of the endpoints of the wires.
+    rodkwargs: dict
+        Key-word arguments for Rectangle used to draw the rod.
+    poskwargs: dict
+        Key-word arguments for Rectangle used to draw the positive electrode.
+    negkwargs: dict
+        Key-word arguments for Rectangle used to draw the negative electrode.
+    gndkwargs: dict
+        Key-word arguments for Rectangle used to draw the ground electrode.
+    lw: float
+        Width of the lines used for drawing the wires.
+    zorder: int
+        zorder for the fishfinder.
+
+    Returns
+    -------
+    negpos: tuple of floats
+        Coordinates of center of negative electrode.
+    pospos: tuple of floats
+        Coordinates of center of positive electrode.
+    negwirepos: tuple of floats
+        If `wire`, the end of the wire of the negative electrode.
+    poswirepos: tuple of floats
+        If `wire`, the end of the wire of the positive electrode.
+    gndwirepos: tuple of floats
+        If `central_ground` and `wire`, the end of the wire of
+        the ground electrode.
+    &#34;&#34;&#34;
+    width = 0.07*length
+    transform = mpt.Affine2D().rotate(np.arctan2(direction[1], direction[0])).translate(*pos)
+
+    ax.add_patch(Rectangle((-(0.5+handle)*length, -0.5*width),
+                           (1+handle+0.05)*length, width,
+                           transform=transform + ax.transData,
+                           zorder=zorder, **rodkwargs))
+    ax.add_patch(Rectangle((0.5*length-0.4*width, -0.6*width),
+                           0.8*width, 1.2*width,
+                           transform=transform + ax.transData,
+                           zorder=zorder+2, **poskwargs))
+    ax.add_patch(Rectangle((-0.5*length-0.4*width, -0.6*width),
+                           0.8*width, 1.2*width,
+                           transform=transform + ax.transData,
+                           zorder=zorder+2, **negkwargs))
+    nodes = [(-0.5*length, 0), (0.5*length, 0)]
+    if central_ground:
+        ax.add_patch(Rectangle((-0.4*width, -0.6*width),
+                               0.8*width, 1.2*width,
+                               transform=transform + ax.transData,
+                               zorder=zorder+2, **gndkwargs))
+    if wires:
+        offs = 0.03*width*lw
+        if wires == &#39;negtop&#39;:
+            offs *= -1
+        if central_ground:
+            offs *= 2
+        color = negkwargs.get(&#39;facecolor&#39;)
+        ax.plot((-0.5*length, -(0.5+handle)*length), (-offs, -offs),
+                color=color, lw=lw, solid_capstyle=&#39;butt&#39;,
+                transform=transform + ax.transData, zorder=zorder+1)
+        color = poskwargs.get(&#39;facecolor&#39;)
+        ax.plot((0.5*length, -(0.5+handle)*length), (offs, offs),
+                color=color, lw=lw, solid_capstyle=&#39;butt&#39;, transform=transform +
+                ax.transData, zorder=zorder+1)
+        nodes.extend(((-(0.5+handle)*length, -offs), (-(0.5+handle)*length, offs)))
+        if central_ground:
+            color = gndkwargs.get(&#39;facecolor&#39;)
+            ax.plot((0, -(0.5+handle)*length), (0, 0),
+                    color=color, lw=lw, solid_capstyle=&#39;butt&#39;,
+                    transform=transform + ax.transData, zorder=zorder+1)
+            nodes.append((-(0.5+handle)*length, 0))
+    nodes = transform.transform(nodes)
+    return nodes</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.plot_pathes"><code class="name flex">
+<span>def <span class="ident">plot_pathes</span></span>(<span>ax, *vertices, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot pathes.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axes</code></dt>
+<dd>Axes where to draw the path.</dd>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>one</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of pathes to be plotted
+(first column x-coordinates, second colum y-coordinates).</dd>
+<dt><strong><code>kwargs</code></strong> :&ensp;<code>key word arguments</code></dt>
+<dd>Arguments for PathPatch used to draw the path.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_pathes(ax, *vertices, **kwargs):
+    &#34;&#34;&#34;Plot pathes.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes where to draw the path.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be plotted
+        (first column x-coordinates, second colum y-coordinates).
+    kwargs: key word arguments
+        Arguments for PathPatch used to draw the path.
+    &#34;&#34;&#34;
+    for verts in vertices:
+        codes = np.zeros(len(verts))
+        codes[:] = Path.LINETO
+        codes[0] = Path.MOVETO
+        codes[-1] = Path.CLOSEPOLY
+        path = Path(verts, codes)
+        ax.add_patch(PathPatch(path, **kwargs))
+    bbox = bbox_pathes(*vertices)
+    center = np.mean(bbox, axis=0)
+    bbox -= center
+    bbox *= 1.2
+    bbox += center
+    ax.set_xlim(*bbox[:,0])
+    ax.set_ylim(*bbox[:,1])</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.fish_surface"><code class="name flex">
+<span>def <span class="ident">fish_surface</span></span>(<span>fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0, gamma=1.0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Generate meshgrid of one side of the fish from shape.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string</code> or <code>tuple</code> or <code>dict</code></dt>
+<dd>Specifies a fish to show:
+- any of the strings defining a shape contained in the <code><a title="thunderfish.fishshapes.fish_shapes" href="#thunderfish.fishshapes.fish_shapes">fish_shapes</a></code> dictionary,
+- a tuple with the name of the fish and 'top' or 'side',
+- a dictionary with at least a 'body' key holding pathes to be drawn.</dd>
+<dt><strong><code>pos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of the fish's position (its center).</dd>
+<dt><strong><code>direction</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of a vector defining the orientation of the fish.</dd>
+<dt><strong><code>size</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of the fish.</dd>
+<dt><strong><code>bend</code></strong> :&ensp;<code>float</code></dt>
+<dd>Bending angle of the fish's tail in degree.</dd>
+<dt><strong><code>gamma</code></strong> :&ensp;<code>float</code></dt>
+<dd>Gamma distortion of the ellipse. The ellipse equation is raised
+to the power of gamma before its smaller diameter is scaled up
+from one to the actual value.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>xx</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>x-coordinates in direction of body axis.</dd>
+<dt><strong><code>yy</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>y-coordinates in direction upwards from body axis.</dd>
+<dt><strong><code>zz</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>z-coordinates of fish surface, outside of fish NaN.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fish_surface(fish, pos=(0, 0), direction=(1, 0), size=20.0, bend=0,
+                 gamma=1.0):
+    &#34;&#34;&#34;Generate meshgrid of one side of the fish from shape.
+    
+    Parameters
+    ----------
+    fish: string or tuple or dict
+        Specifies a fish to show:
+        - any of the strings defining a shape contained in the `fish_shapes` dictionary,
+        - a tuple with the name of the fish and &#39;top&#39; or &#39;side&#39;,
+        - a dictionary with at least a &#39;body&#39; key holding pathes to be drawn.
+    pos: tuple of floats
+        Coordinates of the fish&#39;s position (its center).
+    direction: tuple of floats
+        Coordinates of a vector defining the orientation of the fish.
+    size: float
+        Size of the fish.
+    bend: float
+        Bending angle of the fish&#39;s tail in degree.
+    gamma: float
+        Gamma distortion of the ellipse. The ellipse equation is raised
+        to the power of gamma before its smaller diameter is scaled up
+        from one to the actual value.
+
+    Returns
+    -------
+    xx: 2D array of floats
+        x-coordinates in direction of body axis.
+    yy: 2D array of floats
+        y-coordinates in direction upwards from body axis.
+    zz: 2D array of floats
+        z-coordinates of fish surface, outside of fish NaN.
+    &#34;&#34;&#34;
+    if direction[1] != 0:
+        raise ValueError(&#39;rotation not supported by fish_surface yet.&#39;)
+    fish = fish_shape(fish)
+    bbox = bbox_pathes(*fish.values())
+    size_fac = -1.05*0.5/bbox[0,0]
+    path = bend_path(fish[&#39;body&#39;], bend, size, size_fac)
+    # split in top and bottom half:
+    minxi = np.argmin(path[:,0])
+    maxxi = np.argmax(path[:,0])
+    i0 = min(minxi, maxxi)
+    i1 = max(minxi, maxxi)
+    path0 = path[i0:i1,:]
+    path1 = np.vstack((path[i0::-1,:], path[:i1:-1,:]))
+    if np.mean(path0[:,1]) &lt; np.mean(path1[:,1]):
+        path0, path1 = path1, path0
+    # make sure x coordinates are monotonically increasing:
+    pm = np.maximum.accumulate(path0[:,0])
+    path0 = np.delete(path0, np.where(path0[:,0] &lt; pm)[0], axis=0)
+    pm = np.maximum.accumulate(path1[:,0])
+    path1 = np.delete(path1, np.where(path1[:,0] &lt; pm)[0], axis=0)
+    # rotate: XXX
+    # translate:
+    minx = path[minxi,0] + pos[0]
+    maxx = path[maxxi,0] + pos[0]
+    path0 += pos[:2]
+    path1 += pos[:2]
+    # interpolate:
+    n = 5*max(len(path0), len(path1))
+    #n = 200
+    x = np.linspace(minx, maxx, n)
+    upperpath = np.zeros((len(x), 2))
+    upperpath[:,0] = x
+    upperpath[:,1] = np.interp(x, path0[:,0], path0[:,1])
+    lowerpath = np.zeros((len(x), 2))
+    lowerpath[:,0] = x
+    lowerpath[:,1] = np.interp(x, path1[:,0], path1[:,1])
+    # ellipse origin and semi axes:
+    midline = np.array(upperpath)
+    midline[:,1] = np.mean(np.vstack((upperpath[:,1], lowerpath[:,1])), axis=0)
+    diamy = upperpath[:,1] - midline[:,1]
+    diamz = 0.3*diamy  # take it from the top view!
+    # apply ellipse:
+    y = np.linspace(np.min(midline[:,1]-diamy), np.max(midline[:,1]+diamy), n//2)
+    xx, yy = np.meshgrid(x ,y)
+    zz = diamz * (np.sqrt(1.0 - ((yy-midline[:,1])/diamy)**2))**gamma
+    return xx, yy, zz</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.surface_normals"><code class="name flex">
+<span>def <span class="ident">surface_normals</span></span>(<span>xx, yy, zz)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Normal vectors on a surface.</p>
+<p>Compute surface normals on a surface as returned by <code><a title="thunderfish.fishshapes.fish_surface" href="#thunderfish.fishshapes.fish_surface">fish_surface()</a></code>.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>xx</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Mesh grid of x coordinates.</dd>
+<dt><strong><code>yy</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Mesh grid of y coordinates.</dd>
+<dt><strong><code>zz</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>z-coordinates of surface on the xx and yy coordinates.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>nx</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>x-coordinates of normal vectors for each point in xx and yy.</dd>
+<dt><strong><code>ny</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>y-coordinates of normal vectors for each point in xx and yy.</dd>
+<dt><strong><code>nz</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>z-coordinates of normal vectors for each point in xx and yy.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def surface_normals(xx, yy, zz):
+    &#34;&#34;&#34;Normal vectors on a surface.
+
+    Compute surface normals on a surface as returned by `fish_surface()`.
+
+    Parameters
+    ----------
+    xx: 2D array of floats
+        Mesh grid of x coordinates.
+    yy: 2D array of floats
+        Mesh grid of y coordinates.
+    zz: 2D array of floats
+        z-coordinates of surface on the xx and yy coordinates.
+
+    Returns
+    -------
+    nx: 2D array of floats
+        x-coordinates of normal vectors for each point in xx and yy.
+    ny: 2D array of floats
+        y-coordinates of normal vectors for each point in xx and yy.
+    nz: 2D array of floats
+        z-coordinates of normal vectors for each point in xx and yy.
+    &#34;&#34;&#34;
+    dx = xx[0,1] - xx[0,0]
+    dy = yy[1,0] - yy[0,0]
+    nx = np.zeros(xx.shape)
+    nx[:,:-1] = -np.diff(zz, axis=1)/dx
+    ny = np.zeros(xx.shape)
+    ny[:-1,:] = -np.diff(zz, axis=0)/dy
+    nz = np.ones(xx.shape)
+    norm = np.sqrt(nx*nx+ny*ny+1)
+    return nx/norm, ny/norm, nz/norm</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.extract_path"><code class="name flex">
+<span>def <span class="ident">extract_path</span></span>(<span>data)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Convert SVG coordinates to numpy array with path coordinates.</p>
+<p>Draw a fish outline in inkscape. Open the XML Editor (shift+ctrl+x)
+and copy the value of the data field ('d') into a variable that you
+pass to this function.
+Alternatively, try the 'inkscape:original-d' variable.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>string</code></dt>
+<dd>Space separated coordinate pairs describing the outline of a fish.
+The coordinates are separated by commas. Coordinate pairs without a comma are ignored.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>The coordinates of the outline of a fish.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def extract_path(data):
+    &#34;&#34;&#34;Convert SVG coordinates to numpy array with path coordinates.
+
+    Draw a fish outline in inkscape. Open the XML Editor (shift+ctrl+x)
+    and copy the value of the data field (&#39;d&#39;) into a variable that you
+    pass to this function.
+    Alternatively, try the &#39;inkscape:original-d&#39; variable.
+
+    Parameters
+    ----------
+    data: string
+        Space separated coordinate pairs describing the outline of a fish.
+        The coordinates are separated by commas. Coordinate pairs without a comma are ignored.
+
+    Returns
+    -------
+    vertices: 2D array
+        The coordinates of the outline of a fish.
+    &#34;&#34;&#34;
+    coords = data.split(&#39; &#39;)
+    vertices = []
+    relative = False
+    xc = yc = 0
+    for c in coords:
+        if &#39;,&#39; in c:
+            xs, ys = c.split(&#39;,&#39;)
+            x = float(xs)
+            y = float(ys)
+            if relative:
+                xc += x
+                yc += y
+            else:
+                xc = x
+                yc = y
+            vertices.append((xc, yc))
+        else:
+            if c in &#39;MLC&#39;:
+                relative = False
+            elif c in &#39;mlc&#39;:
+                relative = True
+    vertices = np.array(vertices)
+    return vertices</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.bbox_pathes"><code class="name flex">
+<span>def <span class="ident">bbox_pathes</span></span>(<span>*vertices)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Common bounding box of pathes.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>one</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of pathes
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>bbox</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>Bounding box of the pathes: [[x0, y0], [x1, y1]]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def bbox_pathes(*vertices):
+    &#34;&#34;&#34;Common bounding box of pathes.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    bbox: 2D array
+        Bounding box of the pathes: [[x0, y0], [x1, y1]]
+    &#34;&#34;&#34;
+    # get bounding box of all pathes:
+    bbox = np.zeros((2, 2))
+    first = True
+    for verts in vertices:
+        if len(verts.shape) != 2:
+            continue
+        vbbox = np.array([[np.min(verts[:,0]), np.min(verts[:,1])],
+                          [np.max(verts[:,0]), np.max(verts[:,1])]])
+        if first:
+            bbox = vbbox
+            first = False
+        else:
+            bbox[0,0] = min(bbox[0,0], vbbox[0,0])
+            bbox[0,1] = min(bbox[0,1], vbbox[0,1])
+            bbox[1,0] = max(bbox[1,0], vbbox[1,0])
+            bbox[1,1] = max(bbox[1,1], vbbox[1,1])
+    return bbox</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.translate_pathes"><code class="name flex">
+<span>def <span class="ident">translate_pathes</span></span>(<span>dx, dy, *vertices)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Translate pathes in place.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>dx</code></strong> :&ensp;<code>float</code></dt>
+<dd>Shift in x direction.</dd>
+<dt><strong><code>dy</code></strong> :&ensp;<code>float</code></dt>
+<dd>Shift in y direction.</dd>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>one</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of pathes to be translated
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def translate_pathes(dx, dy, *vertices):
+    &#34;&#34;&#34;Translate pathes in place.
+
+    Parameters
+    ----------
+    dx: float
+        Shift in x direction.
+    dy: float
+        Shift in y direction.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be translated
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    for verts in vertices:
+        verts[:,0] += dx
+        verts[:,1] += dy</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.center_pathes"><code class="name flex">
+<span>def <span class="ident">center_pathes</span></span>(<span>*vertices)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Translate pathes to their common origin in place.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>one</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of pathes to be centered
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def center_pathes(*vertices):
+    &#34;&#34;&#34;Translate pathes to their common origin in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be centered
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    center = np.mean(bbox_pathes(*vertices), axis=1)
+    # shift:
+    for verts in vertices:
+        verts[:,0] -= center[0]
+        verts[:,1] -= center[1]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.rotate_pathes"><code class="name flex">
+<span>def <span class="ident">rotate_pathes</span></span>(<span>theta, *vertices)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Rotate pathes in place.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>theta</code></strong> :&ensp;<code>float</code></dt>
+<dd>Rotation angle in degrees.</dd>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>one</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of pathes to be rotated
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def rotate_pathes(theta, *vertices):
+    &#34;&#34;&#34;Rotate pathes in place.
+
+    Parameters
+    ----------
+    theta: float
+        Rotation angle in degrees.
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be rotated
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    theta *= np.pi/180.0
+    # rotation matrix:
+    c = np.cos(theta)
+    s = np.sin(theta)
+    rm = np.array(((c, -s), (s, c)))
+    # rotation:
+    for verts in vertices:
+        verts[:,:] = np.dot(verts, rm)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.flipx_pathes"><code class="name flex">
+<span>def <span class="ident">flipx_pathes</span></span>(<span>*vertices)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Flip pathes in x-direction in place.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>one</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of pathes to be flipped
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def flipx_pathes(*vertices):
+    &#34;&#34;&#34;Flip pathes in x-direction in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be flipped
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    for verts in vertices:
+        verts[:,0] = -verts[:,0]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.flipy_pathes"><code class="name flex">
+<span>def <span class="ident">flipy_pathes</span></span>(<span>*vertices)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Flip pathes in y-direction in place.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>one</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of pathes to be flipped
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def flipy_pathes(*vertices):
+    &#34;&#34;&#34;Flip pathes in y-direction in place.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of pathes to be flipped
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    for verts in vertices:
+        verts[:,1] = -verts[:,1]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.mirror_path"><code class="name flex">
+<span>def <span class="ident">mirror_path</span></span>(<span>vertices1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Complete path of half a fish outline by appending the mirrored path.</p>
+<p>It is sufficient to draw half of a top view of a fish. Import with
+extract_path() and use this function to add the missing half of the
+outline to the path. The outline is mirrored on the x-axis.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>vertices1</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>The coordinates of one half of the outline of a fish
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>The coordinates of the complete outline of a fish.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def mirror_path(vertices1):
+    &#34;&#34;&#34;Complete path of half a fish outline by appending the mirrored path.
+
+    It is sufficient to draw half of a top view of a fish. Import with
+    extract_path() and use this function to add the missing half of the
+    outline to the path. The outline is mirrored on the x-axis.
+
+    Parameters
+    ----------
+    vertices1: 2D array
+        The coordinates of one half of the outline of a fish
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    vertices: 2D array
+        The coordinates of the complete outline of a fish.
+    &#34;&#34;&#34;
+    vertices2 = np.array(vertices1[::-1,:])
+    vertices2[:,1] *= -1
+    vertices = np.concatenate((vertices1, vertices2))
+    return vertices</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.normalize_path"><code class="name flex">
+<span>def <span class="ident">normalize_path</span></span>(<span>*vertices)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Normalize and shift path in place.</p>
+<p>The path extent in x direction is normalized to one and its center
+is shifted to the origin.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>one</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of the outline of a fish
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def normalize_path(*vertices):
+    &#34;&#34;&#34;Normalize and shift path in place.
+
+    The path extent in x direction is normalized to one and its center
+    is shifted to the origin.
+
+    Parameters
+    ----------
+    vertices: one or more 2D arrays
+        The coordinates of the outline of a fish
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    bbox = bbox_pathes(*vertices)
+    for verts in vertices:
+        verts[:,1] -= np.mean(bbox[:,1])
+        verts[:,0] -= bbox[0,0]
+        verts /= bbox[1,0] - bbox[0,0]
+        verts[:,0] -= 0.5</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.bend_path"><code class="name flex">
+<span>def <span class="ident">bend_path</span></span>(<span>path, bend, size, size_fac=1.0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Bend and scale a path.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>path</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>The coordinates of a path.</dd>
+<dt><strong><code>bend</code></strong> :&ensp;<code>float</code></dt>
+<dd>Angle for bending in degrees.</dd>
+<dt><strong><code>size</code></strong> :&ensp;<code>float</code></dt>
+<dd>Scale path to this size.</dd>
+<dt><strong><code>size_fac</code></strong> :&ensp;<code>float</code></dt>
+<dd>Scale path even more, but keep size for calculating the bending.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>path</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>The coordinates of the bent and scaled path.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def bend_path(path, bend, size, size_fac=1.0):
+    &#34;&#34;&#34;Bend and scale a path.
+
+    Parameters
+    ----------
+    path: 2D array
+        The coordinates of a path.
+    bend: float
+        Angle for bending in degrees.
+    size: float
+        Scale path to this size.
+    size_fac: float
+        Scale path even more, but keep size for calculating the bending.
+
+    Returns
+    -------
+    path: 2D array
+        The coordinates of the bent and scaled path.
+    &#34;&#34;&#34;
+    path = np.array(path)
+    path *= size_fac*size
+    if np.abs(bend) &gt; 1.e-8:
+        sel = path[:,0]&lt;0.0
+        xp = path[sel,0]   # all negative x coordinates of path
+        yp = path[sel,1]   # y coordinates of all negative x coordinates of path
+        r = -180.0*0.5*size/bend/np.pi        # radius of circle on which to bend the tail
+        beta = xp/r                           # angle on circle for each y coordinate
+        R = r-yp                              # radius of point
+        path[sel,0] = -np.abs(R*np.sin(beta)) # transformed x coordinates
+        path[sel,1] = r-R*np.cos(beta)        # transformed y coordinates
+    return path</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.export_path"><code class="name flex">
+<span>def <span class="ident">export_path</span></span>(<span>vertices)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Print coordinates of path for import as numpy array.</p>
+<p>The variable name, a leading 'np.array([' and the closing '])'
+are not printed.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>vertices</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>The coordinates of the path
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def export_path(vertices):
+    &#34;&#34;&#34;Print coordinates of path for import as numpy array.
+
+    The variable name, a leading &#39;np.array([&#39; and the closing &#39;])&#39;
+    are not printed.
+
+    Parameters
+    ----------
+    vertices: 2D array
+        The coordinates of the path
+        (first column x-coordinates, second colum y-coordinates).
+    &#34;&#34;&#34;
+    n = 2
+    for k, v in enumerate(vertices):
+        if k%n == 0:
+            print(&#39;   &#39;, end=&#39;&#39;)
+        print(&#39; [%.8e, %.8e],&#39; % (v[0], v[1]), end=&#39;&#39;)
+        if k%n == n-1 and k &lt; len(vertices)-1:
+            print(&#39;&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.export_fish"><code class="name flex">
+<span>def <span class="ident">export_fish</span></span>(<span>name, body, *fins)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Serialize coordinates of fish outlines as a dictionary.</p>
+<p>Writes a dictionary with name 'name' and keys 'body', 'fin0', 'fin1', &hellip;
+holding the pathes.</p>
+<p>Copy these coordinates from the console and paste them into this module.
+Give it a proper name and don't forget to add it to the fish_shapes dictionary
+to make it know to plot_fish().</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>name</code></strong> :&ensp;<code>string</code></dt>
+<dd>Name of the variable.</dd>
+<dt><strong><code>body</code></strong> :&ensp;<code>2D array</code></dt>
+<dd>The coordinates of fish's body
+(first column x-coordinates, second colum y-coordinates).</dd>
+<dt><strong><code>fins</code></strong> :&ensp;<code>zero</code> or <code>more 2D arrays</code></dt>
+<dd>The coordinates of the fish's fins
+(first column x-coordinates, second colum y-coordinates).</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>dict</code></dt>
+<dd>A dictionary holding the pathes that can be passed directly to plot_fish().</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def export_fish(name, body, *fins):
+    &#34;&#34;&#34;Serialize coordinates of fish outlines as a dictionary.
+
+    Writes a dictionary with name &#39;name&#39; and keys &#39;body&#39;, &#39;fin0&#39;, &#39;fin1&#39;, ...
+    holding the pathes.
+
+    Copy these coordinates from the console and paste them into this module.
+    Give it a proper name and don&#39;t forget to add it to the fish_shapes dictionary
+    to make it know to plot_fish().
+
+    Parameters
+    ----------
+    name: string
+        Name of the variable.
+    body: 2D array
+        The coordinates of fish&#39;s body
+        (first column x-coordinates, second colum y-coordinates).
+    fins: zero or more 2D arrays
+        The coordinates of the fish&#39;s fins
+        (first column x-coordinates, second colum y-coordinates).
+
+    Returns
+    -------
+    fish: dict
+        A dictionary holding the pathes that can be passed directly to plot_fish().
+    &#34;&#34;&#34;
+    print(&#39;%s = dict(body=np.array([&#39; % name)
+    export_path(body)
+    fish = dict(body=body)
+    for k, f in enumerate(fins):
+        print(&#39;]),&#39;)
+        print(&#39;    fin%d=np.array([&#39; % k)
+        export_path(f)
+        fish[&#39;fin%d&#39; % k] = f
+    print(&#39;]))&#39;)
+    return fish</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.export_fish_demo"><code class="name flex">
+<span>def <span class="ident">export_fish_demo</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Code demonstrating how to export a fish outline from SVG.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def export_fish_demo():
+    &#34;&#34;&#34;Code demonstrating how to export a fish outline from SVG.
+    &#34;&#34;&#34;
+    # copy the path specification from an SVG object:
+    data = &#34;m 84.013672,21.597656 0.0082,83.002434 0.113201,-0.0145 0.1238,-0.32544 0.06532,-0.80506 0.06836,-0.87696 0.0332,-4.298823 v -8.625 l 0.06836,-1.724609 0.06836,-1.722657 0.07032,-1.726562 0.06836,-1.726563 0.06641,-1.693359 0.03439,-1.293583 0.06912,-1.30798 0.10547,-1.724609 0.10156,-1.724609 0.10352,-1.726563 0.10352,-1.724609 0.13867,-1.72461 0.171876,-2.572265 0.13672,-1.72461 0.13672,-1.726562 0.10352,-1.724609 0.06836,-1.722657 0.103515,-2.574219 0.06836,-1.722656 0.10352,-1.728515 0.07032,-1.722657 0.06836,-1.724609 0.240234,-1.724609 0.34375,-1.72461 0.134766,-1.726562 0.10352,-1.69336 0.03516,-0.875 0.07031,-1.728515 v -0.847657 l -0.07273,-2.246267 -0.0172,-0.184338 0.15636,0.09441 0.384252,1.019739 0.748821,0.905562 1.028854,0.647532 1.356377,-0.03149 0.362644,-0.347764 -0.264138,-0.736289 -1.268298,-1.126614 -1.363988,-0.922373 -0.927443,-0.451153 -0.228986,-0.07018 -0.0015,-0.21624 0.03663,-0.660713 0.480469,-0.847657 -0.101563,-0.876953 -0.103515,-0.845703 -0.103516,-0.876953 -0.207031,-1.695313 -0.273438,-1.724609 -0.308594,-1.726562 -0.27539,-1.72461 -0.310547,-1.722656 -0.240234,-0.878906 -0.400196,-0.877344 -0.53927,-0.596268 -0.486573,-0.216683 z&#34;
+    verts = extract_path(data)
+    # look at the path:
+    fig, ax = plt.subplots()
+    plot_pathes(ax, verts)
+    ax.set_aspect(&#39;equal&#39;)
+    plt.show()
+    # fix path:
+    center_pathes(verts)
+    rotate_pathes(-90.0, verts)
+    verts[:,1] *= 0.8               # change aspect ratio
+    verts = verts[1:,:]             # remove first point
+    translate_pathes(0.0, -np.min(verts[:,1]), verts)
+    # mirror, normalize and export path:
+    verts = mirror_path(verts)
+    normalize_path(verts)
+    fish = export_fish(&#39;Alepto_top&#39;, verts)
+    # plot outline:
+    fig, ax = plt.subplots()
+    plot_fish(ax, fish, size=1.0/1.1,
+              bodykwargs=dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;r&#39;),
+              finkwargs=dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;b&#39;))
+    ax.set_xlim(-1.5, 1.5)
+    ax.set_ylim(-1, 1)
+    plt.show()</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.fishshapes.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Plot some fish shapes and surface normals.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main():
+    &#34;&#34;&#34;Plot some fish shapes and surface normals.
+    &#34;&#34;&#34;
+    bodykwargs = dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;none&#39;)
+    finkwargs = dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;grey&#39;)
+    eyekwargs = dict(lw=1, edgecolor=&#39;white&#39;, facecolor=&#39;grey&#39;)
+    var = [&#39;zz&#39;, &#39;nx&#39;, &#39;ny&#39;, &#39;nz&#39;]
+    fig, ax = plt.subplots()
+    for k in range(4):
+        y = (1.5-k)*9
+        fish = ((&#39;Alepto_male&#39;, &#39;side&#39;), (0, y), (1, 0), 20.0, 0)
+        xx, yy, zz = fish_surface(*fish, gamma=0.5)
+        nx, ny, nz = surface_normals(xx, yy, zz)
+        a = [zz, nx, ny, nz]
+        th = np.nanmax(np.abs(a[k]))
+        ax.contourf(xx[0,:], yy[:,0], -a[k], 20, vmin=-th, vmax=th, cmap=&#39;RdYlBu&#39;)
+        plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
+        ax.text(-11, y+2, var[k])
+    fish = ((&#39;Alepto_male&#39;, &#39;side&#39;), (20, -9), (1, 0), 23.0, 10)
+    xx, yy, zz = fish_surface(*fish, gamma=0.8)
+    nv = surface_normals(xx, yy, zz)
+    ilumn = [-0.05, 0.1, 1.0]
+    dv = np.zeros(nv[0].shape)
+    for nc, ic in zip(nv, ilumn):
+        dv += nc*ic
+    #ax.contourf(xx[0,:], yy[:,0], dv, 20, cmap=&#39;gist_gray&#39;)
+    ax.contourf(xx[0,:], yy[:,0], dv, levels=[np.nanmin(dv), np.nanmin(dv)+0.99*(np.nanmax(dv)-np.nanmin(dv)), np.nanmax(dv)], cmap=&#39;gist_gray&#39;)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
+    bodykwargs = dict(lw=1, edgecolor=&#39;k&#39;, facecolor=&#39;k&#39;)
+    fish = ((&#39;Alepto&#39;, &#39;top&#39;), (23, 0), (2, 1), 16.0, 25)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+    fish = ((&#39;Eigenmannia&#39;, &#39;top&#39;), (23, 8), (1, 0.3), 16.0, -15)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs)
+    fish = ((&#39;Eigenmannia&#39;, &#39;side&#39;), (20, 18), (1, 0), 20.0, -25)
+    plot_fish(ax, *fish, bodykwargs=bodykwargs, finkwargs=finkwargs, eyekwargs=eyekwargs)
+    plot_fishfinder(ax, (38, 13), (1, 2), 18, handle=0.2,
+                    central_ground=True, wires=True, lw=2)
+    plot_fishfinder(ax, (38, -8), (1, 2), 18, central_ground=False)
+    ax.set_xlim(-15, 45)
+    ax.set_ylim(-20, 24)
+    ax.set_aspect(&#39;equal&#39;)
+    plt.show()</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul>
+<li><a href="#fish-shapes">Fish shapes</a></li>
+<li><a href="#plotting">Plotting</a></li>
+<li><a href="#fish-surface-and-normals-from-shapes">Fish surface and normals from shapes</a></li>
+<li><a href="#general-path-manipulations">General path manipulations</a></li>
+<li><a href="#exporting-fish-outlines-from-pathes">Exporting fish outlines from pathes</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-variables">Global variables</a></h3>
+<ul class="two-column">
+<li><code><a title="thunderfish.fishshapes.Alepto_top" href="#thunderfish.fishshapes.Alepto_top">Alepto_top</a></code></li>
+<li><code><a title="thunderfish.fishshapes.Alepto_male_side" href="#thunderfish.fishshapes.Alepto_male_side">Alepto_male_side</a></code></li>
+<li><code><a title="thunderfish.fishshapes.Eigenmannia_top" href="#thunderfish.fishshapes.Eigenmannia_top">Eigenmannia_top</a></code></li>
+<li><code><a title="thunderfish.fishshapes.Eigenmannia_side" href="#thunderfish.fishshapes.Eigenmannia_side">Eigenmannia_side</a></code></li>
+<li><code><a title="thunderfish.fishshapes.fish_shapes" href="#thunderfish.fishshapes.fish_shapes">fish_shapes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.fish_top_shapes" href="#thunderfish.fishshapes.fish_top_shapes">fish_top_shapes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.fish_side_shapes" href="#thunderfish.fishshapes.fish_side_shapes">fish_side_shapes</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="two-column">
+<li><code><a title="thunderfish.fishshapes.fish_shape" href="#thunderfish.fishshapes.fish_shape">fish_shape</a></code></li>
+<li><code><a title="thunderfish.fishshapes.plot_fish" href="#thunderfish.fishshapes.plot_fish">plot_fish</a></code></li>
+<li><code><a title="thunderfish.fishshapes.plot_object" href="#thunderfish.fishshapes.plot_object">plot_object</a></code></li>
+<li><code><a title="thunderfish.fishshapes.plot_fishfinder" href="#thunderfish.fishshapes.plot_fishfinder">plot_fishfinder</a></code></li>
+<li><code><a title="thunderfish.fishshapes.plot_pathes" href="#thunderfish.fishshapes.plot_pathes">plot_pathes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.fish_surface" href="#thunderfish.fishshapes.fish_surface">fish_surface</a></code></li>
+<li><code><a title="thunderfish.fishshapes.surface_normals" href="#thunderfish.fishshapes.surface_normals">surface_normals</a></code></li>
+<li><code><a title="thunderfish.fishshapes.extract_path" href="#thunderfish.fishshapes.extract_path">extract_path</a></code></li>
+<li><code><a title="thunderfish.fishshapes.bbox_pathes" href="#thunderfish.fishshapes.bbox_pathes">bbox_pathes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.translate_pathes" href="#thunderfish.fishshapes.translate_pathes">translate_pathes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.center_pathes" href="#thunderfish.fishshapes.center_pathes">center_pathes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.rotate_pathes" href="#thunderfish.fishshapes.rotate_pathes">rotate_pathes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.flipx_pathes" href="#thunderfish.fishshapes.flipx_pathes">flipx_pathes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.flipy_pathes" href="#thunderfish.fishshapes.flipy_pathes">flipy_pathes</a></code></li>
+<li><code><a title="thunderfish.fishshapes.mirror_path" href="#thunderfish.fishshapes.mirror_path">mirror_path</a></code></li>
+<li><code><a title="thunderfish.fishshapes.normalize_path" href="#thunderfish.fishshapes.normalize_path">normalize_path</a></code></li>
+<li><code><a title="thunderfish.fishshapes.bend_path" href="#thunderfish.fishshapes.bend_path">bend_path</a></code></li>
+<li><code><a title="thunderfish.fishshapes.export_path" href="#thunderfish.fishshapes.export_path">export_path</a></code></li>
+<li><code><a title="thunderfish.fishshapes.export_fish" href="#thunderfish.fishshapes.export_fish">export_fish</a></code></li>
+<li><code><a title="thunderfish.fishshapes.export_fish_demo" href="#thunderfish.fishshapes.export_fish_demo">export_fish_demo</a></code></li>
+<li><code><a title="thunderfish.fishshapes.main" href="#thunderfish.fishshapes.main">main</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

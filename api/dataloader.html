@@ -1,0 +1,4294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>thunderfish.dataloader API documentation</title>
+<meta name="description" content="Load time-series data from files …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.dataloader</code></h1>
+</header>
+<section id="section-intro">
+<p>Load time-series data from files.</p>
+<pre><code>data, samplingrate, unit = load_data('data/file.wav')
+</code></pre>
+<p>Loads the whole time-series from the file as a numpy array of floats.</p>
+<pre><code>data = DataLoader('data/file.wav', 60.0)
+</code></pre>
+<p>or</p>
+<pre><code>with DataLoader('data/file.wav', 60.0) as data:
+</code></pre>
+<p>Create an <code><a title="thunderfish.dataloader.DataLoader" href="#thunderfish.dataloader.DataLoader">DataLoader</a></code> object that loads chuncks of 60 seconds long data
+on demand. <code>data</code> can be used like a read-only numpy array of floats.</p>
+<h2 id="supported-file-formats">Supported file formats</h2>
+<ul>
+<li>python pickle files</li>
+<li>numpy .npz files</li>
+<li>matlab .mat files</li>
+<li>audio files via <code>audioio</code> package</li>
+<li>relacs trace*.raw files (www.relacs.net)</li>
+<li>fishgrid traces-*.raw files</li>
+</ul>
+<h2 id="metadata">Metadata</h2>
+<p>Many file formats allow to store metadata that further describe the
+stored time series data. We handle them as nested list of key-value
+pairs. Load them with the <code>load_metadata()</code> function:</p>
+<pre><code>metadata = metadata('data/file.mat')
+</code></pre>
+<h2 id="markers">Markers</h2>
+<p>Some file formats also allow to store markers that mark specific
+positions in the time series data. Load marker positions and spans (in
+the 2-D array <code>locs</code>) and label and text strings (in the 2-D array
+<code>labels</code>) with the <code>load_markers()</code> function:</p>
+<pre><code>locs, labels = markers('data.wav')
+</code></pre>
+<h2 id="aditional-functions">Aditional functions</h2>
+<ul>
+<li><code><a title="thunderfish.dataloader.relacs_samplerate_unit" href="#thunderfish.dataloader.relacs_samplerate_unit">relacs_samplerate_unit()</a></code>: retrieve sampling rate and unit from a relacs stimuli.dat file.</li>
+<li><code><a title="thunderfish.dataloader.relacs_header" href="#thunderfish.dataloader.relacs_header">relacs_header()</a></code>: read key-value pairs from relacs *.dat file headers.</li>
+<li><code><a title="thunderfish.dataloader.fishgrid_samplerate" href="#thunderfish.dataloader.fishgrid_samplerate">fishgrid_samplerate()</a></code>: retrieve the sampling rate from a fishgrid.cfg file.</li>
+<li><code><a title="thunderfish.dataloader.fishgrid_grids" href="#thunderfish.dataloader.fishgrid_grids">fishgrid_grids()</a></code>: retrieve grid sizes from a fishgrid.cfg file.</li>
+<li><code><a title="thunderfish.dataloader.fishgrid_spacings" href="#thunderfish.dataloader.fishgrid_spacings">fishgrid_spacings()</a></code>: spacing between grid electrodes.</li>
+</ul>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Load time-series data from files.
+
+```
+data, samplingrate, unit = load_data(&#39;data/file.wav&#39;)
+```
+Loads the whole time-series from the file as a numpy array of floats.
+
+```
+data = DataLoader(&#39;data/file.wav&#39;, 60.0)
+```
+or
+```
+with DataLoader(&#39;data/file.wav&#39;, 60.0) as data:
+```
+Create an `DataLoader` object that loads chuncks of 60 seconds long data
+on demand. `data` can be used like a read-only numpy array of floats.
+
+
+## Supported file formats
+
+- python pickle files
+- numpy .npz files
+- matlab .mat files
+- audio files via `audioio` package
+- relacs trace*.raw files (www.relacs.net)
+- fishgrid traces-*.raw files
+
+
+## Metadata
+
+Many file formats allow to store metadata that further describe the
+stored time series data. We handle them as nested list of key-value
+pairs. Load them with the `load_metadata()` function:
+```
+metadata = metadata(&#39;data/file.mat&#39;)
+```
+
+## Markers
+
+Some file formats also allow to store markers that mark specific
+positions in the time series data. Load marker positions and spans (in
+the 2-D array `locs`) and label and text strings (in the 2-D array
+`labels`) with the `load_markers()` function:
+```
+locs, labels = markers(&#39;data.wav&#39;)
+```
+
+## Aditional functions
+
+- `relacs_samplerate_unit()`: retrieve sampling rate and unit from a relacs stimuli.dat file.
+- `relacs_header()`: read key-value pairs from relacs *.dat file headers.
+- `fishgrid_samplerate()`: retrieve the sampling rate from a fishgrid.cfg file.
+- `fishgrid_grids()`: retrieve grid sizes from a fishgrid.cfg file.
+- `fishgrid_spacings()`: spacing between grid electrodes.
+
+&#34;&#34;&#34;
+
+import os
+import sys
+import glob
+import gzip
+import numpy as np
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
+from audioio import load_audio, AudioLoader, unflatten_metadata
+from audioio import metadata as audioio_metadata
+from audioio import markers as audioio_markers
+
+
+def relacs_samplerate_unit(filepath, channel=0):
+    &#34;&#34;&#34;Retrieve sampling rate and unit from a relacs stimuli.dat file.
+
+    Parameters
+    ----------
+    filepath: string
+        Path to a relacs data directory, a file in a relacs data directory,
+        or a relacs trace-*.raw file. Files can be .gz files.
+    channel: int
+        Channel (trace) number, if `filepath` does not specify a
+        trace-*.raw file.
+
+    Returns
+    -------
+    samplerate: float
+        Sampling rate in Hertz
+    unit: string
+        Unit of the trace, can be empty if not found
+
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If the stimuli.dat file does not exist.
+    ValueError:
+        stimuli.dat file does not contain sampling rate.
+    &#34;&#34;&#34;
+    trace = channel + 1
+    relacs_dir = filepath
+    # check for relacs data directory:
+    if not os.path.isdir(filepath):
+        relacs_dir = os.path.dirname(filepath)
+        bn = os.path.basename(filepath).lower()
+        i = bn.find(&#39;.raw&#39;)
+        if len(bn) &gt; 5 and bn[0:5] == &#39;trace&#39; and i &gt; 6:
+            trace = int(bn[6:i])
+
+    # retreive sampling rate and unit from stimuli.dat file:
+    samplerate = None
+    sampleinterval = None
+    unit = &#34;&#34;
+
+    lines = []
+    stimuli_file = os.path.join(relacs_dir, &#39;stimuli.dat&#39;)
+    if os.path.isfile(stimuli_file + &#39;.gz&#39;):
+        stimuli_file += &#39;.gz&#39;
+    if stimuli_file[-3:] == &#39;.gz&#39;:
+        with gzip.open(stimuli_file, &#39;r&#39;) as sf:
+            for line in sf:
+                line = line.decode(&#39;latin-1&#39;).strip()
+                if len(line) == 0 or line[0] != &#39;#&#39;:
+                    break
+                lines.append(line)
+    else:
+        with open(stimuli_file, &#39;r&#39;, encoding=&#39;latin-1&#39;) as sf:
+            for line in sf:
+                if len(line) == 0 or line[0] != &#39;#&#39;:
+                    break
+                lines.append(line)
+        
+    for line in lines:
+        if &#34;unit%d&#34; % trace in line:
+            unit = line.split(&#39;:&#39;)[1].strip()
+        if &#34;sampling rate%d&#34; % trace in line:
+            value = line.split(&#39;:&#39;)[1].strip()
+            samplerate = float(value.replace(&#39;Hz&#39;,&#39;&#39;))
+        elif &#34;sample interval%d&#34; % trace in line:
+            value = line.split(&#39;:&#39;)[1].strip()
+            sampleinterval = float(value.replace(&#39;ms&#39;,&#39;&#39;))
+
+    if samplerate is not None:
+        return samplerate, unit
+    if sampleinterval is not None:
+        return 1000/sampleinterval, unit
+    raise ValueError(f&#39;could not retrieve sampling rate from {stimuli_file}&#39;)
+
+
+def relacs_header(filepath, store_empty=False, first_only=False,
+                  lower_keys=False, flat=False,
+                  add_sections=False):
+    &#34;&#34;&#34;Read key-value pairs from a relacs *.dat file header.
+
+    Parameters
+    ----------
+    filepath: string
+        A relacs *.dat file, can be also a zipped .gz file.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
+    add_sections: bool
+        If `True`, prepend keys with sections names separated by
+        &#39;.&#39; to make them unique.
+
+    Returns
+    -------
+    data: dict
+        Nested dictionary with key-value pairs of the file header.
+        
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If `filepath` cannot be opened.
+    &#34;&#34;&#34;
+    # read in header from file:
+    lines = []
+    if os.path.isfile(filepath + &#39;.gz&#39;):
+        filepath += &#39;.gz&#39;
+    if filepath[-3:] == &#39;.gz&#39;:
+        with gzip.open(filepath, &#39;r&#39;) as sf:
+            for line in sf:
+                line = line.decode(&#39;latin-1&#39;)
+                if len(line) == 0 or line[0] != &#39;#&#39;:
+                    break
+                lines.append(line)
+    else:
+        with open(filepath, &#39;r&#39;, encoding=&#39;latin-1&#39;) as sf:
+            for line in sf:
+                if len(line) == 0 or line[0] != &#39;#&#39;:
+                    break
+                lines.append(line)
+    # parse:
+    data = {}
+    cdatas = [data]
+    sections = [&#39;&#39;]
+    ident_offs = None
+    ident = None
+    for line in lines:
+        if len(line) == 0 or line[0] != &#39;#&#39;:
+            break
+        words = line.split(&#39;:&#39;)
+        value = &#39;:&#39;.join(words[1:]).strip() if len(words) &gt; 1 else &#39;&#39;
+        if len(words) &gt;= 1:
+            key = words[0].strip(&#39;#&#39;)
+            # get section level:
+            level = 0
+            if not flat or len(value) == 0:
+                nident = len(key) - len(key.lstrip())
+                if ident_offs is None:
+                    ident_offs = nident
+                elif ident is None:
+                    if nident &gt; ident_offs:
+                        ident = nident - ident_offs
+                        level = 1
+                else:
+                    level = (nident - ident_offs)//ident
+                # close sections:
+                if not flat:
+                    while len(cdatas) &gt; level + 1:
+                        cdatas[-1][sections.pop()] = cdatas.pop()
+                else:
+                    while len(sections) &gt; level + 1:
+                        sections.pop()
+            # key:
+            key = key.strip().strip(&#39;&#34;&#39;)
+            if lower_keys:
+                key = key.lower()
+            skey = key
+            if add_sections:
+                key = &#39;.&#39;.join(sections[1:] + [key])
+            if len(value) == 0:
+                # new sub-section:
+                if flat:
+                    if store_empty:
+                        cdatas[-1][key] = None
+                else:
+                    cdatas.append({})
+                sections.append(skey)
+            else:
+                # key-value pair:
+                value = value.strip(&#39;&#34;&#39;)
+                if len(value) &gt; 0 or value != &#39;-&#39; or store_empty:
+                    if len(value) &gt; 0 and value[0] == &#39;[&#39; and value[-1] == &#39;]&#39;:
+                        value = [v.strip() for v in value.lstrip(&#39;[&#39;).rstrip(&#39;]&#39;).split(&#39;,&#39;)]
+                        if first_only:
+                            value = value[0]
+                    cdatas[-1][key] = value
+    while len(cdatas) &gt; 1:
+        cdatas[-1][sections.pop()] = cdatas.pop()
+    return data
+
+
+def check_relacs(file_paths):
+    &#34;&#34;&#34;Check whether file_paths are relacs files.
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a relacs data directory, a file in a relacs data directory,
+        or relacs trace-*.raw or trace-*.raw.gz files.
+
+    Returns
+    -------
+    is_relacs: boolean
+      If `file_paths` is a single path, then returns `True` if it is a
+      valid relacs directory or is a file in a valid relacs data
+      directory.
+      If file_paths are more than one path, then returns `True` if `file_paths`
+      are &#39;trace-*.raw&#39; files in a valid relacs data directory.
+    &#34;&#34;&#34;
+    path = file_paths
+    # file_paths must be trace-*.raw:
+    if isinstance(file_paths, (list, tuple, np.ndarray)):
+        if len(file_paths) &gt; 1:
+            for file in file_paths:
+                bn = os.path.basename(file)
+                if len(bn) &lt;= 5 or bn[0:5] != &#39;trace&#39; or bn[6:].find(&#39;.raw&#39;) &lt; 0:
+                    return False
+        path = file_paths[0]
+    # relacs data directory:
+    relacs_dir = path
+    if not os.path.isdir(path):
+        relacs_dir = os.path.dirname(path)
+    # check for a valid relacs data directory:
+    has_stimuli = False
+    has_trace = False
+    for fname in [&#39;stimuli.dat&#39;, &#39;stimuli.dat.gz&#39;]:
+        if os.path.isfile(os.path.join(relacs_dir, fname)):
+            has_stimuli = True
+    for fname in [&#39;trace-1.raw&#39;, &#39;trace-1.raw.gz&#39;]:
+        if os.path.isfile(os.path.join(relacs_dir, fname)):
+            has_trace = True
+    return has_stimuli and has_trace
+
+    
+def relacs_files(file_paths, channel):
+    &#34;&#34;&#34;Expand file paths for relacs data to appropriate trace*.raw file names.
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a relacs data directory, a file in a relacs data directory,
+        or relacs trace-*.raw or trace-*.raw.gz files.
+    channel: int
+        The data channel. If negative all channels are selected.
+        
+    Returns
+    -------
+    file_paths: list of strings
+        List of relacs trace*.raw files.
+
+    Raises
+    ------
+    ValueError: invalid name of or non-existing relacs trace file
+    &#34;&#34;&#34;
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    if len(file_paths) == 1:
+        relacs_dir = file_paths[0]
+        if not os.path.isdir(relacs_dir):
+            relacs_dir = os.path.dirname(file_paths[0])
+        if channel &lt; 0:
+            file_paths = []
+            for k in range(10000):
+                fname = os.path.join(relacs_dir, f&#39;trace-{k+1}.raw&#39;)
+                if os.path.isfile(fname):
+                    file_paths.append(fname)
+                elif os.path.isfile(fname + &#39;.gz&#39;):
+                    file_paths.append(fname + &#39;.gz&#39;)
+                else:
+                    break
+        else:
+            file_paths[0] = os.path.join(relacs_dir, f&#39;trace-{channel+1}.raw&#39;)
+    data_paths = []
+    for path in file_paths:
+        bn = os.path.basename(path)
+        if len(bn) &lt;= 5 or bn[0:5] != &#39;trace&#39; or bn[6:].find(&#39;.raw&#39;) &lt; 0:
+            raise ValueError(f&#39;invalid name {path} of relacs trace file&#39;)
+        if not os.path.isfile(path):
+            path += &#39;.gz&#39;
+            if not os.path.isfile(path):
+                raise ValueError(f&#39;relacs file {path} does not exist&#39;)
+        data_paths.append(path)
+    return data_paths
+
+        
+def load_relacs(file_paths, channel=-1, verbose=0):
+    &#34;&#34;&#34;Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a relacs data directory, a file in a relacs data directory,
+        or relacs trace-*.raw files.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        if &gt; 0 show detailed error/warning messages
+
+    Returns
+    -------
+    data: 1-D or 2-D array
+        If `channel` is negative or more than one trace file is specified,
+        a 2-D array with data of all channels is returned,
+        where first dimension is time and second dimension is channel number.
+        Otherwise an 1-D array with the data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz
+    unit: string
+        Unit of the data
+
+    Raises
+    ------
+    ValueError:
+        - Invalid name for relacs trace-*.raw file.
+        - Sampling rates of traces differ.
+        - Unit of traces differ.
+    &#34;&#34;&#34;
+    file_paths = relacs_files(file_paths, channel)
+    if len(file_paths) &gt; 1:
+        channel = -1
+                
+    # load trace*.raw files:
+    nchannels = len(file_paths)
+    data = None
+    nrows = 0
+    samplerate = None
+    unit = &#34;&#34;
+    for n, path in enumerate(file_paths):
+        if path[-3:] == &#39;.gz&#39;:
+            with gzip.open(path, &#39;rb&#39;) as sf:
+                x = np.frombuffer(sf.read(), dtype=np.float32)
+        else:
+            x = np.fromfile(path, np.float32)
+        if verbose &gt; 0:
+            print( &#39;loaded %s&#39; % path)
+        if data is None:
+            nrows = len(x)-2
+            data = np.empty((nrows, nchannels))
+        data[:,n] = x[:nrows]
+        # retrieve sampling rate and unit:
+        rate, us = relacs_samplerate_unit(path)
+        if samplerate is None:
+            samplerate = rate
+        elif rate != samplerate:
+            raise ValueError(&#39;sampling rates of traces differ&#39;)
+        if len(unit) == 0:
+            unit = us
+        elif us != unit:
+            raise ValueError(&#39;unit of traces differ&#39;)
+    if channel &lt; 0:
+        return data, samplerate, unit
+    else:
+        return data[:, 0], samplerate, unit
+
+
+def metadata_relacs(filepath, store_empty=False, first_only=False,
+                    lower_keys=False, flat=False, add_sections=False):
+    &#34;&#34;&#34; Read meta-data of a relacs data set.
+
+    Parameters
+    ----------
+    filepath: string
+        A relacs data directory or a file therein.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
+    add_sections: bool
+        If `True`, prepend keys with sections names separated by
+        &#39;.&#39; to make them unique.
+
+    Returns
+    -------
+    data: nested dict
+        Nested dictionary with key-value pairs of the meta data.
+    &#34;&#34;&#34;
+    path = filepath
+    if isinstance(filepath, (list, tuple, np.ndarray)):
+        path = filepath[0]
+    relacs_dir = path
+    if not os.path.isdir(path):
+        relacs_dir = os.path.dirname(path)
+    info_path = os.path.join(relacs_dir, &#39;info.dat&#39;)
+    if not os.path.exists(info_path):
+        return dict(), []
+    data = relacs_header(info_path, store_empty, first_only,
+                         lower_keys, flat, add_sections)
+    return data
+
+
+def fishgrid_samplerate(filepath):
+    &#34;&#34;&#34;Retrieve the sampling rate from a fishgrid.cfg file.
+
+    Parameters
+    ----------
+    filepath: string
+        Path to a fishgrid data directory, a file in a fishgrid data
+        directory, or a fishgrid traces-*.raw file.
+
+    Returns
+    -------
+    samplerate: float
+        Sampling rate in Hertz
+
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If the fishgrid.cfg file does not exist.
+    ValueError:
+        fishgrid.cfg file does not contain sampling rate.
+    &#34;&#34;&#34;
+    # check for fishgrid data directory:
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
+
+    # retreive sampling rate from fishgrid.cfg file:
+    samplerate = None
+    fishgrid_file = os.path.join(fishgrid_dir, &#39;fishgrid.cfg&#39;)
+    with open(fishgrid_file, &#39;r&#39;) as sf:
+        for line in sf:
+            if &#34;AISampleRate&#34; in line:
+                value = line.split(&#39;:&#39;)[1].strip()
+                samplerate = float(value.replace(&#39;kHz&#39;,&#39;&#39;))*1000.0
+
+    if samplerate is not None:
+        return samplerate
+    raise ValueError(f&#39;could not retrieve sampling rate from {fishgrid_file}&#39;)
+
+
+def fishgrid_spacings(filepath):
+    &#34;&#34;&#34;Spacing between grid electrodes.
+
+    Parameters
+    ----------
+    filepath: string
+        Path to a fishgrid data directory, a file in a fishgrid data
+        directory, or a fishgrid traces-*.raw file.
+
+    Returns
+    -------
+    grid_dist: list of tuples of floats
+        For each grid the distances between rows and columns.
+    &#34;&#34;&#34;
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
+
+    # retreive grids from fishgrid.cfg file:
+    grids_dist = []
+    rows_dist = None
+    cols_dist = None
+    fishgrid_file = os.path.join(fishgrid_dir, &#39;fishgrid.cfg&#39;)
+    with open(fishgrid_file, &#39;r&#39;) as sf:
+        for line in sf:
+            if &#34;Grid&#34; in line:
+                if rows_dist is not None and cols_dist is not None:
+                    grids_dist.append((rows_dist, cols_dist))
+                rows_dist = None
+                cols_dist = None
+            elif &#34;ColumnDistance1&#34; in line:
+                cols_dist = int(line.split(&#39;:&#39;)[1].strip().split(&#39;.&#39;)[0])
+            elif &#34;RowDistance1&#34; in line:
+                rows_dist = int(line.split(&#39;:&#39;)[1].strip().split(&#39;.&#39;)[0])
+        if rows_dist is not None and cols_dist is not None:
+            grids_dist.append((rows_dist, cols_dist))
+    return grids_dist
+
+
+def fishgrid_grids(filepath):
+    &#34;&#34;&#34;Retrieve grid sizes from a fishgrid.cfg file.
+
+    Parameters
+    ----------
+    filepath: string
+        path to a fishgrid data directory, a file in a fishgrid data directory,
+        or a fishgrid traces-*.raw file.
+
+    Returns
+    -------
+    grids: list of tuples of ints
+        For each grid the number of rows and columns.
+
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If the fishgrid.cfg file does not exist.
+    &#34;&#34;&#34;
+    # check for fishgrid data directory:
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
+
+    # retreive grids from fishgrid.cfg file:
+    grids = []
+    rows = None
+    cols = None
+    fishgrid_file = os.path.join(fishgrid_dir, &#39;fishgrid.cfg&#39;)
+    with open(fishgrid_file, &#39;r&#39;) as sf:
+        for line in sf:
+            if &#34;Grid&#34; in line:
+                if rows is not None and cols is not None:
+                    grids.append((rows, cols))
+                rows = None
+                cols = None
+            elif &#34;Columns&#34; in line:
+                cols = int(line.split(&#39;:&#39;)[1].strip())
+            elif &#34;Rows&#34; in line:
+                rows = int(line.split(&#39;:&#39;)[1].strip())
+        if rows is not None and cols is not None:
+            grids.append((rows, cols))
+    return grids
+
+
+def check_fishgrid(file_paths):
+    &#34;&#34;&#34;Check whether file_paths are valid fishgrid files (https://github.com/bendalab/fishgrid).
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a fishgrid data directory, a file in a fishgrid data directory,
+        or fishgrid traces-*.raw files.
+
+    Returns
+    -------
+    is_fishgrid: bool
+        If `file_paths` is a single path, then returns `True` if it is a file in
+        a valid fishgrid data directory.
+        If `file_paths` are more than one path, then returns `True` if `file_paths`
+        are &#39;trace-*.raw&#39; files in a valid fishgrid data directory.
+    &#34;&#34;&#34;
+    path = file_paths
+    # file_paths must be traces-*.raw:
+    if isinstance(file_paths, (list, tuple, np.ndarray)):
+        if len(file_paths) &gt; 1:
+            for file in file_paths:
+                bn = os.path.basename(file).lower()
+                if len(bn) &lt;= 7 or bn[0:7] != &#39;traces-&#39; or bn[-4:] != &#39;.raw&#39;:
+                    return False
+        path = file_paths[0]
+    # fishgrid data directory:
+    fishgrid_dir = path
+    if not os.path.isdir(path):
+        fishgrid_dir = os.path.dirname(path)
+    # check for a valid fishgrid data directory:
+    return (os.path.isfile(os.path.join(fishgrid_dir, &#39;fishgrid.cfg&#39;)) and
+            os.path.isfile(os.path.join(fishgrid_dir, &#39;traces-grid1.raw&#39;)))
+
+    
+def fishgrid_files(file_paths, channel, grid_sizes):
+    &#34;&#34;&#34;Expand file paths for fishgrid data to appropriate traces-*.raw file names.
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a fishgrid data directory, a file in a fishgrid data directory,
+        or fishgrid traces-*.raw files.
+    channel: int
+        The data channel. If negative all channels are selected.
+    grid_sizes: list of int
+        The number of channels of each grid.
+        
+    Returns
+    -------
+    file_paths: list of strings
+        List of fishgrid traces-*.raw files.
+
+    Raises
+    ------
+    IndexError:
+        Invalid channel.
+    &#34;&#34;&#34;
+    # find grids:
+    grid = -1
+    if channel &gt;= 0:
+        grid = -1
+        gs = 0
+        for g, s in enumerate(grid_sizes):
+            gs += s
+            if channel &lt; gs:
+                grid = g
+                break
+        if grid &lt; 0:
+            raise IndexError(&#34;invalid channel&#34;)
+            
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    if len(file_paths) == 1:
+        fishgrid_dir = file_paths[0]
+        if not os.path.isdir(fishgrid_dir):
+            fishgrid_dir = os.path.dirname(file_paths[0])
+        if grid &lt; 0:
+            file_paths = []
+            for k in range(10000):
+                file = os.path.join(fishgrid_dir, f&#39;traces-grid{k+1}.raw&#39;)
+                if os.path.isfile(file):
+                    file_paths.append(file)
+                else:
+                    break
+        else:
+            file_paths[0] = os.path.join(fishgrid_dir, f&#39;traces-grid{grid+1}.raw&#39;)
+    for path in file_paths:
+        bn = os.path.basename(path)
+        if len(bn) &lt;= 7 or bn[0:7] != &#39;traces-&#39; or bn[-4:] != &#39;.raw&#39;:
+            raise ValueError(f&#39;invalid name {path} of fishgrid traces file&#39;)
+    return file_paths
+
+        
+def load_fishgrid(file_paths, channel=-1, verbose=0):
+    &#34;&#34;&#34;Load traces (traces-grid*.raw files) that have been recorded with fishgrid (https://github.com/bendalab/fishgrid).
+
+    Parameters
+    ----------
+    file_paths: string or list of string
+        Path to a fishgrid data directory, a fishgrid.cfg file,
+        or fidhgrid traces-grid*.raw files.
+     channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        If &gt; 0 show detailed error/warning messages.
+
+    Returns
+    -------
+    data: 1-D or 2-D array
+        If `channel` is negative or more than one trace file is specified,
+        a 2-D array with data of all channels is returned,
+        where first dimension is time and second dimension is channel number.
+        Otherwise an 1-D array with the data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data.
+    &#34;&#34;&#34;
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    grids = fishgrid_grids(file_paths[0])
+    grid_sizes = [r*c for r,c in grids]
+    file_paths = fishgrid_files(file_paths, channel, grid_sizes)
+    if len(file_paths) &gt; 1:
+        channel = -1
+                
+    # load traces-grid*.raw files:
+    grid_channels = []
+    nchannels = 0
+    for path in file_paths:
+        g = int(os.path.basename(path)[11:].replace(&#39;.raw&#39;, &#39;&#39;)) - 1
+        grid_channels.append(grid_sizes[g])
+        nchannels += grid_sizes[g]
+    data = None
+    nrows = 0
+    n = 0
+    samplerate = None
+    if len(file_paths) &gt; 0:
+        samplerate = fishgrid_samplerate(file_paths[0])
+    unit = &#34;V&#34;
+    for path, channels in zip(file_paths, grid_channels):
+        x = np.fromfile(path, np.float32).reshape((-1, channels))
+        if verbose &gt; 0:
+            print( &#39;loaded %s&#39; % path)
+        if data is None:
+            nrows = len(x)-2
+            data = np.empty((nrows, nchannels))
+        data[:,n:n+channels] = x[:nrows,:]
+    if channel &lt; 0:
+        return data, samplerate, unit
+    else:
+        gs = 0
+        for s in grid_sizes:
+            if channel &lt; gs + s:
+                break
+            gs += s
+        return data[:, channel-gs], samplerate, unit
+
+
+def metadata_fishgrid(filepath, store_empty=False, first_only=False,
+                      lower_keys=False, flat=False, add_sections=False):
+    &#34;&#34;&#34; Read meta-data of a fishgrid data set.
+
+    Parameters
+    ----------
+    filepath: string
+        A fishgrid data directory or a file therein.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
+    add_sections: bool
+        If `True`, prepend keys with sections names separated by
+        &#39;.&#39; to make them unique.
+
+    Returns
+    -------
+    data: nested dict
+        Nested dictionary with key-value pairs of the meta data.
+    &#34;&#34;&#34;
+    path = filepath
+    if isinstance(filepaths, (list, tuple, np.ndarray)):
+        path = filepath[0]
+    relacs_dir = path
+    if not os.path.isdir(path):
+        relacs_dir = os.path.dirname(path)
+    info_path = os.path.join(relacs_dir, &#39;fishgrid.cfg&#39;)
+    if not os.path.exists(info_path):
+        return dict(), []
+    data = relacs_header(info_path, store_empty, first_only,
+                         lower_keys, flat, add_sections)
+    return data
+
+
+def check_container(filepath):
+    &#34;&#34;&#34;Check if file is a generic container file.
+
+    Supported file formats are:
+
+    - python pickle files (.pkl)
+    - numpy files (.npz)
+    - matlab files (.mat)
+
+    Parameters
+    ----------
+    filepath: string
+        Path of the file to check.
+    
+    Returns
+    -------
+    is_container: bool
+        `True`, if `filepath` is a supported container format.
+    &#34;&#34;&#34;
+    ext = os.path.splitext(filepath)[1]
+    return ext.lower() in (&#39;.pkl&#39;, &#39;.npz&#39;, &#39;.mat&#39;)
+
+
+def load_container(filepath, channel=-1, verbose=0, datakey=None,
+                   samplekey=[&#39;rate&#39;, &#39;Fs&#39;, &#39;fs&#39;],
+                   timekey=[&#39;time&#39;], unitkey=&#39;unit&#39;):
+    &#34;&#34;&#34;Load data from a generic container file.
+
+    Supported file formats are:
+
+    - python pickle files (.pkl)
+    - numpy files (.npz)
+    - matlab files (.mat)
+
+    Parameters
+    ----------
+    filepath: string
+        Path of the file to load.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        if &gt; 0 show detailed error/warning messages
+    datakey: None, string, or list of string
+        Name of the variable holding the data.  If `None` take the
+        variable that is an 2D array and has the largest number of
+        elements.
+    samplekey: string or list of string
+        Name of the variable holding the sampling rate.
+    timekey: string or list of string
+        Name of the variable holding sampling times.
+        If no sampling rate is available, the samplingrate is retrieved
+        from the sampling times.
+    unitkey: string
+        Name of the variable holding the unit of the data.
+        If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
+
+    Returns
+    -------
+    data: 1-D or 2-D array of floats
+        If `channel` is negative, a 2-D array with data of all channels
+        is returned, where first dimension is time and second
+        dimension is channel number.  Otherwise an 1-D array with the
+        data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data.
+
+    Raises
+    ------
+    IndexError:
+        Invalid channel requested
+    ValueError:
+        Invalid key requested.
+    &#34;&#34;&#34;
+    # load data:
+    data = {}
+    ext = os.path.splitext(filepath)[1]
+    if ext == &#39;.pkl&#39;:
+        import pickle
+        with open(filepath, &#39;rb&#39;) as f:
+            data = pickle.load(f)
+    elif ext == &#39;.npz&#39;:
+        data = np.load(filepath)
+    elif ext == &#39;.mat&#39;:
+        from scipy.io import loadmat
+        data = loadmat(filepath, squeeze_me=True)
+    if verbose &gt; 0:
+        print( &#39;loaded %s&#39; % filepath)
+    # extract format data:
+    if not isinstance(samplekey, (list, tuple, np.ndarray)):
+        samplekey = (samplekey,)
+    if not isinstance(timekey, (list, tuple, np.ndarray)):
+        timekey = (timekey,)
+    samplerate = 0.0
+    for skey in samplekey:
+        if skey in data:
+            samplerate = float(data[skey])
+            break
+    if samplerate == 0.0:
+        for tkey in timekey:
+            if tkey in data:
+                samplerate = 1.0/(data[tkey][1] - data[tkey][0])
+                break
+    if samplerate == 0.0:
+        raise ValueError(f&#34;invalid keys {&#39;, &#39;.join(samplekey)} and {&#39;, &#39;.join(timekey)} for requesting sampling rate or sampling times&#34;)
+    unit = &#39;&#39;
+    if unitkey in data:
+        unit = data[unitkey]
+    elif unitkey != &#39;unit&#39;:
+        unit = unitkey
+    unit = str(unit)
+    # get data array:
+    raw_data = np.array([])
+    if datakey:
+        # try data keys:
+        if not isinstance(datakey, (list, tuple, np.ndarray)):
+            datakey = (datakey,)
+        for dkey in datakey:
+            if dkey in data:
+                raw_data = data[dkey]
+                break
+        if np.prod(raw_data.shape) == 0:
+            raise ValueError(f&#34;invalid key(s) {&#39;, &#39;.join(datakey)} for requesting data&#34;)
+    else:
+        # find largest 2D array:
+        for d in data:
+            if hasattr(data[d], &#39;shape&#39;):
+                if 1 &lt;= len(data[d].shape) &lt;= 2 and \
+                   np.prod(data[d].shape) &gt; np.prod(raw_data.shape):
+                    raw_data = data[d]
+    if np.prod(raw_data.shape) == 0:
+        raise ValueError(&#39;no data found&#39;)
+    # make 2D:
+    if len(raw_data.shape) == 1:
+        raw_data = raw_data.reshape(-1, 1)
+    # transpose if necessary:
+    if np.argmax(raw_data.shape) &gt; 0:
+        raw_data = raw_data.T
+    if channel &gt;= 0:
+        if channel &gt;= raw_data.shape[1]:
+            raise IndexError(f&#39;invalid channel number {channel} requested&#39;)
+        raw_data = raw_data[:,channel]
+    # recode:
+    dtype = raw_data.dtype
+    data = raw_data.astype(float)
+    if dtype == np.dtype(&#39;int16&#39;):
+        data /= 2**15
+    elif dtype == np.dtype(&#39;int32&#39;):
+        data /= 2**31
+    return data, samplerate, unit
+
+
+def metadata_container(filepath, metadatakey=[&#39;metadata&#39;, &#39;info&#39;]):
+    &#34;&#34;&#34; Read meta-data of a container file.
+
+    Parameters
+    ----------
+    filepath: string
+        A container file.
+    metadatakey: string or list of string
+        Name of the variable holding the metadata.
+
+    Returns
+    -------
+    data: nested dict
+        Nested dictionary with key-value pairs of the meta data.
+    &#34;&#34;&#34;
+    # load data:
+    data = {}
+    ext = os.path.splitext(filepath)[1]
+    if ext == &#39;.pkl&#39;:
+        import pickle
+        with open(filepath, &#39;rb&#39;) as f:
+            data = pickle.load(f)
+    elif ext == &#39;.npz&#39;:
+        data = np.load(filepath)
+    elif ext == &#39;.mat&#39;:
+        from scipy.io import loadmat
+        data = loadmat(filepath, squeeze_me=True)
+    if not isinstance(metadatakey, (list, tuple, np.ndarray)):
+        metadatakey = (metadatakey,)
+    # get single metadata dictionary:
+    for mkey in metadatakey:
+        if mkey in data:
+            return data[mkey]
+    # collect all keys starting with metadatakey:
+    metadata = {}
+    for mkey in metadatakey:
+        mkey += &#39;.&#39;
+        for dkey in data:
+            if dkey[:len(mkey)] == mkey:
+                v = data[dkey]
+                if hasattr(v, &#39;size&#39;) and v.ndim == 0:
+                    v = v.item()
+                metadata[dkey[len(mkey):]] = v
+        if len(metadata) &gt; 0:
+            return unflatten_metadata(metadata)
+    return metadata
+
+    
+def load_data(filepath, channel=-1, verbose=0, **kwargs):
+    &#34;&#34;&#34;Load time-series data from a file of arbitrary format.
+
+    Parameters
+    ----------
+    filepath: string or list of strings
+        The full path and name of the file to load. For some file
+        formats several files can be provided in a list.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        If &gt; 0 show detailed error/warning messages.
+    **kwargs: dict
+        Further keyword arguments that are passed on to the 
+        format specific loading functions.
+
+    Returns
+    -------
+    data: 1-D or 2-D array
+        If `channel` is negative, a 2-D array with data of all
+        channels is returned, where first dimension is time and second
+        dimension is channel number.  Otherwise an 1-D array with the
+        data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data.
+
+    Raises
+    ------
+    ValueError:
+        Input argument `filepath` is empty string or list.
+    IndexError:
+        Invalid channel requested.
+    &#34;&#34;&#34;
+    # check values:
+    data = np.array([])
+    samplerate = 0.0
+    unit = &#39;&#39;
+    if len(filepath) == 0:
+        raise ValueError(&#39;input argument filepath is empty string or list.&#39;)
+
+    # load data:
+    if check_relacs(filepath):
+        return load_relacs(filepath, channel, verbose)
+    elif check_fishgrid(filepath):
+        return load_fishgrid(filepath, channel, verbose)
+    else:
+        if isinstance(filepath, (list, tuple, np.ndarray)):
+            filepath = filepath[0]
+        if check_container(filepath):
+            return load_container(filepath, channel, verbose=verbose, **kwargs)
+        else:
+            data, samplerate = load_audio(filepath, verbose)
+            if channel &gt;= 0:
+                if channel &gt;= data.shape[1]:
+                    raise IndexError(f&#39;invalid channel number {channel} requested&#39;)
+                data = data[:, channel]
+            unit = &#39;a.u.&#39;
+        return data, samplerate, unit
+
+
+def metadata(filepath, store_empty=False, first_only=False, **kwargs):
+    &#34;&#34;&#34; Read meta-data from a data file.
+
+    Parameters
+    ----------
+    filepath: string or list of strings
+        The full path and name of the file to load. For some file
+        formats several files can be provided in a list.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    **kwargs: dict
+        Further keyword arguments that are passed on to the 
+        format specific loading functions.
+
+    Returns
+    -------
+    meta_data: nested dict
+        Meta data contained in the file.  Keys of the nested
+        dictionaries are always strings.  If the corresponding
+        values are dictionaries, then the key is the section name
+        of the metadata contained in the dictionary. All other
+        types of values are values for the respective key. In
+        particular they are strings, or list of strings. But other
+        simple types like ints or floats are also allowed.
+    &#34;&#34;&#34;
+    if check_relacs(filepath):
+        return metadata_relacs(filepath, store_empty, first_only, **kwargs)
+    elif check_fishgrid(filepath):
+        return metadata_fishgrid(filepath, store_empty, first_only, **kwargs)
+    else:
+        if isinstance(filepath, (list, tuple, np.ndarray)):
+            filepath = filepath[0]
+        if check_container(filepath):
+            return metadata_container(filepath, **kwargs)
+        else:
+            return audioio_metadata(filepath, store_empty)
+
+
+def markers(filepath):
+    &#34;&#34;&#34; Read markers of a data file.
+
+    Parameters
+    ----------
+    filepath: string or file handle
+        The data file.
+
+    Returns
+    -------
+    locs: 2-D array of ints
+        Marker positions (first column) and spans (second column)
+        for each marker (rows).
+    labels: 2-D array of string objects
+        Labels (first column) and texts (second column)
+        for each marker (rows).
+    &#34;&#34;&#34;
+    return audioio_markers(filepath)
+
+
+class DataLoader(AudioLoader):
+    &#34;&#34;&#34;Buffered reading of time-series data for random access of the data in the file.
+    
+    This allows for reading very large data files that do not fit into
+    memory.  An `DataLoader` instance can be used like a huge
+    read-only numpy array, i.e.
+    ```
+    data = DataLoader(&#39;path/to/data/file.dat&#39;)
+    x = data[10000:20000,0]
+    ```
+    The first index specifies the frame, the second one the channel.
+
+    `DataLoader` first determines the format of the data file and then
+    opens the file (first line). It then reads data from the file as
+    necessary for the requested data (second line).
+
+    Supported file formats are
+
+    - relacs trace*.raw files (www.relacs.net)
+    - fishgrid traces-*.raw files
+    - audio files via `audioio` package
+
+    Reading sequentially through the file is always possible. If
+    previous data are requested, then the file is read from the
+    beginning. This might slow down access to previous data
+    considerably. Use the `backsize` argument to the open functions to
+    make sure some data are loaded before the requested frame. Then a
+    subsequent access to the data within backsize seconds before that
+    frame can still be handled without the need to reread the file
+    from the beginning.
+
+    Usage:
+    ------
+    ```
+    import thunderfish.dataloader as dl
+    with dl.open_data(filepath, 60.0, 10.0) as data:
+        # do something with the content of the file:
+        x = data[0:10000,0]
+        y = data[10000:20000,0]
+        z = x + y
+    ```
+    
+    Normal open and close:
+    ```
+    data = dl.DataLoader(filepath, 60.0)
+    x = data[:,:]  # read the whole file
+    data.close()
+    ```    
+    that is the same as:
+    ```
+    data = dl.DataLoader()
+    data.open(filepath, 60.0)
+    ```
+
+    Attributes
+    ----------
+    samplerate: float
+        The sampling rate of the data in Hertz.
+    channels: int
+        The number of channels that are read in.
+    channel: int
+        The channel of which the trace is returned.
+        If negative, all channels are returned.
+    frames: int
+        The number of frames in the file.
+    shape: tuple
+        Number of frames and channels of the data.
+    ndim: int
+        Number of dimensions. One of only a single channel is read in,
+        two otherwise (frames, channels).
+    unit: string
+        Unit of the data.
+    ampl_min: float
+        Minimum amplitude the file format supports.
+    ampl_max: float
+        Maximum amplitude the file format supports.
+
+    Methods
+    -------
+
+    - `len()`: the number of frames
+    - `open()`: open a data file.
+    - `open_*()`: open a data file of a specific format.
+    - `close()`: close the file.
+    - `metadata()`: metadata of the file.
+    - `markers()`: markers of the file.
+    - `set_unwrap()`: Set parameters for unwrapping clipped data.
+
+    &#34;&#34;&#34;
+
+    def __init__(self, filepath=None, buffersize=10.0, backsize=0.0,
+                 verbose=0, channel=-1):
+        &#34;&#34;&#34;Initialize the DataLoader instance.
+
+        If filepath is not None open the file.
+
+        Parameters
+        ----------
+        filepath: string
+            Name of the file.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If &gt; 0 show detailed error/warning messages.
+        channel: int
+            The single channel to be worked on or all channels if negative.
+        &#34;&#34;&#34;
+        super(DataLoader, self).__init__(None, buffersize, backsize, verbose)
+        if filepath is not None:
+            self.open(filepath, buffersize, backsize, verbose, channel)
+
+    def __getitem__(self, key):
+        if self.channel &gt;= 0:
+            if type(key) is tuple:
+                raise IndexError
+            return super(DataLoader, self).__getitem__((key, self.channel))
+        else:
+            return super(DataLoader, self).__getitem__(key)
+ 
+    def __next__(self):
+        if self.channel &gt;= 0:
+            return super(DataLoader, self).__next__()[self.channel]
+        else:
+            return super(DataLoader, self).__next__()
+
+    
+    # relacs interface:        
+    def open_relacs(self, file_paths, buffersize=10.0, backsize=0.0,
+                    verbose=0, channel=-1):
+        &#34;&#34;&#34;Open relacs data files (www.relacs.net) for reading.
+
+        Parameters
+        ----------
+        file_paths: string or list of string
+            Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
+            or relacs trace-*.raw files.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If &gt; 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
+
+        Raises
+        ------
+        ValueError: .gz files not supported.
+        &#34;&#34;&#34;
+        self.verbose = verbose
+        
+        if self.sf is not None:
+            self._close_relacs()
+
+        file_paths = relacs_files(file_paths, channel)
+
+        # open trace files:
+        self.sf = []
+        self.frames = None
+        self.samplerate = None
+        self.unit = &#34;&#34;
+        self.filepath = None
+        if len(file_paths) &gt; 0:
+            self.filepath = os.path.dirname(file_paths[0])
+        for path in file_paths:
+            if path[-3:] == &#39;.gz&#39;:
+                raise ValueError(&#39;.gz files not supported&#39;)
+            file = open(path, &#39;rb&#39;)
+            self.sf.append(file)
+            if verbose &gt; 0:
+                print( &#39;opened %s&#39; % path)
+            # file size:
+            file.seek(0, os.SEEK_END)
+            frames = file.tell()//4
+            if self.frames is None:
+                self.frames = frames
+            elif self.frames != frames:
+                diff = self.frames - frames
+                if diff &gt; 1 or diff &lt; -2:
+                    raise ValueError(&#39;number of frames of traces differ&#39;)
+                elif diff &gt;= 0:
+                    self.frames = frames
+            file.seek(0)
+            # retrieve sampling rate and unit:
+            rate, us = relacs_samplerate_unit(path)
+            if self.samplerate is None:
+                self.samplerate = rate
+            elif rate != self.samplerate:
+                raise ValueError(&#39;sampling rates of traces differ&#39;)
+            if len(self.unit) == 0:
+                self.unit = us
+            elif us != self.unit:
+                raise ValueError(&#39;unit of traces differ&#39;)
+        self.channels = len(self.sf)
+        self.channel = channel
+        if self.channel &gt;= 0:
+            self.shape = (self.frames,)
+        else:
+            self.shape = (self.frames, self.channels)
+        self.ndim = len(self.shape)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self._init_buffer()
+        self.offset = 0
+        self.close = self._close_relacs
+        self.load_buffer = self._load_buffer_relacs
+        self.metadata = self._metadata_relacs
+        self.markers = self._markers_relacs
+        self.ampl_min = -np.inf
+        self.ampl_max = +np.inf
+        return self
+
+    def _close_relacs(self):
+        &#34;&#34;&#34;Close the relacs data files.
+        &#34;&#34;&#34;
+        if self.sf is not None:
+            for file in self.sf:
+                file.close()
+            self.sf = None
+
+    def _load_buffer_relacs(self, r_offset, r_size, buffer):
+        &#34;&#34;&#34;Load new data from relacs data file.
+
+        Parameters
+        ----------
+        r_offset: int
+           First frame to be read from file.
+        r_size: int
+           Number of frames to be read from file.
+        buffer: ndarray
+           Buffer where to store the loaded data.
+        &#34;&#34;&#34;
+        for i, file in enumerate(self.sf):
+            file.seek(r_offset*4)
+            data = file.read(r_size*4)
+            buffer[:, i] = np.fromstring(data, dtype=np.float32)
+        
+
+    def _metadata_relacs(self, store_empty=False, first_only=False):
+        &#34;&#34;&#34; Read meta-data of a relacs data set.
+        &#34;&#34;&#34;
+        info_path = os.path.join(self.filepath, &#39;info.dat&#39;)
+        if not os.path.exists(info_path):
+            return dict()
+        data = relacs_header(info_path, store_empty, first_only)
+        return data
+
+
+    def _markers_relacs(self):
+        &#34;&#34;&#34; Read markers of a relacs data set.
+        &#34;&#34;&#34;
+        # Not implemented yet!
+        return None, None
+
+    
+    # fishgrid interface:        
+    def open_fishgrid(self, file_paths, buffersize=10.0, backsize=0.0,
+                      verbose=0, channel=-1):
+        &#34;&#34;&#34;Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
+
+        Parameters
+        ----------
+        file_paths: string or list of string
+            Path to a fishgrid data directory, a fishgrid.cfg file,
+            or fishgrid trace-*.raw files.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If &gt; 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
+        &#34;&#34;&#34;
+        self.verbose = verbose
+        
+        if self.sf is not None:
+            self._close_fishgrid()
+
+        if not isinstance(file_paths, (list, tuple, np.ndarray)):
+            file_paths = [file_paths]
+        grids = fishgrid_grids(file_paths[0])
+        grid_sizes = [r*c for r,c in grids]
+        file_paths = fishgrid_files(file_paths, channel, grid_sizes)
+        self.filepath = None
+        if len(file_paths) &gt; 0:
+            self.filepath = os.path.dirname(file_paths[0])
+
+        # open grid files:
+        self.channels = 0
+        for path in file_paths:
+            g = int(os.path.basename(path)[11:].replace(&#39;.raw&#39;, &#39;&#39;)) - 1
+            self.channels += grid_sizes[g]
+        self.sf = []
+        self.grid_channels = []
+        self.grid_offs = []
+        offs = 0
+        self.frames = None
+        self.samplerate = None
+        if len(file_paths) &gt; 0:
+            self.samplerate = fishgrid_samplerate(file_paths[0])
+        self.unit = &#34;V&#34;
+        for path in file_paths:
+            file = open(path, &#39;rb&#39;)
+            self.sf.append(file)
+            if verbose &gt; 0:
+                print( &#39;opened %s&#39; % path)
+            # grid channels:
+            g = int(os.path.basename(path)[11:].replace(&#39;.raw&#39;, &#39;&#39;)) - 1
+            self.grid_channels.append(grid_sizes[g])
+            self.grid_offs.append(offs)
+            offs += grid_sizes[g]
+            # file size:
+            file.seek(0, os.SEEK_END)
+            frames = file.tell()//4//grid_sizes[g]
+            if self.frames is None:
+                self.frames = frames
+            elif self.frames != frames:
+                diff = self.frames - frames
+                if diff &gt; 1 or diff &lt; -2:
+                    raise ValueError(&#39;number of frames of traces differ&#39;)
+                elif diff &gt;= 0:
+                    self.frames = frames
+            file.seek(0)
+        gs = 0
+        for s in grid_sizes:
+            if channel &lt; gs + s:
+                break
+            gs += s
+        self.channel = channel - gs
+        if self.channel &gt;= 0:
+            self.shape = (self.frames,)
+        else:
+            self.shape = (self.frames, self.channels)
+        self.ndim = len(self.shape)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self._init_buffer()
+        self.offset = 0
+        self.close = self._close_fishgrid
+        self.load_buffer = self._load_buffer_fishgrid
+        self.metadata = self._metadata_fishgrid
+        self.markers = self._markers_fishgrid
+        self.ampl_min = -np.inf
+        self.ampl_max = +np.inf
+        return self
+
+    def _close_fishgrid(self):
+        &#34;&#34;&#34;Close the fishgrid data files.
+        &#34;&#34;&#34;
+        if self.sf is not None:
+            for file in self.sf:
+                file.close()
+            self.sf = None
+
+    def _load_buffer_fishgrid(self, r_offset, r_size, buffer):
+        &#34;&#34;&#34;Load new data from relacs data file.
+
+        Parameters
+        ----------
+        r_offset: int
+           First frame to be read from file.
+        r_size: int
+           Number of frames to be read from file.
+        buffer: ndarray
+           Buffer where to store the loaded data.
+        &#34;&#34;&#34;
+        for file, gchannels, goffset in zip(self.sf, self.grid_channels, self.grid_offs):
+            file.seek(r_offset*4*gchannels)
+            data = file.read(r_size*4*gchannels)
+            buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))
+        
+
+    def _metadata_fishgrid(self, store_empty=False, first_only=False):
+        &#34;&#34;&#34; Read meta-data of a fishgrid data set.
+        &#34;&#34;&#34;
+        info_path = os.path.join(self.filepath, &#39;fishgrid.cfg&#39;)
+        if not os.path.exists(info_path):
+            return dict()
+        data = relacs_header(info_path, store_empty, first_only)
+        return data
+
+
+    def _markers_fishgrid(self):
+        &#34;&#34;&#34; Read markers of a fishgrid data set.
+        &#34;&#34;&#34;
+        # Not implemented yet!
+        return None, None
+
+
+    def open(self, filepath, buffersize=10.0, backsize=0.0,
+             verbose=0, channel=-1):
+        &#34;&#34;&#34;Open file with time-series data for reading.
+
+        Parameters
+        ----------
+        filepath: string or list of string
+            Path to a data files or directory.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If &gt; 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
+        &#34;&#34;&#34;
+        if check_relacs(filepath):
+            self.open_relacs(filepath, buffersize, backsize, verbose, channel)
+        elif check_fishgrid(filepath):
+            self.open_fishgrid(filepath, buffersize, backsize, verbose, channel)
+        else:
+            if isinstance(filepath, (list, tuple, np.ndarray)):
+                filepath = filepath[0]
+            if check_container(filepath):
+                raise ValueError(&#39;file format not supported&#39;)
+            super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
+            if channel &gt; self.channels:
+                raise IndexError(f&#39;invalid channel number {channel}&#39;)
+            self.channel = channel
+            if self.channel &gt;= 0:
+                self.shape = (self.frames,)
+            else:
+                self.shape = (self.frames, self.channels)
+            self.ndim = len(self.shape)
+            self.unit = &#39;a.u.&#39;
+        return self
+
+
+def demo(filepath, plot=False, channel=-1):
+    print(&#34;try load_data:&#34;)
+    data, samplerate, unit = load_data(filepath, channel, verbose=2)
+    if plot:
+        time = np.arange(len(data))/samplerate
+        if channel &lt; 0:
+            for c in range(data.shape[1]):
+                plt.plot(time, data[:,c])
+        else:
+            plt.plot(time, data)
+        plt.xlabel(&#39;Time [s]&#39;)
+        plt.ylabel(&#39;[&#39; + unit + &#39;]&#39;)
+        plt.show()
+        return
+
+    print(&#39;&#39;)
+    print(&#34;try DataLoader for channel=%d:&#34; % channel)
+    with DataLoader(filepath, channel, 2.0, 1.0, 1) as data:
+        print(&#39;samplerate: %g&#39; % data.samplerate)
+        print(&#39;frames: %d %d&#39; % (len(data), data.shape[0]))
+        nframes = int(1.0 * data.samplerate)
+        # forward:
+        for i in range(0, len(data), nframes):
+            print(&#39;forward %d-%d&#39; % (i, i + nframes))
+            if channel &lt; 0:
+                x = data[i:i + nframes, 0]
+            else:
+                x = data[i:i + nframes]
+            if plot:
+                plt.plot((i + np.arange(len(x))) / data.samplerate, x)
+                plt.xlabel(&#39;Time [s]&#39;)
+                plt.ylabel(&#39;[&#39; + data.unit + &#39;]&#39;)
+                plt.show()
+        # and backwards:
+        for i in reversed(range(0, len(data), nframes)):
+            print(&#39;backward %d-%d&#39; % (i, i + nframes))
+            if channel &lt; 0:
+                x = data[i:i + nframes, 0]
+            else:
+                x = data[i:i + nframes]
+            if plot:
+                plt.plot((i + np.arange(len(x))) / data.samplerate, x)
+                plt.xlabel(&#39;Time [s]&#39;)
+                plt.ylabel(&#39;[&#39; + data.unit + &#39;]&#39;)
+                plt.show()
+                
+
+    
+def main(*cargs):
+    &#34;&#34;&#34;Call demo with command line arguments.
+
+    Parameters
+    ----------
+    cargs: list of strings
+        Command line arguments as provided by sys.argv[1:]
+    &#34;&#34;&#34;
+    import argparse
+    parser = argparse.ArgumentParser(description=
+                                     &#39;Checking thunderfish.dataloader module.&#39;)
+    parser.add_argument(&#39;-p&#39;, dest=&#39;plot&#39;, action=&#39;store_true&#39;,
+                        help=&#39;plot loaded data&#39;)
+    parser.add_argument(&#39;-c&#39;, dest=&#39;channel&#39;, default=-1, type=int,
+                        help=&#39;channel to be loaded&#39;)
+    parser.add_argument(&#39;file&#39;, nargs=1, default=&#39;&#39;, type=str,
+                        help=&#39;name of data file&#39;)
+    args = parser.parse_args(cargs)
+    demo(args.file[0], args.plot, args.channel)
+    
+
+if __name__ == &#34;__main__&#34;:
+    main(*sys.argv[1:])</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.dataloader.relacs_samplerate_unit"><code class="name flex">
+<span>def <span class="ident">relacs_samplerate_unit</span></span>(<span>filepath, channel=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Retrieve sampling rate and unit from a relacs stimuli.dat file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Path to a relacs data directory, a file in a relacs data directory,
+or a relacs trace-*.raw file. Files can be .gz files.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>Channel (trace) number, if <code>filepath</code> does not specify a
+trace-*.raw file.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate in Hertz</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the trace, can be empty if not found</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>IOError/FileNotFoundError:</code></dt>
+<dd>If the stimuli.dat file does not exist.</dd>
+</dl>
+<h2 id="valueerror">Valueerror</h2>
+<p>stimuli.dat file does not contain sampling rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def relacs_samplerate_unit(filepath, channel=0):
+    &#34;&#34;&#34;Retrieve sampling rate and unit from a relacs stimuli.dat file.
+
+    Parameters
+    ----------
+    filepath: string
+        Path to a relacs data directory, a file in a relacs data directory,
+        or a relacs trace-*.raw file. Files can be .gz files.
+    channel: int
+        Channel (trace) number, if `filepath` does not specify a
+        trace-*.raw file.
+
+    Returns
+    -------
+    samplerate: float
+        Sampling rate in Hertz
+    unit: string
+        Unit of the trace, can be empty if not found
+
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If the stimuli.dat file does not exist.
+    ValueError:
+        stimuli.dat file does not contain sampling rate.
+    &#34;&#34;&#34;
+    trace = channel + 1
+    relacs_dir = filepath
+    # check for relacs data directory:
+    if not os.path.isdir(filepath):
+        relacs_dir = os.path.dirname(filepath)
+        bn = os.path.basename(filepath).lower()
+        i = bn.find(&#39;.raw&#39;)
+        if len(bn) &gt; 5 and bn[0:5] == &#39;trace&#39; and i &gt; 6:
+            trace = int(bn[6:i])
+
+    # retreive sampling rate and unit from stimuli.dat file:
+    samplerate = None
+    sampleinterval = None
+    unit = &#34;&#34;
+
+    lines = []
+    stimuli_file = os.path.join(relacs_dir, &#39;stimuli.dat&#39;)
+    if os.path.isfile(stimuli_file + &#39;.gz&#39;):
+        stimuli_file += &#39;.gz&#39;
+    if stimuli_file[-3:] == &#39;.gz&#39;:
+        with gzip.open(stimuli_file, &#39;r&#39;) as sf:
+            for line in sf:
+                line = line.decode(&#39;latin-1&#39;).strip()
+                if len(line) == 0 or line[0] != &#39;#&#39;:
+                    break
+                lines.append(line)
+    else:
+        with open(stimuli_file, &#39;r&#39;, encoding=&#39;latin-1&#39;) as sf:
+            for line in sf:
+                if len(line) == 0 or line[0] != &#39;#&#39;:
+                    break
+                lines.append(line)
+        
+    for line in lines:
+        if &#34;unit%d&#34; % trace in line:
+            unit = line.split(&#39;:&#39;)[1].strip()
+        if &#34;sampling rate%d&#34; % trace in line:
+            value = line.split(&#39;:&#39;)[1].strip()
+            samplerate = float(value.replace(&#39;Hz&#39;,&#39;&#39;))
+        elif &#34;sample interval%d&#34; % trace in line:
+            value = line.split(&#39;:&#39;)[1].strip()
+            sampleinterval = float(value.replace(&#39;ms&#39;,&#39;&#39;))
+
+    if samplerate is not None:
+        return samplerate, unit
+    if sampleinterval is not None:
+        return 1000/sampleinterval, unit
+    raise ValueError(f&#39;could not retrieve sampling rate from {stimuli_file}&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.relacs_header"><code class="name flex">
+<span>def <span class="ident">relacs_header</span></span>(<span>filepath, store_empty=False, first_only=False, lower_keys=False, flat=False, add_sections=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Read key-value pairs from a relacs *.dat file header.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>A relacs *.dat file, can be also a zipped .gz file.</dd>
+<dt><strong><code>store_empty</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>False</code> do not add meta data with empty values.</dd>
+<dt><strong><code>first_only</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>False</code> only store the first element of a list.</dd>
+<dt><strong><code>lower_keys</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Make all keys lower case.</dd>
+<dt><strong><code>flat</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Do not make a nested dictionary.
+Use this option also to read in very old relacs metadata with
+ragged left alignment.</dd>
+<dt><strong><code>add_sections</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>True</code>, prepend keys with sections names separated by
+'.' to make them unique.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Nested dictionary with key-value pairs of the file header.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>IOError/FileNotFoundError:</code></dt>
+<dd>If <code>filepath</code> cannot be opened.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def relacs_header(filepath, store_empty=False, first_only=False,
+                  lower_keys=False, flat=False,
+                  add_sections=False):
+    &#34;&#34;&#34;Read key-value pairs from a relacs *.dat file header.
+
+    Parameters
+    ----------
+    filepath: string
+        A relacs *.dat file, can be also a zipped .gz file.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
+    add_sections: bool
+        If `True`, prepend keys with sections names separated by
+        &#39;.&#39; to make them unique.
+
+    Returns
+    -------
+    data: dict
+        Nested dictionary with key-value pairs of the file header.
+        
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If `filepath` cannot be opened.
+    &#34;&#34;&#34;
+    # read in header from file:
+    lines = []
+    if os.path.isfile(filepath + &#39;.gz&#39;):
+        filepath += &#39;.gz&#39;
+    if filepath[-3:] == &#39;.gz&#39;:
+        with gzip.open(filepath, &#39;r&#39;) as sf:
+            for line in sf:
+                line = line.decode(&#39;latin-1&#39;)
+                if len(line) == 0 or line[0] != &#39;#&#39;:
+                    break
+                lines.append(line)
+    else:
+        with open(filepath, &#39;r&#39;, encoding=&#39;latin-1&#39;) as sf:
+            for line in sf:
+                if len(line) == 0 or line[0] != &#39;#&#39;:
+                    break
+                lines.append(line)
+    # parse:
+    data = {}
+    cdatas = [data]
+    sections = [&#39;&#39;]
+    ident_offs = None
+    ident = None
+    for line in lines:
+        if len(line) == 0 or line[0] != &#39;#&#39;:
+            break
+        words = line.split(&#39;:&#39;)
+        value = &#39;:&#39;.join(words[1:]).strip() if len(words) &gt; 1 else &#39;&#39;
+        if len(words) &gt;= 1:
+            key = words[0].strip(&#39;#&#39;)
+            # get section level:
+            level = 0
+            if not flat or len(value) == 0:
+                nident = len(key) - len(key.lstrip())
+                if ident_offs is None:
+                    ident_offs = nident
+                elif ident is None:
+                    if nident &gt; ident_offs:
+                        ident = nident - ident_offs
+                        level = 1
+                else:
+                    level = (nident - ident_offs)//ident
+                # close sections:
+                if not flat:
+                    while len(cdatas) &gt; level + 1:
+                        cdatas[-1][sections.pop()] = cdatas.pop()
+                else:
+                    while len(sections) &gt; level + 1:
+                        sections.pop()
+            # key:
+            key = key.strip().strip(&#39;&#34;&#39;)
+            if lower_keys:
+                key = key.lower()
+            skey = key
+            if add_sections:
+                key = &#39;.&#39;.join(sections[1:] + [key])
+            if len(value) == 0:
+                # new sub-section:
+                if flat:
+                    if store_empty:
+                        cdatas[-1][key] = None
+                else:
+                    cdatas.append({})
+                sections.append(skey)
+            else:
+                # key-value pair:
+                value = value.strip(&#39;&#34;&#39;)
+                if len(value) &gt; 0 or value != &#39;-&#39; or store_empty:
+                    if len(value) &gt; 0 and value[0] == &#39;[&#39; and value[-1] == &#39;]&#39;:
+                        value = [v.strip() for v in value.lstrip(&#39;[&#39;).rstrip(&#39;]&#39;).split(&#39;,&#39;)]
+                        if first_only:
+                            value = value[0]
+                    cdatas[-1][key] = value
+    while len(cdatas) &gt; 1:
+        cdatas[-1][sections.pop()] = cdatas.pop()
+    return data</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.check_relacs"><code class="name flex">
+<span>def <span class="ident">check_relacs</span></span>(<span>file_paths)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Check whether file_paths are relacs files.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>strings</code></dt>
+<dd>Path to a relacs data directory, a file in a relacs data directory,
+or relacs trace-<em>.raw or trace-</em>.raw.gz files.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>is_relacs</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>&nbsp;</dd>
+</dl>
+<p>If <code>file_paths</code> is a single path, then returns <code>True</code> if it is a
+valid relacs directory or is a file in a valid relacs data
+directory.
+If file_paths are more than one path, then returns <code>True</code> if <code>file_paths</code>
+are 'trace-*.raw' files in a valid relacs data directory.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def check_relacs(file_paths):
+    &#34;&#34;&#34;Check whether file_paths are relacs files.
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a relacs data directory, a file in a relacs data directory,
+        or relacs trace-*.raw or trace-*.raw.gz files.
+
+    Returns
+    -------
+    is_relacs: boolean
+      If `file_paths` is a single path, then returns `True` if it is a
+      valid relacs directory or is a file in a valid relacs data
+      directory.
+      If file_paths are more than one path, then returns `True` if `file_paths`
+      are &#39;trace-*.raw&#39; files in a valid relacs data directory.
+    &#34;&#34;&#34;
+    path = file_paths
+    # file_paths must be trace-*.raw:
+    if isinstance(file_paths, (list, tuple, np.ndarray)):
+        if len(file_paths) &gt; 1:
+            for file in file_paths:
+                bn = os.path.basename(file)
+                if len(bn) &lt;= 5 or bn[0:5] != &#39;trace&#39; or bn[6:].find(&#39;.raw&#39;) &lt; 0:
+                    return False
+        path = file_paths[0]
+    # relacs data directory:
+    relacs_dir = path
+    if not os.path.isdir(path):
+        relacs_dir = os.path.dirname(path)
+    # check for a valid relacs data directory:
+    has_stimuli = False
+    has_trace = False
+    for fname in [&#39;stimuli.dat&#39;, &#39;stimuli.dat.gz&#39;]:
+        if os.path.isfile(os.path.join(relacs_dir, fname)):
+            has_stimuli = True
+    for fname in [&#39;trace-1.raw&#39;, &#39;trace-1.raw.gz&#39;]:
+        if os.path.isfile(os.path.join(relacs_dir, fname)):
+            has_trace = True
+    return has_stimuli and has_trace</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.relacs_files"><code class="name flex">
+<span>def <span class="ident">relacs_files</span></span>(<span>file_paths, channel)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Expand file paths for relacs data to appropriate trace*.raw file names.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>strings</code></dt>
+<dd>Path to a relacs data directory, a file in a relacs data directory,
+or relacs trace-<em>.raw or trace-</em>.raw.gz files.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The data channel. If negative all channels are selected.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of relacs trace*.raw files.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><strong><code>ValueError</code></strong> :&ensp;<code>invalid name</code> of <code>or non-existing relacs trace file</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def relacs_files(file_paths, channel):
+    &#34;&#34;&#34;Expand file paths for relacs data to appropriate trace*.raw file names.
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a relacs data directory, a file in a relacs data directory,
+        or relacs trace-*.raw or trace-*.raw.gz files.
+    channel: int
+        The data channel. If negative all channels are selected.
+        
+    Returns
+    -------
+    file_paths: list of strings
+        List of relacs trace*.raw files.
+
+    Raises
+    ------
+    ValueError: invalid name of or non-existing relacs trace file
+    &#34;&#34;&#34;
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    if len(file_paths) == 1:
+        relacs_dir = file_paths[0]
+        if not os.path.isdir(relacs_dir):
+            relacs_dir = os.path.dirname(file_paths[0])
+        if channel &lt; 0:
+            file_paths = []
+            for k in range(10000):
+                fname = os.path.join(relacs_dir, f&#39;trace-{k+1}.raw&#39;)
+                if os.path.isfile(fname):
+                    file_paths.append(fname)
+                elif os.path.isfile(fname + &#39;.gz&#39;):
+                    file_paths.append(fname + &#39;.gz&#39;)
+                else:
+                    break
+        else:
+            file_paths[0] = os.path.join(relacs_dir, f&#39;trace-{channel+1}.raw&#39;)
+    data_paths = []
+    for path in file_paths:
+        bn = os.path.basename(path)
+        if len(bn) &lt;= 5 or bn[0:5] != &#39;trace&#39; or bn[6:].find(&#39;.raw&#39;) &lt; 0:
+            raise ValueError(f&#39;invalid name {path} of relacs trace file&#39;)
+        if not os.path.isfile(path):
+            path += &#39;.gz&#39;
+            if not os.path.isfile(path):
+                raise ValueError(f&#39;relacs file {path} does not exist&#39;)
+        data_paths.append(path)
+    return data_paths</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.load_relacs"><code class="name flex">
+<span>def <span class="ident">load_relacs</span></span>(<span>file_paths, channel=-1, verbose=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>strings</code></dt>
+<dd>Path to a relacs data directory, a file in a relacs data directory,
+or relacs trace-*.raw files.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The data channel. If negative all channels are selected.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>if &gt; 0 show detailed error/warning messages</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code></dt>
+<dd>If <code>channel</code> is negative or more than one trace file is specified,
+a 2-D array with data of all channels is returned,
+where first dimension is time and second dimension is channel number.
+Otherwise an 1-D array with the data of that channel is returned.</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hz</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<h2 id="valueerror">Valueerror</h2>
+<ul>
+<li>Invalid name for relacs trace-*.raw file.</li>
+<li>Sampling rates of traces differ.</li>
+<li>Unit of traces differ.</li>
+</ul></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_relacs(file_paths, channel=-1, verbose=0):
+    &#34;&#34;&#34;Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a relacs data directory, a file in a relacs data directory,
+        or relacs trace-*.raw files.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        if &gt; 0 show detailed error/warning messages
+
+    Returns
+    -------
+    data: 1-D or 2-D array
+        If `channel` is negative or more than one trace file is specified,
+        a 2-D array with data of all channels is returned,
+        where first dimension is time and second dimension is channel number.
+        Otherwise an 1-D array with the data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz
+    unit: string
+        Unit of the data
+
+    Raises
+    ------
+    ValueError:
+        - Invalid name for relacs trace-*.raw file.
+        - Sampling rates of traces differ.
+        - Unit of traces differ.
+    &#34;&#34;&#34;
+    file_paths = relacs_files(file_paths, channel)
+    if len(file_paths) &gt; 1:
+        channel = -1
+                
+    # load trace*.raw files:
+    nchannels = len(file_paths)
+    data = None
+    nrows = 0
+    samplerate = None
+    unit = &#34;&#34;
+    for n, path in enumerate(file_paths):
+        if path[-3:] == &#39;.gz&#39;:
+            with gzip.open(path, &#39;rb&#39;) as sf:
+                x = np.frombuffer(sf.read(), dtype=np.float32)
+        else:
+            x = np.fromfile(path, np.float32)
+        if verbose &gt; 0:
+            print( &#39;loaded %s&#39; % path)
+        if data is None:
+            nrows = len(x)-2
+            data = np.empty((nrows, nchannels))
+        data[:,n] = x[:nrows]
+        # retrieve sampling rate and unit:
+        rate, us = relacs_samplerate_unit(path)
+        if samplerate is None:
+            samplerate = rate
+        elif rate != samplerate:
+            raise ValueError(&#39;sampling rates of traces differ&#39;)
+        if len(unit) == 0:
+            unit = us
+        elif us != unit:
+            raise ValueError(&#39;unit of traces differ&#39;)
+    if channel &lt; 0:
+        return data, samplerate, unit
+    else:
+        return data[:, 0], samplerate, unit</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.metadata_relacs"><code class="name flex">
+<span>def <span class="ident">metadata_relacs</span></span>(<span>filepath, store_empty=False, first_only=False, lower_keys=False, flat=False, add_sections=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Read meta-data of a relacs data set.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>A relacs data directory or a file therein.</dd>
+<dt><strong><code>store_empty</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>False</code> do not add meta data with empty values.</dd>
+<dt><strong><code>first_only</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>False</code> only store the first element of a list.</dd>
+<dt><strong><code>lower_keys</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Make all keys lower case.</dd>
+<dt><strong><code>flat</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Do not make a nested dictionary.
+Use this option also to read in very old relacs metadata with
+ragged left alignment.</dd>
+<dt><strong><code>add_sections</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>True</code>, prepend keys with sections names separated by
+'.' to make them unique.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Nested dictionary with key-value pairs of the meta data.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def metadata_relacs(filepath, store_empty=False, first_only=False,
+                    lower_keys=False, flat=False, add_sections=False):
+    &#34;&#34;&#34; Read meta-data of a relacs data set.
+
+    Parameters
+    ----------
+    filepath: string
+        A relacs data directory or a file therein.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
+    add_sections: bool
+        If `True`, prepend keys with sections names separated by
+        &#39;.&#39; to make them unique.
+
+    Returns
+    -------
+    data: nested dict
+        Nested dictionary with key-value pairs of the meta data.
+    &#34;&#34;&#34;
+    path = filepath
+    if isinstance(filepath, (list, tuple, np.ndarray)):
+        path = filepath[0]
+    relacs_dir = path
+    if not os.path.isdir(path):
+        relacs_dir = os.path.dirname(path)
+    info_path = os.path.join(relacs_dir, &#39;info.dat&#39;)
+    if not os.path.exists(info_path):
+        return dict(), []
+    data = relacs_header(info_path, store_empty, first_only,
+                         lower_keys, flat, add_sections)
+    return data</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.fishgrid_samplerate"><code class="name flex">
+<span>def <span class="ident">fishgrid_samplerate</span></span>(<span>filepath)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Retrieve the sampling rate from a fishgrid.cfg file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Path to a fishgrid data directory, a file in a fishgrid data
+directory, or a fishgrid traces-*.raw file.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate in Hertz</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>IOError/FileNotFoundError:</code></dt>
+<dd>If the fishgrid.cfg file does not exist.</dd>
+</dl>
+<h2 id="valueerror">Valueerror</h2>
+<p>fishgrid.cfg file does not contain sampling rate.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fishgrid_samplerate(filepath):
+    &#34;&#34;&#34;Retrieve the sampling rate from a fishgrid.cfg file.
+
+    Parameters
+    ----------
+    filepath: string
+        Path to a fishgrid data directory, a file in a fishgrid data
+        directory, or a fishgrid traces-*.raw file.
+
+    Returns
+    -------
+    samplerate: float
+        Sampling rate in Hertz
+
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If the fishgrid.cfg file does not exist.
+    ValueError:
+        fishgrid.cfg file does not contain sampling rate.
+    &#34;&#34;&#34;
+    # check for fishgrid data directory:
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
+
+    # retreive sampling rate from fishgrid.cfg file:
+    samplerate = None
+    fishgrid_file = os.path.join(fishgrid_dir, &#39;fishgrid.cfg&#39;)
+    with open(fishgrid_file, &#39;r&#39;) as sf:
+        for line in sf:
+            if &#34;AISampleRate&#34; in line:
+                value = line.split(&#39;:&#39;)[1].strip()
+                samplerate = float(value.replace(&#39;kHz&#39;,&#39;&#39;))*1000.0
+
+    if samplerate is not None:
+        return samplerate
+    raise ValueError(f&#39;could not retrieve sampling rate from {fishgrid_file}&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.fishgrid_spacings"><code class="name flex">
+<span>def <span class="ident">fishgrid_spacings</span></span>(<span>filepath)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Spacing between grid electrodes.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Path to a fishgrid data directory, a file in a fishgrid data
+directory, or a fishgrid traces-*.raw file.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>grid_dist</code></strong> :&ensp;<code>list</code> of <code>tuples</code> of <code>floats</code></dt>
+<dd>For each grid the distances between rows and columns.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fishgrid_spacings(filepath):
+    &#34;&#34;&#34;Spacing between grid electrodes.
+
+    Parameters
+    ----------
+    filepath: string
+        Path to a fishgrid data directory, a file in a fishgrid data
+        directory, or a fishgrid traces-*.raw file.
+
+    Returns
+    -------
+    grid_dist: list of tuples of floats
+        For each grid the distances between rows and columns.
+    &#34;&#34;&#34;
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
+
+    # retreive grids from fishgrid.cfg file:
+    grids_dist = []
+    rows_dist = None
+    cols_dist = None
+    fishgrid_file = os.path.join(fishgrid_dir, &#39;fishgrid.cfg&#39;)
+    with open(fishgrid_file, &#39;r&#39;) as sf:
+        for line in sf:
+            if &#34;Grid&#34; in line:
+                if rows_dist is not None and cols_dist is not None:
+                    grids_dist.append((rows_dist, cols_dist))
+                rows_dist = None
+                cols_dist = None
+            elif &#34;ColumnDistance1&#34; in line:
+                cols_dist = int(line.split(&#39;:&#39;)[1].strip().split(&#39;.&#39;)[0])
+            elif &#34;RowDistance1&#34; in line:
+                rows_dist = int(line.split(&#39;:&#39;)[1].strip().split(&#39;.&#39;)[0])
+        if rows_dist is not None and cols_dist is not None:
+            grids_dist.append((rows_dist, cols_dist))
+    return grids_dist</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.fishgrid_grids"><code class="name flex">
+<span>def <span class="ident">fishgrid_grids</span></span>(<span>filepath)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Retrieve grid sizes from a fishgrid.cfg file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>path to a fishgrid data directory, a file in a fishgrid data directory,
+or a fishgrid traces-*.raw file.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>grids</code></strong> :&ensp;<code>list</code> of <code>tuples</code> of <code>ints</code></dt>
+<dd>For each grid the number of rows and columns.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>IOError/FileNotFoundError:</code></dt>
+<dd>If the fishgrid.cfg file does not exist.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fishgrid_grids(filepath):
+    &#34;&#34;&#34;Retrieve grid sizes from a fishgrid.cfg file.
+
+    Parameters
+    ----------
+    filepath: string
+        path to a fishgrid data directory, a file in a fishgrid data directory,
+        or a fishgrid traces-*.raw file.
+
+    Returns
+    -------
+    grids: list of tuples of ints
+        For each grid the number of rows and columns.
+
+    Raises
+    ------
+    IOError/FileNotFoundError:
+        If the fishgrid.cfg file does not exist.
+    &#34;&#34;&#34;
+    # check for fishgrid data directory:
+    fishgrid_dir = filepath
+    if not os.path.isdir(filepath):
+        fishgrid_dir = os.path.dirname(filepath)
+
+    # retreive grids from fishgrid.cfg file:
+    grids = []
+    rows = None
+    cols = None
+    fishgrid_file = os.path.join(fishgrid_dir, &#39;fishgrid.cfg&#39;)
+    with open(fishgrid_file, &#39;r&#39;) as sf:
+        for line in sf:
+            if &#34;Grid&#34; in line:
+                if rows is not None and cols is not None:
+                    grids.append((rows, cols))
+                rows = None
+                cols = None
+            elif &#34;Columns&#34; in line:
+                cols = int(line.split(&#39;:&#39;)[1].strip())
+            elif &#34;Rows&#34; in line:
+                rows = int(line.split(&#39;:&#39;)[1].strip())
+        if rows is not None and cols is not None:
+            grids.append((rows, cols))
+    return grids</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.check_fishgrid"><code class="name flex">
+<span>def <span class="ident">check_fishgrid</span></span>(<span>file_paths)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Check whether file_paths are valid fishgrid files (<a href="https://github.com/bendalab/fishgrid">https://github.com/bendalab/fishgrid</a>).</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>strings</code></dt>
+<dd>Path to a fishgrid data directory, a file in a fishgrid data directory,
+or fishgrid traces-*.raw files.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>is_fishgrid</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>file_paths</code> is a single path, then returns <code>True</code> if it is a file in
+a valid fishgrid data directory.
+If <code>file_paths</code> are more than one path, then returns <code>True</code> if <code>file_paths</code>
+are 'trace-*.raw' files in a valid fishgrid data directory.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def check_fishgrid(file_paths):
+    &#34;&#34;&#34;Check whether file_paths are valid fishgrid files (https://github.com/bendalab/fishgrid).
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a fishgrid data directory, a file in a fishgrid data directory,
+        or fishgrid traces-*.raw files.
+
+    Returns
+    -------
+    is_fishgrid: bool
+        If `file_paths` is a single path, then returns `True` if it is a file in
+        a valid fishgrid data directory.
+        If `file_paths` are more than one path, then returns `True` if `file_paths`
+        are &#39;trace-*.raw&#39; files in a valid fishgrid data directory.
+    &#34;&#34;&#34;
+    path = file_paths
+    # file_paths must be traces-*.raw:
+    if isinstance(file_paths, (list, tuple, np.ndarray)):
+        if len(file_paths) &gt; 1:
+            for file in file_paths:
+                bn = os.path.basename(file).lower()
+                if len(bn) &lt;= 7 or bn[0:7] != &#39;traces-&#39; or bn[-4:] != &#39;.raw&#39;:
+                    return False
+        path = file_paths[0]
+    # fishgrid data directory:
+    fishgrid_dir = path
+    if not os.path.isdir(path):
+        fishgrid_dir = os.path.dirname(path)
+    # check for a valid fishgrid data directory:
+    return (os.path.isfile(os.path.join(fishgrid_dir, &#39;fishgrid.cfg&#39;)) and
+            os.path.isfile(os.path.join(fishgrid_dir, &#39;traces-grid1.raw&#39;)))</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.fishgrid_files"><code class="name flex">
+<span>def <span class="ident">fishgrid_files</span></span>(<span>file_paths, channel, grid_sizes)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Expand file paths for fishgrid data to appropriate traces-*.raw file names.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>strings</code></dt>
+<dd>Path to a fishgrid data directory, a file in a fishgrid data directory,
+or fishgrid traces-*.raw files.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The data channel. If negative all channels are selected.</dd>
+<dt><strong><code>grid_sizes</code></strong> :&ensp;<code>list</code> of <code>int</code></dt>
+<dd>The number of channels of each grid.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of fishgrid traces-*.raw files.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<h2 id="indexerror">Indexerror</h2>
+<p>Invalid channel.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fishgrid_files(file_paths, channel, grid_sizes):
+    &#34;&#34;&#34;Expand file paths for fishgrid data to appropriate traces-*.raw file names.
+
+    Parameters
+    ----------
+    file_paths: string or list of strings
+        Path to a fishgrid data directory, a file in a fishgrid data directory,
+        or fishgrid traces-*.raw files.
+    channel: int
+        The data channel. If negative all channels are selected.
+    grid_sizes: list of int
+        The number of channels of each grid.
+        
+    Returns
+    -------
+    file_paths: list of strings
+        List of fishgrid traces-*.raw files.
+
+    Raises
+    ------
+    IndexError:
+        Invalid channel.
+    &#34;&#34;&#34;
+    # find grids:
+    grid = -1
+    if channel &gt;= 0:
+        grid = -1
+        gs = 0
+        for g, s in enumerate(grid_sizes):
+            gs += s
+            if channel &lt; gs:
+                grid = g
+                break
+        if grid &lt; 0:
+            raise IndexError(&#34;invalid channel&#34;)
+            
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    if len(file_paths) == 1:
+        fishgrid_dir = file_paths[0]
+        if not os.path.isdir(fishgrid_dir):
+            fishgrid_dir = os.path.dirname(file_paths[0])
+        if grid &lt; 0:
+            file_paths = []
+            for k in range(10000):
+                file = os.path.join(fishgrid_dir, f&#39;traces-grid{k+1}.raw&#39;)
+                if os.path.isfile(file):
+                    file_paths.append(file)
+                else:
+                    break
+        else:
+            file_paths[0] = os.path.join(fishgrid_dir, f&#39;traces-grid{grid+1}.raw&#39;)
+    for path in file_paths:
+        bn = os.path.basename(path)
+        if len(bn) &lt;= 7 or bn[0:7] != &#39;traces-&#39; or bn[-4:] != &#39;.raw&#39;:
+            raise ValueError(f&#39;invalid name {path} of fishgrid traces file&#39;)
+    return file_paths</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.load_fishgrid"><code class="name flex">
+<span>def <span class="ident">load_fishgrid</span></span>(<span>file_paths, channel=-1, verbose=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Load traces (traces-grid*.raw files) that have been recorded with fishgrid (<a href="https://github.com/bendalab/fishgrid">https://github.com/bendalab/fishgrid</a>).</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>string</code></dt>
+<dd>Path to a fishgrid data directory, a fishgrid.cfg file,
+or fidhgrid traces-grid*.raw files.</dd>
+<dt>channel: int</dt>
+<dt>The data channel. If negative all channels are selected.</dt>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>If &gt; 0 show detailed error/warning messages.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code></dt>
+<dd>If <code>channel</code> is negative or more than one trace file is specified,
+a 2-D array with data of all channels is returned,
+where first dimension is time and second dimension is channel number.
+Otherwise an 1-D array with the data of that channel is returned.</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_fishgrid(file_paths, channel=-1, verbose=0):
+    &#34;&#34;&#34;Load traces (traces-grid*.raw files) that have been recorded with fishgrid (https://github.com/bendalab/fishgrid).
+
+    Parameters
+    ----------
+    file_paths: string or list of string
+        Path to a fishgrid data directory, a fishgrid.cfg file,
+        or fidhgrid traces-grid*.raw files.
+     channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        If &gt; 0 show detailed error/warning messages.
+
+    Returns
+    -------
+    data: 1-D or 2-D array
+        If `channel` is negative or more than one trace file is specified,
+        a 2-D array with data of all channels is returned,
+        where first dimension is time and second dimension is channel number.
+        Otherwise an 1-D array with the data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data.
+    &#34;&#34;&#34;
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    grids = fishgrid_grids(file_paths[0])
+    grid_sizes = [r*c for r,c in grids]
+    file_paths = fishgrid_files(file_paths, channel, grid_sizes)
+    if len(file_paths) &gt; 1:
+        channel = -1
+                
+    # load traces-grid*.raw files:
+    grid_channels = []
+    nchannels = 0
+    for path in file_paths:
+        g = int(os.path.basename(path)[11:].replace(&#39;.raw&#39;, &#39;&#39;)) - 1
+        grid_channels.append(grid_sizes[g])
+        nchannels += grid_sizes[g]
+    data = None
+    nrows = 0
+    n = 0
+    samplerate = None
+    if len(file_paths) &gt; 0:
+        samplerate = fishgrid_samplerate(file_paths[0])
+    unit = &#34;V&#34;
+    for path, channels in zip(file_paths, grid_channels):
+        x = np.fromfile(path, np.float32).reshape((-1, channels))
+        if verbose &gt; 0:
+            print( &#39;loaded %s&#39; % path)
+        if data is None:
+            nrows = len(x)-2
+            data = np.empty((nrows, nchannels))
+        data[:,n:n+channels] = x[:nrows,:]
+    if channel &lt; 0:
+        return data, samplerate, unit
+    else:
+        gs = 0
+        for s in grid_sizes:
+            if channel &lt; gs + s:
+                break
+            gs += s
+        return data[:, channel-gs], samplerate, unit</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.metadata_fishgrid"><code class="name flex">
+<span>def <span class="ident">metadata_fishgrid</span></span>(<span>filepath, store_empty=False, first_only=False, lower_keys=False, flat=False, add_sections=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Read meta-data of a fishgrid data set.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>A fishgrid data directory or a file therein.</dd>
+<dt><strong><code>store_empty</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>False</code> do not add meta data with empty values.</dd>
+<dt><strong><code>first_only</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>False</code> only store the first element of a list.</dd>
+<dt><strong><code>lower_keys</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Make all keys lower case.</dd>
+<dt><strong><code>flat</code></strong> :&ensp;<code>bool</code></dt>
+<dd>Do not make a nested dictionary.
+Use this option also to read in very old relacs metadata with
+ragged left alignment.</dd>
+<dt><strong><code>add_sections</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>True</code>, prepend keys with sections names separated by
+'.' to make them unique.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Nested dictionary with key-value pairs of the meta data.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def metadata_fishgrid(filepath, store_empty=False, first_only=False,
+                      lower_keys=False, flat=False, add_sections=False):
+    &#34;&#34;&#34; Read meta-data of a fishgrid data set.
+
+    Parameters
+    ----------
+    filepath: string
+        A fishgrid data directory or a file therein.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    lower_keys: bool
+        Make all keys lower case.
+    flat: bool
+        Do not make a nested dictionary.
+        Use this option also to read in very old relacs metadata with
+        ragged left alignment.
+    add_sections: bool
+        If `True`, prepend keys with sections names separated by
+        &#39;.&#39; to make them unique.
+
+    Returns
+    -------
+    data: nested dict
+        Nested dictionary with key-value pairs of the meta data.
+    &#34;&#34;&#34;
+    path = filepath
+    if isinstance(filepaths, (list, tuple, np.ndarray)):
+        path = filepath[0]
+    relacs_dir = path
+    if not os.path.isdir(path):
+        relacs_dir = os.path.dirname(path)
+    info_path = os.path.join(relacs_dir, &#39;fishgrid.cfg&#39;)
+    if not os.path.exists(info_path):
+        return dict(), []
+    data = relacs_header(info_path, store_empty, first_only,
+                         lower_keys, flat, add_sections)
+    return data</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.check_container"><code class="name flex">
+<span>def <span class="ident">check_container</span></span>(<span>filepath)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Check if file is a generic container file.</p>
+<p>Supported file formats are:</p>
+<ul>
+<li>python pickle files (.pkl)</li>
+<li>numpy files (.npz)</li>
+<li>matlab files (.mat)</li>
+</ul>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Path of the file to check.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>is_container</code></strong> :&ensp;<code>bool</code></dt>
+<dd><code>True</code>, if <code>filepath</code> is a supported container format.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def check_container(filepath):
+    &#34;&#34;&#34;Check if file is a generic container file.
+
+    Supported file formats are:
+
+    - python pickle files (.pkl)
+    - numpy files (.npz)
+    - matlab files (.mat)
+
+    Parameters
+    ----------
+    filepath: string
+        Path of the file to check.
+    
+    Returns
+    -------
+    is_container: bool
+        `True`, if `filepath` is a supported container format.
+    &#34;&#34;&#34;
+    ext = os.path.splitext(filepath)[1]
+    return ext.lower() in (&#39;.pkl&#39;, &#39;.npz&#39;, &#39;.mat&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.load_container"><code class="name flex">
+<span>def <span class="ident">load_container</span></span>(<span>filepath, channel=-1, verbose=0, datakey=None, samplekey=['rate', 'Fs', 'fs'], timekey=['time'], unitkey='unit')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Load data from a generic container file.</p>
+<p>Supported file formats are:</p>
+<ul>
+<li>python pickle files (.pkl)</li>
+<li>numpy files (.npz)</li>
+<li>matlab files (.mat)</li>
+</ul>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Path of the file to load.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The data channel. If negative all channels are selected.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>if &gt; 0 show detailed error/warning messages</dd>
+<dt><strong><code>datakey</code></strong> :&ensp;<code>None, string,</code> or <code>list</code> of <code>string</code></dt>
+<dd>Name of the variable holding the data.
+If <code>None</code> take the
+variable that is an 2D array and has the largest number of
+elements.</dd>
+<dt><strong><code>samplekey</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>string</code></dt>
+<dd>Name of the variable holding the sampling rate.</dd>
+<dt><strong><code>timekey</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>string</code></dt>
+<dd>Name of the variable holding sampling times.
+If no sampling rate is available, the samplingrate is retrieved
+from the sampling times.</dd>
+<dt><strong><code>unitkey</code></strong> :&ensp;<code>string</code></dt>
+<dd>Name of the variable holding the unit of the data.
+If <code>unitkey</code> is not a valid key, then return <code>unitkey</code> as the <code>unit</code>.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code> of <code>floats</code></dt>
+<dd>If <code>channel</code> is negative, a 2-D array with data of all channels
+is returned, where first dimension is time and second
+dimension is channel number.
+Otherwise an 1-D array with the
+data of that channel is returned.</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<h2 id="indexerror">Indexerror</h2>
+<p>Invalid channel requested</p>
+<h2 id="valueerror">Valueerror</h2>
+<p>Invalid key requested.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_container(filepath, channel=-1, verbose=0, datakey=None,
+                   samplekey=[&#39;rate&#39;, &#39;Fs&#39;, &#39;fs&#39;],
+                   timekey=[&#39;time&#39;], unitkey=&#39;unit&#39;):
+    &#34;&#34;&#34;Load data from a generic container file.
+
+    Supported file formats are:
+
+    - python pickle files (.pkl)
+    - numpy files (.npz)
+    - matlab files (.mat)
+
+    Parameters
+    ----------
+    filepath: string
+        Path of the file to load.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        if &gt; 0 show detailed error/warning messages
+    datakey: None, string, or list of string
+        Name of the variable holding the data.  If `None` take the
+        variable that is an 2D array and has the largest number of
+        elements.
+    samplekey: string or list of string
+        Name of the variable holding the sampling rate.
+    timekey: string or list of string
+        Name of the variable holding sampling times.
+        If no sampling rate is available, the samplingrate is retrieved
+        from the sampling times.
+    unitkey: string
+        Name of the variable holding the unit of the data.
+        If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
+
+    Returns
+    -------
+    data: 1-D or 2-D array of floats
+        If `channel` is negative, a 2-D array with data of all channels
+        is returned, where first dimension is time and second
+        dimension is channel number.  Otherwise an 1-D array with the
+        data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data.
+
+    Raises
+    ------
+    IndexError:
+        Invalid channel requested
+    ValueError:
+        Invalid key requested.
+    &#34;&#34;&#34;
+    # load data:
+    data = {}
+    ext = os.path.splitext(filepath)[1]
+    if ext == &#39;.pkl&#39;:
+        import pickle
+        with open(filepath, &#39;rb&#39;) as f:
+            data = pickle.load(f)
+    elif ext == &#39;.npz&#39;:
+        data = np.load(filepath)
+    elif ext == &#39;.mat&#39;:
+        from scipy.io import loadmat
+        data = loadmat(filepath, squeeze_me=True)
+    if verbose &gt; 0:
+        print( &#39;loaded %s&#39; % filepath)
+    # extract format data:
+    if not isinstance(samplekey, (list, tuple, np.ndarray)):
+        samplekey = (samplekey,)
+    if not isinstance(timekey, (list, tuple, np.ndarray)):
+        timekey = (timekey,)
+    samplerate = 0.0
+    for skey in samplekey:
+        if skey in data:
+            samplerate = float(data[skey])
+            break
+    if samplerate == 0.0:
+        for tkey in timekey:
+            if tkey in data:
+                samplerate = 1.0/(data[tkey][1] - data[tkey][0])
+                break
+    if samplerate == 0.0:
+        raise ValueError(f&#34;invalid keys {&#39;, &#39;.join(samplekey)} and {&#39;, &#39;.join(timekey)} for requesting sampling rate or sampling times&#34;)
+    unit = &#39;&#39;
+    if unitkey in data:
+        unit = data[unitkey]
+    elif unitkey != &#39;unit&#39;:
+        unit = unitkey
+    unit = str(unit)
+    # get data array:
+    raw_data = np.array([])
+    if datakey:
+        # try data keys:
+        if not isinstance(datakey, (list, tuple, np.ndarray)):
+            datakey = (datakey,)
+        for dkey in datakey:
+            if dkey in data:
+                raw_data = data[dkey]
+                break
+        if np.prod(raw_data.shape) == 0:
+            raise ValueError(f&#34;invalid key(s) {&#39;, &#39;.join(datakey)} for requesting data&#34;)
+    else:
+        # find largest 2D array:
+        for d in data:
+            if hasattr(data[d], &#39;shape&#39;):
+                if 1 &lt;= len(data[d].shape) &lt;= 2 and \
+                   np.prod(data[d].shape) &gt; np.prod(raw_data.shape):
+                    raw_data = data[d]
+    if np.prod(raw_data.shape) == 0:
+        raise ValueError(&#39;no data found&#39;)
+    # make 2D:
+    if len(raw_data.shape) == 1:
+        raw_data = raw_data.reshape(-1, 1)
+    # transpose if necessary:
+    if np.argmax(raw_data.shape) &gt; 0:
+        raw_data = raw_data.T
+    if channel &gt;= 0:
+        if channel &gt;= raw_data.shape[1]:
+            raise IndexError(f&#39;invalid channel number {channel} requested&#39;)
+        raw_data = raw_data[:,channel]
+    # recode:
+    dtype = raw_data.dtype
+    data = raw_data.astype(float)
+    if dtype == np.dtype(&#39;int16&#39;):
+        data /= 2**15
+    elif dtype == np.dtype(&#39;int32&#39;):
+        data /= 2**31
+    return data, samplerate, unit</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.metadata_container"><code class="name flex">
+<span>def <span class="ident">metadata_container</span></span>(<span>filepath, metadatakey=['metadata', 'info'])</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Read meta-data of a container file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>A container file.</dd>
+<dt><strong><code>metadatakey</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>string</code></dt>
+<dd>Name of the variable holding the metadata.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Nested dictionary with key-value pairs of the meta data.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def metadata_container(filepath, metadatakey=[&#39;metadata&#39;, &#39;info&#39;]):
+    &#34;&#34;&#34; Read meta-data of a container file.
+
+    Parameters
+    ----------
+    filepath: string
+        A container file.
+    metadatakey: string or list of string
+        Name of the variable holding the metadata.
+
+    Returns
+    -------
+    data: nested dict
+        Nested dictionary with key-value pairs of the meta data.
+    &#34;&#34;&#34;
+    # load data:
+    data = {}
+    ext = os.path.splitext(filepath)[1]
+    if ext == &#39;.pkl&#39;:
+        import pickle
+        with open(filepath, &#39;rb&#39;) as f:
+            data = pickle.load(f)
+    elif ext == &#39;.npz&#39;:
+        data = np.load(filepath)
+    elif ext == &#39;.mat&#39;:
+        from scipy.io import loadmat
+        data = loadmat(filepath, squeeze_me=True)
+    if not isinstance(metadatakey, (list, tuple, np.ndarray)):
+        metadatakey = (metadatakey,)
+    # get single metadata dictionary:
+    for mkey in metadatakey:
+        if mkey in data:
+            return data[mkey]
+    # collect all keys starting with metadatakey:
+    metadata = {}
+    for mkey in metadatakey:
+        mkey += &#39;.&#39;
+        for dkey in data:
+            if dkey[:len(mkey)] == mkey:
+                v = data[dkey]
+                if hasattr(v, &#39;size&#39;) and v.ndim == 0:
+                    v = v.item()
+                metadata[dkey[len(mkey):]] = v
+        if len(metadata) &gt; 0:
+            return unflatten_metadata(metadata)
+    return metadata</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.load_data"><code class="name flex">
+<span>def <span class="ident">load_data</span></span>(<span>filepath, channel=-1, verbose=0, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Load time-series data from a file of arbitrary format.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>strings</code></dt>
+<dd>The full path and name of the file to load. For some file
+formats several files can be provided in a list.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The data channel. If negative all channels are selected.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>If &gt; 0 show detailed error/warning messages.</dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Further keyword arguments that are passed on to the
+format specific loading functions.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code></dt>
+<dd>If <code>channel</code> is negative, a 2-D array with data of all
+channels is returned, where first dimension is time and second
+dimension is channel number.
+Otherwise an 1-D array with the
+data of that channel is returned.</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<h2 id="valueerror">Valueerror</h2>
+<p>Input argument <code>filepath</code> is empty string or list.</p>
+<h2 id="indexerror">Indexerror</h2>
+<p>Invalid channel requested.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_data(filepath, channel=-1, verbose=0, **kwargs):
+    &#34;&#34;&#34;Load time-series data from a file of arbitrary format.
+
+    Parameters
+    ----------
+    filepath: string or list of strings
+        The full path and name of the file to load. For some file
+        formats several files can be provided in a list.
+    channel: int
+        The data channel. If negative all channels are selected.
+    verbose: int
+        If &gt; 0 show detailed error/warning messages.
+    **kwargs: dict
+        Further keyword arguments that are passed on to the 
+        format specific loading functions.
+
+    Returns
+    -------
+    data: 1-D or 2-D array
+        If `channel` is negative, a 2-D array with data of all
+        channels is returned, where first dimension is time and second
+        dimension is channel number.  Otherwise an 1-D array with the
+        data of that channel is returned.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data.
+
+    Raises
+    ------
+    ValueError:
+        Input argument `filepath` is empty string or list.
+    IndexError:
+        Invalid channel requested.
+    &#34;&#34;&#34;
+    # check values:
+    data = np.array([])
+    samplerate = 0.0
+    unit = &#39;&#39;
+    if len(filepath) == 0:
+        raise ValueError(&#39;input argument filepath is empty string or list.&#39;)
+
+    # load data:
+    if check_relacs(filepath):
+        return load_relacs(filepath, channel, verbose)
+    elif check_fishgrid(filepath):
+        return load_fishgrid(filepath, channel, verbose)
+    else:
+        if isinstance(filepath, (list, tuple, np.ndarray)):
+            filepath = filepath[0]
+        if check_container(filepath):
+            return load_container(filepath, channel, verbose=verbose, **kwargs)
+        else:
+            data, samplerate = load_audio(filepath, verbose)
+            if channel &gt;= 0:
+                if channel &gt;= data.shape[1]:
+                    raise IndexError(f&#39;invalid channel number {channel} requested&#39;)
+                data = data[:, channel]
+            unit = &#39;a.u.&#39;
+        return data, samplerate, unit</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.metadata"><code class="name flex">
+<span>def <span class="ident">metadata</span></span>(<span>filepath, store_empty=False, first_only=False, **kwargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Read meta-data from a data file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>strings</code></dt>
+<dd>The full path and name of the file to load. For some file
+formats several files can be provided in a list.</dd>
+<dt><strong><code>store_empty</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>False</code> do not add meta data with empty values.</dd>
+<dt><strong><code>first_only</code></strong> :&ensp;<code>bool</code></dt>
+<dd>If <code>False</code> only store the first element of a list.</dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Further keyword arguments that are passed on to the
+format specific loading functions.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>meta_data</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Meta data contained in the file.
+Keys of the nested
+dictionaries are always strings.
+If the corresponding
+values are dictionaries, then the key is the section name
+of the metadata contained in the dictionary. All other
+types of values are values for the respective key. In
+particular they are strings, or list of strings. But other
+simple types like ints or floats are also allowed.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def metadata(filepath, store_empty=False, first_only=False, **kwargs):
+    &#34;&#34;&#34; Read meta-data from a data file.
+
+    Parameters
+    ----------
+    filepath: string or list of strings
+        The full path and name of the file to load. For some file
+        formats several files can be provided in a list.
+    store_empty: bool
+        If `False` do not add meta data with empty values.
+    first_only: bool
+        If `False` only store the first element of a list.
+    **kwargs: dict
+        Further keyword arguments that are passed on to the 
+        format specific loading functions.
+
+    Returns
+    -------
+    meta_data: nested dict
+        Meta data contained in the file.  Keys of the nested
+        dictionaries are always strings.  If the corresponding
+        values are dictionaries, then the key is the section name
+        of the metadata contained in the dictionary. All other
+        types of values are values for the respective key. In
+        particular they are strings, or list of strings. But other
+        simple types like ints or floats are also allowed.
+    &#34;&#34;&#34;
+    if check_relacs(filepath):
+        return metadata_relacs(filepath, store_empty, first_only, **kwargs)
+    elif check_fishgrid(filepath):
+        return metadata_fishgrid(filepath, store_empty, first_only, **kwargs)
+    else:
+        if isinstance(filepath, (list, tuple, np.ndarray)):
+            filepath = filepath[0]
+        if check_container(filepath):
+            return metadata_container(filepath, **kwargs)
+        else:
+            return audioio_metadata(filepath, store_empty)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.markers"><code class="name flex">
+<span>def <span class="ident">markers</span></span>(<span>filepath)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Read markers of a data file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>file handle</code></dt>
+<dd>The data file.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>locs</code></strong> :&ensp;<code>2-D array</code> of <code>ints</code></dt>
+<dd>Marker positions (first column) and spans (second column)
+for each marker (rows).</dd>
+<dt><strong><code>labels</code></strong> :&ensp;<code>2-D array</code> of <code>string objects</code></dt>
+<dd>Labels (first column) and texts (second column)
+for each marker (rows).</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def markers(filepath):
+    &#34;&#34;&#34; Read markers of a data file.
+
+    Parameters
+    ----------
+    filepath: string or file handle
+        The data file.
+
+    Returns
+    -------
+    locs: 2-D array of ints
+        Marker positions (first column) and spans (second column)
+        for each marker (rows).
+    labels: 2-D array of string objects
+        Labels (first column) and texts (second column)
+        for each marker (rows).
+    &#34;&#34;&#34;
+    return audioio_markers(filepath)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.demo"><code class="name flex">
+<span>def <span class="ident">demo</span></span>(<span>filepath, plot=False, channel=-1)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def demo(filepath, plot=False, channel=-1):
+    print(&#34;try load_data:&#34;)
+    data, samplerate, unit = load_data(filepath, channel, verbose=2)
+    if plot:
+        time = np.arange(len(data))/samplerate
+        if channel &lt; 0:
+            for c in range(data.shape[1]):
+                plt.plot(time, data[:,c])
+        else:
+            plt.plot(time, data)
+        plt.xlabel(&#39;Time [s]&#39;)
+        plt.ylabel(&#39;[&#39; + unit + &#39;]&#39;)
+        plt.show()
+        return
+
+    print(&#39;&#39;)
+    print(&#34;try DataLoader for channel=%d:&#34; % channel)
+    with DataLoader(filepath, channel, 2.0, 1.0, 1) as data:
+        print(&#39;samplerate: %g&#39; % data.samplerate)
+        print(&#39;frames: %d %d&#39; % (len(data), data.shape[0]))
+        nframes = int(1.0 * data.samplerate)
+        # forward:
+        for i in range(0, len(data), nframes):
+            print(&#39;forward %d-%d&#39; % (i, i + nframes))
+            if channel &lt; 0:
+                x = data[i:i + nframes, 0]
+            else:
+                x = data[i:i + nframes]
+            if plot:
+                plt.plot((i + np.arange(len(x))) / data.samplerate, x)
+                plt.xlabel(&#39;Time [s]&#39;)
+                plt.ylabel(&#39;[&#39; + data.unit + &#39;]&#39;)
+                plt.show()
+        # and backwards:
+        for i in reversed(range(0, len(data), nframes)):
+            print(&#39;backward %d-%d&#39; % (i, i + nframes))
+            if channel &lt; 0:
+                x = data[i:i + nframes, 0]
+            else:
+                x = data[i:i + nframes]
+            if plot:
+                plt.plot((i + np.arange(len(x))) / data.samplerate, x)
+                plt.xlabel(&#39;Time [s]&#39;)
+                plt.ylabel(&#39;[&#39; + data.unit + &#39;]&#39;)
+                plt.show()</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>*cargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Call demo with command line arguments.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cargs</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>Command line arguments as provided by sys.argv[1:]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main(*cargs):
+    &#34;&#34;&#34;Call demo with command line arguments.
+
+    Parameters
+    ----------
+    cargs: list of strings
+        Command line arguments as provided by sys.argv[1:]
+    &#34;&#34;&#34;
+    import argparse
+    parser = argparse.ArgumentParser(description=
+                                     &#39;Checking thunderfish.dataloader module.&#39;)
+    parser.add_argument(&#39;-p&#39;, dest=&#39;plot&#39;, action=&#39;store_true&#39;,
+                        help=&#39;plot loaded data&#39;)
+    parser.add_argument(&#39;-c&#39;, dest=&#39;channel&#39;, default=-1, type=int,
+                        help=&#39;channel to be loaded&#39;)
+    parser.add_argument(&#39;file&#39;, nargs=1, default=&#39;&#39;, type=str,
+                        help=&#39;name of data file&#39;)
+    args = parser.parse_args(cargs)
+    demo(args.file[0], args.plot, args.channel)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="thunderfish.dataloader.DataLoader"><code class="flex name class">
+<span>class <span class="ident">DataLoader</span></span>
+<span>(</span><span>filepath=None, buffersize=10.0, backsize=0.0, verbose=0, channel=-1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Buffered reading of time-series data for random access of the data in the file.</p>
+<p>This allows for reading very large data files that do not fit into
+memory.
+An <code><a title="thunderfish.dataloader.DataLoader" href="#thunderfish.dataloader.DataLoader">DataLoader</a></code> instance can be used like a huge
+read-only numpy array, i.e.</p>
+<pre><code>data = DataLoader('path/to/data/file.dat')
+x = data[10000:20000,0]
+</code></pre>
+<p>The first index specifies the frame, the second one the channel.</p>
+<p><code><a title="thunderfish.dataloader.DataLoader" href="#thunderfish.dataloader.DataLoader">DataLoader</a></code> first determines the format of the data file and then
+opens the file (first line). It then reads data from the file as
+necessary for the requested data (second line).</p>
+<p>Supported file formats are</p>
+<ul>
+<li>relacs trace*.raw files (www.relacs.net)</li>
+<li>fishgrid traces-*.raw files</li>
+<li>audio files via <code>audioio</code> package</li>
+</ul>
+<p>Reading sequentially through the file is always possible. If
+previous data are requested, then the file is read from the
+beginning. This might slow down access to previous data
+considerably. Use the <code>backsize</code> argument to the open functions to
+make sure some data are loaded before the requested frame. Then a
+subsequent access to the data within backsize seconds before that
+frame can still be handled without the need to reread the file
+from the beginning.</p>
+<h2 id="usage">Usage:</h2>
+<pre><code>import thunderfish.dataloader as dl
+with dl.open_data(filepath, 60.0, 10.0) as data:
+    # do something with the content of the file:
+    x = data[0:10000,0]
+    y = data[10000:20000,0]
+    z = x + y
+</code></pre>
+<p>Normal open and close:</p>
+<pre><code>data = dl.DataLoader(filepath, 60.0)
+x = data[:,:]  # read the whole file
+data.close()
+</code></pre>
+<p>that is the same as:</p>
+<pre><code>data = dl.DataLoader()
+data.open(filepath, 60.0)
+</code></pre>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>The sampling rate of the data in Hertz.</dd>
+<dt><strong><code>channels</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of channels that are read in.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The channel of which the trace is returned.
+If negative, all channels are returned.</dd>
+<dt><strong><code>frames</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of frames in the file.</dd>
+<dt><strong><code>shape</code></strong> :&ensp;<code>tuple</code></dt>
+<dd>Number of frames and channels of the data.</dd>
+<dt><strong><code>ndim</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of dimensions. One of only a single channel is read in,
+two otherwise (frames, channels).</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+<dt><strong><code>ampl_min</code></strong> :&ensp;<code>float</code></dt>
+<dd>Minimum amplitude the file format supports.</dd>
+<dt><strong><code>ampl_max</code></strong> :&ensp;<code>float</code></dt>
+<dd>Maximum amplitude the file format supports.</dd>
+</dl>
+<h2 id="methods">Methods</h2>
+<ul>
+<li><code>len()</code>: the number of frames</li>
+<li><code>open()</code>: open a data file.</li>
+<li><code>open_*()</code>: open a data file of a specific format.</li>
+<li><code>close()</code>: close the file.</li>
+<li><code><a title="thunderfish.dataloader.metadata" href="#thunderfish.dataloader.metadata">metadata()</a></code>: metadata of the file.</li>
+<li><code><a title="thunderfish.dataloader.markers" href="#thunderfish.dataloader.markers">markers()</a></code>: markers of the file.</li>
+<li><code>set_unwrap()</code>: Set parameters for unwrapping clipped data.</li>
+</ul>
+<p>Initialize the DataLoader instance.</p>
+<p>If filepath is not None open the file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Name of the file.</dd>
+<dt><strong><code>buffersize</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of internal buffer in seconds.</dd>
+<dt><strong><code>backsize</code></strong> :&ensp;<code>float</code></dt>
+<dd>Part of the buffer to be loaded before the requested start index in seconds.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>If &gt; 0 show detailed error/warning messages.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The single channel to be worked on or all channels if negative.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DataLoader(AudioLoader):
+    &#34;&#34;&#34;Buffered reading of time-series data for random access of the data in the file.
+    
+    This allows for reading very large data files that do not fit into
+    memory.  An `DataLoader` instance can be used like a huge
+    read-only numpy array, i.e.
+    ```
+    data = DataLoader(&#39;path/to/data/file.dat&#39;)
+    x = data[10000:20000,0]
+    ```
+    The first index specifies the frame, the second one the channel.
+
+    `DataLoader` first determines the format of the data file and then
+    opens the file (first line). It then reads data from the file as
+    necessary for the requested data (second line).
+
+    Supported file formats are
+
+    - relacs trace*.raw files (www.relacs.net)
+    - fishgrid traces-*.raw files
+    - audio files via `audioio` package
+
+    Reading sequentially through the file is always possible. If
+    previous data are requested, then the file is read from the
+    beginning. This might slow down access to previous data
+    considerably. Use the `backsize` argument to the open functions to
+    make sure some data are loaded before the requested frame. Then a
+    subsequent access to the data within backsize seconds before that
+    frame can still be handled without the need to reread the file
+    from the beginning.
+
+    Usage:
+    ------
+    ```
+    import thunderfish.dataloader as dl
+    with dl.open_data(filepath, 60.0, 10.0) as data:
+        # do something with the content of the file:
+        x = data[0:10000,0]
+        y = data[10000:20000,0]
+        z = x + y
+    ```
+    
+    Normal open and close:
+    ```
+    data = dl.DataLoader(filepath, 60.0)
+    x = data[:,:]  # read the whole file
+    data.close()
+    ```    
+    that is the same as:
+    ```
+    data = dl.DataLoader()
+    data.open(filepath, 60.0)
+    ```
+
+    Attributes
+    ----------
+    samplerate: float
+        The sampling rate of the data in Hertz.
+    channels: int
+        The number of channels that are read in.
+    channel: int
+        The channel of which the trace is returned.
+        If negative, all channels are returned.
+    frames: int
+        The number of frames in the file.
+    shape: tuple
+        Number of frames and channels of the data.
+    ndim: int
+        Number of dimensions. One of only a single channel is read in,
+        two otherwise (frames, channels).
+    unit: string
+        Unit of the data.
+    ampl_min: float
+        Minimum amplitude the file format supports.
+    ampl_max: float
+        Maximum amplitude the file format supports.
+
+    Methods
+    -------
+
+    - `len()`: the number of frames
+    - `open()`: open a data file.
+    - `open_*()`: open a data file of a specific format.
+    - `close()`: close the file.
+    - `metadata()`: metadata of the file.
+    - `markers()`: markers of the file.
+    - `set_unwrap()`: Set parameters for unwrapping clipped data.
+
+    &#34;&#34;&#34;
+
+    def __init__(self, filepath=None, buffersize=10.0, backsize=0.0,
+                 verbose=0, channel=-1):
+        &#34;&#34;&#34;Initialize the DataLoader instance.
+
+        If filepath is not None open the file.
+
+        Parameters
+        ----------
+        filepath: string
+            Name of the file.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If &gt; 0 show detailed error/warning messages.
+        channel: int
+            The single channel to be worked on or all channels if negative.
+        &#34;&#34;&#34;
+        super(DataLoader, self).__init__(None, buffersize, backsize, verbose)
+        if filepath is not None:
+            self.open(filepath, buffersize, backsize, verbose, channel)
+
+    def __getitem__(self, key):
+        if self.channel &gt;= 0:
+            if type(key) is tuple:
+                raise IndexError
+            return super(DataLoader, self).__getitem__((key, self.channel))
+        else:
+            return super(DataLoader, self).__getitem__(key)
+ 
+    def __next__(self):
+        if self.channel &gt;= 0:
+            return super(DataLoader, self).__next__()[self.channel]
+        else:
+            return super(DataLoader, self).__next__()
+
+    
+    # relacs interface:        
+    def open_relacs(self, file_paths, buffersize=10.0, backsize=0.0,
+                    verbose=0, channel=-1):
+        &#34;&#34;&#34;Open relacs data files (www.relacs.net) for reading.
+
+        Parameters
+        ----------
+        file_paths: string or list of string
+            Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
+            or relacs trace-*.raw files.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If &gt; 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
+
+        Raises
+        ------
+        ValueError: .gz files not supported.
+        &#34;&#34;&#34;
+        self.verbose = verbose
+        
+        if self.sf is not None:
+            self._close_relacs()
+
+        file_paths = relacs_files(file_paths, channel)
+
+        # open trace files:
+        self.sf = []
+        self.frames = None
+        self.samplerate = None
+        self.unit = &#34;&#34;
+        self.filepath = None
+        if len(file_paths) &gt; 0:
+            self.filepath = os.path.dirname(file_paths[0])
+        for path in file_paths:
+            if path[-3:] == &#39;.gz&#39;:
+                raise ValueError(&#39;.gz files not supported&#39;)
+            file = open(path, &#39;rb&#39;)
+            self.sf.append(file)
+            if verbose &gt; 0:
+                print( &#39;opened %s&#39; % path)
+            # file size:
+            file.seek(0, os.SEEK_END)
+            frames = file.tell()//4
+            if self.frames is None:
+                self.frames = frames
+            elif self.frames != frames:
+                diff = self.frames - frames
+                if diff &gt; 1 or diff &lt; -2:
+                    raise ValueError(&#39;number of frames of traces differ&#39;)
+                elif diff &gt;= 0:
+                    self.frames = frames
+            file.seek(0)
+            # retrieve sampling rate and unit:
+            rate, us = relacs_samplerate_unit(path)
+            if self.samplerate is None:
+                self.samplerate = rate
+            elif rate != self.samplerate:
+                raise ValueError(&#39;sampling rates of traces differ&#39;)
+            if len(self.unit) == 0:
+                self.unit = us
+            elif us != self.unit:
+                raise ValueError(&#39;unit of traces differ&#39;)
+        self.channels = len(self.sf)
+        self.channel = channel
+        if self.channel &gt;= 0:
+            self.shape = (self.frames,)
+        else:
+            self.shape = (self.frames, self.channels)
+        self.ndim = len(self.shape)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self._init_buffer()
+        self.offset = 0
+        self.close = self._close_relacs
+        self.load_buffer = self._load_buffer_relacs
+        self.metadata = self._metadata_relacs
+        self.markers = self._markers_relacs
+        self.ampl_min = -np.inf
+        self.ampl_max = +np.inf
+        return self
+
+    def _close_relacs(self):
+        &#34;&#34;&#34;Close the relacs data files.
+        &#34;&#34;&#34;
+        if self.sf is not None:
+            for file in self.sf:
+                file.close()
+            self.sf = None
+
+    def _load_buffer_relacs(self, r_offset, r_size, buffer):
+        &#34;&#34;&#34;Load new data from relacs data file.
+
+        Parameters
+        ----------
+        r_offset: int
+           First frame to be read from file.
+        r_size: int
+           Number of frames to be read from file.
+        buffer: ndarray
+           Buffer where to store the loaded data.
+        &#34;&#34;&#34;
+        for i, file in enumerate(self.sf):
+            file.seek(r_offset*4)
+            data = file.read(r_size*4)
+            buffer[:, i] = np.fromstring(data, dtype=np.float32)
+        
+
+    def _metadata_relacs(self, store_empty=False, first_only=False):
+        &#34;&#34;&#34; Read meta-data of a relacs data set.
+        &#34;&#34;&#34;
+        info_path = os.path.join(self.filepath, &#39;info.dat&#39;)
+        if not os.path.exists(info_path):
+            return dict()
+        data = relacs_header(info_path, store_empty, first_only)
+        return data
+
+
+    def _markers_relacs(self):
+        &#34;&#34;&#34; Read markers of a relacs data set.
+        &#34;&#34;&#34;
+        # Not implemented yet!
+        return None, None
+
+    
+    # fishgrid interface:        
+    def open_fishgrid(self, file_paths, buffersize=10.0, backsize=0.0,
+                      verbose=0, channel=-1):
+        &#34;&#34;&#34;Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
+
+        Parameters
+        ----------
+        file_paths: string or list of string
+            Path to a fishgrid data directory, a fishgrid.cfg file,
+            or fishgrid trace-*.raw files.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If &gt; 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
+        &#34;&#34;&#34;
+        self.verbose = verbose
+        
+        if self.sf is not None:
+            self._close_fishgrid()
+
+        if not isinstance(file_paths, (list, tuple, np.ndarray)):
+            file_paths = [file_paths]
+        grids = fishgrid_grids(file_paths[0])
+        grid_sizes = [r*c for r,c in grids]
+        file_paths = fishgrid_files(file_paths, channel, grid_sizes)
+        self.filepath = None
+        if len(file_paths) &gt; 0:
+            self.filepath = os.path.dirname(file_paths[0])
+
+        # open grid files:
+        self.channels = 0
+        for path in file_paths:
+            g = int(os.path.basename(path)[11:].replace(&#39;.raw&#39;, &#39;&#39;)) - 1
+            self.channels += grid_sizes[g]
+        self.sf = []
+        self.grid_channels = []
+        self.grid_offs = []
+        offs = 0
+        self.frames = None
+        self.samplerate = None
+        if len(file_paths) &gt; 0:
+            self.samplerate = fishgrid_samplerate(file_paths[0])
+        self.unit = &#34;V&#34;
+        for path in file_paths:
+            file = open(path, &#39;rb&#39;)
+            self.sf.append(file)
+            if verbose &gt; 0:
+                print( &#39;opened %s&#39; % path)
+            # grid channels:
+            g = int(os.path.basename(path)[11:].replace(&#39;.raw&#39;, &#39;&#39;)) - 1
+            self.grid_channels.append(grid_sizes[g])
+            self.grid_offs.append(offs)
+            offs += grid_sizes[g]
+            # file size:
+            file.seek(0, os.SEEK_END)
+            frames = file.tell()//4//grid_sizes[g]
+            if self.frames is None:
+                self.frames = frames
+            elif self.frames != frames:
+                diff = self.frames - frames
+                if diff &gt; 1 or diff &lt; -2:
+                    raise ValueError(&#39;number of frames of traces differ&#39;)
+                elif diff &gt;= 0:
+                    self.frames = frames
+            file.seek(0)
+        gs = 0
+        for s in grid_sizes:
+            if channel &lt; gs + s:
+                break
+            gs += s
+        self.channel = channel - gs
+        if self.channel &gt;= 0:
+            self.shape = (self.frames,)
+        else:
+            self.shape = (self.frames, self.channels)
+        self.ndim = len(self.shape)
+        self.buffersize = int(buffersize*self.samplerate)
+        self.backsize = int(backsize*self.samplerate)
+        self._init_buffer()
+        self.offset = 0
+        self.close = self._close_fishgrid
+        self.load_buffer = self._load_buffer_fishgrid
+        self.metadata = self._metadata_fishgrid
+        self.markers = self._markers_fishgrid
+        self.ampl_min = -np.inf
+        self.ampl_max = +np.inf
+        return self
+
+    def _close_fishgrid(self):
+        &#34;&#34;&#34;Close the fishgrid data files.
+        &#34;&#34;&#34;
+        if self.sf is not None:
+            for file in self.sf:
+                file.close()
+            self.sf = None
+
+    def _load_buffer_fishgrid(self, r_offset, r_size, buffer):
+        &#34;&#34;&#34;Load new data from relacs data file.
+
+        Parameters
+        ----------
+        r_offset: int
+           First frame to be read from file.
+        r_size: int
+           Number of frames to be read from file.
+        buffer: ndarray
+           Buffer where to store the loaded data.
+        &#34;&#34;&#34;
+        for file, gchannels, goffset in zip(self.sf, self.grid_channels, self.grid_offs):
+            file.seek(r_offset*4*gchannels)
+            data = file.read(r_size*4*gchannels)
+            buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))
+        
+
+    def _metadata_fishgrid(self, store_empty=False, first_only=False):
+        &#34;&#34;&#34; Read meta-data of a fishgrid data set.
+        &#34;&#34;&#34;
+        info_path = os.path.join(self.filepath, &#39;fishgrid.cfg&#39;)
+        if not os.path.exists(info_path):
+            return dict()
+        data = relacs_header(info_path, store_empty, first_only)
+        return data
+
+
+    def _markers_fishgrid(self):
+        &#34;&#34;&#34; Read markers of a fishgrid data set.
+        &#34;&#34;&#34;
+        # Not implemented yet!
+        return None, None
+
+
+    def open(self, filepath, buffersize=10.0, backsize=0.0,
+             verbose=0, channel=-1):
+        &#34;&#34;&#34;Open file with time-series data for reading.
+
+        Parameters
+        ----------
+        filepath: string or list of string
+            Path to a data files or directory.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If &gt; 0 show detailed error/warning messages.
+        channel: int
+            The requested data channel. If negative all channels are selected.
+        &#34;&#34;&#34;
+        if check_relacs(filepath):
+            self.open_relacs(filepath, buffersize, backsize, verbose, channel)
+        elif check_fishgrid(filepath):
+            self.open_fishgrid(filepath, buffersize, backsize, verbose, channel)
+        else:
+            if isinstance(filepath, (list, tuple, np.ndarray)):
+                filepath = filepath[0]
+            if check_container(filepath):
+                raise ValueError(&#39;file format not supported&#39;)
+            super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
+            if channel &gt; self.channels:
+                raise IndexError(f&#39;invalid channel number {channel}&#39;)
+            self.channel = channel
+            if self.channel &gt;= 0:
+                self.shape = (self.frames,)
+            else:
+                self.shape = (self.frames, self.channels)
+            self.ndim = len(self.shape)
+            self.unit = &#39;a.u.&#39;
+        return self</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>audioio.audioloader.AudioLoader</li>
+<li>audioio.audioloader.BufferArray</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="thunderfish.dataloader.DataLoader.open_relacs"><code class="name flex">
+<span>def <span class="ident">open_relacs</span></span>(<span>self, file_paths, buffersize=10.0, backsize=0.0, verbose=0, channel=-1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Open relacs data files (www.relacs.net) for reading.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>string</code></dt>
+<dd>Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
+or relacs trace-*.raw files.</dd>
+<dt><strong><code>buffersize</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of internal buffer in seconds.</dd>
+<dt><strong><code>backsize</code></strong> :&ensp;<code>float</code></dt>
+<dd>Part of the buffer to be loaded before the requested start index in seconds.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>If &gt; 0 show detailed error/warning messages.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The requested data channel. If negative all channels are selected.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<p>ValueError: .gz files not supported.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def open_relacs(self, file_paths, buffersize=10.0, backsize=0.0,
+                verbose=0, channel=-1):
+    &#34;&#34;&#34;Open relacs data files (www.relacs.net) for reading.
+
+    Parameters
+    ----------
+    file_paths: string or list of string
+        Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
+        or relacs trace-*.raw files.
+    buffersize: float
+        Size of internal buffer in seconds.
+    backsize: float
+        Part of the buffer to be loaded before the requested start index in seconds.
+    verbose: int
+        If &gt; 0 show detailed error/warning messages.
+    channel: int
+        The requested data channel. If negative all channels are selected.
+
+    Raises
+    ------
+    ValueError: .gz files not supported.
+    &#34;&#34;&#34;
+    self.verbose = verbose
+    
+    if self.sf is not None:
+        self._close_relacs()
+
+    file_paths = relacs_files(file_paths, channel)
+
+    # open trace files:
+    self.sf = []
+    self.frames = None
+    self.samplerate = None
+    self.unit = &#34;&#34;
+    self.filepath = None
+    if len(file_paths) &gt; 0:
+        self.filepath = os.path.dirname(file_paths[0])
+    for path in file_paths:
+        if path[-3:] == &#39;.gz&#39;:
+            raise ValueError(&#39;.gz files not supported&#39;)
+        file = open(path, &#39;rb&#39;)
+        self.sf.append(file)
+        if verbose &gt; 0:
+            print( &#39;opened %s&#39; % path)
+        # file size:
+        file.seek(0, os.SEEK_END)
+        frames = file.tell()//4
+        if self.frames is None:
+            self.frames = frames
+        elif self.frames != frames:
+            diff = self.frames - frames
+            if diff &gt; 1 or diff &lt; -2:
+                raise ValueError(&#39;number of frames of traces differ&#39;)
+            elif diff &gt;= 0:
+                self.frames = frames
+        file.seek(0)
+        # retrieve sampling rate and unit:
+        rate, us = relacs_samplerate_unit(path)
+        if self.samplerate is None:
+            self.samplerate = rate
+        elif rate != self.samplerate:
+            raise ValueError(&#39;sampling rates of traces differ&#39;)
+        if len(self.unit) == 0:
+            self.unit = us
+        elif us != self.unit:
+            raise ValueError(&#39;unit of traces differ&#39;)
+    self.channels = len(self.sf)
+    self.channel = channel
+    if self.channel &gt;= 0:
+        self.shape = (self.frames,)
+    else:
+        self.shape = (self.frames, self.channels)
+    self.ndim = len(self.shape)
+    self.buffersize = int(buffersize*self.samplerate)
+    self.backsize = int(backsize*self.samplerate)
+    self._init_buffer()
+    self.offset = 0
+    self.close = self._close_relacs
+    self.load_buffer = self._load_buffer_relacs
+    self.metadata = self._metadata_relacs
+    self.markers = self._markers_relacs
+    self.ampl_min = -np.inf
+    self.ampl_max = +np.inf
+    return self</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.DataLoader.open_fishgrid"><code class="name flex">
+<span>def <span class="ident">open_fishgrid</span></span>(<span>self, file_paths, buffersize=10.0, backsize=0.0, verbose=0, channel=-1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Open fishgrid data files (<a href="https://github.com/bendalab/fishgrid">https://github.com/bendalab/fishgrid</a>) for reading.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_paths</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>string</code></dt>
+<dd>Path to a fishgrid data directory, a fishgrid.cfg file,
+or fishgrid trace-*.raw files.</dd>
+<dt><strong><code>buffersize</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of internal buffer in seconds.</dd>
+<dt><strong><code>backsize</code></strong> :&ensp;<code>float</code></dt>
+<dd>Part of the buffer to be loaded before the requested start index in seconds.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>If &gt; 0 show detailed error/warning messages.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The requested data channel. If negative all channels are selected.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def open_fishgrid(self, file_paths, buffersize=10.0, backsize=0.0,
+                  verbose=0, channel=-1):
+    &#34;&#34;&#34;Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
+
+    Parameters
+    ----------
+    file_paths: string or list of string
+        Path to a fishgrid data directory, a fishgrid.cfg file,
+        or fishgrid trace-*.raw files.
+    buffersize: float
+        Size of internal buffer in seconds.
+    backsize: float
+        Part of the buffer to be loaded before the requested start index in seconds.
+    verbose: int
+        If &gt; 0 show detailed error/warning messages.
+    channel: int
+        The requested data channel. If negative all channels are selected.
+    &#34;&#34;&#34;
+    self.verbose = verbose
+    
+    if self.sf is not None:
+        self._close_fishgrid()
+
+    if not isinstance(file_paths, (list, tuple, np.ndarray)):
+        file_paths = [file_paths]
+    grids = fishgrid_grids(file_paths[0])
+    grid_sizes = [r*c for r,c in grids]
+    file_paths = fishgrid_files(file_paths, channel, grid_sizes)
+    self.filepath = None
+    if len(file_paths) &gt; 0:
+        self.filepath = os.path.dirname(file_paths[0])
+
+    # open grid files:
+    self.channels = 0
+    for path in file_paths:
+        g = int(os.path.basename(path)[11:].replace(&#39;.raw&#39;, &#39;&#39;)) - 1
+        self.channels += grid_sizes[g]
+    self.sf = []
+    self.grid_channels = []
+    self.grid_offs = []
+    offs = 0
+    self.frames = None
+    self.samplerate = None
+    if len(file_paths) &gt; 0:
+        self.samplerate = fishgrid_samplerate(file_paths[0])
+    self.unit = &#34;V&#34;
+    for path in file_paths:
+        file = open(path, &#39;rb&#39;)
+        self.sf.append(file)
+        if verbose &gt; 0:
+            print( &#39;opened %s&#39; % path)
+        # grid channels:
+        g = int(os.path.basename(path)[11:].replace(&#39;.raw&#39;, &#39;&#39;)) - 1
+        self.grid_channels.append(grid_sizes[g])
+        self.grid_offs.append(offs)
+        offs += grid_sizes[g]
+        # file size:
+        file.seek(0, os.SEEK_END)
+        frames = file.tell()//4//grid_sizes[g]
+        if self.frames is None:
+            self.frames = frames
+        elif self.frames != frames:
+            diff = self.frames - frames
+            if diff &gt; 1 or diff &lt; -2:
+                raise ValueError(&#39;number of frames of traces differ&#39;)
+            elif diff &gt;= 0:
+                self.frames = frames
+        file.seek(0)
+    gs = 0
+    for s in grid_sizes:
+        if channel &lt; gs + s:
+            break
+        gs += s
+    self.channel = channel - gs
+    if self.channel &gt;= 0:
+        self.shape = (self.frames,)
+    else:
+        self.shape = (self.frames, self.channels)
+    self.ndim = len(self.shape)
+    self.buffersize = int(buffersize*self.samplerate)
+    self.backsize = int(backsize*self.samplerate)
+    self._init_buffer()
+    self.offset = 0
+    self.close = self._close_fishgrid
+    self.load_buffer = self._load_buffer_fishgrid
+    self.metadata = self._metadata_fishgrid
+    self.markers = self._markers_fishgrid
+    self.ampl_min = -np.inf
+    self.ampl_max = +np.inf
+    return self</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.dataloader.DataLoader.open"><code class="name flex">
+<span>def <span class="ident">open</span></span>(<span>self, filepath, buffersize=10.0, backsize=0.0, verbose=0, channel=-1)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Open file with time-series data for reading.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>list</code> of <code>string</code></dt>
+<dd>Path to a data files or directory.</dd>
+<dt><strong><code>buffersize</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of internal buffer in seconds.</dd>
+<dt><strong><code>backsize</code></strong> :&ensp;<code>float</code></dt>
+<dd>Part of the buffer to be loaded before the requested start index in seconds.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>If &gt; 0 show detailed error/warning messages.</dd>
+<dt><strong><code>channel</code></strong> :&ensp;<code>int</code></dt>
+<dd>The requested data channel. If negative all channels are selected.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def open(self, filepath, buffersize=10.0, backsize=0.0,
+         verbose=0, channel=-1):
+    &#34;&#34;&#34;Open file with time-series data for reading.
+
+    Parameters
+    ----------
+    filepath: string or list of string
+        Path to a data files or directory.
+    buffersize: float
+        Size of internal buffer in seconds.
+    backsize: float
+        Part of the buffer to be loaded before the requested start index in seconds.
+    verbose: int
+        If &gt; 0 show detailed error/warning messages.
+    channel: int
+        The requested data channel. If negative all channels are selected.
+    &#34;&#34;&#34;
+    if check_relacs(filepath):
+        self.open_relacs(filepath, buffersize, backsize, verbose, channel)
+    elif check_fishgrid(filepath):
+        self.open_fishgrid(filepath, buffersize, backsize, verbose, channel)
+    else:
+        if isinstance(filepath, (list, tuple, np.ndarray)):
+            filepath = filepath[0]
+        if check_container(filepath):
+            raise ValueError(&#39;file format not supported&#39;)
+        super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
+        if channel &gt; self.channels:
+            raise IndexError(f&#39;invalid channel number {channel}&#39;)
+        self.channel = channel
+        if self.channel &gt;= 0:
+            self.shape = (self.frames,)
+        else:
+            self.shape = (self.frames, self.channels)
+        self.ndim = len(self.shape)
+        self.unit = &#39;a.u.&#39;
+    return self</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul>
+<li><a href="#supported-file-formats">Supported file formats</a></li>
+<li><a href="#metadata">Metadata</a></li>
+<li><a href="#markers">Markers</a></li>
+<li><a href="#aditional-functions">Aditional functions</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.dataloader.relacs_samplerate_unit" href="#thunderfish.dataloader.relacs_samplerate_unit">relacs_samplerate_unit</a></code></li>
+<li><code><a title="thunderfish.dataloader.relacs_header" href="#thunderfish.dataloader.relacs_header">relacs_header</a></code></li>
+<li><code><a title="thunderfish.dataloader.check_relacs" href="#thunderfish.dataloader.check_relacs">check_relacs</a></code></li>
+<li><code><a title="thunderfish.dataloader.relacs_files" href="#thunderfish.dataloader.relacs_files">relacs_files</a></code></li>
+<li><code><a title="thunderfish.dataloader.load_relacs" href="#thunderfish.dataloader.load_relacs">load_relacs</a></code></li>
+<li><code><a title="thunderfish.dataloader.metadata_relacs" href="#thunderfish.dataloader.metadata_relacs">metadata_relacs</a></code></li>
+<li><code><a title="thunderfish.dataloader.fishgrid_samplerate" href="#thunderfish.dataloader.fishgrid_samplerate">fishgrid_samplerate</a></code></li>
+<li><code><a title="thunderfish.dataloader.fishgrid_spacings" href="#thunderfish.dataloader.fishgrid_spacings">fishgrid_spacings</a></code></li>
+<li><code><a title="thunderfish.dataloader.fishgrid_grids" href="#thunderfish.dataloader.fishgrid_grids">fishgrid_grids</a></code></li>
+<li><code><a title="thunderfish.dataloader.check_fishgrid" href="#thunderfish.dataloader.check_fishgrid">check_fishgrid</a></code></li>
+<li><code><a title="thunderfish.dataloader.fishgrid_files" href="#thunderfish.dataloader.fishgrid_files">fishgrid_files</a></code></li>
+<li><code><a title="thunderfish.dataloader.load_fishgrid" href="#thunderfish.dataloader.load_fishgrid">load_fishgrid</a></code></li>
+<li><code><a title="thunderfish.dataloader.metadata_fishgrid" href="#thunderfish.dataloader.metadata_fishgrid">metadata_fishgrid</a></code></li>
+<li><code><a title="thunderfish.dataloader.check_container" href="#thunderfish.dataloader.check_container">check_container</a></code></li>
+<li><code><a title="thunderfish.dataloader.load_container" href="#thunderfish.dataloader.load_container">load_container</a></code></li>
+<li><code><a title="thunderfish.dataloader.metadata_container" href="#thunderfish.dataloader.metadata_container">metadata_container</a></code></li>
+<li><code><a title="thunderfish.dataloader.load_data" href="#thunderfish.dataloader.load_data">load_data</a></code></li>
+<li><code><a title="thunderfish.dataloader.metadata" href="#thunderfish.dataloader.metadata">metadata</a></code></li>
+<li><code><a title="thunderfish.dataloader.markers" href="#thunderfish.dataloader.markers">markers</a></code></li>
+<li><code><a title="thunderfish.dataloader.demo" href="#thunderfish.dataloader.demo">demo</a></code></li>
+<li><code><a title="thunderfish.dataloader.main" href="#thunderfish.dataloader.main">main</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="thunderfish.dataloader.DataLoader" href="#thunderfish.dataloader.DataLoader">DataLoader</a></code></h4>
+<ul class="">
+<li><code><a title="thunderfish.dataloader.DataLoader.open_relacs" href="#thunderfish.dataloader.DataLoader.open_relacs">open_relacs</a></code></li>
+<li><code><a title="thunderfish.dataloader.DataLoader.open_fishgrid" href="#thunderfish.dataloader.DataLoader.open_fishgrid">open_fishgrid</a></code></li>
+<li><code><a title="thunderfish.dataloader.DataLoader.open" href="#thunderfish.dataloader.DataLoader.open">open</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>

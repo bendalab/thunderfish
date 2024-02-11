@@ -1,0 +1,2481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>thunderfish.datawriter API documentation</title>
+<meta name="description" content="Writing numpy arrays of floats to data files …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.datawriter</code></h1>
+</header>
+<section id="section-intro">
+<p>Writing numpy arrays of floats to data files.</p>
+<ul>
+<li><code><a title="thunderfish.datawriter.write_data" href="#thunderfish.datawriter.write_data">write_data()</a></code>: write data into a file.</li>
+<li><code><a title="thunderfish.datawriter.available_formats" href="#thunderfish.datawriter.available_formats">available_formats()</a></code>: supported data and audio file formats.</li>
+<li><code><a title="thunderfish.datawriter.available_encodings" href="#thunderfish.datawriter.available_encodings">available_encodings()</a></code>: encodings of a data file format.</li>
+<li><code><a title="thunderfish.datawriter.format_from_extension" href="#thunderfish.datawriter.format_from_extension">format_from_extension()</a></code>: deduce data file format from file extension.</li>
+<li><code>write_metadata_text()</code>: write meta data into a text/yaml file.</li>
+<li><code><a title="thunderfish.datawriter.recode_array" href="#thunderfish.datawriter.recode_array">recode_array()</a></code>: recode array of floats.</li>
+</ul>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Writing numpy arrays of floats to data files.
+
+- `write_data()`: write data into a file.
+- `available_formats()`: supported data and audio file formats.
+- `available_encodings()`: encodings of a data file format.
+- `format_from_extension()`: deduce data file format from file extension.
+- `write_metadata_text()`: write meta data into a text/yaml file.
+- `recode_array()`: recode array of floats.
+&#34;&#34;&#34;
+
+import os
+import sys
+
+data_modules = {}
+&#34;&#34;&#34;Dictionary with availability of various modules needed for writing data.
+Keys are the module names, values are booleans.
+&#34;&#34;&#34;
+
+try:
+    import pickle
+    data_modules[&#39;pickle&#39;] = True
+except ImportError:
+    data_modules[&#39;pickle&#39;] = False
+
+try:
+    import numpy as np
+    data_modules[&#39;numpy&#39;] = True
+except ImportError:
+    data_modules[&#39;numpy&#39;] = False
+
+try:
+    import scipy.io as sio
+    data_modules[&#39;scipy&#39;] = True
+except ImportError:
+    data_modules[&#39;scipy&#39;] = False
+
+try:
+    import audioio.audiowriter as aw
+    from audioio import write_metadata_text, flatten_metadata
+    data_modules[&#39;audioio&#39;] = True
+except ImportError:
+    data_modules[&#39;audioio&#39;] = False
+
+
+def format_from_extension(filepath):
+    &#34;&#34;&#34;Deduce data file format from file extension.
+
+    Parameters
+    ----------
+    filepath: string
+        Name of the data file.
+
+    Returns
+    -------
+    format: string
+        Data format deduced from file extension.
+    &#34;&#34;&#34;
+    if not filepath:
+        return None
+    ext = os.path.splitext(filepath)[1]
+    if not ext:
+        return None
+    if ext[0] == &#39;.&#39;:
+        ext = ext[1:]
+    if not ext:
+        return None
+    ext = ext.upper()
+    if data_modules[&#39;audioio&#39;]:
+        ext = aw.format_from_extension(filepath)
+    return ext
+
+
+def recode_array(data, encoding):
+    &#34;&#34;&#34;Recode array of floats.
+
+    Parameters
+    ----------
+    data: array of floats
+        Data array with values ranging between -1 and 1
+    encoding: str
+        Encoding, one of PCM_16, PCM_32, PCM_64, FLOAT or DOUBLE.
+
+    Returns
+    -------
+    buffer: array
+        The data recoded according to `encoding`.
+    &#34;&#34;&#34;
+    
+    encodings = {&#39;PCM_16&#39;: (2, &#39;i2&#39;),
+                 &#39;PCM_32&#39;: (4, &#39;i4&#39;),
+                 &#39;PCM_64&#39;: (8, &#39;i8&#39;),
+                 &#39;FLOAT&#39;: (4, &#39;f&#39;),
+                 &#39;DOUBLE&#39;: (8, &#39;d&#39;)}
+
+    if not encoding in encodings:
+        return data
+    dtype = encodings[encoding][1]
+    if dtype[0] == &#39;i&#39;:
+        sampwidth = encodings[encoding][0]
+        factor = 2**(sampwidth*8-1)
+        buffer = np.floor(data * factor).astype(dtype)
+        buffer[data &gt;= 1.0] = factor - 1
+    else:
+        buffer = data.astype(dtype, copy=False)
+    return buffer
+
+    
+def formats_relacs():
+    &#34;&#34;&#34;Data format of the relacs file format.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    return [&#39;RELACS&#39;]
+
+
+def encodings_relacs(format=None):
+    &#34;&#34;&#34;Encodings of the relacs file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;RELACS&#39;
+    if format.upper() != &#39;RELACS&#39;:
+        return []
+    else:
+        return [&#39;FLOAT&#39;]
+    
+    
+def write_relacs(filepath, data, samplerate, unit=None,
+                 metadata=None, format=None, encoding=None):
+    &#34;&#34;&#34;Write data as relacs raw files.
+
+    Parameters
+    ----------
+    filepath: string
+        Full path of folder where to write relacs files.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into `info.dat`.
+    format: string or None
+        File format, only None or &#39;RELACS&#39; are supported.
+    encoding: string or None
+        Encoding of the data. Only None or &#39;FLOAT&#39; are supported.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;RELACS&#39;
+    if format.upper() != &#39;RELACS&#39;:
+        raise ValueError(f&#39;file format {format} not supported by relacs file format&#39;)
+    if encoding is None:
+        encoding = &#39;FLOAT&#39;
+    if encoding.upper() != &#39;FLOAT&#39;:
+        raise ValueError(f&#39;file encoding {format} not supported by relacs file format&#39;)
+    os.mkdir(filepath)
+    # write data:
+    for c in range(data.shape[1]):
+        df = open(os.path.join(filepath, f&#39;trace-{c+1}.raw&#39;), &#39;wb&#39;)
+        df.write(np.array(data[:, c], dtype=np.float32).tostring())
+        df.close()
+    if unit is None:
+        unit = &#39;V&#39;
+    # write data format:
+    filename = os.path.join(filepath, &#39;stimuli.dat&#39;)
+    df = open(filename, &#39;w&#39;)
+    df.write(&#39;# analog input traces:\n&#39;)
+    for c in range(data.shape[1]):
+        df.write(f&#39;#     identifier{c+1}      : V-{c+1}\n&#39;)
+        df.write(f&#39;#     data file{c+1}       : trace-{{c+1}}.raw\n&#39;)
+        df.write(f&#39;#     sample interval{c+1} : {1000.0/samplerate:.4f}ms\n&#39;)
+        df.write(f&#39;#     sampling rate{c+1}   : {samplerate:.2f}Hz\n&#39;)
+        df.write(f&#39;#     unit{c+1}            : {unit}\n&#39;)
+    df.write(&#39;# event lists:\n&#39;)
+    df.write(&#39;#      event file1: stimulus-events.dat\n&#39;)
+    df.write(&#39;#      event file2: restart-events.dat\n&#39;)
+    df.write(&#39;#      event file3: recording-events.dat\n&#39;)
+    df.close()
+    # write empty event files:
+    for events in [&#39;Recording&#39;, &#39;Restart&#39;, &#39;Stimulus&#39;]:
+        df = open(os.path.join(filepath, f&#39;{events.lower()}-events.dat&#39;), &#39;w&#39;)
+        df.write(f&#39;# events: {events}\n\n&#39;)
+        df.write(&#39;#Key\n&#39;)
+        if events == &#39;Stimulus&#39;:
+            df.write(&#39;# t    duration\n&#39;)
+            df.write(&#39;# sec  s\n&#39;)
+            df.write(&#39;#   1         2\n&#39;)
+        else:
+            df.write(&#39;# t\n&#39;)
+            df.write(&#39;# sec\n&#39;)
+            df.write(&#39;# 1\n&#39;)
+            if events == &#39;Recording&#39;:
+                df.write(&#39;  0.0\n&#39;)
+        df.close()
+    # write metadata:
+    if metadata:
+        write_metadata_text(os.path.join(filepath, &#39;info.dat&#39;),
+                            metadata, prefix=&#39;# &#39;)
+    return filename
+
+    
+def formats_fishgrid():
+    &#34;&#34;&#34;Data format of the fishgrid file format.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    return [&#39;FISHGRID&#39;]
+
+
+def encodings_fishgrid(format=None):
+    &#34;&#34;&#34;Encodings of the fishgrid file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;FISHGRID&#39;
+    if format.upper() != &#39;FISHGRID&#39;:
+        return []
+    else:
+        return [&#39;FLOAT&#39;]
+    
+    
+def write_fishgrid(filepath, data, samplerate, unit=None, metadata=None,
+                   format=None, encoding=None):
+    &#34;&#34;&#34;Write data as fishgrid raw files.
+
+    Parameters
+    ----------
+    filepath: string
+        Full path of the folder where to write fishgrid files.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into the `fishgrid.cfg`.
+    format: string or None
+        File format, only None or &#39;FISHGRID&#39; are supported.
+    encoding: string or None
+        Encoding of the data. Only None or &#39;FLOAT&#39; are supported.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;FISHGRID&#39;
+    if format.upper() != &#39;FISHGRID&#39;:
+        raise ValueError(f&#39;file format {format} not supported by fishgrid file format&#39;)
+    if encoding is None:
+        encoding = &#39;FLOAT&#39;
+    if encoding.upper() != &#39;FLOAT&#39;:
+        raise ValueError(f&#39;file encoding {format} not supported by fishgrid file format&#39;)
+    os.mkdir(filepath)
+    # write data:
+    df = open(os.path.join(filepath, &#39;traces-grid1.raw&#39;), &#39;wb&#39;)
+    df.write(np.array(data, dtype=np.float32).tostring())
+    df.close()
+    # write metadata:
+    if unit is None:
+        unit = &#39;mV&#39;
+    filename = os.path.join(filepath, &#39;fishgrid.cfg&#39;)
+    df = open(filename, &#39;w&#39;)
+    df.write(&#39;*FishGrid\n&#39;)
+    df.write(&#39;  Grid &amp;1\n&#39;)
+    df.write(&#39;     Used1      : true\n&#39;)
+    df.write(&#39;     Columns    : 2\n&#39;)
+    df.write(f&#39;     Rows       : {data.shape[1]//2}\n&#39;)
+    df.write(&#39;  Hardware Settings\n&#39;)
+    df.write(&#39;    DAQ board:\n&#39;)
+    df.write(f&#39;      AISampleRate: {0.001*samplerate:.3f}kHz\n&#39;)
+    df.write(f&#39;      AIMaxVolt   : 10.0{unit}\n&#39;)
+    df.write(&#39;    Amplifier:\n&#39;)
+    df.write(&#39;      AmplName: &#34;16-channel-EPM-module&#34;\n&#39;)
+    if metadata:
+        df.write(&#39;*Recording\n&#39;)
+        write_metadata_text(df, metadata, prefix=&#39;  &#39;)
+    df.close()
+    return filename
+
+    
+def formats_pickle():
+    &#34;&#34;&#34;Data formats supported by pickle.dump().
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;pickle&#39;]:
+        return []
+    else:
+        return [&#39;PKL&#39;]
+
+
+def encodings_pickle(format=None):
+    &#34;&#34;&#34;Encodings of the pickle format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;PKL&#39;
+    if format.upper() != &#39;PKL&#39;:
+        return []
+    else:
+        return [&#39;PCM_16&#39;, &#39;PCM_32&#39;, &#39;FLOAT&#39;, &#39;DOUBLE&#39;]
+
+    
+def write_pickle(filepath, data, samplerate, unit=None, metadata=None,
+                 format=None, encoding=None):
+    &#34;&#34;&#34;Write data into python pickle file.
+    
+    Documentation
+    -------------
+    https://docs.python.org/3/library/pickle.html
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into the pickle.
+    format: string or None
+        File format, only None or &#39;PKL&#39; are supported.
+    encoding: string or None
+        Encoding of the data.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ImportError
+        The pickle module is not available.
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;pickle&#39;]:
+        raise ImportError
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;PKL&#39;
+    if format.upper() != &#39;PKL&#39;:
+        raise ValueError(f&#39;file format {format} not supported by pickle file format&#39;)
+    ext = os.path.splitext(filepath)[1]
+    if len(ext) &lt;= 1 or ext[1].upper() != &#39;P&#39;:
+        filepath += os.extsep + &#39;pkl&#39;
+    if encoding is None:
+        encoding = &#39;DOUBLE&#39;
+    encoding = encoding.upper()
+    if not encoding in encodings_pickle(format):
+        raise ValueError(f&#39;file encoding {format} not supported by pickle file format&#39;)
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
+    if unit:
+        ddict[&#39;unit&#39;] = unit
+    if metadata:
+        ddict[&#39;metadata&#39;] = metadata
+    with open(filepath, &#39;wb&#39;) as df:
+        pickle.dump(ddict, df)
+    return filepath
+
+
+def formats_numpy():
+    &#34;&#34;&#34;Data formats supported by numpy.savez().
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;numpy&#39;]:
+        return []
+    else:
+        return [&#39;NPZ&#39;]
+
+
+def encodings_numpy(format=None):
+    &#34;&#34;&#34;Encodings of the numpy file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;NPZ&#39;
+    if format.upper() !=  &#39;NPZ&#39;:
+        return []
+    else:
+        return [&#39;PCM_16&#39;, &#39;PCM_32&#39;, &#39;FLOAT&#39;, &#39;DOUBLE&#39;]
+
+
+def write_numpy(filepath, data, samplerate, unit=None, metadata=None,
+                format=None, encoding=None):
+    &#34;&#34;&#34;Write data into numpy npz file.
+    
+    Documentation
+    -------------
+    https://numpy.org/doc/stable/reference/generated/numpy.savez.html
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into the numpy file.
+    format: string or None
+        File format, only None or &#39;NPZ&#39; are supported.
+    encoding: string or None
+        Encoding of the data.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ImportError
+        The numpy module is not available.
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;numpy&#39;]:
+        raise ImportError
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;NPZ&#39;
+    if format.upper() not in formats_numpy():
+        raise ValueError(f&#39;file format {format} not supported by numpy file format&#39;)
+    ext = os.path.splitext(filepath)[1]
+    if len(ext) &lt;= 1 or ext[1].upper() != &#39;N&#39;:
+        filepath += os.extsep + &#39;npz&#39;
+    if encoding is None:
+        encoding = &#39;DOUBLE&#39;
+    encoding = encoding.upper()
+    if not encoding in encodings_numpy(format):
+        raise ValueError(f&#39;file encoding {format} not supported by numpy file format&#39;)
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
+    if unit:
+        ddict[&#39;unit&#39;] = unit
+    if metadata:
+        if data_modules[&#39;audioio&#39;]:
+            fmeta = flatten_metadata(metadata, True)
+        else:
+            fmeta = metadata
+        for k in list(fmeta):
+            fmeta[&#39;metadata.&#39;+k] = fmeta.pop(k)
+        ddict.update(fmeta)
+    np.savez(filepath, **ddict)
+    return filepath
+
+
+def formats_mat():
+    &#34;&#34;&#34;Data formats supported by scipy.io.savemat().
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;scipy&#39;]:
+        return []
+    else:
+        return [&#39;MAT&#39;]
+
+
+def encodings_mat(format=None):
+    &#34;&#34;&#34;Encodings of the matlab format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;MAT&#39;
+    if format.upper() != &#39;MAT&#39;:
+        return []
+    else:
+        return [&#39;PCM_16&#39;, &#39;PCM_32&#39;, &#39;FLOAT&#39;, &#39;DOUBLE&#39;]
+
+
+def write_mat(filepath, data, samplerate, unit=None, metadata=None,
+              format=None, encoding=None):
+    &#34;&#34;&#34;Write data into matlab file.
+    
+    Documentation
+    -------------
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into the mat file.
+    format: string or None
+        File format, only None or &#39;MAT&#39; are supported.
+    encoding: string or None
+        Encoding of the data.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ImportError
+        The scipy.io module is not available.
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;scipy&#39;]:
+        raise ImportError
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;MAT&#39;
+    if format.upper() not in formats_mat():
+        raise ValueError(f&#39;file format {format} not supported by matlab file format&#39;)
+    ext = os.path.splitext(filepath)[1]
+    if len(ext) &lt;= 1 or ext[1].upper() != &#39;M&#39;:
+        filepath += os.extsep + &#39;mat&#39;
+    if encoding is None:
+        encoding = &#39;DOUBLE&#39;
+    encoding = encoding.upper()
+    if not encoding in encodings_mat(format):
+        raise ValueError(f&#39;file encoding {format} not supported by matlab file format&#39;)
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
+    if unit:
+        ddict[&#39;unit&#39;] = unit
+    if metadata:
+        if data_modules[&#39;audioio&#39;]:
+            fmeta = flatten_metadata(metadata, True)
+        else:
+            fmeta = metadata
+        for k in list(fmeta):
+            fmeta[&#39;metadata.&#39;+k] = fmeta.pop(k)
+        ddict.update(fmeta)
+    sio.savemat(filepath, ddict)
+    return filepath
+
+
+def formats_audioio():
+    &#34;&#34;&#34;Data formats supported by audioio.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;audioio&#39;]:
+        return []
+    else:
+        return aw.available_formats()
+
+
+def encodings_audio(format):
+    &#34;&#34;&#34;Encodings of any audio format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;audioio&#39;]:
+        return []
+    else:
+        return aw.available_encodings(format)
+
+
+def write_audioio(filepath, data, samplerate, unit=None, metadata=None,
+                  format=None, encoding=None):
+    &#34;&#34;&#34;Write data into audio file.
+    
+    Documentation
+    -------------
+    https://bendalab.github.io/audioio/
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+        Currently ignored.
+    metadata: nested dict
+        Additional metadata saved into the audio file.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ImportError
+        The audioio module is not available.
+    ValueError
+        Invalid `filepath`.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;audioio&#39;]:
+        raise ImportError
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    aw.write_audio(filepath, data, samplerate, metadata)
+    return filepath
+
+
+data_formats_funcs = (
+    (&#39;relacs&#39;, None, formats_relacs),
+    (&#39;fishgrid&#39;, None, formats_fishgrid),
+    (&#39;pickle&#39;, &#39;pickle&#39;, formats_pickle),
+    (&#39;numpy&#39;, &#39;numpy&#39;, formats_numpy),
+    (&#39;matlab&#39;, &#39;scipy&#39;, formats_mat),
+    (&#39;audio&#39;, &#39;audioio&#39;, formats_audioio)
+    )
+&#34;&#34;&#34;List of implemented formats functions.
+
+Each element of the list is a tuple with the format&#39;s name, the
+module&#39;s name in `data_modules` or None, and the formats function.
+&#34;&#34;&#34;
+
+
+def available_formats():
+    &#34;&#34;&#34;Data and audio file formats supported by any of the installed modules.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    formats = set()
+    for fmt, lib, formats_func in data_formats_funcs:
+        if not lib or data_modules[lib]:
+            formats |= set(formats_func())
+    return sorted(list(formats))
+
+
+data_encodings_funcs = (
+    (&#39;relacs&#39;, encodings_relacs),
+    (&#39;fishgrid&#39;, encodings_fishgrid),
+    (&#39;pickle&#39;, encodings_pickle),
+    (&#39;numpy&#39;, encodings_numpy),
+    (&#39;matlab&#39;, encodings_mat),
+    (&#39;audio&#39;, encodings_audio)
+    )
+&#34;&#34;&#34; List of implemented encodings functions.
+
+Each element of the list is a tuple with the module&#39;s name and the encodings function.
+&#34;&#34;&#34;
+
+
+def available_encodings(format):
+    &#34;&#34;&#34;Encodings of a data file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    encodings = set()
+    for module, encodings_func in data_encodings_funcs:
+        encs = encodings_func(format)
+        encodings |= set(encs)
+    return sorted(list(encodings))
+
+
+data_writer_funcs = {
+    &#39;relacs&#39;: write_relacs,
+    &#39;fishgrid&#39;: write_fishgrid,
+    &#39;pickle&#39;: write_pickle,
+    &#39;numpy&#39;: write_numpy,
+    &#39;matlab&#39;:  write_mat,
+    &#39;audio&#39;: write_audioio
+    }
+&#34;&#34;&#34;Dictionary of implemented write functions.
+
+Keys are the format&#39;s name and values the corresponding write
+function.
+&#34;&#34;&#34;
+
+
+def write_data(filepath, data, samplerate, unit=None, metadata=None,
+               format=None, encoding=None, verbose=0):
+    &#34;&#34;&#34;Write data into a file.
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+        File format is determined from extension.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata.
+    format: string or None
+        File format. If None deduce file format from filepath.
+        See `available_formats()` for possible values.
+    encoding: string or None
+        Encoding of the data. See `available_encodings()` for possible values.
+        If None or empty string use &#39;PCM_16&#39;.
+    verbose: int
+        If &gt;0 show detailed error/warning messages.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ValueError
+        `filepath` is empty string or unspecified format.
+    IOError
+        Requested file format not supported.
+
+    Example
+    -------
+    ```
+    import numpy as np
+    from thunderfish.datawriter import write_data
+    
+    samplerate = 28000.0
+    freq = 800.0
+    time = np.arange(0.0, 1.0, 1/samplerate)     # one second
+    data = 2.5*np.sin(2.0*np.p*freq*time)        # 800Hz sine wave
+    md = dict(Artist=&#39;underscore_&#39;)          # metadata
+    write_data(&#39;audio/file.npz&#39;, data, samplerate, &#39;mV&#39;, md)
+    ```
+    &#34;&#34;&#34;
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+
+    if not format:
+        format = format_from_extension(filepath)
+    if not format:
+        raise ValueError(&#39;unspecified file format&#39;)
+    for fmt, lib, formats_func in data_formats_funcs:
+        if lib and not data_modules[lib]:
+            continue
+        if format.upper() in formats_func():
+            writer_func = data_writer_funcs[fmt]
+            filepath = writer_func(filepath, data, samplerate, unit, metadata,
+                                   format=format, encoding=encoding)
+            if verbose &gt; 0:
+                print(f&#39;wrote data to file &#34;{filepath}&#34; using {fmt} format&#39;)
+                if verbose &gt; 1:
+                    print(f&#39;  sampling rate: {samplerate:g} Hz&#39;)
+                    print(f&#39;  channels     : {data.shape[1] if len(data.shape) &gt; 1 else 1}&#39;)
+                    print(f&#39;  frames       : {len(data)}&#39;)
+                    print(f&#39;  unit         : {unit}&#39;)
+            return filepath
+    raise IOError(f&#39;file format &#34;{format.upper()}&#34; not supported.&#39;) 
+
+
+def demo(file_path, channels=2, format=None):
+    &#34;&#34;&#34;Demo of the datawriter functions.
+
+    Parameters
+    ----------
+    file_path: string
+        File path of a data file.
+    format: string or None
+        File format to be used.
+    &#34;&#34;&#34;
+    print(&#39;generate data ...&#39;)
+    samplerate = 44100.0
+    t = np.arange(0.0, 1.0, 1.0/samplerate)
+    data = np.zeros((len(t), channels))
+    for c in range(channels):
+        data[:,c] = 0.1*(channels-c)*np.sin(2.0*np.pi*(440.0+c*8.0)*t)
+        
+    print(f&#34;write_data(&#39;{file_path}&#39;) ...&#34;)
+    write_data(file_path, data, samplerate, &#39;mV&#39;, format=format, verbose=2)
+
+    print(&#39;done.&#39;)
+    
+
+def main(*cargs):
+    &#34;&#34;&#34;Call demo with command line arguments.
+
+    Parameters
+    ----------
+    cargs: list of strings
+        Command line arguments as provided by sys.argv[1:]
+    &#34;&#34;&#34;
+    import argparse
+    parser = argparse.ArgumentParser(description=
+                                     &#39;Checking thunderfish.datawriter module.&#39;)
+    parser.add_argument(&#39;-c&#39;, dest=&#39;channels&#39;, default=2, type=int,
+                        help=&#39;number of channels to be written&#39;)
+    parser.add_argument(&#39;-f&#39;, dest=&#39;format&#39;, default=None, type=str,
+                        help=&#39;file format&#39;)
+    parser.add_argument(&#39;file&#39;, nargs=1, default=&#39;test.npz&#39;, type=str,
+                        help=&#39;name of data file&#39;)
+    args = parser.parse_args(cargs)
+    demo(args.file[0], args.channels, args.format)
+    
+
+if __name__ == &#34;__main__&#34;:
+    main(*sys.argv[1:])
+
+    </code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-variables">Global variables</h2>
+<dl>
+<dt id="thunderfish.datawriter.data_modules"><code class="name">var <span class="ident">data_modules</span></code></dt>
+<dd>
+<div class="desc"><p>Dictionary with availability of various modules needed for writing data.
+Keys are the module names, values are booleans.</p></div>
+</dd>
+<dt id="thunderfish.datawriter.data_formats_funcs"><code class="name">var <span class="ident">data_formats_funcs</span></code></dt>
+<dd>
+<div class="desc"><p>List of implemented formats functions.</p>
+<p>Each element of the list is a tuple with the format's name, the
+module's name in <code><a title="thunderfish.datawriter.data_modules" href="#thunderfish.datawriter.data_modules">data_modules</a></code> or None, and the formats function.</p></div>
+</dd>
+<dt id="thunderfish.datawriter.data_encodings_funcs"><code class="name">var <span class="ident">data_encodings_funcs</span></code></dt>
+<dd>
+<div class="desc"><p>List of implemented encodings functions.</p>
+<p>Each element of the list is a tuple with the module's name and the encodings function.</p></div>
+</dd>
+<dt id="thunderfish.datawriter.data_writer_funcs"><code class="name">var <span class="ident">data_writer_funcs</span></code></dt>
+<dd>
+<div class="desc"><p>Dictionary of implemented write functions.</p>
+<p>Keys are the format's name and values the corresponding write
+function.</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.datawriter.format_from_extension"><code class="name flex">
+<span>def <span class="ident">format_from_extension</span></span>(<span>filepath)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Deduce data file format from file extension.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Name of the data file.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>format</code></strong> :&ensp;<code>string</code></dt>
+<dd>Data format deduced from file extension.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def format_from_extension(filepath):
+    &#34;&#34;&#34;Deduce data file format from file extension.
+
+    Parameters
+    ----------
+    filepath: string
+        Name of the data file.
+
+    Returns
+    -------
+    format: string
+        Data format deduced from file extension.
+    &#34;&#34;&#34;
+    if not filepath:
+        return None
+    ext = os.path.splitext(filepath)[1]
+    if not ext:
+        return None
+    if ext[0] == &#39;.&#39;:
+        ext = ext[1:]
+    if not ext:
+        return None
+    ext = ext.upper()
+    if data_modules[&#39;audioio&#39;]:
+        ext = aw.format_from_extension(filepath)
+    return ext</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.recode_array"><code class="name flex">
+<span>def <span class="ident">recode_array</span></span>(<span>data, encoding)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Recode array of floats.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Data array with values ranging between -1 and 1</dd>
+<dt><strong><code>encoding</code></strong> :&ensp;<code>str</code></dt>
+<dd>Encoding, one of PCM_16, PCM_32, PCM_64, FLOAT or DOUBLE.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>buffer</code></strong> :&ensp;<code>array</code></dt>
+<dd>The data recoded according to <code>encoding</code>.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def recode_array(data, encoding):
+    &#34;&#34;&#34;Recode array of floats.
+
+    Parameters
+    ----------
+    data: array of floats
+        Data array with values ranging between -1 and 1
+    encoding: str
+        Encoding, one of PCM_16, PCM_32, PCM_64, FLOAT or DOUBLE.
+
+    Returns
+    -------
+    buffer: array
+        The data recoded according to `encoding`.
+    &#34;&#34;&#34;
+    
+    encodings = {&#39;PCM_16&#39;: (2, &#39;i2&#39;),
+                 &#39;PCM_32&#39;: (4, &#39;i4&#39;),
+                 &#39;PCM_64&#39;: (8, &#39;i8&#39;),
+                 &#39;FLOAT&#39;: (4, &#39;f&#39;),
+                 &#39;DOUBLE&#39;: (8, &#39;d&#39;)}
+
+    if not encoding in encodings:
+        return data
+    dtype = encodings[encoding][1]
+    if dtype[0] == &#39;i&#39;:
+        sampwidth = encodings[encoding][0]
+        factor = 2**(sampwidth*8-1)
+        buffer = np.floor(data * factor).astype(dtype)
+        buffer[data &gt;= 1.0] = factor - 1
+    else:
+        buffer = data.astype(dtype, copy=False)
+    return buffer</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.formats_relacs"><code class="name flex">
+<span>def <span class="ident">formats_relacs</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Data format of the relacs file format.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>formats</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported file formats as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def formats_relacs():
+    &#34;&#34;&#34;Data format of the relacs file format.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    return [&#39;RELACS&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.encodings_relacs"><code class="name flex">
+<span>def <span class="ident">encodings_relacs</span></span>(<span>format=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Encodings of the relacs file format.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>format</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file format.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>encodings</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported encodings as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def encodings_relacs(format=None):
+    &#34;&#34;&#34;Encodings of the relacs file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;RELACS&#39;
+    if format.upper() != &#39;RELACS&#39;:
+        return []
+    else:
+        return [&#39;FLOAT&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.write_relacs"><code class="name flex">
+<span>def <span class="ident">write_relacs</span></span>(<span>filepath, data, samplerate, unit=None, metadata=None, format=None, encoding=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Write data as relacs raw files.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Full path of folder where to write relacs files.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code> of <code>floats</code></dt>
+<dd>Array with the data (first index time, second index channel).</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Additional metadata saved into <code>info.dat</code>.</dd>
+<dt><strong><code>format</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>File format, only None or 'RELACS' are supported.</dd>
+<dt><strong><code>encoding</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Encoding of the data. Only None or 'FLOAT' are supported.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>On success, the actual file name used for writing the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>Invalid <code>filepath</code>.</dd>
+<dt><code>ValueError</code></dt>
+<dd>File format or encoding not supported.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_relacs(filepath, data, samplerate, unit=None,
+                 metadata=None, format=None, encoding=None):
+    &#34;&#34;&#34;Write data as relacs raw files.
+
+    Parameters
+    ----------
+    filepath: string
+        Full path of folder where to write relacs files.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into `info.dat`.
+    format: string or None
+        File format, only None or &#39;RELACS&#39; are supported.
+    encoding: string or None
+        Encoding of the data. Only None or &#39;FLOAT&#39; are supported.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;RELACS&#39;
+    if format.upper() != &#39;RELACS&#39;:
+        raise ValueError(f&#39;file format {format} not supported by relacs file format&#39;)
+    if encoding is None:
+        encoding = &#39;FLOAT&#39;
+    if encoding.upper() != &#39;FLOAT&#39;:
+        raise ValueError(f&#39;file encoding {format} not supported by relacs file format&#39;)
+    os.mkdir(filepath)
+    # write data:
+    for c in range(data.shape[1]):
+        df = open(os.path.join(filepath, f&#39;trace-{c+1}.raw&#39;), &#39;wb&#39;)
+        df.write(np.array(data[:, c], dtype=np.float32).tostring())
+        df.close()
+    if unit is None:
+        unit = &#39;V&#39;
+    # write data format:
+    filename = os.path.join(filepath, &#39;stimuli.dat&#39;)
+    df = open(filename, &#39;w&#39;)
+    df.write(&#39;# analog input traces:\n&#39;)
+    for c in range(data.shape[1]):
+        df.write(f&#39;#     identifier{c+1}      : V-{c+1}\n&#39;)
+        df.write(f&#39;#     data file{c+1}       : trace-{{c+1}}.raw\n&#39;)
+        df.write(f&#39;#     sample interval{c+1} : {1000.0/samplerate:.4f}ms\n&#39;)
+        df.write(f&#39;#     sampling rate{c+1}   : {samplerate:.2f}Hz\n&#39;)
+        df.write(f&#39;#     unit{c+1}            : {unit}\n&#39;)
+    df.write(&#39;# event lists:\n&#39;)
+    df.write(&#39;#      event file1: stimulus-events.dat\n&#39;)
+    df.write(&#39;#      event file2: restart-events.dat\n&#39;)
+    df.write(&#39;#      event file3: recording-events.dat\n&#39;)
+    df.close()
+    # write empty event files:
+    for events in [&#39;Recording&#39;, &#39;Restart&#39;, &#39;Stimulus&#39;]:
+        df = open(os.path.join(filepath, f&#39;{events.lower()}-events.dat&#39;), &#39;w&#39;)
+        df.write(f&#39;# events: {events}\n\n&#39;)
+        df.write(&#39;#Key\n&#39;)
+        if events == &#39;Stimulus&#39;:
+            df.write(&#39;# t    duration\n&#39;)
+            df.write(&#39;# sec  s\n&#39;)
+            df.write(&#39;#   1         2\n&#39;)
+        else:
+            df.write(&#39;# t\n&#39;)
+            df.write(&#39;# sec\n&#39;)
+            df.write(&#39;# 1\n&#39;)
+            if events == &#39;Recording&#39;:
+                df.write(&#39;  0.0\n&#39;)
+        df.close()
+    # write metadata:
+    if metadata:
+        write_metadata_text(os.path.join(filepath, &#39;info.dat&#39;),
+                            metadata, prefix=&#39;# &#39;)
+    return filename</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.formats_fishgrid"><code class="name flex">
+<span>def <span class="ident">formats_fishgrid</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Data format of the fishgrid file format.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>formats</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported file formats as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def formats_fishgrid():
+    &#34;&#34;&#34;Data format of the fishgrid file format.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    return [&#39;FISHGRID&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.encodings_fishgrid"><code class="name flex">
+<span>def <span class="ident">encodings_fishgrid</span></span>(<span>format=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Encodings of the fishgrid file format.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>format</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file format.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>encodings</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported encodings as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def encodings_fishgrid(format=None):
+    &#34;&#34;&#34;Encodings of the fishgrid file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;FISHGRID&#39;
+    if format.upper() != &#39;FISHGRID&#39;:
+        return []
+    else:
+        return [&#39;FLOAT&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.write_fishgrid"><code class="name flex">
+<span>def <span class="ident">write_fishgrid</span></span>(<span>filepath, data, samplerate, unit=None, metadata=None, format=None, encoding=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Write data as fishgrid raw files.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Full path of the folder where to write fishgrid files.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code> of <code>floats</code></dt>
+<dd>Array with the data (first index time, second index channel).</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Additional metadata saved into the <code>fishgrid.cfg</code>.</dd>
+<dt><strong><code>format</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>File format, only None or 'FISHGRID' are supported.</dd>
+<dt><strong><code>encoding</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Encoding of the data. Only None or 'FLOAT' are supported.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>On success, the actual file name used for writing the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd>Invalid <code>filepath</code>.</dd>
+<dt><code>ValueError</code></dt>
+<dd>File format or encoding not supported.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_fishgrid(filepath, data, samplerate, unit=None, metadata=None,
+                   format=None, encoding=None):
+    &#34;&#34;&#34;Write data as fishgrid raw files.
+
+    Parameters
+    ----------
+    filepath: string
+        Full path of the folder where to write fishgrid files.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into the `fishgrid.cfg`.
+    format: string or None
+        File format, only None or &#39;FISHGRID&#39; are supported.
+    encoding: string or None
+        Encoding of the data. Only None or &#39;FLOAT&#39; are supported.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;FISHGRID&#39;
+    if format.upper() != &#39;FISHGRID&#39;:
+        raise ValueError(f&#39;file format {format} not supported by fishgrid file format&#39;)
+    if encoding is None:
+        encoding = &#39;FLOAT&#39;
+    if encoding.upper() != &#39;FLOAT&#39;:
+        raise ValueError(f&#39;file encoding {format} not supported by fishgrid file format&#39;)
+    os.mkdir(filepath)
+    # write data:
+    df = open(os.path.join(filepath, &#39;traces-grid1.raw&#39;), &#39;wb&#39;)
+    df.write(np.array(data, dtype=np.float32).tostring())
+    df.close()
+    # write metadata:
+    if unit is None:
+        unit = &#39;mV&#39;
+    filename = os.path.join(filepath, &#39;fishgrid.cfg&#39;)
+    df = open(filename, &#39;w&#39;)
+    df.write(&#39;*FishGrid\n&#39;)
+    df.write(&#39;  Grid &amp;1\n&#39;)
+    df.write(&#39;     Used1      : true\n&#39;)
+    df.write(&#39;     Columns    : 2\n&#39;)
+    df.write(f&#39;     Rows       : {data.shape[1]//2}\n&#39;)
+    df.write(&#39;  Hardware Settings\n&#39;)
+    df.write(&#39;    DAQ board:\n&#39;)
+    df.write(f&#39;      AISampleRate: {0.001*samplerate:.3f}kHz\n&#39;)
+    df.write(f&#39;      AIMaxVolt   : 10.0{unit}\n&#39;)
+    df.write(&#39;    Amplifier:\n&#39;)
+    df.write(&#39;      AmplName: &#34;16-channel-EPM-module&#34;\n&#39;)
+    if metadata:
+        df.write(&#39;*Recording\n&#39;)
+        write_metadata_text(df, metadata, prefix=&#39;  &#39;)
+    df.close()
+    return filename</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.formats_pickle"><code class="name flex">
+<span>def <span class="ident">formats_pickle</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Data formats supported by pickle.dump().</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>formats</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported file formats as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def formats_pickle():
+    &#34;&#34;&#34;Data formats supported by pickle.dump().
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;pickle&#39;]:
+        return []
+    else:
+        return [&#39;PKL&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.encodings_pickle"><code class="name flex">
+<span>def <span class="ident">encodings_pickle</span></span>(<span>format=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Encodings of the pickle format.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>format</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file format.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>encodings</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported encodings as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def encodings_pickle(format=None):
+    &#34;&#34;&#34;Encodings of the pickle format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;PKL&#39;
+    if format.upper() != &#39;PKL&#39;:
+        return []
+    else:
+        return [&#39;PCM_16&#39;, &#39;PCM_32&#39;, &#39;FLOAT&#39;, &#39;DOUBLE&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.write_pickle"><code class="name flex">
+<span>def <span class="ident">write_pickle</span></span>(<span>filepath, data, samplerate, unit=None, metadata=None, format=None, encoding=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Write data into python pickle file.</p>
+<h2 id="documentation">Documentation</h2>
+<p><a href="https://docs.python.org/3/library/pickle.html">https://docs.python.org/3/library/pickle.html</a></p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Full path and name of the file to write.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code> of <code>floats</code></dt>
+<dd>Array with the data (first index time, second index channel).</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Additional metadata saved into the pickle.</dd>
+<dt><strong><code>format</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>File format, only None or 'PKL' are supported.</dd>
+<dt><strong><code>encoding</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Encoding of the data.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>On success, the actual file name used for writing the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ImportError</code></dt>
+<dd>The pickle module is not available.</dd>
+<dt><code>ValueError</code></dt>
+<dd>Invalid <code>filepath</code>.</dd>
+<dt><code>ValueError</code></dt>
+<dd>File format or encoding not supported.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_pickle(filepath, data, samplerate, unit=None, metadata=None,
+                 format=None, encoding=None):
+    &#34;&#34;&#34;Write data into python pickle file.
+    
+    Documentation
+    -------------
+    https://docs.python.org/3/library/pickle.html
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into the pickle.
+    format: string or None
+        File format, only None or &#39;PKL&#39; are supported.
+    encoding: string or None
+        Encoding of the data.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ImportError
+        The pickle module is not available.
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;pickle&#39;]:
+        raise ImportError
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;PKL&#39;
+    if format.upper() != &#39;PKL&#39;:
+        raise ValueError(f&#39;file format {format} not supported by pickle file format&#39;)
+    ext = os.path.splitext(filepath)[1]
+    if len(ext) &lt;= 1 or ext[1].upper() != &#39;P&#39;:
+        filepath += os.extsep + &#39;pkl&#39;
+    if encoding is None:
+        encoding = &#39;DOUBLE&#39;
+    encoding = encoding.upper()
+    if not encoding in encodings_pickle(format):
+        raise ValueError(f&#39;file encoding {format} not supported by pickle file format&#39;)
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
+    if unit:
+        ddict[&#39;unit&#39;] = unit
+    if metadata:
+        ddict[&#39;metadata&#39;] = metadata
+    with open(filepath, &#39;wb&#39;) as df:
+        pickle.dump(ddict, df)
+    return filepath</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.formats_numpy"><code class="name flex">
+<span>def <span class="ident">formats_numpy</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Data formats supported by numpy.savez().</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>formats</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported file formats as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def formats_numpy():
+    &#34;&#34;&#34;Data formats supported by numpy.savez().
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;numpy&#39;]:
+        return []
+    else:
+        return [&#39;NPZ&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.encodings_numpy"><code class="name flex">
+<span>def <span class="ident">encodings_numpy</span></span>(<span>format=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Encodings of the numpy file format.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>format</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file format.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>encodings</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported encodings as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def encodings_numpy(format=None):
+    &#34;&#34;&#34;Encodings of the numpy file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;NPZ&#39;
+    if format.upper() !=  &#39;NPZ&#39;:
+        return []
+    else:
+        return [&#39;PCM_16&#39;, &#39;PCM_32&#39;, &#39;FLOAT&#39;, &#39;DOUBLE&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.write_numpy"><code class="name flex">
+<span>def <span class="ident">write_numpy</span></span>(<span>filepath, data, samplerate, unit=None, metadata=None, format=None, encoding=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Write data into numpy npz file.</p>
+<h2 id="documentation">Documentation</h2>
+<p><a href="https://numpy.org/doc/stable/reference/generated/numpy.savez.html">https://numpy.org/doc/stable/reference/generated/numpy.savez.html</a></p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Full path and name of the file to write.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code> of <code>floats</code></dt>
+<dd>Array with the data (first index time, second index channel).</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Additional metadata saved into the numpy file.</dd>
+<dt><strong><code>format</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>File format, only None or 'NPZ' are supported.</dd>
+<dt><strong><code>encoding</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Encoding of the data.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>On success, the actual file name used for writing the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ImportError</code></dt>
+<dd>The numpy module is not available.</dd>
+<dt><code>ValueError</code></dt>
+<dd>Invalid <code>filepath</code>.</dd>
+<dt><code>ValueError</code></dt>
+<dd>File format or encoding not supported.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_numpy(filepath, data, samplerate, unit=None, metadata=None,
+                format=None, encoding=None):
+    &#34;&#34;&#34;Write data into numpy npz file.
+    
+    Documentation
+    -------------
+    https://numpy.org/doc/stable/reference/generated/numpy.savez.html
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into the numpy file.
+    format: string or None
+        File format, only None or &#39;NPZ&#39; are supported.
+    encoding: string or None
+        Encoding of the data.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ImportError
+        The numpy module is not available.
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;numpy&#39;]:
+        raise ImportError
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;NPZ&#39;
+    if format.upper() not in formats_numpy():
+        raise ValueError(f&#39;file format {format} not supported by numpy file format&#39;)
+    ext = os.path.splitext(filepath)[1]
+    if len(ext) &lt;= 1 or ext[1].upper() != &#39;N&#39;:
+        filepath += os.extsep + &#39;npz&#39;
+    if encoding is None:
+        encoding = &#39;DOUBLE&#39;
+    encoding = encoding.upper()
+    if not encoding in encodings_numpy(format):
+        raise ValueError(f&#39;file encoding {format} not supported by numpy file format&#39;)
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
+    if unit:
+        ddict[&#39;unit&#39;] = unit
+    if metadata:
+        if data_modules[&#39;audioio&#39;]:
+            fmeta = flatten_metadata(metadata, True)
+        else:
+            fmeta = metadata
+        for k in list(fmeta):
+            fmeta[&#39;metadata.&#39;+k] = fmeta.pop(k)
+        ddict.update(fmeta)
+    np.savez(filepath, **ddict)
+    return filepath</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.formats_mat"><code class="name flex">
+<span>def <span class="ident">formats_mat</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Data formats supported by scipy.io.savemat().</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>formats</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported file formats as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def formats_mat():
+    &#34;&#34;&#34;Data formats supported by scipy.io.savemat().
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;scipy&#39;]:
+        return []
+    else:
+        return [&#39;MAT&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.encodings_mat"><code class="name flex">
+<span>def <span class="ident">encodings_mat</span></span>(<span>format=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Encodings of the matlab format.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>format</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file format.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>encodings</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported encodings as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def encodings_mat(format=None):
+    &#34;&#34;&#34;Encodings of the matlab format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not format:
+        format = &#39;MAT&#39;
+    if format.upper() != &#39;MAT&#39;:
+        return []
+    else:
+        return [&#39;PCM_16&#39;, &#39;PCM_32&#39;, &#39;FLOAT&#39;, &#39;DOUBLE&#39;]</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.write_mat"><code class="name flex">
+<span>def <span class="ident">write_mat</span></span>(<span>filepath, data, samplerate, unit=None, metadata=None, format=None, encoding=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Write data into matlab file.</p>
+<h2 id="documentation">Documentation</h2>
+<p><a href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html">https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html</a></p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Full path and name of the file to write.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code> of <code>floats</code></dt>
+<dd>Array with the data (first index time, second index channel).</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Additional metadata saved into the mat file.</dd>
+<dt><strong><code>format</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>File format, only None or 'MAT' are supported.</dd>
+<dt><strong><code>encoding</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Encoding of the data.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>On success, the actual file name used for writing the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ImportError</code></dt>
+<dd>The scipy.io module is not available.</dd>
+<dt><code>ValueError</code></dt>
+<dd>Invalid <code>filepath</code>.</dd>
+<dt><code>ValueError</code></dt>
+<dd>File format or encoding not supported.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_mat(filepath, data, samplerate, unit=None, metadata=None,
+              format=None, encoding=None):
+    &#34;&#34;&#34;Write data into matlab file.
+    
+    Documentation
+    -------------
+    https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.savemat.html
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata saved into the mat file.
+    format: string or None
+        File format, only None or &#39;MAT&#39; are supported.
+    encoding: string or None
+        Encoding of the data.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ImportError
+        The scipy.io module is not available.
+    ValueError
+        Invalid `filepath`.
+    ValueError
+        File format or encoding not supported.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;scipy&#39;]:
+        raise ImportError
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    if format is None:
+        format = &#39;MAT&#39;
+    if format.upper() not in formats_mat():
+        raise ValueError(f&#39;file format {format} not supported by matlab file format&#39;)
+    ext = os.path.splitext(filepath)[1]
+    if len(ext) &lt;= 1 or ext[1].upper() != &#39;M&#39;:
+        filepath += os.extsep + &#39;mat&#39;
+    if encoding is None:
+        encoding = &#39;DOUBLE&#39;
+    encoding = encoding.upper()
+    if not encoding in encodings_mat(format):
+        raise ValueError(f&#39;file encoding {format} not supported by matlab file format&#39;)
+    buffer = recode_array(data, encoding)
+    ddict = dict(data=buffer, rate=samplerate)
+    if unit:
+        ddict[&#39;unit&#39;] = unit
+    if metadata:
+        if data_modules[&#39;audioio&#39;]:
+            fmeta = flatten_metadata(metadata, True)
+        else:
+            fmeta = metadata
+        for k in list(fmeta):
+            fmeta[&#39;metadata.&#39;+k] = fmeta.pop(k)
+        ddict.update(fmeta)
+    sio.savemat(filepath, ddict)
+    return filepath</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.formats_audioio"><code class="name flex">
+<span>def <span class="ident">formats_audioio</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Data formats supported by audioio.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>formats</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported file formats as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def formats_audioio():
+    &#34;&#34;&#34;Data formats supported by audioio.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;audioio&#39;]:
+        return []
+    else:
+        return aw.available_formats()</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.encodings_audio"><code class="name flex">
+<span>def <span class="ident">encodings_audio</span></span>(<span>format)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Encodings of any audio format.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>format</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file format.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>encodings</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported encodings as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def encodings_audio(format):
+    &#34;&#34;&#34;Encodings of any audio format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;audioio&#39;]:
+        return []
+    else:
+        return aw.available_encodings(format)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.write_audioio"><code class="name flex">
+<span>def <span class="ident">write_audioio</span></span>(<span>filepath, data, samplerate, unit=None, metadata=None, format=None, encoding=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Write data into audio file.</p>
+<h2 id="documentation">Documentation</h2>
+<p><a href="https://bendalab.github.io/audioio/">https://bendalab.github.io/audioio/</a></p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Full path and name of the file to write.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code> of <code>floats</code></dt>
+<dd>Array with the data (first index time, second index channel).</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.
+Currently ignored.</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Additional metadata saved into the audio file.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>On success, the actual file name used for writing the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ImportError</code></dt>
+<dd>The audioio module is not available.</dd>
+<dt><code>ValueError</code></dt>
+<dd>Invalid <code>filepath</code>.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_audioio(filepath, data, samplerate, unit=None, metadata=None,
+                  format=None, encoding=None):
+    &#34;&#34;&#34;Write data into audio file.
+    
+    Documentation
+    -------------
+    https://bendalab.github.io/audioio/
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+        Currently ignored.
+    metadata: nested dict
+        Additional metadata saved into the audio file.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ImportError
+        The audioio module is not available.
+    ValueError
+        Invalid `filepath`.
+    &#34;&#34;&#34;
+    if not data_modules[&#39;audioio&#39;]:
+        raise ImportError
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+    aw.write_audio(filepath, data, samplerate, metadata)
+    return filepath</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.available_formats"><code class="name flex">
+<span>def <span class="ident">available_formats</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Data and audio file formats supported by any of the installed modules.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>formats</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported file formats as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def available_formats():
+    &#34;&#34;&#34;Data and audio file formats supported by any of the installed modules.
+
+    Returns
+    -------
+    formats: list of strings
+        List of supported file formats as strings.
+    &#34;&#34;&#34;
+    formats = set()
+    for fmt, lib, formats_func in data_formats_funcs:
+        if not lib or data_modules[lib]:
+            formats |= set(formats_func())
+    return sorted(list(formats))</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.available_encodings"><code class="name flex">
+<span>def <span class="ident">available_encodings</span></span>(<span>format)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Encodings of a data file format.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>format</code></strong> :&ensp;<code>str</code></dt>
+<dd>The file format.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>encodings</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>List of supported encodings as strings.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def available_encodings(format):
+    &#34;&#34;&#34;Encodings of a data file format.
+
+    Parameters
+    ----------
+    format: str
+        The file format.
+
+    Returns
+    -------
+    encodings: list of strings
+        List of supported encodings as strings.
+    &#34;&#34;&#34;
+    encodings = set()
+    for module, encodings_func in data_encodings_funcs:
+        encs = encodings_func(format)
+        encodings |= set(encs)
+    return sorted(list(encodings))</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.write_data"><code class="name flex">
+<span>def <span class="ident">write_data</span></span>(<span>filepath, data, samplerate, unit=None, metadata=None, format=None, encoding=None, verbose=0)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Write data into a file.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code></dt>
+<dd>Full path and name of the file to write.
+File format is determined from extension.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D</code> or <code>2-D array</code> of <code>floats</code></dt>
+<dd>Array with the data (first index time, second index channel).</dd>
+<dt><strong><code>samplerate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>Unit of the data.</dd>
+<dt><strong><code>metadata</code></strong> :&ensp;<code>nested dict</code></dt>
+<dd>Additional metadata.</dd>
+<dt><strong><code>format</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>File format. If None deduce file format from filepath.
+See <code><a title="thunderfish.datawriter.available_formats" href="#thunderfish.datawriter.available_formats">available_formats()</a></code> for possible values.</dd>
+<dt><strong><code>encoding</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>Encoding of the data. See <code><a title="thunderfish.datawriter.available_encodings" href="#thunderfish.datawriter.available_encodings">available_encodings()</a></code> for possible values.
+If None or empty string use 'PCM_16'.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>If &gt;0 show detailed error/warning messages.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>On success, the actual file name used for writing the data.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>ValueError</code></dt>
+<dd><code>filepath</code> is empty string or unspecified format.</dd>
+<dt><code>IOError</code></dt>
+<dd>Requested file format not supported.</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code>import numpy as np
+from thunderfish.datawriter import write_data
+
+samplerate = 28000.0
+freq = 800.0
+time = np.arange(0.0, 1.0, 1/samplerate)     # one second
+data = 2.5*np.sin(2.0*np.p*freq*time)        # 800Hz sine wave
+md = dict(Artist='underscore_')          # metadata
+write_data('audio/file.npz', data, samplerate, 'mV', md)
+</code></pre></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def write_data(filepath, data, samplerate, unit=None, metadata=None,
+               format=None, encoding=None, verbose=0):
+    &#34;&#34;&#34;Write data into a file.
+
+    Parameters
+    ----------
+    filepath: string
+        Full path and name of the file to write.
+        File format is determined from extension.
+    data: 1-D or 2-D array of floats
+        Array with the data (first index time, second index channel).
+    samplerate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        Unit of the data.
+    metadata: nested dict
+        Additional metadata.
+    format: string or None
+        File format. If None deduce file format from filepath.
+        See `available_formats()` for possible values.
+    encoding: string or None
+        Encoding of the data. See `available_encodings()` for possible values.
+        If None or empty string use &#39;PCM_16&#39;.
+    verbose: int
+        If &gt;0 show detailed error/warning messages.
+
+    Returns
+    -------
+    filepath: string or None
+        On success, the actual file name used for writing the data.
+
+    Raises
+    ------
+    ValueError
+        `filepath` is empty string or unspecified format.
+    IOError
+        Requested file format not supported.
+
+    Example
+    -------
+    ```
+    import numpy as np
+    from thunderfish.datawriter import write_data
+    
+    samplerate = 28000.0
+    freq = 800.0
+    time = np.arange(0.0, 1.0, 1/samplerate)     # one second
+    data = 2.5*np.sin(2.0*np.p*freq*time)        # 800Hz sine wave
+    md = dict(Artist=&#39;underscore_&#39;)          # metadata
+    write_data(&#39;audio/file.npz&#39;, data, samplerate, &#39;mV&#39;, md)
+    ```
+    &#34;&#34;&#34;
+    if not filepath:
+        raise ValueError(&#39;no file specified!&#39;)
+
+    if not format:
+        format = format_from_extension(filepath)
+    if not format:
+        raise ValueError(&#39;unspecified file format&#39;)
+    for fmt, lib, formats_func in data_formats_funcs:
+        if lib and not data_modules[lib]:
+            continue
+        if format.upper() in formats_func():
+            writer_func = data_writer_funcs[fmt]
+            filepath = writer_func(filepath, data, samplerate, unit, metadata,
+                                   format=format, encoding=encoding)
+            if verbose &gt; 0:
+                print(f&#39;wrote data to file &#34;{filepath}&#34; using {fmt} format&#39;)
+                if verbose &gt; 1:
+                    print(f&#39;  sampling rate: {samplerate:g} Hz&#39;)
+                    print(f&#39;  channels     : {data.shape[1] if len(data.shape) &gt; 1 else 1}&#39;)
+                    print(f&#39;  frames       : {len(data)}&#39;)
+                    print(f&#39;  unit         : {unit}&#39;)
+            return filepath
+    raise IOError(f&#39;file format &#34;{format.upper()}&#34; not supported.&#39;) </code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.demo"><code class="name flex">
+<span>def <span class="ident">demo</span></span>(<span>file_path, channels=2, format=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Demo of the datawriter functions.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>file_path</code></strong> :&ensp;<code>string</code></dt>
+<dd>File path of a data file.</dd>
+<dt><strong><code>format</code></strong> :&ensp;<code>string</code> or <code>None</code></dt>
+<dd>File format to be used.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def demo(file_path, channels=2, format=None):
+    &#34;&#34;&#34;Demo of the datawriter functions.
+
+    Parameters
+    ----------
+    file_path: string
+        File path of a data file.
+    format: string or None
+        File format to be used.
+    &#34;&#34;&#34;
+    print(&#39;generate data ...&#39;)
+    samplerate = 44100.0
+    t = np.arange(0.0, 1.0, 1.0/samplerate)
+    data = np.zeros((len(t), channels))
+    for c in range(channels):
+        data[:,c] = 0.1*(channels-c)*np.sin(2.0*np.pi*(440.0+c*8.0)*t)
+        
+    print(f&#34;write_data(&#39;{file_path}&#39;) ...&#34;)
+    write_data(file_path, data, samplerate, &#39;mV&#39;, format=format, verbose=2)
+
+    print(&#39;done.&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.datawriter.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>*cargs)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Call demo with command line arguments.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cargs</code></strong> :&ensp;<code>list</code> of <code>strings</code></dt>
+<dd>Command line arguments as provided by sys.argv[1:]</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main(*cargs):
+    &#34;&#34;&#34;Call demo with command line arguments.
+
+    Parameters
+    ----------
+    cargs: list of strings
+        Command line arguments as provided by sys.argv[1:]
+    &#34;&#34;&#34;
+    import argparse
+    parser = argparse.ArgumentParser(description=
+                                     &#39;Checking thunderfish.datawriter module.&#39;)
+    parser.add_argument(&#39;-c&#39;, dest=&#39;channels&#39;, default=2, type=int,
+                        help=&#39;number of channels to be written&#39;)
+    parser.add_argument(&#39;-f&#39;, dest=&#39;format&#39;, default=None, type=str,
+                        help=&#39;file format&#39;)
+    parser.add_argument(&#39;file&#39;, nargs=1, default=&#39;test.npz&#39;, type=str,
+                        help=&#39;name of data file&#39;)
+    args = parser.parse_args(cargs)
+    demo(args.file[0], args.channels, args.format)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-variables">Global variables</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.datawriter.data_modules" href="#thunderfish.datawriter.data_modules">data_modules</a></code></li>
+<li><code><a title="thunderfish.datawriter.data_formats_funcs" href="#thunderfish.datawriter.data_formats_funcs">data_formats_funcs</a></code></li>
+<li><code><a title="thunderfish.datawriter.data_encodings_funcs" href="#thunderfish.datawriter.data_encodings_funcs">data_encodings_funcs</a></code></li>
+<li><code><a title="thunderfish.datawriter.data_writer_funcs" href="#thunderfish.datawriter.data_writer_funcs">data_writer_funcs</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.datawriter.format_from_extension" href="#thunderfish.datawriter.format_from_extension">format_from_extension</a></code></li>
+<li><code><a title="thunderfish.datawriter.recode_array" href="#thunderfish.datawriter.recode_array">recode_array</a></code></li>
+<li><code><a title="thunderfish.datawriter.formats_relacs" href="#thunderfish.datawriter.formats_relacs">formats_relacs</a></code></li>
+<li><code><a title="thunderfish.datawriter.encodings_relacs" href="#thunderfish.datawriter.encodings_relacs">encodings_relacs</a></code></li>
+<li><code><a title="thunderfish.datawriter.write_relacs" href="#thunderfish.datawriter.write_relacs">write_relacs</a></code></li>
+<li><code><a title="thunderfish.datawriter.formats_fishgrid" href="#thunderfish.datawriter.formats_fishgrid">formats_fishgrid</a></code></li>
+<li><code><a title="thunderfish.datawriter.encodings_fishgrid" href="#thunderfish.datawriter.encodings_fishgrid">encodings_fishgrid</a></code></li>
+<li><code><a title="thunderfish.datawriter.write_fishgrid" href="#thunderfish.datawriter.write_fishgrid">write_fishgrid</a></code></li>
+<li><code><a title="thunderfish.datawriter.formats_pickle" href="#thunderfish.datawriter.formats_pickle">formats_pickle</a></code></li>
+<li><code><a title="thunderfish.datawriter.encodings_pickle" href="#thunderfish.datawriter.encodings_pickle">encodings_pickle</a></code></li>
+<li><code><a title="thunderfish.datawriter.write_pickle" href="#thunderfish.datawriter.write_pickle">write_pickle</a></code></li>
+<li><code><a title="thunderfish.datawriter.formats_numpy" href="#thunderfish.datawriter.formats_numpy">formats_numpy</a></code></li>
+<li><code><a title="thunderfish.datawriter.encodings_numpy" href="#thunderfish.datawriter.encodings_numpy">encodings_numpy</a></code></li>
+<li><code><a title="thunderfish.datawriter.write_numpy" href="#thunderfish.datawriter.write_numpy">write_numpy</a></code></li>
+<li><code><a title="thunderfish.datawriter.formats_mat" href="#thunderfish.datawriter.formats_mat">formats_mat</a></code></li>
+<li><code><a title="thunderfish.datawriter.encodings_mat" href="#thunderfish.datawriter.encodings_mat">encodings_mat</a></code></li>
+<li><code><a title="thunderfish.datawriter.write_mat" href="#thunderfish.datawriter.write_mat">write_mat</a></code></li>
+<li><code><a title="thunderfish.datawriter.formats_audioio" href="#thunderfish.datawriter.formats_audioio">formats_audioio</a></code></li>
+<li><code><a title="thunderfish.datawriter.encodings_audio" href="#thunderfish.datawriter.encodings_audio">encodings_audio</a></code></li>
+<li><code><a title="thunderfish.datawriter.write_audioio" href="#thunderfish.datawriter.write_audioio">write_audioio</a></code></li>
+<li><code><a title="thunderfish.datawriter.available_formats" href="#thunderfish.datawriter.available_formats">available_formats</a></code></li>
+<li><code><a title="thunderfish.datawriter.available_encodings" href="#thunderfish.datawriter.available_encodings">available_encodings</a></code></li>
+<li><code><a title="thunderfish.datawriter.write_data" href="#thunderfish.datawriter.write_data">write_data</a></code></li>
+<li><code><a title="thunderfish.datawriter.demo" href="#thunderfish.datawriter.demo">demo</a></code></li>
+<li><code><a title="thunderfish.datawriter.main" href="#thunderfish.datawriter.main">main</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
