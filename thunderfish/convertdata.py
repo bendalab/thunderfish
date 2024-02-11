@@ -64,7 +64,7 @@ import sys
 import argparse
 import numpy as np
 from .version import __version__, __year__
-from audioio.audiometadata import add_metadata, remove_metadata, cleanup_metadata
+from audioio import add_metadata, remove_metadata, cleanup_metadata
 from audioio.audioconverter import add_arguments, parse_channels
 from audioio.audioconverter import make_outfile, format_outfile
 from audioio.audioconverter import modify_data
