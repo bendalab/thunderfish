@@ -349,7 +349,7 @@ def relacs_files(file_paths):
     return data_paths
 
         
-def load_relacs(file_paths, verbose=0):
+def load_relacs(file_paths):
     """Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).
 
     Parameters
@@ -357,8 +357,6 @@ def load_relacs(file_paths, verbose=0):
     file_paths: string or list of strings
         Path to a relacs data directory, a file in a relacs data directory,
         or relacs trace-*.raw files.
-    verbose: int
-        if > 0 show detailed error/warning messages
 
     Returns
     -------
@@ -390,8 +388,6 @@ def load_relacs(file_paths, verbose=0):
                 x = np.frombuffer(sf.read(), dtype=np.float32)
         else:
             x = np.fromfile(path, np.float32)
-        if verbose > 0:
-            print( 'loaded %s' % path)
         if data is None:
             nrows = len(x)-2
             data = np.empty((nrows, nchannels))
@@ -646,7 +642,7 @@ def fishgrid_files(file_paths, grid_sizes):
     return file_paths
 
         
-def load_fishgrid(file_paths, verbose=0):
+def load_fishgrid(file_paths):
     """Load traces (traces-grid*.raw files) that have been recorded with fishgrid (https://github.com/bendalab/fishgrid).
 
     Parameters
@@ -654,8 +650,6 @@ def load_fishgrid(file_paths, verbose=0):
     file_paths: string or list of string
         Path to a fishgrid data directory, a fishgrid.cfg file,
         or fidhgrid traces-grid*.raw files.
-    verbose: int
-        If > 0 show detailed error/warning messages.
 
     Returns
     -------
@@ -689,8 +683,6 @@ def load_fishgrid(file_paths, verbose=0):
     unit = "V"
     for path, channels in zip(file_paths, grid_channels):
         x = np.fromfile(path, np.float32).reshape((-1, channels))
-        if verbose > 0:
-            print( 'loaded %s' % path)
         if data is None:
             nrows = len(x)-2
             data = np.empty((nrows, nchannels))
@@ -762,7 +754,7 @@ def check_container(filepath):
     return ext.lower() in ('.pkl', '.npz', '.mat')
 
 
-def load_container(filepath, verbose=0, datakey=None,
+def load_container(filepath, datakey=None,
                    samplekey=['rate', 'Fs', 'fs'],
                    timekey=['time'], unitkey='unit'):
     """Load data from a generic container file.
@@ -777,8 +769,6 @@ def load_container(filepath, verbose=0, datakey=None,
     ----------
     filepath: string
         Path of the file to load.
-    verbose: int
-        if > 0 show detailed error/warning messages
     datakey: None, string, or list of string
         Name of the variable holding the data.  If `None` take the
         variable that is an 2D array and has the largest number of
@@ -820,8 +810,6 @@ def load_container(filepath, verbose=0, datakey=None,
     elif ext == '.mat':
         from scipy.io import loadmat
         data = loadmat(filepath, squeeze_me=True)
-    if verbose > 0:
-        print( 'loaded %s' % filepath)
     # extract format data:
     if not isinstance(samplekey, (list, tuple, np.ndarray)):
         samplekey = (samplekey,)
@@ -959,6 +947,17 @@ def load_data(filepath, verbose=0, **kwargs):
     ValueError:
         Input argument `filepath` is empty string or list.
     """
+    def print_verbose(verbose, data, rate, unit, filepath, lib):
+        if verbose > 0:
+            if isinstance(filepath, (list, tuple, np.ndarray)):
+                filepath = filepath[0]
+            print(f'loaded data from file "{filepath}" using open_{lib}()')
+            if verbose > 1:
+                print(f'  sampling rate: {rate:g} Hz')
+                print(f'  channels     : {data.shape[1]}')
+                print(f'  frames       : {len(data)}')
+                print(f'  unit         : {unit}')
+        
     # check values:
     data = np.array([])
     samplerate = 0.0
@@ -968,14 +967,20 @@ def load_data(filepath, verbose=0, **kwargs):
 
     # load data:
     if check_relacs(filepath):
-        return load_relacs(filepath, verbose)
+        data, rate, unit = load_relacs(filepath)
+        print_verbose(verbose, data, rate, unit, filepath, 'relacs')
+        return data, rate, unit
     elif check_fishgrid(filepath):
-        return load_fishgrid(filepath, verbose)
+        data, rate, unit = load_fishgrid(filepath)
+        print_verbose(verbose, data, rate, unit, filepath, 'fishgrid')
+        return data, rate, unit
     else:
         if isinstance(filepath, (list, tuple, np.ndarray)):
             filepath = filepath[0]
         if check_container(filepath):
-            return load_container(filepath, verbose=verbose, **kwargs)
+            data, rate, unit = load_container(filepath, **kwargs)
+            print_verbose(verbose, data, rate, unit, filepath, 'container')
+            return data, rate, unit
         else:
             data, samplerate = load_audio(filepath, verbose)
             unit = 'a.u.'
@@ -1198,7 +1203,7 @@ class DataLoader(AudioLoader):
             file = open(path, 'rb')
             self.sf.append(file)
             if verbose > 0:
-                print( 'opened %s' % path)
+                print(f'open_relacs(filepath) with filepath={path}')
             # file size:
             file.seek(0, os.SEEK_END)
             frames = file.tell()//4
@@ -1331,7 +1336,7 @@ class DataLoader(AudioLoader):
             file = open(path, 'rb')
             self.sf.append(file)
             if verbose > 0:
-                print( 'opened %s' % path)
+                print(f'open_fishgrid(filepath) with filepath={path}')
             # grid channels:
             g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
             self.grid_channels.append(grid_sizes[g])

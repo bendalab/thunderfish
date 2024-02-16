@@ -20,7 +20,7 @@ def generate_data():
     for k in range(data.shape[1], channels):
         data = np.hstack((data, data[:,0].reshape((-1, 1))/k))
     info = dict(Comment='good',
-                Recording=dict(Experimenter='John',
+                Recording=dict(Experimenter='John Doe',
                                Temperature='23.8°C'),
                 Subject=dict(Species='Apteronotus leptorhynchus',
                              Sex='Female', Size='12cm'),
@@ -51,13 +51,13 @@ def test_container():
     for encoding in dw.encodings_pickle():
         filename = dw.write_pickle('test', data, samplerate, 'mV', info,
                                    encoding=encoding)
-        full_data, rate, unit = dl.load_data(filename, -1)
+        full_data, rate, unit = dl.load_data(filename)
         assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
         md = dl.metadata(filename)
         assert_equal(info, md, 'pickle metadata')
         os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='pkl')
-    full_data, rate, unit = dl.load_data(filename, -1)
+    full_data, rate, unit = dl.load_data(filename)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
     os.remove(filename)
 
@@ -65,13 +65,13 @@ def test_container():
     for encoding in dw.encodings_numpy():
         filename = dw.write_numpy('test', data, samplerate, 'mV',
                                   info, encoding=encoding)
-        full_data, rate, unit = dl.load_data(filename, -1)
+        full_data, rate, unit = dl.load_data(filename)
         assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
         md = dl.metadata(filename)
         assert_equal(info, md, 'numpy metadata')
         os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='npz')
-    full_data, rate, unit = dl.load_data(filename, -1)
+    full_data, rate, unit = dl.load_data(filename)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
     os.remove(filename)
 
@@ -79,13 +79,13 @@ def test_container():
     for encoding in dw.encodings_mat():
         filename = dw.write_mat('test', data, samplerate, 'mV', info,
                                 encoding=encoding)
-        full_data, rate, unit = dl.load_data(filename, -1)
+        full_data, rate, unit = dl.load_data(filename)
         assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
         md = dl.metadata(filename)
         assert_equal(info, md, 'mat metadata')
         os.remove(filename)
     filename = dw.write_data('test', data, samplerate, 'mV', format='mat')
-    full_data, rate, unit = dl.load_data(filename, -1)
+    full_data, rate, unit = dl.load_data(filename)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
     os.remove(filename)
     
@@ -94,11 +94,11 @@ def check_reading(filename, data):
     tolerance = 2.0**(-15)
 
     # load full data:
-    full_data, rate, unit = dl.load_data(filename, -1)
+    full_data, rate, unit = dl.load_data(filename)
     assert_true(np.all(np.abs(data[:-2, :] - full_data)<tolerance), 'full load failed')
 
     # load on demand:
-    data = dl.DataLoader(filename, -1, 10.0, 2.0)
+    data = dl.DataLoader(filename, 10.0, 2.0)
 
     nframes = int(1.5*data.samplerate)
     # check access:
@@ -151,7 +151,7 @@ def test_audioio():
     tolerance = 2.0**(-15)
     data, samplerate, info = generate_data()
     filename = dw.write_audioio('test.wav', data, samplerate, metadata=info)
-    full_data, rate, unit = dl.load_data(filename, -1)
+    full_data, rate, unit = dl.load_data(filename)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
     os.remove(filename)
     
