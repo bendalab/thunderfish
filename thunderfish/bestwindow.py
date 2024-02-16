@@ -768,7 +768,8 @@ def main(data_file=None):
     else:
         from .dataloader import load_data
         print(f'load {data_file} ...')
-        data, rate, unit = load_data(data_file, 0)
+        data, rate, unit = load_data(data_file)
+        data = data[:,0]
         title = data_file
 
     # determine clipping amplitudes:

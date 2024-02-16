@@ -187,9 +187,9 @@ class SignalPlot:
             t1 = len(self.data)
         time = np.arange(t0, t1) / self.samplerate
         if self.trace_artist == None:
-            self.trace_artist, = self.axt.plot(time, self.data[t0:t1])
+            self.trace_artist, = self.axt.plot(time, self.data[t0:t1,self.channel])
         else:
-            self.trace_artist.set_data(time, self.data[t0:t1])
+            self.trace_artist.set_data(time, self.data[t0:t1,self.channel])
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
@@ -207,7 +207,7 @@ class SignalPlot:
         if t00 < 0:
             t00 = 0
             t11 = w
-        freqs, power = psd(self.data[t00:t11], self.samplerate,
+        freqs, power = psd(self.data[t00:t11,self.channel], self.samplerate,
                            self.freq_resolution, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
@@ -219,7 +219,8 @@ class SignalPlot:
 
         # spectrogram:
         t2 = t1 + n_fft
-        freqs, bins, specpower = spectrogram(self.data[t0:t2], self.samplerate,
+        freqs, bins, specpower = spectrogram(self.data[t0:t2,self.channel],
+                                             self.samplerate,
                                              self.freq_resolution,
                                              detrend=ml.detrend_mean)
         z = decibel(specpower)
@@ -360,13 +361,15 @@ class SignalPlot:
         elif event.key == 'a':
             if self.min_clip == 0.0 or self.max_clip == 0.0:
                 self.min_clip, self.max_clip = clip_amplitudes(
-                    self.data, **clip_args(self.cfg, self.samplerate))
+                    self.data[:,self.channel],
+                    **clip_args(self.cfg, self.samplerate))
             try:
                 if self.cfg.value('windowSize') <= 0.0:
                     self.cfg.set('windowSize', (len(self.data)-1)/self.samplerate)
                 idx0, idx1, clipped = best_window_indices(
-                    self.data, self.samplerate, min_clip=self.min_clip,
-                    max_clip=self.max_clip, **best_window_args(self.cfg))
+                    self.data[:,self.channel], self.samplerate,
+                    min_clip=self.min_clip, max_clip=self.max_clip,
+                    **best_window_args(self.cfg))
                 if idx1 > 0:
                     self.toffset = idx0 / self.samplerate
                     self.twindow = (idx1 - idx0) / self.samplerate
@@ -421,8 +424,8 @@ class SignalPlot:
         elif event.key == 'v':
             t0 = int(np.round(self.toffset * self.samplerate))
             t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
-            min = np.min(self.data[t0:t1])
-            max = np.max(self.data[t0:t1])
+            min = np.min(self.data[t0:t1,self.channel])
+            max = np.max(self.data[t0:t1,self.channel])
             h = 0.5 * (max - min)
             c = 0.5 * (max + min)
             self.ymin = c - h
@@ -654,11 +657,11 @@ class SignalPlot:
             ax.set_xlabel('Time [ms]')
             ax.set_xlim(1000.0 * self.toffset,
                         1000.0 * (self.toffset + self.twindow))
-            ax.plot(1000.0 * time, self.data[t0:t1])
+            ax.plot(1000.0 * time, self.data[t0:t1,self.channel])
         else:
             ax.set_xlabel('Time [s]')
             ax.set_xlim(self.toffset, self.toffset + self.twindow)
-            ax.plot(time, self.data[t0:t1])
+            ax.plot(time, self.data[t0:t1,self.channel])
         ax.set_ylabel('Amplitude [{:s}]'.format(self.unit))
         fig.tight_layout()
         fig.savefig(figfile)
@@ -669,7 +672,7 @@ class SignalPlot:
     def play_segment(self):
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
-        playdata = 1.0 * self.data[t0:t1]
+        playdata = 1.0 * self.data[t0:t1,self.channel]
         fade(playdata, self.samplerate, 0.1)
         self.audio.play(playdata, self.samplerate, blocking=False)
 
@@ -678,7 +681,7 @@ class SignalPlot:
         t1s = int(np.round(self.toffset + self.twindow))
         t0 = int(np.round(self.toffset * self.samplerate))
         t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
-        savedata = 1.0 * self.data[t0:t1]
+        savedata = 1.0 * self.data[t0:t1,self.channel]
         filename = self.filename.split('.')[0]
         segmentfilename = '{name}-{time0:.4g}s-{time1:.4g}s.wav'.format(
                 name=filename, time0=t0s, time1 = t1s)
@@ -686,7 +689,8 @@ class SignalPlot:
         print('saved segment to: ' , segmentfilename)
         
     def play_all(self):
-        self.audio.play(self.data[:], self.samplerate, blocking=False)
+        self.audio.play(self.data[:,self.channel], self.samplerate,
+                        blocking=False)
         
     def play_tone( self, frequency ) :
         self.audio.beep(1.0, frequency)
@@ -748,12 +752,7 @@ def main(cargs=None):
     filename = os.path.basename(filepath)
     channel = args.channel
     # TODO: add blocksize and backsize as configuration parameter!
-    with DataLoader(filepath, channel, 60.0, 10.0, verbose) as data:
-        # plot:
-        ## if len(data) < 10**8:
-        ##     # data[:].copy() makes bestwindow much faster (it's slow in eventdetection):
-        ##     SignalPlot(data[:].copy(), data.samplerate, data.unit, filename, channel)
-        ## else:
+    with DataLoader(filepath, 60.0, 10.0, verbose) as data:
         SignalPlot(data, data.samplerate, data.unit, filename, channel, verbose, cfg)
 
         

@@ -2973,7 +2973,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
                 data_file = dfile
                 break
     if os.path.exists(data_file):
-        data, samplerate, unit = load_data(data_file, channel,
+        data, samplerate, unit = load_data(data_file,
                                            verbose=verbose,
                                            **load_kwargs)
         idx0 = 0
@@ -2982,7 +2982,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
             idx0 = int(eod_props[0]['twin']*samplerate)
         if len(eod_props) > 0 and 'window' in eod_props[0]:
             idx1 = idx0 + int(eod_props[0]['window']*samplerate)
-    return data, samplerate, idx0, idx1, data_file
+    return data[:,channel], samplerate, idx0, idx1, data_file
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,

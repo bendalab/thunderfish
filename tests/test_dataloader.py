@@ -158,7 +158,7 @@ def test_audioio():
 def test_main():
     data, samplerate, info = generate_data()
     filename = dw.write_fishgrid(fishgrid_path, data, samplerate, 'mV', info)
-    dl.main('-c', '0', filename)
+    dl.main(filename)
     dl.main('-p', filename)
     remove_fishgrid_files()
     

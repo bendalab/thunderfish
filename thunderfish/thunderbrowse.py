@@ -831,7 +831,7 @@ def main(cargs=None):
 
     # load data:
     filename = os.path.basename(filepath)
-    with DataLoader(filepath, 10*60.0, 5.0, verbose, -1) as data:
+    with DataLoader(filepath, 10*60.0, 5.0, verbose) as data:
         SignalPlot(data, data.samplerate, data.unit, filename,
                    channels, tmax, fcutoff, pulses)
         

@@ -193,8 +193,8 @@ if __name__ == '__main__':
     from .dataloader import load_data
 
     data_file = sys.argv[1]
-    raw_data, samplerate, unit = load_data(data_file, 0)
+    raw_data, samplerate, unit = load_data(data_file)
 
-    chirp_time, chirp_freq = chirp_analysis(raw_data, samplerate)
+    chirp_time, chirp_freq = chirp_analysis(raw_data[:,0], samplerate)
 
     # power = np.mean(spectrum[:, t:t + nffts_per_psd], axis=1)

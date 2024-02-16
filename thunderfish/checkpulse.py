@@ -163,8 +163,8 @@ if __name__ == "__main__":
 
         file_path = sys.argv[1]
         print("loading %s ...\n" % file_path)
-        rawdata, rate, unit = load_data(sys.argv[1], 0)
-        data, _ = best_window(rawdata, rate)
+        rawdata, rate, unit = load_data(sys.argv[1])
+        data, _ = best_window(rawdata[:,0], rate)
         
     # run pulse-width-based detector:
     pulse_fish, ratio = check_pulse(data, None, rate)

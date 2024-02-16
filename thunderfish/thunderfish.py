@@ -1270,8 +1270,9 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
     # load data:
     try:
-        all_data, samplerate, unit = load_data(filename, -1,
-                                               verbose=verbose, **load_kwargs)
+        all_data, samplerate, unit = load_data(filename,
+                                               verbose=verbose,
+                                               **load_kwargs)
     except IOError as e:
         return '%s: failed to open file: %s' % (filename, str(e))
     # select channel:

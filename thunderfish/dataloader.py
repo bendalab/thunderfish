@@ -4,6 +4,10 @@
 data, samplingrate, unit = load_data('data/file.wav')
 ```
 Loads the whole time-series from the file as a numpy array of floats.
+First dimension is frames, second is channels. In contrast to the
+`audioio.load_audio()` function, the values of the data array are not
+restricted between -1 and 1. The can assume any value with the unit
+that is also returned.
 
 ```
 data = DataLoader('data/file.wav', 60.0)
@@ -22,8 +26,8 @@ on demand. `data` can be used like a read-only numpy array of floats.
 - numpy .npz files
 - matlab .mat files
 - audio files via `audioio` package
-- relacs trace*.raw files (www.relacs.net)
-- fishgrid traces-*.raw files
+- relacs trace*.raw files (https://www.relacs.net)
+- fishgrid traces-*.raw files (https://github.com/bendalab/fishgrid)
 
 
 ## Metadata
@@ -299,7 +303,7 @@ def check_relacs(file_paths):
     return has_stimuli and has_trace
 
     
-def relacs_files(file_paths, channel):
+def relacs_files(file_paths):
     """Expand file paths for relacs data to appropriate trace*.raw file names.
 
     Parameters
@@ -307,8 +311,6 @@ def relacs_files(file_paths, channel):
     file_paths: string or list of strings
         Path to a relacs data directory, a file in a relacs data directory,
         or relacs trace-*.raw or trace-*.raw.gz files.
-    channel: int
-        The data channel. If negative all channels are selected.
         
     Returns
     -------
@@ -325,18 +327,15 @@ def relacs_files(file_paths, channel):
         relacs_dir = file_paths[0]
         if not os.path.isdir(relacs_dir):
             relacs_dir = os.path.dirname(file_paths[0])
-        if channel < 0:
-            file_paths = []
-            for k in range(10000):
-                fname = os.path.join(relacs_dir, f'trace-{k+1}.raw')
-                if os.path.isfile(fname):
-                    file_paths.append(fname)
-                elif os.path.isfile(fname + '.gz'):
-                    file_paths.append(fname + '.gz')
-                else:
-                    break
-        else:
-            file_paths[0] = os.path.join(relacs_dir, f'trace-{channel+1}.raw')
+        file_paths = []
+        for k in range(10000):
+            fname = os.path.join(relacs_dir, f'trace-{k+1}.raw')
+            if os.path.isfile(fname):
+                file_paths.append(fname)
+            elif os.path.isfile(fname + '.gz'):
+                file_paths.append(fname + '.gz')
+            else:
+                break
     data_paths = []
     for path in file_paths:
         bn = os.path.basename(path)
@@ -350,7 +349,7 @@ def relacs_files(file_paths, channel):
     return data_paths
 
         
-def load_relacs(file_paths, channel=-1, verbose=0):
+def load_relacs(file_paths, verbose=0):
     """Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).
 
     Parameters
@@ -358,18 +357,14 @@ def load_relacs(file_paths, channel=-1, verbose=0):
     file_paths: string or list of strings
         Path to a relacs data directory, a file in a relacs data directory,
         or relacs trace-*.raw files.
-    channel: int
-        The data channel. If negative all channels are selected.
     verbose: int
         if > 0 show detailed error/warning messages
 
     Returns
     -------
-    data: 1-D or 2-D array
-        If `channel` is negative or more than one trace file is specified,
-        a 2-D array with data of all channels is returned,
-        where first dimension is time and second dimension is channel number.
-        Otherwise an 1-D array with the data of that channel is returned.
+    data: 2-D array
+        All data traces as an 2-D numpy array, even for single channel data.
+        First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz
     unit: string
@@ -382,10 +377,7 @@ def load_relacs(file_paths, channel=-1, verbose=0):
         - Sampling rates of traces differ.
         - Unit of traces differ.
     """
-    file_paths = relacs_files(file_paths, channel)
-    if len(file_paths) > 1:
-        channel = -1
-                
+    file_paths = relacs_files(file_paths)
     # load trace*.raw files:
     nchannels = len(file_paths)
     data = None
@@ -414,10 +406,7 @@ def load_relacs(file_paths, channel=-1, verbose=0):
             unit = us
         elif us != unit:
             raise ValueError('unit of traces differ')
-    if channel < 0:
-        return data, samplerate, unit
-    else:
-        return data[:, 0], samplerate, unit
+    return data, samplerate, unit
 
 
 def metadata_relacs(filepath, store_empty=False, first_only=False,
@@ -620,7 +609,7 @@ def check_fishgrid(file_paths):
             os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw')))
 
     
-def fishgrid_files(file_paths, channel, grid_sizes):
+def fishgrid_files(file_paths, grid_sizes):
     """Expand file paths for fishgrid data to appropriate traces-*.raw file names.
 
     Parameters
@@ -628,8 +617,6 @@ def fishgrid_files(file_paths, channel, grid_sizes):
     file_paths: string or list of strings
         Path to a fishgrid data directory, a file in a fishgrid data directory,
         or fishgrid traces-*.raw files.
-    channel: int
-        The data channel. If negative all channels are selected.
     grid_sizes: list of int
         The number of channels of each grid.
         
@@ -637,41 +624,21 @@ def fishgrid_files(file_paths, channel, grid_sizes):
     -------
     file_paths: list of strings
         List of fishgrid traces-*.raw files.
-
-    Raises
-    ------
-    IndexError:
-        Invalid channel.
     """
     # find grids:
-    grid = -1
-    if channel >= 0:
-        grid = -1
-        gs = 0
-        for g, s in enumerate(grid_sizes):
-            gs += s
-            if channel < gs:
-                grid = g
-                break
-        if grid < 0:
-            raise IndexError("invalid channel")
-            
     if not isinstance(file_paths, (list, tuple, np.ndarray)):
         file_paths = [file_paths]
     if len(file_paths) == 1:
         fishgrid_dir = file_paths[0]
         if not os.path.isdir(fishgrid_dir):
             fishgrid_dir = os.path.dirname(file_paths[0])
-        if grid < 0:
-            file_paths = []
-            for k in range(10000):
-                file = os.path.join(fishgrid_dir, f'traces-grid{k+1}.raw')
-                if os.path.isfile(file):
-                    file_paths.append(file)
-                else:
-                    break
-        else:
-            file_paths[0] = os.path.join(fishgrid_dir, f'traces-grid{grid+1}.raw')
+        file_paths = []
+        for k in range(10000):
+            file = os.path.join(fishgrid_dir, f'traces-grid{k+1}.raw')
+            if os.path.isfile(file):
+                file_paths.append(file)
+            else:
+                break
     for path in file_paths:
         bn = os.path.basename(path)
         if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
@@ -679,7 +646,7 @@ def fishgrid_files(file_paths, channel, grid_sizes):
     return file_paths
 
         
-def load_fishgrid(file_paths, channel=-1, verbose=0):
+def load_fishgrid(file_paths, verbose=0):
     """Load traces (traces-grid*.raw files) that have been recorded with fishgrid (https://github.com/bendalab/fishgrid).
 
     Parameters
@@ -687,18 +654,14 @@ def load_fishgrid(file_paths, channel=-1, verbose=0):
     file_paths: string or list of string
         Path to a fishgrid data directory, a fishgrid.cfg file,
         or fidhgrid traces-grid*.raw files.
-     channel: int
-        The data channel. If negative all channels are selected.
     verbose: int
         If > 0 show detailed error/warning messages.
 
     Returns
     -------
-    data: 1-D or 2-D array
-        If `channel` is negative or more than one trace file is specified,
-        a 2-D array with data of all channels is returned,
-        where first dimension is time and second dimension is channel number.
-        Otherwise an 1-D array with the data of that channel is returned.
+    data: 2-D array
+        All data traces as an 2-D numpy array, even for single channel data.
+        First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz.
     unit: string
@@ -708,9 +671,7 @@ def load_fishgrid(file_paths, channel=-1, verbose=0):
         file_paths = [file_paths]
     grids = fishgrid_grids(file_paths[0])
     grid_sizes = [r*c for r,c in grids]
-    file_paths = fishgrid_files(file_paths, channel, grid_sizes)
-    if len(file_paths) > 1:
-        channel = -1
+    file_paths = fishgrid_files(file_paths, grid_sizes)
                 
     # load traces-grid*.raw files:
     grid_channels = []
@@ -734,15 +695,7 @@ def load_fishgrid(file_paths, channel=-1, verbose=0):
             nrows = len(x)-2
             data = np.empty((nrows, nchannels))
         data[:,n:n+channels] = x[:nrows,:]
-    if channel < 0:
-        return data, samplerate, unit
-    else:
-        gs = 0
-        for s in grid_sizes:
-            if channel < gs + s:
-                break
-            gs += s
-        return data[:, channel-gs], samplerate, unit
+    return data, samplerate, unit
 
 
 def metadata_fishgrid(filepath, store_empty=False, first_only=False,
@@ -809,7 +762,7 @@ def check_container(filepath):
     return ext.lower() in ('.pkl', '.npz', '.mat')
 
 
-def load_container(filepath, channel=-1, verbose=0, datakey=None,
+def load_container(filepath, verbose=0, datakey=None,
                    samplekey=['rate', 'Fs', 'fs'],
                    timekey=['time'], unitkey='unit'):
     """Load data from a generic container file.
@@ -824,8 +777,6 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
     ----------
     filepath: string
         Path of the file to load.
-    channel: int
-        The data channel. If negative all channels are selected.
     verbose: int
         if > 0 show detailed error/warning messages
     datakey: None, string, or list of string
@@ -844,11 +795,9 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
 
     Returns
     -------
-    data: 1-D or 2-D array of floats
-        If `channel` is negative, a 2-D array with data of all channels
-        is returned, where first dimension is time and second
-        dimension is channel number.  Otherwise an 1-D array with the
-        data of that channel is returned.
+    data: 2-D array of floats
+        All data traces as an 2-D numpy array, even for single channel data.
+        First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz.
     unit: string
@@ -856,8 +805,6 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
 
     Raises
     ------
-    IndexError:
-        Invalid channel requested
     ValueError:
         Invalid key requested.
     """
@@ -925,10 +872,6 @@ def load_container(filepath, channel=-1, verbose=0, datakey=None,
     # transpose if necessary:
     if np.argmax(raw_data.shape) > 0:
         raw_data = raw_data.T
-    if channel >= 0:
-        if channel >= raw_data.shape[1]:
-            raise IndexError(f'invalid channel number {channel} requested')
-        raw_data = raw_data[:,channel]
     # recode:
     dtype = raw_data.dtype
     data = raw_data.astype(float)
@@ -987,16 +930,14 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
     return metadata
 
     
-def load_data(filepath, channel=-1, verbose=0, **kwargs):
-    """Load time-series data from a file of arbitrary format.
+def load_data(filepath, verbose=0, **kwargs):
+    """Load time-series data from a file.
 
     Parameters
     ----------
     filepath: string or list of strings
         The full path and name of the file to load. For some file
         formats several files can be provided in a list.
-    channel: int
-        The data channel. If negative all channels are selected.
     verbose: int
         If > 0 show detailed error/warning messages.
     **kwargs: dict
@@ -1005,11 +946,9 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
 
     Returns
     -------
-    data: 1-D or 2-D array
-        If `channel` is negative, a 2-D array with data of all
-        channels is returned, where first dimension is time and second
-        dimension is channel number.  Otherwise an 1-D array with the
-        data of that channel is returned.
+    data: 2-D array
+        All data traces as an 2-D numpy array, even for single channel data.
+        First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz.
     unit: string
@@ -1019,8 +958,6 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
     ------
     ValueError:
         Input argument `filepath` is empty string or list.
-    IndexError:
-        Invalid channel requested.
     """
     # check values:
     data = np.array([])
@@ -1031,22 +968,18 @@ def load_data(filepath, channel=-1, verbose=0, **kwargs):
 
     # load data:
     if check_relacs(filepath):
-        return load_relacs(filepath, channel, verbose)
+        return load_relacs(filepath, verbose)
     elif check_fishgrid(filepath):
-        return load_fishgrid(filepath, channel, verbose)
+        return load_fishgrid(filepath, verbose)
     else:
         if isinstance(filepath, (list, tuple, np.ndarray)):
             filepath = filepath[0]
         if check_container(filepath):
-            return load_container(filepath, channel, verbose=verbose, **kwargs)
+            return load_container(filepath, verbose=verbose, **kwargs)
         else:
             data, samplerate = load_audio(filepath, verbose)
-            if channel >= 0:
-                if channel >= data.shape[1]:
-                    raise IndexError(f'invalid channel number {channel} requested')
-                data = data[:, channel]
             unit = 'a.u.'
-        return data, samplerate, unit
+            return data, samplerate, unit
 
 
 def metadata(filepath, store_empty=False, first_only=False, **kwargs):
@@ -1169,16 +1102,12 @@ class DataLoader(AudioLoader):
         The sampling rate of the data in Hertz.
     channels: int
         The number of channels that are read in.
-    channel: int
-        The channel of which the trace is returned.
-        If negative, all channels are returned.
     frames: int
         The number of frames in the file.
     shape: tuple
         Number of frames and channels of the data.
     ndim: int
-        Number of dimensions. One of only a single channel is read in,
-        two otherwise (frames, channels).
+        Number of dimensions: always 2 (frames and channels).
     unit: string
         Unit of the data.
     ampl_min: float
@@ -1200,7 +1129,7 @@ class DataLoader(AudioLoader):
     """
 
     def __init__(self, filepath=None, buffersize=10.0, backsize=0.0,
-                 verbose=0, channel=-1):
+                 verbose=0):
         """Initialize the DataLoader instance.
 
         If filepath is not None open the file.
@@ -1215,31 +1144,21 @@ class DataLoader(AudioLoader):
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
-        channel: int
-            The single channel to be worked on or all channels if negative.
         """
         super(DataLoader, self).__init__(None, buffersize, backsize, verbose)
         if filepath is not None:
-            self.open(filepath, buffersize, backsize, verbose, channel)
+            self.open(filepath, buffersize, backsize, verbose)
 
     def __getitem__(self, key):
-        if self.channel >= 0:
-            if type(key) is tuple:
-                raise IndexError
-            return super(DataLoader, self).__getitem__((key, self.channel))
-        else:
-            return super(DataLoader, self).__getitem__(key)
+        return super(DataLoader, self).__getitem__(key)
  
     def __next__(self):
-        if self.channel >= 0:
-            return super(DataLoader, self).__next__()[self.channel]
-        else:
-            return super(DataLoader, self).__next__()
+        return super(DataLoader, self).__next__()
 
     
     # relacs interface:        
     def open_relacs(self, file_paths, buffersize=10.0, backsize=0.0,
-                    verbose=0, channel=-1):
+                    verbose=0):
         """Open relacs data files (www.relacs.net) for reading.
 
         Parameters
@@ -1253,8 +1172,6 @@ class DataLoader(AudioLoader):
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
-        channel: int
-            The requested data channel. If negative all channels are selected.
 
         Raises
         ------
@@ -1265,7 +1182,7 @@ class DataLoader(AudioLoader):
         if self.sf is not None:
             self._close_relacs()
 
-        file_paths = relacs_files(file_paths, channel)
+        file_paths = relacs_files(file_paths)
 
         # open trace files:
         self.sf = []
@@ -1305,11 +1222,7 @@ class DataLoader(AudioLoader):
             elif us != self.unit:
                 raise ValueError('unit of traces differ')
         self.channels = len(self.sf)
-        self.channel = channel
-        if self.channel >= 0:
-            self.shape = (self.frames,)
-        else:
-            self.shape = (self.frames, self.channels)
+        self.shape = (self.frames, self.channels)
         self.ndim = len(self.shape)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
@@ -1371,7 +1284,7 @@ class DataLoader(AudioLoader):
     
     # fishgrid interface:        
     def open_fishgrid(self, file_paths, buffersize=10.0, backsize=0.0,
-                      verbose=0, channel=-1):
+                      verbose=0):
         """Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
 
         Parameters
@@ -1385,8 +1298,6 @@ class DataLoader(AudioLoader):
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
-        channel: int
-            The requested data channel. If negative all channels are selected.
         """
         self.verbose = verbose
         
@@ -1397,7 +1308,7 @@ class DataLoader(AudioLoader):
             file_paths = [file_paths]
         grids = fishgrid_grids(file_paths[0])
         grid_sizes = [r*c for r,c in grids]
-        file_paths = fishgrid_files(file_paths, channel, grid_sizes)
+        file_paths = fishgrid_files(file_paths, grid_sizes)
         self.filepath = None
         if len(file_paths) > 0:
             self.filepath = os.path.dirname(file_paths[0])
@@ -1438,16 +1349,7 @@ class DataLoader(AudioLoader):
                 elif diff >= 0:
                     self.frames = frames
             file.seek(0)
-        gs = 0
-        for s in grid_sizes:
-            if channel < gs + s:
-                break
-            gs += s
-        self.channel = channel - gs
-        if self.channel >= 0:
-            self.shape = (self.frames,)
-        else:
-            self.shape = (self.frames, self.channels)
+        self.shape = (self.frames, self.channels)
         self.ndim = len(self.shape)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
@@ -1508,7 +1410,7 @@ class DataLoader(AudioLoader):
 
 
     def open(self, filepath, buffersize=10.0, backsize=0.0,
-             verbose=0, channel=-1):
+             verbose=0):
         """Open file with time-series data for reading.
 
         Parameters
@@ -1521,59 +1423,43 @@ class DataLoader(AudioLoader):
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
-        channel: int
-            The requested data channel. If negative all channels are selected.
         """
         if check_relacs(filepath):
-            self.open_relacs(filepath, buffersize, backsize, verbose, channel)
+            self.open_relacs(filepath, buffersize, backsize, verbose)
         elif check_fishgrid(filepath):
-            self.open_fishgrid(filepath, buffersize, backsize, verbose, channel)
+            self.open_fishgrid(filepath, buffersize, backsize, verbose)
         else:
             if isinstance(filepath, (list, tuple, np.ndarray)):
                 filepath = filepath[0]
             if check_container(filepath):
                 raise ValueError('file format not supported')
             super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
-            if channel > self.channels:
-                raise IndexError(f'invalid channel number {channel}')
-            self.channel = channel
-            if self.channel >= 0:
-                self.shape = (self.frames,)
-            else:
-                self.shape = (self.frames, self.channels)
-            self.ndim = len(self.shape)
             self.unit = 'a.u.'
         return self
 
 
-def demo(filepath, plot=False, channel=-1):
+def demo(filepath, plot=False):
     print("try load_data:")
-    data, samplerate, unit = load_data(filepath, channel, verbose=2)
+    data, samplerate, unit = load_data(filepath, verbose=2)
     if plot:
         time = np.arange(len(data))/samplerate
-        if channel < 0:
-            for c in range(data.shape[1]):
-                plt.plot(time, data[:,c])
-        else:
-            plt.plot(time, data)
+        for c in range(data.shape[1]):
+            plt.plot(time, data[:,c])
         plt.xlabel('Time [s]')
         plt.ylabel('[' + unit + ']')
         plt.show()
         return
 
     print('')
-    print("try DataLoader for channel=%d:" % channel)
-    with DataLoader(filepath, channel, 2.0, 1.0, 1) as data:
+    print("try DataLoader:")
+    with DataLoader(filepath, 2.0, 1.0, 1) as data:
         print('samplerate: %g' % data.samplerate)
         print('frames: %d %d' % (len(data), data.shape[0]))
         nframes = int(1.0 * data.samplerate)
         # forward:
         for i in range(0, len(data), nframes):
             print('forward %d-%d' % (i, i + nframes))
-            if channel < 0:
-                x = data[i:i + nframes, 0]
-            else:
-                x = data[i:i + nframes]
+            x = data[i:i + nframes, 0]
             if plot:
                 plt.plot((i + np.arange(len(x))) / data.samplerate, x)
                 plt.xlabel('Time [s]')
@@ -1582,10 +1468,7 @@ def demo(filepath, plot=False, channel=-1):
         # and backwards:
         for i in reversed(range(0, len(data), nframes)):
             print('backward %d-%d' % (i, i + nframes))
-            if channel < 0:
-                x = data[i:i + nframes, 0]
-            else:
-                x = data[i:i + nframes]
+            x = data[i:i + nframes, 0]
             if plot:
                 plt.plot((i + np.arange(len(x))) / data.samplerate, x)
                 plt.xlabel('Time [s]')
@@ -1607,12 +1490,10 @@ def main(*cargs):
                                      'Checking thunderfish.dataloader module.')
     parser.add_argument('-p', dest='plot', action='store_true',
                         help='plot loaded data')
-    parser.add_argument('-c', dest='channel', default=-1, type=int,
-                        help='channel to be loaded')
     parser.add_argument('file', nargs=1, default='', type=str,
                         help='name of data file')
     args = parser.parse_args(cargs)
-    demo(args.file[0], args.plot, args.channel)
+    demo(args.file[0], args.plot)
     
 
 if __name__ == "__main__":

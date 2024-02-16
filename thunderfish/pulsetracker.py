@@ -835,7 +835,7 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
         if proceed != 'y':
              quit()
     # starting analysis
-    with DataLoader(filepath, channel, deltat, 0.0, verbose) as data:
+    with DataLoader(filepath, deltat, 0.0, verbose) as data:
 
         samplerate = data.samplerate
 
@@ -843,7 +843,7 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
         if timegiven == True:
             parttime1 = starttime*samplerate
             parttime2 = endtime*samplerate
-            data = data[parttime1:parttime2]
+            data = data[parttime1:parttime2,channel]
 
         #split data into blocks
         nblock = int(deltat*samplerate)
@@ -859,7 +859,7 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
         for idx in range(0, blockamount):
             print('BLOCK %i/%i'%(idx+1,blockamount))
 
-            blockdata = data[idx*nblock:(idx+1)*nblock]
+            blockdata = data[idx*nblock:(idx+1)*nblock,channel]
             if progress < (idx*100 //blockamount):
                 progress = (idx*100)//blockamount
             progressstr = ' Filestatus: '
@@ -997,7 +997,7 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
                             all_eods = thisblock_eods
         if plot_steps == True:
             print('FINAL RESULTS')
-            plot_events_on_data(all_eods, data, colors)
+            plot_events_on_data(all_eods, data[:,channel], colors)
     #plot_events_on_data(all_eods,data)
     print('returnes analyzed EODS. Calculate frequencies using all of these but discard the data from the EODS within the lowest few percent of amplitude')
 
