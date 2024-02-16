@@ -30,7 +30,7 @@ on demand. `data` can be used like a read-only numpy array of floats.
 
 Many file formats allow to store metadata that further describe the
 stored time series data. We handle them as nested list of key-value
-pairs. Load them with the `load_metadata()` function:
+pairs. Load them with the `metadata()` function:
 ```
 metadata = metadata('data/file.mat')
 ```
@@ -1352,18 +1352,21 @@ class DataLoader(AudioLoader):
     def _metadata_relacs(self, store_empty=False, first_only=False):
         """ Read meta-data of a relacs data set.
         """
-        info_path = os.path.join(self.filepath, 'info.dat')
-        if not os.path.exists(info_path):
-            return dict()
-        data = relacs_header(info_path, store_empty, first_only)
-        return data
+        if self._metadata is None:
+            info_path = os.path.join(self.filepath, 'info.dat')
+            if not os.path.exists(info_path):
+                return dict()
+            self._metadata = relacs_header(info_path, store_empty, first_only)
+        return self._metadata
 
 
     def _markers_relacs(self):
         """ Read markers of a relacs data set.
         """
         # Not implemented yet!
-        return None, None
+        if self._locs is None:
+            pass
+        return self._locs, self._labels
 
     
     # fishgrid interface:        
@@ -1487,18 +1490,21 @@ class DataLoader(AudioLoader):
     def _metadata_fishgrid(self, store_empty=False, first_only=False):
         """ Read meta-data of a fishgrid data set.
         """
-        info_path = os.path.join(self.filepath, 'fishgrid.cfg')
-        if not os.path.exists(info_path):
-            return dict()
-        data = relacs_header(info_path, store_empty, first_only)
-        return data
+        if self._metadata is None:
+            info_path = os.path.join(self.filepath, 'fishgrid.cfg')
+            if not os.path.exists(info_path):
+                return dict()
+            self._metadata = relacs_header(info_path, store_empty, first_only)
+        return self._metadata
 
 
     def _markers_fishgrid(self):
         """ Read markers of a fishgrid data set.
         """
         # Not implemented yet!
-        return None, None
+        if self._locs is None:
+            pass
+        return self._locs, self._labels
 
 
     def open(self, filepath, buffersize=10.0, backsize=0.0,
