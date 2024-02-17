@@ -6,7 +6,7 @@ data, samplingrate, unit = load_data('data/file.wav')
 Loads the whole time-series from the file as a numpy array of floats.
 First dimension is frames, second is channels. In contrast to the
 `audioio.load_audio()` function, the values of the data array are not
-restricted between -1 and 1. The can assume any value with the unit
+restricted between -1 and 1. They can assume any value with the unit
 that is also returned.
 
 ```
@@ -33,7 +33,7 @@ on demand. `data` can be used like a read-only numpy array of floats.
 ## Metadata
 
 Many file formats allow to store metadata that further describe the
-stored time series data. We handle them as nested list of key-value
+stored time series data. We handle them as nested dictionary of key-value
 pairs. Load them with the `metadata()` function:
 ```
 metadata = metadata('data/file.mat')
@@ -44,7 +44,7 @@ metadata = metadata('data/file.mat')
 Some file formats also allow to store markers that mark specific
 positions in the time series data. Load marker positions and spans (in
 the 2-D array `locs`) and label and text strings (in the 2-D array
-`labels`) with the `load_markers()` function:
+`labels`) with the `markers()` function:
 ```
 locs, labels = markers('data.wav')
 ```
@@ -69,6 +69,7 @@ try:
 except ImportError:
     pass
 from audioio import load_audio, AudioLoader, unflatten_metadata
+from audioio import find_key, parse_number
 from audioio import metadata as audioio_metadata
 from audioio import markers as audioio_markers
 
@@ -917,6 +918,92 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
             return unflatten_metadata(metadata)
     return metadata
 
+
+def get_gain(metadata, gainkey=['gain', 'scale', 'unit'], sep='__'):
+    """Get gain and unit from metadata.
+
+    TODO: this should go to the audioio package.
+
+    Parameters
+    ----------
+    metadata: nested dict
+        Metadata with key-value pairs.
+    gainkey: str or list of str
+        Key in the file's metadata that holds some gain information.
+        If found, the data will be multiplied with the gain,
+        and if available, the corresponding unit is returned.
+        See the `audiometadata.find_key()` function for details.
+    sep: str
+        String that separates section names in `gainkey`.
+
+    Returns
+    -------
+    fac: float
+        Gain factor.
+    unit: string
+        Unit of the data if found in the metadata, otherwise "a.u.".
+    """
+    unit = 'a.u.'
+    fac = 1.0
+    if not isinstance(gainkey, (list, tuple, np.ndarray)):
+        gainkey = (gainkey,)
+    gainkey = [gk for gk in gainkey if gk]
+    if len(gainkey) > 0:
+        for gk in gainkey:
+            m, k = find_key(metadata, gk, sep)
+            if k in m:
+                gs = m[k]
+                v, u, _ = parse_number(gs)
+                fac = v
+                if u:
+                    unit = u
+                break
+    return fac, unit
+
+
+def load_audioio(filepath, verbose=0,
+                 gainkey=['gain', 'scale', 'unit'], sep='__'):
+    """Load data from an audio file.
+
+    See the
+    [`load_audio()`](https://bendalab.github.io/audioio/api/audioloader.html#audioio.audioloader.load_audio)
+    function of the [audioio](https://github.com/bendalab/audioio)
+    package for more infos.
+
+    Parameters
+    ----------
+    filepath: str
+        Path of the file to load.
+    verbose: int
+        If > 0 show detailed error/warning messages.
+    gainkey: str or list of str
+        Key in the file's metadata that holds some gain information.
+        If found, the data will be multiplied with the gain,
+        and if available, the corresponding unit is returned.
+        See the [audioio.get_gain()](https://bendalab.github.io/audioio/api/audiometadata.html#audioio.audiometadata.get_gain) function for details.
+    sep: str
+        String that separates section names in `gainkey`.
+
+    Returns
+    -------
+    data: 2-D array of floats
+        All data traces as an 2-D numpy array, even for single channel data.
+        First dimension is time, second is channel.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data if found in the metadata (see `gainkey`),
+        otherwise "a.u.".
+    """
+    # get gain:
+    md = audioio_metadata(filepath, False)
+    fac, unit = get_gain(md, gainkey, sep)
+    # load data:
+    data, samplerate = load_audio(filepath, verbose)
+    if fac != 1.0:
+        data *= fac
+    return data, samplerate, unit
+
     
 def load_data(filepath, verbose=0, **kwargs):
     """Load time-series data from a file.
@@ -982,8 +1069,7 @@ def load_data(filepath, verbose=0, **kwargs):
             print_verbose(verbose, data, rate, unit, filepath, 'container')
             return data, rate, unit
         else:
-            data, samplerate = load_audio(filepath, verbose)
-            unit = 'a.u.'
+            data, rate, unit = load_audioio(filepath, verbose, **kwargs)
             return data, samplerate, unit
 
 
@@ -1051,7 +1137,7 @@ class DataLoader(AudioLoader):
     """Buffered reading of time-series data for random access of the data in the file.
     
     This allows for reading very large data files that do not fit into
-    memory.  An `DataLoader` instance can be used like a huge
+    memory.  A `DataLoader` instance can be used like a huge
     read-only numpy array, i.e.
     ```
     data = DataLoader('path/to/data/file.dat')
@@ -1065,16 +1151,16 @@ class DataLoader(AudioLoader):
 
     Supported file formats are
 
+    - audio files via `audioio` package
     - relacs trace*.raw files (www.relacs.net)
     - fishgrid traces-*.raw files
-    - audio files via `audioio` package
 
     Reading sequentially through the file is always possible. If
     previous data are requested, then the file is read from the
     beginning. This might slow down access to previous data
     considerably. Use the `backsize` argument to the open functions to
     make sure some data are loaded before the requested frame. Then a
-    subsequent access to the data within backsize seconds before that
+    subsequent access to the data within `backsize` seconds before that
     frame can still be handled without the need to reread the file
     from the beginning.
 
@@ -1082,7 +1168,7 @@ class DataLoader(AudioLoader):
     ------
     ```
     import thunderfish.dataloader as dl
-    with dl.open_data(filepath, 60.0, 10.0) as data:
+    with dl.DataLoader(filepath, 60.0, 10.0) as data:
         # do something with the content of the file:
         x = data[0:10000,0]
         y = data[10000:20000,0]
@@ -1413,9 +1499,66 @@ class DataLoader(AudioLoader):
             pass
         return self._locs, self._labels
 
+    
+    # audioio interface:        
+    def open_audioio(self, file_path, buffersize=10.0, backsize=0.0,
+                     verbose=0, gainkey=['gain', 'scale', 'unit'], sep='__'):
+        """Open an audio file.
 
+        See the [audioio](https://github.com/bendalab/audioio) package
+        for details.
+
+        Parameters
+        ----------
+        file_path: string
+            Path to an audio file.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index
+            in seconds.
+        verbose: int
+            If > 0 show detailed error/warning messages.
+        gainkey: str or list of str
+            Key in the file's metadata that holds some gain information.
+            If found, the data will be multiplied with the gain,
+            and if available, the corresponding unit is returned.
+            See the [audioio.get_gain()](https://bendalab.github.io/audioio/api/audiometadata.html#audioio.audiometadata.get_gain) function for details.
+        sep: str
+            String that separates section names in `gainkey`.
+
+        """
+        self.verbose = verbose
+        md = self.metadata(False)
+        fac, unit = get_gain(md, gainkey, sep)
+        super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
+        self.gain_fac = fac
+        if self.gain_fac != 1.0:
+            self._load_buffer_audio_org = self.load_buffer
+            self.load_buffer = self._load_buffer_audio
+        self.ampl_min *= self.gain_fac
+        self.ampl_max *= self.gain_fac
+        self.unit = unit
+        return self
+    
+    def _load_buffer_audioio(self, r_offset, r_size, buffer):
+        """Load and scale new data from an audio file.
+
+        Parameters
+        ----------
+        r_offset: int
+           First frame to be read from file.
+        r_size: int
+           Number of frames to be read from file.
+        buffer: ndarray
+           Buffer where to store the loaded data.
+        """
+        self._load_buffer_audio_org(self, r_offset, r_size, buffer)
+        buffer *= self.gain_fac
+
+        
     def open(self, filepath, buffersize=10.0, backsize=0.0,
-             verbose=0):
+             verbose=0, **kwargs):
         """Open file with time-series data for reading.
 
         Parameters
@@ -1425,9 +1568,13 @@ class DataLoader(AudioLoader):
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
-            Part of the buffer to be loaded before the requested start index in seconds.
+            Part of the buffer to be loaded before the requested start index
+            in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
+        **kwargs: dict
+            Further keyword arguments that are passed on to the 
+            format specific opening functions.
         """
         if check_relacs(filepath):
             self.open_relacs(filepath, buffersize, backsize, verbose)
@@ -1438,8 +1585,8 @@ class DataLoader(AudioLoader):
                 filepath = filepath[0]
             if check_container(filepath):
                 raise ValueError('file format not supported')
-            super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
-            self.unit = 'a.u.'
+            self.open_audioio(file_path, buffersize, backsize,
+                              verbose, **kwargs)
         return self
 
 
