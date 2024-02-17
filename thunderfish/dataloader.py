@@ -69,7 +69,7 @@ try:
 except ImportError:
     pass
 from audioio import load_audio, AudioLoader, unflatten_metadata
-from audioio import find_key, parse_number
+from audioio import get_gain
 from audioio import metadata as audioio_metadata
 from audioio import markers as audioio_markers
 
@@ -917,48 +917,6 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
         if len(metadata) > 0:
             return unflatten_metadata(metadata)
     return metadata
-
-
-def get_gain(metadata, gainkey=['gain', 'scale', 'unit'], sep='__'):
-    """Get gain and unit from metadata.
-
-    TODO: this should go to the audioio package.
-
-    Parameters
-    ----------
-    metadata: nested dict
-        Metadata with key-value pairs.
-    gainkey: str or list of str
-        Key in the file's metadata that holds some gain information.
-        If found, the data will be multiplied with the gain,
-        and if available, the corresponding unit is returned.
-        See the `audiometadata.find_key()` function for details.
-    sep: str
-        String that separates section names in `gainkey`.
-
-    Returns
-    -------
-    fac: float
-        Gain factor.
-    unit: string
-        Unit of the data if found in the metadata, otherwise "a.u.".
-    """
-    unit = 'a.u.'
-    fac = 1.0
-    if not isinstance(gainkey, (list, tuple, np.ndarray)):
-        gainkey = (gainkey,)
-    gainkey = [gk for gk in gainkey if gk]
-    if len(gainkey) > 0:
-        for gk in gainkey:
-            m, k = find_key(metadata, gk, sep)
-            if k in m:
-                gs = m[k]
-                v, u, _ = parse_number(gs)
-                fac = v
-                if u:
-                    unit = u
-                break
-    return fac, unit
 
 
 def load_audioio(filepath, verbose=0,
