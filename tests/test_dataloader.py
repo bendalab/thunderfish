@@ -90,12 +90,12 @@ def test_container():
     os.remove(filename)
     
 
-def check_reading(filename, data, fac=1, skip=0):
+def check_reading(filename, data, fac=1):
     tolerance = fac*2.0**(-15)
 
     # load full data:
     full_data, rate, unit = dl.load_data(filename)
-    assert_true(np.all(np.abs(data[:len(data)-skip, :] - full_data)<tolerance), 'full load failed')
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full load failed')
 
     # load on demand:
     data = dl.DataLoader(filename, 10.0, 2.0)
@@ -136,17 +136,25 @@ def check_reading(filename, data, fac=1, skip=0):
 @with_setup(None, remove_relacs_files)
 def test_relacs():
     data, samplerate, info = generate_data()
+    data *= 1.41
     dw.write_metadata_text(sys.stdout, info)
     dw.write_relacs(relacs_path, data, samplerate, metadata=info)
     dl.metadata_relacs(relacs_path + '/info.dat')
-    check_reading(relacs_path, data, skip=2)  # TODO: WHY SKIP 2?
+    check_reading(relacs_path, data, 1.4)
+    remove_relacs_files()
+    dw.write_relacs(relacs_path, data[:,0], samplerate, metadata=info)
+    check_reading(relacs_path, data[:,:1], 1.4)
 
 
 @with_setup(None, remove_fishgrid_files)
 def test_fishgrid():
     data, samplerate, info = generate_data()
+    data *= 1.41
     dw.write_fishgrid(fishgrid_path, data, samplerate, metadata=info)
-    check_reading(fishgrid_path, data, skip=2)  # TODO: WHY SKIP 2?
+    check_reading(fishgrid_path, data, 1.4)
+    remove_fishgrid_files()
+    dw.write_fishgrid(fishgrid_path, data[:,0], samplerate, metadata=info)
+    check_reading(fishgrid_path, data[:,:1], 1.4)
 
     
 def test_audioio():

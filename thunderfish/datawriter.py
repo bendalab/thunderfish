@@ -181,19 +181,23 @@ def write_relacs(filepath, data, samplerate, unit=None,
         encoding = 'FLOAT'
     if encoding.upper() != 'FLOAT':
         raise ValueError(f'file encoding {format} not supported by relacs file format')
-    os.mkdir(filepath)
+    if not os.path.exists(filepath):
+        os.mkdir(filepath)
     # write data:
-    for c in range(data.shape[1]):
-        df = open(os.path.join(filepath, f'trace-{c+1}.raw'), 'wb')
-        df.write(np.array(data[:, c], dtype=np.float32).tostring())
-        df.close()
+    if data.ndim == 1:
+        with open(os.path.join(filepath, f'trace-1.raw'), 'wb') as df:
+            df.write(data.astype(np.float32).tobytes())
+    else:
+        for c in range(data.shape[1]):
+            with open(os.path.join(filepath, f'trace-{c+1}.raw'), 'wb') as df:
+                df.write(data[:,c].astype(np.float32).tobytes())
     if unit is None:
         unit = 'V'
     # write data format:
     filename = os.path.join(filepath, 'stimuli.dat')
     df = open(filename, 'w')
     df.write('# analog input traces:\n')
-    for c in range(data.shape[1]):
+    for c in range(data.shape[1] if data.ndim > 1 else 1):
         df.write(f'#     identifier{c+1}      : V-{c+1}\n')
         df.write(f'#     data file{c+1}       : trace-{{c+1}}.raw\n')
         df.write(f'#     sample interval{c+1} : {1000.0/samplerate:.4f}ms\n')
@@ -302,21 +306,24 @@ def write_fishgrid(filepath, data, samplerate, unit=None, metadata=None,
         encoding = 'FLOAT'
     if encoding.upper() != 'FLOAT':
         raise ValueError(f'file encoding {format} not supported by fishgrid file format')
-    os.mkdir(filepath)
+    if not os.path.exists(filepath):
+        os.mkdir(filepath)
     # write data:
-    df = open(os.path.join(filepath, 'traces-grid1.raw'), 'wb')
-    df.write(np.array(data, dtype=np.float32).tostring())
-    df.close()
+    with open(os.path.join(filepath, 'traces-grid1.raw'), 'wb') as df:
+        df.write(data.astype(np.float32).tobytes())
     # write metadata:
     if unit is None:
         unit = 'mV'
     filename = os.path.join(filepath, 'fishgrid.cfg')
+    nchannels = data.shape[1] if data.ndim > 1 else 1
+    ncols = int(np.ceil(np.sqrt(nchannels)))
+    nrows = int(np.ceil(nchannels/ncols))
     df = open(filename, 'w')
     df.write('*FishGrid\n')
     df.write('  Grid &1\n')
     df.write('     Used1      : true\n')
-    df.write('     Columns    : 2\n')
-    df.write(f'     Rows       : {data.shape[1]//2}\n')
+    df.write(f'     Columns    : {ncols}\n')
+    df.write(f'     Rows       : {nrows}\n')
     df.write('  Hardware Settings\n')
     df.write('    DAQ board:\n')
     df.write(f'      AISampleRate: {0.001*samplerate:.3f}kHz\n')

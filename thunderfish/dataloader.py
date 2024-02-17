@@ -383,16 +383,17 @@ def load_relacs(file_paths):
     nrows = 0
     samplerate = None
     unit = ""
-    for n, path in enumerate(file_paths):
+    for c, path in enumerate(sorted(file_paths)):
         if path[-3:] == '.gz':
             with gzip.open(path, 'rb') as sf:
                 x = np.frombuffer(sf.read(), dtype=np.float32)
         else:
             x = np.fromfile(path, np.float32)
         if data is None:
-            nrows = len(x)-2
-            data = np.empty((nrows, nchannels))
-        data[:,n] = x[:nrows]
+            nrows = len(x)
+            data = np.zeros((nrows, nchannels))
+        n = min(len(x), nrows)
+        data[:n,c] = x[:n]
         # retrieve sampling rate and unit:
         rate, us = relacs_samplerate_unit(path)
         if samplerate is None:
@@ -640,7 +641,7 @@ def fishgrid_files(file_paths, grid_sizes):
         bn = os.path.basename(path)
         if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
             raise ValueError(f'invalid name {path} of fishgrid traces file')
-    return file_paths
+    return sorted(file_paths)
 
         
 def load_fishgrid(file_paths):
@@ -677,7 +678,7 @@ def load_fishgrid(file_paths):
         nchannels += grid_sizes[g]
     data = None
     nrows = 0
-    n = 0
+    c = 0
     samplerate = None
     if len(file_paths) > 0:
         samplerate = fishgrid_samplerate(file_paths[0])
@@ -685,9 +686,11 @@ def load_fishgrid(file_paths):
     for path, channels in zip(file_paths, grid_channels):
         x = np.fromfile(path, np.float32).reshape((-1, channels))
         if data is None:
-            nrows = len(x)-2
-            data = np.empty((nrows, nchannels))
-        data[:,n:n+channels] = x[:nrows,:]
+            nrows = len(x)
+            data = np.zeros((nrows, nchannels))
+        n = min(len(x), nrows)
+        data[:n,c:c+channels] = x[:n,:]
+        c += channels
     return data, samplerate, unit
 
 
@@ -1241,7 +1244,7 @@ class DataLoader(AudioLoader):
         self.filepath = None
         if len(file_paths) > 0:
             self.filepath = os.path.dirname(file_paths[0])
-        for path in file_paths:
+        for path in sorted(file_paths):
             if path[-3:] == '.gz':
                 raise ValueError('.gz files not supported')
             file = open(path, 'rb')
