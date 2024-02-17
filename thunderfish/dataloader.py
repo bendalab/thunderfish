@@ -1487,13 +1487,13 @@ class DataLoader(AudioLoader):
 
         """
         self.verbose = verbose
+        super(DataLoader, self).open(file_path, buffersize, backsize, verbose)
         md = self.metadata(False)
         fac, unit = get_gain(md, gainkey, sep)
-        super(DataLoader, self).open(filepath, buffersize, backsize, verbose)
         self.gain_fac = fac
         if self.gain_fac != 1.0:
             self._load_buffer_audio_org = self.load_buffer
-            self.load_buffer = self._load_buffer_audio
+            self.load_buffer = self._load_buffer_audioio
         self.ampl_min *= self.gain_fac
         self.ampl_max *= self.gain_fac
         self.unit = unit
@@ -1511,7 +1511,7 @@ class DataLoader(AudioLoader):
         buffer: ndarray
            Buffer where to store the loaded data.
         """
-        self._load_buffer_audio_org(self, r_offset, r_size, buffer)
+        self._load_buffer_audio_org(r_offset, r_size, buffer)
         buffer *= self.gain_fac
 
         
@@ -1543,7 +1543,7 @@ class DataLoader(AudioLoader):
                 filepath = filepath[0]
             if check_container(filepath):
                 raise ValueError('file format not supported')
-            self.open_audioio(file_path, buffersize, backsize,
+            self.open_audioio(filepath, buffersize, backsize,
                               verbose, **kwargs)
         return self
 
