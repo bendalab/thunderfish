@@ -152,7 +152,15 @@ def test_audioio():
     data, samplerate, info = generate_data()
     filename = dw.write_audioio('test.wav', data, samplerate, metadata=info)
     full_data, rate, unit = dl.load_data(filename)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full audio load failed')
+    os.remove(filename)
+
+    info['gain'] = '42mV'
+    data *= 42
+    filename = dw.write_audioio('test.wav', data, samplerate, metadata=info)
+    full_data, rate, unit = dl.load_data(filename)
+    assert_equal(unit, 'mV')
+    assert_true(np.all(np.abs(data - full_data)<42*tolerance), 'scaled audio load failed')
     os.remove(filename)
     
 def test_main():

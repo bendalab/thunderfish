@@ -25,7 +25,7 @@ on demand. `data` can be used like a read-only numpy array of floats.
 - python pickle files
 - numpy .npz files
 - matlab .mat files
-- audio files via `audioio` package
+- audio files via [`audioio`](https://github.com/bendalab/audioio) package
 - relacs trace*.raw files (https://www.relacs.net)
 - fishgrid traces-*.raw files (https://github.com/bendalab/fishgrid)
 
@@ -49,7 +49,7 @@ the 2-D array `locs`) and label and text strings (in the 2-D array
 locs, labels = markers('data.wav')
 ```
 
-## Aditional functions
+## Aditional, format specific functions
 
 - `relacs_samplerate_unit()`: retrieve sampling rate and unit from a relacs stimuli.dat file.
 - `relacs_header()`: read key-value pairs from relacs *.dat file headers.
@@ -907,7 +907,7 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
     # collect all keys starting with metadatakey:
     metadata = {}
     for mkey in metadatakey:
-        mkey += '.'
+        mkey += '__'
         for dkey in data:
             if dkey[:len(mkey)] == mkey:
                 v = data[dkey]
@@ -915,7 +915,7 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
                     v = v.item()
                 metadata[dkey[len(mkey):]] = v
         if len(metadata) > 0:
-            return unflatten_metadata(metadata)
+            return unflatten_metadata(metadata, sep='__')
     return metadata
 
 
@@ -925,7 +925,7 @@ def load_audioio(filepath, verbose=0,
 
     See the
     [`load_audio()`](https://bendalab.github.io/audioio/api/audioloader.html#audioio.audioloader.load_audio)
-    function of the [audioio](https://github.com/bendalab/audioio)
+    function of the [`audioio`](https://github.com/bendalab/audioio)
     package for more infos.
 
     Parameters

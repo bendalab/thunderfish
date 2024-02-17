@@ -36,6 +36,7 @@ except ImportError:
 
 try:
     import audioio.audiowriter as aw
+    import audioio.audiometadata as am
     from audioio import write_metadata_text, flatten_metadata
     data_modules['audioio'] = True
 except ImportError:
@@ -146,7 +147,7 @@ def write_relacs(filepath, data, samplerate, unit=None,
     filepath: string
         Full path of folder where to write relacs files.
     data: 1-D or 2-D array of floats
-        Array with the data (first index time, second index channel).
+        Array with the data (first index time, optional second index channel).
     samplerate: float
         Sampling rate of the data in Hertz.
     unit: string
@@ -267,7 +268,7 @@ def write_fishgrid(filepath, data, samplerate, unit=None, metadata=None,
     filepath: string
         Full path of the folder where to write fishgrid files.
     data: 1-D or 2-D array of floats
-        Array with the data (first index time, second index channel).
+        Array with the data (first index time, optional second index channel).
     samplerate: float
         Sampling rate of the data in Hertz.
     unit: string
@@ -377,13 +378,17 @@ def write_pickle(filepath, data, samplerate, unit=None, metadata=None,
     filepath: string
         Full path and name of the file to write.
     data: 1-D or 2-D array of floats
-        Array with the data (first index time, second index channel).
+        Array with the data (first index time, optional second index channel).
+        Stored under the key "data".
     samplerate: float
         Sampling rate of the data in Hertz.
+        Stored under the key "rate".
     unit: string
         Unit of the data.
+        Stored under the key "unit".
     metadata: nested dict
         Additional metadata saved into the pickle.
+        Stored under the key "metadata".
     format: string or None
         File format, only None or 'PKL' are supported.
     encoding: string or None
@@ -478,13 +483,18 @@ def write_numpy(filepath, data, samplerate, unit=None, metadata=None,
     filepath: string
         Full path and name of the file to write.
     data: 1-D or 2-D array of floats
-        Array with the data (first index time, second index channel).
+        Array with the data (first index time, optional second index channel).
+        Stored under the key "data".
     samplerate: float
         Sampling rate of the data in Hertz.
+        Stored under the key "rate".
     unit: string
         Unit of the data.
+        Stored under the key "unit".
     metadata: nested dict
         Additional metadata saved into the numpy file.
+        Flattened dictionary entries stored under keys
+        starting with "metadata__".
     format: string or None
         File format, only None or 'NPZ' are supported.
     encoding: string or None
@@ -525,12 +535,9 @@ def write_numpy(filepath, data, samplerate, unit=None, metadata=None,
     if unit:
         ddict['unit'] = unit
     if metadata:
-        if data_modules['audioio']:
-            fmeta = flatten_metadata(metadata, True)
-        else:
-            fmeta = metadata
+        fmeta = flatten_metadata(metadata, True, sep='__')
         for k in list(fmeta):
-            fmeta['metadata.'+k] = fmeta.pop(k)
+            fmeta['metadata__'+k] = fmeta.pop(k)
         ddict.update(fmeta)
     np.savez(filepath, **ddict)
     return filepath
@@ -583,14 +590,19 @@ def write_mat(filepath, data, samplerate, unit=None, metadata=None,
     ----------
     filepath: string
         Full path and name of the file to write.
+        Stored under the key "data".
     data: 1-D or 2-D array of floats
-        Array with the data (first index time, second index channel).
+        Array with the data (first index time, optional second index channel).
+        Stored under the key "data".
     samplerate: float
         Sampling rate of the data in Hertz.
+        Stored under the key "rate".
     unit: string
         Unit of the data.
+        Stored under the key "unit".
     metadata: nested dict
         Additional metadata saved into the mat file.
+        Stored under the key "metadata".
     format: string or None
         File format, only None or 'MAT' are supported.
     encoding: string or None
@@ -631,12 +643,9 @@ def write_mat(filepath, data, samplerate, unit=None, metadata=None,
     if unit:
         ddict['unit'] = unit
     if metadata:
-        if data_modules['audioio']:
-            fmeta = flatten_metadata(metadata, True)
-        else:
-            fmeta = metadata
+        fmeta = flatten_metadata(metadata, True, sep='__')
         for k in list(fmeta):
-            fmeta['metadata.'+k] = fmeta.pop(k)
+            fmeta['metadata__'+k] = fmeta.pop(k)
         ddict.update(fmeta)
     sio.savemat(filepath, ddict)
     return filepath
@@ -676,8 +685,16 @@ def encodings_audio(format):
 
 
 def write_audioio(filepath, data, samplerate, unit=None, metadata=None,
-                  format=None, encoding=None):
+                  format=None, encoding=None,
+                  gainkey=['Gain', 'Scale', 'Unit'], sep='__'):
     """Write data into audio file.
+
+    If a gain setting is available in the metadata, then the data are divided
+    by the gain before they are stored in the audio file.
+    After this operation, the data values need to range between -1 and 1,
+    in particular if the data are encoded as integers
+    (i.e. PCM_16, PCM_32 and PCM_64).
+    Note, that this function does not check for this requirement!
     
     Documentation
     -------------
@@ -688,14 +705,31 @@ def write_audioio(filepath, data, samplerate, unit=None, metadata=None,
     filepath: string
         Full path and name of the file to write.
     data: 1-D or 2-D array of floats
-        Array with the data (first index time, second index channel).
+        Array with the data (first index time, optional second index channel).
     samplerate: float
         Sampling rate of the data in Hertz.
     unit: string
-        Unit of the data.
-        Currently ignored.
+        Unit of the data. If supplied and a gain is found in the metadata it
+        has to match the unit of the gain. If no gain is found in the metadata
+        and metadata is not None, then a gain of one with this unit is added
+        to the metadata using the first key in `gainkey`.
     metadata: nested dict
-        Additional metadata saved into the audio file.
+        Metadata saved into the audio file. If it contains a gain,
+        the gain factor is used to divide the data down into a
+        range between -1 and 1.
+    format: string or None
+        File format. If None deduce file format from filepath.
+        See `available_formats()` for possible values.
+    encoding: string or None
+        Encoding of the data. See `available_encodings()` for possible values.
+        If None or empty string use 'PCM_16'.
+    gainkey: str or list of str
+        Key in the file's metadata that holds some gain information.
+        If found, the data will be multiplied with the gain,
+        and if available, the corresponding unit is returned.
+        See the [audioio.get_gain()](https://bendalab.github.io/audioio/api/audiometadata.html#audioio.audiometadata.get_gain) function for details.
+    sep: str
+        String that separates section names in `gainkey`.
 
     Returns
     -------
@@ -707,12 +741,26 @@ def write_audioio(filepath, data, samplerate, unit=None, metadata=None,
     ImportError
         The audioio module is not available.
     ValueError
-        Invalid `filepath`.
+        Invalid `filepath` or `unit` does not match gain in metadata.
     """
     if not data_modules['audioio']:
         raise ImportError
     if not filepath:
         raise ValueError('no file specified!')
+    fac, u = am.get_gain(metadata, gainkey, sep)
+    if unit and unit != 'a.u.' and u != 'a.u.' and unit != u:
+        raise ValueError(f'unit "{unit}" does not match gain unit "{u}" in metadata')
+    if fac != 1.0:
+        data = data / fac
+    elif not metadata is None and unit and unit != 'a.u.':
+        gk = gainkey[0] if len(gainkey) > 0 else 'Gain'
+        m, k = am.find_key(metadata, gk)
+        if k in m:
+            m[k] = f'1{unit}'
+        elif 'INFO' in metadata and gk.upper() == 'GAIN':
+            metadata['INFO'][gk] = f'1{unit}'
+        else:
+            metadata[gk] = f'1{unit}'
     aw.write_audio(filepath, data, samplerate, metadata)
     return filepath
 
@@ -797,7 +845,7 @@ function.
 
 
 def write_data(filepath, data, samplerate, unit=None, metadata=None,
-               format=None, encoding=None, verbose=0):
+               format=None, encoding=None, verbose=0, **kwargs):
     """Write data into a file.
 
     Parameters
@@ -821,6 +869,8 @@ def write_data(filepath, data, samplerate, unit=None, metadata=None,
         If None or empty string use 'PCM_16'.
     verbose: int
         If >0 show detailed error/warning messages.
+    kwargs: dict
+        Additional, file format specific keyword arguments.
 
     Returns
     -------
@@ -861,11 +911,11 @@ def write_data(filepath, data, samplerate, unit=None, metadata=None,
         if format.upper() in formats_func():
             writer_func = data_writer_funcs[fmt]
             filepath = writer_func(filepath, data, samplerate, unit, metadata,
-                                   format=format, encoding=encoding)
+                                   format=format, encoding=encoding, **kwargs)
             if verbose > 0:
                 print(f'wrote data to file "{filepath}" using {fmt} format')
                 if verbose > 1:
-                    print(f'  sampling rate: {samplerate:g} Hz')
+                    print(f'  sampling rate: {samplerate:g}Hz')
                     print(f'  channels     : {data.shape[1] if len(data.shape) > 1 else 1}')
                     print(f'  frames       : {len(data)}')
                     print(f'  unit         : {unit}')
