@@ -328,8 +328,6 @@ def write_fishgrid(filepath, data, samplerate, unit=None, metadata=None,
     df.write('    DAQ board:\n')
     df.write(f'      AISampleRate: {0.001*samplerate:.3f}kHz\n')
     df.write(f'      AIMaxVolt   : 10.0{unit}\n')
-    df.write('    Amplifier:\n')
-    df.write('      AmplName: "16-channel-EPM-module"\n')
     if metadata:
         df.write('*Recording\n')
         write_metadata_text(df, metadata, prefix='  ')

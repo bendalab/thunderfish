@@ -120,15 +120,16 @@ def relacs_samplerate_unit(filepath, channel=0):
     if os.path.isfile(stimuli_file + '.gz'):
         stimuli_file += '.gz'
     if stimuli_file[-3:] == '.gz':
-        with gzip.open(stimuli_file, 'r') as sf:
+        with gzip.open(stimuli_file, 'r', encoding='latin-1') as sf:
             for line in sf:
-                line = line.decode('latin-1').strip()
+                line = line.strip()
                 if len(line) == 0 or line[0] != '#':
                     break
                 lines.append(line)
     else:
         with open(stimuli_file, 'r', encoding='latin-1') as sf:
             for line in sf:
+                line = line.strip()
                 if len(line) == 0 or line[0] != '#':
                     break
                 lines.append(line)
@@ -188,15 +189,16 @@ def relacs_header(filepath, store_empty=False, first_only=False,
     if os.path.isfile(filepath + '.gz'):
         filepath += '.gz'
     if filepath[-3:] == '.gz':
-        with gzip.open(filepath, 'r') as sf:
+        with gzip.open(filepath, 'r', encoding='latin-1') as sf:
             for line in sf:
-                line = line.decode('latin-1')
+                line = line.strip()
                 if len(line) == 0 or line[0] != '#':
                     break
                 lines.append(line)
     else:
         with open(filepath, 'r', encoding='latin-1') as sf:
             for line in sf:
+                line = line.strip()
                 if len(line) == 0 or line[0] != '#':
                     break
                 lines.append(line)
@@ -207,8 +209,6 @@ def relacs_header(filepath, store_empty=False, first_only=False,
     ident_offs = None
     ident = None
     for line in lines:
-        if len(line) == 0 or line[0] != '#':
-            break
         words = line.split(':')
         value = ':'.join(words[1:]).strip() if len(words) > 1 else ''
         if len(words) >= 1:
@@ -694,27 +694,13 @@ def load_fishgrid(file_paths):
     return data, samplerate, unit
 
 
-def metadata_fishgrid(filepath, store_empty=False, first_only=False,
-                      lower_keys=False, flat=False, add_sections=False):
+def metadata_fishgrid(filepath):
     """ Read meta-data of a fishgrid data set.
 
     Parameters
     ----------
     filepath: string
         A fishgrid data directory or a file therein.
-    store_empty: bool
-        If `False` do not add meta data with empty values.
-    first_only: bool
-        If `False` only store the first element of a list.
-    lower_keys: bool
-        Make all keys lower case.
-    flat: bool
-        Do not make a nested dictionary.
-        Use this option also to read in very old relacs metadata with
-        ragged left alignment.
-    add_sections: bool
-        If `True`, prepend keys with sections names separated by
-        '.' to make them unique.
 
     Returns
     -------
@@ -722,16 +708,78 @@ def metadata_fishgrid(filepath, store_empty=False, first_only=False,
         Nested dictionary with key-value pairs of the meta data.
     """
     path = filepath
-    if isinstance(filepaths, (list, tuple, np.ndarray)):
+    if isinstance(filepath, (list, tuple, np.ndarray)):
         path = filepath[0]
-    relacs_dir = path
-    if not os.path.isdir(path):
-        relacs_dir = os.path.dirname(path)
-    info_path = os.path.join(relacs_dir, 'fishgrid.cfg')
-    if not os.path.exists(info_path):
-        return dict(), []
-    data = relacs_header(info_path, store_empty, first_only,
-                         lower_keys, flat, add_sections)
+    if os.path.isdir(path):
+        path = os.path.join(path, 'fishgrid.cfg')
+    # read in header from file:
+    lines = []
+    if os.path.isfile(path + '.gz'):
+        info_path += '.gz'
+    if not os.path.exists(path):
+        return {}
+    if path[-3:] == '.gz':
+        with gzip.open(path, 'r', encoding='latin-1') as sf:
+            for line in sf:
+                lines.append(line)
+    else:
+        with open(path, 'r', encoding='latin-1') as sf:
+            for line in sf:
+                lines.append(line)
+    # parse:
+    data = {}
+    cdatas = [data]
+    ident_offs = None
+    ident = None
+    old_style = False
+    for line in lines:
+        if len(line.strip()) == 0:
+            continue
+        if line[0] == '*':
+            key = line[1:].strip()
+            data[key] = {}
+            cdatas = [data, data[key]]
+        elif '----' in line:
+            old_style = True
+            key = line.strip().strip(' -').replace('&', '')
+            if key.upper() == 'SETUP':
+                key = 'Grid 1'
+            cdatas = cdatas[:2]
+            cdatas[1][key] = {}
+            cdatas.append(cdatas[1][key])
+        else:
+            words = line.split(':')
+            if len(words) > 1:
+                key = words[0].strip().strip('"')
+                value = ':'.join(words[1:]).strip().strip('"')
+                if old_style:
+                    cdatas[-1][key] = value
+                else:
+                    # get section level:
+                    level = 0
+                    nident = len(line) - len(line.lstrip())
+                    if ident_offs is None:
+                        ident_offs = nident
+                    elif ident is None:
+                        if nident > ident_offs:
+                            ident = nident - ident_offs
+                            level = 1
+                    else:
+                        level = (nident - ident_offs)//ident
+                    # close sections:
+                    cdatas = cdatas[:level+2]
+                    if len(value) == 0:
+                        # new section:
+                        cdatas[-1][key] = {}
+                        cdatas.append(cdatas[-1][key])
+                    else:
+                        # key-value pair:
+                        cdatas[-1][key] = value
+            elif old_style:
+                key = line.strip()
+                cdatas = cdatas[:3]
+                cdatas[2][key] = {}
+                cdatas.append(cdatas[2][key])            
     return data
 
 
