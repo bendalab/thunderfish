@@ -53,7 +53,6 @@ locs, labels = markers('data.wav')
 
 - `relacs_samplerate_unit()`: retrieve sampling rate and unit from a relacs stimuli.dat file.
 - `relacs_header()`: read key-value pairs from relacs *.dat file headers.
-- `fishgrid_samplerate()`: retrieve the sampling rate from a fishgrid.cfg file.
 - `fishgrid_grids()`: retrieve grid sizes from a fishgrid.cfg file.
 - `fishgrid_spacings()`: spacing between grid electrodes.
 
@@ -69,7 +68,7 @@ try:
 except ImportError:
     pass
 from audioio import load_audio, AudioLoader, unflatten_metadata
-from audioio import get_gain
+from audioio import get_number, get_int, get_bool, get_gain
 from audioio import metadata as audioio_metadata
 from audioio import markers as audioio_markers
 
@@ -448,126 +447,52 @@ def metadata_relacs(filepath, store_empty=False, first_only=False,
     return data
 
 
-def fishgrid_samplerate(filepath):
-    """Retrieve the sampling rate from a fishgrid.cfg file.
-
-    Parameters
-    ----------
-    filepath: string
-        Path to a fishgrid data directory, a file in a fishgrid data
-        directory, or a fishgrid traces-*.raw file.
-
-    Returns
-    -------
-    samplerate: float
-        Sampling rate in Hertz
-
-    Raises
-    ------
-    IOError/FileNotFoundError:
-        If the fishgrid.cfg file does not exist.
-    ValueError:
-        fishgrid.cfg file does not contain sampling rate.
-    """
-    # check for fishgrid data directory:
-    fishgrid_dir = filepath
-    if not os.path.isdir(filepath):
-        fishgrid_dir = os.path.dirname(filepath)
-
-    # retreive sampling rate from fishgrid.cfg file:
-    samplerate = None
-    fishgrid_file = os.path.join(fishgrid_dir, 'fishgrid.cfg')
-    with open(fishgrid_file, 'r') as sf:
-        for line in sf:
-            if "AISampleRate" in line:
-                value = line.split(':')[1].strip()
-                samplerate = float(value.replace('kHz',''))*1000.0
-
-    if samplerate is not None:
-        return samplerate
-    raise ValueError(f'could not retrieve sampling rate from {fishgrid_file}')
-
-
-def fishgrid_spacings(filepath):
+def fishgrid_spacings(metadata, unit='m'):
     """Spacing between grid electrodes.
 
     Parameters
     ----------
-    filepath: string
-        Path to a fishgrid data directory, a file in a fishgrid data
-        directory, or a fishgrid traces-*.raw file.
+    metadata: dict
+        Fishgrid metadata obtained from `metadata_fishgrid()`.
+    unit: str
+        Unit in which to return the spacings.
 
     Returns
     -------
-    grid_dist: list of tuples of floats
-        For each grid the distances between rows and columns.
+    grid_dist: list of tuple of float
+        For each grid the distances between rows and columns in `unit`.
     """
-    fishgrid_dir = filepath
-    if not os.path.isdir(filepath):
-        fishgrid_dir = os.path.dirname(filepath)
-
-    # retreive grids from fishgrid.cfg file:
     grids_dist = []
-    rows_dist = None
-    cols_dist = None
-    fishgrid_file = os.path.join(fishgrid_dir, 'fishgrid.cfg')
-    with open(fishgrid_file, 'r') as sf:
-        for line in sf:
-            if "Grid" in line:
-                if rows_dist is not None and cols_dist is not None:
-                    grids_dist.append((rows_dist, cols_dist))
-                rows_dist = None
-                cols_dist = None
-            elif "ColumnDistance1" in line:
-                cols_dist = int(line.split(':')[1].strip().split('.')[0])
-            elif "RowDistance1" in line:
-                rows_dist = int(line.split(':')[1].strip().split('.')[0])
-        if rows_dist is not None and cols_dist is not None:
-            grids_dist.append((rows_dist, cols_dist))
+    for k in range(4):
+        row_dist = get_number(metadata, unit, f'RowDistance{k+1}', default=0)
+        col_dist = get_number(metadata, unit, f'ColumnDistance{k+1}', default=0)
+        rows = get_int(metadata, f'Rows{k+1}', default=0)
+        cols = get_int(metadata, f'Columns{k+1}', default=0)
+        if get_bool(metadata, f'Used{k+1}', default=False) or \
+           cols > 0 and rows > 0:
+            grids_dist.append((row_dist, col_dist))
     return grids_dist
 
 
-def fishgrid_grids(filepath):
+def fishgrid_grids(metadata):
     """Retrieve grid sizes from a fishgrid.cfg file.
 
     Parameters
     ----------
-    filepath: string
-        path to a fishgrid data directory, a file in a fishgrid data directory,
-        or a fishgrid traces-*.raw file.
+    metadata: dict
+        Fishgrid metadata obtained from `metadata_fishgrid()`.
 
     Returns
     -------
-    grids: list of tuples of ints
+    grids: list of tuple of int
         For each grid the number of rows and columns.
-
-    Raises
-    ------
-    IOError/FileNotFoundError:
-        If the fishgrid.cfg file does not exist.
     """
-    # check for fishgrid data directory:
-    fishgrid_dir = filepath
-    if not os.path.isdir(filepath):
-        fishgrid_dir = os.path.dirname(filepath)
-
-    # retreive grids from fishgrid.cfg file:
     grids = []
-    rows = None
-    cols = None
-    fishgrid_file = os.path.join(fishgrid_dir, 'fishgrid.cfg')
-    with open(fishgrid_file, 'r') as sf:
-        for line in sf:
-            if "Grid" in line:
-                if rows is not None and cols is not None:
-                    grids.append((rows, cols))
-                rows = None
-                cols = None
-            elif "Columns" in line:
-                cols = int(line.split(':')[1].strip())
-            elif "Rows" in line:
-                rows = int(line.split(':')[1].strip())
-        if rows is not None and cols is not None:
+    for k in range(4):
+        rows = get_int(metadata, f'Rows{k+1}', default=0)
+        cols = get_int(metadata, f'Columns{k+1}', default=0)
+        if get_bool(metadata, f'Used{k+1}', default=False) or \
+           cols > 0 and rows > 0:
             grids.append((rows, cols))
     return grids
 
@@ -579,7 +504,7 @@ def check_fishgrid(file_paths):
     ----------
     file_paths: string or list of strings
         Path to a fishgrid data directory, a file in a fishgrid data directory,
-        or fishgrid traces-*.raw files.
+        or fishgrid traces*.raw files.
 
     Returns
     -------
@@ -587,10 +512,10 @@ def check_fishgrid(file_paths):
         If `file_paths` is a single path, then returns `True` if it is a file in
         a valid fishgrid data directory.
         If `file_paths` are more than one path, then returns `True` if `file_paths`
-        are 'trace-*.raw' files in a valid fishgrid data directory.
+        are 'trace*.raw' files in a valid fishgrid data directory.
     """
     path = file_paths
-    # file_paths must be traces-*.raw:
+    # file_paths must be traces*.raw:
     if isinstance(file_paths, (list, tuple, np.ndarray)):
         if len(file_paths) > 1:
             for file in file_paths:
@@ -604,24 +529,28 @@ def check_fishgrid(file_paths):
         fishgrid_dir = os.path.dirname(path)
     # check for a valid fishgrid data directory:
     return (os.path.isfile(os.path.join(fishgrid_dir, 'fishgrid.cfg')) and
-            os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw')))
+            (os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw')) or
+             os.path.isfile(os.path.join(fishgrid_dir, 'traces.raw'))))
 
     
-def fishgrid_files(file_paths, grid_sizes):
-    """Expand file paths for fishgrid data to appropriate traces-*.raw file names.
+def fishgrid_trace_files(file_paths):
+    """Expand file paths for fishgrid data to appropriate traces*.raw file names.
 
     Parameters
     ----------
     file_paths: string or list of strings
         Path to a fishgrid data directory, a file in a fishgrid data directory,
-        or fishgrid traces-*.raw files.
-    grid_sizes: list of int
-        The number of channels of each grid.
+        or fishgrid traces*.raw files.
         
     Returns
     -------
     file_paths: list of strings
-        List of fishgrid traces-*.raw files.
+        List of fishgrid traces*.raw files.
+
+    Raises
+    ------
+    FileNotFoundError:
+        Invalid fishgrid file.
     """
     # find grids:
     if not isinstance(file_paths, (list, tuple, np.ndarray)):
@@ -637,10 +566,14 @@ def fishgrid_files(file_paths, grid_sizes):
                 file_paths.append(file)
             else:
                 break
+        if len(file_paths) == 0:
+            file = os.path.join(fishgrid_dir, f'traces.raw')
+            if os.path.isfile(file):
+                file_paths.append(file)
     for path in file_paths:
         bn = os.path.basename(path)
-        if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
-            raise ValueError(f'invalid name {path} of fishgrid traces file')
+        if len(bn) <= 6 or bn[0:6] != 'traces' or bn[-4:] != '.raw':
+            raise FileNotFoundError(f'invalid name {path} of fishgrid traces file')
     return sorted(file_paths)
 
         
@@ -662,27 +595,31 @@ def load_fishgrid(file_paths):
         Sampling rate of the data in Hz.
     unit: string
         Unit of the data.
+
+    Raises
+    ------
+    FileNotFoundError:
+        Invalid or not existing fishgrid files.
     """
     if not isinstance(file_paths, (list, tuple, np.ndarray)):
         file_paths = [file_paths]
-    grids = fishgrid_grids(file_paths[0])
+    file_paths = fishgrid_trace_files(file_paths)
+    if len(file_paths) == 0:
+        raise FileNotFoundError(f'no fishgrid files specified')
+    md = metadata_fishgrid(file_paths[0])
+    grids = fishgrid_grids(md)
     grid_sizes = [r*c for r,c in grids]
-    file_paths = fishgrid_files(file_paths, grid_sizes)
                 
     # load traces-grid*.raw files:
     grid_channels = []
     nchannels = 0
-    for path in file_paths:
-        g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
+    for g, path in enumerate(file_paths):
         grid_channels.append(grid_sizes[g])
         nchannels += grid_sizes[g]
     data = None
     nrows = 0
     c = 0
-    samplerate = None
-    if len(file_paths) > 0:
-        samplerate = fishgrid_samplerate(file_paths[0])
-    unit = "V"
+    samplerate = get_number(md, 'Hz', 'AISampleRate')
     for path, channels in zip(file_paths, grid_channels):
         x = np.fromfile(path, np.float32).reshape((-1, channels))
         if data is None:
@@ -691,7 +628,8 @@ def load_fishgrid(file_paths):
         n = min(len(x), nrows)
         data[:n,c:c+channels] = x[:n,:]
         c += channels
-    return data, samplerate, unit
+    unit = 'mV'
+    return 1000*data, samplerate, unit
 
 
 def metadata_fishgrid(filepath):
@@ -732,6 +670,7 @@ def metadata_fishgrid(filepath):
     ident_offs = None
     ident = None
     old_style = False
+    grid1 = False
     for line in lines:
         if len(line.strip()) == 0:
             continue
@@ -744,6 +683,7 @@ def metadata_fishgrid(filepath):
             key = line.strip().strip(' -').replace('&', '')
             if key.upper() == 'SETUP':
                 key = 'Grid 1'
+            grid1 = (key == 'Grid 1')
             cdatas = cdatas[:2]
             cdatas[1][key] = {}
             cdatas.append(cdatas[1][key])
@@ -753,6 +693,8 @@ def metadata_fishgrid(filepath):
                 key = words[0].strip().strip('"')
                 value = ':'.join(words[1:]).strip().strip('"')
                 if old_style:
+                    if grid1 and key[-1] != '1':
+                        key = key + '1'
                     cdatas[-1][key] = value
                 else:
                     # get section level:
@@ -1378,7 +1320,8 @@ class DataLoader(AudioLoader):
         """
         # Not implemented yet!
         if self._locs is None:
-            pass
+            self._locs = np.zeros((0, 2), dtype=int)
+            self._labels = np.zeros((0, 2), dtype=object)
         return self._locs, self._labels
 
     
@@ -1406,34 +1349,36 @@ class DataLoader(AudioLoader):
 
         if not isinstance(file_paths, (list, tuple, np.ndarray)):
             file_paths = [file_paths]
-        grids = fishgrid_grids(file_paths[0])
-        grid_sizes = [r*c for r,c in grids]
-        file_paths = fishgrid_files(file_paths, grid_sizes)
+        file_paths = fishgrid_trace_files(file_paths)
         self.filepath = None
         if len(file_paths) > 0:
             self.filepath = os.path.dirname(file_paths[0])
+        self.metadata = self._metadata_fishgrid
 
         # open grid files:
+        grids = fishgrid_grids(self.metadata())
+        grid_sizes = [r*c for r,c in grids]
         self.channels = 0
-        for path in file_paths:
-            g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
+        for g, path in enumerate(file_paths):
             self.channels += grid_sizes[g]
         self.sf = []
         self.grid_channels = []
         self.grid_offs = []
         offs = 0
         self.frames = None
-        self.samplerate = None
-        if len(file_paths) > 0:
-            self.samplerate = fishgrid_samplerate(file_paths[0])
-        self.unit = "V"
-        for path in file_paths:
+        self.samplerate = get_number(self.metadata(), 'Hz', 'AISampleRate')
+        self.unit = 'mV'
+        v = get_number(self.metadata(), self.unit, 'AIMaxVolt')
+        if v is not None:
+            self.ampl_min = -v
+            self.ampl_max = +v
+            
+        for g, path in enumerate(file_paths):
             file = open(path, 'rb')
             self.sf.append(file)
             if verbose > 0:
                 print(f'open_fishgrid(filepath) with filepath={path}')
             # grid channels:
-            g = int(os.path.basename(path)[11:].replace('.raw', '')) - 1
             self.grid_channels.append(grid_sizes[g])
             self.grid_offs.append(offs)
             offs += grid_sizes[g]
@@ -1457,10 +1402,7 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_fishgrid
         self.load_buffer = self._load_buffer_fishgrid
-        self.metadata = self._metadata_fishgrid
         self.markers = self._markers_fishgrid
-        self.ampl_min = -np.inf
-        self.ampl_max = +np.inf
         return self
 
     def _close_fishgrid(self):
@@ -1486,17 +1428,14 @@ class DataLoader(AudioLoader):
         for file, gchannels, goffset in zip(self.sf, self.grid_channels, self.grid_offs):
             file.seek(r_offset*4*gchannels)
             data = file.read(r_size*4*gchannels)
-            buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))
+            buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))*1000
         
 
-    def _metadata_fishgrid(self, store_empty=False, first_only=False):
+    def _metadata_fishgrid(self, store_empty=False):
         """ Read meta-data of a fishgrid data set.
         """
         if self._metadata is None:
-            info_path = os.path.join(self.filepath, 'fishgrid.cfg')
-            if not os.path.exists(info_path):
-                return dict()
-            self._metadata = relacs_header(info_path, store_empty, first_only)
+            self._metadata = metadata_fishgrid(self.filepath)
         return self._metadata
 
 
@@ -1505,7 +1444,8 @@ class DataLoader(AudioLoader):
         """
         # Not implemented yet!
         if self._locs is None:
-            pass
+            self._locs = np.zeros((0, 2), dtype=int)
+            self._labels = np.zeros((0, 2), dtype=object)
         return self._locs, self._labels
 
     
