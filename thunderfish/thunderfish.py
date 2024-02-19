@@ -1273,6 +1273,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         all_data, samplerate, unit = load_data(filename,
                                                verbose=verbose,
                                                **load_kwargs)
+        ampl_max = 1.0   # TODO: load_data needs to return ampl_max!
     except IOError as e:
         return '%s: failed to open file: %s' % (filename, str(e))
     # select channel:
@@ -1294,7 +1295,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         win_pos = cfg.value('windowPosition')
         if time is not None:
             win_pos = time
-        data, idx0, idx1, clipped, min_clip, max_clip = analysis_window(raw_data, samplerate, win_pos,
+        data, idx0, idx1, clipped, min_clip, max_clip = analysis_window(raw_data, samplerate, ampl_max, win_pos,
                                                                         cfg, plot_level>0)
         found_bestwindow = idx1 > 0
         if not found_bestwindow:
@@ -1532,9 +1533,7 @@ def main(cargs=None):
     if args.format != 'auto':
         cfg.set('fileFormat', args.format)
     if args.unwrap:
-        print(cfg.value('unwrapData'))
         cfg.set('unwrapData', not cfg.value('unwrapData'))
-        print(cfg.value('unwrapData'))
         
     # plot parameter:
     spec_plots = 'auto'

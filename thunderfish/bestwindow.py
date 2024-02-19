@@ -631,7 +631,8 @@ def best_window_args(cfg):
                     'expand': 'expandBestWindow'})
 
         
-def analysis_window(data, samplerate, win_pos, cfg, show_bestwindow=False):
+def analysis_window(data, samplerate, ampl_max, win_pos,
+                    cfg, show_bestwindow=False):
     """Set clipping amplitudes and find analysis window.
 
     Parameters
@@ -640,6 +641,8 @@ def analysis_window(data, samplerate, win_pos, cfg, show_bestwindow=False):
         The data to be analyzed.
     samplerate: float
         Sampling rate of the data in Hertz.
+    ampl_max: float
+        Maximum value of input range.
     win_pos: string or float
         Position of the analysis window: "beginning", "center", "end" or "best".
         Alternatively the beginning of the analysis window in seconds.
@@ -670,7 +673,7 @@ def analysis_window(data, samplerate, win_pos, cfg, show_bestwindow=False):
     if min_clip == 0.0 or max_clip == 0.0:
         min_clip, max_clip = clip_amplitudes(data, **clip_args(cfg, samplerate))
     if cfg.value('unwrapData'):
-        unwrap(data)
+        unwrap(data, 1.5, ampl_max)
         min_clip *= 2
         max_clip *= 2
     # window size parameter:

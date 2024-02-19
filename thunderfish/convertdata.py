@@ -183,10 +183,12 @@ def main(*cargs):
             data = np.vstack((data, xdata))
             if args.verbose > 1:
                 print(f'loaded data file "{infile}"')
+        # TODO: we need ampl_max from load_data()!
         data, samplingrate = modify_data(data, samplingrate, md,
                                          channels, args.scale,
                                          args.unwrap_clip,
-                                         args.unwrap, args.decimate)
+                                         args.unwrap, 1.0, '',
+                                         args.decimate)
         add_metadata(md, args.md_list, '.')
         if len(args.remove_keys) > 0:
             remove_metadata(md, args.remove_keys, '.')
