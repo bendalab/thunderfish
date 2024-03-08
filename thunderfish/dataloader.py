@@ -997,9 +997,6 @@ def load_data(filepath, verbose=0, **kwargs):
                 print(f'  unit         : {unit}')
         
     # check values:
-    data = np.array([])
-    samplerate = 0.0
-    unit = ''
     if len(filepath) == 0:
         raise ValueError('input argument filepath is empty string or list.')
 
@@ -1021,7 +1018,7 @@ def load_data(filepath, verbose=0, **kwargs):
             return data, rate, unit
         else:
             data, rate, unit = load_audioio(filepath, verbose, **kwargs)
-            return data, samplerate, unit
+            return data, rate, unit
 
 
 def metadata(filepath, store_empty=False, first_only=False, **kwargs):
