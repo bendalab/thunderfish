@@ -1262,6 +1262,7 @@ class DataLoader(AudioLoader):
                 raise ValueError('unit of traces differ')
         self.channels = len(self.sf)
         self.shape = (self.frames, self.channels)
+        self.size = self.frames * self.channels
         self.ndim = len(self.shape)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
@@ -1392,6 +1393,7 @@ class DataLoader(AudioLoader):
                     self.frames = frames
             file.seek(0)
         self.shape = (self.frames, self.channels)
+        self.size = self.frames * self.channels
         self.ndim = len(self.shape)
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
