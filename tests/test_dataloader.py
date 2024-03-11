@@ -95,7 +95,8 @@ def check_reading(filename, data, fac=1):
 
     # load full data:
     full_data, rate, unit = dl.load_data(filename)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full load failed')
+    assert_true(np.all(data.shape == full_data.shape), 'full load failed: shape')
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full load failed: data')
 
     # load on demand:
     data = dl.DataLoader(filename, 10.0, 2.0)

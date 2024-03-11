@@ -648,6 +648,8 @@ def metadata_fishgrid(filepath):
     path = filepath
     if isinstance(filepath, (list, tuple, np.ndarray)):
         path = filepath[0]
+    if 'trace' in os.path.basename(path):
+        path = os.path.dirname(path)
     if os.path.isdir(path):
         path = os.path.join(path, 'fishgrid.cfg')
     # read in header from file:
@@ -689,39 +691,40 @@ def metadata_fishgrid(filepath):
             cdatas.append(cdatas[1][key])
         else:
             words = line.split(':')
-            if len(words) > 1:
-                key = words[0].strip().strip('"')
+            key = words[0].strip().strip('"')
+            value = None
+            if len(words) > 1 and len(words[1].strip()) > 0:
                 value = ':'.join(words[1:]).strip().strip('"')
-                if old_style:
+            if old_style:
+                if value is None:
+                    cdatas = cdatas[:3]
+                    cdatas[2][key] = {}
+                    cdatas.append(cdatas[2][key])            
+                else:
                     if grid1 and key[-1] != '1':
                         key = key + '1'
                     cdatas[-1][key] = value
+            else:
+                # get section level:
+                level = 0
+                nident = len(line) - len(line.lstrip())
+                if ident_offs is None:
+                    ident_offs = nident
+                elif ident is None:
+                    if nident > ident_offs:
+                        ident = nident - ident_offs
+                        level = 1
                 else:
-                    # get section level:
-                    level = 0
-                    nident = len(line) - len(line.lstrip())
-                    if ident_offs is None:
-                        ident_offs = nident
-                    elif ident is None:
-                        if nident > ident_offs:
-                            ident = nident - ident_offs
-                            level = 1
-                    else:
-                        level = (nident - ident_offs)//ident
-                    # close sections:
-                    cdatas = cdatas[:level+2]
-                    if len(value) == 0:
-                        # new section:
-                        cdatas[-1][key] = {}
-                        cdatas.append(cdatas[-1][key])
-                    else:
-                        # key-value pair:
-                        cdatas[-1][key] = value
-            elif old_style:
-                key = line.strip()
-                cdatas = cdatas[:3]
-                cdatas[2][key] = {}
-                cdatas.append(cdatas[2][key])            
+                    level = (nident - ident_offs)//ident
+                # close sections:
+                cdatas = cdatas[:2 + level]
+                if value is None:
+                    # new section:
+                    cdatas[-1][key] = {}
+                    cdatas.append(cdatas[-1][key])
+                else:
+                    # key-value pair:
+                    cdatas[-1][key] = value
     return data
 
 
@@ -746,6 +749,104 @@ def check_container(filepath):
     """
     ext = os.path.splitext(filepath)[1]
     return ext.lower() in ('.pkl', '.npz', '.mat')
+
+
+def extract_container_data(data_dict, datakey=None,
+                           samplekey=['rate', 'Fs', 'fs'],
+                           timekey=['time'], unitkey='unit'):
+    """Extract data from dictionary loaded from a container file.
+
+    Parameters
+    ----------
+    data_dict: dict
+        Dictionary of the data items contained in the container.
+    datakey: None, string, or list of string
+        Name of the variable holding the data.  If `None` take the
+        variable that is an 2D array and has the largest number of
+        elements.
+    samplekey: string or list of string
+        Name of the variable holding the sampling rate.
+    timekey: string or list of string
+        Name of the variable holding sampling times.
+        If no sampling rate is available, the samplingrate is retrieved
+        from the sampling times.
+    unitkey: string
+        Name of the variable holding the unit of the data.
+        If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
+
+    Returns
+    -------
+    data: 2-D array of floats
+        All data traces as an 2-D numpy array, even for single channel data.
+        First dimension is time, second is channel.
+    samplerate: float
+        Sampling rate of the data in Hz.
+    unit: string
+        Unit of the data.
+
+    Raises
+    ------
+    ValueError:
+        Invalid key requested.
+    """
+    # extract format data:
+    if not isinstance(samplekey, (list, tuple, np.ndarray)):
+        samplekey = (samplekey,)
+    if not isinstance(timekey, (list, tuple, np.ndarray)):
+        timekey = (timekey,)
+    samplerate = 0.0
+    for skey in samplekey:
+        if skey in data_dict:
+            samplerate = float(data_dict[skey])
+            break
+    if samplerate == 0.0:
+        for tkey in timekey:
+            if tkey in data_dict:
+                samplerate = 1.0/(data_dict[tkey][1] - data_dict[tkey][0])
+                break
+    if samplerate == 0.0:
+        raise ValueError(f"invalid keys {', '.join(samplekey)} and {', '.join(timekey)} for requesting sampling rate or sampling times")
+    unit = ''
+    if unitkey in data_dict:
+        unit = data_dict[unitkey]
+    elif unitkey != 'unit':
+        unit = unitkey
+    unit = str(unit)
+    # get data array:
+    raw_data = np.array([])
+    if datakey:
+        # try data keys:
+        if not isinstance(datakey, (list, tuple, np.ndarray)):
+            datakey = (datakey,)
+        for dkey in datakey:
+            if dkey in data_dict:
+                raw_data = data_dict[dkey]
+                break
+        if np.prod(raw_data.shape) == 0:
+            raise ValueError(f"invalid key(s) {', '.join(datakey)} for requesting data")
+    else:
+        # find largest 2D array:
+        for d in data_dict:
+            if hasattr(data_dict[d], 'shape'):
+                if 1 <= len(data_dict[d].shape) <= 2 and \
+                   np.prod(data_dict[d].shape) > np.prod(raw_data.shape):
+                    raw_data = data_dict[d]
+    if np.prod(raw_data.shape) == 0:
+        raise ValueError('no data found')
+    # make 2D:
+    if len(raw_data.shape) == 1:
+        raw_data = raw_data.reshape(-1, 1)
+    # transpose if necessary:
+    if np.argmax(raw_data.shape) > 0:
+        raw_data = raw_data.T
+    # recode:
+    dtype = raw_data.dtype
+    data = raw_data.astype(float)
+    if dtype == np.dtype('int16'):
+        data /= 2**15
+    elif dtype == np.dtype('int32'):
+        data /= 2**31
+    return data, samplerate, unit
 
 
 def load_container(filepath, datakey=None,
@@ -793,75 +894,55 @@ def load_container(filepath, datakey=None,
         Invalid key requested.
     """
     # load data:
-    data = {}
+    data_dict = {}
     ext = os.path.splitext(filepath)[1]
     if ext == '.pkl':
         import pickle
         with open(filepath, 'rb') as f:
-            data = pickle.load(f)
+            data_dict = pickle.load(f)
     elif ext == '.npz':
-        data = np.load(filepath)
+        data_dict = np.load(filepath)
     elif ext == '.mat':
         from scipy.io import loadmat
-        data = loadmat(filepath, squeeze_me=True)
-    # extract format data:
-    if not isinstance(samplekey, (list, tuple, np.ndarray)):
-        samplekey = (samplekey,)
-    if not isinstance(timekey, (list, tuple, np.ndarray)):
-        timekey = (timekey,)
-    samplerate = 0.0
-    for skey in samplekey:
-        if skey in data:
-            samplerate = float(data[skey])
-            break
-    if samplerate == 0.0:
-        for tkey in timekey:
-            if tkey in data:
-                samplerate = 1.0/(data[tkey][1] - data[tkey][0])
-                break
-    if samplerate == 0.0:
-        raise ValueError(f"invalid keys {', '.join(samplekey)} and {', '.join(timekey)} for requesting sampling rate or sampling times")
-    unit = ''
-    if unitkey in data:
-        unit = data[unitkey]
-    elif unitkey != 'unit':
-        unit = unitkey
-    unit = str(unit)
-    # get data array:
-    raw_data = np.array([])
-    if datakey:
-        # try data keys:
-        if not isinstance(datakey, (list, tuple, np.ndarray)):
-            datakey = (datakey,)
-        for dkey in datakey:
-            if dkey in data:
-                raw_data = data[dkey]
-                break
-        if np.prod(raw_data.shape) == 0:
-            raise ValueError(f"invalid key(s) {', '.join(datakey)} for requesting data")
-    else:
-        # find largest 2D array:
-        for d in data:
-            if hasattr(data[d], 'shape'):
-                if 1 <= len(data[d].shape) <= 2 and \
-                   np.prod(data[d].shape) > np.prod(raw_data.shape):
-                    raw_data = data[d]
-    if np.prod(raw_data.shape) == 0:
-        raise ValueError('no data found')
-    # make 2D:
-    if len(raw_data.shape) == 1:
-        raw_data = raw_data.reshape(-1, 1)
-    # transpose if necessary:
-    if np.argmax(raw_data.shape) > 0:
-        raw_data = raw_data.T
-    # recode:
-    dtype = raw_data.dtype
-    data = raw_data.astype(float)
-    if dtype == np.dtype('int16'):
-        data /= 2**15
-    elif dtype == np.dtype('int32'):
-        data /= 2**31
-    return data, samplerate, unit
+        data_dict = loadmat(filepath, squeeze_me=True)
+    return extract_container_data(data_dict, datakey, samplekey,
+                                  timekey, unitkey)
+
+
+def extract_container_metadata(data_dict, metadatakey=['metadata', 'info']):
+    """ Extract metadata from dictionary loaded from a container file.
+
+    Parameters
+    ----------
+    data_dict: dict
+        Dictionary of the data items contained in the container.
+    metadatakey: string or list of string
+        Name of the variable holding the metadata.
+
+    Returns
+    -------
+    metadata: nested dict
+        Nested dictionary with key-value pairs of the meta data.
+    """
+    if not isinstance(metadatakey, (list, tuple, np.ndarray)):
+        metadatakey = (metadatakey,)
+    # get single metadata dictionary:
+    for mkey in metadatakey:
+        if mkey in data_dict:
+            return data_dict[mkey]
+    # collect all keys starting with metadatakey:
+    metadata = {}
+    for mkey in metadatakey:
+        mkey += '__'
+        for dkey in data_dict:
+            if dkey[:len(mkey)] == mkey:
+                v = data_dict[dkey]
+                if hasattr(v, 'size') and v.ndim == 0:
+                    v = v.item()
+                metadata[dkey[len(mkey):]] = v
+        if len(metadata) > 0:
+            return unflatten_metadata(metadata, sep='__')
+    return metadata
 
 
 def metadata_container(filepath, metadatakey=['metadata', 'info']):
@@ -876,44 +957,25 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
 
     Returns
     -------
-    data: nested dict
+    metadata: nested dict
         Nested dictionary with key-value pairs of the meta data.
     """
     # load data:
-    data = {}
+    data_dict = {}
     ext = os.path.splitext(filepath)[1]
     if ext == '.pkl':
         import pickle
         with open(filepath, 'rb') as f:
-            data = pickle.load(f)
+            data_dict = pickle.load(f)
     elif ext == '.npz':
-        data = np.load(filepath)
+        data_dict = np.load(filepath)
     elif ext == '.mat':
         from scipy.io import loadmat
-        data = loadmat(filepath, squeeze_me=True)
-    if not isinstance(metadatakey, (list, tuple, np.ndarray)):
-        metadatakey = (metadatakey,)
-    # get single metadata dictionary:
-    for mkey in metadatakey:
-        if mkey in data:
-            return data[mkey]
-    # collect all keys starting with metadatakey:
-    metadata = {}
-    for mkey in metadatakey:
-        mkey += '__'
-        for dkey in data:
-            if dkey[:len(mkey)] == mkey:
-                v = data[dkey]
-                if hasattr(v, 'size') and v.ndim == 0:
-                    v = v.item()
-                metadata[dkey[len(mkey):]] = v
-        if len(metadata) > 0:
-            return unflatten_metadata(metadata, sep='__')
-    return metadata
+        data_dict = loadmat(filepath, squeeze_me=True)
+    return extract_container_metadata(data_dict, metadatakey)
 
 
-def load_audioio(filepath, verbose=0,
-                 gainkey=['gain', 'scale', 'unit'], sep='__'):
+def load_audioio(filepath, verbose=0, gainkey=['gain'], sep='.'):
     """Load data from an audio file.
 
     See the
@@ -1270,10 +1332,13 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_relacs
         self.load_buffer = self._load_buffer_relacs
-        self._load_metadata = self._metadata_relacs
-        self._load_markers = None  # TODO
         self.ampl_min = -np.inf
         self.ampl_max = +np.inf
+        self._load_metadata = self._metadata_relacs
+        # TODO: load markers:
+        self._locs = np.zeros((0, 2), dtype=int)
+        self._labels = np.zeros((0, 2), dtype=object)
+        self._load_markers = None
         return self
 
     def _close_relacs(self):
@@ -1390,7 +1455,10 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_fishgrid
         self.load_buffer = self._load_buffer_fishgrid
-        self.markers = self._markers_fishgrid
+        # TODO: load markers:
+        self._locs = np.zeros((0, 2), dtype=int)
+        self._labels = np.zeros((0, 2), dtype=object)
+        self._load_markers = None
         return self
 
     def _close_fishgrid(self):
@@ -1417,11 +1485,100 @@ class DataLoader(AudioLoader):
             file.seek(r_offset*4*gchannels)
             data = file.read(r_size*4*gchannels)
             buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))*1000
-        
+
+
+    # container interface:
+    def open_container(self, file_path, buffersize=10.0,
+                       backsize=0.0, verbose=0, datakey=None,
+                       samplekey=['rate', 'Fs', 'fs'],
+                       timekey=['time'], unitkey='unit',
+                       metadatakey=['metadata', 'info']):
+        """Open generic container file.
+
+        Supported file formats are:
+
+        - python pickle files (.pkl)
+        - numpy files (.npz)
+        - matlab files (.mat)
+
+        Parameters
+        ----------
+        file_path: string
+            Path to a container file.
+        buffersize: float
+            Size of internal buffer in seconds.
+        backsize: float
+            Part of the buffer to be loaded before the requested start index in seconds.
+        verbose: int
+            If > 0 show detailed error/warning messages.
+        datakey: None, string, or list of string
+            Name of the variable holding the data.  If `None` take the
+            variable that is an 2D array and has the largest number of
+            elements.
+        samplekey: string or list of string
+            Name of the variable holding the sampling rate.
+        timekey: string or list of string
+            Name of the variable holding sampling times.
+            If no sampling rate is available, the samplingrate is retrieved
+            from the sampling times.
+        unitkey: string
+            Name of the variable holding the unit of the data.
+            If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
+        metadatakey: string or list of string
+            Name of the variable holding the metadata.
+
+        Raises
+        ------
+        ValueError:
+            Invalid key requested.
+        """
+        self.verbose = verbose
+        data_dict = {}
+        ext = os.path.splitext(file_path)[1]
+        if ext == '.pkl':
+            import pickle
+            with open(file_path, 'rb') as f:
+                data_dict = pickle.load(f)
+        elif ext == '.npz':
+            data_dict = np.load(file_path)
+        elif ext == '.mat':
+            from scipy.io import loadmat
+            data_dict = loadmat(file_path, squeeze_me=True)
+        self.buffer, self.samplerate, self.unit = \
+            extract_container_data(data_dict, datakey, samplekey,
+                                   timekey, unitkey)
+        self.filepath = file_path
+        self.channels = self.buffer.shape[1]
+        self.frames = self.buffer.shape[0]
+        self.shape = self.buffer.shape
+        self.ndim = self.buffer.ndim
+        self.size = self.buffer.size
+        self.ampl_min = -1.0   # TODO
+        self.ampl_max = +1.0   # TODO
+        self.offset = 0
+        self.buffersize = self.frames
+        self.backsize = 0
+        self.close = self._close_container
+        self.load_buffer = self._load_buffer_container
+        self._metadata = extract_container_metadata(data_dict, metadatakey)
+        self._load_metadata = None
+        # TODO: load markers:
+        self._locs = np.zeros((0, 2), dtype=int)
+        self._labels = np.zeros((0, 2), dtype=object)
+        self._load_markers = None
+
+    def _close_container(self):
+        """Close container. """
+        pass
+
+    def _load_buffer_container(self, r_offset, r_size, buffer):
+        """Load new data from container."""
+        pass
+            
     
     # audioio interface:        
     def open_audioio(self, file_path, buffersize=10.0, backsize=0.0,
-                     verbose=0, gainkey=['gain', 'scale', 'unit'], sep='__'):
+                     verbose=0, gainkey=['gain'], sep='.'):
         """Open an audio file.
 
         See the [audioio](https://github.com/bendalab/audioio) package
@@ -1503,7 +1660,8 @@ class DataLoader(AudioLoader):
             if isinstance(filepath, (list, tuple, np.ndarray)):
                 filepath = filepath[0]
             if check_container(filepath):
-                raise ValueError('file format not supported')
+                self.open_container(filepath, buffersize, backsize,
+                                    verbose, **kwargs)
             self.open_audioio(filepath, buffersize, backsize,
                               verbose, **kwargs)
         return self
