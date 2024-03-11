@@ -1270,8 +1270,8 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_relacs
         self.load_buffer = self._load_buffer_relacs
-        self.metadata = self._metadata_relacs
-        self.markers = self._markers_relacs
+        self._load_metadata = self._metadata_relacs
+        self._load_markers = None  # TODO
         self.ampl_min = -np.inf
         self.ampl_max = +np.inf
         return self
@@ -1303,24 +1303,12 @@ class DataLoader(AudioLoader):
         
 
     def _metadata_relacs(self, store_empty=False, first_only=False):
-        """ Read meta-data of a relacs data set.
+        """ Load meta-data of a relacs data set.
         """
-        if self._metadata is None:
-            info_path = os.path.join(self.filepath, 'info.dat')
-            if not os.path.exists(info_path):
-                return dict()
-            self._metadata = relacs_header(info_path, store_empty, first_only)
-        return self._metadata
-
-
-    def _markers_relacs(self):
-        """ Read markers of a relacs data set.
-        """
-        # Not implemented yet!
-        if self._locs is None:
-            self._locs = np.zeros((0, 2), dtype=int)
-            self._labels = np.zeros((0, 2), dtype=object)
-        return self._locs, self._labels
+        info_path = os.path.join(self.filepath, 'info.dat')
+        if not os.path.exists(info_path):
+            return {}
+        return relacs_header(info_path, store_empty, first_only)
 
     
     # fishgrid interface:        
@@ -1351,7 +1339,8 @@ class DataLoader(AudioLoader):
         self.filepath = None
         if len(file_paths) > 0:
             self.filepath = os.path.dirname(file_paths[0])
-        self.metadata = self._metadata_fishgrid
+        self._load_metadata = metadata_fishgrid
+        self._load_markers = None  # TODO
 
         # open grid files:
         grids = fishgrid_grids(self.metadata())
@@ -1429,24 +1418,6 @@ class DataLoader(AudioLoader):
             data = file.read(r_size*4*gchannels)
             buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))*1000
         
-
-    def _metadata_fishgrid(self, store_empty=False):
-        """ Read meta-data of a fishgrid data set.
-        """
-        if self._metadata is None:
-            self._metadata = metadata_fishgrid(self.filepath)
-        return self._metadata
-
-
-    def _markers_fishgrid(self):
-        """ Read markers of a fishgrid data set.
-        """
-        # Not implemented yet!
-        if self._locs is None:
-            self._locs = np.zeros((0, 2), dtype=int)
-            self._labels = np.zeros((0, 2), dtype=object)
-        return self._locs, self._labels
-
     
     # audioio interface:        
     def open_audioio(self, file_path, buffersize=10.0, backsize=0.0,
