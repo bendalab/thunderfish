@@ -753,7 +753,7 @@ def check_container(filepath):
 
 def extract_container_data(data_dict, datakey=None,
                            samplekey=['rate', 'Fs', 'fs'],
-                           timekey=['time'], unitkey='unit'):
+                           timekey=['time'], amplkey=['amax'], unitkey='unit'):
     """Extract data from dictionary loaded from a container file.
 
     Parameters
@@ -770,6 +770,8 @@ def extract_container_data(data_dict, datakey=None,
         Name of the variable holding sampling times.
         If no sampling rate is available, the samplingrate is retrieved
         from the sampling times.
+    amplkey: string or list of string
+        Name of the variable holding the amplitude range of the data.
     unitkey: string
         Name of the variable holding the unit of the data.
         If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
@@ -783,6 +785,8 @@ def extract_container_data(data_dict, datakey=None,
         Sampling rate of the data in Hz.
     unit: string
         Unit of the data.
+    amax: float
+        Maximum amplitude of data range in `unit`.
 
     Raises
     ------
@@ -794,6 +798,8 @@ def extract_container_data(data_dict, datakey=None,
         samplekey = (samplekey,)
     if not isinstance(timekey, (list, tuple, np.ndarray)):
         timekey = (timekey,)
+    if not isinstance(amplkey, (list, tuple, np.ndarray)):
+        amplkey = (amplkey,)
     samplerate = 0.0
     for skey in samplekey:
         if skey in data_dict:
@@ -806,6 +812,11 @@ def extract_container_data(data_dict, datakey=None,
                 break
     if samplerate == 0.0:
         raise ValueError(f"invalid keys {', '.join(samplekey)} and {', '.join(timekey)} for requesting sampling rate or sampling times")
+    amax = 1.0
+    for akey in amplkey:
+        if akey in data_dict:
+            amax = float(data_dict[akey])
+            break
     unit = ''
     if unitkey in data_dict:
         unit = data_dict[unitkey]
@@ -843,15 +854,17 @@ def extract_container_data(data_dict, datakey=None,
     dtype = raw_data.dtype
     data = raw_data.astype(float)
     if dtype == np.dtype('int16'):
-        data /= 2**15
+        data *= amax/2**15
     elif dtype == np.dtype('int32'):
-        data /= 2**31
-    return data, samplerate, unit
+        data *= amax/2**31
+    elif dtype == np.dtype('int64'):
+        data *= amax/2**63
+    return data, samplerate, unit, amax
 
 
 def load_container(filepath, datakey=None,
                    samplekey=['rate', 'Fs', 'fs'],
-                   timekey=['time'], unitkey='unit'):
+                   timekey=['time'], amplkey=['amax'], unitkey='unit'):
     """Load data from a generic container file.
 
     Supported file formats are:
@@ -874,6 +887,8 @@ def load_container(filepath, datakey=None,
         Name of the variable holding sampling times.
         If no sampling rate is available, the samplingrate is retrieved
         from the sampling times.
+    amplkey: string
+        Name of the variable holding the amplitude range of the data.
     unitkey: string
         Name of the variable holding the unit of the data.
         If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
@@ -906,7 +921,7 @@ def load_container(filepath, datakey=None,
         from scipy.io import loadmat
         data_dict = loadmat(filepath, squeeze_me=True)
     return extract_container_data(data_dict, datakey, samplekey,
-                                  timekey, unitkey)
+                                  timekey, amplkey, unitkey)[:3]
 
 
 def extract_container_metadata(data_dict, metadatakey=['metadata', 'info']):
@@ -1489,7 +1504,7 @@ class DataLoader(AudioLoader):
     def open_container(self, file_path, buffersize=10.0,
                        backsize=0.0, verbose=0, datakey=None,
                        samplekey=['rate', 'Fs', 'fs'],
-                       timekey=['time'], unitkey='unit',
+                       timekey=['time'], amplkey=['amax'], unitkey='unit',
                        metadatakey=['metadata', 'info']):
         """Open generic container file.
 
@@ -1519,6 +1534,8 @@ class DataLoader(AudioLoader):
             Name of the variable holding sampling times.
             If no sampling rate is available, the samplingrate is retrieved
             from the sampling times.
+        amplkey: string or list of string
+            Name of the variable holding the amplitude range of the data.
         unitkey: string
             Name of the variable holding the unit of the data.
             If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
@@ -1542,17 +1559,17 @@ class DataLoader(AudioLoader):
         elif ext == '.mat':
             from scipy.io import loadmat
             data_dict = loadmat(file_path, squeeze_me=True)
-        self.buffer, self.samplerate, self.unit = \
+        self.buffer, self.samplerate, self.unit, amax = \
             extract_container_data(data_dict, datakey, samplekey,
-                                   timekey, unitkey)
+                                   timekey, amplkey, unitkey)
         self.filepath = file_path
         self.channels = self.buffer.shape[1]
         self.frames = self.buffer.shape[0]
         self.shape = self.buffer.shape
         self.ndim = self.buffer.ndim
         self.size = self.buffer.size
-        self.ampl_min = -1.0   # TODO
-        self.ampl_max = +1.0   # TODO
+        self.ampl_min = -amax
+        self.ampl_max = +amax
         self.offset = 0
         self.buffersize = self.frames
         self.backsize = 0
