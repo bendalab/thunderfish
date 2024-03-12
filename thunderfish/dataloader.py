@@ -1009,7 +1009,7 @@ def load_audioio(filepath, verbose=0, gainkey=['gain'], sep='.'):
         otherwise "a.u.".
     """
     # get gain:
-    md = audioio_metadata(filepath, False)
+    md = audioio_metadata(filepath)
     fac, unit = get_gain(md, gainkey, sep)
     # load data:
     data, samplerate = load_audio(filepath, verbose)
@@ -1605,7 +1605,7 @@ class DataLoader(AudioLoader):
         """
         self.verbose = verbose
         super(DataLoader, self).open(file_path, buffersize, backsize, verbose)
-        md = self.metadata(False)
+        md = self.metadata()
         fac, unit = get_gain(md, gainkey, sep)
         self.gain_fac = fac
         if self.gain_fac != 1.0:
