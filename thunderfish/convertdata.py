@@ -165,6 +165,8 @@ def main(*cargs):
             sys.exit(-1)
         # read in data:
         data, samplingrate, unit = load_data(infile)
+        # TODO: we need amax from load_data()!
+        amax = 1.0
         md = metadata(infile)
         if args.verbose > 1:
             print(f'loaded data file "{infile}"')
@@ -183,11 +185,10 @@ def main(*cargs):
             data = np.vstack((data, xdata))
             if args.verbose > 1:
                 print(f'loaded data file "{infile}"')
-        # TODO: we need ampl_max from load_data()!
         data, samplingrate = modify_data(data, samplingrate, md,
                                          channels, args.scale,
                                          args.unwrap_clip,
-                                         args.unwrap, 1.0, '',
+                                         args.unwrap, amax, unit,
                                          args.decimate)
         add_metadata(md, args.md_list, '.')
         if len(args.remove_keys) > 0:
@@ -195,7 +196,7 @@ def main(*cargs):
             cleanup_metadata(md)
         outfile = format_outfile(outfile, md)
         # write out data:
-        write_data(outfile, data, samplingrate, unit, md,
+        write_data(outfile, data, samplingrate, amax, unit, md,
                    format=data_format, encoding=args.encoding)
         # message:
         if args.verbose > 1:
