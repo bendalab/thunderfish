@@ -49,8 +49,9 @@ def test_best_window():
     bw.add_best_window_config(cfg)
     cfg.add('unwrapData', False, '', 'unwrap clipped data') 
     for win_pos in ['beginning', 'center', 'end', 'best', '0.1s', 'xxx']:
-        bw.analysis_window(data, rate, win_pos, cfg, show_bestwindow=False)
-    bw.analysis_window(data, rate, 'best', cfg, show_bestwindow=True)
+        bw.analysis_window(data, rate, clip, win_pos, cfg,
+                           show_bestwindow=False)
+    bw.analysis_window(data, rate, clip, 'best', cfg, show_bestwindow=True)
     
 
     # clipping:
