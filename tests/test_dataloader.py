@@ -163,7 +163,7 @@ def test_fishgrid():
 
     
 def test_audioio():
-    tolerance = 2.0**(-15)
+    tolerance = 20*2.0**(-15)
     data, samplerate, info = generate_data()
     filename = dw.write_audioio('test.wav', data, samplerate, 20.0, 'mV',
                                 metadata=info)
@@ -171,13 +171,12 @@ def test_audioio():
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full audio load failed')
     os.remove(filename)
 
-    info['gain'] = '42mV'
-    data *= 42
-    filename = dw.write_audioio('test.wav', data, samplerate, 20.0, 'mV',
+    info['gain'] = '20mV'
+    filename = dw.write_audioio('test.wav', data, samplerate, None, None,
                                 metadata=info)
     full_data, rate, unit = dl.load_data(filename)
     assert_equal(unit, 'mV')
-    check_reading(filename, data, 42)
+    check_reading(filename, data, 20)
     os.remove(filename)
     
 def test_main():

@@ -772,20 +772,31 @@ def write_audioio(filepath, data, samplerate, amax=1.0, unit=None,
         raise ImportError
     if not filepath:
         raise ValueError('no file specified!')
-    fac, u = am.get_gain(metadata, gainkey, sep)
-    if unit and unit != 'a.u.' and u != 'a.u.' and unit != u:
-        raise ValueError(f'unit "{unit}" does not match gain unit "{u}" in metadata')
-    if fac != 1.0:
-        data = data / fac
-    elif not metadata is None and unit and unit != 'a.u.':
-        gk = gainkey[0] if len(gainkey) > 0 else 'Gain'
-        m, k = am.find_key(metadata, gk)
-        if k in m:
-            m[k] = f'1{unit}'
-        elif 'INFO' in metadata and gk.upper() == 'GAIN':
-            metadata['INFO'][gk] = f'1{unit}'
+    if amax is None or not np.isfinite(amax):
+        amax, u = am.get_gain(metadata, gainkey, sep)
+        if not unit:
+            unit = u
+        elif unit != 'a.u.' and u != 'a.u.' and unit != u:
+            raise ValueError(f'unit "{unit}" does not match gain unit "{u}" in metadata')
+    if amax != 1.0:
+        data = data / amax
+        if metadata is None:
+            metadata = {}
+        if unit == 'a.u.':
+            unit = ''
+        if not isinstance(gainkey, (list, tuple, np.ndarray)):
+            gainkey = [gainkey,]
+        gainkey.append('Gain')
+        for gk in gainkey:
+            m, k = am.find_key(metadata, gk)
+            if k in m:
+                m[k] = f'{amax:g}{unit}'
+                break
         else:
-            metadata[gk] = f'1{unit}'
+            if 'INFO' in metadata:
+                metadata['INFO'][gainkey[0]] = f'{amax:g}{unit}'
+            else:
+                metadata[gainkey[0]] = f'{amax:g}{unit}'
     aw.write_audio(filepath, data, samplerate, metadata)
     return filepath
 
