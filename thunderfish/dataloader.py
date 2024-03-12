@@ -1196,6 +1196,19 @@ class DataLoader(AudioLoader):
     data = dl.DataLoader()
     data.open(filepath, 60.0)
     ```
+    
+    Parameters
+    ----------
+    filepath: string
+        Name of the file.
+    buffersize: float
+        Size of internal buffer in seconds.
+    backsize: float
+        Part of the buffer to be loaded before the requested start index in seconds.
+    verbose: int
+        If larger than zero show detailed error/warning messages.
+    meta_kwargs: dict
+        Keyword arguments that are passed on to the _load_metadata() function.
 
     Attributes
     ----------
@@ -1230,23 +1243,9 @@ class DataLoader(AudioLoader):
     """
 
     def __init__(self, filepath=None, buffersize=10.0, backsize=0.0,
-                 verbose=0):
-        """Initialize the DataLoader instance.
-
-        If filepath is not None open the file.
-
-        Parameters
-        ----------
-        filepath: string
-            Name of the file.
-        buffersize: float
-            Size of internal buffer in seconds.
-        backsize: float
-            Part of the buffer to be loaded before the requested start index in seconds.
-        verbose: int
-            If > 0 show detailed error/warning messages.
-        """
-        super(DataLoader, self).__init__(None, buffersize, backsize, verbose)
+                 verbose=0, **meta_kwargs):
+        super(DataLoader, self).__init__(None, buffersize, backsize,
+                                         verbose, **meta_kwargs)
         if filepath is not None:
             self.open(filepath, buffersize, backsize, verbose)
 
