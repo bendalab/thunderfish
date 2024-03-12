@@ -68,7 +68,7 @@ try:
 except ImportError:
     pass
 from audioio import load_audio, AudioLoader, unflatten_metadata
-from audioio import get_number, get_int, get_bool, get_gain
+from audioio import get_number_unit, get_number, get_int, get_bool, get_gain
 from audioio import metadata as audioio_metadata
 from audioio import markers as audioio_markers
 
@@ -628,8 +628,8 @@ def load_fishgrid(file_paths):
         n = min(len(x), nrows)
         data[:n,c:c+channels] = x[:n,:]
         c += channels
-    unit = 'mV'
-    return 1000*data, samplerate, unit
+    _, unit = get_number_unit(md, 'AIMaxVolt')
+    return data, samplerate, unit
 
 
 def metadata_fishgrid(filepath):
@@ -1419,8 +1419,7 @@ class DataLoader(AudioLoader):
         offs = 0
         self.frames = None
         self.samplerate = get_number(self.metadata(), 'Hz', 'AISampleRate')
-        self.unit = 'mV'
-        v = get_number(self.metadata(), self.unit, 'AIMaxVolt')
+        v, self.unit = get_number_unit(self.metadata(), 'AIMaxVolt')
         if v is not None:
             self.ampl_min = -v
             self.ampl_max = +v
@@ -1484,7 +1483,7 @@ class DataLoader(AudioLoader):
         for file, gchannels, goffset in zip(self.sf, self.grid_channels, self.grid_offs):
             file.seek(r_offset*4*gchannels)
             data = file.read(r_size*4*gchannels)
-            buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))*1000
+            buffer[:, goffset:goffset+gchannels] = np.fromstring(data, dtype=np.float32).reshape((-1, gchannels))
 
 
     # container interface:
