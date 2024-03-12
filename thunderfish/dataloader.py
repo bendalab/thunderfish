@@ -1677,8 +1677,9 @@ class DataLoader(AudioLoader):
             if check_container(filepath):
                 self.open_container(filepath, buffersize, backsize,
                                     verbose, **kwargs)
-            self.open_audioio(filepath, buffersize, backsize,
-                              verbose, **kwargs)
+            else:
+                self.open_audioio(filepath, buffersize, backsize,
+                                  verbose, **kwargs)
         return self
 
 

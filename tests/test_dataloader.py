@@ -43,53 +43,6 @@ def remove_relacs_files():
 def remove_fishgrid_files():
     remove_files(fishgrid_path)
 
-    
-def test_container():
-    tolerance = 20*2.0**(-15)
-    data, samplerate, info = generate_data()
-    # pickle:
-    for encoding in dw.encodings_pickle():
-        filename = dw.write_pickle('test', data, samplerate, 20.0, 'mV', info,
-                                   encoding=encoding)
-        full_data, rate, unit = dl.load_data(filename)
-        assert_true(np.all(data.shape == full_data.shape), f'full pickle load failed on shape for {encoding}')
-        assert_true(np.all(np.abs(data - full_data)<tolerance), f'full pickle load failed for {encoding}')
-        md = dl.metadata(filename)
-        assert_equal(info, md, 'pickle metadata')
-        os.remove(filename)
-    filename = dw.write_data('test', data, samplerate, 20.0, 'mV', format='pkl')
-    full_data, rate, unit = dl.load_data(filename)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
-    os.remove(filename)
-
-    # numpy:
-    for encoding in dw.encodings_numpy():
-        filename = dw.write_numpy('test', data, samplerate, 20.0, 'mV',
-                                  info, encoding=encoding)
-        full_data, rate, unit = dl.load_data(filename)
-        assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
-        md = dl.metadata(filename)
-        assert_equal(info, md, 'numpy metadata')
-        os.remove(filename)
-    filename = dw.write_data('test', data, samplerate, 20.0, 'mV', format='npz')
-    full_data, rate, unit = dl.load_data(filename)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
-    os.remove(filename)
-
-    # mat:
-    for encoding in dw.encodings_mat():
-        filename = dw.write_mat('test', data, samplerate, 20.0, 'mV', info,
-                                encoding=encoding)
-        full_data, rate, unit = dl.load_data(filename)
-        assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
-        md = dl.metadata(filename)
-        assert_equal(info, md, 'mat metadata')
-        os.remove(filename)
-    filename = dw.write_data('test', data, samplerate, 20.0, 'mV', format='mat')
-    full_data, rate, unit = dl.load_data(filename)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
-    os.remove(filename)
-    
 
 def check_reading(filename, data, fac=1):
     tolerance = fac*2.0**(-15)
@@ -134,6 +87,49 @@ def check_reading(filename, data, fac=1):
 
     data.close()
 
+    
+def test_container():
+    tolerance = 20*2.0**(-15)
+    data, samplerate, info = generate_data()
+    # pickle:
+    for encoding in dw.encodings_pickle():
+        filename = dw.write_pickle('test', data, samplerate, 20.0, 'mV', info,
+                                   encoding=encoding)
+        check_reading(filename, data, 20)
+        md = dl.metadata(filename)
+        assert_equal(info, md, 'pickle metadata')
+        os.remove(filename)
+    filename = dw.write_data('test', data, samplerate, 20.0, 'mV', format='pkl')
+    full_data, rate, unit = dl.load_data(filename)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    os.remove(filename)
+
+    # numpy:
+    for encoding in dw.encodings_numpy():
+        filename = dw.write_numpy('test', data, samplerate, 20.0, 'mV',
+                                  info, encoding=encoding)
+        check_reading(filename, data, 20)
+        md = dl.metadata(filename)
+        assert_equal(info, md, 'numpy metadata')
+        os.remove(filename)
+    filename = dw.write_data('test', data, samplerate, 20.0, 'mV', format='npz')
+    full_data, rate, unit = dl.load_data(filename)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    os.remove(filename)
+
+    # mat:
+    for encoding in dw.encodings_mat():
+        filename = dw.write_mat('test', data, samplerate, 20.0, 'mV', info,
+                                encoding=encoding)
+        check_reading(filename, data, 20)
+        md = dl.metadata(filename)
+        assert_equal(info, md, 'mat metadata')
+        os.remove(filename)
+    filename = dw.write_data('test', data, samplerate, 20.0, 'mV', format='mat')
+    full_data, rate, unit = dl.load_data(filename)
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
+    os.remove(filename)
+    
     
 @with_setup(None, remove_relacs_files)
 def test_relacs():
