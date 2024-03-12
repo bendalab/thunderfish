@@ -24,7 +24,8 @@ jobs:
           pip install pdoc3
           pip install markdown-include
           pip install mkdocs
-          pip install -r requirements.txt
+	  pip install https://github.com/janscience/audioio.git
+	  pip install -r requirements.txt
 
       - name: Run tests
         run: NUMBA_DISABLE_JIT=1 nosetests -vv --with-coverage --cover-package=thunderfish
