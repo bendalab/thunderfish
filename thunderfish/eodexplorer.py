@@ -335,7 +335,9 @@ class EODExplorer(MultivariateExplorer):
             cfg.set('flipWaveEOD', fs)
             cfg.set('flipPulseEOD', fs)
         # best_window:
-        data, idx0, idx1, clipped, min_clip, max_clip = analysis_window(raw_data, samplerate, ampl_max, cfg.value('windowPosition'), cfg)
+        data, idx0, idx1, clipped, min_clip, max_clip = \
+            analysis_window(raw_data, samplerate, ampl_max,
+                            cfg.value('windowPosition'), cfg)
         # detect EODs in the data:
         psd_data, fishlist, _, eod_props, mean_eods, \
           spec_data, peak_data, power_thresh, skip_reason, zoom_window = \

@@ -1295,8 +1295,9 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         win_pos = cfg.value('windowPosition')
         if time is not None:
             win_pos = time
-        data, idx0, idx1, clipped, min_clip, max_clip = analysis_window(raw_data, samplerate, ampl_max, win_pos,
-                                                                        cfg, plot_level>0)
+        data, idx0, idx1, clipped, min_clip, max_clip = \
+            analysis_window(raw_data, samplerate, ampl_max, win_pos,
+                            cfg, plot_level>0)
         found_bestwindow = idx1 > 0
         if not found_bestwindow:
             return '%s: not enough data for requested window length. You may want to adjust the windowSize parameter in the configuration file.' % filename
