@@ -141,7 +141,8 @@ def encodings_relacs(format=None):
     
     
 def write_relacs(filepath, data, samplerate, amax=1.0, unit=None,
-                 metadata=None, format=None, encoding=None):
+                 metadata=None, locs=None, labels=None, format=None,
+                 encoding=None):
     """Write data as relacs raw files.
 
     Parameters
@@ -158,6 +159,12 @@ def write_relacs(filepath, data, samplerate, amax=1.0, unit=None,
         Unit of the data.
     metadata: nested dict
         Additional metadata saved into `info.dat`.
+    locs: None or 1-D or 2-D array of ints
+        Marker positions (first column) and spans (optional second column)
+        for each marker (rows).
+    labels: None or 2-D array of string objects
+        Labels (first column) and texts (optional second column)
+        for each marker (rows).
     format: str or None
         File format, only None or 'RELACS' are supported.
     encoding: str or None
@@ -268,7 +275,8 @@ def encodings_fishgrid(format=None):
     
     
 def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
-                   metadata=None, format=None, encoding=None):
+                   metadata=None, locs=None, labels=None, format=None,
+                   encoding=None):
     """Write data as fishgrid raw files.
 
     Parameters
@@ -285,6 +293,12 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
         Unit of the data.
     metadata: nested dict
         Additional metadata saved into the `fishgrid.cfg`.
+    locs: None or 1-D or 2-D array of ints
+        Marker positions (first column) and spans (optional second column)
+        for each marker (rows).
+    labels: None or 2-D array of string objects
+        Labels (first column) and texts (optional second column)
+        for each marker (rows).
     format: str or None
         File format, only None or 'FISHGRID' are supported.
     encoding: str or None
@@ -377,7 +391,8 @@ def encodings_pickle(format=None):
 
     
 def write_pickle(filepath, data, samplerate, amax=1.0, unit=None,
-                 metadata=None, format=None, encoding=None):
+                 metadata=None, locs=None, labels=None, format=None,
+                 encoding=None):
     """Write data into python pickle file.
     
     Documentation
@@ -403,6 +418,12 @@ def write_pickle(filepath, data, samplerate, amax=1.0, unit=None,
     metadata: nested dict
         Additional metadata saved into the pickle.
         Stored under the key "metadata".
+    locs: None or 1-D or 2-D array of ints
+        Marker positions (first column) and spans (optional second column)
+        for each marker (rows).
+    labels: None or 2-D array of string objects
+        Labels (first column) and texts (optional second column)
+        for each marker (rows).
     format: str or None
         File format, only None or 'PKL' are supported.
     encoding: str or None
@@ -486,7 +507,8 @@ def encodings_numpy(format=None):
 
 
 def write_numpy(filepath, data, samplerate, amax=1.0, unit=None,
-                metadata=None, format=None, encoding=None):
+                metadata=None, locs=None, labels=None, format=None,
+                encoding=None):
     """Write data into numpy npz file.
     
     Documentation
@@ -513,6 +535,12 @@ def write_numpy(filepath, data, samplerate, amax=1.0, unit=None,
         Additional metadata saved into the numpy file.
         Flattened dictionary entries stored under keys
         starting with "metadata__".
+    locs: None or 1-D or 2-D array of ints
+        Marker positions (first column) and spans (optional second column)
+        for each marker (rows).
+    labels: None or 2-D array of string objects
+        Labels (first column) and texts (optional second column)
+        for each marker (rows).
     format: str or None
         File format, only None or 'NPZ' are supported.
     encoding: str or None
@@ -598,7 +626,8 @@ def encodings_mat(format=None):
 
 
 def write_mat(filepath, data, samplerate, amax=1.0, unit=None,
-              metadata=None, format=None, encoding=None):
+              metadata=None, locs=None, labels=None, format=None,
+              encoding=None):
     """Write data into matlab file.
     
     Documentation
@@ -625,6 +654,12 @@ def write_mat(filepath, data, samplerate, amax=1.0, unit=None,
     metadata: nested dict
         Additional metadata saved into the mat file.
         Stored under the key "metadata".
+    locs: None or 1-D or 2-D array of ints
+        Marker positions (first column) and spans (optional second column)
+        for each marker (rows).
+    labels: None or 2-D array of string objects
+        Labels (first column) and texts (optional second column)
+        for each marker (rows).
     format: str or None
         File format, only None or 'MAT' are supported.
     encoding: str or None
@@ -708,8 +743,9 @@ def encodings_audio(format):
 
 
 def write_audioio(filepath, data, samplerate, amax=1.0, unit=None,
-                  metadata=None, format=None, encoding=None,
-                  gainkey=['Gain', 'Scale', 'Unit'], sep='.'):
+                  metadata=None, locs=None, labels=None, format=None,
+                  encoding=None, gainkey=['Gain', 'Scale', 'Unit'],
+                  sep='.'):
     """Write data into audio file.
 
     If a gain setting is available in the metadata, then the data are divided
@@ -742,6 +778,12 @@ def write_audioio(filepath, data, samplerate, amax=1.0, unit=None,
         Metadata saved into the audio file. If it contains a gain,
         the gain factor is used to divide the data down into a
         range between -1 and 1.
+    locs: None or 1-D or 2-D array of ints
+        Marker positions (first column) and spans (optional second column)
+        for each marker (rows).
+    labels: None or 2-D array of string objects
+        Labels (first column) and texts (optional second column)
+        for each marker (rows).
     format: str or None
         File format. If None deduce file format from filepath.
         See `available_formats()` for possible values.
@@ -797,7 +839,7 @@ def write_audioio(filepath, data, samplerate, amax=1.0, unit=None,
                 metadata['INFO'][gainkey[0]] = f'{amax:g}{unit}'
             else:
                 metadata[gainkey[0]] = f'{amax:g}{unit}'
-    aw.write_audio(filepath, data, samplerate, metadata)
+    aw.write_audio(filepath, data, samplerate, metadata, locs, labels)
     return filepath
 
 
@@ -881,8 +923,8 @@ function.
 
 
 def write_data(filepath, data, samplerate, amax=1.0, unit=None,
-               metadata=None, format=None, encoding=None, verbose=0,
-               **kwargs):
+               metadata=None, locs=None, labels=None, format=None,
+               encoding=None, verbose=0, **kwargs):
     """Write data into a file.
 
     Parameters
@@ -900,6 +942,12 @@ def write_data(filepath, data, samplerate, amax=1.0, unit=None,
         Unit of the data.
     metadata: nested dict
         Additional metadata.
+    locs: None or 1-D or 2-D array of ints
+        Marker positions (first column) and spans (optional second column)
+        for each marker (rows).
+    labels: None or 2-D array of string objects
+        Labels (first column) and texts (optional second column)
+        for each marker (rows).
     format: str or None
         File format. If None deduce file format from filepath.
         See `available_formats()` for possible values.
@@ -950,8 +998,9 @@ def write_data(filepath, data, samplerate, amax=1.0, unit=None,
         if format.upper() in formats_func():
             writer_func = data_writer_funcs[fmt]
             filepath = writer_func(filepath, data, samplerate, amax,
-                                   unit, metadata, format=format,
-                                   encoding=encoding, **kwargs)
+                                   unit, metadata, locs, labels,
+                                   format=format, encoding=encoding,
+                                   **kwargs)
             if verbose > 0:
                 print(f'wrote data to file "{filepath}" using {fmt} format')
                 if verbose > 1:
