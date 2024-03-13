@@ -851,14 +851,17 @@ def extract_container_data(data_dict, datakey=None,
     if np.argmax(raw_data.shape) > 0:
         raw_data = raw_data.T
     # recode:
-    dtype = raw_data.dtype
-    data = raw_data.astype(float)
-    if dtype == np.dtype('int16'):
+    if raw_data.dtype == np.dtype('int16'):
+        data = raw_data.astype('float32')
         data *= amax/2**15
-    elif dtype == np.dtype('int32'):
+    elif raw_data.dtype == np.dtype('int32'):
+        data = raw_data.astype(float)
         data *= amax/2**31
-    elif dtype == np.dtype('int64'):
+    elif raw_data.dtype == np.dtype('int64'):
+        data = raw_data.astype(float)
         data *= amax/2**63
+    else:
+        data = raw_data
     return data, samplerate, unit, amax
 
 
