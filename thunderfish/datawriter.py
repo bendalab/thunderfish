@@ -347,7 +347,7 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
     df.write('  Hardware Settings\n')
     df.write('    DAQ board:\n')
     df.write(f'      AISampleRate: {0.001*samplerate:.3f}kHz\n')
-    df.write(f'      AIMaxVolt   : 10.0{unit}\n')
+    df.write(f'      AIMaxVolt   : {amax:g}{unit}\n')
     if metadata:
         df.write('*Recording\n')
         write_metadata_text(df, metadata, prefix='  ')

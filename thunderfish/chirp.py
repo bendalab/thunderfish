@@ -193,7 +193,7 @@ if __name__ == '__main__':
     from .dataloader import load_data
 
     data_file = sys.argv[1]
-    raw_data, samplerate, unit = load_data(data_file)
+    raw_data, samplerate, unit, amax = load_data(data_file)
 
     chirp_time, chirp_freq = chirp_analysis(raw_data[:,0], samplerate)
 

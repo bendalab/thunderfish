@@ -367,6 +367,8 @@ def load_relacs(file_paths):
         Sampling rate of the data in Hz
     unit: string
         Unit of the data
+    amax: float
+        Maximum amplitude of data range.
 
     Raises
     ------
@@ -403,7 +405,7 @@ def load_relacs(file_paths):
             unit = us
         elif us != unit:
             raise ValueError('unit of traces differ')
-    return data, samplerate, unit
+    return data, samplerate, unit, np.inf
 
 
 def metadata_relacs(filepath, store_empty=False, first_only=False,
@@ -595,6 +597,8 @@ def load_fishgrid(file_paths):
         Sampling rate of the data in Hz.
     unit: string
         Unit of the data.
+    amax: float
+        Maximum amplitude of data range.
 
     Raises
     ------
@@ -628,8 +632,8 @@ def load_fishgrid(file_paths):
         n = min(len(x), nrows)
         data[:n,c:c+channels] = x[:n,:]
         c += channels
-    _, unit = get_number_unit(md, 'AIMaxVolt')
-    return data, samplerate, unit
+    amax, unit = get_number_unit(md, 'AIMaxVolt')
+    return data, samplerate, unit, amax
 
 
 def metadata_fishgrid(filepath):
@@ -905,6 +909,8 @@ def load_container(filepath, datakey=None,
         Sampling rate of the data in Hz.
     unit: string
         Unit of the data.
+    amax: float
+        Maximum amplitude of data range.
 
     Raises
     ------
@@ -924,7 +930,7 @@ def load_container(filepath, datakey=None,
         from scipy.io import loadmat
         data_dict = loadmat(filepath, squeeze_me=True)
     return extract_container_data(data_dict, datakey, samplekey,
-                                  timekey, amplkey, unitkey)[:3]
+                                  timekey, amplkey, unitkey)
 
 
 def extract_container_metadata(data_dict, metadatakey=['metadata', 'info']):
@@ -1025,15 +1031,17 @@ def load_audioio(filepath, verbose=0, gainkey=['gain'], sep='.'):
     unit: string
         Unit of the data if found in the metadata (see `gainkey`),
         otherwise "a.u.".
+    amax: float
+        Maximum amplitude of data range.
     """
     # get gain:
     md = audioio_metadata(filepath)
-    fac, unit = get_gain(md, gainkey, sep)
+    amax, unit = get_gain(md, gainkey, sep)
     # load data:
     data, samplerate = load_audio(filepath, verbose)
-    if fac != 1.0:
-        data *= fac
-    return data, samplerate, unit
+    if amax != 1.0:
+        data *= amax
+    return data, samplerate, unit, amax
 
     
 def load_data(filepath, verbose=0, **kwargs):
@@ -1059,13 +1067,15 @@ def load_data(filepath, verbose=0, **kwargs):
         Sampling rate of the data in Hz.
     unit: string
         Unit of the data.
+    amax: float
+        Maximum amplitude of data range.
 
     Raises
     ------
     ValueError:
         Input argument `filepath` is empty string or list.
     """
-    def print_verbose(verbose, data, rate, unit, filepath, lib):
+    def print_verbose(verbose, data, rate, unit, amax, filepath, lib):
         if verbose > 0:
             if isinstance(filepath, (list, tuple, np.ndarray)):
                 filepath = filepath[0]
@@ -1074,7 +1084,7 @@ def load_data(filepath, verbose=0, **kwargs):
                 print(f'  sampling rate: {rate:g} Hz')
                 print(f'  channels     : {data.shape[1]}')
                 print(f'  frames       : {len(data)}')
-                print(f'  unit         : {unit}')
+                print(f'  unit         : {amax:g}{unit}')
         
     # check values:
     if len(filepath) == 0:
@@ -1082,23 +1092,24 @@ def load_data(filepath, verbose=0, **kwargs):
 
     # load data:
     if check_relacs(filepath):
-        data, rate, unit = load_relacs(filepath)
-        print_verbose(verbose, data, rate, unit, filepath, 'relacs')
-        return data, rate, unit
+        data, rate, unit, amax = load_relacs(filepath)
+        print_verbose(verbose, data, rate, unit, amax, filepath, 'relacs')
+        return data, rate, unit, amax
     elif check_fishgrid(filepath):
-        data, rate, unit = load_fishgrid(filepath)
-        print_verbose(verbose, data, rate, unit, filepath, 'fishgrid')
-        return data, rate, unit
+        data, rate, unit, amax = load_fishgrid(filepath)
+        print_verbose(verbose, data, rate, unit, amax, filepath, 'fishgrid')
+        return data, rate, unit, amax
     else:
         if isinstance(filepath, (list, tuple, np.ndarray)):
             filepath = filepath[0]
         if check_container(filepath):
-            data, rate, unit = load_container(filepath, **kwargs)
-            print_verbose(verbose, data, rate, unit, filepath, 'container')
-            return data, rate, unit
+            data, rate, unit, amax = load_container(filepath, **kwargs)
+            print_verbose(verbose, data, rate, unit, amax, filepath,
+                          'container')
+            return data, rate, unit, amax
         else:
-            data, rate, unit = load_audioio(filepath, verbose, **kwargs)
-            return data, rate, unit
+            data, rate, unit, amax = load_audioio(filepath, verbose, **kwargs)
+            return data, rate, unit, amax
 
 
 def metadata(filepath, store_empty=False, first_only=False, **kwargs):
@@ -1688,13 +1699,16 @@ class DataLoader(AudioLoader):
 
 def demo(filepath, plot=False):
     print("try load_data:")
-    data, samplerate, unit = load_data(filepath, verbose=2)
+    data, samplerate, unit, amax = load_data(filepath, verbose=2)
     if plot:
+        fig, ax = plt.subplots()
         time = np.arange(len(data))/samplerate
         for c in range(data.shape[1]):
-            plt.plot(time, data[:,c])
-        plt.xlabel('Time [s]')
-        plt.ylabel('[' + unit + ']')
+            ax.plot(time, data[:,c])
+        ax.set_xlabel('Time [s]')
+        ax.set_ylabel(f'[{unit}]')
+        if amax is not None and np.isfinite(amax):
+            ax.set_ylim(-amax, +amax)
         plt.show()
         return
 
@@ -1709,21 +1723,22 @@ def demo(filepath, plot=False):
             print('forward %d-%d' % (i, i + nframes))
             x = data[i:i + nframes, 0]
             if plot:
-                plt.plot((i + np.arange(len(x))) / data.samplerate, x)
-                plt.xlabel('Time [s]')
-                plt.ylabel('[' + data.unit + ']')
+                fig, ax = plt.subplots()
+                ax.plot((i + np.arange(len(x)))/data.samplerate, x)
+                ax.set_xlabel('Time [s]')
+                ax.set_ylabel(f'[{data.unit}]')
                 plt.show()
         # and backwards:
         for i in reversed(range(0, len(data), nframes)):
             print('backward %d-%d' % (i, i + nframes))
             x = data[i:i + nframes, 0]
             if plot:
-                plt.plot((i + np.arange(len(x))) / data.samplerate, x)
-                plt.xlabel('Time [s]')
-                plt.ylabel('[' + data.unit + ']')
+                fig, ax = plt.subplots()
+                ax.plot((i + np.arange(len(x)))/data.samplerate, x)
+                ax.set_xlabel('Time [s]')
+                ax.set_ylabel(f'[{data.unit}]')
                 plt.show()
                 
-
     
 def main(*cargs):
     """Call demo with command line arguments.

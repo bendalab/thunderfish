@@ -164,14 +164,12 @@ def main(*cargs):
             print(f'! cannot convert "{infile}" to itself !')
             sys.exit(-1)
         # read in data:
-        data, samplingrate, unit = load_data(infile)
-        # TODO: we need amax from load_data()!
-        amax = 1.0
+        data, samplingrate, unit, amax = load_data(infile)
         md = metadata(infile)
         if args.verbose > 1:
             print(f'loaded data file "{infile}"')
         for infile in args.file[i0+1:i0+nmerge]:
-            xdata, xrate, xunit = load_data(infile)
+            xdata, xrate, xunit, xamax = load_data(infile)
             if abs(samplingrate - xrate) > 1:
                 print('! cannot merge files with different sampling rates !')
                 print(f'    file "{args.file[i0]}" has {samplingrate:.0f}Hz')
@@ -182,6 +180,8 @@ def main(*cargs):
                 print(f'    file "{args.file[i0]}" has {data.shape[1]} channels')
                 print(f'    file "{infile}" has {xdata.shape[1]} channels')
                 sys.exit(-1)
+            if xamax > amax:
+                amax = xamax
             data = np.vstack((data, xdata))
             if args.verbose > 1:
                 print(f'loaded data file "{infile}"')

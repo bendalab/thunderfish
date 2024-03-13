@@ -1646,7 +1646,7 @@ def main(data_file=None):
     else:
         from .dataloader import load_data
         print("load %s ..." % data_file)
-        data, samplerate, unit = load_data(data_file)
+        data, samplerate, unit, amax = load_data(data_file)
         data = data[:,0]
         title = data_file
 

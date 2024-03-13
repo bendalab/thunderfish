@@ -317,9 +317,8 @@ class EODExplorer(MultivariateExplorer):
         recording = fn[0]
         channel = 0
         try:
-            raw_data, samplerate, unit = load_data(recording)
+            raw_data, samplerate, unit, ampl_max = load_data(recording)
             raw_data = raw_data[:,channel]
-            ampl_max = 1.0   # TODO: load_data needs to return ampl_max!
         except IOError as e:
             print('%s: failed to open file: did you provide a path to the raw data (-P option)?' % (recording))
             return

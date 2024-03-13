@@ -2973,9 +2973,9 @@ def load_recording(file_path, channel=0, load_kwargs={},
                 data_file = dfile
                 break
     if os.path.exists(data_file):
-        data, samplerate, unit = load_data(data_file,
-                                           verbose=verbose,
-                                           **load_kwargs)
+        data, samplerate, unit, amax = load_data(data_file,
+                                                 verbose=verbose,
+                                                 **load_kwargs)
         idx0 = 0
         idx1 = len(data)
         if eod_props is not None and len(eod_props) > 0 and 'twin' in eod_props[0]:
