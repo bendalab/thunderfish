@@ -65,6 +65,7 @@ import argparse
 import numpy as np
 from .version import __version__, __year__
 from audioio import add_metadata, remove_metadata, cleanup_metadata
+from audioio import bext_history_str, add_history
 from audioio.audioconverter import add_arguments, parse_channels
 from audioio.audioconverter import make_outfile, format_outfile
 from audioio.audioconverter import modify_data
@@ -166,12 +167,15 @@ def main(*cargs):
             print(f'! cannot convert "{infile}" to itself !')
             sys.exit(-1)
         # read in data:
+        pre_history = None 
         with DataLoader(infile) as sf:
             data = sf[:,:]
             samplingrate = sf.samplerate
             unit = sf.unit
             amax = sf.ampl_max
             md = sf.metadata()
+            pre_history = bext_history_str(sf.encoding, sf.samplerate,
+                                           sf.channels, sf.filepath)
             if sf.encoding is not None and args.encoding is None:
                 args.encoding = sf.encoding
         if args.verbose > 1:
@@ -203,6 +207,13 @@ def main(*cargs):
             remove_metadata(md, args.remove_keys, '.')
             cleanup_metadata(md)
         outfile = format_outfile(outfile, md)
+        # history:
+        hkey = 'CodingHistory'
+        if 'BEXT' in md:
+            hkey = 'BEXT.' + hkey
+        history = bext_history_str(args.encoding, samplingrate,
+                                   data.shape[1], outfile)
+        add_history(md, history, hkey, pre_history)
         # write out data:
         write_data(outfile, data, samplingrate, amax, unit, md,
                    format=data_format, encoding=args.encoding)
