@@ -68,7 +68,7 @@ from audioio import add_metadata, remove_metadata, cleanup_metadata
 from audioio.audioconverter import add_arguments, parse_channels
 from audioio.audioconverter import make_outfile, format_outfile
 from audioio.audioconverter import modify_data
-from .dataloader import load_data, metadata
+from .dataloader import load_data, DataLoader
 from .datawriter import available_formats, available_encodings
 from .datawriter import format_from_extension, write_data
 
@@ -164,8 +164,14 @@ def main(*cargs):
             print(f'! cannot convert "{infile}" to itself !')
             sys.exit(-1)
         # read in data:
-        data, samplingrate, unit, amax = load_data(infile)
-        md = metadata(infile)
+        with DataLoader(infile) as sf:
+            data = sf[:,:]
+            samplingrate = sf.samplerate
+            unit = sf.unit
+            amax = sf.ampl_max
+            md = sf.metadata()
+            if sf.encoding is not None and args.encoding is None:
+                args.encoding = sf.encoding
         if args.verbose > 1:
             print(f'loaded data file "{infile}"')
         for infile in args.file[i0+1:i0+nmerge]:
