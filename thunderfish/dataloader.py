@@ -1247,6 +1247,10 @@ class DataLoader(AudioLoader):
         The number of channels that are read in.
     frames: int
         The number of frames in the file.
+    format: str or None
+        Format of the audio file.
+    encoding: str or None
+        Encoding/subtype of the audio file.
     shape: tuple
         Number of frames and channels of the data.
     ndim: int
@@ -1354,6 +1358,8 @@ class DataLoader(AudioLoader):
         self.shape = (self.frames, self.channels)
         self.size = self.frames * self.channels
         self.ndim = len(self.shape)
+        self.format = 'RELACS'
+        self.encoding = 'FLOAT'
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
         self._init_buffer()
@@ -1476,6 +1482,8 @@ class DataLoader(AudioLoader):
         self.shape = (self.frames, self.channels)
         self.size = self.frames * self.channels
         self.ndim = len(self.shape)
+        self.format = 'FISHGRID'
+        self.encoding = 'FLOAT'
         self.buffersize = int(buffersize*self.samplerate)
         self.backsize = int(backsize*self.samplerate)
         self._init_buffer()
@@ -1568,11 +1576,14 @@ class DataLoader(AudioLoader):
             import pickle
             with open(file_path, 'rb') as f:
                 data_dict = pickle.load(f)
+            self.format = 'PKL'
         elif ext == '.npz':
             data_dict = np.load(file_path)
+            self.format = 'NPZ'
         elif ext == '.mat':
             from scipy.io import loadmat
             data_dict = loadmat(file_path, squeeze_me=True)
+            self.format = 'MAT'
         self.buffer, self.samplerate, self.unit, amax = \
             extract_container_data(data_dict, datakey, samplekey,
                                    timekey, amplkey, unitkey)
@@ -1582,6 +1593,7 @@ class DataLoader(AudioLoader):
         self.shape = self.buffer.shape
         self.ndim = self.buffer.ndim
         self.size = self.buffer.size
+        self.encoding = self.numpy_encodings[self.buffer.dtype]
         self.ampl_min = -amax
         self.ampl_max = +amax
         self.offset = 0
