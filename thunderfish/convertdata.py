@@ -141,6 +141,8 @@ def main(*cargs):
     channels = parse_channels(args.channels)
     
     if args.list_formats:
+        if args.data_format is None and len(args.file) > 0:
+            args.data_format = args.file[0]
         list_formats_encodings(args.data_format)
         return
 

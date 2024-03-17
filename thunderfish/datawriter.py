@@ -900,11 +900,11 @@ def available_encodings(format):
     encodings: list of str
         List of supported encodings as strings.
     """
-    encodings = set()
     for module, encodings_func in data_encodings_funcs:
         encs = encodings_func(format)
-        encodings |= set(encs)
-    return sorted(list(encodings))
+        if len(encs) > 0:
+            return encs
+    return []
 
 
 data_writer_funcs = {
