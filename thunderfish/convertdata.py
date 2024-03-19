@@ -174,6 +174,7 @@ def main(*cargs):
             unit = sf.unit
             amax = sf.ampl_max
             md = sf.metadata()
+            locs, labels = sf.markers()
             pre_history = bext_history_str(sf.encoding, sf.samplerate,
                                            sf.channels, sf.filepath)
             if sf.encoding is not None and args.encoding is None:
@@ -195,6 +196,9 @@ def main(*cargs):
             if xamax > amax:
                 amax = xamax
             data = np.vstack((data, xdata))
+            xlocs, xlabels = markers(infile)
+            locs = np.vstack((locs, xlocs))
+            labels = np.vstack((labels, xlabels))
             if args.verbose > 1:
                 print(f'loaded data file "{infile}"')
         data, samplingrate = modify_data(data, samplingrate, md,
@@ -215,7 +219,8 @@ def main(*cargs):
                                    data.shape[1], outfile)
         add_history(md, history, hkey, pre_history)
         # write out data:
-        write_data(outfile, data, samplingrate, amax, unit, md,
+        write_data(outfile, data, samplingrate, amax, unit,
+                   md, locs, labels,
                    format=data_format, encoding=args.encoding)
         # message:
         if args.verbose > 1:

@@ -9,6 +9,8 @@
 
 import os
 import sys
+from datetime import timedelta
+from audioio import get_datetime
 
 data_modules = {}
 """Dictionary with availability of various modules needed for writing data.
@@ -316,6 +318,18 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
     ValueError
         File format or encoding not supported.
     """
+    def write_timestamp(df, count, index, rate, starttime, comment):
+        datetime = starttime + timedelta(seconds=index/rate)
+        df.write(f'    Num: {count}\n')
+        df.write(f' Index1: {index}\n')
+        df.write(f' Index2: 0\n')
+        df.write(f' Index3: 0\n')
+        df.write(f' Index4: 0\n')
+        df.write(f'   Date: {datetime.date().isoformat()}\n')
+        df.write(f'   Time: {datetime.time().isoformat("seconds")}\n')
+        df.write(f'Comment: {comment}\n')
+        df.write('\n')
+        
     if not filepath:
         raise ValueError('no file specified!')
     if format is None:
@@ -334,25 +348,45 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
     # write metadata:
     if unit is None:
         unit = 'mV'
-    filename = os.path.join(filepath, 'fishgrid.cfg')
+    cfgfilename = os.path.join(filepath, 'fishgrid.cfg')
     nchannels = data.shape[1] if data.ndim > 1 else 1
     ncols = int(np.ceil(np.sqrt(nchannels)))
     nrows = int(np.ceil(nchannels/ncols))
-    df = open(filename, 'w')
-    df.write('*FishGrid\n')
-    df.write('  Grid &1\n')
-    df.write('    Used1      : true\n')
-    df.write(f'    Columns1   : {ncols}\n')
-    df.write(f'    Rows1      : {nrows}\n')
-    df.write('  Hardware Settings\n')
-    df.write('    DAQ board:\n')
-    df.write(f'      AISampleRate: {0.001*samplerate:.3f}kHz\n')
-    df.write(f'      AIMaxVolt   : {amax:g}{unit}\n')
-    if metadata:
-        df.write('*Recording\n')
-        write_metadata_text(df, metadata, prefix='  ')
-    df.close()
-    return filename
+    with open(cfgfilename, 'w') as df:
+        df.write('*FishGrid\n')
+        df.write('  Grid &1\n')
+        df.write('    Used1      : true\n')
+        df.write(f'    Columns1   : {ncols}\n')
+        df.write(f'    Rows1      : {nrows}\n')
+        df.write('  Hardware Settings\n')
+        df.write('    DAQ board:\n')
+        df.write(f'      AISampleRate: {0.001*samplerate:.3f}kHz\n')
+        df.write(f'      AIMaxVolt   : {amax:g}{unit}\n')
+        if metadata:
+            df.write('*Recording\n')
+            write_metadata_text(df, metadata, prefix='  ')
+    # write markers:
+    filename = os.path.join(filepath, 'timestamps.dat')
+    starttime = get_datetime(metadata, (('DateTimeOriginal',),
+                                        ('OriginationDate', 'OriginationTime'),
+                                        ('StartDate', 'StartTime'),
+                                        ('Location_Time',)))
+    with open(filename, 'w') as df:
+        count = 0
+        write_timestamp(df, count, 0, samplerate, starttime,
+                        'begin of recording')
+        count += 1
+        if locs is not None:
+            for i in range(len(locs)):
+                comment = ''
+                if labels is not None and len(labels) > i and labels.ndim > 1:
+                    comment = labels[i,1] 
+                write_timestamp(df, count, locs[i,0], samplerate,
+                                starttime, comment)
+                count += 1
+        write_timestamp(df, count, len(data), samplerate, starttime,
+                        'end of recording')
+    return cfgfilename
 
     
 def formats_pickle():
