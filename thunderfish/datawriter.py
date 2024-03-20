@@ -382,11 +382,11 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
                 comment = ''
                 if labels is not None and len(labels) > i and labels.ndim > 1:
                     comment = labels[i,1] 
-                write_timestamp(df, count, locs[i,0], samplerate,
-                                starttime, comment)
+                write_timestamp(df, count, locs[i,0]*nchannels,
+                                samplerate, starttime, comment)
                 count += 1
-        write_timestamp(df, count, len(data), samplerate, starttime,
-                        'end of recording')
+        write_timestamp(df, count, len(data)*nchannels, samplerate,
+                        starttime, 'end of recording')
     return cfgfilename
 
     

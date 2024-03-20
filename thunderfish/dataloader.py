@@ -756,19 +756,25 @@ def markers_fishgrid(filepath):
         path = os.path.dirname(path)
     if os.path.isdir(path):
         path = os.path.join(path, 'timestamps.dat')
+    # read timestamps:
     locs = []
     labels = []
     marker = {}
     with open(path, 'r') as sf:
         for line in sf:
             if len(line.strip()) == 0:
-                locs.append([int(marker['index1']), 0])
+                locs.append([int(marker['index1'])/nchannels, 0])
                 labels.append(['', marker['comments']])
                 marker = {}
             else:
                 words = line.split(':')
                 if len(words) > 1:
                     marker[words[0].strip().lower()] = words[1].strip()
+    # get number of channels:
+    md = metadata_fishgrid(path.replace('timestamps.dat', 'fishgrid.cfg'))
+    grids = fishgrid_grids(md)
+    nchannels = np.prod(grids[0])
+    locs[:,0] *= nchannels
     if len(locs) > 2:
         return np.array(locs[1:-1,:]), np.array(labels[1:-1,:])
     else:
