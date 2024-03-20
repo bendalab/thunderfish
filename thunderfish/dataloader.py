@@ -732,6 +732,49 @@ def metadata_fishgrid(filepath):
     return data
 
 
+def markers_fishgrid(filepath):
+    """ Read markers of a fishgrid data set.
+
+    Parameters
+    ----------
+    filepath: string
+        A fishgrid data directory or a file therein.
+
+    Returns
+    -------
+    locs: 2-D array of ints
+        Marker positions (first column) and spans (second column)
+        for each marker (rows).
+    labels: 2-D array of string objects
+        Labels (first column) and texts (second column)
+        for each marker (rows).
+    """
+    path = filepath
+    if isinstance(filepath, (list, tuple, np.ndarray)):
+        path = filepath[0]
+    if 'trace' in os.path.basename(path):
+        path = os.path.dirname(path)
+    if os.path.isdir(path):
+        path = os.path.join(path, 'timestamps.dat')
+    locs = []
+    labels = []
+    marker = {}
+    with open(path, 'r') as sf:
+        for line in sf:
+            if len(line.strip()) == 0:
+                locs.append([int(marker['index1']), 0])
+                labels.append(['', marker['comments']])
+                marker = {}
+            else:
+                words = line.split(':')
+                if len(words) > 1:
+                    marker[words[0].strip().lower()] = words[1].strip()
+    if len(locs) > 2:
+        return np.array(locs[1:-1,:]), np.array(labels[1:-1,:])
+    else:
+        return np.zeros((0, 2), dtype=int), np.zeros((0, 2), dtype=object)
+        
+
 def check_container(filepath):
     """Check if file is a generic container file.
 
