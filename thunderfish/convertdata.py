@@ -69,7 +69,7 @@ from audioio import bext_history_str, add_history
 from audioio.audioconverter import add_arguments, parse_channels
 from audioio.audioconverter import make_outfile, format_outfile
 from audioio.audioconverter import modify_data
-from .dataloader import load_data, DataLoader
+from .dataloader import load_data, DataLoader, markers
 from .datawriter import available_formats, available_encodings
 from .datawriter import format_from_extension, write_data
 
