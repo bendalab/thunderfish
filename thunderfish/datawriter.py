@@ -9,7 +9,7 @@
 
 import os
 import sys
-from datetime import timedelta
+import datetime as dt
 from audioio import get_datetime
 
 data_modules = {}
@@ -319,7 +319,7 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
         File format or encoding not supported.
     """
     def write_timestamp(df, count, index, rate, starttime, comment):
-        datetime = starttime + timedelta(seconds=index/rate)
+        datetime = starttime + dt.timedelta(seconds=index/rate)
         df.write(f'    Num: {count}\n')
         df.write(f' Index1: {index}\n')
         df.write(f' Index2: 0\n')
@@ -370,7 +370,8 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
     starttime = get_datetime(metadata, (('DateTimeOriginal',),
                                         ('OriginationDate', 'OriginationTime'),
                                         ('StartDate', 'StartTime'),
-                                        ('Location_Time',)))
+                                        ('Location_Time',)),
+                             default=dt.datetime.utcfromtimestamp(0))
     with open(filename, 'w') as df:
         count = 0
         write_timestamp(df, count, 0, samplerate, starttime,
