@@ -676,16 +676,20 @@ def markers_fishgrid(file_path):
     Returns
     -------
     locs: 2-D array of ints
-        Marker positions (first column) and spans (second column)
+        Marker positions (first column) and spans (second column, always zero)
         for each marker (rows).
     labels: 2-D array of string objects
-        Labels (first column) and texts (second column)
+        Labels (first column, all set to 'M') and texts (second column)
         for each marker (rows).
     """
     fishgrid_dir = file_path
     if not os.path.isdir(fishgrid_dir):
         fishgrid_dir = os.path.dirname(file_path)
     path = os.path.join(fishgrid_dir, 'timestamps.dat')
+    # get number of channels:
+    md = metadata_fishgrid(path.replace('timestamps.dat', 'fishgrid.cfg'))
+    grids = fishgrid_grids(md)
+    nchannels = np.prod(grids[0])
     # read timestamps:
     locs = []
     labels = []
@@ -693,20 +697,15 @@ def markers_fishgrid(file_path):
     with open(path, 'r') as sf:
         for line in sf:
             if len(line.strip()) == 0:
-                locs.append([int(marker['index1'])/nchannels, 0])
-                labels.append(['', marker['comments']])
+                locs.append([int(marker['index1'])//nchannels, 0])
+                labels.append(['M', marker['comment']])
                 marker = {}
             else:
                 words = line.split(':')
                 if len(words) > 1:
                     marker[words[0].strip().lower()] = words[1].strip()
-    # get number of channels:
-    md = metadata_fishgrid(path.replace('timestamps.dat', 'fishgrid.cfg'))
-    grids = fishgrid_grids(md)
-    nchannels = np.prod(grids[0])
-    locs[:,0] *= nchannels
     if len(locs) > 2:
-        return np.array(locs[1:-1,:]), np.array(labels[1:-1,:])
+        return np.array(locs[1:-1]), np.array(labels[1:-1])
     else:
         return np.zeros((0, 2), dtype=int), np.zeros((0, 2), dtype=object)
         
@@ -1417,7 +1416,7 @@ class DataLoader(AudioLoader):
         if len(trace_file_paths) > 0:
             self.filepath = os.path.dirname(trace_file_paths[0])
         self._load_metadata = metadata_fishgrid
-        self._load_markers = None  # TODO
+        self._load_markers = markers_fishgrid
 
         # open grid files:
         grids = fishgrid_grids(self.metadata())
@@ -1468,10 +1467,6 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_fishgrid
         self.load_buffer = self._load_buffer_fishgrid
-        # TODO: load markers:
-        self._locs = np.zeros((0, 2), dtype=int)
-        self._labels = np.zeros((0, 2), dtype=object)
-        self._load_markers = None
         return self
 
     def _close_fishgrid(self):
