@@ -78,7 +78,7 @@ def relacs_samplerate_unit(filepath, channel=0):
 
     Parameters
     ----------
-    filepath: string
+    filepath: str
         Path to a relacs data directory, or a file in a relacs data directory.
     channel: int
         Channel (trace) number, if `filepath` does not specify a
@@ -88,7 +88,7 @@ def relacs_samplerate_unit(filepath, channel=0):
     -------
     samplerate: float
         Sampling rate in Hertz
-    unit: string
+    unit: str
         Unit of the trace, can be empty if not found
 
     Raises
@@ -156,7 +156,7 @@ def relacs_header(filepath, store_empty=False, first_only=False,
 
     Parameters
     ----------
-    filepath: string
+    filepath: str
         A relacs *.dat file, can be also a zipped .gz file.
     store_empty: bool
         If `False` do not add meta data with empty values.
@@ -260,7 +260,7 @@ def relacs_header(filepath, store_empty=False, first_only=False,
 
 
 def check_relacs(file_path):
-    """Check whether file_path is a relacs file.
+    """Check for valid relacs file.
 
     Parameters
     ----------
@@ -270,11 +270,7 @@ def check_relacs(file_path):
     Returns
     -------
     is_relacs: boolean
-      If `file_paths` is a single path, then returns `True` if it is a
-      valid relacs directory or is a file in a valid relacs data
-      directory.
-      If file_paths are more than one path, then returns `True` if `file_paths`
-      are 'trace-*.raw' files in a valid relacs data directory.
+      `True` if `file_path` is a valid relacs directory or is a file therein.
     """
     # relacs data directory:
     relacs_dir = file_path
@@ -292,7 +288,7 @@ def check_relacs(file_path):
     return has_stimuli and has_trace
 
     
-def relacs_files(file_path):
+def relacs_trace_files(file_path):
     """Expand file path for relacs data to appropriate trace*.raw file names.
 
     Parameters
@@ -302,7 +298,7 @@ def relacs_files(file_path):
         
     Returns
     -------
-    trace_file_paths: list of strings
+    trace_file_paths: list of str
         List of relacs trace*.raw files.
     """
     relacs_dir = file_path
@@ -335,7 +331,7 @@ def load_relacs(file_path):
         First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz
-    unit: string
+    unit: str
         Unit of the data
     amax: float
         Maximum amplitude of data range.
@@ -347,7 +343,7 @@ def load_relacs(file_path):
         - Sampling rates of traces differ.
         - Unit of traces differ.
     """
-    trace_file_paths = relacs_files(file_path)
+    trace_file_paths = relacs_trace_files(file_path)
     # load trace*.raw files:
     nchannels = len(trace_file_paths)
     data = None
@@ -384,7 +380,7 @@ def metadata_relacs(file_path, store_empty=False, first_only=False,
 
     Parameters
     ----------
-    file_path: string
+    file_path: str
         A relacs data directory or a file therein.
     store_empty: bool
         If `False` do not add meta data with empty values.
@@ -466,94 +462,69 @@ def fishgrid_grids(metadata):
     return grids
 
 
-def check_fishgrid(file_paths):
-    """Check whether file_paths are valid fishgrid files (https://github.com/bendalab/fishgrid).
+def check_fishgrid(file_path):
+    """Check for valid fishgrid file (https://github.com/bendalab/fishgrid).
 
     Parameters
     ----------
-    file_paths: string or list of strings
-        Path to a fishgrid data directory, a file in a fishgrid data directory,
-        or fishgrid traces*.raw files.
+    file_path: str
+        Path to a fishgrid data directory or a file in a fishgrid
+        data directory.
 
     Returns
     -------
     is_fishgrid: bool
-        If `file_paths` is a single path, then returns `True` if it is a file in
-        a valid fishgrid data directory.
-        If `file_paths` are more than one path, then returns `True` if `file_paths`
-        are 'trace*.raw' files in a valid fishgrid data directory.
+        `True` if `file_path` is a valid fishgrid data directory or
+        a file therein.
     """
-    path = file_paths
-    # file_paths must be traces*.raw:
-    if isinstance(file_paths, (list, tuple, np.ndarray)):
-        if len(file_paths) > 1:
-            for file in file_paths:
-                bn = os.path.basename(file).lower()
-                if len(bn) <= 7 or bn[0:7] != 'traces-' or bn[-4:] != '.raw':
-                    return False
-        path = file_paths[0]
     # fishgrid data directory:
-    fishgrid_dir = path
-    if not os.path.isdir(path):
-        fishgrid_dir = os.path.dirname(path)
+    fishgrid_dir = file_path
+    if not os.path.isdir(file_path):
+        fishgrid_dir = os.path.dirname(file_path)
     # check for a valid fishgrid data directory:
     return (os.path.isfile(os.path.join(fishgrid_dir, 'fishgrid.cfg')) and
             (os.path.isfile(os.path.join(fishgrid_dir, 'traces-grid1.raw')) or
              os.path.isfile(os.path.join(fishgrid_dir, 'traces.raw'))))
 
     
-def fishgrid_trace_files(file_paths):
+def fishgrid_trace_files(file_path):
     """Expand file paths for fishgrid data to appropriate traces*.raw file names.
 
     Parameters
     ----------
-    file_paths: string or list of strings
-        Path to a fishgrid data directory, a file in a fishgrid data directory,
-        or fishgrid traces*.raw files.
+    file_path: str
+        Path to a fishgrid data directory, or a file therein.
         
     Returns
     -------
-    file_paths: list of strings
+    trace_file_paths: list of str
         List of fishgrid traces*.raw files.
-
-    Raises
-    ------
-    FileNotFoundError:
-        Invalid fishgrid file.
     """
     # find grids:
-    if not isinstance(file_paths, (list, tuple, np.ndarray)):
-        file_paths = [file_paths]
-    if len(file_paths) == 1:
-        fishgrid_dir = file_paths[0]
-        if not os.path.isdir(fishgrid_dir):
-            fishgrid_dir = os.path.dirname(file_paths[0])
-        file_paths = []
-        for k in range(10000):
-            file = os.path.join(fishgrid_dir, f'traces-grid{k+1}.raw')
-            if os.path.isfile(file):
-                file_paths.append(file)
-            else:
-                break
-        if len(file_paths) == 0:
-            file = os.path.join(fishgrid_dir, f'traces.raw')
-            if os.path.isfile(file):
-                file_paths.append(file)
-    for path in file_paths:
-        bn = os.path.basename(path)
-        if len(bn) <= 6 or bn[0:6] != 'traces' or bn[-4:] != '.raw':
-            raise FileNotFoundError(f'invalid name {path} of fishgrid traces file')
-    return sorted(file_paths)
+    fishgrid_dir = file_path
+    if not os.path.isdir(fishgrid_dir):
+        fishgrid_dir = os.path.dirname(file_path)
+    trace_file_paths = []
+    for k in range(10000):
+        file = os.path.join(fishgrid_dir, f'traces-grid{k+1}.raw')
+        if os.path.isfile(file):
+            trace_file_paths.append(file)
+        else:
+            break
+    if len(trace_file_paths) == 0:
+        file = os.path.join(fishgrid_dir, f'traces.raw')
+        if os.path.isfile(file):
+            trace_file_paths.append(file)
+    return trace_file_paths
 
         
-def load_fishgrid(file_paths):
-    """Load traces (traces-grid*.raw files) that have been recorded with fishgrid (https://github.com/bendalab/fishgrid).
+def load_fishgrid(file_path):
+    """Load traces that have been recorded with fishgrid (https://github.com/bendalab/fishgrid).
 
     Parameters
     ----------
-    file_paths: string or list of string
-        Path to a fishgrid data directory, a fishgrid.cfg file,
-        or fidhgrid traces-grid*.raw files.
+    file_path: str
+        Path to a fishgrid data directory, or a file therein.
 
     Returns
     -------
@@ -562,7 +533,7 @@ def load_fishgrid(file_paths):
         First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz.
-    unit: string
+    unit: str
         Unit of the data.
     amax: float
         Maximum amplitude of data range.
@@ -572,26 +543,24 @@ def load_fishgrid(file_paths):
     FileNotFoundError:
         Invalid or not existing fishgrid files.
     """
-    if not isinstance(file_paths, (list, tuple, np.ndarray)):
-        file_paths = [file_paths]
-    file_paths = fishgrid_trace_files(file_paths)
-    if len(file_paths) == 0:
+    trace_file_paths = fishgrid_trace_files(file_path)
+    if len(trace_file_paths) == 0:
         raise FileNotFoundError(f'no fishgrid files specified')
-    md = metadata_fishgrid(file_paths[0])
+    md = metadata_fishgrid(file_path)
     grids = fishgrid_grids(md)
     grid_sizes = [r*c for r,c in grids]
                 
     # load traces-grid*.raw files:
     grid_channels = []
     nchannels = 0
-    for g, path in enumerate(file_paths):
+    for g, path in enumerate(trace_file_paths):
         grid_channels.append(grid_sizes[g])
         nchannels += grid_sizes[g]
     data = None
     nrows = 0
     c = 0
     samplerate = get_number(md, 'Hz', 'AISampleRate')
-    for path, channels in zip(file_paths, grid_channels):
+    for path, channels in zip(trace_file_paths, grid_channels):
         x = np.fromfile(path, np.float32).reshape((-1, channels))
         if data is None:
             nrows = len(x)
@@ -603,12 +572,12 @@ def load_fishgrid(file_paths):
     return data, samplerate, unit, amax
 
 
-def metadata_fishgrid(filepath):
+def metadata_fishgrid(file_path):
     """ Read meta-data of a fishgrid data set.
 
     Parameters
     ----------
-    filepath: string
+    file_path: str
         A fishgrid data directory or a file therein.
 
     Returns
@@ -616,17 +585,14 @@ def metadata_fishgrid(filepath):
     data: nested dict
         Nested dictionary with key-value pairs of the meta data.
     """
-    path = filepath
-    if isinstance(filepath, (list, tuple, np.ndarray)):
-        path = filepath[0]
-    if 'trace' in os.path.basename(path):
-        path = os.path.dirname(path)
-    if os.path.isdir(path):
-        path = os.path.join(path, 'fishgrid.cfg')
+    fishgrid_dir = file_path
+    if not os.path.isdir(fishgrid_dir):
+        fishgrid_dir = os.path.dirname(file_path)
+    path = os.path.join(fishgrid_dir, 'fishgrid.cfg')
     # read in header from file:
     lines = []
     if os.path.isfile(path + '.gz'):
-        info_path += '.gz'
+        path += '.gz'
     if not os.path.exists(path):
         return {}
     if path[-3:] == '.gz':
@@ -699,12 +665,12 @@ def metadata_fishgrid(filepath):
     return data
 
 
-def markers_fishgrid(filepath):
+def markers_fishgrid(file_path):
     """ Read markers of a fishgrid data set.
 
     Parameters
     ----------
-    filepath: string
+    file_path: str
         A fishgrid data directory or a file therein.
 
     Returns
@@ -716,13 +682,10 @@ def markers_fishgrid(filepath):
         Labels (first column) and texts (second column)
         for each marker (rows).
     """
-    path = filepath
-    if isinstance(filepath, (list, tuple, np.ndarray)):
-        path = filepath[0]
-    if 'trace' in os.path.basename(path):
-        path = os.path.dirname(path)
-    if os.path.isdir(path):
-        path = os.path.join(path, 'timestamps.dat')
+    fishgrid_dir = file_path
+    if not os.path.isdir(fishgrid_dir):
+        fishgrid_dir = os.path.dirname(file_path)
+    path = os.path.join(fishgrid_dir, 'timestamps.dat')
     # read timestamps:
     locs = []
     labels = []
@@ -759,7 +722,7 @@ def check_container(filepath):
 
     Parameters
     ----------
-    filepath: string
+    filepath: str
         Path of the file to check.
     
     Returns
@@ -780,19 +743,19 @@ def extract_container_data(data_dict, datakey=None,
     ----------
     data_dict: dict
         Dictionary of the data items contained in the container.
-    datakey: None, string, or list of string
+    datakey: None, str, or list of str
         Name of the variable holding the data.  If `None` take the
         variable that is an 2D array and has the largest number of
         elements.
-    samplekey: string or list of string
+    samplekey: str or list of str
         Name of the variable holding the sampling rate.
-    timekey: string or list of string
+    timekey: str or list of str
         Name of the variable holding sampling times.
         If no sampling rate is available, the samplingrate is retrieved
         from the sampling times.
-    amplkey: string or list of string
+    amplkey: str or list of str
         Name of the variable holding the amplitude range of the data.
-    unitkey: string
+    unitkey: str
         Name of the variable holding the unit of the data.
         If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
 
@@ -803,7 +766,7 @@ def extract_container_data(data_dict, datakey=None,
         First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz.
-    unit: string
+    unit: str
         Unit of the data.
     amax: float
         Maximum amplitude of data range in `unit`.
@@ -898,21 +861,21 @@ def load_container(filepath, datakey=None,
 
     Parameters
     ----------
-    filepath: string
+    filepath: str
         Path of the file to load.
-    datakey: None, string, or list of string
+    datakey: None, str, or list of str
         Name of the variable holding the data.  If `None` take the
         variable that is an 2D array and has the largest number of
         elements.
-    samplekey: string or list of string
+    samplekey: str or list of str
         Name of the variable holding the sampling rate.
-    timekey: string or list of string
+    timekey: str or list of str
         Name of the variable holding sampling times.
         If no sampling rate is available, the samplingrate is retrieved
         from the sampling times.
-    amplkey: string
+    amplkey: str
         Name of the variable holding the amplitude range of the data.
-    unitkey: string
+    unitkey: str
         Name of the variable holding the unit of the data.
         If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
 
@@ -923,7 +886,7 @@ def load_container(filepath, datakey=None,
         First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz.
-    unit: string
+    unit: str
         Unit of the data.
     amax: float
         Maximum amplitude of data range.
@@ -956,7 +919,7 @@ def extract_container_metadata(data_dict, metadatakey=['metadata', 'info']):
     ----------
     data_dict: dict
         Dictionary of the data items contained in the container.
-    metadatakey: string or list of string
+    metadatakey: str or list of str
         Name of the variable holding the metadata.
 
     Returns
@@ -990,9 +953,9 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
 
     Parameters
     ----------
-    filepath: string
+    filepath: str
         A container file.
-    metadatakey: string or list of string
+    metadatakey: str or list of str
         Name of the variable holding the metadata.
 
     Returns
@@ -1044,7 +1007,7 @@ def load_audioio(filepath, verbose=0, gainkey=['gain'], sep='.'):
         First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz.
-    unit: string
+    unit: str
         Unit of the data if found in the metadata (see `gainkey`),
         otherwise "a.u.".
     amax: float
@@ -1065,7 +1028,7 @@ def load_data(filepath, verbose=0, **kwargs):
 
     Parameters
     ----------
-    filepath: string or list of strings
+    filepath: str or list of str
         The full path and name of the file to load. For some file
         formats several files can be provided in a list.
     verbose: int
@@ -1081,7 +1044,7 @@ def load_data(filepath, verbose=0, **kwargs):
         First dimension is time, second is channel.
     samplerate: float
         Sampling rate of the data in Hz.
-    unit: string
+    unit: str
         Unit of the data.
     amax: float
         Maximum amplitude of data range.
@@ -1133,7 +1096,7 @@ def metadata(filepath, store_empty=False, first_only=False, **kwargs):
 
     Parameters
     ----------
-    filepath: string or list of strings
+    filepath: str or list of strings
         The full path and name of the file to load. For some file
         formats several files can be provided in a list.
     store_empty: bool
@@ -1173,7 +1136,7 @@ def markers(filepath):
 
     Parameters
     ----------
-    filepath: string or file handle
+    filepath: str or file handle
         The data file.
 
     Returns
@@ -1244,7 +1207,7 @@ class DataLoader(AudioLoader):
     
     Parameters
     ----------
-    filepath: string
+    filepath: str
         Name of the file.
     buffersize: float
         Size of internal buffer in seconds.
@@ -1271,7 +1234,7 @@ class DataLoader(AudioLoader):
         Number of frames and channels of the data.
     ndim: int
         Number of dimensions: always 2 (frames and channels).
-    unit: string
+    unit: str
         Unit of the data.
     ampl_min: float
         Minimum amplitude the file format supports.
@@ -1306,15 +1269,14 @@ class DataLoader(AudioLoader):
 
     
     # relacs interface:        
-    def open_relacs(self, file_paths, buffersize=10.0, backsize=0.0,
+    def open_relacs(self, file_path, buffersize=10.0, backsize=0.0,
                     verbose=0):
         """Open relacs data files (www.relacs.net) for reading.
 
         Parameters
         ----------
-        file_paths: string or list of string
-            Path to a relacs data directory, a relacs stimuli.dat file, a relacs info.dat file,
-            or relacs trace-*.raw files.
+        file_path: str
+            Path to a relacs data directory or a file therein.
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
@@ -1331,7 +1293,7 @@ class DataLoader(AudioLoader):
         if self.sf is not None:
             self._close_relacs()
 
-        file_paths = relacs_files(file_paths)
+        trace_file_paths = relacs_trace_files(file_path)
 
         # open trace files:
         self.sf = []
@@ -1339,18 +1301,18 @@ class DataLoader(AudioLoader):
         self.samplerate = None
         self.unit = ""
         self.filepath = None
-        if len(file_paths) > 0:
-            self.filepath = os.path.dirname(file_paths[0])
-        for path in sorted(file_paths):
+        if len(trace_file_paths) > 0:
+            self.filepath = os.path.dirname(trace_file_paths[0])
+        for path in sorted(trace_file_paths):
             if path[-3:] == '.gz':
                 raise ValueError('.gz files not supported')
-            file = open(path, 'rb')
-            self.sf.append(file)
+            sf = open(path, 'rb')
+            self.sf.append(sf)
             if verbose > 0:
                 print(f'open_relacs(filepath) with filepath={path}')
             # file size:
-            file.seek(0, os.SEEK_END)
-            frames = file.tell()//4
+            sf.seek(0, os.SEEK_END)
+            frames = sf.tell()//4
             if self.frames is None:
                 self.frames = frames
             elif self.frames != frames:
@@ -1359,7 +1321,7 @@ class DataLoader(AudioLoader):
                     raise ValueError('number of frames of traces differ')
                 elif diff >= 0:
                     self.frames = frames
-            file.seek(0)
+            sf.seek(0)
             # retrieve sampling rate and unit:
             rate, us = relacs_samplerate_unit(path)
             if self.samplerate is None:
@@ -1427,15 +1389,14 @@ class DataLoader(AudioLoader):
 
     
     # fishgrid interface:        
-    def open_fishgrid(self, file_paths, buffersize=10.0, backsize=0.0,
+    def open_fishgrid(self, file_path, buffersize=10.0, backsize=0.0,
                       verbose=0):
         """Open fishgrid data files (https://github.com/bendalab/fishgrid) for reading.
 
         Parameters
         ----------
-        file_paths: string or list of string
-            Path to a fishgrid data directory, a fishgrid.cfg file,
-            or fishgrid trace-*.raw files.
+        file_path: str
+            Path to a fishgrid data directory, or a file therein.
         buffersize: float
             Size of internal buffer in seconds.
         backsize: float
@@ -1448,12 +1409,10 @@ class DataLoader(AudioLoader):
         if self.sf is not None:
             self._close_fishgrid()
 
-        if not isinstance(file_paths, (list, tuple, np.ndarray)):
-            file_paths = [file_paths]
-        file_paths = fishgrid_trace_files(file_paths)
+        trace_file_paths = fishgrid_trace_files(file_path)
         self.filepath = None
-        if len(file_paths) > 0:
-            self.filepath = os.path.dirname(file_paths[0])
+        if len(trace_file_paths) > 0:
+            self.filepath = os.path.dirname(trace_file_paths[0])
         self._load_metadata = metadata_fishgrid
         self._load_markers = None  # TODO
 
@@ -1461,7 +1420,7 @@ class DataLoader(AudioLoader):
         grids = fishgrid_grids(self.metadata())
         grid_sizes = [r*c for r,c in grids]
         self.channels = 0
-        for g, path in enumerate(file_paths):
+        for g, path in enumerate(trace_file_paths):
             self.channels += grid_sizes[g]
         self.sf = []
         self.grid_channels = []
@@ -1474,9 +1433,9 @@ class DataLoader(AudioLoader):
             self.ampl_min = -v
             self.ampl_max = +v
             
-        for g, path in enumerate(file_paths):
-            file = open(path, 'rb')
-            self.sf.append(file)
+        for g, path in enumerate(trace_file_paths):
+            sf = open(path, 'rb')
+            self.sf.append(sf)
             if verbose > 0:
                 print(f'open_fishgrid(filepath) with filepath={path}')
             # grid channels:
@@ -1484,8 +1443,8 @@ class DataLoader(AudioLoader):
             self.grid_offs.append(offs)
             offs += grid_sizes[g]
             # file size:
-            file.seek(0, os.SEEK_END)
-            frames = file.tell()//4//grid_sizes[g]
+            sf.seek(0, os.SEEK_END)
+            frames = sf.tell()//4//grid_sizes[g]
             if self.frames is None:
                 self.frames = frames
             elif self.frames != frames:
@@ -1494,7 +1453,7 @@ class DataLoader(AudioLoader):
                     raise ValueError('number of frames of traces differ')
                 elif diff >= 0:
                     self.frames = frames
-            file.seek(0)
+            sf.seek(0)
         self.shape = (self.frames, self.channels)
         self.size = self.frames * self.channels
         self.ndim = len(self.shape)
@@ -1554,7 +1513,7 @@ class DataLoader(AudioLoader):
 
         Parameters
         ----------
-        file_path: string
+        file_path: str
             Path to a container file.
         buffersize: float
             Size of internal buffer in seconds.
@@ -1562,22 +1521,22 @@ class DataLoader(AudioLoader):
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
-        datakey: None, string, or list of string
+        datakey: None, str, or list of str
             Name of the variable holding the data.  If `None` take the
             variable that is an 2D array and has the largest number of
             elements.
-        samplekey: string or list of string
+        samplekey: str or list of str
             Name of the variable holding the sampling rate.
-        timekey: string or list of string
+        timekey: str or list of str
             Name of the variable holding sampling times.
             If no sampling rate is available, the samplingrate is retrieved
             from the sampling times.
-        amplkey: string or list of string
+        amplkey: str or list of str
             Name of the variable holding the amplitude range of the data.
-        unitkey: string
+        unitkey: str
             Name of the variable holding the unit of the data.
             If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
-        metadatakey: string or list of string
+        metadatakey: str or list of str
             Name of the variable holding the metadata.
 
         Raises
@@ -1643,7 +1602,7 @@ class DataLoader(AudioLoader):
 
         Parameters
         ----------
-        file_path: string
+        file_path: str
             Path to an audio file.
         buffersize: float
             Size of internal buffer in seconds.
@@ -1696,7 +1655,7 @@ class DataLoader(AudioLoader):
 
         Parameters
         ----------
-        filepath: string or list of string
+        filepath: str or list of str
             Path to a data files or directory.
         buffersize: float
             Size of internal buffer in seconds.
@@ -1773,7 +1732,7 @@ def main(*cargs):
 
     Parameters
     ----------
-    cargs: list of strings
+    cargs: list of str
         Command line arguments as provided by sys.argv[1:]
     """
     import argparse
