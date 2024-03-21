@@ -79,8 +79,7 @@ def relacs_samplerate_unit(filepath, channel=0):
     Parameters
     ----------
     filepath: string
-        Path to a relacs data directory, a file in a relacs data directory,
-        or a relacs trace-*.raw file. Files can be .gz files.
+        Path to a relacs data directory, or a file in a relacs data directory.
     channel: int
         Channel (trace) number, if `filepath` does not specify a
         trace-*.raw file.
@@ -260,14 +259,13 @@ def relacs_header(filepath, store_empty=False, first_only=False,
     return data
 
 
-def check_relacs(file_paths):
-    """Check whether file_paths are relacs files.
+def check_relacs(file_path):
+    """Check whether file_path is a relacs file.
 
     Parameters
     ----------
-    file_paths: string or list of strings
-        Path to a relacs data directory, a file in a relacs data directory,
-        or relacs trace-*.raw or trace-*.raw.gz files.
+    file_path: str
+        Path to a relacs data directory, or a file in a relacs data directory.
 
     Returns
     -------
@@ -278,19 +276,10 @@ def check_relacs(file_paths):
       If file_paths are more than one path, then returns `True` if `file_paths`
       are 'trace-*.raw' files in a valid relacs data directory.
     """
-    path = file_paths
-    # file_paths must be trace-*.raw:
-    if isinstance(file_paths, (list, tuple, np.ndarray)):
-        if len(file_paths) > 1:
-            for file in file_paths:
-                bn = os.path.basename(file)
-                if len(bn) <= 5 or bn[0:5] != 'trace' or bn[6:].find('.raw') < 0:
-                    return False
-        path = file_paths[0]
     # relacs data directory:
-    relacs_dir = path
-    if not os.path.isdir(path):
-        relacs_dir = os.path.dirname(path)
+    relacs_dir = file_path
+    if not os.path.isdir(file_path):
+        relacs_dir = os.path.dirname(file_path)
     # check for a valid relacs data directory:
     has_stimuli = False
     has_trace = False
@@ -303,60 +292,41 @@ def check_relacs(file_paths):
     return has_stimuli and has_trace
 
     
-def relacs_files(file_paths):
-    """Expand file paths for relacs data to appropriate trace*.raw file names.
+def relacs_files(file_path):
+    """Expand file path for relacs data to appropriate trace*.raw file names.
 
     Parameters
     ----------
-    file_paths: string or list of strings
-        Path to a relacs data directory, a file in a relacs data directory,
-        or relacs trace-*.raw or trace-*.raw.gz files.
+    file_path: str
+        Path to a relacs data directory, or a file in a relacs data directory.
         
     Returns
     -------
-    file_paths: list of strings
+    trace_file_paths: list of strings
         List of relacs trace*.raw files.
-
-    Raises
-    ------
-    ValueError: invalid name of or non-existing relacs trace file
     """
-    if not isinstance(file_paths, (list, tuple, np.ndarray)):
-        file_paths = [file_paths]
-    if len(file_paths) == 1:
-        relacs_dir = file_paths[0]
-        if not os.path.isdir(relacs_dir):
-            relacs_dir = os.path.dirname(file_paths[0])
-        file_paths = []
-        for k in range(10000):
-            fname = os.path.join(relacs_dir, f'trace-{k+1}.raw')
-            if os.path.isfile(fname):
-                file_paths.append(fname)
-            elif os.path.isfile(fname + '.gz'):
-                file_paths.append(fname + '.gz')
-            else:
-                break
-    data_paths = []
-    for path in file_paths:
-        bn = os.path.basename(path)
-        if len(bn) <= 5 or bn[0:5] != 'trace' or bn[6:].find('.raw') < 0:
-            raise ValueError(f'invalid name {path} of relacs trace file')
-        if not os.path.isfile(path):
-            path += '.gz'
-            if not os.path.isfile(path):
-                raise ValueError(f'relacs file {path} does not exist')
-        data_paths.append(path)
-    return data_paths
+    relacs_dir = file_path
+    if not os.path.isdir(file_path):
+        relacs_dir = os.path.dirname(file_paths)
+    trace_file_paths = []
+    for k in range(10000):
+        fname = os.path.join(relacs_dir, f'trace-{k+1}.raw')
+        if os.path.isfile(fname):
+            trace_file_paths.append(fname)
+        elif os.path.isfile(fname + '.gz'):
+            trace_file_paths.append(fname + '.gz')
+        else:
+            break
+    return trace_file_paths
 
         
-def load_relacs(file_paths):
-    """Load traces (trace-*.raw files) that have been recorded with relacs (www.relacs.net).
+def load_relacs(file_path):
+    """Load traces that have been recorded with relacs (https://github.com/relacs/relacs).
 
     Parameters
     ----------
-    file_paths: string or list of strings
-        Path to a relacs data directory, a file in a relacs data directory,
-        or relacs trace-*.raw files.
+    file_path: str
+        Path to a relacs data directory, or a file in a relacs data directory.
 
     Returns
     -------
@@ -377,14 +347,14 @@ def load_relacs(file_paths):
         - Sampling rates of traces differ.
         - Unit of traces differ.
     """
-    file_paths = relacs_files(file_paths)
+    trace_file_paths = relacs_files(file_path)
     # load trace*.raw files:
-    nchannels = len(file_paths)
+    nchannels = len(trace_file_paths)
     data = None
     nrows = 0
     samplerate = None
     unit = ""
-    for c, path in enumerate(sorted(file_paths)):
+    for c, path in enumerate(sorted(trace_file_paths)):
         if path[-3:] == '.gz':
             with gzip.open(path, 'rb') as sf:
                 x = np.frombuffer(sf.read(), dtype=np.float32)
@@ -396,7 +366,7 @@ def load_relacs(file_paths):
         n = min(len(x), nrows)
         data[:n,c] = x[:n]
         # retrieve sampling rate and unit:
-        rate, us = relacs_samplerate_unit(path)
+        rate, us = relacs_samplerate_unit(path, c)
         if samplerate is None:
             samplerate = rate
         elif rate != samplerate:
@@ -408,13 +378,13 @@ def load_relacs(file_paths):
     return data, samplerate, unit, np.inf
 
 
-def metadata_relacs(filepath, store_empty=False, first_only=False,
+def metadata_relacs(file_path, store_empty=False, first_only=False,
                     lower_keys=False, flat=False, add_sections=False):
     """ Read meta-data of a relacs data set.
 
     Parameters
     ----------
-    filepath: string
+    file_path: string
         A relacs data directory or a file therein.
     store_empty: bool
         If `False` do not add meta data with empty values.
@@ -435,12 +405,9 @@ def metadata_relacs(filepath, store_empty=False, first_only=False,
     data: nested dict
         Nested dictionary with key-value pairs of the meta data.
     """
-    path = filepath
-    if isinstance(filepath, (list, tuple, np.ndarray)):
-        path = filepath[0]
-    relacs_dir = path
-    if not os.path.isdir(path):
-        relacs_dir = os.path.dirname(path)
+    relacs_dir = file_path
+    if not os.path.isdir(file_path):
+        relacs_dir = os.path.dirname(file_path)
     info_path = os.path.join(relacs_dir, 'info.dat')
     if not os.path.exists(info_path):
         return dict(), []

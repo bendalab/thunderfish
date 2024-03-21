@@ -1022,7 +1022,6 @@ def write_data(filepath, data, samplerate, amax=1.0, unit=None,
     """
     if not filepath:
         raise ValueError('no file specified!')
-
     if not format:
         format = format_from_extension(filepath)
     if not format:
