@@ -69,8 +69,8 @@ except ImportError:
     pass
 from audioio import load_audio, AudioLoader, unflatten_metadata
 from audioio import get_number_unit, get_number, get_int, get_bool, get_gain
-from audioio import metadata as audioio_metadata
-from audioio import markers as audioio_markers
+from audioio import metadata as metadata_audioio
+from audioio import markers as markers_audioio
 
 
 def relacs_samplerate_unit(filepath, channel=0):
@@ -848,7 +848,7 @@ def extract_container_data(data_dict, datakey=None,
     return data, samplerate, unit, amax
 
 
-def load_container(filepath, datakey=None,
+def load_container(file_path, datakey=None,
                    samplekey=['rate', 'Fs', 'fs'],
                    timekey=['time'], amplkey=['amax'], unitkey='unit'):
     """Load data from a generic container file.
@@ -861,7 +861,7 @@ def load_container(filepath, datakey=None,
 
     Parameters
     ----------
-    filepath: str
+    file_path: str
         Path of the file to load.
     datakey: None, str, or list of str
         Name of the variable holding the data.  If `None` take the
@@ -898,16 +898,16 @@ def load_container(filepath, datakey=None,
     """
     # load data:
     data_dict = {}
-    ext = os.path.splitext(filepath)[1]
+    ext = os.path.splitext(file_path)[1]
     if ext == '.pkl':
         import pickle
-        with open(filepath, 'rb') as f:
+        with open(file_path, 'rb') as f:
             data_dict = pickle.load(f)
     elif ext == '.npz':
-        data_dict = np.load(filepath)
+        data_dict = np.load(file_path)
     elif ext == '.mat':
         from scipy.io import loadmat
-        data_dict = loadmat(filepath, squeeze_me=True)
+        data_dict = loadmat(file_path, squeeze_me=True)
     return extract_container_data(data_dict, datakey, samplekey,
                                   timekey, amplkey, unitkey)
 
@@ -948,12 +948,12 @@ def extract_container_metadata(data_dict, metadatakey=['metadata', 'info']):
     return metadata
 
 
-def metadata_container(filepath, metadatakey=['metadata', 'info']):
+def metadata_container(file_path, metadatakey=['metadata', 'info']):
     """ Read meta-data of a container file.
 
     Parameters
     ----------
-    filepath: str
+    file_path: str
         A container file.
     metadatakey: str or list of str
         Name of the variable holding the metadata.
@@ -965,20 +965,20 @@ def metadata_container(filepath, metadatakey=['metadata', 'info']):
     """
     # load data:
     data_dict = {}
-    ext = os.path.splitext(filepath)[1]
+    ext = os.path.splitext(file_path)[1]
     if ext == '.pkl':
         import pickle
-        with open(filepath, 'rb') as f:
+        with open(file_path, 'rb') as f:
             data_dict = pickle.load(f)
     elif ext == '.npz':
-        data_dict = np.load(filepath)
+        data_dict = np.load(file_path)
     elif ext == '.mat':
         from scipy.io import loadmat
-        data_dict = loadmat(filepath, squeeze_me=True)
+        data_dict = loadmat(file_path, squeeze_me=True)
     return extract_container_metadata(data_dict, metadatakey)
 
 
-def load_audioio(filepath, verbose=0, gainkey=['gain'], sep='.'):
+def load_audioio(file_path, verbose=0, gainkey=['gain'], sep='.'):
     """Load data from an audio file.
 
     See the
@@ -988,7 +988,7 @@ def load_audioio(filepath, verbose=0, gainkey=['gain'], sep='.'):
 
     Parameters
     ----------
-    filepath: str
+    file_path: str
         Path of the file to load.
     verbose: int
         If > 0 show detailed error/warning messages.
@@ -1014,23 +1014,36 @@ def load_audioio(filepath, verbose=0, gainkey=['gain'], sep='.'):
         Maximum amplitude of data range.
     """
     # get gain:
-    md = audioio_metadata(filepath)
+    md = metadata_audioio(file_path)
     amax, unit = get_gain(md, gainkey, sep)
     # load data:
-    data, samplerate = load_audio(filepath, verbose)
+    data, samplerate = load_audio(file_path, verbose)
     if amax != 1.0:
         data *= amax
     return data, samplerate, unit, amax
 
+
+data_loader_funcs = (
+    ('relacs', check_relacs, load_relacs, metadata_relacs, None),
+    ('fishgrid', check_fishgrid, load_fishgrid, metadata_fishgrid, markers_fishgrid),
+    ('container', check_container, load_container, metadata_container, None),
+    ('audioio', None, load_audioio, metadata_audioio, markers_audioio),
+    )
+"""List of implemented load functions.
+
+Each element of the list is a tuple with the data format's name, its
+check and its load function.
+
+"""    
+
     
-def load_data(filepath, verbose=0, **kwargs):
+def load_data(file_path, verbose=0, **kwargs):
     """Load time-series data from a file.
 
     Parameters
     ----------
-    filepath: str or list of str
-        The full path and name of the file to load. For some file
-        formats several files can be provided in a list.
+    file_path: str
+        Path and name of the file to load.
     verbose: int
         If > 0 show detailed error/warning messages.
     **kwargs: dict
@@ -1052,57 +1065,33 @@ def load_data(filepath, verbose=0, **kwargs):
     Raises
     ------
     ValueError:
-        Input argument `filepath` is empty string or list.
+        `file_path` is empty string.
     """
-    def print_verbose(verbose, data, rate, unit, amax, filepath, lib):
-        if verbose > 0:
-            if isinstance(filepath, (list, tuple, np.ndarray)):
-                filepath = filepath[0]
-            print(f'loaded data from file "{filepath}" using open_{lib}()')
-            if verbose > 1:
-                print(f'  sampling rate: {rate:g} Hz')
-                print(f'  channels     : {data.shape[1]}')
-                print(f'  frames       : {len(data)}')
-                print(f'  unit         : {amax:g}{unit}')
-        
-    # check values:
-    if len(filepath) == 0:
-        raise ValueError('input argument filepath is empty string or list.')
-
+    if len(file_path) == 0:
+        raise ValueError('input argument file_path is empty string.')
     # load data:
-    if check_relacs(filepath):
-        data, rate, unit, amax = load_relacs(filepath)
-        print_verbose(verbose, data, rate, unit, amax, filepath, 'relacs')
-        return data, rate, unit, amax
-    elif check_fishgrid(filepath):
-        data, rate, unit, amax = load_fishgrid(filepath)
-        print_verbose(verbose, data, rate, unit, amax, filepath, 'fishgrid')
-        return data, rate, unit, amax
-    else:
-        if isinstance(filepath, (list, tuple, np.ndarray)):
-            filepath = filepath[0]
-        if check_container(filepath):
-            data, rate, unit, amax = load_container(filepath, **kwargs)
-            print_verbose(verbose, data, rate, unit, amax, filepath,
-                          'container')
+    for name, check_file, load_file, _, _ in  data_loader_funcs:
+        if check_file is None or check_file(file_path):
+            data, rate, unit, amax = load_file(file_path)
+            if verbose > 0:
+                print(f'loaded {name} data from file "{file_path}"')
+                if verbose > 1:
+                    print(f'  sampling rate: {rate:g} Hz')
+                    print(f'  channels     : {data.shape[1]}')
+                    print(f'  frames       : {len(data)}')
+                    print(f'  unit         : {amax:g}{unit}')
             return data, rate, unit, amax
-        else:
-            data, rate, unit, amax = load_audioio(filepath, verbose, **kwargs)
-            return data, rate, unit, amax
+    return np.zeros((0, 1)), 0.0, '', 1.0
 
 
-def metadata(filepath, store_empty=False, first_only=False, **kwargs):
+def metadata(file_path, **kwargs):
     """ Read meta-data from a data file.
 
     Parameters
     ----------
-    filepath: str or list of strings
+    file_path: str
         The full path and name of the file to load. For some file
         formats several files can be provided in a list.
-    store_empty: bool
-        If `False` do not add meta data with empty values.
-    first_only: bool
-        If `False` only store the first element of a list.
     **kwargs: dict
         Further keyword arguments that are passed on to the 
         format specific loading functions.
@@ -1117,26 +1106,28 @@ def metadata(filepath, store_empty=False, first_only=False, **kwargs):
         types of values are values for the respective key. In
         particular they are strings, or list of strings. But other
         simple types like ints or floats are also allowed.
+
+    Raises
+    ------
+    ValueError:
+        `file_path` is empty string.
     """
-    if check_relacs(filepath):
-        return metadata_relacs(filepath, store_empty, first_only, **kwargs)
-    elif check_fishgrid(filepath):
-        return metadata_fishgrid(filepath, store_empty, first_only, **kwargs)
-    else:
-        if isinstance(filepath, (list, tuple, np.ndarray)):
-            filepath = filepath[0]
-        if check_container(filepath):
-            return metadata_container(filepath, **kwargs)
-        else:
-            return audioio_metadata(filepath, store_empty)
+    if len(file_path) == 0:
+        raise ValueError('input argument file_path is empty string.')
+    # load metadata:
+    for _, check_file, _, metadata_file, _ in  data_loader_funcs:
+        if check_file is None or check_file(file_path):
+            if metadata_file is not None:
+                return metadata_file(file_path, **kwargs)
+    return {}
 
 
-def markers(filepath):
+def markers(file_path):
     """ Read markers of a data file.
 
     Parameters
     ----------
-    filepath: str or file handle
+    file_path: str or file handle
         The data file.
 
     Returns
@@ -1147,8 +1138,20 @@ def markers(filepath):
     labels: 2-D array of string objects
         Labels (first column) and texts (second column)
         for each marker (rows).
+
+    Raises
+    ------
+    ValueError:
+        `file_path` is empty string.
     """
-    return audioio_markers(filepath)
+    if len(file_path) == 0:
+        raise ValueError('input argument file_path is empty string.')
+    # load markers:
+    for _, check_file, _, _, markers_file in  data_loader_funcs:
+        if check_file is None or check_file(file_path):
+            if markers_file is not None:
+                return markers_file(file_path, **kwargs)
+    return np.zeros((0, 2), dtype=int), np.zeros((0, 2), dtype=object)
 
 
 class DataLoader(AudioLoader):
@@ -1186,7 +1189,7 @@ class DataLoader(AudioLoader):
     ------
     ```
     import thunderfish.dataloader as dl
-    with dl.DataLoader(filepath, 60.0, 10.0) as data:
+    with dl.DataLoader(file_path, 60.0, 10.0) as data:
         # do something with the content of the file:
         x = data[0:10000,0]
         y = data[10000:20000,0]
@@ -1195,19 +1198,19 @@ class DataLoader(AudioLoader):
     
     Normal open and close:
     ```
-    data = dl.DataLoader(filepath, 60.0)
+    data = dl.DataLoader(file_path, 60.0)
     x = data[:,:]  # read the whole file
     data.close()
     ```    
     that is the same as:
     ```
     data = dl.DataLoader()
-    data.open(filepath, 60.0)
+    data.open(file_path, 60.0)
     ```
     
     Parameters
     ----------
-    filepath: str
+    file_path: str
         Name of the file.
     buffersize: float
         Size of internal buffer in seconds.
@@ -1254,12 +1257,12 @@ class DataLoader(AudioLoader):
 
     """
 
-    def __init__(self, filepath=None, buffersize=10.0, backsize=0.0,
+    def __init__(self, file_path=None, buffersize=10.0, backsize=0.0,
                  verbose=0, **meta_kwargs):
         super(DataLoader, self).__init__(None, buffersize, backsize,
                                          verbose, **meta_kwargs)
-        if filepath is not None:
-            self.open(filepath, buffersize, backsize, verbose)
+        if file_path is not None:
+            self.open(file_path, buffersize, backsize, verbose)
 
     def __getitem__(self, key):
         return super(DataLoader, self).__getitem__(key)
@@ -1309,7 +1312,7 @@ class DataLoader(AudioLoader):
             sf = open(path, 'rb')
             self.sf.append(sf)
             if verbose > 0:
-                print(f'open_relacs(filepath) with filepath={path}')
+                print(f'open_relacs(file_path) with file_path={path}')
             # file size:
             sf.seek(0, os.SEEK_END)
             frames = sf.tell()//4
@@ -1437,7 +1440,7 @@ class DataLoader(AudioLoader):
             sf = open(path, 'rb')
             self.sf.append(sf)
             if verbose > 0:
-                print(f'open_fishgrid(filepath) with filepath={path}')
+                print(f'open_fishgrid(file_path) with file_path={path}')
             # grid channels:
             self.grid_channels.append(grid_sizes[g])
             self.grid_offs.append(offs)
@@ -1649,13 +1652,13 @@ class DataLoader(AudioLoader):
         buffer *= self.gain_fac
 
         
-    def open(self, filepath, buffersize=10.0, backsize=0.0,
+    def open(self, file_path, buffersize=10.0, backsize=0.0,
              verbose=0, **kwargs):
         """Open file with time-series data for reading.
 
         Parameters
         ----------
-        filepath: str or list of str
+        file_path: str or list of str
             Path to a data files or directory.
         buffersize: float
             Size of internal buffer in seconds.
@@ -1667,26 +1670,41 @@ class DataLoader(AudioLoader):
         **kwargs: dict
             Further keyword arguments that are passed on to the 
             format specific opening functions.
+
+        Raises
+        ------
+        ValueError:
+            `file_path` is empty string.
         """
-        if check_relacs(filepath):
-            self.open_relacs(filepath, buffersize, backsize, verbose)
-        elif check_fishgrid(filepath):
-            self.open_fishgrid(filepath, buffersize, backsize, verbose)
-        else:
-            if isinstance(filepath, (list, tuple, np.ndarray)):
-                filepath = filepath[0]
-            if check_container(filepath):
-                self.open_container(filepath, buffersize, backsize,
-                                    verbose, **kwargs)
-            else:
-                self.open_audioio(filepath, buffersize, backsize,
-                                  verbose, **kwargs)
+        # list of implemented open functions:
+        data_open_funcs = (
+            ('relacs', check_relacs, self.open_relacs, 1),
+            ('fishgrid', check_fishgrid, self.open_fishgrid, 1),
+            ('container', check_container, self.open_container, 1),
+            ('audioio', None, self.open_audioio, 0),
+            )
+        if len(file_path) == 0:
+            raise ValueError('input argument file_path is empty string.')
+        # open data:
+        for name, check_file, open_file, v in  data_open_funcs:
+            if check_file is None or check_file(file_path):
+                open_file(file_path, buffersize, backsize, verbose, **kwargs)
+                if v*verbose > 1:
+                    if self.format is not None:
+                        print(f'  format       : {self.format}')
+                    if self.encoding is not None:
+                        print(f'  encoding     : {self.encoding}')
+                    print(f'  sampling rate: {self.samplerate} Hz')
+                    print(f'  channels     : {self.channels}')
+                    print(f'  frames       : {self.frames}')
+                    print(f'  unit         : {amax:g}{unit}')
+                break
         return self
 
 
-def demo(filepath, plot=False):
+def demo(file_path, plot=False):
     print("try load_data:")
-    data, samplerate, unit, amax = load_data(filepath, verbose=2)
+    data, samplerate, unit, amax = load_data(file_path, verbose=2)
     if plot:
         fig, ax = plt.subplots()
         time = np.arange(len(data))/samplerate
@@ -1701,7 +1719,7 @@ def demo(filepath, plot=False):
 
     print('')
     print("try DataLoader:")
-    with DataLoader(filepath, 2.0, 1.0, 1) as data:
+    with DataLoader(file_path, 2.0, 1.0, 1) as data:
         print('samplerate: %g' % data.samplerate)
         print('frames: %d %d' % (len(data), data.shape[0]))
         nframes = int(1.0 * data.samplerate)
