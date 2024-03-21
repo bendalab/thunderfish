@@ -1149,7 +1149,7 @@ def markers(file_path):
     for _, check_file, _, _, markers_file in  data_loader_funcs:
         if check_file is None or check_file(file_path):
             if markers_file is not None:
-                return markers_file(file_path, **kwargs)
+                return markers_file(file_path)
     return np.zeros((0, 2), dtype=int), np.zeros((0, 2), dtype=object)
 
 
