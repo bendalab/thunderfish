@@ -676,12 +676,20 @@ def markers_fishgrid(file_path):
     Returns
     -------
     locs: 2-D array of ints
-        Marker positions (first column) and spans (second column, always zero)
+        Marker positions (first column) and spans (second column)
         for each marker (rows).
     labels: 2-D array of string objects
-        Labels (first column, all set to 'M') and texts (second column)
+        Labels (first column) and texts (second column)
         for each marker (rows).
     """
+    def add_marker():
+        index1 = int(marker['index1'])//nchannels
+        span1 = int(marker.get('span1', 0))//nchannels
+        locs.append([index1, span1])
+        ls = marker.get('label', 'M')
+        cs = marker.get('comment', '')
+        labels.append([ls, cs])
+        
     fishgrid_dir = file_path
     if not os.path.isdir(fishgrid_dir):
         fishgrid_dir = os.path.dirname(file_path)
@@ -697,13 +705,14 @@ def markers_fishgrid(file_path):
     with open(path, 'r') as sf:
         for line in sf:
             if len(line.strip()) == 0:
-                locs.append([int(marker['index1'])//nchannels, 0])
-                labels.append(['M', marker['comment']])
+                add_marker()
                 marker = {}
             else:
                 words = line.split(':')
                 if len(words) > 1:
                     marker[words[0].strip().lower()] = words[1].strip()
+    if len(marker) > 0:
+        add_marker()
     if len(locs) > 2:
         return np.array(locs[1:-1]), np.array(labels[1:-1])
     else:

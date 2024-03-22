@@ -318,15 +318,20 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
     ValueError
         File format or encoding not supported.
     """
-    def write_timestamp(df, count, index, rate, starttime, comment):
+    def write_timestamp(df, count, index, span, rate, starttime,
+                        label, comment):
         datetime = starttime + dt.timedelta(seconds=index/rate)
         df.write(f'    Num: {count}\n')
         df.write(f' Index1: {index}\n')
-        df.write(f' Index2: 0\n')
-        df.write(f' Index3: 0\n')
-        df.write(f' Index4: 0\n')
+        #df.write(f' Index2: 0\n')
+        #df.write(f' Index3: 0\n')
+        #df.write(f' Index4: 0\n')
+        if span > 0:
+            df.write(f'  Span1: {span}\n')
         df.write(f'   Date: {datetime.date().isoformat()}\n')
         df.write(f'   Time: {datetime.time().isoformat("seconds")}\n')
+        if label:
+            df.write(f'  Label: {label}\n')
         df.write(f'Comment: {comment}\n')
         df.write('\n')
         
@@ -374,19 +379,23 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
                              default=dt.datetime.utcfromtimestamp(0))
     with open(filename, 'w') as df:
         count = 0
-        write_timestamp(df, count, 0, samplerate, starttime,
-                        'begin of recording')
+        write_timestamp(df, count, 0, 0, samplerate, starttime,
+                        '', 'begin of recording')
         count += 1
         if locs is not None:
             for i in range(len(locs)):
+                label = ''
                 comment = ''
-                if labels is not None and len(labels) > i and labels.ndim > 1:
+                if labels is not None and len(labels) > i and \
+                   labels.shape[1] > 1:
+                    label = labels[i,0] 
                     comment = labels[i,1] 
                 write_timestamp(df, count, locs[i,0]*nchannels,
-                                samplerate, starttime, comment)
+                                locs[i,1]*nchannels, samplerate,
+                                starttime, label, comment)
                 count += 1
-        write_timestamp(df, count, len(data)*nchannels, samplerate,
-                        starttime, 'end of recording')
+        write_timestamp(df, count, len(data)*nchannels, 0, samplerate,
+                        starttime, '', 'end of recording')
     return cfgfilename
 
     
