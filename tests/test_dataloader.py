@@ -28,6 +28,17 @@ def generate_data():
                 Weather='bad')
     return data, samplerate, amax, info
 
+
+def generate_markers(maxi):
+    locs = np.random.randint(10, maxi-10, (5, 2))
+    locs = locs[np.argsort(locs[:,0]),:]
+    locs[:,1] = np.random.randint(0, 20, len(locs))
+    labels = np.zeros((len(locs), 2), dtype=np.object_)
+    for i in range(len(labels)):
+        labels[i,0] = chr(ord('a') + i % 26)
+        labels[i,1] = chr(ord('A') + i % 26)*5
+    return locs, labels
+
     
 def remove_files(path):
     if os.path.isdir(path):
@@ -150,9 +161,13 @@ def test_relacs():
 @with_setup(None, remove_fishgrid_files)
 def test_fishgrid():
     data, samplerate, amax, info = generate_data()
+    locs, labels = generate_markers(len(data))
     dw.write_fishgrid(fishgrid_path, data, samplerate, amax, 'mV',
-                      metadata=info)
+                      metadata=info, locs=locs, labels=labels)
     check_reading(fishgrid_path, data)
+    llocs, llabels = dl.markers(fishgrid_path)
+    assert_true(np.all(locs == llocs), 'fishgrid same locs')
+    assert_true(np.all(labels == llabels), 'fishgrid same labels')
     remove_fishgrid_files()
     dw.write_fishgrid(fishgrid_path, data[:,0], samplerate, amax, 'mV',
                       metadata=info)
