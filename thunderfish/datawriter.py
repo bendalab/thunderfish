@@ -386,12 +386,13 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
             for i in range(len(locs)):
                 label = ''
                 comment = ''
-                if labels is not None and len(labels) > i and \
-                   labels.shape[1] > 1:
-                    label = labels[i,0] 
-                    comment = labels[i,1] 
-                write_timestamp(df, count, locs[i,0]*nchannels,
-                                locs[i,1]*nchannels, samplerate,
+                if labels is not None and len(labels) > i:
+                    label = labels[i,0] if labels.ndim > 1 else labels[i]
+                    comment = labels[i,1] if labels.ndim > 1 else ''
+                index = locs[i,0] if locs.ndim > 1 else locs[i]
+                span = locs[i,1] if locs.ndim > 1 else 0
+                write_timestamp(df, count, index*nchannels,
+                                span*nchannels, samplerate,
                                 starttime, label, comment)
                 count += 1
         write_timestamp(df, count, len(data)*nchannels, 0, samplerate,
