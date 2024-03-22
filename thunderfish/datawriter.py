@@ -511,6 +511,20 @@ def write_pickle(filepath, data, samplerate, amax=1.0, unit=None,
         ddict['unit'] = unit
     if metadata:
         ddict['metadata'] = metadata
+    if locs is not None and len(locs) > 0:
+        if locs.ndim == 1:
+            ddict['positions'] = locs
+        else:
+            ddict['positions'] = locs[:,0]
+            if locs.shape[1] > 1:
+                ddict['spans'] = locs[:,1]
+    if labels is not None and len(labels) > 0:
+        if labels.ndim == 1:
+            ddict['labels'] = labels
+        else:
+            ddict['labels'] = labels[:,0]
+            if labels.shape[1] > 1:
+                ddict['descriptions'] = labels[:,1]
     with open(filepath, 'wb') as df:
         pickle.dump(ddict, df)
     return filepath
@@ -631,6 +645,23 @@ def write_numpy(filepath, data, samplerate, amax=1.0, unit=None,
         for k in list(fmeta):
             fmeta['metadata__'+k] = fmeta.pop(k)
         ddict.update(fmeta)
+    if locs is not None and len(locs) > 0:
+        if locs.ndim == 1:
+            ddict['positions'] = locs
+        else:
+            ddict['positions'] = locs[:,0]
+            if locs.shape[1] > 1:
+                ddict['spans'] = locs[:,1]
+    if labels is not None and len(labels) > 0:
+        if labels.ndim == 1:
+            maxc = np.max([len(l) for l in labels])
+            ddict['labels'] = labels.astype(dtype=f'U{maxc}')
+        else:
+            maxc = np.max([len(l) for l in labels[:,0]])
+            ddict['labels'] = labels[:,0].astype(dtype=f'U{maxc}')
+            if labels.shape[1] > 1:
+                maxc = np.max([len(l) for l in labels[:,1]])
+                ddict['descriptions'] = labels[:,1].astype(dtype=f'U{maxc}')
     np.savez(filepath, **ddict)
     return filepath
 
@@ -750,6 +781,23 @@ def write_mat(filepath, data, samplerate, amax=1.0, unit=None,
         for k in list(fmeta):
             fmeta['metadata__'+k] = fmeta.pop(k)
         ddict.update(fmeta)
+    if locs is not None and len(locs) > 0:
+        if locs.ndim == 1:
+            ddict['positions'] = locs
+        else:
+            ddict['positions'] = locs[:,0]
+            if locs.shape[1] > 1:
+                ddict['spans'] = locs[:,1]
+    if labels is not None and len(labels) > 0:
+        if labels.ndim == 1:
+            maxc = np.max([len(l) for l in labels])
+            ddict['labels'] = labels.astype(dtype=f'U{maxc}')
+        else:
+            maxc = np.max([len(l) for l in labels[:,0]])
+            ddict['labels'] = labels[:,0].astype(dtype=f'U{maxc}')
+            if labels.shape[1] > 1:
+                maxc = np.max([len(l) for l in labels[:,1]])
+                ddict['descriptions'] = labels[:,1].astype(dtype=f'U{maxc}')
     sio.savemat(filepath, ddict)
     return filepath
 

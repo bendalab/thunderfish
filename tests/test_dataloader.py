@@ -102,46 +102,71 @@ def check_reading(filename, data):
     
 def test_container():
     data, samplerate, amax, info = generate_data()
+    locs, labels = generate_markers(len(data))
     # pickle:
     for encoding in dw.encodings_pickle():
         filename = dw.write_pickle('test', data, samplerate, amax, 'mV', info,
-                                   encoding=encoding)
+                                   locs, labels, encoding=encoding)
         check_reading(filename, data)
         md = dl.metadata(filename)
         assert_equal(info, md, 'pickle metadata')
         os.remove(filename)
-    filename = dw.write_data('test', data, samplerate, amax, 'mV', format='pkl')
+    filename = dw.write_data('test', data, samplerate, amax, 'mV', info,
+                             locs, labels, format='pkl')
     full_data, rate, unit, rmax = dl.load_data(filename)
     tolerance = rmax*2.0**(-15)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    llocs, llabels = dl.markers(filename)
+    assert_true(np.all(locs == llocs), 'pickle same locs')
+    assert_true(np.all(labels == llabels), 'pickle same labels')
+    with dl.DataLoader(filename) as sf:
+        llocs, llabels = sf.markers()
+        assert_true(np.all(locs == llocs), 'pickle same locs')
+        assert_true(np.all(labels == llabels), 'pickle same labels')
     os.remove(filename)
 
     # numpy:
     for encoding in dw.encodings_numpy():
         filename = dw.write_numpy('test', data, samplerate, amax, 'mV',
-                                  info, encoding=encoding)
+                                  info, locs, labels, encoding=encoding)
         check_reading(filename, data)
         md = dl.metadata(filename)
         assert_equal(info, md, 'numpy metadata')
         os.remove(filename)
-    filename = dw.write_data('test', data, samplerate, amax, 'mV', format='npz')
+    filename = dw.write_data('test', data, samplerate, amax, 'mV',
+                             info, locs, labels, format='npz')
     full_data, rate, unit, rmax = dl.load_data(filename)
     tolerance = rmax*2.0**(-15)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
+    llocs, llabels = dl.markers(filename)
+    assert_true(np.all(locs == llocs), 'numpy same locs')
+    assert_true(np.all(labels == llabels), 'numpy same labels')
+    with dl.DataLoader(filename) as sf:
+        llocs, llabels = sf.markers()
+        assert_true(np.all(locs == llocs), 'numpy same locs')
+        assert_true(np.all(labels == llabels), 'numpy same labels')
     os.remove(filename)
 
     # mat:
     for encoding in dw.encodings_mat():
         filename = dw.write_mat('test', data, samplerate, amax, 'mV', info,
-                                encoding=encoding)
+                                locs, labels, encoding=encoding)
         check_reading(filename, data)
         md = dl.metadata(filename)
         assert_equal(info, md, 'mat metadata')
         os.remove(filename)
-    filename = dw.write_data('test', data, samplerate, amax, 'mV', format='mat')
+    filename = dw.write_data('test', data, samplerate, amax, 'mV',
+                             info, locs, labels, format='mat')
     full_data, rate, unit, rmax = dl.load_data(filename)
     tolerance = rmax*2.0**(-15)
     assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
+    llocs, llabels = dl.markers(filename)
+    assert_true(np.all(locs == llocs), 'mat same locs')
+    assert_true(np.all(labels == llabels), 'mat same labels')
+    with dl.DataLoader(filename) as sf:
+        llocs, llabels = sf.markers()
+        assert_true(np.all(locs == llocs), 'mat same locs')
+        assert_true(np.all(labels == llabels), 'mat same labels')
     os.remove(filename)
     
     
@@ -168,6 +193,10 @@ def test_fishgrid():
     llocs, llabels = dl.markers(fishgrid_path)
     assert_true(np.all(locs == llocs), 'fishgrid same locs')
     assert_true(np.all(labels == llabels), 'fishgrid same labels')
+    with dl.DataLoader(fishgrid_path) as sf:
+        llocs, llabels = sf.markers()
+        assert_true(np.all(locs == llocs), 'fishgrid same locs')
+        assert_true(np.all(labels == llabels), 'fishgrid same labels')
     remove_fishgrid_files()
     dw.write_fishgrid(fishgrid_path, data[:,0], samplerate, amax, 'mV',
                       metadata=info)

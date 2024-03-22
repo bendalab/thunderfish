@@ -971,7 +971,6 @@ def metadata_container(file_path, metadatakey=['metadata', 'info']):
     metadata: nested dict
         Nested dictionary with key-value pairs of the meta data.
     """
-    # load data:
     data_dict = {}
     ext = os.path.splitext(file_path)[1]
     if ext == '.pkl':
@@ -984,6 +983,106 @@ def metadata_container(file_path, metadatakey=['metadata', 'info']):
         from scipy.io import loadmat
         data_dict = loadmat(file_path, squeeze_me=True)
     return extract_container_metadata(data_dict, metadatakey)
+
+
+def extract_container_markers(data_dict, poskey=['positions'],
+                              spanskey=['spans'], labelskey=['labels'],
+                              descrkey=['descriptions']):
+    """ Extract markers from dictionary loaded from a container file.
+
+    Parameters
+    ----------
+    data_dict: dict
+        Dictionary of the data items contained in the container.
+    poskey: str or list of str
+        Name of the variable holding positions of markers.
+    spanskey: str or list of str
+        Name of the variable holding spans of markers.
+    labelskey: str or list of str
+        Name of the variable holding labels of markers.
+    descrkey: str or list of str
+        Name of the variable holding descriptions of markers.
+
+    Returns
+    -------
+    locs: 2-D array of ints
+        Marker positions (first column) and spans (second column)
+        for each marker (rows).
+    labels: 2-D array of string objects
+        Labels (first column) and texts (second column)
+        for each marker (rows).
+    """
+    if not isinstance(poskey, (list, tuple, np.ndarray)):
+        poskey = (poskey,)
+    if not isinstance(spanskey, (list, tuple, np.ndarray)):
+        spanskey = (spanskey,)
+    if not isinstance(labelskey, (list, tuple, np.ndarray)):
+        labelskey = (labelskey,)
+    if not isinstance(descrkey, (list, tuple, np.ndarray)):
+        descrkey = (descrkey,)
+    locs = np.zeros((0, 2), dtype=int)
+    for pkey in poskey:
+        if pkey in data_dict:
+            locs = np.zeros((len(data_dict[pkey]), 2), dtype=int)
+            locs[:,0] = data_dict[pkey]
+            break
+    for skey in spanskey:
+        if skey in data_dict:
+            locs[:,1] = data_dict[skey]
+            break
+    labels = np.zeros((0, 2), dtype=object)
+    for lkey in labelskey:
+        if lkey in data_dict:
+            labels = np.zeros((len(data_dict[lkey]), 2), dtype=object)
+            labels[:,0] = data_dict[lkey]
+            break
+    for dkey in descrkey:
+        if dkey in data_dict:
+            labels[:,1] = data_dict[dkey]
+            break
+    return locs, labels
+
+
+def markers_container(file_path, poskey=['positions'],
+                      spanskey=['spans'], labelskey=['labels'],
+                      descrkey=['descriptions']):
+    """ Read markers of a container file.
+
+    Parameters
+    ----------
+    file_path: str
+        A container file.
+    poskey: str or list of str
+        Name of the variable holding positions of markers.
+    spanskey: str or list of str
+        Name of the variable holding spans of markers.
+    labelskey: str or list of str
+        Name of the variable holding labels of markers.
+    descrkey: str or list of str
+        Name of the variable holding descriptions of markers.
+
+    Returns
+    -------
+    locs: 2-D array of ints
+        Marker positions (first column) and spans (second column)
+        for each marker (rows).
+    labels: 2-D array of string objects
+        Labels (first column) and texts (second column)
+        for each marker (rows).
+    """
+    data_dict = {}
+    ext = os.path.splitext(file_path)[1]
+    if ext == '.pkl':
+        import pickle
+        with open(file_path, 'rb') as f:
+            data_dict = pickle.load(f)
+    elif ext == '.npz':
+        data_dict = np.load(file_path)
+    elif ext == '.mat':
+        from scipy.io import loadmat
+        data_dict = loadmat(file_path, squeeze_me=True)
+    return extract_container_markers(data_dict, poskey, spanskey,
+                                     labelskey, descrkey)
 
 
 def load_audioio(file_path, verbose=0, gainkey=['gain'], sep='.'):
@@ -1034,7 +1133,7 @@ def load_audioio(file_path, verbose=0, gainkey=['gain'], sep='.'):
 data_loader_funcs = (
     ('relacs', check_relacs, load_relacs, metadata_relacs, None),
     ('fishgrid', check_fishgrid, load_fishgrid, metadata_fishgrid, markers_fishgrid),
-    ('container', check_container, load_container, metadata_container, None),
+    ('container', check_container, load_container, metadata_container, markers_container),
     ('audioio', None, load_audioio, metadata_audioio, markers_audioio),
     )
 """List of implemented load functions.
@@ -1509,7 +1608,10 @@ class DataLoader(AudioLoader):
                        backsize=0.0, verbose=0, datakey=None,
                        samplekey=['rate', 'Fs', 'fs'],
                        timekey=['time'], amplkey=['amax'], unitkey='unit',
-                       metadatakey=['metadata', 'info']):
+                       metadatakey=['metadata', 'info'],
+                       poskey=['positions'],
+                       spanskey=['spans'], labelskey=['labels'],
+                       descrkey=['descriptions']):
         """Open generic container file.
 
         Supported file formats are:
@@ -1545,6 +1647,14 @@ class DataLoader(AudioLoader):
             If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
         metadatakey: str or list of str
             Name of the variable holding the metadata.
+        poskey: str or list of str
+            Name of the variable holding positions of markers.
+        spanskey: str or list of str
+            Name of the variable holding spans of markers.
+        labelskey: str or list of str
+            Name of the variable holding labels of markers.
+        descrkey: str or list of str
+            Name of the variable holding descriptions of markers.
 
         Raises
         ------
@@ -1585,9 +1695,11 @@ class DataLoader(AudioLoader):
         self.load_buffer = self._load_buffer_container
         self._metadata = extract_container_metadata(data_dict, metadatakey)
         self._load_metadata = None
-        # TODO: load markers:
-        self._locs = np.zeros((0, 2), dtype=int)
-        self._labels = np.zeros((0, 2), dtype=object)
+        self._locs, self._labels = extract_container_markers(data_dict,
+                                                             poskey,
+                                                             spanskey,
+                                                             labelskey,
+                                                             descrkey)
         self._load_markers = None
 
     def _close_container(self):
