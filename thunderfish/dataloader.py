@@ -663,7 +663,7 @@ def metadata_fishgrid(file_path):
                     cdatas.append(cdatas[-1][key])
                 else:
                     # key-value pair:
-                    cdatas[-1][key] = value
+                    cdatas[-1][key] = value.replace(r'\n', '\n')
     # remove unused grids:
     fgm = data.get('FishGrid', {})
     for i in range(4):

@@ -10,7 +10,8 @@
 import os
 import sys
 import datetime as dt
-from audioio import get_datetime
+from copy import deepcopy
+from audioio import add_metadata, get_datetime
 
 data_modules = {}
 """Dictionary with availability of various modules needed for writing data.
@@ -357,19 +358,32 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
     nchannels = data.shape[1] if data.ndim > 1 else 1
     ncols = int(np.ceil(np.sqrt(nchannels)))
     nrows = int(np.ceil(nchannels/ncols))
-    with open(cfgfilename, 'w') as df:
-        df.write('*FishGrid\n')
-        df.write('  Grid &1\n')
-        df.write('    Used1      : true\n')
-        df.write(f'    Columns1   : {ncols}\n')
-        df.write(f'    Rows1      : {nrows}\n')
-        df.write('  Hardware Settings\n')
-        df.write('    DAQ board:\n')
-        df.write(f'      AISampleRate: {0.001*samplerate:.3f}kHz\n')
-        df.write(f'      AIMaxVolt   : {amax:g}{unit}\n')
+    if 'FishGrid' in metadata:
+        md = {}
+        rmd = {}
+        for k in metadata:
+            if isinstance(metadata[k], dict):
+                md[k] = deepcopy(metadata[k])
+            else:
+                rmd[k] = metadata[k]
+        if len(rmd) > 0:
+            if not 'Recording' in md['FishGrid']:
+                md['FishGrid']['Recording'] = rmd
+            else:
+                md['FishGrid']['Recording'].update(rmd)
+    else:
+        gm = dict(Used1='true', Columns1=f'{ncols}', Rows1=f'{nrows}')
+        hm = {'DAQ board': dict(AISampleRate='0kHz', AIMaxVolt='1')}
+        md = dict(FishGrid={'Grid 1': gm, 'Hardware Settings': hm})
         if metadata:
-            df.write('*Recording\n')
-            write_metadata_text(df, metadata, prefix='  ')
+            md['FishGrid']['Recording'] = metadata
+    add_metadata(md,
+                 [f'FishGrid.DAQ board.AISampleRate={0.001*samplerate:.3f}kHz',
+                  f'FishGrid.DAQ board.AIMaxVolt={amax:g}{unit}'])
+    with open(cfgfilename, 'w') as df:
+        for k in md:
+            df.write(f'*{k}\n')
+            write_metadata_text(df, md[k], prefix='  ')
     # write markers:
     filename = os.path.join(filepath, 'timestamps.dat')
     starttime = get_datetime(metadata, (('DateTimeOriginal',),
