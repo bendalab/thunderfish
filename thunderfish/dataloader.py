@@ -683,7 +683,10 @@ def markers_fishgrid(file_path):
         for each marker (rows).
     """
     def add_marker():
-        index1 = int(marker['index1'])//nchannels
+        if 'index1' in marker:
+            index1 = int(marker['index1'])//nchannels
+        else:
+            index1 = int(marker['index'])//nchannels
         span1 = int(marker.get('span1', 0))//nchannels
         locs.append([index1, span1])
         ls = marker.get('label', 'M')
