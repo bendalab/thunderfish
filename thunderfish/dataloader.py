@@ -630,7 +630,7 @@ def metadata_fishgrid(file_path):
             words = line.split(':')
             key = words[0].strip().strip('"')
             value = None
-            if len(words) > 1 and len(words[1].strip()) > 0:
+            if len(words) > 1 and (len(words[1].strip()) > 0 or old_style):
                 value = ':'.join(words[1:]).strip().strip('"')
             if old_style:
                 if value is None:
