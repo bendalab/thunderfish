@@ -609,7 +609,7 @@ def metadata_fishgrid(file_path):
     ident_offs = None
     ident = None
     old_style = False
-    grid1 = False
+    grid_n = False
     for line in lines:
         if len(line.strip()) == 0:
             continue
@@ -622,7 +622,9 @@ def metadata_fishgrid(file_path):
             key = line.strip().strip(' -').replace('&', '')
             if key.upper() == 'SETUP':
                 key = 'Grid 1'
-            grid1 = (key == 'Grid 1')
+            grid_n = False
+            if key[:4].lower() == 'grid':
+                grid_n = key[5]
             cdatas = cdatas[:2]
             cdatas[1][key] = {}
             cdatas.append(cdatas[1][key])
@@ -638,8 +640,8 @@ def metadata_fishgrid(file_path):
                     cdatas[2][key] = {}
                     cdatas.append(cdatas[2][key])            
                 else:
-                    if grid1 and key[-1] != '1':
-                        key = key + '1'
+                    if grid_n and key[-1] != grid_n:
+                        key = key + grid_n
                     cdatas[-1][key] = value
             else:
                 # get section level:
@@ -662,6 +664,15 @@ def metadata_fishgrid(file_path):
                 else:
                     # key-value pair:
                     cdatas[-1][key] = value
+    # remove unused grids:
+    fgm = data.get('FishGrid', {})
+    for i in range(4):
+        gs = f'Grid {i+1}'
+        if gs in fgm:
+            gm = fgm[gs]
+            us = f'Used{i+1}'
+            if us in gm and gm[us].upper() == 'FALSE':
+                del fgm[gs]
     return data
 
 
