@@ -69,6 +69,7 @@ except ImportError:
     pass
 from audioio import load_audio, AudioLoader, unflatten_metadata
 from audioio import get_number_unit, get_number, get_int, get_bool, get_gain
+from audioio import default_starttime_keys, default_gain_keys
 from audioio import metadata as metadata_audioio
 from audioio import markers as markers_audioio
 
@@ -570,6 +571,11 @@ def load_fishgrid(file_path):
         c += channels
     amax, unit = get_number_unit(md, 'AIMaxVolt')
     return data, samplerate, unit, amax
+
+
+# add fishgrid keys:
+default_starttime_keys.append(['StartDate', 'StartTime'])
+default_gain_keys.append(['AIMaxVolt'])
 
 
 def metadata_fishgrid(file_path):

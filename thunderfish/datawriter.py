@@ -11,7 +11,7 @@ import os
 import sys
 import datetime as dt
 from copy import deepcopy
-from audioio import add_metadata, get_datetime
+from audioio import find_key, add_metadata, get_datetime
 
 data_modules = {}
 """Dictionary with availability of various modules needed for writing data.
@@ -367,13 +367,14 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
             else:
                 rmd[k] = metadata[k]
         if len(rmd) > 0:
-            if not 'Recording' in md['FishGrid']:
-                md['FishGrid']['Recording'] = rmd
+            m, k = find_key(md, 'FishGrid.Recording')
+            if k in m:
+                m[k].update(rmd)
             else:
-                md['FishGrid']['Recording'].update(rmd)
+                m[k] = rmd
     else:
         gm = dict(Used1='true', Columns1=f'{ncols}', Rows1=f'{nrows}')
-        hm = {'DAQ board': dict(AISampleRate='0kHz', AIMaxVolt='1')}
+        hm = {'DAQ board': dict()}
         md = dict(FishGrid={'Grid 1': gm, 'Hardware Settings': hm})
         if metadata:
             md['FishGrid']['Recording'] = metadata
