@@ -575,7 +575,7 @@ def load_fishgrid(file_path):
 
 # add fishgrid keys:
 default_starttime_keys.append(['StartDate', 'StartTime'])
-default_gain_keys.append(['AIMaxVolt'])
+default_gain_keys.append('AIMaxVolt')
 
 
 def metadata_fishgrid(file_path):
