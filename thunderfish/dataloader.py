@@ -317,13 +317,15 @@ def relacs_trace_files(file_path):
     return trace_file_paths
 
         
-def load_relacs(file_path):
+def load_relacs(file_path, amax=1.0):
     """Load traces that have been recorded with relacs (https://github.com/relacs/relacs).
 
     Parameters
     ----------
     file_path: str
         Path to a relacs data directory, or a file in a relacs data directory.
+    amax: float
+        The amplitude range of the data.
 
     Returns
     -------
@@ -350,7 +352,7 @@ def load_relacs(file_path):
     data = None
     nrows = 0
     samplerate = None
-    unit = ""
+    unit = ''
     for c, path in enumerate(sorted(trace_file_paths)):
         if path[-3:] == '.gz':
             with gzip.open(path, 'rb') as sf:
@@ -372,7 +374,7 @@ def load_relacs(file_path):
             unit = us
         elif us != unit:
             raise ValueError('unit of traces differ')
-    return data, samplerate, unit, np.inf
+    return data, samplerate, unit, amax
 
 
 def metadata_relacs(file_path, store_empty=False, first_only=False,
@@ -764,7 +766,8 @@ def check_container(filepath):
 
 def extract_container_data(data_dict, datakey=None,
                            samplekey=['rate', 'Fs', 'fs'],
-                           timekey=['time'], amplkey=['amax'], unitkey='unit'):
+                           timekey=['time'], amplkey=['amax'], unitkey='unit',
+                           amax=1.0, unit='a.u.'):
     """Extract data from dictionary loaded from a container file.
 
     Parameters
@@ -785,7 +788,12 @@ def extract_container_data(data_dict, datakey=None,
         Name of the variable holding the amplitude range of the data.
     unitkey: str
         Name of the variable holding the unit of the data.
-        If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
+    amax: None or float
+        If specified and no amplitude range has been found in `data_dict`,
+        then this is the amplitude range of the data.
+    unit: None or str
+        If specified and no unit has been found in `data_dict`,
+        then return this as the unit of the data.
 
     Returns
     -------
@@ -823,17 +831,12 @@ def extract_container_data(data_dict, datakey=None,
                 break
     if samplerate == 0.0:
         raise ValueError(f"invalid keys {', '.join(samplekey)} and {', '.join(timekey)} for requesting sampling rate or sampling times")
-    amax = 1.0
     for akey in amplkey:
         if akey in data_dict:
             amax = float(data_dict[akey])
             break
-    unit = ''
     if unitkey in data_dict:
         unit = data_dict[unitkey]
-    elif unitkey != 'unit':
-        unit = unitkey
-    unit = str(unit)
     # get data array:
     raw_data = np.array([])
     if datakey:
@@ -878,7 +881,8 @@ def extract_container_data(data_dict, datakey=None,
 
 def load_container(file_path, datakey=None,
                    samplekey=['rate', 'Fs', 'fs'],
-                   timekey=['time'], amplkey=['amax'], unitkey='unit'):
+                   timekey=['time'], amplkey=['amax'], unitkey='unit',
+                   amax=1.0, unit='a.u.'):
     """Load data from a generic container file.
 
     Supported file formats are:
@@ -906,6 +910,12 @@ def load_container(file_path, datakey=None,
     unitkey: str
         Name of the variable holding the unit of the data.
         If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
+    amax: None or float
+        If specified and no amplitude range has been found in the data
+        container, then this is the amplitude range of the data.
+    unit: None or str
+        If specified and no unit has been found in the data container,
+        then return this as the unit of the data.
 
     Returns
     -------
@@ -937,7 +947,7 @@ def load_container(file_path, datakey=None,
         from scipy.io import loadmat
         data_dict = loadmat(file_path, squeeze_me=True)
     return extract_container_data(data_dict, datakey, samplekey,
-                                  timekey, amplkey, unitkey)
+                                  timekey, amplkey, unitkey, amax, unit)
 
 
 def extract_container_metadata(data_dict, metadatakey=['metadata', 'info']):
@@ -1105,7 +1115,8 @@ def markers_container(file_path, poskey=['positions'],
                                      labelskey, descrkey)
 
 
-def load_audioio(file_path, verbose=0, gainkey=['gain'], sep='.'):
+def load_audioio(file_path, verbose=0, gainkey=default_gain_keys, sep='.',
+                 amax=1.0, unit='a.u.'):
     """Load data from an audio file.
 
     See the
@@ -1126,6 +1137,12 @@ def load_audioio(file_path, verbose=0, gainkey=['gain'], sep='.'):
         See the [audioio.get_gain()](https://bendalab.github.io/audioio/api/audiometadata.html#audioio.audiometadata.get_gain) function for details.
     sep: str
         String that separates section names in `gainkey`.
+    amax: float
+        If specified and no gain has been found in the metadata,
+        then use this as the amplitude range.
+    unit: str
+        If specified and no gain has been found in the metadata,
+        then return this as the unit of the data.
 
     Returns
     -------
@@ -1136,13 +1153,13 @@ def load_audioio(file_path, verbose=0, gainkey=['gain'], sep='.'):
         Sampling rate of the data in Hz.
     unit: str
         Unit of the data if found in the metadata (see `gainkey`),
-        otherwise "a.u.".
+        otherwise `unit`.
     amax: float
         Maximum amplitude of data range.
     """
     # get gain:
     md = metadata_audioio(file_path)
-    amax, unit = get_gain(md, gainkey, sep)
+    amax, unit = get_gain(md, gainkey, sep, amax, unit)
     # load data:
     data, samplerate = load_audio(file_path, verbose)
     if amax != 1.0:
@@ -1176,6 +1193,9 @@ def load_data(file_path, verbose=0, **kwargs):
     **kwargs: dict
         Further keyword arguments that are passed on to the 
         format specific loading functions.
+        For example:
+        - `amax`: the amplitude range of the data.
+        - 'unit': the unit of the data.
 
     Returns
     -------
@@ -1199,14 +1219,14 @@ def load_data(file_path, verbose=0, **kwargs):
     # load data:
     for name, check_file, load_file, _, _ in  data_loader_funcs:
         if check_file is None or check_file(file_path):
-            data, rate, unit, amax = load_file(file_path)
+            data, rate, unit, amax = load_file(file_path, **kwargs)
             if verbose > 0:
                 print(f'loaded {name} data from file "{file_path}"')
                 if verbose > 1:
                     print(f'  sampling rate: {rate:g} Hz')
                     print(f'  channels     : {data.shape[1]}')
                     print(f'  frames       : {len(data)}')
-                    print(f'  unit         : {amax:g}{unit}')
+                    print(f'  range        : {amax:g}{unit}')
             return data, rate, unit, amax
     return np.zeros((0, 1)), 0.0, '', 1.0
 
@@ -1400,7 +1420,7 @@ class DataLoader(AudioLoader):
     
     # relacs interface:        
     def open_relacs(self, file_path, buffersize=10.0, backsize=0.0,
-                    verbose=0):
+                    verbose=0, amax=1.0):
         """Open relacs data files (www.relacs.net) for reading.
 
         Parameters
@@ -1413,6 +1433,8 @@ class DataLoader(AudioLoader):
             Part of the buffer to be loaded before the requested start index in seconds.
         verbose: int
             If > 0 show detailed error/warning messages.
+        amax: float
+            The amplitude range of the data.
 
         Raises
         ------
@@ -1429,7 +1451,7 @@ class DataLoader(AudioLoader):
         self.sf = []
         self.frames = None
         self.samplerate = None
-        self.unit = ""
+        self.unit = ''
         self.filepath = None
         if len(trace_file_paths) > 0:
             self.filepath = os.path.dirname(trace_file_paths[0])
@@ -1474,8 +1496,8 @@ class DataLoader(AudioLoader):
         self.offset = 0
         self.close = self._close_relacs
         self.load_buffer = self._load_buffer_relacs
-        self.ampl_min = -np.inf
-        self.ampl_max = +np.inf
+        self.ampl_min = -amax
+        self.ampl_max = +amax
         self._load_metadata = self._metadata_relacs
         # TODO: load markers:
         self._locs = np.zeros((0, 2), dtype=int)
@@ -1631,7 +1653,8 @@ class DataLoader(AudioLoader):
                        metadatakey=['metadata', 'info'],
                        poskey=['positions'],
                        spanskey=['spans'], labelskey=['labels'],
-                       descrkey=['descriptions']):
+                       descrkey=['descriptions'],
+                       amax=1.0, unit='a.u.'):
         """Open generic container file.
 
         Supported file formats are:
@@ -1664,7 +1687,6 @@ class DataLoader(AudioLoader):
             Name of the variable holding the amplitude range of the data.
         unitkey: str
             Name of the variable holding the unit of the data.
-            If `unitkey` is not a valid key, then return `unitkey` as the `unit`.
         metadatakey: str or list of str
             Name of the variable holding the metadata.
         poskey: str or list of str
@@ -1675,6 +1697,12 @@ class DataLoader(AudioLoader):
             Name of the variable holding labels of markers.
         descrkey: str or list of str
             Name of the variable holding descriptions of markers.
+        amax: None or float
+            If specified and no amplitude range has been found in the data
+            container, then this is the amplitude range of the data.
+        unit: None or str
+            If specified and no unit has been found in the data container,
+            then return this as the unit of the data.
 
         Raises
         ------
@@ -1698,7 +1726,7 @@ class DataLoader(AudioLoader):
             self.format = 'MAT'
         self.buffer, self.samplerate, self.unit, amax = \
             extract_container_data(data_dict, datakey, samplekey,
-                                   timekey, amplkey, unitkey)
+                                   timekey, amplkey, unitkey, amax, unit)
         self.filepath = file_path
         self.channels = self.buffer.shape[1]
         self.frames = self.buffer.shape[0]
@@ -1733,7 +1761,8 @@ class DataLoader(AudioLoader):
     
     # audioio interface:        
     def open_audioio(self, file_path, buffersize=10.0, backsize=0.0,
-                     verbose=0, gainkey=['gain'], sep='.'):
+                     verbose=0, gainkey=default_gain_keys, sep='.',
+                     amax=None, unit='a.u.'):
         """Open an audio file.
 
         See the [audioio](https://github.com/bendalab/audioio) package
@@ -1757,14 +1786,22 @@ class DataLoader(AudioLoader):
             See the [audioio.get_gain()](https://bendalab.github.io/audioio/api/audiometadata.html#audioio.audiometadata.get_gain) function for details.
         sep: str
             String that separates section names in `gainkey`.
+        amax: None or float
+            If specified and no gain has been found in the metadata,
+            then use this as the amplitude range.
+        unit: None or str
+            If specified and no gain has been found in the metadata,
+            then this is the unit of the data.
 
         """
         self.verbose = verbose
         super(DataLoader, self).open(file_path, buffersize, backsize, verbose)
         md = self.metadata()
-        fac, unit = get_gain(md, gainkey, sep)
-        self.gain_fac = fac
-        if self.gain_fac != 1.0:
+        fac, unit = get_gain(md, gainkey, sep, amax, unit)
+        if fac is None:
+            self.gain_fac = 1.0 
+        else:
+            self.gain_fac = fac
             self._load_buffer_audio_org = self.load_buffer
             self.load_buffer = self._load_buffer_audioio
         self.ampl_min *= self.gain_fac
@@ -1806,6 +1843,9 @@ class DataLoader(AudioLoader):
         **kwargs: dict
             Further keyword arguments that are passed on to the 
             format specific opening functions.
+            For example:
+            - `amax`: the amplitude range of the data.
+            - 'unit': the unit of the data.
 
         Raises
         ------
@@ -1833,7 +1873,7 @@ class DataLoader(AudioLoader):
                     print(f'  sampling rate: {self.samplerate} Hz')
                     print(f'  channels     : {self.channels}')
                     print(f'  frames       : {self.frames}')
-                    print(f'  unit         : {amax:g}{unit}')
+                    print(f'  range        : {amax:g}{unit}')
                 break
         return self
 

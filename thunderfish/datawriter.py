@@ -11,7 +11,7 @@ import os
 import sys
 import datetime as dt
 from copy import deepcopy
-from audioio import find_key, add_metadata, get_datetime
+from audioio import find_key, add_metadata, get_datetime, default_gain_keys
 
 data_modules = {}
 """Dictionary with availability of various modules needed for writing data.
@@ -852,8 +852,7 @@ def encodings_audio(format):
 
 def write_audioio(filepath, data, samplerate, amax=1.0, unit=None,
                   metadata=None, locs=None, labels=None, format=None,
-                  encoding=None, gainkey=['Gain', 'Scale', 'Unit'],
-                  sep='.'):
+                  encoding=None, gainkey=default_gain_keys, sep='.'):
     """Write data into audio file.
 
     If a gain setting is available in the metadata, then the data are divided
@@ -923,7 +922,7 @@ def write_audioio(filepath, data, samplerate, amax=1.0, unit=None,
     if not filepath:
         raise ValueError('no file specified!')
     if amax is None or not np.isfinite(amax):
-        amax, u = am.get_gain(metadata, gainkey, sep)
+        amax, u = am.get_gain(metadata, gainkey, sep, 1.0, 'a.u.')
         if not unit:
             unit = u
         elif unit != 'a.u.' and u != 'a.u.' and unit != u:
