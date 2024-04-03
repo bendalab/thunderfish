@@ -388,14 +388,19 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
             hm['Amplifier'] = am
         md = dict(FishGrid={'Grid 1': gm, 'Hardware Settings': hm})
         gm = {}
-        # TODO: use get_datetime, split the datetime, and remove the keys.
-        move_metadata(smd, gm, 'StartDate')
-        move_metadata(smd, gm, 'StartTime')
+        starttime = get_datetime(smd, remove=True)
+        if not starttime is None:
+            gm['StartDate'] = starttime.date().isoformat()
+            gm['StartTime'] = starttime.time().isoformat(timespec=seconds)
         move_metadata(smd, gm, 'Location')
         move_metadata(smd, gm, 'Position')
         move_metadata(smd, gm, 'WaterTemperature')
         move_metadata(smd, gm, 'WaterConductivity')
         move_metadata(smd, gm, 'WaterpH')
+        move_metadata(smd, gm, 'WaterOxygen')
+        move_metadata(smd, gm, 'Temperature')
+        move_metadata(smd, gm, 'Humidity')
+        move_metadata(smd, gm, 'Pressure')
         move_metadata(smd, gm, 'Comment')
         move_metadata(smd, gm, 'Experimenter')
         if len(gm) > 0:
