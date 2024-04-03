@@ -11,7 +11,8 @@ import os
 import sys
 import datetime as dt
 from copy import deepcopy
-from audioio import find_key, add_metadata, get_datetime, default_gain_keys
+from audioio import find_key, add_metadata, move_metadata
+from audioio import get_datetime, default_gain_keys
 
 data_modules = {}
 """Dictionary with availability of various modules needed for writing data.
@@ -373,14 +374,46 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
             else:
                 m[k] = rmd
     else:
+        smd = deepcopy(metadata)
         gm = dict(Used1='true', Columns1=f'{ncols}', Rows1=f'{nrows}')
+        am = {}
+        move_metadata(smd, am, ['Amplifier.Name', 'AmplName'], 'AmplName')
+        move_metadata(smd, am, ['Amplifier.Model', 'AmplModel'], 'AmplModel')
+        move_metadata(smd, am, 'Amplifier.Type')
+        move_metadata(smd, am, 'Gain')
+        move_metadata(smd, am, 'HighpassCutoff')
+        move_metadata(smd, am, 'LowpassCutoff')
         hm = {'DAQ board': dict()}
+        if len(am) > 0:
+            hm['Amplifier'] = am
         md = dict(FishGrid={'Grid 1': gm, 'Hardware Settings': hm})
-        if metadata:
-            md['FishGrid']['Recording'] = metadata
+        gm = {}
+        # TODO: use get_datetime, split the datetime, and remove the keys.
+        move_metadata(smd, gm, 'StartDate')
+        move_metadata(smd, gm, 'StartTime')
+        move_metadata(smd, gm, 'Location')
+        move_metadata(smd, gm, 'Position')
+        move_metadata(smd, gm, 'WaterTemperature')
+        move_metadata(smd, gm, 'WaterConductivity')
+        move_metadata(smd, gm, 'WaterpH')
+        move_metadata(smd, gm, 'Comment')
+        move_metadata(smd, gm, 'Experimenter')
+        if len(gm) > 0:
+            md['FishGrid']['Recording'] = dict(General=gm)
+        bm = {}
+        move_metadata(smd, bm, 'DataTime')
+        move_metadata(smd, bm, 'DataInterval')
+        move_metadata(smd, bm, 'BufferTime')
+        move_metadata(smd, bm, 'BufferInterval')
+        if len(bm) > 0:
+            if not 'Recording' in md['FishGrid']:
+                md['FishGrid']['Recording'] = {}
+            md['FishGrid']['Recording'].update({'Buffers and timing': bm})
+        if smd:
+            md['FishGrid']['Other'] = smd
     add_metadata(md,
-                 [f'FishGrid.DAQ board.AISampleRate={0.001*samplerate:.3f}kHz',
-                  f'FishGrid.DAQ board.AIMaxVolt={amax:g}{unit}'])
+                 [f'FishGrid.Hardware Settings.DAQ board.AISampleRate={0.001*samplerate:.3f}kHz',
+                  f'FishGrid.Hardware Settings.DAQ board.AIMaxVolt={amax:g}{unit}'])
     with open(cfgfilename, 'w') as df:
         for k in md:
             df.write(f'*{k}\n')
