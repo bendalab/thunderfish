@@ -376,17 +376,19 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
     else:
         smd = deepcopy(metadata)
         gm = dict(Used1='true', Columns1=f'{ncols}', Rows1=f'{nrows}')
-        am = {}
-        move_metadata(smd, am, ['Amplifier.Name', 'AmplName'], 'AmplName')
-        move_metadata(smd, am, ['Amplifier.Model', 'AmplModel'], 'AmplModel')
-        move_metadata(smd, am, 'Amplifier.Type')
-        move_metadata(smd, am, 'Gain')
-        move_metadata(smd, am, 'HighpassCutoff')
-        move_metadata(smd, am, 'LowpassCutoff')
         hm = {'DAQ board': dict()}
-        if len(am) > 0:
-            hm['Amplifier'] = am
+        if not move_metadata(smd, hm, 'Amplifier'):
+            am = {}
+            move_metadata(smd, am, ['Amplifier.Name', 'AmplName'], 'AmplName')
+            move_metadata(smd, am, ['Amplifier.Model', 'AmplModel'], 'AmplModel')
+            move_metadata(smd, am, 'Amplifier.Type')
+            move_metadata(smd, am, 'Gain')
+            move_metadata(smd, am, 'HighpassCutoff')
+            move_metadata(smd, am, 'LowpassCutoff')
+            if len(am) > 0:
+                hm['Amplifier'] = am
         md = dict(FishGrid={'Grid 1': gm, 'Hardware Settings': hm})
+        move_metadata(smd, md['FishGrid'], 'Recording')
         gm = {}
         starttime = get_datetime(smd, remove=True)
         if not starttime is None:
@@ -404,7 +406,9 @@ def write_fishgrid(filepath, data, samplerate, amax=1.0, unit=None,
         move_metadata(smd, gm, 'Comment')
         move_metadata(smd, gm, 'Experimenter')
         if len(gm) > 0:
-            md['FishGrid']['Recording'] = dict(General=gm)
+            if not 'Recording' in md['FishGrid']:
+                md['FishGrid']['Recording'] = {}
+            md['FishGrid']['Recording'].update({'General': gm})
         bm = {}
         move_metadata(smd, bm, 'DataTime')
         move_metadata(smd, bm, 'DataInterval')
