@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_equal, assert_almost_equal
+import pytest
 import numpy as np
 import matplotlib.pyplot as plt
 import thunderfish.fishshapes as fs
@@ -7,19 +7,19 @@ import thunderfish.fishshapes as fs
 def test_fish_shape():
     for s in fs.fish_shapes:
         shape = fs.fish_shape(s)
-        assert_true(type(shape) is dict, 'fish_shape() return type')
-        assert_equal(shape['body'].ndim, 2, 'fish_shape() contains body')
+        assert type(shape) is dict, 'fish_shape() return type'
+        assert shape['body'].ndim == 2, 'fish_shape() contains body'
     for s in fs.fish_top_shapes:
         shape = fs.fish_shape((s, 'top'))
-        assert_true(type(shape) is dict, 'fish_shape(top) return type')
-        assert_equal(shape['body'].ndim, 2, 'fish_shape(top) contains body')
+        assert type(shape) is dict, 'fish_shape(top) return type'
+        assert shape['body'].ndim == 2, 'fish_shape(top) contains body'
     for s in fs.fish_side_shapes:
         shape = fs.fish_shape((s, 'side'))
-        assert_true(type(shape) is dict, 'fish_shape(side) return type')
-        assert_equal(shape['body'].ndim, 2, 'fish_shape(side) contains body')
+        assert type(shape) is dict, 'fish_shape(side) return type'
+        assert shape['body'].ndim == 2, 'fish_shape(side) contains body'
     shape = fs.fish_shape(fs.Alepto_male_side)
-    assert_true(type(shape) is dict, 'fish_shape(dict) return type')
-    assert_equal(shape['body'].ndim, 2, 'fish_shape(dict) contains body')
+    assert type(shape) is dict, 'fish_shape(dict) return type'
+    assert shape['body'].ndim == 2, 'fish_shape(dict) contains body'
 
     
 def test_plotfish():
@@ -88,21 +88,21 @@ def test_plotfishfinder():
     fig, ax = plt.subplots()
     nodes = fs.plot_fishfinder(ax, (0, 0), (1, 0), 10,
                                central_ground=True, wires='negtop')
-    assert_equal(len(nodes), 5, 'number of nodes returned by plot_fishinder() with central_ground and wires')
+    assert len(nodes) == 5, 'number of nodes returned by plot_fishinder() with central_ground and wires'
     for n in nodes:
-        assert_equal(len(n), 2, 'node elements returned by plot_fishinder() with central_ground and wires')
+        assert len(n) == 2, 'node elements returned by plot_fishinder() with central_ground and wires'
         
     nodes = fs.plot_fishfinder(ax, (0, 0), (1, 0), 10,
                                central_ground=False, wires='postop')
-    assert_equal(len(nodes), 4, 'number of nodes returned by plot_fishinder() with central_ground and wires')
+    assert len(nodes) == 4, 'number of nodes returned by plot_fishinder() with central_ground and wires'
     for n in nodes:
-        assert_equal(len(n), 2, 'node elements returned by plot_fishinder() with central_ground and wires')
+        assert len(n) == 2, 'node elements returned by plot_fishinder() with central_ground and wires'
         
     nodes = fs.plot_fishfinder(ax, (0, 0), (1, 0), 10,
                                central_ground=False, wires=False)
-    assert_equal(len(nodes), 2, 'number of nodes returned by plot_fishinder() with central_ground and wires')
+    assert len(nodes) == 2, 'number of nodes returned by plot_fishinder() with central_ground and wires'
     for n in nodes:
-        assert_equal(len(n), 2, 'node elements returned by plot_fishinder() with central_ground and wires')
+        assert len(n) == 2, 'node elements returned by plot_fishinder() with central_ground and wires'
     plt.close()
         
 

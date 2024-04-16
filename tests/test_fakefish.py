@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_equal, assert_almost_equal, assert_raises
+import pytest
 import os
 import sys
 from io import StringIO
@@ -16,28 +16,31 @@ def test_wavefish():
 
     # wavefish with fixed frequency:
     eodf = 300.0
-    assert_raises(IndexError, ff.wavefish_eods, ([1.0, 0.5, 0.0, 0.0001], [0.0, 0.0]), eodf, samplerate, duration=duration)
+    with pytest.raises(IndexError):
+        ff.wavefish_eods(([1.0, 0.5, 0.0, 0.0001], [0.0, 0.0]), eodf,
+                         samplerate, duration=duration)
 
-    assert_raises(KeyError, ff.wavefish_eods, 'Amicro', eodf, samplerate, duration=duration)
+    with pytest.raises(KeyError):
+        ff.wavefish_eods('Amicro', eodf, samplerate, duration=duration)
     
     data = ff.wavefish_eods(([1.0, 0.5, 0.0, 0.0001], [0.0, 0.0, 0.0, 0.0]),
                             eodf, samplerate, duration=duration, noise_std=0.02)
-    assert_equal(len(time), len(data), 'wavefish_eods(tuple) failed')
+    assert len(time) == len(data), 'wavefish_eods(tuple) failed'
 
     data = ff.wavefish_eods(ff.Apteronotus_leptorhynchus_harmonics,
                             eodf, samplerate, duration=duration)
-    assert_equal(len(time), len(data), 'wavefish_eods(Alepto_leptorhynchus_harmonics) failed')
+    assert len(time) == len(data), 'wavefish_eods(Alepto_leptorhynchus_harmonics) failed'
 
     data = ff.wavefish_eods('Alepto', eodf, samplerate, duration=duration)
-    assert_equal(len(time), len(data), 'wavefish_eods(Alepto) failed')
+    assert len(time) == len(data), 'wavefish_eods(Alepto) failed'
 
     data = ff.wavefish_eods('Eigenmannia', eodf, samplerate, duration=duration)
-    assert_equal(len(time), len(data), 'wavefish_eods(Eigenmannia) failed')
+    assert len(time) == len(data), 'wavefish_eods(Eigenmannia) failed'
     
     # wavefish with frequency modulation:
     eodf = 500.0 - time/duration*400.0
     data = ff.wavefish_eods('Eigenmannia', eodf, samplerate, duration=duration, noise_std=0.02)
-    assert_equal(len(time), len(data), 'wavefish_eods(frequency ramp) failed')
+    assert len(time) == len(data), 'wavefish_eods(frequency ramp) failed'
 
     # normalize:
     for key in ff.wavefish_harmonics:
@@ -55,12 +58,12 @@ def test_communication():
     duration = 10.
     
     eodf, ampl = ff.chirps(600.0, samplerate, duration=duration, chirp_kurtosis=1.0)
-    assert_equal(duration*samplerate, len(eodf), 'chirps() failed')
-    assert_equal(duration*samplerate, len(ampl), 'chirps() failed')
+    assert duration*samplerate == len(eodf), 'chirps() failed'
+    assert duration*samplerate == len(ampl), 'chirps() failed'
 
     data = ff.rises(600.0, samplerate, duration=10,
                     rise_freq=0.5, rise_size=20.0)
-    assert_equal(duration*samplerate, len(data), 'rises() failed')
+    assert duration*samplerate == len(data), 'rises() failed'
 
 
 def test_pulsefish():
@@ -73,19 +76,22 @@ def test_pulsefish():
     data = ff.pulsefish_eods(([0.0, 0.0003], [1.0, -0.3], [0.0001, 0.0002]),
                              80.0, samplerate, duration=duration,
                              noise_std=0.02, jitter_cv=0.1)
-    assert_equal(len(time), len(data), 'pulsefish_eods() failed')
+    assert len(time) == len(data), 'pulsefish_eods() failed'
 
     for key in ff.pulsefish_eodpeaks:
         data = ff.pulsefish_eods(key, 80., samplerate, duration=duration)
-        assert_equal(len(time), len(data), f'pulsefish_eods({key}) failed')
+        assert len(time) == len(data), f'pulsefish_eods({key}) failed'
         ff.normalize_pulsefish(key)
     
     data = ff.pulsefish_eods(ff.Biphasic_peaks, 80., samplerate,
                              duration=duration)
-    assert_equal(len(time), len(data), f'pulsefish_eods({key}) failed')
+    assert len(time) == len(data), f'pulsefish_eods({key}) failed'
 
-    assert_raises(KeyError, ff.pulsefish_eods, 'Quad', 80.0, samplerate, duration=duration)
-    assert_raises(IndexError, ff.pulsefish_eods, ([0.0, 0.0003], [1.0], [0.0001, 0.0002]), 80.0, samplerate, duration=duration)
+    with pytest.raises(KeyError):
+        ff.pulsefish_eods('Quad', 80.0, samplerate, duration=duration)
+    with pytest.raises(IndexError):
+        ff.pulsefish_eods(([0.0, 0.0003], [1.0], [0.0001, 0.0002]),
+                          80.0, samplerate, duration=duration)
 
     ff.export_pulsefish('Biphasic', 'test_fish')
     ff.export_pulsefish('Triphasic', 'test_fish', 'testfile.txt')
@@ -99,7 +105,7 @@ def test_pulsefish():
     
 def test_speciesnames():
     s = ff.abbrv_genus('Apteronotus albifrons')
-    assert_equal(s, 'A. albifrons', 'abbrv_genus() failed')
+    assert s == 'A. albifrons', 'abbrv_genus() failed'
 
 
 def test_generate_waveform():

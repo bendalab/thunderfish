@@ -1,4 +1,4 @@
-from nose.tools import assert_equal, assert_greater, assert_greater_equal, assert_less, assert_raises
+import pytest
 import os
 import shutil
 import numpy as np
@@ -24,22 +24,35 @@ def test_main():
     filename1 = 'test1.npz'
     destfile = 'test2'
     write_data_file(filename)
-    assert_raises(SystemExit, cd.main, '-h')
-    assert_raises(SystemExit, cd.main, '--help')
-    assert_raises(SystemExit, cd.main, '--version')
+    with pytest.raises(SystemExit):
+        cd.main('-h')
+    with pytest.raises(SystemExit):
+        cd.main('--help')
+    with pytest.raises(SystemExit):
+        cd.main('--version')
     cd.main('-l')
     cd.main('-f', 'npz', '-l')
     cd.main('-f', 'pkl', '-o', destfile, filename)
-    assert_raises(SystemExit, cd.main)
-    assert_raises(SystemExit, cd.main, '')
-    assert_raises(SystemExit, cd.main, '-f', 'xxx', '-l')
-    assert_raises(SystemExit, cd.main, '-f', 'xxx', '-o', destfile, filename)
-    assert_raises(SystemExit, cd.main, '-o', 'test.xxx', filename)
-    assert_raises(SystemExit, cd.main, '-f', 'xyz123', filename)
-    assert_raises(SystemExit, cd.main, filename)
-    assert_raises(SystemExit, cd.main, '-o', filename, filename)
-    assert_raises(SystemExit, cd.main, '-o', destfile, filename)
-    assert_raises(SystemExit, cd.main, '-o', destfile)
+    with pytest.raises(SystemExit):
+        cd.main()
+    with pytest.raises(SystemExit):
+        cd.main('')
+    with pytest.raises(SystemExit):
+        cd.main('-f', 'xxx', '-l')
+    with pytest.raises(SystemExit):
+        cd.main('-f', 'xxx', '-o', destfile, filename)
+    with pytest.raises(SystemExit):
+        cd.main('-o', 'test.xxx', filename)
+    with pytest.raises(SystemExit):
+        cd.main('-f', 'xyz123', filename)
+    with pytest.raises(SystemExit):
+        cd.main(filename)
+    with pytest.raises(SystemExit):
+        cd.main('-o', filename, filename)
+    with pytest.raises(SystemExit):
+        cd.main('-o', destfile, filename)
+    with pytest.raises(SystemExit):
+        cd.main('-o', destfile)
     cd.main('-a', 'Artist=John Doe', '-f', 'pkl', '-o', destfile, filename)
     cd.main('-r', 'Amplifier', '-o', destfile + '.wav', filename)
     os.remove(destfile + '.wav')
@@ -55,11 +68,14 @@ def test_main():
     cd.main('-c', '1', '-o', destfile, filename1)
     cd.main('-c', '0-2', '-o', destfile, filename1)
     cd.main('-c', '0-1,3', '-o', destfile, filename1)
-    assert_raises(SystemExit, cd.main, '-o', destfile, filename, filename1)
+    with pytest.raises(SystemExit):
+        cd.main('-o', destfile, filename, filename1)
     write_data_file(filename1, 2, 20000)
-    assert_raises(SystemExit, cd.main, '-o', destfile, filename, filename1)
+    with pytest.raises(SystemExit):
+        cd.main('-o', destfile, filename, filename1)
     write_data_file(filename1)
-    assert_raises(SystemExit, cd.main, '-n', '1', '-o', destfile[:-4], filename, filename1)
+    with pytest.raises(SystemExit):
+        cd.main('-n', '1', '-o', destfile[:-4], filename, filename1)
     cd.main('-n', '1', '-f', 'wav', '-o', destfile[:-4], filename, filename1)
     shutil.rmtree(destfile[:-4])
     cd.main('-vv', '-o', destfile, filename, filename1)
@@ -68,12 +84,12 @@ def test_main():
     xdata, xrate, xunit, xamax = dl.load_data(filename1)
     n += len(xdata)
     xdata, xrate, xunit, xamax = dl.load_data(destfile)
-    assert_equal(len(xdata), n, 'len of merged files')
+    assert len(xdata) == n, 'len of merged files'
     cd.main('-d', '4', '-o', destfile, filename)
     xdata, xrate, xunit, xamax = dl.load_data(filename)
     ydata, yrate, yunit, xamax = dl.load_data(destfile)
-    assert_equal(len(ydata), len(xdata)//4, 'decimation data')
-    assert_equal(yrate*4, xrate, 'decimation rate')
+    assert len(ydata) == len(xdata)//4, 'decimation data'
+    assert yrate*4 == xrate, 'decimation rate'
     cd.main('-o', 'test{Num}.npz', filename)
     os.remove('test42.npz')
     os.remove(filename)

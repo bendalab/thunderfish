@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_equal, with_setup
+import pytest
 import os
 import sys
 import numpy as np
@@ -39,7 +39,7 @@ def generate_markers(maxi):
         labels[i,1] = chr(ord('A') + i % 26)*5
     return locs, labels
 
-    
+
 def remove_files(path):
     if os.path.isdir(path):
         for root, dirs, files in os.walk(path, topdown=False):
@@ -48,11 +48,15 @@ def remove_files(path):
         os.rmdir(os.path.join(path))
 
         
+@pytest.fixture   
 def remove_relacs_files():
+    yield
     remove_files(relacs_path)
 
     
+@pytest.fixture   
 def remove_fishgrid_files():
+    yield
     remove_files(fishgrid_path)
 
 
@@ -60,8 +64,8 @@ def check_reading(filename, data):
     # load full data:
     full_data, rate, unit, rmax = dl.load_data(filename)
     tolerance = rmax*2.0**(-15)
-    assert_true(np.all(data.shape == full_data.shape), 'full load failed: shape')
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full load failed: data')
+    assert np.all(data.shape == full_data.shape), 'full load failed: shape'
+    assert np.all(np.abs(data - full_data)<tolerance), 'full load failed: data'
 
     # load on demand:
     data = dl.DataLoader(filename, 10.0, 2.0)
@@ -77,25 +81,25 @@ def check_reading(filename, data):
         if np.any(np.abs(full_data[inx] - data[inx]) > tolerance):
             success = inx
             break
-    assert_true(success < 0, 'single random frame access failed at index %d' % (success))
+    assert success < 0, 'single random frame access failed at index %d' % (success)
     print('  check random frame slice access...')
     for inx in np.random.randint(0, len(full_data)-nframes, ntests):
         if np.any(np.abs(full_data[inx:inx+nframes] - data[inx:inx+nframes]) > tolerance):
             success = inx
             break
-    assert_true(success < 0, 'random frame slice access failed at index %d' % (success))
+    assert success < 0, 'random frame slice access failed at index %d' % (success)
     print('  check forward slice access...')
     for inx in range(0, len(full_data)-nframes, step):
         if np.any(np.abs(full_data[inx:inx+nframes] - data[inx:inx+nframes]) > tolerance):
             success = inx
             break
-    assert_true(success < 0, 'frame slice access forward failed at index %d' % (success))
+    assert success < 0, 'frame slice access forward failed at index %d' % (success)
     print('  check backward slice access...')
     for inx in range(len(full_data)-nframes, 0, -step):
         if np.any(np.abs(full_data[inx:inx+nframes] - data[inx:inx+nframes]) > tolerance):
             success = inx
             break
-    assert_true(success < 0, 'frame slice access backward failed at index %d' % (success))
+    assert success < 0, 'frame slice access backward failed at index %d' % (success)
 
     data.close()
 
@@ -109,20 +113,20 @@ def test_container():
                                    locs, labels, encoding=encoding)
         check_reading(filename, data)
         md = dl.metadata(filename)
-        assert_equal(info, md, 'pickle metadata')
+        assert info == md, 'pickle metadata'
         os.remove(filename)
     filename = dw.write_data('test', data, samplerate, amax, 'mV', info,
                              locs, labels, format='pkl')
     full_data, rate, unit, rmax = dl.load_data(filename)
     tolerance = rmax*2.0**(-15)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed')
+    assert np.all(np.abs(data - full_data)<tolerance), 'full pickle load failed'
     llocs, llabels = dl.markers(filename)
-    assert_true(np.all(locs == llocs), 'pickle same locs')
-    assert_true(np.all(labels == llabels), 'pickle same labels')
+    assert np.all(locs == llocs), 'pickle same locs'
+    assert np.all(labels == llabels), 'pickle same labels'
     with dl.DataLoader(filename) as sf:
         llocs, llabels = sf.markers()
-        assert_true(np.all(locs == llocs), 'pickle same locs')
-        assert_true(np.all(labels == llabels), 'pickle same labels')
+        assert np.all(locs == llocs), 'pickle same locs'
+        assert np.all(labels == llabels), 'pickle same labels'
     os.remove(filename)
 
     # numpy:
@@ -131,20 +135,20 @@ def test_container():
                                   info, locs, labels, encoding=encoding)
         check_reading(filename, data)
         md = dl.metadata(filename)
-        assert_equal(info, md, 'numpy metadata')
+        assert info == md, 'numpy metadata'
         os.remove(filename)
     filename = dw.write_data('test', data, samplerate, amax, 'mV',
                              info, locs, labels, format='npz')
     full_data, rate, unit, rmax = dl.load_data(filename)
     tolerance = rmax*2.0**(-15)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed')
+    assert np.all(np.abs(data - full_data)<tolerance), 'full numpy load failed'
     llocs, llabels = dl.markers(filename)
-    assert_true(np.all(locs == llocs), 'numpy same locs')
-    assert_true(np.all(labels == llabels), 'numpy same labels')
+    assert np.all(locs == llocs), 'numpy same locs'
+    assert np.all(labels == llabels), 'numpy same labels'
     with dl.DataLoader(filename) as sf:
         llocs, llabels = sf.markers()
-        assert_true(np.all(locs == llocs), 'numpy same locs')
-        assert_true(np.all(labels == llabels), 'numpy same labels')
+        assert np.all(locs == llocs), 'numpy same locs'
+        assert np.all(labels == llabels), 'numpy same labels'
     os.remove(filename)
 
     # mat:
@@ -153,51 +157,49 @@ def test_container():
                                 locs, labels, encoding=encoding)
         check_reading(filename, data)
         md = dl.metadata(filename)
-        assert_equal(info, md, 'mat metadata')
+        assert info == md, 'mat metadata'
         os.remove(filename)
     filename = dw.write_data('test', data, samplerate, amax, 'mV',
                              info, locs, labels, format='mat')
     full_data, rate, unit, rmax = dl.load_data(filename)
     tolerance = rmax*2.0**(-15)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full mat load failed')
+    assert np.all(np.abs(data - full_data)<tolerance), 'full mat load failed'
     llocs, llabels = dl.markers(filename)
-    assert_true(np.all(locs == llocs), 'mat same locs')
-    assert_true(np.all(labels == llabels), 'mat same labels')
+    assert np.all(locs == llocs), 'mat same locs'
+    assert np.all(labels == llabels), 'mat same labels'
     with dl.DataLoader(filename) as sf:
         llocs, llabels = sf.markers()
-        assert_true(np.all(locs == llocs), 'mat same locs')
-        assert_true(np.all(labels == llabels), 'mat same labels')
+        assert np.all(locs == llocs), 'mat same locs'
+        assert np.all(labels == llabels), 'mat same labels'
     os.remove(filename)
     
     
-@with_setup(None, remove_relacs_files)
-def test_relacs():
+def test_relacs(remove_relacs_files):
     data, samplerate, amax, info = generate_data()
     dw.write_metadata_text(sys.stdout, info)
     dw.write_relacs(relacs_path, data, samplerate, amax, 'mV', metadata=info)
     dl.metadata_relacs(relacs_path + '/info.dat')
     check_reading(relacs_path, data)
-    remove_relacs_files()
+    remove_files(relacs_path)
     dw.write_relacs(relacs_path, data[:,0], samplerate, amax, 'mV',
                     metadata=info)
     check_reading(relacs_path, data[:,:1])
 
 
-@with_setup(None, remove_fishgrid_files)
-def test_fishgrid():
+def test_fishgrid(remove_fishgrid_files):
     data, samplerate, amax, info = generate_data()
     locs, labels = generate_markers(len(data))
     dw.write_fishgrid(fishgrid_path, data, samplerate, amax, 'mV',
                       metadata=info, locs=locs, labels=labels)
     check_reading(fishgrid_path, data)
     llocs, llabels = dl.markers(fishgrid_path)
-    assert_true(np.all(locs == llocs), 'fishgrid same locs')
-    assert_true(np.all(labels == llabels), 'fishgrid same labels')
+    assert np.all(locs == llocs), 'fishgrid same locs'
+    assert np.all(labels == llabels), 'fishgrid same labels'
     with dl.DataLoader(fishgrid_path) as sf:
         llocs, llabels = sf.markers()
-        assert_true(np.all(locs == llocs), 'fishgrid same locs')
-        assert_true(np.all(labels == llabels), 'fishgrid same labels')
-    remove_fishgrid_files()
+        assert np.all(locs == llocs), 'fishgrid same locs'
+        assert np.all(labels == llabels), 'fishgrid same labels'
+    remove_files(fishgrid_path)
     dw.write_fishgrid(fishgrid_path, data[:,0], samplerate, amax, 'mV',
                       metadata=info)
     check_reading(fishgrid_path, data[:,:1])
@@ -209,22 +211,22 @@ def test_audioio():
                                 metadata=info)
     full_data, rate, unit, rmax = dl.load_data(filename)
     tolerance = rmax*2.0**(-15)
-    assert_true(np.all(np.abs(data - full_data)<tolerance), 'full audio load failed')
+    assert np.all(np.abs(data - full_data)<tolerance), 'full audio load failed'
     os.remove(filename)
 
     info['gain'] = f'{amax:g}mV'
     filename = dw.write_audioio('test.wav', data, samplerate, None, None,
                                 metadata=info)
     full_data, rate, unit, rmax = dl.load_data(filename)
-    assert_equal(unit, 'mV')
+    assert unit == 'mV'
     check_reading(filename, data)
     os.remove(filename)
+
     
-def test_main():
+def test_main(remove_fishgrid_files):
     data, samplerate, amax, info = generate_data()
     filename = dw.write_fishgrid(fishgrid_path, data[:10*int(samplerate)],
                                  samplerate, amax, 'mV', info)
     dl.main(filename)
     dl.main('-p', filename)
-    remove_fishgrid_files()
     

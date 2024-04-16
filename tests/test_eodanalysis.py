@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_equal, assert_almost_equal
+import pytest
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,7 +17,7 @@ def test_pulsefish():
     ax = fig.add_subplot(1, 1, 1)
     ea.plot_pulse_spectrum(ax, power, props)
     fig.savefig('pulse.png')
-    assert_true(os.path.exists('pulse.png'), 'plotting failed')
+    assert os.path.exists('pulse.png'), 'plotting failed'
     os.remove('pulse.png')
 
 def test_wavefish():
@@ -31,5 +31,5 @@ def test_wavefish():
     ax = fig.add_subplot(1, 1, 1)
     ea.plot_eod_waveform(ax, mean_eod, props)
     fig.savefig('wave.png')
-    assert_true(os.path.exists('wave.png'), 'plotting failed')
+    assert os.path.exists('wave.png'), 'plotting failed'
     os.remove('wave.png')

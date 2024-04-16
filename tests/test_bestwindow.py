@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_equal, assert_almost_equal
+import pytest
 import os
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,9 +29,9 @@ def test_best_window():
                                                  min_clip=-clip, max_clip=clip,
                                                  w_cv_ampl=10.0, tolerance=0.5)
 
-    assert_equal(idx0, 6 * len(time), 'bestwindow() did not correctly detect start of best window')
-    assert_equal(idx1, 7 * len(time), 'bestwindow() did not correctly detect end of best window')
-    assert_almost_equal(clipped, 0.0, 'bestwindow() did not correctly detect clipped fraction')
+    assert idx0 == 6 * len(time), 'bestwindow() did not correctly detect start of best window'
+    assert idx1 == 7 * len(time), 'bestwindow() did not correctly detect end of best window'
+    assert clipped == pytest.approx(0.0), 'bestwindow() did not correctly detect clipped fraction'
 
     t0, t1, clipped = bw.best_window_times(data, rate, expand=False,
                                            win_size=1.0, win_shift=0.1,
@@ -60,17 +60,15 @@ def test_best_window():
                                             min_ampl=-1.3, max_ampl=1.3,
                                             min_fac=2.0, nbins=40)
 
-    assert_true(min_clip <= -0.8 * clip and min_clip >= -clip,
-                'clip_amplitudes() failed to detect minimum clip amplitude')
-    assert_true(max_clip >= 0.8 * clip and max_clip <= clip,
-                'clip_amplitudes() failed to detect maximum clip amplitude')
+    assert min_clip <= -0.8 * clip and min_clip >= -clip, 'clip_amplitudes() failed to detect minimum clip amplitude'
+    assert max_clip >= 0.8 * clip and max_clip <= clip, 'clip_amplitudes() failed to detect maximum clip amplitude'
 
     # plotting 1:
     fig = plt.figure()
     ax = fig.add_subplot(1, 1, 1)
     bw.plot_data_window(ax, data, rate, 'a.u.', idx0, idx1, clipped)
     fig.savefig('bestwindow.png')
-    assert_true(os.path.exists('bestwindow.png'), 'plotting failed')
+    assert os.path.exists('bestwindow.png'), 'plotting failed'
     os.remove('bestwindow.png')
 
     # plotting 2:
@@ -81,7 +79,7 @@ def test_best_window():
                            w_cv_ampl=10.0, tolerance=0.5,
                            plot_data_func=bw.plot_best_window, ax=ax)
     fig.savefig('bestdata.png')
-    assert_true(os.path.exists('bestdata.png'), 'plotting failed')
+    assert os.path.exists('bestdata.png'), 'plotting failed'
     os.remove('bestdata.png')
     
 

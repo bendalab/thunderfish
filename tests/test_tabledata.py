@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_false, assert_equal, assert_raises, nottest
+import pytest
 import os
 import sys
 import numpy as np
@@ -41,10 +41,10 @@ def test_write():
 
 def test_properties():
     df = setup_table()
-    assert_equal(len(df), 5, 'len() failed %d' % len(df))
-    assert_equal(df.columns(), 5, 'columns() failed %d' % df.columns())
-    assert_equal(df.rows(), 8, 'rows() failed %d' % df.rows())
-    assert_equal(df.shape, (8, 5), 'shape failed %d %d' % df.shape)
+    assert len(df) == 5, 'len() failed %d' % len(df)
+    assert df.columns() == 5, 'columns() failed %d' % df.columns()
+    assert df.rows() == 8, 'rows() failed %d' % df.rows()
+    assert df.shape == (8, 5), 'shape failed %d %d' % df.shape
 
 def test_columns():
     df = setup_table(False)
@@ -52,41 +52,41 @@ def test_columns():
     formats = ['%6.2f', '%.0f', '%.3g', '%.1f', '%.2e']
     sec1 = [('partial informations', 0), ('partial informations', 0), ('complete reaction', 2), ('complete reaction', 2), ('complete reaction', 2)]
     for c, k in enumerate(df.keys()):
-        assert_equal(c, df.index(k), 'index %s is not %d' % (k, c))
-        assert_true(k in df, 'key %s not found in table' % k)
-        assert_false(('xx'+k) in df, 'key %s found in table' % k)
-        assert_false((k+'xx') in df, 'key %s found in table' % k)
+        assert c == df.index(k), 'index %s is not %d' % (k, c)
+        assert k in df, 'key %s not found in table' % k
+        assert not ('xx'+k) in df, 'key %s found in table' % k
+        assert not (k+'xx') in df, 'key %s found in table' % k
     for c in range(df.columns()):
         k = df.column_spec(c)
-        assert_equal(c, df.index(k), 'index %s is not %d' % (k, c))
-        assert_equal(units[c], df.unit(c), 'unit of column %d is not %s' % (c, units[c]))
-        assert_equal(formats[c], df.format(c), 'format of column %d is not %s' % (c, formats[c]))
+        assert c == df.index(k), 'index %s is not %d' % (k, c)
+        assert units[c] == df.unit(c), 'unit of column %d is not %s' % (c, units[c])
+        assert formats[c] == df.format(c), 'format of column %d is not %s' % (c, formats[c])
     for c, (s1, c1) in enumerate(sec1):
         ds, cs = df.section(c, 1)
-        assert_equal(s1, ds, 'section level 1 name of column %d is not %s' % (c, s1))
-        assert_equal(c1, cs, 'section level 1 index of column %d is not %d' % (c, c1))
+        assert s1 == ds, 'section level 1 name of column %d is not %s' % (c, s1)
+        assert c1 == cs, 'section level 1 index of column %d is not %d' % (c, c1)
         ds, cs = df.section(c, 2)
         s2 = 'data'
         c2 = 0
-        assert_equal(s2, ds, 'section level 2 name of column %d is not %s' % (c, s2))
-        assert_equal(c2, cs, 'section level 2 index of column %d is not %d' % (c, c2))
+        assert s2 == ds, 'section level 2 name of column %d is not %s' % (c, s2)
+        assert c2 == cs, 'section level 2 index of column %d is not %d' % (c, c2)
     for c in range(df.columns()):
         l = 'aaa%d' % c
         df.set_label(l, c)
-        assert_equal(df.label(c), l, 'label of column %d is not %s' % (c, l))
+        assert df.label(c) == l, 'label of column %d is not %s' % (c, l)
         df.set_unit('km/h', c)
-        assert_equal(df.unit(c), 'km/h', 'unit of column %d is not km/h' % c)
+        assert df.unit(c) == 'km/h', 'unit of column %d is not km/h' % c
         df.set_format('%g', c)
-        assert_equal(df.format(c), '%g', 'format of column %d is not %%g' % c)
+        assert df.format(c) == '%g', 'format of column %d is not %%g' % c
     df.set_units(list(reversed(units)))
     df.set_formats(list(reversed(formats)))
     for c, (u, f) in enumerate(zip(reversed(units), reversed(formats))):
-        assert_equal(df.unit(c), u, 'unit of column %d is not %s' % (c, u))
-        assert_equal(df.format(c), f, 'format of column %d is not %s' % (c, f))
+        assert df.unit(c) == u, 'unit of column %d is not %s' % (c, u)
+        assert df.format(c) == f, 'format of column %d is not %s' % (c, f)
     for dc, vc in zip(df.data, df.values()):
-        assert_true(np.all(dc == vc), 'data and value columns differ')
+        assert np.all(dc == vc), 'data and value columns differ'
     for k, v in df.items():
-        assert_true(np.all(df.col(k).array()[:,0] == v), 'data and value for column %s differ' % k)
+        assert np.all(df.col(k).array()[:,0] == v), 'data and value for column %s differ' % k
 
 def test_removal():
     for i in range(20):
@@ -94,25 +94,25 @@ def test_removal():
         for k in reversed(range(df.columns())):
             c = np.random.randint(df.columns())
             df.remove(c)
-            assert_equal(df.columns(), k, 'after removal of column len should be %d' % k)
+            assert df.columns() == k, 'after removal of column len should be %d' % k
     for i in range(20):
         df = setup_table()
         for k in reversed(range(df.columns())):
             c = np.random.randint(df.columns())
             del df[:,c]
-            assert_equal(df.columns(), k, 'after removal of column len should be %d' % k)
+            assert df.columns() == k, 'after removal of column len should be %d' % k
     for i in range(20):
         df = setup_table()
         for k in reversed(range(df.rows())):
             r = np.random.randint(df.rows())
             del df[r,:]
-            assert_equal(df.rows(), k, 'after removal of row len should be %d' % k)
+            assert df.rows() == k, 'after removal of row len should be %d' % k
     for i in range(20):
         df = setup_table()
         n = df.rows()
         r = np.unique(np.random.randint(0, df.rows(), n//2))
         del df[r,:]
-        assert_equal(df.rows(), n - len(r), 'after removal of row len should be %d' % k)
+        assert df.rows() == n - len(r), 'after removal of row len should be %d' % k
 
 def test_insertion():
     for i in range(20):
@@ -121,10 +121,10 @@ def test_insertion():
         for k in range(1,10):
             c = np.random.randint(df.columns())
             df.insert(c, 'aaa', 'm', '%g')
-            assert_equal(df.columns(), nc+k, 'after insertion of column len should be %d' % (nc+k))
-            assert_equal(df.label(c), 'aaa', 'label of inserted column should be %s' % 'aaa')
-            assert_equal(df.unit(c), 'm', 'label of inserted column should be %s' % 'm')
-            assert_equal(df.format(c), '%g', 'label of inserted column should be %s' % '%g')
+            assert df.columns() == nc+k, 'after insertion of column len should be %d' % (nc+k)
+            assert df.label(c) == 'aaa', 'label of inserted column should be %s' % 'aaa'
+            assert df.unit(c) == 'm', 'label of inserted column should be %s' % 'm'
+            assert df.format(c) == '%g', 'label of inserted column should be %s' % '%g'
 
 def test_key_value():
     df = setup_table()
@@ -140,24 +140,24 @@ def test_fill():
     for c in range(df.columns()):
         df.append_data_column(np.random.randn(2+c), c)
     for c in range(df.columns()):
-        assert_equal(len(df.data[c]), 2+c, 'column should have %d data elements' % (2+c))
+        assert len(df.data[c]) == 2+c, 'column should have %d data elements' % (2+c)
     df.fill_data()
     for c in range(df.columns()):
-        assert_equal(len(df.data[c]), df.rows(), 'column should have %d data elements' % df.rows())
+        assert len(df.data[c]) == df.rows(), 'column should have %d data elements' % df.rows()
 
 def test_statistics():
     df = setup_table()
     st = df.statistics()
-    assert_equal(st.rows(), 8, 'statistics should have 8 rows')
-    assert_equal(st.columns(), df.columns()+1, 'statistics should have %d columns' % (df.columns()+1))
+    assert st.rows() == 8, 'statistics should have 8 rows'
+    assert st.columns() == df.columns()+1, 'statistics should have %d columns' % (df.columns()+1)
     
 def test_sort():
     df = setup_table(False)
     for c in range(df.columns()):
         df.sort(c)
-        assert_true(np.all(np.diff(df.data[c])>=0), 'values in columns %d are not sorted' % c)
+        assert np.all(np.diff(df.data[c])>=0), 'values in columns %d are not sorted' % c
         df.sort(c, reverse=True)
-        assert_true(np.all(np.diff(df.data[c])<=0), 'values in columns %d are not sorted' % c)
+        assert np.all(np.diff(df.data[c])<=0), 'values in columns %d are not sorted' % c
     
 def test_write_load():
     df = setup_table()
@@ -192,7 +192,7 @@ def test_write_load():
                                                  align_columns=align_columns, sections=sections)
                                         print('')
                                         print('line %2d "%s" from original table does not match\n        "%s" from read in table.' % (k+1, line1.rstrip('\n'), line2.rstrip('\n')))
-                                    assert_equal(line1, line2, 'files differ at line %d:\n%s\n%s' % (k, line1, line2))
+                                    assert line1 == line2, 'files differ at line %d:\n%s\n%s' % (k, line1, line2)
                             os.remove(orgfilename)
                             os.remove(filename)
 
@@ -204,40 +204,40 @@ def test_read_access():
     n = 1000
     # reading values by index:
     for c, r in zip(np.random.randint(0, df.columns(), n), np.random.randint(0, df.rows(), n)):
-        assert_equal(df[r,c], data[r,c], 'element access by index failed')
+        assert df[r,c] == data[r,c], 'element access by index failed'
     # reading values by column name:
     for c, r in zip(np.random.randint(0, df.columns(), n), np.random.randint(0, df.rows(), n)):
-        assert_equal(df[r,df.keys()[c]], data[r,c], 'element access by column name failed')
+        assert df[r,df.keys()[c]] == data[r,c], 'element access by column name failed'
     # reading row slices:
     for c in range(df.columns()):
         for r in np.random.randint(0, df.rows(), (n,2)):
             r0, r1 = np.sort(r)
-            assert_true(np.array_equal(df[r0:r1,c], data[r0:r1,c]), 'slicing of rows failed')
+            assert np.array_equal(df[r0:r1,c], data[r0:r1,c]), 'slicing of rows failed'
     # reading column slices:
     for r in range(df.rows()):
         for c in np.random.randint(0, df.columns(), (n,2)):
             c0, c1 = np.sort(c)
             if c1-c0 < 2:
                 continue
-            assert_true(np.array_equal(df[r,c0:c1].array(0), data[r,c0:c1]), 'slicing of columns failed')
+            assert np.array_equal(df[r,c0:c1].array(0), data[r,c0:c1]), 'slicing of columns failed'
     # reading row and column slices:
     for c, r in zip(np.random.randint(0, df.columns(), (n,2)), np.random.randint(0, df.rows(), (n,2))):
         r0, r1 = np.sort(r)
         c0, c1 = np.sort(c)
         if c1-c0 < 2:
             continue
-        assert_true(np.array_equal(df[r0:r1,c0:c1].array(), data[r0:r1,c0:c1]), 'slicing of rows and columns failed')
+        assert np.array_equal(df[r0:r1,c0:c1].array(), data[r0:r1,c0:c1]), 'slicing of rows and columns failed'
     # reading full column slices:
     for c in range(df.columns()):
-        assert_true(np.array_equal(df(c), data[:,c]), 'slicing of full column failed')
-        assert_true(np.array_equal(df[:,c], data[:,c]), 'slicing of full column failed')
-        assert_true(np.array_equal(df.col(c)[:,0], data[:,c]), 'slicing of full column failed')
+        assert np.array_equal(df(c), data[:,c]), 'slicing of full column failed'
+        assert np.array_equal(df[:,c], data[:,c]), 'slicing of full column failed'
+        assert np.array_equal(df.col(c)[:,0], data[:,c]), 'slicing of full column failed'
     for c, d in enumerate(df):
-        assert_true(np.array_equal(d, data[:,c]), 'iterating of full column failed')
+        assert np.array_equal(d, data[:,c]), 'iterating of full column failed'
     # reading full row slices:
     for r in range(df.rows()):
-        assert_true(np.array_equal(df[r,:].array(0), data[r,:]), 'slicing of full row failed')
-        assert_true(np.array_equal(df.row(r)[0,:].array(0), data[r,:]), 'slicing of full row failed')
+        assert np.array_equal(df[r,:].array(0), data[r,:]), 'slicing of full row failed'
+        assert np.array_equal(df.row(r)[0,:].array(0), data[r,:]), 'slicing of full row failed'
         d = df.row_dict(r)
 
 
@@ -251,14 +251,14 @@ def test_write_access():
     for c, r in zip(np.random.randint(0, df.columns(), n), np.random.randint(0, df.rows(), n)):
         v = np.random.randn()
         df[r,c] = v
-        assert_equal(df[r,c], v, 'set item by index failed')
+        assert df[r,c] == v, 'set item by index failed'
     # writing and reading row slices:
     for c in range(df.columns()):
         for r in np.random.randint(0, df.rows(), (n,2)):
             r0, r1 = np.sort(r)
             v = np.random.randn(r1-r0)
             df[r0:r1,c] = v
-            assert_true(np.array_equal(df[r0:r1,c], v), 'slicing of rows failed')
+            assert np.array_equal(df[r0:r1,c], v), 'slicing of rows failed'
     # writing and reading column slices:
     for r in range(df.rows()):
         for c in np.random.randint(0, df.columns(), (n,2)):
@@ -267,7 +267,7 @@ def test_write_access():
                 continue
             v = np.random.randn(c1-c0)
             df[r,c0:c1] = v
-            assert_true(np.array_equal(df[r,c0:c1].array(0), v), 'slicing of columns failed')
+            assert np.array_equal(df[r,c0:c1].array(0), v), 'slicing of columns failed'
     # writing and reading row and column slices:
     for c, r in zip(np.random.randint(0, df.columns(), (n,2)), np.random.randint(0, df.rows(), (n,2))):
         r0, r1 = np.sort(r)
@@ -276,7 +276,7 @@ def test_write_access():
             continue
         v = np.random.randn(r1-r0, c1-c0)
         df[r0:r1,c0:c1] = v
-        assert_true(np.array_equal(df[r0:r1,c0:c1].array(), v), 'slicing of rows and columns failed')
+        assert np.array_equal(df[r0:r1,c0:c1].array(), v), 'slicing of rows and columns failed'
 
 def test_hide_show():
     filename = 'tabletest.dat'
@@ -285,38 +285,38 @@ def test_hide_show():
         df.hide(c)
         df.write(filename)
         sf = td.TableData(filename)
-        assert_equal(sf.columns(), df.columns()-1, 'wrong number of columns written')
+        assert sf.columns() == df.columns()-1, 'wrong number of columns written'
         df.show(c)
         df.write(filename)
         sf = td.TableData(filename)
-        assert_equal(sf.columns(), df.columns(), 'wrong number of columns written')
+        assert sf.columns() == df.columns(), 'wrong number of columns written'
     for c in range(df.columns()):
         df = setup_table()
         df.data[c] = []
         df.hide_empty_columns()
         df.write(filename)
         sf = td.TableData(filename)
-        assert_equal(sf.columns(), df.columns()-1, 'wrong number of columns written')
+        assert sf.columns() == df.columns()-1, 'wrong number of columns written'
         df.show(c)
         df.write(filename)
         sf = td.TableData(filename)
-        assert_equal(sf.columns(), df.columns(), 'wrong number of columns written')
+        assert sf.columns() == df.columns(), 'wrong number of columns written'
         df.data[c] = [float('nan')] * df.rows()
         df.hide_empty_columns()
         df.write(filename)
         sf = td.TableData(filename)
-        assert_equal(sf.columns(), df.columns()-1, 'wrong number of columns written')
+        assert sf.columns() == df.columns()-1, 'wrong number of columns written'
         df.show(c)
         df.write(filename)
         sf = td.TableData(filename)
-        assert_equal(sf.columns(), df.columns(), 'wrong number of columns written')
+        assert sf.columns() == df.columns(), 'wrong number of columns written'
     df = setup_table()
     df.hide_all()
     for c in range(df.columns()):
         df.show(c)
         df.write(filename)
         sf = td.TableData(filename)
-        assert_equal(sf.columns(), 1, 'wrong number of columns written')
+        assert sf.columns() == 1, 'wrong number of columns written'
         df.hide(c)
     os.remove(filename)
 
@@ -324,7 +324,7 @@ def test_hide_show():
 def test_config():
     cfg = ConfigFile()
     td.add_write_table_config(cfg)
-    assert_true(type(td.write_table_args(cfg)) is dict, 'write_table_args()')
+    assert type(td.write_table_args(cfg)) is dict, 'write_table_args()'
 
     
 def test_main():

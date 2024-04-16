@@ -1,4 +1,4 @@
-from nose.tools import assert_true, assert_equal, assert_almost_equal
+import pytest
 import numpy as np
 from thunderfish.configfile import ConfigFile
 import thunderfish.fakefish as ff
@@ -25,28 +25,25 @@ def test_harmonic_groups():
     fundamentals = hg.fundamental_freqs(groups)
     fdbs = hg.fundamental_freqs_and_power(groups)
     # check:
-    assert_true(np.all(np.abs(eodfs-fundamentals) < 1.5*df),
-                'harmonic_groups() did not correctly detect all fundamental frequencies')
+    assert np.all(np.abs(eodfs-fundamentals) < 1.5*df), 'harmonic_groups() did not correctly detect all fundamental frequencies'
 
     fundamentals = hg.fundamental_freqs([groups, [groups[1], groups[3]]])
     fdbs = hg.fundamental_freqs_and_power([groups, [groups[1], groups[3]]], 3)
     # check:
-    assert_true(np.all(np.abs(eodfs-fundamentals[0]) < df),
-                'harmonic_groups() did not correctly detect all fundamental frequencies')
+    assert np.all(np.abs(eodfs-fundamentals[0]) < df), 'harmonic_groups() did not correctly detect all fundamental frequencies'
 
     fundamentals = hg.fundamental_freqs([[groups, [groups[1], groups[3]]]])
     fdbs = hg.fundamental_freqs_and_power([[groups, [groups[1], groups[3]]]], 10, True)
     # check:
-    assert_true(np.all(np.abs(eodfs-fundamentals[0][0]) < df),
-                'harmonic_groups() did not correctly detect all fundamental frequencies')
+    assert np.all(np.abs(eodfs-fundamentals[0][0]) < df), 'harmonic_groups() did not correctly detect all fundamental frequencies'
 
 
 def test_config():
     cfg = ConfigFile()
     hg.add_harmonic_groups_config(cfg)
     hg.add_psd_peak_detection_config(cfg)
-    assert_true(type(hg.harmonic_groups_args(cfg)) is dict, 'harmonic_groups_args()')
-    assert_true(type(hg.psd_peak_detection_args(cfg)) is dict, 'psd_peak_detection_args()')
+    assert type(hg.harmonic_groups_args(cfg)) is dict, 'harmonic_groups_args()'
+    assert type(hg.psd_peak_detection_args(cfg)) is dict, 'psd_peak_detection_args()'
     
 
 def test_main():
