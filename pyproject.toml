@@ -1,3 +1,59 @@
 [build-system]
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "thunderfish"
+dynamic = ["version"]
+dependencies = [
+  "scikit-learn",
+  "scipy",
+  "numpy",
+  "matplotlib",
+  "audioio>=2.0"
+]
+requires-python = ">=3.4"
+authors = [
+  {name = "Jan Benda", email = "jan.benda@uni-tuebingen.de"},
+  {name = "Juan F. Sehuanes"},
+  {name = "Till Raab"},
+  {name = "Jörg Henninger"},
+  {name = "Jan Grewe"},
+  {name = "Fabian Sinz"},
+  {name = "Liz Weerdmeester"}
+]
+maintainers = [
+  {name = "Jan Benda", email = "jan.benda@uni-tuebingen.de"},
+]
+description = "Algorithms and scripts for analyzing recordings of electric fish waveforms."
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Analysis",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Repository    = "https://github.com/bendalab/thunderfish"
+Documentation = "https://bendalab.github.io/thunderfish"
+
+[project.scripts]
+convertdata   = "thunderfish.convertdata:main"
+thunderfish   = "thunderfish.thunderfish:main"
+thunderlogger = "thunderfish.thunderlogger:main"
+fishfinder    = "thunderfish.fishfinder:main"
+collectfish   = "thunderfish.collectfish:main"
+eodexplorer   = "thunderfish.eodexplorer:main"
+thunderbrowse = "thunderfish.thunderbrowse:main"
