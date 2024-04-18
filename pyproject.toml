@@ -57,3 +57,6 @@ fishfinder    = "thunderfish.fishfinder:main"
 collectfish   = "thunderfish.collectfish:main"
 eodexplorer   = "thunderfish.eodexplorer:main"
 thunderbrowse = "thunderfish.thunderbrowse:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "thunderfish.version.__version__"}
