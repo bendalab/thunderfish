@@ -33,9 +33,20 @@ def load_hopkins(file_path):
         First column is time in seconds, second column EOD waveform.
     md: nested dict
         Metadata.
+
+    Raises
+    ------
+    FileNotFoundError
+        `file_path` does not exist.
+    ValueError
+        `file_path` is not a valid mat file.
     """
     x = loadmat(file_path, squeeze_me=True)
+    if not 'eod' in x or not hasattr(x['eod'], 'size'):
+        return [], {}
     y = x['eod'].reshape(x['eod'].size)
+    if not 'wave' in y.dtype.names or not 'time' in y.dtype.names:
+        return [], {}
     # assemble data:
     data = []
     for k in range(len(y['wave'])):
