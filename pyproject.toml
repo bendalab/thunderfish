@@ -10,7 +10,7 @@ dependencies = [
   "scipy",
   "numpy",
   "matplotlib",
-  "audioio>=2.0"
+  "audioio>=2.1"
 ]
 requires-python = ">=3.4"
 authors = [
