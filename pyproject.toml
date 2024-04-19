@@ -60,3 +60,6 @@ thunderbrowse = "thunderfish.thunderbrowse:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "thunderfish.version.__version__"}
+
+[tool.pytest.ini_options]
+pythonpath = "src"
