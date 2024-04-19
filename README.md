@@ -68,6 +68,7 @@ Look into the modules for more information.
 - [`dataloader`](https://bendalab.github.io/thunderfish/api/dataloader.html): Load time-series data from files.
 - [`datawriter`](https://bendalab.github.io/thunderfish/api/datawriter.html): Write time-series data to files.
 - [`tabledata`](https://bendalab.github.io/thunderfish/api/tabledata.html): Read and write tables with a rich hierarchical header including units and formats.
+- [`hopkinsloader`](https://bendalab.github.io/thunderfish/api/hopkinsloader.html): Load EODs from Hopkins files.
 
 ### Basic data analysis
 
