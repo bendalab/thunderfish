@@ -10,16 +10,15 @@ dependencies = [
   "scipy",
   "numpy",
   "matplotlib",
-  "audioio>=2.1"
+  "thunderlab"
 ]
-requires-python = ">=3.4"
+requires-python = ">=3.6"
 authors = [
   {name = "Jan Benda", email = "jan.benda@uni-tuebingen.de"},
   {name = "Juan F. Sehuanes"},
   {name = "Till Raab"},
   {name = "Jörg Henninger"},
   {name = "Jan Grewe"},
-  {name = "Fabian Sinz"},
   {name = "Liz Weerdmeester"}
 ]
 maintainers = [
@@ -50,7 +49,6 @@ Repository    = "https://github.com/bendalab/thunderfish"
 Documentation = "https://bendalab.github.io/thunderfish"
 
 [project.scripts]
-convertdata   = "thunderfish.convertdata:main"
 thunderfish   = "thunderfish.thunderfish:main"
 thunderlogger = "thunderfish.thunderlogger:main"
 fishfinder    = "thunderfish.fishfinder:main"

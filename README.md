@@ -29,6 +29,7 @@ algorithms and tools for analysing both wavefish and pulsefish EODs.
 
 ![thunderfish](docs/img/Apteronotus-Fishfinder-Panama-RioCanita-2014-05-17-L13-c0.png)
 
+
 ## Installation
 
 ThunderFish is available from
@@ -36,11 +37,6 @@ ThunderFish is available from
 ```
 pip install thunderfish
 ```
-
-If you have problems loading specific audio files with thunderfish,
-then you need to install further packages. Follow the [installation
-instructions](https://bendalab.github.io/audioio/installation/) of the
-[AudioIO](https://bendalab.github.io/audioio/) package.
 
 
 ## Software
@@ -53,7 +49,6 @@ The thunderfish package provides the following software:
 - [`eodexplorer`](https://bendalab.github.io/thunderfish/eodexplorer/): View and explore properties of EOD waveforms.
 - [`thunderbrowse`](https://bendalab.github.io/thunderfish/api/thunderbrowse/): Browse multi-channel EOD recordings.
 - [`thunderlogger`](https://bendalab.github.io/thunderfish/api/thunderlogger/): Extract EOD waveforms from logger recordings.
-- [`convertdata`](https://bendalab.github.io/thunderfish/api/convertdata/): Convert data from various file formats to audio files.
 
 
 ## Algorithms
@@ -63,19 +58,7 @@ Look into the modules for more information.
 
 ### Input/output
 
-- [`configfile`](https://bendalab.github.io/thunderfish/api/configfile.html): Configuration file with help texts for analysis parameter.
-- [`consoleinput`](https://bendalab.github.io/thunderfish/api/consoleinput.html): User input from console.
-- [`dataloader`](https://bendalab.github.io/thunderfish/api/dataloader.html): Load time-series data from files.
-- [`datawriter`](https://bendalab.github.io/thunderfish/api/datawriter.html): Write time-series data to files.
-- [`tabledata`](https://bendalab.github.io/thunderfish/api/tabledata.html): Read and write tables with a rich hierarchical header including units and formats.
 - [`hopkinsloader`](https://bendalab.github.io/thunderfish/api/hopkinsloader.html): Load EODs from Hopkins files.
-
-### Basic data analysis
-
-- [`eventdetection`](https://bendalab.github.io/thunderfish/api/eventdetection.html): Detect and hande peaks and troughs as well as threshold crossings in data arrays.
-- [`powerspectrum`](https://bendalab.github.io/thunderfish/api/powerspectrum.html): Compute and plot powerspectra and spectrograms for a given minimum frequency resolution.
-- [`voronoi`](https://bendalab.github.io/thunderfish/api/voronoi.html): Analyse Voronoi diagrams based on scipy.spatial.
-- [`multivariateexplorer`](https://bendalab.github.io/thunderfish/api/multivariateexplorer.html): Simple GUI for viewing and exploring multivariate data.
 
 ### EOD analysis
 
