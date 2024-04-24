@@ -38,6 +38,10 @@ ThunderFish is available from
 pip install thunderfish
 ```
 
+This should also install:
+- [ThunderLab](https://github.com/bendalab/thunderlab)
+- [AudioIO](https://github.com/bendalab/audioio)
+
 
 ## Software
 
