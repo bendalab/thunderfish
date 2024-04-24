@@ -6,3 +6,4 @@ pandas
 SoundFile
 simpleaudio
 audioio
+thunderlab
