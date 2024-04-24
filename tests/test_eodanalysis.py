@@ -2,8 +2,8 @@ import pytest
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from thunderlab.eventdetection import detect_peaks
 from thunderfish.fakefish import wavefish_eods, pulsefish_eods
-from thunderfish.eventdetection import detect_peaks
 import thunderfish.eodanalysis as ea
 
 

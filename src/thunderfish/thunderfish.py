@@ -33,16 +33,17 @@ from matplotlib.transforms import Bbox
 from matplotlib.backends.backend_pdf import PdfPages
 from multiprocessing import Pool, freeze_support, cpu_count
 from audioio import play, fade, load_audio
+from thunderlab.configfile import ConfigFile
+from thunderlab.dataloader import load_data
+from thunderlab.powerspectrum import decibel, plot_decibel_psd, multi_psd
+from thunderlab.powerspectrum import add_multi_psd_config, multi_psd_args
+from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
 from .version import __version__, __year__
-from .configfile import ConfigFile
-from .dataloader import load_data
 from .bestwindow import add_clip_config, add_best_window_config
 from .bestwindow import clip_args, best_window_args
 from .bestwindow import analysis_window, plot_data_window
 from .checkpulse import check_pulse, add_check_pulse_config, check_pulse_args
 from .pulses import extract_pulsefish
-from .powerspectrum import decibel, plot_decibel_psd, multi_psd
-from .powerspectrum import add_multi_psd_config, multi_psd_args
 from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .harmonics import colors_markers, plot_harmonic_groups
@@ -64,7 +65,6 @@ from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_pea
 from .eodanalysis import save_analysis, load_analysis, load_recording
 from .eodanalysis import parse_filename, file_types
 from .fakefish import normalize_wavefish, export_wavefish
-from .tabledata import TableData, add_write_table_config, write_table_args
 
 
 def configuration():

@@ -2,7 +2,7 @@ import pytest
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from thunderfish.configfile import ConfigFile
+from thunderlab.configfile import ConfigFile
 import thunderfish.bestwindow as bw
 
 

@@ -16,7 +16,7 @@ from sklearn.decomposition import PCA
 from sklearn.cluster import DBSCAN
 from sklearn.mixture import BayesianGaussianMixture
 from sklearn.metrics import pairwise_distances
-from .eventdetection import detect_peaks, median_std_threshold
+from thunderlab.eventdetection import detect_peaks, median_std_threshold
 from .pulseplots import *
 
 import warnings

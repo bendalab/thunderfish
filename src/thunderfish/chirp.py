@@ -7,10 +7,10 @@ Detection of chirps in weakly electric fish recordings.
 """
 
 import numpy as np
-from .harmonics import harmonic_groups
-from .powerspectrum import spectrogram
-from .eventdetection import std_threshold, detect_peaks, trim_to_peak
 import matplotlib.pyplot as plt
+from thunderlab.powerspectrum import spectrogram
+from thunderlab.eventdetection import std_threshold, detect_peaks, trim_to_peak
+from .harmonics import harmonic_groups
 
 
 def true_chirp_power_drop(chirp_time_idx, power, power_window=100):
@@ -190,7 +190,7 @@ if __name__ == '__main__':
     ###
     import sys
     import matplotlib.pyplot as plt
-    from .dataloader import load_data
+    from thunderlab.dataloader import load_data
 
     data_file = sys.argv[1]
     raw_data, samplerate, unit, amax = load_data(data_file)

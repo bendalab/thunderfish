@@ -15,11 +15,11 @@ from scipy.signal import butter, lfilter
 from types import SimpleNamespace
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+from thunderlab.configfile import ConfigFile
+from thunderlab.dataloader import DataLoader
+from thunderlab.tabledata import TableData, write_table_args
+from thunderlab.eventdetection import hist_threshold
 from .version import __version__, __year__
-from .configfile import ConfigFile
-from .dataloader import DataLoader
-from .tabledata import TableData, write_table_args
-from .eventdetection import hist_threshold
 from .eodanalysis import save_eod_waveform, save_wave_fish, save_pulse_fish
 from .eodanalysis import save_wave_spectrum, save_pulse_spectrum, save_pulse_peaks
 from .eodanalysis import load_eod_waveform, load_wave_fish, load_pulse_fish

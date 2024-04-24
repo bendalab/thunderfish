@@ -1,8 +1,8 @@
 import pytest
 import numpy as np
-from thunderfish.configfile import ConfigFile
+from thunderlab.configfile import ConfigFile
+import thunderlab.powerspectrum as ps
 import thunderfish.fakefish as ff
-import thunderfish.powerspectrum as ps
 import thunderfish.harmonics as hg
 
 

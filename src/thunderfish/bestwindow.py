@@ -21,7 +21,7 @@ Select the best region within a recording with the most stable signal of largest
 """
 
 import numpy as np
-from .eventdetection import percentile_threshold, detect_peaks, trim_to_peak
+from thunderlab.eventdetection import percentile_threshold, detect_peaks, trim_to_peak
 from audioio import unwrap
 try:
     import matplotlib.pyplot as plt
@@ -195,7 +195,7 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
     dynamic threshold.  The threshold is computed in `win_shift` wide
     windows as `thresh_fac` times the interpercentile range at
     the `percentile`-th and 100.0-`percentile`-th percentile of the data
-    using the `eventdetection.percentile_threshold()` function.
+    using the `thunderlab.eventdetection.percentile_threshold()` function.
 
     Second, criteria for selecting the best window are computed for each
     window of width `win_size` shifted by `win_shift` trough the data. The
@@ -237,10 +237,10 @@ def best_window_indices(data, samplerate, expand=False, win_size=1., win_shift=0
     win_shift: float
         Time shift in seconds between windows. Should be smaller or equal to `win_size`.
     percentile: float
-        `percentile` parameter for the `eventdetection.percentile_threshold()` function
+        `percentile` parameter for the `thunderlab.eventdetection.percentile_threshold()` function
         used to estimate thresholds for detecting peaks in the data.
     thresh_fac: float
-        `thresh_fac` parameter for the `eventdetection.percentile_threshold()` function
+        `thresh_fac` parameter for the `thunderlab.eventdetection.percentile_threshold()` function
         used to estimate thresholds for detecting peaks in the data.
     min_clip: float
         Minimum amplitude below which data are clipped.
@@ -769,7 +769,7 @@ def main(data_file=None):
         title = 'test sines'
         data += 0.01 * np.random.randn(len(data))
     else:
-        from .dataloader import load_data
+        from thunderlab.dataloader import load_data
         print(f'load {data_file} ...')
         data, rate, unit, amax = load_data(data_file)
         data = data[:,0]

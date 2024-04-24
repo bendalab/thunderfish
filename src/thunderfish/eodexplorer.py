@@ -10,16 +10,16 @@ import scipy.signal as sig
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from multiprocessing import Pool, freeze_support, cpu_count
+from thunderlab.configfile import ConfigFile
+from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
+from thunderlab.dataloader import load_data
+from thunderlab.multivariateexplorer import MultivariateExplorer
+from thunderlab.powerspectrum import decibel
 from .version import __version__, __year__
-from .configfile import ConfigFile
-from .tabledata import TableData, add_write_table_config, write_table_args
-from .dataloader import load_data
-from .multivariateexplorer import MultivariateExplorer
 from .harmonics import add_harmonic_groups_config
 from .eodanalysis import add_species_config
 from .eodanalysis import wave_quality, wave_quality_args, add_eod_quality_config
 from .eodanalysis import pulse_quality, pulse_quality_args
-from .powerspectrum import decibel
 from .bestwindow import analysis_window
 from .thunderfish import configuration, detect_eods, plot_eods
 

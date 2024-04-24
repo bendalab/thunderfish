@@ -81,12 +81,12 @@ import numpy as np
 from scipy.optimize import curve_fit
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-from .eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
-from .eventdetection import threshold_crossings, threshold_crossing_times, merge_events
-from .powerspectrum import next_power_of_two, nfft, decibel
+from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
+from thunderlab.eventdetection import threshold_crossings, threshold_crossing_times, merge_events
+from thunderlab.powerspectrum import next_power_of_two, nfft, decibel
+from thunderlab.tabledata import TableData
+from thunderlab.dataloader import load_data
 from .harmonics import fundamental_freqs_and_power
-from .tabledata import TableData
-from .dataloader import load_data
 
 
 def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
@@ -3214,7 +3214,6 @@ def pulse_quality_args(cfg):
 def main():
     import matplotlib.pyplot as plt
     from .fakefish import pulsefish_eods
-    from .eventdetection import detect_peaks
 
     print('Analysis of EOD waveforms.')
 

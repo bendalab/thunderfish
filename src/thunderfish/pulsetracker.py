@@ -2,29 +2,27 @@
 by Dexter Frueh
 """
 
+import os
 import sys
-import numpy as np
+import ntpath
+import time
 import copy
+from shutil import copy2
+from collections import deque
+import numpy as np
 from scipy import stats
 from scipy import signal
 from scipy import optimize
 import matplotlib
 #from fish import ProgressFish
 import matplotlib.pyplot as plt
-from thunderfish.dataloader import DataLoader
-from thunderfish.eventdetection import detect_peaks
 from scipy.interpolate import interp1d
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import AgglomerativeClustering
-from collections import deque
-import ntpath
-import time
-import os
-from shutil import copy2
-
-from collections import OrderedDict
+from thunderlab.dataloader import DataLoader
+from thunderlab.eventdetection import detect_peaks
 
 def makeeventlist(main_event_positions,side_event_positions,data,event_width=20):
     """
@@ -944,7 +942,7 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
                         plt.ylabel('signal (normalized)')
                     
                         phandles, plabels = plt.gca().get_legend_handles_labels()
-                        by_label = OrderedDict(zip(plabels, phandles))
+                        by_label = dict(zip(plabels, phandles))
                         plt.legend(by_label.values(), by_label.keys())
                         plt.show()
 
@@ -966,7 +964,7 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
                         plt.ylabel('value [a.u.]')
                     
                         phandles, plabels = plt.gca().get_legend_handles_labels()
-                        by_label = OrderedDict(zip(plabels, phandles))
+                        by_label = dict(zip(plabels, phandles))
                         plt.legend(by_label.values(), by_label.keys())
                         plt.show()
 

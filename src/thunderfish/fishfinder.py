@@ -6,11 +6,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.mlab as ml
 from audioio import PlayAudio, fade, write_audio
+from thunderlab.configfile import ConfigFile
+from thunderlab.dataloader import DataLoader
+from thunderlab.powerspectrum import nfft, decibel, psd, spectrogram
+from thunderlab.powerspectrum import add_multi_psd_config, multi_psd_args
 from .version import __version__, __year__
-from .configfile import ConfigFile
-from .dataloader import DataLoader
-from .powerspectrum import nfft, decibel, psd, spectrogram
-from .powerspectrum import add_multi_psd_config, multi_psd_args
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config, colors_markers
 from .bestwindow import clip_amplitudes, clip_args, best_window_indices

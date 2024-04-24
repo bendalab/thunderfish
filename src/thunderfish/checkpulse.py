@@ -15,7 +15,7 @@ Check whether a pulse-type or a wave-type weakly electric fish is present in a r
 """
 
 import numpy as np
-from .eventdetection import percentile_threshold, detect_peaks, trim
+from thunderlab.eventdetection import percentile_threshold, detect_peaks, trim
 
 
 def check_pulse(data, sem, samplerate, thresh_fac=0.8, percentile=0.0,
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     elif sys.argv[1] == '-t':
         data = pulsefish_eods('triphasic', 80.0, rate, 8.0)
     else:  # load data given by the user
-        from .dataloader import load_data
+        from thunderlab.dataloader import load_data
 
         file_path = sys.argv[1]
         print("loading %s ...\n" % file_path)

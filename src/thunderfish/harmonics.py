@@ -56,8 +56,8 @@ Extract and analyze harmonic frequencies from power spectra.
 import math as m
 import numpy as np
 import scipy.signal as sig
-from .eventdetection import detect_peaks, trim, hist_threshold
-from .powerspectrum import decibel, power, plot_decibel_psd
+from thunderlab.eventdetection import detect_peaks, trim, hist_threshold
+from thunderlab.powerspectrum import decibel, power, plot_decibel_psd
 try:
     import matplotlib.cm as cm
     import matplotlib.colors as mc
@@ -1044,7 +1044,7 @@ def fundamental_freqs_and_power(group_list, power=False,
         the powers of each harmonics.
     power: boolean
         If `False` convert the power into decibel using the
-        powerspectrum.decibel() function.
+        `thunderlab.powerspectrum.decibel()` function.
     ref_power: float
         Reference power for computing decibel.
         If set to `None` the maximum power is used.
@@ -1624,8 +1624,8 @@ def harmonic_groups_args(cfg):
 
 def main(data_file=None):
     import matplotlib.pyplot as plt
+    from thunderlab.powerspectrum import psd
     from .fakefish import wavefish_eods
-    from .powerspectrum import psd
 
     if data_file is None:
         # generate data:
@@ -1644,7 +1644,7 @@ def main(data_file=None):
                                   duration=d, noise_std=noise)
         data = fish1 + fish2 + fish3 + fish4
     else:
-        from .dataloader import load_data
+        from thunderlab.dataloader import load_data
         print("load %s ..." % data_file)
         data, samplerate, unit, amax = load_data(data_file)
         data = data[:,0]

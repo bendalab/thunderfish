@@ -9,9 +9,9 @@ import zipfile
 import sys
 import argparse
 import numpy as np
+from thunderlab.configfile import ConfigFile
+from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
 from .version import __version__, __year__
-from .configfile import ConfigFile
-from .tabledata import TableData, add_write_table_config, write_table_args
 from .harmonics import add_harmonic_groups_config
 from .eodanalysis import wave_similarity, pulse_similarity
 from .eodanalysis import load_species_waveforms, add_species_config

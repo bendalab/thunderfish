@@ -736,7 +736,7 @@ def generate_waveform(filename):
     """
     import os
     from audioio import write_audio
-    from .consoleinput import read, select, save_inputs
+    from thunderlab.consoleinput import read, select, save_inputs
     # generate file:
     samplerate = read('Sampling rate in Hz', '44100', float, 1.0)
     duration = read('Duration in seconds', '10', float, 0.001)
