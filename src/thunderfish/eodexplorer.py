@@ -14,6 +14,9 @@ from thunderlab.configfile import ConfigFile
 from thunderlab.tabledata import TableData, add_write_table_config, write_table_args
 from thunderlab.dataloader import load_data
 from thunderlab.multivariateexplorer import MultivariateExplorer
+from thunderlab.multivariateexplorer import select_features, select_coloring
+from thunderlab.multivariateexplorer import list_available_features
+from thunderlab.multivariateexplorer import PrintHelp
 from thunderlab.powerspectrum import decibel
 from .version import __version__, __year__
 from .harmonics import add_harmonic_groups_config
@@ -36,7 +39,6 @@ class EODExplorer(MultivariateExplorer):
     --------------
     - `groups`: names of groups of data columns that can be selected.
     - `select_EOD_properties()`: select data columns to be explored.
-    - `select_color_property()`: select column from data table for colorizing the data.
     """
     
     def __init__(self, data, data_cols, wave_fish, eod_data,
@@ -377,7 +379,7 @@ class EODExplorer(MultivariateExplorer):
         wave_fish: boolean.
             Indicates if data contains properties of wave- or pulse-type electric fish.
         max_n: int
-            Maximum number of harmonics (wae-type fish) or peaks (pulse-type fish)
+            Maximum number of harmonics (wave-type fish) or peaks (pulse-type fish)
             to be  selected.
         column_groups: list of string
             List of name denoting groups of columns to be selected. Supported groups are
@@ -500,77 +502,8 @@ class EODExplorer(MultivariateExplorer):
         # additional data columns:
         group_cols.extend(add_columns)
         # translate to indices:
-        data_cols = []
-        for c in group_cols:
-            idx = data.index(c)
-            if idx is None:
-                print('"%s" is not a valid data column' % c)
-            elif idx in data_cols:
-                data_cols.remove(idx)
-            else:
-                data_cols.append(idx)
+        data_cols = select_features(data, group_cols)
         return data_cols, None
-
-    
-    @staticmethod
-    def select_color_property(data, data_cols, color_col):
-        """Select column from data table for colorizing the data.
-
-        Pass the output of this function on to MultivariateExplorer.set_colors().
-
-        Parameters
-        ----------
-        data: TableData
-            Table with all EOD properties from which columns are selected.
-        data_cols: list of int
-            List of columns selected to be explored.
-        color_col: string or int
-            Column to be selected for coloring the data.
-            If 'row' then use the row index of the data in the table for coloring.
-
-        Returns
-        -------
-        colors: int or column from data.
-            Either index of `data_cols` or additional data from the data table
-            to be used for coloring.
-        color_label: string
-            Label for labeling the color bar.
-        color_idx: int or None
-            Index of column in `data`.
-        error: string
-            In case an invalid column is selected, an error string.
-        """
-        color_idx = data.index(color_col)
-        colors = None
-        color_label = None
-        if color_idx is None and color_col != 'row':
-            return None, None, None, '"%s" is not a valid column for color code' % color_col
-        if color_idx is None:
-            colors = -2
-        elif color_idx in data_cols:
-            colors = data_cols.index(color_idx)
-        else:
-            if len(data.unit(color_idx)) > 0 and not data.unit(color_idx) in ['-', '1']:
-                color_label = '%s [%s]' % (data.label(color_idx), data.unit(color_idx))
-            else:
-                color_label = data.label(color_idx)
-            colors = data[:,color_idx]
-        return colors, color_label, color_idx, None
-
-
-class PrintHelp(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string):
-        parser.print_help()
-        print('')
-        print('mouse:')
-        for ma in MultivariateExplorer.mouse_actions:
-            print('%-23s %s' % ma)
-        print('%-23s %s' % ('double left click', 'run thunderfish on selected EOD waveform'))
-        print('')
-        print('key shortcuts:')
-        for ka in MultivariateExplorer.key_actions:
-            print('%-23s %s' % ka)
-        parser.exit()      
 
         
 wave_fish = True
@@ -746,19 +679,13 @@ def main(cargs=None):
 
     # select column used for coloring the data:
     colors, color_label, color_idx, error = \
-      EODExplorer.select_color_property(data, data_cols, color_col)
+      select_coloring(data, data_cols, color_col)
     if error:
         parser.error(error)
 
     # list columns:
     if list_columns:
-        for k, c in enumerate(data.keys()):
-            s = [' '] * 3
-            if k in data_cols:
-                s[1] = '*'
-            if color_idx is not None and k == color_idx:
-                s[0] = 'C'
-            print(''.join(s) + c)
+        list_available_features(data, data_cols, color_idx)
         parser.exit()
 
     # load waveforms:
