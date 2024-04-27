@@ -279,6 +279,8 @@ class EODExplorer(MultivariateExplorer):
 
         If only a single EOD is selected, list all of its properties.
         """
+        print('')
+        print('selected EODs:')
         if 'index' in self.eoddata and \
            np.any(self.eoddata[:,'index'] != self.eoddata[0,'index']):
             for i in indices:
