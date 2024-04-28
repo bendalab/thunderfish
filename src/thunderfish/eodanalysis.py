@@ -449,17 +449,25 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
         except (RuntimeError, TypeError):
             error_str += '%.1f Hz wave fish: fit of fourier series failed for %d harmonics. ' % (freq0, n_harm)
             n_harm //= 2
+    # store fourier fit:
+    meod[:,-1] = fourier_series(meod[:,0], *popt)
+    # make all amplitudes positive:
     for i in range(n_harm):
-        # make all amplitudes positive:
         if popt[i*2+1] < 0.0:
             popt[i*2+1] *= -1.0
             popt[i*2+2] += np.pi
+    # phases relative to fundamental:
+    # phi0 = 2*pi*f0*dt <=> dt = phi0/(2*pi*f0)
+    # phik = 2*pi*i*f0*dt = i*phi0
+    phi0 = popt[2]
+    for i in range(n_harm):
+        popt[i*2+2] -= (i + 1)*phi0
         # all phases in the range -pi to pi:
         popt[i*2+2] %= 2.0*np.pi
         if popt[i*2+2] > np.pi:
             popt[i*2+2] -= 2.0*np.pi
-    # store fourier fit:
-    meod[:,-1] = fourier_series(meod[:,0], *popt)
+    # shift time axis:
+    # meod[:,0] += phi0/2/np.pi/freq0
     # store fourier spectrum:
     if hasattr(freq, 'shape'):
         n = n_harm
