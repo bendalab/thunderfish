@@ -1,0 +1,2514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>thunderfish.pulsetracker API documentation</title>
+<meta name="description" content="by Dexter Frueh" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.pulsetracker</code></h1>
+</header>
+<section id="section-intro">
+<p>by Dexter Frueh</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;
+by Dexter Frueh
+&#34;&#34;&#34;
+
+import os
+import sys
+import ntpath
+import time
+import copy
+from shutil import copy2
+from collections import deque
+import numpy as np
+from scipy import stats
+from scipy import signal
+from scipy import optimize
+import matplotlib
+#from fish import ProgressFish
+import matplotlib.pyplot as plt
+from scipy.interpolate import interp1d
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.cluster import DBSCAN
+from sklearn.cluster import AgglomerativeClustering
+from thunderlab.dataloader import DataLoader
+from thunderlab.eventdetection import detect_peaks
+
+def makeeventlist(main_event_positions,side_event_positions,data,event_width=20):
+    &#34;&#34;&#34;
+    Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs,
+    the data and an optional width of an supposed EOD-event.
+    The generated event-array contains location and height of such events.
+    The height of the events is calculated by its height-difference to nearby troughs and main events that have no side events in a range closer than event_width are discarded and not considered as EOD event.
+
+    Parameters
+    ----------
+    main_event_positions: array of int or float
+        Positions of the detected main events in the data time series. Either peaks or troughs.
+    side_event_positions: array of int or float
+        Positions of the detected side events in the data time series. The complimentary event to the main events.
+    data: array of float
+        The given data.
+    event_width: int or float, optional
+
+    Returns
+    -------
+    EOD_events: ndarray
+        2D array containing data with &#39;float&#39; type, size (number_of_properties = 3, number_of_events).
+        Generated and combined data of the detected events in an array with arrays of x, y and height along the first axis.
+
+    &#34;&#34;&#34;
+    mainfirst = int((min(main_event_positions[0],side_event_positions[0])&lt;side_event_positions[0]))  # determines if there is a peak or through first. Evaluates to 1 if there is a peak first.
+    main_x = main_event_positions
+    main_y = data[main_event_positions]
+    # empty placeholders, filled in the next step while iterating over the properties of single main
+    main_h = np.zeros(len(main_event_positions))
+    main_real = np.ones(len(main_event_positions))
+    # iteration over the properties of the single main
+    for ind,(x, y, h, r) in enumerate(np.nditer([main_x, main_y, main_h, main_real], op_flags=[[&#34;readonly&#34;],[&#39;readonly&#39;],[&#39;readwrite&#39;],[&#39;readwrite&#39;]])):
+        l_side_ind = ind - mainfirst
+        r_side_ind = l_side_ind + 1
+        try:
+            r_side_x = side_event_positions[r_side_ind]
+            r_distance = r_side_x - x
+            r_side_y = data[r_side_x]
+        except:
+            pass
+        try:
+            l_side_x = side_event_positions[l_side_ind]
+            l_distance = x - l_side_x
+            l_side_y = data[l_side_x]
+        except:
+            pass # ignore left or rightmost events which throw IndexError
+        # calculate distances to the two side events next to the main event and mark all events where the next side events are not closer than maximum event_width as unreal. If an event might be an EOD, then calculate its height.
+        if l_side_ind &gt;= 0 and r_side_ind &lt; len(side_event_positions):
+            if min((l_distance),(r_distance)) &gt; event_width:
+                    r[...] = False
+            elif max((l_distance),(r_distance)) &lt;= event_width:
+                    h[...] = max(abs(y-l_side_y),abs(y-r_side_y))  #calculated using absolutes in case of for example troughs instead of peaks as main events 
+            else:
+                    if (l_distance)&lt;(r_distance): # evaluated only when exactly one side event is out of reach of the event width. Then the closer event will be the correct event
+                        h[...] = abs(y-l_side_y)
+                    else:
+                        h[...] = abs(y-r_side_y)
+        # check corner cases
+        elif l_side_ind == -1:
+            if r_distance &gt; event_width:
+                r[...] = False
+            else:
+                h[...] = y-r_side_y
+        elif r_side_ind == len(side_event_positions):
+            if l_distance&gt; event_width:
+                r[...] = False
+            else:
+                h[...] = y-l_side_y
+    # generate return array and discard all events that are not marked as real
+    EOD_events = np.array([main_x, main_y, main_h], dtype = float)[:,main_real==1]
+    return EOD_events
+
+def discardnearbyevents(event_locations, event_heights, min_distance):
+    &#34;&#34;&#34;
+    Given a number of events with given location and heights, returns a selection
+    of these events where  no event is closer than eventwidth to the next event.
+    Among neighboring events closer than eventwidth the event with smaller height
+    is discarded.
+    Used to discard sidepeaks in detected multiple peaks of single EOD-pulses and
+    only keep the largest event_height and the corresponding location as
+    representative of the whole EOD pulse.
+
+    Parameters
+    ----------
+    event_locations: array of int or float
+        Positions of the given events in the data time series.
+    event_heights: array of int or float
+        Heights of the given events, indices refer to the same events as in
+        event_locations.
+    min_distance: int or float
+        minimal distance between events before one of the events gets discarded.
+
+    Returns
+    -------
+    event_locations: array of int or float
+        Positions of the returned events in the data time series.
+    event_heights: array of int or float
+        Heights of the returned events, indices refer to the same events as in
+        event_locations.
+
+    &#34;&#34;&#34;
+    unchanged = False
+    counter = 0
+    event_indices = np.arange(0,len(event_locations)+1,1)
+    
+    while unchanged == False:# and counter&lt;=200:
+       x_diffs = np.diff(event_locations)
+       events_delete = np.zeros(len(event_locations))
+       
+       for i, diff in enumerate(x_diffs):
+           
+           if diff &lt; min_distance:
+
+               if event_heights[i+1] &gt; event_heights[i] :
+                   events_delete[i] = 1
+               else:
+                   events_delete[i+1] = 1
+
+       event_heights = event_heights[events_delete!=1]
+       event_locations = event_locations[events_delete!=1]
+       event_indices = event_indices[np.where(events_delete!=1)[0]]
+       if np.count_nonzero(events_delete)==0:
+           unchanged = True
+       counter += 1
+       if counter &gt; 2000:
+           print(&#39;Warning: unusual many discarding steps needed, unusually dense events&#39;)
+           pass
+    return event_indices, event_locations, event_heights
+
+def crosscorrelation(sig, data):
+    &#39;returns crosscorrelation of two arrays, the first array should have a length equal to or smaller than the second array.&#39;
+    return signal.fftconvolve(data, sig[::-1],  mode=&#39;valid&#39;)
+
+def interpol(data, kind):
+    &#34;&#34;&#34;
+    interpolates the given data using scipy interpolation python package
+
+    Parameters
+    ----------
+    data: array
+
+    kind: string or int
+        (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used
+
+    Returns
+    -------
+    interpolation: function
+
+    &#34;&#34;&#34;
+    width = len(data)
+    x = np.linspace(0, width-1, num = width, endpoint = True)
+    #return interp1d(x, data[0:width], kind, assume_sorted=True)
+    return interp1d(x, data[0:width], kind)
+
+def interpolated_array(data, kind, int_fact):
+    &#34;&#34;&#34;
+    returns an interpolated array of the given dataarray.
+
+    Parameters
+    ----------
+    data: array
+
+    kind: string or int
+        (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used
+
+    int_fact: int
+         factor by which the interpolated array is larger than the original array
+
+    Returns
+    -------
+    interpolated array: array
+
+    &#34;&#34;&#34;
+    return interpol(data,kind)(np.arange(0, len(data)-1, 1/int_fact))
+
+def cut_snippets(data,event_locations,cut_width,int_met=&#34;linear&#34;,int_fact=10,max_offset = 1000000): 
+    &#34;&#34;&#34;
+    cuts intervals from a data array, interpolates and aligns them and returns them in a list
+
+    TODO: ALIGN THEM TO CAUSE LEAST SQUARE ERROR
+
+    Parameters
+    ----------
+    data: array
+
+    event_locations: array
+
+    cut_width: [int, int]
+        lower and upper limit of the intervals relative to the event locations.
+        f.e. [-15,15] indicates an interval of 30 datapoints around each event location
+
+    int_met: string or int
+        method of interpolation. (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used
+
+    int_fact: int
+        factor by which the interpolated array is larger than the original
+
+    max_offset: float
+        maximal offset by which the interpolated intervals can be moved to be aligned with each other. offset relative to the datapoints of the original data.
+
+    Returns
+    -------
+    aligned_snips: twodimensional nparray
+        the processed intervals (interval#,intervallen)
+
+    &#34;&#34;&#34;
+    snippets = []
+    heights = np.zeros(len(event_locations))
+    cut_width = [-cut_width, cut_width]
+    #alignwidth = int(np.ceil((max_offset) * int_fact))
+    alignwidth = 50
+
+    for pos in event_locations.astype(&#39;int&#39;):
+        snippets.append(data[pos+cut_width[0]:pos+cut_width[1]])
+    ipoled_snips = np.empty((len(snippets), (cut_width[1]-cut_width[0])*int_fact-int_fact))
+    
+    for i, snip in enumerate(snippets):
+        if len(snip) &lt; ((cut_width[1]-cut_width[0])):
+            if i == 0:
+                snip = np.concatenate([np.zeros([((cut_width[1]-cut_width[0]) - len(snip))]),np.array(snip)])
+            if i == len(snippets):
+                snip = np.concatenate([snip, np.zeros([((cut_width[1]-cut_width[0])-len(snip))])])
+            else:
+                snip = np.zeros([(cut_width[1]-cut_width[0])])
+       
+         #f_interpoled = interpol(snip, int_met) #if len(snip) &gt; 0 else np.zeros([(cut_width[1]-cut_width[0]-1)*int_fact ])
+        interpoled_snip = interpolated_array(snip, int_met, 10)#f_interpoled(np.arange(0, len(snip)-1, 1/int_fact))
+        intsnipheight   = np.max(interpoled_snip) - np.min(interpoled_snip)
+        
+
+        if intsnipheight == 0:
+            intsnipheight = 1
+
+        interpoled_snip = (interpoled_snip - max(interpoled_snip))* 1/intsnipheight
+        ipoled_snips[i] = interpoled_snip
+
+    mean = np.mean(ipoled_snips, axis = 0)
+    
+    aligned_snips = np.empty((len(snippets), (cut_width[1]-cut_width[0])* int_fact-(2*alignwidth)-int_fact))
+    
+    for i, interpoled_snip in enumerate(ipoled_snips):
+        cc = crosscorrelation(interpoled_snip[alignwidth:-alignwidth], mean)
+        #cc = crosscorrelation(interpoled_snip[15 + 10*-cut_width[0]-10*7:-15+ -10*cut_width[1]+ 31], mean[10*-cut_width[0]-10*7:-10*cut_width[1]+31])
+        offset = -alignwidth + np.argmax(cc)
+        aligned_snip = interpoled_snip[alignwidth-offset:-alignwidth-offset] if offset != -alignwidth else interpoled_snip[2*alignwidth:]
+        if len(aligned_snip[~np.isnan(aligned_snip)])&gt;0:
+            aligned_snips[i] = aligned_snip
+        try:
+            heights[i] = np.max(interpoled_snip[alignwidth-offset:-alignwidth-offset]) - np.min(interpoled_snip[alignwidth-offset:-alignwidth-offset])
+        except:
+            heights[i] = np.max(interpoled_snip[2*alignwidth:]) - np.min(interpoled_snip[2*alignwidth:])
+    return aligned_snips, heights
+
+def pc(dataset):
+    &#34;&#34;&#34;
+    Calculates the principal components of a dataset using the python module scikit-learn&#39;s principal component analysis
+
+    Parameters
+    ----------
+    dataset: ndarray
+        dataset of which the principal components are to be calculated.
+        twodimensional array of shape (observations, features)
+
+    Returns
+    -------
+    pc_comp: ndarray
+        principal components of the dataset
+
+    &#34;&#34;&#34;
+    pca = PCA(n_components=10)
+    pc_comp = pca.fit_transform(dataset)
+
+    return pc_comp #, pca
+
+def chebyshev(dataset):
+    x = range(len(dataset[0]))
+    npol=5
+    p = np.zeros((len(dataset),npol+1))
+    for i,s in enumerate(dataset):
+        cheb = np.polynomial.chebyshev.Chebyshev.fit(x,s,npol)
+        p[i] = cheb.coef
+
+    return p #, pca
+
+
+def dbscan(pcs, events, eps, min_samples, takekm):
+    &#34;&#34;&#34;
+    improve description, add parameter and returns
+
+    calculates clusters of high spatial density of the given observations in their feature space. 
+    #For example, the first few principal components of the data could be used as features for the classification.
+
+    Parameters
+    ----------
+    pcs: ndarray
+        %TODO
+        shape(samples, features)
+    ...
+
+    Returns
+    -------
+    labels: ndarray
+        labels of the clusters of each observation
+
+    &#34;&#34;&#34;
+    # pcs (samples, features)
+    # X (samples, features)
+    #try:
+    #    X = pcs[:,:order]
+    #except:
+    #    X = pcs[:,order]
+    X = pcs
+    
+    # #############################################################################
+    # Compute DBSCAN
+    
+    clusters = DBSCAN(eps, min_samples).fit(X)
+    labels = clusters.labels_
+
+    comp = clusters.components_
+
+    comp_means = np.zeros((len(np.unique(labels)) - 1,comp.shape[1]))
+
+    for i in range(len(np.unique(labels)) - 1):
+        comp_means[i] = np.mean(pcs[labels==i],axis=0)
+
+    return labels, comp_means
+
+def cluster_events(features, events, eps, min_samples, takekm, method=&#39;DBSCAN&#39;):
+    &#34;&#34;&#34;F
+    clusters the given events using the given feature space and the clustering algorithm of choice and appends the assigned cluster number to the event&#39;s properties.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    &#34;&#34;&#34;
+    ########################      function maybe could be even more generic, ? (dependant on datatype of &#34;events&#34; )
+    if method == &#39;DBSCAN&#39;:
+        labels, clusters = dbscan(features,events, eps, min_samples, takekm)
+    elif method == &#39;kMean&#39;:
+        pass
+        # To be implemented
+        #labels = kmeans([])
+    return labels, clusters
+
+class Peaklist(object):
+    def __init__(self, peaklist):
+        self.list = peaklist
+        self.lastofclass = {}
+        self.lastofclassx = {}
+        self.classesnearby = []
+        self.classesnearbyx = []
+        self.classesnearbypccl = []
+        self.classlist = []
+        self.classamount = 0
+        self.shapes = {}
+
+def connect_blocks(oldblock):
+    &#34;&#34;&#34;
+        used to connect blocks.
+        transfers data from the previous analysis block to the current block
+    &#34;&#34;&#34;
+    newblock = Peaklist([])
+    newblock.lastofclass    = oldblock.lastofclass
+    newblock.lastofclassx    = oldblock.lastofclassx
+    newblock.classesnearby  = oldblock.classesnearby
+    newblock.classesnearbypccl  = oldblock.classesnearbypccl
+    newblock.classesnearbyx = [clnearbyx - oldblock.len for clnearbyx in oldblock.classesnearbyx]
+    newblock.classamount = oldblock.classamount
+    newblock.len = oldblock.len
+    return newblock
+
+def alignclusterlabels(labels, peaklist, peaks, data=&#39;test&#39;):
+    &#34;&#34;&#34;
+        used to connect blocks.
+        changes the labels of clusters in the current block to fit with the labels of the previous block
+    &#34;&#34;&#34;
+
+    # take first second of new peak data
+    overlapamount = len(peaks[0,peaks[0]&lt;30000])
+    if overlapamount == 0:
+        return None
+
+    old_peaklist = copy.deepcopy(peaklist)  #redundant 
+    overlappeaks = copy.deepcopy(peaks[:,:overlapamount])
+    overlap_peaklist = copy.deepcopy(old_peaklist)
+    
+    # delete cluster classifications of the overlap class
+    overlappeaks[3]=[-1]*len(overlappeaks[0])
+
+    # set nearby pc classes to -1
+    overlap_peaklist.classesnearbypccl = [-1]*len(overlap_peaklist.classesnearbypccl)
+
+    # create peak labels using ampwalk classifier
+    classified_overlap = ampwalkclassify3_refactor(overlappeaks,overlap_peaklist,glue=True)[0]
+
+    # for each class
+    for cl in np.unique(classified_overlap[4]):
+
+        # indexes of the peaks with current class by ampwalk classification
+        labelindex = np.where(classified_overlap[4] == cl)[0]
+
+        # pc clustering labels that were originally given to those peaks
+        label = labels[labelindex]
+            
+        # index of a peak with the most common translation from ampwalk class to pc clustering class
+        labelindex = labelindex[np.where(label == stats.mode(label)[0])[0][0]]
+            
+        # pc clustering label belonging to the class cl in the new block
+        newlabel = labels[labelindex]
+
+        try:
+            peaklist.classesnearbypccl[old_peaklist.classesnearby.index(cl)] = newlabel
+        except:
+            pass
+
+def ampwalkclassify3_refactor(peaks,peaklist,glue=False):
+    &#34;&#34;&#34;
+
+        classifies peaks/EOD_events into different classes by their amplitude.
+
+        Takes list of peaks and list of properties of the list of the last analysis block
+        Classifies the single peaks in the direction of their occurence in time, based on their amplitude and
+        their previously assigned class based on their waveform (... using the method cluster_events on the
+        principal components of the snippets around the single peaks)
+
+        Method:
+        calculates differences in amplitude between the current peak and different amplitudeclasses that are nearby. creates new amplitudeclass if no class is close enough. creates no new class if the peaks&#39;s waveformclass is a noiseclass of the DBSCAN algorithm. Does not compare peaks of different Waveformclasses.
+
+        --can be used without prior waveformclasses, resulting in classification solely on the amplitude development
+        pcclclasses need to be set to the same class herefore, .... . not practical, but  should be possible to
+        split up into more general functions
+    &#34;&#34;&#34;
+
+    classamount = peaklist.classamount
+    lastofclass = peaklist.lastofclass
+    lastofclassx = peaklist.lastofclassx
+    a=0
+    elem = 0
+    thresholder = []
+    comperr = 1
+    classesnearby = peaklist.classesnearby
+    classesnearbyx = peaklist.classesnearbyx
+    classesnearbypccl = peaklist.classesnearbypccl
+    classes = np.zeros((len(peaks[0])))
+    pcclasses = peaks[3]
+    positions = peaks[0]
+    heights = peaks[2]
+    cl = 0
+    maxdistance = 30000    #    Max distance to possibly belong to the same class
+    factor = 1.6     # factor by which a peak fits into a class, f.E: classheight = 1 , factor = 2 =&gt; peaks accepted in range (0.5,2)
+    c=0
+
+    # loop through all the new peaks
+    for peaknum, p in enumerate(peaks.T):
+        
+        if len(lastofclass) == 0:
+            lastofclass[1] = deque()
+            lastofclassx[1] = deque()
+            lastofclass[1].append(heights[peaknum])
+            lastofclassx[1].append(positions[peaknum])
+            classesnearby.append(1)
+            classesnearbyx.append(-1)
+            classesnearbypccl.append(pcclasses[peaknum])
+            classes[peaknum] = 1
+            classamount += 1
+            continue
+
+        time1 = time.time()
+
+        # classes nearby only count if they are within maxdistance
+        for i, cl in enumerate(classesnearby):
+            if  (positions[peaknum] - classesnearbyx[i]) &gt; maxdistance:
+                classesnearby.pop(i)
+                classesnearbyx.pop(i)
+                classesnearbypccl.pop(i)
+
+        # compute mean isi of a class by taking the last 3 pulses in that class
+        lastofclassisis = []
+        for i in classesnearby:
+            lastofclassisis.append(np.median(np.diff(lastofclassx[i])))
+        
+        meanisi = np.mean(lastofclassisis)
+
+        # stop adding to a class if 40 isis have passed
+        if 32000 &gt; 40*meanisi&gt; 6000:
+            maxdistance = 20*meanisi
+        
+        cl = 0  # &#39;No class&#39;
+        comperr = 100
+        clnrby = np.unique(classesnearby)
+
+        last_err = 1000
+
+        # TODO this assigns peaks with no class to the last clase if there are multiple candidates. 
+        # can I fix this?
+        for i in clnrby:
+
+            # if the class of the current peak is equal to the current evaluated class or current peak has no class
+            if classesnearbypccl[classesnearby.index(i)] == pcclasses[peaknum]: #or glue==True:   #pcclasses[peaknum] == -1: or  
+              classmean = np.mean(lastofclass[i]) #mean hight of class
+                
+              # difference between current peak hight and average class hight
+              logerror = np.abs(np.log2(heights[peaknum])-np.log2(classmean))
+              logthresh = np.log2(factor)
+              relerror = logerror
+                
+              # if the peak hights are similar
+              if logerror &lt; logthresh:     ## SameClass-Condition
+                # if the peaks are close together in distance (20*isi)
+                if relerror &lt; comperr and (positions[peaknum]-classesnearbyx[classesnearby.index(i)])&lt;maxdistance:
+                  # keep the same class (or in case of no class assign that class)
+                  cl = i
+                  comperr = relerror
+        time2 = time.time()
+        time1 = time.time()
+        
+        # if a pc class is assigned to the peak
+        if pcclasses[peaknum] != -1:
+            # if the class is kept
+            if cl != 0 :
+                # append this peak to the peaklist for the right class (only keep last 3 peaks)
+                if len(lastofclass[cl]) &gt;= 3:
+                    lastofclass[cl].popleft()
+                if len(lastofclassx[cl]) &gt;= 3:
+                    lastofclassx[cl].popleft()
+                lastofclass[cl].append(heights[peaknum])
+                lastofclassx[cl].append(positions[peaknum])
+                classes[peaknum] = cl
+            else:             
+                # if the class if not the same as any of the existing classes, create new class
+                cl = classamount+1
+                classamount = cl
+                lastofclass[cl] = deque()
+                lastofclassx[cl] = deque()
+                lastofclass[cl].append(heights[peaknum])
+                lastofclassx[cl].append(positions[peaknum])
+                classes[peaknum] = cl
+                classesnearby.append(cl)
+                classesnearbyx.append(positions[peaknum])
+                classesnearbypccl.append(pcclasses[peaknum])
+            
+            # if there are more than 12 classes, delete the class that is furthest away in proximity
+            if len(classesnearby) &gt;= 12: #kacke implementiert? 
+                minind = classesnearbyx.index(min(classesnearbyx))
+                del lastofclass[classesnearby[minind]]
+                del lastofclassx[classesnearby[minind]]
+                classesnearby.pop(minind)
+                classesnearbyx.pop(minind)
+                classesnearbypccl.pop(minind)
+
+            # add position and class to peaklist
+            try:
+                ind=classesnearby.index(cl)
+                classesnearbyx[ind] = positions[peaknum]
+            except ValueError:
+                classesnearby.append(cl)
+                classesnearbyx.append(positions[peaknum])
+                classesnearbypccl.append(pcclasses[peaknum])
+        
+        # if no pc class is assigned to the peak
+        elif glue == True:
+            # if a class is assigned through the peak amp method
+            if cl != 0:
+                # add this class to the peak
+                classes[peaknum] = cl
+            else:
+                # create new class
+                cl = classamount+1
+                classamount = cl
+                lastofclass[cl] = deque()
+                lastofclassx[cl] = deque()
+                lastofclass[cl].append(heights[peaknum])
+                lastofclassx[cl].append(positions[peaknum])
+                classes[peaknum] = cl
+                classesnearby.append(cl)
+                classesnearbyx.append(positions[peaknum])
+                classesnearbypccl.append(pcclasses[peaknum])
+            if len(classesnearby) &gt;= 12: #kacke implementiert? 
+                minind = classesnearbyx.index(min(classesnearbyx))
+                del lastofclass[classesnearby[minind]]
+                del lastofclassx[classesnearby[minind]]
+                classesnearby.pop(minind)
+                classesnearbyx.pop(minind)
+                classesnearbypccl.pop(minind)
+            try:
+                ind=classesnearby.index(cl)
+                classesnearbyx[ind] = positions[peaknum]
+            except ValueError:
+                classesnearby.append(cl)
+                classesnearbyx.append(positions[peaknum])
+                classesnearbypccl.append(pcclasses[peaknum])
+    peaklist.lastofclass = lastofclass
+    peaklist.lastofclassx = lastofclassx
+    peaklist.classesnearby = classesnearby
+    peaklist.classesnearbyx = classesnearbyx
+    peaklist.classesnearbypccl = classesnearbypccl
+    peaklist.classlist =  classes # np.vectorize(lambda peak: peak.cl, otypes=[object])(peaklist.list)
+    peaklist.classamount = classamount
+    peaks = np.append(peaks,classes[None,:], axis = 0)
+
+    return peaks, peaklist
+
+def discard_wave_pulses(peaks, data):
+     &#34;&#34;&#34;
+        discards events from a pulse_event list which are unusally wide (wider than a tenth of the inter pulse interval), which indicates a wave-type EOD instead of a pulse type
+     &#34;&#34;&#34;
+     deleteclasses = []
+     for cl in np.unique(peaks[3]):
+         peaksofclass = peaks[:,peaks[3] == cl]
+         isi = np.diff(peaksofclass[0])
+         isi_mean = np.mean(isi)
+         widepeaks = 0
+         isi_tenth_area = lambda x, isi : np.arange(np.floor(x-0.1*isi),np.ceil(x+0.1*isi),1, dtype=int)
+         for p in peaksofclass.T:
+             data = np.array(data)
+             try:
+                 for dp_around in data[isi_tenth_area(p[0],isi_mean)]:
+                    if dp_around &lt;= p[1]-p[2]:
+                       break
+             except (IndexError,ValueError) as e:
+                 pass
+         else:
+             widepeaks+=1
+         if widepeaks &gt; len(peaksofclass)*0.5:
+             deleteclasses.append(cl)
+     for cl in deleteclasses:
+            peaks = peaks[:,peaks[3]!=cl]
+     return peaks
+
+def plot_events_on_data(peaks, data, colors):
+    &#34;&#34;&#34;
+        plots the detected events onto the data timeseries. If the events are classified, the classes are plotted in different colors and the class -1 (not belonging to a cluster) is plotted in black
+    &#34;&#34;&#34;
+    plt.plot(range(len(data)),data, color = &#39;black&#39;)
+    if len(peaks)&gt;3:
+        classlist =  np.array(peaks[3],dtype=int)
+        if len(peaks) &gt; 4:
+            classlist = np.array(peaks[4],dtype=int)
+        #classlist=labels
+        cmap = plt.get_cmap(&#39;jet&#39;)
+
+        for cl in np.unique(classlist):
+
+            if cl == -1:
+                color = &#39;black&#39;
+            else:
+                color = colors[cl]
+            peaksofclass = peaks[:,classlist == cl]
+            plt.plot(peaksofclass[0],peaksofclass[1], &#39;.&#39;, color = color,   ms =20, label=cl)
+            plt.legend()
+    else:
+        plt.scatter(peaks[0],peaks[1], color = &#39;red&#39;)
+    plt.show()
+    plt.close()
+
+def discard_short_classes(events, minlen):
+    &#34;&#34;&#34; 
+        returns all events despite events which are in classes with less than minlen members
+    &#34;&#34;&#34;
+
+    u, c = np.unique(events[-1],return_counts=True)
+
+    smallclasses = u[c&lt;minlen]
+    classlist = events[-1]
+    
+    delete = np.zeros(len(classlist))
+
+    for cl in smallclasses:
+        delete[classlist == cl] = 1
+    events = events[:,delete != 1]
+
+    return events
+
+def path_leaf(path):
+    ntpath.basename(&#34;a/b/c&#34;)
+    head, tail = ntpath.split(path)
+    return tail or ntpath.basename(head)
+
+def save_EOD_events_to_npmmp(EOD_Events,eods_len,startblock,datasavepath,mmpname=&#39;eods.npmmp&#39;):
+    n_EOD_Events = len(EOD_Events[0])
+    savepath = datasavepath+&#34;/&#34;+mmpname
+    if startblock:
+                eods = np.memmap(savepath,
+                                 dtype=&#39;float64&#39;, mode=&#39;w+&#39;,
+                                 shape=(4,n_EOD_Events), order = &#39;F&#39;)
+    else:
+        dtypesize = 8#4 #float32 is 32bit = &gt;4&lt; bytes long  ---changed to float64 -&gt; 8bit
+        eods = np.memmap(savepath, dtype=
+                         &#39;float64&#39;, mode=&#39;r+&#39;, offset = dtypesize*eods_len*4,
+                         shape=(4,n_EOD_Events), order = &#39;F&#39;)
+    eods[:] = EOD_Events
+
+
+def create_threshold_array(data,window,threshold):
+    thr_array = np.zeros(data.shape)
+    for i in range(int(len(data)/window)):
+        thr_array[i*window:(i+1)*window] = np.std(data[i*window:(i+1)*window])*4
+    thr_array[thr_array&lt;threshold] = threshold
+    return thr_array
+
+def alignlabels(labels,clusters,old_labels,old_clusters,maxlabel):
+
+    old_labels = old_labels[old_labels!=-1]
+
+    labels_new = -1*np.ones(labels.shape)
+    newclass = maxlabel
+    
+    for curlabel, cluster in enumerate(clusters):
+        n = np.linalg.norm(old_clusters-cluster,axis=1)
+
+        if np.min(n) &lt; 0.1:
+            labels_new[labels==curlabel] = old_labels[np.argmin(n)]
+        else:
+            labels_new[labels==curlabel] = newclass
+            newclass = newclass + 1
+
+    return labels_new
+
+
+def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime = 0, cluster_thresh = 0.1, savepath = False,save=False, npmmp = False, plot_eods=False,plot_features=False,plot_steps=False, plot_result=False):
+
+    &#34;&#34;&#34;
+    analyzes timeseries of a pulse fish EOD recording
+
+    Parameters
+    ----------
+    filepath: WAV-file with the recorded timeseries
+
+    deltat: int, optional
+        time for a single analysisblock (recommended less than a minute, due to principal component clustering on the EOD-waveforms)
+
+    thresh: float, optional
+        minimum threshold for the peakdetection (if computing frequencies recommended a tiny bit lower than the wished threshold, and instead discard the EOD below the wished threshold after computing the frequencies for each EOD.)
+
+    starttime: int or, str of int, optional
+        time into the data from where to start the analysis, seconds.
+
+    endtime: int or str of int, optional
+        time into the data where to end the analysis, seconds, larger than starttime.
+    
+    cluster_thresh: float, optional
+        threshold that decides the cluster density of the EOD waveform features.
+
+    savepath = Boolean or str, optional
+        path to where to save results and intermediate result, only needed if save or npmmp is True.
+        string to specify a relative path to the directory where results and intermediate results will bed
+        or False to use preset savepath, which is ~/filepath/
+        or True to specify savepath as input when the script is running
+
+    save: Boolean, optional
+        True to save the results into a npy file at the savepath
+
+    npmmp: Boolean, optional
+        True to save intermediate results into a npmmp at the savepath, only recommended in case of memory overflow
+
+    plot_steps: Boolean, optional
+        True to plot the results of each analysis block
+
+    plot_results: Boolean, optional
+        True to plot the results of the final analysis. Not recommended for long recordings due to %TODO
+
+    plot_eods: Boolean, optional
+        True to plot the EOD waveforms for each analysis block
+
+    plot_features: Boolean, optional
+        True to plot the EOD waveform features for each analysis block
+
+    Returns
+    -------
+    eods: numpy array
+        2D numpy array. first axis: attributes of an EOD (x (datapoints), y (recorded voltage), height (difference from maximum to minimum), class), second axis: EODs in chronological order.
+    &#34;&#34;&#34;
+    
+    # parameters for the analysis
+    thresh = 0.04 # minimal threshold for peakdetection
+    peakwidth = 20 # width of a peak and minimal distance between two EODs
+    # basic parameters for thunderfish.dataloader.DataLoader
+    verbose = 0
+    channel = 0
+    ultimate_threshold = thresh+0.01
+    startblock = 0
+    starttime = int(starttime)
+    endtime = int(endtime)
+    timegiven = False
+    if endtime &gt; starttime&gt;=0:
+        timegiven = True
+    peaks = np.array([])
+    troughs = np.array([])
+    filename = path_leaf(filepath)
+    eods_len = 0
+    if savepath==False:
+        datasavepath = filename[:-4]
+    elif savepath==True:
+        datasavepath = input(&#39;With the option npmmp enabled, a numpy memmap will be saved to: &#39;).lower()
+    else: datasavepath=savepath
+
+    if save and (os.path.exists(datasavepath+&#34;/eods8_&#34;+filename[:-3]+&#34;npy&#34;) or os.path.exists(datasavepath+&#34;/eods5_&#34;+filename[:-3]+&#34;npy&#34;)):
+        print(&#39;there already exists an analyzed file, aborting. Change the code if you don\&#39;t want to abort&#39;)
+        quit()
+    if npmmp:
+        #proceed = input(&#39;With the option npmmp enabled, a numpy memmap will be saved to &#39; + datasavepath + &#39;. continue? [y/n] &#39;).lower()
+        proceed = &#39;y&#39;
+        if proceed != &#39;y&#39;:
+             quit()
+    # starting analysis
+    with DataLoader(filepath, deltat, 0.0, verbose) as data:
+
+        samplerate = data.samplerate
+
+        # selected time interval
+        if timegiven == True:
+            parttime1 = starttime*samplerate
+            parttime2 = endtime*samplerate
+            data = data[parttime1:parttime2,channel]
+
+        #split data into blocks
+        nblock = int(deltat*samplerate)
+        if len(data)%nblock != 0:
+            blockamount = len(data)//nblock + 1
+        else:
+            blockamount = len(data)//nblock
+        #fish = ProgressFish(total = blockamount)
+
+        pca_cur = 0
+        progress = 0
+
+        for idx in range(0, blockamount):
+            print(&#39;BLOCK %i/%i&#39;%(idx+1,blockamount))
+
+            blockdata = data[idx*nblock:(idx+1)*nblock,channel]
+            if progress &lt; (idx*100 //blockamount):
+                progress = (idx*100)//blockamount
+            progressstr = &#39; Filestatus: &#39;
+
+            # fish.animate(amount = idx, dexextra = progressstr)
+             # delete peaks under absolute threshold
+            
+
+            #thresh_array = create_threshold_array(blockdata,30000,thresh)            
+            pk, tr = detect_peaks(blockdata, thresh)
+            troughs = tr
+
+            if len(pk) &gt; 3:
+                
+                peaks = makeeventlist(pk,tr,blockdata,peakwidth)
+                peakindices, peakx, peakh = discardnearbyevents(peaks[0],peaks[1],peakwidth)
+                peaks = peaks[:,peakindices]
+
+                if len(peaks) &gt; 0:
+
+                    #if idx &gt; startblock:
+                    #    # adding a new block as copy of old list, only difference is peak indexing as it refers to last block
+                    #    peaklist = connect_blocks(peaklist)
+                    #else:
+                    #    peaklist = Peaklist([])
+
+                    aligned_snips, snip_heights = cut_snippets(blockdata,peaks[0], 30, int_met = &#34;cubic&#34;, int_fact = 10,max_offset = 20)
+                    
+                    pols = chebyshev(aligned_snips)
+
+                    feats = np.zeros((pols.shape[0],pols.shape[1]+1))
+                    feats[:,:6] = pols
+                    feats[:,-1] = snip_heights*0.1
+                    #pcs, pca_cur = pc(aligned_snips) #pc_refactor(aligned_snips)
+                    
+                    minpeaks = 3 if deltat &lt; 2 else 10
+                    
+                    labels, clusters = cluster_events(feats, peaks, cluster_thresh, minpeaks, False, method = &#39;DBSCAN&#39;)
+                    peaks = np.append(peaks,[labels], axis = 0)
+                    
+                    if idx &gt; startblock:
+                      # instead of the peaklist I would have to add the previous cluster means
+                      # alignclusterlabels(labels, peaklist, peaks,data=blockdata)
+                      peaks[-1] = alignlabels(labels,clusters,old_labels,old_clusters,maxlabel)
+                    
+                    old_labels = np.unique(peaks[-1])
+                    old_clusters = clusters
+                      #I would want peaks updated here to have the right pc classes as well..
+
+                    #peaks, peaklist = ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
+
+                    minlen = 5
+                    peaks = discard_short_classes(peaks, minlen)
+                    
+                    if len(peaks[0]) &gt; 0:
+                        peaks = discard_wave_pulses(peaks, blockdata)
+                        # delete peaks under absolute threshold
+                        #thresh_array = create_threshold_array(blockdata,30000)
+                        #peaks = peaks[:,peaks[1]&gt;thresh_array[list(map(int,peaks[0]))]]
+                    
+                    cmap = plt.get_cmap(&#39;jet&#39;)
+                    colors = cmap(np.linspace(0, 1.0, 10))
+
+                    if plot_steps == True:
+                        plot_events_on_data(peaks, blockdata, colors)
+                        pass
+
+                    for lab in np.unique(labels):
+                        
+                        if lab == -1:
+                            c = &#39;k&#39;
+                            z=-1
+                        else:
+                            c=colors[lab]
+                            z=1
+                        if plot_eods==True:
+                            plt.plot(range(aligned_snips.shape[1]),np.transpose(aligned_snips[labels == lab]),color=c,zorder=z,label=lab)
+                    
+                    if plot_eods==True:
+                        plt.title(&#39;Detected and classified EODs&#39;)
+                        plt.xlabel(&#39;time [ms]&#39;)
+                        plt.ylabel(&#39;signal (normalized)&#39;)
+                    
+                        phandles, plabels = plt.gca().get_legend_handles_labels()
+                        by_label = dict(zip(plabels, phandles))
+                        plt.legend(by_label.values(), by_label.keys())
+                        plt.show()
+
+                    for lab in np.unique(labels):
+                        
+                        if lab == -1:
+                            c = &#39;k&#39;
+                            z = -1
+                        else:
+                            c = colors[lab]
+                            z=1
+
+                        if plot_features==True:
+                            plt.plot(np.squeeze(np.transpose(feats[labels == lab])),color=c,zorder=z,label=lab)
+                
+                    if plot_features==True:
+                        plt.title(&#39;EOD Features&#39;)
+                        plt.xlabel(&#39;feature [#]&#39;)
+                        plt.ylabel(&#39;value [a.u.]&#39;)
+                    
+                        phandles, plabels = plt.gca().get_legend_handles_labels()
+                        by_label = dict(zip(plabels, phandles))
+                        plt.legend(by_label.values(), by_label.keys())
+                        plt.show()
+
+                    #peaklist.len = nblock
+                    worldpeaks = np.copy(peaks)
+                    worldpeaks[0] = worldpeaks[0] + (idx*nblock)
+                    # delete the classification that only considers wave shape.
+                    #thisblock_eods = np.delete(worldpeaks,3,0)
+                    thisblock_eods = worldpeaks
+
+                    if idx == startblock:
+                        maxlabel = np.max(peaks[-1]) + 1
+                    else:
+                        maxlabel = np.max([maxlabel, (np.max(peaks[-1]) + 1)])
+
+                    if npmmp:
+                        if idx == startblock:
+                            if not os.path.exists(datasavepath):
+                                os.makedirs(datasavepath)
+                            mmpname = &#34;eods_&#34;+filename[:-3]+&#34;npmmp&#34;
+                        # save the peaks of the current buffered part to a numpy-memmap on the disk
+                        save_EOD_events_to_npmmp(thisblock_eods,eods_len,idx==startblock,datasavepath,mmpname)
+                        eods_len += len(thisblock_eods[0])
+                    else:
+                        if idx &gt; 0:
+                            all_eods = np.concatenate((all_eods,thisblock_eods),axis = 1)
+                        else:
+                            all_eods = thisblock_eods
+        if plot_steps == True:
+            print(&#39;FINAL RESULTS&#39;)
+            plot_events_on_data(all_eods, data[:,channel], colors)
+    #plot_events_on_data(all_eods,data)
+    print(&#39;returnes analyzed EODS. Calculate frequencies using all of these but discard the data from the EODS within the lowest few percent of amplitude&#39;)
+
+    if npmmp:
+        all_eods = np.memmap(datasavepath+&#39;/&#39;+mmpname, dtype=&#39;float64&#39;, mode=&#39;r+&#39;, shape=(4,eods_len), order = &#39;F&#39;)
+    if save == 1:
+       path = filename[:-4]+&#34;/&#34;
+       if not os.path.exists(path):
+           os.makedirs(path)
+       if eods_len &gt; 0:
+           np.save(datasavepath+&#34;/eods8_&#34;+filename[:-3]+&#34;npy&#34;, all_eods)
+           print(&#39;Saved!&#39;)
+       else:
+           print(&#39;not saved&#39;)
+    return all_eods
+
+
+def main():
+
+    eods = analyze_pulse_data(sys.argv[1], save=True, npmmp=True)
+    print(eods)
+
+if __name__ == &#39;__main__&#39;:
+    main()</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.pulsetracker.makeeventlist"><code class="name flex">
+<span>def <span class="ident">makeeventlist</span></span>(<span>main_event_positions, side_event_positions, data, event_width=20)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs,
+the data and an optional width of an supposed EOD-event.
+The generated event-array contains location and height of such events.
+The height of the events is calculated by its height-difference to nearby troughs and main events that have no side events in a range closer than event_width are discarded and not considered as EOD event.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>main_event_positions</code></strong> :&ensp;<code>array</code> of <code>int</code> or <code>float</code></dt>
+<dd>Positions of the detected main events in the data time series. Either peaks or troughs.</dd>
+<dt><strong><code>side_event_positions</code></strong> :&ensp;<code>array</code> of <code>int</code> or <code>float</code></dt>
+<dd>Positions of the detected side events in the data time series. The complimentary event to the main events.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code> of <code>float</code></dt>
+<dd>The given data.</dd>
+<dt><strong><code>event_width</code></strong> :&ensp;<code>int</code> or <code>float</code>, optional</dt>
+<dd>&nbsp;</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>EOD_events</code></strong> :&ensp;<code>ndarray</code></dt>
+<dd>2D array containing data with 'float' type, size (number_of_properties = 3, number_of_events).
+Generated and combined data of the detected events in an array with arrays of x, y and height along the first axis.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def makeeventlist(main_event_positions,side_event_positions,data,event_width=20):
+    &#34;&#34;&#34;
+    Generate array of events that might be EODs of a pulse-type fish, using the location of peaks and troughs,
+    the data and an optional width of an supposed EOD-event.
+    The generated event-array contains location and height of such events.
+    The height of the events is calculated by its height-difference to nearby troughs and main events that have no side events in a range closer than event_width are discarded and not considered as EOD event.
+
+    Parameters
+    ----------
+    main_event_positions: array of int or float
+        Positions of the detected main events in the data time series. Either peaks or troughs.
+    side_event_positions: array of int or float
+        Positions of the detected side events in the data time series. The complimentary event to the main events.
+    data: array of float
+        The given data.
+    event_width: int or float, optional
+
+    Returns
+    -------
+    EOD_events: ndarray
+        2D array containing data with &#39;float&#39; type, size (number_of_properties = 3, number_of_events).
+        Generated and combined data of the detected events in an array with arrays of x, y and height along the first axis.
+
+    &#34;&#34;&#34;
+    mainfirst = int((min(main_event_positions[0],side_event_positions[0])&lt;side_event_positions[0]))  # determines if there is a peak or through first. Evaluates to 1 if there is a peak first.
+    main_x = main_event_positions
+    main_y = data[main_event_positions]
+    # empty placeholders, filled in the next step while iterating over the properties of single main
+    main_h = np.zeros(len(main_event_positions))
+    main_real = np.ones(len(main_event_positions))
+    # iteration over the properties of the single main
+    for ind,(x, y, h, r) in enumerate(np.nditer([main_x, main_y, main_h, main_real], op_flags=[[&#34;readonly&#34;],[&#39;readonly&#39;],[&#39;readwrite&#39;],[&#39;readwrite&#39;]])):
+        l_side_ind = ind - mainfirst
+        r_side_ind = l_side_ind + 1
+        try:
+            r_side_x = side_event_positions[r_side_ind]
+            r_distance = r_side_x - x
+            r_side_y = data[r_side_x]
+        except:
+            pass
+        try:
+            l_side_x = side_event_positions[l_side_ind]
+            l_distance = x - l_side_x
+            l_side_y = data[l_side_x]
+        except:
+            pass # ignore left or rightmost events which throw IndexError
+        # calculate distances to the two side events next to the main event and mark all events where the next side events are not closer than maximum event_width as unreal. If an event might be an EOD, then calculate its height.
+        if l_side_ind &gt;= 0 and r_side_ind &lt; len(side_event_positions):
+            if min((l_distance),(r_distance)) &gt; event_width:
+                    r[...] = False
+            elif max((l_distance),(r_distance)) &lt;= event_width:
+                    h[...] = max(abs(y-l_side_y),abs(y-r_side_y))  #calculated using absolutes in case of for example troughs instead of peaks as main events 
+            else:
+                    if (l_distance)&lt;(r_distance): # evaluated only when exactly one side event is out of reach of the event width. Then the closer event will be the correct event
+                        h[...] = abs(y-l_side_y)
+                    else:
+                        h[...] = abs(y-r_side_y)
+        # check corner cases
+        elif l_side_ind == -1:
+            if r_distance &gt; event_width:
+                r[...] = False
+            else:
+                h[...] = y-r_side_y
+        elif r_side_ind == len(side_event_positions):
+            if l_distance&gt; event_width:
+                r[...] = False
+            else:
+                h[...] = y-l_side_y
+    # generate return array and discard all events that are not marked as real
+    EOD_events = np.array([main_x, main_y, main_h], dtype = float)[:,main_real==1]
+    return EOD_events</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.discardnearbyevents"><code class="name flex">
+<span>def <span class="ident">discardnearbyevents</span></span>(<span>event_locations, event_heights, min_distance)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Given a number of events with given location and heights, returns a selection
+of these events where
+no event is closer than eventwidth to the next event.
+Among neighboring events closer than eventwidth the event with smaller height
+is discarded.
+Used to discard sidepeaks in detected multiple peaks of single EOD-pulses and
+only keep the largest event_height and the corresponding location as
+representative of the whole EOD pulse.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>event_locations</code></strong> :&ensp;<code>array</code> of <code>int</code> or <code>float</code></dt>
+<dd>Positions of the given events in the data time series.</dd>
+<dt><strong><code>event_heights</code></strong> :&ensp;<code>array</code> of <code>int</code> or <code>float</code></dt>
+<dd>Heights of the given events, indices refer to the same events as in
+event_locations.</dd>
+<dt><strong><code>min_distance</code></strong> :&ensp;<code>int</code> or <code>float</code></dt>
+<dd>minimal distance between events before one of the events gets discarded.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>event_locations</code></strong> :&ensp;<code>array</code> of <code>int</code> or <code>float</code></dt>
+<dd>Positions of the returned events in the data time series.</dd>
+<dt><strong><code>event_heights</code></strong> :&ensp;<code>array</code> of <code>int</code> or <code>float</code></dt>
+<dd>Heights of the returned events, indices refer to the same events as in
+event_locations.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def discardnearbyevents(event_locations, event_heights, min_distance):
+    &#34;&#34;&#34;
+    Given a number of events with given location and heights, returns a selection
+    of these events where  no event is closer than eventwidth to the next event.
+    Among neighboring events closer than eventwidth the event with smaller height
+    is discarded.
+    Used to discard sidepeaks in detected multiple peaks of single EOD-pulses and
+    only keep the largest event_height and the corresponding location as
+    representative of the whole EOD pulse.
+
+    Parameters
+    ----------
+    event_locations: array of int or float
+        Positions of the given events in the data time series.
+    event_heights: array of int or float
+        Heights of the given events, indices refer to the same events as in
+        event_locations.
+    min_distance: int or float
+        minimal distance between events before one of the events gets discarded.
+
+    Returns
+    -------
+    event_locations: array of int or float
+        Positions of the returned events in the data time series.
+    event_heights: array of int or float
+        Heights of the returned events, indices refer to the same events as in
+        event_locations.
+
+    &#34;&#34;&#34;
+    unchanged = False
+    counter = 0
+    event_indices = np.arange(0,len(event_locations)+1,1)
+    
+    while unchanged == False:# and counter&lt;=200:
+       x_diffs = np.diff(event_locations)
+       events_delete = np.zeros(len(event_locations))
+       
+       for i, diff in enumerate(x_diffs):
+           
+           if diff &lt; min_distance:
+
+               if event_heights[i+1] &gt; event_heights[i] :
+                   events_delete[i] = 1
+               else:
+                   events_delete[i+1] = 1
+
+       event_heights = event_heights[events_delete!=1]
+       event_locations = event_locations[events_delete!=1]
+       event_indices = event_indices[np.where(events_delete!=1)[0]]
+       if np.count_nonzero(events_delete)==0:
+           unchanged = True
+       counter += 1
+       if counter &gt; 2000:
+           print(&#39;Warning: unusual many discarding steps needed, unusually dense events&#39;)
+           pass
+    return event_indices, event_locations, event_heights</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.crosscorrelation"><code class="name flex">
+<span>def <span class="ident">crosscorrelation</span></span>(<span>sig, data)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>returns crosscorrelation of two arrays, the first array should have a length equal to or smaller than the second array.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def crosscorrelation(sig, data):
+    &#39;returns crosscorrelation of two arrays, the first array should have a length equal to or smaller than the second array.&#39;
+    return signal.fftconvolve(data, sig[::-1],  mode=&#39;valid&#39;)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.interpol"><code class="name flex">
+<span>def <span class="ident">interpol</span></span>(<span>data, kind)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>interpolates the given data using scipy interpolation python package</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>kind</code></strong> :&ensp;<code>string</code> or <code>int</code></dt>
+<dd>(‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>interpolation</code></strong> :&ensp;<code>function</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def interpol(data, kind):
+    &#34;&#34;&#34;
+    interpolates the given data using scipy interpolation python package
+
+    Parameters
+    ----------
+    data: array
+
+    kind: string or int
+        (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used
+
+    Returns
+    -------
+    interpolation: function
+
+    &#34;&#34;&#34;
+    width = len(data)
+    x = np.linspace(0, width-1, num = width, endpoint = True)
+    #return interp1d(x, data[0:width], kind, assume_sorted=True)
+    return interp1d(x, data[0:width], kind)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.interpolated_array"><code class="name flex">
+<span>def <span class="ident">interpolated_array</span></span>(<span>data, kind, int_fact)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>returns an interpolated array of the given dataarray.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>kind</code></strong> :&ensp;<code>string</code> or <code>int</code></dt>
+<dd>(‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used</dd>
+<dt><strong><code>int_fact</code></strong> :&ensp;<code>int</code></dt>
+<dd>factor by which the interpolated array is larger than the original array</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><code>interpolated array: array</code></dt>
+<dd>&nbsp;</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def interpolated_array(data, kind, int_fact):
+    &#34;&#34;&#34;
+    returns an interpolated array of the given dataarray.
+
+    Parameters
+    ----------
+    data: array
+
+    kind: string or int
+        (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used
+
+    int_fact: int
+         factor by which the interpolated array is larger than the original array
+
+    Returns
+    -------
+    interpolated array: array
+
+    &#34;&#34;&#34;
+    return interpol(data,kind)(np.arange(0, len(data)-1, 1/int_fact))</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.cut_snippets"><code class="name flex">
+<span>def <span class="ident">cut_snippets</span></span>(<span>data, event_locations, cut_width, int_met='linear', int_fact=10, max_offset=1000000)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>cuts intervals from a data array, interpolates and aligns them and returns them in a list</p>
+<p>TODO: ALIGN THEM TO CAUSE LEAST SQUARE ERROR</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>event_locations</code></strong> :&ensp;<code>array</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>cut_width</code></strong> :&ensp;<code>[int, int]</code></dt>
+<dd>lower and upper limit of the intervals relative to the event locations.
+f.e. [-15,15] indicates an interval of 30 datapoints around each event location</dd>
+<dt><strong><code>int_met</code></strong> :&ensp;<code>string</code> or <code>int</code></dt>
+<dd>method of interpolation. (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used</dd>
+<dt><strong><code>int_fact</code></strong> :&ensp;<code>int</code></dt>
+<dd>factor by which the interpolated array is larger than the original</dd>
+<dt><strong><code>max_offset</code></strong> :&ensp;<code>float</code></dt>
+<dd>maximal offset by which the interpolated intervals can be moved to be aligned with each other. offset relative to the datapoints of the original data.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>aligned_snips</code></strong> :&ensp;<code>twodimensional nparray</code></dt>
+<dd>the processed intervals (interval#,intervallen)</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cut_snippets(data,event_locations,cut_width,int_met=&#34;linear&#34;,int_fact=10,max_offset = 1000000): 
+    &#34;&#34;&#34;
+    cuts intervals from a data array, interpolates and aligns them and returns them in a list
+
+    TODO: ALIGN THEM TO CAUSE LEAST SQUARE ERROR
+
+    Parameters
+    ----------
+    data: array
+
+    event_locations: array
+
+    cut_width: [int, int]
+        lower and upper limit of the intervals relative to the event locations.
+        f.e. [-15,15] indicates an interval of 30 datapoints around each event location
+
+    int_met: string or int
+        method of interpolation. (‘linear’, ‘nearest’, ‘zero’, ‘slinear’, ‘quadratic’, ‘cubic’, ‘previous’, ‘next’), or integer of order of spline interpolation to be used
+
+    int_fact: int
+        factor by which the interpolated array is larger than the original
+
+    max_offset: float
+        maximal offset by which the interpolated intervals can be moved to be aligned with each other. offset relative to the datapoints of the original data.
+
+    Returns
+    -------
+    aligned_snips: twodimensional nparray
+        the processed intervals (interval#,intervallen)
+
+    &#34;&#34;&#34;
+    snippets = []
+    heights = np.zeros(len(event_locations))
+    cut_width = [-cut_width, cut_width]
+    #alignwidth = int(np.ceil((max_offset) * int_fact))
+    alignwidth = 50
+
+    for pos in event_locations.astype(&#39;int&#39;):
+        snippets.append(data[pos+cut_width[0]:pos+cut_width[1]])
+    ipoled_snips = np.empty((len(snippets), (cut_width[1]-cut_width[0])*int_fact-int_fact))
+    
+    for i, snip in enumerate(snippets):
+        if len(snip) &lt; ((cut_width[1]-cut_width[0])):
+            if i == 0:
+                snip = np.concatenate([np.zeros([((cut_width[1]-cut_width[0]) - len(snip))]),np.array(snip)])
+            if i == len(snippets):
+                snip = np.concatenate([snip, np.zeros([((cut_width[1]-cut_width[0])-len(snip))])])
+            else:
+                snip = np.zeros([(cut_width[1]-cut_width[0])])
+       
+         #f_interpoled = interpol(snip, int_met) #if len(snip) &gt; 0 else np.zeros([(cut_width[1]-cut_width[0]-1)*int_fact ])
+        interpoled_snip = interpolated_array(snip, int_met, 10)#f_interpoled(np.arange(0, len(snip)-1, 1/int_fact))
+        intsnipheight   = np.max(interpoled_snip) - np.min(interpoled_snip)
+        
+
+        if intsnipheight == 0:
+            intsnipheight = 1
+
+        interpoled_snip = (interpoled_snip - max(interpoled_snip))* 1/intsnipheight
+        ipoled_snips[i] = interpoled_snip
+
+    mean = np.mean(ipoled_snips, axis = 0)
+    
+    aligned_snips = np.empty((len(snippets), (cut_width[1]-cut_width[0])* int_fact-(2*alignwidth)-int_fact))
+    
+    for i, interpoled_snip in enumerate(ipoled_snips):
+        cc = crosscorrelation(interpoled_snip[alignwidth:-alignwidth], mean)
+        #cc = crosscorrelation(interpoled_snip[15 + 10*-cut_width[0]-10*7:-15+ -10*cut_width[1]+ 31], mean[10*-cut_width[0]-10*7:-10*cut_width[1]+31])
+        offset = -alignwidth + np.argmax(cc)
+        aligned_snip = interpoled_snip[alignwidth-offset:-alignwidth-offset] if offset != -alignwidth else interpoled_snip[2*alignwidth:]
+        if len(aligned_snip[~np.isnan(aligned_snip)])&gt;0:
+            aligned_snips[i] = aligned_snip
+        try:
+            heights[i] = np.max(interpoled_snip[alignwidth-offset:-alignwidth-offset]) - np.min(interpoled_snip[alignwidth-offset:-alignwidth-offset])
+        except:
+            heights[i] = np.max(interpoled_snip[2*alignwidth:]) - np.min(interpoled_snip[2*alignwidth:])
+    return aligned_snips, heights</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.pc"><code class="name flex">
+<span>def <span class="ident">pc</span></span>(<span>dataset)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Calculates the principal components of a dataset using the python module scikit-learn's principal component analysis</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>dataset</code></strong> :&ensp;<code>ndarray</code></dt>
+<dd>dataset of which the principal components are to be calculated.
+twodimensional array of shape (observations, features)</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>pc_comp</code></strong> :&ensp;<code>ndarray</code></dt>
+<dd>principal components of the dataset</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pc(dataset):
+    &#34;&#34;&#34;
+    Calculates the principal components of a dataset using the python module scikit-learn&#39;s principal component analysis
+
+    Parameters
+    ----------
+    dataset: ndarray
+        dataset of which the principal components are to be calculated.
+        twodimensional array of shape (observations, features)
+
+    Returns
+    -------
+    pc_comp: ndarray
+        principal components of the dataset
+
+    &#34;&#34;&#34;
+    pca = PCA(n_components=10)
+    pc_comp = pca.fit_transform(dataset)
+
+    return pc_comp #, pca</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.chebyshev"><code class="name flex">
+<span>def <span class="ident">chebyshev</span></span>(<span>dataset)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def chebyshev(dataset):
+    x = range(len(dataset[0]))
+    npol=5
+    p = np.zeros((len(dataset),npol+1))
+    for i,s in enumerate(dataset):
+        cheb = np.polynomial.chebyshev.Chebyshev.fit(x,s,npol)
+        p[i] = cheb.coef
+
+    return p #, pca</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.dbscan"><code class="name flex">
+<span>def <span class="ident">dbscan</span></span>(<span>pcs, events, eps, min_samples, takekm)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>improve description, add parameter and returns</p>
+<p>calculates clusters of high spatial density of the given observations in their feature space. </p>
+<h1 id="for-example-the-first-few-principal-components-of-the-data-could-be-used-as-features-for-the-classification">For example, the first few principal components of the data could be used as features for the classification.</h1>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pcs</code></strong> :&ensp;<code>ndarray</code></dt>
+<dd>%TODO
+shape(samples, features)</dd>
+</dl>
+<p>&hellip;</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>labels</code></strong> :&ensp;<code>ndarray</code></dt>
+<dd>labels of the clusters of each observation</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def dbscan(pcs, events, eps, min_samples, takekm):
+    &#34;&#34;&#34;
+    improve description, add parameter and returns
+
+    calculates clusters of high spatial density of the given observations in their feature space. 
+    #For example, the first few principal components of the data could be used as features for the classification.
+
+    Parameters
+    ----------
+    pcs: ndarray
+        %TODO
+        shape(samples, features)
+    ...
+
+    Returns
+    -------
+    labels: ndarray
+        labels of the clusters of each observation
+
+    &#34;&#34;&#34;
+    # pcs (samples, features)
+    # X (samples, features)
+    #try:
+    #    X = pcs[:,:order]
+    #except:
+    #    X = pcs[:,order]
+    X = pcs
+    
+    # #############################################################################
+    # Compute DBSCAN
+    
+    clusters = DBSCAN(eps, min_samples).fit(X)
+    labels = clusters.labels_
+
+    comp = clusters.components_
+
+    comp_means = np.zeros((len(np.unique(labels)) - 1,comp.shape[1]))
+
+    for i in range(len(np.unique(labels)) - 1):
+        comp_means[i] = np.mean(pcs[labels==i],axis=0)
+
+    return labels, comp_means</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.cluster_events"><code class="name flex">
+<span>def <span class="ident">cluster_events</span></span>(<span>features, events, eps, min_samples, takekm, method='DBSCAN')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>F
+clusters the given events using the given feature space and the clustering algorithm of choice and appends the assigned cluster number to the event's properties.</p>
+<h2 id="parameters">Parameters</h2>
+<h2 id="returns">Returns</h2></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def cluster_events(features, events, eps, min_samples, takekm, method=&#39;DBSCAN&#39;):
+    &#34;&#34;&#34;F
+    clusters the given events using the given feature space and the clustering algorithm of choice and appends the assigned cluster number to the event&#39;s properties.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    &#34;&#34;&#34;
+    ########################      function maybe could be even more generic, ? (dependant on datatype of &#34;events&#34; )
+    if method == &#39;DBSCAN&#39;:
+        labels, clusters = dbscan(features,events, eps, min_samples, takekm)
+    elif method == &#39;kMean&#39;:
+        pass
+        # To be implemented
+        #labels = kmeans([])
+    return labels, clusters</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.connect_blocks"><code class="name flex">
+<span>def <span class="ident">connect_blocks</span></span>(<span>oldblock)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>used to connect blocks.
+transfers data from the previous analysis block to the current block</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def connect_blocks(oldblock):
+    &#34;&#34;&#34;
+        used to connect blocks.
+        transfers data from the previous analysis block to the current block
+    &#34;&#34;&#34;
+    newblock = Peaklist([])
+    newblock.lastofclass    = oldblock.lastofclass
+    newblock.lastofclassx    = oldblock.lastofclassx
+    newblock.classesnearby  = oldblock.classesnearby
+    newblock.classesnearbypccl  = oldblock.classesnearbypccl
+    newblock.classesnearbyx = [clnearbyx - oldblock.len for clnearbyx in oldblock.classesnearbyx]
+    newblock.classamount = oldblock.classamount
+    newblock.len = oldblock.len
+    return newblock</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.alignclusterlabels"><code class="name flex">
+<span>def <span class="ident">alignclusterlabels</span></span>(<span>labels, peaklist, peaks, data='test')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>used to connect blocks.
+changes the labels of clusters in the current block to fit with the labels of the previous block</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def alignclusterlabels(labels, peaklist, peaks, data=&#39;test&#39;):
+    &#34;&#34;&#34;
+        used to connect blocks.
+        changes the labels of clusters in the current block to fit with the labels of the previous block
+    &#34;&#34;&#34;
+
+    # take first second of new peak data
+    overlapamount = len(peaks[0,peaks[0]&lt;30000])
+    if overlapamount == 0:
+        return None
+
+    old_peaklist = copy.deepcopy(peaklist)  #redundant 
+    overlappeaks = copy.deepcopy(peaks[:,:overlapamount])
+    overlap_peaklist = copy.deepcopy(old_peaklist)
+    
+    # delete cluster classifications of the overlap class
+    overlappeaks[3]=[-1]*len(overlappeaks[0])
+
+    # set nearby pc classes to -1
+    overlap_peaklist.classesnearbypccl = [-1]*len(overlap_peaklist.classesnearbypccl)
+
+    # create peak labels using ampwalk classifier
+    classified_overlap = ampwalkclassify3_refactor(overlappeaks,overlap_peaklist,glue=True)[0]
+
+    # for each class
+    for cl in np.unique(classified_overlap[4]):
+
+        # indexes of the peaks with current class by ampwalk classification
+        labelindex = np.where(classified_overlap[4] == cl)[0]
+
+        # pc clustering labels that were originally given to those peaks
+        label = labels[labelindex]
+            
+        # index of a peak with the most common translation from ampwalk class to pc clustering class
+        labelindex = labelindex[np.where(label == stats.mode(label)[0])[0][0]]
+            
+        # pc clustering label belonging to the class cl in the new block
+        newlabel = labels[labelindex]
+
+        try:
+            peaklist.classesnearbypccl[old_peaklist.classesnearby.index(cl)] = newlabel
+        except:
+            pass</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.ampwalkclassify3_refactor"><code class="name flex">
+<span>def <span class="ident">ampwalkclassify3_refactor</span></span>(<span>peaks, peaklist, glue=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>classifies peaks/EOD_events into different classes by their amplitude.</p>
+<p>Takes list of peaks and list of properties of the list of the last analysis block
+Classifies the single peaks in the direction of their occurence in time, based on their amplitude and
+their previously assigned class based on their waveform (&hellip; using the method cluster_events on the
+principal components of the snippets around the single peaks)</p>
+<p>Method:
+calculates differences in amplitude between the current peak and different amplitudeclasses that are nearby. creates new amplitudeclass if no class is close enough. creates no new class if the peaks's waveformclass is a noiseclass of the DBSCAN algorithm. Does not compare peaks of different Waveformclasses.</p>
+<p>&ndash;can be used without prior waveformclasses, resulting in classification solely on the amplitude development
+pcclclasses need to be set to the same class herefore, .... . not practical, but
+should be possible to
+split up into more general functions</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def ampwalkclassify3_refactor(peaks,peaklist,glue=False):
+    &#34;&#34;&#34;
+
+        classifies peaks/EOD_events into different classes by their amplitude.
+
+        Takes list of peaks and list of properties of the list of the last analysis block
+        Classifies the single peaks in the direction of their occurence in time, based on their amplitude and
+        their previously assigned class based on their waveform (... using the method cluster_events on the
+        principal components of the snippets around the single peaks)
+
+        Method:
+        calculates differences in amplitude between the current peak and different amplitudeclasses that are nearby. creates new amplitudeclass if no class is close enough. creates no new class if the peaks&#39;s waveformclass is a noiseclass of the DBSCAN algorithm. Does not compare peaks of different Waveformclasses.
+
+        --can be used without prior waveformclasses, resulting in classification solely on the amplitude development
+        pcclclasses need to be set to the same class herefore, .... . not practical, but  should be possible to
+        split up into more general functions
+    &#34;&#34;&#34;
+
+    classamount = peaklist.classamount
+    lastofclass = peaklist.lastofclass
+    lastofclassx = peaklist.lastofclassx
+    a=0
+    elem = 0
+    thresholder = []
+    comperr = 1
+    classesnearby = peaklist.classesnearby
+    classesnearbyx = peaklist.classesnearbyx
+    classesnearbypccl = peaklist.classesnearbypccl
+    classes = np.zeros((len(peaks[0])))
+    pcclasses = peaks[3]
+    positions = peaks[0]
+    heights = peaks[2]
+    cl = 0
+    maxdistance = 30000    #    Max distance to possibly belong to the same class
+    factor = 1.6     # factor by which a peak fits into a class, f.E: classheight = 1 , factor = 2 =&gt; peaks accepted in range (0.5,2)
+    c=0
+
+    # loop through all the new peaks
+    for peaknum, p in enumerate(peaks.T):
+        
+        if len(lastofclass) == 0:
+            lastofclass[1] = deque()
+            lastofclassx[1] = deque()
+            lastofclass[1].append(heights[peaknum])
+            lastofclassx[1].append(positions[peaknum])
+            classesnearby.append(1)
+            classesnearbyx.append(-1)
+            classesnearbypccl.append(pcclasses[peaknum])
+            classes[peaknum] = 1
+            classamount += 1
+            continue
+
+        time1 = time.time()
+
+        # classes nearby only count if they are within maxdistance
+        for i, cl in enumerate(classesnearby):
+            if  (positions[peaknum] - classesnearbyx[i]) &gt; maxdistance:
+                classesnearby.pop(i)
+                classesnearbyx.pop(i)
+                classesnearbypccl.pop(i)
+
+        # compute mean isi of a class by taking the last 3 pulses in that class
+        lastofclassisis = []
+        for i in classesnearby:
+            lastofclassisis.append(np.median(np.diff(lastofclassx[i])))
+        
+        meanisi = np.mean(lastofclassisis)
+
+        # stop adding to a class if 40 isis have passed
+        if 32000 &gt; 40*meanisi&gt; 6000:
+            maxdistance = 20*meanisi
+        
+        cl = 0  # &#39;No class&#39;
+        comperr = 100
+        clnrby = np.unique(classesnearby)
+
+        last_err = 1000
+
+        # TODO this assigns peaks with no class to the last clase if there are multiple candidates. 
+        # can I fix this?
+        for i in clnrby:
+
+            # if the class of the current peak is equal to the current evaluated class or current peak has no class
+            if classesnearbypccl[classesnearby.index(i)] == pcclasses[peaknum]: #or glue==True:   #pcclasses[peaknum] == -1: or  
+              classmean = np.mean(lastofclass[i]) #mean hight of class
+                
+              # difference between current peak hight and average class hight
+              logerror = np.abs(np.log2(heights[peaknum])-np.log2(classmean))
+              logthresh = np.log2(factor)
+              relerror = logerror
+                
+              # if the peak hights are similar
+              if logerror &lt; logthresh:     ## SameClass-Condition
+                # if the peaks are close together in distance (20*isi)
+                if relerror &lt; comperr and (positions[peaknum]-classesnearbyx[classesnearby.index(i)])&lt;maxdistance:
+                  # keep the same class (or in case of no class assign that class)
+                  cl = i
+                  comperr = relerror
+        time2 = time.time()
+        time1 = time.time()
+        
+        # if a pc class is assigned to the peak
+        if pcclasses[peaknum] != -1:
+            # if the class is kept
+            if cl != 0 :
+                # append this peak to the peaklist for the right class (only keep last 3 peaks)
+                if len(lastofclass[cl]) &gt;= 3:
+                    lastofclass[cl].popleft()
+                if len(lastofclassx[cl]) &gt;= 3:
+                    lastofclassx[cl].popleft()
+                lastofclass[cl].append(heights[peaknum])
+                lastofclassx[cl].append(positions[peaknum])
+                classes[peaknum] = cl
+            else:             
+                # if the class if not the same as any of the existing classes, create new class
+                cl = classamount+1
+                classamount = cl
+                lastofclass[cl] = deque()
+                lastofclassx[cl] = deque()
+                lastofclass[cl].append(heights[peaknum])
+                lastofclassx[cl].append(positions[peaknum])
+                classes[peaknum] = cl
+                classesnearby.append(cl)
+                classesnearbyx.append(positions[peaknum])
+                classesnearbypccl.append(pcclasses[peaknum])
+            
+            # if there are more than 12 classes, delete the class that is furthest away in proximity
+            if len(classesnearby) &gt;= 12: #kacke implementiert? 
+                minind = classesnearbyx.index(min(classesnearbyx))
+                del lastofclass[classesnearby[minind]]
+                del lastofclassx[classesnearby[minind]]
+                classesnearby.pop(minind)
+                classesnearbyx.pop(minind)
+                classesnearbypccl.pop(minind)
+
+            # add position and class to peaklist
+            try:
+                ind=classesnearby.index(cl)
+                classesnearbyx[ind] = positions[peaknum]
+            except ValueError:
+                classesnearby.append(cl)
+                classesnearbyx.append(positions[peaknum])
+                classesnearbypccl.append(pcclasses[peaknum])
+        
+        # if no pc class is assigned to the peak
+        elif glue == True:
+            # if a class is assigned through the peak amp method
+            if cl != 0:
+                # add this class to the peak
+                classes[peaknum] = cl
+            else:
+                # create new class
+                cl = classamount+1
+                classamount = cl
+                lastofclass[cl] = deque()
+                lastofclassx[cl] = deque()
+                lastofclass[cl].append(heights[peaknum])
+                lastofclassx[cl].append(positions[peaknum])
+                classes[peaknum] = cl
+                classesnearby.append(cl)
+                classesnearbyx.append(positions[peaknum])
+                classesnearbypccl.append(pcclasses[peaknum])
+            if len(classesnearby) &gt;= 12: #kacke implementiert? 
+                minind = classesnearbyx.index(min(classesnearbyx))
+                del lastofclass[classesnearby[minind]]
+                del lastofclassx[classesnearby[minind]]
+                classesnearby.pop(minind)
+                classesnearbyx.pop(minind)
+                classesnearbypccl.pop(minind)
+            try:
+                ind=classesnearby.index(cl)
+                classesnearbyx[ind] = positions[peaknum]
+            except ValueError:
+                classesnearby.append(cl)
+                classesnearbyx.append(positions[peaknum])
+                classesnearbypccl.append(pcclasses[peaknum])
+    peaklist.lastofclass = lastofclass
+    peaklist.lastofclassx = lastofclassx
+    peaklist.classesnearby = classesnearby
+    peaklist.classesnearbyx = classesnearbyx
+    peaklist.classesnearbypccl = classesnearbypccl
+    peaklist.classlist =  classes # np.vectorize(lambda peak: peak.cl, otypes=[object])(peaklist.list)
+    peaklist.classamount = classamount
+    peaks = np.append(peaks,classes[None,:], axis = 0)
+
+    return peaks, peaklist</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.discard_wave_pulses"><code class="name flex">
+<span>def <span class="ident">discard_wave_pulses</span></span>(<span>peaks, data)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>discards events from a pulse_event list which are unusally wide (wider than a tenth of the inter pulse interval), which indicates a wave-type EOD instead of a pulse type</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def discard_wave_pulses(peaks, data):
+     &#34;&#34;&#34;
+        discards events from a pulse_event list which are unusally wide (wider than a tenth of the inter pulse interval), which indicates a wave-type EOD instead of a pulse type
+     &#34;&#34;&#34;
+     deleteclasses = []
+     for cl in np.unique(peaks[3]):
+         peaksofclass = peaks[:,peaks[3] == cl]
+         isi = np.diff(peaksofclass[0])
+         isi_mean = np.mean(isi)
+         widepeaks = 0
+         isi_tenth_area = lambda x, isi : np.arange(np.floor(x-0.1*isi),np.ceil(x+0.1*isi),1, dtype=int)
+         for p in peaksofclass.T:
+             data = np.array(data)
+             try:
+                 for dp_around in data[isi_tenth_area(p[0],isi_mean)]:
+                    if dp_around &lt;= p[1]-p[2]:
+                       break
+             except (IndexError,ValueError) as e:
+                 pass
+         else:
+             widepeaks+=1
+         if widepeaks &gt; len(peaksofclass)*0.5:
+             deleteclasses.append(cl)
+     for cl in deleteclasses:
+            peaks = peaks[:,peaks[3]!=cl]
+     return peaks</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.plot_events_on_data"><code class="name flex">
+<span>def <span class="ident">plot_events_on_data</span></span>(<span>peaks, data, colors)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>plots the detected events onto the data timeseries. If the events are classified, the classes are plotted in different colors and the class -1 (not belonging to a cluster) is plotted in black</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_events_on_data(peaks, data, colors):
+    &#34;&#34;&#34;
+        plots the detected events onto the data timeseries. If the events are classified, the classes are plotted in different colors and the class -1 (not belonging to a cluster) is plotted in black
+    &#34;&#34;&#34;
+    plt.plot(range(len(data)),data, color = &#39;black&#39;)
+    if len(peaks)&gt;3:
+        classlist =  np.array(peaks[3],dtype=int)
+        if len(peaks) &gt; 4:
+            classlist = np.array(peaks[4],dtype=int)
+        #classlist=labels
+        cmap = plt.get_cmap(&#39;jet&#39;)
+
+        for cl in np.unique(classlist):
+
+            if cl == -1:
+                color = &#39;black&#39;
+            else:
+                color = colors[cl]
+            peaksofclass = peaks[:,classlist == cl]
+            plt.plot(peaksofclass[0],peaksofclass[1], &#39;.&#39;, color = color,   ms =20, label=cl)
+            plt.legend()
+    else:
+        plt.scatter(peaks[0],peaks[1], color = &#39;red&#39;)
+    plt.show()
+    plt.close()</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.discard_short_classes"><code class="name flex">
+<span>def <span class="ident">discard_short_classes</span></span>(<span>events, minlen)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>returns all events despite events which are in classes with less than minlen members</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def discard_short_classes(events, minlen):
+    &#34;&#34;&#34; 
+        returns all events despite events which are in classes with less than minlen members
+    &#34;&#34;&#34;
+
+    u, c = np.unique(events[-1],return_counts=True)
+
+    smallclasses = u[c&lt;minlen]
+    classlist = events[-1]
+    
+    delete = np.zeros(len(classlist))
+
+    for cl in smallclasses:
+        delete[classlist == cl] = 1
+    events = events[:,delete != 1]
+
+    return events</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.path_leaf"><code class="name flex">
+<span>def <span class="ident">path_leaf</span></span>(<span>path)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def path_leaf(path):
+    ntpath.basename(&#34;a/b/c&#34;)
+    head, tail = ntpath.split(path)
+    return tail or ntpath.basename(head)</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.save_EOD_events_to_npmmp"><code class="name flex">
+<span>def <span class="ident">save_EOD_events_to_npmmp</span></span>(<span>EOD_Events, eods_len, startblock, datasavepath, mmpname='eods.npmmp')</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save_EOD_events_to_npmmp(EOD_Events,eods_len,startblock,datasavepath,mmpname=&#39;eods.npmmp&#39;):
+    n_EOD_Events = len(EOD_Events[0])
+    savepath = datasavepath+&#34;/&#34;+mmpname
+    if startblock:
+                eods = np.memmap(savepath,
+                                 dtype=&#39;float64&#39;, mode=&#39;w+&#39;,
+                                 shape=(4,n_EOD_Events), order = &#39;F&#39;)
+    else:
+        dtypesize = 8#4 #float32 is 32bit = &gt;4&lt; bytes long  ---changed to float64 -&gt; 8bit
+        eods = np.memmap(savepath, dtype=
+                         &#39;float64&#39;, mode=&#39;r+&#39;, offset = dtypesize*eods_len*4,
+                         shape=(4,n_EOD_Events), order = &#39;F&#39;)
+    eods[:] = EOD_Events</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.create_threshold_array"><code class="name flex">
+<span>def <span class="ident">create_threshold_array</span></span>(<span>data, window, threshold)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def create_threshold_array(data,window,threshold):
+    thr_array = np.zeros(data.shape)
+    for i in range(int(len(data)/window)):
+        thr_array[i*window:(i+1)*window] = np.std(data[i*window:(i+1)*window])*4
+    thr_array[thr_array&lt;threshold] = threshold
+    return thr_array</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.alignlabels"><code class="name flex">
+<span>def <span class="ident">alignlabels</span></span>(<span>labels, clusters, old_labels, old_clusters, maxlabel)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def alignlabels(labels,clusters,old_labels,old_clusters,maxlabel):
+
+    old_labels = old_labels[old_labels!=-1]
+
+    labels_new = -1*np.ones(labels.shape)
+    newclass = maxlabel
+    
+    for curlabel, cluster in enumerate(clusters):
+        n = np.linalg.norm(old_clusters-cluster,axis=1)
+
+        if np.min(n) &lt; 0.1:
+            labels_new[labels==curlabel] = old_labels[np.argmin(n)]
+        else:
+            labels_new[labels==curlabel] = newclass
+            newclass = newclass + 1
+
+    return labels_new</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.analyze_pulse_data"><code class="name flex">
+<span>def <span class="ident">analyze_pulse_data</span></span>(<span>filepath, deltat=10, thresh=0.04, starttime=0, endtime=0, cluster_thresh=0.1, savepath=False, save=False, npmmp=False, plot_eods=False, plot_features=False, plot_steps=False, plot_result=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>analyzes timeseries of a pulse fish EOD recording</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filepath</code></strong> :&ensp;<code>WAV-file with the recorded timeseries</code></dt>
+<dd>&nbsp;</dd>
+<dt><strong><code>deltat</code></strong> :&ensp;<code>int</code>, optional</dt>
+<dd>time for a single analysisblock (recommended less than a minute, due to principal component clustering on the EOD-waveforms)</dd>
+<dt><strong><code>thresh</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>minimum threshold for the peakdetection (if computing frequencies recommended a tiny bit lower than the wished threshold, and instead discard the EOD below the wished threshold after computing the frequencies for each EOD.)</dd>
+<dt><strong><code>starttime</code></strong> :&ensp;<code>int or, str</code> of <code>int</code>, optional</dt>
+<dd>time into the data from where to start the analysis, seconds.</dd>
+<dt><strong><code>endtime</code></strong> :&ensp;<code>int</code> or <code>str</code> of <code>int</code>, optional</dt>
+<dd>time into the data where to end the analysis, seconds, larger than starttime.</dd>
+<dt><strong><code>cluster_thresh</code></strong> :&ensp;<code>float</code>, optional</dt>
+<dd>threshold that decides the cluster density of the EOD waveform features.</dd>
+</dl>
+<p>savepath = Boolean or str, optional
+path to where to save results and intermediate result, only needed if save or npmmp is True.
+string to specify a relative path to the directory where results and intermediate results will bed
+or False to use preset savepath, which is ~/filepath/
+or True to specify savepath as input when the script is running</p>
+<dl>
+<dt><strong><code>save</code></strong> :&ensp;<code>Boolean</code>, optional</dt>
+<dd>True to save the results into a npy file at the savepath</dd>
+<dt><strong><code>npmmp</code></strong> :&ensp;<code>Boolean</code>, optional</dt>
+<dd>True to save intermediate results into a npmmp at the savepath, only recommended in case of memory overflow</dd>
+<dt><strong><code>plot_steps</code></strong> :&ensp;<code>Boolean</code>, optional</dt>
+<dd>True to plot the results of each analysis block</dd>
+<dt><strong><code>plot_results</code></strong> :&ensp;<code>Boolean</code>, optional</dt>
+<dd>True to plot the results of the final analysis. Not recommended for long recordings due to %TODO</dd>
+<dt><strong><code>plot_eods</code></strong> :&ensp;<code>Boolean</code>, optional</dt>
+<dd>True to plot the EOD waveforms for each analysis block</dd>
+<dt><strong><code>plot_features</code></strong> :&ensp;<code>Boolean</code>, optional</dt>
+<dd>True to plot the EOD waveform features for each analysis block</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>eods</code></strong> :&ensp;<code>numpy array</code></dt>
+<dd>2D numpy array. first axis: attributes of an EOD (x (datapoints), y (recorded voltage), height (difference from maximum to minimum), class), second axis: EODs in chronological order.</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime = 0, cluster_thresh = 0.1, savepath = False,save=False, npmmp = False, plot_eods=False,plot_features=False,plot_steps=False, plot_result=False):
+
+    &#34;&#34;&#34;
+    analyzes timeseries of a pulse fish EOD recording
+
+    Parameters
+    ----------
+    filepath: WAV-file with the recorded timeseries
+
+    deltat: int, optional
+        time for a single analysisblock (recommended less than a minute, due to principal component clustering on the EOD-waveforms)
+
+    thresh: float, optional
+        minimum threshold for the peakdetection (if computing frequencies recommended a tiny bit lower than the wished threshold, and instead discard the EOD below the wished threshold after computing the frequencies for each EOD.)
+
+    starttime: int or, str of int, optional
+        time into the data from where to start the analysis, seconds.
+
+    endtime: int or str of int, optional
+        time into the data where to end the analysis, seconds, larger than starttime.
+    
+    cluster_thresh: float, optional
+        threshold that decides the cluster density of the EOD waveform features.
+
+    savepath = Boolean or str, optional
+        path to where to save results and intermediate result, only needed if save or npmmp is True.
+        string to specify a relative path to the directory where results and intermediate results will bed
+        or False to use preset savepath, which is ~/filepath/
+        or True to specify savepath as input when the script is running
+
+    save: Boolean, optional
+        True to save the results into a npy file at the savepath
+
+    npmmp: Boolean, optional
+        True to save intermediate results into a npmmp at the savepath, only recommended in case of memory overflow
+
+    plot_steps: Boolean, optional
+        True to plot the results of each analysis block
+
+    plot_results: Boolean, optional
+        True to plot the results of the final analysis. Not recommended for long recordings due to %TODO
+
+    plot_eods: Boolean, optional
+        True to plot the EOD waveforms for each analysis block
+
+    plot_features: Boolean, optional
+        True to plot the EOD waveform features for each analysis block
+
+    Returns
+    -------
+    eods: numpy array
+        2D numpy array. first axis: attributes of an EOD (x (datapoints), y (recorded voltage), height (difference from maximum to minimum), class), second axis: EODs in chronological order.
+    &#34;&#34;&#34;
+    
+    # parameters for the analysis
+    thresh = 0.04 # minimal threshold for peakdetection
+    peakwidth = 20 # width of a peak and minimal distance between two EODs
+    # basic parameters for thunderfish.dataloader.DataLoader
+    verbose = 0
+    channel = 0
+    ultimate_threshold = thresh+0.01
+    startblock = 0
+    starttime = int(starttime)
+    endtime = int(endtime)
+    timegiven = False
+    if endtime &gt; starttime&gt;=0:
+        timegiven = True
+    peaks = np.array([])
+    troughs = np.array([])
+    filename = path_leaf(filepath)
+    eods_len = 0
+    if savepath==False:
+        datasavepath = filename[:-4]
+    elif savepath==True:
+        datasavepath = input(&#39;With the option npmmp enabled, a numpy memmap will be saved to: &#39;).lower()
+    else: datasavepath=savepath
+
+    if save and (os.path.exists(datasavepath+&#34;/eods8_&#34;+filename[:-3]+&#34;npy&#34;) or os.path.exists(datasavepath+&#34;/eods5_&#34;+filename[:-3]+&#34;npy&#34;)):
+        print(&#39;there already exists an analyzed file, aborting. Change the code if you don\&#39;t want to abort&#39;)
+        quit()
+    if npmmp:
+        #proceed = input(&#39;With the option npmmp enabled, a numpy memmap will be saved to &#39; + datasavepath + &#39;. continue? [y/n] &#39;).lower()
+        proceed = &#39;y&#39;
+        if proceed != &#39;y&#39;:
+             quit()
+    # starting analysis
+    with DataLoader(filepath, deltat, 0.0, verbose) as data:
+
+        samplerate = data.samplerate
+
+        # selected time interval
+        if timegiven == True:
+            parttime1 = starttime*samplerate
+            parttime2 = endtime*samplerate
+            data = data[parttime1:parttime2,channel]
+
+        #split data into blocks
+        nblock = int(deltat*samplerate)
+        if len(data)%nblock != 0:
+            blockamount = len(data)//nblock + 1
+        else:
+            blockamount = len(data)//nblock
+        #fish = ProgressFish(total = blockamount)
+
+        pca_cur = 0
+        progress = 0
+
+        for idx in range(0, blockamount):
+            print(&#39;BLOCK %i/%i&#39;%(idx+1,blockamount))
+
+            blockdata = data[idx*nblock:(idx+1)*nblock,channel]
+            if progress &lt; (idx*100 //blockamount):
+                progress = (idx*100)//blockamount
+            progressstr = &#39; Filestatus: &#39;
+
+            # fish.animate(amount = idx, dexextra = progressstr)
+             # delete peaks under absolute threshold
+            
+
+            #thresh_array = create_threshold_array(blockdata,30000,thresh)            
+            pk, tr = detect_peaks(blockdata, thresh)
+            troughs = tr
+
+            if len(pk) &gt; 3:
+                
+                peaks = makeeventlist(pk,tr,blockdata,peakwidth)
+                peakindices, peakx, peakh = discardnearbyevents(peaks[0],peaks[1],peakwidth)
+                peaks = peaks[:,peakindices]
+
+                if len(peaks) &gt; 0:
+
+                    #if idx &gt; startblock:
+                    #    # adding a new block as copy of old list, only difference is peak indexing as it refers to last block
+                    #    peaklist = connect_blocks(peaklist)
+                    #else:
+                    #    peaklist = Peaklist([])
+
+                    aligned_snips, snip_heights = cut_snippets(blockdata,peaks[0], 30, int_met = &#34;cubic&#34;, int_fact = 10,max_offset = 20)
+                    
+                    pols = chebyshev(aligned_snips)
+
+                    feats = np.zeros((pols.shape[0],pols.shape[1]+1))
+                    feats[:,:6] = pols
+                    feats[:,-1] = snip_heights*0.1
+                    #pcs, pca_cur = pc(aligned_snips) #pc_refactor(aligned_snips)
+                    
+                    minpeaks = 3 if deltat &lt; 2 else 10
+                    
+                    labels, clusters = cluster_events(feats, peaks, cluster_thresh, minpeaks, False, method = &#39;DBSCAN&#39;)
+                    peaks = np.append(peaks,[labels], axis = 0)
+                    
+                    if idx &gt; startblock:
+                      # instead of the peaklist I would have to add the previous cluster means
+                      # alignclusterlabels(labels, peaklist, peaks,data=blockdata)
+                      peaks[-1] = alignlabels(labels,clusters,old_labels,old_clusters,maxlabel)
+                    
+                    old_labels = np.unique(peaks[-1])
+                    old_clusters = clusters
+                      #I would want peaks updated here to have the right pc classes as well..
+
+                    #peaks, peaklist = ampwalkclassify3_refactor(peaks, peaklist) # classification by amplitude
+
+                    minlen = 5
+                    peaks = discard_short_classes(peaks, minlen)
+                    
+                    if len(peaks[0]) &gt; 0:
+                        peaks = discard_wave_pulses(peaks, blockdata)
+                        # delete peaks under absolute threshold
+                        #thresh_array = create_threshold_array(blockdata,30000)
+                        #peaks = peaks[:,peaks[1]&gt;thresh_array[list(map(int,peaks[0]))]]
+                    
+                    cmap = plt.get_cmap(&#39;jet&#39;)
+                    colors = cmap(np.linspace(0, 1.0, 10))
+
+                    if plot_steps == True:
+                        plot_events_on_data(peaks, blockdata, colors)
+                        pass
+
+                    for lab in np.unique(labels):
+                        
+                        if lab == -1:
+                            c = &#39;k&#39;
+                            z=-1
+                        else:
+                            c=colors[lab]
+                            z=1
+                        if plot_eods==True:
+                            plt.plot(range(aligned_snips.shape[1]),np.transpose(aligned_snips[labels == lab]),color=c,zorder=z,label=lab)
+                    
+                    if plot_eods==True:
+                        plt.title(&#39;Detected and classified EODs&#39;)
+                        plt.xlabel(&#39;time [ms]&#39;)
+                        plt.ylabel(&#39;signal (normalized)&#39;)
+                    
+                        phandles, plabels = plt.gca().get_legend_handles_labels()
+                        by_label = dict(zip(plabels, phandles))
+                        plt.legend(by_label.values(), by_label.keys())
+                        plt.show()
+
+                    for lab in np.unique(labels):
+                        
+                        if lab == -1:
+                            c = &#39;k&#39;
+                            z = -1
+                        else:
+                            c = colors[lab]
+                            z=1
+
+                        if plot_features==True:
+                            plt.plot(np.squeeze(np.transpose(feats[labels == lab])),color=c,zorder=z,label=lab)
+                
+                    if plot_features==True:
+                        plt.title(&#39;EOD Features&#39;)
+                        plt.xlabel(&#39;feature [#]&#39;)
+                        plt.ylabel(&#39;value [a.u.]&#39;)
+                    
+                        phandles, plabels = plt.gca().get_legend_handles_labels()
+                        by_label = dict(zip(plabels, phandles))
+                        plt.legend(by_label.values(), by_label.keys())
+                        plt.show()
+
+                    #peaklist.len = nblock
+                    worldpeaks = np.copy(peaks)
+                    worldpeaks[0] = worldpeaks[0] + (idx*nblock)
+                    # delete the classification that only considers wave shape.
+                    #thisblock_eods = np.delete(worldpeaks,3,0)
+                    thisblock_eods = worldpeaks
+
+                    if idx == startblock:
+                        maxlabel = np.max(peaks[-1]) + 1
+                    else:
+                        maxlabel = np.max([maxlabel, (np.max(peaks[-1]) + 1)])
+
+                    if npmmp:
+                        if idx == startblock:
+                            if not os.path.exists(datasavepath):
+                                os.makedirs(datasavepath)
+                            mmpname = &#34;eods_&#34;+filename[:-3]+&#34;npmmp&#34;
+                        # save the peaks of the current buffered part to a numpy-memmap on the disk
+                        save_EOD_events_to_npmmp(thisblock_eods,eods_len,idx==startblock,datasavepath,mmpname)
+                        eods_len += len(thisblock_eods[0])
+                    else:
+                        if idx &gt; 0:
+                            all_eods = np.concatenate((all_eods,thisblock_eods),axis = 1)
+                        else:
+                            all_eods = thisblock_eods
+        if plot_steps == True:
+            print(&#39;FINAL RESULTS&#39;)
+            plot_events_on_data(all_eods, data[:,channel], colors)
+    #plot_events_on_data(all_eods,data)
+    print(&#39;returnes analyzed EODS. Calculate frequencies using all of these but discard the data from the EODS within the lowest few percent of amplitude&#39;)
+
+    if npmmp:
+        all_eods = np.memmap(datasavepath+&#39;/&#39;+mmpname, dtype=&#39;float64&#39;, mode=&#39;r+&#39;, shape=(4,eods_len), order = &#39;F&#39;)
+    if save == 1:
+       path = filename[:-4]+&#34;/&#34;
+       if not os.path.exists(path):
+           os.makedirs(path)
+       if eods_len &gt; 0:
+           np.save(datasavepath+&#34;/eods8_&#34;+filename[:-3]+&#34;npy&#34;, all_eods)
+           print(&#39;Saved!&#39;)
+       else:
+           print(&#39;not saved&#39;)
+    return all_eods</code></pre>
+</details>
+</dd>
+<dt id="thunderfish.pulsetracker.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main():
+
+    eods = analyze_pulse_data(sys.argv[1], save=True, npmmp=True)
+    print(eods)</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="thunderfish.pulsetracker.Peaklist"><code class="flex name class">
+<span>class <span class="ident">Peaklist</span></span>
+<span>(</span><span>peaklist)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class Peaklist(object):
+    def __init__(self, peaklist):
+        self.list = peaklist
+        self.lastofclass = {}
+        self.lastofclassx = {}
+        self.classesnearby = []
+        self.classesnearbyx = []
+        self.classesnearbypccl = []
+        self.classlist = []
+        self.classamount = 0
+        self.shapes = {}</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.pulsetracker.makeeventlist" href="#thunderfish.pulsetracker.makeeventlist">makeeventlist</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.discardnearbyevents" href="#thunderfish.pulsetracker.discardnearbyevents">discardnearbyevents</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.crosscorrelation" href="#thunderfish.pulsetracker.crosscorrelation">crosscorrelation</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.interpol" href="#thunderfish.pulsetracker.interpol">interpol</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.interpolated_array" href="#thunderfish.pulsetracker.interpolated_array">interpolated_array</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.cut_snippets" href="#thunderfish.pulsetracker.cut_snippets">cut_snippets</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.pc" href="#thunderfish.pulsetracker.pc">pc</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.chebyshev" href="#thunderfish.pulsetracker.chebyshev">chebyshev</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.dbscan" href="#thunderfish.pulsetracker.dbscan">dbscan</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.cluster_events" href="#thunderfish.pulsetracker.cluster_events">cluster_events</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.connect_blocks" href="#thunderfish.pulsetracker.connect_blocks">connect_blocks</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.alignclusterlabels" href="#thunderfish.pulsetracker.alignclusterlabels">alignclusterlabels</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.ampwalkclassify3_refactor" href="#thunderfish.pulsetracker.ampwalkclassify3_refactor">ampwalkclassify3_refactor</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.discard_wave_pulses" href="#thunderfish.pulsetracker.discard_wave_pulses">discard_wave_pulses</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.plot_events_on_data" href="#thunderfish.pulsetracker.plot_events_on_data">plot_events_on_data</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.discard_short_classes" href="#thunderfish.pulsetracker.discard_short_classes">discard_short_classes</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.path_leaf" href="#thunderfish.pulsetracker.path_leaf">path_leaf</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.save_EOD_events_to_npmmp" href="#thunderfish.pulsetracker.save_EOD_events_to_npmmp">save_EOD_events_to_npmmp</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.create_threshold_array" href="#thunderfish.pulsetracker.create_threshold_array">create_threshold_array</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.alignlabels" href="#thunderfish.pulsetracker.alignlabels">alignlabels</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.analyze_pulse_data" href="#thunderfish.pulsetracker.analyze_pulse_data">analyze_pulse_data</a></code></li>
+<li><code><a title="thunderfish.pulsetracker.main" href="#thunderfish.pulsetracker.main">main</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="thunderfish.pulsetracker.Peaklist" href="#thunderfish.pulsetracker.Peaklist">Peaklist</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
