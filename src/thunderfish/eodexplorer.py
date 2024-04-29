@@ -445,7 +445,7 @@ class EODExplorer(MultivariateExplorer):
                         group_cols.append('ampl%d' % k)
                 elif group == 'relampl':
                     group_cols.append('thd')
-                    group_cols.append('reltroughampl')
+                    group_cols.append('relpeakampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                 elif group == 'relpower' or group == 'power':
@@ -456,7 +456,7 @@ class EODExplorer(MultivariateExplorer):
                         group_cols.append('phase%d' % k)
                 elif group == 'all':
                     group_cols.append('thd')
-                    group_cols.append('reltroughampl')
+                    group_cols.append('relpeakampl')
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                         group_cols.append('phase%d' % k)

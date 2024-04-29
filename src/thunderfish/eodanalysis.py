@@ -333,7 +333,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
         - righttrough: time from trough to positive zero crossing relative to
           EOD period.
         - p-p-distance: time between peak and trough relative to EOD period.
-        - reltroughampl: amplitude of trough relative to peak amplitude.
+        - relpeakampl: amplitude of peak or trough, whichever is larger, relative to p-p amplitude.
         - power: summed power of all harmonics of the extracted EOD waveform
           in decibel relative to one.
         - datapower: summed power of all harmonics of the original data in
@@ -507,9 +507,9 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
     # total harmonic distortion:
     thd = np.sqrt(np.nansum(spec_data[1:,3]))
 
-    # peak and trough amplitudes:
+    # peak-to-peak and trough amplitudes:
     ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
-    relptampl = np.min(meod[i0:i1,1])/np.max(meod[i0:i1,1])
+    relpeakampl = min(np.max(meod[i0:i1,1]), np.abs(np.min(meod[i0:i1,1])))/ppampl
     
     # variance and fit error:
     rmssem = np.sqrt(np.mean(meod[i0:i1,2]**2.0))/ppampl if eod.shape[1] > 2 else None
@@ -533,7 +533,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
     props['lefttrough'] = phase3/period
     props['righttrough'] = phase4/period
     props['p-p-distance'] = distance/period
-    props['reltroughampl'] = np.abs(relptampl)
+    props['relpeakampl'] = relpeakampl
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
     pnh = min(n_harm, pnh)
     props['power'] = decibel(np.sum(spec_data[:pnh,2]**2.0))
@@ -2173,7 +2173,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('lefttrough', '%', '%.2f', wave_props, 100.0)
     td.append('righttrough', '%', '%.2f', wave_props, 100.0)
     td.append('p-p-distance', '%', '%.2f', wave_props, 100.0)
-    td.append('reltroughampl', '%', '%.2f', wave_props, 100.0)
+    td.append('relpeakampl', '%', '%.2f', wave_props, 100.0)
     fp = '-wavefish'
     return td.write_file_stream(basename, fp, **kwargs)
 
@@ -2229,7 +2229,7 @@ def load_wave_fish(file_path):
         props['lefttrough'] /= 100
         props['righttrough'] /= 100
         props['p-p-distance'] /= 100
-        props['reltroughampl'] /= 100
+        props['relpeakampl'] /= 100
     return eod_props
 
 

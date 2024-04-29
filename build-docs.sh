@@ -3,7 +3,7 @@
 die() { echo "ERROR: $*"; exit 2; }
 warn() { echo "WARNING: $*"; }
 
-for cmd in mkdocs pdoc3; do
+for cmd in mkdocs pdoc3 genbadge; do
     command -v "$cmd" >/dev/null ||
         warn "missing $cmd: run \`pip install $cmd\`"
 done
@@ -35,7 +35,7 @@ if command -v mkdocs >/dev/null; then
     if $HAS_COVER; then
 	echo "        - Coverage: 'cover/index.html'" >> mkdocs-tmp.yml
     fi
-    mkdir docs
+    mkdir -p docs
     sed -e 's|docs/||; /\[Documentation\]/d; /\[API Reference\]/d' README.md > docs/index.md
     mkdocs build --config-file mkdocs-tmp.yml --site-dir "$BUILDROOT"
     rm mkdocs-tmp.yml docs/index.md

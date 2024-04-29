@@ -514,7 +514,7 @@ wave-type fish detected in the recording.
     <th align="left">lefttrough</th>
     <th align="left">righttrough</th>
     <th align="left">p-p-distance</th>
-    <th align="left">reltroughampl</th>
+    <th align="left">relpeakampl</th>
   </tr>
   <tr>
     <th align="left">s</th>
@@ -733,7 +733,7 @@ The columns contain:
 25. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
 26. `righttrough` Time from trough to positive zero crossing relative to EOD period.
 27. `p-p-distance` Time between peak and trough relative to EOD period.
-28. `reltroughampl` Amplitude of trough relative to peak amplitude.
+28. `relpeakampl` Amplitude of peak or trough, whichever is larger, relative to p-p amplitude.
 
 
 ### RECORDING-CHANNEL-TIME-wavespectrum-N.EXT
