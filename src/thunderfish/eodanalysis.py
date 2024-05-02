@@ -470,11 +470,9 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
     for i in range(n_harm):
         popt[i*2+2] -= (i + 1)*phi0
         # all phases in the range -pi to pi:
-        popt[i*2+2] %= 2.0*np.pi
+        popt[i*2+2] %= 2*np.pi
         if popt[i*2+2] > np.pi:
-            popt[i*2+2] -= 2.0*np.pi
-    # shift time axis:
-    # meod[:,0] += phi0/2/np.pi/freq0
+            popt[i*2+2] -= 2*np.pi
     # store fourier spectrum:
     if hasattr(freq, 'shape'):
         n = n_harm
