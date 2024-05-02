@@ -324,6 +324,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
           to EOD period.
         - troughwidth: width of the trough at the averaged amplitude
           relative to EOD period.
+        - minwidth: peakwidth or troughwidth, whichever is smaller.
         - leftpeak: time from positive zero crossing to peak relative
           to EOD period.
         - rightpeak: time from peak to negative zero crossing relative to
@@ -333,7 +334,10 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
         - righttrough: time from trough to positive zero crossing relative to
           EOD period.
         - p-p-distance: time between peak and trough relative to EOD period.
-        - relpeakampl: amplitude of peak or trough, whichever is larger, relative to p-p amplitude.
+        - min-p-p-distance: p-p-distance or EOD period minus p-p-distance,
+          whichever is smaller, relative to EOD period.
+        - relpeakampl: amplitude of peak or trough, whichever is larger,
+          relative to p-p amplitude.
         - power: summed power of all harmonics of the extracted EOD waveform
           in decibel relative to one.
         - datapower: summed power of all harmonics of the original data in
@@ -435,6 +439,9 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
     phase3 = trough_time - down_time
     phase4 = up_time + period - trough_time
     distance = trough_time - peak_time
+    min_distance = distance
+    if distance > period/2:
+        min_distance = period - distance
     
     # fit fourier series:
     ampl = 0.5*(np.max(meod[:,1])-np.min(meod[:,1]))
@@ -509,7 +516,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
 
     # peak-to-peak and trough amplitudes:
     ppampl = np.max(meod[i0:i1,1]) - np.min(meod[i0:i1,1])
-    relpeakampl = min(np.max(meod[i0:i1,1]), np.abs(np.min(meod[i0:i1,1])))/ppampl
+    relpeakampl = max(np.max(meod[i0:i1,1]), np.abs(np.min(meod[i0:i1,1])))/ppampl
     
     # variance and fit error:
     rmssem = np.sqrt(np.mean(meod[i0:i1,2]**2.0))/ppampl if eod.shape[1] > 2 else None
@@ -528,11 +535,13 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
     props['ncrossings'] = ncrossings
     props['peakwidth'] = peak_width/period
     props['troughwidth'] = trough_width/period
+    props['minwidth'] = min(peak_width, trough_width)/period
     props['leftpeak'] = phase1/period
     props['rightpeak'] = phase2/period
     props['lefttrough'] = phase3/period
     props['righttrough'] = phase4/period
     props['p-p-distance'] = distance/period
+    props['min-p-p-distance'] = min_distance/period
     props['relpeakampl'] = relpeakampl
     pnh = power_n_harmonics if power_n_harmonics > 0 else n_harm
     pnh = min(n_harm, pnh)
@@ -2168,11 +2177,13 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('ncrossings', '', '%d', wave_props)
     td.append('peakwidth', '%', '%.2f', wave_props, 100.0)
     td.append('troughwidth', '%', '%.2f', wave_props, 100.0)
+    td.append('minwidth', '%', '%.2f', wave_props, 100.0)
     td.append('leftpeak', '%', '%.2f', wave_props, 100.0)
     td.append('rightpeak', '%', '%.2f', wave_props, 100.0)
     td.append('lefttrough', '%', '%.2f', wave_props, 100.0)
     td.append('righttrough', '%', '%.2f', wave_props, 100.0)
     td.append('p-p-distance', '%', '%.2f', wave_props, 100.0)
+    td.append('min-p-p-distance', '%', '%.2f', wave_props, 100.0)
     td.append('relpeakampl', '%', '%.2f', wave_props, 100.0)
     fp = '-wavefish'
     return td.write_file_stream(basename, fp, **kwargs)
@@ -2224,11 +2235,13 @@ def load_wave_fish(file_path):
         props['ncrossings'] = int(props['ncrossings'])
         props['peakwidth'] /= 100
         props['troughwidth'] /= 100
+        props['minwidth'] /= 100
         props['leftpeak'] /= 100
         props['rightpeak'] /= 100
         props['lefttrough'] /= 100
         props['righttrough'] /= 100
         props['p-p-distance'] /= 100
+        props['min-p-p-distance'] /= 100
         props['relpeakampl'] /= 100
     return eod_props
 
