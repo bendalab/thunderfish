@@ -484,7 +484,7 @@ wave-type fish detected in the recording.
   <tr>
     <th align="left" colspan="6">recording</th>
     <th align="left" colspan="13">waveform</th>
-    <th align="left" colspan="9">timing</th>
+    <th align="left" colspan="11">timing</th>
   </tr>
   <tr>
     <th align="left">twin</th>
@@ -509,11 +509,13 @@ wave-type fish detected in the recording.
     <th align="left">ncrossings</th>
     <th align="left">peakwidth</th>
     <th align="left">troughwidth</th>
+    <th align="left">minwidth</th>
     <th align="left">leftpeak</th>
     <th align="left">rightpeak</th>
     <th align="left">lefttrough</th>
     <th align="left">righttrough</th>
     <th align="left">p-p-distance</th>
+    <th align="left">min-p-p-distance</th>
     <th align="left">relpeakampl</th>
   </tr>
   <tr>
@@ -545,6 +547,8 @@ wave-type fish detected in the recording.
     <th align="left">%</th>
     <th align="left">%</th>
     <th align="left">%</th>
+    <th align="left">%</th>
+    <th align="left">%</th>
   </tr>
 </thead>
 <tbody>
@@ -553,13 +557,13 @@ wave-type fish detected in the recording.
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
-    <td align="right">65536</td>
-    <td align="right">0.49</td>
+    <td align="right">131072</td>
+    <td align="right">0.24</td>
     <td align="right">0</td>
     <td align="right">580.08</td>
     <td align="right">0.22755</td>
     <td align="right">-21.28</td>
-    <td align="right">-22.01</td>
+    <td align="right">-19.05</td>
     <td align="right">149.81</td>
     <td align="right">2.93</td>
     <td align="right">-9.22</td>
@@ -571,115 +575,123 @@ wave-type fish detected in the recording.
     <td align="right">1</td>
     <td align="right">76.15</td>
     <td align="right">23.85</td>
+    <td align="right">23.85</td>
     <td align="right">69.12</td>
     <td align="right">7.03</td>
     <td align="right">11.10</td>
     <td align="right">12.75</td>
     <td align="right">18.13</td>
-    <td align="right">312.11</td>
+    <td align="right">18.13</td>
+    <td align="right">75.73</td>
   </tr>
   <tr>
     <td align="right">4.25</td>
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
-    <td align="right">65536</td>
-    <td align="right">0.49</td>
+    <td align="right">131072</td>
+    <td align="right">0.24</td>
     <td align="right">1</td>
-    <td align="right">111.33</td>
-    <td align="right">0.00713</td>
-    <td align="right">-50.80</td>
-    <td align="right">-34.09</td>
-    <td align="right">67.60</td>
-    <td align="right">7.18</td>
-    <td align="right">-29.48</td>
-    <td align="right">34.7</td>
-    <td align="right">2.94</td>
+    <td align="right">111.08</td>
+    <td align="right">0.05387</td>
+    <td align="right">-31.84</td>
+    <td align="right">-30.09</td>
+    <td align="right">69.07</td>
+    <td align="right">4.12</td>
+    <td align="right">-30.74</td>
+    <td align="right">4.5</td>
+    <td align="right">0.66</td>
     <td align="right">0.0</td>
     <td align="right">0</td>
-    <td align="right">888</td>
+    <td align="right">886</td>
     <td align="right">2</td>
-    <td align="right">44.00</td>
-    <td align="right">56.00</td>
-    <td align="right">19.50</td>
-    <td align="right">24.51</td>
-    <td align="right">16.55</td>
-    <td align="right">39.45</td>
-    <td align="right">41.05</td>
-    <td align="right">73.54</td>
+    <td align="right">58.56</td>
+    <td align="right">41.44</td>
+    <td align="right">41.44</td>
+    <td align="right">18.77</td>
+    <td align="right">39.79</td>
+    <td align="right">19.92</td>
+    <td align="right">21.52</td>
+    <td align="right">59.71</td>
+    <td align="right">40.29</td>
+    <td align="right">58.70</td>
   </tr>
   <tr>
     <td align="right">4.25</td>
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
-    <td align="right">65536</td>
-    <td align="right">0.49</td>
+    <td align="right">131072</td>
+    <td align="right">0.24</td>
     <td align="right">2</td>
-    <td align="right">132.81</td>
-    <td align="right">0.01029</td>
-    <td align="right">-46.47</td>
-    <td align="right">-37.87</td>
-    <td align="right">46.49</td>
-    <td align="right">8.40</td>
-    <td align="right">-32.48</td>
-    <td align="right">22.0</td>
-    <td align="right">1.55</td>
+    <td align="right">133.06</td>
+    <td align="right">0.02668</td>
+    <td align="right">-37.91</td>
+    <td align="right">-33.92</td>
+    <td align="right">62.16</td>
+    <td align="right">5.93</td>
+    <td align="right">-33.64</td>
+    <td align="right">8.4</td>
+    <td align="right">0.45</td>
     <td align="right">0.0</td>
     <td align="right">0</td>
-    <td align="right">1059</td>
+    <td align="right">1061</td>
     <td align="right">2</td>
-    <td align="right">49.11</td>
-    <td align="right">50.89</td>
-    <td align="right">25.30</td>
-    <td align="right">23.82</td>
-    <td align="right">29.72</td>
-    <td align="right">21.16</td>
-    <td align="right">53.54</td>
-    <td align="right">103.40</td>
+    <td align="right">42.13</td>
+    <td align="right">57.87</td>
+    <td align="right">42.13</td>
+    <td align="right">20.90</td>
+    <td align="right">21.23</td>
+    <td align="right">19.93</td>
+    <td align="right">37.94</td>
+    <td align="right">41.16</td>
+    <td align="right">41.16</td>
+    <td align="right">57.90</td>
   </tr>
   <tr>
     <td align="right">4.25</td>
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
-    <td align="right">65536</td>
-    <td align="right">0.49</td>
+    <td align="right">131072</td>
+    <td align="right">0.24</td>
     <td align="right">3</td>
-    <td align="right">608.89</td>
-    <td align="right">0.00258</td>
-    <td align="right">-59.51</td>
-    <td align="right">-45.45</td>
-    <td align="right">100.84</td>
-    <td align="right">15.01</td>
-    <td align="right">-22.24</td>
-    <td align="right">40.9</td>
-    <td align="right">1.37</td>
+    <td align="right">608.64</td>
+    <td align="right">0.01460</td>
+    <td align="right">-44.82</td>
+    <td align="right">-40.98</td>
+    <td align="right">120.54</td>
+    <td align="right">4.91</td>
+    <td align="right">-22.21</td>
+    <td align="right">7.2</td>
+    <td align="right">0.41</td>
     <td align="right">0.0</td>
     <td align="right">0</td>
-    <td align="right">4868</td>
-    <td align="right">2</td>
-    <td align="right">36.29</td>
-    <td align="right">63.71</td>
-    <td align="right">22.14</td>
-    <td align="right">14.15</td>
-    <td align="right">42.93</td>
-    <td align="right">20.78</td>
-    <td align="right">57.08</td>
-    <td align="right">91.60</td>
+    <td align="right">4866</td>
+    <td align="right">1</td>
+    <td align="right">69.73</td>
+    <td align="right">30.27</td>
+    <td align="right">30.27</td>
+    <td align="right">54.20</td>
+    <td align="right">15.52</td>
+    <td align="right">11.10</td>
+    <td align="right">19.17</td>
+    <td align="right">26.63</td>
+    <td align="right">26.63</td>
+    <td align="right">63.59</td>
   </tr>
   <tr>
     <td align="right">4.25</td>
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
-    <td align="right">65536</td>
-    <td align="right">0.49</td>
+    <td align="right">131072</td>
+    <td align="right">0.24</td>
     <td align="right">4</td>
     <td align="right">1979.49</td>
     <td align="right">0.00177</td>
     <td align="right">-61.18</td>
-    <td align="right">-61.72</td>
+    <td align="right">-58.72</td>
     <td align="right">58.05</td>
     <td align="right">13.10</td>
     <td align="right">-24.18</td>
@@ -691,12 +703,14 @@ wave-type fish detected in the recording.
     <td align="right">2</td>
     <td align="right">53.94</td>
     <td align="right">46.06</td>
+    <td align="right">46.06</td>
     <td align="right">22.94</td>
     <td align="right">31.00</td>
     <td align="right">24.67</td>
     <td align="right">21.38</td>
     <td align="right">55.67</td>
-    <td align="right">131.60</td>
+    <td align="right">44.33</td>
+    <td align="right">56.82</td>
   </tr>
 </tbody>
 </table>
@@ -728,12 +742,14 @@ The columns contain:
 20. `ncrossings` Number of zero crossing per EOD period.
 21. `peakwidth` Width of the peak at the averaged amplitude relative to EOD period.
 22. `troughwidth` Width of the trough at the averaged amplitude relative to EOD period.
-23. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
-24. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
-25. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
-26. `righttrough` Time from trough to positive zero crossing relative to EOD period.
-27. `p-p-distance` Time between peak and trough relative to EOD period.
-28. `relpeakampl` Amplitude of peak or trough, whichever is larger, relative to p-p amplitude.
+23. `minwidth`: `peakwidth` or `troughwidth`, whichever is smaller.
+24. `leftpeak` Time from positive zero crossing to peak relative to EOD period.
+25. `rightpeak` Time from peak to negative zero crossing relative to EOD period.
+26. `lefttrough` Time from negative zero crossing to trough relative to EOD period.
+27. `righttrough` Time from trough to positive zero crossing relative to EOD period.
+28. `p-p-distance` Time between peak and trough relative to EOD period.
+29. `min-p-p-distance`: `p-p-distance` or EOD period minus `p-p-distance`, whichever is smaller, relative to EOD period.
+30. `relpeakampl` Amplitude of peak or trough, whichever is larger, relative to p-p amplitude.
 
 
 ### RECORDING-CHANNEL-TIME-wavespectrum-N.EXT
