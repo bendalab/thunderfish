@@ -362,7 +362,7 @@ class EODExplorer(MultivariateExplorer):
 
     """Names of groups of data columns that can be selected by the select_EOD_properties() function.
     """
-    groups = ['all', 'allpower', 'noise', 'timing',
+    groups = ['all', 'allpower', 'noise', 'timing', 'wave',
               'ampl', 'relampl', 'power', 'relpower', 'phase',
               'time', 'width', 'peaks', 'none']
     
@@ -440,6 +440,9 @@ class EODExplorer(MultivariateExplorer):
                 elif group == 'timing' or group == 'time':
                     group_cols.extend(['peakwidth', 'troughwidth', 'p-p-distance',
                                        'leftpeak', 'rightpeak', 'lefttrough', 'righttrough'])
+                elif group == 'wave':
+                    group_cols.extend(['thd', 'minwidth', 'min-p-p-distance',
+                                       'relpeakampl'])
                 elif group == 'ampl':
                     for k in range(0, max_n):
                         group_cols.append('ampl%d' % k)
@@ -455,8 +458,8 @@ class EODExplorer(MultivariateExplorer):
                     for k in range(0, max_n):
                         group_cols.append('phase%d' % k)
                 elif group == 'all':
-                    group_cols.append('thd')
-                    group_cols.append('relpeakampl')
+                    group_cols.extend(['thd', 'minwidth', 'min-p-p-distance',
+                                       'relpeakampl'])
                     for k in range(1, max_n):
                         group_cols.append('relampl%d' % k)
                         group_cols.append('phase%d' % k)
