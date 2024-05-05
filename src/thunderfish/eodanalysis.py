@@ -89,7 +89,7 @@ from thunderlab.dataloader import load_data
 from .harmonics import fundamental_freqs_and_power
 
 
-def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
+def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,
                  min_sem=False, max_eods=None, unfilter_cutoff=0.0):
     """Detect EODs in the given data, extract data snippets around each EOD,
     and compute a mean waveform with standard error.
@@ -128,7 +128,7 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
     ----------
     data: 1-D array of float
         The data to be analysed.
-    samplerate: float
+    rate: float
         Sampling rate of the data in Hertz.
     eod_times: 1-D array of float
         Array of EOD times in seconds over which the waveform should be
@@ -158,14 +158,14 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
         averaged EOD waveform.
     """
     # indices of EOD times:
-    eod_idx = np.round(eod_times * samplerate).astype(int)
+    eod_idx = np.round(eod_times*rate).astype(int)
         
     # window size:
     period = np.min(np.diff(eod_times))
     win = 0.5*win_fac*period
     if 2*win < min_win:
         win = 0.5*min_win
-    win_inx = int(win * samplerate)
+    win_inx = int(win*rate)
 
     # extract snippets:
     eod_times = eod_times[(eod_idx >= win_inx) & (eod_idx < len(data)-win_inx)]
@@ -198,15 +198,15 @@ def eod_waveform(data, samplerate, eod_times, win_fac=2.0, min_win=0.01,
         
     # apply inverse filter:
     if unfilter_cutoff and unfilter_cutoff > 0.0:
-        unfilter(mean_eod[:,1], samplerate, unfilter_cutoff)
+        unfilter(mean_eod[:,1], rate, unfilter_cutoff)
         
     # time axis:
-    mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / samplerate
+    mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / rate
     
     return mean_eod, eod_times
 
 
-def unfilter(data, samplerate, cutoff):
+def unfilter(data, rate, cutoff):
     """Apply inverse high-pass filter on data.
 
     Assumes high-pass filter
@@ -221,7 +221,7 @@ def unfilter(data, samplerate, cutoff):
     ----------
     data: ndarray
         High-pass filtered original data.
-    samplerate: float
+    rate: float
         Sampling rate of `data` in Hertz.
     cutoff: float
         Cutoff frequency \\(f_{cutoff}\\) of the high-pass filter in Hertz.
@@ -232,7 +232,7 @@ def unfilter(data, samplerate, cutoff):
         Recovered original data.
     """
     tau = 0.5/np.pi/cutoff
-    fac = tau*samplerate
+    fac = tau*rate
     data -= np.mean(data)
     d0 = data[0]
     x = d0
@@ -894,8 +894,8 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
                 meod[inx:rridx,-1] = exp_decay(meod[inx:rridx,0]-meod[inx,0], *popt)
 
     # power spectrum of single pulse:
-    samplerate = 1.0/(meod[1,0]-meod[0,0])
-    n_fft = nfft(samplerate, freq_resolution)
+    rate = 1.0/(meod[1,0]-meod[0,0])
+    n_fft = nfft(rate, freq_resolution)
 
     n0 = max_idx
     n1 = len(meod)-max_idx
@@ -907,7 +907,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     nr = n//4
     data[n_fft//2-n0:n_fft//2-n0+nr] *= np.arange(nr)/nr
     data[n_fft//2+n1-nr:n_fft//2+n1] *= np.arange(nr)[::-1]/nr
-    freqs = np.fft.rfftfreq(n_fft, 1.0/samplerate)
+    freqs = np.fft.rfftfreq(n_fft, 1.0/rate)
     fourier = np.fft.rfft(data)/n_fft/freqs[1]
     power = np.abs(fourier)**2.0
     ppower = np.zeros((len(power), 2))
@@ -1260,7 +1260,7 @@ def pulse_similarity(eod1, eod2, wfac=10.0):
     return rmse
 
 
-def clipped_fraction(data, samplerate, eod_times, mean_eod,
+def clipped_fraction(data, rate, eod_times, mean_eod,
                      min_clip=-np.inf, max_clip=np.inf):
     """Compute fraction of clipped EOD waveform snippets.
 
@@ -1272,7 +1272,7 @@ def clipped_fraction(data, samplerate, eod_times, mean_eod,
     ----------
     data: 1-D array of float
         The data to be analysed.
-    samplerate: float
+    rate: float
         Sampling rate of the data in Hertz.
     eod_times: 1-D array of float
         Array of EOD times in seconds.
@@ -1293,7 +1293,7 @@ def clipped_fraction(data, samplerate, eod_times, mean_eod,
     idx0 = np.argmin(np.abs(mean_eod[:,0])) # index of time zero
     w0 = -idx0
     w1 = len(mean_eod[:,0]) - idx0
-    eod_idx = np.round(eod_times * samplerate).astype(int)
+    eod_idx = np.round(eod_times*rate).astype(int)
     eod_snippets = snippets(data, eod_idx, w0, w1)
     # fraction of clipped snippets:
     clipped_frac = np.sum(np.any((eod_snippets > max_clip) |
@@ -1506,7 +1506,7 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
     return ', '.join(skip_reason), ', '.join(msg), skipped_clipped
 
 
-def plot_eod_recording(ax, data, samplerate, unit=None, width=0.1,
+def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
                        toffs=0.0, kwargs={'lw': 2, 'color': 'red'}):
     """Plot a zoomed in range of the recorded trace.
 
@@ -1516,7 +1516,7 @@ def plot_eod_recording(ax, data, samplerate, unit=None, width=0.1,
         Axes used for plotting.
     data: 1D ndarray
         Recorded data to be plotted.
-    samplerate: float
+    rate: float
         Sampling rate of the data in Hertz.
     unit: string
         Optional unit of the data used for y-label.
@@ -1527,7 +1527,7 @@ def plot_eod_recording(ax, data, samplerate, unit=None, width=0.1,
     kwargs: dict
         Arguments passed on to the plot command for the recorded trace.
     """
-    widx2 = int(width*samplerate)//2
+    widx2 = int(width*rate)//2
     i0 = len(data)//2 - widx2
     i0 = (i0//widx2)*widx2
     i1 = i0 + 2*widx2
@@ -1535,7 +1535,7 @@ def plot_eod_recording(ax, data, samplerate, unit=None, width=0.1,
         i0 = 0
     if i1 >= len(data):
         i1 = len(data)
-    time = np.arange(len(data))/samplerate + toffs
+    time = np.arange(len(data))/rate + toffs
     tunit = 'sec'
     if np.abs(time[i0]) < 1.0 and np.abs(time[i1]) < 1.0:
         time *= 1000.0
@@ -1554,7 +1554,7 @@ def plot_eod_recording(ax, data, samplerate, unit=None, width=0.1,
         ax.set_ylabel('Amplitude [%s]' % unit)
 
 
-def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
+def plot_pulse_eods(ax, data, rate, zoom_window, width, eod_props,
                     toffs=0.0, colors=None, markers=None, marker_size=10,
                     legend_rows=8, **kwargs):
     """Mark pulse EODs in a plot of an EOD recording.
@@ -1565,7 +1565,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
         Axes used for plotting.
     data: 1D ndarray
         Recorded data (these are not plotted!).
-    samplerate: float
+    rate: float
         Sampling rate of the data in Hertz.
     zoom_window: tuple of floats
        Start and end time of the data to be plotted in seconds.
@@ -1606,7 +1606,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
                 break  
 
         x = eod['peaktimes'] + toffs
-        pidx = np.round(eod['peaktimes']*samplerate).astype(int)
+        pidx = np.round(eod['peaktimes']*rate).astype(int)
         y = data[pidx[(pidx>0)&(pidx<len(data))]]
         x = x[(pidx>0)&(pidx<len(data))]
         color_kwargs = {}
@@ -1640,8 +1640,8 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
     if len(zoom_window)>0:
         ax.set_xlim(max(toffs,toffs+zoom_window[1]-width), toffs+zoom_window[1])
 
-        i0 = max(0,int((zoom_window[1]-width)*samplerate))
-        i1 = int(zoom_window[1]*samplerate)
+        i0 = max(0,int((zoom_window[1]-width)*rate))
+        i1 = int(zoom_window[1]*rate)
 
         ymin = np.min(data[i0:i1])
         ymax = np.max(data[i0:i1])
@@ -1649,7 +1649,7 @@ def plot_pulse_eods(ax, data, samplerate, zoom_window, width, eod_props,
         ax.set_ylim(ymin-0.05*dy, ymax+0.05*dy)
 
         
-def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times,
+def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
                       n_snippets=10, flip=False,
                       kwargs={'zorder': -5, 'scaley': False,
                               'lw': 0.5, 'color': '#CCCCCC'}):
@@ -1661,7 +1661,7 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times,
         Axes used for plotting.
     data: 1D ndarray
         Recorded data from which the snippets are taken.
-    samplerate: float
+    rate: float
         Sampling rate of the data in Hertz.
     tmin: float
         Start time of each snippet.
@@ -1678,14 +1678,14 @@ def plot_eod_snippets(ax, data, samplerate, tmin, tmax, eod_times,
     """
     if n_snippets <= 0:
         return
-    i0 = int(tmin*samplerate)
-    i1 = int(tmax*samplerate)
-    time = 1000.0*np.arange(i0, i1)/samplerate
+    i0 = int(tmin*rate)
+    i1 = int(tmax*rate)
+    time = 1000.0*np.arange(i0, i1)/rate
     step = len(eod_times)//n_snippets
     if step < 1:
         step = 1
     for t in eod_times[n_snippets//2::step]:
-        idx = int(np.round(t*samplerate))
+        idx = int(np.round(t*rate))
         if idx+i0 < 0 or idx+i1 >= len(data):
             continue
         snippet = data[idx+i0:idx+i1]
@@ -2142,7 +2142,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     if len(wave_props) == 0:
         return None
     td = TableData()
-    if 'twin' in wave_props[0] or 'samplerate' in wave_props[0] or \
+    if 'twin' in wave_props[0] or 'rate' in wave_props[0] or \
        'nfft' in wave_props[0]:
         td.append_section('recording')
     if 'twin' in wave_props[0]:
@@ -2968,7 +2968,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
     -------
     data: array of float
         Data of the requested `channel`.
-    samplerate: float
+    rate: float
         Sampling rate in Hertz.
     idx0: int
         Start index of the analysis window.
@@ -2979,7 +2979,7 @@ def load_recording(file_path, channel=0, load_kwargs={},
 
     """
     data = None
-    samplerate = 0.0
+    rate = 0.0
     idx0 = 0
     idx1 = 0
     data_file = ''
@@ -2992,16 +2992,15 @@ def load_recording(file_path, channel=0, load_kwargs={},
                 data_file = dfile
                 break
     if os.path.exists(data_file):
-        data, samplerate, unit, amax = load_data(data_file,
-                                                 verbose=verbose,
-                                                 **load_kwargs)
+        data, rate, unit, amax = load_data(data_file, verbose=verbose,
+                                           **load_kwargs)
         idx0 = 0
         idx1 = len(data)
         if eod_props is not None and len(eod_props) > 0 and 'twin' in eod_props[0]:
-            idx0 = int(eod_props[0]['twin']*samplerate)
+            idx0 = int(eod_props[0]['twin']*rate)
         if len(eod_props) > 0 and 'window' in eod_props[0]:
-            idx1 = idx0 + int(eod_props[0]['window']*samplerate)
-    return data[:,channel], samplerate, idx0, idx1, data_file
+            idx1 = idx0 + int(eod_props[0]['window']*rate)
+    return data[:,channel], rate, idx0, idx1, data_file
 
         
 def add_eod_analysis_config(cfg, thresh_fac=0.8, percentile=0.1,
@@ -3237,14 +3236,14 @@ def main():
     print('Analysis of EOD waveforms.')
 
     # data:
-    samplerate = 44100.0
-    data = pulsefish_eods('Triphasic', 83.0, samplerate, 5.0, noise_std=0.02)
+    rate = 44100.0
+    data = pulsefish_eods('Triphasic', 83.0, rate, 5.0, noise_std=0.02)
     unit = 'mV'
     eod_idx, _ = detect_peaks(data, 1.0)
-    eod_times = eod_idx/samplerate
+    eod_times = eod_idx/rate
 
     # analyse EOD:
-    mean_eod, eod_times = eod_waveform(data, samplerate, eod_times)
+    mean_eod, eod_times = eod_waveform(data, rate, eod_times)
     mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times)
 
     # plot:

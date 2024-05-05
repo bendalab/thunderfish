@@ -18,7 +18,7 @@ import numpy as np
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, trim
 
 
-def check_pulse(data, sem, samplerate, thresh_fac=0.8, percentile=0.0,
+def check_pulse(data, sem, rate, thresh_fac=0.8, percentile=0.0,
                 sem_fac=0.05, pulse_thresh=0.15, verbose=0):
     """Detects if a fish is pulse- or wave-type based on the proportion of the time distance
     between a peak and its following trough, relative to the time between consecutive peaks.
@@ -30,7 +30,7 @@ def check_pulse(data, sem, samplerate, thresh_fac=0.8, percentile=0.0,
          The data to be analyzed.
     sem: 1-D array or None
          Standard error of the mean corresponding to data.
-    samplerate: float
+    rate: float
          Sampling rate of the data in Hertz.
     percentile: float
          The interpercentile range is computed at percentile and 100.0-percentile.

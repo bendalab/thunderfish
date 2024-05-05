@@ -159,7 +159,7 @@ def chirp_detection_plot(enu, chirp_time, time, power, power2, power_diff, funda
     ax.legend(loc='upper right', bbox_to_anchor=(1, 1), frameon=False)
 
 
-def chirp_analysis(data, samplerate):
+def chirp_analysis(data, rate):
     """
     Performs all steps to detect chirps in a given dataset. This includes spectrogram calculation, fish detection and
     analysing of specific frequency bands.
@@ -167,10 +167,10 @@ def chirp_analysis(data, samplerate):
     !!! recommended for short recordings (up to 5 min) where only the chirp times shall be extracted !!!
 
     :param data: (array) data.
-    :param samplerate: (float) smaplerate of the data.
+    :param rate: (float) smaplerate of the data.
     :param min_power: (float) minimal power of the fish fundamental to include this fish in chirp detection.
     """
-    freqs, time, spectrum = spectrogram(data, samplerate, freq_resolution=2., overlap_frac=0.95)
+    freqs, time, spectrum = spectrogram(data, rate, freq_resolution=2., overlap_frac=0.95)
 
     power = np.mean(spectrum, axis=1) # spectrum[:, t0:t1] to only let spectrum of certain time....
 
@@ -193,8 +193,8 @@ if __name__ == '__main__':
     from thunderlab.dataloader import load_data
 
     data_file = sys.argv[1]
-    raw_data, samplerate, unit, amax = load_data(data_file)
+    raw_data, rate, unit, amax = load_data(data_file)
 
-    chirp_time, chirp_freq = chirp_analysis(raw_data[:,0], samplerate)
+    chirp_time, chirp_freq = chirp_analysis(raw_data[:,0], rate)
 
     # power = np.mean(spectrum[:, t:t + nffts_per_psd], axis=1)

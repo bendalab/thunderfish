@@ -148,7 +148,7 @@ def wavefish_spectrum(fish):
     return amplitudes, phases
 
 
-def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
+def wavefish_eods(fish='Eigenmannia', frequency=100.0, rate=44100.0,
                   duration=1.0, phase0=0.0, noise_std=0.05):
     """Simulate EOD waveform of a wave-type fish.
                   
@@ -159,7 +159,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     fundamental and its harmonics are specified.
 
     The generated waveform is `duration` seconds long and is sampled with
-    `samplerate` Hertz.  Gaussian white noise with a standard deviation of
+    `rate` Hertz.  Gaussian white noise with a standard deviation of
     `noise_std` is added to the generated waveform.
 
     Parameters
@@ -173,7 +173,7 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     frequency: float or array of floats
         EOD frequency of the fish in Hertz. Either fixed number or array for
         time-dependent frequencies.
-    samplerate: float
+    rate: float
         Sampling rate in Hertz.
     duration: float
         Duration of the generated data in seconds. Only used if frequency is scalar.
@@ -198,10 +198,10 @@ def wavefish_eods(fish='Eigenmannia', frequency=100.0, samplerate=44100.0,
     amplitudes, phases = wavefish_spectrum(fish)
     # compute phase:
     if np.isscalar(frequency):
-        phase = np.arange(0, duration, 1.0/samplerate)
+        phase = np.arange(0, duration, 1.0/rate)
         phase *= frequency
     else:
-        phase = np.cumsum(frequency)/samplerate
+        phase = np.cumsum(frequency)/rate
     # generate EOD:
     data = np.zeros(len(phase))
     for har, (ampl, phi) in enumerate(zip(amplitudes, phases)):
@@ -327,7 +327,7 @@ def export_wavefish(fish, name='Unknown_harmonics', file=None):
     return harmonics
 
 
-def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
+def chirps(eodf=100.0, rate=44100.0, duration=1.0, chirp_freq=5.0,
            chirp_size=100.0, chirp_width=0.01, chirp_kurtosis=1.0, chirp_contrast=0.05):
     """Simulate frequency trace with chirps.
 
@@ -338,7 +338,7 @@ def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
     ----------
     eodf: float
         EOD frequency of the fish in Hertz.
-    samplerate: float
+    rate: float
         Sampling rate in Hertz.
     duration: float
         Duration of the generated data in seconds.
@@ -362,19 +362,19 @@ def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
         wavefish_eods().
     """
     # baseline eod frequency and amplitude modulation:
-    n = len(np.arange(0, duration, 1.0/samplerate))
+    n = len(np.arange(0, duration, 1.0/rate))
     frequency = eodf * np.ones(n)
     am = np.ones(n)
     # time points for chirps:
     chirp_period = 1.0/chirp_freq
     chirp_times = np.arange(0.5*chirp_period, duration, chirp_period)
     # chirp frequency waveform:
-    chirp_t = np.arange(-2.0*chirp_width, 2.0*chirp_width, 1./samplerate)
+    chirp_t = np.arange(-2.0*chirp_width, 2.0*chirp_width, 1./rate)
     chirp_sig = 0.5*chirp_width / (2.0*np.log(10.0))**(0.5/chirp_kurtosis)
     gauss = np.exp(-0.5*((chirp_t/chirp_sig)**2.0)**chirp_kurtosis)
     # add chirps on baseline eodf:
     for ct in chirp_times:
-        index = int(ct*samplerate)
+        index = int(ct*rate)
         i0 = index - len(gauss)//2
         i1 = i0 + len(gauss)
         gi0 = 0
@@ -390,7 +390,7 @@ def chirps(eodf=100.0, samplerate=44100.0, duration=1.0, chirp_freq=5.0,
     return frequency, am
 
 
-def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
+def rises(eodf=100.0, rate=44100.0, duration=1.0, rise_freq=0.1,
           rise_size=10.0, rise_tau=1.0, decay_tau=10.0):
     """Simulate frequency trace with rises.
 
@@ -400,7 +400,7 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
     ----------
     eodf: float
         EOD frequency of the fish in Hertz.
-    samplerate: float
+    rate: float
         Sampling rate in Hertz.
     duration: float
         Duration of the generated data in seconds.
@@ -418,18 +418,18 @@ def rises(eodf=100.0, samplerate=44100.0, duration=1.0, rise_freq=0.1,
     data: array of floats
         Generated frequency trace that can be passed on to wavefish_eods().
     """
-    n = len(np.arange(0, duration, 1.0/samplerate))
+    n = len(np.arange(0, duration, 1.0/rate))
     # baseline eod frequency:
     frequency = eodf * np.ones(n)
     # time points for rises:
     rise_period = 1.0/rise_freq
     rise_times = np.arange(0.5*rise_period, duration, rise_period)
     # rise frequency waveform:
-    rise_t = np.arange(0.0, 5.0*decay_tau, 1./samplerate)
+    rise_t = np.arange(0.0, 5.0*decay_tau, 1./rate)
     rise = rise_size * (1.0-np.exp(-rise_t/rise_tau)) * np.exp(-rise_t/decay_tau)
     # add rises on baseline eodf:
     for r in rise_times:
-        index = int(r*samplerate)
+        index = int(r*rate)
         if index+len(rise) > len(frequency):
             rise_index = len(frequency)-index
             frequency[index:index+rise_index] += rise[:rise_index]
@@ -516,7 +516,7 @@ def pulsefish_peaks(fish):
     return peak_times, peak_amplitudes, peak_stdevs
                               
 
-def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
+def pulsefish_eods(fish='Biphasic', frequency=100.0, rate=44100.0,
                    duration=1.0, noise_std=0.01, jitter_cv=0.1,
                    first_pulse=None):
     """Simulate EOD waveform of a pulse-type fish.
@@ -525,7 +525,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
     a combination of Gaussian peaks, whose positions, amplitudes and widths are
     given by 'fish'.
 
-    The generated waveform is duration seconds long and is sampled with samplerate Hertz.
+    The generated waveform is duration seconds long and is sampled with rate Hertz.
     Gaussian white noise with a standard deviation of noise_std is added to the generated
     pulse train.
 
@@ -543,7 +543,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
         the third one the list of corresponding standard deviations.
     frequency: float
         EOD frequency of the fish in Hz.
-    samplerate: float
+    rate: float
         Sampling Rate in Hz.
     duration: float
         Duration of the generated data in seconds.
@@ -575,7 +575,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
     max_time_inx = np.argmax(peak_times)
     tmax = max(np.abs(peak_times[min_time_inx]-4.0*peak_stdevs[min_time_inx]),
                np.abs(peak_times[max_time_inx]+4.0*peak_stdevs[max_time_inx]))
-    x = np.arange(-tmax, tmax, 1.0/samplerate)
+    x = np.arange(-tmax, tmax, 1.0/rate)
     pulse_duration = x[-1] - x[0]
     
     # generate a single pulse:
@@ -585,7 +585,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
     poffs = len(pulse)//2
 
     # paste the pulse into the noise floor:
-    time = np.arange(0, duration, 1.0/samplerate)
+    time = np.arange(0, duration, 1.0/rate)
     data = np.random.randn(len(time)) * noise_std
     period = 1.0/frequency
     jitter_std = period * jitter_cv
@@ -593,7 +593,7 @@ def pulsefish_eods(fish='Biphasic', frequency=100.0, samplerate=44100.0,
         first_pulse = np.max([pulse_duration, 3.0*jitter_std])
     pulse_times = np.arange(first_pulse, duration, period )
     pulse_times += jitter_std*np.random.randn(len(pulse_times))
-    pulse_indices = np.round(pulse_times * samplerate).astype(int)
+    pulse_indices = np.round(pulse_times * rate).astype(int)
     for inx in pulse_indices[(pulse_indices>=poffs)&(pulse_indices-poffs+len(pulse)<len(data))]:
         data[inx-poffs:inx-poffs+len(pulse)] += pulse
     return data
@@ -738,14 +738,14 @@ def generate_waveform(filename):
     from audioio import write_audio
     from thunderlab.consoleinput import read, select, save_inputs
     # generate file:
-    samplerate = read('Sampling rate in Hz', '44100', float, 1.0)
+    rate = read('Sampling rate in Hz', '44100', float, 1.0)
     duration = read('Duration in seconds', '10', float, 0.001)
     nfish = read('Number of fish', '1', int, 1)
     ndata = read('Number of electrodes', '1', int, 1)
     fish_spread = 1
     if ndata > 1:
         fish_spread = read('Number of electrodes fish are spread over', '2', int, 1)
-    data = np.random.randn(int(duration*samplerate), ndata)*0.01
+    data = np.random.randn(int(duration*rate), ndata)*0.01
     fish_indices = np.random.randint(ndata, size=nfish)
     eodt = 'a'
     eodf = 800.0
@@ -776,38 +776,38 @@ def generate_waveform(filename):
                 chirp_freq = read('Number of chirps per second', '%g'%chirp_freq, float, 0.001)
                 chirp_size = read('Size of chirp in Hz', '%g'%chirp_size, float, 1.0)
                 chirp_width = 0.001*read('Width of chirp in ms', '%g'%(1000.0*chirp_width), float, 1.0)
-                eodfreq, _ = chirps(eodf, samplerate, duration,
+                eodfreq, _ = chirps(eodf, rate, duration,
                                     chirp_freq, chirp_size, chirp_width, chirp_kurtosis)
             elif eodsig == 'r':
                 rise_freq = read('Number of rises per second', '%g'%rise_freq, float, 0.00001)
                 rise_size = read('Size of rise in Hz', '%g'%rise_size, float, 0.01)
                 rise_tau = read('Time-constant of rise onset in seconds', '%g'%rise_tau, float, 0.01)
                 rise_decay_tau = read('Time-constant of rise decay in seconds', '%g'%rise_decay_tau, float, 0.01)
-                eodfreq = rises(eodf, samplerate, duration,
+                eodfreq = rises(eodf, rate, duration,
                                 rise_freq, rise_size, rise_tau, rise_decay_tau)
             if eodt == 'a':
-                fishdata = eoda*wavefish_eods('Alepto', eodfreq, samplerate, duration,
+                fishdata = eoda*wavefish_eods('Alepto', eodfreq, rate, duration,
                                               phase0=0.0, noise_std=0.0)
             elif eodt == 'e':
-                fishdata = eoda*wavefish_eods('Eigenmannia', eodfreq, samplerate,
+                fishdata = eoda*wavefish_eods('Eigenmannia', eodfreq, rate,
                                               duration, phase0=0.0, noise_std=0.0)
         else:
             pulse_jitter = read(fish + 'CV of pulse jitter', '%g'%pulse_jitter, float, 0.0, 2.0)
             if eodt == '1':
-                fishdata = eoda*pulsefish_eods('Monophasic', eodf, samplerate, duration,
+                fishdata = eoda*pulsefish_eods('Monophasic', eodf, rate, duration,
                                                jitter_cv=pulse_jitter, noise_std=0.0)
             elif eodt == '2':
-                fishdata = eoda*pulsefish_eods('Biphasic', eodf, samplerate, duration,
+                fishdata = eoda*pulsefish_eods('Biphasic', eodf, rate, duration,
                                                jitter_cv=pulse_jitter, noise_std=0.0)
             elif eodt == '3':
-                fishdata = eoda*pulsefish_eods('Triphasic', eodf, samplerate, duration,
+                fishdata = eoda*pulsefish_eods('Triphasic', eodf, rate, duration,
                                                jitter_cv=pulse_jitter, noise_std=0.0)
         i = fish_indices[k]
         for j in range(fish_spread):
             data[:, (i+j)%ndata] += fishdata*(0.2**j)
 
     maxdata = np.max(np.abs(data))
-    write_audio(filename, 0.9*data/maxdata, samplerate)
+    write_audio(filename, 0.9*data/maxdata, rate)
     input_file = os.path.splitext(filename)[0] + '.inp' 
     save_inputs(input_file)
     print(f'\nWrote fakefish data to file "{filename}".')
@@ -815,22 +815,22 @@ def generate_waveform(filename):
 
 def demo():
     import matplotlib.pyplot as plt
-    samplerate = 40000.0 # in Hz
+    rate = 40000.0 # in Hz
     duration = 10.0      # in sec
 
     inset_len = 0.01     # in sec
-    inset_indices = int(inset_len*samplerate)
+    inset_indices = int(inset_len*rate)
     ws_fac = 0.1         # whitespace factor or ylim (between 0. and 1.)
 
     # generate data:
     eodf = 400.0
-    wavefish = wavefish_eods('Alepto', eodf, samplerate, duration, noise_std=0.02)
+    wavefish = wavefish_eods('Alepto', eodf, rate, duration, noise_std=0.02)
     eodf = 650.0
-    wavefish += 0.5*wavefish_eods('Eigenmannia', eodf, samplerate, duration)
+    wavefish += 0.5*wavefish_eods('Eigenmannia', eodf, rate, duration)
 
-    pulsefish = pulsefish_eods('Biphasic', 80.0, samplerate, duration,
+    pulsefish = pulsefish_eods('Biphasic', 80.0, rate, duration,
                                noise_std=0.02, jitter_cv=0.1, first_pulse=inset_len/2)
-    time = np.arange(len(wavefish))/samplerate
+    time = np.arange(len(wavefish))/rate
 
     fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
 
@@ -876,26 +876,26 @@ def demo():
     plt.tight_layout()
 
     # chirps:
-    chirps_freq = chirps(600.0, samplerate, duration)
-    chirps_data = wavefish_eods('Alepto', chirps_freq, samplerate)
+    chirps_freq = chirps(600.0, rate, duration)
+    chirps_data = wavefish_eods('Alepto', chirps_freq, rate)
 
     # rises:
-    rises_freq = rises(600.0, samplerate, duration, rise_size=20.0)
-    rises_data = wavefish_eods('Alepto', rises_freq, samplerate)
+    rises_freq = rises(600.0, rate, duration, rise_size=20.0)
+    rises_data = wavefish_eods('Alepto', rises_freq, rate)
 
     nfft = 256
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(19, 10))
     ax[0].set_title('Chirps')
-    ax[0].specgram(chirps_data, Fs=samplerate, NFFT=nfft, noverlap=nfft//16)
-    time = np.arange(len(chirps_freq))/samplerate
+    ax[0].specgram(chirps_data, Fs=rate, NFFT=nfft, noverlap=nfft//16)
+    time = np.arange(len(chirps_freq))/rate
     ax[0].plot(time[:-nfft//2], chirps_freq[nfft//2:], '-k', lw=2)
     ax[0].set_ylim(0.0, 3000.0)
     ax[0].set_ylabel('Frequency [Hz]')
 
     nfft = 4096
     ax[1].set_title('Rises')
-    ax[1].specgram(rises_data, Fs=samplerate, NFFT=nfft, noverlap=nfft//2)
-    time = np.arange(len(rises_freq))/samplerate
+    ax[1].specgram(rises_data, Fs=rate, NFFT=nfft, noverlap=nfft//2)
+    time = np.arange(len(rises_freq))/rate
     ax[1].plot(time[:-nfft//4], rises_freq[nfft//4:], '-k', lw=2)
     ax[1].set_ylim(500.0, 700.0)
     ax[1].set_ylabel('Frequency [Hz]')

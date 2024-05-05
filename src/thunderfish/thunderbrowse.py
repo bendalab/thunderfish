@@ -13,18 +13,18 @@ from .pulses import detect_pulses
 
 
 class SignalPlot:
-    def __init__(self, data, samplerate, unit, filename,
+    def __init__(self, data, rate, unit, filename,
                  show_channels=[], tmax=None, fcutoff=None,
                  pulses=False):
         self.filename = filename
-        self.samplerate = samplerate
+        self.rate = rate
         self.data = data
         self.channels = self.data.shape[1] if len(self.data.shape) > 1 else 1
         self.unit = unit
-        self.tmax = (len(self.data)-1)/self.samplerate
+        self.tmax = (len(self.data)-1)/self.rate
         if not tmax is None:
             self.tmax = tmax
-            self.data = data[:int(tmax*self.samplerate),:]
+            self.data = data[:int(tmax*self.rate),:]
         self.toffset = 0.0
         self.twindow = 10.0
         if self.twindow > self.tmax:
@@ -59,7 +59,7 @@ class SignalPlot:
 
         # filter data:
         if not fcutoff is None:
-            sos = butter(2, fcutoff, 'high', fs=samplerate, output='sos')
+            sos = butter(2, fcutoff, 'high', fs=rate, output='sos')
             self.data = sosfiltfilt(sos, self.data[:], 0)
 
         # pulse detection:
@@ -67,12 +67,12 @@ class SignalPlot:
             # label, group, channel, peak index, trough index
             all_pulses = np.zeros((0, 5), dtype=int)
             for c in range(self.channels):
-                #thresh = 1*np.std(self.data[:int(2*self.samplerate),c])
-                thresh = median_std_threshold(self.data[:,c], self.samplerate,
+                #thresh = 1*np.std(self.data[:int(2*self.rate),c])
+                thresh = median_std_threshold(self.data[:,c], self.rate,
                                               thresh_fac=6.0)
                 thresh = 0.01
                 #p, t = detect_peaks(self.data[:,c], thresh)
-                p, t, w, h = detect_pulses(self.data[:,c], self.samplerate,
+                p, t, w, h = detect_pulses(self.data[:,c], self.rate,
                                            thresh,
                                            min_rel_slope_diff=0.25,
                                            min_width=0.0001,
@@ -86,7 +86,7 @@ class SignalPlot:
                 all_pulses = np.vstack((all_pulses, pulses))
             self.pulses = all_pulses[np.argsort(all_pulses[:,3]),:]
             # grouping over channels:
-            max_di = int(0.0002*self.samplerate)   # TODO: parameter
+            max_di = int(0.0002*self.rate)   # TODO: parameter
             l = -1
             k = 0
             while k < len(self.pulses):
@@ -176,7 +176,7 @@ class SignalPlot:
                                         for ll, tt, hh in recent])
                     thresh = 0.1   # TODO: make parameter
                     # distance between pulses:
-                    ipis = np.array([(pulse_time - tt)/self.samplerate
+                    ipis = np.array([(pulse_time - tt)/self.rate
                                      for ll, tt, hh in recent])
                     ## how can ipis be 0, or just one sample?
                     ##if len(ipis[ipis<0.001]) > 0:
@@ -200,7 +200,7 @@ class SignalPlot:
                 # remove old fish:
                 for i, (ll, tt, hh) in enumerate(recent):
                     # TODO: make parameter:
-                    if (pulse_time - tt)/self.samplerate <= 0.2:
+                    if (pulse_time - tt)/self.rate <= 0.2:
                         recent = recent[i:]
                         break
                 # only consider the n most recent pulses of a fish:
@@ -240,7 +240,7 @@ class SignalPlot:
                                 continue
                             pj = np.argmin(np.abs(self.pulse_times[lj] - pt))
                             dj = np.abs(self.pulse_times[lj][pj] - pt)
-                            if dj < int(0.001*self.samplerate) and dj < mdj:
+                            if dj < int(0.001*self.rate) and dj < mdj:
                                 mdj = dj
                                 mpj = pj
                                 mlj = lj
@@ -397,13 +397,13 @@ class SignalPlot:
                 if len(p) == 0:
                     continue
                 if plot or pak >= len(self.pulse_artist):
-                    pa, = axs[t].plot(tfac*p/self.samplerate,
+                    pa, = axs[t].plot(tfac*p/self.rate,
                                       self.data[p,c], 'o', picker=5,
                                       color=self.pulse_colors[i%len(self.pulse_colors)])
                     if not plot:
                         self.pulse_artist.append(pa)
                 else:
-                    self.pulse_artist[pak].set_data(tfac*p/self.samplerate,
+                    self.pulse_artist[pak].set_data(tfac*p/self.rate,
                                                     self.data[p,c])
                     self.pulse_artist[pak].set_color(self.pulse_colors[i%len(self.pulse_colors)])
                 #if len(p) > 1 and len(p) <= 10:
@@ -427,7 +427,7 @@ class SignalPlot:
         # ipis:
         for l in self.labels:
             if l < len(self.pulse_times):
-                pt = self.pulse_times[l]/self.samplerate
+                pt = self.pulse_times[l]/self.rate
                 if len(pt) > 10:
                     if plot or not l in self.ipis_labels:
                         pa, = axs[-1].plot(tfac*pt[:-1], 1.0/np.diff(pt),
@@ -442,11 +442,11 @@ class SignalPlot:
                                                        1.0/np.diff(pt))
 
     def update_plots(self):
-        t0 = int(np.round(self.toffset * self.samplerate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
         if t1 > len(self.data):
             t1 = len(self.data)
-        time = np.arange(t0, t1) / self.samplerate
+        time = np.arange(t0, t1) / self.rate
         for t in range(self.traces):
             c = self.show_channels[t]
             self.axs[t].set_xlim(self.toffset, self.toffset + self.twindow)
@@ -501,12 +501,12 @@ class SignalPlot:
             pt = pulses[pulses[:,2] == c,3]
             if len(pt) > 0:
                 if self.marker_artist[t] is None:
-                    pa, = self.axs[t].plot(pt[0]/self.samplerate,
+                    pa, = self.axs[t].plot(pt[0]/self.rate,
                                            self.data[pt[0],c], 'o', ms=10,
                                            color=self.pulse_colors[ll%len(self.pulse_colors)])
                     self.marker_artist[t] = pa
                 else:
-                    self.marker_artist[t].set_data(pt[0]/self.samplerate,
+                    self.marker_artist[t].set_data(pt[0]/self.rate,
                                                    self.data[pt[0],c])
                     self.marker_artist[t].set_color(self.pulse_colors[ll%len(self.pulse_colors)])
             elif self.marker_artist[t] is not None:
@@ -516,8 +516,8 @@ class SignalPlot:
         pt1 = -1.0
         pf = -1.0
         if pi >= 0:
-            pt0 = self.pulse_times[ll][pi]/self.samplerate
-            pt1 = self.pulse_times[ll][pi+1]/self.samplerate
+            pt0 = self.pulse_times[ll][pi]/self.rate
+            pt1 = self.pulse_times[ll][pi+1]/self.rate
             pf = 1.0/(pt1-pt0)
             if self.marker_artist[self.traces] is None:
                 pa, = self.axs[self.traces].plot(pt0, pf, 'o', ms=10,
@@ -555,7 +555,7 @@ class SignalPlot:
     def keypress(self, event):
         # print('pressed', event.key)
         if event.key in '+=X':
-            if self.twindow * self.samplerate > 20:
+            if self.twindow * self.rate > 20:
                 self.twindow *= 0.5
                 self.update_plots()
         elif event.key in '-x':
@@ -622,8 +622,8 @@ class SignalPlot:
                 self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
             self.fig.canvas.draw()
         elif event.key == 'v':
-            t0 = int(np.round(self.toffset * self.samplerate))
-            t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+            t0 = int(np.round(self.toffset * self.rate))
+            t1 = int(np.round((self.toffset + self.twindow) * self.rate))
             min = np.min(self.data[t0:t1,self.show_channels])
             max = np.max(self.data[t0:t1,self.show_channels])
             h = 0.53 * (max - min)
@@ -634,8 +634,8 @@ class SignalPlot:
                 self.axs[t].set_ylim(self.ymin[t], self.ymax[t])
             self.fig.canvas.draw()
         elif event.key == 'ctrl+v':
-            t0 = int(np.round(self.toffset * self.samplerate))
-            t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+            t0 = int(np.round(self.toffset * self.rate))
+            t1 = int(np.round((self.toffset + self.twindow) * self.rate))
             for t in range(self.traces):
                 min = np.min(self.data[t0:t1,self.show_channels[t]])
                 max = np.max(self.data[t0:t1,self.show_channels[t]])
@@ -705,30 +705,30 @@ class SignalPlot:
             self.plot_traces()
 
     def play_segment(self):
-        t0 = int(np.round(self.toffset * self.samplerate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
         playdata = 1.0 * np.mean(self.data[t0:t1,self.show_channels], 1)
         f = 0.1 if self.twindow > 0.5 else 0.1*self.twindow
-        fade(playdata, self.samplerate, f)
-        self.audio.play(playdata, self.samplerate, blocking=False)
+        fade(playdata, self.rate, f)
+        self.audio.play(playdata, self.rate, blocking=False)
         
     def play_all(self):
         self.audio.play(np.mean(self.data[:,self.show_channels], 1),
-                        self.samplerate, blocking=False)
+                        self.rate, blocking=False)
 
     def save_segment(self):
         t0s = int(np.round(self.toffset))
         t1s = int(np.round(self.toffset + self.twindow))
-        t0 = int(np.round(self.toffset * self.samplerate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
         filename = self.filename.split('.')[0]
         if self.traces == self.channels:
             segment_filename = f'{filename}-{t0s:.4g}s-{t1s:.4g}s.wav'
-            write_audio(segment_filename, self.data[t0:t1,:], self.samplerate)
+            write_audio(segment_filename, self.data[t0:t1,:], self.rate)
         else:
             segment_filename = f'{filename}-{t0s:.4g}s-{t1s:.4g}s-c{self.show_channels[0]}.wav'
             write_audio(segment_filename,
-                        self.data[t0:t1,self.show_channels], self.samplerate)
+                        self.data[t0:t1,self.show_channels], self.rate)
         print('saved segment to: ' , segment_filename)
 
     def plot_traces(self):
@@ -745,11 +745,11 @@ class SignalPlot:
         if self.traces < self.channels:
             figfile = f'{name}-{self.toffset:.4g}s-c{self.show_channels[0]}-traces.png'
         axs[0].set_title(self.filename)
-        t0 = int(np.round(self.toffset * self.samplerate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
         if t1>len(self.data):
             t1 = len(self.data)
-        time = np.arange(t0, t1)/self.samplerate
+        time = np.arange(t0, t1)/self.rate
         if self.toffset < 1.0 and self.twindow < 1.0:
             axs[-1].set_xlabel('Time [ms]')
             for t in range(self.traces):
@@ -832,7 +832,7 @@ def main(cargs=None):
     # load data:
     filename = os.path.basename(filepath)
     with DataLoader(filepath, 10*60.0, 5.0, verbose) as data:
-        SignalPlot(data, data.samplerate, data.unit, filename,
+        SignalPlot(data, data.rate, data.unit, filename,
                    channels, tmax, fcutoff, pulses)
         
 

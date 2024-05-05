@@ -321,7 +321,7 @@ class EODExplorer(MultivariateExplorer):
         recording = fn[0]
         channel = 0
         try:
-            raw_data, samplerate, unit, ampl_max = load_data(recording)
+            raw_data, rate, unit, ampl_max = load_data(recording)
             raw_data = raw_data[:,channel]
         except IOError as e:
             print('%s: failed to open file: did you provide a path to the raw data (-P option)?' % (recording))
@@ -339,18 +339,18 @@ class EODExplorer(MultivariateExplorer):
             cfg.set('flipPulseEOD', fs)
         # best_window:
         data, idx0, idx1, clipped, min_clip, max_clip = \
-            analysis_window(raw_data, samplerate, ampl_max,
+            analysis_window(raw_data, rate, ampl_max,
                             cfg.value('windowPosition'), cfg)
         # detect EODs in the data:
         psd_data, fishlist, _, eod_props, mean_eods, \
           spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-          detect_eods(data, samplerate, min_clip, max_clip, recording, 0, 0, cfg)
+          detect_eods(data, rate, min_clip, max_clip, recording, 0, 0, cfg)
         # plot EOD:
         idx = int(self.eoddata[index,'index']) if 'index' in self.eoddata else 0
         for k in ['toolbar', 'keymap.back', 'keymap.forward',
                   'keymap.zoom', 'keymap.pan']:
             plt.rcParams[k] = self.plt_params[k]
-        fig = plot_eods(file_base, None, raw_data, samplerate, None, idx0, idx1,
+        fig = plot_eods(file_base, None, raw_data, rate, None, idx0, idx1,
                         clipped, psd_data[0], fishlist, None,
                         mean_eods, eod_props, peak_data, spec_data,
                         [idx], unit, zoom_window, 10, None, True, False,

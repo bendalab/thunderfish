@@ -72,7 +72,7 @@ def unique_counts(ar):
 ###########################################################################
 
 
-def extract_pulsefish(data, samplerate, width_factor_shape=3,
+def extract_pulsefish(data, rate, width_factor_shape=3,
                       width_factor_wave=8, width_factor_display=4,
                       verbose=0, plot_level=0, save_plots=False,
                       save_path='', ftype='png', return_data=[]):
@@ -85,7 +85,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
     ----------
     data: 1-D array of float
         The data to be analysed.
-    samplerate: float
+    rate: float
         Sampling rate of the data in Hertz.
 
     width_factor_shape : float (optional)
@@ -144,8 +144,8 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
                 Peak indices on interpolated data after fourth peak detection step.
 
         - 'all_cluster_steps':
-            - 'samplerate': float.
-                Samplerate of interpolated data.
+            - 'rate': float.
+                Sampling rate of interpolated data.
             - 'EOD_widths': list of three 1D numpy arrays.
                 The first list entry gives the unique labels of all width clusters
                 as a list of ints.
@@ -224,8 +224,8 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
                     PCA values for each normalized EOD snippet.
                 - 'clusters': 1D numpy array of ints.
                     Cluster labels.
-                - 'samplerate': float.
-                    Samplerate of snippets.
+                - 'rate': float.
+                    Sampling rate of snippets.
 
         - 'eod_deletion':
             This key adds two dictionaries for each (peak centered) shape cluster,
@@ -252,8 +252,8 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
                     The third entry contains a list of two values that represent the
                     peak-trough pair in the zoomed out mean EOD with the largest height
                     difference.
-            - 'samplerate' : float.
-                EOD snippet samplerate.
+            - 'rate' : float.
+                EOD snippet sampling rate.
 
         - 'masks': 
             - 'masks' : 2D numpy array (4,N).
@@ -315,27 +315,27 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
     log_dict = {}
 
     # interpolate:
-    i_samplerate = 500000.0
-    #i_samplerate = samplerate
+    i_rate = 500000.0
+    #i_rate = rate
     try:
-        f = interp1d(np.arange(len(data))/samplerate, data, kind='quadratic')
-        i_data = f(np.arange(0.0, (len(data)-1)/samplerate, 1.0/i_samplerate))
+        f = interp1d(np.arange(len(data))/rate, data, kind='quadratic')
+        i_data = f(np.arange(0.0, (len(data)-1)/rate, 1.0/i_rate))
     except MemoryError:
-        i_samplerate = samplerate
+        i_rate = rate
         i_data = data
     log_dict['data'] = i_data               # TODO: could be removed
-    log_dict['samplerate'] = i_samplerate   # TODO: could be removed
+    log_dict['rate'] = i_rate   # TODO: could be removed
     log_dict['i_data'] = i_data
-    log_dict['i_samplerate'] = i_samplerate
+    log_dict['i_rate'] = i_rate
     # log_dict["interp_fac"] = interp_fac  # TODO: is not set anymore
                                          
     # standard deviation of data in small snippets:
-    threshold = median_std_threshold(data, samplerate)  # TODO make this a parameter
+    threshold = median_std_threshold(data, rate)  # TODO make this a parameter
     
     # extract peaks:
     if 'peak_detection' in return_data:
         x_peak, x_trough, eod_heights, eod_widths, pd_log_dict = \
-            detect_pulses(i_data, i_samplerate, threshold,
+            detect_pulses(i_data, i_rate, threshold,
                           width_fac=np.max([width_factor_shape,
                                             width_factor_display,
                                             width_factor_wave]),
@@ -343,7 +343,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
         log_dict.update(pd_log_dict)
     else:
         x_peak, x_trough, eod_heights, eod_widths = \
-            detect_pulses(i_data, i_samplerate, threshold,
+            detect_pulses(i_data, i_rate, threshold,
                           width_fac=np.max([width_factor_shape,
                                             width_factor_display,
                                             width_factor_wave]),
@@ -354,7 +354,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
         clusters, x_merge, c_log_dict = cluster(x_peak, x_trough,
                                                 eod_heights,
                                                 eod_widths, i_data,
-                                                i_samplerate,
+                                                i_rate,
                                                 width_factor_shape,
                                                 width_factor_wave,
                                                 verbose=verbose-1,
@@ -367,7 +367,7 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
         # extract mean eods and times
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = \
           extract_means(i_data, x_merge, x_peak, x_trough, eod_widths, clusters,
-                        i_samplerate, width_factor_display, verbose=verbose-1)
+                        i_rate, width_factor_display, verbose=verbose-1)
 
         # determine clipped clusters (save them, but ignore in other steps)
         clusters, clipped_eods, clipped_times, clipped_peaktimes, clipped_troughtimes = \
@@ -377,21 +377,21 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
 
         # delete the moving fish
         clusters, zoom_window, mf_log_dict = \
-          delete_moving_fish(clusters, x_merge/i_samplerate, len(data)/samplerate,
-                             eod_heights, eod_widths/i_samplerate, i_samplerate,
+          delete_moving_fish(clusters, x_merge/i_rate, len(data)/rate,
+                             eod_heights, eod_widths/i_rate, i_rate,
                              verbose=verbose-1, plot_level=plot_level-1, save_plot=save_plots,
                              save_path=save_path, ftype=ftype, return_data=return_data)
         
         if 'moving_fish' in return_data:
             log_dict['moving_fish'] = mf_log_dict
 
-        clusters = remove_sparse_detections(clusters, eod_widths, i_samplerate,
-                                            len(data)/samplerate, verbose=verbose-1)
+        clusters = remove_sparse_detections(clusters, eod_widths, i_rate,
+                                            len(data)/rate, verbose=verbose-1)
 
         # extract mean eods
         mean_eods, eod_times, eod_peaktimes, eod_troughtimes, cluster_labels = \
           extract_means(i_data, x_merge, x_peak, x_trough, eod_widths,
-                        clusters, i_samplerate, width_factor_display, verbose=verbose-1)
+                        clusters, i_rate, width_factor_display, verbose=verbose-1)
 
         mean_eods.extend(clipped_eods)
         eod_times.extend(clipped_times)
@@ -399,14 +399,14 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
         eod_troughtimes.extend(clipped_troughtimes)
 
         if plot_level > 0:
-            plot_all(data, eod_peaktimes, eod_troughtimes, samplerate, mean_eods)
+            plot_all(data, eod_peaktimes, eod_troughtimes, rate, mean_eods)
             if save_plots:
                 plt.savefig('%sextract_pulsefish_results.%s' % (save_path, ftype))
         if save_plots:
             plt.close('all')
     
         if 'all_eod_times' in return_data:
-            log_dict['all_times'] = [x_peak/i_samplerate, x_trough/i_samplerate]
+            log_dict['all_times'] = [x_peak/i_rate, x_trough/i_rate]
             log_dict['eod_troughtimes'] = eod_troughtimes
         
         log_dict.update(c_log_dict)
@@ -414,12 +414,12 @@ def extract_pulsefish(data, samplerate, width_factor_shape=3,
     return mean_eods, eod_times, eod_peaktimes, zoom_window, log_dict
 
 
-def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
+def detect_pulses(data, rate, thresh, min_rel_slope_diff=0.25,
                   min_width=0.00005, max_width=0.01, width_fac=5.0,
                   verbose=0, return_data=False):
     """Detect pulses in data.
 
-    Was `def extract_eod_times(data, samplerate, width_factor,
+    Was `def extract_eod_times(data, rate, width_factor,
                       interp_freq=500000, max_peakwidth=0.01,
                       min_peakwidth=None, verbose=0, return_data=[],
                       save_path='')` before.
@@ -428,7 +428,7 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
     ----------
     data: 1-D array of float
         The data to be analysed.
-    samplerate: float
+    rate: float
         Sampling rate of the data.
     thresh: float
         Threshold for peak and trough detection via `detect_peaks()`.
@@ -501,7 +501,7 @@ def detect_pulses(data, samplerate, thresh, min_rel_slope_diff=0.25,
                                      troughs_2=np.array(trough_indices))
 
     # check widths:
-    keep = ((widths>min_width*samplerate) & (widths<max_width*samplerate))
+    keep = ((widths>min_width*rate) & (widths<max_width*rate))
     peak_indices = peak_indices[keep]
     trough_indices = trough_indices[keep]
     heights = heights[keep]
@@ -651,7 +651,7 @@ def assign_side_peaks(data, peak_indices, trough_indices,
     return peak_indices, trough_indices, heights, widths, slopes
 
 
-def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
+def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             width_factor_shape, width_factor_wave,
             n_gaus_height=10, merge_threshold_height=0.1, n_gaus_width=3,
             merge_threshold_width=0.5, minp=10,
@@ -679,8 +679,8 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
         EOD widths in samples.
     data: array of floats
         Data in which to detect pulse EODs.
-    samplerate : float
-        Sample rate of `data`.
+    rate : float
+        Sampling rate of `data`.
     width_factor_shape : float
         Multiplier for snippet extraction width. This factor is
         multiplied with the width between the peak and through of a
@@ -746,7 +746,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
 
     # loop only over height clusters that are bigger than minp
     # first cluster on width
-    width_labels, bgm_log_dict = BGM(1000*eod_widths/samplerate, merge_threshold_width,
+    width_labels, bgm_log_dict = BGM(1000*eod_widths/rate, merge_threshold_width,
                                      n_gaus_width, use_log=False, verbose=verbose-1,
                                      plot_level=plot_level-1, xlabel='width [ms]',
                                      save_plot=save_plots, save_path=save_path,
@@ -827,12 +827,12 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
                 plot_feature_extraction(raw_p_snippets[height_labels==height_label],
                                         p_snippets[height_labels==height_label],
                                         p_features[height_labels==height_label],
-                                        p_clusters, 1/samplerate, 0)
+                                        p_clusters, 1/rate, 0)
                 plt.savefig('%sDBSCAN_peak_w%i_h%i.%s' % (save_path, wi, hi, ftype))
                 plot_feature_extraction(raw_t_snippets[height_labels==height_label],
                                         t_snippets[height_labels==height_label],
                                         t_features[height_labels==height_label],
-                                        t_clusters, 1/samplerate, 1)
+                                        t_clusters, 1/rate, 1)
                 plt.savefig('%sDBSCAN_trough_w%i_h%i.%s' % (save_path, wi, hi, ftype))
 
             if 'snippet_clusters' in return_data:
@@ -841,13 +841,13 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
                     'snippets':p_snippets[height_labels==height_label],
                     'features':p_features[height_labels==height_label],
                     'clusters':p_clusters,
-                    'samplerate':samplerate}
+                    'rate':rate}
                 saved_data['snippet_clusters_%i_%i_trough' % (width_label, height_label)] = {
                     'raw_snippets':raw_t_snippets[height_labels==height_label],
                     'snippets':t_snippets[height_labels==height_label],
                     'features':t_features[height_labels==height_label],
                     'clusters':t_clusters,
-                    'samplerate':samplerate}
+                    'rate':rate}
 
             if plot_level>0 or 'all_cluster_steps' in return_data:
                 shape_labels.append([p_clusters, t_clusters])
@@ -883,11 +883,11 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
 
         # remove artefacts here, based on the mean snippets ffts.
         artefact_masks_p[width_labels==width_label], sdict = \
-          remove_artefacts(p_snippets, wp_clusters, samplerate,
+          remove_artefacts(p_snippets, wp_clusters, rate,
                            verbose=verbose-1, return_data=return_data)
         saved_data.update(sdict)
         artefact_masks_t[width_labels==width_label], _ = \
-          remove_artefacts(t_snippets, wt_clusters, samplerate,
+          remove_artefacts(t_snippets, wt_clusters, rate,
                            verbose=verbose-1, return_data=return_data)
 
         # update maxlab so that no clusters are overwritten
@@ -949,7 +949,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
             all_mmasks.append(wm_2)
 
         if plot_level>0:
-            plot_clustering(samplerate, [unique_width_labels, eod_widths, width_labels],
+            plot_clustering(rate, [unique_width_labels, eod_widths, width_labels],
                             [all_unique_heightlabels, all_heights, all_heightlabels],
                             [all_snippets, all_features, all_shapelabels],
                             all_dmasks, all_mmasks)
@@ -957,7 +957,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, samplerate,
                 plt.savefig('%sclustering.%s' % (save_path, ftype))
 
         if 'all_cluster_steps' in return_data:
-            saved_data = {'samplerate': samplerate,
+            saved_data = {'rate': rate,
                       'EOD_widths': [unique_width_labels, eod_widths, width_labels],
                       'EOD_heights': [all_unique_heightlabels, all_heights, all_heightlabels],
                       'EOD_shapes': [all_snippets, all_features, all_shapelabels],
@@ -1252,7 +1252,7 @@ def subtract_slope(snippets, heights):
     return snippets - slopes.T, np.abs(left_y-right_y)/heights
 
 
-def remove_artefacts(all_snippets, clusters, samplerate,
+def remove_artefacts(all_snippets, clusters, rate,
                      freq_low=20000, threshold=0.75,
                      verbose=0, return_data=[]):
     """ Create a mask for EOD clusters that result from artefacts, based on power in low frequency spectrum.
@@ -1263,8 +1263,8 @@ def remove_artefacts(all_snippets, clusters, samplerate,
         EOD snippets. Shape=(nEODs, EOD length)
     clusters: list of ints
         EOD cluster labels
-    samplerate : float
-        Samplerate of original recording data.
+    rate : float
+        Sampling rate of original recording data.
     freq_low: float
         Frequency up to which low frequency components are summed up. 
     threshold : float (optional)
@@ -1293,7 +1293,7 @@ def remove_artefacts(all_snippets, clusters, samplerate,
         mean_eod = np.mean(snippets, axis=0)
         mean_eod = mean_eod - np.mean(mean_eod)
         mean_eod_fft = np.abs(np.fft.rfft(mean_eod))
-        freqs = np.fft.rfftfreq(len(mean_eod), 1/samplerate)
+        freqs = np.fft.rfftfreq(len(mean_eod), 1/rate)
         low_frequency_ratio = np.sum(mean_eod_fft[freqs<freq_low])/np.sum(mean_eod_fft)
         if low_frequency_ratio < threshold:  # TODO: check threshold!
             mask[clusters==cluster] = True
@@ -1545,7 +1545,7 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
     return clusters, x_merged, np.vstack([c1_keep, c2_keep])
 
 
-def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, samplerate,
+def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, rate,
                   width_fac, verbose=0):
     """ Extract mean EODs and EOD timepoints for each EOD cluster.
 
@@ -1563,8 +1563,8 @@ def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, sampl
         EOD widths in samples.
     clusters: list of ints
         EOD cluster labels
-    samplerate: float
-        samplerate of recording  
+    rate: float
+        Sampling rate of recording  
     width_fac : float
         Multiplication factor for window used to extract EOD.
     
@@ -1595,15 +1595,15 @@ def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, sampl
 
             snippets = np.vstack([data[int(x-cutwidth):int(x+cutwidth)] for x in current_x[current_clusters==cluster]])
             mean_eod = np.mean(snippets, axis=0)
-            eod_time = np.arange(len(mean_eod))/samplerate - cutwidth/samplerate
+            eod_time = np.arange(len(mean_eod))/rate - cutwidth/rate
 
             mean_eod = np.vstack([eod_time, mean_eod, np.std(snippets, axis=0)])
 
             mean_eods.append(mean_eod)
-            eod_times.append(eod_x[clusters==cluster]/samplerate)
+            eod_times.append(eod_x[clusters==cluster]/rate)
             eod_heights.append(np.min(mean_eod)-np.max(mean_eod))
-            eod_peak_times.append(eod_peak_x[clusters==cluster]/samplerate)
-            eod_tr_times.append(eod_tr_x[clusters==cluster]/samplerate)
+            eod_peak_times.append(eod_peak_x[clusters==cluster]/rate)
+            eod_tr_times.append(eod_tr_x[clusters==cluster]/rate)
             cluster_labels.append(cluster)
            
     return [m for _, m in sorted(zip(eod_heights, mean_eods))], [t for _, t in sorted(zip(eod_heights, eod_times))], [pt for _, pt in sorted(zip(eod_heights, eod_peak_times))], [tt for _, tt in sorted(zip(eod_heights, eod_tr_times))], [c for _, c in sorted(zip(eod_heights, cluster_labels))]
@@ -1666,7 +1666,7 @@ def find_clipped_clusters(clusters, mean_eods, eod_times, eod_peaktimes, eod_tro
     return clusters, clipped_eods, clipped_times, clipped_peaktimes, clipped_troughtimes
 
 
-def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths, samplerate,
+def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths, rate,
                        min_dt=0.25, stepsize=0.05, sliding_window_factor=2000,
                        verbose=0, plot_level=0, save_plot=False, save_path='',
                        ftype='pdf', return_data=[]):
@@ -1689,8 +1689,8 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths, samplerate,
         EOD amplitudes.
     eod_widths: list of floats
         EOD widths (in seconds).
-    samplerate: float
-        Recording data samplerate.
+    rate: float
+        Recording data sampling rate.
 
     min_dt : float (optional)
         Minimum sliding window size (in seconds).
@@ -1789,7 +1789,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths, samplerate,
                 current_height = np.mean(weod_heights[current_labels])
 
                 # compute nr of clusters that are too sparse
-                clusters_after_deletion = np.unique(remove_sparse_detections(np.copy(clusters[np.isin(clusters, unique_clusters)]), samplerate*eod_widths[np.isin(clusters, unique_clusters)], samplerate, T))
+                clusters_after_deletion = np.unique(remove_sparse_detections(np.copy(clusters[np.isin(clusters, unique_clusters)]), rate*eod_widths[np.isin(clusters, unique_clusters)], rate, T))
                 current_sparse_clusters = len(unique_clusters) - len(clusters_after_deletion[clusters_after_deletion!=-1])
                
                 if current_sparse_clusters <= sparse_clusters and \
@@ -1842,7 +1842,7 @@ def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths, samplerate,
     return clusters, [np.max(all_windows)-np.max(all_dts), np.max(all_windows)], mf_dict
 
 
-def remove_sparse_detections(clusters, eod_widths, samplerate, T,
+def remove_sparse_detections(clusters, eod_widths, rate, T,
                              min_density=0.0005, verbose=0):
     """ Remove all EOD clusters that are too sparse
 
@@ -1852,8 +1852,8 @@ def remove_sparse_detections(clusters, eod_widths, samplerate, T,
         Cluster labels.
     eod_widths : list of ints
         Cluster widths in samples.
-    samplerate : float
-        Samplerate.
+    rate : float
+        Sampling rate.
     T : float
         Lenght of recording in seconds.
     min_density : float (optional)
@@ -1870,7 +1870,7 @@ def remove_sparse_detections(clusters, eod_widths, samplerate, T,
         if c!=-1:
 
             n = len(clusters[clusters==c])
-            w = np.median(eod_widths[clusters==c])/samplerate
+            w = np.median(eod_widths[clusters==c])/rate
 
             if n*w < T*min_density:
                 if verbose>0:

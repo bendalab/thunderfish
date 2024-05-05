@@ -121,7 +121,7 @@ def save_configuration(cfg, config_file):
         cfg.dump(config_file)
 
 
-def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
+def detect_eods(data, rate, min_clip, max_clip, name, mode,
                 verbose, plot_level, cfg):
     """Detect EODs of all fish present in the data.
 
@@ -129,7 +129,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
     ----------
     data: array of floats
         The recording in which to detect EODs.
-    samplerate: float
+    rate: float
         Sampling rate of the dataset.
     min_clip: float
         Minimum amplitude that is not clipped.
@@ -184,9 +184,9 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
     wave_indices = []
     if 'w' in mode:
         # detect wave fish:
-        psd_data = multi_psd(data, samplerate, **multi_psd_args(cfg))
+        psd_data = multi_psd(data, rate, **multi_psd_args(cfg))
         dfreq = np.mean(np.diff(psd_data[0][:,0]))
-        nfft = int(samplerate/dfreq)
+        nfft = int(rate/dfreq)
         h_kwargs = psd_peak_detection_args(cfg)
         h_kwargs.update(harmonic_groups_args(cfg))
         wave_eodfs_list = []
@@ -222,7 +222,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
 
     if 'p' in mode:
         # detect pulse fish:
-        _, eod_times, eod_peaktimes, zoom_window, _ = extract_pulsefish(data, samplerate, verbose=verbose-1, plot_level=plot_level, save_path=os.path.splitext(os.path.basename(name))[0])
+        _, eod_times, eod_peaktimes, zoom_window, _ = extract_pulsefish(data, rate, verbose=verbose-1, plot_level=plot_level, save_path=os.path.splitext(os.path.basename(name))[0])
 
         #eod_times = []
         #eod_peaktimes = []
@@ -236,7 +236,7 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
         min_freq_res = cfg.value('frequencyResolution')
         for k, (eod_ts, eod_pts) in enumerate(zip(eod_times, eod_peaktimes)):
             mean_eod, eod_times0 = \
-                eod_waveform(data, samplerate, eod_ts, win_fac=0.8,
+                eod_waveform(data, rate, eod_ts, win_fac=0.8,
                              min_win=cfg.value('eodMinPulseSnippet'),
                              min_sem=False, **eod_waveform_args(cfg))
             mean_eod, props, peaks, power = analyze_pulse(mean_eod, eod_times0,
@@ -245,12 +245,12 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
             if len(peaks) == 0:
                 print('error: no peaks in pulse EOD detected')
                 continue
-            clipped_frac = clipped_fraction(data, samplerate, eod_times0,
+            clipped_frac = clipped_fraction(data, rate, eod_times0,
                                             mean_eod, min_clip, max_clip)
             props['peaktimes'] = eod_pts  # XXX that should go into analyze pulse
             props['index'] = len(eod_props)
             props['clipped'] = clipped_frac
-            props['samplerate'] = samplerate
+            props['samplerate'] = rate
             props['nfft'] = nfft
             props['dfreq'] = dfreq
 
@@ -278,13 +278,13 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
                 i1 = len(mean_eod) - i0
                 pulse_data = np.zeros(len(data))
                 for t in props['peaktimes']:
-                    idx = int(t*samplerate)
+                    idx = int(t*rate)
                     ii0 = i0 if idx-i0 >= 0 else idx
                     ii1 = i1 if idx+i1 < len(pulse_data) else len(pulse_data)-1-idx
                     pulse_data[idx-ii0:idx+ii1] = mean_eod[i0-ii0:i0+ii1,1]
-                pulse_psd = multi_psd(pulse_data, samplerate, **multi_psd_args(cfg))
+                pulse_psd = multi_psd(pulse_data, rate, **multi_psd_args(cfg))
                 pulse_power = pulse_psd[0][:,1]
-                pulse_power *= len(data)/samplerate/props['period']/len(props['peaktimes'])
+                pulse_power *= len(data)/rate/props['period']/len(props['peaktimes'])
                 pulse_power *= 5.0
                 if power_thresh is None:
                     power_thresh = pulse_psd[0]
@@ -314,20 +314,20 @@ def detect_eods(data, samplerate, min_clip, max_clip, name, mode,
         wave_indices = np.zeros(len(wave_eodfs), dtype=int) - 3
         for k, idx in enumerate(power_indices):
             fish = wave_eodfs[idx]
-            eod_times = np.arange(0.0, len(data)/samplerate, 1.0/fish[0,0])
+            eod_times = np.arange(0.0, len(data)/rate, 1.0/fish[0,0])
             mean_eod, eod_times = \
-                eod_waveform(data, samplerate, eod_times, win_fac=3.0, min_win=0.0,
+                eod_waveform(data, rate, eod_times, win_fac=3.0, min_win=0.0,
                              min_sem=(k==0), **eod_waveform_args(cfg))
             mean_eod, props, sdata, error_str = \
                 analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
             if error_str:
                 print(name + ': ' + error_str)
-            clipped_frac = clipped_fraction(data, samplerate, eod_times,
+            clipped_frac = clipped_fraction(data, rate, eod_times,
                                             mean_eod, min_clip, max_clip)
             props['n'] = len(eod_times)
             props['index'] = len(eod_props)
             props['clipped'] = clipped_frac
-            props['samplerate'] = samplerate
+            props['samplerate'] = rate
             props['nfft'] = nfft
             props['dfreq'] = dfreq
             # remove wave fish that are smaller than the largest pulse fish:
@@ -405,7 +405,7 @@ def axes_style(ax):
 
                                 
 def plot_eods(base_name, message_filename,
-              raw_data, samplerate, channel, idx0, idx1, clipped,
+              raw_data, rate, channel, idx0, idx1, clipped,
               psd_data, wave_eodfs, wave_indices, mean_eods, eod_props,
               peak_data, spec_data, indices, unit, zoom_window,
               n_snippets=10, power_thresh=None, label_power=True,
@@ -427,7 +427,7 @@ def plot_eods(base_name, message_filename,
         Path to meta-data message.
     raw_data: array
         Dataset.
-    samplerate: float
+    rate: float
         Sampling rate of the dataset.
     channel: int or None
         Channel of the recording to be put into the plot title.
@@ -501,8 +501,8 @@ def plot_eods(base_name, message_filename,
                 playdata = 1.0 * raw_data[idx0:idx1]
             else:
                 playdata = 1.0 * raw_data[:]
-            fade(playdata, samplerate, 0.1)
-            play(playdata, samplerate, blocking=False)
+            fade(playdata, rate, 0.1)
+            play(playdata, rate, blocking=False)
         if event.key in 'mM' and message_filename:
             # play voice message:
             msg, msg_rate = load_audio(message_filename)
@@ -629,11 +629,11 @@ def plot_eods(base_name, message_filename,
                     twidth = 10.0/eod_props[indices[0]]['EODf']
             twidth = (1+twidth//0.005)*0.005
         if data is not None and len(data) > 0:
-            plot_eod_recording(axr, data, samplerate, unit, twidth,
-                               idx0/samplerate)
-            plot_pulse_eods(axr, data, samplerate,
+            plot_eod_recording(axr, data, rate, unit, twidth,
+                               idx0/rate)
+            plot_pulse_eods(axr, data, rate,
                             zoom_window, twidth, eod_props,
-                            idx0/samplerate, colors=pulse_colors,
+                            idx0/rate, colors=pulse_colors,
                             markers=pulse_markers, frameon=True,
                             loc='upper right')
         if axr.get_legend() is not None:
@@ -755,7 +755,7 @@ def plot_eods(base_name, message_filename,
                 ax.add_line(ma)
         plot_eod_waveform(ax, mean_eod, props, peaks, unit)
         if props['type'] == 'pulse' and 'times' in props:
-            plot_eod_snippets(ax, data, samplerate, mean_eod[0,0], mean_eod[-1,0],
+            plot_eod_snippets(ax, data, rate, mean_eod[0,0], mean_eod[-1,0],
                               props['times'], n_snippets, props['flipped'])
         if not large_plots and k < max_plots-2:
             ax.set_xlabel('')
@@ -789,13 +789,13 @@ def plot_eods(base_name, message_filename,
     ax = fig.add_axes([leftx, 0.6/height, fullwidth, 0.9/height])
     axes_style(ax)
     if raw_data is not None and len(raw_data) > 0:
-        plot_data_window(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
+        plot_data_window(ax, raw_data, rate, unit, idx0, idx1, clipped)
     ax.format_coord = recording_format_coord
 
     return fig
 
                             
-def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
+def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                       clipped, psd_data, wave_eodfs, wave_indices, mean_eods,
                       eod_props, peak_data, spec_data, unit, zoom_window,
                       n_snippets=10, power_thresh=None, label_power=True,
@@ -816,7 +816,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
         is saved into a separate file.
     raw_data: array
         Dataset.
-    samplerate: float
+    rate: float
         Sampling rate of the dataset.
     idx0: float
         Index of the beginning of the analysis window in the dataset.
@@ -869,7 +869,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
     if 'r' in subplots:
         fig, ax = plt.subplots(figsize=(10, 2))
         fig.subplots_adjust(left=0.07, right=0.99, bottom=0.22, top=0.95)
-        plot_data_window(ax, raw_data, samplerate, unit, idx0, idx1, clipped)
+        plot_data_window(ax, raw_data, rate, unit, idx0, idx1, clipped)
         ax.yaxis.set_major_locator(ticker.MaxNLocator(5))
         axes_style(ax)
         if save:
@@ -889,13 +889,12 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
         pulse_colors, pulse_markers = colors_markers()
         pulse_colors = pulse_colors[3:]
         pulse_markers = pulse_markers[3:]
-        plot_eod_recording(ax, raw_data[idx0:idx1], samplerate, unit,
-                           twidth, idx0/samplerate)
-        plot_pulse_eods(ax, raw_data[idx0:idx1], samplerate,
-                        zoom_window, twidth, eod_props,
-                        idx0/samplerate, colors=pulse_colors,
-                        markers=pulse_markers, frameon=True,
-                        loc='upper right')
+        plot_eod_recording(ax, raw_data[idx0:idx1], rate, unit,
+                           twidth, idx0/rate)
+        plot_pulse_eods(ax, raw_data[idx0:idx1], rate, zoom_window,
+                        twidth, eod_props, idx0/rate,
+                        colors=pulse_colors, markers=pulse_markers,
+                        frameon=True, loc='upper right')
         if ax.get_legend() is not None:
             ax.get_legend().get_frame().set_color('white')
         axes_style(ax)
@@ -952,8 +951,9 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
             if not props is None and props['type'] == 'pulse' and \
                'times' in props:
-                plot_eod_snippets(ax, data, samplerate, meod[0,0], meod[-1,0],
-                                  props['times'], n_snippets)
+                plot_eod_snippets(ax, data, rate, meod[0,0],
+                                  meod[-1,0], props['times'],
+                                  n_snippets)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
             if mpdf is None:
@@ -1009,8 +1009,9 @@ def plot_eod_subplots(base_name, subplots, raw_data, samplerate, idx0, idx1,
             plot_eod_waveform(ax1, meod, props, peaks, unit)
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
             if not props is None and props['type'] == 'pulse' and 'times' in props:
-                plot_eod_snippets(ax1, data, samplerate, meod[0,0], meod[-1,0],
-                                  props['times'], n_snippets)
+                plot_eod_snippets(ax1, data, rate, meod[0,0],
+                                  meod[-1,0], props['times'],
+                                  n_snippets)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax1)
             if not props is None and props['type'] == 'pulse':
@@ -1117,7 +1118,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
     if base_name:
         name = os.path.basename(base_name) if data_path and data_path != '.' else base_name
         data_path = os.path.join(data_path, name)
-    data, samplerate, idx0, idx1, data_path = \
+    data, rate, idx0, idx1, data_path = \
         load_recording(data_path, channel, load_kwargs,
                        eod_props, verbose-1)
     if data is None:
@@ -1128,8 +1129,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
         print('loaded', data_path)
     if len(eod_props) > 0 and not eod_props[0] is None and \
        'dfreq' in eod_props[0] and data is not None and len(data) > 0:
-        psd_data = multi_psd(data[idx0:idx1],
-                             samplerate,
+        psd_data = multi_psd(data[idx0:idx1], rate,
                              1.1*eod_props[0]['dfreq'])[0]
     if psd_data is not None and len(psd_data) > 0:
         for idx, fish in zip(wave_indices, wave_eodfs):
@@ -1153,8 +1153,7 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
             os.makedirs(outpath)
     # plot:
     if len(save_subplots) == 0 or 'd' in save_subplots:
-        fig = plot_eods(os.path.basename(base_name), None,
-                        data, samplerate,
+        fig = plot_eods(os.path.basename(base_name), None, data, rate,
                         channel, idx0, idx1, clipped, psd_data,
                         wave_eodfs, wave_indices, mean_eods,
                         eod_props, peak_data, spec_data, None, unit,
@@ -1173,12 +1172,11 @@ def thunderfish_plot(files, data_path=None, load_kwargs={},
         plt.close()
         save_subplots = save_subplots.replace('d', '')
     if len(save_subplots) > 0:
-        plot_eod_subplots(output_basename, save_subplots, data,
-                          samplerate, idx0, idx1, clipped,
-                          psd_data, wave_eodfs, wave_indices,
-                          mean_eods, eod_props, peak_data,
-                          spec_data, unit, zoom_window, 10, None,
-                          True, skip_bad, log_freq, min_freq,
+        plot_eod_subplots(output_basename, save_subplots, data, rate,
+                          idx0, idx1, clipped, psd_data, wave_eodfs,
+                          wave_indices, mean_eods, eod_props,
+                          peak_data, spec_data, unit, zoom_window, 10,
+                          None, True, skip_bad, log_freq, min_freq,
                           max_freq, save_plot)
     return None
 
@@ -1270,9 +1268,9 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
     # load data:
     try:
-        all_data, samplerate, unit, ampl_max = load_data(filename,
-                                                         verbose=verbose,
-                                                         **load_kwargs)
+        all_data, rate, unit, ampl_max = load_data(filename,
+                                                   verbose=verbose,
+                                                   **load_kwargs)
     except IOError as e:
         return '%s: failed to open file: %s' % (filename, str(e))
     # select channel:
@@ -1295,8 +1293,8 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         if time is not None:
             win_pos = time
         data, idx0, idx1, clipped, min_clip, max_clip = \
-            analysis_window(raw_data, samplerate, ampl_max, win_pos,
-                            cfg, plot_level>0)
+            analysis_window(raw_data, rate, ampl_max, win_pos, cfg,
+                            plot_level>0)
         found_bestwindow = idx1 > 0
         if not found_bestwindow:
             return '%s: not enough data for requested window length. You may want to adjust the windowSize parameter in the configuration file.' % filename
@@ -1304,8 +1302,8 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
         # detect EODs in the data:
         psd_data, wave_eodfs, wave_indices, eod_props, \
         mean_eods, spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
-          detect_eods(data, samplerate, min_clip, max_clip, filename,
-                      mode, verbose, plot_level, cfg)
+          detect_eods(data, rate, min_clip, max_clip, filename, mode,
+                      verbose, plot_level, cfg)
         if not found_bestwindow:
             wave_eodfs = []
             wave_indices = []
@@ -1314,8 +1312,8 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
 
         # add analysis window to EOD properties:
         for props in eod_props:
-            props['twin'] = idx0/samplerate
-            props['window'] = (idx1 - idx0)/samplerate
+            props['twin'] = idx0/rate
+            props['window'] = (idx1 - idx0)/rate
             props['winclipped'] = clipped
 
         # warning message in case no fish has been found:
@@ -1336,7 +1334,7 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
             else:
                 output_basename += '-c%d' % chan
         if time_file:
-            output_basename += '-t%.0fs' % (idx0/samplerate)
+            output_basename += '-t%.0fs' % (idx0/rate)
         # make directory if necessary:
         if keep_path and found_bestwindow:
             outpath = os.path.dirname(output_basename)
@@ -1358,15 +1356,15 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
             if len(save_subplots) == 0 or 'd' in save_subplots:
                 chl = chan if channels > 1 else None
                 fig = plot_eods(outfilename, messagefilename,
-                                raw_data, samplerate,
-                                chl, idx0, idx1, clipped, psd_data[0],
-                                wave_eodfs, wave_indices, mean_eods,
-                                eod_props, peak_data, spec_data, None,
-                                unit, zoom_window, n_snippets,
-                                power_thresh, True, all_eods,
-                                spec_plots, skip_bad, log_freq,
-                                min_freq, max_freq, interactive=not
-                                save_plot, verbose=verbose)
+                                raw_data, rate, chl, idx0, idx1,
+                                clipped, psd_data[0], wave_eodfs,
+                                wave_indices, mean_eods, eod_props,
+                                peak_data, spec_data, None, unit,
+                                zoom_window, n_snippets, power_thresh,
+                                True, all_eods, spec_plots, skip_bad,
+                                log_freq, min_freq, max_freq,
+                                interactive=not save_plot,
+                                verbose=verbose)
                 if save_plot:
                     if multi_pdf is not None:
                         multi_pdf.savefig(fig)
@@ -1379,8 +1377,8 @@ def thunderfish(filename, load_kwargs, cfg, channel=0,
                 save_subplots = save_subplots.replace('d', '')
             if len(save_subplots) > 0:
                 plot_eod_subplots(output_basename, save_subplots,
-                                  raw_data, samplerate, idx0, idx1,
-                                  clipped, psd_data[0], wave_eodfs,
+                                  raw_data, rate, idx0, idx1, clipped,
+                                  psd_data[0], wave_eodfs,
                                   wave_indices, mean_eods, eod_props,
                                   peak_data, spec_data, unit,
                                   zoom_window, n_snippets,

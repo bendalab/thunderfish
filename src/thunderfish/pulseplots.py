@@ -419,7 +419,7 @@ def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
     eod_tr_times: array of ints
         EOD trough indices.
     fs: float
-        Samplerate.
+        Sampling rate.
     mean_eods: list of numpy arrays
         Mean EODs of each pulsefish found in the recording.
     """
@@ -450,7 +450,7 @@ def plot_all(data, eod_p_times, eod_tr_times, fs, mean_eods):
     plt.tight_layout()
 
 
-def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_masks):
+def plot_clustering(rate, eod_widths, eod_hights, eod_shapes, disc_masks, merge_masks):
 	"""Plot all clustering steps.
     
 	Plot clustering steps on width, height and shape. Then plot the remaining EODs after 
@@ -458,8 +458,8 @@ def plot_clustering(samplerate, eod_widths, eod_hights, eod_shapes, disc_masks, 
 
 	Parameters
 	----------
-	samplerate : float
-		Samplerate of EOD snippets.
+	rate : float
+		Sampling rate of EOD snippets.
 	eod_widths : list of three 1D numpy arrays
 		The first list entry gives the unique labels of all width clusters as a list of ints.
 		The second list entry gives the width values for each EOD in samples as a

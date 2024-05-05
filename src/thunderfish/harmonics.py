@@ -1630,28 +1630,28 @@ def main(data_file=None):
     if data_file is None:
         # generate data:
         title = 'simulation'
-        samplerate = 44100.0
+        rate = 44100.0
         d = 20.0
         noise = 0.01
         eodfs = [123.0, 333.0, 666.0, 666.5]
-        fish1 = 0.5*wavefish_eods('Eigenmannia', eodfs[0], samplerate,
+        fish1 = 0.5*wavefish_eods('Eigenmannia', eodfs[0], rate,
                                   duration=d, noise_std=noise)
-        fish2 = 1.0*wavefish_eods('Eigenmannia', eodfs[1], samplerate,
+        fish2 = 1.0*wavefish_eods('Eigenmannia', eodfs[1], rate,
                                   duration=d, noise_std=noise)
-        fish3 = 10.0*wavefish_eods('Alepto', eodfs[2], samplerate,
+        fish3 = 10.0*wavefish_eods('Alepto', eodfs[2], rate,
                                    duration=d, noise_std=noise)
-        fish4 = 6.0*wavefish_eods('Alepto', eodfs[3], samplerate,
+        fish4 = 6.0*wavefish_eods('Alepto', eodfs[3], rate,
                                   duration=d, noise_std=noise)
         data = fish1 + fish2 + fish3 + fish4
     else:
         from thunderlab.dataloader import load_data
         print("load %s ..." % data_file)
-        data, samplerate, unit, amax = load_data(data_file)
+        data, rate, unit, amax = load_data(data_file)
         data = data[:,0]
         title = data_file
 
     # retrieve fundamentals from power spectrum:
-    psd_data = psd(data, samplerate, freq_resolution=0.1)
+    psd_data = psd(data, rate, freq_resolution=0.1)
     groups, _, mains, all_freqs, good_freqs, _, _, _ = harmonic_groups(psd_data[0], psd_data[1], check_freqs=[123.0, 666.0], max_db_diff=30.0, verbose=0)
     fig, ax = plt.subplots()
     plot_psd_harmonic_groups(ax, psd_data[0], psd_data[1], groups, mains,

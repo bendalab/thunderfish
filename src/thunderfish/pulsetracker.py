@@ -835,16 +835,16 @@ def analyze_pulse_data(filepath, deltat=10, thresh=0.04, starttime = 0, endtime 
     # starting analysis
     with DataLoader(filepath, deltat, 0.0, verbose) as data:
 
-        samplerate = data.samplerate
+        rate = data.rate
 
         # selected time interval
         if timegiven == True:
-            parttime1 = starttime*samplerate
-            parttime2 = endtime*samplerate
+            parttime1 = starttime*rate
+            parttime2 = endtime*rate
             data = data[parttime1:parttime2,channel]
 
         #split data into blocks
-        nblock = int(deltat*samplerate)
+        nblock = int(deltat*rate)
         if len(data)%nblock != 0:
             blockamount = len(data)//nblock + 1
         else:

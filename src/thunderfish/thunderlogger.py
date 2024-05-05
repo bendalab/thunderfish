@@ -84,12 +84,12 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                 # analyze:
                 sys.stdout.write(file + ': ')
                 unit = sf.unit
-                if max_dist < 1.1/sf.samplerate:
-                    max_dist = 1.1/sf.samplerate
+                if max_dist < 1.1/sf.rate:
+                    max_dist = 1.1/sf.rate
                 window_size = cfg.value('windowSize')
-                ndata = int(window_size * sf.samplerate)
+                ndata = int(window_size * sf.rate)
                 step = ndata//2
-                b, a = butter(1, 10.0, 'hp', fs=sf.samplerate, output='ba')
+                b, a = butter(1, 10.0, 'hp', fs=sf.rate, output='ba')
                 if stds is None:
                     stds = [[] for c in range(sf.channels)]
                     supra_thresh = [[] for c in range(sf.channels)]
@@ -100,8 +100,8 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                 for k, data in enumerate(sf.blocks(ndata, step)):
                     sys.stdout.write('.')
                     sys.stdout.flush()
-                    t0 = toffs + dt.timedelta(seconds=k*step/sf.samplerate)
-                    t1 = t0 + dt.timedelta(seconds=ndata/sf.samplerate)
+                    t0 = toffs + dt.timedelta(seconds=k*step/sf.rate)
+                    t1 = t0 + dt.timedelta(seconds=ndata/sf.rate)
                     t0s.append(t0)
                     for channel in range(sf.channels):
                         if thresholds:
@@ -123,7 +123,7 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                             name = file
                             # detect EODs in the data:
                             _, _, _, eod_props, mean_eods, spec_data, peak_data, _, _, _ = \
-                              detect_eods(data[:,channel], sf.samplerate,
+                              detect_eods(data[:,channel], sf.rate,
                                           min_clip, max_clip,
                                           name, verbose, plot_level, cfg)
                             first_fish = True
@@ -184,7 +184,7 @@ def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
                                     sys.stdout.write('%6.1fHz %5s-fish @ %s\n  ' %
                                                      (props['EODf'], props['type'],
                                                       t0.strftime('%Y-%m-%dT%H:%M:%S')))
-                toffs += dt.timedelta(seconds=len(sf)/sf.samplerate)
+                toffs += dt.timedelta(seconds=len(sf)/sf.rate)
                 sys.stdout.write('\n')
                 sys.stdout.flush()
         except EOFError as error:

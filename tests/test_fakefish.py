@@ -8,38 +8,38 @@ import thunderfish.fakefish as ff
 
 def test_wavefish():
     # generate data:
-    samplerate = 44100.0
+    rate = 44100.0
     duration = 1.
     
     # generate data:
-    time = np.arange(0, duration, 1./samplerate)
+    time = np.arange(0, duration, 1./rate)
 
     # wavefish with fixed frequency:
     eodf = 300.0
     with pytest.raises(IndexError):
         ff.wavefish_eods(([1.0, 0.5, 0.0, 0.0001], [0.0, 0.0]), eodf,
-                         samplerate, duration=duration)
+                         rate, duration=duration)
 
     with pytest.raises(KeyError):
-        ff.wavefish_eods('Amicro', eodf, samplerate, duration=duration)
+        ff.wavefish_eods('Amicro', eodf, rate, duration=duration)
     
     data = ff.wavefish_eods(([1.0, 0.5, 0.0, 0.0001], [0.0, 0.0, 0.0, 0.0]),
-                            eodf, samplerate, duration=duration, noise_std=0.02)
+                            eodf, rate, duration=duration, noise_std=0.02)
     assert len(time) == len(data), 'wavefish_eods(tuple) failed'
 
     data = ff.wavefish_eods(ff.Apteronotus_leptorhynchus_harmonics,
-                            eodf, samplerate, duration=duration)
+                            eodf, rate, duration=duration)
     assert len(time) == len(data), 'wavefish_eods(Alepto_leptorhynchus_harmonics) failed'
 
-    data = ff.wavefish_eods('Alepto', eodf, samplerate, duration=duration)
+    data = ff.wavefish_eods('Alepto', eodf, rate, duration=duration)
     assert len(time) == len(data), 'wavefish_eods(Alepto) failed'
 
-    data = ff.wavefish_eods('Eigenmannia', eodf, samplerate, duration=duration)
+    data = ff.wavefish_eods('Eigenmannia', eodf, rate, duration=duration)
     assert len(time) == len(data), 'wavefish_eods(Eigenmannia) failed'
     
     # wavefish with frequency modulation:
     eodf = 500.0 - time/duration*400.0
-    data = ff.wavefish_eods('Eigenmannia', eodf, samplerate, duration=duration, noise_std=0.02)
+    data = ff.wavefish_eods('Eigenmannia', eodf, rate, duration=duration, noise_std=0.02)
     assert len(time) == len(data), 'wavefish_eods(frequency ramp) failed'
 
     # normalize:
@@ -54,44 +54,44 @@ def test_wavefish():
     
 def test_communication():
     # generate data:
-    samplerate = 44100
+    rate = 44100
     duration = 10.
     
-    eodf, ampl = ff.chirps(600.0, samplerate, duration=duration, chirp_kurtosis=1.0)
-    assert duration*samplerate == len(eodf), 'chirps() failed'
-    assert duration*samplerate == len(ampl), 'chirps() failed'
+    eodf, ampl = ff.chirps(600.0, rate, duration=duration, chirp_kurtosis=1.0)
+    assert duration*rate == len(eodf), 'chirps() failed'
+    assert duration*rate == len(ampl), 'chirps() failed'
 
-    data = ff.rises(600.0, samplerate, duration=10,
+    data = ff.rises(600.0, rate, duration=10,
                     rise_freq=0.5, rise_size=20.0)
-    assert duration*samplerate == len(data), 'rises() failed'
+    assert duration*rate == len(data), 'rises() failed'
 
 
 def test_pulsefish():
     # generate data:
-    samplerate = 44100.0
+    rate = 44100.0
     duration = 1.
-    time = np.arange(0, duration, 1./samplerate)
+    time = np.arange(0, duration, 1./rate)
 
     # pulse fishes:
     data = ff.pulsefish_eods(([0.0, 0.0003], [1.0, -0.3], [0.0001, 0.0002]),
-                             80.0, samplerate, duration=duration,
+                             80.0, rate, duration=duration,
                              noise_std=0.02, jitter_cv=0.1)
     assert len(time) == len(data), 'pulsefish_eods() failed'
 
     for key in ff.pulsefish_eodpeaks:
-        data = ff.pulsefish_eods(key, 80., samplerate, duration=duration)
+        data = ff.pulsefish_eods(key, 80., rate, duration=duration)
         assert len(time) == len(data), f'pulsefish_eods({key}) failed'
         ff.normalize_pulsefish(key)
     
-    data = ff.pulsefish_eods(ff.Biphasic_peaks, 80., samplerate,
+    data = ff.pulsefish_eods(ff.Biphasic_peaks, 80., rate,
                              duration=duration)
     assert len(time) == len(data), f'pulsefish_eods({key}) failed'
 
     with pytest.raises(KeyError):
-        ff.pulsefish_eods('Quad', 80.0, samplerate, duration=duration)
+        ff.pulsefish_eods('Quad', 80.0, rate, duration=duration)
     with pytest.raises(IndexError):
         ff.pulsefish_eods(([0.0, 0.0003], [1.0], [0.0001, 0.0002]),
-                          80.0, samplerate, duration=duration)
+                          80.0, rate, duration=duration)
 
     ff.export_pulsefish('Biphasic', 'test_fish')
     ff.export_pulsefish('Triphasic', 'test_fish', 'testfile.txt')

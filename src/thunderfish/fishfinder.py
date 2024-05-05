@@ -23,12 +23,12 @@ class SignalPlot:
     def __init__(self, data, samplingrate, unit, filename, channel, verbose, cfg):
         self.filename = filename
         self.channel = channel
-        self.samplerate = samplingrate
+        self.rate = samplingrate
         self.data = data
         self.unit = unit
         self.cfg = cfg
         self.verbose = verbose
-        self.tmax = (len(self.data)-1)/self.samplerate
+        self.tmax = (len(self.data)-1)/self.rate
         self.toffset = 0.0
         self.twindow = 8.0
         if self.twindow > self.tmax:
@@ -181,11 +181,11 @@ class SignalPlot:
         self.remove_peak_annotation()
         # trace:
         self.axt.set_xlim(self.toffset, self.toffset + self.twindow)
-        t0 = int(np.round(self.toffset * self.samplerate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
         if t1>len(self.data):
             t1 = len(self.data)
-        time = np.arange(t0, t1) / self.samplerate
+        time = np.arange(t0, t1) / self.rate
         if self.trace_artist == None:
             self.trace_artist, = self.axt.plot(time, self.data[t0:t1,self.channel])
         else:
@@ -193,7 +193,7 @@ class SignalPlot:
         self.axt.set_ylim(self.ymin, self.ymax)
 
         # compute power spectrum:
-        n_fft = nfft(self.samplerate, self.freq_resolution)
+        n_fft = nfft(self.rate, self.freq_resolution)
         t00 = t0
         t11 = t1
         w = t11 - t00
@@ -207,7 +207,7 @@ class SignalPlot:
         if t00 < 0:
             t00 = 0
             t11 = w
-        freqs, power = psd(self.data[t00:t11,self.channel], self.samplerate,
+        freqs, power = psd(self.data[t00:t11,self.channel], self.rate,
                            self.freq_resolution, detrend=ml.detrend_mean)
         self.deltaf = freqs[1] - freqs[0]
         # detect fish:
@@ -220,7 +220,7 @@ class SignalPlot:
         # spectrogram:
         t2 = t1 + n_fft
         freqs, bins, specpower = spectrogram(self.data[t0:t2,self.channel],
-                                             self.samplerate,
+                                             self.rate,
                                              self.freq_resolution,
                                              detrend=ml.detrend_mean)
         z = decibel(specpower)
@@ -248,7 +248,7 @@ class SignalPlot:
             dfs = '%.3gkHz' % 0.001 * self.deltaf
         else:
             dfs = '%.3gHz' % self.deltaf
-        tw = float(w) / self.samplerate
+        tw = float(w) / self.rate
         if tw < 1.0:
             tws = '%.3gms' % (1000.0 * tw)
         else:
@@ -341,15 +341,15 @@ class SignalPlot:
     def keypress(self, event):
         # print('pressed', event.key)
         if event.key in '+=X':
-            if self.twindow * self.samplerate > 20:
+            if self.twindow * self.rate > 20:
                 self.twindow *= 0.5
                 self.update_plots()
         elif event.key in '-x':
-            if self.twindow < len(self.data) / self.samplerate:
+            if self.twindow < len(self.data) / self.rate:
                 self.twindow *= 2.0
                 self.update_plots()
         elif event.key == 'pagedown':
-            if self.toffset + 0.5 * self.twindow < len(self.data) / self.samplerate:
+            if self.toffset + 0.5 * self.twindow < len(self.data) / self.rate:
                 self.toffset += 0.5 * self.twindow
                 self.update_plots()
         elif event.key == 'pageup':
@@ -362,24 +362,24 @@ class SignalPlot:
             if self.min_clip == 0.0 or self.max_clip == 0.0:
                 self.min_clip, self.max_clip = clip_amplitudes(
                     self.data[:,self.channel],
-                    **clip_args(self.cfg, self.samplerate))
+                    **clip_args(self.cfg, self.rate))
             try:
                 if self.cfg.value('windowSize') <= 0.0:
-                    self.cfg.set('windowSize', (len(self.data)-1)/self.samplerate)
+                    self.cfg.set('windowSize', (len(self.data)-1)/self.rate)
                 idx0, idx1, clipped = best_window_indices(
-                    self.data[:,self.channel], self.samplerate,
+                    self.data[:,self.channel], self.rate,
                     min_clip=self.min_clip, max_clip=self.max_clip,
                     **best_window_args(self.cfg))
                 if idx1 > 0:
-                    self.toffset = idx0 / self.samplerate
-                    self.twindow = (idx1 - idx0) / self.samplerate
+                    self.toffset = idx0 / self.rate
+                    self.twindow = (idx1 - idx0) / self.rate
                     self.twindow *= 2.0/(self.cfg.value('numberPSDWindows')+1.0)
                     self.update_plots()
             except UserWarning as e:
                 if self.verbose > 0:
                     print(str(e))
         elif event.key == 'ctrl+pagedown':
-            if self.toffset + 5.0 * self.twindow < len(self.data) / self.samplerate:
+            if self.toffset + 5.0 * self.twindow < len(self.data) / self.rate:
                 self.toffset += 5.0 * self.twindow
                 self.update_plots()
         elif event.key == 'ctrl+pageup':
@@ -389,7 +389,7 @@ class SignalPlot:
                     self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'down':
-            if self.toffset + self.twindow < len(self.data) / self.samplerate:
+            if self.toffset + self.twindow < len(self.data) / self.rate:
                 self.toffset += 0.05 * self.twindow
                 self.update_plots()
         elif event.key == 'up':
@@ -403,7 +403,7 @@ class SignalPlot:
                 self.toffset = 0.0
                 self.update_plots()
         elif event.key == 'end':
-            toffs = np.floor(len(self.data) / self.samplerate / self.twindow) * self.twindow
+            toffs = np.floor(len(self.data) / self.rate / self.twindow) * self.twindow
             if self.toffset < toffs:
                 self.toffset = toffs
                 self.update_plots()
@@ -422,8 +422,8 @@ class SignalPlot:
             self.axt.set_ylim(self.ymin, self.ymax)
             self.fig.canvas.draw()
         elif event.key == 'v':
-            t0 = int(np.round(self.toffset * self.samplerate))
-            t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+            t0 = int(np.round(self.toffset * self.rate))
+            t1 = int(np.round((self.toffset + self.twindow) * self.rate))
             min = np.min(self.data[t0:t1,self.channel])
             max = np.max(self.data[t0:t1,self.channel])
             h = 0.5 * (max - min)
@@ -449,7 +449,7 @@ class SignalPlot:
                 self.axp.set_xlim(self.fmin, self.fmax)
                 self.fig.canvas.draw()
         elif event.key == 'right':
-            if self.fmax < 0.5 * self.samplerate:
+            if self.fmax < 0.5 * self.rate:
                 fwidth = self.fmax - self.fmin
                 self.fmin += 0.5 * fwidth
                 self.fmax += 0.5 * fwidth
@@ -465,9 +465,9 @@ class SignalPlot:
                 self.axp.set_xlim(self.fmin, self.fmax)
                 self.fig.canvas.draw()
         elif event.key == 'ctrl+right':
-            if self.fmax < 0.5 * self.samplerate:
+            if self.fmax < 0.5 * self.rate:
                 fwidth = self.fmax - self.fmin
-                fm = 0.5 * self.samplerate
+                fm = 0.5 * self.rate
                 self.fmax = np.ceil(fm / fwidth) * fwidth
                 self.fmin = self.fmax - fwidth
                 if self.fmin < 0.0:
@@ -477,9 +477,9 @@ class SignalPlot:
                 self.axp.set_xlim(self.fmin, self.fmax)
                 self.fig.canvas.draw()
         elif event.key in 'f':
-            if self.fmax < 0.5 * self.samplerate or self.fmin > 0.0:
+            if self.fmax < 0.5 * self.rate or self.fmin > 0.0:
                 fwidth = self.fmax - self.fmin
-                if self.fmax < 0.5 * self.samplerate:
+                if self.fmax < 0.5 * self.rate:
                     self.fmax = self.fmin + 2.0 * fwidth
                 elif self.fmin > 0.0:
                     self.fmin = self.fmax - 2.0 * fwidth
@@ -648,11 +648,11 @@ class SignalPlot:
             ax.set_title(self.filename)
             figfile = '{name}-{time:.4g}s-waveform.png'.format(
                 name=name, time=self.toffset)
-        t0 = int(np.round(self.toffset * self.samplerate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
         if t1>len(self.data):
             t1 = len(self.data)
-        time = np.arange(t0, t1) / self.samplerate
+        time = np.arange(t0, t1) / self.rate
         if self.twindow < 1.0:
             ax.set_xlabel('Time [ms]')
             ax.set_xlim(1000.0 * self.toffset,
@@ -670,26 +670,26 @@ class SignalPlot:
         print('saved waveform figure to', figfile)
 
     def play_segment(self):
-        t0 = int(np.round(self.toffset * self.samplerate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
         playdata = 1.0 * self.data[t0:t1,self.channel]
-        fade(playdata, self.samplerate, 0.1)
-        self.audio.play(playdata, self.samplerate, blocking=False)
+        fade(playdata, self.rate, 0.1)
+        self.audio.play(playdata, self.rate, blocking=False)
 
     def save_segment(self):
         t0s = int(np.round(self.toffset))
         t1s = int(np.round(self.toffset + self.twindow))
-        t0 = int(np.round(self.toffset * self.samplerate))
-        t1 = int(np.round((self.toffset + self.twindow) * self.samplerate))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
         savedata = 1.0 * self.data[t0:t1,self.channel]
         filename = self.filename.split('.')[0]
         segmentfilename = '{name}-{time0:.4g}s-{time1:.4g}s.wav'.format(
                 name=filename, time0=t0s, time1 = t1s)
-        write_audio(segmentfilename, savedata, self.data.samplerate)
+        write_audio(segmentfilename, savedata, self.data.rate)
         print('saved segment to: ' , segmentfilename)
         
     def play_all(self):
-        self.audio.play(self.data[:,self.channel], self.samplerate,
+        self.audio.play(self.data[:,self.channel], self.rate,
                         blocking=False)
         
     def play_tone( self, frequency ) :
@@ -753,7 +753,7 @@ def main(cargs=None):
     channel = args.channel
     # TODO: add blocksize and backsize as configuration parameter!
     with DataLoader(filepath, 60.0, 10.0, verbose) as data:
-        SignalPlot(data, data.samplerate, data.unit, filename, channel, verbose, cfg)
+        SignalPlot(data, data.rate, data.unit, filename, channel, verbose, cfg)
 
         
 if __name__ == '__main__':
