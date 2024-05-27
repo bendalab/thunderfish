@@ -79,6 +79,7 @@ import glob
 import zipfile
 import numpy as np
 from scipy.optimize import curve_fit
+from numba import jit
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
@@ -91,8 +92,7 @@ from .harmonics import fundamental_freqs_and_power
 
 def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,
                  min_sem=False, max_eods=None, unfilter_cutoff=0.0):
-    """Detect EODs in the given data, extract data snippets around each EOD,
-    and compute a mean waveform with standard error.
+    """Extract data snippets around each EOD, and compute a mean waveform with standard error.
 
     Retrieving the EOD waveform of a wave fish works under the following
     conditions: (i) at a signal-to-noise ratio \\(SNR = P_s/P_n\\),
@@ -202,6 +202,131 @@ def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,
         
     # time axis:
     mean_eod[:,0] = (np.arange(len(mean_eod)) - win_inx) / rate
+    
+    return mean_eod, eod_times
+
+
+def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
+    """Retrieve average EOD waveform via Fourier transform.
+
+    TODO: use power spectra to check minimum data segment needed and
+    check for changes in frequency over several segments!
+
+    Parameters
+    ----------
+    data: 1-D array of float
+        The data to be analysed.
+    rate: float
+        Sampling rate of the data in Hertz.
+    freq: float
+        EOD frequency.
+    win_fac: float
+        The snippet size is the EOD period times `win_fac`. The EOD period
+        is determined as the minimum interval between EOD times.
+    unfilter_cutoff: float
+        If not zero, the cutoff frequency for an inverse high-pass filter
+        applied to the mean EOD waveform.
+    
+    Returns
+    -------
+    mean_eod: 2-D array
+        Average of the EOD snippets. First column is time in seconds,
+        second column the mean eod, third column the standard error.
+    eod_times: 1-D array
+        Times of EOD peaks in seconds that have been actually used to calculate the
+        averaged EOD waveform.
+
+    """
+
+    @jit(nopython=True)
+    def fourier_wave(data, rate, freq):
+        """
+        extracting wave via fourier coefficients
+        """
+        twave = np.arange(0, (1+win_fac)/freq, 1/rate)
+        wave = np.zeros(len(twave))
+        t = np.arange(len(data))/rate
+        for k in range(0, 31):
+            Xk = np.trapz(data*np.exp(-1j*2*np.pi*k*freq*t), t)*2/t[-1]
+            wave += np.real(Xk*np.exp(1j*2*np.pi*k*freq*twave))
+        return wave
+
+    @jit(nopython=True)
+    def fourier_range(data, rate, f0, f1, df):
+        wave = np.zeros(1)
+        freq = f0
+        for f in np.arange(f0, f1, df):
+            w = fourier_wave(data, rate, f)
+            if np.max(w) - np.min(w) > np.max(wave) - np.min(wave):
+                wave = w
+                freq = f
+        return wave, freq
+
+    # TODO: parameterize!
+    tsnippet = 2
+    min_corr = 0.98
+    min_ampl_frac = 0.5
+    frange = 0.1
+    fstep = 0.1
+    waves = []
+    freqs = []
+    times = []
+    step = int(tsnippet*rate)
+    for i in range(0, len(data) - step//2, step//2):
+        w, f = fourier_range(data[i:i + step], rate, freq - frange,
+                             freq + frange + fstep/2, fstep)
+        waves.append(w)
+        freqs.append(f)
+        """
+        waves.append(np.zeros(1))
+        freqs.append(freq)
+        for f in np.arange(freq - frange, freq + frange + fstep/2, fstep):
+            w = fourier_wave(data[i:i + step], rate, f)
+            if np.max(w) - np.min(w) > np.max(waves[-1]) - np.min(waves[-1]):
+                waves[-1] = w
+                freqs[-1] = f
+        """
+        times.append(np.arange(i/rate, (i + step)/rate, 1/freqs[-1]))
+    for k in range(len(waves)):
+        period = int(np.ceil(rate/freqs[k]))
+        i = np.argmax(waves[k][:period])
+        waves[k] = waves[k][i:]
+    eod_freq = np.mean(freqs)
+    mean_eod = np.zeros((0, 3))
+    eod_times = np.zeros((0))
+    n = np.min([len(w) for w in waves])
+    waves = np.array([w[:n] for w in waves])
+    # only snippets that are similar:
+    corr = np.corrcoef(waves)
+    nmax = np.argmax(np.sum(corr > min_corr, axis=1))
+    if nmax <= 1:
+        nmax = 2
+    select = np.sum(corr > min_corr, axis=1) >= nmax
+    waves = waves[select]
+    times = [times[k] for k in range(len(times)) if select[k]]
+    if len(waves) == 0:
+        return mean_eod, eod_times
+    # only the largest snippets:
+    ampls = np.std(waves, axis=1)
+    select = ampls >= min_ampl_frac*np.max(ampls)
+    waves = waves[select]
+    times = [times[k] for k in range(len(times)) if select[k]]
+    if len(waves) == 0:
+        return mean_eod, eod_times
+    """
+    #plt.plot(freqs)
+    plt.plot(waves.T)
+    plt.show()
+    """
+    mean_eod = np.zeros((n, 3))
+    mean_eod[:, 0] = np.arange(len(mean_eod))/rate
+    mean_eod[:, 1] = np.mean(waves, axis=0)
+    mean_eod[:, 2] = np.std(waves, axis=0)
+    eod_times = np.concatenate(times)
+
+    # apply inverse filter:
+    if unfilter_cutoff and unfilter_cutoff > 0.0:
+        unfilter(mean_eod[:, 1], rate, unfilter_cutoff)
     
     return mean_eod, eod_times
 
@@ -351,7 +476,7 @@ def analyze_wave(eod, freq, n_harm=10, power_n_harmonics=0,
           in decibel.
 
     spec_data: 2-D array of floats
-        First size columns are from the spectrum of the extracted
+        First six columns are from the spectrum of the extracted
         waveform.  First column is the index of the harmonics, second
         column its frequency, third column its amplitude, fourth
         column its amplitude relative to the fundamental, fifth column

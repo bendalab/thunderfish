@@ -683,7 +683,6 @@ def analysis_window(data, rate, ampl_max, win_pos,
     if min_clip == 0.0 or max_clip == 0.0:
         min_clip, max_clip = clip_amplitudes(data, max_ampl=ampl_max,
                                              **clip_args(cfg, rate))
-        print(ampl_max, min_clip, max_clip)
     if cfg.value('unwrapData'):
         unwrap(data, 1.5, ampl_max)
         min_clip *= 2

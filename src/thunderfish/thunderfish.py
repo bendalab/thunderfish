@@ -48,7 +48,7 @@ from .harmonics import add_psd_peak_detection_config, add_harmonic_groups_config
 from .harmonics import harmonic_groups, harmonic_groups_args, psd_peak_detection_args
 from .harmonics import colors_markers, plot_harmonic_groups
 from .consistentfishes import consistent_fishes
-from .eodanalysis import eod_waveform, analyze_wave, analyze_pulse
+from .eodanalysis import eod_waveform, waveeod_waveform, analyze_wave, analyze_pulse
 from .eodanalysis import clipped_fraction
 from .eodanalysis import plot_eod_recording, plot_pulse_eods
 from .eodanalysis import plot_eod_waveform, plot_eod_snippets
@@ -314,10 +314,17 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
         wave_indices = np.zeros(len(wave_eodfs), dtype=int) - 3
         for k, idx in enumerate(power_indices):
             fish = wave_eodfs[idx]
+            """
             eod_times = np.arange(0.0, len(data)/rate, 1.0/fish[0,0])
             mean_eod, eod_times = \
                 eod_waveform(data, rate, eod_times, win_fac=3.0, min_win=0.0,
                              min_sem=(k==0), **eod_waveform_args(cfg))
+            """
+            mean_eod, eod_times = \
+                waveeod_waveform(data, rate, fish[0, 0], win_fac=3.0,
+                                 unfilter_cutoff=cfg.value('unfilterCutoff'))
+            if len(mean_eod) == 0:
+                continue
             mean_eod, props, sdata, error_str = \
                 analyze_wave(mean_eod, fish, **analyze_wave_args(cfg))
             if error_str:
