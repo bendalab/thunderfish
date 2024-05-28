@@ -1006,7 +1006,7 @@ def fundamental_freqs(group_list):
         with the fundamental frequencies extracted from the harmonic groups.
     """
     if len(group_list) == 0:
-        return np.array([])
+        return np.zeros(0)
 
     # check whether group_list is list of harmonic groups:
     list_of_groups = True
@@ -1059,7 +1059,7 @@ def fundamental_freqs_and_power(group_list, power=False,
         corresponding power in second column.
     """
     if len(group_list) == 0:
-        return np.array([])
+        return np.zeros((0, 2))
 
     # check whether group_list is list of harmonic groups:
     list_of_groups = True

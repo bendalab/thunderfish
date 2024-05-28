@@ -4,6 +4,7 @@ Analysis of EOD waveforms.
 ## EOD waveform analysis
 
 - `eod_waveform()`: compute an averaged EOD waveform.
+- `waveeod_waveform()`: retrieve average EOD waveform via Fourier transform.
 - `analyze_wave()`: analyze the EOD waveform of a wave fish.
 - `analyze_pulse()`: analyze the EOD waveform of a pulse fish.
 - `adjust_eodf()`: adjust EOD frequencies to a standard temperature.
@@ -212,6 +213,10 @@ def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
     TODO: use power spectra to check minimum data segment needed and
     check for changes in frequency over several segments!
 
+    TODO: return waveform with higher samplign rate? (important for
+    2kHz waves on 24kHz sampling). But this seems to render some EODs
+    inacceptable in the further thunderfish processing pipeline.
+
     Parameters
     ----------
     data: 1-D array of float
@@ -233,8 +238,8 @@ def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
         Average of the EOD snippets. First column is time in seconds,
         second column the mean eod, third column the standard error.
     eod_times: 1-D array
-        Times of EOD peaks in seconds that have been actually used to calculate the
-        averaged EOD waveform.
+        Times of EOD peaks in seconds that have been actually used to
+        calculate the averaged EOD waveform.
 
     """
 
