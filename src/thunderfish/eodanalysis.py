@@ -2103,6 +2103,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
         Index of fish.
     basename: string or stream
         If string, path and basename of file.
+        If `basename` does not have an extension,
         '-eodwaveform', the fish index, and a file extension are appended.
         If stream, write EOD waveform data into this stream.
     kwargs:
@@ -2123,9 +2124,12 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
                    ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
     if mean_eod.shape[1] > 3:
         td.append('fit', unit, '%.5f', mean_eod[:,3])
-    fp = '-eodwaveform'
-    if idx is not None:
-        fp += '-%d' % idx
+    _, ext = os.path.splitext(basename)
+    fp = ''
+    if not ext:
+        fp = '-eodwaveform'
+        if idx is not None:
+            fp += '-%d' % idx
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -2252,6 +2256,7 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
         Unit of the waveform data.
     basename: string or stream
         If string, path and basename of file.
+        If `basename` does not have an extension,
         '-wavefish' and a file extension are appended.
         If stream, write wave fish properties into this stream.
     kwargs:
@@ -2315,7 +2320,8 @@ def save_wave_fish(eod_props, unit, basename, **kwargs):
     td.append('p-p-distance', '%', '%.2f', wave_props, 100.0)
     td.append('min-p-p-distance', '%', '%.2f', wave_props, 100.0)
     td.append('relpeakampl', '%', '%.2f', wave_props, 100.0)
-    fp = '-wavefish'
+    _, ext = os.path.splitext(basename)
+    fp = '-wavefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -2388,6 +2394,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
         Unit of the waveform data.
     basename: string or stream
         If string, path and basename of file.
+        If `basename` does not have an extension,
         '-pulsefish' and a file extension are appended.
         If stream, write pulse fish properties into this stream.
     kwargs:
@@ -2448,7 +2455,8 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('poweratt5', 'dB', '%.2f', pulse_props)
     td.append('poweratt50', 'dB', '%.2f', pulse_props)
     td.append('lowcutoff', 'Hz', '%.2f', pulse_props)
-    fp = '-pulsefish'
+    _, ext = os.path.splitext(basename)
+    fp = '-pulsefish' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -2518,6 +2526,7 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
         Index of fish.
     basename: string or stream
         If string, path and basename of file.
+        If `basename` does not have an extension,
         '-wavespectrum', the fish index, and a file extension are appended.
         If stream, write wave spectrum into this stream.
     kwargs:
@@ -2541,9 +2550,12 @@ def save_wave_spectrum(spec_data, unit, idx, basename, **kwargs):
                    ['%.0f', '%.2f', '%.6f', '%10.2f', '%6.2f', '%8.4f'])
     if spec_data.shape[1] > 6:
         td.append('datapower', '%s^2/Hz' % unit, '%11.4e', spec_data[:,6])
-    fp = '-wavespectrum'
-    if idx is not None:
-        fp += '-%d' % idx
+    _, ext = os.path.splitext(basename)
+    fp = ''
+    if not ext:
+        fp = '-wavespectrum'
+        if idx is not None:
+            fp += '-%d' % idx
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -2593,6 +2605,7 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
         Index of fish.
     basename: string or stream
         If string, path and basename of file.
+        If `basename` does not have an extension,
         '-pulsespectrum', the fish index, and a file extension are appended.
         If stream, write pulse spectrum into this stream.
     kwargs:
@@ -2611,9 +2624,12 @@ def save_pulse_spectrum(spec_data, unit, idx, basename, **kwargs):
     """
     td = TableData(spec_data[:,:2], ['frequency', 'power'],
                    ['Hz', '%s^2/Hz' % unit], ['%.2f', '%.4e'])
-    fp = '-pulsespectrum'
-    if idx is not None:
-        fp += '-%d' % idx
+    _, ext = os.path.splitext(basename)
+    fp = ''
+    if not ext:
+        fp = '-pulsespectrum'
+        if idx is not None:
+            fp += '-%d' % idx
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -2658,6 +2674,7 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
         Index of fish.
     basename: string or stream
         If string, path and basename of file.
+        If `basename` does not have an extension,
         '-pulsepeaks', the fish index, and a file extension are appended.
         If stream, write pulse peaks into this stream.
     kwargs:
@@ -2680,9 +2697,12 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
                    ['P', 'time', 'amplitude', 'relampl', 'width'],
                    ['', 'ms', unit, '%', 'ms'],
                    ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
-    fp = '-pulsepeaks'
-    if idx is not None:
-        fp += '-%d' % idx
+    _, ext = os.path.splitext(basename)
+    fp = ''
+    if not ext:
+        fp = '-pulsepeaks'
+        if idx is not None:
+            fp += '-%d' % idx
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -2732,6 +2752,7 @@ def save_pulse_times(pulse_times, idx, basename, **kwargs):
         Index of fish.
     basename: string or stream
         If string, path and basename of file.
+        If `basename` does not have an extension,
         '-pulsetimes', the fish index, and a file extension are appended.
         If stream, write pulse times into this stream.
     kwargs:
@@ -2756,9 +2777,12 @@ def save_pulse_times(pulse_times, idx, basename, **kwargs):
         return None
     td = TableData()
     td.append('time', 's', '%.4f', pulse_times)
-    fp = '-pulsetimes'
-    if idx is not None:
-        fp += '-%d' % idx
+    _, ext = os.path.splitext(basename)
+    fp = ''
+    if not ext:
+        fp = '-pulsetimes'
+        if idx is not None:
+            fp += '-%d' % idx
     return td.write_file_stream(basename, fp, **kwargs)
 
 
