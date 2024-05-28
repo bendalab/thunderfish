@@ -2173,7 +2173,8 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
         If None no index column is inserted.
     basename: string or stream
         If string, path and basename of file.
-        '-waveeodfs' and a file extension are appended.
+        If `basename` does not have an extension,
+        '-waveeodfs' and a file extension according to `kwargs` are appended.
         If stream, write EOD frequencies data into this stream.
     kwargs:
         Arguments passed on to `TableData.write()`.
@@ -2196,7 +2197,8 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
         td.append('index', '', '%d', [wi if wi >= 0 else np.nan for wi in wave_indices])
     td.append('EODf', 'Hz', '%7.2f', eodfs[:,0])
     td.append('datapower', 'dB', '%7.2f', eodfs[:,1])
-    fp = '-waveeodfs'
+    _, ext = os.path.splitext(fh)
+    fp = '-waveeodfs' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
 
 
