@@ -2197,7 +2197,7 @@ def save_wave_eodfs(wave_eodfs, wave_indices, basename, **kwargs):
         td.append('index', '', '%d', [wi if wi >= 0 else np.nan for wi in wave_indices])
     td.append('EODf', 'Hz', '%7.2f', eodfs[:,0])
     td.append('datapower', 'dB', '%7.2f', eodfs[:,1])
-    _, ext = os.path.splitext(fh)
+    _, ext = os.path.splitext(basename)
     fp = '-waveeodfs' if not ext else ''
     return td.write_file_stream(basename, fp, **kwargs)
 
