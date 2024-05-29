@@ -292,13 +292,15 @@ def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
                 freqs[-1] = f
         """
         times.append(np.arange(i/rate, (i + step)/rate, 1/freqs[-1]))
+    eod_freq = np.mean(freqs)
+    mean_eod = np.zeros((0, 3))
+    eod_times = np.zeros((0))
+    if len(waves) == 0:
+        return mean_eod, eod_times
     for k in range(len(waves)):
         period = int(np.ceil(rate/freqs[k]))
         i = np.argmax(waves[k][:period])
         waves[k] = waves[k][i:]
-    eod_freq = np.mean(freqs)
-    mean_eod = np.zeros((0, 3))
-    eod_times = np.zeros((0))
     n = np.min([len(w) for w in waves])
     waves = np.array([w[:n] for w in waves])
     # only snippets that are similar:
