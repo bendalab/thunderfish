@@ -304,15 +304,16 @@ def waveeod_waveform(data, rate, freq, win_fac=2.0, unfilter_cutoff=0.0):
     n = np.min([len(w) for w in waves])
     waves = np.array([w[:n] for w in waves])
     # only snippets that are similar:
-    corr = np.corrcoef(waves)
-    nmax = np.argmax(np.sum(corr > min_corr, axis=1))
-    if nmax <= 1:
-        nmax = 2
-    select = np.sum(corr > min_corr, axis=1) >= nmax
-    waves = waves[select]
-    times = [times[k] for k in range(len(times)) if select[k]]
-    if len(waves) == 0:
-        return mean_eod, eod_times
+    if len(waves) > 1:
+        corr = np.corrcoef(waves)
+        nmax = np.argmax(np.sum(corr > min_corr, axis=1))
+        if nmax <= 1:
+            nmax = 2
+        select = np.sum(corr > min_corr, axis=1) >= nmax
+        waves = waves[select]
+        times = [times[k] for k in range(len(times)) if select[k]]
+        if len(waves) == 0:
+            return mean_eod, eod_times
     # only the largest snippets:
     ampls = np.std(waves, axis=1)
     select = ampls >= min_ampl_frac*np.max(ampls)
