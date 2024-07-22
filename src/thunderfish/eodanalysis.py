@@ -2221,7 +2221,6 @@ def load_wave_eodfs(file_path):
     -------
     eodfs: 2D array of floats
         EODfs and power of wave type fish.
-        Indices can contain NaNs.
     indices: array of ints
         Corresponding indices of fish, can contain negative numbers to
         indicate frequencies without fish.
@@ -2924,8 +2923,9 @@ def save_analysis(output_basename, zip_file, eod_props, mean_eods,
         (columns) of the fundamental and harmonics (rows) as returned
         by `harmonics.harmonic_groups()`.
     wave_indices: array of int
-        Indices identifying each fish in `wave_eodfs` or NaN.  unit:
-        string Unit of the waveform data.
+        Indices identifying each fish in `wave_eodfs` or NaN.
+    unit: string
+        Unit of the waveform data.
     verbose: int
         Verbosity level.
     kwargs:
