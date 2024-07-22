@@ -2124,7 +2124,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     load_eod_waveform()
     """
     td = TableData(mean_eod[:,:3]*[1000.0, 1.0, 1.0], ['time', 'mean', 'sem'],
-                   ['ms', unit, unit], ['%.3f', '%.5f', '%.5f'])
+                   ['ms', unit, unit], ['%.3f', '%.6g', '%.6g'])
     if mean_eod.shape[1] > 3:
         td.append('fit', unit, '%.5f', mean_eod[:,3])
     _, ext = os.path.splitext(basename)
