@@ -76,6 +76,7 @@ musical_intervals = {
     'fifth': (3/2, 3, 2, 7),
     'minor sixth': (8/5, 8, 5, 8),
     'major sixth': (5/3, 5, 3, 9),
+    'subminor seventh': (7/4, 7, 4, 9.5),
     'minor seventh': (9/5, 9, 5, 10),
     'major seventh': (15/8, 15, 8, 11),
     'octave': (2/1, 2, 1, 12),
