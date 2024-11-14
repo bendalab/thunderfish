@@ -939,7 +939,7 @@ def harmonic_groups(psd_freqs, psd, verbose=0, check_freqs=[],
     delta_f = psd_freqs[1] - psd_freqs[0]
 
     # thresholds:
-    center = np.NaN
+    center = np.nan
     if low_threshold <= 0.0 or high_threshold <= 0.0:
         low_th, high_th, center = threshold_estimate(log_psd, low_thresh_factor,
                                                      high_thresh_factor,

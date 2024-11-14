@@ -989,7 +989,7 @@ def plot_moving_fish(ws, dts, clusterss, ts, fishcounts, T, ignore_stepss):
 
 		yplot = np.copy(y)
 		ax2.plot(x+dt/2, yplot, linestyle='-', marker='.', c=cmap(i), alpha=0.25)
-		yplot[ignore_steps.astype(bool)] = np.NaN
+		yplot[ignore_steps.astype(bool)] = np.nan
 		ax2.plot(x+dt/2, yplot, linestyle='-', marker='.', c=cmap(i))
 		ax2.set_ylabel('Fish count')
 		ax2.set_yticks(range(int(np.min(y)), 1+int(np.max(y))))
