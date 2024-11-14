@@ -7,6 +7,11 @@
 - `abbrv_genus()`: abbreviate genus in a species name.
 
 
+## Muscial intervals
+
+- `musical_intervals`: names and frequency ratios of musical intervals
+
+
 ## Wavefish
 
 - `wavefish_spectrum()`: amplitudes and phases of a wavefish EOD.
@@ -59,6 +64,24 @@ def abbrv_genus(name):
     ns = name.split()
     return ns[0][0] + '. ' + ' '.join(ns[1:])
 
+
+musical_intervals = {
+    'unison': (1/1, 1, 1, 0),
+    'minor second': (16/15, 16, 15, 1),
+    'major second': (9/8, 9, 8, 2),
+    'minor third': (6/5, 6, 5, 3),
+    'major third': (5/4, 5, 4, 4),
+    'forth': (4/3, 4, 3, 5),
+    'tritone': (45/32, 45, 32, 6),  # =1.406, half way between forth and fifth: 17/6/2=1.4167, sqrt(2)=1.4142
+    'fifth': (3/2, 3, 2, 7),
+    'minor sixth': (8/5, 8, 5, 8),
+    'major sixth': (5/3, 5, 3, 9),
+    'minor seventh': (9/5, 9, 5, 10),
+    'major seventh': (15/8, 15, 8, 11),
+    'octave': (2/1, 2, 1, 12),
+}
+"""Name, frequency ratio, nominator, denominator, and index of musical intervals
+"""
 
 # Amplitudes and phases of various wavefish species:
 
