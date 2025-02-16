@@ -24,6 +24,7 @@ jobs:
           pip install pdoc3
           pip install mkdocs
           pip install genbadge[coverage]
+          pip install svgpathtools
           pip install -r requirements.txt
 
       - name: Run tests
