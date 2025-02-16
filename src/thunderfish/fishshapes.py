@@ -44,7 +44,7 @@ You may use these functions to extract and fine tune pathes from SVG
 files in order to assemble fish shapes for this module. See
 `export_fish_demo()` for a use case.
 
-- `extract_path()`: convert SVG coordinates to numpy array with path coordinates.
+- `extract_path()`: convert SVG pathes to numpy arrays with path coordinates.
 - `bbox_pathes()`: common bounding box of pathes.
 - `translate_pathes()`: translate pathes in place.
 - `center_pathes()`: translate pathes to their common origin in place.
@@ -1286,7 +1286,7 @@ def surface_normals(xx, yy, zz):
 
 
 def extract_path(svgfile, path_index, npoints):
-    """Convert SVG coordinates to numpy array with path coordinates.
+    """Convert SVG pathes to numpy array with path coordinates.
 
     Draw a fish outline in inkscape and save it to a svg file.
 
@@ -1578,7 +1578,7 @@ def export_fish_demo():
     """
     body = extract_path('fish.svg', 0, 300)
     fin0 = extract_path('fish.svg', 1, 70)
-    fin1 = extract_path('fish.svg', 1, 70)
+    fin1 = extract_path('fish.svg', 2, 70)
     verts = (body, fin0, fin1)
     # look at the path:
     fig, ax = plt.subplots()
