@@ -29,6 +29,9 @@ Analysis of EOD waveforms.
 - `plot_eod_waveform()`: plot and annotate the averaged EOD-waveform with standard error.
 - `plot_wave_spectrum()`: plot and annotate spectrum of wave EODs.
 - `plot_pulse_spectrum()`: plot and annotate spectrum of single pulse EOD.
+- `trace_color`: default color for traces.
+- `fit_color`: default color for fits.
+- `spectrum_color`: default color for power spectra.
 
 ## Storage
 
@@ -81,13 +84,28 @@ import zipfile
 import numpy as np
 from scipy.optimize import curve_fit
 from numba import jit
-import matplotlib.pyplot as plt
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from thunderlab.eventdetection import threshold_crossings, threshold_crossing_times, merge_events
 from thunderlab.powerspectrum import next_power_of_two, nfft, decibel
 from thunderlab.tabledata import TableData
 from thunderlab.dataloader import load_data
 from .harmonics import fundamental_freqs_and_power
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
+
+
+# Colors taken from https://github.com/bendalab/plottools/blob/master/src/plottools/colors.py (colors_vivid)
+
+trace_color = '#D71000'
+""" Default color for traces."""
+
+fit_color = '#1040C0'
+""" Default color for fits."""
+
+spectrum_color = '#1040C0'
+""" Default color for power spectra."""
 
 
 def eod_waveform(data, rate, eod_times, win_fac=2.0, min_win=0.01,
@@ -1661,7 +1679,7 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
 
 
 def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
-                       toffs=0.0, pstyle=dict(lw=2, color='red')):
+                       toffs=0.0, pstyle=dict(lw=2, color=trace_color)):
     """Plot a zoomed in range of the recorded trace.
 
     Parameters
@@ -1806,7 +1824,7 @@ def plot_pulse_eods(ax, data, rate, zoom_window, width, eod_props,
 def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
                       n_snippets=10, flip=False,
                       sstyle=dict(scaley=False,
-                                  lw=0.5, color='0.8')):
+                                  lw=0.5, color='0.6')):
     """Plot a few EOD waveform snippets.
 
     Parameters
@@ -1850,9 +1868,9 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
 
         
 def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
-                      mstyle=dict(lw=2, color='red'),
-                      sstyle=dict(color='#CCCCCC'),
-                      fstyle=dict(lw=6, color='steelblue'),
+                      mstyle=dict(lw=2, color=trace_color),
+                      sstyle=dict(color='0.8'),
+                      fstyle=dict(lw=6, color=fit_color),
                       zstyle=dict(lw=1, color='0.7')):
     """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
@@ -1925,9 +1943,10 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     # annotate peaks:
     if peaks is not None and len(peaks)>0:
         for p in peaks:
-            ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False, zorder=0, alpha=0.4,
-                       c=mstyle['color'], edgecolors=mstyle['color'])
-            label = f'P{p[0]}'
+            ax.plot(1000.0*p[1], p[2], 'o', clip_on=False, zorder=0,
+                    alpha=0.4, color=mstyle['color'], ms=12,
+                    mec='none', mew=0)
+            label = f'P{p[0]:.0f}'
             if p[0] != 1:
                 if np.abs(p[1]) < 0.001:
                     ts = f'{1.0e6*p[1]:.0f}\u00b5s'
@@ -2001,8 +2020,8 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
-                       mstyle=dict(color='b', markersize=10),
-                       sstyle=dict(color='b', lw=2)):
+                       mstyle=dict(color=spectrum_color, markersize=10),
+                       sstyle=dict(color=spectrum_color, alpha=0.5, lw=2)):
     """Plot and annotate spectrum of wave EOD.
 
     Parameters
@@ -2059,9 +2078,10 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
 
 
 def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
-                        sstyle=dict(lw=3, color='b'),
+                        sstyle=dict(lw=3, color=spectrum_color),
                         pstyle=dict(ls='', marker='o', markersize=10,
-                                    color='b', mec='none', mew=0, alpha=0.4),
+                                    color=spectrum_color, mec='none', mew=0,
+                                    alpha=0.4),
                         cstyle=dict(lw=1, ls='-', color='0.5'),
                         att5_color='0.8', att50_color='0.9'):
     """Plot and annotate spectrum of single pulse EOD.

@@ -1425,9 +1425,9 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
         color_kwargs = {}
         if colors is not None:
             color_kwargs = {'color': colors[k%len(colors)]}
-        label = '%6.1f Hz' % group[0, 0]
+        label = f'{group[0, 0]:6.1f} Hz'
         if label_power:
-            label += ' %6.1f dB' % decibel(np.array([np.sum(group[:,1])]))[0]
+            label += f' {decibel(np.array([np.sum(group[:,1])]))[0]:6.1f} dB'
         if indices is not None:
             if indices[i] < 0:
                 label = '(' + label + ')'
@@ -1456,8 +1456,10 @@ def plot_harmonic_groups(ax, group_list, indices=None, max_groups=0,
 
 
 def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
-                             mains=None, all_freqs=None, good_freqs=None,
-                             log_freq=False, min_freq=0.0, max_freq=2000.0, ymarg=0.0):
+                             mains=None, all_freqs=None,
+                             good_freqs=None, log_freq=False,
+                             min_freq=0.0, max_freq=2000.0, ymarg=0.0,
+                             pstyle=dict(color='#1040C0')):
     """Plot decibel power-spectrum with detected peaks, harmonic groups,
     and mains frequencies.
     
@@ -1488,6 +1490,8 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
         if `max_freq` is greater than zero
     ymarg: float
         Add this to the maximum decibel power for setting the ylim.
+    pstyle: dict
+        Arguments passed on to the plot command for the power spectrum.
     """
     
     # mark all and good psd peaks:
@@ -1503,7 +1507,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
         fpeakinx = [int(np.round(fp/(psd_freqs[1]-psd_freqs[0]))) for fp in fpeaks if fp < psd_freqs[-1]]
         ax.plot(fpeaks[:len(fpeakinx)], decibel(psd[fpeakinx]), linestyle='None',
                 marker='.', color='k', ms=10, mec=None, mew=0.0,
-                label='%3.0f Hz mains' % mains[0, 0])
+                label=f'{mains[0, 0]:3.0f} Hz mains')
     # mark harmonic groups:
     colors, markers = colors_markers()
     plot_harmonic_groups(ax, group_list, max_groups=0, sort_by_freq=True,
@@ -1511,7 +1515,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
                          loc='upper right')
     # plot power spectrum:
     plot_decibel_psd(ax, psd_freqs, psd, log_freq=log_freq, min_freq=min_freq,
-                     max_freq=max_freq, ymarg=ymarg, color='blue')
+                     max_freq=max_freq, ymarg=ymarg, **sstyle)
 
     
 def add_psd_peak_detection_config(cfg, low_threshold=0.0, high_threshold=0.0,
@@ -1645,7 +1649,7 @@ def main(data_file=None):
         data = fish1 + fish2 + fish3 + fish4
     else:
         from thunderlab.dataloader import load_data
-        print("load %s ..." % data_file)
+        print(f"load {data_file} ...")
         data, rate, unit, amax = load_data(data_file)
         data = data[:,0]
         title = data_file
@@ -1661,7 +1665,7 @@ def main(data_file=None):
     
     # unify fundamental frequencies:
     fundamentals = fundamental_freqs(groups)
-    np.set_printoptions(formatter={'float': lambda x: '%5.1f' % x})
+    np.set_printoptions(formatter={'float': lambda x: f'{x:5.1f}'})
     print('fundamental frequencies extracted from power spectrum:')
     print(fundamentals)
     print('')

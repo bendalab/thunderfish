@@ -536,7 +536,8 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
 
 
 def plot_data_window(ax, data, rate, unit, idx0, idx1, clipped,
-                     data_color='blue', window_color='red'):
+                     dstyle=dict(color='#1040C0', lw=1.4),
+                     wstyle=dict(color='#D71000', lw=1.4)):
     """Plot the data and mark the analysis window.
 
     Parameters
@@ -561,10 +562,10 @@ def plot_data_window(ax, data, rate, unit, idx0, idx1, clipped,
         Color used for plotting the selected best window.
     """
     time = np.arange(len(data))/rate
-    ax.plot(time[:idx0], data[:idx0], color=data_color)
-    ax.plot(time[idx1:], data[idx1:], color=data_color)
+    ax.plot(time[:idx0], data[:idx0], **dstyle)
+    ax.plot(time[idx1:], data[idx1:], **dstyle)
     if idx1 > idx0:
-        ax.plot(time[idx0:idx1], data[idx0:idx1], color=window_color)
+        ax.plot(time[idx0:idx1], data[idx0:idx1], **wstyle)
         label = 'analysis\nwindow'
         if clipped > 0.0:
             label += f'\n{100.0*clipped:.0f}% clipped'
