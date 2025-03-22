@@ -81,7 +81,6 @@ import zipfile
 import numpy as np
 from scipy.optimize import curve_fit
 from numba import jit
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from thunderlab.eventdetection import percentile_threshold, detect_peaks, snippets, peak_width
 from thunderlab.eventdetection import threshold_crossings, threshold_crossing_times, merge_events
@@ -791,6 +790,10 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - tau: time constant of exponential decay of pulse tail in seconds.
         - firstpeak: index of the first peak in the pulse (i.e. -1 for P-1)
         - lastpeak: index of the last peak in the pulse (i.e. 3 for P3)
+        - positivearea: area under positive peaks relative to total area.
+        - negativearea: area under negative peaks relative to total area.
+        - polaritybalance: contrast between areas under positive and
+          negative peak.
         - peakfreq: frequency at peak power of the single pulse spectrum
           in Hertz.
         - peakpower: peak power of the single pulse spectrum in decibel.
@@ -808,10 +811,11 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         Empty if waveform is not a pulse EOD.
     peaks: 2-D array
         For each peak and trough (rows) of the EOD waveform
-        5 columns: the peak index (1 is P1, i.e. the largest positive peak),
+        7 columns: the peak index (1 is P1, i.e. the largest positive peak),
         time relative to largest positive peak, amplitude,
         amplitude normalized to largest postive peak,
-        and width of peak/trough at half height.
+        width of peak/trough at half height,
+        area under the peak, and area under the peak relative to total area.
         Empty if waveform is not a pulse EOD.
     power: 2-D array
         The power spectrum of a single pulse. First column are the
@@ -932,6 +936,12 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
     # amplitude and variance:
     ppampl = max_ampl + min_ampl
     rmssem = np.sqrt(np.mean(meod[:,2]**2.0))/ppampl if eod.shape[1] > 2 else None
+
+    # integrals and polarity balance:
+    pos_area = np.sum(meod[meod[:,1] > 0,1])*dt
+    neg_area = np.sum(meod[meod[:,1] < 0,1])*dt
+    total_area = pos_area - neg_area
+    polarity_balance = (pos_area + neg_area)/total_area
     
     # find smaller peaks:
     peak_idx, trough_idx = detect_peaks(meod[:,1], threshold)
@@ -965,10 +975,18 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         peak_list = peak_list[offs:]
         width_list = width_list[offs:]
         p1i -= offs
+        # peak areas:
+        peak_areas = np.zeros(len(peak_list))
+        for i in range(len(peak_list)):
+            sign_fac = np.sign(meod[peak_list[i],1])
+            i0 = peak_list[i - 1] if i > 0 else 0
+            i1 = peak_list[i + 1] if i + 1 < len(peak_list) else len(meod)
+            snippet = sign_fac*meod[i0:i1,1]
+            peak_areas[i] = sign_fac*np.sum(snippet[snippet > 0])*dt
         # store peaks:
-        peaks = np.zeros((len(peak_list), 5))
+        peaks = np.zeros((len(peak_list), 7))
         for i, pi in enumerate(peak_list):
-            peaks[i,:] = [i+1-p1i, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i]]
+            peaks[i,:] = [i+1-p1i, meod[pi,0], meod[pi,1], meod[pi,1]/max_ampl, width_list[i], peak_areas[i], peak_areas[i]/total_area]
         # P2 - P1 distance:
         dist = peaks[p1i+1,1] - peaks[p1i,1] if p1i+1 < len(peaks) else 0.0
         # fit exponential to last peak/trough:
@@ -1082,12 +1100,15 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         props['noise'] = rmssem
     props['tstart'] = t0
     props['tend'] = t1
-    props['width'] = t1-t0
+    props['width'] = t1 - t0
     props['P2-P1-dist'] = dist
     if tau:
         props['tau'] = tau
     props['firstpeak'] = peaks[0, 0] if len(peaks) > 0 else 1
     props['lastpeak'] = peaks[-1, 0] if len(peaks) > 0 else 1
+    props['polaritybalance'] = polarity_balance
+    props['positivearea'] = pos_area/total_area
+    props['negativearea'] = neg_area/total_area
     props['peakfreq'] = freqs[np.argmax(power)]
     props['peakpower'] = decibel(maxpower)
     props['poweratt5'] = att5
@@ -1640,7 +1661,7 @@ def pulse_quality(props, max_clipped_frac=0.1, max_rms_sem=0.0):
 
 
 def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
-                       toffs=0.0, kwargs={'lw': 2, 'color': 'red'}):
+                       toffs=0.0, pstyle=dict(lw=2, color='red')):
     """Plot a zoomed in range of the recorded trace.
 
     Parameters
@@ -1657,7 +1678,7 @@ def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
         Width of data segment to be plotted in seconds.
     toffs: float
         Time of first data value in seconds.
-    kwargs: dict
+    pstyle: dict
         Arguments passed on to the plot command for the recorded trace.
     """
     widx2 = int(width*rate)//2
@@ -1673,7 +1694,7 @@ def plot_eod_recording(ax, data, rate, unit=None, width=0.1,
     if np.abs(time[i0]) < 1.0 and np.abs(time[i1]) < 1.0:
         time *= 1000.0
         tunit = 'ms'
-    ax.plot(time, data, **kwargs)
+    ax.plot(time, data, **pstyle)
     ax.set_xlim(time[i0], time[i1])
 
     ax.set_xlabel('Time [%s]' % tunit)
@@ -1784,8 +1805,8 @@ def plot_pulse_eods(ax, data, rate, zoom_window, width, eod_props,
         
 def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
                       n_snippets=10, flip=False,
-                      kwargs={'zorder': -5, 'scaley': False,
-                              'lw': 0.5, 'color': '#CCCCCC'}):
+                      sstyle=dict(scaley=False,
+                                  lw=0.5, color='0.8')):
     """Plot a few EOD waveform snippets.
 
     Parameters
@@ -1806,7 +1827,7 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         Number of snippets to be plotted. If zero do not plot anything.
     flip: bool
         If True flip the snippets upside down.
-    kwargs: dict
+    sstyle: dict
         Arguments passed on to the plot command for plotting the snippets.
     """
     if n_snippets <= 0:
@@ -1824,14 +1845,15 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         snippet = data[idx+i0:idx+i1]
         if flip:
             snippet *= -1
-        ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]), **kwargs)
+        ax.plot(time, snippet - np.mean(snippet[:len(snippet)//4]),
+                zorder=-5, **sstyle)
 
         
 def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
-                      mkwargs={'zorder': 10, 'lw': 2, 'color': 'red'},
-                      skwargs={'zorder': -10, 'color': '#CCCCCC'},
-                      fkwargs={'zorder': 5, 'lw': 6, 'color': 'steelblue'},
-                      zkwargs={'zorder': -5, 'lw': 1, 'color': '#AAAAAA'}):
+                      mstyle=dict(lw=2, color='red'),
+                      sstyle=dict(color='#CCCCCC'),
+                      fstyle=dict(lw=6, color='steelblue'),
+                      zstyle=dict(lw=1, color='0.7')):
     """Plot mean EOD, its standard error, and an optional fit to the EOD.
 
     Parameters
@@ -1851,26 +1873,26 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
         as returned by `analyze_pulse()`.
     unit: string
         Optional unit of the data used for y-label.
-    mkwargs: dict
+    mstyle: dict
         Arguments passed on to the plot command for the mean EOD.
-    skwargs: dict
+    sstyle: dict
         Arguments passed on to the fill_between command for the
         standard error of the EOD.
-    fkwargs: dict
+    fstyle: dict
         Arguments passed on to the plot command for the fitted EOD.
-    zkwargs: dict
+    zstyle: dict
         Arguments passed on to the plot command for the zero line.
     """
     ax.autoscale(True)
     time = 1000.0 * eod_waveform[:,0]
     # plot zero line:
-    ax.axhline(0.0, **zkwargs)
+    ax.axhline(0.0, zorder=-5, **zstyle)
     # plot fit:
     if eod_waveform.shape[1] > 3:
-        ax.plot(time, eod_waveform[:,3], **fkwargs)
+        ax.plot(time, eod_waveform[:,3], zorder=5, **fstyle)
     # plot waveform:
     mean_eod = eod_waveform[:,1]
-    ax.plot(time, mean_eod, **mkwargs)
+    ax.plot(time, mean_eod, zorder=10, **mstyle)
     # plot standard error:
     if eod_waveform.shape[1] > 2:
         std_eod = eod_waveform[:,2]
@@ -1878,7 +1900,7 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
             ax.autoscale_view(False)
             ax.autoscale(False)
         ax.fill_between(time, mean_eod + std_eod, mean_eod - std_eod,
-                        **skwargs)
+                        zorder=-10, **sstyle)
     # ax height dimensions:
     pixely = np.abs(np.diff(ax.get_window_extent().get_points()[:,1]))[0]
     ymin, ymax = ax.get_ylim()
@@ -1890,9 +1912,9 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     ty = 0.0
     if tau is not None and eod_waveform.shape[1] > 3:
         if tau < 0.001:
-            label = u'\u03c4=%.0f\u00b5s' % (1.e6*tau)
+            label = f'\u03c4={1.e6*tau:.0f}\u00b5s'
         else:
-            label = u'\u03c4=%.2fms' % (1.e3*tau)
+            label = f'\u03c4={1.e3*tau:.2f}ms'
         inx = np.argmin(np.isnan(eod_waveform[:,3]))
         x = eod_waveform[inx,0] + 1.5*tau
         ty = 0.7*eod_waveform[inx,3]
@@ -1904,20 +1926,24 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     if peaks is not None and len(peaks)>0:
         for p in peaks:
             ax.scatter(1000.0*p[1], p[2], s=80, clip_on=False, zorder=0, alpha=0.4,
-                       c=mkwargs['color'], edgecolors=mkwargs['color'])
-            label = u'P%d' % p[0]
+                       c=mstyle['color'], edgecolors=mstyle['color'])
+            label = f'P{p[0]}'
             if p[0] != 1:
                 if np.abs(p[1]) < 0.001:
-                    ts = u'%.0f\u00b5s' % (1.0e6*p[1])
+                    ts = f'{1.0e6*p[1]:.0f}\u00b5s'
                 elif np.abs(p[1]) < 0.01:
-                    ts = u'%.2fms' % (1.0e3*p[1])
+                    ts = f'{1.0e3*p[1]:.2f}ms'
                 else:
-                    ts = u'%.3gms' % (1.0e3*p[1])
+                    ts = f'{1.0e3*p[1]:.3g}ms'
                 if np.abs(p[3]) < 0.05:
-                    ps = u'%.1f%%' % (100*p[3])
+                    ps = f'{100*p[3]:.1f}%'
                 else:
-                    ps = u'%.0f%%' % (100*p[3])
-                label += u'(%s @ %s)' % (ps, ts)
+                    ps = f'{100*p[3]:.0f}%'
+                if np.abs(p[6]) < 0.05:
+                    us = f'{100*p[6]:.1f}%'
+                else:
+                    us = f'{100*p[6]:.0f}%'
+                label += f'(a={ps} A={us} @ {ts})'
             va = 'bottom'
             dy = 0.4*font_size
             if p[0] % 2 == 0:
@@ -1947,13 +1973,14 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
     if props is not None:
-        props['unit'] = unit
-        label = 'p-p amplitude = {p-p-amplitude:.3g} {unit}\n'.format(**props)
+        label = f'p-p amplitude = {props["p-p-amplitude"]:.3g} {unit}\n'
         if 'n' in props:
-            props['eods'] = 'EODs' if props['n'] > 1 else 'EOD'
-            label += 'n = {n} {eods}\n'.format(**props)
-        if props['flipped']:
+            eods = 'EODs' if props['n'] > 1 else 'EOD'
+            label += f'n = {props["n"]} {eods}\n'
+        if 'flipped' in props and props['flipped']:
             label += 'flipped\n'
+        if 'polaritybalance' in props:
+            label += f'PB={100*props["polaritybalance"]:.0f} %\n'
         if -eod_waveform[0,0] < 0.6*eod_waveform[-1,0]:
             ax.text(0.97, 0.97, label, transform=ax.transAxes,
                     va='top', ha='right', zorder=20)
@@ -1968,13 +1995,14 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
         ax.set_xlim(time[0], time[-1])
     ax.set_xlabel('Time [msec]')
     if unit:
-        ax.set_ylabel('Amplitude [%s]' % unit)
+        ax.set_ylabel(f'Amplitude [{unit}]')
     else:
         ax.set_ylabel('Amplitude')
 
 
 def plot_wave_spectrum(axa, axp, spec, props, unit=None,
-                       color='b', lw=2, markersize=10):
+                       mstyle=dict(color='b', markersize=10),
+                       sstyle=dict(color='b', lw=2)):
     """Plot and annotate spectrum of wave EOD.
 
     Parameters
@@ -1996,44 +2024,46 @@ def plot_wave_spectrum(axa, axp, spec, props, unit=None,
         returned by `analyze_wave()`.
     unit: string
         Optional unit of the data used for y-label.
-    color:
-        Color for line and points of spectrum.
-    lw: float
-        Linewidth for spectrum.
-    markersize: float
-        Size of points on spectrum.
+    mstyle: dict
+        Arguments passed on to the stem plot command for the markers.
+    sstyle: dict
+        Arguments passed on to the stem plot command for the stem lines.
     """
     n = min(9, np.sum(np.isfinite(spec[:,2])))
     # amplitudes:
     markers, stemlines, _ = axa.stem(spec[:n,0]+1, spec[:n,2], basefmt='none')
-    plt.setp(markers, color=color, markersize=markersize, clip_on=False)
-    plt.setp(stemlines, color=color, lw=lw)
+    plt.setp(markers, clip_on=False, **mstyle)
+    plt.setp(stemlines, **sstyle)
     axa.set_xlim(0.5, n+0.5)
     axa.set_ylim(bottom=0)
     axa.xaxis.set_major_locator(plt.MultipleLocator(1))
     axa.tick_params('x', direction='out')
     if unit:
-        axa.set_ylabel('Amplitude [%s]' % unit)
+        axa.set_ylabel(f'Amplitude [{unit}]')
     else:
         axa.set_ylabel('Amplitude')
     # phases:
     phases = spec[:n,5]
     phases[phases<0.0] = phases[phases<0.0] + 2.0*np.pi
     markers, stemlines, _ = axp.stem(spec[:n,0]+1, phases[:n], basefmt='none')
-    plt.setp(markers, color=color, markersize=markersize, clip_on=False)
-    plt.setp(stemlines, color=color, lw=lw)
+    plt.setp(markers, clip_on=False, **mstyle)
+    plt.setp(stemlines, **sstyle)
     axp.set_xlim(0.5, n+0.5)
     axp.xaxis.set_major_locator(plt.MultipleLocator(1))
     axp.tick_params('x', direction='out')
     axp.set_ylim(0, 2.0*np.pi)
     axp.set_yticks([0, np.pi, 2.0*np.pi])
-    axp.set_yticklabels([u'0', u'\u03c0', u'2\u03c0'])
+    axp.set_yticklabels(['0', '\u03c0', '2\u03c0'])
     axp.set_xlabel('Harmonics')
     axp.set_ylabel('Phase')
 
 
 def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
-                        color='b', lw=3, markersize=80):
+                        sstyle=dict(lw=3, color='b'),
+                        pstyle=dict(ls='', marker='o', markersize=10,
+                                    color='b', mec='none', mew=0, alpha=0.4),
+                        cstyle=dict(lw=1, ls='-', color='0.5'),
+                        att5_color='0.8', att50_color='0.9'):
     """Plot and annotate spectrum of single pulse EOD.
 
     Parameters
@@ -2050,41 +2080,42 @@ def plot_pulse_spectrum(ax, power, props, min_freq=1.0, max_freq=10000.0,
         Minimun frequency of the spectrum to be plotted (logscale!).
     max_freq: float
         Maximun frequency of the spectrum to be plotted (logscale!).
-    color:
-        Color for line and points of spectrum.
-    lw: float
-        Linewidth for spectrum.
-    markersize: float
-        Size of points on spectrum.
+    sstyle: dict
+        Arguments passed on to the plot command for the power spectrum.
+    pstyle: dict
+        Arguments passed on to the plot command for marking the peak frequency.
+    cstyle: dict
+        Arguments passed on to the plot command for the line marking
+        the lower cutoff frequency.
+    att5_color: matplotlib color specification
+        Color for the rectangular patch marking the first 5 Hz.
+    att50_color: matplotlib color specification
+        Color for the rectangular patch marking the first 50 Hz.
     """
-    box = mpatches.Rectangle((1,-60), 49, 60, linewidth=0, facecolor='#DDDDDD',
-                             zorder=1)
-    ax.add_patch(box)
+    ax.axvspan(1, 50, color=att50_color, zorder=1)
     att = props['poweratt50']
     if att < -5.0:
-        ax.text(10.0, att+1.0, '%.0f dB' % att, ha='left', va='bottom', zorder=10)
+        ax.text(10.0, att+1.0, f'{att:.0f} dB', ha='left', va='bottom', zorder=10)
     else:
-        ax.text(10.0, att-1.0, '%.0f dB' % att, ha='left', va='top', zorder=10)
-    box = mpatches.Rectangle((1,-60), 4, 60, linewidth=0, facecolor='#CCCCCC',
-                             zorder=2)
-    ax.add_patch(box)
+        ax.text(10.0, att-1.0, f'{att:.0f} dB', ha='left', va='top', zorder=10)
+    ax.axvspan(1, 5, color=att5_color, zorder=2)
     att = props['poweratt5']
     if att < -5.0:
-        ax.text(4.0, att+1.0, '%.0f dB' % att, ha='right', va='bottom', zorder=10)
+        ax.text(4.0, att+1.0, f'{att:.0f} dB', ha='right', va='bottom', zorder=10)
     else:
-        ax.text(4.0, att-1.0, '%.0f dB' % att, ha='right', va='top', zorder=10)
+        ax.text(4.0, att-1.0, f'{att:.0f} dB', ha='right', va='top', zorder=10)
     lowcutoff = props['lowcutoff']
     if lowcutoff >= min_freq:
-        ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att], '#BBBBBB',
-                zorder=3)
-        ax.text(1.2*lowcutoff, 0.5*att-1.0, '%.0f Hz' % lowcutoff, ha='left', va='top', zorder=10)
+        ax.plot([lowcutoff, lowcutoff, 1.0], [-60.0, 0.5*att, 0.5*att],
+                zorder=3, **cstyle)
+        ax.text(1.2*lowcutoff, 0.5*att-1.0, f'{lowcutoff:.0f} Hz', ha='left', va='top', zorder=10)
     db = decibel(power[:,1])
     smax = np.nanmax(db)
-    ax.plot(power[:,0], db - smax, color, lw=lw, zorder=4)
+    ax.plot(power[:,0], db - smax, zorder=4, **sstyle)
     peakfreq = props['peakfreq']
     if peakfreq >= min_freq:
-        ax.scatter([peakfreq], [0.0], c=color, edgecolors=color, s=markersize, alpha=0.4, zorder=5)
-        ax.text(peakfreq*1.2, 1.0, '%.0f Hz' % peakfreq, va='bottom', zorder=10)
+        ax.plot([peakfreq], [0.0], zorder=5, **pstyle)
+        ax.text(peakfreq*1.2, 1.0, f'{peakfreq:.0f} Hz', va='bottom', zorder=10)
     ax.set_xlim(min_freq, max_freq)
     ax.set_xscale('log')
     ax.set_ylim(-60.0, 2.0)
@@ -2132,7 +2163,7 @@ def save_eod_waveform(mean_eod, unit, idx, basename, **kwargs):
     if not ext:
         fp = '-eodwaveform'
         if idx is not None:
-            fp += '-%d' % idx
+            fp += f'-{idx}'
     return td.write_file_stream(basename, fp, **kwargs)
 
 
@@ -2439,9 +2470,9 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('min-ampl', unit, '%.5f', pulse_props)
     td.append('p-p-amplitude', unit, '%.5f', pulse_props)
     if 'noise' in pulse_props[0]:
-        td.append('noise', '%', '%.1f', pulse_props, 100.0)
+        td.append('noise', '%', '%.2f', pulse_props, 100.0)
     if 'clipped' in pulse_props[0]:
-        td.append('clipped', '%', '%.1f', pulse_props, 100.0)
+        td.append('clipped', '%', '%.2f', pulse_props, 100.0)
     td.append('flipped', '', '%d', pulse_props)
     td.append('tstart', 'ms', '%.3f', pulse_props, 1000.0)
     td.append('tend', 'ms', '%.3f', pulse_props, 1000.0)
@@ -2450,6 +2481,9 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('tau', 'ms', '%.3f', pulse_props, 1000.0)
     td.append('firstpeak', '', '%d', pulse_props)
     td.append('lastpeak', '', '%d', pulse_props)
+    td.append('positivearea', '%', '%.2f', pulse_props, 100.0)
+    td.append('negativearea', '%', '%.2f', pulse_props, 100.0)
+    td.append('polaritybalance', '%', '%.2f', pulse_props, 100.0)
     td.append('n', '', '%d', pulse_props)
     td.append_section('power spectrum')
     td.append('peakfreq', 'Hz', '%.2f', pulse_props)
@@ -2501,6 +2535,12 @@ def load_pulse_fish(file_path):
         props['n'] = int(props['n'])
         props['firstpeak'] = int(props['firstpeak'])
         props['lastpeak'] = int(props['lastpeak'])
+        if 'positivearea' in props:
+            props['positivearea'] /= 100
+        if 'negativearea' in props:
+            props['negativearea'] /= 100
+        if 'polaritybalance' in props:
+            props['polaritybalance'] /= 100
         props['type'] = 'pulse'
         if 'clipped' in props:
             props['clipped'] /= 100
@@ -2695,10 +2735,10 @@ def save_pulse_peaks(peak_data, unit, idx, basename, **kwargs):
     """
     if len(peak_data) == 0:
         return None
-    td = TableData(peak_data[:,:5]*[1.0, 1000.0, 1.0, 100.0, 1000.0],
-                   ['P', 'time', 'amplitude', 'relampl', 'width'],
-                   ['', 'ms', unit, '%', 'ms'],
-                   ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f'])
+    td = TableData(peak_data[:,:7]*[1, 1000, 1, 100, 1000, 1000, 100],
+                   ['P', 'time', 'amplitude', 'relampl', 'width', 'area', 'relarea'],
+                   ['', 'ms', unit, '%', 'ms', f'{unit}*ms', '%'],
+                   ['%.0f', '%.3f', '%.5f', '%.2f', '%.3f', '%.4f', '%.2f'])
     _, ext = os.path.splitext(basename)
     fp = ''
     if not ext:
@@ -2738,6 +2778,8 @@ def load_pulse_peaks(file_path):
     peaks[:,1] *= 0.001
     peaks[:,3] *= 0.01
     peaks[:,4] *= 0.001
+    peaks[:,5] *= 0.001
+    peaks[:,6] *= 0.01
     return peaks, data.unit('amplitude')
 
 
@@ -3408,7 +3450,7 @@ def main():
     # plot:
     fig, axs = plt.subplots(1, 2)
     plot_eod_waveform(axs[0], mean_eod, props, peaks, unit=unit)
-    axs[0].set_title('{type} fish: EODf = {EODf:.1f} Hz'.format(**props))
+    axs[0].set_title(f'{props["type"]} fish: EODf = {props["EODf"]:.1f} Hz')
     plot_pulse_spectrum(axs[1], power, props)
     plt.show()
 

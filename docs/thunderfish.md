@@ -845,7 +845,7 @@ Properties of each pulse-type fish detected in the recording.
 <thead>
   <tr>
     <th align="left" colspan="6">recording</th>
-    <th align="left" colspan="17">waveform</th>
+    <th align="left" colspan="20">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
   </tr>
   <tr>
@@ -871,6 +871,9 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">tau</th>
     <th align="left">firstpeak</th>
     <th align="left">lastpeak</th>
+    <th align="left">positivearea</th>
+    <th align="left">negativearea</th>
+    <th align="left">polaritybalance</th>
     <th align="left">n</th>
     <th align="left">peakfreq</th>
     <th align="left">peakpower</th>
@@ -901,6 +904,9 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">ms</th>
     <th align="left">-</th>
     <th align="left">-</th>
+    <th align="left">%</th>
+    <th align="left">%</th>
+    <th align="left">%</th>
     <th align="left">-</th>
     <th align="left">Hz</th>
     <th align="left">dB</th>
@@ -915,30 +921,33 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
-    <td align="right">65536</td>
-    <td align="right">0.49</td>
     <td align="right">0</td>
-    <td align="right">32.22</td>
-    <td align="right">31.03</td>
-    <td align="right">0.26557</td>
-    <td align="right">0.21912</td>
-    <td align="right">0.48469</td>
-    <td align="right">0.1</td>
-    <td align="right">0.0</td>
+    <td align="right">-</td>
     <td align="right">0</td>
-    <td align="right">-0.344</td>
+    <td align="right">32.29</td>
+    <td align="right">30.97</td>
+    <td align="right">0.27713</td>
+    <td align="right">0.21288</td>
+    <td align="right">0.49001</td>
+    <td align="right">0.13</td>
+    <td align="right">0.00</td>
+    <td align="right">0</td>
+    <td align="right">-0.375</td>
+    <td align="right">0.969</td>
     <td align="right">1.344</td>
-    <td align="right">1.687</td>
     <td align="right">0.250</td>
-    <td align="right">0.087</td>
+    <td align="right">0.082</td>
     <td align="right">1</td>
     <td align="right">2</td>
-    <td align="right">235</td>
-    <td align="right">1130.86</td>
-    <td align="right">-81.56</td>
-    <td align="right">-27.84</td>
-    <td align="right">-22.84</td>
-    <td align="right">98.14</td>
+    <td align="right">57.31</td>
+    <td align="right">-42.69</td>
+    <td align="right">14.61</td>
+    <td align="right">155</td>
+    <td align="right">1130.00</td>
+    <td align="right">-81.47</td>
+    <td align="right">-14.08</td>
+    <td align="right">-13.85</td>
+    <td align="right">258.30</td>
   </tr>
 </tbody>
 </table>
@@ -966,14 +975,17 @@ The columns contain:
 18. `width` Total width of the pulse in milliseconds.
 19. `P2-P1-dist`: Distance between P2 and P1 in milliseconds. Zero if p2 is not present.
 20. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
-21. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1)
-22. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3)
-23. `n` Number of EODs used for computing the averaged EOD waveform.
-24. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
-25. `peakpower` Peak power of the single pulse spectrum relative to one in decibel.
-26. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-27. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-28. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+21. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1).
+22. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3).
+23. `positivearea` Area under positive peaks relative to total area.
+24. `negativearea` Area under negative peaks relative to total area.
+25. `polaritybalance` Contrast between areas under positive and negative peak.
+26. `n` Number of EODs used for computing the averaged EOD waveform.
+27. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
+28. `peakpower` Peak power of the single pulse spectrum relative to one in decibel.
+29. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+30. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+31. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
 ### RECORDING-CHANNEL-TIME-pulsepeaks-N.EXT
@@ -988,6 +1000,8 @@ Properties of peaks and troughs of a pulse-type fish's EOD.
     <th align="left">amplitude</th>
     <th align="left">relampl</th>
     <th align="left">width</th>
+    <th align="left">area</th>
+    <th align="left">relarea</th>
   </tr>
   <tr>
     <th align="left">-</th>
@@ -995,22 +1009,28 @@ Properties of peaks and troughs of a pulse-type fish's EOD.
     <th align="left">a.u.</th>
     <th align="left">%</th>
     <th align="left">ms</th>
+    <th align="left">a.u.*ms</th>
+    <th align="left">%</th>
   </tr>
 </thead>
 <tbody>
   <tr>
     <td align="right">1</td>
     <td align="right">0.000</td>
-    <td align="right">0.78409</td>
+    <td align="right">0.27713</td>
     <td align="right">100.00</td>
-    <td align="right">0.333</td>
+    <td align="right">0.229</td>
+    <td align="right">0.0667</td>
+    <td align="right">57.18</td>
   </tr>
   <tr>
     <td align="right">2</td>
-    <td align="right">0.385</td>
-    <td align="right">-0.85939</td>
-    <td align="right">-109.60</td>
-    <td align="right">0.248</td>
+    <td align="right">0.250</td>
+    <td align="right">-0.21288</td>
+    <td align="right">-76.81</td>
+    <td align="right">0.213</td>
+    <td align="right">-0.0498</td>
+    <td align="right">-42.69</td>
   </tr>
 </tbody>
 </table>
@@ -1023,7 +1043,8 @@ The columns contain:
 3. `amplitude` Amplitude of the peak/trough in the unit of the input data.
 4. `relampl` Amplitude of the peak/trough relative to the amplitude of P1.
 5. `width` Width of the peak/trough at half height in milliseconds. 
-
+6. `area` Area under the peak/trough.
+7. `relaarea` Area under the peak/trough relative to total area.
 
 
 ### RECORDING-CHANNEL-TIME-pulsetimes-N.EXT
