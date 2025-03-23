@@ -1,0 +1,934 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>thunderfish.thunderlogger API documentation</title>
+<meta name="description" content="thunderlogger …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], processEscapes: true } });</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.thunderlogger</code></h1>
+</header>
+<section id="section-intro">
+<h1 id="thunderlogger">thunderlogger</h1>
+<p>Detect segments of interest in large data files and extract EOD waveforms.</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.thunderlogger.add_thunderlogger_config"><code class="name flex">
+<span>def <span class="ident">add_thunderlogger_config</span></span>(<span>cfg,<br>detection_thresh='auto',<br>default_thresh=0.002,<br>thresh_fac=3.0,<br>thresh_nbins=500)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_thunderlogger_config(cfg, detection_thresh=&#39;auto&#39;,
+                             default_thresh=0.002, thresh_fac=3.0,
+                             thresh_nbins=500):
+    &#34;&#34;&#34;Add parameters needed for by thunderlogger.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+    detection_thresh: float or &#39;auto&#39;
+        Only data segments with standard deviation larger than this value
+        are analyzed for EODs. If set to &#39;auto&#39; a threshold is computed
+        from all the data segments of a recording channel.
+    default_thresh: float
+        Threshold that is used if &#34;detection_thresh&#34; is set to &#34;auto&#34; and
+        no data are available.
+    thresh_fac: float
+        The threshold for analysing data segments is set to the mean of the
+        most-likely standard deviations plus this factor times the corresponding
+        standard deviation.
+    thresh_nbins: int
+        The number of bins used to compute a histogram of the standard
+        deviations of the data segments, from which the mean and standard
+        deviation are estimated for automatically computing a threshold.
+    &#34;&#34;&#34;
+    cfg.add_section(&#39;Thunderlogger:&#39;)
+    cfg.add(&#39;detectionThreshold&#39;, detection_thresh, &#39;&#39;, &#39;Only analyse data segements with a standard deviation that is larger than this threshold. If set to &#34;auto&#34; compute threshold from all the standard deviations of a recording channel.&#39;)
+    cfg.add(&#39;detectionThresholdDefault&#39;, default_thresh, &#39;&#39;, &#39;Threshold that is used if &#34;detectionThreshold&#34; is set to &#34;auto&#34; and no data are available.&#39;)
+    cfg.add(&#39;detectionThresholdStdFac&#39;, thresh_fac, &#39;&#39;, &#39;An automatically computed threshold for analysing data segments is set to the mean of the most-likely standard deviations plus this factor times the corresponding standard deviation.&#39;)
+    cfg.add(&#39;detectionThresholdNBins&#39;, thresh_nbins, &#39;&#39;, &#39;The number of bins used to compute a histogram of the standard deviations of the data segments, from which the mean and standard deviation are estimated for automatically computing a threshold.&#39;)
+    cfg.add(&#39;startTime&#39;, &#39;none&#39;, &#39;&#39;, &#39;Provide a start time for the recordings overwriting the meta data of the data files (YYYY-mm-ddTHH:MM:SS format).&#39;)</code></pre>
+</details>
+<div class="desc"><p>Add parameters needed for by thunderlogger.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+<dt><strong><code>detection_thresh</code></strong> :&ensp;<code>float</code> or <code>'auto'</code></dt>
+<dd>Only data segments with standard deviation larger than this value
+are analyzed for EODs. If set to 'auto' a threshold is computed
+from all the data segments of a recording channel.</dd>
+<dt><strong><code>default_thresh</code></strong> :&ensp;<code>float</code></dt>
+<dd>Threshold that is used if "detection_thresh" is set to "auto" and
+no data are available.</dd>
+<dt><strong><code>thresh_fac</code></strong> :&ensp;<code>float</code></dt>
+<dd>The threshold for analysing data segments is set to the mean of the
+most-likely standard deviations plus this factor times the corresponding
+standard deviation.</dd>
+<dt><strong><code>thresh_nbins</code></strong> :&ensp;<code>int</code></dt>
+<dd>The number of bins used to compute a histogram of the standard
+deviations of the data segments, from which the mean and standard
+deviation are estimated for automatically computing a threshold.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.thunderlogger.extract_eods"><code class="name flex">
+<span>def <span class="ident">extract_eods</span></span>(<span>files,<br>thresholds,<br>stds_only,<br>cfg,<br>verbose,<br>plot_level,<br>thresh=0.002,<br>max_deltaf=1.0,<br>max_dist=5e-05,<br>deltat_max=datetime.timedelta(seconds=300),<br>start_time=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def extract_eods(files, thresholds, stds_only, cfg, verbose, plot_level,
+                 thresh=0.002, max_deltaf=1.0, max_dist=0.00005,
+                 deltat_max=dt.timedelta(minutes=5), start_time=None):
+    t0s = []
+    stds = None
+    supra_thresh = None
+    wave_fishes = None
+    pulse_fishes = None
+    if start_time is None:
+        # XXX we should read this from the meta data:
+        filename = os.path.splitext(os.path.basename(files[0]))[0]
+        times = filename.split(&#39;-&#39;)[1]
+        start_time = dt.datetime.strptime(times, &#39;%Y%m%dT%H%M%S&#39;)
+    toffs = start_time
+    t1 = start_time
+    unit = None
+    for file in files:
+        try:
+            with DataLoader(file) as sf:
+                # analyze:
+                sys.stdout.write(file + &#39;: &#39;)
+                unit = sf.unit
+                if max_dist &lt; 1.1/sf.rate:
+                    max_dist = 1.1/sf.rate
+                window_size = cfg.value(&#39;windowSize&#39;)
+                ndata = int(window_size * sf.rate)
+                step = ndata//2
+                b, a = butter(1, 10.0, &#39;hp&#39;, fs=sf.rate, output=&#39;ba&#39;)
+                if stds is None:
+                    stds = [[] for c in range(sf.channels)]
+                    supra_thresh = [[] for c in range(sf.channels)]
+                if wave_fishes is None:
+                    wave_fishes = [[] for c in range(sf.channels)]
+                if pulse_fishes is None:
+                    pulse_fishes = [[] for c in range(sf.channels)]
+                for k, data in enumerate(sf.blocks(ndata, step)):
+                    sys.stdout.write(&#39;.&#39;)
+                    sys.stdout.flush()
+                    t0 = toffs + dt.timedelta(seconds=k*step/sf.rate)
+                    t1 = t0 + dt.timedelta(seconds=ndata/sf.rate)
+                    t0s.append(t0)
+                    for channel in range(sf.channels):
+                        if thresholds:
+                            thresh = thresholds[channel]
+                        fdata = lfilter(b, a, data[:,channel] - np.mean(data[:ndata//20,channel]))
+                        sd = np.std(fdata)
+                        stds[channel].append(sd)
+                        supra_thresh[channel].append(1 if sd &gt; thresh else 0)
+                        if stds_only:
+                            continue
+                        if sd &gt; thresh:
+                            # clipping:
+                            min_clip = cfg.value(&#39;minClipAmplitude&#39;)
+                            if min_clip == 0.0:
+                                min_clip = cfg.value(&#39;minDataAmplitude&#39;)
+                            max_clip = cfg.value(&#39;maxClipAmplitude&#39;)
+                            if max_clip == 0.0:
+                                max_clip = cfg.value(&#39;maxDataAmplitude&#39;)
+                            name = file
+                            # detect EODs in the data:
+                            _, _, _, eod_props, mean_eods, spec_data, peak_data, _, _, _ = \
+                              detect_eods(data[:,channel], sf.rate,
+                                          min_clip, max_clip,
+                                          name, verbose, plot_level, cfg)
+                            first_fish = True
+                            for props, eod, spec, peaks in zip(eod_props, mean_eods,
+                                                               spec_data, peak_data):
+                                fish = None
+                                fish_deltaf = 100000.0
+                                if props[&#39;type&#39;] == &#39;wave&#39;:
+                                    for wfish in wave_fishes[channel]:
+                                        deltaf = np.abs(wfish.props[&#39;EODf&#39;] - props[&#39;EODf&#39;])
+                                        if deltaf &lt; fish_deltaf:
+                                            fish_deltaf = deltaf
+                                            fish = wfish
+                                    if fish_deltaf &gt; max_deltaf:
+                                        fish = None
+                                    peaks = None
+                                else:
+                                    fish_dist = 10000.0
+                                    for pfish in pulse_fishes[channel]:
+                                        ddist = np.abs(pfish.props[&#39;P1-P1-dist&#39;] -
+                                                       props[&#39;P1-P1-dist&#39;])
+                                        if ddist &lt; fish_dist:
+                                            fish_dist = ddist
+                                            fish_deltaf = np.abs(pfish.props[&#39;EODf&#39;] -
+                                                                 props[&#39;EODf&#39;])
+                                            fish = pfish
+                                    if fish_dist &gt; max_dist or \
+                                       fish_deltaf &gt; max_deltaf:
+                                        fish = None
+                                    spec = None
+                                if fish is not None and \
+                                   t0 - fish.times[-1][1] &lt; deltat_max:
+                                    if fish.times[-1][1] &gt;= t0 and \
+                                       np.abs(fish.times[-1][2] - props[&#39;EODf&#39;]) &lt; 0.5 and \
+                                       fish.times[-1][3] == channel and \
+                                       fish.times[-1][4] == file:
+                                        fish.times[-1][1] = t1
+                                    else:
+                                        fish.times.append([t0, t1, props[&#39;EODf&#39;], channel, file])
+                                    if props[&#39;p-p-amplitude&#39;] &gt; fish.props[&#39;p-p-amplitude&#39;]:
+                                        fish.props = props
+                                        fish.waveform = eod
+                                        fish.spec = spec
+                                        fish.peaks = peaks
+                                else:
+                                    new_fish = SimpleNamespace(props=props,
+                                                               waveform=eod,
+                                                               spec=spec,
+                                                               peaks=peaks,
+                                                               times=[[t0, t1, props[&#39;EODf&#39;], channel, file]])
+                                    if props[&#39;type&#39;] == &#39;pulse&#39;:
+                                        pulse_fishes[channel].append(new_fish)
+                                    else:
+                                        wave_fishes[channel].append(new_fish)
+                                    if first_fish:
+                                        sys.stdout.write(&#39;\n  &#39;)
+                                        first_fish = False
+                                    sys.stdout.write(&#39;%6.1fHz %5s-fish @ %s\n  &#39; %
+                                                     (props[&#39;EODf&#39;], props[&#39;type&#39;],
+                                                      t0.strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;)))
+                toffs += dt.timedelta(seconds=len(sf)/sf.rate)
+                sys.stdout.write(&#39;\n&#39;)
+                sys.stdout.flush()
+        except EOFError as error:
+            # XXX we need to update toffs by means of the metadata of the next file!
+            sys.stdout.write(file + &#39;: &#39; + str(error) + &#39;\n&#39;)
+    if pulse_fishes is not None and len(pulse_fishes) &gt; 0:
+        pulse_fishes = [[pulse_fishes[c][i] for i in
+                         np.argsort([fish.props[&#39;EODf&#39;] for fish in pulse_fishes[c]])]
+                        for c in range(len(pulse_fishes))]
+    if wave_fishes is not None and len(wave_fishes) &gt; 0:
+        wave_fishes = [[wave_fishes[c][i] for i in
+                        np.argsort([fish.props[&#39;EODf&#39;] for fish in wave_fishes[c]])]
+                       for c in range(len(wave_fishes))]
+    return pulse_fishes, wave_fishes, start_time, toffs, t0s, stds, supra_thresh, unit</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.save_times"><code class="name flex">
+<span>def <span class="ident">save_times</span></span>(<span>times, idx, output_basename, name, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save_times(times, idx, output_basename, name, **kwargs):
+    td = TableData()
+    td.append(&#39;index&#39;, &#39;&#39;, &#39;%d&#39;, [idx] * len(times))
+    td.append(&#39;tstart&#39;, &#39;&#39;, &#39;%s&#39;,
+              [t[0].strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;) for t in times])
+    td.append(&#39;tend&#39;, &#39;&#39;, &#39;%s&#39;,
+              [t[1].strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;) for t in times])
+    if len(times[0]) &gt; 2:
+        td.append(&#39;EODf&#39;, &#39;Hz&#39;, &#39;%.1f&#39;, [t[2] for t in times])
+    td.append(&#39;device&#39;, &#39;&#39;, &#39;%s&#39;,
+              [name for t in times])
+    if len(times[0]) &gt; 2:
+        td.append(&#39;channel&#39;, &#39;&#39;, &#39;%d&#39;, [t[3] for t in times])
+        td.append(&#39;file&#39;, &#39;&#39;, &#39;%s&#39;, [t[4] for t in times])
+    fp = output_basename + &#39;-times&#39;
+    if idx is not None:
+        fp += &#39;-%d&#39; % idx
+    td.write(fp, **kwargs)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.load_times"><code class="name flex">
+<span>def <span class="ident">load_times</span></span>(<span>file_path)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_times(file_path):
+    data = TableData(file_path).data_frame()
+    data[&#39;index&#39;] = data[&#39;index&#39;].astype(int)
+    data[&#39;tstart&#39;] = pd.to_datetime(data[&#39;tstart&#39;])
+    data[&#39;tstart&#39;] = pd.Series(data[&#39;tstart&#39;].dt.to_pydatetime(), dtype=object)
+    data[&#39;tend&#39;] = pd.to_datetime(data[&#39;tend&#39;])
+    data[&#39;tend&#39;] = pd.Series(data[&#39;tend&#39;].dt.to_pydatetime(), dtype=object)
+    if &#39;channel&#39; in data:
+        data[&#39;channel&#39;] = data[&#39;channel&#39;].astype(int)
+    return data</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.save_power"><code class="name flex">
+<span>def <span class="ident">save_power</span></span>(<span>times, stds, supra_thresh, unit, output_basename, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save_power(times, stds, supra_thresh, unit, output_basename, **kwargs):
+    td = TableData()
+    td.append(&#39;index&#39;, &#39;&#39;, &#39;%d&#39;, list(range(len(times))))
+    td.append(&#39;time&#39;, &#39;&#39;, &#39;%s&#39;,
+              [t.strftime(&#39;%Y-%m-%dT%H:%M:%S&#39;) for t in times])
+    for c, (std, thresh) in enumerate(zip(stds, supra_thresh)):
+        td.append(&#39;channel%d&#39;%c, unit, &#39;%g&#39;, std)
+        td.append(&#39;thresh%d&#39;%c, &#39;&#39;, &#39;%d&#39;, thresh)
+    fp = output_basename + &#39;-stdevs&#39;
+    td.write(fp, **kwargs)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.load_power"><code class="name flex">
+<span>def <span class="ident">load_power</span></span>(<span>file_path, start_time=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_power(file_path, start_time=None):
+    base = os.path.basename(file_path)
+    device = base[0:base.find(&#39;-stdevs&#39;)]
+    data = TableData(file_path)
+    times = []
+    for row in range(data.rows()):
+        times.append(dt.datetime.strptime(data[row,&#39;time&#39;],
+                                          &#39;%Y-%m-%dT%H:%M:%S&#39;))
+    if start_time is not None:
+        deltat = start_time - times[0]
+        for k in range(len(times)):
+            times[k] += deltat
+    channels = (data.columns()-2)//2
+    stds = np.zeros((len(times), channels))
+    supra_thresh = np.zeros((len(times), channels), dtype=int)
+    for c in range(channels):
+        stds[:,c] = data[:,&#39;channel%d&#39;%c]
+        supra_thresh[:,c] = data[:,&#39;thresh%d&#39;%c]
+    return np.array(times), stds, supra_thresh, device</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.save_data"><code class="name flex">
+<span>def <span class="ident">save_data</span></span>(<span>output_folder,<br>name,<br>pulse_fishes,<br>wave_fishes,<br>tstart,<br>tend,<br>t0s,<br>stds,<br>supra_thresh,<br>unit,<br>cfg)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save_data(output_folder, name, pulse_fishes, wave_fishes,
+              tstart, tend, t0s, stds, supra_thresh, unit, cfg):
+    output_basename = os.path.join(output_folder, name)
+    if pulse_fishes is not None:
+        for c in range(len(pulse_fishes)):
+            out_path = output_basename + &#39;-c%d&#39; % c
+            idx = 0
+            # pulse fish:
+            pulse_props = []
+            for fish in pulse_fishes[c]:
+                save_eod_waveform(fish.waveform, unit, idx, out_path,
+                                  **write_table_args(cfg))
+                if fish.peaks is not None:
+                    save_pulse_peaks(fish.peaks, unit, idx, out_path,
+                                     **write_table_args(cfg))
+                save_times(fish.times, idx, out_path, name,
+                           **write_table_args(cfg))
+                pulse_props.append(fish.props)
+                pulse_props[-1][&#39;index&#39;] = idx
+                idx += 1
+            save_pulse_fish(pulse_props, unit, out_path,
+                            **write_table_args(cfg))
+        # wave fish:
+        wave_props = []
+        if wave_fishes is not None:
+            for fish in wave_fishes[c]:
+                save_eod_waveform(fish.waveform, unit, idx, out_path,
+                                  **write_table_args(cfg))
+                if fish.spec is not None:
+                    save_wave_spectrum(fish.spec, unit, idx, out_path,
+                                       **write_table_args(cfg))
+                save_times(fish.times, idx, out_path, name,
+                           **write_table_args(cfg))
+                wave_props.append(fish.props)
+                wave_props[-1][&#39;index&#39;] = idx
+                idx += 1
+            save_wave_fish(wave_props, unit, out_path,
+                           **write_table_args(cfg))
+    # recording time window:
+    save_times([(tstart, tend)], None, output_basename, name,
+               **write_table_args(cfg))
+    # signal power:
+    if stds is not None and len(stds) &gt; 0:
+        save_power(t0s, stds, supra_thresh, unit, output_basename,
+                   **write_table_args(cfg))</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.load_data"><code class="name flex">
+<span>def <span class="ident">load_data</span></span>(<span>files, start_time=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_data(files, start_time=None):
+    all_files = []
+    for file in files:
+        if os.path.isdir(file):
+            all_files.extend(glob.glob(os.path.join(file, &#39;*fish*&#39;)))
+        else:
+            all_files.append(file)
+    pulse_fishes = []
+    wave_fishes = []
+    channels = set()
+    for file in all_files:
+        if &#39;pulse&#39; in os.path.basename(file):
+            pulse_props = load_pulse_fish(file)
+            base_file, ext = os.path.splitext(file)
+            base_file = base_file[:base_file.rfind(&#39;pulse&#39;)]
+            count = 0
+            for props in pulse_props:
+                idx = props[&#39;index&#39;]
+                waveform, unit = \
+                    load_eod_waveform(base_file + &#39;eodwaveform-%d&#39;%idx + ext)
+                times = load_times(base_file + &#39;times-%d&#39;%idx + ext)
+                times[&#39;index&#39;] = idx
+                fish = SimpleNamespace(props=props,
+                                       waveform=waveform,
+                                       unit=unit,
+                                       times=times)
+                for i, t in times.iterrows():
+                    channels.add((t[&#39;device&#39;], t[&#39;channel&#39;]))
+                try:
+                    peaks, unit = \
+                        load_pulse_peaks(base_file + &#39;pulsepeaks-%d&#39;%idx + ext)
+                    fish.peaks = peaks
+                except FileNotFoundError:
+                    fish.peaks = None
+                pulse_fishes.append(fish)
+                count += 1
+                #if count &gt; 300: # XXX REMOVE
+                #    break
+        elif &#39;wave&#39; in os.path.basename(file):
+            wave_props = load_wave_fish(file)
+            base_file, ext = os.path.splitext(file)
+            base_file = base_file[:base_file.rfind(&#39;wave&#39;)]
+            count = 0
+            for props in wave_props:
+                idx = props[&#39;index&#39;]
+                waveform, unit = \
+                    load_eod_waveform(base_file + &#39;eodwaveform-%d&#39;%idx + ext)
+                times = load_times(base_file + &#39;times-%d&#39;%idx + ext)
+                times[&#39;index&#39;] = idx
+                fish = SimpleNamespace(props=props,
+                                       waveform=waveform,
+                                       unit=unit,
+                                       times=times)
+                for i, t in times.iterrows():
+                    channels.add((t[&#39;device&#39;], t[&#39;channel&#39;]))
+                try:
+                    spec, unit = \
+                        load_wave_spectrum(base_file + &#39;wavespectrum-%d&#39;%idx + ext)
+                    fish.spec = spec
+                except FileNotFoundError:
+                    fish.spec = None
+                wave_fishes.append(fish)
+                count += 1
+                #if count &gt; 300: # XXX REMOVE
+                #    break
+    base_file = base_file[:base_file.rfind(&#39;-c&#39;)+1]
+    times = load_times(base_file + &#39;times&#39; + ext)
+    tstart = times.tstart[0]
+    tend = times.tend[0]
+    if start_time is not None:
+        deltat = start_time - tstart
+        tstart += deltat
+        tend += deltat
+        for fish in pulse_fishes + wave_fishes:
+            fish.times.tstart += deltat
+            fish.times.tend += deltat
+    return pulse_fishes, wave_fishes, tstart, tend, sorted(channels)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.plot_signal_power"><code class="name flex">
+<span>def <span class="ident">plot_signal_power</span></span>(<span>times, stds, supra_threshs, devices, thresholds, title, output_folder)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_signal_power(times, stds, supra_threshs, devices, thresholds,
+                      title, output_folder):
+    plt.rcParams[&#39;axes.xmargin&#39;] = 0
+    plt.rcParams[&#39;axes.ymargin&#39;] = 0
+    n = 0
+    for s in stds:
+        n += s.shape[1]
+    h = n*4.0
+    t = 0.8 if title else 0.1
+    fig, axs = plt.subplots(n, 1, figsize=(16/2.54, h/2.54),
+                            sharex=True, sharey=True)
+    fig.subplots_adjust(left=0.1, right=0.99, top=1-t/h, bottom=1.6/h,
+                        hspace=0)
+    i = 0
+    for time, cstds, threshs, device in zip(times, stds, supra_threshs, devices):
+        for c, (std, thresh) in enumerate(zip(cstds.T, threshs.T)):
+            ax = axs[i]
+            ax.plot(time, std)
+            if thresholds:
+                ax.axhline(thresholds[i], color=&#39;k&#39;, lw=0.5)
+            elif len(std[thresh&lt;1]) &gt; 0:
+                thresh = np.max(std[thresh&lt;1])
+                ax.axhline(thresh, color=&#39;k&#39;, lw=0.5)
+            #stdm = np.ma.masked_where(thresh &lt; 1, std)
+            #ax.plot(time, stdm)
+            ax.set_yscale(&#39;log&#39;)
+            #ax.set_ylim(bottom=0)
+            ax.set_ylabel(&#39;%s-c%d&#39; % (device, c))
+            i += 1
+    if title:
+        axs[0].set_title(title)
+    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter(&#39;%b %d %Hh&#39;))
+    plt.setp(axs[-1].get_xticklabels(), ha=&#39;right&#39;,
+             rotation=30, rotation_mode=&#39;anchor&#39;)
+    fig.savefig(os.path.join(output_folder, &#39;signalpowers.pdf&#39;))
+    plt.show()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.merge_fish"><code class="name flex">
+<span>def <span class="ident">merge_fish</span></span>(<span>pulse_fishes,<br>wave_fishes,<br>max_noise=0.1,<br>max_deltaf=10.0,<br>max_dist=0.0002,<br>max_rms=0.3)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def merge_fish(pulse_fishes, wave_fishes,
+               max_noise=0.1, max_deltaf=10.0, max_dist=0.0002, max_rms=0.3):
+    pulse_eods = []
+    for i in np.argsort([fish.props[&#39;P2-P1-dist&#39;] for fish in pulse_fishes]):
+        if pulse_fishes[i].props[&#39;noise&#39;] &gt; max_noise:
+            continue
+        if pulse_fishes[i].props[&#39;P2-P1-dist&#39;] &lt;= 0.0:
+            continue
+        if len(pulse_eods) &gt; 0 and \
+           np.abs(pulse_fishes[i].props[&#39;P2-P1-dist&#39;] - pulse_eods[-1].props[&#39;P2-P1-dist&#39;]) &lt;= max_dist and \
+           pulse_similarity(pulse_fishes[i].waveform, pulse_eods[-1].waveform, 4) &lt; max_rms:
+            pulse_eods[-1].times.append(pulse_fishes[i].times)
+            if not hasattr(pulse_eods[-1], &#39;othereods&#39;):
+                pulse_eods[-1].othereods = [pulse_eods[-1].waveform]
+            pulse_eods[-1].othereods.append(pulse_fishes[i].waveform)
+            if pulse_fishes[i].props[&#39;p-p-amplitude&#39;] &gt; pulse_eods[-1].props[&#39;p-p-amplitude&#39;]:
+                pulse_eods[-1].waveform = pulse_fishes[i].waveform
+                pulse_eods[-1].props = pulse_fishes[i].props
+            continue
+        pulse_eods.append(pulse_fishes[i])
+    pulse_eods = [pulse_eods[i] for i in np.argsort([fish.props[&#39;EODf&#39;] for fish in pulse_eods])]
+    
+    wave_eods = []
+    for i in np.argsort([fish.props[&#39;EODf&#39;] for fish in wave_fishes]):
+        if wave_fishes[i].props[&#39;noise&#39;] &gt; max_noise:
+            continue
+        if len(wave_eods) &gt; 0 and \
+           np.abs(wave_fishes[i].props[&#39;EODf&#39;] - wave_eods[-1].props[&#39;EODf&#39;]) &lt; max_deltaf and \
+           wave_similarity(wave_fishes[i].waveform, wave_eods[-1].waveform,
+                           wave_fishes[i].props[&#39;EODf&#39;], wave_eods[-1].props[&#39;EODf&#39;]) &lt; max_rms:
+            wave_eods[-1].times.append(wave_fishes[i].times)
+            if not hasattr(wave_eods[-1], &#39;othereods&#39;):
+                wave_eods[-1].othereods = []
+            wave_eods[-1].othereods.append(wave_fishes[i].waveform)
+            if wave_fishes[i].props[&#39;p-p-amplitude&#39;] &gt; wave_eods[-1].props[&#39;p-p-amplitude&#39;]:
+                wave_eods[-1].waveform = wave_fishes[i].waveform
+                wave_eods[-1].props = wave_fishes[i].props
+            continue
+        wave_eods.append(wave_fishes[i])
+    return pulse_eods, wave_eods</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.plot_eod_occurances"><code class="name flex">
+<span>def <span class="ident">plot_eod_occurances</span></span>(<span>pulse_fishes, wave_fishes, tstart, tend, channels, output_folder)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
+                        channels, output_folder):
+    channel_colors = [&#39;#2060A7&#39;, &#39;#40A787&#39;, &#39;#478010&#39;, &#39;#F0D730&#39;,
+                      &#39;#C02717&#39;, &#39;#873770&#39;, &#39;#008797&#39;, &#39;#007030&#39;,
+                      &#39;#AAB71B&#39;, &#39;#F78017&#39;, &#39;#D03050&#39;, &#39;#53379B&#39;]
+    plt.rcParams[&#39;axes.facecolor&#39;] = &#39;none&#39;
+    plt.rcParams[&#39;axes.xmargin&#39;] = 0
+    plt.rcParams[&#39;axes.ymargin&#39;] = 0.05
+    plt.rcParams[&#39;font.family&#39;] = &#39;sans-serif&#39;
+    n = len(pulse_fishes) + len(wave_fishes)
+    h = n*2.5 + 2.5 + 0.3
+    fig, axs = plt.subplots(n, 2, squeeze=False, figsize=(16/2.54, h/2.54),
+                            gridspec_kw=dict(width_ratios=(1,2)))
+    fig.subplots_adjust(left=0.02, right=0.97, top=1-0.3/h, bottom=2.2/h,
+                        hspace=0.2)
+    pi = 0
+    prev_xscale = 0.0
+    for ax, fish in zip(axs, pulse_fishes + wave_fishes):
+        # EOD waveform:
+        ax[0].spines[&#39;left&#39;].set_visible(False)
+        ax[0].spines[&#39;right&#39;].set_visible(False)
+        ax[0].spines[&#39;top&#39;].set_visible(False)
+        ax[0].spines[&#39;bottom&#39;].set_visible(False)
+        ax[0].xaxis.set_visible(False)
+        ax[0].yaxis.set_visible(False)
+        time = 1000.0 * fish.waveform[:,0]
+        #ax[0].plot([time[0], time[-1]], [0.0, 0.0],
+        #           zorder=-10, lw=1, color=&#39;#AAAAAA&#39;)
+        if hasattr(fish, &#39;othereods&#39;):
+            for eod in fish.othereods:
+                ax[0].plot(1000.0*eod[:,0], eod[:,1],
+                           zorder=5, lw=1, color=&#39;#AAAAAA&#39;)
+        ax[0].plot(time, fish.waveform[:,1],
+                   zorder=10, lw=2, color=&#39;#C02717&#39;)
+        ax[0].text(0.0, 1.0, &#39;%.0f\u2009Hz&#39; % fish.props[&#39;EODf&#39;],
+                   transform=ax[0].transAxes, va=&#39;baseline&#39;, zorder=20)
+        if fish.props[&#39;type&#39;] == &#39;wave&#39;:
+            lim = 750.0/fish.props[&#39;EODf&#39;]
+            ax[0].set_xlim([-lim, +lim])
+            tmax = lim
+        else:
+            ax[0].set_xlim(time[0], time[-1])
+            tmax = time[-1]
+        xscale = 1.0
+        if tmax &lt; 1.0:
+            xscale = 0.5
+        elif tmax &gt; 10.0:
+            xscale = 5.0
+        ymin = np.min(fish.waveform[:,1])
+        ymax = np.max(fish.waveform[:,1])
+        ax[0].plot((tmax-xscale, tmax), (ymin - 0.04*(ymax-ymin),)*2,
+                   &#39;k&#39;, lw=3, clip_on=False, zorder=0)
+        if ax[0] is axs[-1,0] or xscale != prev_xscale:
+            if xscale &lt; 1.0:
+                ax[0].text(tmax-0.5*xscale, ymin - 0.1*(ymax-ymin),
+                           &#39;%.0f\u2009\u00b5s&#39; % (1000.0*xscale),
+                           ha=&#39;center&#39;, va=&#39;top&#39;, zorder=0)
+            else:
+                ax[0].text(tmax-0.5*xscale, ymin - 0.1*(ymax-ymin),
+                           &#39;%.0f\u2009ms&#39; % xscale,
+                           ha=&#39;center&#39;, va=&#39;top&#39;, zorder=0)
+        prev_xscale = xscale
+        # time bar:
+        ax[1].xaxis.set_major_formatter(mdates.DateFormatter(&#39;%b %d %Hh&#39;))
+        min_eodf = 10000
+        max_eodf = 0
+        for index, time in fish.times.iterrows():
+            if time[&#39;EODf&#39;] &lt; min_eodf:
+                min_eodf = time[&#39;EODf&#39;]
+            if time[&#39;EODf&#39;] &gt; max_eodf:
+                max_eodf = time[&#39;EODf&#39;]
+            ax[1].plot([time[&#39;tstart&#39;], time[&#39;tend&#39;]],
+                       [time[&#39;EODf&#39;], time[&#39;EODf&#39;]],
+                       lw=5, color=channel_colors[channels.index((time[&#39;device&#39;], time[&#39;channel&#39;]))%len(channel_colors)])
+        if max_eodf &gt; min_eodf + 10.0:
+            ax[1].text(0.0, 1.0, &#39;%.0f \u2013 %.0f\u2009Hz&#39; % (min_eodf, max_eodf),
+                       transform=ax[1].transAxes, va=&#39;baseline&#39;, zorder=20)
+        ax[1].set_xlim(tstart, tend)
+        ax[1].spines[&#39;left&#39;].set_visible(False)
+        ax[1].spines[&#39;right&#39;].set_visible(False)
+        ax[1].yaxis.set_visible(False)
+        ax[1].spines[&#39;top&#39;].set_visible(False)
+        if ax[1] is not axs[-1,1]:
+            ax[1].spines[&#39;bottom&#39;].set_visible(False)
+            ax[1].xaxis.set_visible(False)
+        else:
+            plt.setp(ax[1].get_xticklabels(), ha=&#39;right&#39;,
+                     rotation=30, rotation_mode=&#39;anchor&#39;)
+    fig.savefig(os.path.join(output_folder, &#39;eodwaveforms.pdf&#39;))</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.thunderlogger.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>cargs=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main(cargs=None):
+    # config file name:
+    cfgfile = __package__ + &#39;.cfg&#39;
+
+    # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
+    parser = argparse.ArgumentParser(add_help=False,
+        description=&#39;Extract EOD waveforms of weakly electric fish from logger data.&#39;,
+        epilog=&#39;version %s by Benda-Lab (2015-%s)&#39; % (__version__, __year__))
+    parser.add_argument(&#39;-h&#39;, &#39;--help&#39;, action=&#39;store_true&#39;,
+                        help=&#39;show this help message and exit&#39;)
+    parser.add_argument(&#39;--version&#39;, action=&#39;version&#39;, version=__version__)
+    parser.add_argument(&#39;-v&#39;, action=&#39;count&#39;, dest=&#39;verbose&#39;, default=0,
+                        help=&#39;verbosity level. Increase by specifying -v multiple times, or like -vvv&#39;)
+    parser.add_argument(&#39;-V&#39;, action=&#39;count&#39;, dest=&#39;plot_level&#39;, default=0,
+                        help=&#39;level for debugging plots. Increase by specifying -V multiple times, or like -VVV&#39;)
+    parser.add_argument(&#39;-c&#39;, dest=&#39;save_config&#39;, action=&#39;store_true&#39;,
+                        help=&#39;save configuration to file {0} after reading all configuration files&#39;.format(cfgfile))
+    parser.add_argument(&#39;-f&#39;, dest=&#39;format&#39;, default=&#39;auto&#39;, type=str,
+                        choices=TableData.formats + [&#39;py&#39;],
+                        help=&#39;file format used for saving analysis results, defaults to the format specified in the configuration file or &#34;csv&#34;&#39;)
+    parser.add_argument(&#39;-p&#39;, dest=&#39;save_plot&#39;, action=&#39;store_true&#39;,
+                        help=&#39;plot analyzed data&#39;)
+    parser.add_argument(&#39;-m&#39;, dest=&#39;merge&#39;, action=&#39;store_true&#39;,
+                        help=&#39;merge similar EODs before plotting&#39;)
+    parser.add_argument(&#39;-s&#39;, dest=&#39;stds_only&#39;, action=&#39;store_true&#39;,
+                        help=&#39;analyze or plot standard deviation of data only&#39;)
+    parser.add_argument(&#39;-o&#39;, dest=&#39;outpath&#39;, default=&#39;.&#39;, type=str,
+                        help=&#39;path where to store results and figures (defaults to current working directory)&#39;)
+    parser.add_argument(&#39;-k&#39;, dest=&#39;keep_path&#39;, action=&#39;store_true&#39;,
+                        help=&#39;keep path of input file when saving analysis files, i.e. append path of input file to OUTPATH&#39;)
+    parser.add_argument(&#39;-n&#39;, dest=&#39;name&#39;, default=&#39;&#39;, type=str,
+                        help=&#39;base name of all output files or title of plots&#39;)
+    parser.add_argument(&#39;file&#39;, nargs=&#39;*&#39;, default=&#39;&#39;, type=str,
+                        help=&#39;name of a file with time series data of an EOD recording, may include wildcards&#39;)
+    args = parser.parse_args(cargs)
+
+    # help:
+    if args.help:
+        parser.print_help()
+        print(&#39;&#39;)
+        print(&#39;examples:&#39;)
+        print(&#39;- write configuration file:&#39;)
+        print(&#39;  &gt; thunderlogger -c&#39;)
+        print(&#39;- compute standard deviations of data segments:&#39;)
+        print(&#39;  &gt; thunderlogger -o results -k -n logger1 -s river1/logger1-*.wav&#39;)
+        print(&#39;- plot the standard deviations and the computed threshold:&#39;)
+        print(&#39;  &gt; thunderlogger -o plots -k -s -p -n river1 results/river1/logger1-stdevs.*&#39;)
+        print(&#39;  you may adapt the settings in the configureation file &#34;thunderfish.cfg&#34;&#39;)
+        print(&#39;- extract EODs from the data:&#39;)
+        print(&#39;  &gt; thunderlogger -o results -k river1/logger1-*.wav&#39;)
+        print(&#39;- merge and plot extracted EODs:&#39;)
+        print(&#39;  &gt; thunderlogger -o plots -k -p -m results/river*/*fish.*&#39;)
+        parser.exit()
+
+    # set verbosity level from command line:
+    verbose = args.verbose
+    plot_level = args.plot_level
+    if verbose &lt; plot_level:
+        verbose = plot_level
+
+    # expand wildcard patterns:
+    files = []
+    if os.name == &#39;nt&#39;:
+        for fn in args.file:
+            files.extend(glob.glob(fn))
+    else:
+        files = args.file
+
+    if args.save_config:
+        # save configuration:
+        file_name = files[0] if len(files) else &#39;&#39;
+        cfg = configuration()
+        add_thunderlogger_config(cfg)
+        cfg.load_files(cfgfile, file_name, 4, verbose)
+        save_configuration(cfg, cfgfile)
+        exit()
+    elif len(files) == 0:
+        parser.error(&#39;you need to specify at least one file for the analysis&#39;)
+
+    # configure:
+    cfg = configuration()
+    add_thunderlogger_config(cfg)
+    cfg.load_files(cfgfile, files[0], 4, verbose-1)
+    if args.format != &#39;auto&#39;:
+        cfg.set(&#39;fileFormat&#39;, args.format)
+
+    # create output folder for data and plots:
+    output_folder = args.outpath
+    if args.keep_path:
+        output_folder = os.path.join(output_folder,
+                                     os.path.split(files[0])[0])
+    if not os.path.exists(output_folder):
+        if verbose &gt; 1:
+            print(&#39;mkdir %s&#39; % output_folder)
+        os.makedirs(output_folder)
+        
+    # start time:
+    start_time = None
+    if cfg.value(&#39;startTime&#39;) != &#39;none&#39;:
+        cfg.value(&#39;startTime&#39;)
+        start_time = dt.datetime.strptime(cfg.value(&#39;startTime&#39;), &#39;%Y-%m-%dT%H:%M:%S&#39;)
+        
+    # analyze and save data:
+    plt.ioff()
+    if not args.save_plot:
+        # assemble device name and output file:
+        if len(args.name) &gt; 0:
+            device_name = args.name
+        else:
+            device_name = os.path.basename(files[0])
+            device_name = device_name[:device_name.find(&#39;-&#39;)]
+        output_basename = os.path.join(output_folder, device_name)
+        # compute thresholds:
+        thresholds = []
+        power_file = output_basename + &#39;-stdevs.csv&#39;
+        thresh = cfg.value(&#39;detectionThreshold&#39;)
+        if thresh == &#39;auto&#39;:
+            thresh = cfg.value(&#39;detectionThresholdDefault&#39;)
+            if os.path.isfile(power_file):
+                _, powers, _, _ = load_power(power_file)
+                for std in powers.T:
+                    ss, cc = hist_threshold(std,
+                        thresh_fac=cfg.value(&#39;detectionThresholdStdFac&#39;),
+                        nbins=cfg.value(&#39;detectionThresholdNBins&#39;))
+                    thresholds.append(cc + ss)
+        else:
+            thresh = float(thresh)
+        pulse_fishes, wave_fishes, tstart, tend, t0s, \
+            stds, supra_thresh, unit = \
+            extract_eods(files, thresholds,
+                         args.stds_only, cfg, verbose, plot_level,
+                         thresh=thresh, start_time=start_time)
+        remove_eod_files(output_basename, verbose, cfg)
+        save_data(output_folder, device_name, pulse_fishes, wave_fishes,
+                  tstart, tend, t0s, stds, supra_thresh, unit, cfg)
+        sys.stdout.write(&#39;DONE!\n&#39;)
+        if args.stds_only:
+            sys.stdout.write(&#39;Signal powers saved in %s\n&#39; % (output_folder+&#39;-stdevs.csv&#39;))
+            sys.stdout.write(&#39;To generate plots run thunderlogger with the -p and -s flags on the generated file:\n&#39;)
+            sys.stdout.write(&#39;&gt; thunderlogger -p -s %s\n&#39; % (output_folder+&#39;-stdevs.csv&#39;))
+        else:
+            sys.stdout.write(&#39;Extracted EOD waveforms saved in %s\n&#39; % output_folder)
+            sys.stdout.write(&#39;To generate plots run thunderlogger with the -p flag on the generated files:\n&#39;)
+            sys.stdout.write(&#39;&gt; thunderlogger -p -o %s%s %s\n&#39; %
+                         (args.outpath, &#39; -k&#39; if args.keep_path else &#39;&#39;,
+                          output_basename))
+    else:
+        if args.stds_only:
+            times = []
+            stds = []
+            supra_threshs = []
+            devices = []
+            thresholds = []
+            for file in files:
+                t, p, s, d = load_power(file, start_time)
+                times.append(t)
+                stds.append(p)
+                supra_threshs.append(s)
+                devices.append(d)
+                # compute detection thresholds:
+                for std in p.T:
+                    if cfg.value(&#39;detectionThreshold&#39;) == &#39;auto&#39;:
+                        ss, cc = hist_threshold(std,
+                            thresh_fac=cfg.value(&#39;detectionThresholdStdFac&#39;),
+                            nbins=cfg.value(&#39;detectionThresholdNBins&#39;))
+                        thresholds.append(cc + ss)
+                    else:
+                        thresholds.append(float(cfg.value(&#39;detectionThreshold&#39;)))
+            plot_signal_power(times, stds, supra_threshs, devices, thresholds,
+                              args.name, output_folder)
+        else:
+            pulse_fishes, wave_fishes, tstart, tend, channels = \
+                load_data(files, start_time)
+            if args.merge:
+                pulse_fishes, wave_fishes = merge_fish(pulse_fishes, wave_fishes)
+            plot_eod_occurances(pulse_fishes, wave_fishes, tstart, tend,
+                                channels, output_folder)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul>
+<li><a href="#thunderlogger">thunderlogger</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.thunderlogger.add_thunderlogger_config" href="#thunderfish.thunderlogger.add_thunderlogger_config">add_thunderlogger_config</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.extract_eods" href="#thunderfish.thunderlogger.extract_eods">extract_eods</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.save_times" href="#thunderfish.thunderlogger.save_times">save_times</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.load_times" href="#thunderfish.thunderlogger.load_times">load_times</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.save_power" href="#thunderfish.thunderlogger.save_power">save_power</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.load_power" href="#thunderfish.thunderlogger.load_power">load_power</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.save_data" href="#thunderfish.thunderlogger.save_data">save_data</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.load_data" href="#thunderfish.thunderlogger.load_data">load_data</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.plot_signal_power" href="#thunderfish.thunderlogger.plot_signal_power">plot_signal_power</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.merge_fish" href="#thunderfish.thunderlogger.merge_fish">merge_fish</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.plot_eod_occurances" href="#thunderfish.thunderlogger.plot_eod_occurances">plot_eod_occurances</a></code></li>
+<li><code><a title="thunderfish.thunderlogger.main" href="#thunderfish.thunderlogger.main">main</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

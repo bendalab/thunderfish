@@ -1,0 +1,1556 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>thunderfish.fishfinder API documentation</title>
+<meta name="description" content="">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], processEscapes: true } });</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.fishfinder</code></h1>
+</header>
+<section id="section-intro">
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.fishfinder.short_user_warning"><code class="name flex">
+<span>def <span class="ident">short_user_warning</span></span>(<span>message, category, filename, lineno, file=None, line='')</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def short_user_warning(message, category, filename, lineno, file=None, line=&#39;&#39;):
+    if file is None:
+        file = sys.stderr
+    if category == UserWarning:
+        file.write(&#39;%s line %d: %s\n&#39; % (&#39;/&#39;.join(filename.split(&#39;/&#39;)[-2:]), lineno, message))
+    else:
+        s = warnings.formatwarning(message, category, filename, lineno, line)
+        file.write(s)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>cargs=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main(cargs=None):
+    warnings.showwarning = short_user_warning
+
+    # config file name:
+    cfgfile = __package__ + &#39;.cfg&#39;
+
+    # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
+    parser = argparse.ArgumentParser(
+        description=&#39;Display waveform, and power spectrum with detected fundamental frequencies of EOD recordings.&#39;,
+        epilog=&#39;version %s by Jan Benda (2015-%s)&#39; % (__version__, __year__))
+    parser.add_argument(&#39;--version&#39;, action=&#39;version&#39;, version=__version__)
+    parser.add_argument(&#39;-v&#39;, action=&#39;count&#39;, dest=&#39;verbose&#39;)
+    parser.add_argument(&#39;-c&#39;, &#39;--save-config&#39;, nargs=&#39;?&#39;, default=&#39;&#39;, const=cfgfile,
+                        type=str, metavar=&#39;cfgfile&#39;,
+                        help=&#39;save configuration to file cfgfile (defaults to {0})&#39;.format(cfgfile))
+    parser.add_argument(&#39;file&#39;, nargs=&#39;?&#39;, default=&#39;&#39;, type=str,
+                        help=&#39;name of the file with the time series data&#39;)
+    parser.add_argument(&#39;channel&#39;, nargs=&#39;?&#39;, default=0, type=int,
+                        help=&#39;channel to be displayed&#39;)
+    args = parser.parse_args(cargs)
+    filepath = args.file
+
+    # set verbosity level from command line:
+    verbose = 0
+    if args.verbose != None:
+        verbose = args.verbose
+
+    if len(args.save_config):
+        # save configuration:
+        cfg = configuration()
+        cfg.load_files(cfgfile, filepath, 4, verbose)
+        save_configuration(cfg, cfgfile)
+        return
+    elif len(filepath) == 0:
+        parser.error(&#39;you need to specify a file containing some data&#39;)
+
+    # load configuration:
+    cfg = configuration()
+    cfg.load_files(cfgfile, filepath, 4, verbose-1)
+
+    # load data:
+    filename = os.path.basename(filepath)
+    channel = args.channel
+    # TODO: add blocksize and backsize as configuration parameter!
+    with DataLoader(filepath, 60.0, 10.0, verbose) as data:
+        SignalPlot(data, data.rate, data.unit, filename, channel, verbose, cfg)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="thunderfish.fishfinder.SignalPlot"><code class="flex name class">
+<span>class <span class="ident">SignalPlot</span></span>
+<span>(</span><span>data, samplingrate, unit, filename, channel, verbose, cfg)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class SignalPlot:
+    def __init__(self, data, samplingrate, unit, filename, channel, verbose, cfg):
+        self.filename = filename
+        self.channel = channel
+        self.rate = samplingrate
+        self.data = data
+        self.unit = unit
+        self.cfg = cfg
+        self.verbose = verbose
+        self.tmax = (len(self.data)-1)/self.rate
+        self.toffset = 0.0
+        self.twindow = 8.0
+        if self.twindow &gt; self.tmax:
+            self.twindow = np.round(2 ** (np.floor(np.log(self.tmax) / np.log(2.0)) + 1.0))
+        self.ymin = -1.0
+        self.ymax = +1.0
+        self.trace_artist = None
+        self.spectrogram_artist = None
+        self.fmin = 0.0
+        self.fmax = 0.0
+        self.decibel = True
+        self.freq_resolution = self.cfg.value(&#39;frequencyResolution&#39;)
+        self.deltaf = 1.0
+        self.mains_freq = self.cfg.value(&#39;mainsFreq&#39;)
+        self.power_label = None
+        self.all_peaks_artis = None
+        self.good_peaks_artist = None
+        self.power_artist = None
+        self.power_frequency_label = None
+        self.peak_artists = []
+        self.legend = True
+        self.legendhandle = None
+        self.help = False
+        self.helptext = []
+        self.allpeaks = []
+        self.fishlist = []
+        self.mains = []
+        self.peak_specmarker = []
+        self.peak_annotation = []
+        self.min_clip = self.cfg.value(&#39;minClipAmplitude&#39;)
+        self.max_clip = self.cfg.value(&#39;maxClipAmplitude&#39;)
+        self.colorrange, self.markerrange = colors_markers()
+
+        # audio output:
+        self.audio = PlayAudio()
+        
+        # set key bindings:
+        plt.rcParams[&#39;keymap.fullscreen&#39;] = &#39;ctrl+f&#39;
+        plt.rcParams[&#39;keymap.pan&#39;] = &#39;ctrl+m&#39;
+        plt.rcParams[&#39;keymap.quit&#39;] = &#39;ctrl+w, alt+q, q&#39;
+        plt.rcParams[&#39;keymap.yscale&#39;] = &#39;&#39;
+        plt.rcParams[&#39;keymap.xscale&#39;] = &#39;&#39;
+        plt.rcParams[&#39;keymap.grid&#39;] = &#39;&#39;
+        #plt.rcParams[&#39;keymap.all_axes&#39;] = &#39;&#39;
+
+        # the figure:
+        plt.ioff()
+        self.fig = plt.figure(figsize=(15, 9))
+        self.fig.canvas.manager.set_window_title(self.filename + &#39; channel {0:d}&#39;.format(self.channel))
+        self.fig.canvas.mpl_connect(&#39;key_press_event&#39;, self.keypress)
+        self.fig.canvas.mpl_connect(&#39;button_press_event&#39;, self.buttonpress)
+        self.fig.canvas.mpl_connect(&#39;pick_event&#39;, self.onpick)
+        self.fig.canvas.mpl_connect(&#39;resize_event&#39;, self.resize)
+        # trace plot:
+        self.axt = self.fig.add_axes([0.1, 0.7, 0.87, 0.25])
+        self.axt.set_ylabel(&#39;Amplitude [{:s}]&#39;.format(self.unit))
+        ht = self.axt.text(0.98, 0.05, &#39;(ctrl+) page and arrow up, down, home, end: scroll&#39;, ha=&#39;right&#39;,
+                           transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.15, &#39;+, -, X, x: zoom in/out&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.25, &#39;y,Y,v,V: zoom amplitudes&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.35, &#39;p,P: play audio (display,all)&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.45, &#39;ctrl-f: full screen&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.55, &#39;w: plot waveform into png file&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.65, &#39;s: save figure&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.75, &#39;S: save audiosegment&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.85, &#39;q: quit&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        ht = self.axt.text(0.98, 0.95, &#39;h: toggle this help&#39;, ha=&#39;right&#39;, transform=self.axt.transAxes)
+        self.helptext.append(ht)
+        self.axt.set_xticklabels([])
+        # spectrogram:
+        self.axs = self.fig.add_axes([0.1, 0.45, 0.87, 0.25])
+        self.axs.set_xlabel(&#39;Time [seconds]&#39;)
+        self.axs.set_ylabel(&#39;Frequency [Hz]&#39;)
+        # power spectrum:
+        self.axp = self.fig.add_axes([0.1, 0.1, 0.87, 0.25])
+        ht = self.axp.text(0.98, 0.9, &#39;r, R: frequency resolution&#39;, ha=&#39;right&#39;, transform=self.axp.transAxes)
+        self.helptext.append(ht)
+        ht = self.axp.text(0.98, 0.8, &#39;f, F: zoom&#39;, ha=&#39;right&#39;, transform=self.axp.transAxes)
+        self.helptext.append(ht)
+        ht = self.axp.text(0.98, 0.7, &#39;(ctrl+) left, right: move&#39;, ha=&#39;right&#39;, transform=self.axp.transAxes)
+        self.helptext.append(ht)
+        ht = self.axp.text(0.98, 0.6, &#39;l: toggle legend&#39;, ha=&#39;right&#39;, transform=self.axp.transAxes)
+        self.helptext.append(ht)
+        ht = self.axp.text(0.98, 0.5, &#39;d: toggle decibel&#39;, ha=&#39;right&#39;, transform=self.axp.transAxes)
+        self.helptext.append(ht)
+        ht = self.axp.text(0.98, 0.4, &#39;m: toggle mains filter&#39;, ha=&#39;right&#39;, transform=self.axp.transAxes)
+        self.helptext.append(ht)
+        ht = self.axp.text(0.98, 0.3, &#39;left mouse: show peak properties&#39;, ha=&#39;right&#39;, transform=self.axp.transAxes)
+        self.helptext.append(ht)
+        ht = self.axp.text(0.98, 0.2, &#39;shift/ctrl + left/right mouse: goto previous/next harmonic&#39;, ha=&#39;right&#39;,
+                           transform=self.axp.transAxes)
+        self.helptext.append(ht)
+        # plot:
+        for ht in self.helptext:
+            ht.set_visible(self.help)
+        self.update_plots(False)
+        plt.show()
+
+    def __del__(self):
+        self.audio.close()
+
+    def remove_peak_annotation(self):
+        for fm in self.peak_specmarker:
+            fm.remove()
+        self.peak_specmarker = []
+        for fa in self.peak_annotation:
+            fa.remove()
+        self.peak_annotation = []
+
+    def annotate_peak(self, peak, harmonics=-1, inx=-1):
+        # marker:
+        if inx &gt;= 0:
+            m, = self.axs.plot([self.toffset + 0.01 * self.twindow], [peak[0]], linestyle=&#39;None&#39;,
+                               color=self.colorrange[inx % len(self.colorrange)],
+                               marker=self.markerrange[inx], ms=10.0, mec=None, mew=0.0, zorder=2)
+        else:
+            m, = self.axs.plot([self.toffset + 0.01 * self.twindow], [peak[0]], linestyle=&#39;None&#39;,
+                               color=&#39;k&#39;, marker=&#39;o&#39;, ms=10.0, mec=None, mew=0.0, zorder=2)
+        self.peak_specmarker.append(m)
+        # annotation:
+        fwidth = self.fmax - self.fmin
+        pl = []
+        pl.append(r&#39;$f=$%.1f Hz&#39; % peak[0])
+        pl.append(r&#39;$h=$%d&#39; % harmonics)
+        pl.append(r&#39;$p=$%g&#39; % peak[1])
+        pl.append(r&#39;$c=$%.0f&#39; % peak[2])
+        self.peak_annotation.append(self.axp.annotate(&#39;\n&#39;.join(pl), xy=(peak[0], peak[1]),
+                                                      xytext=(peak[0] + 0.03 * fwidth, peak[1]),
+                                                      bbox=dict(boxstyle=&#39;round&#39;, facecolor=&#39;white&#39;),
+                                                      arrowprops=dict(arrowstyle=&#39;-&#39;)))
+
+    def annotate_fish(self, fish, inx=-1):
+        self.remove_peak_annotation()
+        for harmonic, freq in enumerate(fish[:, 0]):
+            peak = self.allpeaks[np.abs(self.allpeaks[:, 0] - freq) &lt; 0.8 * self.deltaf, :]
+            if len(peak) &gt; 0:
+                self.annotate_peak(peak[0, :], harmonic, inx)
+        self.fig.canvas.draw()
+
+    def update_plots(self, draw=True):
+        self.remove_peak_annotation()
+        # trace:
+        self.axt.set_xlim(self.toffset, self.toffset + self.twindow)
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+        if t1&gt;len(self.data):
+            t1 = len(self.data)
+        time = np.arange(t0, t1) / self.rate
+        if self.trace_artist == None:
+            self.trace_artist, = self.axt.plot(time, self.data[t0:t1,self.channel])
+        else:
+            self.trace_artist.set_data(time, self.data[t0:t1,self.channel])
+        self.axt.set_ylim(self.ymin, self.ymax)
+
+        # compute power spectrum:
+        n_fft = nfft(self.rate, self.freq_resolution)
+        t00 = t0
+        t11 = t1
+        w = t11 - t00
+        minw = n_fft * (self.cfg.value(&#39;minPSDAverages&#39;) + 1) // 2
+        if t11 - t00 &lt; minw:
+            w = minw
+            t11 = t00 + w
+        if t11 &gt;= len(self.data):
+            t11 = len(self.data)
+            t00 = t11 - w
+        if t00 &lt; 0:
+            t00 = 0
+            t11 = w
+        freqs, power = psd(self.data[t00:t11,self.channel], self.rate,
+                           self.freq_resolution, detrend=ml.detrend_mean)
+        self.deltaf = freqs[1] - freqs[0]
+        # detect fish:
+        h_kwargs = psd_peak_detection_args(self.cfg)
+        h_kwargs.update(harmonic_groups_args(self.cfg))
+        self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = harmonic_groups(freqs, power, verbose=self.verbose, **h_kwargs)
+        highth = center + highth - 0.5 * lowth
+        lowth = center + 0.5 * lowth
+
+        # spectrogram:
+        t2 = t1 + n_fft
+        freqs, bins, specpower = spectrogram(self.data[t0:t2,self.channel],
+                                             self.rate,
+                                             self.freq_resolution,
+                                             detrend=ml.detrend_mean)
+        z = decibel(specpower)
+        z = np.flipud(z)
+        extent = self.toffset, self.toffset + np.amax(bins), freqs[0], freqs[-1]
+        self.axs.set_xlim(self.toffset, self.toffset + self.twindow)
+        if self.spectrogram_artist == None:
+            self.fmax = np.round((freqs[-1] / 4.0) / 100.0) * 100.0
+            min = highth
+            min = np.percentile(z, 70.0)
+            max = np.percentile(z, 99.9) + 30.0
+            # cm = plt.get_cmap( &#39;hot_r&#39; )
+            cm = plt.get_cmap(&#39;jet&#39;)
+            self.spectrogram_artist = self.axs.imshow(z, aspect=&#39;auto&#39;,
+                                                      extent=extent, vmin=min, vmax=max,
+                                                      cmap=cm, zorder=1)
+        else:
+            self.spectrogram_artist.set_data(z)
+            self.spectrogram_artist.set_extent(extent)
+        self.axs.set_ylim(self.fmin, self.fmax)
+
+        # power spectrum:
+        self.axp.set_xlim(self.fmin, self.fmax)
+        if self.deltaf &gt;= 1000.0:
+            dfs = &#39;%.3gkHz&#39; % 0.001 * self.deltaf
+        else:
+            dfs = &#39;%.3gHz&#39; % self.deltaf
+        tw = float(w) / self.rate
+        if tw &lt; 1.0:
+            tws = &#39;%.3gms&#39; % (1000.0 * tw)
+        else:
+            tws = &#39;%.3gs&#39; % (tw)
+        a = 2 * w // n_fft - 1  # number of ffts
+        m = &#39;&#39;
+        if self.cfg.value(&#39;mainsFreq&#39;) &gt; 0.0:
+            m = &#39;, mains=%.0fHz&#39; % self.cfg.value(&#39;mainsFreq&#39;)
+        if self.power_frequency_label == None:
+            self.power_frequency_label = self.axp.set_xlabel(
+                r&#39;Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})&#39;.format(n_fft, dfs, tws, a, m))
+        else:
+            self.power_frequency_label.set_text(
+                r&#39;Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})&#39;.format(n_fft, dfs, tws, a, m))
+        self.axp.set_xlim(self.fmin, self.fmax)
+        if self.power_label == None:
+            self.power_label = self.axp.set_ylabel(&#39;Power&#39;)
+        if self.decibel:
+            if len(self.allpeaks) &gt; 0:
+                self.allpeaks[:, 1] = decibel(self.allpeaks[:, 1])
+            power = decibel(power)
+            pmin = np.min(power[freqs &lt; self.fmax])
+            pmin = np.floor(pmin / 10.0) * 10.0
+            pmax = np.max(power[freqs &lt; self.fmax])
+            pmax = np.ceil(pmax / 10.0) * 10.0
+            doty = pmax - 5.0
+            self.power_label.set_text(&#39;Power [dB]&#39;)
+            self.axp.set_ylim(pmin, pmax)
+        else:
+            pmax = np.max(power[freqs &lt; self.fmax])
+            doty = pmax
+            pmax *= 1.1
+            self.power_label.set_text(&#39;Power&#39;)
+            self.axp.set_ylim(0.0, pmax)
+        if self.all_peaks_artis == None:
+            self.all_peaks_artis, = self.axp.plot(self.allpeaks[:, 0],
+                                                  np.zeros(len(self.allpeaks[:, 0])) + doty,
+                                                  &#39;o&#39;, color=&#39;#ffffff&#39;)
+            self.good_peaks_artist, = self.axp.plot(peaks, np.zeros(len(peaks)) + doty,
+                                                    &#39;o&#39;, color=&#39;#888888&#39;)
+        else:
+            self.all_peaks_artis.set_data(self.allpeaks[:, 0],
+                                          np.zeros(len(self.allpeaks[:, 0])) + doty)
+            self.good_peaks_artist.set_data(peaks, np.zeros(len(peaks)) + doty)
+        labels = []
+        fsizes = [np.sqrt(np.sum(self.fishlist[k][:, 1])) for k in range(len(self.fishlist))]
+        fmaxsize = np.max(fsizes) if len(fsizes) &gt; 0 else 1.0
+        for k in range(len(self.peak_artists)):
+            self.peak_artists[k].remove()
+        self.peak_artists = []
+        for k in range(len(self.fishlist)):
+            if k &gt;= len(self.markerrange):
+                break
+            fpeaks = self.fishlist[k][:, 0]
+            fpeakinx = [int(np.round(fp / self.deltaf)) for fp in fpeaks if fp &lt; freqs[-1]]
+            fsize = 7.0 + 10.0 * (fsizes[k] / fmaxsize) ** 0.5
+            fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)], power[fpeakinx], linestyle=&#39;None&#39;,
+                                        color=self.colorrange[k % len(self.colorrange)],
+                                        marker=self.markerrange[k], ms=fsize,
+                                        mec=None, mew=0.0, zorder=1)
+            self.peak_artists.append(fishpoints)
+            if self.deltaf &lt; 0.1:
+                labels.append(&#39;%4.2f Hz&#39; % fpeaks[0])
+            elif self.deltaf &lt; 1.0:
+                labels.append(&#39;%4.1f Hz&#39; % fpeaks[0])
+            else:
+                labels.append(&#39;%4.0f Hz&#39; % fpeaks[0])
+        if len(self.mains) &gt; 0:
+            fpeaks = self.mains[:, 0]
+            fpeakinx = np.array([np.round(fp / self.deltaf) for fp in fpeaks if fp &lt; freqs[-1]], dtype=int)
+            fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)],
+                                        power[fpeakinx], linestyle=&#39;None&#39;,
+                                        marker=&#39;.&#39;, color=&#39;k&#39;, ms=10, mec=None, mew=0.0, zorder=2)
+            self.peak_artists.append(fishpoints)
+            labels.append(&#39;%3.0f Hz mains&#39; % self.cfg.value(&#39;mainsFreq&#39;))
+        ncol = (len(labels)-1) // 8 + 1
+        self.legendhandle = self.axs.legend(self.peak_artists[:len(labels)], labels, loc=&#39;upper right&#39;, ncol=ncol)
+        self.legenddict = dict()
+        for legpoints, (finx, fish) in zip(self.legendhandle.get_lines(), enumerate(self.fishlist)):
+            legpoints.set_picker(8)
+            self.legenddict[legpoints] = [finx, fish]
+        self.legendhandle.set_visible(self.legend)
+        if self.power_artist == None:
+            self.power_artist, = self.axp.plot(freqs, power, &#39;b&#39;, zorder=3)
+        else:
+            self.power_artist.set_data(freqs, power)
+        if draw:
+            self.fig.canvas.draw()
+
+    def keypress(self, event):
+        # print(&#39;pressed&#39;, event.key)
+        if event.key in &#39;+=X&#39;:
+            if self.twindow * self.rate &gt; 20:
+                self.twindow *= 0.5
+                self.update_plots()
+        elif event.key in &#39;-x&#39;:
+            if self.twindow &lt; len(self.data) / self.rate:
+                self.twindow *= 2.0
+                self.update_plots()
+        elif event.key == &#39;pagedown&#39;:
+            if self.toffset + 0.5 * self.twindow &lt; len(self.data) / self.rate:
+                self.toffset += 0.5 * self.twindow
+                self.update_plots()
+        elif event.key == &#39;pageup&#39;:
+            if self.toffset &gt; 0:
+                self.toffset -= 0.5 * self.twindow
+                if self.toffset &lt; 0.0:
+                    self.toffset = 0.0
+                self.update_plots()
+        elif event.key == &#39;a&#39;:
+            if self.min_clip == 0.0 or self.max_clip == 0.0:
+                self.min_clip, self.max_clip = clip_amplitudes(
+                    self.data[:,self.channel],
+                    **clip_args(self.cfg, self.rate))
+            try:
+                if self.cfg.value(&#39;windowSize&#39;) &lt;= 0.0:
+                    self.cfg.set(&#39;windowSize&#39;, (len(self.data)-1)/self.rate)
+                idx0, idx1, clipped = best_window_indices(
+                    self.data[:,self.channel], self.rate,
+                    min_clip=self.min_clip, max_clip=self.max_clip,
+                    **best_window_args(self.cfg))
+                if idx1 &gt; 0:
+                    self.toffset = idx0 / self.rate
+                    self.twindow = (idx1 - idx0) / self.rate
+                    self.twindow *= 2.0/(self.cfg.value(&#39;numberPSDWindows&#39;)+1.0)
+                    self.update_plots()
+            except UserWarning as e:
+                if self.verbose &gt; 0:
+                    print(str(e))
+        elif event.key == &#39;ctrl+pagedown&#39;:
+            if self.toffset + 5.0 * self.twindow &lt; len(self.data) / self.rate:
+                self.toffset += 5.0 * self.twindow
+                self.update_plots()
+        elif event.key == &#39;ctrl+pageup&#39;:
+            if self.toffset &gt; 0:
+                self.toffset -= 5.0 * self.twindow
+                if self.toffset &lt; 0.0:
+                    self.toffset = 0.0
+                self.update_plots()
+        elif event.key == &#39;down&#39;:
+            if self.toffset + self.twindow &lt; len(self.data) / self.rate:
+                self.toffset += 0.05 * self.twindow
+                self.update_plots()
+        elif event.key == &#39;up&#39;:
+            if self.toffset &gt; 0.0:
+                self.toffset -= 0.05 * self.twindow
+                if self.toffset &lt; 0.0:
+                    self.toffset = 0.0
+                self.update_plots()
+        elif event.key == &#39;home&#39;:
+            if self.toffset &gt; 0.0:
+                self.toffset = 0.0
+                self.update_plots()
+        elif event.key == &#39;end&#39;:
+            toffs = np.floor(len(self.data) / self.rate / self.twindow) * self.twindow
+            if self.toffset &lt; toffs:
+                self.toffset = toffs
+                self.update_plots()
+        elif event.key == &#39;y&#39;:
+            h = self.ymax - self.ymin
+            c = 0.5 * (self.ymax + self.ymin)
+            self.ymin = c - h
+            self.ymax = c + h
+            self.axt.set_ylim(self.ymin, self.ymax)
+            self.fig.canvas.draw()
+        elif event.key == &#39;Y&#39;:
+            h = 0.25 * (self.ymax - self.ymin)
+            c = 0.5 * (self.ymax + self.ymin)
+            self.ymin = c - h
+            self.ymax = c + h
+            self.axt.set_ylim(self.ymin, self.ymax)
+            self.fig.canvas.draw()
+        elif event.key == &#39;v&#39;:
+            t0 = int(np.round(self.toffset * self.rate))
+            t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+            min = np.min(self.data[t0:t1,self.channel])
+            max = np.max(self.data[t0:t1,self.channel])
+            h = 0.5 * (max - min)
+            c = 0.5 * (max + min)
+            self.ymin = c - h
+            self.ymax = c + h
+            self.axt.set_ylim(self.ymin, self.ymax)
+            self.fig.canvas.draw()
+        elif event.key == &#39;V&#39;:
+            self.ymin = -1.0
+            self.ymax = +1.0
+            self.axt.set_ylim(self.ymin, self.ymax)
+            self.fig.canvas.draw()
+        elif event.key == &#39;left&#39;:
+            if self.fmin &gt; 0.0:
+                fwidth = self.fmax - self.fmin
+                self.fmin -= 0.5 * fwidth
+                self.fmax -= 0.5 * fwidth
+                if self.fmin &lt; 0.0:
+                    self.fmin = 0.0
+                    self.fmax = fwidth
+                self.axs.set_ylim(self.fmin, self.fmax)
+                self.axp.set_xlim(self.fmin, self.fmax)
+                self.fig.canvas.draw()
+        elif event.key == &#39;right&#39;:
+            if self.fmax &lt; 0.5 * self.rate:
+                fwidth = self.fmax - self.fmin
+                self.fmin += 0.5 * fwidth
+                self.fmax += 0.5 * fwidth
+                self.axs.set_ylim(self.fmin, self.fmax)
+                self.axp.set_xlim(self.fmin, self.fmax)
+                self.fig.canvas.draw()
+        elif event.key == &#39;ctrl+left&#39;:
+            if self.fmin &gt; 0.0:
+                fwidth = self.fmax - self.fmin
+                self.fmin = 0.0
+                self.fmax = fwidth
+                self.axs.set_ylim(self.fmin, self.fmax)
+                self.axp.set_xlim(self.fmin, self.fmax)
+                self.fig.canvas.draw()
+        elif event.key == &#39;ctrl+right&#39;:
+            if self.fmax &lt; 0.5 * self.rate:
+                fwidth = self.fmax - self.fmin
+                fm = 0.5 * self.rate
+                self.fmax = np.ceil(fm / fwidth) * fwidth
+                self.fmin = self.fmax - fwidth
+                if self.fmin &lt; 0.0:
+                    self.fmin = 0.0
+                    self.fmax = fwidth
+                self.axs.set_ylim(self.fmin, self.fmax)
+                self.axp.set_xlim(self.fmin, self.fmax)
+                self.fig.canvas.draw()
+        elif event.key in &#39;f&#39;:
+            if self.fmax &lt; 0.5 * self.rate or self.fmin &gt; 0.0:
+                fwidth = self.fmax - self.fmin
+                if self.fmax &lt; 0.5 * self.rate:
+                    self.fmax = self.fmin + 2.0 * fwidth
+                elif self.fmin &gt; 0.0:
+                    self.fmin = self.fmax - 2.0 * fwidth
+                    if self.fmin &lt; 0.0:
+                        self.fmin = 0.0
+                        self.fmax = 2.0 * fwidth
+                self.axs.set_ylim(self.fmin, self.fmax)
+                self.axp.set_xlim(self.fmin, self.fmax)
+                self.fig.canvas.draw()
+        elif event.key in &#39;F&#39;:
+            if self.fmax - self.fmin &gt; 1.0:
+                fwidth = self.fmax - self.fmin
+                self.fmax = self.fmin + 0.5 * fwidth
+                self.axs.set_ylim(self.fmin, self.fmax)
+                self.axp.set_xlim(self.fmin, self.fmax)
+                self.fig.canvas.draw()
+        elif event.key in &#39;r&#39;:
+            if self.freq_resolution &lt; 1000.0:
+                self.freq_resolution *= 2.0
+                self.update_plots()
+        elif event.key in &#39;R&#39;:
+            if 1.0 / self.freq_resolution &lt; self.tmax:
+                self.freq_resolution *= 0.5
+                self.update_plots()
+        elif event.key in &#39;d&#39;:
+            self.decibel = not self.decibel
+            self.update_plots()
+        elif event.key in &#39;m&#39;:
+            if self.cfg.value(&#39;mainsFreq&#39;) == 0.0:
+                self.cfg.set(&#39;mainsFreq&#39;, self.mains_freq)
+            else:
+                self.cfg.set(&#39;mainsFreq&#39;, 0.0)
+            self.update_plots()
+        elif event.key in &#39;t&#39;:
+            t_diff = self.cfg.value(&#39;highThresholdFactor&#39;) - self.cfg.value(&#39;lowThresholdFactor&#39;)
+            self.cfg.set(&#39;lowThresholdFactor&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;) - 0.1)
+            if self.cfg.value(&#39;lowThresholdFactor&#39;) &lt; 0.1:
+                self.cfg.set(&#39;lowThresholdFactor&#39;, 0.1)
+            self.cfg.set(&#39;highThresholdFactor&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;) + t_diff)
+            print(&#39;lowThresholdFactor =&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;))
+            self.update_plots()
+        elif event.key in &#39;T&#39;:
+            t_diff = self.cfg.value(&#39;highThresholdFactor&#39;) - self.cfg.value(&#39;lowThresholdFactor&#39;)
+            self.cfg.set(&#39;lowThresholdFactor&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;) + 0.1)
+            if self.cfg.value(&#39;lowThresholdFactor&#39;) &gt; 20.0:
+                self.cfg.set(&#39;lowThresholdFactor&#39;, 20.0)
+            self.cfg.set(&#39;highThresholdFactor&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;) + t_diff)
+            print(&#39;lowThresholdFactor =&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;))
+            self.update_plots()
+        elif event.key == &#39;escape&#39;:
+            self.remove_peak_annotation()
+            self.fig.canvas.draw()
+        elif event.key in &#39;h&#39;:
+            self.help = not self.help
+            for ht in self.helptext:
+                ht.set_visible(self.help)
+            self.fig.canvas.draw()
+        elif event.key in &#39;l&#39;:
+            self.legend = not self.legend
+            self.legendhandle.set_visible(self.legend)
+            self.fig.canvas.draw()
+        elif event.key in &#39;w&#39;:
+            self.plot_waveform()
+        elif event.key in &#39;p&#39;:
+            self.play_segment()
+        elif event.key in &#39;P&#39;:
+            self.play_all()
+        elif event.key in &#39;1&#39; :
+            self.play_tone(&#39;c3&#39;)
+        elif event.key in &#39;2&#39; :
+            self.play_tone(&#39;a3&#39;)
+        elif event.key in &#39;3&#39; :
+            self.play_tone(&#39;e4&#39;)
+        elif event.key in &#39;4&#39; :
+            self.play_tone(&#39;a4&#39;)
+        elif event.key in &#39;5&#39; :
+            self.play_tone(&#39;c5&#39;)
+        elif event.key in &#39;6&#39; :
+            self.play_tone(&#39;e5&#39;)
+        elif event.key in &#39;7&#39; :
+            self.play_tone(&#39;g5&#39;)
+        elif event.key in &#39;8&#39; :
+            self.play_tone(&#39;a5&#39;)
+        elif event.key in &#39;9&#39; :
+            self.play_tone(&#39;c6&#39;)
+        elif event.key in &#39;S&#39;:
+            self.save_segment()
+
+    def buttonpress( self, event ) :
+        # print(&#39;mouse pressed&#39;, event.button, event.key, event.step)
+        if event.inaxes == self.axp:
+            if event.key == &#39;shift&#39; or event.key == &#39;control&#39;:
+                # show next or previous harmonic:
+                if event.key == &#39;shift&#39;:
+                    if event.button == 1:
+                        ftarget = event.xdata / 2.0
+                    elif event.button == 3:
+                        ftarget = event.xdata * 2.0
+                else:
+                    if event.button == 1:
+                        ftarget = event.xdata / 1.5
+                    elif event.button == 3:
+                        ftarget = event.xdata * 1.5
+                foffs = event.xdata - self.fmin
+                fwidth = self.fmax - self.fmin
+                self.fmin = ftarget - foffs
+                self.fmax = self.fmin + fwidth
+                self.axs.set_ylim(self.fmin, self.fmax)
+                self.axp.set_xlim(self.fmin, self.fmax)
+                self.fig.canvas.draw()
+            else:
+                # put label on peak
+                self.remove_peak_annotation()
+                # find closest peak:
+                fwidth = self.fmax - self.fmin
+                peakdist = np.abs(self.allpeaks[:, 0] - event.xdata)
+                inx = np.argmin(peakdist)
+                if peakdist[inx] &lt; 0.005 * fwidth:
+                    peak = self.allpeaks[inx, :]
+                    # find fish:
+                    foundfish = False
+                    for finx, fish in enumerate(self.fishlist):
+                        if np.min(np.abs(fish[:, 0] - peak[0])) &lt; 0.8 * self.deltaf:
+                            self.annotate_fish(fish, finx)
+                            foundfish = True
+                            break
+                    if not foundfish:
+                        self.annotate_peak(peak)
+                        self.fig.canvas.draw()
+                else:
+                    self.fig.canvas.draw()
+
+    def onpick(self, event):
+        # print(&#39;pick&#39;)
+        legendpoint = event.artist
+        finx, fish = self.legenddict[legendpoint]
+        self.annotate_fish(fish, finx)
+
+    def resize(self, event):
+        # print(&#39;resized&#39;, event.width, event.height)
+        leftpixel = 80.0
+        rightpixel = 20.0
+        xaxispixel = 50.0
+        toppixel = 20.0
+        timeaxis = 0.42
+        left = leftpixel / event.width
+        width = 1.0 - left - rightpixel / event.width
+        xaxis = xaxispixel / event.height
+        top = toppixel / event.height
+        height = (1.0 - timeaxis - top) / 2.0
+        if left &lt; 0.5 and width &lt; 1.0 and xaxis &lt; 0.3 and top &lt; 0.2:
+            self.axt.set_position([left, timeaxis + height, width, height])
+            self.axs.set_position([left, timeaxis, width, height])
+            self.axp.set_position([left, xaxis, width, timeaxis - 2.0 * xaxis])
+
+    def plot_waveform(self):
+        fig = plt.figure()
+        ax = fig.add_subplot(1, 1, 1)
+        name = self.filename.split(&#39;.&#39;)[0]
+        if self.channel &gt; 0:
+            ax.set_title(&#39;{filename} channel={channel:d}&#39;.format(
+                filename=self.filename, channel=self.channel))
+            figfile = &#39;{name}-{channel:d}-{time:.4g}s-waveform.png&#39;.format(
+                name=name, channel=self.channel, time=self.toffset)
+        else:
+            ax.set_title(self.filename)
+            figfile = &#39;{name}-{time:.4g}s-waveform.png&#39;.format(
+                name=name, time=self.toffset)
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+        if t1&gt;len(self.data):
+            t1 = len(self.data)
+        time = np.arange(t0, t1) / self.rate
+        if self.twindow &lt; 1.0:
+            ax.set_xlabel(&#39;Time [ms]&#39;)
+            ax.set_xlim(1000.0 * self.toffset,
+                        1000.0 * (self.toffset + self.twindow))
+            ax.plot(1000.0 * time, self.data[t0:t1,self.channel])
+        else:
+            ax.set_xlabel(&#39;Time [s]&#39;)
+            ax.set_xlim(self.toffset, self.toffset + self.twindow)
+            ax.plot(time, self.data[t0:t1,self.channel])
+        ax.set_ylabel(&#39;Amplitude [{:s}]&#39;.format(self.unit))
+        fig.tight_layout()
+        fig.savefig(figfile)
+        fig.clear()
+        plt.close(fig)
+        print(&#39;saved waveform figure to&#39;, figfile)
+
+    def play_segment(self):
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+        playdata = 1.0 * self.data[t0:t1,self.channel]
+        fade(playdata, self.rate, 0.1)
+        self.audio.play(playdata, self.rate, blocking=False)
+
+    def save_segment(self):
+        t0s = int(np.round(self.toffset))
+        t1s = int(np.round(self.toffset + self.twindow))
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+        savedata = 1.0 * self.data[t0:t1,self.channel]
+        filename = self.filename.split(&#39;.&#39;)[0]
+        segmentfilename = &#39;{name}-{time0:.4g}s-{time1:.4g}s.wav&#39;.format(
+                name=filename, time0=t0s, time1 = t1s)
+        write_audio(segmentfilename, savedata, self.data.rate)
+        print(&#39;saved segment to: &#39; , segmentfilename)
+        
+    def play_all(self):
+        self.audio.play(self.data[:,self.channel], self.rate,
+                        blocking=False)
+        
+    def play_tone( self, frequency ) :
+        self.audio.beep(1.0, frequency)</code></pre>
+</details>
+<div class="desc"></div>
+<h3>Methods</h3>
+<dl>
+<dt id="thunderfish.fishfinder.SignalPlot.remove_peak_annotation"><code class="name flex">
+<span>def <span class="ident">remove_peak_annotation</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def remove_peak_annotation(self):
+    for fm in self.peak_specmarker:
+        fm.remove()
+    self.peak_specmarker = []
+    for fa in self.peak_annotation:
+        fa.remove()
+    self.peak_annotation = []</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.annotate_peak"><code class="name flex">
+<span>def <span class="ident">annotate_peak</span></span>(<span>self, peak, harmonics=-1, inx=-1)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def annotate_peak(self, peak, harmonics=-1, inx=-1):
+    # marker:
+    if inx &gt;= 0:
+        m, = self.axs.plot([self.toffset + 0.01 * self.twindow], [peak[0]], linestyle=&#39;None&#39;,
+                           color=self.colorrange[inx % len(self.colorrange)],
+                           marker=self.markerrange[inx], ms=10.0, mec=None, mew=0.0, zorder=2)
+    else:
+        m, = self.axs.plot([self.toffset + 0.01 * self.twindow], [peak[0]], linestyle=&#39;None&#39;,
+                           color=&#39;k&#39;, marker=&#39;o&#39;, ms=10.0, mec=None, mew=0.0, zorder=2)
+    self.peak_specmarker.append(m)
+    # annotation:
+    fwidth = self.fmax - self.fmin
+    pl = []
+    pl.append(r&#39;$f=$%.1f Hz&#39; % peak[0])
+    pl.append(r&#39;$h=$%d&#39; % harmonics)
+    pl.append(r&#39;$p=$%g&#39; % peak[1])
+    pl.append(r&#39;$c=$%.0f&#39; % peak[2])
+    self.peak_annotation.append(self.axp.annotate(&#39;\n&#39;.join(pl), xy=(peak[0], peak[1]),
+                                                  xytext=(peak[0] + 0.03 * fwidth, peak[1]),
+                                                  bbox=dict(boxstyle=&#39;round&#39;, facecolor=&#39;white&#39;),
+                                                  arrowprops=dict(arrowstyle=&#39;-&#39;)))</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.annotate_fish"><code class="name flex">
+<span>def <span class="ident">annotate_fish</span></span>(<span>self, fish, inx=-1)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def annotate_fish(self, fish, inx=-1):
+    self.remove_peak_annotation()
+    for harmonic, freq in enumerate(fish[:, 0]):
+        peak = self.allpeaks[np.abs(self.allpeaks[:, 0] - freq) &lt; 0.8 * self.deltaf, :]
+        if len(peak) &gt; 0:
+            self.annotate_peak(peak[0, :], harmonic, inx)
+    self.fig.canvas.draw()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.update_plots"><code class="name flex">
+<span>def <span class="ident">update_plots</span></span>(<span>self, draw=True)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def update_plots(self, draw=True):
+    self.remove_peak_annotation()
+    # trace:
+    self.axt.set_xlim(self.toffset, self.toffset + self.twindow)
+    t0 = int(np.round(self.toffset * self.rate))
+    t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+    if t1&gt;len(self.data):
+        t1 = len(self.data)
+    time = np.arange(t0, t1) / self.rate
+    if self.trace_artist == None:
+        self.trace_artist, = self.axt.plot(time, self.data[t0:t1,self.channel])
+    else:
+        self.trace_artist.set_data(time, self.data[t0:t1,self.channel])
+    self.axt.set_ylim(self.ymin, self.ymax)
+
+    # compute power spectrum:
+    n_fft = nfft(self.rate, self.freq_resolution)
+    t00 = t0
+    t11 = t1
+    w = t11 - t00
+    minw = n_fft * (self.cfg.value(&#39;minPSDAverages&#39;) + 1) // 2
+    if t11 - t00 &lt; minw:
+        w = minw
+        t11 = t00 + w
+    if t11 &gt;= len(self.data):
+        t11 = len(self.data)
+        t00 = t11 - w
+    if t00 &lt; 0:
+        t00 = 0
+        t11 = w
+    freqs, power = psd(self.data[t00:t11,self.channel], self.rate,
+                       self.freq_resolution, detrend=ml.detrend_mean)
+    self.deltaf = freqs[1] - freqs[0]
+    # detect fish:
+    h_kwargs = psd_peak_detection_args(self.cfg)
+    h_kwargs.update(harmonic_groups_args(self.cfg))
+    self.fishlist, fzero_harmonics, self.mains, self.allpeaks, peaks, lowth, highth, center = harmonic_groups(freqs, power, verbose=self.verbose, **h_kwargs)
+    highth = center + highth - 0.5 * lowth
+    lowth = center + 0.5 * lowth
+
+    # spectrogram:
+    t2 = t1 + n_fft
+    freqs, bins, specpower = spectrogram(self.data[t0:t2,self.channel],
+                                         self.rate,
+                                         self.freq_resolution,
+                                         detrend=ml.detrend_mean)
+    z = decibel(specpower)
+    z = np.flipud(z)
+    extent = self.toffset, self.toffset + np.amax(bins), freqs[0], freqs[-1]
+    self.axs.set_xlim(self.toffset, self.toffset + self.twindow)
+    if self.spectrogram_artist == None:
+        self.fmax = np.round((freqs[-1] / 4.0) / 100.0) * 100.0
+        min = highth
+        min = np.percentile(z, 70.0)
+        max = np.percentile(z, 99.9) + 30.0
+        # cm = plt.get_cmap( &#39;hot_r&#39; )
+        cm = plt.get_cmap(&#39;jet&#39;)
+        self.spectrogram_artist = self.axs.imshow(z, aspect=&#39;auto&#39;,
+                                                  extent=extent, vmin=min, vmax=max,
+                                                  cmap=cm, zorder=1)
+    else:
+        self.spectrogram_artist.set_data(z)
+        self.spectrogram_artist.set_extent(extent)
+    self.axs.set_ylim(self.fmin, self.fmax)
+
+    # power spectrum:
+    self.axp.set_xlim(self.fmin, self.fmax)
+    if self.deltaf &gt;= 1000.0:
+        dfs = &#39;%.3gkHz&#39; % 0.001 * self.deltaf
+    else:
+        dfs = &#39;%.3gHz&#39; % self.deltaf
+    tw = float(w) / self.rate
+    if tw &lt; 1.0:
+        tws = &#39;%.3gms&#39; % (1000.0 * tw)
+    else:
+        tws = &#39;%.3gs&#39; % (tw)
+    a = 2 * w // n_fft - 1  # number of ffts
+    m = &#39;&#39;
+    if self.cfg.value(&#39;mainsFreq&#39;) &gt; 0.0:
+        m = &#39;, mains=%.0fHz&#39; % self.cfg.value(&#39;mainsFreq&#39;)
+    if self.power_frequency_label == None:
+        self.power_frequency_label = self.axp.set_xlabel(
+            r&#39;Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})&#39;.format(n_fft, dfs, tws, a, m))
+    else:
+        self.power_frequency_label.set_text(
+            r&#39;Frequency [Hz] (nfft={:d}, $\Delta f$={:s}: T={:s}/{:d}{:s})&#39;.format(n_fft, dfs, tws, a, m))
+    self.axp.set_xlim(self.fmin, self.fmax)
+    if self.power_label == None:
+        self.power_label = self.axp.set_ylabel(&#39;Power&#39;)
+    if self.decibel:
+        if len(self.allpeaks) &gt; 0:
+            self.allpeaks[:, 1] = decibel(self.allpeaks[:, 1])
+        power = decibel(power)
+        pmin = np.min(power[freqs &lt; self.fmax])
+        pmin = np.floor(pmin / 10.0) * 10.0
+        pmax = np.max(power[freqs &lt; self.fmax])
+        pmax = np.ceil(pmax / 10.0) * 10.0
+        doty = pmax - 5.0
+        self.power_label.set_text(&#39;Power [dB]&#39;)
+        self.axp.set_ylim(pmin, pmax)
+    else:
+        pmax = np.max(power[freqs &lt; self.fmax])
+        doty = pmax
+        pmax *= 1.1
+        self.power_label.set_text(&#39;Power&#39;)
+        self.axp.set_ylim(0.0, pmax)
+    if self.all_peaks_artis == None:
+        self.all_peaks_artis, = self.axp.plot(self.allpeaks[:, 0],
+                                              np.zeros(len(self.allpeaks[:, 0])) + doty,
+                                              &#39;o&#39;, color=&#39;#ffffff&#39;)
+        self.good_peaks_artist, = self.axp.plot(peaks, np.zeros(len(peaks)) + doty,
+                                                &#39;o&#39;, color=&#39;#888888&#39;)
+    else:
+        self.all_peaks_artis.set_data(self.allpeaks[:, 0],
+                                      np.zeros(len(self.allpeaks[:, 0])) + doty)
+        self.good_peaks_artist.set_data(peaks, np.zeros(len(peaks)) + doty)
+    labels = []
+    fsizes = [np.sqrt(np.sum(self.fishlist[k][:, 1])) for k in range(len(self.fishlist))]
+    fmaxsize = np.max(fsizes) if len(fsizes) &gt; 0 else 1.0
+    for k in range(len(self.peak_artists)):
+        self.peak_artists[k].remove()
+    self.peak_artists = []
+    for k in range(len(self.fishlist)):
+        if k &gt;= len(self.markerrange):
+            break
+        fpeaks = self.fishlist[k][:, 0]
+        fpeakinx = [int(np.round(fp / self.deltaf)) for fp in fpeaks if fp &lt; freqs[-1]]
+        fsize = 7.0 + 10.0 * (fsizes[k] / fmaxsize) ** 0.5
+        fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)], power[fpeakinx], linestyle=&#39;None&#39;,
+                                    color=self.colorrange[k % len(self.colorrange)],
+                                    marker=self.markerrange[k], ms=fsize,
+                                    mec=None, mew=0.0, zorder=1)
+        self.peak_artists.append(fishpoints)
+        if self.deltaf &lt; 0.1:
+            labels.append(&#39;%4.2f Hz&#39; % fpeaks[0])
+        elif self.deltaf &lt; 1.0:
+            labels.append(&#39;%4.1f Hz&#39; % fpeaks[0])
+        else:
+            labels.append(&#39;%4.0f Hz&#39; % fpeaks[0])
+    if len(self.mains) &gt; 0:
+        fpeaks = self.mains[:, 0]
+        fpeakinx = np.array([np.round(fp / self.deltaf) for fp in fpeaks if fp &lt; freqs[-1]], dtype=int)
+        fishpoints, = self.axp.plot(fpeaks[:len(fpeakinx)],
+                                    power[fpeakinx], linestyle=&#39;None&#39;,
+                                    marker=&#39;.&#39;, color=&#39;k&#39;, ms=10, mec=None, mew=0.0, zorder=2)
+        self.peak_artists.append(fishpoints)
+        labels.append(&#39;%3.0f Hz mains&#39; % self.cfg.value(&#39;mainsFreq&#39;))
+    ncol = (len(labels)-1) // 8 + 1
+    self.legendhandle = self.axs.legend(self.peak_artists[:len(labels)], labels, loc=&#39;upper right&#39;, ncol=ncol)
+    self.legenddict = dict()
+    for legpoints, (finx, fish) in zip(self.legendhandle.get_lines(), enumerate(self.fishlist)):
+        legpoints.set_picker(8)
+        self.legenddict[legpoints] = [finx, fish]
+    self.legendhandle.set_visible(self.legend)
+    if self.power_artist == None:
+        self.power_artist, = self.axp.plot(freqs, power, &#39;b&#39;, zorder=3)
+    else:
+        self.power_artist.set_data(freqs, power)
+    if draw:
+        self.fig.canvas.draw()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.keypress"><code class="name flex">
+<span>def <span class="ident">keypress</span></span>(<span>self, event)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def keypress(self, event):
+    # print(&#39;pressed&#39;, event.key)
+    if event.key in &#39;+=X&#39;:
+        if self.twindow * self.rate &gt; 20:
+            self.twindow *= 0.5
+            self.update_plots()
+    elif event.key in &#39;-x&#39;:
+        if self.twindow &lt; len(self.data) / self.rate:
+            self.twindow *= 2.0
+            self.update_plots()
+    elif event.key == &#39;pagedown&#39;:
+        if self.toffset + 0.5 * self.twindow &lt; len(self.data) / self.rate:
+            self.toffset += 0.5 * self.twindow
+            self.update_plots()
+    elif event.key == &#39;pageup&#39;:
+        if self.toffset &gt; 0:
+            self.toffset -= 0.5 * self.twindow
+            if self.toffset &lt; 0.0:
+                self.toffset = 0.0
+            self.update_plots()
+    elif event.key == &#39;a&#39;:
+        if self.min_clip == 0.0 or self.max_clip == 0.0:
+            self.min_clip, self.max_clip = clip_amplitudes(
+                self.data[:,self.channel],
+                **clip_args(self.cfg, self.rate))
+        try:
+            if self.cfg.value(&#39;windowSize&#39;) &lt;= 0.0:
+                self.cfg.set(&#39;windowSize&#39;, (len(self.data)-1)/self.rate)
+            idx0, idx1, clipped = best_window_indices(
+                self.data[:,self.channel], self.rate,
+                min_clip=self.min_clip, max_clip=self.max_clip,
+                **best_window_args(self.cfg))
+            if idx1 &gt; 0:
+                self.toffset = idx0 / self.rate
+                self.twindow = (idx1 - idx0) / self.rate
+                self.twindow *= 2.0/(self.cfg.value(&#39;numberPSDWindows&#39;)+1.0)
+                self.update_plots()
+        except UserWarning as e:
+            if self.verbose &gt; 0:
+                print(str(e))
+    elif event.key == &#39;ctrl+pagedown&#39;:
+        if self.toffset + 5.0 * self.twindow &lt; len(self.data) / self.rate:
+            self.toffset += 5.0 * self.twindow
+            self.update_plots()
+    elif event.key == &#39;ctrl+pageup&#39;:
+        if self.toffset &gt; 0:
+            self.toffset -= 5.0 * self.twindow
+            if self.toffset &lt; 0.0:
+                self.toffset = 0.0
+            self.update_plots()
+    elif event.key == &#39;down&#39;:
+        if self.toffset + self.twindow &lt; len(self.data) / self.rate:
+            self.toffset += 0.05 * self.twindow
+            self.update_plots()
+    elif event.key == &#39;up&#39;:
+        if self.toffset &gt; 0.0:
+            self.toffset -= 0.05 * self.twindow
+            if self.toffset &lt; 0.0:
+                self.toffset = 0.0
+            self.update_plots()
+    elif event.key == &#39;home&#39;:
+        if self.toffset &gt; 0.0:
+            self.toffset = 0.0
+            self.update_plots()
+    elif event.key == &#39;end&#39;:
+        toffs = np.floor(len(self.data) / self.rate / self.twindow) * self.twindow
+        if self.toffset &lt; toffs:
+            self.toffset = toffs
+            self.update_plots()
+    elif event.key == &#39;y&#39;:
+        h = self.ymax - self.ymin
+        c = 0.5 * (self.ymax + self.ymin)
+        self.ymin = c - h
+        self.ymax = c + h
+        self.axt.set_ylim(self.ymin, self.ymax)
+        self.fig.canvas.draw()
+    elif event.key == &#39;Y&#39;:
+        h = 0.25 * (self.ymax - self.ymin)
+        c = 0.5 * (self.ymax + self.ymin)
+        self.ymin = c - h
+        self.ymax = c + h
+        self.axt.set_ylim(self.ymin, self.ymax)
+        self.fig.canvas.draw()
+    elif event.key == &#39;v&#39;:
+        t0 = int(np.round(self.toffset * self.rate))
+        t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+        min = np.min(self.data[t0:t1,self.channel])
+        max = np.max(self.data[t0:t1,self.channel])
+        h = 0.5 * (max - min)
+        c = 0.5 * (max + min)
+        self.ymin = c - h
+        self.ymax = c + h
+        self.axt.set_ylim(self.ymin, self.ymax)
+        self.fig.canvas.draw()
+    elif event.key == &#39;V&#39;:
+        self.ymin = -1.0
+        self.ymax = +1.0
+        self.axt.set_ylim(self.ymin, self.ymax)
+        self.fig.canvas.draw()
+    elif event.key == &#39;left&#39;:
+        if self.fmin &gt; 0.0:
+            fwidth = self.fmax - self.fmin
+            self.fmin -= 0.5 * fwidth
+            self.fmax -= 0.5 * fwidth
+            if self.fmin &lt; 0.0:
+                self.fmin = 0.0
+                self.fmax = fwidth
+            self.axs.set_ylim(self.fmin, self.fmax)
+            self.axp.set_xlim(self.fmin, self.fmax)
+            self.fig.canvas.draw()
+    elif event.key == &#39;right&#39;:
+        if self.fmax &lt; 0.5 * self.rate:
+            fwidth = self.fmax - self.fmin
+            self.fmin += 0.5 * fwidth
+            self.fmax += 0.5 * fwidth
+            self.axs.set_ylim(self.fmin, self.fmax)
+            self.axp.set_xlim(self.fmin, self.fmax)
+            self.fig.canvas.draw()
+    elif event.key == &#39;ctrl+left&#39;:
+        if self.fmin &gt; 0.0:
+            fwidth = self.fmax - self.fmin
+            self.fmin = 0.0
+            self.fmax = fwidth
+            self.axs.set_ylim(self.fmin, self.fmax)
+            self.axp.set_xlim(self.fmin, self.fmax)
+            self.fig.canvas.draw()
+    elif event.key == &#39;ctrl+right&#39;:
+        if self.fmax &lt; 0.5 * self.rate:
+            fwidth = self.fmax - self.fmin
+            fm = 0.5 * self.rate
+            self.fmax = np.ceil(fm / fwidth) * fwidth
+            self.fmin = self.fmax - fwidth
+            if self.fmin &lt; 0.0:
+                self.fmin = 0.0
+                self.fmax = fwidth
+            self.axs.set_ylim(self.fmin, self.fmax)
+            self.axp.set_xlim(self.fmin, self.fmax)
+            self.fig.canvas.draw()
+    elif event.key in &#39;f&#39;:
+        if self.fmax &lt; 0.5 * self.rate or self.fmin &gt; 0.0:
+            fwidth = self.fmax - self.fmin
+            if self.fmax &lt; 0.5 * self.rate:
+                self.fmax = self.fmin + 2.0 * fwidth
+            elif self.fmin &gt; 0.0:
+                self.fmin = self.fmax - 2.0 * fwidth
+                if self.fmin &lt; 0.0:
+                    self.fmin = 0.0
+                    self.fmax = 2.0 * fwidth
+            self.axs.set_ylim(self.fmin, self.fmax)
+            self.axp.set_xlim(self.fmin, self.fmax)
+            self.fig.canvas.draw()
+    elif event.key in &#39;F&#39;:
+        if self.fmax - self.fmin &gt; 1.0:
+            fwidth = self.fmax - self.fmin
+            self.fmax = self.fmin + 0.5 * fwidth
+            self.axs.set_ylim(self.fmin, self.fmax)
+            self.axp.set_xlim(self.fmin, self.fmax)
+            self.fig.canvas.draw()
+    elif event.key in &#39;r&#39;:
+        if self.freq_resolution &lt; 1000.0:
+            self.freq_resolution *= 2.0
+            self.update_plots()
+    elif event.key in &#39;R&#39;:
+        if 1.0 / self.freq_resolution &lt; self.tmax:
+            self.freq_resolution *= 0.5
+            self.update_plots()
+    elif event.key in &#39;d&#39;:
+        self.decibel = not self.decibel
+        self.update_plots()
+    elif event.key in &#39;m&#39;:
+        if self.cfg.value(&#39;mainsFreq&#39;) == 0.0:
+            self.cfg.set(&#39;mainsFreq&#39;, self.mains_freq)
+        else:
+            self.cfg.set(&#39;mainsFreq&#39;, 0.0)
+        self.update_plots()
+    elif event.key in &#39;t&#39;:
+        t_diff = self.cfg.value(&#39;highThresholdFactor&#39;) - self.cfg.value(&#39;lowThresholdFactor&#39;)
+        self.cfg.set(&#39;lowThresholdFactor&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;) - 0.1)
+        if self.cfg.value(&#39;lowThresholdFactor&#39;) &lt; 0.1:
+            self.cfg.set(&#39;lowThresholdFactor&#39;, 0.1)
+        self.cfg.set(&#39;highThresholdFactor&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;) + t_diff)
+        print(&#39;lowThresholdFactor =&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;))
+        self.update_plots()
+    elif event.key in &#39;T&#39;:
+        t_diff = self.cfg.value(&#39;highThresholdFactor&#39;) - self.cfg.value(&#39;lowThresholdFactor&#39;)
+        self.cfg.set(&#39;lowThresholdFactor&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;) + 0.1)
+        if self.cfg.value(&#39;lowThresholdFactor&#39;) &gt; 20.0:
+            self.cfg.set(&#39;lowThresholdFactor&#39;, 20.0)
+        self.cfg.set(&#39;highThresholdFactor&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;) + t_diff)
+        print(&#39;lowThresholdFactor =&#39;, self.cfg.value(&#39;lowThresholdFactor&#39;))
+        self.update_plots()
+    elif event.key == &#39;escape&#39;:
+        self.remove_peak_annotation()
+        self.fig.canvas.draw()
+    elif event.key in &#39;h&#39;:
+        self.help = not self.help
+        for ht in self.helptext:
+            ht.set_visible(self.help)
+        self.fig.canvas.draw()
+    elif event.key in &#39;l&#39;:
+        self.legend = not self.legend
+        self.legendhandle.set_visible(self.legend)
+        self.fig.canvas.draw()
+    elif event.key in &#39;w&#39;:
+        self.plot_waveform()
+    elif event.key in &#39;p&#39;:
+        self.play_segment()
+    elif event.key in &#39;P&#39;:
+        self.play_all()
+    elif event.key in &#39;1&#39; :
+        self.play_tone(&#39;c3&#39;)
+    elif event.key in &#39;2&#39; :
+        self.play_tone(&#39;a3&#39;)
+    elif event.key in &#39;3&#39; :
+        self.play_tone(&#39;e4&#39;)
+    elif event.key in &#39;4&#39; :
+        self.play_tone(&#39;a4&#39;)
+    elif event.key in &#39;5&#39; :
+        self.play_tone(&#39;c5&#39;)
+    elif event.key in &#39;6&#39; :
+        self.play_tone(&#39;e5&#39;)
+    elif event.key in &#39;7&#39; :
+        self.play_tone(&#39;g5&#39;)
+    elif event.key in &#39;8&#39; :
+        self.play_tone(&#39;a5&#39;)
+    elif event.key in &#39;9&#39; :
+        self.play_tone(&#39;c6&#39;)
+    elif event.key in &#39;S&#39;:
+        self.save_segment()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.buttonpress"><code class="name flex">
+<span>def <span class="ident">buttonpress</span></span>(<span>self, event)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def buttonpress( self, event ) :
+    # print(&#39;mouse pressed&#39;, event.button, event.key, event.step)
+    if event.inaxes == self.axp:
+        if event.key == &#39;shift&#39; or event.key == &#39;control&#39;:
+            # show next or previous harmonic:
+            if event.key == &#39;shift&#39;:
+                if event.button == 1:
+                    ftarget = event.xdata / 2.0
+                elif event.button == 3:
+                    ftarget = event.xdata * 2.0
+            else:
+                if event.button == 1:
+                    ftarget = event.xdata / 1.5
+                elif event.button == 3:
+                    ftarget = event.xdata * 1.5
+            foffs = event.xdata - self.fmin
+            fwidth = self.fmax - self.fmin
+            self.fmin = ftarget - foffs
+            self.fmax = self.fmin + fwidth
+            self.axs.set_ylim(self.fmin, self.fmax)
+            self.axp.set_xlim(self.fmin, self.fmax)
+            self.fig.canvas.draw()
+        else:
+            # put label on peak
+            self.remove_peak_annotation()
+            # find closest peak:
+            fwidth = self.fmax - self.fmin
+            peakdist = np.abs(self.allpeaks[:, 0] - event.xdata)
+            inx = np.argmin(peakdist)
+            if peakdist[inx] &lt; 0.005 * fwidth:
+                peak = self.allpeaks[inx, :]
+                # find fish:
+                foundfish = False
+                for finx, fish in enumerate(self.fishlist):
+                    if np.min(np.abs(fish[:, 0] - peak[0])) &lt; 0.8 * self.deltaf:
+                        self.annotate_fish(fish, finx)
+                        foundfish = True
+                        break
+                if not foundfish:
+                    self.annotate_peak(peak)
+                    self.fig.canvas.draw()
+            else:
+                self.fig.canvas.draw()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.onpick"><code class="name flex">
+<span>def <span class="ident">onpick</span></span>(<span>self, event)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def onpick(self, event):
+    # print(&#39;pick&#39;)
+    legendpoint = event.artist
+    finx, fish = self.legenddict[legendpoint]
+    self.annotate_fish(fish, finx)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.resize"><code class="name flex">
+<span>def <span class="ident">resize</span></span>(<span>self, event)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def resize(self, event):
+    # print(&#39;resized&#39;, event.width, event.height)
+    leftpixel = 80.0
+    rightpixel = 20.0
+    xaxispixel = 50.0
+    toppixel = 20.0
+    timeaxis = 0.42
+    left = leftpixel / event.width
+    width = 1.0 - left - rightpixel / event.width
+    xaxis = xaxispixel / event.height
+    top = toppixel / event.height
+    height = (1.0 - timeaxis - top) / 2.0
+    if left &lt; 0.5 and width &lt; 1.0 and xaxis &lt; 0.3 and top &lt; 0.2:
+        self.axt.set_position([left, timeaxis + height, width, height])
+        self.axs.set_position([left, timeaxis, width, height])
+        self.axp.set_position([left, xaxis, width, timeaxis - 2.0 * xaxis])</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.plot_waveform"><code class="name flex">
+<span>def <span class="ident">plot_waveform</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_waveform(self):
+    fig = plt.figure()
+    ax = fig.add_subplot(1, 1, 1)
+    name = self.filename.split(&#39;.&#39;)[0]
+    if self.channel &gt; 0:
+        ax.set_title(&#39;{filename} channel={channel:d}&#39;.format(
+            filename=self.filename, channel=self.channel))
+        figfile = &#39;{name}-{channel:d}-{time:.4g}s-waveform.png&#39;.format(
+            name=name, channel=self.channel, time=self.toffset)
+    else:
+        ax.set_title(self.filename)
+        figfile = &#39;{name}-{time:.4g}s-waveform.png&#39;.format(
+            name=name, time=self.toffset)
+    t0 = int(np.round(self.toffset * self.rate))
+    t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+    if t1&gt;len(self.data):
+        t1 = len(self.data)
+    time = np.arange(t0, t1) / self.rate
+    if self.twindow &lt; 1.0:
+        ax.set_xlabel(&#39;Time [ms]&#39;)
+        ax.set_xlim(1000.0 * self.toffset,
+                    1000.0 * (self.toffset + self.twindow))
+        ax.plot(1000.0 * time, self.data[t0:t1,self.channel])
+    else:
+        ax.set_xlabel(&#39;Time [s]&#39;)
+        ax.set_xlim(self.toffset, self.toffset + self.twindow)
+        ax.plot(time, self.data[t0:t1,self.channel])
+    ax.set_ylabel(&#39;Amplitude [{:s}]&#39;.format(self.unit))
+    fig.tight_layout()
+    fig.savefig(figfile)
+    fig.clear()
+    plt.close(fig)
+    print(&#39;saved waveform figure to&#39;, figfile)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.play_segment"><code class="name flex">
+<span>def <span class="ident">play_segment</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def play_segment(self):
+    t0 = int(np.round(self.toffset * self.rate))
+    t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+    playdata = 1.0 * self.data[t0:t1,self.channel]
+    fade(playdata, self.rate, 0.1)
+    self.audio.play(playdata, self.rate, blocking=False)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.save_segment"><code class="name flex">
+<span>def <span class="ident">save_segment</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def save_segment(self):
+    t0s = int(np.round(self.toffset))
+    t1s = int(np.round(self.toffset + self.twindow))
+    t0 = int(np.round(self.toffset * self.rate))
+    t1 = int(np.round((self.toffset + self.twindow) * self.rate))
+    savedata = 1.0 * self.data[t0:t1,self.channel]
+    filename = self.filename.split(&#39;.&#39;)[0]
+    segmentfilename = &#39;{name}-{time0:.4g}s-{time1:.4g}s.wav&#39;.format(
+            name=filename, time0=t0s, time1 = t1s)
+    write_audio(segmentfilename, savedata, self.data.rate)
+    print(&#39;saved segment to: &#39; , segmentfilename)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.play_all"><code class="name flex">
+<span>def <span class="ident">play_all</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def play_all(self):
+    self.audio.play(self.data[:,self.channel], self.rate,
+                    blocking=False)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fishfinder.SignalPlot.play_tone"><code class="name flex">
+<span>def <span class="ident">play_tone</span></span>(<span>self, frequency)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def play_tone( self, frequency ) :
+    self.audio.beep(1.0, frequency)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.fishfinder.short_user_warning" href="#thunderfish.fishfinder.short_user_warning">short_user_warning</a></code></li>
+<li><code><a title="thunderfish.fishfinder.main" href="#thunderfish.fishfinder.main">main</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="thunderfish.fishfinder.SignalPlot" href="#thunderfish.fishfinder.SignalPlot">SignalPlot</a></code></h4>
+<ul class="">
+<li><code><a title="thunderfish.fishfinder.SignalPlot.remove_peak_annotation" href="#thunderfish.fishfinder.SignalPlot.remove_peak_annotation">remove_peak_annotation</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.annotate_peak" href="#thunderfish.fishfinder.SignalPlot.annotate_peak">annotate_peak</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.annotate_fish" href="#thunderfish.fishfinder.SignalPlot.annotate_fish">annotate_fish</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.update_plots" href="#thunderfish.fishfinder.SignalPlot.update_plots">update_plots</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.keypress" href="#thunderfish.fishfinder.SignalPlot.keypress">keypress</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.buttonpress" href="#thunderfish.fishfinder.SignalPlot.buttonpress">buttonpress</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.onpick" href="#thunderfish.fishfinder.SignalPlot.onpick">onpick</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.resize" href="#thunderfish.fishfinder.SignalPlot.resize">resize</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.plot_waveform" href="#thunderfish.fishfinder.SignalPlot.plot_waveform">plot_waveform</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.play_segment" href="#thunderfish.fishfinder.SignalPlot.play_segment">play_segment</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.save_segment" href="#thunderfish.fishfinder.SignalPlot.save_segment">save_segment</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.play_all" href="#thunderfish.fishfinder.SignalPlot.play_all">play_all</a></code></li>
+<li><code><a title="thunderfish.fishfinder.SignalPlot.play_tone" href="#thunderfish.fishfinder.SignalPlot.play_tone">play_tone</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

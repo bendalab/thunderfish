@@ -1,0 +1,1383 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>thunderfish.fakefish API documentation</title>
+<meta name="description" content="Simulate EOD waveforms …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], processEscapes: true } });</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.fakefish</code></h1>
+</header>
+<section id="section-intro">
+<p>Simulate EOD waveforms.</p>
+<h2 id="species-names">Species names</h2>
+<ul>
+<li><code><a title="thunderfish.fakefish.species_name" href="#thunderfish.fakefish.species_name">species_name</a></code>: translate species ids to full species names.</li>
+<li><code><a title="thunderfish.fakefish.abbrv_genus" href="#thunderfish.fakefish.abbrv_genus">abbrv_genus()</a></code>: abbreviate genus in a species name.</li>
+</ul>
+<h2 id="muscial-intervals">Muscial intervals</h2>
+<ul>
+<li><code><a title="thunderfish.fakefish.musical_intervals" href="#thunderfish.fakefish.musical_intervals">musical_intervals</a></code>: names and frequency ratios of musical intervals</li>
+</ul>
+<h2 id="wavefish">Wavefish</h2>
+<ul>
+<li><code><a title="thunderfish.fakefish.wavefish_spectrum" href="#thunderfish.fakefish.wavefish_spectrum">wavefish_spectrum()</a></code>: amplitudes and phases of a wavefish EOD.</li>
+<li><code><a title="thunderfish.fakefish.wavefish_eods" href="#thunderfish.fakefish.wavefish_eods">wavefish_eods()</a></code>: simulate EOD waveform of a wave-type fish.</li>
+<li><code><a title="thunderfish.fakefish.normalize_wavefish" href="#thunderfish.fakefish.normalize_wavefish">normalize_wavefish()</a></code>: normalize amplitudes and phases of EOD wave-type waveform.</li>
+<li><code><a title="thunderfish.fakefish.export_wavefish" href="#thunderfish.fakefish.export_wavefish">export_wavefish()</a></code>: serialize wavefish parameter to file.</li>
+<li><code><a title="thunderfish.fakefish.chirps" href="#thunderfish.fakefish.chirps">chirps()</a></code>: simulate frequency trace with chirps.</li>
+<li><code><a title="thunderfish.fakefish.rises" href="#thunderfish.fakefish.rises">rises()</a></code>: simulate frequency trace with rises.</li>
+</ul>
+<h2 id="pulsefish">Pulsefish</h2>
+<ul>
+<li><code><a title="thunderfish.fakefish.pulsefish_eods" href="#thunderfish.fakefish.pulsefish_eods">pulsefish_eods()</a></code>: simulate EOD waveform of a pulse-type fish.</li>
+<li><code><a title="thunderfish.fakefish.normalize_pulsefish" href="#thunderfish.fakefish.normalize_pulsefish">normalize_pulsefish()</a></code>: normalize times and stdevs of pulse-type EOD waveform.</li>
+<li><code><a title="thunderfish.fakefish.export_pulsefish" href="#thunderfish.fakefish.export_pulsefish">export_pulsefish()</a></code>: serialize pulsefish parameter to file.</li>
+</ul>
+<h2 id="interactive-waveform-generation">Interactive waveform generation</h2>
+<ul>
+<li><code><a title="thunderfish.fakefish.generate_waveform" href="#thunderfish.fakefish.generate_waveform">generate_waveform()</a></code>: interactively generate audio file with simulated EOD waveforms.</li>
+</ul>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-variables">Global variables</h2>
+<dl>
+<dt id="thunderfish.fakefish.species_name"><code class="name">var <span class="ident">species_name</span></code></dt>
+<dd>
+<div class="desc"><p>Translate species ids used by wavefish_harmonics and pulsefish_eodpeaks to full species names.</p></div>
+</dd>
+<dt id="thunderfish.fakefish.musical_intervals"><code class="name">var <span class="ident">musical_intervals</span></code></dt>
+<dd>
+<div class="desc"><p>Name, frequency ratio, nominator, denominator, and index of musical intervals</p></div>
+</dd>
+<dt id="thunderfish.fakefish.wavefish_harmonics"><code class="name">var <span class="ident">wavefish_harmonics</span></code></dt>
+<dd>
+<div class="desc"><p>Amplitudes and phases of EOD waveforms of various species of wave-type electric fish.</p></div>
+</dd>
+<dt id="thunderfish.fakefish.pulsefish_eodpeaks"><code class="name">var <span class="ident">pulsefish_eodpeaks</span></code></dt>
+<dd>
+<div class="desc"><p>Standard deviations, amplitudes and positions of Gaussians that
+make up EOD waveforms of pulse-type electric fish.</p></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.fakefish.abbrv_genus"><code class="name flex">
+<span>def <span class="ident">abbrv_genus</span></span>(<span>name)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def abbrv_genus(name):
+    &#34;&#34;&#34;Abbreviate genus in a species name.
+
+    Parameters
+    ----------
+    name: string
+        Full species name of the form &#39;Genus species subspecies&#39;
+
+    Returns
+    -------
+    name: string
+        The species name with abbreviated genus, i.e. &#39;G. species subspecies&#39;
+    &#34;&#34;&#34;
+    ns = name.split()
+    return ns[0][0] + &#39;. &#39; + &#39; &#39;.join(ns[1:])</code></pre>
+</details>
+<div class="desc"><p>Abbreviate genus in a species name.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>name</code></strong> :&ensp;<code>string</code></dt>
+<dd>Full species name of the form 'Genus species subspecies'</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>name</code></strong> :&ensp;<code>string</code></dt>
+<dd>The species name with abbreviated genus, i.e. 'G. species subspecies'</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.fakefish.wavefish_spectrum"><code class="name flex">
+<span>def <span class="ident">wavefish_spectrum</span></span>(<span>fish)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def wavefish_spectrum(fish):
+    &#34;&#34;&#34;Amplitudes and phases of a wavefish EOD.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of lists/arrays
+        Specify relative amplitudes and phases of the fundamental and its harmonics.
+        If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes and phases from the &#39;amlitudes&#39; and &#39;phases&#39; keys.
+        If tuple then the first element is the list of amplitudes and
+        the second one the list of relative phases in radians.
+
+    Returns
+    -------
+    amplitudes: array of floats
+        Amplitudes of the fundamental and its harmonics.
+    phases: array of floats
+        Phases in radians of the fundamental and its harmonics.
+
+    Raises
+    ------
+    KeyError:
+        Unknown fish.
+    IndexError:
+        Amplitudes and phases differ in length.
+    &#34;&#34;&#34;
+    if isinstance(fish, (tuple, list)):
+        amplitudes = fish[0]
+        phases = fish[1]
+    elif isinstance(fish, dict):
+        amplitudes = fish[&#39;amplitudes&#39;]
+        phases = fish[&#39;phases&#39;]
+    else:
+        if not fish in wavefish_harmonics:
+            raise KeyError(&#39;unknown wavefish. Choose one of &#39; +
+                           &#39;, &#39;.join(wavefish_harmonics.keys()))
+        amplitudes = wavefish_harmonics[fish][&#39;amplitudes&#39;]
+        phases = wavefish_harmonics[fish][&#39;phases&#39;]
+    if len(amplitudes) != len(phases):
+        raise IndexError(&#39;need exactly as many phases as amplitudes&#39;)
+    # remove NaNs:
+    for k in reversed(range(len(amplitudes))):
+        if np.isfinite(amplitudes[k]) or np.isfinite(phases[k]):
+            amplitudes = amplitudes[:k+1]
+            phases = phases[:k+1]
+            break
+    return amplitudes, phases</code></pre>
+</details>
+<div class="desc"><p>Amplitudes and phases of a wavefish EOD.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string, dict</code> or <code>tuple</code> of <code>lists/arrays</code></dt>
+<dd>Specify relative amplitudes and phases of the fundamental and its harmonics.
+If string then take amplitudes and phases from the <code><a title="thunderfish.fakefish.wavefish_harmonics" href="#thunderfish.fakefish.wavefish_harmonics">wavefish_harmonics</a></code> dictionary.
+If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
+If tuple then the first element is the list of amplitudes and
+the second one the list of relative phases in radians.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>amplitudes</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Amplitudes of the fundamental and its harmonics.</dd>
+<dt><strong><code>phases</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Phases in radians of the fundamental and its harmonics.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<h2 id="keyerror">Keyerror</h2>
+<p>Unknown fish.</p>
+<h2 id="indexerror">Indexerror</h2>
+<p>Amplitudes and phases differ in length.</p></div>
+</dd>
+<dt id="thunderfish.fakefish.wavefish_eods"><code class="name flex">
+<span>def <span class="ident">wavefish_eods</span></span>(<span>fish='Eigenmannia',<br>frequency=100.0,<br>rate=44100.0,<br>duration=1.0,<br>phase0=0.0,<br>noise_std=0.05)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def wavefish_eods(fish=&#39;Eigenmannia&#39;, frequency=100.0, rate=44100.0,
+                  duration=1.0, phase0=0.0, noise_std=0.05):
+    &#34;&#34;&#34;Simulate EOD waveform of a wave-type fish.
+                  
+    The waveform is constructed by superimposing sinewaves of integral
+    multiples of the fundamental frequency - the fundamental and its
+    harmonics.  The fundamental frequency of the EOD (EODf) is given by
+    `frequency`. With `fish` relative amplitudes and phases of the
+    fundamental and its harmonics are specified.
+
+    The generated waveform is `duration` seconds long and is sampled with
+    `rate` Hertz.  Gaussian white noise with a standard deviation of
+    `noise_std` is added to the generated waveform.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of lists/arrays
+        Specify relative amplitudes and phases of the fundamental and its harmonics.
+        If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes and phases from the &#39;amlitudes&#39; and &#39;phases&#39; keys.
+        If tuple then the first element is the list of amplitudes and
+        the second one the list of relative phases in radians.
+    frequency: float or array of floats
+        EOD frequency of the fish in Hertz. Either fixed number or array for
+        time-dependent frequencies.
+    rate: float
+        Sampling rate in Hertz.
+    duration: float
+        Duration of the generated data in seconds. Only used if frequency is scalar.
+    phase0: float
+        Phase offset of the EOD waveform in radians.
+    noise_std: float
+        Standard deviation of additive Gaussian white noise.
+
+    Returns
+    -------
+    data: array of floats
+        Generated data of a wave-type fish.
+
+    Raises
+    ------
+    KeyError:
+        Unknown fish.
+    IndexError:
+        Amplitudes and phases differ in length.
+    &#34;&#34;&#34;
+    # get relative amplitude and phases:
+    amplitudes, phases = wavefish_spectrum(fish)
+    # compute phase:
+    if np.isscalar(frequency):
+        phase = np.arange(0, duration, 1.0/rate)
+        phase *= frequency
+    else:
+        phase = np.cumsum(frequency)/rate
+    # generate EOD:
+    data = np.zeros(len(phase))
+    for har, (ampl, phi) in enumerate(zip(amplitudes, phases)):
+        if np.isfinite(ampl) and np.isfinite(phi):
+            data += ampl * np.sin(2*np.pi*(har+1)*phase + phi - (har+1)*phase0)
+    # add noise:
+    data += noise_std * np.random.randn(len(data))
+    return data</code></pre>
+</details>
+<div class="desc"><p>Simulate EOD waveform of a wave-type fish.</p>
+<p>The waveform is constructed by superimposing sinewaves of integral
+multiples of the fundamental frequency - the fundamental and its
+harmonics.
+The fundamental frequency of the EOD (EODf) is given by
+<code>frequency</code>. With <code>fish</code> relative amplitudes and phases of the
+fundamental and its harmonics are specified.</p>
+<p>The generated waveform is <code>duration</code> seconds long and is sampled with
+<code>rate</code> Hertz.
+Gaussian white noise with a standard deviation of
+<code>noise_std</code> is added to the generated waveform.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string, dict</code> or <code>tuple</code> of <code>lists/arrays</code></dt>
+<dd>Specify relative amplitudes and phases of the fundamental and its harmonics.
+If string then take amplitudes and phases from the <code><a title="thunderfish.fakefish.wavefish_harmonics" href="#thunderfish.fakefish.wavefish_harmonics">wavefish_harmonics</a></code> dictionary.
+If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
+If tuple then the first element is the list of amplitudes and
+the second one the list of relative phases in radians.</dd>
+<dt><strong><code>frequency</code></strong> :&ensp;<code>float</code> or <code>array</code> of <code>floats</code></dt>
+<dd>EOD frequency of the fish in Hertz. Either fixed number or array for
+time-dependent frequencies.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate in Hertz.</dd>
+<dt><strong><code>duration</code></strong> :&ensp;<code>float</code></dt>
+<dd>Duration of the generated data in seconds. Only used if frequency is scalar.</dd>
+<dt><strong><code>phase0</code></strong> :&ensp;<code>float</code></dt>
+<dd>Phase offset of the EOD waveform in radians.</dd>
+<dt><strong><code>noise_std</code></strong> :&ensp;<code>float</code></dt>
+<dd>Standard deviation of additive Gaussian white noise.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Generated data of a wave-type fish.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<h2 id="keyerror">Keyerror</h2>
+<p>Unknown fish.</p>
+<h2 id="indexerror">Indexerror</h2>
+<p>Amplitudes and phases differ in length.</p></div>
+</dd>
+<dt id="thunderfish.fakefish.normalize_wavefish"><code class="name flex">
+<span>def <span class="ident">normalize_wavefish</span></span>(<span>fish, mode='peak')</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def normalize_wavefish(fish, mode=&#39;peak&#39;):
+    &#34;&#34;&#34;Normalize amplitudes and phases of wave-type EOD waveform.
+
+    The amplitudes and phases of the Fourier components are adjusted
+    such that the resulting EOD waveform has a peak-to-peak amplitude
+    of two and the peak of the waveform is at time zero (mode is set
+    to &#39;peak&#39;) or that the fundamental has an amplitude of one and a
+    phase of 0 (mode is set to &#39;zero&#39;).
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of lists/arrays
+        Specify relative amplitudes and phases of the fundamental and its harmonics.
+        If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes and phases from the &#39;amlitudes&#39; and &#39;phases&#39; keys.
+        If tuple then the first element is the list of amplitudes and
+        the second one the list of relative phases in radians.
+    mode: &#39;peak&#39; or &#39;zero&#39;
+        How to normalize amplitude and phases:
+        - &#39;peak&#39;: normalize waveform to a peak-to-peak amplitude of two
+          and shift it such that its peak is at time zero.
+        - &#39;zero&#39;: scale amplitude of fundamental to one and its phase to zero.
+
+    Returns
+    -------
+    amplitudes: array of floats
+        Adjusted amplitudes of the fundamental and its harmonics.
+    phases: array of floats
+        Adjusted phases in radians of the fundamental and its harmonics.
+
+    &#34;&#34;&#34;
+    # get relative amplitude and phases:
+    amplitudes, phases = wavefish_spectrum(fish)
+    if mode == &#39;zero&#39;:
+        newamplitudes = np.array(amplitudes)/amplitudes[0]
+        newphases = np.array([p+(k+1)*(-phases[0]) for k, p in enumerate(phases)])
+        newphases %= 2.0*np.pi
+        newphases[newphases&gt;np.pi] -= 2.0*np.pi
+        return newamplitudes, newphases
+    else:
+        # generate waveform:
+        eodf = 100.0
+        rate = 100000.0
+        data = wavefish_eods(fish, eodf, rate, 2.0/eodf, noise_std=0.0)
+        # normalize amplitudes:
+        ampl = 0.5*(np.max(data) - np.min(data))
+        newamplitudes = np.array(amplitudes)/ampl
+        # shift phases:
+        deltat = np.argmax(data[:int(rate/eodf)])/rate
+        deltap = 2.0*np.pi*deltat*eodf
+        newphases = np.array([p+(k+1)*deltap for k, p in enumerate(phases)])
+        newphases %= 2.0*np.pi
+        newphases[newphases&gt;np.pi] -= 2.0*np.pi
+        # return:
+        return newamplitudes, newphases</code></pre>
+</details>
+<div class="desc"><p>Normalize amplitudes and phases of wave-type EOD waveform.</p>
+<p>The amplitudes and phases of the Fourier components are adjusted
+such that the resulting EOD waveform has a peak-to-peak amplitude
+of two and the peak of the waveform is at time zero (mode is set
+to 'peak') or that the fundamental has an amplitude of one and a
+phase of 0 (mode is set to 'zero').</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string, dict</code> or <code>tuple</code> of <code>lists/arrays</code></dt>
+<dd>Specify relative amplitudes and phases of the fundamental and its harmonics.
+If string then take amplitudes and phases from the <code><a title="thunderfish.fakefish.wavefish_harmonics" href="#thunderfish.fakefish.wavefish_harmonics">wavefish_harmonics</a></code> dictionary.
+If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
+If tuple then the first element is the list of amplitudes and
+the second one the list of relative phases in radians.</dd>
+<dt><strong><code>mode</code></strong> :&ensp;<code>'peak'</code> or <code>'zero'</code></dt>
+<dd>How to normalize amplitude and phases:
+- 'peak': normalize waveform to a peak-to-peak amplitude of two
+and shift it such that its peak is at time zero.
+- 'zero': scale amplitude of fundamental to one and its phase to zero.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>amplitudes</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Adjusted amplitudes of the fundamental and its harmonics.</dd>
+<dt><strong><code>phases</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Adjusted phases in radians of the fundamental and its harmonics.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.fakefish.export_wavefish"><code class="name flex">
+<span>def <span class="ident">export_wavefish</span></span>(<span>fish, name='Unknown_harmonics', file=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def export_wavefish(fish, name=&#39;Unknown_harmonics&#39;, file=None):
+    &#34;&#34;&#34;Serialize wavefish parameter to python code.
+
+    Add output to the wavefish_harmonics dictionary!
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of lists/arrays
+        Specify relative amplitudes and phases of the fundamental and its harmonics.
+        If string then take amplitudes and phases from the `wavefish_harmonics` dictionary.
+        If dictionary then take amplitudes and phases from the &#39;amlitudes&#39; and &#39;phases&#39; keys.
+        If tuple then the first element is the list of amplitudes and
+        the second one the list of relative phases in radians.
+    name: string
+        Name of the dictionary to be written.
+    file: string or file or None
+        File name or open file object where to write wavefish dictionary.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with amplitudes and phases.
+    &#34;&#34;&#34;
+    # get relative amplitude and phases:
+    amplitudes, phases = wavefish_spectrum(fish)
+    # write out dictionary:
+    if file is None:
+        file = sys.stdout
+    try:
+        file.write(&#39;&#39;)
+        closeit = False
+    except AttributeError:
+        file = open(file, &#39;w&#39;)
+        closeit = True
+    n = 6
+    file.write(name + &#39; = \\\n&#39;)
+    file.write(&#39;    dict(amplitudes=(&#39;)
+    file.write(&#39;, &#39;.join([f&#39;{a:.5g}&#39; for a in amplitudes[:n]]))
+    for k in range(n, len(amplitudes), n):
+        file.write(&#39;,\n&#39;)
+        file.write(&#39; &#39; * (9+12))
+        file.write(&#39;, &#39;.join([f&#39;{a:.5g}&#39; for a in amplitudes[k:k+n]]))
+    file.write(&#39;),\n&#39;)
+    file.write(&#39; &#39; * 9 + &#39;phases=(&#39;)
+    file.write(&#39;, &#39;.join([&#39;{p:.5g}&#39; for p in phases[:n]]))
+    for k in range(n, len(phases), n):
+        file.write(&#39;,\n&#39;)
+        file.write(&#39; &#39; * (9+8))
+        file.write(&#39;, &#39;.join([f&#39;{p:.5g}&#39; for p in phases[k:k+n]]))
+    file.write(&#39;))\n&#39;)
+    if closeit:
+        file.close()
+    # return dictionary:
+    harmonics = dict(amplitudes=amplitudes,
+                     phases=phases)
+    return harmonics</code></pre>
+</details>
+<div class="desc"><p>Serialize wavefish parameter to python code.</p>
+<p>Add output to the wavefish_harmonics dictionary!</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string, dict</code> or <code>tuple</code> of <code>lists/arrays</code></dt>
+<dd>Specify relative amplitudes and phases of the fundamental and its harmonics.
+If string then take amplitudes and phases from the <code><a title="thunderfish.fakefish.wavefish_harmonics" href="#thunderfish.fakefish.wavefish_harmonics">wavefish_harmonics</a></code> dictionary.
+If dictionary then take amplitudes and phases from the 'amlitudes' and 'phases' keys.
+If tuple then the first element is the list of amplitudes and
+the second one the list of relative phases in radians.</dd>
+<dt><strong><code>name</code></strong> :&ensp;<code>string</code></dt>
+<dd>Name of the dictionary to be written.</dd>
+<dt><strong><code>file</code></strong> :&ensp;<code>string</code> or <code>file</code> or <code>None</code></dt>
+<dd>File name or open file object where to write wavefish dictionary.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary with amplitudes and phases.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.fakefish.chirps"><code class="name flex">
+<span>def <span class="ident">chirps</span></span>(<span>eodf=100.0,<br>rate=44100.0,<br>duration=1.0,<br>chirp_freq=5.0,<br>chirp_size=100.0,<br>chirp_width=0.01,<br>chirp_kurtosis=1.0,<br>chirp_contrast=0.05)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def chirps(eodf=100.0, rate=44100.0, duration=1.0, chirp_freq=5.0,
+           chirp_size=100.0, chirp_width=0.01, chirp_kurtosis=1.0, chirp_contrast=0.05):
+    &#34;&#34;&#34;Simulate frequency trace with chirps.
+
+    A chirp is modeled as a Gaussian frequency modulation.
+    The first chirp is placed at 0.5/chirp_freq.
+
+    Parameters
+    ----------
+    eodf: float
+        EOD frequency of the fish in Hertz.
+    rate: float
+        Sampling rate in Hertz.
+    duration: float
+        Duration of the generated data in seconds.
+    chirp_freq: float
+        Frequency of occurance of chirps in Hertz.
+    chirp_size: float
+        Size of the chirp (maximum frequency increase above eodf) in Hertz.
+    chirp_width: float
+        Width of the chirp at 10% height in seconds.
+    chirp_kurtosis: float:
+        Shape of the chirp. =1: Gaussian, &gt;1: more rectangular, &lt;1: more peaked.
+    chirp_contrast: float
+        Maximum amplitude reduction of EOD during chirp.
+
+    Returns
+    -------
+    frequency: array of floats
+        Generated frequency trace that can be passed on to wavefish_eods().
+    amplitude: array of floats
+        Generated amplitude modulation that can be used to multiply the trace generated by
+        wavefish_eods().
+    &#34;&#34;&#34;
+    # baseline eod frequency and amplitude modulation:
+    n = len(np.arange(0, duration, 1.0/rate))
+    frequency = eodf * np.ones(n)
+    am = np.ones(n)
+    # time points for chirps:
+    chirp_period = 1.0/chirp_freq
+    chirp_times = np.arange(0.5*chirp_period, duration, chirp_period)
+    # chirp frequency waveform:
+    chirp_t = np.arange(-2.0*chirp_width, 2.0*chirp_width, 1./rate)
+    chirp_sig = 0.5*chirp_width / (2.0*np.log(10.0))**(0.5/chirp_kurtosis)
+    gauss = np.exp(-0.5*((chirp_t/chirp_sig)**2.0)**chirp_kurtosis)
+    # add chirps on baseline eodf:
+    for ct in chirp_times:
+        index = int(ct*rate)
+        i0 = index - len(gauss)//2
+        i1 = i0 + len(gauss)
+        gi0 = 0
+        gi1 = len(gauss)
+        if i0 &lt; 0:
+            gi0 -= i0
+            i0 = 0
+        if i1 &gt;= len(frequency):
+            gi1 -= i1 - len(frequency)
+            i1 = len(frequency)
+        frequency[i0:i1] += chirp_size * gauss[gi0:gi1]
+        am[i0:i1] -= chirp_contrast * gauss[gi0:gi1]
+    return frequency, am</code></pre>
+</details>
+<div class="desc"><p>Simulate frequency trace with chirps.</p>
+<p>A chirp is modeled as a Gaussian frequency modulation.
+The first chirp is placed at 0.5/chirp_freq.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>eodf</code></strong> :&ensp;<code>float</code></dt>
+<dd>EOD frequency of the fish in Hertz.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate in Hertz.</dd>
+<dt><strong><code>duration</code></strong> :&ensp;<code>float</code></dt>
+<dd>Duration of the generated data in seconds.</dd>
+<dt><strong><code>chirp_freq</code></strong> :&ensp;<code>float</code></dt>
+<dd>Frequency of occurance of chirps in Hertz.</dd>
+<dt><strong><code>chirp_size</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of the chirp (maximum frequency increase above eodf) in Hertz.</dd>
+<dt><strong><code>chirp_width</code></strong> :&ensp;<code>float</code></dt>
+<dd>Width of the chirp at 10% height in seconds.</dd>
+<dt><strong><code>chirp_kurtosis</code></strong> :&ensp;<code>float:</code></dt>
+<dd>Shape of the chirp. =1: Gaussian, &gt;1: more rectangular, &lt;1: more peaked.</dd>
+<dt><strong><code>chirp_contrast</code></strong> :&ensp;<code>float</code></dt>
+<dd>Maximum amplitude reduction of EOD during chirp.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>frequency</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Generated frequency trace that can be passed on to wavefish_eods().</dd>
+<dt><strong><code>amplitude</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Generated amplitude modulation that can be used to multiply the trace generated by
+wavefish_eods().</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.fakefish.rises"><code class="name flex">
+<span>def <span class="ident">rises</span></span>(<span>eodf=100.0,<br>rate=44100.0,<br>duration=1.0,<br>rise_freq=0.1,<br>rise_size=10.0,<br>rise_tau=1.0,<br>decay_tau=10.0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def rises(eodf=100.0, rate=44100.0, duration=1.0, rise_freq=0.1,
+          rise_size=10.0, rise_tau=1.0, decay_tau=10.0):
+    &#34;&#34;&#34;Simulate frequency trace with rises.
+
+    A rise is modeled as a double exponential frequency modulation.
+
+    Parameters
+    ----------
+    eodf: float
+        EOD frequency of the fish in Hertz.
+    rate: float
+        Sampling rate in Hertz.
+    duration: float
+        Duration of the generated data in seconds.
+    rise_freq: float
+        Frequency of occurance of rises in Hertz.
+    rise_size: float
+        Size of the rise (frequency increase above eodf) in Hertz.
+    rise_tau: float
+        Time constant of the frequency increase of the rise in seconds.
+    decay_tau: float
+        Time constant of the frequency decay of the rise in seconds.
+
+    Returns
+    -------
+    data: array of floats
+        Generated frequency trace that can be passed on to wavefish_eods().
+    &#34;&#34;&#34;
+    n = len(np.arange(0, duration, 1.0/rate))
+    # baseline eod frequency:
+    frequency = eodf * np.ones(n)
+    # time points for rises:
+    rise_period = 1.0/rise_freq
+    rise_times = np.arange(0.5*rise_period, duration, rise_period)
+    # rise frequency waveform:
+    rise_t = np.arange(0.0, 5.0*decay_tau, 1./rate)
+    rise = rise_size * (1.0-np.exp(-rise_t/rise_tau)) * np.exp(-rise_t/decay_tau)
+    # add rises on baseline eodf:
+    for r in rise_times:
+        index = int(r*rate)
+        if index+len(rise) &gt; len(frequency):
+            rise_index = len(frequency)-index
+            frequency[index:index+rise_index] += rise[:rise_index]
+            break
+        else:
+            frequency[index:index+len(rise)] += rise
+    return frequency</code></pre>
+</details>
+<div class="desc"><p>Simulate frequency trace with rises.</p>
+<p>A rise is modeled as a double exponential frequency modulation.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>eodf</code></strong> :&ensp;<code>float</code></dt>
+<dd>EOD frequency of the fish in Hertz.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate in Hertz.</dd>
+<dt><strong><code>duration</code></strong> :&ensp;<code>float</code></dt>
+<dd>Duration of the generated data in seconds.</dd>
+<dt><strong><code>rise_freq</code></strong> :&ensp;<code>float</code></dt>
+<dd>Frequency of occurance of rises in Hertz.</dd>
+<dt><strong><code>rise_size</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of the rise (frequency increase above eodf) in Hertz.</dd>
+<dt><strong><code>rise_tau</code></strong> :&ensp;<code>float</code></dt>
+<dd>Time constant of the frequency increase of the rise in seconds.</dd>
+<dt><strong><code>decay_tau</code></strong> :&ensp;<code>float</code></dt>
+<dd>Time constant of the frequency decay of the rise in seconds.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Generated frequency trace that can be passed on to wavefish_eods().</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.fakefish.pulsefish_peaks"><code class="name flex">
+<span>def <span class="ident">pulsefish_peaks</span></span>(<span>fish)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pulsefish_peaks(fish):
+    &#34;&#34;&#34;Position, amplitudes and standard deviations of peaks in pulsefish EOD waveforms.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes and standard deviations Gaussians peaks that are
+        superimposed to simulate EOD waveforms of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_eodpeaks` dictionary.
+        If dictionary then take pulse properties from the &#39;times&#39;, &#39;amlitudes&#39;
+        and &#39;stdevs&#39; keys.
+        If tuple then the first element is the list of peak positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
+
+    Returns
+    -------
+    times : array of floats
+        Positions of the peaks.
+    amplitudes : array of floats
+        Amplitudes of the peaks.
+    stdevs : array of floats
+        Standard deviations of the peaks.
+
+    Raises
+    ------
+    KeyError:
+        Unknown fish.
+    IndexError:
+        Peak positions, amplitudes, or standard deviations differ in length.
+    &#34;&#34;&#34;
+    if isinstance(fish, (tuple, list)):
+        peak_times = fish[0]
+        peak_amplitudes = fish[1]
+        peak_stdevs = fish[2]
+    elif isinstance(fish, dict):
+        peak_times = fish[&#39;times&#39;]
+        peak_amplitudes = fish[&#39;amplitudes&#39;]
+        peak_stdevs = fish[&#39;stdevs&#39;]
+    else:
+        if not fish in pulsefish_eodpeaks:
+            raise KeyError(&#39;unknown pulse-type fish. Choose one of &#39; +
+                           &#39;, &#39;.join(pulsefish_eodpeaks.keys()))
+        peak_times = pulsefish_eodpeaks[fish][&#39;times&#39;]
+        peak_amplitudes = pulsefish_eodpeaks[fish][&#39;amplitudes&#39;]
+        peak_stdevs = pulsefish_eodpeaks[fish][&#39;stdevs&#39;]
+    if len(peak_stdevs) != len(peak_amplitudes) or len(peak_stdevs) != len(peak_times):
+        raise IndexError(&#39;need exactly as many standard deviations as amplitudes and times&#39;)
+    return peak_times, peak_amplitudes, peak_stdevs</code></pre>
+</details>
+<div class="desc"><p>Position, amplitudes and standard deviations of peaks in pulsefish EOD waveforms.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string, dict</code> or <code>tuple</code> of <code>floats/lists/arrays</code></dt>
+<dd>Specify positions, amplitudes and standard deviations Gaussians peaks that are
+superimposed to simulate EOD waveforms of pulse-type electric fishes.
+If string then take positions, amplitudes and standard deviations
+from the <code><a title="thunderfish.fakefish.pulsefish_eodpeaks" href="#thunderfish.fakefish.pulsefish_eodpeaks">pulsefish_eodpeaks</a></code> dictionary.
+If dictionary then take pulse properties from the 'times', 'amlitudes'
+and 'stdevs' keys.
+If tuple then the first element is the list of peak positions,
+the second is the list of corresponding amplitudes, and
+the third one the list of corresponding standard deviations.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>times</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Positions of the peaks.</dd>
+<dt><strong><code>amplitudes</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Amplitudes of the peaks.</dd>
+<dt><strong><code>stdevs</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Standard deviations of the peaks.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<h2 id="keyerror">Keyerror</h2>
+<p>Unknown fish.</p>
+<h2 id="indexerror">Indexerror</h2>
+<p>Peak positions, amplitudes, or standard deviations differ in length.</p></div>
+</dd>
+<dt id="thunderfish.fakefish.pulsefish_eods"><code class="name flex">
+<span>def <span class="ident">pulsefish_eods</span></span>(<span>fish='Biphasic',<br>frequency=100.0,<br>rate=44100.0,<br>duration=1.0,<br>noise_std=0.01,<br>jitter_cv=0.1,<br>first_pulse=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pulsefish_eods(fish=&#39;Biphasic&#39;, frequency=100.0, rate=44100.0,
+                   duration=1.0, noise_std=0.01, jitter_cv=0.1,
+                   first_pulse=None):
+    &#34;&#34;&#34;Simulate EOD waveform of a pulse-type fish.
+
+    Pulses are spaced by 1/frequency, jittered as determined by jitter_cv. Each pulse is
+    a combination of Gaussian peaks, whose positions, amplitudes and widths are
+    given by &#39;fish&#39;.
+
+    The generated waveform is duration seconds long and is sampled with rate Hertz.
+    Gaussian white noise with a standard deviation of noise_std is added to the generated
+    pulse train.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes and standard deviations Gaussians peaks that are
+        superimposed to simulate EOD waveforms of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_eodpeaks` dictionary.
+        If dictionary then take pulse properties from the &#39;times&#39;, &#39;amlitudes&#39;
+        and &#39;stdevs&#39; keys.
+        If tuple then the first element is the list of peak positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
+    frequency: float
+        EOD frequency of the fish in Hz.
+    rate: float
+        Sampling Rate in Hz.
+    duration: float
+        Duration of the generated data in seconds.
+    noise_std: float
+        Standard deviation of additive Gaussian white noise.
+    jitter_cv: float
+        Gaussian distributed jitter of pulse times as coefficient of variation
+        of inter-pulse intervals.
+    first_pulse: float or None
+        The position of the first pulse. If None it is choosen automatically
+        depending on pulse width, jitter, and frequency.
+
+    Returns
+    -------
+    data: array of floats
+        Generated data of a pulse-type fish.
+
+    Raises
+    ------
+    KeyError:
+        Unknown fish.
+    IndexError:
+        Peak positions, amplitudes, or standard deviations differ in length.
+    &#34;&#34;&#34;
+    # get peak properties:
+    peak_times, peak_amplitudes, peak_stdevs = pulsefish_peaks(fish)
+    # time axis for single pulse:
+    min_time_inx = np.argmin(peak_times)
+    max_time_inx = np.argmax(peak_times)
+    tmax = max(np.abs(peak_times[min_time_inx]-4.0*peak_stdevs[min_time_inx]),
+               np.abs(peak_times[max_time_inx]+4.0*peak_stdevs[max_time_inx]))
+    x = np.arange(-tmax, tmax, 1.0/rate)
+    pulse_duration = x[-1] - x[0]
+    
+    # generate a single pulse:
+    pulse = np.zeros(len(x))
+    for time, ampl, std in zip(peak_times, peak_amplitudes, peak_stdevs):
+        pulse += ampl * np.exp(-0.5*((x-time)/std)**2)
+    poffs = len(pulse)//2
+
+    # paste the pulse into the noise floor:
+    time = np.arange(0, duration, 1.0/rate)
+    data = np.random.randn(len(time)) * noise_std
+    period = 1.0/frequency
+    jitter_std = period * jitter_cv
+    if first_pulse is None:
+        first_pulse = np.max([pulse_duration, 3.0*jitter_std])
+    pulse_times = np.arange(first_pulse, duration, period )
+    pulse_times += jitter_std*np.random.randn(len(pulse_times))
+    pulse_indices = np.round(pulse_times * rate).astype(int)
+    for inx in pulse_indices[(pulse_indices&gt;=poffs)&amp;(pulse_indices-poffs+len(pulse)&lt;len(data))]:
+        data[inx-poffs:inx-poffs+len(pulse)] += pulse
+    return data</code></pre>
+</details>
+<div class="desc"><p>Simulate EOD waveform of a pulse-type fish.</p>
+<p>Pulses are spaced by 1/frequency, jittered as determined by jitter_cv. Each pulse is
+a combination of Gaussian peaks, whose positions, amplitudes and widths are
+given by 'fish'.</p>
+<p>The generated waveform is duration seconds long and is sampled with rate Hertz.
+Gaussian white noise with a standard deviation of noise_std is added to the generated
+pulse train.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string, dict</code> or <code>tuple</code> of <code>floats/lists/arrays</code></dt>
+<dd>Specify positions, amplitudes and standard deviations Gaussians peaks that are
+superimposed to simulate EOD waveforms of pulse-type electric fishes.
+If string then take positions, amplitudes and standard deviations
+from the <code><a title="thunderfish.fakefish.pulsefish_eodpeaks" href="#thunderfish.fakefish.pulsefish_eodpeaks">pulsefish_eodpeaks</a></code> dictionary.
+If dictionary then take pulse properties from the 'times', 'amlitudes'
+and 'stdevs' keys.
+If tuple then the first element is the list of peak positions,
+the second is the list of corresponding amplitudes, and
+the third one the list of corresponding standard deviations.</dd>
+<dt><strong><code>frequency</code></strong> :&ensp;<code>float</code></dt>
+<dd>EOD frequency of the fish in Hz.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling Rate in Hz.</dd>
+<dt><strong><code>duration</code></strong> :&ensp;<code>float</code></dt>
+<dd>Duration of the generated data in seconds.</dd>
+<dt><strong><code>noise_std</code></strong> :&ensp;<code>float</code></dt>
+<dd>Standard deviation of additive Gaussian white noise.</dd>
+<dt><strong><code>jitter_cv</code></strong> :&ensp;<code>float</code></dt>
+<dd>Gaussian distributed jitter of pulse times as coefficient of variation
+of inter-pulse intervals.</dd>
+<dt><strong><code>first_pulse</code></strong> :&ensp;<code>float</code> or <code>None</code></dt>
+<dd>The position of the first pulse. If None it is choosen automatically
+depending on pulse width, jitter, and frequency.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Generated data of a pulse-type fish.</dd>
+</dl>
+<h2 id="raises">Raises</h2>
+<h2 id="keyerror">Keyerror</h2>
+<p>Unknown fish.</p>
+<h2 id="indexerror">Indexerror</h2>
+<p>Peak positions, amplitudes, or standard deviations differ in length.</p></div>
+</dd>
+<dt id="thunderfish.fakefish.normalize_pulsefish"><code class="name flex">
+<span>def <span class="ident">normalize_pulsefish</span></span>(<span>fish)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def normalize_pulsefish(fish):
+    &#34;&#34;&#34;Normalize times and stdevs of pulse-type EOD waveform.
+
+    The positions and amplitudes of Gaussian peaks are adjusted such
+    that the resulting EOD waveform has a maximum peak amplitude of one
+    and has the largest peak at time zero.
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes and standard deviations Gaussians peaks that are
+        superimposed to simulate EOD waveforms of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_eodpeaks` dictionary.
+        If dictionary then take pulse properties from the &#39;times&#39;, &#39;amlitudes&#39;
+        and &#39;stdevs&#39; keys.
+        If tuple then the first element is the list of peak positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with adjusted times and standard deviations.
+    &#34;&#34;&#34;
+    # get peak properties:
+    peak_times, peak_amplitudes, peak_stdevs = pulsefish_peaks(fish)
+    # generate waveform:
+    eodf = 10.0
+    rate = 100000.0
+    first_pulse = 0.5/eodf
+    data = pulsefish_eods(fish, eodf, rate, 1.0/eodf, noise_std=0.0,
+                          jitter_cv=0.0, first_pulse=first_pulse)
+    # maximum peak:
+    idx = np.argmax(np.abs(data))
+    # normalize amplitudes:
+    ampl = data[idx]
+    newamplitudes = np.array(peak_amplitudes)/ampl
+    # shift times:
+    deltat = idx/rate - first_pulse
+    newtimes = np.array(peak_times) - deltat
+    # store and return:
+    peaks = dict(times=newtimes,
+                 amplitudes=newamplitudes,
+                 stdevs=peak_stdevs)
+    return peaks</code></pre>
+</details>
+<div class="desc"><p>Normalize times and stdevs of pulse-type EOD waveform.</p>
+<p>The positions and amplitudes of Gaussian peaks are adjusted such
+that the resulting EOD waveform has a maximum peak amplitude of one
+and has the largest peak at time zero.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string, dict</code> or <code>tuple</code> of <code>floats/lists/arrays</code></dt>
+<dd>Specify positions, amplitudes and standard deviations Gaussians peaks that are
+superimposed to simulate EOD waveforms of pulse-type electric fishes.
+If string then take positions, amplitudes and standard deviations
+from the <code><a title="thunderfish.fakefish.pulsefish_eodpeaks" href="#thunderfish.fakefish.pulsefish_eodpeaks">pulsefish_eodpeaks</a></code> dictionary.
+If dictionary then take pulse properties from the 'times', 'amlitudes'
+and 'stdevs' keys.
+If tuple then the first element is the list of peak positions,
+the second is the list of corresponding amplitudes, and
+the third one the list of corresponding standard deviations.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary with adjusted times and standard deviations.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.fakefish.export_pulsefish"><code class="name flex">
+<span>def <span class="ident">export_pulsefish</span></span>(<span>fish, name='Unknown_peaks', file=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def export_pulsefish(fish, name=&#39;Unknown_peaks&#39;, file=None):
+    &#34;&#34;&#34;Serialize pulsefish parameter to python code.
+
+    Add output to the pulsefish_eodpeaks dictionary!
+
+    Parameters
+    ----------
+    fish: string, dict or tuple of floats/lists/arrays
+        Specify positions, amplitudes and standard deviations Gaussians peaks that are
+        superimposed to simulate EOD waveforms of pulse-type electric fishes. 
+        If string then take positions, amplitudes and standard deviations 
+        from the `pulsefish_eodpeaks` dictionary.
+        If dictionary then take pulse properties from the &#39;times&#39;, &#39;amlitudes&#39;
+        and &#39;stdevs&#39; keys.
+        If tuple then the first element is the list of peak positions,
+        the second is the list of corresponding amplitudes, and
+        the third one the list of corresponding standard deviations.
+    name: string
+        Name of the dictionary to be written.
+    file: string or file or None
+        File name or open file object where to write pulsefish dictionary.
+
+    Returns
+    -------
+    fish: dict
+        Dictionary with peak times, amplitudes and standard deviations.
+    &#34;&#34;&#34;
+    # get peak properties:
+    peak_times, peak_amplitudes, peak_stdevs = pulsefish_peaks(fish)
+    # write out dictionary:
+    if file is None:
+        file = sys.stdout
+    try:
+        file.write(&#39;&#39;)
+        closeit = False
+    except AttributeError:
+        file = open(file, &#39;w&#39;)
+        closeit = True
+    n = 6
+    file.write(name + &#39; = \\\n&#39;)
+    file.write(&#39;    dict(times=(&#39;)
+    file.write(&#39;, &#39;.join([f&#39;{a:.5g}&#39; for a in peak_times[:n]]))
+    for k in range(n, len(peak_times), n):
+        file.write(&#39;,\n&#39;)
+        file.write(&#39; &#39; * (9+12))
+        file.write(&#39;, &#39;.join([f&#39;{a:.5g}&#39; for a in peak_times[k:k+n]]))
+    if len(peak_times) == 1:
+        file.write(&#39;,&#39;)
+    file.write(&#39;),\n&#39;)
+    file.write(&#39; &#39; * 9 + &#39;amplitudes=(&#39;)
+    file.write(&#39;, &#39;.join([f&#39;{p:.5g}&#39; for p in peak_amplitudes[:n]]))
+    for k in range(n, len(peak_amplitudes), n):
+        file.write(&#39;,\n&#39;)
+        file.write(&#39; &#39; * (9+8))
+        file.write(&#39;, &#39;.join([f&#39;{p:.5g}&#39; for p in peak_amplitudes[k:k+n]]))
+    if len(peak_amplitudes) == 1:
+        file.write(&#39;,&#39;)
+    file.write(&#39;),\n&#39;)
+    file.write(&#39; &#39; * 9 + &#39;stdevs=(&#39;)
+    file.write(&#39;, &#39;.join([f&#39;{p:.5g}&#39; for p in peak_stdevs[:n]]))
+    for k in range(n, len(peak_stdevs), n):
+        file.write(&#39;,\n&#39;)
+        file.write(&#39; &#39; * (9+8))
+        file.write(&#39;, &#39;.join([f&#39;{p:.5g}&#39; for p in peak_stdevs[k:k+n]]))
+    if len(peak_stdevs) == 1:
+        file.write(&#39;,&#39;)
+    file.write(&#39;))\n&#39;)
+    if closeit:
+        file.close()
+    # return dictionary:
+    peaks = dict(times=peak_times,
+                 amplitudes=peak_amplitudes,
+                 stdevs=peak_stdevs)
+    return peaks</code></pre>
+</details>
+<div class="desc"><p>Serialize pulsefish parameter to python code.</p>
+<p>Add output to the pulsefish_eodpeaks dictionary!</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>string, dict</code> or <code>tuple</code> of <code>floats/lists/arrays</code></dt>
+<dd>Specify positions, amplitudes and standard deviations Gaussians peaks that are
+superimposed to simulate EOD waveforms of pulse-type electric fishes.
+If string then take positions, amplitudes and standard deviations
+from the <code><a title="thunderfish.fakefish.pulsefish_eodpeaks" href="#thunderfish.fakefish.pulsefish_eodpeaks">pulsefish_eodpeaks</a></code> dictionary.
+If dictionary then take pulse properties from the 'times', 'amlitudes'
+and 'stdevs' keys.
+If tuple then the first element is the list of peak positions,
+the second is the list of corresponding amplitudes, and
+the third one the list of corresponding standard deviations.</dd>
+<dt><strong><code>name</code></strong> :&ensp;<code>string</code></dt>
+<dd>Name of the dictionary to be written.</dd>
+<dt><strong><code>file</code></strong> :&ensp;<code>string</code> or <code>file</code> or <code>None</code></dt>
+<dd>File name or open file object where to write pulsefish dictionary.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>fish</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary with peak times, amplitudes and standard deviations.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.fakefish.generate_waveform"><code class="name flex">
+<span>def <span class="ident">generate_waveform</span></span>(<span>filename)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def generate_waveform(filename):
+    &#34;&#34;&#34;Interactively generate audio file with simulated EOD waveforms.
+
+    Parameters needed to generate EOD waveforms are take from console input.
+
+    Parameters
+    ----------
+    filename: string
+        Name of file inclusively extension (e.g. &#39;.wav&#39;)
+        used to store the simulated EOD waveforms.
+    &#34;&#34;&#34;
+    import os
+    from audioio import write_audio
+    from thunderlab.consoleinput import read, select, save_inputs
+    # generate file:
+    rate = read(&#39;Sampling rate in Hz&#39;, &#39;44100&#39;, float, 1.0)
+    duration = read(&#39;Duration in seconds&#39;, &#39;10&#39;, float, 0.001)
+    nfish = read(&#39;Number of fish&#39;, &#39;1&#39;, int, 1)
+    ndata = read(&#39;Number of electrodes&#39;, &#39;1&#39;, int, 1)
+    fish_spread = 1
+    if ndata &gt; 1:
+        fish_spread = read(&#39;Number of electrodes fish are spread over&#39;, &#39;2&#39;, int, 1)
+    data = np.random.randn(int(duration*rate), ndata)*0.01
+    fish_indices = np.random.randint(ndata, size=nfish)
+    eodt = &#39;a&#39;
+    eodf = 800.0
+    eoda = 1.0
+    eodsig = &#39;n&#39;
+    pulse_jitter = 0.1
+    chirp_freq = 5.0
+    chirp_size = 100.0
+    chirp_width = 0.01
+    chirp_kurtosis = 1.0            
+    rise_freq = 0.1
+    rise_size = 10.0
+    rise_tau = 1.0
+    rise_decay_tau = 10.0
+    for k in range(nfish):
+        print(&#39;&#39;)
+        fish = &#39;Fish %d: &#39; % (k+1)
+        eodt = select(fish + &#39;EOD type&#39;, eodt, [&#39;a&#39;, &#39;e&#39;, &#39;1&#39;, &#39;2&#39;, &#39;3&#39;],
+                      [&#39;Apteronotus&#39;, &#39;Eigenmannia&#39;,
+                       &#39;monophasic pulse&#39;, &#39;biphasic pulse&#39;, &#39;triphasic pulse&#39;])
+        eodf = read(fish + &#39;EOD frequency in Hz&#39;, &#39;%g&#39;%eodf, float, 1.0, 3000.0)
+        eoda = read(fish + &#39;EOD amplitude&#39;, &#39;%g&#39;%eoda, float, 0.0, 10.0)
+        if eodt in &#39;ae&#39;:
+            eodsig = select(fish + &#39;Add communication signals&#39;, eodsig, [&#39;n&#39;, &#39;c&#39;, &#39;r&#39;],
+                      [&#39;fixed EOD&#39;, &#39;chirps&#39;, &#39;rises&#39;])
+            eodfreq = eodf
+            if eodsig == &#39;c&#39;:
+                chirp_freq = read(&#39;Number of chirps per second&#39;, &#39;%g&#39;%chirp_freq, float, 0.001)
+                chirp_size = read(&#39;Size of chirp in Hz&#39;, &#39;%g&#39;%chirp_size, float, 1.0)
+                chirp_width = 0.001*read(&#39;Width of chirp in ms&#39;, &#39;%g&#39;%(1000.0*chirp_width), float, 1.0)
+                eodfreq, _ = chirps(eodf, rate, duration,
+                                    chirp_freq, chirp_size, chirp_width, chirp_kurtosis)
+            elif eodsig == &#39;r&#39;:
+                rise_freq = read(&#39;Number of rises per second&#39;, &#39;%g&#39;%rise_freq, float, 0.00001)
+                rise_size = read(&#39;Size of rise in Hz&#39;, &#39;%g&#39;%rise_size, float, 0.01)
+                rise_tau = read(&#39;Time-constant of rise onset in seconds&#39;, &#39;%g&#39;%rise_tau, float, 0.01)
+                rise_decay_tau = read(&#39;Time-constant of rise decay in seconds&#39;, &#39;%g&#39;%rise_decay_tau, float, 0.01)
+                eodfreq = rises(eodf, rate, duration,
+                                rise_freq, rise_size, rise_tau, rise_decay_tau)
+            if eodt == &#39;a&#39;:
+                fishdata = eoda*wavefish_eods(&#39;Alepto&#39;, eodfreq, rate, duration,
+                                              phase0=0.0, noise_std=0.0)
+            elif eodt == &#39;e&#39;:
+                fishdata = eoda*wavefish_eods(&#39;Eigenmannia&#39;, eodfreq, rate,
+                                              duration, phase0=0.0, noise_std=0.0)
+        else:
+            pulse_jitter = read(fish + &#39;CV of pulse jitter&#39;, &#39;%g&#39;%pulse_jitter, float, 0.0, 2.0)
+            if eodt == &#39;1&#39;:
+                fishdata = eoda*pulsefish_eods(&#39;Monophasic&#39;, eodf, rate, duration,
+                                               jitter_cv=pulse_jitter, noise_std=0.0)
+            elif eodt == &#39;2&#39;:
+                fishdata = eoda*pulsefish_eods(&#39;Biphasic&#39;, eodf, rate, duration,
+                                               jitter_cv=pulse_jitter, noise_std=0.0)
+            elif eodt == &#39;3&#39;:
+                fishdata = eoda*pulsefish_eods(&#39;Triphasic&#39;, eodf, rate, duration,
+                                               jitter_cv=pulse_jitter, noise_std=0.0)
+        i = fish_indices[k]
+        for j in range(fish_spread):
+            data[:, (i+j)%ndata] += fishdata*(0.2**j)
+
+    maxdata = np.max(np.abs(data))
+    write_audio(filename, 0.9*data/maxdata, rate)
+    input_file = os.path.splitext(filename)[0] + &#39;.inp&#39; 
+    save_inputs(input_file)
+    print(f&#39;\nWrote fakefish data to file &#34;{filename}&#34;.&#39;)</code></pre>
+</details>
+<div class="desc"><p>Interactively generate audio file with simulated EOD waveforms.</p>
+<p>Parameters needed to generate EOD waveforms are take from console input.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>filename</code></strong> :&ensp;<code>string</code></dt>
+<dd>Name of file inclusively extension (e.g. '.wav')
+used to store the simulated EOD waveforms.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.fakefish.demo"><code class="name flex">
+<span>def <span class="ident">demo</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def demo():
+    import matplotlib.pyplot as plt
+    rate = 40000.0 # in Hz
+    duration = 10.0      # in sec
+
+    inset_len = 0.01     # in sec
+    inset_indices = int(inset_len*rate)
+    ws_fac = 0.1         # whitespace factor or ylim (between 0. and 1.)
+
+    # generate data:
+    eodf = 400.0
+    wavefish = wavefish_eods(&#39;Alepto&#39;, eodf, rate, duration, noise_std=0.02)
+    eodf = 650.0
+    wavefish += 0.5*wavefish_eods(&#39;Eigenmannia&#39;, eodf, rate, duration)
+
+    pulsefish = pulsefish_eods(&#39;Biphasic&#39;, 80.0, rate, duration,
+                               noise_std=0.02, jitter_cv=0.1, first_pulse=inset_len/2)
+    time = np.arange(len(wavefish))/rate
+
+    fig, ax = plt.subplots(nrows=2, ncols=2, figsize=(19, 10))
+
+    # get proper wavefish ylim
+    ymin = np.min(wavefish)
+    ymax = np.max(wavefish)
+    dy = ws_fac*(ymax - ymin)
+    ymin -= dy
+    ymax += dy
+
+    # complete wavefish:
+    ax[0][0].set_title(&#39;Wavefish&#39;)
+    ax[0][0].set_ylim(ymin, ymax)
+    ax[0][0].plot(time, wavefish)
+
+    # wavefish zoom in:
+    ax[0][1].set_title(&#39;Wavefish ZOOM IN&#39;)
+    ax[0][1].set_ylim(ymin, ymax)
+    ax[0][1].plot(time[:inset_indices], wavefish[:inset_indices], &#39;-o&#39;)
+
+    # get proper pulsefish ylim
+    ymin = np.min(pulsefish)
+    ymax = np.max(pulsefish)
+    dy = ws_fac*(ymax - ymin)
+    ymin -= dy
+    ymax += dy
+
+    # complete pulsefish:
+    ax[1][0].set_title(&#39;Pulsefish&#39;)
+    ax[1][0].set_ylim(ymin, ymax)
+    ax[1][0].plot(time, pulsefish)
+
+    # pulsefish zoom in:
+    ax[1][1].set_title(&#39;Pulsefish ZOOM IN&#39;)
+    ax[1][1].set_ylim(ymin, ymax)
+    ax[1][1].plot(time[:inset_indices], pulsefish[:inset_indices], &#39;-o&#39;)
+
+    for row in ax:
+        for c_ax in row:
+            c_ax.set_xlabel(&#39;Time [sec]&#39;)
+            c_ax.set_ylabel(&#39;Amplitude&#39;)
+
+    plt.tight_layout()
+
+    # chirps:
+    chirps_freq = chirps(600.0, rate, duration)
+    chirps_data = wavefish_eods(&#39;Alepto&#39;, chirps_freq, rate)
+
+    # rises:
+    rises_freq = rises(600.0, rate, duration, rise_size=20.0)
+    rises_data = wavefish_eods(&#39;Alepto&#39;, rises_freq, rate)
+
+    nfft = 256
+    fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(19, 10))
+    ax[0].set_title(&#39;Chirps&#39;)
+    ax[0].specgram(chirps_data, Fs=rate, NFFT=nfft, noverlap=nfft//16)
+    time = np.arange(len(chirps_freq))/rate
+    ax[0].plot(time[:-nfft//2], chirps_freq[nfft//2:], &#39;-k&#39;, lw=2)
+    ax[0].set_ylim(0.0, 3000.0)
+    ax[0].set_ylabel(&#39;Frequency [Hz]&#39;)
+
+    nfft = 4096
+    ax[1].set_title(&#39;Rises&#39;)
+    ax[1].specgram(rises_data, Fs=rate, NFFT=nfft, noverlap=nfft//2)
+    time = np.arange(len(rises_freq))/rate
+    ax[1].plot(time[:-nfft//4], rises_freq[nfft//4:], &#39;-k&#39;, lw=2)
+    ax[1].set_ylim(500.0, 700.0)
+    ax[1].set_ylabel(&#39;Frequency [Hz]&#39;)
+    ax[1].set_xlabel(&#39;Time [s]&#39;)
+    plt.tight_layout()
+
+    plt.show()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.fakefish.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>args=[])</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main(args=[]):
+    from .version import __year__
+    
+    if len(args) &gt; 0:
+        if len(args) == 1 or args[0] != &#39;-s&#39;:
+            print(&#39;usage: fakefish [-h|--help] [-s audiofile]&#39;)
+            print(&#39;&#39;)
+            print(&#39;Without arguments, run a demo for illustrating fakefish functionality.&#39;)
+            print(&#39;&#39;)
+            print(&#39;-s audiofile: writes audiofile with user defined simulated electric fishes.&#39;)
+            print(&#39;&#39;)
+            print(f&#39;by bendalab ({__year__})&#39;)
+        else:
+            generate_waveform(args[1])
+    else:
+        demo()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul>
+<li><a href="#species-names">Species names</a></li>
+<li><a href="#muscial-intervals">Muscial intervals</a></li>
+<li><a href="#wavefish">Wavefish</a></li>
+<li><a href="#pulsefish">Pulsefish</a></li>
+<li><a href="#interactive-waveform-generation">Interactive waveform generation</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-variables">Global variables</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.fakefish.species_name" href="#thunderfish.fakefish.species_name">species_name</a></code></li>
+<li><code><a title="thunderfish.fakefish.musical_intervals" href="#thunderfish.fakefish.musical_intervals">musical_intervals</a></code></li>
+<li><code><a title="thunderfish.fakefish.wavefish_harmonics" href="#thunderfish.fakefish.wavefish_harmonics">wavefish_harmonics</a></code></li>
+<li><code><a title="thunderfish.fakefish.pulsefish_eodpeaks" href="#thunderfish.fakefish.pulsefish_eodpeaks">pulsefish_eodpeaks</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="two-column">
+<li><code><a title="thunderfish.fakefish.abbrv_genus" href="#thunderfish.fakefish.abbrv_genus">abbrv_genus</a></code></li>
+<li><code><a title="thunderfish.fakefish.wavefish_spectrum" href="#thunderfish.fakefish.wavefish_spectrum">wavefish_spectrum</a></code></li>
+<li><code><a title="thunderfish.fakefish.wavefish_eods" href="#thunderfish.fakefish.wavefish_eods">wavefish_eods</a></code></li>
+<li><code><a title="thunderfish.fakefish.normalize_wavefish" href="#thunderfish.fakefish.normalize_wavefish">normalize_wavefish</a></code></li>
+<li><code><a title="thunderfish.fakefish.export_wavefish" href="#thunderfish.fakefish.export_wavefish">export_wavefish</a></code></li>
+<li><code><a title="thunderfish.fakefish.chirps" href="#thunderfish.fakefish.chirps">chirps</a></code></li>
+<li><code><a title="thunderfish.fakefish.rises" href="#thunderfish.fakefish.rises">rises</a></code></li>
+<li><code><a title="thunderfish.fakefish.pulsefish_peaks" href="#thunderfish.fakefish.pulsefish_peaks">pulsefish_peaks</a></code></li>
+<li><code><a title="thunderfish.fakefish.pulsefish_eods" href="#thunderfish.fakefish.pulsefish_eods">pulsefish_eods</a></code></li>
+<li><code><a title="thunderfish.fakefish.normalize_pulsefish" href="#thunderfish.fakefish.normalize_pulsefish">normalize_pulsefish</a></code></li>
+<li><code><a title="thunderfish.fakefish.export_pulsefish" href="#thunderfish.fakefish.export_pulsefish">export_pulsefish</a></code></li>
+<li><code><a title="thunderfish.fakefish.generate_waveform" href="#thunderfish.fakefish.generate_waveform">generate_waveform</a></code></li>
+<li><code><a title="thunderfish.fakefish.demo" href="#thunderfish.fakefish.demo">demo</a></code></li>
+<li><code><a title="thunderfish.fakefish.main" href="#thunderfish.fakefish.main">main</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

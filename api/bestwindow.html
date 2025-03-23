@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>thunderfish.bestwindow API documentation</title>
+<meta name="description" content="Select the best region within a recording with the most stable signal of largest amplitude that is not clipped …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], processEscapes: true } });</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.bestwindow</code></h1>
+</header>
+<section id="section-intro">
+<p>Select the best region within a recording with the most stable signal of largest amplitude that is not clipped.</p>
+<h2 id="main-functions">Main functions</h2>
+<ul>
+<li><code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code>: estimated clipping amplitudes from the data.</li>
+<li><code><a title="thunderfish.bestwindow.best_window_indices" href="#thunderfish.bestwindow.best_window_indices">best_window_indices()</a></code>: select start- and end-indices of the best window</li>
+<li><code><a title="thunderfish.bestwindow.best_window_times" href="#thunderfish.bestwindow.best_window_times">best_window_times()</a></code>: select start end end-time of the best window</li>
+<li><code><a title="thunderfish.bestwindow.best_window" href="#thunderfish.bestwindow.best_window">best_window()</a></code>: return data of the best window</li>
+<li><code><a title="thunderfish.bestwindow.analysis_window" href="#thunderfish.bestwindow.analysis_window">analysis_window()</a></code>: set clipping amplitudes and find analysis window.</li>
+</ul>
+<h2 id="configuration">Configuration</h2>
+<ul>
+<li><code><a title="thunderfish.bestwindow.add_clip_config" href="#thunderfish.bestwindow.add_clip_config">add_clip_config()</a></code>: add parameters for <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code> to configuration.</li>
+<li><code><a title="thunderfish.bestwindow.clip_args" href="#thunderfish.bestwindow.clip_args">clip_args()</a></code>: retrieve parameters for <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code> from configuration.</li>
+<li><code><a title="thunderfish.bestwindow.add_best_window_config" href="#thunderfish.bestwindow.add_best_window_config">add_best_window_config()</a></code>: add parameters for <code><a title="thunderfish.bestwindow.best_window" href="#thunderfish.bestwindow.best_window">best_window()</a></code> to configuration.</li>
+<li><code><a title="thunderfish.bestwindow.best_window_args" href="#thunderfish.bestwindow.best_window_args">best_window_args()</a></code>: retrieve parameters for <code>best_window*()</code> from configuration.</li>
+</ul>
+<h2 id="visualization">Visualization</h2>
+<ul>
+<li><code><a title="thunderfish.bestwindow.plot_clipping" href="#thunderfish.bestwindow.plot_clipping">plot_clipping()</a></code>: visualization of the algorithm for detecting clipped amplitudes in <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code>.</li>
+<li><code><a title="thunderfish.bestwindow.plot_best_window" href="#thunderfish.bestwindow.plot_best_window">plot_best_window()</a></code>: visualization of the algorithm used in <code><a title="thunderfish.bestwindow.best_window_indices" href="#thunderfish.bestwindow.best_window_indices">best_window_indices()</a></code>.</li>
+<li><code><a title="thunderfish.bestwindow.plot_data_window" href="#thunderfish.bestwindow.plot_data_window">plot_data_window()</a></code>: plot the data and the selected analysis window.</li>
+</ul>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.bestwindow.clip_amplitudes"><code class="name flex">
+<span>def <span class="ident">clip_amplitudes</span></span>(<span>data,<br>win_indices,<br>min_fac=2.0,<br>nbins=20,<br>min_ampl=None,<br>max_ampl=1.0,<br>plot_hist_func=None,<br>**kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def clip_amplitudes(data, win_indices, min_fac=2.0, nbins=20,
+                    min_ampl=None, max_ampl=1.0,
+                    plot_hist_func=None, **kwargs):
+    &#34;&#34;&#34;Find the amplitudes where the signal clips.
+
+    Histograms in data segements of win_indices length are analyzed.
+    If the bins at the edges are more than min_fac times as large as
+    the neighboring bins, clipping at the bin&#39;s amplitude is assumed.
+
+    Parameters
+    ----------
+    data: 1-D array
+        The data.
+    win_indices: int
+        Size of the analysis window in indices.
+    min_fac: float
+        If the first or the second bin is at least `min_fac` times
+        as large as the third bin, their upper bin edge is set as min_clip.
+        Likewise for the last and next-to last bin.
+    nbins: int
+        Number of bins used for computing a histogram within `min_ampl` and `max_ampl`.
+    min_ampl: float or None
+        Minimum to be expected amplitude of the data.
+        If set to None, set it to the negative of max_ampl.
+    max_ampl: float
+        Maximum to be expected amplitude of the data
+    plot_hist_func: function
+        Function for visualizing the histograms, is called for every window.
+        `plot_clipping()` is a simple function that can be passed as `plot_hist_func`
+        to quickly visualize what is going on in `clip_amplitudes()`.
+        
+        Signature:
+
+        `plot_hist_func(data, winx0, winx1, bins, h, min_clip, max_clip,
+        min_ampl, max_ampl, kwargs)`
+
+        with the arguments:
+        
+        - `data` (array): the full data array.
+        - `winx0` (int): the start index of the current window.
+        - `winx1` (int): the end index of the current window.
+        - `bins` (array): the bin edges of the histogram.
+        - `h` (array): the histogram, plot it with
+           ```
+           plt.bar(bins[:-1], h, width=np.mean(np.diff(bins)))
+           ```
+        - `min_clip` (float): the current value of the minimum clip amplitude.
+        - `max_clip` (float): the current value of the minimum clip amplitude.
+        - `min_ampl` (float): the minimum amplitude of the data.
+        - `max_ampl` (float): the maximum amplitude of the data.
+        - `kwargs` (dict): further user supplied key-word arguments.
+
+    Returns
+    -------
+      min_clip: float
+          Minimum amplitude that is not clipped.
+      max_clip: float
+          Maximum amplitude that is not clipped.
+    &#34;&#34;&#34;
+    if min_ampl is None:
+        min_ampl = -max_ampl
+    min_clipa = min_ampl
+    max_clipa = max_ampl
+    bins = np.linspace(min_ampl, max_ampl, nbins, endpoint=True)
+    win_tinxs = np.arange(0, len(data) - win_indices, win_indices)
+    for wtinx in win_tinxs:
+        h, b = np.histogram(data[wtinx:wtinx + win_indices], bins)
+        if h[0] &gt; min_fac * h[2] and b[0] &lt; 0.4*min_ampl:
+            if h[1] &gt; min_fac * h[2] and b[2] &gt; min_clipa:
+                min_clipa = b[2]
+            elif b[1] &gt; min_clipa:
+                min_clipa = b[1]
+        if h[-1] &gt; min_fac * h[-3] and b[-1] &gt; 0.4*max_ampl:
+            if h[-2] &gt; min_fac * h[-3] and b[-3] &lt; max_clipa:
+                max_clipa = b[-3]
+            elif b[-2] &lt; max_clipa:
+                max_clipa = b[-2]
+        if plot_hist_func:
+            plot_hist_func(data, wtinx, wtinx + win_indices,
+                           b, h, min_clipa, max_clipa,
+                           min_ampl, max_ampl, **kwargs)
+    return min_clipa, max_clipa</code></pre>
+</details>
+<div class="desc"><p>Find the amplitudes where the signal clips.</p>
+<p>Histograms in data segements of win_indices length are analyzed.
+If the bins at the edges are more than min_fac times as large as
+the neighboring bins, clipping at the bin's amplitude is assumed.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>The data.</dd>
+<dt><strong><code>win_indices</code></strong> :&ensp;<code>int</code></dt>
+<dd>Size of the analysis window in indices.</dd>
+<dt><strong><code>min_fac</code></strong> :&ensp;<code>float</code></dt>
+<dd>If the first or the second bin is at least <code>min_fac</code> times
+as large as the third bin, their upper bin edge is set as min_clip.
+Likewise for the last and next-to last bin.</dd>
+<dt><strong><code>nbins</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of bins used for computing a histogram within <code>min_ampl</code> and <code>max_ampl</code>.</dd>
+<dt><strong><code>min_ampl</code></strong> :&ensp;<code>float</code> or <code>None</code></dt>
+<dd>Minimum to be expected amplitude of the data.
+If set to None, set it to the negative of max_ampl.</dd>
+<dt><strong><code>max_ampl</code></strong> :&ensp;<code>float</code></dt>
+<dd>Maximum to be expected amplitude of the data</dd>
+<dt><strong><code>plot_hist_func</code></strong> :&ensp;<code>function</code></dt>
+<dd>
+<p>Function for visualizing the histograms, is called for every window.
+<code><a title="thunderfish.bestwindow.plot_clipping" href="#thunderfish.bestwindow.plot_clipping">plot_clipping()</a></code> is a simple function that can be passed as <code>plot_hist_func</code>
+to quickly visualize what is going on in <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code>.</p>
+<p>Signature:</p>
+<p><code>plot_hist_func(data, winx0, winx1, bins, h, min_clip, max_clip,
+min_ampl, max_ampl, kwargs)</code></p>
+<p>with the arguments:</p>
+<ul>
+<li><code>data</code> (array): the full data array.</li>
+<li><code>winx0</code> (int): the start index of the current window.</li>
+<li><code>winx1</code> (int): the end index of the current window.</li>
+<li><code>bins</code> (array): the bin edges of the histogram.</li>
+<li><code>h</code> (array): the histogram, plot it with
+<code>plt.bar(bins[:-1], h, width=np.mean(np.diff(bins)))</code></li>
+<li><code>min_clip</code> (float): the current value of the minimum clip amplitude.</li>
+<li><code>max_clip</code> (float): the current value of the minimum clip amplitude.</li>
+<li><code>min_ampl</code> (float): the minimum amplitude of the data.</li>
+<li><code>max_ampl</code> (float): the maximum amplitude of the data.</li>
+<li><code>kwargs</code> (dict): further user supplied key-word arguments.</li>
+</ul>
+</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<p>min_clip: float
+Minimum amplitude that is not clipped.
+max_clip: float
+Maximum amplitude that is not clipped.</p></div>
+</dd>
+<dt id="thunderfish.bestwindow.plot_clipping"><code class="name flex">
+<span>def <span class="ident">plot_clipping</span></span>(<span>data, winx0, winx1, bins, h, min_clip, max_clip, min_ampl, max_ampl)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_clipping(data, winx0, winx1, bins,
+                  h, min_clip, max_clip, min_ampl, max_ampl):
+    &#34;&#34;&#34;Visualize the data histograms and the detected clipping amplitudes.
+
+    Pass this function as the `plot_hist_func` argument to `clip_amplitudes()`.
+    &#34;&#34;&#34;
+    fig, (ax1, ax2) = plt.subplots(2, 1)
+    ax1.plot(data[winx0:winx1], &#39;b&#39;)
+    ax1.axhline(min_clip, color=&#39;r&#39;)
+    ax1.axhline(max_clip, color=&#39;r&#39;)
+    ax1.set_ylim(-1.0, 1.0)
+    ax2.bar(bins[:-1], h, width=np.mean(np.diff(bins)))
+    ax2.axvline(min_clip, color=&#39;r&#39;)
+    ax2.axvline(max_clip, color=&#39;r&#39;)
+    ax2.set_xlim(-1.0, 1.0)
+    plt.show()</code></pre>
+</details>
+<div class="desc"><p>Visualize the data histograms and the detected clipping amplitudes.</p>
+<p>Pass this function as the <code>plot_hist_func</code> argument to <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code>.</p></div>
+</dd>
+<dt id="thunderfish.bestwindow.add_clip_config"><code class="name flex">
+<span>def <span class="ident">add_clip_config</span></span>(<span>cfg,<br>min_clip=0.0,<br>max_clip=0.0,<br>window=1.0,<br>min_fac=2.0,<br>nbins=20,<br>min_ampl=-1.0,<br>max_ampl=1.0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_clip_config(cfg, min_clip=0.0, max_clip=0.0,
+                    window=1.0, min_fac=2.0, nbins=20,
+                    min_ampl=-1.0, max_ampl=1.0):
+    &#34;&#34;&#34;Add parameter needed for `clip_amplitudes()` as a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+    min_clip: float
+        Default minimum clip amplitude.
+    max_clip: float
+        Default maximum clip amplitude.
+        
+    See `clip_amplitudes()` for details on the remaining arguments.
+    &#34;&#34;&#34;
+    cfg.add_section(&#39;Clipping amplitudes:&#39;)
+    cfg.add(&#39;minClipAmplitude&#39;, min_clip, &#39;&#39;, &#39;Minimum amplitude that is not clipped. If zero estimate from data.&#39;)
+    cfg.add(&#39;maxClipAmplitude&#39;, max_clip, &#39;&#39;, &#39;Maximum amplitude that is not clipped. If zero estimate from data.&#39;)
+    cfg.add(&#39;clipWindow&#39;, window, &#39;s&#39;, &#39;Window size for estimating clip amplitudes.&#39;)
+    cfg.add(&#39;clipBins&#39;, nbins, &#39;&#39;, &#39;Number of bins used for constructing histograms of signal amplitudes.&#39;)
+    cfg.add(&#39;minClipFactor&#39;, min_fac, &#39;&#39;,
+            &#39;Edge bins of the histogram of clipped signals have to be larger then their neighbors by this factor.&#39;)</code></pre>
+</details>
+<div class="desc"><p>Add parameter needed for <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code> as a new section to a configuration.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+<dt><strong><code>min_clip</code></strong> :&ensp;<code>float</code></dt>
+<dd>Default minimum clip amplitude.</dd>
+<dt><strong><code>max_clip</code></strong> :&ensp;<code>float</code></dt>
+<dd>Default maximum clip amplitude.</dd>
+</dl>
+<p>See <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code> for details on the remaining arguments.</p></div>
+</dd>
+<dt id="thunderfish.bestwindow.clip_args"><code class="name flex">
+<span>def <span class="ident">clip_args</span></span>(<span>cfg, rate)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def clip_args(cfg, rate):
+    &#34;&#34;&#34;Translates a configuration to the respective parameter names of `clip_amplitudes()`.
+
+    The return value can then be passed as key-word arguments to this
+    function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+    rate: float
+        Sampling rate of the data.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `clip_amplitudes()` function
+        and their values as supplied by `cfg`.
+    &#34;&#34;&#34;
+    a = cfg.map({&#39;min_fac&#39;: &#39;minClipFactor&#39;,
+                 &#39;nbins&#39;: &#39;clipBins&#39;})
+    a[&#39;win_indices&#39;] = int(cfg.value(&#39;clipWindow&#39;)*rate)
+    return a</code></pre>
+</details>
+<div class="desc"><p>Translates a configuration to the respective parameter names of <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code>.</p>
+<p>The return value can then be passed as key-word arguments to this
+function.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>a</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary with names of arguments of the <code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes()</a></code> function
+and their values as supplied by <code>cfg</code>.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.bestwindow.best_window_indices"><code class="name flex">
+<span>def <span class="ident">best_window_indices</span></span>(<span>data,<br>rate,<br>expand=False,<br>win_size=1.0,<br>win_shift=0.5,<br>thresh_fac=0.8,<br>percentile=0.1,<br>min_clip=-inf,<br>max_clip=inf,<br>w_cv_interv=1.0,<br>w_ampl=1.0,<br>w_cv_ampl=1.0,<br>tolerance=0.2,<br>plot_data_func=None,<br>**kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def best_window_indices(data, rate, expand=False, win_size=1.,
+                        win_shift=0.5, thresh_fac=0.8, percentile=0.1,
+                        min_clip=-np.inf, max_clip=np.inf,
+                        w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
+                        tolerance=0.2, plot_data_func=None, **kwargs):
+    &#34;&#34;&#34;Find the window within data most suitable for subsequent analysis.
+    
+    First, large peaks and troughs of the data are detected.  Peaks and
+    troughs have to be separated in amplitude by at least the value of a
+    dynamic threshold.  The threshold is computed in `win_shift` wide
+    windows as `thresh_fac` times the interpercentile range at
+    the `percentile`-th and 100.0-`percentile`-th percentile of the data
+    using the `thunderlab.eventdetection.percentile_threshold()` function.
+
+    Second, criteria for selecting the best window are computed for each
+    window of width `win_size` shifted by `win_shift` trough the data. The
+    three criteria are:
+
+    - the mean peak-to-trough amplitude multiplied with the fraction of
+      non clipped peak and trough amplitudes.
+    - the coefficient of variation of the peak-to-trough amplitude.
+    - the coefficient of variation of the inter-peak and inter-trough
+      intervals.
+
+    Third, a cost function is computed as a weighted sum of the three
+    criteria (the mean amplitude is taken negatively). The respective
+    weights are given by `w_ampl`, `w_cv_ampl`, and `w_cv_interv`.
+
+    Finally, a threshold is set to the minimum value of the cost
+    function plus tolerance.  Then the largest region with the cost
+    function below this threshold is selected as the best window.  If
+    `expand` is `False`, then only the single window with smallest cost
+    within the selected largest region is returned.
+
+    The data used by best window algorithm can be visualized by supplying the
+    function `plot_data_func`.  Additional arguments for this function can
+    be supplied via key-word arguments `kwargs`.
+
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analyzed.
+    rate: float
+        Sampling rate of the data in Hertz.
+    expand: boolean
+        If `False` return only the single window with the smallest cost.
+        If `True` return the largest window with the cost below the minimum cost
+        plus tolerance.
+    win_size: float
+        Minimum size of the desired best window in seconds.
+        Choose it large enough for the subsequent analysis.
+    win_shift: float
+        Time shift in seconds between windows. Should be smaller or equal to `win_size`.
+    percentile: float
+        `percentile` parameter for the `thunderlab.eventdetection.percentile_threshold()` function
+        used to estimate thresholds for detecting peaks in the data.
+    thresh_fac: float
+        `thresh_fac` parameter for the `thunderlab.eventdetection.percentile_threshold()` function
+        used to estimate thresholds for detecting peaks in the data.
+    min_clip: float
+        Minimum amplitude below which data are clipped.
+    max_clip: float
+        Maximum amplitude above which data are clipped.
+    w_cv_interv: float
+        Weight for the coefficient of variation of the intervals between detected
+        peaks and throughs.
+    w_ampl: float
+        Weight for the mean peak-to-trough amplitude.
+    w_cv_ampl: float
+        Weight for the coefficient of variation of the amplitudes.
+    tolerance: float
+        Added to the minimum cost for expanding the region of the best window.
+    plot_data_func: function
+        Function for plotting the raw data, detected peaks and troughs, the criteria,
+        the cost function and the selected best window.
+        `plot_best_window()` is a simple function that can be passed as the `plot_data_func`
+        parameter to quickly visualize what is going on in selecting the best window.
+        
+        Signature:
+        
+        ````
+        plot_data_func(data, rate, peak_thresh, peak_idx, trough_idx,
+                       idx0, idx1, win_start_times, cv_interv, mean_ampl,
+                       cv_ampl, clipped_frac, cost_thresh, thresh,
+                       valid_wins, **kwargs)
+        ```
+
+        with the arguments:
+        
+        - `data` (array): raw data.
+        - `rate` (float): sampling rate of the data.
+        - `peak_thresh` (array): thresholds used for detecting peaks and troughs in each data window.
+        - `peak_idx` (array): indices into raw data indicating detected peaks.
+        - `trough_idx` (array): indices into raw data indicating detected troughs.
+        - `idx0` (int): index of the start of the best window.
+        - `idx1` (int): index of the end of the best window.
+        - `win_start_times` (array): times of the analysis windows.
+        - `cv_interv` (array): coefficients of variation of the inter-peak and -trough
+           intervals.
+        - `mean_ampl` (array): mean peak-to-trough amplitudes.
+        - `cv_ampl` (array): coefficients of variation of the peak-to-trough amplitudes.
+        - `clipped_frac` (array): fraction of clipped peaks or troughs.
+        - `cost` (array): cost function.
+        - `cost_thresh` (float): threshold for the cost function.
+        - `valid_wins` (array): boolean array indicating the windows which fulfill
+          all three criteria.
+        - `**kwargs` (dict): further user supplied key-word arguments.
+    kwargs: dict
+        Keyword arguments passed to `plot_data_func`. 
+    
+    Returns
+    -------
+    start_index: int
+        Index of the start of the best window.
+    end_index: int
+        Index of the end of the best window.
+    clipped: float.
+        The fraction of clipped peaks or troughs.
+
+    Raises
+    ------
+    UserWarning
+        - Not enough data for requested `win_size`.
+        - No peaks detected.
+        - No finite amplitudes detected.
+        - No valid interval CV detected.
+        - No valid amplitude CV detected.
+    &#34;&#34;&#34;
+    # too little data:
+    if len(data)/rate &lt; win_size:
+        raise UserWarning(f&#39;not enough data (data={len(data) / rate:g}s, win={win_size:g}s)&#39;)
+
+    # threshold for peak detection:
+    threshold = percentile_threshold(data, int(win_shift*rate),
+                                     thresh_fac=thresh_fac,
+                                     percentile=percentile)
+
+    # detect large peaks and troughs:
+    peak_idx, trough_idx = detect_peaks(data, threshold)
+    if len(peak_idx) == 0 or len(trough_idx) == 0:
+        raise UserWarning(&#39;no peaks or troughs detected&#39;)
+
+    # compute cv of intervals, mean peak amplitude and its cv:
+    invalid_cv = 1000.0
+    win_size_indices = int(win_size*rate)
+    win_start_inxs = np.arange(0, len(data) - win_size_indices,
+                               int(0.5*win_shift*rate))
+    if len(win_start_inxs) == 0:
+        win_start_inxs = [0]
+    cv_interv = np.zeros(len(win_start_inxs))
+    mean_ampl = np.zeros(len(win_start_inxs))
+    cv_ampl = np.zeros(len(win_start_inxs))
+    clipped_frac = np.zeros(len(win_start_inxs))
+    for i, wtinx in enumerate(win_start_inxs):
+        # indices of peaks and troughs inside analysis window:
+        pinx = (peak_idx &gt;= wtinx) &amp; (peak_idx &lt;= wtinx + win_size_indices)
+        tinx = (trough_idx &gt;= wtinx) &amp; (trough_idx &lt;= wtinx + win_size_indices)
+        p_idx, t_idx = trim_to_peak(peak_idx[pinx], trough_idx[tinx])
+        # interval statistics:
+        ipis = np.diff(p_idx)
+        itis = np.diff(t_idx)
+        if len(ipis) &gt; 2:
+            cv_interv[i] = 0.5 * (np.std(ipis) / np.mean(ipis) + np.std(itis) / np.mean(itis))
+            # penalize regions without detected peaks:
+            mean_interv = np.mean(ipis)
+            if p_idx[0] - wtinx &gt; mean_interv:
+                cv_interv[i] *= (p_idx[0] - wtinx) / mean_interv
+            if wtinx + win_size_indices - p_idx[-1] &gt; mean_interv:
+                cv_interv[i] *= (wtinx + win_size_indices - p_idx[-1]) / mean_interv
+        else:
+            cv_interv[i] = invalid_cv
+        # statistics of peak-to-trough amplitude:
+        p2t_ampl = data[p_idx] - data[t_idx]
+        if len(p2t_ampl) &gt; 2:
+            mean_ampl[i] = np.mean(p2t_ampl)
+            cv_ampl[i] = np.std(p2t_ampl) / mean_ampl[i]
+            # penalize for clipped peaks:
+            clipped_frac[i] = float(np.sum(data[p_idx] &gt; max_clip) +
+                                    np.sum(data[t_idx] &lt; min_clip)) / 2.0 / len(p2t_ampl)
+            mean_ampl[i] *= (1.0 - clipped_frac[i]) ** 2.0
+        else:
+            mean_ampl[i] = 0.0
+            cv_ampl[i] = invalid_cv
+
+    # check:
+    if len(mean_ampl[mean_ampl &gt;= 0.0]) &lt; 0:
+        raise UserWarning(&#39;no finite amplitudes detected&#39;)
+    if len(cv_interv[cv_interv &lt; invalid_cv]) &lt;= 0:
+        raise UserWarning(&#39;no valid interval cv detected&#39;)
+    if len(cv_ampl[cv_ampl &lt; invalid_cv]) &lt;= 0:
+        raise UserWarning(&#39;no valid amplitude cv detected&#39;)
+
+    # cost function:
+    cost = w_cv_interv * cv_interv + w_cv_ampl * cv_ampl - w_ampl * mean_ampl
+    thresh = np.min(cost) + tolerance
+
+    # find largest region with low costs:
+    valid_win_idx = np.nonzero(cost &lt;= thresh)[0]
+    cidx0 = valid_win_idx[0]  # start of current window
+    cidx1 = cidx0 + 1  # end of current window
+    win_idx0 = cidx0   # start of largest window
+    win_idx1 = cidx1   # end of largest window
+    i = 1
+    while i &lt; len(valid_win_idx):  # loop through all valid window positions
+        if valid_win_idx[i] == valid_win_idx[i - 1] + 1:
+            cidx1 = valid_win_idx[i] + 1
+        else:
+            cidx0 = valid_win_idx[i]
+        if cidx1 - cidx0 &gt; win_idx1 - win_idx0:  # current window is largest
+            win_idx0 = cidx0
+            win_idx1 = cidx1
+        i += 1
+
+    # find single best window within the largest region:
+    if not expand:
+        win_idx0 += np.argmin(cost[win_idx0:win_idx1])
+        win_idx1 = win_idx0 + 1
+
+    # retrive indices of best window for data:
+    idx0 = win_start_inxs[win_idx0]
+    idx1 = win_start_inxs[win_idx1 - 1] + win_size_indices
+
+    # clipped data?
+    clipped = np.mean(clipped_frac[win_idx0:win_idx1])
+
+    if plot_data_func:
+        plot_data_func(data, rate, threshold, peak_idx, trough_idx,
+                       idx0, idx1, win_start_inxs/rate, cv_interv,
+                       mean_ampl, cv_ampl, clipped_frac, cost, thresh,
+                       win_idx0, win_idx1, **kwargs)
+
+    return idx0, idx1, clipped</code></pre>
+</details>
+<div class="desc"><p>Find the window within data most suitable for subsequent analysis.</p>
+<p>First, large peaks and troughs of the data are detected.
+Peaks and
+troughs have to be separated in amplitude by at least the value of a
+dynamic threshold.
+The threshold is computed in <code>win_shift</code> wide
+windows as <code>thresh_fac</code> times the interpercentile range at
+the <code>percentile</code>-th and 100.0-<code>percentile</code>-th percentile of the data
+using the <code>thunderlab.eventdetection.percentile_threshold()</code> function.</p>
+<p>Second, criteria for selecting the best window are computed for each
+window of width <code>win_size</code> shifted by <code>win_shift</code> trough the data. The
+three criteria are:</p>
+<ul>
+<li>the mean peak-to-trough amplitude multiplied with the fraction of
+non clipped peak and trough amplitudes.</li>
+<li>the coefficient of variation of the peak-to-trough amplitude.</li>
+<li>the coefficient of variation of the inter-peak and inter-trough
+intervals.</li>
+</ul>
+<p>Third, a cost function is computed as a weighted sum of the three
+criteria (the mean amplitude is taken negatively). The respective
+weights are given by <code>w_ampl</code>, <code>w_cv_ampl</code>, and <code>w_cv_interv</code>.</p>
+<p>Finally, a threshold is set to the minimum value of the cost
+function plus tolerance.
+Then the largest region with the cost
+function below this threshold is selected as the best window.
+If
+<code>expand</code> is <code>False</code>, then only the single window with smallest cost
+within the selected largest region is returned.</p>
+<p>The data used by best window algorithm can be visualized by supplying the
+function <code>plot_data_func</code>.
+Additional arguments for this function can
+be supplied via key-word arguments <code>kwargs</code>.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>The data to be analyzed.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>expand</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>If <code>False</code> return only the single window with the smallest cost.
+If <code>True</code> return the largest window with the cost below the minimum cost
+plus tolerance.</dd>
+<dt><strong><code>win_size</code></strong> :&ensp;<code>float</code></dt>
+<dd>Minimum size of the desired best window in seconds.
+Choose it large enough for the subsequent analysis.</dd>
+<dt><strong><code>win_shift</code></strong> :&ensp;<code>float</code></dt>
+<dd>Time shift in seconds between windows. Should be smaller or equal to <code>win_size</code>.</dd>
+<dt><strong><code>percentile</code></strong> :&ensp;<code>float</code></dt>
+<dd><code>percentile</code> parameter for the <code>thunderlab.eventdetection.percentile_threshold()</code> function
+used to estimate thresholds for detecting peaks in the data.</dd>
+<dt><strong><code>thresh_fac</code></strong> :&ensp;<code>float</code></dt>
+<dd><code>thresh_fac</code> parameter for the <code>thunderlab.eventdetection.percentile_threshold()</code> function
+used to estimate thresholds for detecting peaks in the data.</dd>
+<dt><strong><code>min_clip</code></strong> :&ensp;<code>float</code></dt>
+<dd>Minimum amplitude below which data are clipped.</dd>
+<dt><strong><code>max_clip</code></strong> :&ensp;<code>float</code></dt>
+<dd>Maximum amplitude above which data are clipped.</dd>
+<dt><strong><code>w_cv_interv</code></strong> :&ensp;<code>float</code></dt>
+<dd>Weight for the coefficient of variation of the intervals between detected
+peaks and throughs.</dd>
+<dt><strong><code>w_ampl</code></strong> :&ensp;<code>float</code></dt>
+<dd>Weight for the mean peak-to-trough amplitude.</dd>
+<dt><strong><code>w_cv_ampl</code></strong> :&ensp;<code>float</code></dt>
+<dd>Weight for the coefficient of variation of the amplitudes.</dd>
+<dt><strong><code>tolerance</code></strong> :&ensp;<code>float</code></dt>
+<dd>Added to the minimum cost for expanding the region of the best window.</dd>
+<dt><strong><code>plot_data_func</code></strong> :&ensp;<code>function</code></dt>
+<dd>
+<p>Function for plotting the raw data, detected peaks and troughs, the criteria,
+the cost function and the selected best window.
+<code><a title="thunderfish.bestwindow.plot_best_window" href="#thunderfish.bestwindow.plot_best_window">plot_best_window()</a></code> is a simple function that can be passed as the <code>plot_data_func</code>
+parameter to quickly visualize what is going on in selecting the best window.</p>
+<p>Signature:</p>
+<p><code>`
+plot_data_func(data, rate, peak_thresh, peak_idx, trough_idx,
+idx0, idx1, win_start_times, cv_interv, mean_ampl,
+cv_ampl, clipped_frac, cost_thresh, thresh,
+valid_wins, **kwargs)</code></p>
+<p>with the arguments:</p>
+<ul>
+<li><code>data</code> (array): raw data.</li>
+<li><code>rate</code> (float): sampling rate of the data.</li>
+<li><code>peak_thresh</code> (array): thresholds used for detecting peaks and troughs in each data window.</li>
+<li><code>peak_idx</code> (array): indices into raw data indicating detected peaks.</li>
+<li><code>trough_idx</code> (array): indices into raw data indicating detected troughs.</li>
+<li><code>idx0</code> (int): index of the start of the best window.</li>
+<li><code>idx1</code> (int): index of the end of the best window.</li>
+<li><code>win_start_times</code> (array): times of the analysis windows.</li>
+<li><code>cv_interv</code> (array): coefficients of variation of the inter-peak and -trough
+intervals.</li>
+<li><code>mean_ampl</code> (array): mean peak-to-trough amplitudes.</li>
+<li><code>cv_ampl</code> (array): coefficients of variation of the peak-to-trough amplitudes.</li>
+<li><code>clipped_frac</code> (array): fraction of clipped peaks or troughs.</li>
+<li><code>cost</code> (array): cost function.</li>
+<li><code>cost_thresh</code> (float): threshold for the cost function.</li>
+<li><code>valid_wins</code> (array): boolean array indicating the windows which fulfill
+all three criteria.</li>
+<li><code>**kwargs</code> (dict): further user supplied key-word arguments.</li>
+</ul>
+</dd>
+<dt><strong><code>kwargs</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Keyword arguments passed to <code>plot_data_func</code>.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>start_index</code></strong> :&ensp;<code>int</code></dt>
+<dd>Index of the start of the best window.</dd>
+<dt><strong><code>end_index</code></strong> :&ensp;<code>int</code></dt>
+<dd>Index of the end of the best window.</dd>
+</dl>
+<p>clipped: float.
+The fraction of clipped peaks or troughs.</p>
+<h2 id="raises">Raises</h2>
+<dl>
+<dt><code>UserWarning</code></dt>
+<dd>
+<ul>
+<li>Not enough data for requested <code>win_size</code>.</li>
+<li>No peaks detected.</li>
+<li>No finite amplitudes detected.</li>
+<li>No valid interval CV detected.</li>
+<li>No valid amplitude CV detected.</li>
+</ul>
+</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.bestwindow.best_window_times"><code class="name flex">
+<span>def <span class="ident">best_window_times</span></span>(<span>data,<br>rate,<br>expand=False,<br>win_size=1.0,<br>win_shift=0.5,<br>thresh_fac=0.8,<br>percentile=0.1,<br>min_clip=-inf,<br>max_clip=inf,<br>w_cv_interv=1.0,<br>w_ampl=1.0,<br>w_cv_ampl=1.0,<br>tolerance=0.2,<br>plot_data_func=None,<br>**kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def best_window_times(data, rate, expand=False, win_size=1.,
+                      win_shift=0.5, thresh_fac=0.8, percentile=0.1,
+                      min_clip=-np.inf, max_clip=np.inf,
+                      w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
+                      tolerance=0.2, plot_data_func=None, **kwargs):
+    &#34;&#34;&#34;Find the window within data most suitable for subsequent analysis.
+
+    See `best_window_indices()` for details.
+
+    Returns
+    -------
+    start_time: float
+        Time of the start of the best window.
+    end_time: float
+        Time of the end of the best window.
+    clipped: float
+        The fraction of clipped peaks or troughs.
+    &#34;&#34;&#34;
+    start_inx, end_inx, clipped = best_window_indices(data, rate,
+                                                      expand,
+                                                      win_size,
+                                                      win_shift,
+                                                      thresh_fac,
+                                                      percentile,
+                                                      min_clip,
+                                                      max_clip,
+                                                      w_cv_interv,
+                                                      w_ampl,
+                                                      w_cv_ampl,
+                                                      tolerance,
+                                                      plot_data_func,
+                                                      **kwargs)
+    return start_inx/rate, end_inx/rate, clipped</code></pre>
+</details>
+<div class="desc"><p>Find the window within data most suitable for subsequent analysis.</p>
+<p>See <code><a title="thunderfish.bestwindow.best_window_indices" href="#thunderfish.bestwindow.best_window_indices">best_window_indices()</a></code> for details.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>start_time</code></strong> :&ensp;<code>float</code></dt>
+<dd>Time of the start of the best window.</dd>
+<dt><strong><code>end_time</code></strong> :&ensp;<code>float</code></dt>
+<dd>Time of the end of the best window.</dd>
+<dt><strong><code>clipped</code></strong> :&ensp;<code>float</code></dt>
+<dd>The fraction of clipped peaks or troughs.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.bestwindow.best_window"><code class="name flex">
+<span>def <span class="ident">best_window</span></span>(<span>data,<br>rate,<br>expand=False,<br>win_size=1.0,<br>win_shift=0.5,<br>thresh_fac=0.8,<br>percentile=0.1,<br>min_clip=-inf,<br>max_clip=inf,<br>w_cv_interv=1.0,<br>w_ampl=1.0,<br>w_cv_ampl=1.0,<br>tolerance=0.2,<br>plot_data_func=None,<br>**kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def best_window(data, rate, expand=False, win_size=1., win_shift=0.5,
+                thresh_fac=0.8, percentile=0.1, min_clip=-np.inf, max_clip=np.inf,
+                w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0, tolerance=0.2,
+                plot_data_func=None, **kwargs):
+    &#34;&#34;&#34;Find the window within data most suitable for subsequent analysis.
+
+    See `best_window_indices()` for details.
+
+    Returns
+    -------
+    data: array
+        The data of the best window.
+    clipped: float
+        The fraction of clipped peaks or troughs.
+    &#34;&#34;&#34;
+    start_inx, end_inx, clipped = best_window_indices(data, rate, expand,
+                                                      win_size, win_shift,
+                                                      thresh_fac, percentile,
+                                                      min_clip, max_clip,
+                                                      w_cv_interv, w_ampl, w_cv_ampl,
+                                                      tolerance, plot_data_func, **kwargs)
+    return data[start_inx:end_inx], clipped</code></pre>
+</details>
+<div class="desc"><p>Find the window within data most suitable for subsequent analysis.</p>
+<p>See <code><a title="thunderfish.bestwindow.best_window_indices" href="#thunderfish.bestwindow.best_window_indices">best_window_indices()</a></code> for details.</p>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>array</code></dt>
+<dd>The data of the best window.</dd>
+<dt><strong><code>clipped</code></strong> :&ensp;<code>float</code></dt>
+<dd>The fraction of clipped peaks or troughs.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.bestwindow.plot_best_window"><code class="name flex">
+<span>def <span class="ident">plot_best_window</span></span>(<span>data,<br>rate,<br>threshold,<br>peak_idx,<br>trough_idx,<br>idx0,<br>idx1,<br>win_times,<br>cv_interv,<br>mean_ampl,<br>cv_ampl,<br>clipped_frac,<br>cost,<br>thresh,<br>win_idx0,<br>win_idx1,<br>ax)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
+                     win_times, cv_interv, mean_ampl, cv_ampl, clipped_frac,
+                     cost, thresh, win_idx0, win_idx1, ax):
+    &#34;&#34;&#34;Visualize the cost function of used for finding the best window for analysis.
+
+    Pass this function as the `plot_data_func` to the `best_window_*` functions.
+
+    Parameters
+    ----------
+    See documentation of the `best_window_indices()` functions.
+    &#34;&#34;&#34;
+    # raw data:
+    time = np.arange(0.0, len(data))/rate
+    ax[0].plot(time, data, &#39;b&#39;, lw=3)
+    if np.mean(clipped_frac[win_idx0:win_idx1]) &gt; 0.01:
+        ax[0].plot(time[idx0:idx1], data[idx0:idx1], color=&#39;magenta&#39;, lw=3)
+    else:
+        ax[0].plot(time[idx0:idx1], data[idx0:idx1], color=&#39;grey&#39;, lw=3)
+    ax[0].plot(time[peak_idx], data[peak_idx], &#39;o&#39;, mfc=&#39;red&#39;, ms=6)
+    ax[0].plot(time[trough_idx], data[trough_idx], &#39;o&#39;, mfc=&#39;green&#39;, ms=6)
+    ax[0].plot(time, threshold, &#39;#CCCCCC&#39;, lw=2)
+    up_lim = np.max(data) * 1.05
+    down_lim = np.min(data) * .95
+    ax[0].set_ylim((down_lim, up_lim))
+    ax[0].set_ylabel(&#39;Amplitude [a.u]&#39;)
+
+    # cv of inter-peak intervals:
+    ax[1].plot(win_times[cv_interv &lt; 1000.0], cv_interv[cv_interv &lt; 1000.0], &#39;o&#39;, ms=10, color=&#39;grey&#39;, mew=2.,
+               mec=&#39;black&#39;, alpha=0.6)
+    ax[1].plot(win_times[win_idx0:win_idx1], cv_interv[win_idx0:win_idx1], &#39;o&#39;, ms=10, color=&#39;red&#39;, mew=2., mec=&#39;black&#39;,
+               alpha=0.6)
+    ax[1].set_ylabel(&#39;CV intervals&#39;)
+    ax[1].set_ylim(bottom=0.0)
+
+    # mean amplitude:
+    ax[2].plot(win_times[mean_ampl &gt; 0.0], mean_ampl[mean_ampl &gt; 0.0], &#39;o&#39;, ms=10, color=&#39;grey&#39;, mew=2., mec=&#39;black&#39;,
+               alpha=0.6)
+    ax[2].plot(win_times[win_idx0:win_idx1], mean_ampl[win_idx0:win_idx1], &#39;o&#39;, ms=10, color=&#39;red&#39;, mew=2., mec=&#39;black&#39;,
+               alpha=0.6)
+    ax[2].set_ylabel(&#39;Mean amplitude [a.u]&#39;)
+    ax[2].set_ylim(bottom=0.0)
+
+    # cv:
+    ax[3].plot(win_times[cv_ampl &lt; 1000.0], cv_ampl[cv_ampl &lt; 1000.0], &#39;o&#39;, ms=10, color=&#39;grey&#39;, mew=2., mec=&#39;black&#39;,
+               alpha=0.6)
+    ax[3].plot(win_times[win_idx0:win_idx1], cv_ampl[win_idx0:win_idx1], &#39;o&#39;, ms=10, color=&#39;red&#39;, mew=2., mec=&#39;black&#39;,
+               alpha=0.6)
+    ax[3].set_ylabel(&#39;CV amplitude&#39;)
+    ax[3].set_ylim(bottom=0.0)
+
+    # cost:
+    ax[4].plot(win_times[cost &lt; thresh + 10], cost[cost &lt; thresh + 10], &#39;o&#39;, ms=10, color=&#39;grey&#39;, mew=2., mec=&#39;black&#39;,
+               alpha=0.6)
+    ax[4].plot(win_times[win_idx0:win_idx1], cost[win_idx0:win_idx1], &#39;o&#39;, ms=10, color=&#39;red&#39;, mew=2., mec=&#39;black&#39;,
+               alpha=0.6)
+    ax[4].axhline(thresh, color=&#39;k&#39;)
+    ax[4].set_ylabel(&#39;Cost&#39;)
+    ax[4].set_xlabel(&#39;Time [sec]&#39;)</code></pre>
+</details>
+<div class="desc"><p>Visualize the cost function of used for finding the best window for analysis.</p>
+<p>Pass this function as the <code>plot_data_func</code> to the <code>best_window_*</code> functions.</p>
+<h2 id="parameters">Parameters</h2>
+<p>See documentation of the <code><a title="thunderfish.bestwindow.best_window_indices" href="#thunderfish.bestwindow.best_window_indices">best_window_indices()</a></code> functions.</p></div>
+</dd>
+<dt id="thunderfish.bestwindow.plot_data_window"><code class="name flex">
+<span>def <span class="ident">plot_data_window</span></span>(<span>ax,<br>data,<br>rate,<br>unit,<br>idx0,<br>idx1,<br>clipped,<br>dstyle={'color': 'tab:blue', 'lw': 1},<br>wstyle={'color': 'tab:red', 'lw': 1})</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_data_window(ax, data, rate, unit, idx0, idx1, clipped,
+                     dstyle=dict(color=&#39;tab:blue&#39;, lw=1),
+                     wstyle=dict(color=&#39;tab:red&#39;, lw=1)):
+    &#34;&#34;&#34;Plot the data and mark the analysis window.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes used for plotting.
+    data: 1-D array
+        The full data trace.
+    rate: float
+        Sampling rate of the data in Hertz.
+    unit: string
+        The unit of the data.
+    idx0: int
+        Start index of the best window.
+    idx1: int
+        Stop index of the best window.
+    clipped: float
+        Fraction of clipped peaks.
+    data_color:
+        Color used for plotting the data trace.
+    window_color:
+        Color used for plotting the selected best window.
+    &#34;&#34;&#34;
+    time = np.arange(len(data))/rate
+    ax.plot(time[:idx0], data[:idx0], **dstyle)
+    ax.plot(time[idx1:], data[idx1:], **dstyle)
+    if idx1 &gt; idx0:
+        ax.plot(time[idx0:idx1], data[idx0:idx1], **wstyle)
+        label = &#39;analysis\nwindow&#39;
+        if clipped &gt; 0.0:
+            label += f&#39;\n{100.0*clipped:.0f}% clipped&#39;
+        ax.text(time[(idx0+idx1)//2], 0.0, label, ha=&#39;center&#39;, va=&#39;center&#39;)
+    ax.set_xlim(time[0], time[-1])
+    ax.set_xlabel(&#39;Time [sec]&#39;)
+    if len(unit) == 0 or unit == &#39;a.u.&#39;:
+        ax.set_ylabel(&#39;Amplitude&#39;)
+    else:
+        ax.set_ylabel(f&#39;Amplitude [{unit}]&#39;)
+    ax.yaxis.set_major_locator(ticker.MaxNLocator(3))</code></pre>
+</details>
+<div class="desc"><p>Plot the data and mark the analysis window.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axes</code></dt>
+<dd>Axes used for plotting.</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>The full data trace.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>string</code></dt>
+<dd>The unit of the data.</dd>
+<dt><strong><code>idx0</code></strong> :&ensp;<code>int</code></dt>
+<dd>Start index of the best window.</dd>
+<dt><strong><code>idx1</code></strong> :&ensp;<code>int</code></dt>
+<dd>Stop index of the best window.</dd>
+<dt><strong><code>clipped</code></strong> :&ensp;<code>float</code></dt>
+<dd>Fraction of clipped peaks.</dd>
+</dl>
+<p>data_color:
+Color used for plotting the data trace.
+window_color:
+Color used for plotting the selected best window.</p></div>
+</dd>
+<dt id="thunderfish.bestwindow.add_best_window_config"><code class="name flex">
+<span>def <span class="ident">add_best_window_config</span></span>(<span>cfg,<br>win_pos='best',<br>win_size=1.0,<br>win_shift=0.5,<br>thresh_fac=0.8,<br>percentile=0.1,<br>min_clip=-inf,<br>max_clip=inf,<br>w_cv_interv=1.0,<br>w_ampl=1.0,<br>w_cv_ampl=1.0,<br>tolerance=0.2,<br>expand=False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_best_window_config(cfg, win_pos=&#39;best&#39;, win_size=1., win_shift=0.5,
+                           thresh_fac=0.8, percentile=0.1,
+                           min_clip=-np.inf, max_clip=np.inf,
+                           w_cv_interv=1.0, w_ampl=1.0, w_cv_ampl=1.0,
+                           tolerance=0.2, expand=False):
+    &#34;&#34;&#34; Add parameter needed for the `best_window()` functions as a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+        
+    See `best_window_indices()` for details on the remaining arguments.
+    &#34;&#34;&#34;
+    cfg.add_section(&#39;Analysis window:&#39;)
+    cfg.add(&#39;windowPosition&#39;, win_pos, &#39;&#39;, &#39;Position of the analysis window: &#34;beginning&#34;, &#34;center&#34;, &#34;end&#34;, &#34;best&#34;, or a time in seconds.&#39;)
+    cfg.add(&#39;windowSize&#39;, win_size, &#39;s&#39;, &#39;Size of the best window. This should be much larger than the expected period of the signal. If 0 select the whole time series.&#39;)
+    cfg.add(&#39;bestWindowShift&#39;, win_shift, &#39;s&#39;,
+            &#39;Increment for shifting the analysis windows trough the data. Should be larger than the expected period of the signal.&#39;)
+    cfg.add(&#39;bestWindowThresholdPercentile&#39;, percentile, &#39;%&#39;,
+            &#39;Percentile for estimating interpercentile range. Should be smaller than the duty cycle of the periodic signal.&#39;)
+    cfg.add(&#39;bestWindowThresholdFactor&#39;, thresh_fac, &#39;&#39;,
+            &#39;Threshold for detecting peaks is interperecntile range of the data times this factor.&#39;)
+    cfg.add(&#39;weightCVInterval&#39;, w_cv_interv, &#39;&#39;,
+            &#39;Weight factor for the coefficient of variation of the inter-peak and inter-trough intervals.&#39;)
+    cfg.add(&#39;weightAmplitude&#39;, w_ampl, &#39;&#39;,
+            &#39;Weight factor for the mean peak-to-trough amplitudes.&#39;)
+    cfg.add(&#39;weightCVAmplitude&#39;, w_cv_ampl, &#39;&#39;,
+            &#39;Weight factor for the coefficient of variation of the peak-to-trough amplitude.&#39;)
+    cfg.add(&#39;bestWindowTolerance&#39;, tolerance, &#39;&#39;,
+            &#39;Add this to the minimum value of the cost function to get a threshold for selecting the largest best window.&#39;)
+    cfg.add(&#39;expandBestWindow&#39;, expand, &#39;&#39;,
+            &#39;Return the largest valid best window. If False return sole best window. &#39;)</code></pre>
+</details>
+<div class="desc"><p>Add parameter needed for the <code><a title="thunderfish.bestwindow.best_window" href="#thunderfish.bestwindow.best_window">best_window()</a></code> functions as a new section to a configuration.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+</dl>
+<p>See <code><a title="thunderfish.bestwindow.best_window_indices" href="#thunderfish.bestwindow.best_window_indices">best_window_indices()</a></code> for details on the remaining arguments.</p></div>
+</dd>
+<dt id="thunderfish.bestwindow.best_window_args"><code class="name flex">
+<span>def <span class="ident">best_window_args</span></span>(<span>cfg)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def best_window_args(cfg):
+    &#34;&#34;&#34;Translates a configuration to the respective parameter names of the functions `best_window*()`.
+
+    The return value can then be passed as key-word arguments to these
+    functions.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the `best_window*()` functions
+        and their values as supplied by `cfg`.
+    &#34;&#34;&#34;
+    return cfg.map({&#39;win_size&#39;: &#39;windowSize&#39;,
+                    &#39;win_shift&#39;: &#39;bestWindowShift&#39;,
+                    &#39;percentile&#39;: &#39;bestWindowThresholdPercentile&#39;,
+                    &#39;thresh_fac&#39;: &#39;bestWindowThresholdFactor&#39;,
+                    &#39;w_cv_interv&#39;: &#39;weightCVInterval&#39;,
+                    &#39;w_ampl&#39;: &#39;weightAmplitude&#39;,
+                    &#39;w_cv_ampl&#39;: &#39;weightCVAmplitude&#39;,
+                    &#39;tolerance&#39;: &#39;bestWindowTolerance&#39;,
+                    &#39;expand&#39;: &#39;expandBestWindow&#39;})</code></pre>
+</details>
+<div class="desc"><p>Translates a configuration to the respective parameter names of the functions <code>best_window*()</code>.</p>
+<p>The return value can then be passed as key-word arguments to these
+functions.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>a</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary with names of arguments of the <code>best_window*()</code> functions
+and their values as supplied by <code>cfg</code>.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.bestwindow.analysis_window"><code class="name flex">
+<span>def <span class="ident">analysis_window</span></span>(<span>data, rate, ampl_max, win_pos, cfg, show_bestwindow=False)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def analysis_window(data, rate, ampl_max, win_pos,
+                    cfg, show_bestwindow=False):
+    &#34;&#34;&#34;Set clipping amplitudes and find analysis window.
+
+    Parameters
+    ----------
+    data: 1-D array
+        The data to be analyzed.
+    rate: float
+        Sampling rate of the data in Hertz.
+    ampl_max: float
+        Maximum value of input range.
+    win_pos: string or float
+        Position of the analysis window: &#34;beginning&#34;, &#34;center&#34;, &#34;end&#34; or &#34;best&#34;.
+        Alternatively the beginning of the analysis window in seconds.
+    cfg: ConfigFile
+        Configuration for clipping and best window.
+    show_bestwindow: boolean
+        If true show a plot with the best window cost functions.
+
+    Returns
+    -------
+    data: 1-D array
+        The data array of the best window
+    idx0: int
+        The start index of the best window in the original data.
+    idx1: int
+        The end index of the best window in the original data.
+    clipped: float
+        Fraction of clipped amplitudes.
+    min_clip: float
+        Minimum amplitude that is not clipped.
+    max_clip: float
+        Maximum amplitude that is not clipped.
+    &#34;&#34;&#34;
+    found_bestwindow = True
+    min_clip = cfg.value(&#39;minClipAmplitude&#39;)
+    max_clip = cfg.value(&#39;maxClipAmplitude&#39;)
+    clipped = 0
+    if min_clip == 0.0 or max_clip == 0.0:
+        min_clip, max_clip = clip_amplitudes(data, max_ampl=ampl_max,
+                                             **clip_args(cfg, rate))
+    if cfg.value(&#39;unwrapData&#39;):
+        unwrap(data, 1.5, ampl_max)
+        min_clip *= 2
+        max_clip *= 2
+    # window size parameter:
+    bwa = best_window_args(cfg)
+    if &#39;win_size&#39; in bwa:
+        del bwa[&#39;win_size&#39;]
+    window_size = cfg.value(&#39;windowSize&#39;)
+    if window_size &lt;= 0.0:
+        window_size = (len(data)-1)/rate
+    # show cost function:
+    if win_pos == &#39;best&#39; and show_bestwindow:
+        fig, ax = plt.subplots(5, sharex=True, figsize=(14., 10.))
+        try:
+            idx0, idx1, clipped = best_window_indices(data, rate,
+                                                      min_clip=min_clip,
+                                                      max_clip=max_clip,
+                                                      win_size=window_size,
+                                                      plot_data_func=plot_best_window,
+                                                      ax=ax, **bwa)
+            plt.show()
+        except UserWarning as e:
+            found_bestwindow = False
+    else:
+        # too little data:
+        n_win = int(window_size*rate)
+        if len(data) &lt; n_win:
+            return data, 0, 0, False, min_clip, max_clip
+        if win_pos == &#39;best&#39;:
+            try:
+                idx0, idx1, clipped = best_window_indices(data, rate,
+                                                          min_clip=min_clip,
+                                                          max_clip=max_clip,
+                                                          win_size=window_size,
+                                                          **bwa)
+            except UserWarning as e:
+                found_bestwindow = False
+        else:
+            if win_pos[:5] == &#39;begin&#39;:
+                idx0 = 0
+            elif win_pos == &#39;end&#39;:
+                idx0 = len(data) - n_win
+            elif win_pos == &#39;center&#39;:
+                idx0 = (len(data) - n_win)//2
+            else:
+                try:
+                    if win_pos[-1] == &#39;s&#39;:
+                        win_pos = win_pos[:-1]
+                    t0 = float(win_pos)
+                except ValueError:
+                    found_bestwindow = False
+                    t0 = 0.0
+                idx0 = int(t0*rate)
+            idx1 = idx0 + n_win
+            if not found_bestwindow or idx1 &gt; len(data):
+                return data, 0, 0, False, min_clip, max_clip
+            data_seg = data[idx0:idx1]
+            # check for clipping:
+            win_shift = cfg.value(&#39;bestWindowShift&#39;)
+            thresh_fac = cfg.value(&#39;bestWindowThresholdFactor&#39;)
+            percentile = cfg.value(&#39;bestWindowThresholdPercentile&#39;)
+            threshold = percentile_threshold(data_seg,
+                                             int(win_shift*rate),
+                                             thresh_fac=thresh_fac,
+                                             percentile=percentile)
+            peak_idx, trough_idx = detect_peaks(data_seg, threshold)
+            p_idx, t_idx = trim_to_peak(peak_idx, trough_idx)
+            if len(p_idx) &gt; 0:
+                p2t_ampl = data_seg[p_idx] - data_seg[t_idx]
+                clipped = float(np.sum(data_seg[p_idx] &gt; max_clip) +
+                                np.sum(data_seg[t_idx] &lt; min_clip))/2/len(p2t_ampl)
+    if found_bestwindow:
+        return data[idx0:idx1], idx0, idx1, clipped, min_clip, max_clip
+    else:
+        return data, 0, 0, False, min_clip, max_clip</code></pre>
+</details>
+<div class="desc"><p>Set clipping amplitudes and find analysis window.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>The data to be analyzed.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>ampl_max</code></strong> :&ensp;<code>float</code></dt>
+<dd>Maximum value of input range.</dd>
+<dt><strong><code>win_pos</code></strong> :&ensp;<code>string</code> or <code>float</code></dt>
+<dd>Position of the analysis window: "beginning", "center", "end" or "best".
+Alternatively the beginning of the analysis window in seconds.</dd>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>Configuration for clipping and best window.</dd>
+<dt><strong><code>show_bestwindow</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>If true show a plot with the best window cost functions.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>The data array of the best window</dd>
+<dt><strong><code>idx0</code></strong> :&ensp;<code>int</code></dt>
+<dd>The start index of the best window in the original data.</dd>
+<dt><strong><code>idx1</code></strong> :&ensp;<code>int</code></dt>
+<dd>The end index of the best window in the original data.</dd>
+<dt><strong><code>clipped</code></strong> :&ensp;<code>float</code></dt>
+<dd>Fraction of clipped amplitudes.</dd>
+<dt><strong><code>min_clip</code></strong> :&ensp;<code>float</code></dt>
+<dd>Minimum amplitude that is not clipped.</dd>
+<dt><strong><code>max_clip</code></strong> :&ensp;<code>float</code></dt>
+<dd>Maximum amplitude that is not clipped.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.bestwindow.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>data_file=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main(data_file=None):
+    title = &#39;bestwindow&#39;
+    if data_file is None:
+        # generate data:
+        print(&#39;generate waveform...&#39;)
+        rate = 100000.0
+        time = np.arange(0.0, 1.0, 1.0 / rate)
+        f = 600.0
+        snippets = []
+        amf = 20.0
+        for ampl in [0.2, 0.5, 0.8]:
+            for am_ampl in [0.0, 0.3, 0.9]:
+                data = ampl * np.sin(2.0 * np.pi * f * time) * (1.0 + am_ampl * np.sin(2.0 * np.pi * amf * time))
+                data[data &gt; 1.3] = 1.3
+                data[data &lt; -1.3] = -1.3
+                snippets.extend(data)
+        data = np.asarray(snippets)
+        title = &#39;test sines&#39;
+        data += 0.01 * np.random.randn(len(data))
+    else:
+        from thunderlab.dataloader import load_data
+        print(f&#39;load {data_file} ...&#39;)
+        data, rate, unit, amax = load_data(data_file)
+        data = data[:,0]
+        title = data_file
+
+    # determine clipping amplitudes:
+    clip_win_size = 0.5
+    min_clip_fac = 2.0
+    min_clip, max_clip = clip_amplitudes(data, int(clip_win_size * rate),
+                                         min_fac=min_clip_fac)
+    # min_clip, max_clip = clip_amplitudes(data, int(clip_win_size*rate),
+    #                                      min_fac=min_clip_fac,
+    #                                      plot_hist_func=plot_clipping)
+
+    # setup plots:
+    fig, ax = plt.subplots(5, 1, sharex=True, figsize=(20, 12))
+    fig.canvas.manager.set_window_title(title)
+
+    # compute best window:
+    best_window_indices(data, rate, expand=False, win_size=4.0,
+                        win_shift=0.5, thresh_fac=0.8, percentile=0.1,
+                        min_clip=min_clip, max_clip=max_clip,
+                        w_cv_ampl=10.0, tolerance=0.5,
+                        plot_data_func=plot_best_window, ax=ax)
+
+    plt.tight_layout()
+    plt.show()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul>
+<li><a href="#main-functions">Main functions</a></li>
+<li><a href="#configuration">Configuration</a></li>
+<li><a href="#visualization">Visualization</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.bestwindow.clip_amplitudes" href="#thunderfish.bestwindow.clip_amplitudes">clip_amplitudes</a></code></li>
+<li><code><a title="thunderfish.bestwindow.plot_clipping" href="#thunderfish.bestwindow.plot_clipping">plot_clipping</a></code></li>
+<li><code><a title="thunderfish.bestwindow.add_clip_config" href="#thunderfish.bestwindow.add_clip_config">add_clip_config</a></code></li>
+<li><code><a title="thunderfish.bestwindow.clip_args" href="#thunderfish.bestwindow.clip_args">clip_args</a></code></li>
+<li><code><a title="thunderfish.bestwindow.best_window_indices" href="#thunderfish.bestwindow.best_window_indices">best_window_indices</a></code></li>
+<li><code><a title="thunderfish.bestwindow.best_window_times" href="#thunderfish.bestwindow.best_window_times">best_window_times</a></code></li>
+<li><code><a title="thunderfish.bestwindow.best_window" href="#thunderfish.bestwindow.best_window">best_window</a></code></li>
+<li><code><a title="thunderfish.bestwindow.plot_best_window" href="#thunderfish.bestwindow.plot_best_window">plot_best_window</a></code></li>
+<li><code><a title="thunderfish.bestwindow.plot_data_window" href="#thunderfish.bestwindow.plot_data_window">plot_data_window</a></code></li>
+<li><code><a title="thunderfish.bestwindow.add_best_window_config" href="#thunderfish.bestwindow.add_best_window_config">add_best_window_config</a></code></li>
+<li><code><a title="thunderfish.bestwindow.best_window_args" href="#thunderfish.bestwindow.best_window_args">best_window_args</a></code></li>
+<li><code><a title="thunderfish.bestwindow.analysis_window" href="#thunderfish.bestwindow.analysis_window">analysis_window</a></code></li>
+<li><code><a title="thunderfish.bestwindow.main" href="#thunderfish.bestwindow.main">main</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

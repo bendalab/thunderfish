@@ -1,0 +1,1286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>thunderfish.eodexplorer API documentation</title>
+<meta name="description" content="View and explore properties of EOD waveforms.">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], processEscapes: true } });</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.eodexplorer</code></h1>
+</header>
+<section id="section-intro">
+<p>View and explore properties of EOD waveforms.</p>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.eodexplorer.load_waveform"><code class="name flex">
+<span>def <span class="ident">load_waveform</span></span>(<span>idx)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def load_waveform(idx):
+    eodf = data[idx,&#39;EODf&#39;]
+    if not np.isfinite(eodf):
+        if load_spec:
+            return None, None
+        else:
+            return None
+    file_name = data[idx,&#39;file&#39;] if &#39;file&#39; in data else &#39;-&#39;.join(basename.split(&#39;-&#39;)[:-1])
+    file_index = data[idx,&#39;index&#39;] if &#39;index&#39; in data else 0
+    eod_filename = os.path.join(data_path, &#39;%s-eodwaveform-%d.csv&#39; % (file_name, file_index))
+    eod_table = TableData(eod_filename)
+    eod = eod_table[:,&#39;mean&#39;]
+    norm = np.max(eod)
+    if wave_fish:
+        eod = np.column_stack((eod_table[:,&#39;time&#39;]*0.001*eodf, eod/norm))
+    else:
+        eod = np.column_stack((eod_table[:,&#39;time&#39;], eod/norm))
+    if not load_spec:
+        return eod
+    fish_type = &#39;wave&#39; if wave_fish else &#39;pulse&#39;
+    spec_table = TableData(os.path.join(data_path, &#39;%s-%sspectrum-%d.csv&#39; % (file_name, fish_type, file_index)))
+    spec_data = spec_table.array()
+    if not wave_fish:
+        spec_data = spec_data[spec_data[:,0]&lt;2000.0,:]
+        spec_data = spec_data[::5,:]
+    return (eod, spec_data)</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+<dt id="thunderfish.eodexplorer.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>cargs=None)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main(cargs=None):
+    global data
+    global wave_fish
+    global load_spec
+    global data_path
+    global basename
+
+    # command line arguments:
+    if cargs is None:
+        cargs = sys.argv[1:]
+    parser = argparse.ArgumentParser(add_help=False,
+        description=&#39;View and explore properties of EOD waveforms.&#39;,
+        epilog=&#39;version %s by Benda-Lab (2019-%s)&#39; % (__version__, __year__))
+    parser.add_argument(&#39;-h&#39;, &#39;--help&#39;, nargs=0, action=PrintHelp,
+                        help=&#39;show this help message and exit&#39;)
+    parser.add_argument(&#39;--version&#39;, action=&#39;version&#39;, version=__version__)
+    parser.add_argument(&#39;-v&#39;, dest=&#39;verbose&#39;, action=&#39;store_true&#39;, default=False,
+                        help=&#39;verbose output&#39;)
+    parser.add_argument(&#39;-l&#39;, dest=&#39;list_columns&#39;, action=&#39;store_true&#39;,
+                        help=&#39;list all available data columns and exit&#39;)
+    parser.add_argument(&#39;-j&#39;, dest=&#39;jobs&#39;, nargs=&#39;?&#39;, type=int, default=None, const=0,
+                        help=&#39;number of jobs run in parallel for loading waveform data. Without argument use all CPU cores.&#39;)
+    parser.add_argument(&#39;-D&#39;, dest=&#39;column_groups&#39;, default=[], type=str, action=&#39;append&#39;,
+                        choices=EODExplorer.groups,
+                        help=&#39;default selection of data columns, check them with the -l option&#39;)
+    parser.add_argument(&#39;-d&#39;, dest=&#39;add_data_cols&#39;, action=&#39;append&#39;, default=[], metavar=&#39;COLUMN&#39;,
+                        help=&#39;data columns to be appended or removed (if already listed) for analysis&#39;)
+    parser.add_argument(&#39;-n&#39;, dest=&#39;max_n&#39;, default=0, type=int, metavar=&#39;MAX&#39;,
+                        help=&#39;maximum number of harmonics or peaks to be used&#39;)
+    parser.add_argument(&#39;-w&#39;, dest=&#39;add_waveforms&#39;, default=[], type=str, action=&#39;append&#39;,
+                        choices=[&#39;first&#39;, &#39;second&#39;, &#39;ampl&#39;, &#39;power&#39;, &#39;phase&#39;],
+                        help=&#39;add first or second derivative of EOD waveform, or relative amplitude, power, or phase to the plot of selected EODs.&#39;)
+    parser.add_argument(&#39;-s&#39;, dest=&#39;save_pca&#39;, action=&#39;store_true&#39;,
+                        help=&#39;save PCA components and exit&#39;)
+    parser.add_argument(&#39;-c&#39;, dest=&#39;color_col&#39;, default=&#39;EODf&#39;, type=str, metavar=&#39;COLUMN&#39;,
+                        help=&#39;data column to be used for color code or &#34;row&#34;&#39;)
+    parser.add_argument(&#39;-m&#39;, dest=&#39;color_map&#39;, default=&#39;jet&#39;, type=str, metavar=&#39;CMAP&#39;,
+                        help=&#39;name of color map&#39;)
+    parser.add_argument(&#39;-p&#39;, dest=&#39;data_path&#39;, default=&#39;.&#39;, type=str, metavar=&#39;PATH&#39;,
+                        help=&#39;path to the analyzed EOD waveform data&#39;)
+    parser.add_argument(&#39;-P&#39;, dest=&#39;rawdata_path&#39;, default=&#39;.&#39;, type=str, metavar=&#39;PATH&#39;,
+                        help=&#39;path to the raw EOD recordings&#39;)
+    parser.add_argument(&#39;-f&#39;, dest=&#39;format&#39;, default=&#39;auto&#39;, type=str,
+                        choices=TableData.formats + [&#39;same&#39;],
+                        help=&#39;file format used for saving PCA data (&#34;same&#34; uses same format as input file)&#39;)
+    parser.add_argument(&#39;file&#39;, default=&#39;&#39;, type=str,
+                        help=&#39;a wavefish.* or pulsefish.* summary file as generated by collectfish&#39;)
+    args = parser.parse_args(cargs)
+        
+    # read in command line arguments:    
+    verbose = args.verbose
+    list_columns = args.list_columns
+    jobs = args.jobs
+    file_name = args.file
+    column_groups = args.column_groups
+    add_data_cols = args.add_data_cols
+    max_n = args.max_n
+    add_waveforms = args.add_waveforms
+    save_pca = args.save_pca
+    color_col = args.color_col
+    color_map = args.color_map
+    data_path = args.data_path
+    rawdata_path = args.rawdata_path
+    data_format = args.format
+    
+    # read configuration:
+    cfgfile = __package__ + &#39;.cfg&#39;
+    cfg = ConfigFile()
+    add_eod_quality_config(cfg)
+    add_harmonic_groups_config(cfg)
+    add_species_config(cfg)
+    add_write_table_config(cfg, table_format=&#39;csv&#39;, unit_style=&#39;row&#39;,
+                           align_columns=True, shrink_width=False)
+    cfg.load_files(cfgfile, file_name, 4)
+    
+    # output format:
+    if data_format == &#39;same&#39;:
+        ext = os.path.splitext(file_name)[1][1:]
+        if ext in TableData.ext_formats:
+            data_format = TableData.ext_formats[ext]
+        else:
+            data_format = &#39;dat&#39;
+    if data_format != &#39;auto&#39;:
+        cfg.set(&#39;fileFormat&#39;, data_format)
+
+    # check color map:
+    if not color_map in plt.colormaps():
+        parser.error(&#39;&#34;%s&#34; is not a valid color map&#39; % color_map)
+        
+    # load summary data:
+    wave_fish = &#39;wave&#39; in file_name
+    data = TableData(file_name)
+
+    # basename:
+    basename = os.path.splitext(os.path.basename(file_name))[0]
+    
+    # check quality:
+    skipped = 0
+    for r in reversed(range(data.rows())):
+        idx = 0
+        if &#39;index&#39; in data:
+            idx = data[r,&#39;index&#39;]
+        skips = &#39;&#39;
+        if wave_fish:
+            harm_rampl = np.array([0.01*data[r,&#39;relampl%d&#39;%(k+1)] for k in range(3)
+                                   if &#39;relampl%d&#39;%(k+1) in data])
+            props = data.row_dict(r)
+            if &#39;clipped&#39; in props:
+                props[&#39;clipped&#39;] *= 0.01 
+            if &#39;noise&#39; in props:
+                props[&#39;noise&#39;] *= 0.01 
+            if &#39;rmserror&#39; in props:
+                props[&#39;rmserror&#39;] *= 0.01
+            if &#39;thd&#39; in props:
+                props[&#39;thd&#39;] *= 0.01 
+            _, skips, msg = wave_quality(props, harm_rampl, **wave_quality_args(cfg))
+        else:
+            props = data.row_dict(r)
+            if &#39;clipped&#39; in props:
+                props[&#39;clipped&#39;] *= 0.01 
+            if &#39;noise&#39; in props:
+                props[&#39;noise&#39;] *= 0.01 
+            skips, msg, _ = pulse_quality(props, **pulse_quality_args(cfg))
+        if len(skips) &gt; 0:
+            if verbose:
+                print(&#39;skip fish %2d from %s: %s&#39; % (idx, data[r,&#39;file&#39;] if &#39;file&#39; in data else basename, skips))
+            del data[r,:]
+            skipped += 1
+    if verbose and skipped &gt; 0:
+        print(&#39;&#39;)
+
+    # select columns (EOD properties) to be shown:
+    data_cols, error = \
+      EODExplorer.select_EOD_properties(data, wave_fish, max_n,
+                                        column_groups, add_data_cols)
+    if error:
+        parser.error(error)
+
+    # select column used for coloring the data:
+    colors, color_label, color_idx, error = \
+      select_coloring(data, data_cols, color_col)
+    if error:
+        parser.error(error)
+
+    # list columns:
+    if list_columns:
+        list_available_features(data, data_cols, color_idx)
+        parser.exit()
+
+    # load waveforms:
+    load_spec = &#39;ampl&#39; in add_waveforms or &#39;power&#39; in add_waveforms or &#39;phase&#39; in add_waveforms
+    if jobs is not None:
+        cpus = cpu_count() if jobs == 0 else jobs
+        p = Pool(cpus)
+        eod_data = p.map(load_waveform, range(data.rows()))
+        del p
+    else:
+        eod_data = list(map(load_waveform, range(data.rows())))
+
+    # explore:
+    eod_expl = EODExplorer(data, data_cols, wave_fish, eod_data,
+                           add_waveforms, load_spec, rawdata_path)
+    # write pca:
+    if save_pca:
+        eod_expl.compute_pca(False)
+        eod_expl.save_pca(basename, False, **write_table_args(cfg))
+        eod_expl.compute_pca(True)
+        eod_expl.save_pca(basename, True, **write_table_args(cfg))
+    else:
+        eod_expl.set_colors(colors, color_label, color_map)
+        eod_expl.show()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="thunderfish.eodexplorer.EODExplorer"><code class="flex name class">
+<span>class <span class="ident">EODExplorer</span></span>
+<span>(</span><span>data, data_cols, wave_fish, eod_data, add_waveforms, loaded_spec, rawdata_path)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class EODExplorer(MultivariateExplorer):
+    &#34;&#34;&#34;Simple GUI for viewing and exploring properties of EOD waveforms.
+
+    EODExplorer adapts a MultivariateExplorer to specific needs of EODs.
+
+    Static members
+    --------------
+    - `groups`: names of groups of data columns that can be selected.
+    - `select_EOD_properties()`: select data columns to be explored.
+    &#34;&#34;&#34;
+    
+    def __init__(self, data, data_cols, wave_fish, eod_data,
+                 add_waveforms, loaded_spec, rawdata_path):
+        &#34;&#34;&#34;
+        Parameters
+        ----------
+        data: TableData
+            Full table of EOD properties. Each row is a fish.
+        data_cols: list of string or ints
+            Names or indices of columns in `data` to be explored.
+            You may use the static function `select_EOD_properties()`
+            for assisting the selection of columns.
+        wave_fish: boolean
+            True if data are about wave-type weakly electric fish.
+            False if data are about pulse-type weakly electric fish.
+        eod_data: list of waveform data
+            Either waveform data is only the EOD waveform,
+            a ndarray of shape (time, [&#39;time&#39;, &#39;voltage&#39;]), or
+            it is a list with the first element being the EOD waveform,
+            and the second element being a 2D ndarray of spectral properties
+            of the EOD waveform with first column being the frequency or harmonics.
+        add_waveforms: list of string
+            List of what should be shown as waveform. Elements can be
+            &#39;first&#39;, &#39;second&#39;, &#39;ampl&#39;, &#39;power&#39;, or &#39;phase&#39;. For &#39;first&#39; and &#39;second&#39;
+            the first and second derivatives of the supplied EOD waveform a computed and shown.
+            &#39;ampl&#39;, &#39;power&#39;, and &#39;phase&#39; select properties of the provided spectral properties.
+        loaded_spec: boolean
+            Indicates whether eod_data contains spectral properties.
+        rawdata_path: string
+            Base path to the raw recording, needed to show thunderfish
+            when double clicking on a single EOD.
+        &#34;&#34;&#34;
+        self.wave_fish = wave_fish
+        self.eoddata = data
+        self.path = rawdata_path
+        MultivariateExplorer.__init__(self, data[:,data_cols],
+                                      None, &#39;EODExplorer&#39;)
+        tunit = &#39;ms&#39;
+        dunit = &#39;1/ms&#39;
+        if wave_fish:
+            tunit = &#39;1/EODf&#39;        
+            dunit = &#39;EODf&#39;
+        wave_data = eod_data
+        xlabels = [&#39;Time [%s]&#39; % tunit]
+        ylabels = [&#39;Voltage&#39;]
+        if &#39;first&#39; in add_waveforms:
+            # first derivative:
+            if loaded_spec:
+                if hasattr(sig, &#39;savgol_filter&#39;):
+                    derivative = lambda x: (np.column_stack((x[0], \
+                        sig.savgol_filter(x[0][:,1], 5, 2, 1, x[0][1,0]-x[0][0,0]))), x[1])
+                else:
+                    derivative = lambda x: (np.column_stack((x[0][:-1,:], \
+                        np.diff(x[0][:,1])/(x[0][1,0]-x[0][0,0]))), x[1])
+            else:
+                if hasattr(sig, &#39;savgol_filter&#39;):
+                    derivative = lambda x: np.column_stack((x, \
+                        sig.savgol_filter(x[:,1], 5, 2, 1, x[1,0]-x[0,0])))
+                else:
+                    derivative = lambda x: np.column_stack((x[:-1,:], \
+                        np.diff(x[:,1])/(x[1,0]-x[0,0])))
+            wave_data = list(map(derivative, wave_data))
+            ylabels.append(&#39;dV/dt [%s]&#39; % dunit)
+            if &#39;second&#39; in add_waveforms:
+                # second derivative:
+                if loaded_spec:
+                    if hasattr(sig, &#39;savgol_filter&#39;):
+                        derivative = lambda x: (np.column_stack((x[0], \
+                            sig.savgol_filter(x[0][:,1], 5, 2, 2, x[0][1,0]-x[0][0,0]))), x[1])
+                    else:
+                        derivative = lambda x: (np.column_stack((x[0][:-1,:], \
+                            np.diff(x[0][:,2])/(x[0][1,0]-x[0][0,0]))), x[1])
+                else:
+                    if hasattr(sig, &#39;savgol_filter&#39;):
+                        derivative = lambda x: np.column_stack((x, \
+                            sig.savgol_filter(x[:,1], 5, 2, 2, x[1,0]-x[0,0])))
+                    else:
+                        derivative = lambda x: np.column_stack((x[:-1,:], \
+                            np.diff(x[:,2])/(x[1,0]-x[0,0])))
+                wave_data = list(map(derivative, wave_data))
+                ylabels.append(&#39;d^2V/dt^2 [%s^2]&#39; % dunit)
+        if loaded_spec:
+            if wave_fish:
+                indices = [0]
+                phase = False
+                xlabels.append(&#39;Harmonics&#39;)
+                if &#39;ampl&#39; in add_waveforms:
+                    indices.append(3)
+                    ylabels.append(&#39;Ampl [%]&#39;)
+                if &#39;power&#39; in add_waveforms:
+                    indices.append(4)
+                    ylabels.append(&#39;Power [dB]&#39;)
+                if &#39;phase&#39; in add_waveforms:
+                    indices.append(5)
+                    ylabels.append(&#39;Phase&#39;)
+                    phase = True
+                def get_spectra(x):
+                    y = x[1][:,indices]
+                    if phase:
+                        y[y[:,-1]&lt;0.0,-1] += 2.0*np.pi 
+                    return (x[0], y)
+                wave_data = list(map(get_spectra, wave_data))
+            else:
+                xlabels.append(&#39;Frequency [Hz]&#39;)
+                ylabels.append(&#39;Power [dB]&#39;)
+                def get_spectra(x):
+                    y = x[1]
+                    y[:,1] = decibel(y[:,1], None)
+                    return (x[0], y)
+                wave_data = list(map(get_spectra, wave_data))
+        self.set_wave_data(wave_data, xlabels, ylabels, True)
+
+        
+    def fix_scatter_plot(self, ax, data, label, axis):
+        &#34;&#34;&#34;Customize an axes of a scatter plot.
+
+        - Limits for amplitude and time like quantities start at zero.
+        - Phases a labeled with multuples of pi.
+        - Species labels are rotated.
+        &#34;&#34;&#34;
+        if any(l in label for l in [&#39;ampl&#39;, &#39;power&#39;, &#39;width&#39;,
+                                    &#39;time&#39;, &#39;tau&#39;, &#39;P2-P1-dist&#39;,
+                                    &#39;var&#39;, &#39;peak&#39;, &#39;trough&#39;,
+                                    &#39;P2-P1-dist&#39;, &#39;rms&#39;, &#39;noise&#39;]):
+            if np.all(data[np.isfinite(data)] &gt;= 0.0):
+                if axis == &#39;x&#39;:
+                    ax.set_xlim(0.0, None)
+                elif axis == &#39;y&#39;:
+                    ax.set_ylim(0.0, None)
+                elif axis == &#39;c&#39;:
+                    return 0.0, np.max(data), None
+            else:
+                if axis == &#39;x&#39;:
+                    ax.set_xlim(None, 0.0)
+                elif axis == &#39;y&#39;:
+                    ax.set_ylim(None, 0.0)
+                elif axis == &#39;c&#39;:
+                    return np.min(data), 0.0, None
+        elif &#39;phase&#39; in label:
+            if axis == &#39;x&#39;:
+                ax.set_xlim(-np.pi, np.pi)
+                ax.set_xticks(np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi))
+                ax.set_xticklabels([u&#39;-\u03c0&#39;, u&#39;-\u03c0/2&#39;, &#39;0&#39;, u&#39;\u03c0/2&#39;, u&#39;\u03c0&#39;])
+            elif axis == &#39;y&#39;:
+                ax.set_ylim(-np.pi, np.pi)
+                ax.set_yticks(np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi))
+                ax.set_yticklabels([u&#39;-\u03c0&#39;, u&#39;-\u03c0/2&#39;, &#39;0&#39;, u&#39;\u03c0/2&#39;, u&#39;\u03c0&#39;])
+            elif axis == &#39;c&#39;:
+                if ax is not None:
+                    ax.set_yticklabels([u&#39;-\u03c0&#39;, u&#39;-\u03c0/2&#39;, &#39;0&#39;, u&#39;\u03c0/2&#39;, u&#39;\u03c0&#39;])
+                return -np.pi, np.pi, np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi)
+        elif &#39;species&#39; in label:
+            if axis == &#39;x&#39;:
+                for label in ax.get_xticklabels():
+                    label.set_rotation(30)
+                ax.set_xlabel(&#39;&#39;)
+                ax.set_xlim(np.min(data)-0.5, np.max(data)+0.5)
+            elif axis == &#39;y&#39;:
+                ax.set_ylabel(&#39;&#39;)
+                ax.set_ylim(np.min(data)-0.5, np.max(data)+0.5)
+            elif axis == &#39;c&#39;:
+                if ax is not None:
+                    ax.set_ylabel(&#39;&#39;)
+        return np.min(data), np.max(data), None
+
+    
+    def fix_waveform_plot(self, axs, indices):
+        &#34;&#34;&#34;Adapt waveform plots to EOD waveforms, derivatives, and spectra.
+        &#34;&#34;&#34;
+        if len(indices) == 0:
+            axs[0].text(0.5, 0.5, &#39;Click to plot EOD waveforms&#39;,
+                        transform = axs[0].transAxes, ha=&#39;center&#39;, va=&#39;center&#39;)
+            axs[0].text(0.5, 0.3, &#39;n = %d&#39; % len(self.raw_data),
+                        transform = axs[0].transAxes, ha=&#39;center&#39;, va=&#39;center&#39;)
+        elif len(indices) == 1:
+            file_name = self.eoddata[indices[0],&#39;file&#39;] if &#39;file&#39; in self.eoddata else basename
+            if &#39;index&#39; in self.eoddata and np.isfinite(self.eoddata[indices[0],&#39;index&#39;]) and \
+              np.any(self.eoddata[:,&#39;index&#39;] != self.eoddata[0,&#39;index&#39;]):
+                axs[0].set_title(&#39;%s: %d&#39; % (file_name,
+                                             self.eoddata[indices[0],&#39;index&#39;]))
+            else:
+                axs[0].set_title(file_name)
+            if np.isfinite(self.eoddata[indices[0],&#39;index&#39;]):
+                axs[0].text(0.05, 0.85, &#39;%.1fHz&#39; % self.eoddata[indices[0],&#39;EODf&#39;],
+                            transform = axs[0].transAxes)
+        else:
+            axs[0].set_title(&#39;%d EOD waveforms selected&#39; % len(indices))
+        for ax in axs:
+            for l in ax.lines:
+                l.set_linewidth(3.0)
+        for ax, xl in zip(axs, self.wave_ylabels):
+            if &#39;Voltage&#39; in xl:
+                ax.set_ylim(top=1.1)
+                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+            if &#39;dV/dt&#39; in xl:
+                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+            if &#39;d^2V/dt^2&#39; in xl:
+                ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+        if self.wave_fish:
+            for ax, xl in zip(axs, self.wave_ylabels):
+                if &#39;Voltage&#39; in xl:
+                    ax.set_xlim(-0.7, 0.7)
+                if &#39;Ampl&#39; in xl or &#39;Power&#39; in xl or &#39;Phase&#39; in xl:
+                    ax.set_xlim(-0.5, 8.5)
+                    for l in ax.lines:
+                        l.set_marker(&#39;.&#39;)
+                        l.set_markersize(15.0)
+                        l.set_markeredgewidth(0.5)
+                        l.set_markeredgecolor(&#39;k&#39;)
+                        l.set_markerfacecolor(l.get_color())
+                if &#39;Ampl&#39; in xl:
+                    ax.set_ylim(0.0, 100.0)
+                    ax.yaxis.set_major_locator(ticker.MultipleLocator(25.0))
+                if &#39;Power&#39; in xl:
+                    ax.set_ylim(-60.0, 2.0)
+                    ax.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+                if &#39;Phase&#39; in xl:
+                    ax.set_ylim(0.0, 2.0*np.pi)
+                    ax.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
+                    ax.set_yticklabels([&#39;0&#39;, u&#39;\u03c0/2&#39;, u&#39;\u03c0&#39;, u&#39;3\u03c0/2&#39;, u&#39;2\u03c0&#39;])
+        else:
+            for ax, xl in zip(axs, self.wave_ylabels):
+                if &#39;Voltage&#39; in xl:
+                    ax.set_xlim(-1.0, 1.5)
+                if &#39;Power&#39; in xl:
+                    ax.set_xlim(1.0, 2000.0)
+                    ax.set_xscale(&#39;log&#39;)
+                    ax.set_ylim(-60.0, 2.0)
+                    ax.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+        if len(indices) &gt; 0:
+            for ax in axs:
+                ax.axhline(c=&#39;k&#39;, lw=1)
+
+            
+    def list_selection(self, indices):
+        &#34;&#34;&#34;List file names and indices of selection.
+
+        If only a single EOD is selected, list all of its properties.
+        &#34;&#34;&#34;
+        print(&#39;&#39;)
+        print(&#39;selected EODs:&#39;)
+        if &#39;index&#39; in self.eoddata and \
+           np.any(self.eoddata[:,&#39;index&#39;] != self.eoddata[0,&#39;index&#39;]):
+            for i in indices:
+                file_name = self.eoddata[i,&#39;file&#39;] if &#39;file&#39; in self.eoddata else basename
+                if np.isfinite(self.eoddata[i,&#39;index&#39;]):
+                    print(&#39;%s : %d&#39; % (file_name, self.eoddata[i,&#39;index&#39;]))
+                else:
+                    print(file_name)
+        elif &#39;file&#39; in self.eoddata:
+            for i in indices:
+                print(self.eoddata[i,&#39;file&#39;])
+        if len(indices) == 1:
+            # write eoddata line on terminal:
+            keylen = 0
+            keys = []
+            values = []
+            for c in range(self.eoddata.columns()):
+                k, v = self.eoddata.key_value(indices[0], c)
+                keys.append(k)
+                values.append(v)
+                if keylen &lt; len(k):
+                    keylen = len(k)
+            for k, v in zip(keys, values):
+                fs = &#39;%%-%ds: %%s&#39; % keylen
+                print(fs % (k, v.strip()))
+
+                
+    def analyze_selection(self, index):
+        &#34;&#34;&#34;Launch thunderfish on the selected EOD.
+        &#34;&#34;&#34;
+        # load data:
+        file_base = self.eoddata[index,&#39;file&#39;] if &#39;file&#39; in self.eoddata else basename
+        bp = os.path.join(self.path, file_base)
+        fn = glob.glob(bp + &#39;.*&#39;)
+        if len(fn) == 0:
+            print(&#39;no recording found for %s&#39; % bp)
+            return
+        recording = fn[0]
+        channel = 0
+        try:
+            raw_data, rate, unit, ampl_max = load_data(recording)
+            raw_data = raw_data[:,channel]
+        except IOError as e:
+            print(&#39;%s: failed to open file: did you provide a path to the raw data (-P option)?&#39; % (recording))
+            return
+        if len(raw_data) &lt;= 1:
+            print(&#39;%s: empty data file&#39; % recording)
+            return
+        # load configuration:
+        cfgfile = __package__ + &#39;.cfg&#39;
+        cfg = configuration(cfgfile, False, recording)
+        cfg.load_files(cfgfile, recording, 4)
+        if &#39;flipped&#39; in self.eoddata:
+            fs = &#39;flip&#39; if self.eoddata[index,&#39;flipped&#39;] else &#39;none&#39;
+            cfg.set(&#39;flipWaveEOD&#39;, fs)
+            cfg.set(&#39;flipPulseEOD&#39;, fs)
+        # best_window:
+        data, idx0, idx1, clipped, min_clip, max_clip = \
+            analysis_window(raw_data, rate, ampl_max,
+                            cfg.value(&#39;windowPosition&#39;), cfg)
+        # detect EODs in the data:
+        psd_data, fishlist, _, eod_props, mean_eods, \
+          spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
+          detect_eods(data, rate, min_clip, max_clip, recording, 0, 0, cfg)
+        # plot EOD:
+        idx = int(self.eoddata[index,&#39;index&#39;]) if &#39;index&#39; in self.eoddata else 0
+        for k in [&#39;toolbar&#39;, &#39;keymap.back&#39;, &#39;keymap.forward&#39;,
+                  &#39;keymap.zoom&#39;, &#39;keymap.pan&#39;]:
+            plt.rcParams[k] = self.plt_params[k]
+        fig = plot_eods(file_base, None, raw_data, rate, None, idx0, idx1,
+                        clipped, psd_data[0], fishlist, None,
+                        mean_eods, eod_props, peak_data, spec_data,
+                        [idx], unit, zoom_window, 10, None, True, False,
+                        &#39;auto&#39;, False, 0.0, 3000.0,
+                        interactive=True, verbose=0)
+        fig.canvas.manager.set_window_title(&#39;thunderfish: %s&#39; % file_base)
+        plt.show(block=False)
+
+
+    &#34;&#34;&#34;Names of groups of data columns that can be selected by the select_EOD_properties() function.
+    &#34;&#34;&#34;
+    groups = [&#39;all&#39;, &#39;allpower&#39;, &#39;noise&#39;, &#39;timing&#39;, &#39;wave&#39;,
+              &#39;ampl&#39;, &#39;relampl&#39;, &#39;power&#39;, &#39;relpower&#39;, &#39;phase&#39;,
+              &#39;time&#39;, &#39;width&#39;, &#39;peaks&#39;, &#39;none&#39;]
+    
+    @staticmethod
+    def select_EOD_properties(data, wave_fish, max_n, column_groups, add_columns):
+        &#34;&#34;&#34;Select data columns to be explored.
+
+        First, groups of columns are selected, then individual
+        columns. Columns that are selected twice are removed from the
+        selection.
+
+        Parameters
+        ----------
+        data: TableData
+            Table with EOD properties from which columns are selected.
+        wave_fish: boolean.
+            Indicates if data contains properties of wave- or pulse-type electric fish.
+        max_n: int
+            Maximum number of harmonics (wave-type fish) or peaks (pulse-type fish)
+            to be  selected.
+        column_groups: list of string
+            List of name denoting groups of columns to be selected. Supported groups are
+            listed in `EODExplor.groups`.
+        add_columns: list of string or int
+            List of further individual columns to be selected.
+
+        Returns
+        -------
+        data_cols: list of int
+            Indices of data columns to be shown by EODExplorer.
+        error: string
+            In case of an invalid column group, an error string.
+        &#34;&#34;&#34;
+        if wave_fish:
+            # maximum number of harmonics:
+            if max_n == 0:
+                max_n = 100
+            else:
+                max_n += 1
+            for k in range(1, max_n):
+                if not (&#39;phase%d&#39; % k) in data:
+                    max_n = k
+                    break
+        else:
+            # minimum number of peaks:
+            min_peaks = -10
+            for k in range(1, min_peaks, -1):
+                if not (&#39;P%dampl&#39; % k) in data or not np.all(np.isfinite(data[:,&#39;P%dampl&#39; % k])):
+                    min_peaks = k+1
+                    break
+            # maximum number of peaks:
+            if max_n == 0:
+                max_peaks = 20
+            else:
+                max_peaks = max_n + 1
+            for k in range(1, max_peaks):
+                if not (&#39;P%dampl&#39; % k) in data or not np.all(np.isfinite(data[:,&#39;P%dampl&#39; % k])):
+                    max_peaks = k
+                    break
+
+        # default columns:
+        group_cols = [&#39;EODf&#39;]
+        if &#39;EODf_adjust&#39; in data:
+            group_cols.append(&#39;EODf_adjust&#39;)
+        if len(column_groups) == 0:
+            column_groups = [&#39;all&#39;]
+        for group in column_groups:
+            if group == &#39;none&#39;:
+                group_cols = []
+            elif wave_fish:
+                if group == &#39;noise&#39;:
+                    group_cols.extend([&#39;noise&#39;, &#39;rmserror&#39;, &#39;power&#39;, &#39;thd&#39;,
+                                       &#39;dbdiff&#39;, &#39;maxdb&#39;, &#39;p-p-amplitude&#39;,
+                                       &#39;relampl1&#39;, &#39;relampl2&#39;, &#39;relampl3&#39;])
+                elif group == &#39;timing&#39; or group == &#39;time&#39;:
+                    group_cols.extend([&#39;peakwidth&#39;, &#39;troughwidth&#39;, &#39;p-p-distance&#39;,
+                                       &#39;leftpeak&#39;, &#39;rightpeak&#39;, &#39;lefttrough&#39;, &#39;righttrough&#39;])
+                elif group == &#39;wave&#39;:
+                    group_cols.extend([&#39;thd&#39;, &#39;minwidth&#39;, &#39;min-p-p-distance&#39;,
+                                       &#39;relpeakampl&#39;])
+                elif group == &#39;ampl&#39;:
+                    for k in range(0, max_n):
+                        group_cols.append(&#39;ampl%d&#39; % k)
+                elif group == &#39;relampl&#39;:
+                    group_cols.append(&#39;thd&#39;)
+                    group_cols.append(&#39;relpeakampl&#39;)
+                    for k in range(1, max_n):
+                        group_cols.append(&#39;relampl%d&#39; % k)
+                elif group == &#39;relpower&#39; or group == &#39;power&#39;:
+                    for k in range(1, max_n):
+                        group_cols.append(&#39;relpower%d&#39; % k)
+                elif group == &#39;phase&#39;:
+                    for k in range(0, max_n):
+                        group_cols.append(&#39;phase%d&#39; % k)
+                elif group == &#39;all&#39;:
+                    group_cols.extend([&#39;thd&#39;, &#39;minwidth&#39;, &#39;min-p-p-distance&#39;,
+                                       &#39;relpeakampl&#39;])
+                    for k in range(1, max_n):
+                        group_cols.append(&#39;relampl%d&#39; % k)
+                        group_cols.append(&#39;phase%d&#39; % k)
+                elif group == &#39;allpower&#39;:
+                    group_cols.append(&#39;thd&#39;)
+                    for k in range(1, max_n):
+                        group_cols.append(&#39;relpower%d&#39; % k)
+                        group_cols.append(&#39;phase%d&#39; % k)
+                else:
+                    return None, &#39;&#34;%s&#34; is not a valid data group for wavefish&#39; % group
+            else:  # pulse fish
+                if group == &#39;noise&#39;:
+                    group_cols.extend([&#39;noise&#39;, &#39;p-p-amplitude&#39;, &#39;min-ampl&#39;, &#39;max-ampl&#39;])
+                elif group == &#39;timing&#39;:
+                    group_cols.extend([&#39;tstart&#39;, &#39;tend&#39;, &#39;width&#39;, &#39;tau&#39;, &#39;P2-P1-dist&#39;, &#39;firstpeak&#39;, &#39;lastpeak&#39;])
+                elif group == &#39;power&#39;:
+                    group_cols.extend([&#39;peakfreq&#39;, &#39;peakpower&#39;, &#39;poweratt5&#39;, &#39;poweratt50&#39;, &#39;lowcutoff&#39;])
+                elif group == &#39;time&#39;:
+                    for k in range(min_peaks, max_peaks):
+                        if k != 1:
+                            group_cols.append(&#39;P%dtime&#39; % k)
+                elif group == &#39;ampl&#39;:
+                    for k in range(min_peaks, max_peaks):
+                        group_cols.append(&#39;P%dampl&#39; % k)
+                elif group == &#39;relampl&#39;:
+                    for k in range(min_peaks, max_peaks):
+                        if k != 1:
+                            group_cols.append(&#39;P%drelampl&#39; % k)
+                elif group == &#39;width&#39;:
+                    for k in range(min_peaks, max_peaks):
+                        group_cols.append(&#39;P%dwidth&#39; % k)
+                elif group == &#39;peaks&#39;:
+                    group_cols.append(&#39;firstpeak&#39;)
+                    group_cols.append(&#39;lastpeak&#39;)
+                elif group == &#39;all&#39;:
+                    group_cols.extend([&#39;firstpeak&#39;, &#39;lastpeak&#39;])
+                    for k in range(min_peaks, max_peaks):
+                        if k != 1:
+                            group_cols.append(&#39;P%drelampl&#39; % k)
+                            group_cols.append(&#39;P%dtime&#39; % k)
+                        group_cols.append(&#39;P%dwidth&#39; % k)
+                    group_cols.extend([&#39;tau&#39;, &#39;P2-P1-dist&#39;, &#39;peakfreq&#39;, &#39;poweratt5&#39;])
+                else:
+                    return None, &#39;&#34;%s&#34; is not a valid data group for pulsefish&#39; % group
+        # additional data columns:
+        group_cols.extend(add_columns)
+        # translate to indices:
+        data_cols = select_features(data, group_cols)
+        return data_cols, None</code></pre>
+</details>
+<div class="desc"><p>Simple GUI for viewing and exploring properties of EOD waveforms.</p>
+<p>EODExplorer adapts a MultivariateExplorer to specific needs of EODs.</p>
+<h2 id="static-members">Static Members</h2>
+<ul>
+<li><code>groups</code>: names of groups of data columns that can be selected.</li>
+<li><code>select_EOD_properties()</code>: select data columns to be explored.</li>
+</ul>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>TableData</code></dt>
+<dd>Full table of EOD properties. Each row is a fish.</dd>
+<dt><strong><code>data_cols</code></strong> :&ensp;<code>list</code> of <code>string</code> or <code>ints</code></dt>
+<dd>Names or indices of columns in <code>data</code> to be explored.
+You may use the static function <code>select_EOD_properties()</code>
+for assisting the selection of columns.</dd>
+<dt><strong><code>wave_fish</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>True if data are about wave-type weakly electric fish.
+False if data are about pulse-type weakly electric fish.</dd>
+<dt><strong><code>eod_data</code></strong> :&ensp;<code>list</code> of <code>waveform data</code></dt>
+<dd>Either waveform data is only the EOD waveform,
+a ndarray of shape (time, ['time', 'voltage']), or
+it is a list with the first element being the EOD waveform,
+and the second element being a 2D ndarray of spectral properties
+of the EOD waveform with first column being the frequency or harmonics.</dd>
+<dt><strong><code>add_waveforms</code></strong> :&ensp;<code>list</code> of <code>string</code></dt>
+<dd>List of what should be shown as waveform. Elements can be
+'first', 'second', 'ampl', 'power', or 'phase'. For 'first' and 'second'
+the first and second derivatives of the supplied EOD waveform a computed and shown.
+'ampl', 'power', and 'phase' select properties of the provided spectral properties.</dd>
+<dt><strong><code>loaded_spec</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>Indicates whether eod_data contains spectral properties.</dd>
+<dt><strong><code>rawdata_path</code></strong> :&ensp;<code>string</code></dt>
+<dd>Base path to the raw recording, needed to show thunderfish
+when double clicking on a single EOD.</dd>
+</dl></div>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>thunderlab.multivariateexplorer.MultivariateExplorer</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="thunderfish.eodexplorer.EODExplorer.groups"><code class="name">var <span class="ident">groups</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
+<h3>Static methods</h3>
+<dl>
+<dt id="thunderfish.eodexplorer.EODExplorer.select_EOD_properties"><code class="name flex">
+<span>def <span class="ident">select_EOD_properties</span></span>(<span>data, wave_fish, max_n, column_groups, add_columns)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@staticmethod
+def select_EOD_properties(data, wave_fish, max_n, column_groups, add_columns):
+    &#34;&#34;&#34;Select data columns to be explored.
+
+    First, groups of columns are selected, then individual
+    columns. Columns that are selected twice are removed from the
+    selection.
+
+    Parameters
+    ----------
+    data: TableData
+        Table with EOD properties from which columns are selected.
+    wave_fish: boolean.
+        Indicates if data contains properties of wave- or pulse-type electric fish.
+    max_n: int
+        Maximum number of harmonics (wave-type fish) or peaks (pulse-type fish)
+        to be  selected.
+    column_groups: list of string
+        List of name denoting groups of columns to be selected. Supported groups are
+        listed in `EODExplor.groups`.
+    add_columns: list of string or int
+        List of further individual columns to be selected.
+
+    Returns
+    -------
+    data_cols: list of int
+        Indices of data columns to be shown by EODExplorer.
+    error: string
+        In case of an invalid column group, an error string.
+    &#34;&#34;&#34;
+    if wave_fish:
+        # maximum number of harmonics:
+        if max_n == 0:
+            max_n = 100
+        else:
+            max_n += 1
+        for k in range(1, max_n):
+            if not (&#39;phase%d&#39; % k) in data:
+                max_n = k
+                break
+    else:
+        # minimum number of peaks:
+        min_peaks = -10
+        for k in range(1, min_peaks, -1):
+            if not (&#39;P%dampl&#39; % k) in data or not np.all(np.isfinite(data[:,&#39;P%dampl&#39; % k])):
+                min_peaks = k+1
+                break
+        # maximum number of peaks:
+        if max_n == 0:
+            max_peaks = 20
+        else:
+            max_peaks = max_n + 1
+        for k in range(1, max_peaks):
+            if not (&#39;P%dampl&#39; % k) in data or not np.all(np.isfinite(data[:,&#39;P%dampl&#39; % k])):
+                max_peaks = k
+                break
+
+    # default columns:
+    group_cols = [&#39;EODf&#39;]
+    if &#39;EODf_adjust&#39; in data:
+        group_cols.append(&#39;EODf_adjust&#39;)
+    if len(column_groups) == 0:
+        column_groups = [&#39;all&#39;]
+    for group in column_groups:
+        if group == &#39;none&#39;:
+            group_cols = []
+        elif wave_fish:
+            if group == &#39;noise&#39;:
+                group_cols.extend([&#39;noise&#39;, &#39;rmserror&#39;, &#39;power&#39;, &#39;thd&#39;,
+                                   &#39;dbdiff&#39;, &#39;maxdb&#39;, &#39;p-p-amplitude&#39;,
+                                   &#39;relampl1&#39;, &#39;relampl2&#39;, &#39;relampl3&#39;])
+            elif group == &#39;timing&#39; or group == &#39;time&#39;:
+                group_cols.extend([&#39;peakwidth&#39;, &#39;troughwidth&#39;, &#39;p-p-distance&#39;,
+                                   &#39;leftpeak&#39;, &#39;rightpeak&#39;, &#39;lefttrough&#39;, &#39;righttrough&#39;])
+            elif group == &#39;wave&#39;:
+                group_cols.extend([&#39;thd&#39;, &#39;minwidth&#39;, &#39;min-p-p-distance&#39;,
+                                   &#39;relpeakampl&#39;])
+            elif group == &#39;ampl&#39;:
+                for k in range(0, max_n):
+                    group_cols.append(&#39;ampl%d&#39; % k)
+            elif group == &#39;relampl&#39;:
+                group_cols.append(&#39;thd&#39;)
+                group_cols.append(&#39;relpeakampl&#39;)
+                for k in range(1, max_n):
+                    group_cols.append(&#39;relampl%d&#39; % k)
+            elif group == &#39;relpower&#39; or group == &#39;power&#39;:
+                for k in range(1, max_n):
+                    group_cols.append(&#39;relpower%d&#39; % k)
+            elif group == &#39;phase&#39;:
+                for k in range(0, max_n):
+                    group_cols.append(&#39;phase%d&#39; % k)
+            elif group == &#39;all&#39;:
+                group_cols.extend([&#39;thd&#39;, &#39;minwidth&#39;, &#39;min-p-p-distance&#39;,
+                                   &#39;relpeakampl&#39;])
+                for k in range(1, max_n):
+                    group_cols.append(&#39;relampl%d&#39; % k)
+                    group_cols.append(&#39;phase%d&#39; % k)
+            elif group == &#39;allpower&#39;:
+                group_cols.append(&#39;thd&#39;)
+                for k in range(1, max_n):
+                    group_cols.append(&#39;relpower%d&#39; % k)
+                    group_cols.append(&#39;phase%d&#39; % k)
+            else:
+                return None, &#39;&#34;%s&#34; is not a valid data group for wavefish&#39; % group
+        else:  # pulse fish
+            if group == &#39;noise&#39;:
+                group_cols.extend([&#39;noise&#39;, &#39;p-p-amplitude&#39;, &#39;min-ampl&#39;, &#39;max-ampl&#39;])
+            elif group == &#39;timing&#39;:
+                group_cols.extend([&#39;tstart&#39;, &#39;tend&#39;, &#39;width&#39;, &#39;tau&#39;, &#39;P2-P1-dist&#39;, &#39;firstpeak&#39;, &#39;lastpeak&#39;])
+            elif group == &#39;power&#39;:
+                group_cols.extend([&#39;peakfreq&#39;, &#39;peakpower&#39;, &#39;poweratt5&#39;, &#39;poweratt50&#39;, &#39;lowcutoff&#39;])
+            elif group == &#39;time&#39;:
+                for k in range(min_peaks, max_peaks):
+                    if k != 1:
+                        group_cols.append(&#39;P%dtime&#39; % k)
+            elif group == &#39;ampl&#39;:
+                for k in range(min_peaks, max_peaks):
+                    group_cols.append(&#39;P%dampl&#39; % k)
+            elif group == &#39;relampl&#39;:
+                for k in range(min_peaks, max_peaks):
+                    if k != 1:
+                        group_cols.append(&#39;P%drelampl&#39; % k)
+            elif group == &#39;width&#39;:
+                for k in range(min_peaks, max_peaks):
+                    group_cols.append(&#39;P%dwidth&#39; % k)
+            elif group == &#39;peaks&#39;:
+                group_cols.append(&#39;firstpeak&#39;)
+                group_cols.append(&#39;lastpeak&#39;)
+            elif group == &#39;all&#39;:
+                group_cols.extend([&#39;firstpeak&#39;, &#39;lastpeak&#39;])
+                for k in range(min_peaks, max_peaks):
+                    if k != 1:
+                        group_cols.append(&#39;P%drelampl&#39; % k)
+                        group_cols.append(&#39;P%dtime&#39; % k)
+                    group_cols.append(&#39;P%dwidth&#39; % k)
+                group_cols.extend([&#39;tau&#39;, &#39;P2-P1-dist&#39;, &#39;peakfreq&#39;, &#39;poweratt5&#39;])
+            else:
+                return None, &#39;&#34;%s&#34; is not a valid data group for pulsefish&#39; % group
+    # additional data columns:
+    group_cols.extend(add_columns)
+    # translate to indices:
+    data_cols = select_features(data, group_cols)
+    return data_cols, None</code></pre>
+</details>
+<div class="desc"><p>Select data columns to be explored.</p>
+<p>First, groups of columns are selected, then individual
+columns. Columns that are selected twice are removed from the
+selection.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>TableData</code></dt>
+<dd>Table with EOD properties from which columns are selected.</dd>
+<dt>wave_fish: boolean.</dt>
+<dt>Indicates if data contains properties of wave- or pulse-type electric fish.</dt>
+<dt><strong><code>max_n</code></strong> :&ensp;<code>int</code></dt>
+<dd>Maximum number of harmonics (wave-type fish) or peaks (pulse-type fish)
+to be
+selected.</dd>
+<dt><strong><code>column_groups</code></strong> :&ensp;<code>list</code> of <code>string</code></dt>
+<dd>List of name denoting groups of columns to be selected. Supported groups are
+listed in <code>EODExplor.groups</code>.</dd>
+<dt><strong><code>add_columns</code></strong> :&ensp;<code>list</code> of <code>string</code> or <code>int</code></dt>
+<dd>List of further individual columns to be selected.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>data_cols</code></strong> :&ensp;<code>list</code> of <code>int</code></dt>
+<dd>Indices of data columns to be shown by EODExplorer.</dd>
+<dt><strong><code>error</code></strong> :&ensp;<code>string</code></dt>
+<dd>In case of an invalid column group, an error string.</dd>
+</dl></div>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="thunderfish.eodexplorer.EODExplorer.fix_scatter_plot"><code class="name flex">
+<span>def <span class="ident">fix_scatter_plot</span></span>(<span>self, ax, data, label, axis)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fix_scatter_plot(self, ax, data, label, axis):
+    &#34;&#34;&#34;Customize an axes of a scatter plot.
+
+    - Limits for amplitude and time like quantities start at zero.
+    - Phases a labeled with multuples of pi.
+    - Species labels are rotated.
+    &#34;&#34;&#34;
+    if any(l in label for l in [&#39;ampl&#39;, &#39;power&#39;, &#39;width&#39;,
+                                &#39;time&#39;, &#39;tau&#39;, &#39;P2-P1-dist&#39;,
+                                &#39;var&#39;, &#39;peak&#39;, &#39;trough&#39;,
+                                &#39;P2-P1-dist&#39;, &#39;rms&#39;, &#39;noise&#39;]):
+        if np.all(data[np.isfinite(data)] &gt;= 0.0):
+            if axis == &#39;x&#39;:
+                ax.set_xlim(0.0, None)
+            elif axis == &#39;y&#39;:
+                ax.set_ylim(0.0, None)
+            elif axis == &#39;c&#39;:
+                return 0.0, np.max(data), None
+        else:
+            if axis == &#39;x&#39;:
+                ax.set_xlim(None, 0.0)
+            elif axis == &#39;y&#39;:
+                ax.set_ylim(None, 0.0)
+            elif axis == &#39;c&#39;:
+                return np.min(data), 0.0, None
+    elif &#39;phase&#39; in label:
+        if axis == &#39;x&#39;:
+            ax.set_xlim(-np.pi, np.pi)
+            ax.set_xticks(np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi))
+            ax.set_xticklabels([u&#39;-\u03c0&#39;, u&#39;-\u03c0/2&#39;, &#39;0&#39;, u&#39;\u03c0/2&#39;, u&#39;\u03c0&#39;])
+        elif axis == &#39;y&#39;:
+            ax.set_ylim(-np.pi, np.pi)
+            ax.set_yticks(np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi))
+            ax.set_yticklabels([u&#39;-\u03c0&#39;, u&#39;-\u03c0/2&#39;, &#39;0&#39;, u&#39;\u03c0/2&#39;, u&#39;\u03c0&#39;])
+        elif axis == &#39;c&#39;:
+            if ax is not None:
+                ax.set_yticklabels([u&#39;-\u03c0&#39;, u&#39;-\u03c0/2&#39;, &#39;0&#39;, u&#39;\u03c0/2&#39;, u&#39;\u03c0&#39;])
+            return -np.pi, np.pi, np.arange(-np.pi, 1.5*np.pi, 0.5*np.pi)
+    elif &#39;species&#39; in label:
+        if axis == &#39;x&#39;:
+            for label in ax.get_xticklabels():
+                label.set_rotation(30)
+            ax.set_xlabel(&#39;&#39;)
+            ax.set_xlim(np.min(data)-0.5, np.max(data)+0.5)
+        elif axis == &#39;y&#39;:
+            ax.set_ylabel(&#39;&#39;)
+            ax.set_ylim(np.min(data)-0.5, np.max(data)+0.5)
+        elif axis == &#39;c&#39;:
+            if ax is not None:
+                ax.set_ylabel(&#39;&#39;)
+    return np.min(data), np.max(data), None</code></pre>
+</details>
+<div class="desc"><p>Customize an axes of a scatter plot.</p>
+<ul>
+<li>Limits for amplitude and time like quantities start at zero.</li>
+<li>Phases a labeled with multuples of pi.</li>
+<li>Species labels are rotated.</li>
+</ul></div>
+</dd>
+<dt id="thunderfish.eodexplorer.EODExplorer.fix_waveform_plot"><code class="name flex">
+<span>def <span class="ident">fix_waveform_plot</span></span>(<span>self, axs, indices)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fix_waveform_plot(self, axs, indices):
+    &#34;&#34;&#34;Adapt waveform plots to EOD waveforms, derivatives, and spectra.
+    &#34;&#34;&#34;
+    if len(indices) == 0:
+        axs[0].text(0.5, 0.5, &#39;Click to plot EOD waveforms&#39;,
+                    transform = axs[0].transAxes, ha=&#39;center&#39;, va=&#39;center&#39;)
+        axs[0].text(0.5, 0.3, &#39;n = %d&#39; % len(self.raw_data),
+                    transform = axs[0].transAxes, ha=&#39;center&#39;, va=&#39;center&#39;)
+    elif len(indices) == 1:
+        file_name = self.eoddata[indices[0],&#39;file&#39;] if &#39;file&#39; in self.eoddata else basename
+        if &#39;index&#39; in self.eoddata and np.isfinite(self.eoddata[indices[0],&#39;index&#39;]) and \
+          np.any(self.eoddata[:,&#39;index&#39;] != self.eoddata[0,&#39;index&#39;]):
+            axs[0].set_title(&#39;%s: %d&#39; % (file_name,
+                                         self.eoddata[indices[0],&#39;index&#39;]))
+        else:
+            axs[0].set_title(file_name)
+        if np.isfinite(self.eoddata[indices[0],&#39;index&#39;]):
+            axs[0].text(0.05, 0.85, &#39;%.1fHz&#39; % self.eoddata[indices[0],&#39;EODf&#39;],
+                        transform = axs[0].transAxes)
+    else:
+        axs[0].set_title(&#39;%d EOD waveforms selected&#39; % len(indices))
+    for ax in axs:
+        for l in ax.lines:
+            l.set_linewidth(3.0)
+    for ax, xl in zip(axs, self.wave_ylabels):
+        if &#39;Voltage&#39; in xl:
+            ax.set_ylim(top=1.1)
+            ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+        if &#39;dV/dt&#39; in xl:
+            ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+        if &#39;d^2V/dt^2&#39; in xl:
+            ax.yaxis.set_major_locator(ticker.MaxNLocator(nbins=4))
+    if self.wave_fish:
+        for ax, xl in zip(axs, self.wave_ylabels):
+            if &#39;Voltage&#39; in xl:
+                ax.set_xlim(-0.7, 0.7)
+            if &#39;Ampl&#39; in xl or &#39;Power&#39; in xl or &#39;Phase&#39; in xl:
+                ax.set_xlim(-0.5, 8.5)
+                for l in ax.lines:
+                    l.set_marker(&#39;.&#39;)
+                    l.set_markersize(15.0)
+                    l.set_markeredgewidth(0.5)
+                    l.set_markeredgecolor(&#39;k&#39;)
+                    l.set_markerfacecolor(l.get_color())
+            if &#39;Ampl&#39; in xl:
+                ax.set_ylim(0.0, 100.0)
+                ax.yaxis.set_major_locator(ticker.MultipleLocator(25.0))
+            if &#39;Power&#39; in xl:
+                ax.set_ylim(-60.0, 2.0)
+                ax.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+            if &#39;Phase&#39; in xl:
+                ax.set_ylim(0.0, 2.0*np.pi)
+                ax.set_yticks(np.arange(0.0, 2.5*np.pi, 0.5*np.pi))
+                ax.set_yticklabels([&#39;0&#39;, u&#39;\u03c0/2&#39;, u&#39;\u03c0&#39;, u&#39;3\u03c0/2&#39;, u&#39;2\u03c0&#39;])
+    else:
+        for ax, xl in zip(axs, self.wave_ylabels):
+            if &#39;Voltage&#39; in xl:
+                ax.set_xlim(-1.0, 1.5)
+            if &#39;Power&#39; in xl:
+                ax.set_xlim(1.0, 2000.0)
+                ax.set_xscale(&#39;log&#39;)
+                ax.set_ylim(-60.0, 2.0)
+                ax.yaxis.set_major_locator(ticker.MultipleLocator(20.0))
+    if len(indices) &gt; 0:
+        for ax in axs:
+            ax.axhline(c=&#39;k&#39;, lw=1)</code></pre>
+</details>
+<div class="desc"><p>Adapt waveform plots to EOD waveforms, derivatives, and spectra.</p></div>
+</dd>
+<dt id="thunderfish.eodexplorer.EODExplorer.list_selection"><code class="name flex">
+<span>def <span class="ident">list_selection</span></span>(<span>self, indices)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def list_selection(self, indices):
+    &#34;&#34;&#34;List file names and indices of selection.
+
+    If only a single EOD is selected, list all of its properties.
+    &#34;&#34;&#34;
+    print(&#39;&#39;)
+    print(&#39;selected EODs:&#39;)
+    if &#39;index&#39; in self.eoddata and \
+       np.any(self.eoddata[:,&#39;index&#39;] != self.eoddata[0,&#39;index&#39;]):
+        for i in indices:
+            file_name = self.eoddata[i,&#39;file&#39;] if &#39;file&#39; in self.eoddata else basename
+            if np.isfinite(self.eoddata[i,&#39;index&#39;]):
+                print(&#39;%s : %d&#39; % (file_name, self.eoddata[i,&#39;index&#39;]))
+            else:
+                print(file_name)
+    elif &#39;file&#39; in self.eoddata:
+        for i in indices:
+            print(self.eoddata[i,&#39;file&#39;])
+    if len(indices) == 1:
+        # write eoddata line on terminal:
+        keylen = 0
+        keys = []
+        values = []
+        for c in range(self.eoddata.columns()):
+            k, v = self.eoddata.key_value(indices[0], c)
+            keys.append(k)
+            values.append(v)
+            if keylen &lt; len(k):
+                keylen = len(k)
+        for k, v in zip(keys, values):
+            fs = &#39;%%-%ds: %%s&#39; % keylen
+            print(fs % (k, v.strip()))</code></pre>
+</details>
+<div class="desc"><p>List file names and indices of selection.</p>
+<p>If only a single EOD is selected, list all of its properties.</p></div>
+</dd>
+<dt id="thunderfish.eodexplorer.EODExplorer.analyze_selection"><code class="name flex">
+<span>def <span class="ident">analyze_selection</span></span>(<span>self, index)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def analyze_selection(self, index):
+    &#34;&#34;&#34;Launch thunderfish on the selected EOD.
+    &#34;&#34;&#34;
+    # load data:
+    file_base = self.eoddata[index,&#39;file&#39;] if &#39;file&#39; in self.eoddata else basename
+    bp = os.path.join(self.path, file_base)
+    fn = glob.glob(bp + &#39;.*&#39;)
+    if len(fn) == 0:
+        print(&#39;no recording found for %s&#39; % bp)
+        return
+    recording = fn[0]
+    channel = 0
+    try:
+        raw_data, rate, unit, ampl_max = load_data(recording)
+        raw_data = raw_data[:,channel]
+    except IOError as e:
+        print(&#39;%s: failed to open file: did you provide a path to the raw data (-P option)?&#39; % (recording))
+        return
+    if len(raw_data) &lt;= 1:
+        print(&#39;%s: empty data file&#39; % recording)
+        return
+    # load configuration:
+    cfgfile = __package__ + &#39;.cfg&#39;
+    cfg = configuration(cfgfile, False, recording)
+    cfg.load_files(cfgfile, recording, 4)
+    if &#39;flipped&#39; in self.eoddata:
+        fs = &#39;flip&#39; if self.eoddata[index,&#39;flipped&#39;] else &#39;none&#39;
+        cfg.set(&#39;flipWaveEOD&#39;, fs)
+        cfg.set(&#39;flipPulseEOD&#39;, fs)
+    # best_window:
+    data, idx0, idx1, clipped, min_clip, max_clip = \
+        analysis_window(raw_data, rate, ampl_max,
+                        cfg.value(&#39;windowPosition&#39;), cfg)
+    # detect EODs in the data:
+    psd_data, fishlist, _, eod_props, mean_eods, \
+      spec_data, peak_data, power_thresh, skip_reason, zoom_window = \
+      detect_eods(data, rate, min_clip, max_clip, recording, 0, 0, cfg)
+    # plot EOD:
+    idx = int(self.eoddata[index,&#39;index&#39;]) if &#39;index&#39; in self.eoddata else 0
+    for k in [&#39;toolbar&#39;, &#39;keymap.back&#39;, &#39;keymap.forward&#39;,
+              &#39;keymap.zoom&#39;, &#39;keymap.pan&#39;]:
+        plt.rcParams[k] = self.plt_params[k]
+    fig = plot_eods(file_base, None, raw_data, rate, None, idx0, idx1,
+                    clipped, psd_data[0], fishlist, None,
+                    mean_eods, eod_props, peak_data, spec_data,
+                    [idx], unit, zoom_window, 10, None, True, False,
+                    &#39;auto&#39;, False, 0.0, 3000.0,
+                    interactive=True, verbose=0)
+    fig.canvas.manager.set_window_title(&#39;thunderfish: %s&#39; % file_base)
+    plt.show(block=False)</code></pre>
+</details>
+<div class="desc"><p>Launch thunderfish on the selected EOD.</p></div>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.eodexplorer.load_waveform" href="#thunderfish.eodexplorer.load_waveform">load_waveform</a></code></li>
+<li><code><a title="thunderfish.eodexplorer.main" href="#thunderfish.eodexplorer.main">main</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="thunderfish.eodexplorer.EODExplorer" href="#thunderfish.eodexplorer.EODExplorer">EODExplorer</a></code></h4>
+<ul class="">
+<li><code><a title="thunderfish.eodexplorer.EODExplorer.select_EOD_properties" href="#thunderfish.eodexplorer.EODExplorer.select_EOD_properties">select_EOD_properties</a></code></li>
+<li><code><a title="thunderfish.eodexplorer.EODExplorer.fix_scatter_plot" href="#thunderfish.eodexplorer.EODExplorer.fix_scatter_plot">fix_scatter_plot</a></code></li>
+<li><code><a title="thunderfish.eodexplorer.EODExplorer.fix_waveform_plot" href="#thunderfish.eodexplorer.EODExplorer.fix_waveform_plot">fix_waveform_plot</a></code></li>
+<li><code><a title="thunderfish.eodexplorer.EODExplorer.list_selection" href="#thunderfish.eodexplorer.EODExplorer.list_selection">list_selection</a></code></li>
+<li><code><a title="thunderfish.eodexplorer.EODExplorer.analyze_selection" href="#thunderfish.eodexplorer.EODExplorer.analyze_selection">analyze_selection</a></code></li>
+<li><code><a title="thunderfish.eodexplorer.EODExplorer.groups" href="#thunderfish.eodexplorer.EODExplorer.groups">groups</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

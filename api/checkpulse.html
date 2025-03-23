@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>thunderfish.checkpulse API documentation</title>
+<meta name="description" content="Check for pulse-type weakly electric fish …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], processEscapes: true } });</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.checkpulse</code></h1>
+</header>
+<section id="section-intro">
+<p>Check for pulse-type weakly electric fish</p>
+<p>Check whether a pulse-type or a wave-type weakly electric fish is present in a recording.</p>
+<h2 id="main-functions">Main functions</h2>
+<ul>
+<li><code><a title="thunderfish.checkpulse.check_pulse" href="#thunderfish.checkpulse.check_pulse">check_pulse()</a></code>: checks for pulse-type fish.</li>
+</ul>
+<h2 id="configuration-parameter">Configuration parameter</h2>
+<ul>
+<li><code><a title="thunderfish.checkpulse.add_check_pulse_config" href="#thunderfish.checkpulse.add_check_pulse_config">add_check_pulse_config()</a></code>: add parameters for <code><a title="thunderfish.checkpulse.check_pulse" href="#thunderfish.checkpulse.check_pulse">check_pulse()</a></code> to configuration.</li>
+<li><code><a title="thunderfish.checkpulse.check_pulse_args" href="#thunderfish.checkpulse.check_pulse_args">check_pulse_args()</a></code>: retrieve parameters for <code><a title="thunderfish.checkpulse.check_pulse" href="#thunderfish.checkpulse.check_pulse">check_pulse()</a></code> from configuration.</li>
+</ul>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.checkpulse.check_pulse"><code class="name flex">
+<span>def <span class="ident">check_pulse</span></span>(<span>data,<br>sem,<br>rate,<br>thresh_fac=0.8,<br>percentile=0.0,<br>sem_fac=0.05,<br>pulse_thresh=0.15,<br>verbose=0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def check_pulse(data, sem, rate, thresh_fac=0.8, percentile=0.0,
+                sem_fac=0.05, pulse_thresh=0.15, verbose=0):
+    &#34;&#34;&#34;Detects if a fish is pulse- or wave-type based on the proportion of the time distance
+    between a peak and its following trough, relative to the time between consecutive peaks.
+
+
+    Parameters
+    ----------
+    data: 1-D array
+         The data to be analyzed.
+    sem: 1-D array or None
+         Standard error of the mean corresponding to data.
+    rate: float
+         Sampling rate of the data in Hertz.
+    percentile: float
+         The interpercentile range is computed at percentile and 100.0-percentile.
+         If zero take maxmimum minus minimum.
+    thresh_fac: float
+         The threshold for peak detection is the inter-percentile-range
+         multiplied by this factor.
+    sem_fac: float
+         Base analysis on peaks and troughs with the corresponding standard error of the mean
+         of the data below `sem_fac` times the interpercentile range.
+    pulse_thresh: float
+         A positive number setting the minimum distance between peaks and troughs.
+    verbose: int
+         If &gt; 1, print information in the command line.
+
+    Returns
+    -------
+    pulse_fish: bool
+        True if algorithm suggests a pulse-type fish.
+    peak_ratio: float
+        Returns a float between 0. and 1. which gives the proportion of peak-2-trough,
+        from peak-2-peak time distance, i.e. pulse width relative to pulse interval.
+    &#34;&#34;&#34;
+
+    def ratio(peak_idx, trough_idx):
+        if len(peak_idx) &lt; 2:
+            return 1.0 if len(peak_idx)+len(trough_idx) &lt; 1 else 0.0
+        # ratio of peak-to-trough to peak-to-peak time distances:
+        ratios = np.abs((trough_idx - peak_idx))[:-1].astype(float) / np.diff(peak_idx)
+        # fix for cases where trough of eod comes before peak:
+        ratios[ratios &gt; 0.5] = 1.0 - ratios[ratios &gt; 0.5]
+        return np.median(ratios)
+
+    # threshold for peak detection:
+    pp_ampl = percentile_threshold(data, thresh_fac=1.0, percentile=percentile)
+    threshold = thresh_fac*pp_ampl
+    if verbose &gt; 1:
+        print(&#39;  check_pulse(): amplitude threshold for peak detection is %g&#39; % threshold)
+    # detect large peaks and troughs:
+    peak_idx, trough_idx = detect_peaks(data, threshold)
+    # XXX check here for less than 2 peaks + troughs XXX
+    if verbose &gt; 1:
+        print(&#39;  check_pulse(): detected %d peaks %d troughs&#39; %
+              (len(peak_idx), len(trough_idx)))
+    peak_idx, trough_idx = trim(peak_idx, trough_idx)
+    if verbose &gt; 1:
+        print(&#39;  check_pulse(): trim %d peaks %d troughs&#39; %
+              (len(peak_idx), len(trough_idx)))
+    # take only peaks and troughs of reliable sem:
+    if sem is not None:
+        athresh = sem_fac*pp_ampl
+        sel = (sem[peak_idx]&lt;athresh) &amp; (sem[trough_idx]&lt;athresh)
+        peak_idx = peak_idx[sel]
+        trough_idx = trough_idx[sel]
+        if verbose &gt; 1:
+            print(&#39;  check_pulse(): sem left %d peaks %d troughs&#39; %
+                  (len(peak_idx), len(trough_idx)))
+    # compute ratios:
+    peak_ratio = np.mean([ratio(peak_idx, trough_idx), ratio(trough_idx, peak_idx)])
+    pulse_fish = peak_ratio &lt; pulse_thresh
+    if verbose &gt; 0:
+        print(&#39;  check_pulse(): classified as %s fish: pulse-width-ratio is %.3f&#39; %
+              (&#39;pulse&#39; if pulse_fish else &#39;wave&#39;, peak_ratio))
+    return pulse_fish, peak_ratio</code></pre>
+</details>
+<div class="desc"><p>Detects if a fish is pulse- or wave-type based on the proportion of the time distance
+between a peak and its following trough, relative to the time between consecutive peaks.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>data</code></strong> :&ensp;<code>1-D array</code></dt>
+<dd>The data to be analyzed.</dd>
+<dt><strong><code>sem</code></strong> :&ensp;<code>1-D array</code> or <code>None</code></dt>
+<dd>Standard error of the mean corresponding to data.</dd>
+<dt><strong><code>rate</code></strong> :&ensp;<code>float</code></dt>
+<dd>Sampling rate of the data in Hertz.</dd>
+<dt><strong><code>percentile</code></strong> :&ensp;<code>float</code></dt>
+<dd>The interpercentile range is computed at percentile and 100.0-percentile.
+If zero take maxmimum minus minimum.</dd>
+<dt><strong><code>thresh_fac</code></strong> :&ensp;<code>float</code></dt>
+<dd>The threshold for peak detection is the inter-percentile-range
+multiplied by this factor.</dd>
+<dt><strong><code>sem_fac</code></strong> :&ensp;<code>float</code></dt>
+<dd>Base analysis on peaks and troughs with the corresponding standard error of the mean
+of the data below <code>sem_fac</code> times the interpercentile range.</dd>
+<dt><strong><code>pulse_thresh</code></strong> :&ensp;<code>float</code></dt>
+<dd>A positive number setting the minimum distance between peaks and troughs.</dd>
+<dt><strong><code>verbose</code></strong> :&ensp;<code>int</code></dt>
+<dd>If &gt; 1, print information in the command line.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>pulse_fish</code></strong> :&ensp;<code>bool</code></dt>
+<dd>True if algorithm suggests a pulse-type fish.</dd>
+<dt><strong><code>peak_ratio</code></strong> :&ensp;<code>float</code></dt>
+<dd>Returns a float between 0. and 1. which gives the proportion of peak-2-trough,
+from peak-2-peak time distance, i.e. pulse width relative to pulse interval.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.checkpulse.add_check_pulse_config"><code class="name flex">
+<span>def <span class="ident">add_check_pulse_config</span></span>(<span>cfg, thresh_fac=0.4, percentile=0.0, sem_fac=0.05, pulse_thresh=0.1)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def add_check_pulse_config(cfg, thresh_fac=0.4, percentile=0.0,
+                           sem_fac=0.05, pulse_thresh=0.1):
+    &#34;&#34;&#34; Add parameter needed for `check_pulse()` as a new section to a configuration.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+    See check_pulse() for details on the remaining arguments.
+    &#34;&#34;&#34;
+
+    cfg.add_section(&#39;Classify waveforms:&#39;)
+    cfg.add(&#39;pulseWidthPercentile&#39;, percentile, &#39;%&#39;, &#39;Threshold for detecing peaks is based on interpercentile range. If zero use maximum minus minimum amplitude.&#39;)
+    cfg.add(&#39;pulseWidthThresholdFactor&#39;, thresh_fac, &#39;&#39;, &#39;The threshold for peak detection is this factor multiplied with the interpercentile range. Should be smaller than 0.5 if only a single pulse is contained in the data.&#39;)
+    cfg.add(&#39;pulseWidthSEMFactor&#39;, sem_fac, &#39;&#39;, &#39;Peaks and troughs where the standarad error of the mean of the data is larger than the interpercentile range times this factor are discarded from the analysis.&#39;)
+    cfg.add(&#39;pulseWidthThresholdRatio&#39;, pulse_thresh, &#39;&#39;, &#39;A pulsefish is detected if the width of the pulses relative to the intervals is smaller than this threshold.&#39;)</code></pre>
+</details>
+<div class="desc"><p>Add parameter needed for <code><a title="thunderfish.checkpulse.check_pulse" href="#thunderfish.checkpulse.check_pulse">check_pulse()</a></code> as a new section to a configuration.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+</dl>
+<p>See check_pulse() for details on the remaining arguments.</p></div>
+</dd>
+<dt id="thunderfish.checkpulse.check_pulse_args"><code class="name flex">
+<span>def <span class="ident">check_pulse_args</span></span>(<span>cfg)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def check_pulse_args(cfg):
+    &#34;&#34;&#34; Translates a configuration to the
+    respective parameter names of the function `check_pulse()`.
+    The return value can then be passed as key-word arguments to this function.
+
+    Parameters
+    ----------
+    cfg: ConfigFile
+        The configuration.
+
+    Returns
+    -------
+    a: dict
+        Dictionary with names of arguments of the check_pulse() function
+        and their values as supplied by `cfg`.
+    &#34;&#34;&#34;
+    a = cfg.map({&#39;thresh_fac&#39;: &#39;pulseWidthThresholdFactor&#39;,
+                 &#39;percentile&#39;: &#39;pulseWidthPercentile&#39;,
+                 &#39;sem_fac&#39;: &#39;pulseWidthSEMFactor&#39;,
+                 &#39;pulse_thresh&#39;: &#39;pulseWidthThresholdRatio&#39;})
+    return a</code></pre>
+</details>
+<div class="desc"><p>Translates a configuration to the
+respective parameter names of the function <code><a title="thunderfish.checkpulse.check_pulse" href="#thunderfish.checkpulse.check_pulse">check_pulse()</a></code>.
+The return value can then be passed as key-word arguments to this function.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cfg</code></strong> :&ensp;<code>ConfigFile</code></dt>
+<dd>The configuration.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>a</code></strong> :&ensp;<code>dict</code></dt>
+<dd>Dictionary with names of arguments of the check_pulse() function
+and their values as supplied by <code>cfg</code>.</dd>
+</dl></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul>
+<li><a href="#main-functions">Main functions</a></li>
+<li><a href="#configuration-parameter">Configuration parameter</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.checkpulse.check_pulse" href="#thunderfish.checkpulse.check_pulse">check_pulse</a></code></li>
+<li><code><a title="thunderfish.checkpulse.add_check_pulse_config" href="#thunderfish.checkpulse.add_check_pulse_config">add_check_pulse_config</a></code></li>
+<li><code><a title="thunderfish.checkpulse.check_pulse_args" href="#thunderfish.checkpulse.check_pulse_args">check_pulse_args</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>

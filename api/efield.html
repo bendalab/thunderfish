@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1">
+<meta name="generator" content="pdoc3 0.11.6">
+<title>thunderfish.efield API documentation</title>
+<meta name="description" content="Simulations of spatial electric fields …">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/sanitize.min.css" integrity="sha512-y1dtMcuvtTMJc1yPgEqF0ZjQbhnc/bFhyvIyVNb9Zk5mIGtqVaAB1Ttl28su8AvFMOY0EwRbAe+HCLqj6W7/KA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/13.0.0/typography.min.css" integrity="sha512-Y1DYSb995BAfxobCkKepB1BqJJTPrOp3zPL74AWFugHHmmdcvO+C48WLrUOlhGMc0QG7AE3f7gmvvcrmX2fDoA==" crossorigin>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/default.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:1.5em;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:2em 0 .50em 0}h3{font-size:1.4em;margin:1.6em 0 .7em 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .2s ease-in-out}a:visited{color:#503}a:hover{color:#b62}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900;font-weight:bold}pre code{font-size:.8em;line-height:1.4em;padding:1em;display:block}code{background:#f3f3f3;font-family:"DejaVu Sans Mono",monospace;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source > summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible;min-width:max-content}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em 1em;margin:1em 0}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul ul{padding-left:1em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script type="text/x-mathjax-config">MathJax.Hub.Config({ tex2jax: { inlineMath: [ ['$','$'], ["\\(","\\)"] ], processEscapes: true } });</script>
+<script async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS_CHTML" integrity="sha256-kZafAc6mZvK3W3v1pHOcUix30OHQN6pU/NO2oFkqZVw=" crossorigin></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js" integrity="sha512-D9gUyxqja7hBtkWpPWGt9wfbfaMGVt9gnyCvYa+jojwwPHLCzUm5i8rpk7vD7wNee9bA35eYIjobYPaQuKS1MQ==" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => {
+hljs.configure({languages: ['bash', 'css', 'diff', 'graphql', 'ini', 'javascript', 'json', 'plaintext', 'python', 'python-repl', 'rust', 'shell', 'sql', 'typescript', 'xml', 'yaml']});
+hljs.highlightAll();
+/* Collapse source docstrings */
+setTimeout(() => {
+[...document.querySelectorAll('.hljs.language-python > .hljs-string')]
+.filter(el => el.innerHTML.length > 200 && ['"""', "'''"].includes(el.innerHTML.substring(0, 3)))
+.forEach(el => {
+let d = document.createElement('details');
+d.classList.add('hljs-string');
+d.innerHTML = '<summary>"""</summary>' + el.innerHTML.substring(3);
+el.replaceWith(d);
+});
+}, 100);
+})</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>thunderfish.efield</code></h1>
+</header>
+<section id="section-intro">
+<p>Simulations of spatial electric fields.</p>
+<h2 id="electric-monopoles">Electric monopoles</h2>
+<p>For simulating the spatial geometry of electric fields generated by electric fishes
+and perturbed by objects, first generate monopoles and charges:</p>
+<ul>
+<li><code><a title="thunderfish.efield.efish_monopoles" href="#thunderfish.efield.efish_monopoles">efish_monopoles()</a></code>: monopoles for simulating the electric field of an electric fish.</li>
+<li><code><a title="thunderfish.efield.object_monopoles" href="#thunderfish.efield.object_monopoles">object_monopoles()</a></code>: monopoles for simulating a circular object.</li>
+</ul>
+<h2 id="potential-electric-field-and-field-lines">Potential, electric field, and field lines</h2>
+<ul>
+<li><code><a title="thunderfish.efield.epotential" href="#thunderfish.efield.epotential">epotential()</a></code>: simulation of electric field potentials.</li>
+<li><code><a title="thunderfish.efield.epotential_meshgrid" href="#thunderfish.efield.epotential_meshgrid">epotential_meshgrid()</a></code>: simulation of electric field potentials on a mesh grid.</li>
+<li><code><a title="thunderfish.efield.efield" href="#thunderfish.efield.efield">efield()</a></code>: simulation of electric field.</li>
+<li><code><a title="thunderfish.efield.efield_meshgrid" href="#thunderfish.efield.efield_meshgrid">efield_meshgrid()</a></code>: simulation of electric field on a mesh grid.</li>
+<li><code><a title="thunderfish.efield.projection" href="#thunderfish.efield.projection">projection()</a></code>: projection of electric field on surface normals.</li>
+<li><code><a title="thunderfish.efield.fieldline" href="#thunderfish.efield.fieldline">fieldline()</a></code>: compute an electric field line.</li>
+</ul>
+<h2 id="visualization">Visualization</h2>
+<ul>
+<li><code><a title="thunderfish.efield.squareroot_transform" href="#thunderfish.efield.squareroot_transform">squareroot_transform()</a></code>: square-root transformation keeping the sign.</li>
+<li><code><a title="thunderfish.efield.plot_fieldlines" href="#thunderfish.efield.plot_fieldlines">plot_fieldlines()</a></code>: plot field lines with arrows.</li>
+</ul>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="thunderfish.efield.efish_monopoles"><code class="name flex">
+<span>def <span class="ident">efish_monopoles</span></span>(<span>pos=(0, 0), direction=(1, 0), size=10.0, bend=0, nneg=1)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def efish_monopoles(pos=(0, 0), direction=(1, 0), size=10.0, bend=0, nneg=1):
+    &#34;&#34;&#34;Monopoles for simulating the electric field of an electric fish.
+
+    This implements the model published in
+    Chen, House, Krahe, Nelson (2005) &#34;Modeling signal and background
+    components of electrosensory scenes&#34;, J Comp Physiol A 191: 331-345
+
+    Ten monopoles per unit size are uniformly distributed along the fish&#39;s body axis.
+    The first (tail) nneg monopoles get negative charges that equal in sum
+    the sum of the positive unit charges of the remaining (head) monopoles.
+    The strength of the dipole increases linearly with fish size.
+
+    Pass the returned monopole positions and charges on to the epotential() function
+    to simulate the resulting electric field potentials, to the efield() function
+    to simulate the electric field, or to object_monopoles() to add an object.
+
+    Parameters
+    ----------
+    pos: tuple of floats
+        Coordinates of the fish&#39;s position (its center).
+        The number of elements in pos set the number of dimensions to be used.
+    direction: tuple of floats
+        Coordinates of a vector defining the orientation of the fish.
+        Missing dimensions are filled in with zeros.
+        Note: currently only rotations in the x-y plane are implemented.
+    size: float
+        Size of the fish. Per size unit 10 monopols are distributed along
+        the fish&#39;s body axis.
+    bend: float
+        Bending angle of the fish&#39;s tail in degree.
+    nneg: int
+        Number of negative charges to be used. The remaining ones are positively charged.
+
+    Returns
+    -------
+    poles: 2D array of floats
+        Positions of the monopoles with n-dimensional coordinates
+        as specified by the number of elements in pos.
+    charges: array of floats
+        The charge of each monopole.
+
+    Example
+    -------
+    ```
+    fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+    poles1 = efish_monopoles(*fish1)
+    ```
+    &#34;&#34;&#34;
+    n = int(10*size)
+    npos = n - nneg
+    ppx = 0.1
+    pos = np.asarray(pos)
+    dirv = np.zeros(len(pos))
+    dirv[:len(direction)] = direction        
+    charges = np.ones(n)
+    charges[:nneg] = -float(npos)/nneg
+    poles = np.zeros((n, len(pos)))
+    poles[:,0] = np.arange(-n//2, -n//2+n)*ppx
+    if np.abs(bend) &gt; 1.e-8:
+        xm = -np.min(poles[:,0])       # tip of fish tail
+        r = -180.0*xm/bend/np.pi       # radius of circle on which to bend the tail
+        xp = poles[poles[:,0]&lt;0.0,0]   # all negative x coordinates of poles
+        beta = xp/r                    # angle on circle for each x coordinate
+        poles[poles[:,0]&lt;0.0,0] = -np.abs(r*np.sin(beta)) # transformed x coordinates
+        poles[poles[:,0]&lt;0.0,1] = r*(1.0-np.cos(beta))    # transformed y corrdinates
+    # rotation matrix:
+    theta = -np.arctan2(dirv[1], dirv[0])
+    c = np.cos(theta)
+    s = np.sin(theta)
+    rm = np.array(((c, -s), (s, c)))
+    # rotation:
+    poles[:,:2] = np.dot(poles[:,:2], rm)
+    # translation:
+    poles += pos
+    return poles, charges</code></pre>
+</details>
+<div class="desc"><p>Monopoles for simulating the electric field of an electric fish.</p>
+<p>This implements the model published in
+Chen, House, Krahe, Nelson (2005) "Modeling signal and background
+components of electrosensory scenes", J Comp Physiol A 191: 331-345</p>
+<p>Ten monopoles per unit size are uniformly distributed along the fish's body axis.
+The first (tail) nneg monopoles get negative charges that equal in sum
+the sum of the positive unit charges of the remaining (head) monopoles.
+The strength of the dipole increases linearly with fish size.</p>
+<p>Pass the returned monopole positions and charges on to the epotential() function
+to simulate the resulting electric field potentials, to the efield() function
+to simulate the electric field, or to object_monopoles() to add an object.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of the fish's position (its center).
+The number of elements in pos set the number of dimensions to be used.</dd>
+<dt><strong><code>direction</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of a vector defining the orientation of the fish.
+Missing dimensions are filled in with zeros.
+Note: currently only rotations in the x-y plane are implemented.</dd>
+<dt><strong><code>size</code></strong> :&ensp;<code>float</code></dt>
+<dd>Size of the fish. Per size unit 10 monopols are distributed along
+the fish's body axis.</dd>
+<dt><strong><code>bend</code></strong> :&ensp;<code>float</code></dt>
+<dd>Bending angle of the fish's tail in degree.</dd>
+<dt><strong><code>nneg</code></strong> :&ensp;<code>int</code></dt>
+<dd>Number of negative charges to be used. The remaining ones are positively charged.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>poles</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Positions of the monopoles with n-dimensional coordinates
+as specified by the number of elements in pos.</dd>
+<dt><strong><code>charges</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>The charge of each monopole.</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code>fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+poles1 = efish_monopoles(*fish1)
+</code></pre></div>
+</dd>
+<dt id="thunderfish.efield.object_monopoles"><code class="name flex">
+<span>def <span class="ident">object_monopoles</span></span>(<span>pos=(0, 0), radius=1.0, chi=1.0, *args)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def object_monopoles(pos=(0, 0), radius=1.0, chi=1.0, *args):
+    &#34;&#34;&#34;Monopoles for simulating a circular object.
+
+    The circular object is approximated by an induced dipole, as
+    sugested by Rasnow B (1996) &#34;The effects of simple objects on the
+    electric field of Apteronotus&#34;, J Comp Physiol A 178:397-411 and
+    Chen, House, Krahe, Nelson (2005) &#34;Modeling signal and background
+    components of electrosensory scenes&#34;, J Comp Physiol A 191: 331-345.
+
+    Pass the returned monopole positions and charges on to the
+    epotential() function to simulate the resulting electric field
+    potentials or to the efield() function to simulate the electric
+    field.
+
+    Two monopoles with charges q and -q separated by dx form a dipole
+    with dipole moment p = q dx. According to Chen et al (2005), this
+    dipole moment should equal chi*radius**3*E_obj, where E_obj is the
+    electric field generated by the fishes at the position of the
+    object. We normalize E_obj and multiply it with a small number eps
+    to get dx. Accordingly, we have to set q to chi*radius**3
+    |E_obj|/eps.
+
+    Parameters
+    ----------
+    pos: tuple of floats
+        Coordinates of the fish&#39;s position (its center).
+        The number of dimensions must be the same as the one of the poles
+        passed on in args.
+    radius: float
+        Radius of the small circular object.
+    chi: float
+        Electrical contrast. Unity for a perfect conductor, -0.5 for a
+        perfect insulator and zero if the electrical impedance of the sphere
+        matches that of the surrounding water.
+    args: list of tuples
+        Each tuple contains as the first argument the position of
+        monopoles (2D array of floats), and as the second argument the
+        corresponding charges (array of floats) of electric fish. Use
+        efish_monopoles() to generate monopoles and corresponding charges.
+
+    Returns
+    -------
+    poles: 2D array of floats
+        Positions of the monopoles.
+    charges: array of floats
+        The charge of each monopole.
+
+    Example
+    -------
+    ```
+    fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+    fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+    poles1 = efish_monopoles(*fish1)
+    poles2 = efish_monopoles(*fish2)
+    poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+    ```
+    &#34;&#34;&#34;
+    eps = 0.1   # distance of the two monopoles
+    pos = np.asarray(pos)
+    # electric field at object position:
+    eobj = efield(pos, *args)
+    eobjnorm = np.linalg.norm(eobj)
+    # induced dipole:
+    charges = np.ones(2)*chi*radius**3*eobjnorm/eps
+    charges[0] = -charges[0]
+    poles = np.zeros((2, len(pos)))
+    poles[0,:] = -eobj*0.5*eps/eobjnorm   # distance between monopoles
+    poles[1,:] = +eobj*0.5*eps/eobjnorm   # distance between monopoles
+    poles += pos                          # translation to required position
+    return poles, charges</code></pre>
+</details>
+<div class="desc"><p>Monopoles for simulating a circular object.</p>
+<p>The circular object is approximated by an induced dipole, as
+sugested by Rasnow B (1996) "The effects of simple objects on the
+electric field of Apteronotus", J Comp Physiol A 178:397-411 and
+Chen, House, Krahe, Nelson (2005) "Modeling signal and background
+components of electrosensory scenes", J Comp Physiol A 191: 331-345.</p>
+<p>Pass the returned monopole positions and charges on to the
+epotential() function to simulate the resulting electric field
+potentials or to the efield() function to simulate the electric
+field.</p>
+<p>Two monopoles with charges q and -q separated by dx form a dipole
+with dipole moment p = q dx. According to Chen et al (2005), this
+dipole moment should equal chi<em>radius</em><em>3</em>E_obj, where E_obj is the
+electric field generated by the fishes at the position of the
+object. We normalize E_obj and multiply it with a small number eps
+to get dx. Accordingly, we have to set q to chi<em>radius</em>*3
+|E_obj|/eps.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pos</code></strong> :&ensp;<code>tuple</code> of <code>floats</code></dt>
+<dd>Coordinates of the fish's position (its center).
+The number of dimensions must be the same as the one of the poles
+passed on in args.</dd>
+<dt><strong><code>radius</code></strong> :&ensp;<code>float</code></dt>
+<dd>Radius of the small circular object.</dd>
+<dt><strong><code>chi</code></strong> :&ensp;<code>float</code></dt>
+<dd>Electrical contrast. Unity for a perfect conductor, -0.5 for a
+perfect insulator and zero if the electrical impedance of the sphere
+matches that of the surrounding water.</dd>
+<dt><strong><code>args</code></strong> :&ensp;<code>list</code> of <code>tuples</code></dt>
+<dd>Each tuple contains as the first argument the position of
+monopoles (2D array of floats), and as the second argument the
+corresponding charges (array of floats) of electric fish. Use
+efish_monopoles() to generate monopoles and corresponding charges.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>poles</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Positions of the monopoles.</dd>
+<dt><strong><code>charges</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>The charge of each monopole.</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code>fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+poles1 = efish_monopoles(*fish1)
+poles2 = efish_monopoles(*fish2)
+poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+</code></pre></div>
+</dd>
+<dt id="thunderfish.efield.epotential"><code class="name flex">
+<span>def <span class="ident">epotential</span></span>(<span>pos, *args)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def epotential(pos, *args):
+    &#34;&#34;&#34;Simulation of electric field potentials.
+
+    Parameters
+    ----------
+    pos: 2D array of floats
+        Each row contains the coordinates (2D or 3D)
+        for which the potential should be computed.
+    args: list of tuples
+        Each tuple contains as the first argument the position of monopoles
+        (2D array of floats), and as the second argument the corresponding charges
+        (array of floats). Use efish_monopoles() to generate monopoles and
+        corresponding charges.
+
+    Returns
+    -------
+    pot: 1D array of float
+        The potential for each position in `pos`.
+    &#34;&#34;&#34;
+    pos = np.asarray(pos)
+    pot = np.zeros(len(pos))
+    for poles, charges in args:
+        for p, c in zip(poles, charges):
+            r = pos - p
+            rnorm = np.linalg.norm(r, axis=1)
+            rnorm[np.abs(rnorm) &lt; 1e-12] = 1.0e-12
+            pot += c/rnorm
+    return pot</code></pre>
+</details>
+<div class="desc"><p>Simulation of electric field potentials.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pos</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Each row contains the coordinates (2D or 3D)
+for which the potential should be computed.</dd>
+<dt><strong><code>args</code></strong> :&ensp;<code>list</code> of <code>tuples</code></dt>
+<dd>Each tuple contains as the first argument the position of monopoles
+(2D array of floats), and as the second argument the corresponding charges
+(array of floats). Use efish_monopoles() to generate monopoles and
+corresponding charges.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>pot</code></strong> :&ensp;<code>1D array</code> of <code>float</code></dt>
+<dd>The potential for each position in <code>pos</code>.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.efield.epotential_meshgrid"><code class="name flex">
+<span>def <span class="ident">epotential_meshgrid</span></span>(<span>xx, yy, zz, *args)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def epotential_meshgrid(xx, yy, zz, *args):
+    &#34;&#34;&#34;Simulation of electric field potentials on a mesh grid.
+
+    This is a simple wrapper for epotential().
+
+    Parameters
+    ----------
+    xx: 2D array of floats
+        Range of x coordinates as returned by numpy.meshgrid().
+    yy: 2D array of floats
+        Range of y coordinates as returned by numpy.meshgrid().
+    zz: None or 2D array of floats
+        z coordinates on the meshgrid defined by xx and yy.
+        If provided, poles in args must be 3D.
+        If None then treat it as a 2D problem with poles in args providing 2D coordinate.
+    args: list of tuples
+        Each tuple contains as the first argument the position (2D or 3D) of monopoles
+        (2D array of floats), and as the second argument the corresponding charges
+        (array of floats). Use efish_monopoles() to generate monopoles and
+        corresponding charges.
+
+    Returns
+    -------
+    pot: 2D array of floats
+        The potential for the mesh grid defined by xx and yy and evaluated
+        at (xx, yy, zz).
+
+    Example
+    -------
+    ```
+    fig, ax = plt.subplots()
+    maxx = 30.0
+    maxy = 27.0
+    x = np.linspace(-maxx, maxx, 200)
+    y = np.linspace(-maxy, maxy, 200)
+    xx, yy = np.meshgrid(x, y)
+    fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+    fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+    poles1 = efish_monopoles(*fish1)
+    poles2 = efish_monopoles(*fish2)
+    poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+    allpoles = (poles1, poles2, poles3)
+    # potential:
+    pot = epotential_meshgrid(xx, yy, None, *allpoles)
+    thresh = 0.65
+    zz = squareroot_transform(pot/200, thresh)
+    levels = np.linspace(-thresh, thresh, 16)
+    ax.contourf(x, y, -zz, levels, cmap=&#39;RdYlBu&#39;)
+    ax.contour(x, y, -zz, levels, zorder=1, colors=&#39;#707070&#39;,
+               linewidths=0.1, linestyles=&#39;solid&#39;)
+    plt.show()
+    ```
+    &#34;&#34;&#34;
+    pos = np.vstack((xx.ravel(), yy.ravel())).T
+    pot = epotential(pos, *args)
+    return pot.reshape(xx.shape)</code></pre>
+</details>
+<div class="desc"><p>Simulation of electric field potentials on a mesh grid.</p>
+<p>This is a simple wrapper for epotential().</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>xx</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Range of x coordinates as returned by numpy.meshgrid().</dd>
+<dt><strong><code>yy</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Range of y coordinates as returned by numpy.meshgrid().</dd>
+<dt><strong><code>zz</code></strong> :&ensp;<code>None</code> or <code>2D array</code> of <code>floats</code></dt>
+<dd>z coordinates on the meshgrid defined by xx and yy.
+If provided, poles in args must be 3D.
+If None then treat it as a 2D problem with poles in args providing 2D coordinate.</dd>
+<dt><strong><code>args</code></strong> :&ensp;<code>list</code> of <code>tuples</code></dt>
+<dd>Each tuple contains as the first argument the position (2D or 3D) of monopoles
+(2D array of floats), and as the second argument the corresponding charges
+(array of floats). Use efish_monopoles() to generate monopoles and
+corresponding charges.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>pot</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>The potential for the mesh grid defined by xx and yy and evaluated
+at (xx, yy, zz).</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code>fig, ax = plt.subplots()
+maxx = 30.0
+maxy = 27.0
+x = np.linspace(-maxx, maxx, 200)
+y = np.linspace(-maxy, maxy, 200)
+xx, yy = np.meshgrid(x, y)
+fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+poles1 = efish_monopoles(*fish1)
+poles2 = efish_monopoles(*fish2)
+poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+allpoles = (poles1, poles2, poles3)
+# potential:
+pot = epotential_meshgrid(xx, yy, None, *allpoles)
+thresh = 0.65
+zz = squareroot_transform(pot/200, thresh)
+levels = np.linspace(-thresh, thresh, 16)
+ax.contourf(x, y, -zz, levels, cmap='RdYlBu')
+ax.contour(x, y, -zz, levels, zorder=1, colors='#707070',
+           linewidths=0.1, linestyles='solid')
+plt.show()
+</code></pre></div>
+</dd>
+<dt id="thunderfish.efield.efield"><code class="name flex">
+<span>def <span class="ident">efield</span></span>(<span>pos, *args)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def efield(pos, *args):
+    &#34;&#34;&#34;Simulation of electric field given a set of electric monopoles.
+
+    Parameters
+    ----------
+    pos: array of floats
+        Each row contains the coordinates (2D or 3D)
+        for which the potential should be computed.
+        A single (1D) position is also accepted.
+    args: list of tuples
+        Each tuple contains as the first argument the position of monopoles
+        (2D array of floats), and as the second argument the corresponding charges
+        (array of floats). Use efish_monopoles() to generate monopoles and
+        corresponding charges.
+
+    Returns
+    -------
+    field: array of floats
+        The electric field components for each position in `pos`.
+    &#34;&#34;&#34;
+    pos = np.asarray(pos)
+    onedim = len(pos.shape) == 1
+    if onedim:
+        pos = pos.reshape(-1, len(pos))
+    field = np.zeros(pos.shape)
+    for poles, charges in args:
+        for p, c in zip(poles, charges):
+            r = pos - p
+            rnorm = np.linalg.norm(r, axis=1)
+            rnorm[np.abs(rnorm) &lt; 1e-12] = 1.0e-12
+            fac = c/rnorm**3
+            field += r*fac[:,np.newaxis]
+    return field[0] if onedim else field</code></pre>
+</details>
+<div class="desc"><p>Simulation of electric field given a set of electric monopoles.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pos</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Each row contains the coordinates (2D or 3D)
+for which the potential should be computed.
+A single (1D) position is also accepted.</dd>
+<dt><strong><code>args</code></strong> :&ensp;<code>list</code> of <code>tuples</code></dt>
+<dd>Each tuple contains as the first argument the position of monopoles
+(2D array of floats), and as the second argument the corresponding charges
+(array of floats). Use efish_monopoles() to generate monopoles and
+corresponding charges.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>field</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>The electric field components for each position in <code>pos</code>.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.efield.efield_meshgrid"><code class="name flex">
+<span>def <span class="ident">efield_meshgrid</span></span>(<span>xx, yy, zz, *args)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def efield_meshgrid(xx, yy, zz, *args):
+    &#34;&#34;&#34;Simulation of electric field on a mesh grid.
+
+    This is a simple wrapper for efield().
+    
+    Parameters
+    ----------
+    xx: 2D array of floats
+        Range of x coordinates as returned by numpy.meshgrid().
+    yy: 2D array of floats
+        Range of y coordinates as returned by numpy.meshgrid().
+    zz: None or 2D array of floats
+        z coordinates on the meshgrid defined by xx and yy.
+        If provided, poles in args must be 3D.
+        If None then treat it as a 2D problem with poles in args providing 2D coordinate.
+    args: list of tuples
+        Each tuple contains as the first argument the position (2D or 3D) of monopoles
+        (2D array of floats), and as the second argument the corresponding charges
+        (array of floats). Use efish_monopoles() to generate monopoles and
+        corresponding charges.
+
+    Returns
+    -------
+    pot: 2D array of floats
+        The potential for the mesh grid defined by xx and yy and evaluated
+        at (xx, yy, zz).
+
+    Returns
+    -------
+    fieldx: 2D array of floats
+        The x-coordinate of the electric field for the mesh grid
+        defined by xx and yy and evaluated at (xx, yy, zz).
+    fieldy: 2D array of floats
+        The y-coordinate of the electric field for the mesh grid
+        defined by xx and yy and evaluated at (xx, yy, zz).
+    fieldz: 2D array of floats
+        The z-coordinate of the electric field for the mesh grid
+        defined by xx and yy and evaluated at (xx, yy, zz).
+        This is only returned if zz is not None.
+
+    Example
+    -------
+    ```
+    fig, ax = plt.subplots()
+    maxx = 30.0
+    maxy = 27.0
+    x = np.linspace(-maxx, maxx, 40)
+    y = np.linspace(-maxy, maxy, 40)
+    xx, yy = np.meshgrid(x, y)
+    fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+    fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+    poles1 = efish_monopoles(*fish1)
+    poles2 = efish_monopoles(*fish2)
+    poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+    allpoles = (poles1, poles2, poles3)
+    fieldx, fieldy = efield_meshgrid(xx, yy, None, *allpoles)
+    u = squareroot_transform(fieldx, 0)
+    v = squareroot_transform(fieldy, 0)
+    ax.quiver(qx, qy, u, v, units=&#39;xy&#39;, angles=&#39;uv&#39;, scale=2, scale_units=&#39;xy&#39;,
+              width=0.07, headwidth=5)
+    ``` 
+    &#34;&#34;&#34;
+    if zz is None:
+        pos = np.vstack((xx.ravel(), yy.ravel())).T
+        ef = efield(pos, *args)
+        return ef[:,0].reshape(xx.shape), ef[:,1].reshape(xx.shape)
+    else:
+        pos = np.vstack((xx.ravel(), yy.ravel(), zz.ravel())).T
+        ef = efield(pos, *args)
+        return ef[:,0].reshape(xx.shape), ef[:,1].reshape(xx.shape), ef[:,2].reshape(xx.shape)</code></pre>
+</details>
+<div class="desc"><p>Simulation of electric field on a mesh grid.</p>
+<p>This is a simple wrapper for efield().</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>xx</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Range of x coordinates as returned by numpy.meshgrid().</dd>
+<dt><strong><code>yy</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Range of y coordinates as returned by numpy.meshgrid().</dd>
+<dt><strong><code>zz</code></strong> :&ensp;<code>None</code> or <code>2D array</code> of <code>floats</code></dt>
+<dd>z coordinates on the meshgrid defined by xx and yy.
+If provided, poles in args must be 3D.
+If None then treat it as a 2D problem with poles in args providing 2D coordinate.</dd>
+<dt><strong><code>args</code></strong> :&ensp;<code>list</code> of <code>tuples</code></dt>
+<dd>Each tuple contains as the first argument the position (2D or 3D) of monopoles
+(2D array of floats), and as the second argument the corresponding charges
+(array of floats). Use efish_monopoles() to generate monopoles and
+corresponding charges.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>pot</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>The potential for the mesh grid defined by xx and yy and evaluated
+at (xx, yy, zz).</dd>
+</dl>
+<h2 id="returns_1">Returns</h2>
+<dl>
+<dt><strong><code>fieldx</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>The x-coordinate of the electric field for the mesh grid
+defined by xx and yy and evaluated at (xx, yy, zz).</dd>
+<dt><strong><code>fieldy</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>The y-coordinate of the electric field for the mesh grid
+defined by xx and yy and evaluated at (xx, yy, zz).</dd>
+<dt><strong><code>fieldz</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>The z-coordinate of the electric field for the mesh grid
+defined by xx and yy and evaluated at (xx, yy, zz).
+This is only returned if zz is not None.</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code>fig, ax = plt.subplots()
+maxx = 30.0
+maxy = 27.0
+x = np.linspace(-maxx, maxx, 40)
+y = np.linspace(-maxy, maxy, 40)
+xx, yy = np.meshgrid(x, y)
+fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+poles1 = efish_monopoles(*fish1)
+poles2 = efish_monopoles(*fish2)
+poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+allpoles = (poles1, poles2, poles3)
+fieldx, fieldy = efield_meshgrid(xx, yy, None, *allpoles)
+u = squareroot_transform(fieldx, 0)
+v = squareroot_transform(fieldy, 0)
+ax.quiver(qx, qy, u, v, units='xy', angles='uv', scale=2, scale_units='xy',
+          width=0.07, headwidth=5)
+</code></pre></div>
+</dd>
+<dt id="thunderfish.efield.projection"><code class="name flex">
+<span>def <span class="ident">projection</span></span>(<span>ex, ey, ez, nx, ny, nz)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def projection(ex, ey, ez, nx, ny, nz):
+    &#34;&#34;&#34;Projection of electric field on surface normals.
+
+    Parameters
+    ----------
+    ex: array of floats
+        x-coordinates of the electric field.
+    ey: array of floats
+        y-coordinates of the electric field.
+    ez: array of floats
+        z-coordinates of the electric field.
+    nx: array of floats
+        x-coordinates of the surface normals.
+    ny: array of floats
+        y-coordinates of the surface normals.
+    nz: array of floats
+        z-coordinates of the surface normals.
+    &#34;&#34;&#34;
+    ef = np.vstack((ex.ravel(), ey.ravel(), ez.ravel())).T
+    nf = np.vstack((nx.ravel(), ny.ravel(), nz.ravel())).T
+    proj = np.sum(ef*nf, axis=1)
+    return proj.reshape(ex.shape)</code></pre>
+</details>
+<div class="desc"><p>Projection of electric field on surface normals.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ex</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>x-coordinates of the electric field.</dd>
+<dt><strong><code>ey</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>y-coordinates of the electric field.</dd>
+<dt><strong><code>ez</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>z-coordinates of the electric field.</dd>
+<dt><strong><code>nx</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>x-coordinates of the surface normals.</dd>
+<dt><strong><code>ny</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>y-coordinates of the surface normals.</dd>
+<dt><strong><code>nz</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>z-coordinates of the surface normals.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.efield.fieldline"><code class="name flex">
+<span>def <span class="ident">fieldline</span></span>(<span>pos0, bounds, *args, eps=0.1, maxiter=1000)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def fieldline(pos0, bounds, *args, eps=0.1, maxiter=1000):
+    &#34;&#34;&#34;Compute an electric field line.
+
+    From the initial position `pos0` the field line is computed in both directions
+    until it leaves the area defined by `bounds`.
+
+    Parameters
+    ----------
+    pos0: array of floats
+        Initial position for computing the field line.
+    bounds: None or 2D array of floats
+        If not None, stop integration of the field line if it exceeds bounds.
+        First row are the minimum coordinates and second row the maximum coordinates.
+    args: list of tuples
+        Each tuple contains as the first argument the position of monopoles
+        (2D array of floats), and as the second argument the corresponding charges
+        (array of floats). Use efish_monopoles() to generate monopoles and
+        corresponding charges.
+    eps: float
+        Stepsize in unit of the coordinates.
+    maxiter: int
+        Maximum number of iteration steps.
+
+    Returns
+    -------
+    fl: 2D array of floats
+        Coordinates of the computed field line.
+
+    Example
+    -------
+    ```
+    fig, ax = plt.subplots()
+    fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+    fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+    poles1 = efish_monopoles(*fish1)
+    poles2 = efish_monopoles(*fish2)
+    fl = fieldline((0, -16), [[-maxx, -maxy], [maxx, maxy]], poles1, poles2)
+    plot_fieldlines(ax, [fl], 5, color=&#39;b&#39;, lw=2)
+    plt.show()
+    ```
+    &#34;&#34;&#34;
+    bounds = np.asarray(bounds)
+    p = np.array(pos0)
+    n = maxiter//2
+    # forward integration:
+    flf = np.zeros((n, len(pos0)))
+    for i in range(len(flf)):
+        flf[i,:] = p
+        if np.any(p &lt; bounds[0,:]) or np.any(p &gt; bounds[1,:]) or (bounds is not None and
+                i &gt;= 5 and np.all((flf[i,:] - flf[i-1,:])*(flf[i-1,:] - flf[i-2,:])&lt;0)):
+            flf = flf[:i,:]
+            break
+        uv = efield(p, *args)
+        uv /= np.linalg.norm(uv)
+        p = p + eps*uv
+    # backward integration:
+    p = np.array(pos0)
+    flb = np.zeros((n, len(pos0)))
+    for i in range(len(flb)):
+        flb[i,:] = p
+        if np.any(p &lt; bounds[0,:]) or np.any(p &gt; bounds[1,:]) or (bounds is not None and
+                i &gt;= 5 and np.all((flb[i,:] - flb[i-1,:])*(flb[i-1,:] - flb[i-2,:])&lt;0)):
+            flb = flb[:i,:]
+            break
+        uv = efield(p, *args)
+        uv /= np.linalg.norm(uv)
+        p = p - eps*uv
+    fl = np.vstack((flb[::-2], flf[::2]))
+    return fl</code></pre>
+</details>
+<div class="desc"><p>Compute an electric field line.</p>
+<p>From the initial position <code>pos0</code> the field line is computed in both directions
+until it leaves the area defined by <code>bounds</code>.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>pos0</code></strong> :&ensp;<code>array</code> of <code>floats</code></dt>
+<dd>Initial position for computing the field line.</dd>
+<dt><strong><code>bounds</code></strong> :&ensp;<code>None</code> or <code>2D array</code> of <code>floats</code></dt>
+<dd>If not None, stop integration of the field line if it exceeds bounds.
+First row are the minimum coordinates and second row the maximum coordinates.</dd>
+<dt><strong><code>args</code></strong> :&ensp;<code>list</code> of <code>tuples</code></dt>
+<dd>Each tuple contains as the first argument the position of monopoles
+(2D array of floats), and as the second argument the corresponding charges
+(array of floats). Use efish_monopoles() to generate monopoles and
+corresponding charges.</dd>
+<dt><strong><code>eps</code></strong> :&ensp;<code>float</code></dt>
+<dd>Stepsize in unit of the coordinates.</dd>
+<dt><strong><code>maxiter</code></strong> :&ensp;<code>int</code></dt>
+<dd>Maximum number of iteration steps.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>fl</code></strong> :&ensp;<code>2D array</code> of <code>floats</code></dt>
+<dd>Coordinates of the computed field line.</dd>
+</dl>
+<h2 id="example">Example</h2>
+<pre><code>fig, ax = plt.subplots()
+fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+poles1 = efish_monopoles(*fish1)
+poles2 = efish_monopoles(*fish2)
+fl = fieldline((0, -16), [[-maxx, -maxy], [maxx, maxy]], poles1, poles2)
+plot_fieldlines(ax, [fl], 5, color='b', lw=2)
+plt.show()
+</code></pre></div>
+</dd>
+<dt id="thunderfish.efield.squareroot_transform"><code class="name flex">
+<span>def <span class="ident">squareroot_transform</span></span>(<span>values, thresh=0.0)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def squareroot_transform(values, thresh=0.0):
+    &#34;&#34;&#34;Square-root transformation keeping the sign.
+
+    Takes the square root of positive values and takes the square root
+    of the absolute values of negative values and negates the results.
+
+    Then truncate symmetrically both positive and negative values to
+    a threshold.
+
+    The resulting transformed values give nice contour lines in a
+    contour plot.
+
+    Parameters
+    ----------
+    values: array of float
+        The values to be transformed, i.e. potentials or field strengths.
+    thresh: float or None
+        Maximum absolute value of the returned values.
+        Must be positive!
+        If thresh equals zero, then do not apply treshold.
+        If None, take the smaller of the maximum of the
+        positive values or of the absolute negative values. 
+
+    Returns
+    -------
+    values: array of float
+        The transformed (square-rooted and thresholded) values.
+    &#34;&#34;&#34;
+    values = np.array(values)
+    sel = values&gt;=0.0
+    values[sel] = values[sel]**0.5
+    values[np.logical_not(sel)] = -((-values[np.logical_not(sel)])**0.5)
+    if thresh is None:
+        thresh = min(np.max(values), -np.min(values))
+    if thresh &gt; 0:
+        values[values&gt;thresh] = thresh
+        values[values&lt;-thresh] = -thresh
+    return values</code></pre>
+</details>
+<div class="desc"><p>Square-root transformation keeping the sign.</p>
+<p>Takes the square root of positive values and takes the square root
+of the absolute values of negative values and negates the results.</p>
+<p>Then truncate symmetrically both positive and negative values to
+a threshold.</p>
+<p>The resulting transformed values give nice contour lines in a
+contour plot.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>values</code></strong> :&ensp;<code>array</code> of <code>float</code></dt>
+<dd>The values to be transformed, i.e. potentials or field strengths.</dd>
+<dt><strong><code>thresh</code></strong> :&ensp;<code>float</code> or <code>None</code></dt>
+<dd>Maximum absolute value of the returned values.
+Must be positive!
+If thresh equals zero, then do not apply treshold.
+If None, take the smaller of the maximum of the
+positive values or of the absolute negative values.</dd>
+</dl>
+<h2 id="returns">Returns</h2>
+<dl>
+<dt><strong><code>values</code></strong> :&ensp;<code>array</code> of <code>float</code></dt>
+<dd>The transformed (square-rooted and thresholded) values.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.efield.plot_fieldlines"><code class="name flex">
+<span>def <span class="ident">plot_fieldlines</span></span>(<span>ax, flines, pos=5, **kwargs)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def plot_fieldlines(ax, flines, pos=5, **kwargs):
+    &#34;&#34;&#34;Plot field lines with arrows.
+
+    Parameters
+    ----------
+    ax: matplotlib axes
+        Axes in which to plot the field lines.
+    flines: list of 2D arrays
+        The field lines.
+    pos: float
+        The position of the arrow on the field line in units of the coordinates.
+    **kwargs: key word arguments
+        Passed on to plot().
+        Applies optional zorder argument also to arrow.
+    &#34;&#34;&#34;
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    dx = 0.05*np.abs(xmax-xmin)
+    dy = 0.05*np.abs(ymax-ymin)
+    akwargs = dict()
+    if &#39;zorder&#39; in kwargs:
+        akwargs[&#39;zorder&#39;] = kwargs[&#39;zorder&#39;]
+    lw = 1
+    if &#39;lw&#39; in kwargs:
+        lw = kwargs[&#39;lw&#39;]
+    if &#39;linewidth&#39; in kwargs:
+        lw = kwargs[&#39;linewidth&#39;]
+    for fl in flines:
+        ax.plot(fl[:,0], fl[:,1], **kwargs)
+        # arrows:
+        d = np.diff(fl, axis=0)
+        dd = np.linalg.norm(d, axis=1)
+        dist = np.cumsum(dd)
+        if dist[-1] &gt;= 6:
+            idx0 = np.argmin(np.abs(dist-pos))
+            if (np.abs(fl[0,0]-xmin)&lt;dx or np.abs(fl[0,0]-xmax)&lt;dx or
+                np.abs(fl[0,1]-ymin)&lt;dy or np.abs(fl[0,1]-ymax)&lt;dy):
+                idx0 = np.argmin(np.abs(dist[-1]-dist-pos))
+            idx1 = np.argmin(np.abs(dist-0.5*dist[-1]))
+            idx = min(idx0, idx1)
+            adx = fl[idx+1,:] - fl[idx,:]
+            ndx = np.linalg.norm(adx)
+            if ndx &lt; 1e-10:
+                continue
+            adx /= ndx
+            posa = fl[idx+1,:] - 0.1*min(dx,dy)*adx
+            posb = fl[idx+1,:]
+            arrow = FancyArrowPatch(posA=posa, posB=posb, shrinkA=0, shrinkB=0,
+                                    arrowstyle=&#39;fancy&#39;, mutation_scale=8*lw,
+                                    connectionstyle=&#39;arc3&#39;, fill=True,
+                                    color=kwargs[&#39;color&#39;], **akwargs)
+            ax.add_patch(arrow)</code></pre>
+</details>
+<div class="desc"><p>Plot field lines with arrows.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>ax</code></strong> :&ensp;<code>matplotlib axes</code></dt>
+<dd>Axes in which to plot the field lines.</dd>
+<dt><strong><code>flines</code></strong> :&ensp;<code>list</code> of <code>2D arrays</code></dt>
+<dd>The field lines.</dd>
+<dt><strong><code>pos</code></strong> :&ensp;<code>float</code></dt>
+<dd>The position of the arrow on the field line in units of the coordinates.</dd>
+<dt><strong><code>**kwargs</code></strong> :&ensp;<code>key word arguments</code></dt>
+<dd>Passed on to plot().
+Applies optional zorder argument also to arrow.</dd>
+</dl></div>
+</dd>
+<dt id="thunderfish.efield.main"><code class="name flex">
+<span>def <span class="ident">main</span></span>(<span>)</span>
+</code></dt>
+<dd>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def main():
+    fig, ax = plt.subplots()
+    maxx = 30.0
+    maxy = 27.0
+    x = np.linspace(-maxx, maxx, 200)
+    y = np.linspace(-maxy, maxy, 200)
+    xx, yy = np.meshgrid(x, y)
+    fish1 = ((-8, -5), (1, 0.5), 18.0, -25)
+    fish2 = ((12, 3), (0.8, 1), 20.0, 20)
+    poles1 = efish_monopoles(*fish1)
+    poles2 = efish_monopoles(*fish2)
+    poles3 = object_monopoles((-6, 0), 1.0, -0.5, poles1, poles2)
+    allpoles = (poles1, poles2, poles3)
+    # potential:
+    pot = epotential_meshgrid(xx, yy, None, *allpoles)
+    thresh = 0.65
+    zz = squareroot_transform(pot/200, thresh)
+    levels = np.linspace(-thresh, thresh, 16)
+    ax.contourf(x, y, -zz, levels, cmap=&#39;RdYlBu&#39;)
+    ax.contour(x, y, -zz, levels, zorder=1, colors=&#39;#707070&#39;,
+               linewidths=0.1, linestyles=&#39;solid&#39;)
+    # electric field vectors:
+    n = 5
+    qx, qy = np.meshgrid(x[n::2*n], y[n::2*n])
+    fieldx, fieldy = efield_meshgrid(qx, qy, None, *allpoles)
+    u = squareroot_transform(fieldx, 0)
+    v = squareroot_transform(fieldy, 0)
+    ax.quiver(qx, qy, u, v, units=&#39;xy&#39;, angles=&#39;uv&#39;, scale=2, scale_units=&#39;xy&#39;,
+              width=0.07, headwidth=5)
+    # field line:
+    bounds = [[-maxx, -maxy], [maxx, maxy]]
+    fl = fieldline((0, -16), bounds, *allpoles)
+    plot_fieldlines(ax, [fl], 5, color=&#39;b&#39;, lw=2)
+    plt.show()</code></pre>
+</details>
+<div class="desc"></div>
+</dd>
+</dl>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<div class="toc">
+<ul>
+<li><a href="#electric-monopoles">Electric monopoles</a></li>
+<li><a href="#potential-electric-field-and-field-lines">Potential, electric field, and field lines</a></li>
+<li><a href="#visualization">Visualization</a></li>
+</ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="thunderfish" href="index.html">thunderfish</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="thunderfish.efield.efish_monopoles" href="#thunderfish.efield.efish_monopoles">efish_monopoles</a></code></li>
+<li><code><a title="thunderfish.efield.object_monopoles" href="#thunderfish.efield.object_monopoles">object_monopoles</a></code></li>
+<li><code><a title="thunderfish.efield.epotential" href="#thunderfish.efield.epotential">epotential</a></code></li>
+<li><code><a title="thunderfish.efield.epotential_meshgrid" href="#thunderfish.efield.epotential_meshgrid">epotential_meshgrid</a></code></li>
+<li><code><a title="thunderfish.efield.efield" href="#thunderfish.efield.efield">efield</a></code></li>
+<li><code><a title="thunderfish.efield.efield_meshgrid" href="#thunderfish.efield.efield_meshgrid">efield_meshgrid</a></code></li>
+<li><code><a title="thunderfish.efield.projection" href="#thunderfish.efield.projection">projection</a></code></li>
+<li><code><a title="thunderfish.efield.fieldline" href="#thunderfish.efield.fieldline">fieldline</a></code></li>
+<li><code><a title="thunderfish.efield.squareroot_transform" href="#thunderfish.efield.squareroot_transform">squareroot_transform</a></code></li>
+<li><code><a title="thunderfish.efield.plot_fieldlines" href="#thunderfish.efield.plot_fieldlines">plot_fieldlines</a></code></li>
+<li><code><a title="thunderfish.efield.main" href="#thunderfish.efield.main">main</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.11.6</a>.</p>
+</footer>
+</body>
+</html>
