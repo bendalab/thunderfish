@@ -87,7 +87,8 @@ def extract_pulsefish(data, rate, amax, width_factor_shape=3,
         The data to be analysed.
     rate: float
         Sampling rate of the data in Hertz.
-
+    amax: float
+        Maximum amplitude of data range.
     width_factor_shape : float (optional)
         Width multiplier used for EOD shape analysis.
         EOD snippets are extracted based on width between the 
