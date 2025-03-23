@@ -1947,7 +1947,7 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
         ax.text(1000*x, ty, label, ha='left', va=va, zorder=20)
     # annotate peaks:
     if peaks is not None and len(peaks) > 0:
-        for p in peaks:
+        for i, p in enumerate(peaks):
             ax.plot(1000*p[1], p[2], 'o', clip_on=False, zorder=0,
                     alpha=0.4, color=mstyle['color'], ms=12,
                     mec='none', mew=0)
@@ -1995,9 +1995,13 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                     label = f'{100*p[6]:.1f}%'
                 else:
                     label = f'{100*p[6]:.0f}%'
-                dx = 1000*0.3*props['P2-P1-dist']
-                if p[0] <= 1:
-                    dx = -dx
+                dxl = p[1] - peaks[i - 1][1] if i > 0 else np.inf
+                dxr = peaks[i + 1][1] - p[1] if i < len(peaks) - 1 else np.inf
+                dx = 0
+                if dxl < dxr:
+                    dx = +1000*0.2*dxl
+                elif dxr < dxl:
+                    dx = -1000*0.2*dxr
                 if abs(p[3]) > 0.5:
                     ax.text(1000*p[1] + dx, sign*0.6*font_size, label,
                             rotation='vertical',

@@ -652,10 +652,10 @@ def assign_side_peaks(data, peak_indices, trough_indices,
 
 
 def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
-            width_factor_shape, width_factor_wave,
-            n_gaus_height=10, merge_threshold_height=0.1, n_gaus_width=3,
-            merge_threshold_width=0.5, minp=10,
-            verbose=0, plot_level=0, save_plots=False, save_path='', ftype='pdf',
+            width_factor_shape, width_factor_wave, n_gaus_height=10,
+            merge_threshold_height=0.1, n_gaus_width=3,
+            merge_threshold_width=0.5, minp=10, verbose=0,
+            plot_level=0, save_plots=False, save_path='', ftype='pdf',
             return_data=[]):
     """Cluster EODs.
     
@@ -991,7 +991,8 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
 
 def BGM(x, merge_threshold=0.1, n_gaus=5, max_iter=200, n_init=5,
         use_log=False, verbose=0, plot_level=0, xlabel='x [a.u.]',
-        save_plot=False, save_path='', save_name='', ftype='pdf', return_data=[]):
+        save_plot=False, save_path='', save_name='', ftype='pdf',
+        return_data=[]):
     """ Use a Bayesian Gaussian Mixture Model to cluster one-dimensional data.
 
     Additional steps are used to merge clusters that are closer than
@@ -1179,13 +1180,14 @@ def extract_snippet_features(data, eod_x, eod_heights, width, n_pc=5):
     snippets = (snippets.T/np.sum(np.abs(snippets), axis=1)).T
 
     # compute features for clustering on waveform
-    features = PCA(n_pc).fit(snippets).transform(snippets)
+    features = PCA(n_pc).fit_transform(snippets)
 
     return raw_snippets, snippets, features, bg_ratio
 
 
-def cluster_on_shape(features, bg_ratio, minp, percentile=80, max_epsilon=0.01,
-                     slope_ratio_factor=4, min_cluster_fraction=0.01, verbose=0):
+def cluster_on_shape(features, bg_ratio, minp, percentile=80,
+                     max_epsilon=0.01, slope_ratio_factor=4,
+                     min_cluster_fraction=0.01, verbose=0):
     """Separate EODs by their shape using DBSCAN.
 
     Parameters
@@ -1555,8 +1557,8 @@ def merge_clusters(clusters_1, clusters_2, x_1, x_2, verbose=0):
     return clusters, x_merged, np.vstack([c1_keep, c2_keep])
 
 
-def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, rate,
-                  width_fac, verbose=0):
+def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths,
+                  clusters, rate, width_fac, verbose=0):
     """ Extract mean EODs and EOD timepoints for each EOD cluster.
 
     Parameters
@@ -1619,8 +1621,10 @@ def extract_means(data, eod_x, eod_peak_x, eod_tr_x, eod_widths, clusters, rate,
     return [m for _, m in sorted(zip(eod_heights, mean_eods))], [t for _, t in sorted(zip(eod_heights, eod_times))], [pt for _, pt in sorted(zip(eod_heights, eod_peak_times))], [tt for _, tt in sorted(zip(eod_heights, eod_tr_times))], [c for _, c in sorted(zip(eod_heights, cluster_labels))]
 
 
-def find_clipped_clusters(clusters, mean_eods, eod_times, eod_peaktimes, eod_troughtimes,
-                          cluster_labels, width_factor, clip_threshold=0.9, verbose=0):
+def find_clipped_clusters(clusters, mean_eods, eod_times,
+                          eod_peaktimes, eod_troughtimes,
+                          cluster_labels, width_factor,
+                          clip_threshold=0.9, verbose=0):
     """ Detect EODs that are clipped and set all clusterlabels of these clipped EODs to -1.
                           
     Also return the mean EODs and timepoints of these clipped EODs.
@@ -1676,9 +1680,10 @@ def find_clipped_clusters(clusters, mean_eods, eod_times, eod_peaktimes, eod_tro
     return clusters, clipped_eods, clipped_times, clipped_peaktimes, clipped_troughtimes
 
 
-def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths, rate,
-                       min_dt=0.25, stepsize=0.05, sliding_window_factor=2000,
-                       verbose=0, plot_level=0, save_plot=False, save_path='',
+def delete_moving_fish(clusters, eod_t, T, eod_heights, eod_widths,
+                       rate, min_dt=0.25, stepsize=0.05,
+                       sliding_window_factor=2000, verbose=0,
+                       plot_level=0, save_plot=False, save_path='',
                        ftype='pdf', return_data=[]):
     """
     Use a sliding window to detect the minimum number of fish detected simultaneously, 
