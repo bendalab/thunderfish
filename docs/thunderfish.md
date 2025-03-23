@@ -845,7 +845,7 @@ Properties of each pulse-type fish detected in the recording.
 <thead>
   <tr>
     <th align="left" colspan="6">recording</th>
-    <th align="left" colspan="20">waveform</th>
+    <th align="left" colspan="21">waveform</th>
     <th align="left" colspan="5">power spectrum</th>
   </tr>
   <tr>
@@ -871,6 +871,7 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">tau</th>
     <th align="left">firstpeak</th>
     <th align="left">lastpeak</th>
+    <th align="left">totalarea</th>
     <th align="left">positivearea</th>
     <th align="left">negativearea</th>
     <th align="left">polaritybalance</th>
@@ -904,6 +905,7 @@ Properties of each pulse-type fish detected in the recording.
     <th align="left">ms</th>
     <th align="left">-</th>
     <th align="left">-</th>
+    <th align="left">a.u.*ms</th>
     <th align="left">%</th>
     <th align="left">%</th>
     <th align="left">%</th>
@@ -921,8 +923,8 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">8.00</td>
     <td align="right">0.00</td>
     <td align="right">32.000</td>
-    <td align="right">0</td>
-    <td align="right">-</td>
+    <td align="right">131072</td>
+    <td align="right">0.24</td>
     <td align="right">0</td>
     <td align="right">32.29</td>
     <td align="right">30.97</td>
@@ -939,6 +941,7 @@ Properties of each pulse-type fish detected in the recording.
     <td align="right">0.082</td>
     <td align="right">1</td>
     <td align="right">2</td>
+    <td align="right">0.1167</td>
     <td align="right">57.31</td>
     <td align="right">-42.69</td>
     <td align="right">14.61</td>
@@ -977,15 +980,16 @@ The columns contain:
 20. `tau` Time constant of the exponential decay of the tail of the pulse in milliseconds.
 21. `firstpeak` Index of the first peak in the pulse (i.e. -1 for P-1).
 22. `lastpeak` Index of the last peak in the pulse (i.e. 3 for P3).
-23. `positivearea` Area under positive peaks relative to total area.
-24. `negativearea` Area under negative peaks relative to total area.
-25. `polaritybalance` Contrast between areas under positive and negative peak.
-26. `n` Number of EODs used for computing the averaged EOD waveform.
-27. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
-28. `peakpower` Peak power of the single pulse spectrum relative to one in decibel.
-29. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
-30. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
-31. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
+23. `totalarea` Sum of areas under positive and negative peaks.
+24. `positivearea` Area under positive peaks relative to total area.
+25. `negativearea` Area under negative peaks relative to total area.
+26. `polaritybalance` Contrast between areas under positive and negative peak.
+27. `n` Number of EODs used for computing the averaged EOD waveform.
+28. `peakfreq` Frequency at the peak power of the single pulse spectrum in Hertz.
+29. `peakpower` Peak power of the single pulse spectrum relative to one in decibel.
+30. `poweratt5` How much the average power below 5 Hz is attenuated relative to the peak power in decibel.
+31. `poweratt50` How much the average power below 50 Hz is attenuated relative to the peak power in decibel.
+32. `lowcutoff` Frequency at which the power reached half of the peak power relative to the initial power in Hertz.
 
 
 ### RECORDING-CHANNEL-TIME-pulsepeaks-N.EXT

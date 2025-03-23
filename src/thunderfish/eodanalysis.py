@@ -793,6 +793,7 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         - tau: time constant of exponential decay of pulse tail in seconds.
         - firstpeak: index of the first peak in the pulse (i.e. -1 for P-1)
         - lastpeak: index of the last peak in the pulse (i.e. 3 for P3)
+        - totalarea: sum of areas under positive and negative peaks.
         - positivearea: area under positive peaks relative to total area.
         - negativearea: area under negative peaks relative to total area.
         - polaritybalance: contrast between areas under positive and
@@ -1109,9 +1110,10 @@ def analyze_pulse(eod, eod_times=None, min_pulse_win=0.001,
         props['tau'] = tau
     props['firstpeak'] = peaks[0, 0] if len(peaks) > 0 else 1
     props['lastpeak'] = peaks[-1, 0] if len(peaks) > 0 else 1
-    props['polaritybalance'] = polarity_balance
+    props['totalarea'] = total_area
     props['positivearea'] = pos_area/total_area
     props['negativearea'] = neg_area/total_area
+    props['polaritybalance'] = polarity_balance
     props['peakfreq'] = freqs[np.argmax(power)]
     props['peakpower'] = decibel(maxpower)
     props['poweratt5'] = att5
@@ -2518,6 +2520,7 @@ def save_pulse_fish(eod_props, unit, basename, **kwargs):
     td.append('tau', 'ms', '%.3f', pulse_props, 1000.0)
     td.append('firstpeak', '', '%d', pulse_props)
     td.append('lastpeak', '', '%d', pulse_props)
+    td.append('totalarea', f'{unit}*ms', '%.4f', pulse_props, 1000.0)
     td.append('positivearea', '%', '%.2f', pulse_props, 100.0)
     td.append('negativearea', '%', '%.2f', pulse_props, 100.0)
     td.append('polaritybalance', '%', '%.2f', pulse_props, 100.0)
@@ -2572,6 +2575,8 @@ def load_pulse_fish(file_path):
         props['n'] = int(props['n'])
         props['firstpeak'] = int(props['firstpeak'])
         props['lastpeak'] = int(props['lastpeak'])
+        if 'totalarea' in props:
+            props['totalarea'] /= 1000
         if 'positivearea' in props:
             props['positivearea'] /= 100
         if 'negativearea' in props:
