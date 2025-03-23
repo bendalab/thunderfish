@@ -746,17 +746,22 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
 
     # loop only over height clusters that are bigger than minp
     # first cluster on width
-    width_labels, bgm_log_dict = BGM(1000*eod_widths/rate, merge_threshold_width,
-                                     n_gaus_width, use_log=False, verbose=verbose-1,
-                                     plot_level=plot_level-1, xlabel='width [ms]',
-                                     save_plot=save_plots, save_path=save_path,
-                                     save_name='width', ftype=ftype, return_data=return_data)
+    width_labels, bgm_log_dict = BGM(1000*eod_widths/rate,
+                                     merge_threshold_width,
+                                     n_gaus_width, use_log=False,
+                                     verbose=verbose-1,
+                                     plot_level=plot_level-1,
+                                     xlabel='width [ms]',
+                                     save_plot=save_plots,
+                                     save_path=save_path,
+                                     save_name='width', ftype=ftype,
+                                     return_data=return_data)
     saved_data.update(bgm_log_dict)
 
-    if verbose>0:
+    if verbose > 0:
         print('Clusters generated based on EOD width:')
-        [print('N_{} = {:>4}      h_{} = {:.4f}'.format(l, len(width_labels[width_labels==l]), l, np.mean(eod_widths[width_labels==l]))) for l in np.unique(width_labels)]   
-
+        for l in np.unique(width_labels):
+            print(f'N_{l} = {len(width_labels[width_labels==l]):4d}      h_{l} = {np.mean(eod_widths[width_labels==l]):.4f}')
 
     w_labels, w_counts = unique_counts(width_labels)
     unique_width_labels = w_labels[w_counts>minp]
@@ -789,21 +794,24 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
           extract_snippet_features(data, w_eod_xt, w_eod_heights, width)
 
         height_labels, bgm_log_dict = \
-          BGM(w_eod_heights,
-              min(merge_threshold_height, np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]), axis=0))),
-              n_gaus_height, use_log=True, verbose=verbose-1, plot_level=plot_level-1,
-              xlabel = 'height [a.u.]', save_plot=save_plots, save_path=save_path,
-              save_name = 'height_%d' % wi, ftype=ftype, return_data=return_data)
+          BGM(w_eod_heights, min(merge_threshold_height,
+                                 np.median(np.min(np.vstack([p_bg_ratio, t_bg_ratio]),
+                                                  axis=0))), n_gaus_height, use_log=True,
+              verbose=verbose-1, plot_level=plot_level-1, xlabel =
+              'height [a.u.]', save_plot=save_plots,
+              save_path=save_path, save_name = 'height_%d' % wi,
+              ftype=ftype, return_data=return_data)
         saved_data.update(bgm_log_dict)
 
-        if verbose>0:
+        if verbose > 0:
             print('Clusters generated based on EOD height:')
-            [print('N_{} = {:>4}      h_{} = {:.4f}'.format(l, len(height_labels[height_labels==l]), l, np.mean(w_eod_heights[height_labels==l]))) for l in np.unique(height_labels)]   
+            for l in np.unique(height_labels):
+                print(f'N_{l} = {len(height_labels[height_labels==l]):4d}      h_{l} = {np.mean(w_eod_heights[height_labels==l]):.4f}')
 
         h_labels, h_counts = unique_counts(height_labels)
         unique_height_labels = h_labels[h_counts>minp]
 
-        if plot_level>0 or 'all_cluster_steps' in return_data:
+        if plot_level > 0 or 'all_cluster_steps' in return_data:
             all_heightlabels.append(height_labels)
             all_heights.append(w_eod_heights)
             all_unique_heightlabels.append(unique_height_labels)
@@ -819,11 +827,11 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             h_eod_xt = w_eod_xt[height_labels==height_label]
 
             p_clusters = cluster_on_shape(p_features[height_labels==height_label],
-                                          p_bg_ratio, minp, verbose=0)            
+                                          p_bg_ratio, minp, verbose=0)
             t_clusters = cluster_on_shape(t_features[height_labels==height_label],
-                                          t_bg_ratio, minp, verbose=0)            
+                                          t_bg_ratio, minp, verbose=0)
             
-            if plot_level>1:
+            if plot_level > 1:
                 plot_feature_extraction(raw_p_snippets[height_labels==height_label],
                                         p_snippets[height_labels==height_label],
                                         p_features[height_labels==height_label],
@@ -836,20 +844,20 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
                 plt.savefig('%sDBSCAN_trough_w%i_h%i.%s' % (save_path, wi, hi, ftype))
 
             if 'snippet_clusters' in return_data:
-                saved_data['snippet_clusters_%i_%i_peak' % (width_label, height_label)] = {
-                    'raw_snippets':raw_p_snippets[height_labels==height_label],
-                    'snippets':p_snippets[height_labels==height_label],
-                    'features':p_features[height_labels==height_label],
-                    'clusters':p_clusters,
-                    'rate':rate}
-                saved_data['snippet_clusters_%i_%i_trough' % (width_label, height_label)] = {
-                    'raw_snippets':raw_t_snippets[height_labels==height_label],
-                    'snippets':t_snippets[height_labels==height_label],
-                    'features':t_features[height_labels==height_label],
-                    'clusters':t_clusters,
-                    'rate':rate}
+                saved_data[f'snippet_clusters_{width_label}_{height_label}_peak'] = {
+                    'raw_snippets': raw_p_snippets[height_labels==height_label],
+                    'snippets': p_snippets[height_labels==height_label],
+                    'features': p_features[height_labels==height_label],
+                    'clusters': p_clusters,
+                    'rate': rate}
+                saved_data['snippet_clusters_{width_label}_{height_label}_trough'] = {
+                    'raw_snippets': raw_t_snippets[height_labels==height_label],
+                    'snippets': t_snippets[height_labels==height_label],
+                    'features': t_features[height_labels==height_label],
+                    'clusters': t_clusters,
+                    'rate': rate}
 
-            if plot_level>0 or 'all_cluster_steps' in return_data:
+            if plot_level > 0 or 'all_cluster_steps' in return_data:
                 shape_labels.append([p_clusters, t_clusters])
                 cfeatures.append([p_features[height_labels==height_label],
                                   t_features[height_labels==height_label]])
@@ -866,13 +874,13 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
 
         if verbose > 0:
             if np.max(wp_clusters) == -1:
-                print('No EOD peaks in width cluster %i' % width_label)
+                print(f'No EOD peaks in width cluster {width_label}')
             else:
                 unique_clusters = np.unique(wp_clusters[wp_clusters!=-1])
                 if len(unique_clusters) > 1:
-                    print('%i different EOD peaks in width cluster %i' % (len(unique_clusters), width_label))
+                    print('{len(unique_clusters)} different EOD peaks in width cluster {width_label}')
         
-        if plot_level>0 or 'all_cluster_steps' in return_data:
+        if plot_level > 0 or 'all_cluster_steps' in return_data:
             all_shapelabels.append(shape_labels)
             all_snippets.append(csnippets)
             all_features.append(cfeatures)
@@ -909,7 +917,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
                                     width_factor_wave, verbose=verbose-1)  
         
     og_clusters = [np.copy(all_p_clusters), np.copy(all_t_clusters)]
-    og_labels=np.copy(all_p_clusters+all_t_clusters)
+    og_labels = np.copy(all_p_clusters + all_t_clusters)
 
     # go through all clusters and masks??
     all_p_clusters[(artefact_masks_p | unreliable_fish_mask_p | wave_mask_p | sidepeak_mask_p)] = -1
@@ -917,10 +925,11 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
 
     # merge here.
     all_clusters, x_merge, mask = merge_clusters(np.copy(all_p_clusters),
-                                                 np.copy(all_t_clusters), eod_xp, eod_xt,
-                                                 verbose=verbose-1)
+                                                 np.copy(all_t_clusters),
+                                                 eod_xp, eod_xt,
+                                                 verbose=verbose - 1)
     
-    if 'all_cluster_steps' in return_data or plot_level>0:
+    if 'all_cluster_steps' in return_data or plot_level > 0:
         all_dmasks = []
         all_mmasks = []
 
@@ -948,7 +957,7 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
             all_dmasks.append(wd_2)
             all_mmasks.append(wm_2)
 
-        if plot_level>0:
+        if plot_level > 0:
             plot_clustering(rate, [unique_width_labels, eod_widths, width_labels],
                             [all_unique_heightlabels, all_heights, all_heightlabels],
                             [all_snippets, all_features, all_shapelabels],
@@ -972,9 +981,10 @@ def cluster(eod_xp, eod_xt, eod_heights, eod_widths, data, rate,
                                            (sidepeak_mask_p & sidepeak_mask_t),
                                            (all_p_clusters+all_t_clusters)))}
 
-    if verbose>0:
+    if verbose > 0:
         print('Clusters generated based on height, width and shape: ')
-        [print('N_{} = {:>4}'.format(int(l), len(all_clusters[all_clusters == l]))) for l in np.unique(all_clusters[all_clusters != -1])]
+        for l in np.unique(all_clusters[all_clusters != -1]):
+            print('N_{int(l)} = {len(all_clusters[all_clusters == l]):4d}')
              
     return all_clusters, x_merge, saved_data
 
