@@ -64,8 +64,46 @@ from .eodanalysis import load_eod_waveform, load_wave_eodfs, load_wave_fish, loa
 from .eodanalysis import load_wave_spectrum, load_pulse_spectrum, load_pulse_peaks
 from .eodanalysis import save_analysis, load_analysis, load_recording
 from .eodanalysis import parse_filename, file_types
-from .fakefish import normalize_wavefish, export_wavefish
 
+
+# Colors taken from https://github.com/bendalab/plottools/blob/master/src/plottools/colors.py (colors_vivid)
+
+trace_color = '#D71000'
+""" Default color for traces."""
+
+data_color = '#1040C0'
+""" Default color for the full data trace."""
+
+fit_color = '#E09080'
+""" Default color for fits."""
+
+spectrum_color = '#1040C0'
+""" Default color for power spectra."""
+
+data_styles = dict(dstyle=dict(color=data_color, lw=1.4),
+                   wstyle=dict(color=trace_color, lw=1.4))
+
+trace_style = dict(color=trace_color, lw=2)
+                           
+spectrum_style = dict(color=spectrum_color, lw=2)
+
+eod_styles = dict(mstyle=dict(color=trace_color, lw=3),
+                  sstyle=dict(color='0.8'),
+                  fstyle=dict(color=fit_color, lw=6),
+                  zstyle=dict(color='0.3', lw=1))
+                      
+snippet_style = dict(scaley=False, lw=0.5, color='0.6')
+
+wave_spec_styles = dict(mstyle=dict(color=spectrum_color, markersize=10),
+                        sstyle=dict(color=spectrum_color, alpha=0.5, lw=2))
+
+pulse_spec_styles = dict(sstyle=dict(color=spectrum_color, lw=3),
+                         pstyle=dict(ls='', marker='o', markersize=12,
+                                     color=spectrum_color, mec='none', mew=0,
+                                     alpha=0.6),
+                         cstyle=dict(ls='-', color='0.5', lw=1),
+                         att5_color='0.8',
+                         att50_color='0.9')
 
 def configuration():
     """Assemble configuration parameter for thunderfish.
@@ -637,7 +675,7 @@ def plot_eods(base_name, message_filename,
             twidth = (1+twidth//0.005)*0.005
         if data is not None and len(data) > 0:
             plot_eod_recording(axr, data, rate, unit, twidth,
-                               idx0/rate)
+                               idx0/rate, trace_style)
             plot_pulse_eods(axr, data, rate,
                             zoom_window, twidth, eod_props,
                             idx0/rate, colors=pulse_colors,
@@ -677,7 +715,8 @@ def plot_eods(base_name, message_filename,
         if psd_data is not None and len(psd_data) > 0:
             plot_decibel_psd(axp, psd_data[:,0], psd_data[:,1],
                              log_freq=log_freq, min_freq=min_freq,
-                             max_freq=max_freq, ymarg=5.0)
+                             max_freq=max_freq, ymarg=5.0,
+                             sstyle=spectrum_style)
         axp.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
             axp.get_legend().set_visible(False)
@@ -761,10 +800,11 @@ def plot_eods(base_name, message_filename,
                                markersize=p[pk].get_markersize(), mec='none', clip_on=False,
                                label=p[pk].get_label(), transform=ax.transAxes)
                 ax.add_line(ma)
-        plot_eod_waveform(ax, mean_eod, props, peaks, unit)
+        plot_eod_waveform(ax, mean_eod, props, peaks, unit, **eod_styles)
         if props['type'] == 'pulse' and 'times' in props:
             plot_eod_snippets(ax, data, rate, mean_eod[0,0], mean_eod[-1,0],
-                              props['times'], n_snippets, props['flipped'])
+                              props['times'], n_snippets, props['flipped'],
+                              snippet_style)
         if not large_plots and k < max_plots-2:
             ax.set_xlabel('')
         ax.format_coord = meaneod_format_coord
@@ -775,7 +815,7 @@ def plot_eods(base_name, message_filename,
             if  props['type'] == 'pulse':
                 ax = fig.add_axes([midx, posy, halfwidth, pheight])
                 axes_style(ax)
-                plot_pulse_spectrum(ax, spec, props)
+                plot_pulse_spectrum(ax, spec, props, **pulse_spec_styles)
                 ax.set_title('Single pulse spectrum', fontsize=14, y=1.05)
                 ax.format_coord = pulsepsd_format_coord
             else:
@@ -783,7 +823,8 @@ def plot_eods(base_name, message_filename,
                 axes_style(axa)
                 axp = fig.add_axes([midx, posy, halfwidth, sheight])
                 axes_style(axp)
-                plot_wave_spectrum(axa, axp, spec, props, unit)
+                plot_wave_spectrum(axa, axp, spec, props, unit,
+                                   **wave_spec_styles)
                 axa.set_title('Amplitude and phase spectrum', fontsize=14, y=1.05)
                 axa.set_xticklabels([])
                 axa.yaxis.set_major_locator(ticker.MaxNLocator(4))
@@ -797,7 +838,8 @@ def plot_eods(base_name, message_filename,
     ax = fig.add_axes([leftx, 0.6/height, fullwidth, 0.9/height])
     axes_style(ax)
     if raw_data is not None and len(raw_data) > 0:
-        plot_data_window(ax, raw_data, rate, unit, idx0, idx1, clipped)
+        plot_data_window(ax, raw_data, rate, unit, idx0, idx1, clipped,
+                         **data_styles)
     ax.format_coord = recording_format_coord
 
     return fig
@@ -877,7 +919,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
     if 'r' in subplots:
         fig, ax = plt.subplots(figsize=(10, 2))
         fig.subplots_adjust(left=0.07, right=0.99, bottom=0.22, top=0.95)
-        plot_data_window(ax, raw_data, rate, unit, idx0, idx1, clipped)
+        plot_data_window(ax, raw_data, rate, unit, idx0, idx1, clipped,
+                         **data_styles)
         ax.yaxis.set_major_locator(ticker.MaxNLocator(5))
         axes_style(ax)
         if save:
@@ -898,7 +941,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
         pulse_colors = pulse_colors[3:]
         pulse_markers = pulse_markers[3:]
         plot_eod_recording(ax, raw_data[idx0:idx1], rate, unit,
-                           twidth, idx0/rate)
+                           twidth, idx0/rate, trace_style)
         plot_pulse_eods(ax, raw_data[idx0:idx1], rate, zoom_window,
                         twidth, eod_props, idx0/rate,
                         colors=pulse_colors, markers=pulse_markers,
@@ -934,7 +977,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                                  colors=wave_colors, markers=wave_markers,
                                  frameon=False, **kwargs)
         plot_decibel_psd(ax, psd_data[:,0], psd_data[:,1], log_freq=log_freq,
-                         min_freq=min_freq, max_freq=max_freq, ymarg=5.0, color='blue')
+                         min_freq=min_freq, max_freq=max_freq, ymarg=5.0,
+                         sstyle=spectrum_style)
         ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
         if len(wave_eodfs) == 1:
             ax.get_legend().set_visible(False)
@@ -955,13 +999,13 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
             fig.subplots_adjust(left=0.18, right=0.98, bottom=0.15, top=0.9)
             if not props is None:
                 ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props))
-            plot_eod_waveform(ax, meod, props, peaks, unit)
+            plot_eod_waveform(ax, meod, props, peaks, unit, **eod_styles)
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
             if not props is None and props['type'] == 'pulse' and \
                'times' in props:
                 plot_eod_snippets(ax, data, rate, meod[0,0],
                                   meod[-1,0], props['times'],
-                                  n_snippets)
+                                  n_snippets, False, snippet_style)
             ax.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax)
             if mpdf is None:
@@ -983,7 +1027,7 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                 fig.subplots_adjust(left=0.15, right=0.967, bottom=0.16, top=0.88)
                 axes_style(ax)
                 ax.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
-                plot_pulse_spectrum(ax, spec, props)
+                plot_pulse_spectrum(ax, spec, props, **pulse_spec_styles)
             else:
                 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(5, 3.5))
                 fig.subplots_adjust(left=0.15, right=0.97, bottom=0.16, top=0.88, hspace=0.4)
@@ -991,7 +1035,8 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
                 axes_style(ax2)
                 if not props is None:
                     ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.15)
-                plot_wave_spectrum(ax1, ax2, spec, props, unit)
+                plot_wave_spectrum(ax1, ax2, spec, props, unit,
+                                   **wave_spec_styles)
                 ax1.set_xticklabels([])
                 ax1.yaxis.set_major_locator(ticker.MaxNLocator(4))
             if mpdf is None:
@@ -1014,25 +1059,26 @@ def plot_eod_subplots(base_name, subplots, raw_data, rate, idx0, idx1,
             ax1 = fig.add_subplot(gs[:,0])
             if not props is None:
                 ax1.set_title('{index:d}: {EODf:.1f} Hz {type} fish'.format(**props), y=1.07)
-            plot_eod_waveform(ax1, meod, props, peaks, unit)
+            plot_eod_waveform(ax1, meod, props, peaks, unit, **eod_styles)
             data = raw_data[idx0:idx1] if idx1 > idx0 else raw_data
             if not props is None and props['type'] == 'pulse' and 'times' in props:
                 plot_eod_snippets(ax1, data, rate, meod[0,0],
                                   meod[-1,0], props['times'],
-                                  n_snippets)
+                                  n_snippets, False, snippet_style)
             ax1.yaxis.set_major_locator(ticker.MaxNLocator(6))
             axes_style(ax1)
             if not props is None and props['type'] == 'pulse':
                 ax2 = fig.add_subplot(gs[:,1])
                 axes_style(ax2)
-                plot_pulse_spectrum(ax2, spec, props)
+                plot_pulse_spectrum(ax2, spec, props, **pulse_spec_styles)
                 ax2.set_title('Single pulse spectrum', y=1.07)
             else:
                 ax2 = fig.add_subplot(gs[0,1])
                 ax3 = fig.add_subplot(gs[1,1])
                 axes_style(ax2)
                 axes_style(ax3)
-                plot_wave_spectrum(ax2, ax3, spec, props, unit)
+                plot_wave_spectrum(ax2, ax3, spec, props, unit,
+                                   **wave_spec_styles)
                 ax2.set_title('Amplitude and phase spectrum', y=1.15)
                 ax2.set_xticklabels([])
                 ax2.yaxis.set_major_locator(ticker.MaxNLocator(4))

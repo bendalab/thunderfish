@@ -536,8 +536,8 @@ def plot_best_window(data, rate, threshold, peak_idx, trough_idx, idx0, idx1,
 
 
 def plot_data_window(ax, data, rate, unit, idx0, idx1, clipped,
-                     dstyle=dict(color='#1040C0', lw=1.4),
-                     wstyle=dict(color='#D71000', lw=1.4)):
+                     dstyle=dict(color='tab:blue', lw=1),
+                     wstyle=dict(color='tab:red', lw=1)):
     """Plot the data and mark the analysis window.
 
     Parameters

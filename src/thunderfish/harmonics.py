@@ -1459,7 +1459,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
                              mains=None, all_freqs=None,
                              good_freqs=None, log_freq=False,
                              min_freq=0.0, max_freq=2000.0, ymarg=0.0,
-                             pstyle=dict(color='#1040C0')):
+                             sstyle=dict(color='tab:blue', lw=1)):
     """Plot decibel power-spectrum with detected peaks, harmonic groups,
     and mains frequencies.
     
@@ -1490,7 +1490,7 @@ def plot_psd_harmonic_groups(ax, psd_freqs, psd, group_list,
         if `max_freq` is greater than zero
     ymarg: float
         Add this to the maximum decibel power for setting the ylim.
-    pstyle: dict
+    sstyle: dict
         Arguments passed on to the plot command for the power spectrum.
     """
     
