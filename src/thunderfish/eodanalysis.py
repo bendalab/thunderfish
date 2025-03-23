@@ -1897,17 +1897,18 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
         Arguments passed on to the plot command for the zero line.
     """
     ax.autoscale(True)
-    time = 1000.0 * eod_waveform[:,0]
+    time = 1000 * eod_waveform[:,0]
     mean_eod = eod_waveform[:,1]
     # plot zero line:
     ax.axhline(0.0, zorder=-5, **zstyle)
     # plot areas:
-    if pstyle is not None and len(pstyle) > 0:
-        ax.fill_between(time, mean_eod, 0, mean_eod >= 0, zorder=4,
-                        **pstyle)
-    if nstyle is not None and len(nstyle) > 0:
-        ax.fill_between(time, mean_eod, 0, mean_eod <= 0, zorder=4,
-                        **nstyle)
+    if peaks is not None and len(peaks) > 0:
+        if pstyle is not None and len(pstyle) > 0:
+            ax.fill_between(time, mean_eod, 0, mean_eod >= 0, zorder=4,
+                            **pstyle)
+        if nstyle is not None and len(nstyle) > 0:
+                ax.fill_between(time, mean_eod, 0, mean_eod <= 0, zorder=4,
+                                **nstyle)
     # plot fit:
     if eod_waveform.shape[1] > 3:
         ax.plot(time, eod_waveform[:,3], zorder=5, **fstyle)
@@ -1941,11 +1942,11 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
         if np.abs(ty) < 0.5*font_size:
             ty = 0.5*font_size*np.sign(ty)
         va = 'bottom' if ty > 0.0 else 'top'
-        ax.text(1000.0*x, ty, label, ha='left', va=va, zorder=20)
+        ax.text(1000*x, ty, label, ha='left', va=va, zorder=20)
     # annotate peaks:
-    if peaks is not None and len(peaks)>0:
+    if peaks is not None and len(peaks) > 0:
         for p in peaks:
-            ax.plot(1000.0*p[1], p[2], 'o', clip_on=False, zorder=0,
+            ax.plot(1000*p[1], p[2], 'o', clip_on=False, zorder=0,
                     alpha=0.4, color=mstyle['color'], ms=12,
                     mec='none', mew=0)
             label = f'P{p[0]:.0f}'
@@ -1960,14 +1961,11 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                     ps = f'{100*p[3]:.1f}%'
                 else:
                     ps = f'{100*p[3]:.0f}%'
-                if np.abs(p[6]) < 0.05:
-                    us = f'{100*p[6]:.1f}%'
-                else:
-                    us = f'{100*p[6]:.0f}%'
-                label += f'(a={ps} A={us} @ {ts})'
-            va = 'bottom'
+                label += f'({ps} @ {ts})'
+            va = 'baseline'
             dy = 0.4*font_size
-            if p[0] % 2 == 0:
+            sign = np.sign(p[2])
+            if sign < 0:
                 va = 'top'
                 dy = -dy
             if p[0] == 1:
@@ -1975,21 +1973,38 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
             """
             if p[2] <= np.min(peaks[:,2]):
                 dy = -0.8*font_size
-                va = 'bottom'
+                va = 'baseline'
             """
             if p[2] + dy < ymin + 1.3*font_size:
                 dy = ymin + 1.3*font_size - p[2]
-            sign = np.sign(p[2])
             if p[0] == np.max(peaks[:,0]) and ty*p[2] > 0.0 and \
                sign*p[2]+dy < sign*ty+1.2*font_size:
                 dy = ty + sign*1.2*font_size - p[2]
             dx = 0.05*time[-1]
             if p[1] >= 0.0:
-                ax.text(1000.0*p[1]+dx, p[2]+dy, label,
+                ax.text(1000*p[1]+dx, p[2]+dy, label,
                         ha='left', va=va, zorder=20)
             else:
-                ax.text(1000.0*p[1]-dx, p[2]+dy, label,
+                ax.text(1000*p[1]-dx, p[2]+dy, label,
                         ha='right', va=va, zorder=20)
+            # area:
+            if len(p) > 6:
+                if np.abs(p[6]) < 0.05:
+                    label = f'{100*p[6]:.1f}%'
+                else:
+                    label = f'{100*p[6]:.0f}%'
+                dx = 1000*0.3*props['P2-P1-dist']
+                if p[0] <= 1:
+                    dx = -dx
+                if abs(p[3]) > 0.5:
+                    ax.text(1000*p[1] + dx, sign*0.6*font_size, label,
+                            rotation='vertical',
+                            va='top' if sign < 0 else 'bottom',
+                            ha='center', zorder=20)
+                else:
+                    ax.text(1000*p[1] + dx, -sign*0.4*font_size, label,
+                            va='baseline' if sign < 0 else 'top',
+                            ha='center', zorder=20)
     # annotate plot:
     if unit is None or len(unit) == 0 or unit == 'a.u.':
         unit = ''
