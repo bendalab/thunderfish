@@ -246,9 +246,13 @@ In the summary plots you can press
 
 - `q`: Close the plot window and show the next one or quit.
 - `p`: Play the analyzed section of the reording on the default audio device.
+- `m`: Play an associated voice message file (a file with the same name but `-message` added.
 - `o`: Switch on zoom mode. You can draw a rectangle with the mouse to zoom in.
 - `Backspace`: Zoom back. 
 - `f`: Toggle full screen mode.
+
+Notem that the coordinates under the mouse pointer are displayed as
+well (usually in the bottom right corner).
 
 By default, the summary plots display at maximum four EOD waveforms
 with the largest amplitudes. If only a single waveform is found, then
