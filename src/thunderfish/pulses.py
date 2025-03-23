@@ -72,7 +72,7 @@ def unique_counts(ar):
 ###########################################################################
 
 
-def extract_pulsefish(data, rate, width_factor_shape=3,
+def extract_pulsefish(data, rate, amax, width_factor_shape=3,
                       width_factor_wave=8, width_factor_display=4,
                       verbose=0, plot_level=0, save_plots=False,
                       save_path='', ftype='png', return_data=[]):
@@ -330,7 +330,8 @@ def extract_pulsefish(data, rate, width_factor_shape=3,
     # log_dict["interp_fac"] = interp_fac  # TODO: is not set anymore
                                          
     # standard deviation of data in small snippets:
-    threshold = median_std_threshold(data, rate)  # TODO make this a parameter
+    win_size = int(0.002*rate) # 2ms windows
+    threshold = median_std_threshold(data, win_size)  # TODO make this a parameter
     
     # extract peaks:
     if 'peak_detection' in return_data:
@@ -357,6 +358,7 @@ def extract_pulsefish(data, rate, width_factor_shape=3,
                                                 i_rate,
                                                 width_factor_shape,
                                                 width_factor_wave,
+                                                merge_threshold_height=0.1*amax,
                                                 verbose=verbose-1,
                                                 plot_level=plot_level-1,
                                                 save_plots=save_plots,

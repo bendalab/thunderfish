@@ -264,7 +264,10 @@ def detect_eods(data, rate, min_clip, max_clip, name, mode,
 
     if 'p' in mode:
         # detect pulse fish:
-        _, eod_times, eod_peaktimes, zoom_window, _ = extract_pulsefish(data, rate, verbose=verbose-1, plot_level=plot_level, save_path=os.path.splitext(os.path.basename(name))[0])
+        _, eod_times, eod_peaktimes, zoom_window, _ = \
+            extract_pulsefish(data, rate, max_clip, verbose=verbose-1,
+                              plot_level=plot_level,
+                              save_path=os.path.splitext(os.path.basename(name))[0])
 
         #eod_times = []
         #eod_peaktimes = []
