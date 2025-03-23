@@ -1854,6 +1854,10 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
         
 def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                       mstyle=dict(lw=2, color='tab:red'),
+                      pstyle=dict(facecolor='tab:green', alpha=0.2,
+                                  edgecolor='none'),
+                      nstyle=dict(facecolor='tab:blue', alpha=0.2,
+                                  edgecolor='none'),
                       sstyle=dict(color='0.8'),
                       fstyle=dict(lw=6, color='tab:blue'),
                       zstyle=dict(lw=1, color='0.7')):
@@ -1878,6 +1882,12 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
         Optional unit of the data used for y-label.
     mstyle: dict
         Arguments passed on to the plot command for the mean EOD.
+    pstyle: dict
+        Arguments passed on to the fill_between command for coloring
+        positive phases.
+    nstyle: dict
+        Arguments passed on to the fill_between command for coloring
+        negative phases.
     sstyle: dict
         Arguments passed on to the fill_between command for the
         standard error of the EOD.
@@ -1888,13 +1898,20 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
     """
     ax.autoscale(True)
     time = 1000.0 * eod_waveform[:,0]
+    mean_eod = eod_waveform[:,1]
     # plot zero line:
     ax.axhline(0.0, zorder=-5, **zstyle)
+    # plot areas:
+    if pstyle is not None and len(pstyle) > 0:
+        ax.fill_between(time, mean_eod, 0, mean_eod >= 0, zorder=4,
+                        **pstyle)
+    if nstyle is not None and len(nstyle) > 0:
+        ax.fill_between(time, mean_eod, 0, mean_eod <= 0, zorder=4,
+                        **nstyle)
     # plot fit:
     if eod_waveform.shape[1] > 3:
         ax.plot(time, eod_waveform[:,3], zorder=5, **fstyle)
     # plot waveform:
-    mean_eod = eod_waveform[:,1]
     ax.plot(time, mean_eod, zorder=10, **mstyle)
     # plot standard error:
     if eod_waveform.shape[1] > 2:

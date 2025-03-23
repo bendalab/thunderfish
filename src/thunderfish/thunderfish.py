@@ -88,6 +88,10 @@ trace_style = dict(color=trace_color, lw=2)
 spectrum_style = dict(color=spectrum_color, lw=2)
 
 eod_styles = dict(mstyle=dict(color=trace_color, lw=3),
+                  pstyle=dict(facecolor='#00A050', alpha=0.2,
+                              edgecolor='none'),
+                  nstyle=dict(facecolor='#1040C0', alpha=0.2,
+                              edgecolor='none'),
                   sstyle=dict(color='0.8'),
                   fstyle=dict(color=fit_color, lw=6),
                   zstyle=dict(color='0.3', lw=1))
