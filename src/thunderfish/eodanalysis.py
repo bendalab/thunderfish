@@ -1854,7 +1854,8 @@ def plot_eod_snippets(ax, data, rate, tmin, tmax, eod_times,
                 zorder=-5, **sstyle)
 
         
-def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
+def plot_eod_waveform(ax, eod_waveform, props, peaks=None,
+                      unit=None, tfac=1,
                       mstyle=dict(lw=2, color='tab:red'),
                       pstyle=dict(facecolor='tab:green', alpha=0.2,
                                   edgecolor='none'),
@@ -1882,6 +1883,8 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
         as returned by `analyze_pulse()`.
     unit: string
         Optional unit of the data used for y-label.
+    tfac: float
+        Factor scaling the time axis limits.
     mstyle: dict
         Arguments passed on to the plot command for the mean EOD.
     pstyle: dict
@@ -2031,10 +2034,10 @@ def plot_eod_waveform(ax, eod_waveform, props, peaks=None, unit=None,
                     va='top', zorder=20)
     # axis:                
     if props is not None and props['type'] == 'wave':
-        lim = 750.0/props['EODf']
+        lim = tfac*1000.0/props['EODf']
         ax.set_xlim([-lim, +lim])
     else:
-        ax.set_xlim(time[0], time[-1])
+        ax.set_xlim(tfac*time[0], tfac*time[-1])
     ax.set_xlabel('Time [msec]')
     if unit:
         ax.set_ylabel(f'Amplitude [{unit}]')
